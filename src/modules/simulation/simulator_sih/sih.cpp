@@ -318,6 +318,8 @@ void Sih::parameters_updated()
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
 	_distance_snsr_override = _sih_distance_snsr_override.get();
+	_px4_rangefinder.set_min_distance(_distance_snsr_min);
+	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
 	_T_TAU = _sih_thrust_tau.get();
 
@@ -679,36 +681,21 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.address = 0;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
-
-	distance_sensor_s distance_sensor{};
-	// distance_sensor.timestamp_sample = time_now_us;
-	distance_sensor.device_id = device_id.devid;
-	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	distance_sensor.min_distance = _distance_snsr_min;
-	distance_sensor.max_distance = _distance_snsr_max;
-	distance_sensor.signal_quality = -1;
+	float current_distance;
 
 	if (_distance_snsr_override >= 0.f) {
-		distance_sensor.current_distance = _distance_snsr_override;
+		current_distance = _distance_snsr_override;
 
 	} else {
-		distance_sensor.current_distance = -_lpos(2) / _q.dcm_z()(2);
+		current_distance = -_lpos(2) / _q.dcm_z()(2);
 
-		if (distance_sensor.current_distance > _distance_snsr_max) {
+		if (current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour
-			distance_sensor.current_distance = UINT16_MAX / 100.f;
-
+			current_distance = UINT16_MAX / 100.f;
 		}
 	}
 
-	distance_sensor.timestamp = hrt_absolute_time();
-	_distance_snsr_pub.publish(distance_sensor);
+	_px4_rangefinder.update(hrt_absolute_time(), current_distance);
 }
 
 void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
