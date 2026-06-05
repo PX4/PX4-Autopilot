@@ -49,11 +49,13 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/obstacle_distance.h>
 
 #include <matrix/matrix/math.hpp>
 #include "matrix/Vector2.hpp"
 #include <mathlib/mathlib.h>
+
 
 #define MPDATASIZE 576
 
@@ -82,11 +84,12 @@ private:
 	};
 
 	int collect();
+	bool parse_byte(uint8_t byte);
 	int process_frame(const uint8_t *frame, size_t length);
 
 	void Run() override;
 
-	void start();
+	int start();
 	void stop();
 
 	obstacle_distance_s 			_obstacle_distance{};
@@ -119,8 +122,9 @@ private:
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 
-	unsigned int _baud = 921600; // ASDT1 default baud rate
+	unsigned int _baud = 115200; // ASDT1 default baud rate
 
 	float range_min = 0.0f;    // in mm
 	float range_max = 50000.0f; // in mm
+
 };

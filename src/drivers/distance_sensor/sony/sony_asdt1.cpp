@@ -47,8 +47,7 @@
 #include <cmath>
 #include <cstring>
 
-AS_DT1::AS_DT1(const char *device):
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
+AS_DT1::AS_DT1(const char *device) : ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
 {
 	// // store port name
 	// strncpy(_device, device, sizeof(_device) - 1);
@@ -226,11 +225,6 @@ int AS_DT1::collect()
 	bool received_data = false;
 	bool backlog_flushed = false;
 
-	constexpr char begin_marker[] = "BEGIN MP\r\n";
-	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
-	constexpr char end_marker[] = "END";
-	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
-
 	for (uint8_t read_count = 0; read_count < MAX_READS_PER_COLLECT; read_count++) {
 		ssize_t bytes_available = _uart.bytesAvailable();
 
@@ -274,59 +268,7 @@ int AS_DT1::collect()
 		_last_read = hrt_absolute_time();
 
 		for (ssize_t i = 0; i < bytes_read; i++) {
-			const uint8_t byte = read_buffer[i];
-
-			switch (_parser_state) {
-			case ParserState::FindBegin:
-				if (byte == static_cast<uint8_t>(begin_marker[_begin_match_index])) {
-					_begin_match_index++;
-
-					if (_begin_match_index == begin_marker_len) {
-						_parser_state = ParserState::ReadPayload;
-						_frame_buffer_len = 0;
-						_begin_match_index = 0;
-					}
-
-				} else {
-					_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
-				}
-
-				break;
-
-			case ParserState::ReadPayload:
-				_frame_buffer[_frame_buffer_len++] = byte;
-
-				if (_frame_buffer_len >= ASDT1_RAW_FRAME_SIZE) {
-					_parser_state = ParserState::FindEnd;
-					_end_match_index = 0;
-				}
-
-				break;
-
-			case ParserState::FindEnd:
-				if (byte == static_cast<uint8_t>(end_marker[_end_match_index])) {
-					_end_match_index++;
-
-					if (_end_match_index == end_marker_len) {
-						memcpy(_latest_frame, _frame_buffer, ASDT1_RAW_FRAME_SIZE);
-						_latest_frame_len = ASDT1_RAW_FRAME_SIZE;
-						_have_latest_frame = true;
-
-						_parser_state = ParserState::FindBegin;
-						_frame_buffer_len = 0;
-						_begin_match_index = 0;
-						_end_match_index = 0;
-					}
-
-				} else {
-					_parser_state = ParserState::FindBegin;
-					_frame_buffer_len = 0;
-					_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
-					_end_match_index = 0;
-				}
-
-				break;
-			}
+			parse_byte(read_buffer[i]);
 		}
 	}
 
@@ -342,6 +284,70 @@ int AS_DT1::collect()
 	return (received_data || backlog_flushed) ? PX4_OK : -EAGAIN;
 }
 
+bool AS_DT1::parse_byte(uint8_t byte)
+{
+	constexpr char begin_marker[] = "BEGIN MP\r\n";
+	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
+	constexpr char end_marker[] = "END";
+	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
+
+	switch (_parser_state) {
+	case ParserState::FindBegin:
+		if (byte == static_cast<uint8_t>(begin_marker[_begin_match_index])) {
+			_begin_match_index++;
+
+			if (_begin_match_index == begin_marker_len) {
+				_parser_state = ParserState::ReadPayload;
+				_frame_buffer_len = 0;
+				_begin_match_index = 0;
+			}
+
+		} else {
+			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
+		}
+
+		break;
+
+	case ParserState::ReadPayload:
+		_frame_buffer[_frame_buffer_len++] = byte;
+
+		if (_frame_buffer_len >= ASDT1_RAW_FRAME_SIZE) {
+			_parser_state = ParserState::FindEnd;
+			_end_match_index = 0;
+		}
+
+		break;
+
+	case ParserState::FindEnd:
+		if (byte == static_cast<uint8_t>(end_marker[_end_match_index])) {
+			_end_match_index++;
+
+			if (_end_match_index == end_marker_len) {
+				memcpy(_latest_frame, _frame_buffer, ASDT1_RAW_FRAME_SIZE);
+				_latest_frame_len = ASDT1_RAW_FRAME_SIZE;
+				_have_latest_frame = true;
+
+				_parser_state = ParserState::FindBegin;
+				_frame_buffer_len = 0;
+				_begin_match_index = 0;
+				_end_match_index = 0;
+
+				return true;
+			}
+
+		} else {
+			_parser_state = ParserState::FindBegin;
+			_frame_buffer_len = 0;
+			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
+			_end_match_index = 0;
+		}
+
+		break;
+	}
+
+	return false;
+}
+
 int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 {
 	if (frame == nullptr || length != ASDT1_RAW_FRAME_SIZE) {
@@ -355,7 +361,7 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 	}
 
 	const auto update_obstacle_bin = [this](int32_t raw_x, int32_t raw_y, int32_t raw_z) {
-		const float sensor_x_mm = static_cast<float>(raw_x) / 4.0f;
+		// const float sensor_x_mm = static_cast<float>(raw_x) / 4.0f;
 		const float sensor_y_mm = static_cast<float>(raw_y) / 4.0f;
 		const float sensor_z_mm = static_cast<float>(raw_z) / 4.0f;
 
