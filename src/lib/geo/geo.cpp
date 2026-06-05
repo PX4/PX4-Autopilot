@@ -381,7 +381,7 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 	return return_value;
 }
 
-float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float alt_now,
+float get_distance_to_point_global_spherical(double lat_now, double lon_now, float alt_now,
 		double lat_next, double lon_next, float alt_next,
 		float *dist_xy, float *dist_z)
 {

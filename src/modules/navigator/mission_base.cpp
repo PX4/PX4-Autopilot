@@ -1274,7 +1274,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 			if (!((mission.nav_cmd == NAV_CMD_LAND) &&
 			      (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
 			      (!vehicle_status.is_vtol))) {
-				float dist = get_distance_to_point_global_wgs84(mission.lat, mission.lon,
+				float dist = get_distance_to_point_global_spherical(mission.lat, mission.lon,
 						MissionBlock::get_absolute_altitude_for_item(mission, home_alt),
 						lat,
 						lon,
