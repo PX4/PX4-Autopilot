@@ -211,7 +211,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		// Line following only between points on the path, not when flying to the first point
 		if (is_first_waypoint || is_last_waypoint) {
-			pos_sp_triplet->previous.valid = false;
+			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 		} else {
 			pos_sp_triplet->previous = current_setpoint_copy;
