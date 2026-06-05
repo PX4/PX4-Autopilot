@@ -93,7 +93,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 
 	channel_stats[chan_index].edges++;
 	channel_stats[chan_index].last_time = isrs_time - (isrs_rcnt - capture);
-	uint32_t overflow = 0;//_REG32(timer, KINETIS_FTM_CSC_OFFSET(chan->timer_channel - 1)) & FTM_CSC_CHF;
+	uint32_t overflow = 0;//_REG32(timer, KINETIS_FTM_CSC_OFFSET(chan->timer_channel)) & FTM_CSC_CHF;
 
 	if (overflow) {
 

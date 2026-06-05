@@ -49,8 +49,6 @@ uint16_t board_get_can_interfaces(void)
 {
 	uint16_t enabled_interfaces = 0x3;
 
-	enabled_interfaces &= ~(1 << 1);
-
 	return enabled_interfaces;
 }
 

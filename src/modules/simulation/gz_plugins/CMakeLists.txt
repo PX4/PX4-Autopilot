@@ -34,10 +34,10 @@
 project(px4_gz_plugins)
 
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport gz-transport14 gz-transport13)
-    find_package(gz-sim NAMES gz-sim gz-sim9 gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors gz-sensors9 gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin gz-plugin3 gz-plugin2 COMPONENTS register)
+    find_package(gz-transport NAMES gz-transport gz-transport15 gz-transport14 gz-transport13)
+    find_package(gz-sim NAMES gz-sim gz-sim10 gz-sim9 gz-sim8)
+    find_package(gz-sensors NAMES gz-sensors gz-sensors10 gz-sensors9 gz-sensors8)
+    find_package(gz-plugin NAMES gz-plugin gz-plugin4 gz-plugin3 gz-plugin2 COMPONENTS register)
 else()
     find_package(gz-transport NAMES gz-transport13)
     find_package(gz-sim NAMES gz-sim8)
@@ -46,6 +46,13 @@ else()
 endif()
 
 if (gz-transport_FOUND)
+    # gcc-15 + libstdc++ emits spurious -Wmaybe-uninitialized inside
+    # gz-transport15's FullyQualifiedTopic::FullTopic() (std::optional<string>).
+    # Keep warning visible but don't make it fatal. will probably be fixed by gazebo in the future
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15
+        AND gz-transport_VERSION VERSION_GREATER_EQUAL 15)
+        add_compile_options(-Wno-error=maybe-uninitialized)
+    endif()
     if (gz-transport_VERSION VERSION_LESS "15")
         set(GZ_TRANSPORT_TARGET "gz-transport${gz-transport_VERSION_MAJOR}::gz-transport${gz-transport_VERSION_MAJOR}")
         set(GZ_SIM_TARGET "gz-sim${gz-sim_VERSION_MAJOR}::gz-sim${gz-sim_VERSION_MAJOR}")

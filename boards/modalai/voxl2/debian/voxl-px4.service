@@ -6,7 +6,7 @@ Requires=sscrpcd.service
 [Service]
 ExecStartPre=/bin/sleep 2
 ExecStart=/usr/bin/voxl-px4
-ExecStopPost=/usr/bin/voxl-reset-slpi
+ExecStopPost=/usr/bin/voxl-reset-slpi -t 10000
 Restart=on-failure
 
 [Install]

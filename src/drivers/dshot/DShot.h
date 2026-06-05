@@ -170,8 +170,10 @@ private:
 
 	// Serial telemetry adaptive skip: stop polling motors that never respond
 	static constexpr int SERIAL_TELEM_SKIP_THRESHOLD = 10; // consecutive timeouts before skipping
+	static constexpr hrt_abstime SERIAL_TELEM_RETRY_INTERVAL = 3_s; // disarmed retry period
 	uint16_t _serial_telem_skip_mask = 0; // motors to skip in round-robin
 	uint8_t _serial_telem_consecutive_timeouts[DSHOT_MAX_MOTORS] = {};
+	hrt_abstime _serial_telem_last_retry = 0;
 
 	// Serial Telemetry
 	DShotTelemetry _telemetry;

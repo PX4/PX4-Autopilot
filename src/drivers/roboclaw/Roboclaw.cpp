@@ -334,7 +334,7 @@ int Roboclaw::writeCommandWithPayload(Command command, uint8_t *wbuff, size_t by
 
 	// Not all bytes sent
 	if (bytes_written < packet_size) {
-		PX4_ERR("Only wrote %d out of %d bytes", bytes_written, bytes_to_write);
+		PX4_ERR("Only wrote %zu out of %zu bytes", bytes_written, bytes_to_write);
 		return ERROR;
 	}
 
@@ -381,7 +381,7 @@ int Roboclaw::writeCommand(Command command)
 	size_t bytes_written = write(_uart_fd, buffer, 2);
 
 	if (bytes_written < 2) {
-		PX4_ERR("Only wrote %d out of %d bytes", bytes_written, 2);
+		PX4_ERR("Only wrote %zu out of %d bytes", bytes_written, 2);
 		return ERROR;
 	}
 

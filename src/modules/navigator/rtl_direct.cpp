@@ -592,7 +592,7 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 	navigator_mission_item.yaw = _mission_item.yaw;
 
 	navigator_mission_item.frame = _mission_item.frame;
-	navigator_mission_item.frame = _mission_item.origin;
+	navigator_mission_item.origin = _mission_item.origin;
 
 	navigator_mission_item.loiter_exit_xtrack = _mission_item.loiter_exit_xtrack;
 	navigator_mission_item.force_heading = _mission_item.force_heading;

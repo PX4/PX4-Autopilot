@@ -45,7 +45,7 @@
 class UavcanServoController
 {
 public:
-	static constexpr int MAX_ACTUATORS = 8;
+	static constexpr int MAX_ACTUATORS = 15;
 	static constexpr unsigned MAX_RATE_HZ = 50;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 6;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 

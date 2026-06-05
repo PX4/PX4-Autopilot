@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type        | Unit [Frame] | Range/Enum | Description                            |
-| ---------------- | ----------- | ------------ | ---------- | -------------------------------------- |
-| timestamp        | `uint64`    |              |            | time since system start (microseconds) |
-| cmd              | `char[100]` |              |            |
-| strlen           | `uint32`    |              |            |
-| request_sequence | `uint32`    |              |            |
+| Name                                              | Type        | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------------- | ----------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`    |              |            | time since system start (microseconds) |
+| <a id="fld_cmd"></a>cmd                           | `char[100]` |              |            |
+| <a id="fld_strlen"></a>strlen                     | `uint32`    |              |            |
+| <a id="fld_request_sequence"></a>request_sequence | `uint32`    |              |            |
 
 ## Constants
 

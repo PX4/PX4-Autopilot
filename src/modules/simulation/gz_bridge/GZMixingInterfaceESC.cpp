@@ -80,7 +80,7 @@ bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned 
 		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
 		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
+			rotor_velocity_message.set_velocity(i, static_cast<double>(outputs[i]));
 		}
 
 		if (_actuators_pub.Valid()) {

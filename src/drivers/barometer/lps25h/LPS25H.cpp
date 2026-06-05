@@ -151,8 +151,12 @@ int LPS25H::collect()
 		int16_t		t;
 	} report{};
 
-	/* get measurements from the device : MSB enables register address auto-increment */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the one-shot conversion
+	 * was started CONVERSION_INTERVAL ago, so the effective sample
+	 * midpoint is half the conversion interval before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = LPS25H_CONVERSION_INTERVAL / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 	int ret = _interface->read(ADDR_STATUS_REG | (1 << 7), (uint8_t *)&report, sizeof(report));
 
 	if (ret != OK) {

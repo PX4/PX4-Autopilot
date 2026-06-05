@@ -11,5 +11,6 @@ parameters:
         1: AUAV L05D
         2: AUAV L10D
         3: AUAV L30D
+        4: AUAV L60D
       default: 0
       reboot_required: true

@@ -24,7 +24,7 @@ Create the `offb_node.cpp` file in your ROS package (by also adding it to your `
 ```cpp
 /**
  * @file offb_node.cpp
- * @brief Offboard control example node, written with MAVROS version 0.19.x, PX4 Pro Flight
+ * @brief Offboard control example node, written with MAVROS version 0.19.x, PX4 Flight
  * Stack and tested in Gazebo Classic SITL
  */
 
@@ -173,7 +173,7 @@ pose.pose.position.y = 0;
 pose.pose.position.z = 2;
 ```
 
-尽管PX4在航空航天常用的NED坐标系下操控飞机，但MAVROS将自动将该坐标系切换至常规的ENU坐标系下，反之亦然。
+Even though the PX4 Flight Stack operates in the aerospace NED coordinate frame, MAVROS translates these coordinates to the standard ENU frame and vice-versa.
 This is why we set `z` to positive 2.
 
 ```cpp

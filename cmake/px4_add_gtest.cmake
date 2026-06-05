@@ -31,6 +31,15 @@
 #
 ############################################################################
 
+# Attach only matching test binaries to `test_results` when TESTFILTER is set.
+# `ctest -R` filters execution only; without this helper the build still
+# compiles every gtest target before running the filtered subset.
+function(add_filtered_test_dependencies TESTNAME)
+	if(NOT TESTFILTER OR "${TESTNAME}" MATCHES "${TESTFILTER}")
+		add_dependencies(test_results ${TESTNAME})
+	endif()
+endfunction()
+
 #=============================================================================
 #
 #	px4_add_unit_gtest
@@ -74,7 +83,7 @@ function(px4_add_unit_gtest)
 		         WORKING_DIRECTORY ${PX4_BINARY_DIR})
 
 		# attach it to the unit test target
-		add_dependencies(test_results ${TESTNAME})
+		add_filtered_test_dependencies(${TESTNAME})
 	endif()
 endfunction()
 
@@ -133,6 +142,6 @@ function(px4_add_functional_gtest)
 		         COMMAND ${PX4_BINARY_DIR}/${TESTNAME})
 
 		# attach it to the unit test target
-		add_dependencies(test_results ${TESTNAME})
+		add_filtered_test_dependencies(${TESTNAME})
 	endif()
 endfunction()

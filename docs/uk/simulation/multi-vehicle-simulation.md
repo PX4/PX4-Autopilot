@@ -6,6 +6,7 @@ PX4 підтримує симуляцію кількох рухомих засо
 - [Multi-Vehicle Sim with Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md) (both with and without ROS)
 - [Multi-Vehicle Sim with FlightGear](../sim_flightgear/multi_vehicle.md)
 - [Multi-Vehicle Sim with JMAVSim](../sim_jmavsim/multi_vehicle.md)
+- [Multi-Vehicle Sim with SIH](../sim_sih/index.md#multi-vehicle-simulation)
 
 Вибір симулятора залежить від рухомого засобу що моделюється, наскільки "якісна" потрібна симуляція (і для яких функцій), і скільки засобів потрібно симулювати одночасно.
 
@@ -18,5 +19,8 @@ PX4 підтримує симуляцію кількох рухомих засо
   Note, this is the successor of [Gazebo Classic](../sim_gazebo_classic/index.md) (below).
 - [Gazebo Classic](../sim_gazebo_classic/index.md) is less accurate and less heavy-weight and supports many features and vehicles that aren't available for FlightGear.
   Він може симулювати набагато більше засобів за раз, ніж FlightGear, та дозволяє симулювати різні їх типи водночас.
-- JMAVSim - це дуже легкий симулятор, який підтримує лише квадрокоптери.
+- [JMAVSim](../sim_jmavsim/index.md) is a very light-weight simulator that supports only quadcopters.
   Рекомендується у випадку, якщо вам необхідно підтримувати багато квадрокоптерів та симуляція може бути приблизна.
+- [SIH](../sim_sih/index.md) is the lightest-weight option with zero external dependencies.
+  Since SIH is headless and runs physics internally, it can launch many instances with minimal resource usage.
+  It supports all 6 vehicle types (quad, hex, plane, tailsitter, standard VTOL, rover).

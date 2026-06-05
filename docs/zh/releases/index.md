@@ -1,9 +1,22 @@
 # 版本发布
 
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
+<div v-if="site.title !== 'PX4 Guide (main)'">
+  <div class="custom-block danger">
+    <p class="custom-block-title">This page is on a release branch, and hence probably out of date. <a href="https://docs.px4.io/main/en/releases/">See the latest version</a>.</p>
+  </div>
+  <Redirect to="https://docs.px4.io/main/en/releases/" />
+</div>
+
 这是一份 PX4 发行说明列表，其中包含每次发布所做更改的清单，详细说明了新增功能、漏洞修复、弃用内容以及更新情况。
 
-- [main](../releases/main.md) (changes planned for v1.18 or later)
-- [v1.17](../releases/1.17.md) (changes in v1.17, since v1.16)
+- [main](../releases/main.md) (changes planned for v1.19 or later)
+- [v1.18](../releases/1.18.md) (changes in v1.18, since v1.17)
+- [v1.17](../releases/1.17.md)
 - [v1.16](../releases/1.16.md)
 - [v1.15](../releases/1.15.md)
 - [v1.14](../releases/1.14.md)

@@ -50,6 +50,7 @@
 
 #define MPL3115A2_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
+#define MPL3115A2_CONVERSION_TIME	18000	/* ADC conversion time at OSR 2 (ratio 4), microseconds */
 #define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 
 MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config) :
@@ -200,6 +201,8 @@ int MPL3115A2::measure()
 		perf_count(_comms_errors);
 	}
 
+	_measure_start_time = hrt_absolute_time();
+
 	perf_end(_measure_perf);
 
 	return PX4_OK;
@@ -228,7 +231,12 @@ int MPL3115A2::collect()
 	 */
 	uint8_t	b[3 + 2] {};
 	uint8_t reg = OUT_P_MSB;
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
+	/* Correct for measurement integration delay: the conversion was
+	 * started in measure(), so the effective sample midpoint is half the
+	 * conversion time after the start. Using the stored start time avoids
+	 * jitter from the polling interval. */
+	const hrt_abstime timestamp_sample = _measure_start_time + MPL3115A2_CONVERSION_TIME / 2;
 	ret = transfer(&reg, 1, &b[0], sizeof(b));
 
 	if (ret == -EIO) {

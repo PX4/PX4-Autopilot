@@ -93,6 +93,9 @@ bool FlightTaskAuto::updateInitialize()
 	_sub_home_position.update();
 	_sub_vehicle_status.update();
 	_position_setpoint_triplet_sub.update();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_prec_land_status_sub.update();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluatePositionSetpointTriplet();
@@ -238,13 +241,33 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 	if (_type_previous != WaypointType::land) {
 		// initialize yaw and xy-position
-		_land_heading = _yaw_setpoint;
+		_land_heading = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw_setpoint_previous;
+
+		if (!PX4_ISFINITE(_land_heading)) {
+			_land_heading = _yaw;
+		}
+
 		_stick_acceleration_xy.resetPosition(Vector2f(_triplet_current));
 		_initial_land_position = Vector3f(_triplet_current(0), _triplet_current(1), NAN);
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
 	_land_position = Vector3f(_triplet_current(0), _triplet_current(1), NAN);
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+	// Use the raw navigator/precland yaw command here. _yaw_setpoint can stay finite from
+	// generic land yaw logic even after precland clears current.yaw.
+	const uint8_t pld_state = _prec_land_status_sub.get().state;
+	const bool pld_ongoing = pld_state != prec_land_status_s::PREC_LAND_STATE_STOPPED
+				 && pld_state != prec_land_status_s::PREC_LAND_STATE_DONE;
+
+	if (_param_pld_yaw_en.get() && pld_ongoing) {
+		const float prec_land_yaw = _position_setpoint_triplet_sub.get().current.yaw;
+		_land_heading = PX4_ISFINITE(prec_land_yaw) ? prec_land_yaw : _yaw;
+	}
+
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {

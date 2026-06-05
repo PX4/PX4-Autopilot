@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Push slpi image to voxl2
 adb push build/modalai_voxl2_slpi/platforms/qurt/libpx4.so /usr/lib/rfsa/adsp

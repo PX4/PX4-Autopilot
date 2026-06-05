@@ -67,13 +67,15 @@ enum ILabsMode {
 ILabs::ILabs(const char *serialDeviceName)
 	: ModuleParams(nullptr),
 	  ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serialDeviceName)),
-	  _attitude_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA) ? ORB_ID(external_ins_attitude)
-																			 : ORB_ID(vehicle_attitude)),
-	  _local_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA) ? ORB_ID(external_ins_local_position)
-																				   : ORB_ID(vehicle_local_position)),
+	  _attitude_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
+			    ? ORB_ID(external_ins_attitude)
+			    : ORB_ID(vehicle_attitude)),
+	  _local_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
+				  ? ORB_ID(external_ins_local_position)
+				  : ORB_ID(vehicle_local_position)),
 	  _global_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-							   ? ORB_ID(external_ins_global_position)
-							   : ORB_ID(vehicle_global_position)) {
+				   ? ORB_ID(external_ins_global_position)
+				   : ORB_ID(vehicle_global_position)) {
 	// store port name
 	strncpy(_serialDeviceName, serialDeviceName, sizeof(_serialDeviceName) - 1);
 
@@ -470,8 +472,8 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		sensor_gps.latitude_deg   = data->gps.latitude;
 		sensor_gps.longitude_deg  = data->gps.longitude;
-		sensor_gps.altitude_ellipsoid_m = data->gps.altitude;
-		sensor_gps.altitude_msl_m = data->gps.altitude;
+		sensor_gps.altitude_ellipsoid_m = static_cast<double>(data->gps.altitude);
+		sensor_gps.altitude_msl_m = static_cast<double>(data->gps.altitude);
 
 		sensor_gps.fix_type = data->gps.fixType + 1;
 

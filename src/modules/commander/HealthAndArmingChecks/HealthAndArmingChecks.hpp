@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,6 +75,7 @@
 #include "checks/openDroneIDCheck.hpp"
 #include "checks/trafficAvoidanceCheck.hpp"
 #include "checks/externalChecks.hpp"
+#include "checks/gnssRedundancyCheck.hpp"
 
 class HealthAndArmingChecks : public ModuleParams
 {
@@ -164,6 +165,7 @@ private:
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
 	TrafficAvoidanceChecks _traffic_avoidance_checks;
+	GnssRedundancyChecks _gnss_redundancy_checks;
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks _external_checks;
 #endif
@@ -206,5 +208,6 @@ private:
 		&_rc_and_data_link_checks,
 		&_vtol_checks,
 		&_traffic_avoidance_checks,
+		&_gnss_redundancy_checks,
 	};
 };

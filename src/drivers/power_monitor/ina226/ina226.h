@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,194 +31,158 @@
  *
  ****************************************************************************/
 
-/**
- * @file ina226.h
- *
- */
-
 #pragma once
 
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
-#include <lib/perf/perf_counter.h>
-#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <lib/battery/battery.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
 
 using namespace time_literals;
 
-/* Configuration Constants */
-#define INA226_BASEADDR 	                    0x41 /* 7-bit address. 8-bit address is 0x41 */
-// If initialization is forced (with the -f flag on the command line), but it fails, the drive will try again to
-// connect to the INA226 every this many microseconds
-#define INA226_INIT_RETRY_INTERVAL_US			500000
+namespace ina226
+{
 
-/* INA226 Registers addresses */
-#define INA226_REG_CONFIGURATION             (0x00)
-#define INA226_REG_SHUNTVOLTAGE              (0x01)
-#define INA226_REG_BUSVOLTAGE                (0x02)
-#define INA226_REG_POWER                     (0x03)
-#define INA226_REG_CURRENT                   (0x04)
-#define INA226_REG_CALIBRATION               (0x05)
-#define INA226_REG_MASKENABLE                (0x06)
-#define INA226_REG_ALERTLIMIT                (0x07)
-#define INA226_MFG_ID                        (0xfe)
-#define INA226_MFG_DIEID                     (0xff)
+static constexpr uint32_t BUS_CLOCK_HZ = 100'000;
 
-#define INA226_MFG_ID_TI                     (0x5449) // TI
-#define INA226_MFG_DIE                       (0x2260) // INA2260
+static constexpr uint16_t MANFID = 0x5449; // TI
+static constexpr uint16_t DIEID = 0x2260; // INA226 die + revision 0
 
-/* INA226 Configuration Register */
-#define INA226_MODE_SHIFTS                   (0)
-#define INA226_MODE_MASK                     (7 << INA226_MODE_SHIFTS)
-#define INA226_MODE_SHUTDOWN                 (0 << INA226_MODE_SHIFTS)
-#define INA226_MODE_SHUNT_TRIG               (1 << INA226_MODE_SHIFTS)
-#define INA226_MODE_BUS_TRIG                 (2 << INA226_MODE_SHIFTS)
-#define INA226_MODE_SHUNT_BUS_TRIG           (3 << INA226_MODE_SHIFTS)
-#define INA226_MODE_ADC_OFF                  (4 << INA226_MODE_SHIFTS)
-#define INA226_MODE_SHUNT_CONT               (5 << INA226_MODE_SHIFTS)
-#define INA226_MODE_BUS_CONT                 (6 << INA226_MODE_SHIFTS)
-#define INA226_MODE_SHUNT_BUS_CONT           (7 << INA226_MODE_SHIFTS)
+// Measurement scaling (from datasheet)
+static constexpr float V_LSB = 1.25e-3f; // bus voltage: V per LSB
+static constexpr float CAL_K = 5.12e-3f; // CALIBRATION = CAL_K / (current_lsb * R_SHUNT)
 
-#define INA226_VSHCT_SHIFTS                  (3)
-#define INA226_VSHCT_MASK                    (7 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_140US                   (0 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_204US                   (1 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_332US                   (2 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_588US                   (3 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_1100US                  (4 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_2116US                  (5 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_4156US                  (6 << INA226_VSHCT_SHIFTS)
-#define INA226_VSHCT_8244US                  (7 << INA226_VSHCT_SHIFTS)
+// Sample timing
+// Default ADC config produces one averaged sample every (588us + 588us) * 64 = 75.264 ms. Poll a hair slower.
+static constexpr hrt_abstime SAMPLE_INTERVAL_US = 100_ms;
 
-#define INA226_VBUSCT_SHIFTS                 (6)
-#define INA226_VBUSCT_MASK                   (7 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_140US                  (0 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_204US                  (1 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_332US                  (2 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_588US                  (3 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_1100US                 (4 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_2116US                 (5 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_4156US                 (6 << INA226_VBUSCT_SHIFTS)
-#define INA226_VBUSCT_8244US                 (7 << INA226_VBUSCT_SHIFTS)
+// Recovery / robustness timing
+static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
+static constexpr hrt_abstime RESET_DELAY_US = 1_ms;
+static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
+static constexpr uint8_t MAX_CONSECUTIVE_FAILURES = DISCONNECT_DEBOUNCE_US / SAMPLE_INTERVAL_US;
 
-#define INA226_AVERAGES_SHIFTS                (9)
-#define INA226_AVERAGES_MASK                  (7 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_1                     (0 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_4                     (1 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_16                    (2 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_64                    (3 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_128                   (4 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_256                   (5 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_512                   (6 << INA226_AVERAGES_SHIFTS)
-#define INA226_AVERAGES_1024                  (7 << INA226_AVERAGES_SHIFTS)
+// Register map (subset used by this driver)
+enum class Register : uint8_t {
+	CONFIGURATION = 0x00,
+	SHUNTVOLTAGE = 0x01,
+	BUSVOLTAGE = 0x02,
+	POWER = 0x03,
+	CURRENT = 0x04,
+	CALIBRATION = 0x05,
+	MASKENABLE = 0x06,
+	ALERTLIMIT = 0x07,
+	MFG_ID = 0xfe,
+	DIE_ID = 0xff,
+};
 
-#define INA226_CONFIG (INA226_MODE_SHUNT_BUS_CONT | INA226_VSHCT_588US | INA226_VBUSCT_588US | INA226_AVERAGES_64)
+// CONFIGURATION register bits
+enum CONFIG_BIT : uint16_t {
+	RST = (1u << 15),
 
-#define INA226_RST                            (1 << 15)
+	// Averaging count (bits 9-11)
+	AVERAGES_1 = (0u << 9),
+	AVERAGES_4 = (1u << 9),
+	AVERAGES_16 = (2u << 9),
+	AVERAGES_64 = (3u << 9),
+	AVERAGES_128 = (4u << 9),
+	AVERAGES_256 = (5u << 9),
+	AVERAGES_512 = (6u << 9),
+	AVERAGES_1024 = (7u << 9),
 
-/* INA226 Enable / Mask Register */
+	// Bus voltage conversion time (bits 6-8)
+	VBUSCT_140US = (0u << 6),
+	VBUSCT_204US = (1u << 6),
+	VBUSCT_332US = (2u << 6),
+	VBUSCT_588US = (3u << 6),
+	VBUSCT_1100US = (4u << 6),
+	VBUSCT_2116US = (5u << 6),
+	VBUSCT_4156US = (6u << 6),
+	VBUSCT_8244US = (7u << 6),
 
-#define INA226_LEN                           (1 << 0)
-#define INA226_APOL                          (1 << 1)
-#define INA226_OVF                           (1 << 2)
-#define INA226_CVRF                          (1 << 3)
-#define INA226_AFF                           (1 << 4)
+	// Shunt voltage conversion time (bits 3-5)
+	VSHCT_140US = (0u << 3),
+	VSHCT_204US = (1u << 3),
+	VSHCT_332US = (2u << 3),
+	VSHCT_588US = (3u << 3),
+	VSHCT_1100US = (4u << 3),
+	VSHCT_2116US = (5u << 3),
+	VSHCT_4156US = (6u << 3),
+	VSHCT_8244US = (7u << 3),
 
-#define INA226_CNVR                          (1 << 10)
-#define INA226_POL                           (1 << 11)
-#define INA226_BUL                           (1 << 12)
-#define INA226_BOL                           (1 << 13)
-#define INA226_SUL                           (1 << 14)
-#define INA226_SOL                           (1 << 15)
+	// Mode (bits 0-2)
+	MODE_SHUTDOWN = (0u << 0),
+	MODE_SHUNT_TRIG = (1u << 0),
+	MODE_BUS_TRIG = (2u << 0),
+	MODE_SHUNT_BUS_TRIG = (3u << 0),
+	MODE_ADC_OFF = (4u << 0),
+	MODE_SHUNT_CONT = (5u << 0),
+	MODE_BUS_CONT = (6u << 0),
+	MODE_SHUNT_BUS_CONT = (7u << 0),
+};
 
-#define INA226_SAMPLE_FREQUENCY_HZ            10
-#define INA226_SAMPLE_INTERVAL_US             (1_s / INA226_SAMPLE_FREQUENCY_HZ)
-#define INA226_CONVERSION_INTERVAL            (INA226_SAMPLE_INTERVAL_US - 7)
-#define MAX_CURRENT                           164.0f    /* 164 Amps */
-#define DN_MAX                                32768.0f  /* 2^15 */
-#define INA226_CONST                          0.00512f  /* is an internal fixed value used to ensure scaling is maintained properly  */
-#define INA226_SHUNT                          0.0005f   /* Shunt is 500 uOhm */
-#define INA226_VSCALE                         0.00125f  /* LSB of voltage is 1.25 mV  */
+} // namespace ina226
 
-#define swap16(w)                       __builtin_bswap16((w))
 
 class INA226 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA226>
 {
 public:
 	INA226(const I2CSPIDriverConfig &config, int battery_index);
-	virtual ~INA226();
+	~INA226() override;
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	void	RunImpl();
+	int init() override;
+	void RunImpl();
 
-	int 		  init() override;
-
-	/**
-	 * Tries to call the init() function. If it fails, then it will schedule to retry again in
-	 * INA226_INIT_RETRY_INTERVAL_US microseconds. It will keep retrying at this interval until initialization succeeds.
-	 *
-	 * @return PX4_OK if initialization succeeded on the first try. Negative value otherwise.
-	 */
-	int force_init();
-
-	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
-	void				      print_status() override;
+	void print_status() override;
 
 protected:
-	int	  		probe() override;
+	int probe() override;
 
 private:
-	bool			        _sensor_ok{false};
-	unsigned                        _measure_interval{0};
-	bool			        _collect_phase{false};
-	bool 					_initialized{false};
+	enum class State : uint8_t {
+		UNINITIALIZED, // I2C::init() not yet called successfully — retry until it does
+		RESET, // soft-reset the device, then transition to CONFIGURE
+		CONFIGURE, // write CALIBRATION / CONFIGURATION, then transition to MEASURE
+		MEASURE, // steady-state: read BUSVOLTAGE / CURRENT, publish, repeat
+	};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-	perf_counter_t 		_collection_errors;
-	perf_counter_t 		_measure_errors;
+	int collect();
 
-	int16_t           _bus_voltage{0};
-	int16_t           _power{0};
-	int16_t           _current{0};
-	int16_t           _shunt{0};
-	int16_t           _cal{0};
-	bool              _mode_triggered{false};
+	// Rotates through the configuration registers one per call. Returns false
+	// if a read fails or the value doesn't match what we wrote.
+	bool checkConfigurationRotating();
 
-	float             _max_current{MAX_CURRENT};
-	float             _rshunt{INA226_SHUNT};
-	uint16_t          _config{INA226_CONFIG};
-	float             _current_lsb{_max_current / DN_MAX};
-	float             _power_lsb{25.0f * _current_lsb};
+	int registerRead(ina226::Register reg, uint16_t &value);
+	int registerWrite(ina226::Register reg, uint16_t value);
 
-	Battery 		  _battery;
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	// --- State -------------------------------------------------------------
+	Battery _battery;
 
-	int read(uint8_t address, int16_t &data);
-	int write(uint8_t address, uint16_t data);
+	State _state{State::UNINITIALIZED};
+	uint8_t _consecutive_failures{0};
 
-	uint8_t _connected{0};
-	// returns state unchanged
-	bool setConnected(bool state);
+	uint8_t _next_reg_to_check{0};
 
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void				      start();
+	// Configuration computed from params
+	float _current_lsb{0.f};
+	uint16_t _calibration{0};
+	uint16_t _config_value{0}; // CONFIGURATION register value we wrote
 
-	int					     measure();
-	int					     collect();
+	// Perf counters
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
+	perf_counter_t _collection_errors;
+	perf_counter_t _bad_register_perf;
+	perf_counter_t _reinit_perf;
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::INA226_CURRENT>) _param_ina226_current,
+		(ParamFloat<px4::params::INA226_SHUNT>) _param_ina226_shunt
+	);
 };

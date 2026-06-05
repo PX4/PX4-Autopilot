@@ -83,6 +83,7 @@ enum MS56XX_DEVICE_TYPES {
  * conversion finished
  */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
+#define MS5611_OSR1024_CONVERSION_TIME	2280	/* max ADC conversion time at OSR 1024, microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
 class MS5611 : public I2CSPIDriver<MS5611>

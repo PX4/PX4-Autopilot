@@ -46,8 +46,8 @@ public:
 	void setSetpoint(const float setpoint) { _setpoint = setpoint; }
 	float update(const float feedback, const float dt, const bool update_integral = true);
 	float getIntegral() { return _integral; }
-	void resetIntegral() { _integral = 0.f; };
-	void resetDerivative() { _last_feedback = NAN; };
+	void resetIntegral() { _integral = 0.f; }
+	void resetDerivative() { _last_feedback = NAN; }
 private:
 	void updateIntegral(float error, const float dt);
 	float updateDerivative(float feedback, const float dt);

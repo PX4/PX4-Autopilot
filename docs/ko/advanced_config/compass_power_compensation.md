@@ -78,3 +78,7 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
    또한 각 나침반의 각 축에 대한 보정 매개 변수를 설정해야합니다.
 
    ![comp params](../../assets/advanced_config/comp_params.png)
+
+## See Also
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

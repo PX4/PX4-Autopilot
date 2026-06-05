@@ -102,3 +102,5 @@ logger start -t -b 256
 /bin/sleep 1
 
 mavlink boot_complete
+
+sensor_imu_raw_bridge start

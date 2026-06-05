@@ -671,7 +671,6 @@
 *(.text._ZN13ManualControl12processInputEy)
 *(.text._ZN17CpuResourceChecks14checkAndReportERK7ContextR6Report)
 *(.text._ZN10GyroChecks14checkAndReportERK7ContextR6Report)
-*(.text._ZN8Failsafe26fromImbalancedPropActParamEi)
 *(.text._ZThn24_N13BatteryStatus3RunEv)
 *(.text.mm_foreach)
 *(.text._ZN35MavlinkStreamPositionTargetLocalNed8get_sizeEv)

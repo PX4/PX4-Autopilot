@@ -15,8 +15,8 @@ The PX4 dev team and community come together to discuss any topic of interest to
 
 ## Who should attend?
 
-- 핵심 프로젝트 관리자
-- 구성요소 관리자
+- Code Owners
+- Reviewers
 - 테스트 팀 관리자
 - 드론코드 회원
 - Community members (you!)

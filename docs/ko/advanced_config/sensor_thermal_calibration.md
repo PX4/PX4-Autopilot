@@ -153,19 +153,19 @@ TC_[type][instance]_[cal_name]_[axis]
 The correction for thermal offsets (using the calibration parameters) is performed in the [sensors module](../modules/modules_system.md#sensors).
 측정 온도에서 기준 온도를 차감하여 다음과 같은 델타 온도를 얻습니다.
 
-```
+```txt
 delta = measured_temperature - reference_temperature
 ```
 
 그런 다음 델타 온도를 사용하여 오프셋을 계산합니다.
 
-```
+```txt
 offset = X0 + X1*delta + X2*delta**2 + ... + Xn*delta**n
 ```
 
 오프셋 및 온도 스케일 계수는 아래의 경우의 센서 측정을 수정하는 데 사용됩니다.
 
-```
+```txt
 corrected_measurement = (raw_measurement - offset) * scale_factor
 ```
 
@@ -198,3 +198,7 @@ However, instead of adjusting the `*OFF` and `*SCALE` parameters in the `CAL` pa
 [^2]: 기압 센서 오프셋을 보정하려면 안정적인 기압 환경이 필요합니다. The air pressure will change slowly due to weather and inside buildings can change rapidly due to external wind fluctuations and HVAC system operation.
 
 [^3]: Care must be taken when warming a cold soaked board to avoid formation of condensation on the board that can cause board damage under some circumstances.
+
+## See Also
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

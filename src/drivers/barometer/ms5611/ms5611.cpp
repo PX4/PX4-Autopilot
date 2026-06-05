@@ -243,8 +243,13 @@ MS5611::collect()
 
 	perf_begin(_sample_perf);
 
-	/* read the most recent measurement - read offset/size are hardcoded in the interface */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the conversion was
+	 * started CONVERSION_INTERVAL ago and took OSR1024_CONVERSION_TIME
+	 * to integrate, so the effective sample midpoint is
+	 * (CONVERSION_INTERVAL - OSR1024_CONVERSION_TIME/2) before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	static constexpr hrt_abstime correction = MS5611_CONVERSION_INTERVAL - MS5611_OSR1024_CONVERSION_TIME / 2;
+	const hrt_abstime timestamp_sample = (now > correction) ? (now - correction) : now;
 	int ret = _interface->read(0, (void *)&raw, 0);
 
 	if (ret < 0) {

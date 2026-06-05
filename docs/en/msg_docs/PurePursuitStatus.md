@@ -10,14 +10,14 @@ Pure pursuit status.
 
 ## Fields
 
-| Name                 | Type      | Unit [Frame] | Range/Enum                                          | Description                                              |
-| -------------------- | --------- | ------------ | --------------------------------------------------- | -------------------------------------------------------- |
-| timestamp            | `uint64`  | us           |                                                     | Time since system start                                  |
-| lookahead_distance   | `float32` | m            | [0 : inf]                                           | Lookahead distance of pure the pursuit controller        |
-| target_bearing       | `float32` | rad [NED]    | [-pi : pi]                                          | Target bearing calculated by the pure pursuit controller |
-| crosstrack_error     | `float32` | m            | [-inf (Left of the path) : inf (Right of the path)] | Shortest distance from the vehicle to the path           |
-| distance_to_waypoint | `float32` | m            | [-inf : inf]                                        | Distance from the vehicle to the current waypoint        |
-| bearing_to_waypoint  | `float32` | rad [NED]    | [-pi : pi]                                          | Bearing towards current waypoint                         |
+| Name                                                      | Type      | Unit [Frame] | Range/Enum                                          | Description                                              |
+| --------------------------------------------------------- | --------- | ------------ | --------------------------------------------------- | -------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                       | `uint64`  | us           |                                                     | Time since system start                                  |
+| <a id="fld_lookahead_distance"></a>lookahead_distance     | `float32` | m            | [0 : inf]                                           | Lookahead distance of pure the pursuit controller        |
+| <a id="fld_target_bearing"></a>target_bearing             | `float32` | rad [NED]    | [-pi : pi]                                          | Target bearing calculated by the pure pursuit controller |
+| <a id="fld_crosstrack_error"></a>crosstrack_error         | `float32` | m            | [-inf (Left of the path) : inf (Right of the path)] | Shortest distance from the vehicle to the path           |
+| <a id="fld_distance_to_waypoint"></a>distance_to_waypoint | `float32` | m            | [-inf : inf]                                        | Distance from the vehicle to the current waypoint        |
+| <a id="fld_bearing_to_waypoint"></a>bearing_to_waypoint   | `float32` | rad [NED]    | [-pi : pi]                                          | Bearing towards current waypoint                         |
 
 ## Source Message
 

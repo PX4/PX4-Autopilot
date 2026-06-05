@@ -41,3 +41,8 @@ target_link_libraries(arch_bootloader
 		bootloader_lib
 		nuttx_arch
 )
+
+target_compile_options(arch_bootloader PRIVATE
+    -O1
+    -fno-builtin   # disable builtin functions
+)

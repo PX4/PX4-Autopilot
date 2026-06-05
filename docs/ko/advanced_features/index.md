@@ -10,3 +10,5 @@ PX4 자동비행 프로그램의 고급 기능에 대하여 설명합니다.
 - [Iridium/RockBlock Satellite Communication System](../advanced_features/satcom_roadblock.md)
 - [Precision Landing](../advanced_features/precland.md)
 - [RTK GNSS (GPS)](../gps_compass/rtk_gps.md)
+- [Vision Target Estimator](../advanced_features/vision_target_estimator.md)
+  - [Vision Target Estimator Deep Dive](../advanced_features/vision_target_estimator_advanced.md)

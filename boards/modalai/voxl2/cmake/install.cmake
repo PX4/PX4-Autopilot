@@ -49,6 +49,7 @@ install(PROGRAMS
 	${PX4_BOARD_DIR}/target/voxl-px4-start
 	${PX4_BOARD_DIR}/target/voxl-px4-hitl
 	${PX4_BOARD_DIR}/target/voxl-px4-hitl-start
+	${PX4_BOARD_DIR}/target/voxl-px4-sih-start
 	${PX4_BOARD_DIR}/scripts/voxl-configure-px4
 	DESTINATION bin
 )
@@ -62,6 +63,7 @@ install(FILES ${VOXL2_SLPI_BUILD_DIR}/platforms/qurt/libpx4.so
 install(FILES
 	${PX4_BOARD_DIR}/target/voxl-px4-fake-imu-calibration.config
 	${PX4_BOARD_DIR}/target/voxl-px4-hitl-set-default-parameters.config
+	${PX4_BOARD_DIR}/target/voxl-px4-sih-set-default-parameters.config
 	DESTINATION ../etc/modalai
 )
 

@@ -45,7 +45,7 @@ If you have multiple control sources, such as an RC system and/or one or more Jo
 
 The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) refers to an instance assigned to a serial port, such as [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG).
 
-참고:
+Notes:
 
 - RC checks are run for any option that uses RC (so not for `MAVLink only` or `Disable manual control`).
 - When using priority sources, sources are evaluated as soon as they become valid and may trigger an immediate switch (if higher priority than the currently active source).

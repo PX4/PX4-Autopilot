@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "*** Starting unified VOXL2 build (apps + SLPI) ***"
 

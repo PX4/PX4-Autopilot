@@ -10,11 +10,11 @@ Local setpoint constraints in NED frame. setting something to NaN means that no 
 
 ## Fields
 
-| Name              | Type         | Unit [Frame] | Range/Enum | Description                            |
-| ----------------- | ------------ | ------------ | ---------- | -------------------------------------- |
-| timestamp         | `uint64`     |              |            | time since system start (microseconds) |
-| original_setpoint | `float32[2]` |              |            | velocities demanded                    |
-| adapted_setpoint  | `float32[2]` |              |            | velocities allowed                     |
+| Name                                                | Type         | Unit [Frame] | Range/Enum | Description                            |
+| --------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                 | `uint64`     |              |            | time since system start (microseconds) |
+| <a id="fld_original_setpoint"></a>original_setpoint | `float32[2]` |              |            | velocities demanded                    |
+| <a id="fld_adapted_setpoint"></a>adapted_setpoint   | `float32[2]` |              |            | velocities allowed                     |
 
 ## Source Message
 

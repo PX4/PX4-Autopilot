@@ -31,7 +31,7 @@ PX4 відокремлює цю логіку перекладу, що назив
 
 ![Pipeline Overview](../../assets/concepts/control_allocation_pipeline.png)
 
-Примітки:
+Notes:
 
 - Регулятор швидкості видає задані значення моменту та тяги
 - модуль `control_allocator`:

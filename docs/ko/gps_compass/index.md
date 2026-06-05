@@ -64,7 +64,7 @@ These have been tested by the PX4 dev team, or which are popular within the PX4 
 [Hb Micro M8N]: https://holybro.com/products/micro-m8n-gps
 [CubePilot Here2]: ../gps_compass/gps_hex_here2.md
 
-참고:
+Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?"는 "알 수 없음"을 나타냅니다.

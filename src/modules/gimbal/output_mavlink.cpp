@@ -245,6 +245,10 @@ void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 
 	if (_absolute_angle[2]) {
 		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME;
+
+	} else {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
 	}
 
 	_gimbal_device_set_attitude_pub.publish(set_attitude);

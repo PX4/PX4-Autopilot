@@ -96,6 +96,7 @@ public:
 		kCmdRename,		///< Rename <path1> to <path2>
 		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
 		kCmdBurstReadFile,	///< Burst download session file
+		kCmdListDirectoryWithTime,	///< List files in <path> from <offset>, including last-modification time
 
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -125,7 +126,7 @@ private:
 	void		_reply(mavlink_file_transfer_protocol_t *ftp_req);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
-	ErrorCode	_workList(PayloadHeader *payload);
+	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id);

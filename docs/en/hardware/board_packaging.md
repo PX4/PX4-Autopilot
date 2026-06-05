@@ -159,7 +159,7 @@ Runs after the package is installed. Common tasks:
 - Board-specific setup (e.g., DSP signature generation)
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Create px4-* symlinks
@@ -185,7 +185,7 @@ fi
 Runs before the package is removed:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Stop the service

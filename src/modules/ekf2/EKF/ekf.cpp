@@ -356,6 +356,11 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
 
+			// External position reset by fusion can correct heading through cross-correlations.
+			// Setting heading_observable = true prevents clearInhibitedStateKalmanGains() from
+			// inhibiting the update.
+			_control_status.flags.heading_observable = true;
+
 			VectorState H;
 			VectorState K;
 			Vector2f innov_var_temp = Vector2f(getStateVariance<State::pos>()) + 0.1f;

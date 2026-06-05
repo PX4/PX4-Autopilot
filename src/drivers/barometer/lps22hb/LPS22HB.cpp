@@ -139,8 +139,12 @@ int LPS22HB::collect()
 		uint8_t		TEMP_OUT_H;
 	} report{};
 
-	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the one-shot conversion
+	 * was started CONVERSION_INTERVAL ago, so the effective sample
+	 * midpoint is half the conversion interval before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = LPS22HB_CONVERSION_INTERVAL / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 	int ret = _interface->read(STATUS, (uint8_t *)&report, sizeof(report));
 
 	if (ret != OK) {

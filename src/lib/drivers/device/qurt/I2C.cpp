@@ -99,6 +99,10 @@ I2C::init()
 {
 	int ret = PX4_ERROR;
 
+	if (_i2c_fd != -1) {
+		return PX4_OK;
+	}
+
 	if (_config_i2c_bus == NULL) {
 		PX4_ERR("NULL i2c init function");
 		goto out;
@@ -158,10 +162,12 @@ out:
 }
 
 void
-I2C::set_device_address(int address)
+I2C::set_device_address(int address, bool log)
 {
 	if ((_i2c_fd != PX4_ERROR) && (_set_i2c_address != NULL)) {
-		PX4_INFO("Set i2c address 0x%x, fd %d", address, _i2c_fd);
+		if (log) {
+			PX4_INFO("Set i2c address 0x%x, fd %d", address, _i2c_fd);
+		}
 
 		pthread_mutex_lock(_mutex);
 		_set_i2c_address(_i2c_fd, address);

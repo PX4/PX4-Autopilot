@@ -103,31 +103,18 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 	new_state_predicted(0) = _airspeed_state.speed + dt * _airspeed_state.speed_rate;
 	new_state_predicted(1) = _airspeed_state.speed_rate;
 
-	const float airspeed_noise_inv{1.0f / param.airspeed_measurement_std_dev};
-	const float airspeed_rate_noise_inv{1.0f / param.airspeed_rate_measurement_std_dev};
-	const float airspeed_rate_noise_inv_squared_process_noise{airspeed_rate_noise_inv *airspeed_rate_noise_inv * param.airspeed_rate_noise_std_dev};
-	const float denom{airspeed_noise_inv + airspeed_rate_noise_inv_squared_process_noise};
-	const float common_nom{std::sqrt(param.airspeed_rate_noise_std_dev * (2.0f * airspeed_noise_inv + airspeed_rate_noise_inv_squared_process_noise))};
-
-	matrix::Matrix<float, 2, 2> kalman_gain;
-	kalman_gain(0, 0) = airspeed_noise_inv * common_nom / denom;
-	kalman_gain(0, 1) = airspeed_rate_noise_inv_squared_process_noise / denom;
-	kalman_gain(1, 0) = airspeed_noise_inv * airspeed_noise_inv * param.airspeed_rate_noise_std_dev / denom;
-	kalman_gain(1, 1) = airspeed_rate_noise_inv_squared_process_noise * common_nom / denom;
-
 	const matrix::Vector2f innovation{(airspeed - new_state_predicted(0)), (airspeed_derivative - new_state_predicted(1))};
+
 	matrix::Vector2f new_state;
-	new_state = new_state_predicted + dt * (kalman_gain * (innovation));
+	new_state(0) = new_state_predicted(0) + dt * (kKg00 * innovation(0) + kKg01 * innovation(1));
+	new_state(1) = new_state_predicted(1) + dt * (kKg10 * innovation(0) + kKg11 * innovation(1));
 
 	// Clip airspeed at zero
 	if (new_state(0) < FLT_EPSILON) {
 		new_state(0) = 0.0f;
 		// calculate input that would result in zero speed.
-		const float desired_airspeed_innovation = (-new_state_predicted(0) / dt - kalman_gain(0,
-				1) * innovation(1)) / kalman_gain(0,
-						0);
-		new_state(1) = new_state_predicted(1) + dt * (kalman_gain(1, 0) * desired_airspeed_innovation + kalman_gain(1,
-				1) * innovation(1));
+		const float desired_airspeed_innovation = (-new_state_predicted(0) / dt - kKg01 * innovation(1)) / kKg00;
+		new_state(1) = new_state_predicted(1) + dt * (kKg10 * desired_airspeed_innovation + kKg11 * innovation(1));
 	}
 
 	// Update states

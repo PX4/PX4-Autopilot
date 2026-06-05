@@ -40,4 +40,7 @@ bool mode_req_home_position # Requires a home position (such as RTL/Return mode)
 bool mode_req_prevent_arming # Prevent arming (such as in Land mode)
 bool mode_req_manual_control # Requires a manual controller
 
-uint8 ORB_QUEUE_LENGTH = 4
+# Must be >= ExternalChecks::MAX_NUM_REGISTRATIONS so replies from all registered
+# modes fit in the queue within a single request cycle (otherwise replies from the
+# 5th+ mode overwrite earlier ones, causing spurious "unresponsive mode" failures).
+uint8 ORB_QUEUE_LENGTH = 8

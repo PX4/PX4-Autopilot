@@ -32,7 +32,7 @@ Key Build Features:
 
 - Easy access to Pixhawk USB and debug connector
 
-- [First Person View (FPV)](https://en.wikipedia.org/wiki/First-person_view_\(radio_control\)) with camera pan mount
+- [First Person View (FPV)](https://en.wikipedia.org/wiki/First-person_view_(radio_control)) with camera pan mount
 
 - Air data provided by wing slung pitot static pod
 

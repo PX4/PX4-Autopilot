@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Setup environment to make PX4 visible to Gazebo.
 #

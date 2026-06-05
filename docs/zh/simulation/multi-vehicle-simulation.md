@@ -6,6 +6,7 @@
 - [Multi-Vehicle Sim with Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md) (both with and without ROS)
 - [Multi-Vehicle Sim with FlightGear](../sim_flightgear/multi_vehicle.md)
 - [Multi-Vehicle Sim with JMAVSim](../sim_jmavsim/multi_vehicle.md)
+- [Multi-Vehicle Sim with SIH](../sim_sih/index.md#multi-vehicle-simulation)
 
 The choice of the simulator depends on the vehicle to be simulated, how "good" the simulation needs to be (and for what features), and how many vehicles need to be simulated at a time:
 
@@ -18,5 +19,8 @@ The choice of the simulator depends on the vehicle to be simulated, how "good" t
   Note, this is the successor of [Gazebo Classic](../sim_gazebo_classic/index.md) (below).
 - [Gazebo Classic](../sim_gazebo_classic/index.md) is less accurate and less heavy-weight and supports many features and vehicles that aren't available for FlightGear.
   It can simulate many more vehicles at a time than FlightGear and it allows for different types of vehicles to be simulated at the same time.
-- JMAVSim is a very light-weight simulator that supports only quadcopters.
+- [JMAVSim](../sim_jmavsim/index.md) is a very light-weight simulator that supports only quadcopters.
   It is recommended if you need to support a lot of quadcopters, and the simulation only needs to be approximate.
+- [SIH](../sim_sih/index.md) is the lightest-weight option with zero external dependencies.
+  Since SIH is headless and runs physics internally, it can launch many instances with minimal resource usage.
+  It supports all 6 vehicle types (quad, hex, plane, tailsitter, standard VTOL, rover).
