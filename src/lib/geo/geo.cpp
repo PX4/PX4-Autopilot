@@ -97,7 +97,8 @@ void MapProjection::reproject(float x, float y, double &lat, double &lon) const
 		const double sin_c = sin(c);
 		const double cos_c = cos(c);
 
-		const double lat_rad = asin(cos_c * _ref_sin_lat + (x_rad * sin_c * _ref_cos_lat) / c);
+		const double arg = math::constrain(cos_c * _ref_sin_lat + (x_rad * sin_c * _ref_cos_lat) / c, -1.0, 1.0);
+		const double lat_rad = asin(arg);
 		const double lon_rad = (_ref_lon + atan2(y_rad * sin_c, c * _ref_cos_lat * cos_c - x_rad * _ref_sin_lat * sin_c));
 
 		lat = math::degrees(lat_rad);

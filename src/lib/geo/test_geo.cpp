@@ -92,6 +92,21 @@ TEST_F(GeoTest, projectReproject)
 	EXPECT_FLOAT_EQ(lon, lon_new);
 }
 
+TEST_F(GeoTest, reproject_nan_prevention)
+{
+	// GIVEN: A reference point very close to the North Pole using the fixture's 'proj' object
+	proj.initReference(89.9999, 0.0, 0ULL);
+
+	// WHEN: We reproject a tiny offset that pushes the math right against the mathematical boundary
+	double lat;
+	double lon;
+	proj.reproject(10.0f, 10.0f, lat, lon);
+
+	// THEN: It should return a valid constrained number, not a NaN
+	EXPECT_FALSE(std::isnan(lat));
+	EXPECT_FALSE(std::isnan(lon));
+}
+
 TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
 {
 	// GIVEN: a starting waypoint, a heading and a distance of 0
