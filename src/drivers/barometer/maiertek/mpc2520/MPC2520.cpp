@@ -243,14 +243,10 @@ void MPC2520::RunImpl()
 					      Traw_sc * Praw_sc * (_prom.c11 + Praw_sc * _prom.c21);
 
 				// publish
-				sensor_baro_s sensor_baro{};
-				sensor_baro.timestamp_sample = now;
-				sensor_baro.device_id = get_device_id();
-				sensor_baro.pressure = Pcomp;
-				sensor_baro.temperature = Tcomp;
-				sensor_baro.error_count = perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_register_perf);
-				sensor_baro.timestamp = hrt_absolute_time();
-				_sensor_baro_pub.publish(sensor_baro);
+				_px4_baro.set_device_id(get_device_id());
+				_px4_baro.set_error_count(perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_register_perf));
+				_px4_baro.set_temperature(Tcomp);
+				_px4_baro.update(now, Pcomp);
 
 				success = true;
 

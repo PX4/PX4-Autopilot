@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,4 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__maiertek__mpc2520
-	MAIN mpc2520
-	COMPILE_FLAGS
-	SRCS
-		MaierTek_MPC2520_registers.hpp
-		mpc2520_main.cpp
-		MPC2520.cpp
-		MPC2520.hpp
-	DEPENDS
-		drivers_barometer
-		px4_work_queue
-)
+px4_add_library(drivers_barometer PX4Barometer.cpp)

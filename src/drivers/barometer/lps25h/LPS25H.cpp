@@ -176,14 +176,10 @@ int LPS25H::collect()
 	float pressure_pa = pressure * 100.f;
 
 	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = _interface->get_device_id();
-	sensor_baro.pressure = pressure_pa;
-	sensor_baro.temperature = temperature;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_device_id(_interface->get_device_id());
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(temperature);
+	_px4_baro.update(timestamp_sample, pressure_pa);
 
 	perf_end(_sample_perf);
 	return PX4_OK;

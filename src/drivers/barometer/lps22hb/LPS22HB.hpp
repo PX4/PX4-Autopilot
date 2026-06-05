@@ -36,6 +36,7 @@
 #include <cstring>
 
 #include <drivers/device/Device.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -93,7 +94,7 @@ public:
 	void			RunImpl();
 
 private:
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro{0};
 
 	device::Device		*_interface;
 

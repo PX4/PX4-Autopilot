@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,64 +31,47 @@
  *
  ****************************************************************************/
 
-/**
- * @file DPS310.hpp
- *
- * Driver for the Infineon DPS310 barometer connected via I2C or SPI.
- */
 
-#pragma once
+#include "PX4Barometer.hpp"
 
-#include <drivers/device/Device.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform_common/i2c_spi_buses.h>
+#include <lib/drivers/device/Device.hpp>
 
-#include "Infineon_DPS310_Registers.hpp"
-
-namespace dps310
+PX4Barometer::PX4Barometer(uint32_t device_id) :
+	_device_id{device_id}
 {
+}
 
-using Infineon_DPS310::CalibrationCoefficients;
-using Infineon_DPS310::Register;
-
-class DPS310 : public I2CSPIDriver<DPS310>
+PX4Barometer::~PX4Barometer()
 {
-public:
-	DPS310(const I2CSPIDriverConfig &config, device::Device *interface);
-	virtual ~DPS310();
+	_sensor_pub.unadvertise();
+}
 
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
-	static void print_usage();
+void PX4Barometer::set_device_type(uint8_t devtype)
+{
+	// current DeviceStructure
+	union device::Device::DeviceId device_id;
+	device_id.devid = _device_id;
 
-	int			init();
+	// update to new device type
+	device_id.devid_s.devtype = devtype;
 
-	void			print_status();
-	void			RunImpl();
+	// copy back
+	_device_id = device_id.devid;
+}
 
-private:
+void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
+{
+	if (!PX4_ISFINITE(pressure)) {
+		return;
+	}
 
-	void			start();
-	int			reset();
+	sensor_baro_s report;
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = _device_id;
+	report.pressure = pressure;
+	report.temperature = _temperature;
+	report.error_count = _error_count;
 
-	uint8_t			RegisterRead(Register reg);
-	void			RegisterWrite(Register reg, uint8_t val);
-	void			RegisterSetBits(Register reg, uint8_t setbits);
-	void			RegisterClearBits(Register reg, uint8_t clearbits);
-
-	static constexpr uint32_t SAMPLE_RATE{32};
-
-	PX4Barometer _px4_baro{0};
-
-	device::Device		*_interface;
-
-	CalibrationCoefficients	_calibration{};
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-};
-
-} // namespace dps310
+	report.timestamp = hrt_absolute_time();
+	_sensor_pub.publish(report);
+}

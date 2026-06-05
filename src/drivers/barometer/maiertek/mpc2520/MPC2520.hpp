@@ -37,6 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
@@ -77,7 +78,7 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro{0};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};

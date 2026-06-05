@@ -40,6 +40,7 @@
 #pragma once
 
 #include <drivers/device/Device.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
@@ -83,7 +84,7 @@ private:
 
 	static constexpr uint32_t SAMPLE_RATE{75};
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro{0};
 
 	device::Device		*_interface;
 

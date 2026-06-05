@@ -44,6 +44,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/geo/geo.h>
@@ -71,7 +72,6 @@
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -199,7 +199,11 @@ private:
 		{197644, ROTATION_NONE},
 	};
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
+	static constexpr uint8_t BARO_COUNT_MAX = 2;
+	PX4Barometer _px4_baro[BARO_COUNT_MAX] {
+		{6620172}, // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+	};
 
 	float _sensors_temperature{0};
 
@@ -314,8 +318,8 @@ private:
 	sensor_gyro_fifo_s _last_gyro_fifo{};
 	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
 
-	bool _baro_blocked{false};
-	bool _baro_stuck{false};
+	bool _baro_blocked[BARO_COUNT_MAX] {};
+	bool _baro_stuck[BARO_COUNT_MAX] {};
 
 	bool _mag_blocked[MAG_COUNT_MAX] {};
 	bool _mag_stuck[MAG_COUNT_MAX] {};
@@ -332,8 +336,8 @@ private:
 	float _last_magy[MAG_COUNT_MAX] {};
 	float _last_magz[MAG_COUNT_MAX] {};
 
-	float _last_baro_pressure{0.0f};
-	float _last_baro_temperature{0.0f};
+	float _last_baro_pressure[BARO_COUNT_MAX] {};
+	float _last_baro_temperature[BARO_COUNT_MAX] {};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 

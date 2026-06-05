@@ -176,14 +176,10 @@ BMP280::collect()
 	const float P = (pf * _fcal.p9 + _fcal.p8) * pf + _fcal.p7;
 
 	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = _interface->get_device_id();
-	sensor_baro.pressure = P;
-	sensor_baro.temperature = T;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_device_id(_interface->get_device_id());
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(T);
+	_px4_baro.update(timestamp_sample, P);
 
 	perf_end(_sample_perf);
 

@@ -42,6 +42,7 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <px4_platform_common/px4_config.h>
@@ -77,7 +78,7 @@ private:
 	int RegisterRead(uint8_t reg, void *data, unsigned count = 1);
 	int RegisterWrite(uint8_t reg, uint8_t data);
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro{0};
 
 	bool _collect_phase{false};
 

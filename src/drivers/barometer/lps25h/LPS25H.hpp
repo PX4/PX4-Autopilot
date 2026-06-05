@@ -42,6 +42,7 @@
 #include "lps25h.h"
 
 #include <drivers/device/Device.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
@@ -177,7 +178,7 @@ private:
 	int			measure();
 	int			collect();
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro{0};
 
 	device::Device		*_interface;
 

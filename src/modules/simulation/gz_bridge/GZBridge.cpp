@@ -400,21 +400,8 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 
 void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
-	const uint64_t timestamp = hrt_absolute_time();
-
-	device::Device::DeviceId id{};
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_BARO_DEVTYPE_BAROSIM;
-	id.devid_s.bus = 1;
-	id.devid_s.address = 1;
-
-	sensor_baro_s report{};
-	report.timestamp = timestamp;
-	report.timestamp_sample = timestamp;
-	report.device_id = id.devid;
-	report.pressure = msg.pressure();
-	report.temperature = _temperature; // this will be static if no airspeed sensor is on the model.
-	_sensor_baro_pub.publish(report);
+	_px4_baro.set_temperature(_temperature);
+	_px4_baro.update(hrt_absolute_time(), msg.pressure());
 }
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)

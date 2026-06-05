@@ -49,6 +49,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/geo/geo.h>
 
 #include <uORB/PublicationMulti.hpp>
@@ -56,9 +57,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/wheel_encoders.h>
@@ -149,6 +148,7 @@ private:
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Magnetometer  _px4_mag{197388};    // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
 	PX4Rangefinder   _px4_rangefinder{10092812}; // 10092812: DRV_DIST_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Barometer     _px4_baro{6619404};  // 6619404: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 
 	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
@@ -157,7 +157,6 @@ private:
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::PublicationMulti<sensor_gps_s>          _sensor_gps_pub{ORB_ID(sensor_gps)};
-	uORB::PublicationMulti<sensor_baro_s>         _sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
