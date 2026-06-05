@@ -127,6 +127,30 @@ TEST_F(GeoTest, vector_to_next_waypoint_fast_antimeridian)
 	EXPECT_GT(v_e, 0.0f);       // Eastward velocity should be Greater Than (GT) zero
 }
 
+TEST_F(GeoTest, distance_to_line_before_start)
+{
+	struct crosstrack_error_s ct_error;
+
+	// GIVEN: A line from (0,0) to (0,10). The drone is at (0,-5), which is BEHIND the start line.
+	get_distance_to_line(ct_error, 0.0, -5.0, 0.0, 0.0, 0.0, 10.0);
+
+	// THEN: It should flag past_start as true, and past_end as false.
+	EXPECT_TRUE(ct_error.past_start);
+	EXPECT_FALSE(ct_error.past_end);
+}
+
+TEST_F(GeoTest, distance_to_line_past_end)
+{
+	struct crosstrack_error_s ct_error;
+
+	// GIVEN: A line from (0,0) to (0,10). The drone is at (0,15), which is BEYOND the end line.
+	get_distance_to_line(ct_error, 0.0, 15.0, 0.0, 0.0, 0.0, 10.0);
+
+	// THEN: It should flag past_end as true, and past_start as false.
+	EXPECT_TRUE(ct_error.past_end);
+	EXPECT_FALSE(ct_error.past_start);
+}
+
 TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
 {
 	// GIVEN: a starting waypoint, a heading and a distance of 0
