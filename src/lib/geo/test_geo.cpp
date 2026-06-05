@@ -151,6 +151,101 @@ TEST_F(GeoTest, distance_to_line_past_end)
 	EXPECT_FALSE(ct_error.past_start);
 }
 
+TEST_F(GeoTest, waypoint_distance_and_bearing)
+{
+	// GIVEN: Starting at the equator (0,0) and moving exactly 1 degree North.
+	double lat_now = 0.0;
+	double lon_now = 0.0;
+	double lat_next = 1.0;
+	double lon_next = 0.0;
+
+	// 1 degree of latitude converted to radians, multiplied by the radius.
+	float expected_dist = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (M_PI / 180.0));
+
+	// THEN: The calculated distance should match our expected math (within 1 meter).
+	float dist = get_distance_to_next_waypoint(lat_now, lon_now, lat_next, lon_next);
+	EXPECT_NEAR(dist, expected_dist, 1.0f);
+
+	// THEN: The bearing for moving straight North must be exactly 0.0 radians.
+	float bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_next, lon_next);
+	EXPECT_FLOAT_EQ(bearing, 0.0f);
+}
+
+TEST_F(GeoTest, add_vector_to_global)
+{
+	// GIVEN: Starting at the equator and moving 1000 meters straight North.
+	double lat_now = 0.0;
+	double lon_now = 0.0;
+	float v_n = 1000.0f; // 1000m North
+	float v_e = 0.0f;    // 0m East
+	double lat_res = 0.0;
+	double lon_res = 0.0;
+
+	// WHEN: We calculate the new global position
+	add_vector_to_global_position(lat_now, lon_now, v_n, v_e, &lat_res, &lon_res);
+
+	// THEN: Latitude must be a positive number, and longitude must remain exactly 0.
+	EXPECT_GT(lat_res, 0.0);
+	EXPECT_DOUBLE_EQ(lon_res, 0.0);
+}
+
+TEST_F(GeoTest, vector_to_next_waypoint_standard)
+{
+	// 1. STANDARD VECTOR: Moving 1 degree North from the equator
+	float v_n = 0.0f;
+	float v_e = 0.0f;
+	get_vector_to_next_waypoint(0.0, 0.0, 1.0, 0.0, &v_n, &v_e);
+
+	float expected_dist = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (M_PI / 180.0));
+	EXPECT_NEAR(v_n, expected_dist, 10.0f); // North velocity should match Earth's arc
+	EXPECT_FLOAT_EQ(v_e, 0.0f);            // East velocity should be perfectly zero
+}
+
+TEST_F(GeoTest, distance_to_point_global_spherical_absolute)
+{
+	// 2. SPHERICAL DISTANCE: The WGS84 haversine rename
+	float dist_xy = 0.0f;
+	float dist_z = 0.0f;
+
+	// Moving 1 degree North, maintaining 100m altitude
+	float total_dist = get_distance_to_point_global_spherical(0.0, 0.0, 100.0f, 1.0, 0.0, 100.0f, &dist_xy, &dist_z);
+
+	float expected_xy = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * (M_PI / 180.0));
+	EXPECT_NEAR(dist_xy, expected_xy, 1.0f);
+	EXPECT_FLOAT_EQ(dist_z, 0.0f);           // Altitude didn't change
+	EXPECT_NEAR(total_dist, expected_xy, 1.0f);
+}
+
+TEST_F(GeoTest, mavlink_local_distance)
+{
+	// 3. MAVLINK LOCAL: A standard 3D Pythagorean theorem test
+	float dist_xy = 0.0f;
+	float dist_z = 0.0f;
+
+	// A 3-4-12 triangle in 3D space: sqrt(3^2 + 4^2 + 12^2) = 13
+	// We pass the memory addresses of dist_xy and dist_z so the function can write to them
+	float dist = mavlink_wpm_distance_to_point_local(0.0f, 0.0f, 0.0f, 3.0f, 4.0f, 12.0f, &dist_xy, &dist_z);
+
+	EXPECT_FLOAT_EQ(dist, 13.0f);
+	EXPECT_FLOAT_EQ(dist_xy, 5.0f); // 3-4-5 triangle for the XY plane
+	EXPECT_FLOAT_EQ(dist_z, 12.0f); // Vertical distance is exactly 12
+}
+
+TEST_F(GeoTest, map_projection_absolute)
+{
+	// 4. MAP PROJECTION: Verifying absolute output, not just round-trip invertibility
+	MapProjection ref{};
+	ref.initReference(0.0, 0.0); // Set reference to the equator
+
+	float x = 0.0f;
+	float y = 0.0f;
+	ref.project(1.0, 0.0, x, y); // Project 1 degree North
+
+	// 1 degree North on the WGS84 ellipsoid is approximately 110,574 meters.
+	EXPECT_NEAR(x, 111195.0f, 2.0f); // Assert we get the correct absolute Cartesian distance
+	EXPECT_FLOAT_EQ(y, 0.0f);
+}
+
 TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
 {
 	// GIVEN: a starting waypoint, a heading and a distance of 0
