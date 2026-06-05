@@ -222,7 +222,7 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	poly.is_inclusion = is_inclusion_zone;
 
 	for (int i = 0; i < num_vertices; i++) {
-		const float angle = i * delta_angle;
+		const float angle = (i + 0.5f) * delta_angle;
 		const matrix::Vector2f p = center + matrix::Vector2f{
 			k_gon_radius * cosf(angle), k_gon_radius * sinf(angle)
 		};
