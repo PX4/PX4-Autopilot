@@ -291,7 +291,7 @@ parameters:
           exceeds this threshold. Unit is normalized stick travel per second: at the default
           3.0, a half-stick movement in ~170 ms triggers override. Lower = more sensitive.
       type: float
-      default: 3.0
+      default: 1
       unit: '1/s'
       min: 1.0
       max: 10.0
