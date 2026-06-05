@@ -32,82 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.cpp
+ * @file Publication.cpp
  *
+ * Out-of-line definitions of the type-independent PublicationBase machinery.
+ * Keeping advertise()/publish() out of the header emits them once instead of
+ * once per translation unit (PX4 links with bfd ld, no ICF, and no LTO).
  */
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include "Publication.hpp"
 
 namespace uORB
 {
 
-bool Subscription::subscribe()
+bool PublicationBase::advertise()
 {
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
+	if (!advertised()) {
+		_handle = orb_advertise(get_topic(), nullptr);
 	}
 
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
-
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
-			return true;
-		}
-	}
-
-	return false;
+	return advertised();
 }
 
-void Subscription::unsubscribe()
+bool PublicationBase::publish(const void *data)
 {
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
+	if (!advertised()) {
+		advertise();
 	}
 
-	_node = nullptr;
-	_last_generation = 0;
-}
-
-bool Subscription::update(void *dst)
-{
-	if (subscribe()) {
-		return Manager::orb_data_copy(_node, dst, _last_generation, true);
-	}
-
-	return false;
-}
-
-bool Subscription::copy(void *dst)
-{
-	if (subscribe()) {
-		return Manager::orb_data_copy(_node, dst, _last_generation, false);
-	}
-
-	return false;
-}
-
-bool Subscription::ChangeInstance(uint8_t instance)
-{
-	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
-			return true;
-		}
-
-	} else {
-		// already on desired index
-		return true;
-	}
-
-	return false;
+	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
 }
 
 } // namespace uORB

@@ -42,6 +42,7 @@ set(SRCS)
 
 set(SRCS_COMMON
 	ORBSet.hpp
+	Publication.cpp
 	Publication.hpp
 	PublicationMulti.hpp
 	Subscription.cpp

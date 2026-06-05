@@ -146,27 +146,13 @@ public:
 	 * Update the struct
 	 * @param dst The uORB message struct we are updating.
 	 */
-	bool update(void *dst)
-	{
-		if (subscribe()) {
-			return Manager::orb_data_copy(_node, dst, _last_generation, true);
-		}
-
-		return false;
-	}
+	bool update(void *dst);
 
 	/**
 	 * Copy the struct
 	 * @param dst The uORB message struct we are updating.
 	 */
-	bool copy(void *dst)
-	{
-		if (subscribe()) {
-			return Manager::orb_data_copy(_node, dst, _last_generation, false);
-		}
-
-		return false;
-	}
+	bool copy(void *dst);
 
 	/**
 	 * Change subscription instance
