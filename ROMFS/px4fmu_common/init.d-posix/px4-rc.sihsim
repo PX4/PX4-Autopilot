@@ -2,6 +2,10 @@
 
 echo "INFO  [init] SIH simulator"
 
+# SIH publishes two simulated IMUs
+param set-default EKF2_MULTI_IMU 2
+param set-default SENS_IMU_MODE 0
+
 if [ -n "${PX4_HOME_LAT}" ]; then
 	param set SIH_LOC_LAT0 ${PX4_HOME_LAT}
 fi

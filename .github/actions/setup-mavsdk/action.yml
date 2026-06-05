@@ -1,0 +1,13 @@
+name: Setup MAVSDK
+description: Download and install the MAVSDK C++ library from GitHub releases
+
+runs:
+  using: composite
+  steps:
+    - name: Download MAVSDK
+      shell: bash
+      run: wget -q "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+
+    - name: Install MAVSDK
+      shell: bash
+      run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"

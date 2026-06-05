@@ -163,6 +163,8 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 		include(sitl_tests)
 	endif()
 
+	include(mavsdk_tests)
+
 	# "none" legacy SITL helper target
 	add_custom_target(none
 		COMMAND $<TARGET_FILE:px4>

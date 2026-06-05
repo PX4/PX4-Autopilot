@@ -164,6 +164,11 @@ public:
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
 	}
 
+	void set_param_float(const std::string &param, float value)
+	{
+		CHECK(_param->set_param_float(param, value) == Param::Result::Success);
+	}
+
 	template<typename Rep, typename Period>
 	void sleep_for(std::chrono::duration<Rep, Period> duration)
 	{

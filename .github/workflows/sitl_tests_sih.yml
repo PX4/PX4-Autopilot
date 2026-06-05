@@ -1,0 +1,66 @@
+name: SITL Tests (SIH)
+
+on:
+  push:
+    branches:
+    - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+    - '**'
+    paths-ignore:
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Testing PX4 SIH
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",extras=s3-cache]
+    container:
+      image: px4io/px4-dev:v1.17.0-rc2
+    env:
+      PX4_CMAKE_BUILD_TYPE: RelWithDebInfo
+      PX4_SBOM_DISABLE: 1
+
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-sitl-sih-mavsdk
+          max-size: 250M
+
+      - uses: ./.github/actions/setup-mavsdk
+      - uses: ./.github/actions/build-sitl-sih
+
+      - uses: ./.github/actions/save-ccache
+        if: always()
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+      - name: Run SITL / MAVSDK Tests
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model quadx test/mavsdk_tests/configs/sih.json --verbose --force-color --build-dir build/px4_sitl_sih/
+        timeout-minutes: 10
+
+      - name: Upload failed logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-sih-logs
+          path: |
+            logs/**/**/**/*.log
+            logs/**/**/**/*.ulg
+            build/px4_sitl_sih/tmp_mavsdk_tests/rootfs/log/**/*.ulg

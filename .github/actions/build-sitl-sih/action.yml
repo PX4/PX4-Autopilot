@@ -1,0 +1,21 @@
+name: Build SIH SITL
+description: Build PX4 SIH firmware and MAVSDK integration tests
+
+runs:
+  using: composite
+  steps:
+    - name: Build - PX4 Firmware (SIH)
+      shell: bash
+      run: make px4_sitl_sih
+
+    - name: Cache - Stats after PX4 Firmware
+      shell: bash
+      run: ccache -s
+
+    - name: Build - MAVSDK Tests
+      shell: bash
+      run: make px4_sitl_sih mavsdk_tests
+
+    - name: Cache - Stats after MAVSDK Tests
+      shell: bash
+      run: ccache -s

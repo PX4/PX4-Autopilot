@@ -306,7 +306,25 @@ class Tester:
         self.active_runners = []
 
         if self.config['mode'] == 'sitl':
-            if self.config['simulator'] == 'gazebo':
+            simulator = self.config.get('simulator', 'gazebo')
+
+            if simulator == 'sih':
+                px4_runner = ph.Px4Runner(
+                    os.getcwd(),
+                    log_dir,
+                    test['model'],
+                    case,
+                    self.get_max_speed_factor(test),
+                    self.debugger,
+                    self.verbose,
+                    self.build_dir,
+                    self.tester_interface.rootfs_base_dirname(),
+                    simulator="sih")
+                for env_key in test.get('env', []):
+                    px4_runner.env[env_key] = str(test['env'][env_key])
+                self.active_runners.append(px4_runner)
+
+            elif simulator == 'gazebo':
                 # Use RegEx to extract worldname.world from case name
                 match = re.search(r'\((.*?\.world)\)', case)
                 if match:

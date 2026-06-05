@@ -44,7 +44,9 @@ SensorMagSim::SensorMagSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
+	for (uint8_t i = 0; i < MAG_COUNT; i++) {
+		_px4_mag[i].set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
+	}
 }
 
 SensorMagSim::~SensorMagSim()
@@ -130,14 +132,16 @@ void SensorMagSim::Run()
 		vehicle_attitude_s attitude;
 
 		if (_vehicle_attitude_sub.update(&attitude)) {
-			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
+			const Vector3f base_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
 
-			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
+			for (uint8_t i = 0; i < MAG_COUNT; i++) {
+				const Vector3f field = base_field + noiseGauss3f(0.02f, 0.02f, 0.03f);
 
-			_px4_mag.update(attitude.timestamp,
-					expected_field(0) + _sim_mag_offset_x.get(),
-					expected_field(1) + _sim_mag_offset_y.get(),
-					expected_field(2) + _sim_mag_offset_z.get());
+				_px4_mag[i].update(attitude.timestamp,
+						   field(0) + _sim_mag_offset_x.get(),
+						   field(1) + _sim_mag_offset_y.get(),
+						   field(2) + _sim_mag_offset_z.get());
+			}
 		}
 	}
 

@@ -369,3 +369,28 @@ parameters:
       default: 6000.0
       min: 0.1
       decimal: 1
+    SIH_FAULT_IMU:
+      description:
+        short: IMU index for fault injection
+        long: |-
+          Selects which simulated IMU receives injected faults.
+          0 disables fault injection. 1 selects IMU 0, 2 selects IMU 1.
+          Can be changed at runtime to start/stop faults mid-flight.
+      type: int32
+      default: 0
+      min: 0
+      max: 2
+    SIH_FAULT_VIBE:
+      description:
+        short: Accel vibration amplitude for fault injection
+        long: |-
+          Adds random high-amplitude noise to the Z-axis of the selected IMU.
+          Values above ~155 m/s^2 will trigger accelerometer clipping detection,
+          which in turn triggers the EKF bad_acc_clipping fault flag.
+          Set to 0 to disable vibration injection even when SIH_FAULT_IMU is set.
+      type: float
+      default: 0.0
+      unit: m/s^2
+      min: 0.0
+      max: 500.0
+      decimal: 1

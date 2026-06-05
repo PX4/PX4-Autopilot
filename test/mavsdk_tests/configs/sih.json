@@ -1,0 +1,14 @@
+{
+    "mode": "sitl",
+    "simulator": "sih",
+    "mavlink_connection": "udp://0.0.0.0:14540",
+    "tests":
+    [
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "test_filter": "[ekf2_selector]",
+            "timeout_min": 5
+        }
+    ]
+}
