@@ -532,18 +532,9 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 
 }
 
-float Sih::computeGravity(const double lat)
-{
-	// Somigliana formula for gravitational acceleration
-	const double sin_lat = sin(lat);
-	const double g = LatLonAlt::Wgs84::gravity_equator * (1.0 + 0.001931851353 * sin_lat * sin_lat) / sqrt(
-				 1.0 - LatLonAlt::Wgs84::eccentricity2 * sin_lat * sin_lat);
-	return static_cast<float>(g);
-}
-
 void Sih::equations_of_motion(const float dt)
 {
-	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * computeGravity(
+	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(
 			_lla.latitude_rad()); // gravity along the Down axis
 	const Vector3f coriolis_acceleration_E = -2.f * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE).cross(_v_E);
 
