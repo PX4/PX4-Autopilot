@@ -2493,6 +2493,7 @@ void Commander::handleAutoDisarm()
 bool Commander::handleModeIntentionAndFailsafe()
 {
 	const uint8_t prev_nav_state = _vehicle_status.nav_state;
+	const int prev_executor_in_charge = _vehicle_status.executor_in_charge;
 	const FailsafeBase::Action prev_failsafe_action = _failsafe.selectedAction();
 	const uint8_t prev_failsafe_defer_state = _vehicle_status.failsafe_defer_state;
 
@@ -2547,7 +2548,8 @@ bool Commander::handleModeIntentionAndFailsafe()
 		_vehicle_status.nav_state_timestamp = hrt_absolute_time();
 	}
 
-	_mode_management.updateActiveConfigOverrides(_vehicle_status.nav_state, _config_overrides);
+	_mode_management.updateActiveConfigOverrides(prev_nav_state, _vehicle_status.nav_state, prev_executor_in_charge,
+			_config_overrides);
 
 	// Apply failsafe deferring & get the current state
 	_failsafe.deferFailsafes(_config_overrides.defer_failsafes, _config_overrides.defer_failsafes_timeout_s);
