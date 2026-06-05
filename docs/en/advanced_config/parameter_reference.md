@@ -26530,25 +26530,6 @@ Disabled if 0.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 10000    | 1         | 0.0     | m    | &nbsp;    |
 
-### GF_PREDICT (`INT32`) {#GF_PREDICT}
-
-[EXPERIMENTAL] Use Pre-emptive geofence triggering.
-
-WARNING: This experimental feature may cause flyaways. Use at your own risk.
-
-Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
-would result in a breach happening before the vehicle can make evasive maneuvers.
-The vehicle is then re-routed to a safe hold position (stop for multirotor, loiter for fixed wing).
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
-
 ### GF_SOURCE (`INT32`) {#GF_SOURCE}
 
 Geofence source.
