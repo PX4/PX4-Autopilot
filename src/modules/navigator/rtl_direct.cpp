@@ -150,12 +150,13 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_destination = rtl_position;
 		_force_heading = false;
 
+		_land_approach = sanitizeLandApproach(loiter_pos);
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		_navigator->get_geofence_avoidance_planner().updateDestination(
-			matrix::Vector2d{_destination.lat, _destination.lon});
+			matrix::Vector2d{_land_approach.lat, _land_approach.lon}
+		);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-
-		_land_approach = sanitizeLandApproach(loiter_pos);
 
 		const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
 
