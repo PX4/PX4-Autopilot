@@ -53,7 +53,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
-#include "./GeofenceBreachAvoidance/geofence_interface.h"
+#include "./RTLPlanner/geofence_interface.h"
 
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
 

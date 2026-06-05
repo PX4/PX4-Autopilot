@@ -33,6 +33,7 @@
 
 add_subdirectory(GeofenceBreachAvoidance)
 add_subdirectory(MissionFeasibility)
+add_subdirectory(RTLPlanner)
 
 if(BUILD_TESTING)
 	add_subdirectory(test)

@@ -56,7 +56,7 @@
 
 #include <lib/rtl/rtl_time_estimator.h>
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-#include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
+#include "RTLPlanner/geofence_avoidance_planner.h"
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"

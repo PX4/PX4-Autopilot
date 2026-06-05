@@ -40,7 +40,7 @@
 #pragma once
 
 #include <matrix/math.hpp>
-#include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
+#include "RTLPlanner/geofence_avoidance_planner.h"
 
 class RtlTimeEstimator;
 

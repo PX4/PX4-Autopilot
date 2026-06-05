@@ -56,7 +56,7 @@
 #include "navigation.h"
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-#include "GeofenceBreachAvoidance/geofence_avoidance_planner.h"
+#include "RTLPlanner/geofence_avoidance_planner.h"
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
