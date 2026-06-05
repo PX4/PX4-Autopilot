@@ -197,7 +197,7 @@ get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat_next
 	double lon_next_rad = math::radians(lon_next);
 
 	double d_lat = lat_next_rad - lat_now_rad;
-	double d_lon = lon_next_rad - lon_now_rad;
+	double d_lon = wrap_pi(lon_next_rad - lon_now_rad);
 
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
 	*v_n = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * d_lat);
@@ -211,7 +211,7 @@ void add_vector_to_global_position(double lat_now, double lon_now, float v_n, fl
 	double lon_now_rad = math::radians(lon_now);
 
 	*lat_res = math::degrees(lat_now_rad + (double)v_n / CONSTANTS_RADIUS_OF_EARTH);
-	*lon_res = math::degrees(lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad)));
+	*lon_res = math::degrees(wrap_pi(lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad))));
 }
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>

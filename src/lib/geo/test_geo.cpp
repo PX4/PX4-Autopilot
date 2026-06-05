@@ -107,6 +107,26 @@ TEST_F(GeoTest, reproject_nan_prevention)
 	EXPECT_FALSE(std::isnan(lon));
 }
 
+TEST_F(GeoTest, vector_to_next_waypoint_fast_antimeridian)
+{
+	// GIVEN: A starting point at +179 (East) and a target at -179 (West)
+	double lat_now = 0.0;
+	double lon_now = 179.0;
+	double lat_next = 0.0;
+	double lon_next = -179.0;
+
+	float v_n = 0.0f;
+	float v_e = 0.0f;
+
+	// WHEN: We calculate the vector
+	get_vector_to_next_waypoint_fast(lat_now, lon_now, lat_next, lon_next, &v_n, &v_e);
+
+	// THEN: Because the shortest path is 2 degrees East, the East velocity (v_e)
+	// MUST be a positive number. Without wrapping, this would be highly negative.
+	EXPECT_FLOAT_EQ(v_n, 0.0f); // Latitude didn't change
+	EXPECT_GT(v_e, 0.0f);       // Eastward velocity should be Greater Than (GT) zero
+}
+
 TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
 {
 	// GIVEN: a starting waypoint, a heading and a distance of 0
