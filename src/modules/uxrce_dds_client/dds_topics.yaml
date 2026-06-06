@@ -94,10 +94,6 @@ publications:
   type: px4_msgs::msg::SensorGyro
   rate_limit: 250
 
-# - topic: /fmu/out/rc_channels
-#   type: px4_msgs::msg::RcChannels
-#   rate_limit: 100
-
 - topic: /fmu/out/vehicle_command
   type: px4_msgs::msg::VehicleCommand
   rate_limit: 10
@@ -193,8 +189,8 @@ subscriptions:
 - topic: /fmu/in/vehicle_rates_setpoint
   type: px4_msgs::msg::VehicleRatesSetpoint
 
-# - topic: /fmu/in/vehicle_visual_odometry
-#   type: px4_msgs::msg::VehicleOdometry
+- topic: /fmu/in/vehicle_visual_odometry
+  type: px4_msgs::msg::VehicleOdometry
 
 - topic: /fmu/in/formic_odom
   type: px4_msgs::msg::VehicleOdometry

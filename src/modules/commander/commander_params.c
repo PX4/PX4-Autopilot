@@ -110,7 +110,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * @max 120
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_POS_WAIT_LIM, 10);
+PARAM_DEFINE_INT32(COM_POS_WAIT_LIM, 30);
 
 /**
  * High Latency Datalink loss time threshold

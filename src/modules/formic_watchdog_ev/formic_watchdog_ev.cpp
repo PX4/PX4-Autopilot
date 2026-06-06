@@ -7,10 +7,6 @@
 
 using namespace time_literals;
 
-// -----------------------------------------------------------------------------
-// Lifecycle
-// -----------------------------------------------------------------------------
-
 FormicWatchdogEv::FormicWatchdogEv() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -37,10 +33,6 @@ void FormicWatchdogEv::parameters_update(bool force)
 
 	_ev_vel_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 2)) != 0;
 	_aux_switch = static_cast<user_aux_switch_t>(_param_formic_wdev_aux.get());
-
-	// Start with VIO allowed. With no AUX channel configured this stays true
-	// (VIO active all the time); otherwise handel_user_aux_control() follows
-	// the selected switch.
 	_formic_state.user_aux_control = true;
 }
 
@@ -59,22 +51,16 @@ void FormicWatchdogEv::Run()
 	}
 	handel_user_aux_control();
 
-	if (_formic_pos_req.updated()) {
-		formic_pos_req_s pos_req{};
-		_formic_pos_req.copy(&pos_req);
-		_pos_requested = pos_req.pos_req;
-		// PX4_INFO("Position request: %s", _pos_requested ? "true" : "false");
-	}
+	handel_pos_req_user_intention(); // check if the commander requested to be in a position mode (e.g. by moving the AUX switch or by requesting a position mode while EV was not healthy, which triggers the position request as a fallback)
+
+	update_baro_deriv();
 
 
-	// Forward odometry from formic_odom to the visual odometry topic
 	vehicle_odometry_s odometry{};
 
 	if (_odometry_sub_formic.update(&odometry)) {
 		_last_ev_timestamp = hrt_absolute_time();
 
-		// Mark the start of this EV session. no_EvData() resets it to 0 on a
-		// dropout, so a stop/re-arrive restarts the settle window every session.
 		if (_first_ev_timestamp == 0) {
 			_first_ev_timestamp = _last_ev_timestamp;
 		}
@@ -85,11 +71,6 @@ void FormicWatchdogEv::Run()
 			_formic_state.error_find = true;
 		}
 
-		// Only forward EV odometry once the stream has been arriving for the
-		// configured settle time (FORMIC_WDEV_INIT, in seconds). During the
-		// settle window we only build the quality average (the data is not
-		// forwarded); the final average is computed exactly once, right before3
-		// the first sample is fused.
 		const hrt_abstime settle_us = (hrt_abstime)_param_formic_wdev_init.get() * 1_s;
 		if (hrt_elapsed_time(&_first_ev_timestamp) < settle_us) {
 			accumulate_quality(odometry); // still settling: build the average, don't forward yet
@@ -97,7 +78,6 @@ void FormicWatchdogEv::Run()
 		}
 		else if (!_formic_state.error_find && _formic_state.user_aux_control) { // only forward the data if the aux switch is active (if configured) and if no error has been found, otherwise we keep publishing the state machine with the error flag set but we don't forward the possibly bad data to the rest of the system
 			if (!_init_check_done) {
-				// settle window just elapsed: compute the init average once, before the first fuse
 				_quality_average_init = finalize_quality_average();
 				_vel_average_init     = finalize_3d_velocity_average();
 				_init_check_done = true;
@@ -110,20 +90,12 @@ void FormicWatchdogEv::Run()
 					PX4_WARN("EV data did not pass the init checks! quality average: %.2f, vel average: %.2f", (double)_quality_average_init, (double)_vel_average_init);
 				}
 			}
-			/* The `raw_yaw` variable in the `check_EV_z_velocity` function is calculated by extracting
-			the yaw angle from the quaternion orientation data in the `vehicle_odometry_s` structure.
-			The yaw angle is obtained by converting the quaternion to Euler angles and then extracting
-			the yaw component. This `raw_yaw` value is used for further processing or checks related to
-			the yaw orientation of the vehicle. */
-			float raw_yaw = get_yaw_from_quat(odometry); // try get the ev vilo data
-			resetcounter_heading(raw_yaw); // (relies on _formic_state.ev_data_arrived being fresh)
-
+			resetcounter(odometry); // (relies on _formic_state.ev_data_arrived being fresh)
 			copy_odometry_msg(odometry);
 		}
 	}
 
 	no_EvData(); // updates _formic_state.ev_data_arrived every cycle
-	update_baro_deriv();
 
 	update_pipeline_status(); // decide _formic_state.status from the flags set above
 
@@ -137,42 +109,20 @@ void FormicWatchdogEv::Run()
 
 void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
 {
-	// Forward the EV odometry only while a position mode is requested. The
-	// resulting pipeline state (VALID_POS vs MANUAL/etc.) is decided centrally
-	// in update_pipeline_status(); this helper only handles the forwarding.
-
-	odometry.reset_counter = _formic_state.heading_reset_counter;
+	odometry.reset_counter = _formic_state.reset_counter;
 	_odometry_pub.publish(odometry);
-
-	// Mark when forwarding first started this session. Hold the status below
-	// VALID_POS for 1 s after the first forwarded sample, so the EKF has time to
-	// settle on the freshly-forwarded EV pose before we advertise it as a trusted
-	// position source. During this window the status stays INIT (see
-	// update_pipeline_status). Reset to 0 on EV dropout so each session re-waits.
 	if (_forwarding_start_time == 0) {
 		_forwarding_start_time = hrt_absolute_time();
 	}
 
-	if (hrt_elapsed_time(&_forwarding_start_time) >= 1_s) {
+	if (hrt_elapsed_time(&_forwarding_start_time) >= 2_s) {
+		// maby check the pos is alighend if not reset counter ??
 		_formic_state.status = (uint8_t)pipline_status::VALID_POS;
 	}
 
 }
 
-// Single source of truth for the pipeline state. Runs once per cycle, after all
-// the checks have set their flags. The status reports EV-pipeline health only;
-// it is intentionally INDEPENDENT of the position request (_pos_requested) so
-// the commander can read it to decide whether to enter a position mode without
-// creating a feedback loop. _pos_requested only gates whether the odometry is
-// forwarded to the EKF (see copy_odometry_msg). Evaluated in strict priority:
-//   ERROR        - a latched fault was found this session (cleared on EV dropout)
-//   MANUAL       - the user AUX gate is off (VIO disabled by the operator)
-//   WAIT_TO_DATA - no fresh EV stream yet
-//   INIT         - EV data arriving, still inside the settle window
-//   VALID_POS    - past settle, no error: EV is a trusted position source
 void FormicWatchdogEv::update_pipeline_status()
-
-
 
 {
 
@@ -182,7 +132,7 @@ void FormicWatchdogEv::update_pipeline_status()
 	}
 
 	if (_formic_state.error_find) {
-		_formic_state.status = (uint8_t)pipline_status::ERROR;
+		_formic_state.status = (uint8_t)pipline_status::EV_ERROR;
 		return;
 	}
 
@@ -196,10 +146,10 @@ void FormicWatchdogEv::update_pipeline_status()
 		return;
 	}
 
-	// Init checks passed, but stay in INIT during the 1 s post-forwarding settle
+	// Init checks passed, but stay in INIT during the 2 s post-forwarding settle
 	// window. copy_odometry_msg() promotes the status to VALID_POS once the window
 	// elapses (and only on cycles where EV is actually forwarded).
-	if (_forwarding_start_time == 0 || hrt_elapsed_time(&_forwarding_start_time) < 1_s) {
+	if (_forwarding_start_time == 0 || hrt_elapsed_time(&_forwarding_start_time) < 2_s) {
 		_formic_state.status = (uint8_t)pipline_status::INIT;
 		return;
 	}
@@ -236,6 +186,19 @@ void FormicWatchdogEv::handel_user_aux_control()
 }
 
 
+void FormicWatchdogEv::handel_pos_req_user_intention()
+// handel the pos_req that came from the commander 
+{
+	if (_formic_pos_req.updated()) {
+		formic_pos_req_s pos_req{};
+		_formic_pos_req.copy(&pos_req);
+		_pos_requested = pos_req.pos_req;
+	}
+
+
+}
+
+
 /*
 get the raw ev 
 check if the rkf2_ev_ctrl have ev_velocity - if have use the velo 
@@ -263,13 +226,20 @@ void FormicWatchdogEv::check_EV_z_velocity(vehicle_odometry_s &odometry)
 	}
 }
 
+
+
+/*
+applide a low pass the the baro div that i have (at the vehicle_air_Data )
+*/
 void FormicWatchdogEv::update_baro_deriv()
 {
 	vehicle_air_data_s air_data{};
-
 	if (_air_data_sub.update(&air_data)) {
 		_baro_filtered = _baro_deriv_filter.apply(air_data.baro_alt_meter_derivative);
+		_formic_state.baro_data = _baro_filtered;
 	}
+	
+	
 }
 
 
@@ -348,100 +318,115 @@ float FormicWatchdogEv::get_yaw_from_quat(const vehicle_odometry_s &odometry)
 /*
 checking if the heading is and the distance at the heading between the EV_rad heading and the current heading at the current session
 */
-bool FormicWatchdogEv::check_EV_aid_src_heading(float raw_yaw)
+bool FormicWatchdogEv::check_EV_aid_src_heading(float vio_yaw, float estimator_yaw)
 {
 	estimator_aid_source1d_s ev_yaw{};
 
+	// No fused EV yaw aid this cycle -> alignment is unknown. Report "data not valid"
+	// so the caller keeps the current phase instead of treating it as aligned.
 	if (!_estimator_aid_src_heading_sub.copy(&ev_yaw)) {
+		_formic_state.heading_alligned_with_ev = false;
 		return false;
 	}
-
-	// EV yaw must be actively fused (and not rejected) to be trusted.
 	if (!ev_yaw.fused || ev_yaw.innovation_rejected) {
+		_formic_state.heading_alligned_with_ev = false;
 		return false;
 	}
 
-	vehicle_local_position_s local_pos{};
+	const float d_yaw = matrix::wrap_pi(vio_yaw - estimator_yaw);
+	const float dyaw_thr = _param_formic_wdev_dyaw.get();
+	const bool aligned = fabsf(d_yaw) <= dyaw_thr;
+	_formic_state.heading_alligned_with_ev = aligned;
 
-	if (!_local_position_sub.copy(&local_pos)) {
-		return false;
-	}
-
-	// Heading difference between the local estimate and the EV yaw observation (radians).
-	const float d_yaw = matrix::wrap_pi(local_pos.heading - ev_yaw.observation); /// need fix
-
-	// Only count a heading reset when the difference exceeds the configured
-	// threshold (FORMIC_WDEV_DYAW). When d_yaw is small the heading is already
-	// aligned with the EV and no reset is needed for this session.
-	bool ret = fabsf(d_yaw) > _param_formic_wdev_dyaw.get();
-	if (ret){
-		// print ony when need a reset
-		PX4_INFO("EV yaw: %.2f, local heading: %.2f, d_yaw: %.2f", (double)ev_yaw.observation, (double)local_pos.heading, (double)d_yaw);
-	}
-
-	// Error check is only armed once we have LEFT the reset phase (at_reset_counter
-	// == false, i.e. the heading was aligned at least once this session). During the
-	// reset phase a large d_yaw is expected (we are still aligning) and must not be
-	// flagged as an error.
-	if (!at_reset_counter && fabsf(d_yaw) > _param_formic_wdev_dyaw.get()*2) {
-		PX4_WARN("Large heading difference detected (%.2f deg). Please check the EV yaw configuration and the local heading estimate.", (double)math::degrees(d_yaw));
+	if (!at_reset_counter && fabsf(d_yaw) > dyaw_thr * 2.f) {
+		PX4_INFO("Large heading difference detected (%.2f deg). Please check the EV yaw configuration and the local heading estimate.", (double)math::degrees(d_yaw));
 		_formic_state.error_find = true;
 	}
-	return ret;
+	return true; // had fused EV yaw aid data this cycle
 }
 
-/*
- * Heading reset counter. Each EV session runs in two phases:
- *
- *   RESET phase  (at_reset_counter == true): while the heading is NOT yet aligned
- *                with the EV (d_yaw large), keep incrementing the reset counter to
- *                force the EKF to re-align to the EV heading. Throttled to one
- *                increment every 3 s. A large d_yaw here is expected, not an error.
- *   CHECK phase  (at_reset_counter == false): the heading was aligned at least once,
- *                so we stop resetting and start watching for errors (a large d_yaw
- *                now means the EV/heading disagree -> error_find, see
- *                check_EV_aid_src_heading).
- *
- * On EV dropout the counter is cleared and the RESET phase is re-armed for the next
- * session (see no_EvData / the ev_data_arrived guard below).
- */
-void FormicWatchdogEv::resetcounter_heading(float raw_yaw)
+
+// handel a pos reset counter // 
+bool FormicWatchdogEv::handel_pos_reset(const float vio_pos[2], const float estimator_pos[2])
 {
-	// EV session stopped -> clear the counter, the throttle timer, and re-arm the
-	// reset phase so the next session starts aligning from zero.
+	estimator_aid_source2d_s ev_pos{};
+
+	if (!_estimator_aid_src_pos_sub.copy(&ev_pos)) {
+		_formic_state.pos_alligned_with_ev = false;
+		return false;
+	}
+
+	if (!ev_pos.fused || ev_pos.innovation_rejected) {
+		_formic_state.pos_alligned_with_ev = false;
+		return false;
+	}
+
+	matrix::Vector2f d_pos;
+	for (int i = 0; i < 2; i++) {
+		d_pos(i) = fabsf(vio_pos[i] - estimator_pos[i]);
+	}
+
+	const bool aligned = d_pos.norm() <= _param_formic_wdev_dpos.get();
+	_formic_state.pos_alligned_with_ev = aligned;
+
+	if (!aligned) {
+		PX4_INFO("EV pos: [%.2f, %.2f], local pos: [%.2f, %.2f], d_pos: [%.2f, %.2f]", (double)vio_pos[0], (double)vio_pos[1], (double)estimator_pos[0], (double)estimator_pos[1], (double)d_pos(0), (double)d_pos(1));
+	}
+
+	return true; // had fused EV position aid data this cycle
+}
+
+
+void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
+{
+
+	
+	vehicle_odometry_s esti_odom{};
+
+	if (!_estimtor_odometry_sub.copy(&esti_odom)) {
+		return;
+	}
+
+	const float raw_yaw      = get_yaw_from_quat(odometry);  // EV (VIO) yaw
+	const float estimtor_yaw = get_yaw_from_quat(esti_odom); // EKF yaw
+
+	// New session (EV just (re)arrived): clear the counter and re-arm the reset phase.
 	if (!_formic_state.ev_data_arrived) {
-		_formic_state.heading_reset_counter = 0;
-		_last_heading_reset_time = 0;
+		_formic_state.reset_counter = 0;
+		_last_reset_time = 0;
 		at_reset_counter = true;
 		return;
 	}
 
-	const bool needs_reset = check_EV_aid_src_heading(raw_yaw); // true while d_yaw > FORMIC_WDEV_DYAW
+	// Evaluate alignment. Each helper sets the matching *_alligned_with_ev flag and
+	// returns false when it had NO fused EV aid data this cycle (alignment unknown).
+	const bool yaw_data_valid = check_EV_aid_src_heading(raw_yaw, estimtor_yaw);
+	const bool pos_data_valid = handel_pos_reset(odometry.position, esti_odom.position);
 
-	// CHECK phase: reset phase already finished this session. Keep evaluating the
-	// heading (the error gate lives inside check_EV_aid_src_heading) but never reset.
 	if (!at_reset_counter) {
-		_formic_state.heading_alligned_with_ev = !needs_reset;
+		return;
+	}
+	if (!yaw_data_valid || !pos_data_valid) {
 		return;
 	}
 
-	// RESET phase: heading is now aligned -> leave the reset phase for the rest of
-	// this session and switch to error checking.
-	if (!needs_reset) {
+	const bool aligned = _formic_state.heading_alligned_with_ev
+			     && _formic_state.pos_alligned_with_ev;
+
+	// Both heading AND position aligned -> leave the reset phase for the rest of this
+	// session and switch to error checking.
+	if (aligned) {
 		at_reset_counter = false;
-		_formic_state.heading_alligned_with_ev = true;
 		return;
 	}
 
-	// Heading still misaligned. Throttle: only one reset every 3 seconds.
-	if (_last_heading_reset_time != 0 && hrt_elapsed_time(&_last_heading_reset_time) < 3_s) {
+	// Still misaligned. Throttle: only one reset every 2 seconds.
+	if (_last_reset_time != 0 && hrt_elapsed_time(&_last_reset_time) < 2_s) {
 		return;
 	}
 
-	// Force another EKF heading reset to the EV.
-	_formic_state.heading_reset_counter++;
-	_formic_state.heading_alligned_with_ev = false;
-	_last_heading_reset_time = hrt_absolute_time();
+	_formic_state.reset_counter++;
+	_last_reset_time = hrt_absolute_time();
 }
 
 
@@ -464,8 +449,8 @@ void FormicWatchdogEv::no_EvData()
 		_vel_average_init = 0.0f; // reset computed init 3D speed average
 		_formic_state.quality_init_check_fail = false; // clear latched init-check flags for the next session
 		_formic_state.vel_3d_init_check_fail  = false;
-		_formic_state.heading_reset_counter = 0; // reset the heading reset counter at dropout, so the next session starts from zero
-		_last_heading_reset_time = 0; // clear the 3 s reset throttle timer
+		_formic_state.reset_counter = 0; // reset the EV reset counter at dropout, so the next session starts from zero
+		_last_reset_time = 0; // clear the 3 s reset throttle timer
 		at_reset_counter = true; // re-arm the reset phase: next session resets until the heading aligns, then checks for errors
 		_forwarding_start_time = 0; // restart the 1 s post-forwarding settle window next session
 
@@ -476,14 +461,8 @@ void FormicWatchdogEv::no_EvData()
 	}
 }
 
-// Return true when the EKF is actively fusing the EV pose: the EV position and
-// yaw aid sources (and velocity, when EV velocity fusion is enabled) must each
-// have fused recently and not be innovation-rejected. This confirms the EKF is
-// really consuming the EV data this module forwards, not just that data arrived.
 
-// -----------------------------------------------------------------------------
-// Module boilerplate
-// -----------------------------------------------------------------------------
+
 
 int FormicWatchdogEv::task_spawn(int argc, char *argv[])
 {
@@ -507,6 +486,11 @@ int FormicWatchdogEv::task_spawn(int argc, char *argv[])
 	_task_id = -1;
 	return PX4_ERROR;
 }
+
+
+
+
+
 
 FormicWatchdogEv *FormicWatchdogEv::instantiate(int argc, char *argv[])
 {

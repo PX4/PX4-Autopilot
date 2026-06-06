@@ -15,7 +15,6 @@
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/formic_ev_state_machine.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/formic_pos_req.h>
 
@@ -50,7 +49,7 @@ enum class pipline_status : uint8_t {
 	WAIT_TO_DATA  	= 1,
 	INIT	 	= 2,
 	VALID_POS 	= 3,
-	ERROR 		= 4,
+	EV_ERROR 	= 4,	// 'ERROR' collides with the ERROR macro in px4_platform_common/defines.h
 };
 
 class FormicWatchdogEv : public ModuleBase<FormicWatchdogEv>,
@@ -76,10 +75,9 @@ private:
 	void copy_odometry_msg(vehicle_odometry_s &odometry);
 	void check_EV_z_velocity(vehicle_odometry_s &odometry);
 	void update_baro_deriv();
-	bool check_EV_aid_src_heading(float raw_yaw);
-	void resetcounter_heading(float raw_yaw);
+	bool check_EV_aid_src_heading(float vio_yaw, float estimator_yaw); // returns true if EV yaw aid data was fused this cycle; sets heading_alligned_with_ev
+	void resetcounter(vehicle_odometry_s &odometry);
 	void no_EvData();
-	bool valid_pose_to_fligt(); // true if the EV pos/vel/yaw aid sources are actively fused (not rejected) by the EKF
 	bool multy_sensor_z_velocity_check();
 	float get_yaw_from_quat(const vehicle_odometry_s &odometry);
 	void accumulate_quality(const vehicle_odometry_s &odometry); // sum one quality sample during the settle window
@@ -87,15 +85,15 @@ private:
 	void accumulate_3d_velocity(const vehicle_odometry_s &odometry); // sum one EV 3D speed sample during the settle window
 	float finalize_3d_velocity_average() const;  
 	void handel_user_aux_control();                    // mean EV 3D speed over the settle window
-
+	void handel_pos_req_user_intention();
+	bool handel_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
 	// --- Subscriptions ---
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _odometry_sub_formic{ORB_ID(formic_odom)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _estimator_aid_src_heading_sub{ORB_ID(estimator_aid_src_ev_yaw)};
-	uORB::Subscription _estimator_aid_src_ev_pos_sub{ORB_ID(estimator_aid_src_ev_pos)};
-	uORB::Subscription _estimator_aid_src_ev_vel_sub{ORB_ID(estimator_aid_src_ev_vel)};
-	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _estimator_aid_src_pos_sub{ORB_ID(estimator_aid_src_ev_pos)};
+	uORB::Subscription _estimtor_odometry_sub{ORB_ID(estimator_odometry)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _formic_pos_req{ORB_ID(formic_pos_req)};  // pos req at the tick time 
 
@@ -126,7 +124,7 @@ private:
 	hrt_abstime _prev_ev_pos_time{0};
 
 	// --- Heading reset counter state ---
-	hrt_abstime _last_heading_reset_time{0};  // last increment time (for the 3 s throttle)
+	hrt_abstime _last_reset_time{0};  // last increment time (for the 3 s throttle)
 	bool at_reset_counter {true}; // true while in the RESET phase: keep resetting until the heading aligns with the EV, then flips false to start error checking (re-armed each session on EV dropout)
 
 	// --- State machine output ---
@@ -154,6 +152,7 @@ private:
 		(ParamInt<px4::params::FORMIC_WDEV_AUX>) _param_formic_wdev_aux,
 		(ParamFloat<px4::params::FORMIC_WDEV_DVEL>) _param_formic_wdev_dvel,
 		(ParamFloat<px4::params::FORMIC_WDEV_DYAW>) _param_formic_wdev_dyaw,
+		(ParamFloat<px4::params::FORMIC_WDEV_DPOS>) _param_formic_wdev_dpos,
 		(ParamFloat<px4::params::FORMIC_WDEV_VINI>) _param_formic_wdev_vini
 	)
 };

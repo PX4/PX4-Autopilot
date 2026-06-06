@@ -109,6 +109,12 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 
 		_ev_q_error_initialized = false;
 
+		// add by naor //
+		_ev_sample_prev = {};
+		_ev_pos_b_est.reset();
+		_ev_hgt_b_est.reset();
+
+		// add by naor //
 		ECL_WARN("vision data stopped");
 	}
 }

@@ -279,6 +279,10 @@ then
 	attitude_estimator_q start
 fi
 
+# Formic EV watchdog. Always started; it self-gates on FORMIC_WDEV_EN (idles when 0),
+# so the parameter can be toggled at runtime without changing the startup script.
+formic_watchdog_ev start
+
 if ! pwm_out_sim start -m sim
 then
 	tune_control play error
