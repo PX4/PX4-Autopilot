@@ -153,8 +153,7 @@ void Navigator::params_update()
 void Navigator::run()
 {
 
-	/* Try to load the geofence:
-	 * if /fs/microsd/etc/geofence.txt load from this file */
+	/* Try to load the geofence file if it exists. */
 	struct stat buffer;
 
 	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
