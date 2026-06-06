@@ -50,6 +50,8 @@ protected:
 
 };
 
+static constexpr float one_degree_m = CONSTANTS_RADIUS_OF_EARTH_F * M_PI_F / 180.f;
+
 
 TEST_F(GeoTest, reprojectProject)
 {
@@ -90,6 +92,106 @@ TEST_F(GeoTest, projectReproject)
 	EXPECT_FLOAT_EQ(y, y_new);
 	EXPECT_FLOAT_EQ(lat, lat_new);
 	EXPECT_FLOAT_EQ(lon, lon_new);
+}
+
+TEST_F(GeoTest, mapProjectionAbsoluteValues)
+{
+	MapProjection local_proj{0., 0.};
+
+	float x = NAN;
+	float y = NAN;
+	local_proj.project(1., 0., x, y);
+	EXPECT_NEAR(x, one_degree_m, 0.01f);
+	EXPECT_NEAR(y, 0.f, 0.01f);
+
+	local_proj.project(0., 1., x, y);
+	EXPECT_NEAR(x, 0.f, 0.01f);
+	EXPECT_NEAR(y, one_degree_m, 0.01f);
+
+	double lat = NAN;
+	double lon = NAN;
+	local_proj.reproject(one_degree_m, 0.f, lat, lon);
+	EXPECT_NEAR(lat, 1., 1e-6);
+	EXPECT_NEAR(lon, 0., 1e-6);
+
+	local_proj.reproject(0.f, one_degree_m, lat, lon);
+	EXPECT_NEAR(lat, 0., 1e-6);
+	EXPECT_NEAR(lon, 1., 1e-6);
+}
+
+TEST_F(GeoTest, distanceAndBearingToNextWaypoint)
+{
+	EXPECT_NEAR(get_distance_to_next_waypoint(0., 0., 1., 0.), one_degree_m, 0.01f);
+	EXPECT_NEAR(get_distance_to_next_waypoint(0., 0., 0., 1.), one_degree_m, 0.01f);
+
+	EXPECT_NEAR(get_bearing_to_next_waypoint(0., 0., 1., 0.), 0.f, 1e-6f);
+	EXPECT_NEAR(get_bearing_to_next_waypoint(0., 0., 0., 1.), M_PI_2_F, 1e-6f);
+}
+
+TEST_F(GeoTest, vectorToNextWaypoint)
+{
+	float v_n = NAN;
+	float v_e = NAN;
+	get_vector_to_next_waypoint(0., 0., 1., 0., &v_n, &v_e);
+	EXPECT_NEAR(v_n, CONSTANTS_RADIUS_OF_EARTH_F * sinf(M_PI_F / 180.f), 0.01f);
+	EXPECT_NEAR(v_e, 0.f, 0.01f);
+
+	get_vector_to_next_waypoint(0., 0., 0., 1., &v_n, &v_e);
+	EXPECT_NEAR(v_n, 0.f, 0.01f);
+	EXPECT_NEAR(v_e, CONSTANTS_RADIUS_OF_EARTH_F * sinf(M_PI_F / 180.f), 0.01f);
+}
+
+TEST_F(GeoTest, fastVectorToNextWaypointWrapsAntimeridian)
+{
+	float v_n = NAN;
+	float v_e = NAN;
+	get_vector_to_next_waypoint_fast(0., 179.9, 0., -179.9, &v_n, &v_e);
+
+	EXPECT_NEAR(v_n, 0.f, 0.01f);
+	EXPECT_NEAR(v_e, CONSTANTS_RADIUS_OF_EARTH_F * math::radians(0.2f), 0.1f);
+}
+
+TEST_F(GeoTest, addVectorToGlobalPositionWrapsAntimeridian)
+{
+	double lat = NAN;
+	double lon = NAN;
+	add_vector_to_global_position(0., 179.9, 0.f, CONSTANTS_RADIUS_OF_EARTH_F * math::radians(0.2f), &lat, &lon);
+
+	EXPECT_NEAR(lat, 0., 1e-6);
+	EXPECT_NEAR(lon, -179.9, 1e-6);
+}
+
+TEST_F(GeoTest, distanceToLine)
+{
+	crosstrack_error_s crosstrack_error{};
+	EXPECT_EQ(get_distance_to_line(crosstrack_error, 0.1, 0.5, 0., 0., 0., 1.), 0);
+	EXPECT_FALSE(crosstrack_error.past_end);
+	EXPECT_NEAR(fabsf(crosstrack_error.distance), one_degree_m / 10.f, 1.f);
+
+	EXPECT_EQ(get_distance_to_line(crosstrack_error, 0., 1.1, 0., 0., 0., 1.), 0);
+	EXPECT_TRUE(crosstrack_error.past_end);
+}
+
+TEST_F(GeoTest, distanceToPointGlobalWgs84)
+{
+	float dist_xy = NAN;
+	float dist_z = NAN;
+	const float distance = get_distance_to_point_global_wgs84(0., 0., 100.f, 0., 1., 70.f, &dist_xy, &dist_z);
+
+	EXPECT_NEAR(dist_xy, one_degree_m, 0.01f);
+	EXPECT_NEAR(dist_z, 30.f, 1e-6f);
+	EXPECT_NEAR(distance, sqrtf(one_degree_m * one_degree_m + 30.f * 30.f), 0.01f);
+}
+
+TEST_F(GeoTest, mavlinkWpmDistanceToPointLocal)
+{
+	float dist_xy = NAN;
+	float dist_z = NAN;
+	const float distance = mavlink_wpm_distance_to_point_local(3.f, 4.f, 12.f, 0.f, 0.f, 0.f, &dist_xy, &dist_z);
+
+	EXPECT_FLOAT_EQ(dist_xy, 5.f);
+	EXPECT_FLOAT_EQ(dist_z, 12.f);
+	EXPECT_FLOAT_EQ(distance, 13.f);
 }
 
 TEST_F(GeoTest, waypoint_from_heading_and_zero_distance)
