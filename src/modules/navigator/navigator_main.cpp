@@ -71,7 +71,6 @@ Navigator::Navigator() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
-	_gf_breach_avoidance(this),
 	_mission(this),
 	_loiter(this),
 	_takeoff(this),
@@ -421,7 +420,7 @@ void Navigator::run()
 
 					rep->next.valid = false;
 
-					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
+					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
@@ -518,7 +517,7 @@ void Navigator::run()
 
 						rep->next.valid = false;
 
-						_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
+						_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 					} else {
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
@@ -593,7 +592,7 @@ void Navigator::run()
 					rep->current.valid = true;
 					rep->current.timestamp = hrt_absolute_time();
 
-					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
+					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
@@ -645,7 +644,7 @@ void Navigator::run()
 					rep->current.valid = true;
 					rep->current.timestamp = hrt_absolute_time();
 
-					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
+					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside geofence");
@@ -1001,7 +1000,9 @@ void Navigator::run()
 
 void Navigator::geofence_breach_check()
 {
-	// reset the _time_loitering_after_gf_breach time if no longer in LOITER (and 100ms after it was triggered)
+	static constexpr hrt_abstime GEOFENCE_CHECK_INTERVAL_US = 200_ms;
+
+	// reset the post-breach loiter latch if we left AUTO_LOITER (and 100ms after it was triggered)
 	if (_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
 	    && hrt_elapsed_time(&_time_loitering_after_gf_breach) > 100_ms) {
 		_time_loitering_after_gf_breach = 0;
@@ -1009,33 +1010,6 @@ void Navigator::geofence_breach_check()
 
 	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
-
-		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-
-		geofence_violation_type_u gf_violation_type{};
-		float test_point_bearing;
-		float test_point_distance;
-		float vertical_test_point_distance;
-
-		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
-			const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-			_gf_breach_avoidance.setHorizontalVelocity(velocity_hor_abs);
-			_gf_breach_avoidance.setClimbRate(-_local_pos.vz);
-			test_point_distance = _gf_breach_avoidance.computeBrakingDistanceMultirotor();
-			vertical_test_point_distance = _gf_breach_avoidance.computeVerticalBrakingDistanceMultirotor();
-
-		} else {
-			test_point_distance = 2.0f * get_default_loiter_rad();
-			vertical_test_point_distance = 5.0f;
-
-			if (hrt_absolute_time() - pos_ctrl_status.timestamp < 100000 && PX4_ISFINITE(pos_ctrl_status.nav_bearing)) {
-				test_point_bearing = pos_ctrl_status.nav_bearing;
-
-			} else {
-				test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
-			}
-		}
 
 		double current_latitude = _global_pos.lat;
 		double current_longitude = _global_pos.lon;
@@ -1054,41 +1028,21 @@ void Navigator::geofence_breach_check()
 			return;
 		}
 
-		_gf_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
-		_gf_breach_avoidance.setVerticalTestPointDistance(vertical_test_point_distance);
-		_gf_breach_avoidance.setTestPointBearing(test_point_bearing);
-		_gf_breach_avoidance.setCurrentPosition(current_latitude, current_longitude, current_altitude);
-		_gf_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
-
-		if (home_global_position_valid()) {
-			_gf_breach_avoidance.setHomePosition(_home_pos.lat, _home_pos.lon, _home_pos.alt);
-		}
-
-		double test_point_latitude = current_latitude;
-		double test_point_longitude = current_longitude;
-		float test_point_altitude = current_altitude;
-
-		if (_geofence.getPredict()) {
-			matrix::Vector2<double>fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
-			test_point_latitude = fence_violation_test_point(0);
-			test_point_longitude = fence_violation_test_point(1);
-			test_point_altitude = current_altitude + vertical_test_point_distance;
-		}
-
 		if (_time_loitering_after_gf_breach > 0) {
-			// if we are in the loitering state after breaching a GF, only allow new ones to be set, but not unset
-			_geofence_result.geofence_max_dist_triggered |= !_geofence.isCloserThanMaxDistToHome(test_point_latitude,
-					test_point_longitude, test_point_altitude);
-			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(test_point_altitude);
-			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(test_point_latitude,
-					test_point_longitude, test_point_altitude);
+			// while loitering after a breach, only allow new triggers to be set, never cleared.
+			// Prevents the reposition center from walking outward when the vehicle hovers at the fence boundary.
+			_geofence_result.geofence_max_dist_triggered |= !_geofence.isCloserThanMaxDistToHome(current_latitude,
+					current_longitude, current_altitude);
+			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
+			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
+					current_longitude, current_altitude);
 
 		} else {
-			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(test_point_latitude,
-					test_point_longitude, test_point_altitude);
-			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(test_point_altitude);
-			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(test_point_latitude,
-					test_point_longitude, test_point_altitude);
+			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
+					current_longitude, current_altitude);
+			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
+			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
+					current_longitude, current_altitude);
 		}
 
 		_last_geofence_check = hrt_absolute_time();
@@ -1096,50 +1050,21 @@ void Navigator::geofence_breach_check()
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
-		if (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_max_alt_triggered ||
-		    _geofence_result.geofence_custom_fence_triggered) {
+		const bool breach = _geofence_result.geofence_max_dist_triggered
+				    || _geofence_result.geofence_max_alt_triggered
+				    || _geofence_result.geofence_custom_fence_triggered;
 
-			/* Issue a warning about the geofence violation once and only if we are armed */
+		if (breach) {
 			if (!_geofence_reposition_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 			    && _geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
 
-				// we have predicted a geofence violation and if the action is to loiter then
-				// demand a reposition to a location which is inside the geofence
-
+				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
-
-				matrix::Vector2<double> loiter_center_lat_lon;
-
-				float loiter_altitude_amsl = current_altitude;
-				double loiter_latitude = current_latitude;
-				double loiter_longitude = current_longitude;
-
-				if (_geofence.getPredict()) {
-					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						// the computation of the braking distance does not match the actual braking distance. Until we have a better model
-						// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
-						loiter_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
-									 &_geofence);
-						loiter_latitude = loiter_center_lat_lon(0);
-						loiter_longitude = loiter_center_lat_lon(1);
-
-						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
-
-					} else {
-
-						loiter_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
-						loiter_latitude = loiter_center_lat_lon(0);
-						loiter_longitude = loiter_center_lat_lon(1);
-
-						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForFixedWing(gf_violation_type);
-					}
-				}
-
 				rep->current.timestamp = hrt_absolute_time();
 				rep->current.yaw = NAN;
-				rep->current.lat = loiter_latitude;
-				rep->current.lon = loiter_longitude;
-				rep->current.alt = loiter_altitude_amsl;
+				rep->current.lat = current_latitude;
+				rep->current.lon = current_longitude;
+				rep->current.alt = current_altitude;
 				rep->current.valid = true;
 				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
@@ -1152,7 +1077,6 @@ void Navigator::geofence_breach_check()
 			}
 
 		} else {
-
 			_geofence_reposition_sent = false;
 		}
 
