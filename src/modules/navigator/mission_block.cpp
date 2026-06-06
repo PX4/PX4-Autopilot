@@ -41,6 +41,7 @@
  */
 
 #include "mission_block.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <math.h>
@@ -520,7 +521,7 @@ MissionBlock::reset_mission_item_reached()
 void
 MissionBlock::issue_command(const mission_item_s &item)
 {
-	if (item_contains_position(item)
+	if (mission_item_contains_position(item)
 	    || item_contains_gate(item)
 	    || item_contains_marker(item)) {
 		return;
@@ -590,19 +591,6 @@ MissionBlock::item_has_timeout(const mission_item_s &item)
 }
 
 bool
-MissionBlock::item_contains_position(const mission_item_s &item)
-{
-	return item.nav_cmd == NAV_CMD_WAYPOINT ||
-	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	       item.nav_cmd == NAV_CMD_LAND ||
-	       item.nav_cmd == NAV_CMD_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-bool
 MissionBlock::item_contains_gate(const mission_item_s &item)
 {
 	return item.nav_cmd == NAV_CMD_CONDITION_GATE;
@@ -618,7 +606,7 @@ bool
 MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp)
 {
 	// Don't change the setpoint for non-position items
-	if (!item_contains_position(item)) {
+	if (!mission_item_contains_position(item)) {
 		return false;
 	}
 
@@ -1015,7 +1003,7 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 
 	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
 	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND
-	    && item_contains_position(mission_item)
+	    && mission_item_contains_position(mission_item)
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON

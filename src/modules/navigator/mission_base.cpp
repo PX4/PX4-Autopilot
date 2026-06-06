@@ -41,6 +41,7 @@
 
 #include "mission_base.h"
 
+#include "mission_item_utils.h"
 #include "px4_platform_common/defines.h"
 
 #include "mission_feasibility_checker.h"
@@ -1091,7 +1092,7 @@ bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index
 			return false;
 		}
 
-		if (item_contains_position(mission_item)) {
+		if (mission_item_contains_position(mission_item)) {
 			next_index = traversed_index;
 			return true;
 		}
@@ -1113,7 +1114,7 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 			return false;
 		}
 
-		if (item_contains_position(mission_item)) {
+		if (mission_item_contains_position(mission_item)) {
 			previous_index = traversed_index;
 			return true;
 		}
@@ -1282,7 +1283,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 			return PX4_ERROR;
 		}
 
-		if (MissionBlock::item_contains_position(mission)) {
+		if (mission_item_contains_position(mission)) {
 			// do not consider land waypoints for a fw
 			if (!((mission.nav_cmd == NAV_CMD_LAND) &&
 			      (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
@@ -1543,7 +1544,7 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 {
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
 
-		if (item_contains_position(_mission_item)) {
+		if (mission_item_contains_position(_mission_item)) {
 			const float new_alt = get_absolute_altitude_for_item(_mission_item);
 			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
 
