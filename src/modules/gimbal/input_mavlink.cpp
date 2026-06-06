@@ -281,11 +281,11 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 				control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 				// gimbal spec has roll on channel 0, MAVLink spec has pitch on channel 0
-				const float roll = math::radians(vehicle_command.param2);
+				const float roll = PX4_ISFINITE(vehicle_command.param2) ? math::radians(vehicle_command.param2) : 0.0f;
 				// gimbal spec has pitch on channel 1, MAVLink spec has roll on channel 1
-				const float pitch = math::radians(vehicle_command.param1);
+				const float pitch = PX4_ISFINITE(vehicle_command.param1) ? math::radians(vehicle_command.param1) : 0.0f;
 				// both specs have yaw on channel 2
-				float yaw = math::radians(vehicle_command.param3);
+				float yaw = PX4_ISFINITE(vehicle_command.param3) ? math::radians(vehicle_command.param3) : 0.0f;
 
 				matrix::Eulerf euler(roll, pitch, yaw);
 
@@ -743,11 +743,11 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 				control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 				// gimbal spec has roll on channel 0, MAVLink spec has pitch on channel 0
-				const float roll = math::radians(vehicle_command.param2);
+				const float roll = PX4_ISFINITE(vehicle_command.param2) ? math::radians(vehicle_command.param2) : 0.0f;
 				// gimbal spec has pitch on channel 1, MAVLink spec has roll on channel 1
-				const float pitch = math::radians(vehicle_command.param1);
+				const float pitch = PX4_ISFINITE(vehicle_command.param1) ? math::radians(vehicle_command.param1) : 0.0f;
 				// both specs have yaw on channel 2
-				float yaw = math::radians(vehicle_command.param3);
+				float yaw = PX4_ISFINITE(vehicle_command.param3) ? math::radians(vehicle_command.param3) : 0.0f;
 
 				// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
 				if (yaw > M_PI_F) {
