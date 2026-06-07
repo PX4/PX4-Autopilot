@@ -91,10 +91,12 @@ param set-default CAL_BARO1_ID 6620428
 param set-default CAL_BARO1_PRIO 0
 
 # Simulated accelerometer calibration for the packaged X-Plane aircraft model.
+# Keep the Z offset at zero: X-Plane's vertical specific force already matches
+# gravity, and a negative Z offset causes parked vertical-velocity drift.
 param set-default CAL_ACC0_PRIO 50
 param set-default CAL_ACC0_XOFF -0.018
 param set-default CAL_ACC0_YOFF -0.139
-param set-default CAL_ACC0_ZOFF -0.797
+param set-default CAL_ACC0_ZOFF 0.0
 
 # EKF2 core settings aligned with the current px4xplane sensor contract.
 param set-default EKF2_MULTI_IMU 1
@@ -156,7 +158,7 @@ param set-default FW_PR_FF 3.4
 param set-default FW_P_LIM_MAX 20.0
 param set-default FW_P_LIM_MIN -12.0
 param set-default FW_P_TC 0.55
-param set-default FW_PN_R_SLEW_MAX 35.0
+param set-default FW_PN_R_SLEW_MAX 10.0
 
 # Ground steering during runway takeoff/landing.
 param set-default FW_W_EN 1
@@ -182,18 +184,18 @@ param set-default ASPD_FALLBACK 1
 param set-default SYS_HAS_NUM_ASPD 0
 
 # Cessna 172 sea-level climb capability is about 3.7 m/s at max gross weight.
-param set-default FW_T_ALT_TC 6.0
+param set-default FW_T_ALT_TC 7.5
 param set-default FW_T_RLL2THR 8.0
-param set-default FW_T_STE_R_TC 1.5
+param set-default FW_T_STE_R_TC 2.0
 param set-default FW_T_HRATE_FF 0.3
 param set-default FW_T_SPDWEIGHT 0.8
 param set-default FW_T_CLMB_MAX 3.7
 param set-default FW_T_SINK_MIN 1.8
 param set-default FW_T_SINK_MAX 4.0
-param set-default FW_T_VERT_ACC 3.0
-param set-default FW_T_THR_DAMPING 0.10
-param set-default FW_T_PTCH_DAMP 0.12
-param set-default FW_T_I_GAIN_PIT 0.30
+param set-default FW_T_VERT_ACC 2.0
+param set-default FW_T_THR_DAMPING 0.18
+param set-default FW_T_PTCH_DAMP 0.20
+param set-default FW_T_I_GAIN_PIT 0.22
 
 param set-default FW_THR_TRIM 0.55
 param set-default FW_THR_MIN 0.05
@@ -208,9 +210,10 @@ param set-default FW_THR_SLEW_MAX 0.50
 # unrealistic rotation and early climb oscillation on a C172-size aircraft.
 param set-default RWTO_TKOFF 1
 param set-default RWTO_RAMP_TIME 3.0
-param set-default RWTO_ROT_AIRSPD 28.0
+param set-default RWTO_ROT_AIRSPD 30.0
 param set-default RWTO_ROT_TIME 2.0
-param set-default FW_TKO_AIRSPD 38.0
+param set-default FW_TKO_AIRSPD 40.0
+param set-default FW_FLAPS_TO_SCL 0.33
 param set-default MIS_TAKEOFF_ALT 150.0
 
 # Auto landing. Use landing flaps and early landing configuration so the

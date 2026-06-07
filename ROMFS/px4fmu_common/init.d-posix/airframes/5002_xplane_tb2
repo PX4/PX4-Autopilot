@@ -88,10 +88,12 @@ param set-default CAL_BARO1_ID 6620428
 param set-default CAL_BARO1_PRIO 0
 
 # Simulated accelerometer calibration for the packaged X-Plane aircraft model.
+# Keep the Z offset at zero: X-Plane's vertical specific force already matches
+# gravity, and a negative Z offset causes parked vertical-velocity drift.
 param set-default CAL_ACC0_PRIO 50
 param set-default CAL_ACC0_XOFF -0.030
 param set-default CAL_ACC0_YOFF 0.010
-param set-default CAL_ACC0_ZOFF -0.770
+param set-default CAL_ACC0_ZOFF 0.0
 
 param set-default EKF2_MULTI_IMU 1
 param set-default SENS_IMU_MODE 0

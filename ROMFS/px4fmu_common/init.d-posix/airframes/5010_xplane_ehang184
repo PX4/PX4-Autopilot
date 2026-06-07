@@ -143,10 +143,12 @@ param set-default EKF2_BARO_NOISE 1.0     # Baro height noise in m; avoids overc
 param set-default EKF2_BARO_GATE 10.0     # Increased for FPS variability tolerance
 
 # Simulated accelerometer calibration for the packaged X-Plane aircraft model.
+# Keep the Z offset at zero: X-Plane's vertical specific force already matches
+# gravity, and a negative Z offset causes parked vertical-velocity drift.
 param set-default CAL_ACC0_PRIO 50
 param set-default CAL_ACC0_XOFF -0.084
 param set-default CAL_ACC0_YOFF 0.112
-param set-default CAL_ACC0_ZOFF -0.815
+param set-default CAL_ACC0_ZOFF 0.0
 
 # GPS parameters
 param set-default SENS_GPS0_DELAY 10

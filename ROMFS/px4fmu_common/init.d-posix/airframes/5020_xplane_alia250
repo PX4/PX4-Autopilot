@@ -129,15 +129,13 @@ param set-default EKF2_ACC_B_NOISE 0.001
 param set-default EKF2_BARO_NOISE 1.0    # Baro height noise in m; avoids overconfident fusion during VTOL/FW transients
 param set-default EKF2_BARO_GATE 10.0    # Increased tolerance for VTOL transitions (prevents false BARO switch)
 
-# Simulated accelerometer calibration. A fresh SITL distclean seeds only the
-# simulated device IDs, leaving accel offsets at zero. The Alia X-Plane model
-# then triggers a transient high-accelerometer-bias preflight warning. These
-# empirically stable offsets came from successful baseline Alia runs and keep
-# fresh SITL roots consistent with the known-good calibration state.
+# Simulated accelerometer calibration for the packaged X-Plane aircraft model.
+# Keep the Z offset at zero: X-Plane's vertical specific force already matches
+# gravity, and a negative Z offset causes parked vertical-velocity drift.
 param set-default CAL_ACC0_PRIO 50
 param set-default CAL_ACC0_XOFF 0.205
 param set-default CAL_ACC0_YOFF -0.160
-param set-default CAL_ACC0_ZOFF -0.714
+param set-default CAL_ACC0_ZOFF 0.0
 
 # GPS Parameters
 param set-default SENS_GPS0_DELAY 10
