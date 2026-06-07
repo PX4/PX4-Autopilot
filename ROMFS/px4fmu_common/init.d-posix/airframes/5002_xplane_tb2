@@ -111,7 +111,7 @@ param set-default SENS_GPS1_DELAY 10
 # valid simulator GNSS source on stationary-only horizontal drift checks.
 param set-default EKF2_GPS_CHECK 1887
 param set-default EKF2_GPS_P_NOISE 2.5
-param set-default EKF2_GPS_V_NOISE 0.15
+param set-default EKF2_GPS_V_NOISE 0.30
 param set-default EKF2_GPS_P_GATE 8.0
 
 param set-default EKF2_MAG_TYPE 1

@@ -154,7 +154,7 @@ param set-default CAL_ACC0_ZOFF 0.0
 param set-default SENS_GPS0_DELAY 10
 param set-default SENS_GPS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 1.5    # X-Plane HIL position covariance
-param set-default EKF2_GPS_V_NOISE 0.15   # Realistic GPS velocity noise (was 0.01)
+param set-default EKF2_GPS_V_NOISE 0.30   # X-Plane HIL velocity covariance for variable-FPS ground/transition phases
 param set-default EKF2_GPS_P_GATE 8.0     # Innovation gate
 
 # Magnetometer parameters
