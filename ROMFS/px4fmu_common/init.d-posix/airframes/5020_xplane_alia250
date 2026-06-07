@@ -283,9 +283,10 @@ param set-default COM_DISARM_LAND 1.5
 # Core Configuration
 param set-default VT_TYPE 2              # Current PX4 airframe type used by this SITL config
 
-# Transition Airspeeds
-param set-default VT_ARSP_BLEND 25.0     # Airspeed to start blending
-param set-default VT_ARSP_TRANS 46.0     # Accepted no-brake X-Plane handoff baseline
+# Transition airspeeds. Keep multicopter lift active until the wing is clearly
+# carrying the aircraft; earlier blending caused altitude loss during handoff.
+param set-default VT_ARSP_BLEND 30.0
+param set-default VT_ARSP_TRANS 55.0
 
 # Front Transition (MC -> FW)
 param set-default VT_F_TRANS_DUR 45.0
@@ -329,7 +330,7 @@ param set-default FW_PR_P 0.365
 param set-default FW_PR_I 0.045
 param set-default FW_PR_D 0.355
 param set-default FW_PR_FF 2.0
-param set-default FW_PSP_OFF 3.0
+param set-default FW_PSP_OFF 6.0
 param set-default FW_P_LIM_MAX 18.0
 param set-default FW_P_LIM_MIN -5.0
 param set-default FW_P_TC 0.45
@@ -347,9 +348,10 @@ param set-default FW_AIRSPD_TRIM 52.0    # Efficient cruise
 param set-default FW_AIRSPD_STALL 40.0   # Stall speed
 
 # Airspeed Sensor (SITL)
-# Keep PX4's default airspeed validity checks. The X-Plane pitot is provided by
-# the simulator stream, so do not require a physical airspeed sensor instance at
-# prearm.
+# X-Plane provides the pitot through the simulator stream, not a physical driver.
+# Keep the missing-data check and avoid false innovation/stuck-data failures
+# during VTOL transition.
+param set-default ASPD_DO_CHECKS 1
 param set-default ASPD_FALLBACK  1       # Fallback to G/S - W/S
 param set-default SYS_HAS_NUM_ASPD 0     # Do not make virtual SITL pitot a prearm hardware requirement
 
