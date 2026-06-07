@@ -191,7 +191,6 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_avg_cell_voltage_pos = enabled(SymbolIndex::AVG_CELL_VOLTAGE) ? osd_avg_cell_voltage_pos :
 			LOCATION_HIDDEN;
 
-
 	msp_osd_config.osd_distance_sensor_pos = enabled(SymbolIndex::DISTANCE_SENSOR) ? osd_distance_sensor_pos : LOCATION_HIDDEN;
 	msp_osd_config.osd_total_arm_time_pos = enabled(SymbolIndex::TOTAL_ARM_TIME) ? osd_total_arm_time_pos : LOCATION_HIDDEN;
 	msp_osd_config.osd_total_activated_time_pos = enabled(SymbolIndex::TOTAL_ACTIVATED_TIME) ? osd_total_activated_time_pos : LOCATION_HIDDEN;
@@ -523,6 +522,18 @@ void MspOsd::Run()
 
 
 
+	}
+
+	// MSP_FORMIC_VIO_STATUS
+	{
+		formic_ev_state_machine_s formic_ev_state_machine{};
+		_formic_ev_state_machine_sub.copy(&formic_ev_state_machine);
+
+		if (enabled(SymbolIndex::FORMIC_VIO_STATUS)) {
+			const auto msg = msp_osd::construct_rendor_FORMIC_VIO_STATUS(formic_ev_state_machine);
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_formicc_vio_status_t));
+		}
 	}
 
 	// MSP_FORMIC_CROSSHAIRS

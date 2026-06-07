@@ -780,4 +780,33 @@ msp_rendor_formic_vision_quality_t construct_rendor_FORMIC_VISION_QUALITY(const 
 	return vision_quality;
 }
 
+msp_rendor_formicc_vio_status_t construct_rendor_FORMIC_VIO_STATUS(const formic_ev_state_machine_s &formic_ev_state_machine)
+{
+	msp_rendor_formicc_vio_status_t vio_status = {};
+	vio_status.subCommand = MSP_DP_WRITE_STRING;
+	vio_status.screenYPosition = 0x10;
+	vio_status.screenXPosition = 0x18;
+	vio_status.systemElement = 0x00; // Crosshairs system element ID (0x00 = CROSSHAIR)
+	vio_status.iconIndex = 0 ; // no icon
+
+	// Map the pipeline state machine status (see formic_watchdog_ev.hpp::pipline_status)
+	// to a short label. The str buffer is 8 bytes, so labels must be <= 7 chars.
+	const char *label;
+
+	switch (formic_ev_state_machine.status) {
+	case 0:  label = "MANUAL"; break;  // MANUAL
+	case 1:  label = "WAIT";   break;  // WAIT_TO_DATA
+	case 2:  label = "INIT-NF"; break; // INIT_NOT_FUSED
+	case 3:  label = "INIT-F"; break;  // INIT_FUSED
+	case 4:  label = "VALID";  break;  // VALID_POS
+	case 5:  label = "ERROR";  break;  // EV_ERROR
+	default: label = "???";    break;
+	}
+
+	memset(&vio_status.str[0], 0, sizeof(vio_status.str));
+	snprintf(&vio_status.str[0], sizeof(vio_status.str), "%s", label);
+
+	return vio_status;
+}
+
 } // namespace msp_osd

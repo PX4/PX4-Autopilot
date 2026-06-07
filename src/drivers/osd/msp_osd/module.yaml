@@ -48,6 +48,7 @@ parameters:
                 27: TOTAL_ACTIVATED_TIME
                 28: BARO_ALTITUDE
                 29: FORMIC_VISION_QUALITY
+                30: FORMIC_VIO_STATUS
 
             default: 16383
 

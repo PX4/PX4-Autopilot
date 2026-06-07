@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(FORMIC_WDEV_DYAW, 0.5f);
  * @group Formic Watchdog EV
  * @category Standard
  */
-PARAM_DEFINE_FLOAT(FORMIC_WDEV_DPOS, 3.0f);
+PARAM_DEFINE_FLOAT(FORMIC_WDEV_DPOS, 1.0f);
 
 /**
  * EV init velocity-average threshold.

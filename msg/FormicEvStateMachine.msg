@@ -8,7 +8,6 @@ bool pos_alligned_with_ev   # when the position is aligned with the EV (used to 
 bool multy_sensor_z_velocity_error   # when the ev z velocity and the baro deriv are not similar (indicating a possible error in the ev velocity)
 bool quality_init_check_fail   # when the quality average during the settle window is above the threshold, indicating a possible error in the EV data (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful)
 bool vel_3d_init_check_fail   # when the 3D velocity average during the settle window is above the threshold, indicating a possible error in the EV data (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful)
-bool user_aux_control
 bool error_find
 uint8 status
 float32 baro_data

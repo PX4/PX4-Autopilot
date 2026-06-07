@@ -70,6 +70,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("formic_vio_jetson");
 	add_topic("formic_ev_state_machine");
 	add_topic("formic_state_machine");	
+	add_topic("formic_odom");	
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
 	add_optional_topic("follow_target_status", 400);

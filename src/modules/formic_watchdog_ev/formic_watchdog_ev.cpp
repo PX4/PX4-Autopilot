@@ -32,8 +32,6 @@ void FormicWatchdogEv::parameters_update(bool force)
 	}
 
 	_ev_vel_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 2)) != 0;
-	_aux_switch = static_cast<user_aux_switch_t>(_param_formic_wdev_aux.get());
-	_formic_state.user_aux_control = true;
 }
 
 void FormicWatchdogEv::Run()
@@ -49,12 +47,9 @@ void FormicWatchdogEv::Run()
 	if (_param_formic_wdev_en.get() == 0) {
 		return;
 	}
-	handel_user_aux_control();
 
 	handel_pos_req_user_intention(); // check if the commander requested to be in a position mode (e.g. by moving the AUX switch or by requesting a position mode while EV was not healthy, which triggers the position request as a fallback)
-
 	update_baro_deriv();
-
 
 	vehicle_odometry_s odometry{};
 
@@ -76,14 +71,13 @@ void FormicWatchdogEv::Run()
 			accumulate_quality(odometry); // still settling: build the average, don't forward yet
 			accumulate_3d_velocity(odometry); // also accumulate the EV z-velocity for the init average (mirroring the quality)
 		}
-		else if (!_formic_state.error_find && _formic_state.user_aux_control) { // only forward the data if the aux switch is active (if configured) and if no error has been found, otherwise we keep publishing the state machine with the error flag set but we don't forward the possibly bad data to the rest of the system
+		else if (!_formic_state.error_find) { // only forward the data if the aux switch is active (if configured) and if no error has been found, otherwise we keep publishing the state machine with the error flag set but we don't forward the possibly bad data to the rest of the system
 			if (!_init_check_done) {
 				_quality_average_init = finalize_quality_average();
 				_vel_average_init     = finalize_3d_velocity_average();
 				_init_check_done = true;
 				_formic_state.quality_init_check_fail = (_quality_average_init < _param_ekf2_ev_qmin.get());
 				_formic_state.vel_3d_init_check_fail = (_vel_average_init > _param_formic_wdev_vini.get()); // if the average EV all_vel during the settle window is very low, it's likely that the EV data is not good (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful). In this case we also set the error flag and skip forwarding the data.
-
 
 				if (_formic_state.quality_init_check_fail || _formic_state.vel_3d_init_check_fail) {
 					_formic_state.error_find = true;
@@ -108,18 +102,19 @@ void FormicWatchdogEv::Run()
 // -----------------------------------------------------------------------------
 
 void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
-{
-	odometry.reset_counter = _formic_state.reset_counter;
-	_odometry_pub.publish(odometry);
-	if (_forwarding_start_time == 0) {
-		_forwarding_start_time = hrt_absolute_time();
-	}
 
-	if (hrt_elapsed_time(&_forwarding_start_time) >= 2_s) {
-		// maby check the pos is alighend if not reset counter ??
+{
+	if (hrt_elapsed_time(&_forwarding_start_time) >= 1_s && _formic_state.heading_alligned_with_ev && _formic_state.pos_alligned_with_ev) {
 		_formic_state.status = (uint8_t)pipline_status::VALID_POS;
 	}
 
+	odometry.reset_counter = _formic_state.reset_counter;
+	_odometry_pub.publish(odometry);
+	
+	
+	if (_forwarding_start_time == 0) {
+		_forwarding_start_time = hrt_absolute_time();
+	}
 }
 
 void FormicWatchdogEv::update_pipeline_status()
@@ -142,47 +137,14 @@ void FormicWatchdogEv::update_pipeline_status()
 	}
 
 	if (!_init_check_done) {
-		_formic_state.status = (uint8_t)pipline_status::INIT;
+		_formic_state.status = (uint8_t)pipline_status::INIT_NOT_FUSED;	;
+		return;
+	}
+	if (!_formic_state.heading_alligned_with_ev || !_formic_state.pos_alligned_with_ev) {
+		_formic_state.status = (uint8_t)pipline_status::INIT_FUSED;	
 		return;
 	}
 
-	// Init checks passed, but stay in INIT during the 2 s post-forwarding settle
-	// window. copy_odometry_msg() promotes the status to VALID_POS once the window
-	// elapses (and only on cycles where EV is actually forwarded).
-	if (_forwarding_start_time == 0 || hrt_elapsed_time(&_forwarding_start_time) < 2_s) {
-		_formic_state.status = (uint8_t)pipline_status::INIT;
-		return;
-	}
-
-}
-
-
-
-void FormicWatchdogEv::handel_user_aux_control()
-{
-	// No AUX channel configured -> VIO is active all the time, nothing to gate.
-	if (_aux_switch == user_aux_switch_t::AUX_NONE) {
-		return;
-	}
-
-	if (_manual_control_setpoint_sub.updated()) {
-		manual_control_setpoint_s manual_control_setpoint{};
-
-		if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-			if (_formic_state.user_aux_control) {
-				// check the aux switch and set the error_find flag accordingly
-				const bool aux_active = ((manual_control_setpoint.aux1 > 0.5f) && (_aux_switch == user_aux_switch_t::AUX1))
-				                        || ((manual_control_setpoint.aux2 > 0.5f) && (_aux_switch == user_aux_switch_t::AUX2))
-				                        || ((manual_control_setpoint.aux3 > 0.5f) && (_aux_switch == user_aux_switch_t::AUX3))
-				                        || ((manual_control_setpoint.aux4 > 0.5f) && (_aux_switch == user_aux_switch_t::AUX4))
-				                        || ((manual_control_setpoint.aux5 > 0.5f) && (_aux_switch == user_aux_switch_t::AUX5))
-				                        || ((manual_control_setpoint.aux6 > 0.5f) && (_aux_switch == user_aux_switch_t::AUX6));
-
-				_formic_state.user_aux_control = aux_active; // only check the aux switch until it's released once, then ignore it for the rest of the session (until next restart or until the EV stream drops and restarts, which resets all the state)
-				// PX4_INFO("AUX switch %s -> user_aux_control: %d", aux_active ? "active" : "inactive", _formic_state.user_aux_control);
-			}
-		}
-	}
 }
 
 

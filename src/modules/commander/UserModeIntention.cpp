@@ -143,7 +143,7 @@ void UserModeIntention::tick()
 	if (_formic_ev_state_machine_sub.updated()) {
 		formic_ev_state_machine_s watchdog_ev{};
 		_formic_ev_state_machine_sub.copy(&watchdog_ev);
-		valid_pos = watchdog_ev.status == 3; // pipline_status::VALID_POS
+		valid_pos = watchdog_ev.status == 4; // pipline_status::VALID_POS
 
 	}
 

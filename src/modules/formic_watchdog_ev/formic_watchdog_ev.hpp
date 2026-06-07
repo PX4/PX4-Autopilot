@@ -15,7 +15,6 @@
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/formic_ev_state_machine.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/formic_pos_req.h>
 
 
@@ -29,27 +28,14 @@
 // Drivers
 #include <drivers/drv_hrt.h>
 
-// Which RC AUX channel the user selected to gate VIO activation.
-// Mirrors the @value list of the FORMIC_WDEV_AUX parameter.
-enum class user_aux_switch_t : int32_t {
-	AUX_NONE = 0, // no channel -> VIO active all the time
-	AUX1     = 1,
-	AUX2     = 2,
-	AUX3     = 3,
-	AUX4     = 4,
-	AUX5     = 5,
-	AUX6     = 6,
-};
-
 
 enum class pipline_status : uint8_t {
-
-
 	MANUAL   	= 0,
 	WAIT_TO_DATA  	= 1,
-	INIT	 	= 2,
-	VALID_POS 	= 3,
-	EV_ERROR 	= 4,	// 'ERROR' collides with the ERROR macro in px4_platform_common/defines.h
+	INIT_NOT_FUSED 	= 2,
+	INIT_FUSED 	= 3,
+	VALID_POS 	= 4,
+	EV_ERROR 	= 5,	// 'ERROR' collides with the ERROR macro in px4_platform_common/defines.h
 };
 
 class FormicWatchdogEv : public ModuleBase<FormicWatchdogEv>,
@@ -84,7 +70,6 @@ private:
 	float finalize_quality_average() const;                      // mean quality over the settle window
 	void accumulate_3d_velocity(const vehicle_odometry_s &odometry); // sum one EV 3D speed sample during the settle window
 	float finalize_3d_velocity_average() const;  
-	void handel_user_aux_control();                    // mean EV 3D speed over the settle window
 	void handel_pos_req_user_intention();
 	bool handel_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
 	// --- Subscriptions ---
@@ -94,7 +79,6 @@ private:
 	uORB::Subscription _estimator_aid_src_heading_sub{ORB_ID(estimator_aid_src_ev_yaw)};
 	uORB::Subscription _estimator_aid_src_pos_sub{ORB_ID(estimator_aid_src_ev_pos)};
 	uORB::Subscription _estimtor_odometry_sub{ORB_ID(estimator_odometry)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _formic_pos_req{ORB_ID(formic_pos_req)};  // pos req at the tick time 
 
 	// --- Publications ---
@@ -103,12 +87,8 @@ private:
 
 	// --- Baro state ---
 	// Baro derivative low-pass filter (2nd order, ~20 Hz sample, 1 Hz cutoff)
-	math::LowPassFilter2p<float> _baro_deriv_filter{20.0f, 0.7f};
+	math::LowPassFilter2p<float> _baro_deriv_filter{20.0f, 0.2f};
 	float _baro_filtered{0.0f};
-
-	// --- User AUX gate ---
-	user_aux_switch_t _aux_switch{user_aux_switch_t::AUX_NONE}; // RC AUX channel selected via FORMIC_WDEV_AUX
-	
 
 
 	// --- EV velocity state ---
@@ -149,7 +129,6 @@ private:
 		(ParamInt<px4::params::FORMIC_WDEV_INIT>) _param_formic_wdev_init,
 		(ParamInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,
 		(ParamInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
-		(ParamInt<px4::params::FORMIC_WDEV_AUX>) _param_formic_wdev_aux,
 		(ParamFloat<px4::params::FORMIC_WDEV_DVEL>) _param_formic_wdev_dvel,
 		(ParamFloat<px4::params::FORMIC_WDEV_DYAW>) _param_formic_wdev_dyaw,
 		(ParamFloat<px4::params::FORMIC_WDEV_DPOS>) _param_formic_wdev_dpos,
