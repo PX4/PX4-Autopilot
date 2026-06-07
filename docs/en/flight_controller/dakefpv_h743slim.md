@@ -53,11 +53,11 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | R1, T1       | UART1 RX/TX                                                              | GPS                 |
 | R2, T2       | UART2 RX/TX                                                              | TELEM1              |
 | R3, T3       | UART3 RX/TX                                                              | TELEM2              |
-| R4, T4       | UART4 RX/TX (PB8/PB9)                                                   | Available           |
+| R4, T4       | UART4 RX/TX (PB8/PB9)                                                   | TELEM3              |
 | R5, T5       | UART5 RX/TX                                                              | RC input            |
-| R6, T6       | UART6 RX/TX                                                              | TELEM3              |
-| R7, T7       | UART7 RX/TX                                                              | TELEM4              |
-| R8, T8       | UART8 RX/TX                                                              | Available           |
+| R6, T6       | UART6 RX/TX                                                              | TELEM4              |
+| R7, T7       | UART7 RX/TX                                                              | System console      |
+| R8, T8       | UART8 RX/TX                                                              | GPS2                |
 | CH, CL       | CAN bus                                                                  |                     |
 | Buz-         | Buzzer negative pin (PE10)                                               |                     |
 | S1–S4        | Motor outputs (TIM1: PE9/PE11/PE13/PE14)                                 |                     |
