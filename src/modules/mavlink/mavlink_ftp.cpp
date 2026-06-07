@@ -171,6 +171,10 @@ MavlinkFTP::_process_request(
 		errorCode = _workList(payload);
 		break;
 
+	case kCmdListDirectoryWithTime:
+		errorCode = _workList(payload, true);
+		break;
+
 	case kCmdOpenFileRO:
 		errorCode = _workOpen(payload, O_RDONLY);
 		break;
@@ -322,7 +326,7 @@ void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workList(PayloadHeader *payload)
+MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 {
 	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
@@ -380,6 +384,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 		}
 
 		uint32_t fileSize = 0;
+		uint32_t fileTime = 0;	// seconds since the UNIX epoch, 0 if unknown
 		char direntType;
 
 		// Determine the directory entry type
@@ -401,6 +406,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 
 					if (stat(_work_buffer2, &st) == 0) {
 						fileSize = st.st_size;
+						fileTime = st.st_mtime;
 					}
 				}
 
@@ -433,8 +439,16 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 			_work_buffer2[0] = '\0';
 
 		} else if (direntType == kDirentFile) {
-			// Files send filename and file length
-			int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
+			// Files send filename and file length, optionally followed by the modification time
+			int ret;
+
+			if (include_time) {
+				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32 "\t%" PRIu32, result->d_name, fileSize, fileTime);
+
+			} else {
+				ret = snprintf(_work_buffer2, _work_buffer2_len, "%s\t%" PRIu32, result->d_name, fileSize);
+			}
+
 			bool buf_is_ok = ((ret > 0) && (ret < _work_buffer2_len));
 
 			if (!buf_is_ok) {

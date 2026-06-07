@@ -570,6 +570,13 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 	position_setpoint_s current_sp = pos_sp_curr;
 	move_position_setpoint_for_vtol_transition(current_sp);
 
+	// Course setpoints are handled directly to avoid entering hold mode
+	if (PX4_ISFINITE(current_sp.course)
+	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
+		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
+		return;
+	}
+
 	const uint8_t position_sp_type = handle_setpoint_type(current_sp, pos_sp_next);
 
 	_position_sp_type = position_sp_type;
@@ -768,6 +775,33 @@ void
 FixedWingModeManager::control_auto_position(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
+	// Course Hold: if a course is explicitly set, navigate along that bearing (ground track)
+	if (PX4_ISFINITE(pos_sp_curr.course)
+	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
+		const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
+
+		const Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+		const DirectionalGuidanceOutput sp = navigateBearing(curr_pos_local, pos_sp_curr.course, ground_speed, _wind_vel);
+
+		fixed_wing_lateral_setpoint_s lateral_ctrl_sp{empty_lateral_control_setpoint};
+		lateral_ctrl_sp.timestamp = hrt_absolute_time();
+		lateral_ctrl_sp.course = sp.course_setpoint;
+		lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
+		_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
+
+		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
+			.timestamp = hrt_absolute_time(),
+			.altitude = pos_sp_curr.alt,
+			.height_rate = NAN,
+			.equivalent_airspeed = target_airspeed,
+			.pitch_direct = NAN,
+			.throttle_direct = NAN
+		};
+
+		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
+		return;
+	}
+
 	const float acc_rad = _directional_guidance.switchDistance(500.0f);
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
@@ -907,8 +941,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
 
-	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(
-					     500);
+	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(500);
 
 	bool enforce_low_height{false};
 
@@ -2738,6 +2771,7 @@ void FixedWingModeManager::publish_lateral_guidance_status(const hrt_abstime now
 	fixed_wing_lateral_guidance_status.bearing_feas_on_track = _directional_guidance.getBearingFeasibilityOnTrack();
 	fixed_wing_lateral_guidance_status.signed_track_error = _directional_guidance.getSignedTrackError();
 	fixed_wing_lateral_guidance_status.track_error_bound = _directional_guidance.getTrackErrorBound();
+	fixed_wing_lateral_guidance_status.switch_distance = _directional_guidance.switchDistance(500.0f);
 	fixed_wing_lateral_guidance_status.adapted_period = _directional_guidance.getAdaptedPeriod();
 	fixed_wing_lateral_guidance_status.wind_est_valid = _wind_valid;
 

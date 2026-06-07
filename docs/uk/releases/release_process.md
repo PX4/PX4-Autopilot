@@ -1,5 +1,17 @@
 # Процес випуску
 
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
+<div v-if="site.title !== 'PX4 Guide (main)'">
+  <div class="custom-block danger">
+    <p class="custom-block-title">This page is on a release branch, and hence probably out of date. <a href="https://docs.px4.io/main/en/releases/release_process">See the latest version</a>.</p>
+  </div>
+  <Redirect to="https://docs.px4.io/main/en/releases/release_process" />
+</div>
+
 This page documents the PX4 release process for maintainers. It covers the steps from preparing a release candidate through to the final announcement.
 
 ## Загальний огляд

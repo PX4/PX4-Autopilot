@@ -10,11 +10,11 @@ Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_cont
 
 ## Fields
 
-| Name                          | Type      | Unit [Frame] | Range/Enum | Description                                                                  |
-| ----------------------------- | --------- | ------------ | ---------- | ---------------------------------------------------------------------------- |
-| timestamp                     | `uint64`  |              |            | time since system start (microseconds)                                       |
-| lateral_acceleration_setpoint | `float32` | FRD          |            | resultant lateral acceleration setpoint                                      |
-| can_run_factor                | `float32` | norm         | [0 : 1]    | estimate of certainty of the correct functionality of the npfg roll setpoint |
+| Name                                                                        | Type      | Unit [Frame] | Range/Enum | Description                                                                  |
+| --------------------------------------------------------------------------- | --------- | ------------ | ---------- | ---------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                         | `uint64`  |              |            | time since system start (microseconds)                                       |
+| <a id="fld_lateral_acceleration_setpoint"></a>lateral_acceleration_setpoint | `float32` | FRD          |            | resultant lateral acceleration setpoint                                      |
+| <a id="fld_can_run_factor"></a>can_run_factor                               | `float32` | norm         | [0 : 1]    | estimate of certainty of the correct functionality of the npfg roll setpoint |
 
 ## Source Message
 

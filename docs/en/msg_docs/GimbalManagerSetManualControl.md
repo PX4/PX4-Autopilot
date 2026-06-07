@@ -8,19 +8,19 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum | Description                            |
-| ---------------- | --------- | ------------ | ---------- | -------------------------------------- |
-| timestamp        | `uint64`  |              |            | time since system start (microseconds) |
-| origin_sysid     | `uint8`   |              |            |
-| origin_compid    | `uint8`   |              |            |
-| target_system    | `uint8`   |              |            |
-| target_component | `uint8`   |              |            |
-| flags            | `uint32`  |              |            |
-| gimbal_device_id | `uint8`   |              |            |
-| pitch            | `float32` |              |            | unitless -1..1, can be NAN             |
-| yaw              | `float32` |              |            | unitless -1..1, can be NAN             |
-| pitch_rate       | `float32` |              |            | unitless -1..1, can be NAN             |
-| yaw_rate         | `float32` |              |            | unitless -1..1, can be NAN             |
+| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  |              |            | time since system start (microseconds) |
+| <a id="fld_origin_sysid"></a>origin_sysid         | `uint8`   |              |            |
+| <a id="fld_origin_compid"></a>origin_compid       | `uint8`   |              |            |
+| <a id="fld_target_system"></a>target_system       | `uint8`   |              |            |
+| <a id="fld_target_component"></a>target_component | `uint8`   |              |            |
+| <a id="fld_flags"></a>flags                       | `uint32`  |              |            |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id | `uint8`   |              |            |
+| <a id="fld_pitch"></a>pitch                       | `float32` |              |            | unitless -1..1, can be NAN             |
+| <a id="fld_yaw"></a>yaw                           | `float32` |              |            | unitless -1..1, can be NAN             |
+| <a id="fld_pitch_rate"></a>pitch_rate             | `float32` |              |            | unitless -1..1, can be NAN             |
+| <a id="fld_yaw_rate"></a>yaw_rate                 | `float32` |              |            | unitless -1..1, can be NAN             |
 
 ## Constants
 

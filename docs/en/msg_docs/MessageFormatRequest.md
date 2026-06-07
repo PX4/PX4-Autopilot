@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type       | Unit [Frame] | Range/Enum | Description                                                                                                      |
-| ---------------- | ---------- | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`   |              |            | time since system start (microseconds)                                                                           |
-| protocol_version | `uint16`   |              |            | Must be set to LATEST_PROTOCOL_VERSION. Do not change this field, it must be the first field after the timestamp |
-| topic_name       | `char[50]` |              |            | E.g. /fmu/in/vehicle_command                                                                                     |
+| Name                                              | Type       | Unit [Frame] | Range/Enum | Description                                                                                                      |
+| ------------------------------------------------- | ---------- | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`   |              |            | time since system start (microseconds)                                                                           |
+| <a id="fld_protocol_version"></a>protocol_version | `uint16`   |              |            | Must be set to LATEST_PROTOCOL_VERSION. Do not change this field, it must be the first field after the timestamp |
+| <a id="fld_topic_name"></a>topic_name             | `char[50]` |              |            | E.g. /fmu/in/vehicle_command                                                                                     |
 
 ## Constants
 

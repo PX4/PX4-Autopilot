@@ -10,14 +10,14 @@ Rover Position Setpoint.
 
 ## Fields
 
-| Name           | Type         | Unit [Frame] | Range/Enum   | Description                                                                                              |
-| -------------- | ------------ | ------------ | ------------ | -------------------------------------------------------------------------------------------------------- |
-| timestamp      | `uint64`     | us           |              | Time since system start                                                                                  |
-| position_ned   | `float32[2]` | m [NED]      | [-inf : inf] | Target position                                                                                          |
-| start_ned      | `float32[2]` | m [NED]      | [-inf : inf] | Start position which specifies a line for the rover to track (Invalid: NaN Defaults to vehicle position) |
-| cruising_speed | `float32`    | m/s          | [0 : inf]    | Cruising speed (Invalid: NaN Defaults to maximum speed)                                                  |
-| arrival_speed  | `float32`    | m/s          | [0 : inf]    | Speed the rover should arrive at the target with (Invalid: NaN Defaults to 0)                            |
-| yaw            | `float32`    | rad [NED]    | [-pi : pi]   | Mecanum only: Specify vehicle yaw during travel (Invalid: NaN Defaults to vehicle yaw)                   |
+| Name                                          | Type         | Unit [Frame] | Range/Enum   | Description                                                                                              |
+| --------------------------------------------- | ------------ | ------------ | ------------ | -------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp           | `uint64`     | us           |              | Time since system start                                                                                  |
+| <a id="fld_position_ned"></a>position_ned     | `float32[2]` | m [NED]      | [-inf : inf] | Target position                                                                                          |
+| <a id="fld_start_ned"></a>start_ned           | `float32[2]` | m [NED]      | [-inf : inf] | Start position which specifies a line for the rover to track (Invalid: NaN Defaults to vehicle position) |
+| <a id="fld_cruising_speed"></a>cruising_speed | `float32`    | m/s          | [0 : inf]    | Cruising speed (Invalid: NaN Defaults to maximum speed)                                                  |
+| <a id="fld_arrival_speed"></a>arrival_speed   | `float32`    | m/s          | [0 : inf]    | Speed the rover should arrive at the target with (Invalid: NaN Defaults to 0)                            |
+| <a id="fld_yaw"></a>yaw                       | `float32`    | rad [NED]    | [-pi : pi]   | Mecanum only: Specify vehicle yaw during travel (Invalid: NaN Defaults to vehicle yaw)                   |
 
 ## Source Message
 

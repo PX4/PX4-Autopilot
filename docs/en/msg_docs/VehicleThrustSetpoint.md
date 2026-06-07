@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                |
-| ---------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------- |
-| timestamp        | `uint64`     |              |            | time since system start (microseconds)                                     |
-| timestamp_sample | `uint64`     |              |            | timestamp of the data sample on which this message is based (microseconds) |
-| xyz              | `float32[3]` |              |            | thrust setpoint along X, Y, Z body axis [-1, 1]                            |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     |              |            | time since system start (microseconds)                                     |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |              |            | timestamp of the data sample on which this message is based (microseconds) |
+| <a id="fld_xyz"></a>xyz                           | `float32[3]` |              |            | thrust setpoint along X, Y, Z body axis [-1, 1]                            |
 
 ## Source Message
 

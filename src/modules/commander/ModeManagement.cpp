@@ -581,8 +581,19 @@ void ModeManagement::printStatus() const
 	_mode_executors.printStatus(modeExecutorInCharge());
 }
 
-void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out)
+void ModeManagement::updateActiveConfigOverrides(uint8_t previous_nav_state, uint8_t nav_state, int previous_executor_in_charge,
+		config_overrides_s &overrides_in_out)
 {
+	if (previous_nav_state != nav_state && _modes.valid(previous_nav_state)) {
+		_modes.mode(previous_nav_state).overrides = {};
+	}
+
+	const int executor_in_charge = modeExecutorInCharge();
+
+	if (previous_executor_in_charge != executor_in_charge && _mode_executors.valid(previous_executor_in_charge)) {
+		_mode_executors.executor(previous_executor_in_charge).overrides = {};
+	}
+
 	config_overrides_s current_overrides;
 
 	if (_modes.valid(nav_state)) {
@@ -593,8 +604,6 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 	}
 
 	// Apply the overrides from executors on top (executors take precedence)
-	const int executor_in_charge = modeExecutorInCharge();
-
 	if (_mode_executors.valid(executor_in_charge)) {
 		const config_overrides_s &executor_overrides = _mode_executors.executor(executor_in_charge).overrides;
 

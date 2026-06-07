@@ -39,6 +39,8 @@ Manual-Acrobatic
 - [Утримання](../flight_modes_fw/hold.md) — Літак кружляє навколо позиції утримання GPS на поточній висоті.
   Режим може бути використаний для призупинення місії або для допомоги у відновленні контролю над транспортним засобом у випадку надзвичайної ситуації.
   Це може бути активовано з попередньо налаштованим RC вимикачем або кнопкою паузи QGroundControl.
+- [Guided Course](../flight_modes_fw/guided_course.md) — Vehicle maintains a constant ground track, altitude, and airspeed.
+  The operator commands course, altitude, and airspeed changes in real time from the GCS. Manual stick input is ignored.
 - [Повернення](../flight_modes_fw/return.md) — Транспортний засіб летить по чіткій траєкторії для посадки в безпечному місці.
   За замовчуванням призначенням є місіонний зразок посадки.
   Режим можна активувати вручну (через попередньо програмований RC перемикач) або автоматично (тобто в разі спрацювання аварійного режиму).

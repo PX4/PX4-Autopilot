@@ -10,10 +10,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                             | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                  |
-| ----------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
-| timestamp                                                         | `uint64`  |                                                                  |            | time since system start (microseconds)                             |
-| mag_inconsistency_angle | `float32` |                                                                  |            | maximum angle between magnetometer instance field vectors in radians. |
+| Назва                                                                                                     | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                  |
+| --------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                       | `uint64`  |                                                                  |            | time since system start (microseconds)                             |
+| <a id="fld_mag_inconsistency_angle"></a>mag_inconsistency_angle | `float32` |                                                                  |            | maximum angle between magnetometer instance field vectors in radians. |
 
 ## Source Message
 
