@@ -283,8 +283,10 @@ param set-default VT_TYPE 2              # Current PX4 airframe type used by thi
 
 # Transition airspeeds. Keep multicopter lift active until the wing is clearly
 # carrying the aircraft; earlier blending caused altitude loss during handoff.
-param set-default VT_ARSP_BLEND 30.0
-param set-default VT_ARSP_TRANS 55.0
+param set-default VT_ARSP_BLEND 38.0
+param set-default VT_ARSP_TRANS 52.0
+param set-default VT_F_TRANS_THR 0.75
+param set-default VT_PSHER_SLEW 0.25
 
 # Front Transition (MC -> FW)
 param set-default VT_F_TRANS_DUR 45.0
@@ -324,11 +326,11 @@ param set-default FW_R_RMAX 18.0
 param set-default FW_R_TC 0.7
 param set-default FW_R_LIM 22.0
 
-param set-default FW_PR_P 0.365
+param set-default FW_PR_P 0.42
 param set-default FW_PR_I 0.045
 param set-default FW_PR_D 0.355
-param set-default FW_PR_FF 2.0
-param set-default FW_PSP_OFF 6.0
+param set-default FW_PR_FF 2.8
+param set-default FW_PSP_OFF 10.0
 param set-default FW_P_LIM_MAX 18.0
 param set-default FW_P_LIM_MIN -5.0
 param set-default FW_P_TC 0.45
