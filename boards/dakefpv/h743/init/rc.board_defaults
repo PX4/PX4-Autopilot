@@ -3,8 +3,8 @@
 # DAKEFPV H743 board-specific parameter defaults
 #------------------------------------------------------------------------------
 
-# FC board is mounted with IMU facing down — apply ROLL_180 correction
-param set-default SENS_BOARD_ROT 8
+# IMU mounting offsets are applied per-sensor in rc.board_sensors
+# (icm42688p -R); SENS_BOARD_ROT stays at the default (none).
 
 # No internal compass — external optional (e.g. Foxeer M10Q on I2C2)
 param set-default SYS_HAS_MAG 0
