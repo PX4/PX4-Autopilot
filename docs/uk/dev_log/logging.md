@@ -52,7 +52,7 @@ _Developers_ can further configure what information is logged via the [logger](.
 
 ### Конфігурація SD-карти
 
-The list of logged topics can also be customized with a file on the SD card:  `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
 
 Each topic to be logged is listed on a separate line, with the following format:
 
