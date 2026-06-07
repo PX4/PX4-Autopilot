@@ -3,7 +3,7 @@
 # DAKEFPV H743 Slim board-specific parameter defaults
 #------------------------------------------------------------------------------
 
-# No internal compass — external optional
+# No internal compass — external optional (e.g. Foxeer M10Q on I2C2)
 param set-default SYS_HAS_MAG 0
 param set-default EKF2_MAG_TYPE 5
 

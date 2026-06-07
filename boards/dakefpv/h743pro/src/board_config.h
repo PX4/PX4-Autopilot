@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,13 +77,20 @@
 #define ADC1_CH(n)                  (n)
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
-#define PX4_ADC_GPIO          /* PC1  */  GPIO_ADC123_INP11,           /* PC5  */  GPIO_ADC12_INP8,            /* PC0  */  GPIO_ADC123_INP10
+#define PX4_ADC_GPIO  \
+	/* PC0  */  GPIO_ADC123_INP10, \
+	/* PC1  */  GPIO_ADC123_INP11, \
+	/* PC5  */  GPIO_ADC12_INP8
+
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC1  */  ADC1_CH(11)
-#define ADC_RSSI_IN_CHANNEL             /* PC5  */  ADC1_CH(8)
 #define ADC_BATTERY_CURRENT_CHANNEL     /* PC0  */  ADC1_CH(10)
+#define ADC_RSSI_IN_CHANNEL             /* PC5  */  ADC1_CH(8)
 
-#define ADC_CHANNELS         ((1 << ADC_BATTERY_VOLTAGE_CHANNEL) |          (1 << ADC_BATTERY_CURRENT_CHANNEL) |          (1 << ADC_RSSI_IN_CHANNEL))
+#define ADC_CHANNELS \
+	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
+	 (1 << ADC_RSSI_IN_CHANNEL))
 
 /* PWM
  */
@@ -129,7 +136,17 @@
 #define BOARD_HAS_ON_RESET 1
 
 
-#define PX4_GPIO_INIT_LIST {                 PX4_ADC_GPIO,                 GPIO_nLED_BLUE,                 GPIO_nLED_GREEN,                 GPIO_nLED_RED,                 GPIO_TONE_ALARM_IDLE,                 GPIO_PINIO1,                 GPIO_PINIO2,                 GPIO_PINIO3,                 GPIO_CAN1_SILENT_S0,         }
+#define PX4_GPIO_INIT_LIST { \
+		PX4_ADC_GPIO,            \
+		GPIO_nLED_BLUE,          \
+		GPIO_nLED_GREEN,         \
+		GPIO_nLED_RED,           \
+		GPIO_TONE_ALARM_IDLE,    \
+		GPIO_PINIO1,             \
+		GPIO_PINIO2,             \
+		GPIO_PINIO3,             \
+		GPIO_CAN1_SILENT_S0,     \
+	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
