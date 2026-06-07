@@ -102,7 +102,7 @@
 	/* PA2 */  ADC1_GPIO(2),  \
 	/* PA3 */  ADC1_GPIO(3),  \
 	/* PA4 */  ADC1_GPIO(4),  \
-	/* PB8 */  ADC1_GPIO(8),  \
+	/* PB0 */  ADC1_GPIO(8),  \
 	/* PC0 */  ADC1_GPIO(10), \
 	/* PC1 */  ADC1_GPIO(11), \
 	/* PC2 */  ADC1_GPIO(12), \

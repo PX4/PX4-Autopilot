@@ -343,7 +343,7 @@
  *
  * CAN1 is routed to transceiver.
  * CAN2 is routed to transceiver.
- * CAN3 is routed to transceiver.
+ * CAN3 pins are unused on CORVON_V5 (no transceiver populated).
  */
 #define GPIO_CAN1_RX     GPIO_CAN1_RX_5     /* PI9  */
 #define GPIO_CAN1_TX     GPIO_CAN1_TX_4     /* PH13 */
