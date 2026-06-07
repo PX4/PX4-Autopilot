@@ -29,8 +29,6 @@
 
 param set-default MAV_TYPE 20
 param set-default CA_AIRFRAME 4
-param set-default CA_METHOD 2
-param set-default CA_FAILURE_MODE 0
 
 # X-Plane aircraft coordinates use X=right, Y=up, Z=tail. Plane Maker ACF
 # position values are in feet. PX4 control allocation uses body X=forward and
@@ -73,8 +71,6 @@ param set-default CA_ROTOR3_AZ -0.996
 param set-default CA_ROTOR3_CT 2.0
 param set-default CA_ROTOR3_KM -0.04
 
-param set-default CA_SV_CS_COUNT 0
-
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 103
@@ -87,52 +83,37 @@ param set-default PWM_MAIN_FUNC4 104
 
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
-param set-default SYS_HAS_BARO 1
-param set-default SYS_HAS_GPS 1
 
 param set-default CAL_BARO0_ID 6620172
 param set-default CAL_BARO0_PRIO 100
 param set-default CAL_BARO1_ID 6620428
 param set-default CAL_BARO1_PRIO 0
 
-param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_BARO_NOISE 1.0
-param set-default EKF2_BARO_DELAY 0.0
 param set-default EKF2_BARO_GATE 10.0
-param set-default EKF2_HGT_REF 1
 
-param set-default EKF2_GPS_CTRL 7
 param set-default SENS_GPS0_DELAY 10
 param set-default SENS_GPS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 5.0
 param set-default EKF2_GPS_V_NOISE 0.15
 param set-default EKF2_GPS_P_GATE 10.0
-param set-default EKF2_GPS_V_GATE 5.0
 
 param set-default EKF2_MAG_TYPE 1
-param set-default EKF2_HEAD_NOISE 0.3
-param set-default EKF2_MAG_NOISE 0.05
 param set-default EKF2_MAG_GATE 5.0
 param set-default EKF2_FUSE_BETA 0
 
-param set-default EKF2_ABIAS_INIT 0.2
 param set-default EKF2_ABL_LIM 2.5
-param set-default EKF2_ABL_TAU 0.5
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
 param set-default EKF2_ACC_B_NOISE 0.001
-param set-default EKF2_GYR_NOISE 0.015
-param set-default EKF2_GYR_B_NOISE 0.001
 param set-default EKF2_MULTI_IMU 1
 param set-default SENS_IMU_MODE 0
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_AVEL_DELAY 0.0
-param set-default EKF2_TAS_GATE 5.0
 param set-default EKF2_WIND_NSD 0.01
 param set-default EKF2_REQ_VDRIFT 1.0
 
 param set-default IMU_GYRO_RATEMAX 200
-param set-default IMU_INTEG_RATE 200
 
 
 ################################################################################
@@ -152,21 +133,16 @@ param set-default MC_YAW_WEIGHT 0.35
 param set-default MC_ROLLRATE_P 0.10
 param set-default MC_ROLLRATE_I 0.02
 param set-default MC_ROLLRATE_D 0.0008
-param set-default MC_ROLLRATE_FF 0.0
-param set-default MC_ROLLRATE_K 1.00
 param set-default MC_ROLLRATE_MAX 80
 
 param set-default MC_PITCHRATE_P 0.115
 param set-default MC_PITCHRATE_I 0.02
 param set-default MC_PITCHRATE_D 0.0012
-param set-default MC_PITCHRATE_FF 0.0
 param set-default MC_PITCHRATE_K 0.92
 param set-default MC_PITCHRATE_MAX 110
 
-param set-default MC_YAWRATE_P 0.20
 param set-default MC_YAWRATE_I 0.015
 param set-default MC_YAWRATE_D 0.025
-param set-default MC_YAWRATE_FF 0.0
 param set-default MC_YAWRATE_K 1.10
 param set-default MC_YAWRATE_MAX 55
 
@@ -179,10 +155,8 @@ param set-default MC_YAWRATE_MAX 55
 # margin, but excessive command acceleration couples into yaw/roll during hover
 # and after back-transition.
 param set-default MPC_XY_P 0.18
-param set-default MPC_Z_P 1.00
 param set-default MPC_XY_VEL_P_ACC 0.8
 param set-default MPC_XY_VEL_I_ACC 0.1
-param set-default MPC_XY_VEL_D_ACC 0.2
 param set-default MPC_Z_VEL_P_ACC 2.0
 param set-default MPC_Z_VEL_I_ACC 0.5
 param set-default MPC_Z_VEL_D_ACC 0.6
@@ -209,7 +183,6 @@ param set-default MPC_TILTMAX_LND 8
 
 param set-default MPC_THR_HOVER 0.22
 param set-default MPC_THR_MIN 0.08
-param set-default MPC_THR_MAX 1.0
 param set-default MPC_THR_XY_MARG 0.4
 
 param set-default MPC_TKO_SPEED 1.2
@@ -217,14 +190,11 @@ param set-default MPC_TKO_RAMP_T 2.5
 param set-default MIS_TAKEOFF_ALT 1.5
 param set-default MPC_LAND_ALT1 8
 param set-default MPC_LAND_ALT2 3
-param set-default MPC_LAND_ALT3 1
 param set-default MPC_LAND_SPEED 0.9
 param set-default MPC_LAND_CRWL 0.36
 param set-default MPC_LAND_RADIUS 30
 
 param set-default LNDMC_ALT_GND 1.5
-param set-default LNDMC_XY_VEL_MAX 1.5
-param set-default LNDMC_Z_VEL_MAX 0.25
 param set-default LNDMC_ROT_MAX 25
 param set-default COM_DISARM_LAND 1.5
 
@@ -240,11 +210,9 @@ param set-default MC_ORBIT_YAW_MOD 1
 # FIXED-WING ENVELOPE AND ENERGY CONTROL
 ################################################################################
 
-# The body-axis pitot is used by TECS and transition logic. Keep it out of the
-# prearm sensor-count requirement because commander can start before the
-# simulator stream and airspeed selector have warmed up.
-param set-default FW_USE_AIRSPD 1
-param set-default ASPD_DO_CHECKS 1
+# The body-axis X-Plane pitot is used by TECS and transition logic. Keep PX4's
+# default airspeed validity checks, but do not require a physical airspeed sensor
+# instance at prearm.
 param set-default ASPD_FALLBACK 1
 param set-default SYS_HAS_NUM_ASPD 0
 param set-default EKF2_ARSP_THR 24.0
@@ -257,15 +225,10 @@ param set-default FW_AIRSPD_MAX 36
 
 param set-default FW_THR_TRIM 0.14
 param set-default FW_THR_MAX 0.50
-param set-default FW_THR_MIN 0.00
-param set-default FW_THR_IDLE 0.00
 param set-default FW_THR_SLEW_MAX 0.20
 
-param set-default FW_T_CLMB_MAX 5
 param set-default FW_T_SINK_MAX 3
 param set-default FW_T_SINK_MIN 1.6
-param set-default FW_T_HRATE_FF 0.5
-param set-default FW_T_ALT_TC 5.0
 param set-default FW_T_SPDWEIGHT 0.8
 param set-default FW_T_RLL2THR 2.0
 param set-default FW_T_STE_R_TC 1.0
@@ -273,7 +236,6 @@ param set-default FW_T_THR_DAMPING 0.25
 param set-default FW_T_PTCH_DAMP 0.25
 param set-default FW_T_I_GAIN_PIT 0.25
 param set-default FW_T_CLMB_R_SP 2.0
-param set-default FW_T_SINK_R_SP 2.0
 
 param set-default FW_P_TC 0.6
 param set-default FW_PSP_OFF 2.0
@@ -281,18 +243,15 @@ param set-default FW_P_LIM_MAX 35
 param set-default FW_P_LIM_MIN -15
 param set-default FW_PR_P 0.50
 param set-default FW_PR_I 0.30
-param set-default FW_PR_D 0.0
 
 param set-default FW_R_TC 1.5
 param set-default FW_R_LIM 16
 param set-default FW_RR_P 0.10
 param set-default FW_RR_I 0.04
-param set-default FW_RR_D 0.0
 param set-default FW_RR_FF 0.05
 
 param set-default FW_YR_P 0.01
 param set-default FW_YR_I 0.0
-param set-default FW_YR_D 0.0
 param set-default FW_YR_FF 0.0
 
 
@@ -300,7 +259,6 @@ param set-default FW_YR_FF 0.0
 # VTOL TRANSITION
 ################################################################################
 
-param set-default VT_TYPE 0
 param set-default VT_ARSP_BLEND 17
 param set-default VT_ARSP_TRANS 22
 param set-default VT_F_TRANS_DUR 8.0
@@ -315,7 +273,6 @@ param set-default VT_B_TRANS_RAMP 1.5
 param set-default VT_FW_MIN_ALT 30
 param set-default VT_QC_T_ALT_LOSS 35
 param set-default VT_PITCH_MIN -10
-param set-default VT_FWD_THRUST_EN 0
 
 param set-default VT_FW_DIFTHR_EN 7
 param set-default VT_FW_DIFTHR_S_R 0.55
@@ -345,7 +302,6 @@ param set-default FD_FAIL_P 85
 param set-default FD_FAIL_R_TTRI 1.0
 param set-default FD_FAIL_P_TTRI 1.0
 param set-default WV_EN 0
-param set-default SDLOG_PROFILE 1
 
 ################################################################################
 # END OF FILE

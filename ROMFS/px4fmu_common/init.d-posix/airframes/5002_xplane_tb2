@@ -32,9 +32,6 @@
 # SECTION 1: CONTROL ALLOCATION - FIXED-WING A-TAIL CONFIGURATION
 ################################################################################
 
-param set-default CA_AIRFRAME 1
-param set-default CA_METHOD 2
-param set-default CA_FAILURE_MODE 0
 param set-default CA_ROTOR_COUNT 1
 
 # Propeller motor.
@@ -82,9 +79,6 @@ param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 param set-default SENS_EN_MAGSIM 1
-param set-default SYS_HAS_BARO 1
-param set-default SYS_HAS_GPS 1
-param set-default SYS_HAS_MAG 1
 
 # PX4 simulator_mavlink can expose duplicate simulated barometer instances from
 # one HIL_SENSOR stream. Keep a single fusion source to avoid source switching.
@@ -99,44 +93,32 @@ param set-default CAL_ACC0_XOFF -0.030
 param set-default CAL_ACC0_YOFF 0.010
 param set-default CAL_ACC0_ZOFF -0.770
 
-param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 param set-default SENS_IMU_MODE 0
-param set-default EKF2_ABIAS_INIT 0.2
 param set-default EKF2_ABL_LIM 0.8
-param set-default EKF2_ABL_TAU 0.5
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
 param set-default EKF2_ACC_B_NOISE 0.001
-param set-default EKF2_GYR_NOISE 0.015
-param set-default EKF2_GYR_B_NOISE 0.001
 
 param set-default EKF2_BARO_NOISE 1.0
-param set-default EKF2_BARO_DELAY 0.0
 param set-default EKF2_BARO_GATE 10.0
 param set-default SENS_GPS0_DELAY 10
 param set-default SENS_GPS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 2.5
 param set-default EKF2_GPS_V_NOISE 0.15
 param set-default EKF2_GPS_P_GATE 8.0
-param set-default EKF2_GPS_V_GATE 5.0
 
 param set-default EKF2_MAG_TYPE 1
 param set-default EKF2_MAG_DELAY 1.0
-param set-default EKF2_HEAD_NOISE 0.3
-param set-default EKF2_MAG_NOISE 0.05
 param set-default EKF2_MAG_GATE 5.0
 param set-default EKF2_SYNT_MAG_Z 1
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_ARSP_THR 10.0
 param set-default EKF2_GSF_TAS 36.0
-param set-default EKF2_TAS_GATE 5.0
 param set-default EKF2_AVEL_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
-param set-default EKF2_REQ_VDRIFT 1.0
 
 param set-default IMU_GYRO_RATEMAX 200
-param set-default IMU_INTEG_RATE 200
 
 
 ################################################################################
@@ -164,7 +146,6 @@ param set-default FW_P_TC 0.75
 param set-default FW_PN_R_SLEW_MAX 30.0
 
 param set-default FW_MAN_P_MAX 35.0
-param set-default FW_MAN_R_MAX 45.0
 
 # Ground steering during runway takeoff/landing.
 param set-default FW_W_EN 1
@@ -187,8 +168,9 @@ param set-default FW_AIRSPD_MAX 56.0
 param set-default FW_AIRSPD_TRIM 36.0
 param set-default FW_AIRSPD_STALL 20.0
 param set-default FW_AIRSPD_FLP_SC 0.85
-param set-default FW_USE_AIRSPD 1
-param set-default ASPD_DO_CHECKS 1
+# Keep PX4's default airspeed validity checks. The X-Plane pitot is provided by
+# the simulator stream, so do not require a physical airspeed sensor instance at
+# prearm.
 param set-default ASPD_FALLBACK 1
 param set-default SYS_HAS_NUM_ASPD 0
 
@@ -196,7 +178,6 @@ param set-default FW_T_ALT_TC 8.0
 param set-default FW_T_RLL2THR 6.0
 param set-default FW_T_STE_R_TC 1.5
 param set-default FW_T_HRATE_FF 0.15
-param set-default FW_T_SPDWEIGHT 1.0
 param set-default FW_T_CLMB_MAX 2.5
 param set-default FW_T_CLMB_R_SP 1.5
 param set-default FW_T_SINK_MIN 1.0
@@ -208,12 +189,8 @@ param set-default FW_T_PTCH_DAMP 0.30
 param set-default FW_T_I_GAIN_PIT 0.15
 
 param set-default FW_THR_TRIM 0.32
-param set-default FW_THR_MAX 1.0
 param set-default FW_THR_MIN 0.05
-param set-default FW_THR_IDLE 0.00
 param set-default FW_THR_SLEW_MAX 0.30
-param set-default FW_THR_ASPD_MAX 0.00
-param set-default FW_THR_ASPD_MIN 0.00
 
 
 ################################################################################
@@ -221,11 +198,9 @@ param set-default FW_THR_ASPD_MIN 0.00
 ################################################################################
 
 param set-default RWTO_TKOFF 1
-param set-default RWTO_MAX_THR 1.0
 param set-default RWTO_RAMP_TIME 3.0
 param set-default RWTO_ROT_AIRSPD 27.0
 param set-default RWTO_ROT_TIME 2.5
-param set-default RWTO_NUDGE 1
 param set-default FW_TKO_AIRSPD 32.0
 param set-default FW_TKO_PITCH_MIN 7.0
 param set-default MIS_TAKEOFF_ALT 150.0
@@ -240,15 +215,10 @@ param set-default FW_LND_FL_PMIN 8.0
 param set-default FW_LND_FL_PMAX 14.0
 param set-default FW_LND_FL_SINK 0.35
 param set-default FW_LND_THRTC_SC 0.7
-param set-default FW_LND_USETER 1
 param set-default FW_LND_TD_OFF 4.0
-param set-default FW_LND_TD_TIME -1.0
-param set-default FW_FLAPS_TO_SCL 0.0
-param set-default FW_FLAPS_LND_SCL 1.0
 param set-default LNDFW_AIRSPD_MAX 12.0
 param set-default LNDFW_VEL_XY_MAX 6.0
 param set-default LNDFW_VEL_Z_MAX 1.5
-param set-default LNDFW_TRIG_TIME 2.0
 param set-default COM_DISARM_LAND 4.0
 
 
@@ -267,7 +237,6 @@ param set-default MIS_TKO_LAND_REQ 0
 param set-default MIS_DIST_1WP 5000.0
 param set-default NAV_ACC_RAD 180.0
 param set-default NAV_FW_ALT_RAD 25.0
-param set-default NAV_MIN_LTR_ALT -1.0
 param set-default NAV_LOITER_RAD 700.0
 param set-default RTL_RETURN_ALT 150.0
 param set-default RTL_DESCEND_ALT 80.0
@@ -289,11 +258,7 @@ param set-default WEIGHT_GROSS 418.0
 # SECTION 8: SITL SYSTEM DEFAULTS
 ################################################################################
 
-param set-default SDLOG_MODE 0
-param set-default SDLOG_PROFILE 1
-param set-default CBRK_USB_CHK 197848
 param set-default CBRK_SUPPLY_CHK 894281
-param set-default CBRK_IO_SAFETY 22027
 
 
 ################################################################################

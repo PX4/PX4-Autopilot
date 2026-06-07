@@ -35,9 +35,6 @@
 # SECTION 1: CONTROL ALLOCATION - FIXED-WING CONFIGURATION
 ################################################################################
 
-param set-default CA_AIRFRAME 1
-param set-default CA_METHOD 2
-param set-default CA_FAILURE_MODE 0
 param set-default CA_ROTOR_COUNT 1
 
 # Propeller motor.
@@ -85,9 +82,6 @@ param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 param set-default SENS_EN_MAGSIM 1
-param set-default SYS_HAS_BARO 1
-param set-default SYS_HAS_GPS 1
-param set-default SYS_HAS_MAG 1
 
 # Barometer priority. PX4 simulator_mavlink publishes two simulated baro uORB
 # instances from one HIL_SENSOR stream; disable the duplicate as a fusion source.
@@ -103,49 +97,37 @@ param set-default CAL_ACC0_YOFF -0.139
 param set-default CAL_ACC0_ZOFF -0.797
 
 # EKF2 core settings aligned with the current px4xplane sensor contract.
-param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 param set-default SENS_IMU_MODE 0
-param set-default EKF2_ABIAS_INIT 0.2
 param set-default EKF2_ABL_LIM 0.8
-param set-default EKF2_ABL_TAU 0.5
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
 param set-default EKF2_ACC_B_NOISE 0.001
-param set-default EKF2_GYR_NOISE 0.015
-param set-default EKF2_GYR_B_NOISE 0.001
 
 # Height and horizontal aiding.
 param set-default EKF2_BARO_NOISE 1.0
-param set-default EKF2_BARO_DELAY 0.0
 param set-default EKF2_BARO_GATE 10.0
 param set-default SENS_GPS0_DELAY 10
 param set-default SENS_GPS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 2.5
 param set-default EKF2_GPS_V_NOISE 0.15
 param set-default EKF2_GPS_P_GATE 8.0
-param set-default EKF2_GPS_V_GATE 5.0
 
 # Magnetometer and airspeed aiding.
 param set-default EKF2_MAG_TYPE 1
 param set-default EKF2_MAG_DELAY 1.0
-param set-default EKF2_HEAD_NOISE 0.3
-param set-default EKF2_MAG_NOISE 0.05
 param set-default EKF2_MAG_GATE 5.0
 param set-default EKF2_SYNT_MAG_Z 1
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_ARSP_THR 10.0
 param set-default EKF2_GSF_TAS 50.0
-param set-default EKF2_TAS_GATE 5.0
 param set-default EKF2_AVEL_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
-param set-default EKF2_REQ_VDRIFT 1.0
 
 # The bridge target sensor rate is 200 Hz. Actual send cadence is still bounded
 # by X-Plane frame callbacks, but matching the PX4 rate cap avoids stale 100 Hz
 # assumptions in the airframe defaults.
 param set-default IMU_GYRO_RATEMAX 200
-param set-default IMU_INTEG_RATE 200
 
 
 ################################################################################
@@ -176,7 +158,6 @@ param set-default FW_PN_R_SLEW_MAX 35.0
 param set-default FW_W_EN 1
 param set-default FW_WR_P 0.8
 param set-default FW_WR_I 0.12
-param set-default FW_WR_IMAX 0.4
 param set-default FW_WR_FF 0.35
 
 
@@ -189,8 +170,9 @@ param set-default FW_AIRSPD_MAX 75.0
 param set-default FW_AIRSPD_TRIM 50.0
 param set-default FW_AIRSPD_STALL 25.0
 param set-default FW_AIRSPD_FLP_SC 0.85
-param set-default FW_USE_AIRSPD 1
-param set-default ASPD_DO_CHECKS 1
+# Keep PX4's default airspeed validity checks. The X-Plane pitot is provided by
+# the simulator stream, so do not require a physical airspeed sensor instance at
+# prearm.
 param set-default ASPD_FALLBACK 1
 param set-default SYS_HAS_NUM_ASPD 0
 
@@ -201,22 +183,16 @@ param set-default FW_T_STE_R_TC 1.5
 param set-default FW_T_HRATE_FF 0.3
 param set-default FW_T_SPDWEIGHT 0.8
 param set-default FW_T_CLMB_MAX 3.7
-param set-default FW_T_CLMB_R_SP 3.0
 param set-default FW_T_SINK_MIN 1.8
 param set-default FW_T_SINK_MAX 4.0
-param set-default FW_T_SINK_R_SP 2.0
 param set-default FW_T_VERT_ACC 3.0
 param set-default FW_T_THR_DAMPING 0.10
 param set-default FW_T_PTCH_DAMP 0.12
 param set-default FW_T_I_GAIN_PIT 0.30
 
 param set-default FW_THR_TRIM 0.55
-param set-default FW_THR_MAX 1.0
 param set-default FW_THR_MIN 0.05
-param set-default FW_THR_IDLE 0.00
 param set-default FW_THR_SLEW_MAX 0.50
-param set-default FW_THR_ASPD_MAX 0.00
-param set-default FW_THR_ASPD_MIN 0.00
 
 
 ################################################################################
@@ -226,20 +202,16 @@ param set-default FW_THR_ASPD_MIN 0.00
 # Runway takeoff. Keep pitch below the previous 20 deg value to avoid an
 # unrealistic rotation and early climb oscillation on a C172-size aircraft.
 param set-default RWTO_TKOFF 1
-param set-default RWTO_MAX_THR 1.0
 param set-default RWTO_RAMP_TIME 3.0
 param set-default RWTO_ROT_AIRSPD 28.0
 param set-default RWTO_ROT_TIME 2.0
-param set-default RWTO_NUDGE 1
 param set-default FW_TKO_AIRSPD 38.0
-param set-default FW_TKO_PITCH_MIN 10.0
 param set-default MIS_TAKEOFF_ALT 150.0
 
 # Auto landing. Use landing flaps and early landing configuration so the
 # aircraft stabilizes before approach. Disable touchdown-time clamping because
 # the C172 flare timing varies with X-Plane runway geometry and wind.
 param set-default FW_LND_ABORT 0
-param set-default FW_LND_ANG 5.0
 param set-default FW_LND_AIRSPD 32.5
 param set-default FW_LND_EARLYCFG 1
 param set-default FW_LND_FLALT 8.0
@@ -248,10 +220,6 @@ param set-default FW_LND_FL_PMIN 9.0
 param set-default FW_LND_FL_PMAX 20.0
 param set-default FW_LND_FL_SINK 0.30
 param set-default FW_LND_THRTC_SC 0.8
-param set-default FW_LND_USETER 1
-param set-default FW_LND_TD_OFF 3.0
-param set-default FW_LND_TD_TIME -1.0
-param set-default FW_FLAPS_TO_SCL 0.0
 param set-default FW_FLAPS_LND_SCL 0.85
 param set-default LNDFW_AIRSPD_MAX 30.0
 param set-default LNDFW_VEL_XY_MAX 10.0
@@ -275,7 +243,6 @@ param set-default MIS_DIST_1WP 5000.0
 
 param set-default NAV_ACC_RAD 180.0
 param set-default NAV_FW_ALT_RAD 40.0
-param set-default NAV_MIN_LTR_ALT -1.0
 param set-default NAV_LOITER_RAD 600.0
 
 param set-default RTL_RETURN_ALT 120.0
@@ -293,18 +260,8 @@ param set-default FW_WING_HEIGHT 3.0
 param set-default WEIGHT_BASE 1157.0
 param set-default WEIGHT_GROSS 1157.0
 
-param set-default MPC_MAN_Y_MAX 20.0
-param set-default MPC_JERK_AUTO 1.0
-param set-default MPC_JERK_MAX 3.0
-
-# Keep the normal SITL logger behavior; the launcher starts the full ULog.
-param set-default SDLOG_MODE 0
-param set-default SDLOG_PROFILE 1
-
 # SITL-only circuit breakers.
-param set-default CBRK_USB_CHK 197848
 param set-default CBRK_SUPPLY_CHK 894281
-param set-default CBRK_IO_SAFETY 22027
 
 
 ################################################################################

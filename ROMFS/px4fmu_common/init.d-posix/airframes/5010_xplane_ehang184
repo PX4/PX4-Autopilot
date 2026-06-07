@@ -54,40 +54,26 @@
 # Motor 2: Rear-Left   (CCW) - Position: (-1.4, -1.4, 0)m from CG
 # Motor 3: Rear-Right  (CW)  - Position: (-1.4, +1.4, 0)m from CG
 #
-# CT=6.5: Thrust coefficient tuned for large rotors
-# KM=+/-0.05: Moment coefficient (sign determines rotation direction)
+# Default thrust and moment coefficients are used unless overridden below.
 
-param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
-param set-default CA_METHOD 2
-param set-default CA_FAILURE_MODE 0
 
 # Motor 0: Front-Right (CCW)
 param set-default CA_ROTOR0_PX 1.4
 param set-default CA_ROTOR0_PY -1.4
-param set-default CA_ROTOR0_AZ -1
-param set-default CA_ROTOR0_CT 6.5
 param set-default CA_ROTOR0_KM -0.05
 
 # Motor 1: Front-Left (CW)
 param set-default CA_ROTOR1_PX 1.4
 param set-default CA_ROTOR1_PY 1.4
-param set-default CA_ROTOR1_AZ -1
-param set-default CA_ROTOR1_CT 6.5
-param set-default CA_ROTOR1_KM 0.05
 
 # Motor 2: Rear-Left (CCW)
 param set-default CA_ROTOR2_PX -1.4
 param set-default CA_ROTOR2_PY -1.4
-param set-default CA_ROTOR2_AZ -1
-param set-default CA_ROTOR2_CT 6.5
-param set-default CA_ROTOR2_KM 0.05
 
 # Motor 3: Rear-Right (CW)
 param set-default CA_ROTOR3_PX -1.4
 param set-default CA_ROTOR3_PY 1.4
-param set-default CA_ROTOR3_AZ -1
-param set-default CA_ROTOR3_CT 6.5
 param set-default CA_ROTOR3_KM -0.05
 
 # PWM Output Mapping
@@ -130,8 +116,6 @@ param set-default PWM_MAIN_FUNC4 104
 # Simulation mode enablement
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
-param set-default SYS_HAS_BARO 1
-param set-default SYS_HAS_GPS 1
 
 # Barometer priority (single sensor for SITL simplicity)
 param set-default CAL_BARO0_ID 6620172
@@ -140,14 +124,11 @@ param set-default CAL_BARO1_ID 6620428
 param set-default CAL_BARO1_PRIO 0        # Backup disabled (prevents mid-mission switching)
 
 # EKF2 core configuration
-param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 param set-default SENS_IMU_MODE 0
 
 # Accelerometer bias estimation for X-Plane SITL.
-param set-default EKF2_ABIAS_INIT 0.2     # Tighter starting bias estimate
 param set-default EKF2_ABL_LIM 2.5        # X-Plane SITL requires higher tolerance (see note below)
-param set-default EKF2_ABL_TAU 0.5        # Slower bias adaptation (stability)
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0      # Better accelerometer trust
 param set-default EKF2_ACC_B_NOISE 0.001  # Accel bias noise - enables bias learning
@@ -157,13 +138,8 @@ param set-default EKF2_ACC_B_NOISE 0.001  # Accel bias noise - enables bias lear
 # rendering load, which can make EKF2 estimate higher acceleration bias.
 # This does NOT affect flight performance - only the preflight arming check.
 
-# Gyroscope noise.
-param set-default EKF2_GYR_NOISE 0.015    # Gyro measurement noise (rad/s)
-param set-default EKF2_GYR_B_NOISE 0.001  # Gyro bias process noise (rad/s)
-
 # Barometer parameters.
 param set-default EKF2_BARO_NOISE 1.0     # Baro height noise in m; avoids overconfident fusion during X-Plane transients
-param set-default EKF2_BARO_DELAY 0.0
 param set-default EKF2_BARO_GATE 10.0     # Increased for FPS variability tolerance
 
 # Simulated accelerometer calibration for the packaged X-Plane aircraft model.
@@ -178,24 +154,19 @@ param set-default SENS_GPS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 1.5    # X-Plane HIL position covariance
 param set-default EKF2_GPS_V_NOISE 0.15   # Realistic GPS velocity noise (was 0.01)
 param set-default EKF2_GPS_P_GATE 8.0     # Innovation gate
-param set-default EKF2_GPS_V_GATE 5.0
 
 # Magnetometer parameters
 param set-default EKF2_MAG_TYPE 1
-param set-default EKF2_HEAD_NOISE 0.3
-param set-default EKF2_MAG_NOISE 0.05
 param set-default EKF2_MAG_GATE 5.0       # Increased for FPS tolerance
 
 # Additional sensors
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_AVEL_DELAY 0.0
-param set-default EKF2_TAS_GATE 5.0
 param set-default EKF2_WIND_NSD 0.01
 param set-default EKF2_REQ_VDRIFT 1.0
 
 # IMU configuration
 param set-default IMU_GYRO_RATEMAX 200
-param set-default IMU_INTEG_RATE 200
 
 
 ################################################################################
@@ -217,31 +188,21 @@ param set-default IMU_INTEG_RATE 200
 # 4. Add I last (typically P/15)
 
 # Roll rate
-param set-default MC_ROLLRATE_P 0.15
 param set-default MC_ROLLRATE_I 0.1
 param set-default MC_ROLLRATE_D 0.01
-param set-default MC_ROLLRATE_FF 0
 param set-default MC_ROLLRATE_K 3.0
-param set-default MC_ROLLRATE_MAX 220
-param set-default MC_RR_INT_LIM 0.3
 
 # Pitch rate
-param set-default MC_PITCHRATE_P 0.15
 param set-default MC_PITCHRATE_I 0.1
 param set-default MC_PITCHRATE_D 0.01
-param set-default MC_PITCHRATE_FF 0
 param set-default MC_PITCHRATE_K 2.05
-param set-default MC_PITCHRATE_MAX 220
-param set-default MC_PR_INT_LIM 0.3
 
 # Yaw rate
 param set-default MC_YAWRATE_P 2
 param set-default MC_YAWRATE_I 0
-param set-default MC_YAWRATE_D 0
 param set-default MC_YAWRATE_FF 0.2
 param set-default MC_YAWRATE_K 0.6
 param set-default MC_YAWRATE_MAX 100
-param set-default MC_YR_INT_LIM 0.3
 
 
 ################################################################################
@@ -252,7 +213,6 @@ param set-default MC_YR_INT_LIM 0.3
 param set-default MC_ROLL_P 1.0
 param set-default MC_PITCH_P 1.0
 param set-default MC_YAW_P 0.6
-param set-default MC_YAW_WEIGHT 0.4
 
 
 ################################################################################
@@ -272,20 +232,15 @@ param set-default MPC_XY_VEL_P_ACC 1.2
 param set-default MPC_XY_VEL_I_ACC 0.2
 param set-default MPC_XY_VEL_D_ACC 0.8
 param set-default MPC_Z_VEL_P_ACC 3
-param set-default MPC_Z_VEL_I_ACC 2
 param set-default MPC_Z_VEL_D_ACC 0.2
 
 # Velocity limits (passenger comfort priority)
 param set-default MPC_XY_VEL_MAX 6.5      # Max horizontal (m/s) ~23 km/h
-param set-default MPC_Z_VEL_MAX_UP 3      # Max ascent (m/s)
-param set-default MPC_Z_VEL_MAX_DN 1.5    # Max manual descent (m/s)
 param set-default MPC_Z_V_AUTO_UP 2.0
 param set-default MPC_Z_V_AUTO_DN 1.2
 param set-default MPC_VEL_MANUAL 5        # Manual horizontal speed below MPC_XY_VEL_MAX
-param set-default MPC_XY_CRUISE 5         # Cruise speed ~18 km/h (passenger comfort)
 
 # Trajectory & jerk limits (reduced for smooth ride)
-param set-default MPC_XY_TRAJ_P 0.5
 param set-default MPC_ACC_HOR 1.5
 param set-default MPC_ACC_HOR_MAX 1.8
 param set-default MPC_ACC_UP_MAX 2.0
@@ -305,33 +260,13 @@ param set-default MPC_XY_ERR_MAX 10
 # Tilt & attitude limits
 param set-default MPC_MAN_TILT_MAX 25
 param set-default MPC_TILTMAX_AIR 30
-param set-default MPC_TILTMAX_LND 12
-
-# Throttle settings
-param set-default MPC_THR_HOVER 0.5
-param set-default MPC_THR_MIN 0.12
-param set-default MPC_THR_MAX 1
-param set-default MPC_MANTHR_MIN 0.08
-param set-default MPC_THR_CURVE 0
-param set-default MPC_THR_XY_MARG 0.3
 
 # Yaw control
 param set-default MPC_MAN_Y_MAX 15
-param set-default MPC_MAN_Y_TAU 0.08
-param set-default MPC_YAWRAUTO_ACC 20
 param set-default MPC_YAWRAUTO_MAX 20
 
-# Position hold
-param set-default MPC_HOLD_MAX_XY 0.8
-param set-default MPC_HOLD_MAX_Z 0.6
-
 # Advanced options
-param set-default MPC_POS_MODE 4
 param set-default MPC_ALT_MODE 0
-param set-default MPC_VELD_LP 5
-param set-default MPC_VEL_MAN_BACK -1
-param set-default MPC_VEL_MAN_SIDE -1
-param set-default MPC_XY_VEL_ALL -10
 
 
 ################################################################################
@@ -340,46 +275,17 @@ param set-default MPC_XY_VEL_ALL -10
 
 # Takeoff
 param set-default MPC_TKO_SPEED 2.0       # Smooth takeoff climb rate (m/s)
-param set-default MPC_TKO_RAMP_T 3        # Ramp time (s)
 
 # Landing
 param set-default MPC_LAND_ALT1 8         # Start slowing close to ground (m)
 param set-default MPC_LAND_ALT2 3         # Final landing speed below this height (m)
-param set-default MPC_LAND_ALT3 1         # Phase 3 altitude (m)
 param set-default MPC_LAND_SPEED 0.6      # PX4 minimum landing descend rate (m/s)
-param set-default MPC_LAND_CRWL 0.30      # Crawl speed with valid range data (m/s)
 param set-default MPC_LAND_RADIUS 25
 param set-default MPC_LAND_RC_HELP 1
 
 # Land detector
-param set-default LNDMC_ALT_GND 2
-param set-default LNDMC_XY_VEL_MAX 1.5
 param set-default LNDMC_Z_VEL_MAX 0.24
-param set-default LNDMC_ROT_MAX 20
 param set-default COM_DISARM_LAND 1.5
-
-
-################################################################################
-# ACRO MODE
-################################################################################
-# Aerobatic mode for experienced pilots.
-
-param set-default MC_ACRO_P_MAX 100
-param set-default MC_ACRO_R_MAX 100
-param set-default MC_ACRO_Y_MAX 100
-param set-default MC_ACRO_EXPO 0
-param set-default MC_ACRO_EXPO_Y 0
-param set-default MC_ACRO_SUPEXPO 0
-param set-default MC_ACRO_SUPEXPOY 0
-
-
-################################################################################
-# AUTO-TUNING
-################################################################################
-
-param set-default MC_AT_APPLY 1
-param set-default MC_AT_RISE_TIME 0.14
-param set-default MC_AT_SYSID_AMP 0.7
 
 
 ################################################################################
@@ -400,7 +306,6 @@ param set-default MC_AT_SYSID_AMP 0.7
 # Mission parameters
 param set-default MIS_YAW_ERR 30          # Max yaw error (deg) - gentle corrections
 param set-default MIS_YAW_TMT 5
-param set-default MIS_TAKEOFF_ALT 2.5     # Default takeoff alt (m)
 
 # Navigation acceptance radii
 # Large enough for smooth waypoint capture while preserving useful tracking.
@@ -408,53 +313,11 @@ param set-default NAV_ACC_RAD 12          # Horizontal acceptance radius (m)
 param set-default NAV_MC_ALT_RAD 2        # Vertical acceptance radius (m)
 
 # Return to launch
-param set-default RTL_RETURN_ALT 30       # RTL altitude (m)
 param set-default RTL_DESCEND_ALT 30
-param set-default RTL_LAND_DELAY 0
 
-
-################################################################################
-# ADVANCED FEATURES
-################################################################################
-
-# Collision prevention
-param set-default CP_DELAY 0.4
-param set-default CP_DIST -1              # Disabled
-param set-default CP_GO_NO_DATA 0
-param set-default CP_GUIDE_ANG 30
-
-# Follow target
-param set-default FLW_TGT_ALT_M 0
-param set-default FLW_TGT_DST 8
-param set-default FLW_TGT_FA 180
-param set-default FLW_TGT_HT 8
-param set-default FLW_TGT_MAX_VEL 5
-param set-default FLW_TGT_RS 0.1
-
-# Hover thrust estimator
-param set-default HTE_ACC_GATE 3
-param set-default HTE_HT_ERR_INIT 0.1
-param set-default HTE_HT_NOISE 0.0036
-param set-default HTE_THR_RANGE 0.2
-param set-default HTE_VXY_THR 10
-param set-default HTE_VZ_THR 2
 
 # GPS configuration
 param set-default GPS_UBX_DYNMODEL 6      # Airborne <1g
-
-# Orbit mode
-param set-default MC_ORBIT_RAD_MAX 1000
-
-# System response
-# Negative value keeps the explicit airframe parameters above in control.
-param set-default SYS_VEHICLE_RESP -0.4
-
-# Battery compensation
-param set-default MC_BAT_SCALE_EN 0
-
-# Use the default logging topic profile for normal X-Plane SITL runs.
-param set-default SDLOG_PROFILE 1
-
 
 ################################################################################
 # END OF CONFIGURATION
