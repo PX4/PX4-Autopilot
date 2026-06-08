@@ -447,7 +447,6 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
-<<<<<<< HEAD
 	# Secure-boot variants sign the .bin with sign_firmware.py before
 	# wrapping it in the .px4 envelope, and tag the envelope so the
 	# uploader runs VERIFY_SIG against the matching bootloader. The
