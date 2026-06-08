@@ -172,8 +172,8 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 				| sed -e 's|.*<max_step_size>||' -e 's|</max_step_size>.*||')
 		fi
 
-		# Fall back to defaults
-		# will fail for custom greavity worlds in case the PX4_GZ_WORLDS is unset (standalone launch)
+		# Fall back to defaults. These are wrong for custom-gravity worlds and are only used when the
+		# world SDF cannot be located (e.g. standalone launch with PX4_GZ_WORLDS unset).
 		GZ_GRAVITY_X=${GZ_GRAVITY_X:-0}
 		GZ_GRAVITY_Y=${GZ_GRAVITY_Y:-0}
 		GZ_GRAVITY_Z=${GZ_GRAVITY_Z:--9.80665}
