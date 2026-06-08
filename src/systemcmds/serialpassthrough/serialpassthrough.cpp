@@ -263,6 +263,7 @@ void SerialPassthrough::run()
 
 	if (_esc_channel >= 0) {
 #ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
+
 		// --- Bitbang UART mode (motor signal pin) ---
 		if (bitbang_uart_init(_baudrate, true /* single_wire */) < 0) {
 			PX4_ERR("Failed to init bitbang_uart at %u baud", _baudrate);
@@ -356,9 +357,12 @@ void SerialPassthrough::run()
 			while (nread < (ssize_t)sizeof(_ser_read_buf)) {
 				ssize_t n = _serial_port.readAtLeast(_ser_read_buf + nread,
 								     sizeof(_ser_read_buf) - nread, 1, 1);
+
 				if (n <= 0) { break; }
+
 				nread += n;
 			}
+
 			pthread_mutex_lock(&_tx_mutex);
 			size_t space   = SP_BUF_SIZE - _tx_len;
 			size_t to_copy = ((size_t)nread < space) ? (size_t)nread : space;
@@ -422,33 +426,48 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 
 	switch (device_id) {
 #ifdef CONFIG_BOARD_SERIAL_TEL1
+
 	case 0: dev = CONFIG_BOARD_SERIAL_TEL1; break;
 #endif
 #ifdef CONFIG_BOARD_SERIAL_TEL2
+
 	case 1: dev = CONFIG_BOARD_SERIAL_TEL2; break;
 #endif
 #ifdef CONFIG_BOARD_SERIAL_GPS1
+
 	case 2: dev = CONFIG_BOARD_SERIAL_GPS1; break;
 #endif
 #ifdef CONFIG_BOARD_SERIAL_GPS2
+
 	case 3: dev = CONFIG_BOARD_SERIAL_GPS2; break;
 #endif
 #ifdef CONFIG_BOARD_SERIAL_TEL3
+
 	case 4: dev = CONFIG_BOARD_SERIAL_TEL3; break;
 #endif
 #ifdef CONFIG_BOARD_SERIAL_TEL4
+
 	case 5: dev = CONFIG_BOARD_SERIAL_TEL4; break;
 #endif
 #ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
+
 	case 20: esc_channel = 0; break;
+
 	case 21: esc_channel = 1; break;
+
 	case 22: esc_channel = 2; break;
+
 	case 23: esc_channel = 3; break;
+
 	case 24: esc_channel = 4; break;
+
 	case 25: esc_channel = 5; break;
+
 	case 26: esc_channel = 6; break;
+
 	case 27: esc_channel = 7; break;
 #endif
+
 	default:
 		PX4_WARN("serialpassthrough: device_id %u not supported on this board", device_id);
 		return -1;
@@ -465,6 +484,7 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 	if (esc_channel >= 0) {
 		PX4_INFO("serialpassthrough: starting on ESC bitbang channel %d at %lu baud",
 			 esc_channel, (unsigned long)baudrate);
+
 	} else {
 		PX4_INFO("serialpassthrough: starting on %s at %lu baud",
 			 dev, (unsigned long)baudrate);
@@ -490,9 +510,11 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 	if (esc_channel >= 0) {
 		argv_buf[argc++] = "-e";
 		argv_buf[argc++] = esc_str;
+
 	} else {
 		argv_buf[argc++] = "-d";
 		argv_buf[argc++] = dev;
+
 		if (single_wire) { argv_buf[argc++] = "-s"; }
 	}
 

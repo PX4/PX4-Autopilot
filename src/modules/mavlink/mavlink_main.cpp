@@ -2718,7 +2718,7 @@ void Mavlink::handleSerialPassthroughOutput()
 
 		while (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
 			size_t n = sp->popToMavlink(msg.data, sizeof(msg.data), &sysid, &compid, &device,
-			                            (uint8_t)get_channel());
+						    (uint8_t)get_channel());
 
 			if (n == 0) { break; }
 
