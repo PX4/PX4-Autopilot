@@ -283,8 +283,8 @@ param set-default VT_TYPE 2              # Current PX4 airframe type used by thi
 
 # Transition airspeeds. Keep multicopter lift active until the wing is clearly
 # carrying the aircraft; earlier blending caused altitude loss during handoff.
-param set-default VT_ARSP_BLEND 22.0
-param set-default VT_ARSP_TRANS 50.0
+param set-default VT_ARSP_BLEND 24.0
+param set-default VT_ARSP_TRANS 44.0
 param set-default VT_F_TRANS_THR 0.95
 param set-default VT_PSHER_SLEW 0.45
 
@@ -332,7 +332,7 @@ param set-default FW_PR_D 0.355
 param set-default FW_PR_FF 3.2
 param set-default FW_PSP_OFF 10.0
 param set-default FW_P_LIM_MAX 18.0
-param set-default FW_P_LIM_MIN -5.0
+param set-default FW_P_LIM_MIN -2.0
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
 
@@ -342,10 +342,10 @@ param set-default FW_YR_I 0.12           # I gain (balanced authority)
 param set-default FW_Y_RMAX 60.0         # Max yaw rate (slightly higher for eVTOL)
 
 # Airspeed Control
-param set-default FW_AIRSPD_MIN 42.0     # Above stall
+param set-default FW_AIRSPD_MIN 34.0     # Above stall
 param set-default FW_AIRSPD_MAX 75.0     # Cruise limit
-param set-default FW_AIRSPD_TRIM 52.0    # Efficient cruise
-param set-default FW_AIRSPD_STALL 40.0   # Stall speed
+param set-default FW_AIRSPD_TRIM 42.0    # Validation trim for transition and mission tracking
+param set-default FW_AIRSPD_STALL 32.0   # Stall speed
 
 # Airspeed Sensor (SITL)
 # X-Plane provides the pitot through the simulator stream, not a physical driver.
@@ -359,6 +359,7 @@ param set-default SYS_HAS_NUM_ASPD 0     # Do not make virtual SITL pitot a prea
 param set-default FW_T_ALT_TC 6.0
 param set-default FW_T_RLL2THR 12.0
 param set-default FW_T_STE_R_TC 2.0
+param set-default FW_T_SPDWEIGHT 0.55
 param set-default FW_T_SINK_MIN 1.5
 param set-default FW_T_SINK_MAX 3.0
 param set-default FW_T_CLMB_MAX 3.0
