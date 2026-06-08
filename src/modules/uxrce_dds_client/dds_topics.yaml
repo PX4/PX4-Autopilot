@@ -76,6 +76,9 @@ publications:
 
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+  
+  - topic: /fmu/out/home_position
+    type: px4_msgs::msg::HomePosition
 
 # Create uORB::Publication
 subscriptions:
