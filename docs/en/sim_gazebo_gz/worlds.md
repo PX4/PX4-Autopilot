@@ -97,6 +97,28 @@ The moving platform plugin can also be used within other worlds.
 For more information, see the plugin [README](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_plugins/moving_platform_controller/README.md).
 :::
 
+## Ridge
+
+<Badge type="tip" text="PX4 v1.18" />
+
+World with a simple sloped ridge for testing terrain following.
+It pairs naturally with the [x500_lidar_down](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-down-facing) airframe:
+
+```sh
+PX4_GZ_WORLD=ridge make px4_sitl gz_x500_lidar_down
+```
+
+Layout:
+
+- 500x500 m flat ground at world `z = 0`.
+- A 40 m wide, 10 m tall, 40 m long triangular-prism ridge ~20 m east of the spawn (apex at world `(40, 0, 10)`).
+  The ridge is continuously sloped (~27°) so the rangefinder reading varies smoothly as the vehicle crosses it, avoiding the spurious EKF terrain-estimate resets that a vertical wall would trigger.
+- Spherical coordinates are anchored at `(47.397971, 8.546164, 0)` so home AMSL is 0 by default; raise the elevation to test against non-zero AMSL anchors.
+
+[PX4-gazebo-models/main/worlds/ridge.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/ridge.sdf)
+
+![screenshot of ridge world](../../assets/simulation/gazebo/worlds/ridge.png)
+
 ## Model Specific Worlds {#model_specific_worlds}
 
 Some [vehicle models](../sim_gazebo_gz/vehicles.md) rely on the physics / plugins of a specific world.
