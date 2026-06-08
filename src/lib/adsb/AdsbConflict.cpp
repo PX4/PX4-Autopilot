@@ -36,9 +36,10 @@
 
 #include <uORB/topics/transponder_report.h>
 
-bool AdsbConflict::handle_traffic(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
-				  const float uav_heading,
-				  const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report, detect_and_avoid_s &daa_output)
+bool AdsbConflict::calculate_daa_output(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
+					const float uav_heading,
+					const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report,
+					detect_and_avoid_s &daa_output)
 {
 	// Check input data not NAN
 	if (!(PX4_ISFINITE(transponder_report.lat) && PX4_ISFINITE(transponder_report.lon)

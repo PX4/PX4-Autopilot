@@ -47,16 +47,16 @@
 #include <px4_platform_common/log.h>
 
 struct aircraft_state_s {
-	matrix::Vector2d lat_lon;
-	float altitude;
-	matrix::Vector3f velocity_ned;
-	float heading;
+	matrix::Vector2d lat_lon{};
+	float altitude{0.f};
+	matrix::Vector3f velocity_ned{};
+	float heading{0.f};
 };
 
 struct daa_stats_s {
-	float aircraft_dist_hor;
-	float aircraft_dist_vert;
-	float expected_min_dist_time_sec;
+	float aircraft_dist_hor{0.f};
+	float aircraft_dist_vert{0.f};
+	float expected_min_dist_time_sec{0.f};
 };
 
 /** @brief Split a NED velocity into (horizontal magnitude, vertical magnitude). */

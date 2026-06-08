@@ -42,9 +42,9 @@
 #include "detect_and_avoid_test_common.h"
 
 struct action_priority_test_case_s {
-	const char *name;
-	DaaAction action;
-	DetectAndAvoidTest::expected_outcome_s expected_outcome;
+	const char *name{nullptr};
+	DaaAction action{DaaAction::kDisabled};
+	DetectAndAvoidTest::expected_outcome_s expected_outcome{};
 };
 
 class DetectAndAvoidActionPriorityTest : public DetectAndAvoidTest, public ::testing::WithParamInterface<action_priority_test_case_s>

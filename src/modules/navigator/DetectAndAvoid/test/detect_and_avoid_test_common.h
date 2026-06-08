@@ -524,10 +524,10 @@ public:
 	};
 
 	struct expected_outcome_s {
-		bool hold_allowed;
-		bool rtl_allowed;
-		bool land_allowed;
-		bool terminate_allowed;
+		bool hold_allowed{false};
+		bool rtl_allowed{false};
+		bool land_allowed{false};
+		bool terminate_allowed{false};
 	};
 
 	void check_eval_conflict_escalation_action(Navigator *navigator_instance, const expected_outcome_s &expected_outcome,

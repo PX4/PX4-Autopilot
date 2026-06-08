@@ -179,7 +179,7 @@ TEST_F(DetectAndAvoidTest, DefaultVelocity)
 	const float traffic_hor_vel = 10000000.f;
 	const float traffic_ver_vel = 10000000.f;
 	const float alt_diff_out_of_conflict = 1000.f; // Outside all conflict zones if default vertical speed is used.
-	conflict_info_s conflict;
+	conflict_info_s conflict{};
 
 	// WHEN: Default traffic vertical velocity handling is enabled before activation.
 	const int daa_en_dflt_vel = 1;
@@ -262,7 +262,7 @@ TEST_F(DetectAndAvoidTest, BasicBehavior)
 	const float hor_velocity = 20.f;
 	const float ver_velocity = 0.f; // Not used because default velocity handling is enabled.
 
-	conflict_info_s conflict;
+	conflict_info_s conflict{};
 
 	// WHEN: No traffic has been processed yet.
 	navigator->check_traffic();
@@ -1337,7 +1337,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	const float hor_velocity = 20.f;
 	const float ver_velocity = 10000000.f; // Not used because DAA_EN_DFLT_VEL is enabled.
 
-	conflict_info_s conflict;
+	conflict_info_s conflict{};
 
 	// WHEN: No traffic has been processed yet.
 	navigator->check_traffic();

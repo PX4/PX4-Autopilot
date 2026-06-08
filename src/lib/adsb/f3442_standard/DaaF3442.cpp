@@ -103,10 +103,10 @@ void DaaF3442::calculate_augmented_boundaries(const matrix::Vector2f &base_bound
 		const matrix::Vector2f &uav_vel_hor_vert,
 		const matrix::Vector2f &traffic_vel, const float latency, matrix::Vector2f &augmented_bounds)
 {
-	matrix::Vector2f uav_bounds;
+	matrix::Vector2f uav_bounds{};
 	calculate_aircraft_conflict_volume(base_bounds, uav_vel_hor_vert, latency, uav_bounds);
 
-	matrix::Vector2f traffic_bounds;
+	matrix::Vector2f traffic_bounds{};
 	calculate_aircraft_conflict_volume(base_bounds, traffic_vel, latency, traffic_bounds);
 
 	augmented_bounds = uav_bounds + traffic_bounds;
@@ -129,7 +129,7 @@ uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH;
 	}
 
-	matrix::Vector2f aug_nmac_bounds;
+	matrix::Vector2f aug_nmac_bounds{};
 	calculate_augmented_boundaries(_nmac_bounds_m, uav_vel_hor_vert, traffic_vel, _aug_nmac_latency_s, aug_nmac_bounds);
 
 	if (is_in_bounds(distance, aug_nmac_bounds)) {
@@ -137,7 +137,7 @@ uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM;
 	}
 
-	matrix::Vector2f aug_wc_bounds;
+	matrix::Vector2f aug_wc_bounds{};
 	calculate_augmented_boundaries(_wc_bounds_m, uav_vel_hor_vert, traffic_vel, _aug_wc_latency_s, aug_wc_bounds);
 
 	if (is_in_bounds(distance, aug_wc_bounds)) {

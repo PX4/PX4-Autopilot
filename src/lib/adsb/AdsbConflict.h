@@ -60,14 +60,15 @@ public:
 	~AdsbConflict() = default;
 
 	/**
-	 * @brief Validate the ownship + transponder inputs and run them through the built standard.
+	 * @brief Validate the ownship + transponder inputs and calculate the DAA output.
 	 *
 	 * Returns false on non-finite inputs or when the built standard needs a heading
 	 * that the report does not provide.
 	 */
-	bool handle_traffic(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
-			    const float uav_heading,
-			    const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
+	bool calculate_daa_output(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
+				  const float uav_heading,
+				  const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report,
+				  detect_and_avoid_s &daa_output);
 
 	/** @brief Refresh the built standard's parameter cache. Returns false on any invalid value. */
 	bool try_updating_params();

@@ -192,7 +192,7 @@ TEST_F(DaaF3442Test, CalculateAircraftConflictVolumeUsesAbsoluteInputs)
 	const float expected_vertical_bounds_m = base_bounds(1) + fabsf(velocity(1)) * fabsf(latency_s);
 
 	// WHEN: The traffic conflict volume is augmented.
-	matrix::Vector2f augmented_bounds;
+	matrix::Vector2f augmented_bounds{};
 	daa.calculate_aircraft_conflict_volume(base_bounds, velocity, latency_s, augmented_bounds);
 
 	// THEN: The augmentation uses absolute magnitudes for both velocity and latency.
@@ -215,7 +215,7 @@ TEST_F(DaaF3442Test, CalculateAugmentedBoundariesAddsBothAircraftVolumes)
 			+ (fabsf(uav_velocity(1)) + fabsf(traffic_velocity(1))) * latency_s;
 
 	// WHEN: The augmented F3442 boundaries are calculated.
-	matrix::Vector2f augmented_bounds;
+	matrix::Vector2f augmented_bounds{};
 	daa.calculate_augmented_boundaries(base_bounds, uav_velocity, traffic_velocity, latency_s, augmented_bounds);
 
 	// THEN: The final volume includes motion from both aircraft.

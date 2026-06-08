@@ -123,10 +123,10 @@ enum class ConflictNotifyKind : uint8_t {
 };
 
 struct conflict_info_s {
-	DaaEncodedId encoded_id;
-	hrt_abstime latest_update_timestamp;
-	uint8_t conflict_level;
-	float aircraft_dist; // Distance to aircraft = sqrtf(dist_hor^2 + dist_vert^2)
+	DaaEncodedId encoded_id{};
+	hrt_abstime latest_update_timestamp{0};
+	uint8_t conflict_level{detect_and_avoid_s::DAA_CONFLICT_LVL_NONE};
+	float aircraft_dist{0.f}; // Distance to aircraft = sqrtf(dist_hor^2 + dist_vert^2)
 };
 
 class DetectAndAvoid : public MissionBlock, public ModuleParams
@@ -348,10 +348,10 @@ private:
 	void process_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 	uORB::Subscription _traffic_sub {ORB_ID(transponder_report)};
-	AdsbConflict _adsb_traffic;
+	AdsbConflict _adsb_conflict_detector;
 
 	/**
-	 * @brief Parse the ownship and transponder data, then hand them to the active DAA standard.
+	 * @brief Parse the ownship and transponder data, then calculate the DAA output.
 	 *
 	 * Replaces non-finite UAV velocity components with zero so a partially-valid
 	 * pose still produces a fixed-size F3442 check.
@@ -359,7 +359,7 @@ private:
 	 * @p transponder_report is considered valid, and must be checked prior to calling this function.
 	 * on_active() checks uav_pose_valid_and_updated() and transponder_data_valid().
 	 */
-	bool analyse_transponder_report(transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
+	bool calculate_daa_output(transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
 
 	/** @brief Drain queued transponder reports and update the conflict buffer. */
 	bool process_transponder_queue(new_conflicts_pending_notif_s &new_conflicts_pending_notif);

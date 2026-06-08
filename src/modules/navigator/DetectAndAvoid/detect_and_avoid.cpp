@@ -102,7 +102,7 @@ void DetectAndAvoid::on_activation()
 		return;
 	}
 
-	if (!_adsb_traffic.try_updating_params()) {
+	if (!_adsb_conflict_detector.try_updating_params()) {
 		_is_activated = false;
 		publish_most_urgent_conflict();
 
@@ -236,9 +236,9 @@ bool DetectAndAvoid::process_transponder_report(transponder_report_s &transponde
 	PX4_DEBUG("DAA: unique ID: %s (int:%lu)", encoded_id_str, encoded_id.id);
 #endif
 
-	detect_and_avoid_s daa_output;
+	detect_and_avoid_s daa_output{};
 
-	if (!analyse_transponder_report(transponder_report, daa_output)) {
+	if (!calculate_daa_output(transponder_report, daa_output)) {
 		PX4_DEBUG("DAA: Failed to analyse transponder data, skipping report.");
 		return false;
 	}
@@ -326,7 +326,7 @@ void DetectAndAvoid::print_status() const
 
 void DetectAndAvoid::publish_most_urgent_conflict()
 {
-	detect_and_avoid_most_urgent_s daa_status;
+	detect_and_avoid_most_urgent_s daa_status{};
 
 	daa_status.timestamp = hrt_absolute_time();
 	daa_status.unique_id = _most_urgent_conflict.encoded_id.id;
@@ -362,7 +362,7 @@ void DetectAndAvoid::update_most_urgent_conflict()
 	debug_print_buffer_status();
 #endif
 
-	conflict_info_s most_urgent_conflict;
+	conflict_info_s most_urgent_conflict{};
 
 	if (find_most_urgent_conflict(most_urgent_conflict)) {
 		PX4_DEBUG("DAA: update_most_urgent_conflict success.");
@@ -548,7 +548,7 @@ bool DetectAndAvoid::is_self_detection(const DaaEncodedId &encoded_id) const
 	return false;
 }
 
-bool DetectAndAvoid::analyse_transponder_report(transponder_report_s &transponder_report,
+bool DetectAndAvoid::calculate_daa_output(transponder_report_s &transponder_report,
 		detect_and_avoid_s &daa_output)
 {
 	// Process uav pose
@@ -586,7 +586,8 @@ bool DetectAndAvoid::analyse_transponder_report(transponder_report_s &transponde
 
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-	return _adsb_traffic.handle_traffic(uav_lat_lon, uav_alt, uav_heading, uav_vel_ned, transponder_report, daa_output);
+	return _adsb_conflict_detector.calculate_daa_output(uav_lat_lon, uav_alt, uav_heading, uav_vel_ned,
+			transponder_report, daa_output);
 }
 
 bool DetectAndAvoid::uav_pose_valid_and_updated() const
@@ -664,7 +665,7 @@ bool DetectAndAvoid::handle_existing_conflict(const conflict_info_s &current_con
 	// If no more in conflict, remove from buffer and notify
 	if (current_conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
 		PX4_DEBUG("DAA: Conflict avoided");
-		conflict_info_s removed_conflict;
+		conflict_info_s removed_conflict{};
 
 		if (!try_removing_conflict_from_buffer(current_conflict_idx, removed_conflict)) {
 			PX4_DEBUG("DAA: conflict avoided, failed to remove");
@@ -715,7 +716,7 @@ bool DetectAndAvoid::handle_new_conflict(const conflict_info_s &current_conflict
 		return false;
 	}
 
-	conflict_info_s removed_conflict;
+	conflict_info_s removed_conflict{};
 
 	if (!try_removing_conflict_from_buffer(least_urgent_conflict_idx, removed_conflict)) {
 		PX4_DEBUG("DAA: buf full, remove failed");
@@ -819,7 +820,7 @@ DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	// F3442 zones are nested from CRITICAL to LOW. If the action for the
 	// breached zone is disabled, fall back to the next larger breached zone.
-	DaaAction requested_action;
+	DaaAction requested_action{DaaAction::kDisabled};
 
 	switch (conflict_level) {
 	case detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL:
@@ -1024,7 +1025,7 @@ bool DetectAndAvoid::stale_conflicts_removed()
 		    || hrt_elapsed_time(&_traffic_buffer[idx].latest_update_timestamp) > timeout_us) {
 
 			// Remove conflict from buffer and notify if necessary. Call should never fail
-			conflict_info_s removed_conflict;
+			conflict_info_s removed_conflict{};
 
 			if (!try_removing_conflict_from_buffer(idx, removed_conflict)) {
 				PX4_ERR("DAA: stale remove failed");

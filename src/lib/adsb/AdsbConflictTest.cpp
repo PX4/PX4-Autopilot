@@ -107,7 +107,7 @@ protected:
 };
 
 // WHY: Input validation must fail closed so NaNs and infinities never reach the conflict algorithms.
-// WHAT: Feed non-finite coordinates and velocities into `handle_traffic()` and verify the library rejects them.
+// WHAT: Feed non-finite coordinates and velocities into `calculate_daa_output()` and verify the library rejects them.
 TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 {
 	// GIVEN: The built DAA standard with an otherwise valid traffic encounter.
@@ -120,30 +120,33 @@ TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 	const float inf = std::numeric_limits<float>::infinity();
 
 	// WHEN: Any ownship coordinate becomes non-finite.
-	EXPECT_FALSE(adsb_conflict.handle_traffic(matrix::Vector2d(nan, uav_lat_lon_(1)), uav_alt_, uav_heading_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(matrix::Vector2d(nan, uav_lat_lon_(1)), uav_alt_, uav_heading_,
 			stationary_uav_vel_ned_, report, daa_output));
-	EXPECT_FALSE(adsb_conflict.handle_traffic(matrix::Vector2d(uav_lat_lon_(0), nan), uav_alt_, uav_heading_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(matrix::Vector2d(uav_lat_lon_(0), nan), uav_alt_, uav_heading_,
 			stationary_uav_vel_ned_, report, daa_output));
 
 	// WHEN: The traffic position becomes non-finite.
 	report.lat = nan;
-	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report,
+			daa_output));
 
 	// WHEN: Either aircraft advertises a non-finite velocity.
 	report = create_relative_report(valid_traffic);
 	report.hor_velocity = inf;
-	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report,
+			daa_output));
 
 	report = create_relative_report(valid_traffic);
 
 	// THEN: The wrapper fails and never publishes conflict output.
-	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, matrix::Vector3f(0.f, nan, 0.f), report, daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(uav_lat_lon_, uav_alt_, uav_heading_, matrix::Vector3f(0.f, nan,
+			0.f), report, daa_output));
 }
 
 #if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
 // WHY: Crosstrack mode depends on finite headings, and the wrapper must block invalid values before delegating.
 // WHAT: Select crosstrack mode, inject NaN headings on both the traffic and ownship sides, and verify
-// `handle_traffic()` fails.
+// `calculate_daa_output()` fails.
 TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 {
 	// GIVEN: Crosstrack mode with a valid approaching encounter.
@@ -156,12 +159,14 @@ TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 
 	// WHEN: The ownship heading is non-finite.
 	// THEN: Crosstrack processing rejects the encounter.
-	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, nan, stationary_uav_vel_ned_, report, daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(uav_lat_lon_, uav_alt_, nan, stationary_uav_vel_ned_, report,
+			daa_output));
 
 	// WHEN: The traffic heading is non-finite.
 	report.heading = nan;
 	// THEN: Crosstrack processing rejects the encounter.
-	EXPECT_FALSE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report,
+			daa_output));
 }
 #endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
@@ -199,7 +204,8 @@ TEST_F(AdsbConflictTest, DelegatesToBuiltStandardAndForwardsOutput)
 
 	// WHEN: The encounter is processed.
 	ASSERT_TRUE(adsb_conflict.try_updating_params());
-	ASSERT_TRUE(adsb_conflict.handle_traffic(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report, daa_output));
+	ASSERT_TRUE(adsb_conflict.calculate_daa_output(uav_lat_lon_, uav_alt_, uav_heading_, stationary_uav_vel_ned_, report,
+			daa_output));
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 	// THEN: The wrapper publishes the delegated F3442 result.
