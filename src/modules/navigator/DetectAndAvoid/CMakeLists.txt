@@ -49,7 +49,7 @@ if(CONFIG_NAVIGATOR_ADSB_F3442)
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/detect_and_avoid_f3442_params.yaml)
 endif()
 
-target_link_libraries(detect_and_avoid PUBLIC adsb modules__navigator modules__dataman)
+target_link_libraries(detect_and_avoid PUBLIC adsb modules__navigator)
 
 # The functional tests drive use the fake-traffic injector
 if(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)

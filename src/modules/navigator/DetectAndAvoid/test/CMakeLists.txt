@@ -37,11 +37,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 # Common tests run for whichever conflict standard is built.
-px4_add_functional_gtest(SRC detect_and_avoid_test.cpp LINKLIBS detect_and_avoid)
+px4_add_functional_gtest(SRC detect_and_avoid_test.cpp LINKLIBS detect_and_avoid modules__dataman)
 
 # Standard-specific tests follow the standard selected at build time.
 if(CONFIG_NAVIGATOR_ADSB_F3442)
-	px4_add_functional_gtest(SRC detect_and_avoid_f3442_test.cpp LINKLIBS detect_and_avoid)
+	px4_add_functional_gtest(SRC detect_and_avoid_f3442_test.cpp LINKLIBS detect_and_avoid modules__dataman)
 else()
-	px4_add_functional_gtest(SRC detect_and_avoid_crosstrack_test.cpp LINKLIBS detect_and_avoid)
+	px4_add_functional_gtest(SRC detect_and_avoid_crosstrack_test.cpp LINKLIBS detect_and_avoid modules__dataman)
 endif()
