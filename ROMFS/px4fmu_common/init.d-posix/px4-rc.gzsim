@@ -177,7 +177,7 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		# will fail for custom greavity worlds in case the PX4_GZ_WORLDS is unset (standalone launch)
 		GZ_GRAVITY_X=${GZ_GRAVITY_X:-0}
 		GZ_GRAVITY_Y=${GZ_GRAVITY_Y:-0}
-		GZ_GRAVITY_Z=${GZ_GRAVITY_Z:--9.8}
+		GZ_GRAVITY_Z=${GZ_GRAVITY_Z:--9.80665}
 		MAX_STEP_SIZE=${MAX_STEP_SIZE:-0.004}
 
 		echo "INFO  [init] Preserving physics: gravity=(${GZ_GRAVITY_X}, ${GZ_GRAVITY_Y}, ${GZ_GRAVITY_Z}), max_step_size=${MAX_STEP_SIZE}"
