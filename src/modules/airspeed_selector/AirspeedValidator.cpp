@@ -291,24 +291,11 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 				  && PX4_ISFINITE(throttle_fw) && PX4_ISFINITE(throttle_trim) && PX4_ISFINITE(pitch);
 
 	if (inputs_valid) {
-		const float dt = static_cast<float>(timestamp - _time_last_first_principle_check) * 1e-6f;
-		_time_last_first_principle_check = timestamp;
-
-		// Update the filters whenever inputs are valid, independent of whether the first principle check
-		// is enabled, so that the airspeed derivative is always available in the airspeed_validated topic.
-		if (dt < FLT_EPSILON || dt > 1.f) {
-			// reset if dt is too large
-			_IAS_derivative.reset(0.f);
-			_pitch_filtered.reset(pitch);
+		// Update the airspeed derivative whenever inputs are valid, independent of whether the first
+		// principle check is enabled, so the derivative is always available in the airspeed_validated topic.
+		if (!update_filtered_airspeed_derivative(timestamp, pitch)) {
+			// filters were reset after a time gap; restart the failure timeout window
 			_time_last_first_principle_check_passing = timestamp;
-
-		} else {
-			// update filters, with different time constant
-			_IAS_derivative.setParameters(dt, 5.f);
-			_pitch_filtered.setParameters(dt, 1.5f);
-
-			_IAS_derivative.update(_IAS);
-			_pitch_filtered.update(pitch);
 		}
 	}
 
@@ -340,6 +327,29 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 		// only update the test_failed flag once the timeout since first principle check failing is over
 		_first_principle_check_failed = check_failing;
 	}
+}
+
+bool
+AirspeedValidator::update_filtered_airspeed_derivative(const uint64_t timestamp, const float pitch)
+{
+	const float dt = static_cast<float>(timestamp - _time_last_airspeed_derivative_update) * 1e-6f;
+	_time_last_airspeed_derivative_update = timestamp;
+
+	if (dt < FLT_EPSILON || dt > 1.f) {
+		// reset if dt is invalid or too large
+		_IAS_derivative.reset(0.f);
+		_pitch_filtered.reset(pitch);
+		return false;
+	}
+
+	// update filters, with different time constants
+	_IAS_derivative.setParameters(dt, 5.f);
+	_pitch_filtered.setParameters(dt, 1.5f);
+
+	_IAS_derivative.update(_IAS);
+	_pitch_filtered.update(pitch);
+
+	return true;
 }
 
 void
