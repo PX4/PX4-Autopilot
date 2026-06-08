@@ -90,8 +90,13 @@ TEST_F(DetectAndAvoidTest, RuntimeCrosstrackTerminateUpdateAppliesOnNextConflict
 
 	const auto publish_crosstrack_sample = [&](const float distance) {
 		publish_traffic_and_check([&]() {
-			navigator->get_detect_and_avoid()->fake_traffic(14545057, "DDF0A1", distance, traffic_direction, traffic_heading,
-					0.f, hor_velocity, 0.f, 1, lat_uav, lon_uav, alt_uav);
+			navigator->get_detect_and_avoid()->fake_traffic(
+				fake_traffic_report(14545057, "DDF0A1", distance)
+				.with_direction(traffic_direction)
+				.with_heading(traffic_heading)
+				.with_altitude_diff(0.f)
+				.with_velocity(hor_velocity, 0.f)
+				.from_ownship(lat_uav, lon_uav, alt_uav));
 		});
 	};
 

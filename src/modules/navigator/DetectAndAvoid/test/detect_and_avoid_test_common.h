@@ -286,6 +286,75 @@ public:
 		_parameter_update_pub.publish(update);
 	}
 
+	// Force the DAA to reload its cached parameters immediately.
+	// on_activation() calls ModuleParams::updateParams()
+	void reload_daa_parameters()
+	{
+		navigator->get_detect_and_avoid()->on_activation();
+	}
+
+	conflict_info_s expect_most_urgent_conflict(uint8_t expected_level, uint64_t expected_id)
+	{
+		const conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+		SCOPED_TRACE(testing::Message() << "most-urgent conflict: expected level " << static_cast<int>(expected_level)
+			     << ", id " << expected_id);
+		EXPECT_EQ(conflict.conflict_level, expected_level);
+		EXPECT_EQ(conflict.encoded_id.id, expected_id);
+		return conflict;
+	}
+
+	struct TestSyntheticTrafficReport : public DetectAndAvoid::SyntheticTrafficReport {
+		TestSyntheticTrafficReport(uint32_t icao, const char *report_callsign, float relative_distance)
+		{
+			icao_address = icao;
+			callsign = report_callsign;
+			distance = relative_distance;
+		}
+
+		TestSyntheticTrafficReport with_direction(float relative_direction) const
+		{
+			TestSyntheticTrafficReport report{*this};
+			report.direction = relative_direction;
+			return report;
+		}
+
+		TestSyntheticTrafficReport with_heading(float heading) const
+		{
+			TestSyntheticTrafficReport report{*this};
+			report.traffic_heading = heading;
+			return report;
+		}
+
+		TestSyntheticTrafficReport with_altitude_diff(float relative_altitude) const
+		{
+			TestSyntheticTrafficReport report{*this};
+			report.altitude_diff = relative_altitude;
+			return report;
+		}
+
+		TestSyntheticTrafficReport with_velocity(float horizontal_velocity, float vertical_velocity) const
+		{
+			TestSyntheticTrafficReport report{*this};
+			report.hor_velocity = horizontal_velocity;
+			report.ver_velocity = vertical_velocity;
+			return report;
+		}
+
+		TestSyntheticTrafficReport from_ownship(double lat, double lon, float alt) const
+		{
+			TestSyntheticTrafficReport report{*this};
+			report.lat_uav = lat;
+			report.lon_uav = lon;
+			report.alt_uav = alt;
+			return report;
+		}
+	};
+
+	TestSyntheticTrafficReport fake_traffic_report(uint32_t icao_address, const char *callsign, float distance)
+	{
+		return TestSyntheticTrafficReport{icao_address, callsign, distance};
+	}
+
 	// Copy a callsign into a transponder report, always leaving the field null-terminated.
 	// Centralizes the strncpy + terminator pattern so individual tests cannot get the bounds wrong.
 	void set_report_callsign(transponder_report_s &tr, const char *callsign)

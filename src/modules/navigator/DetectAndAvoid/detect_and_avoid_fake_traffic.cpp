@@ -50,11 +50,7 @@ namespace
 // Each fake-traffic mode is a deterministic script. `run_fake_traffic()` only
 // stores the selected mode and an ownship position snapshot; `process_fake_traffic()`
 // later publishes the scripted reports that are due from the navigator update loop.
-static constexpr uint16_t kDefaultFakeTrafficFlags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+static constexpr uint16_t kDefaultFakeTrafficFlags = DetectAndAvoid::kFakeTrafficDefaultFlags;
 
 static constexpr uint16_t kCallsignNotValidFlags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
 		transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
@@ -281,7 +277,7 @@ const char *fake_traffic_mode_to_string(const DetectAndAvoid::FakeTraffMode mode
 		return "queue_fill";
 
 	default:
-		return nullptr;
+		return "";
 	}
 }
 
@@ -342,7 +338,7 @@ void DetectAndAvoid::run_fake_traffic(const FakeTraffMode mode, const double lat
 {
 	const char *const mode_name = fake_traffic_mode_to_string(mode);
 
-	if (mode_name == nullptr) {
+	if (mode_name[0] == '\0') {
 		PX4_ERR("DAA: unknown fake traffic mode %u", static_cast<unsigned>(mode));
 		return;
 	}
@@ -411,9 +407,22 @@ void DetectAndAvoid::process_fake_traffic()
 			_fake_traffic_state.next_publish_at = now + step.delay_to_next;
 		}
 
-		fake_traffic(step.icao_address, step.callsign, step.distance, step.direction,
-			     step.traffic_heading, step.altitude_diff, step.hor_velocity, step.ver_velocity,
-			     step.emitter_type, origin.lat, origin.lon, origin.alt, step.flags);
+		SyntheticTrafficReport report{};
+		report.icao_address = step.icao_address;
+		report.callsign = step.callsign;
+		report.distance = step.distance;
+		report.direction = step.direction;
+		report.traffic_heading = step.traffic_heading;
+		report.altitude_diff = step.altitude_diff;
+		report.hor_velocity = step.hor_velocity;
+		report.ver_velocity = step.ver_velocity;
+		report.emitter_type = step.emitter_type;
+		report.lat_uav = origin.lat;
+		report.lon_uav = origin.lon;
+		report.alt_uav = origin.alt;
+		report.flags = step.flags;
+
+		fake_traffic(report);
 
 		if (step.delay_to_next != 0) {
 			return;
@@ -421,36 +430,31 @@ void DetectAndAvoid::process_fake_traffic()
 	}
 }
 
-void DetectAndAvoid::fake_traffic(uint32_t icao_address, const char *callsign, float distance, float direction,
-				  float traffic_heading,
-				  float altitude_diff, float hor_velocity, float ver_velocity, int emitter_type, double lat_uav,
-				  double lon_uav,
-				  float alt_uav,
-				  uint16_t flags)
+void DetectAndAvoid::fake_traffic(const SyntheticTrafficReport &report)
 {
 	double lat{0.0};
 	double lon{0.0};
 
-	waypoint_from_heading_and_distance(lat_uav, lon_uav, direction, distance, &lat,
+	waypoint_from_heading_and_distance(report.lat_uav, report.lon_uav, report.direction, report.distance, &lat,
 					   &lon);
-	float alt = alt_uav + altitude_diff;
+	float alt = report.alt_uav + report.altitude_diff;
 
 	transponder_report_s tr{};
 
 	tr.timestamp = hrt_absolute_time();
-	tr.icao_address = icao_address;
+	tr.icao_address = report.icao_address;
 	tr.lat = lat; // Latitude, expressed as degrees
 	tr.lon = lon; // Longitude, expressed as degrees
 	tr.altitude_type = 0;
 	tr.altitude = alt;
-	tr.heading = traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
-	tr.hor_velocity	= hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
-	tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
-	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
+	tr.heading = report.traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
+	tr.hor_velocity	= report.hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
+	tr.ver_velocity = report.ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
+	strncpy(&tr.callsign[0], report.callsign != nullptr ? report.callsign : "", sizeof(tr.callsign) - 1);
 	tr.callsign[sizeof(tr.callsign) - 1] = 0;
-	tr.emitter_type = emitter_type; // Type from ADSB_EMITTER_TYPE enum
+	tr.emitter_type = report.emitter_type; // Type from ADSB_EMITTER_TYPE enum
 	tr.tslc = 2; // Time since last communication in seconds
-	tr.flags = flags; // Flags to indicate various statuses including valid data fields
+	tr.flags = report.flags; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
 #ifndef BOARD_HAS_NO_UUID

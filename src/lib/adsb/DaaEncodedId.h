@@ -1,0 +1,104 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file DaaEncodedId.h
+ * @brief A traffic identifier reduced to a 64-bit key plus the encoding it came from.
+ *
+ * A transponder report can identify an aircraft three different ways: an ICAO
+ * address, an ADS-B callsign, or a UAS / UTM GUID. The DAA traffic buffer keys
+ * conflicts on a single 64-bit value, so each of those representations is packed
+ * into a uint64_t and the encoding that produced it.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ */
+
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+
+#include <uORB/topics/detect_and_avoid.h>	// UNIQUE_ID_ENCODING_*
+#include <uORB/topics/transponder_report.h>	// from_report()
+
+// Number of trailing identifier bytes packed into the 64-bit key. Max 8 (fits a uint64_t).
+static constexpr uint8_t kIdEncodingNbBytes{8};
+// Chars used to display a UAS id: 10 hex + null terminator. Max: 17 = 16 + null.
+static constexpr uint8_t kUtmGuidMsgLength{11};
+// ADS-B callsign string length: 8 chars + null terminator.
+static constexpr uint8_t kCallsignLength{9};
+// ICAO address string length: 6 hex chars + null terminator.
+static constexpr uint8_t kIcaoLength{7};
+// Length of a UAS ID (UTM GUID) byte array.
+// Similar to PX4_GUID_BYTE_LENGTH and transponder_report_s::uas_id;
+static constexpr uint8_t kUasIdByteLength{18};
+
+/**
+ * @brief A traffic identifier reduced to a 64-bit key plus its source encoding.
+ *
+ * @c encoding is one of detect_and_avoid_s::UNIQUE_ID_ENCODING_* and tells the
+ * codecs and to_string() how to interpret @c id.
+ */
+struct DaaEncodedId {
+	uint64_t id{0};
+	uint8_t encoding{detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO};
+
+	bool operator==(const DaaEncodedId &other) const { return encoding == other.encoding && id == other.id; }
+	bool operator!=(const DaaEncodedId &other) const { return !(*this == other); }
+
+	/**
+	 * @brief Pick the best available identifier from a transponder report.
+	 *
+	 * Priority is ICAO address > ADS-B callsign > UAS-ID. Returns id=0 (the
+	 * default-constructed value) when the report carries no usable identifier.
+	 */
+	static DaaEncodedId from_report(const transponder_report_s &report);
+
+	/** @brief Render this id to a null-terminated string according to its encoding. */
+	void to_string(char *buffer, size_t buffer_size) const;
+
+	/** @brief Pack a callsign string into a 64-bit key. Returns 0 if the input is not null-terminated. */
+	static uint64_t callsign_to_uint64(const char callsign[kCallsignLength]);
+
+	/** @brief Inverse of callsign_to_uint64; unpack the key back to a null-terminated callsign. */
+	static void convert_uint64_callsign_to_str(uint64_t value, char callsign[kCallsignLength]);
+
+	/** @brief Pack the trailing bytes of a UAS-ID (UTM GUID) into a 64-bit key. */
+	static uint64_t last_uas_id_bytes_to_uint64(const uint8_t uas_id[kUasIdByteLength]);
+
+	/** @brief Render a packed UAS-ID key as a reduced lowercase hex string. */
+	static void convert_uas_id_uint64_to_str(uint64_t uas_id_int, char uas_id_char_arr[kUtmGuidMsgLength]);
+
+	/** @brief Print the low 24 bits of an ICAO address as a 6-digit uppercase hex string. */
+	static void convert_icao_uint32_to_hex_str(uint64_t value, char *buffer, size_t buffer_size);
+};

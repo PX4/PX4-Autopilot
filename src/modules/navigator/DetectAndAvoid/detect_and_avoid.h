@@ -53,6 +53,7 @@
 #include <uORB/topics/detect_and_avoid.h>
 #include <uORB/topics/detect_and_avoid_most_urgent.h>
 #include <lib/adsb/AdsbConflict.h>
+#include <lib/adsb/DaaEncodedId.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <commander/px4_custom_mode.h>
@@ -71,12 +72,12 @@
 
 using namespace time_literals;
 
+// DaaEncodedId keeps a board-agnostic copy of the GUID byte length; validate it against the
+// platform definition here, where board_common.h is available.
+static_assert(kUasIdByteLength == PX4_GUID_BYTE_LENGTH, "kUasIdByteLength must match PX4_GUID_BYTE_LENGTH");
+
 static constexpr uint8_t kMaxLogMsgSize{128};
 
-static constexpr uint8_t kIdEncodingNbBytes{8}; // Max 8.
-static constexpr uint8_t kUtmGuidMsgLength{11}; // Number of chars used to display uas id: 10 + Null terminated. Max: 17 = 16 + null
-static constexpr uint8_t kCallsignLength{9};	// 8 + Null terminated
-static constexpr uint8_t kIcaoLength{7};	// 6 + Null terminated
 static constexpr uint8_t kDaaMaxTraffic{5};
 static constexpr uint64_t kRemoveStaleConflictsTime{2_s};
 
@@ -121,13 +122,8 @@ enum class ConflictNotifyKind : uint8_t {
 	kSecondary = 2		// any other tracked conflict ("DAA SEC:")
 };
 
-struct unique_id_s {
-	uint64_t id{0};
-	uint8_t encoding{detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO};
-};
-
 struct conflict_info_s {
-	unique_id_s unique_id;
+	DaaEncodedId encoded_id;
 	hrt_abstime latest_update_timestamp;
 	uint8_t conflict_level;
 	float aircraft_dist; // Distance to aircraft = sqrtf(dist_hor^2 + dist_vert^2)
@@ -153,15 +149,18 @@ public:
 
 	bool is_activated() const { return _is_activated; }
 
-	/** @brief Refresh cached parameter values. */
-	void updateParams() override;
-
 #if !defined(CONSTRAINED_FLASH) && !defined(__PX4_NUTTX)
 	/** @brief Print buffer size and most-urgent conflict to the shell. */
 	void print_status() const;
 #endif // !CONSTRAINED_FLASH && !__PX4_NUTTX
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
+	static constexpr uint16_t kFakeTrafficDefaultFlags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
+			transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+			transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+
 	// Fake traffic scripts used for manual DAA validation from the navigator shell.
 	enum class FakeTraffMode : uint8_t {
 		kUniqueIds = 0,
@@ -171,30 +170,26 @@ public:
 		kFlags = 4,
 		kQueueFill = 5
 	};
+
+	struct SyntheticTrafficReport {
+		uint32_t icao_address{0};
+		const char *callsign{""};
+		float distance{0.f};
+		float direction{0.f};
+		float traffic_heading{0.f};
+		float altitude_diff{10.f};
+		float hor_velocity{100.f};
+		float ver_velocity{10.f};
+		int emitter_type{transponder_report_s::ADSB_EMITTER_TYPE_LIGHT};
+		double lat_uav{45.35324098};
+		double lon_uav{6.446453};
+		float alt_uav{300.f};
+		uint16_t flags{kFakeTrafficDefaultFlags};
+	};
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	/* Unique ID conversion */
-
-	/** @brief Pack a callsign string into a 64-bit key used for buffer lookups. */
-	static uint64_t callsign_to_uint64(const char callsign[kCallsignLength]);
-
-	/** @brief Pack the trailing bytes of a UAS-ID into a 64-bit key. */
-	static uint64_t last_uas_id_bytes_to_uint64(const uint8_t uas_id[PX4_GUID_BYTE_LENGTH]);
-
-	/** @brief Inverse of last_uas_id_bytes_to_uint64; unpack the key back to a byte array. */
-	static void uint64_to_last_uas_id_bytes(const uint64_t uas_id_int, uint8_t uas_id[kIdEncodingNbBytes]);
-
-	/** @brief Inverse of callsign_to_uint64; unpack the key back to a null-terminated callsign. */
-	static void convert_uint64_callsign_to_str(uint64_t value, char callsign[kCallsignLength]);
-
-	/** @brief Print the low 24 bits of an ICAO address as a 6-digit uppercase hex string. */
-	static void convert_icao_uint32_to_hex_str(uint64_t value, char *buffer, size_t buffer_size);
-
-	/** @brief True if the report's unique ID matches ownship (ICAO, callsign or UAS-ID). */
-	bool is_self_detection(const unique_id_s &unique_id) const;
-
-	/** @brief Pick the best available identifier from a report, or id=0 if none is usable. */
-	unique_id_s get_unique_id(const transponder_report_s &report) const;
+	/** @brief True if the report's identifier matches ownship (ICAO, callsign or UAS-ID). */
+	bool is_self_detection(const DaaEncodedId &encoded_id) const;
 
 	/* Actions */
 
@@ -220,12 +215,7 @@ public:
 	void stop_fake_traffic();
 
 	/** @brief Publish one synthetic transponder report at a relative bearing/distance from ownship. */
-	void fake_traffic(uint32_t icao_address, const char *const callsign, float distance, float direction = 0,
-			  float traffic_heading = 0,
-			  float altitude_diff = 10,
-			  float hor_velocity = 100, float ver_velocity = 10, int emitter_type = 1, double lat_uav = 45.35324098,
-			  double lon_uav = 6.446453,
-			  float alt_uav = 300, uint16_t flags = 63);
+	void fake_traffic(const SyntheticTrafficReport &report);
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
 	conflict_info_s get_most_urgent_conflict() const { return _most_urgent_conflict; }
@@ -233,7 +223,7 @@ public:
 private:
 	px4::Array<conflict_info_s, kDaaMaxTraffic> _traffic_buffer{};
 
-	using new_conflicts_pending_notif_s = px4::Array<unique_id_s, transponder_report_s::ORB_QUEUE_LENGTH>;
+	using new_conflicts_pending_notif_s = px4::Array<DaaEncodedId, transponder_report_s::ORB_QUEUE_LENGTH>;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 	struct fake_traffic_origin_s {
@@ -275,18 +265,8 @@ private:
 	void clear_conflicts();
 
 	bool _is_activated{false};
-	bool _daa_enabled{false};
-	int32_t _daa_notif_state_s{20};
 
 	/* Handle traffic buffer */
-
-	/**
-	 * @brief Pull queued transponder reports and update the conflict buffer.
-	 *
-	 * Returns true if the buffer changed. New-traffic warnings are deferred via
-	 * @p new_conflicts_pending_notif so the final priority is settled before logging.
-	 */
-	bool update_conflict_buffer(new_conflicts_pending_notif_s &new_conflicts_pending_notif);
 
 	/**
 	 * @brief Update or remove an existing buffer entry from a fresh report.
@@ -377,9 +357,19 @@ private:
 	 * pose still produces a fixed-size F3442 check.
 	 *
 	 * @p transponder_report is considered valid, and must be checked prior to calling this function.
-	 * on_active() checks uav_pose_valid_and_updated() and update_conflict_buffer() checks transponder_data_valid().
+	 * on_active() checks uav_pose_valid_and_updated() and transponder_data_valid().
 	 */
 	bool analyse_transponder_report(transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
+
+	/** @brief Drain queued transponder reports and update the conflict buffer. */
+	bool process_transponder_queue(new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+
+	/** @brief Process one transponder report and update the conflict buffer if relevant. */
+	bool process_transponder_report(transponder_report_s &transponder_report,
+					new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+
+	/** @brief Updates an already-tracked conflict in the buffer and handles escalation/de-escalation alerts. */
+	bool process_existing_conflict(const conflict_info_s &current_conflict, int current_conflict_idx);
 
 	/** @brief True if the latest global and local position fixes are finite and recent enough. */
 	bool uav_pose_valid_and_updated() const;
@@ -450,15 +440,12 @@ private:
 	bool conflict_lvl_requires_warning(const uint8_t conflict_level) const;
 	inline bool is_valid_buffer_idx(const int idx) const {return idx >= 0 && idx < static_cast<int>(_traffic_buffer.size());};
 
-	int find_unique_id_in_buffer(const unique_id_s &target_unique_id) const;
+	int find_encoded_id_in_buffer(const DaaEncodedId &target_encoded_id) const;
 
 	/** @brief True (and stamps @p last_time to now) if @p interval has passed since the previous trigger. */
 	bool has_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
 
-	void convert_unique_id_to_string(const unique_id_s &unique_id, char *buffer, size_t buffer_size) const;
-	static void convert_uas_id_uint64_to_str(const uint64_t uas_id_int, char uas_id_char_arr[kUtmGuidMsgLength]);
-	static bool same_unique_id(const unique_id_s &lhs, const unique_id_s &rhs);
-	static bool pending_new_conflict_notification_exists(const unique_id_s &target_unique_id,
+	static bool pending_new_conflict_notification_exists(const DaaEncodedId &target_encoded_id,
 			const new_conflicts_pending_notif_s &new_conflicts_pending_notif);
 
 	/* Debug functions */
@@ -470,9 +457,6 @@ private:
 
 	/* Parameters */
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	/** @brief Consume a pending parameter_update notification and re-arm DAA if needed. */
-	void check_param_change();
 
 	/** @brief Translate the user-facing action param value into the internal DaaAction enum. */
 	static DaaAction action_param_to_daa_action(int32_t action_param);
