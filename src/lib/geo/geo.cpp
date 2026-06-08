@@ -258,8 +258,6 @@ int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat
 		// If the angle difference is less than 90 degrees, we are behind the starting line
 		if (bearing_diff_start < M_PI_2_F && bearing_diff_start > -M_PI_2_F) {
 			crosstrack_error.past_start = true;
-			return_value = 0;
-			return return_value;
 		}
 	}
 
