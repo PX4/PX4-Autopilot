@@ -49,8 +49,8 @@ void AdsbConflict::detect_traffic_conflict(double lat_now, double lon_now, float
 
 	float d_hor, d_vert;
 	get_distance_to_point_global_spherical(lat_now, lon_now, alt_now,
-					     _transponder_report.lat, _transponder_report.lon, _transponder_report.altitude, &d_hor,
-					     &d_vert);
+					       _transponder_report.lat, _transponder_report.lon, _transponder_report.altitude, &d_hor,
+					       &d_vert);
 
 	const float xyz_traffic_speed = sqrtf(_transponder_report.hor_velocity * _transponder_report.hor_velocity +
 					      _transponder_report.ver_velocity * _transponder_report.ver_velocity);
