@@ -64,9 +64,9 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 			const vehicle_global_position_s &gpos = _global_position_sub.get();
 
 			get_distance_to_point_global_spherical(_home_position_pub.get().lat, _home_position_pub.get().lon,
-							   _home_position_pub.get().alt,
-							   gpos.lat, gpos.lon, gpos.alt,
-							   &home_dist_xy, &home_dist_z);
+							       _home_position_pub.get().alt,
+							       gpos.lat, gpos.lon, gpos.alt,
+							       &home_dist_xy, &home_dist_z);
 
 			eph = gpos.eph;
 			epv = gpos.epv;
@@ -74,9 +74,9 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 		} else if (_gps_position_for_home_valid) {
 
 			get_distance_to_point_global_spherical(_home_position_pub.get().lat, _home_position_pub.get().lon,
-							   _home_position_pub.get().alt,
-							   _gps_lat, _gps_lon, _gps_alt,
-							   &home_dist_xy, &home_dist_z);
+							       _home_position_pub.get().alt,
+							       _gps_lat, _gps_lon, _gps_alt,
+							       &home_dist_xy, &home_dist_z);
 
 			eph = _gps_eph;
 			epv = _gps_epv;

@@ -355,7 +355,7 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 		float dist_z = -1.0f;
 
 		get_distance_to_point_global_spherical(lat, lon, altitude, _navigator->get_home_position()->lat,
-						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
+						       _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
 		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
 	}
