@@ -390,7 +390,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
 
-	_px4_mag.set_temperature(this->_temperature);
+	_px4_mag.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
 
 	// FIXME: once we're on jetty or later
 	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
@@ -413,7 +413,7 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 	report.timestamp_sample = timestamp;
 	report.device_id = id.devid;
 	report.pressure = msg.pressure();
-	report.temperature = this->_temperature;
+	report.temperature = _temperature; // this will be static if no airspeed sensor is on the model.
 	_sensor_baro_pub.publish(report);
 }
 
@@ -432,10 +432,9 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	report.timestamp_sample = timestamp;
 	report.device_id = id.devid;
 	report.differential_pressure_pa = msg.diff_pressure(); // hPa to Pa;
-	report.temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
+	_temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
+	report.temperature = _temperature;
 	_differential_pressure_pub.publish(report);
-
-	this->_temperature = report.temperature;
 }
 
 void GZBridge::imuCallback(const gz::msgs::IMU &msg)

@@ -179,7 +179,7 @@ private:
 	const std::string _world_name;
 	const std::string _model_name;
 
-	float _temperature{288.15};  // 15 degrees
+	float _temperature{15.0f}; // default temperature in Celsius
 
 	bool _realtime_clock_set{false};
 	gz::transport::Node _node;
