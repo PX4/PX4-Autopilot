@@ -118,6 +118,7 @@ param set-default SENS_IMU_MODE 0
 param set-default EKF2_ABL_LIM 2.5        # X-Plane SITL requires higher tolerance (see note below)
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
+param set-default EKF2_ACC_B_NOISE 0.001
 
 # X-Plane SITL note: this limit is intentionally higher than common robotics
 # simulator defaults because the bridge is frame-rate-limited and X-Plane's
@@ -292,10 +293,10 @@ param set-default VT_F_TRANS_DUR 45.0
 param set-default VT_F_TR_OL_TM 55.0
 
 # Back Transition (FW -> MC)
-param set-default VT_B_TRANS_DUR 35.0
-param set-default VT_B_DEC_MSS 1.5
+param set-default VT_B_TRANS_DUR 28.0
+param set-default VT_B_DEC_MSS 2.0
 param set-default VT_B_DEC_I 0.25
-param set-default VT_B_TRANS_RAMP 15.0   # Smooth MC motor ramp-up for this large SITL eVTOL
+param set-default VT_B_TRANS_RAMP 10.0   # Smooth MC motor ramp-up for this large SITL eVTOL
 
 # Transition Safety
 param set-default VT_TRANS_MIN_TM 15.0    # Minimum transition time
@@ -329,7 +330,7 @@ param set-default FW_PR_P 0.52
 param set-default FW_PR_I 0.045
 param set-default FW_PR_D 0.355
 param set-default FW_PR_FF 3.6
-param set-default FW_PSP_OFF 4.0
+param set-default FW_PSP_OFF 2.0
 param set-default FW_P_LIM_MAX 24.0
 param set-default FW_P_LIM_MIN -2.0
 param set-default FW_P_TC 0.40
@@ -343,7 +344,7 @@ param set-default FW_Y_RMAX 60.0         # Max yaw rate (slightly higher for eVT
 # Airspeed Control
 param set-default FW_AIRSPD_MIN 32.0     # Above stall
 param set-default FW_AIRSPD_MAX 75.0     # Cruise limit
-param set-default FW_AIRSPD_TRIM 40.0    # Validation trim for transition and mission tracking
+param set-default FW_AIRSPD_TRIM 55.0    # Validation trim for transition and mission tracking
 param set-default FW_AIRSPD_STALL 30.0   # Stall speed
 
 # Airspeed Sensor (SITL)
