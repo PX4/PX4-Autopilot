@@ -118,7 +118,6 @@ param set-default SENS_IMU_MODE 0
 param set-default EKF2_ABL_LIM 2.5        # X-Plane SITL requires higher tolerance (see note below)
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
-param set-default EKF2_ACC_B_NOISE 0.001
 
 # X-Plane SITL note: this limit is intentionally higher than common robotics
 # simulator defaults because the bridge is frame-rate-limited and X-Plane's
