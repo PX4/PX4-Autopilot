@@ -178,7 +178,7 @@ private:
 	int			measure();
 	int			collect();
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	device::Device		*_interface;
 

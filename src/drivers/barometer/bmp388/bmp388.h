@@ -331,7 +331,7 @@ private:
 	static constexpr uint8_t			odr{BMP3_ODR_50_HZ};			// output data rate (not used)
 	static constexpr uint8_t			iir_coef{BMP3_IIR_FILTER_DISABLE};	// IIR coefficient
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 	IBMP388			*_interface{nullptr};
 
 	unsigned		_measure_interval{0};			// interval in microseconds needed to measure

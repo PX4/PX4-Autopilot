@@ -78,7 +78,7 @@ private:
 	int RegisterRead(uint8_t reg, void *data, unsigned count = 1);
 	int RegisterWrite(uint8_t reg, uint8_t data);
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	bool _collect_phase{false};
 

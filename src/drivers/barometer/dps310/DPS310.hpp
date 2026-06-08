@@ -81,7 +81,7 @@ private:
 
 	static constexpr uint32_t SAMPLE_RATE{32};
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	device::Device		*_interface;
 

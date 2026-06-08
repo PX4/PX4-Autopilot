@@ -42,24 +42,19 @@
 class PX4Barometer
 {
 public:
-	PX4Barometer(uint32_t device_id);
-	~PX4Barometer();
+	PX4Barometer();
 
-	void set_device_id(uint32_t device_id) { _device_id = device_id; }
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint32_t error_count) { _error_count = error_count; }
-	void set_temperature(float temperature) { _temperature = temperature; }
+	void set_device_id(uint32_t device_id) { _report.device_id = device_id; }
+	void set_error_count(uint32_t error_count) { _report.error_count = error_count; }
+	void set_temperature(float temperature) { _report.temperature = temperature; }
 
 	void update(const hrt_abstime &timestamp_sample, float pressure);
 
 	int get_instance() { return _sensor_pub.get_instance(); };
-	uint32_t get_device_id() const { return _device_id; }
+	uint32_t get_device_id() const { return _report.device_id; }
 
 private:
 	uORB::PublicationMulti<sensor_baro_s> _sensor_pub{ORB_ID(sensor_baro)};
 
-	uint32_t		_device_id{0};
-
-	float			_temperature{NAN};
-	uint32_t		_error_count{0};
+	sensor_baro_s	_report{};
 };

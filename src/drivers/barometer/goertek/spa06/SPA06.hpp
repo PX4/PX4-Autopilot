@@ -64,7 +64,7 @@ private:
 	int			collect(); //get results and publish
 	int			calibrate();
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	spa06::ISPA06		*_interface;
 	spa06::data_s		_data;

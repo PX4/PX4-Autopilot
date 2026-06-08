@@ -65,7 +65,7 @@ private:
 	int			measure(); //start measure
 	int			collect(); //get results and publish
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	tcbp001ta::ITCBP001TA	*_interface;
 

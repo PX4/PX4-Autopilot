@@ -73,7 +73,7 @@ private:
 	bool flush_fifo();
 	bool configure();
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};

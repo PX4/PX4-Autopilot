@@ -63,7 +63,7 @@ private:
 	int			measure(); //start measure
 	int			collect(); //get results and publish
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	bmp280::IBMP280		*_interface;
 

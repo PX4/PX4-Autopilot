@@ -283,7 +283,7 @@ private:
 	static constexpr uint8_t	INTERRUPT_POLARITY{BMP5_INT_POL_ACTIVE_HIGH};
 	static constexpr uint8_t 	INTERRUPT_DRIVE{BMP5_INT_OD_PUSHPULL};
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 	IBMP581 		*_interface{nullptr};
 
 	unsigned		_measure_interval{0};			// interval in microseconds needed to measure

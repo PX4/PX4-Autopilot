@@ -34,29 +34,9 @@
 
 #include "PX4Barometer.hpp"
 
-#include <lib/drivers/device/Device.hpp>
-
-PX4Barometer::PX4Barometer(uint32_t device_id) :
-	_device_id{device_id}
+PX4Barometer::PX4Barometer()
 {
-}
-
-PX4Barometer::~PX4Barometer()
-{
-	_sensor_pub.unadvertise();
-}
-
-void PX4Barometer::set_device_type(uint8_t devtype)
-{
-	// current DeviceStructure
-	union device::Device::DeviceId device_id;
-	device_id.devid = _device_id;
-
-	// update to new device type
-	device_id.devid_s.devtype = devtype;
-
-	// copy back
-	_device_id = device_id.devid;
+	_report.temperature = NAN; // if no temperature is set, report NaN to indicate invalid data
 }
 
 void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
@@ -65,13 +45,9 @@ void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
 		return;
 	}
 
-	sensor_baro_s report;
-	report.timestamp_sample = timestamp_sample;
-	report.device_id = _device_id;
-	report.pressure = pressure;
-	report.temperature = _temperature;
-	report.error_count = _error_count;
+	_report.timestamp_sample = timestamp_sample;
+	_report.pressure = pressure;
+	_report.timestamp = hrt_absolute_time();
 
-	report.timestamp = hrt_absolute_time();
-	_sensor_pub.publish(report);
+	_sensor_pub.publish(_report);
 }

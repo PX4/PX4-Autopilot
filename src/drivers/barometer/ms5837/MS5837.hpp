@@ -81,7 +81,7 @@ public:
 private:
 	int			probe() override;
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	ms5837::prom_u	   	_prom{};
 

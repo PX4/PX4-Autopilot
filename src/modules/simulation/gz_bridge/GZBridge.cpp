@@ -52,6 +52,7 @@ GZBridge::GZBridge(const std::string &world, const std::string &model_name) :
 	_model_name(model_name)
 {
 	updateParams();
+	_px4_baro.set_device_id(6619404); // 6619404: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 }
 
 GZBridge::~GZBridge()

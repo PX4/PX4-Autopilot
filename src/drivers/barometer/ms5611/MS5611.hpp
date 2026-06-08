@@ -116,7 +116,7 @@ public:
 protected:
 	void print_status() override;
 
-	PX4Barometer _px4_baro{0};
+	PX4Barometer _px4_baro;
 
 	device::Device		*_interface;
 
