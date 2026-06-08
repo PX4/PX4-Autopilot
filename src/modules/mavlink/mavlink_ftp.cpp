@@ -312,13 +312,9 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 }
 void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 {
-	// MAVLink FTP virtual directory: paths starting with "@MAV_LOG" (optionally prefixed with '/')
+	// MAVLink FTP virtual directory: paths starting with "@MAV_LOG"
 	// are remapped to the flight-stack log root directory.
 	const char *p = path;
-
-	if (p[0] == '/') {
-		p++;
-	}
 
 	if (strncmp(p, _mav_log_prefix, _mav_log_prefix_len) == 0
 	    && (p[_mav_log_prefix_len] == '\0' || p[_mav_log_prefix_len] == '/')) {
