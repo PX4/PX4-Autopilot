@@ -58,7 +58,6 @@ TEST_F(AdsbConflictTest, detectTrafficConflict)
 		// WHEN detect traffic conflict is called
 		adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
 
-		// THEN expect conflict to be detected
 		EXPECT_TRUE(adsb_conflict._conflict_detected == traffic.in_conflict);
 	}
 }
