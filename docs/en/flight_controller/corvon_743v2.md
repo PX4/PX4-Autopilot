@@ -139,11 +139,11 @@ Configure the receiver protocol with the relevant `RC_*_PRT_CFG` parameter from 
 
 The 12 PWM outputs are organized into four timer groups. Channels in the same group must use the same output rate and DShot mode:
 
-| Group | Timer | Channels | Default Protocol |
-| ----- | ----- | -------- | ---------------- |
-| 1     | TIM1  | M1–M4    | DShot600         |
-| 2     | TIM3  | M5–M6    | DShot600         |
-| 3     | TIM4  | M7–M10   | DShot600         |
+| Group | Timer | Channels | Default Protocol          |
+| ----- | ----- | -------- | ------------------------- |
+| 1     | TIM1  | M1–M4    | DShot600                  |
+| 2     | TIM3  | M5–M6    | DShot600                  |
+| 3     | TIM4  | M7–M10   | DShot600                  |
 | 4     | TIM12 | M11–M12  | PWM only (servo / gimbal) |
 
 M1–M9 support BDShot telemetry readback; M10 is DShot-only because `TIM4_CH4` has no input-capture DMA channel on STM32H7. Bidirectional DShot can be enabled by setting `PWM_MAIN_TIM0..2` to a BDShot value (`-6` BDShot600, `-7` BDShot300, `-8` BDShot150) in QGroundControl.
