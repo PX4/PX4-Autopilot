@@ -142,12 +142,12 @@ param set-default EKF2_ACC_B_NOISE 0.001  # Accel bias damping for frame-paced S
 param set-default EKF2_BARO_NOISE 1.0     # Baro height noise in m; avoids overconfident fusion during X-Plane transients
 param set-default EKF2_BARO_GATE 10.0     # Increased for FPS variability tolerance
 
-# Simulated accelerometer calibration for the packaged X-Plane aircraft model.
-# Keep the Z offset at zero: X-Plane's vertical specific force already matches
-# gravity, and a negative Z offset causes parked vertical-velocity drift.
+# Use neutral simulated accelerometer offsets. The px4xplane bridge publishes
+# attitude-consistent HIL accelerometer data, so model-specific calibration
+# offsets would corrupt sensor_combined and can trip EKF2 bias checks.
 param set-default CAL_ACC0_PRIO 50
-param set-default CAL_ACC0_XOFF -0.084
-param set-default CAL_ACC0_YOFF 0.112
+param set-default CAL_ACC0_XOFF 0.0
+param set-default CAL_ACC0_YOFF 0.0
 param set-default CAL_ACC0_ZOFF 0.0
 
 # GPS parameters
