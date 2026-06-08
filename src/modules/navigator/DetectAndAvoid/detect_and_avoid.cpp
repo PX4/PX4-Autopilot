@@ -130,7 +130,7 @@ void DetectAndAvoid::on_active()
 {
 	if (_parameter_update_sub.updated()) {
 
-		parameter_update_s pupdate;
+		parameter_update_s pupdate{};
 		_parameter_update_sub.copy(&pupdate);
 		ModuleParams::updateParams();
 
@@ -215,31 +215,21 @@ bool DetectAndAvoid::process_transponder_queue(new_conflicts_pending_notif_s &ne
 	return buffer_updated;
 }
 
-bool DetectAndAvoid::process_transponder_report(transponder_report_s &transponder_report,
+bool DetectAndAvoid::process_transponder_report(const transponder_report_s &transponder_report,
 		new_conflicts_pending_notif_s &new_conflicts_pending_notif)
 {
-	const DaaEncodedId encoded_id = DaaEncodedId::from_report(transponder_report);
+	DaaEncodedId encoded_id{};
 
-	if (encoded_id.id == 0) {
-		PX4_DEBUG("DAA: No valid unique ID, skipping report");
+	if (!identify_traffic_report(transponder_report, encoded_id)) {
 		return false;
 	}
 
-	if (is_self_detection(encoded_id)) {
-		PX4_DEBUG("DAA: Self detection, skipping report.");
-		return false;
-	}
-
-#if defined(DEBUG_BUILD)
-	char encoded_id_str[kUtmGuidMsgLength];
-	encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
-	PX4_DEBUG("DAA: unique ID: %s (int:%lu)", encoded_id_str, encoded_id.id);
-#endif
+	const daa_input_s daa_input = prepare_daa_input(transponder_report);
 
 	detect_and_avoid_s daa_output{};
 
-	if (!calculate_daa_output(transponder_report, daa_output)) {
-		PX4_DEBUG("DAA: Failed to analyse transponder data, skipping report.");
+	if (!_adsb_conflict_detector.calculate_daa_output(daa_input, daa_output)) {
+		PX4_DEBUG("DAA: Failed to calculate DAA output, skipping report.");
 		return false;
 	}
 
@@ -272,7 +262,7 @@ bool DetectAndAvoid::process_transponder_report(transponder_report_s &transponde
 		}
 
 		if (conflict_lvl_requires_warning(current_conflict.conflict_level)) {
-			// Defer warning logs until the full ORB queue has been drained
+			// Defer warning logs until the full ORB queue has been drained.
 			new_conflicts_pending_notif.push_back(current_conflict.encoded_id);
 		}
 
@@ -280,6 +270,30 @@ bool DetectAndAvoid::process_transponder_report(transponder_report_s &transponde
 	}
 
 	return process_existing_conflict(current_conflict, current_conflict_idx);
+}
+
+bool DetectAndAvoid::identify_traffic_report(const transponder_report_s &transponder_report,
+		DaaEncodedId &encoded_id) const
+{
+	encoded_id = DaaEncodedId::from_report(transponder_report);
+
+	if (encoded_id.id == 0) {
+		PX4_DEBUG("DAA: No valid unique ID, skipping report");
+		return false;
+	}
+
+	if (is_self_detection(encoded_id)) {
+		PX4_DEBUG("DAA: Self detection, skipping report.");
+		return false;
+	}
+
+#if defined(DEBUG_BUILD)
+	char encoded_id_str[kUtmGuidMsgLength];
+	encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
+	PX4_DEBUG("DAA: unique ID: %s (int:%lu)", encoded_id_str, encoded_id.id);
+#endif
+
+	return true;
 }
 
 bool DetectAndAvoid::process_existing_conflict(const conflict_info_s &current_conflict, int current_conflict_idx)
@@ -548,31 +562,35 @@ bool DetectAndAvoid::is_self_detection(const DaaEncodedId &encoded_id) const
 	return false;
 }
 
-bool DetectAndAvoid::calculate_daa_output(transponder_report_s &transponder_report,
-		detect_and_avoid_s &daa_output)
+daa_input_s DetectAndAvoid::prepare_daa_input(const transponder_report_s &transponder_report)
 {
+	daa_input_s daa_input{};
+
 	// Process uav pose
-	const matrix::Vector2d uav_lat_lon(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-	const float uav_alt = _navigator->get_global_position()->alt;
+	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+	daa_input.uav_lat_lon = matrix::Vector2d(global_position.lat, global_position.lon);
+	daa_input.uav_alt = global_position.alt;
 	const vehicle_local_position_s &local_position = *_navigator->get_local_position();
-	matrix::Vector3f uav_vel_ned(local_position.vx, local_position.vy, local_position.vz);
+	daa_input.uav_vel_ned = matrix::Vector3f(local_position.vx, local_position.vy, local_position.vz);
 
 	// Set infinite velocities to zero to at least detect the fixed-size boundaries in the F3442
 	for (int i = 0; i < 3; ++i) {
-		if (!PX4_ISFINITE(uav_vel_ned(i))) {
-			uav_vel_ned(i) = 0.f;
+		if (!PX4_ISFINITE(daa_input.uav_vel_ned(i))) {
+			daa_input.uav_vel_ned(i) = 0.f;
 		}
 	}
 
 	static constexpr float kMinGroundSpeedForCourseHeading{0.5f};
-	const float uav_horizontal_speed = uav_vel_ned.xy().norm();
-	const float uav_heading = (uav_horizontal_speed < kMinGroundSpeedForCourseHeading) ?
-				  local_position.heading : atan2f(uav_vel_ned(1), uav_vel_ned(0));
+	const float uav_horizontal_speed = daa_input.uav_vel_ned.xy().norm();
+	daa_input.uav_heading = (uav_horizontal_speed < kMinGroundSpeedForCourseHeading) ?
+				local_position.heading : atan2f(daa_input.uav_vel_ned(1), daa_input.uav_vel_ned(0));
+
+	daa_input.transponder_report = transponder_report;
 
 	// Default to zero velocity if vel not valid PX4_ADSB_FLAGS_VALID_VELOCITY
-	if (!(transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY)) {
-		transponder_report.ver_velocity = 0.f;
-		transponder_report.hor_velocity = 0.f;
+	if (!(daa_input.transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY)) {
+		daa_input.transponder_report.ver_velocity = 0.f;
+		daa_input.transponder_report.hor_velocity = 0.f;
 	}
 
 	// Over-write transponder vertical velocity if requested
@@ -580,14 +598,13 @@ bool DetectAndAvoid::calculate_daa_output(transponder_report_s &transponder_repo
 
 	if (_param_daa_en_dflt_vel.get()) {
 		// If velocity is zero, assume positive velocity i.e. aircraft going up
-		const float velocity_sign = (transponder_report.ver_velocity >= 0) ? 1.f : -1.f;
-		transponder_report.ver_velocity = velocity_sign * _param_daa_dflt_vel.get();
+		const float velocity_sign = (daa_input.transponder_report.ver_velocity >= 0) ? 1.f : -1.f;
+		daa_input.transponder_report.ver_velocity = velocity_sign * _param_daa_dflt_vel.get();
 	}
 
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-	return _adsb_conflict_detector.calculate_daa_output(uav_lat_lon, uav_alt, uav_heading, uav_vel_ned,
-			transponder_report, daa_output);
+	return daa_input;
 }
 
 bool DetectAndAvoid::uav_pose_valid_and_updated() const

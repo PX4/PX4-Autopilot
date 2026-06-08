@@ -36,14 +36,13 @@
 
 #include <uORB/topics/transponder_report.h>
 
-bool AdsbConflict::calculate_daa_output(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
-					const float uav_heading,
-					const matrix::Vector3f &uav_vel_ned, const transponder_report_s &transponder_report,
-					detect_and_avoid_s &daa_output)
+bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and_avoid_s &daa_output)
 {
+	const transponder_report_s &transponder_report = daa_input.transponder_report;
+
 	// Check input data not NAN
 	if (!(PX4_ISFINITE(transponder_report.lat) && PX4_ISFINITE(transponder_report.lon)
-	      && uav_lat_lon.isAllFinite())) {
+	      && daa_input.uav_lat_lon.isAllFinite())) {
 		PX4_DEBUG("DAA lib: Invalid lat, lon, Early return");
 		return false;
 	}
@@ -53,14 +52,14 @@ bool AdsbConflict::calculate_daa_output(const matrix::Vector2d &uav_lat_lon, con
 		return false;
 	}
 
-	if (!uav_vel_ned.isAllFinite()) {
+	if (!daa_input.uav_vel_ned.isAllFinite()) {
 		PX4_DEBUG("DAA lib: Invalid uav vel, Early return");
 		return false;
 	}
 
 #if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
 
-	if (!PX4_ISFINITE(uav_heading) || !PX4_ISFINITE(transponder_report.heading)) {
+	if (!PX4_ISFINITE(daa_input.uav_heading) || !PX4_ISFINITE(transponder_report.heading)) {
 		PX4_DEBUG("DAA lib: Invalid heading, Early return");
 		return false;
 	}
@@ -69,10 +68,10 @@ bool AdsbConflict::calculate_daa_output(const matrix::Vector2d &uav_lat_lon, con
 
 	// Process input data
 	aircraft_state_s uav_state{};
-	uav_state.lat_lon = uav_lat_lon;
-	uav_state.altitude = uav_alt;
-	uav_state.heading = uav_heading;
-	uav_state.velocity_ned = uav_vel_ned;
+	uav_state.lat_lon = daa_input.uav_lat_lon;
+	uav_state.altitude = daa_input.uav_alt;
+	uav_state.heading = daa_input.uav_heading;
+	uav_state.velocity_ned = daa_input.uav_vel_ned;
 
 	aircraft_state_s traffic_state{};
 	traffic_state.lat_lon = matrix::Vector2d(transponder_report.lat, transponder_report.lon);

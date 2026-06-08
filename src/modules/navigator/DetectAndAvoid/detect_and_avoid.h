@@ -350,23 +350,18 @@ private:
 	uORB::Subscription _traffic_sub {ORB_ID(transponder_report)};
 	AdsbConflict _adsb_conflict_detector;
 
-	/**
-	 * @brief Parse the ownship and transponder data, then calculate the DAA output.
-	 *
-	 * Replaces non-finite UAV velocity components with zero so a partially-valid
-	 * pose still produces a fixed-size F3442 check.
-	 *
-	 * @p transponder_report is considered valid, and must be checked prior to calling this function.
-	 * on_active() checks uav_pose_valid_and_updated() and transponder_data_valid().
-	 */
-	bool calculate_daa_output(transponder_report_s &transponder_report, detect_and_avoid_s &daa_output);
-
 	/** @brief Drain queued transponder reports and update the conflict buffer. */
 	bool process_transponder_queue(new_conflicts_pending_notif_s &new_conflicts_pending_notif);
 
-	/** @brief Process one transponder report and update the conflict buffer if relevant. */
-	bool process_transponder_report(transponder_report_s &transponder_report,
+	/** @brief Run one valid traffic report through DAA and apply the result. */
+	bool process_transponder_report(const transponder_report_s &transponder_report,
 					new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+
+	/** @brief Extract a usable traffic identifier and reject ownship reports. */
+	bool identify_traffic_report(const transponder_report_s &transponder_report, DaaEncodedId &encoded_id) const;
+
+	/** @brief Build ownship and traffic inputs for the DAA standard from a valid report. */
+	daa_input_s prepare_daa_input(const transponder_report_s &transponder_report);
 
 	/** @brief Updates an already-tracked conflict in the buffer and handles escalation/de-escalation alerts. */
 	bool process_existing_conflict(const conflict_info_s &current_conflict, int current_conflict_idx);
