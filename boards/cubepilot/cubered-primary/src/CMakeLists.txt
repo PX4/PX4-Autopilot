@@ -34,6 +34,8 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
 		usb.c
+		qspi.c
+		extflash.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
@@ -41,7 +43,10 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 			nuttx_drivers
 			bootloader
 	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
+	target_include_directories(drivers_board PRIVATE
+		${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common
+		${CMAKE_CURRENT_SOURCE_DIR}
+	)
 
 else()
 	add_library(drivers_board

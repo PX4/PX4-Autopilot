@@ -126,7 +126,11 @@
 /* 3 timers for PWM out */
 #define BOARD_NUM_IO_TIMERS 3
 
-/* USB OTG VBUS is not connected, we use GPIO_nVDD_USB_VALID instead to determine USB being connected. */
+/* USB OTG VBUS is not connected, we use GPIO_nVDD_USB_VALID instead to determine USB being connected.
+ * The PX4 bootloader's shared startup code still needs GPIO_OTGFS_VBUS defined; it is only ever
+ * configured as an input there and VBUS sensing is disabled (see BOARD_USB_VBUS_SENSE_DISABLED in
+ * hw_config.h), so this is the standard OTG_FS VBUS pin location and is otherwise unused. */
+#define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
 #define HRT_TIMER               12  /* use timer12 for the HRT */

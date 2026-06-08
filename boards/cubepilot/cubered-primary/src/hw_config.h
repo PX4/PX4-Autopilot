@@ -90,7 +90,11 @@
 #define BOOTLOADER_DELAY               5000
 #define INTERFACE_USB                  1
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
-#define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
+
+/* VBUS is not connected on this board (PA9 is SPI2_SCK); USB presence is
+ * detected on GPIO_nVDD_USB_VALID instead. The bootloader does not sense VBUS,
+ * so BOARD_VBUS is intentionally left undefined and VBUS sampling is disabled. */
+#define BOARD_USB_VBUS_SENSE_DISABLED  1
 
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
@@ -98,8 +102,21 @@
 #define BOOT_DELAY_ADDRESS             0x000001a0
 #define BOARD_TYPE                     1069
 #define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
-#define BOARD_FLASH_SECTORS            (14)
+/* zero-based index of the last app flash sector. The app occupies sectors
+ * 1..13 (1664 KiB); sectors 14 and 15 are reserved for FLASH_BASED_PARAMS. */
+#define BOARD_FLASH_SECTORS            (13)
 #define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)
+
+/* Reserve the last two 128 KiB sectors (14, 15) for flash-based parameters so
+ * the bootloader neither erases nor programs them (matches the app linker). */
+#define APP_RESERVATION_SIZE           (2 * 128 * 1024)
+
+/* External QSPI flash (W25Q256). The bootloader programs it and maps it to
+ * EXTF_BASE_ADDRESS before booting the app. Only the low 16 MiB is used (3-byte
+ * addressing), which is where the app's .extflash section is located. */
+#define BOARD_HAS_EXTF                 1
+#define EXTF_BASE_ADDRESS              0x90000000
+#define EXTF_SIZE                      (16u * 1024u * 1024u)
 
 #define OSC_FREQ                       24
 

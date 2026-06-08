@@ -194,6 +194,7 @@
 #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
 #define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2     /* ADC 1 2 3 clock source */
+#define STM32_RCC_D1CCIPR_QSPISEL    RCC_D1CCIPR_QSPISEL_PLL2    /* QSPI clock source (used by the bootloader) */
 
 /* UART clock selection */
 /* reset to default to overwrite any changes done by any bootloader */
@@ -288,3 +289,23 @@
 
 #define GPIO_I2C4_SCL GPIO_I2C4_SCL_2        /* PF14 */
 #define GPIO_I2C4_SDA GPIO_I2C4_SDA_2        /* PF15 */
+
+
+/* QSPI external flash (W25Q256, memory-mapped at 0x90000000).
+ *
+ * Only the bootloader builds the QSPI driver (boards/.../src/qspi.c) and uses
+ * it to program the external flash and switch it to memory-mapped mode before
+ * jumping to the app. The W25Q256 powers up in 3-byte address mode, which
+ * covers the low 16 MiB - the region the app's .extflash section lives in.
+ */
+#define CONFIG_STM32H7_QUADSPI
+#define CONFIG_STM32H7_QSPI_FLASH_SIZE		16777216 /* bytes (3-byte addressing window) */
+#define CONFIG_STM32H7_QSPI_FIFO_THESHOLD	1
+#define CONFIG_STM32H7_QSPI_CSHT		1 /* CS high time, 1 cycle */
+
+#define GPIO_QSPI_CS	GPIO_QUADSPI_BK1_NCS_3	/* PB10 */
+#define GPIO_QSPI_IO0	GPIO_QUADSPI_BK1_IO0_3	/* PD11 */
+#define GPIO_QSPI_IO1	GPIO_QUADSPI_BK1_IO1_3	/* PD12 */
+#define GPIO_QSPI_IO2	GPIO_QUADSPI_BK1_IO2_1	/* PE2 */
+#define GPIO_QSPI_IO3	GPIO_QUADSPI_BK1_IO3_2	/* PD13 */
+#define GPIO_QSPI_SCK	GPIO_QUADSPI_CLK_1	/* PB2 */

@@ -17,10 +17,22 @@ References:
 
 ## Bootloader
 
-PX4 currently uses the **ArduPilot bootloader** on this board. A native PX4
-bootloader is not yet available, so the upload protocol is driven through
-ArduPilot's bootloader and the secondary is exposed as the second device of
-the primary's composite USB bootloader.
+The primary has a native PX4 bootloader
+(`make cubepilot_cubered-primary_bootloader`). It is wire-compatible with the
+ArduPilot bootloader's protocol and additionally programs the external QSPI
+flash: the read-only part of the firmware (romfs and the mavlink module) is
+linked into a `.extflash` section at the QSPI memory-mapped address
+(`0x90000000`). On upload the bootloader receives that section via the
+`EXTF_*` protocol commands (erase / program / CRC), writes it to the W25Q256
+QSPI flash, and switches the QSPI controller to memory-mapped mode before
+jumping to the app so it can execute and read from it directly. The QSPI
+driver lives in `src/qspi.c` / `src/extflash.c` and is only built for the
+bootloader.
+
+The **secondary** still relies on the ArduPilot bootloader for now: it has no
+USB of its own and is flashed over the UART7 link through the primary's
+composite USB bootloader. A native PX4 secondary bootloader plus a dual-CDC
+passthrough on the primary is planned as a follow-up.
 
 ## Building and flashing
 
