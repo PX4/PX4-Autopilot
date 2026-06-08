@@ -2151,7 +2151,7 @@ FixedWingModeManager::Run()
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
 						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
 									       normalized_velocity_sp_2d;
-						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
+						float direction = normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
 						_pos_sp_triplet.current.loiter_radius = direction * velocity_sp_2d.norm() * velocity_sp_2d.norm() /
 											acceleration_normal.norm();
 
