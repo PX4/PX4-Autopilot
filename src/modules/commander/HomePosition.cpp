@@ -301,17 +301,17 @@ void HomePosition::setHomePosValid()
 	_valid = true;
 }
 
-bool HomePosition::isGpsHorizontalFusionEnabled()
+bool HomePosition::isGpsPositionFusionEnabled()
 {
 	// If parameter doesn't exist, allow GPS usage
 	if (_param_ekf2_gps_ctrl_handle == PARAM_INVALID) {
 		return true;
 	}
 
-	// Check if bit 0 (horizontal position fusion) is set
+	// Raw GNSS home position uses both horizontal position and altitude.
 	int32_t ekf2_gps_ctrl = 0;
 	param_get(_param_ekf2_gps_ctrl_handle, &ekf2_gps_ctrl);
-	return (ekf2_gps_ctrl & 1);
+	return (ekf2_gps_ctrl & 0x3) == 0x3;
 }
 
 void HomePosition::updateHomePositionYaw(float yaw)
@@ -364,7 +364,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		const bool evh_valid = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
 
 		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid
-					       && isGpsHorizontalFusionEnabled();
+					       && isGpsPositionFusionEnabled();
 
 		if (_param_com_home_en.get() && _gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
 		    && _takeoff_time != 0 && now < _takeoff_time + kHomePositionCorrectionTimeWindow) {

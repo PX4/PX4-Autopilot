@@ -74,7 +74,7 @@ public:
 
 private:
 	bool hasMovedFromCurrentHomeLocation();
-	bool isGpsHorizontalFusionEnabled();
+	bool isGpsPositionFusionEnabled();
 	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
