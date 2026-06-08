@@ -276,6 +276,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID:
+		handle_message_open_drone_id_basic_id(msg);
+		break;
+
 	case MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID:
 		handle_message_open_drone_id_operator_id(msg);
 		break;
@@ -3534,6 +3538,27 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *msg)
+{
+	mavlink_open_drone_id_basic_id_t odid_module {};
+	mavlink_msg_open_drone_id_basic_id_decode(msg, &odid_module);
+
+	if (odid_module.target_system != mavlink_system.sysid ||
+	    (odid_module.target_component != mavlink_system.compid && odid_module.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
+	open_drone_id_basic_id_s odid_basic_id {};
+
+	odid_basic_id.timestamp = hrt_absolute_time();
+	memcpy(odid_basic_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_basic_id.id_or_mac));
+	odid_basic_id.id_type = odid_module.id_type;
+	odid_basic_id.ua_type = odid_module.ua_type;
+	memcpy(odid_basic_id.uas_id, odid_module.uas_id, sizeof(odid_basic_id.uas_id));
+
+	_open_drone_id_basic_id_pub.publish(odid_basic_id);
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_operator_id(
