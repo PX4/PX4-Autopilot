@@ -112,11 +112,11 @@
 #define PROTO_SET_BAUD              0x33    // set baud rate on uart
 #define PROTO_VERIFY_SIG            0x39    // verify the signature of the programmed image
 
-// Reserved for external flash programming
-// #define PROTO_EXTF_ERASE         0x34  // Erase sectors from external flash
-// #define PROTO_EXTF_PROG_MULTI    0x35  // write bytes at external flash program address and increment
-// #define PROTO_EXTF_READ_MULTI    0x36  // read bytes at address and increment
-// #define PROTO_EXTF_GET_CRC       0x37  // compute & return a CRC of data in external flash
+// External flash programming (only handled when BOARD_HAS_EXTF is defined)
+#define PROTO_EXTF_ERASE            0x34  // Erase sectors from external flash
+#define PROTO_EXTF_PROG_MULTI       0x35  // write bytes at external flash program address and increment
+// #define PROTO_EXTF_READ_MULTI    0x36  // read bytes at address and increment (unimplemented, like ArduPilot)
+#define PROTO_EXTF_GET_CRC          0x37  // compute & return a CRC of data in external flash
 
 #define PROTO_RESERVED_0X38         0x38  // Reserved
 #define PROTO_RESERVED_0X39         0x39  // Reserved
@@ -131,6 +131,7 @@
 #define PROTO_DEVICE_BOARD_REV      3 // board revision
 #define PROTO_DEVICE_FW_SIZE        4 // size of flashable area
 #define PROTO_DEVICE_VEC_AREA       5 // contents of reserved vectors 7-10
+#define PROTO_DEVICE_EXTF_SIZE      6 // size of available external flash
 
 // State
 #define STATE_PROTO_GET_SYNC        0x1     // Have Seen NOP for re-establishing sync
@@ -425,6 +426,12 @@ jump_to_app()
 	/* deinitialise the board */
 	board_deinit();
 
+#if defined(BOARD_HAS_EXTF)
+	/* put the external flash into memory-mapped mode so the app can execute
+	 * and read from it (e.g. romfs / mavlink) at its mapped address */
+	board_extf_enable_xip();
+#endif
+
 	/* switch exception handlers to the application */
 	arch_setvtor(vec_base);
 
@@ -627,6 +634,9 @@ bootloader(unsigned timeout)
 	volatile uint32_t  bl_state = 0; // Must see correct command sequence to erase and reboot (commit first word)
 	uint32_t  address = board_info.fw_size; /* force erase before upload will work */
 	uint32_t  first_word = 0xffffffff;
+#if defined(BOARD_HAS_EXTF)
+	uint32_t  extf_address = 0; /* current external flash program offset, reset by EXTF_ERASE */
+#endif
 
 	/* (re)start the timer system */
 	arch_systic_init();
@@ -730,6 +740,13 @@ bootloader(unsigned timeout)
 				}
 
 				break;
+
+#if defined(BOARD_HAS_EXTF)
+
+			case PROTO_DEVICE_EXTF_SIZE:
+				cout((uint8_t *)&board_info.extf_size, sizeof(board_info.extf_size));
+				break;
+#endif
 
 			default:
 				goto cmd_bad;
@@ -915,6 +932,161 @@ bootloader(unsigned timeout)
 			cout_word(sum);
 			SET_BL_STATE(STATE_PROTO_GET_CRC);
 			break;
+
+#if defined(BOARD_HAS_EXTF)
+
+		// erase external flash and prepare for programming
+		//
+		// command:     EXTF_ERASE/<len:4>/EOC
+		// success reply:   INSYNC/OK <pct:1>... <pct:1> INSYNC/OK
+		// invalid reply:   INSYNC/INVALID
+		// erase failure:   INSYNC/FAILURE
+		//
+		// The host expects an immediate INSYNC/OK, then a stream of single-byte
+		// progress values (0..100) emitted while erasing, then a trailing
+		// INSYNC/OK. Progress bytes have to keep coming faster than the host's
+		// read timeout, so a non-blocking erase is polled here and the current
+		// percentage is re-emitted while the device stays busy.
+		case PROTO_EXTF_ERASE: {
+				uint32_t cmd_erase_bytes = 0;
+
+				if (cin_word(&cmd_erase_bytes, 100)) {
+					goto cmd_bad;
+				}
+
+				if (!wait_for_eoc(2)) {
+					goto cmd_bad;
+				}
+
+				if ((bl_state & STATE_ALLOWS_ERASE) != STATE_ALLOWS_ERASE) {
+					goto cmd_bad;
+				}
+
+				if (cmd_erase_bytes > board_info.extf_size) {
+					goto cmd_bad;
+				}
+
+				const uint32_t sector_size = extf_func_sector_size();
+
+				// stop the LED blinking while we erase
+				led_set(LED_ON);
+
+				uint8_t pct_done = 0;
+				sync_response();
+				cout(&pct_done, sizeof(pct_done));
+
+				uint32_t erased_bytes = 0;
+				unsigned sector = 0;
+
+				while (erased_bytes < cmd_erase_bytes) {
+					if (!extf_func_start_sector_erase(sector)) {
+						led_set(LED_BLINK);
+						goto cmd_fail;
+					}
+
+					// feed the host progress bytes while this sector erases
+					while (extf_func_is_busy()) {
+						cout(&pct_done, sizeof(pct_done));
+						delay(20);
+					}
+
+					erased_bytes += sector_size;
+					sector++;
+
+					// keep the streamed value below 100 until the final byte
+					pct_done = (erased_bytes * 100) / cmd_erase_bytes;
+
+					if (pct_done > 99) {
+						pct_done = 99;
+					}
+
+					cout(&pct_done, sizeof(pct_done));
+				}
+
+				pct_done = 100;
+				cout(&pct_done, sizeof(pct_done));
+
+				extf_address = 0;
+				led_set(LED_BLINK);
+				// falls through to the trailing sync_response() below
+			}
+			break;
+
+		// program bytes at the current external flash address
+		//
+		// command:     EXTF_PROG_MULTI/<len:1>/<data:len>/EOC
+		// success reply:   INSYNC/OK
+		// invalid reply:   INSYNC/INVALID
+		// program failure: INSYNC/FAILURE
+		//
+		case PROTO_EXTF_PROG_MULTI:
+			// expect count
+			arg = cin_wait(50);
+
+			if (arg < 0) {
+				goto cmd_bad;
+			}
+
+			if ((unsigned int)arg > sizeof(flash_buffer.c)) {
+				goto cmd_bad;
+			}
+
+			if ((extf_address + (uint32_t)arg) > board_info.extf_size) {
+				goto cmd_bad;
+			}
+
+			for (int i = 0; i < arg; i++) {
+				c = cin_wait(1000);
+
+				if (c < 0) {
+					goto cmd_bad;
+				}
+
+				flash_buffer.c[i] = c;
+			}
+
+			if (!wait_for_eoc(200)) {
+				goto cmd_bad;
+			}
+
+			if (!extf_func_program(extf_address, flash_buffer.c, arg)) {
+				goto cmd_fail;
+			}
+
+			extf_address += arg;
+			break;
+
+		// fetch CRC of an external flash area
+		//
+		// command:     EXTF_GET_CRC/<len:4>/EOC
+		// reply:       <crc:4>/INSYNC/OK
+		//
+		case PROTO_EXTF_GET_CRC: {
+				uint32_t cmd_crc_bytes = 0;
+
+				if (cin_word(&cmd_crc_bytes, 100)) {
+					goto cmd_bad;
+				}
+
+				if (!wait_for_eoc(2)) {
+					goto cmd_bad;
+				}
+
+				if (cmd_crc_bytes > board_info.extf_size) {
+					goto cmd_bad;
+				}
+
+				uint32_t extf_sum = 0;
+
+				for (uint32_t p = 0; p < cmd_crc_bytes; p += 4) {
+					uint32_t bytes = extf_func_read_word(p);
+					extf_sum = crc32((uint8_t *)&bytes, sizeof(bytes), extf_sum);
+				}
+
+				cout_word(extf_sum);
+			}
+			break;
+#endif // BOARD_HAS_EXTF
 
 		// read a word from the OTP
 		//
