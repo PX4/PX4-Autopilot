@@ -44,6 +44,7 @@
 
 #include <dataman_client/DatamanClient.hpp>
 #include <lib/geo/geo.h>
+#include <lib/dijkstra/dijkstra.h>
 #include <px4_platform_common/defines.h>
 
 #include "navigation.h"
@@ -77,7 +78,9 @@ public:
 	 * is the goal.  The output array contains the full ordered sequence of
 	 * corridor nodes to visit (start node first, goal node last).
 	 *
-	 * Edge cost = horizontal distance + static_cost.
+	 * Edge cost: if an external static_cost was provided (> 0) it is used as the
+	 * cost outright; otherwise (static_cost == 0) the 3D Euclidean distance
+	 * between the two nodes is used. The two are never combined. See _edgeCost().
 	 *
 	 * @param waypoints_out  Output array of nodes to visit in order.
 	 * @param num_waypoints  Number of entries written to waypoints_out.
@@ -116,6 +119,22 @@ private:
 	void _loadNodes();
 	void _loadEdges();
 
+	int _findClosestNode(double lat, double lon, float alt) const;
+
+	/**
+	 * @brief Cost of the directed edge between two loaded nodes.
+	 *
+	 * An external static cost overrides distance: if static_cost > 0 it is the
+	 * edge cost outright; otherwise (static_cost == 0, i.e. not provided) the
+	 * 3D Euclidean distance between the two nodes is used. The two are never added.
+	 *
+	 * @param from_idx     source node index, in [0, _num_nodes)
+	 * @param to_idx       destination node index, in [0, _num_nodes)
+	 * @param static_cost  uploader-provided static cost; 0 means "use distance"
+	 * @return non-negative edge cost
+	 */
+	float _edgeCost(uint16_t from_idx, uint16_t to_idx, float static_cost) const;
+
 	Navigator *_navigator{nullptr};
 
 	mission_stats_entry_s _node_stats{};
@@ -136,4 +155,12 @@ private:
 	uint32_t _loaded_graph_id{0};
 	bool _graph_loaded{false};
 	bool _update_requested{false};
+
+	// Dijkstra buffers (sized to dataman capacity limits)
+	static constexpr int MAX_NODES = DM_KEY_CORRIDOR_NODES_MAX;
+
+	float	_cost[MAX_NODES * MAX_NODES]{};
+	float	_best_cost[MAX_NODES]{};
+	int	_next_node[MAX_NODES]{};
+	bool	_visited[MAX_NODES]{};
 };
