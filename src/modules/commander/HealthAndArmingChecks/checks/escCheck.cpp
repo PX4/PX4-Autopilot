@@ -91,6 +91,10 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			mask |= checkMotorStatus(context, reporter, esc_status, now);
 		}
 
+		if (_param_com_esc_ot_warn.get() >= FLT_EPSILON) {
+			checkEscTemperature(reporter, esc_status);
+		}
+
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
@@ -212,6 +216,61 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 	}
 
 	return mask;
+}
+
+void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_status)
+{
+	const float warn_temp = _param_com_esc_ot_warn.get();
+
+	int hottest_esc_index = -1;
+	float max_temperature = -FLT_MAX;
+
+	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
+				     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
+			continue;
+		}
+
+		const float temperature = esc_status.esc[esc_index].esc_temperature;
+
+		if (!PX4_ISFINITE(temperature)) {
+			continue;
+		}
+
+		if (temperature > max_temperature) {
+			max_temperature = temperature;
+			hottest_esc_index = esc_index;
+		}
+	}
+
+	if (hottest_esc_index < 0) {
+		return;
+	}
+
+	if (max_temperature > warn_temp) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ESC_OT_WARN</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure<uint8_t, float>(NavModes::None, health_component_t::motors_escs,
+						       events::ID("check_esc_over_temperature"),
+						       events::Log::Warning,
+						       "ESC temperature above warning threshold, highest is ESC {1} ({2} degC)",
+						       static_cast<uint8_t>(hottest_esc_index + 1), max_temperature);
+
+
+		if (!_esc_over_temp_warned && reporter.mavlink_log_pub()) {
+			mavlink_log_warning(reporter.mavlink_log_pub(),
+					    "ESC temperature above warning threshold, highest is ESC%d (%.0f degC)",
+					    hottest_esc_index + 1, (double)max_temperature);
+			_esc_over_temp_warned = true;
+		}
+
+	} else if (max_temperature < warn_temp - ESC_OVER_TEMP_RESET_MARGIN) {
+		_esc_over_temp_warned = false;
+	}
 }
 
 uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)

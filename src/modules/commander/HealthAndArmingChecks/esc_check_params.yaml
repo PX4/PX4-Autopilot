@@ -49,3 +49,18 @@ parameters:
       max: 10
       decimal: 2
       increment: 1
+- group: ESC
+  definitions:
+    COM_ESC_OT_WARN:
+      description:
+        short: ESC over-temperature warning threshold
+        long: |-
+          Warning raised if ESC temperature gets above threshold: no failsafe action triggered or arming prevented.
+          Set to -1 to disable the check.
+      type: float
+      default: 90.0
+      min: -1
+      max: 150
+      unit: celcius
+      decimal: 1
+      increment: 1
