@@ -10,5 +10,4 @@ bool quality_init_check_fail   # when the quality average during the settle wind
 bool vel_3d_init_check_fail   # when the 3D velocity average during the settle window is above the threshold, indicating a possible error in the EV data (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful)
 bool error_find
 uint8 status
-float32 baro_data
 

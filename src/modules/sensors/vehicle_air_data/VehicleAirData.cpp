@@ -293,15 +293,6 @@ void VehicleAirData::Run()
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
 
-						// numerical time derivative of the barometric altitude (climb rate)
-						float baro_alt_derivative = 0.f;
-
-						if (PX4_ISFINITE(_last_baro_alt_meter) && (_last_baro_alt_timestamp != 0)
-						    && (timestamp_sample > _last_baro_alt_timestamp)) {
-							const float dt = (timestamp_sample - _last_baro_alt_timestamp) * 1e-6f;
-							baro_alt_derivative = (altitude - _last_baro_alt_meter) / dt;
-						}
-
 						_last_baro_alt_meter = altitude;
 						_last_baro_alt_timestamp = timestamp_sample;
 
@@ -310,7 +301,6 @@ void VehicleAirData::Run()
 						out.timestamp_sample = timestamp_sample;
 						out.baro_device_id = _calibration[instance].device_id();
 						out.baro_alt_meter = altitude;
-						out.baro_alt_meter_derivative = baro_alt_derivative;
 						out.ambient_temperature = ambient_temperature;
 						out.temperature_source = static_cast<uint8_t>(temperature_source);
 						out.baro_pressure_pa = pressure_pa;

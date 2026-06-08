@@ -77,11 +77,18 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		// If change failed because position is not yet valid, park the request.
 		// tick() will retry once position has been stable for POS_STABLE_THRESHOLD iterations.
 		if (!allow_change && modeRequiresPosition(user_intended_nav_state)) {
-			_pending_nav_state   = user_intended_nav_state;
-			_pos_wait_start_us   = hrt_absolute_time();
-			int32_t limit = 30;
-			param_get(_param_pos_wait_limit, &limit);
-			PX4_INFO("Mode %d requires position - waiting up to %d s for solution", user_intended_nav_state, (int)limit);
+			// Only (re)start the wait timer when this is a *fresh* pending request.
+			// Re-issuing the same request while already pending (failsafe re-forcing a
+			// mode, a GCS resending the command, ...) must NOT reset the clock, otherwise
+			// the timeout never elapses and pos_req stays latched at 1.
+			if (_pending_nav_state != user_intended_nav_state) {
+				_pos_wait_start_us = hrt_absolute_time();
+				int32_t limit = 30;
+				param_get(_param_pos_wait_limit, &limit);
+				PX4_INFO("Mode %d requires position - waiting up to %d s for solution", user_intended_nav_state, (int)limit);
+			}
+
+			_pending_nav_state = user_intended_nav_state;
 			// Signal immediately that we are trying to enter a position mode.
 			publish_formic_pos_req(true);
 		}

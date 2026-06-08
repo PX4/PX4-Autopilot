@@ -48,19 +48,6 @@ PARAM_DEFINE_INT32(FORMIC_WDEV_INIT, 5);
  */
 PARAM_DEFINE_INT32(FORMIC_WDEV_AUX, 0);
 
-/**
- * EV velocity threshold.
- *
- * The maximum allowed velocity for the external vision (EV) system
- * before the watchdog triggers a warning.
- *
- * @min 0.0
- * @max 3.0
- * @unit m/s
- * @group Formic Watchdog EV
- * @category Standard
- */
-PARAM_DEFINE_FLOAT(FORMIC_WDEV_DVEL, 1.2f);
 
 /**
  * EV heading reset threshold.

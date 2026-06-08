@@ -48,8 +48,7 @@ void FormicWatchdogEv::Run()
 		return;
 	}
 
-	handel_pos_req_user_intention(); // check if the commander requested to be in a position mode (e.g. by moving the AUX switch or by requesting a position mode while EV was not healthy, which triggers the position request as a fallback)
-	update_baro_deriv();
+	handle_pos_req_user_intention(); // check if the commander requested to be in a position mode (e.g. by moving the AUX switch or by requesting a position mode while EV was not healthy, which triggers the position request as a fallback)
 
 	vehicle_odometry_s odometry{};
 
@@ -60,11 +59,6 @@ void FormicWatchdogEv::Run()
 			_first_ev_timestamp = _last_ev_timestamp;
 		}
 
-		check_EV_z_velocity(odometry); // try get the ev vilo data
-		if (multy_sensor_z_velocity_check()) {
-			_formic_state.multy_sensor_z_velocity_error = true;
-			_formic_state.error_find = true;
-		}
 
 		const hrt_abstime settle_us = (hrt_abstime)_param_formic_wdev_init.get() * 1_s;
 		if (hrt_elapsed_time(&_first_ev_timestamp) < settle_us) {
@@ -148,64 +142,16 @@ void FormicWatchdogEv::update_pipeline_status()
 }
 
 
-void FormicWatchdogEv::handel_pos_req_user_intention()
-// handel the pos_req that came from the commander 
+void FormicWatchdogEv::handle_pos_req_user_intention()
 {
 	if (_formic_pos_req.updated()) {
 		formic_pos_req_s pos_req{};
 		_formic_pos_req.copy(&pos_req);
 		_pos_requested = pos_req.pos_req;
 	}
-
-
 }
 
 
-/*
-get the raw ev 
-check if the rkf2_ev_ctrl have ev_velocity - if have use the velo 
-if not have do derivative of the ev position and use the deriv as the ev velocity
-*/
-void FormicWatchdogEv::check_EV_z_velocity(vehicle_odometry_s &odometry)
-{
-	if (_ev_vel_enabled) {
-		_ev_vel_data_z = odometry.velocity[2];
-
-	} else {
-		const hrt_abstime now = odometry.timestamp;
-
-		if (_prev_ev_pos_time != 0) {
-			const float dt = (now - _prev_ev_pos_time) * 1e-6f;
-
-			if (dt > 0.001f) {
-				const float deriv = (odometry.position[2] - _prev_ev_z) / dt;
-				_ev_vel_data_z = _ev_pos_deriv_filter.update(deriv);
-			}
-		}
-
-		_prev_ev_z        = odometry.position[2];
-		_prev_ev_pos_time = now;
-	}
-}
-
-
-
-/*
-applide a low pass the the baro div that i have (at the vehicle_air_Data )
-*/
-void FormicWatchdogEv::update_baro_deriv()
-{
-	vehicle_air_data_s air_data{};
-	if (_air_data_sub.update(&air_data)) {
-		_baro_filtered = _baro_deriv_filter.apply(air_data.baro_alt_meter_derivative);
-		_formic_state.baro_data = _baro_filtered;
-	}
-	
-	
-}
-
-
-// Accumulate one quality sample during the settle window (data is not forwarded yet).
 void FormicWatchdogEv::accumulate_quality(const vehicle_odometry_s &odometry)
 {
 	_quality_count += 1;
@@ -249,23 +195,6 @@ float FormicWatchdogEv::finalize_3d_velocity_average() const
 
 
 
-// -----------------------------------------------------------------------------
-// Checks
-// -----------------------------------------------------------------------------
-
-/**
- * check the dz at multy sensor
- */
-bool FormicWatchdogEv::multy_sensor_z_velocity_check()
-{
-	// check all the sensor z velocity
-	float dv = fabsf(_ev_vel_data_z - _baro_filtered);
-	bool ret = (dv > _param_formic_wdev_dvel.get());
-	if (ret){
-		PX4_INFO("EV z velocity: %.2f, baro deriv: %.2f, dv: %.2f", (double)_ev_vel_data_z, (double)_baro_filtered, (double)dv);
-	}
-	return (ret);
-}
 
 
 float FormicWatchdogEv::get_yaw_from_quat(const vehicle_odometry_s &odometry)
@@ -308,8 +237,7 @@ bool FormicWatchdogEv::check_EV_aid_src_heading(float vio_yaw, float estimator_y
 }
 
 
-// handel a pos reset counter // 
-bool FormicWatchdogEv::handel_pos_reset(const float vio_pos[2], const float estimator_pos[2])
+bool FormicWatchdogEv::handle_pos_reset(const float vio_pos[2], const float estimator_pos[2])
 {
 	estimator_aid_source2d_s ev_pos{};
 
@@ -363,7 +291,7 @@ void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
 	// Evaluate alignment. Each helper sets the matching *_alligned_with_ev flag and
 	// returns false when it had NO fused EV aid data this cycle (alignment unknown).
 	const bool yaw_data_valid = check_EV_aid_src_heading(raw_yaw, estimtor_yaw);
-	const bool pos_data_valid = handel_pos_reset(odometry.position, esti_odom.position);
+	const bool pos_data_valid = handle_pos_reset(odometry.position, esti_odom.position);
 
 	if (!at_reset_counter) {
 		return;
@@ -397,7 +325,7 @@ void FormicWatchdogEv::no_EvData()
 {
 	/* Determine if there has been a dropout in the EV (Extended Visual) data stream. */
 	if ((_last_ev_timestamp == 0) ||
-	    ((hrt_absolute_time() - _last_ev_timestamp) > 500_ms)) {
+	    ((hrt_absolute_time() - _last_ev_timestamp) > 150_ms)) {
 		_formic_state.ev_data_arrived = false;
 		_formic_state.error_find = false; // dropout = end of session: clear latched error so the next session may use EV
 		// No EV data: fall back to WAIT_TO_DATA if a position mode is still requested, otherwise MANUAL.
@@ -422,8 +350,6 @@ void FormicWatchdogEv::no_EvData()
 		_formic_state.ev_data_arrived = true;
 	}
 }
-
-
 
 
 int FormicWatchdogEv::task_spawn(int argc, char *argv[])

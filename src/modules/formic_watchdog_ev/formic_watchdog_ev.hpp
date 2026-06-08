@@ -16,6 +16,8 @@
 #include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/formic_ev_state_machine.h>
 #include <uORB/topics/formic_pos_req.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 
 
@@ -59,19 +61,17 @@ private:
 	void parameters_update(bool force = false);
 	void update_pipeline_status(); // single place that decides _formic_state.status each cycle
 	void copy_odometry_msg(vehicle_odometry_s &odometry);
-	void check_EV_z_velocity(vehicle_odometry_s &odometry);
-	void update_baro_deriv();
 	bool check_EV_aid_src_heading(float vio_yaw, float estimator_yaw); // returns true if EV yaw aid data was fused this cycle; sets heading_alligned_with_ev
 	void resetcounter(vehicle_odometry_s &odometry);
 	void no_EvData();
-	bool multy_sensor_z_velocity_check();
+	bool multi_sensor_z_velocity_check();
 	float get_yaw_from_quat(const vehicle_odometry_s &odometry);
 	void accumulate_quality(const vehicle_odometry_s &odometry); // sum one quality sample during the settle window
 	float finalize_quality_average() const;                      // mean quality over the settle window
 	void accumulate_3d_velocity(const vehicle_odometry_s &odometry); // sum one EV 3D speed sample during the settle window
 	float finalize_3d_velocity_average() const;  
-	void handel_pos_req_user_intention();
-	bool handel_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
+	void handle_pos_req_user_intention();
+	bool handle_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
 	// --- Subscriptions ---
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _odometry_sub_formic{ORB_ID(formic_odom)};
@@ -80,6 +80,8 @@ private:
 	uORB::Subscription _estimator_aid_src_pos_sub{ORB_ID(estimator_aid_src_ev_pos)};
 	uORB::Subscription _estimtor_odometry_sub{ORB_ID(estimator_odometry)};
 	uORB::Subscription _formic_pos_req{ORB_ID(formic_pos_req)};  // pos req at the tick time 
+
+
 
 	// --- Publications ---
 	uORB::Publication<vehicle_odometry_s> _odometry_pub{ORB_ID(vehicle_visual_odometry)};
@@ -129,7 +131,6 @@ private:
 		(ParamInt<px4::params::FORMIC_WDEV_INIT>) _param_formic_wdev_init,
 		(ParamInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,
 		(ParamInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
-		(ParamFloat<px4::params::FORMIC_WDEV_DVEL>) _param_formic_wdev_dvel,
 		(ParamFloat<px4::params::FORMIC_WDEV_DYAW>) _param_formic_wdev_dyaw,
 		(ParamFloat<px4::params::FORMIC_WDEV_DPOS>) _param_formic_wdev_dpos,
 		(ParamFloat<px4::params::FORMIC_WDEV_VINI>) _param_formic_wdev_vini
