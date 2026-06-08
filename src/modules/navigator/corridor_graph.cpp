@@ -226,6 +226,7 @@ void CorridorGraph::run()
 	default:
 		break;
 	}
+
 }
 
 void CorridorGraph::_loadNodes()
@@ -294,6 +295,41 @@ void CorridorGraph::_loadEdges()
 	_num_edges = count;
 }
 
+int CorridorGraph::_findClosestNode(double lat, double lon, float alt) const
+{
+	if (!isLoaded() || _num_nodes == 0) { return -1; }
+
+	float min_dist = INFINITY;
+	int closest_node = -1;
+
+	for (int i = 0; i < _num_nodes; i++) {
+		float h_dist = get_distance_to_next_waypoint(lat, lon, _nodes[i].lat, _nodes[i].lon);
+		float v_dist = alt - _nodes[i].alt;
+		float dist = sqrtf(h_dist * h_dist + v_dist * v_dist);
+
+		if (dist < min_dist) {
+			min_dist = dist;
+			closest_node = i;
+		}
+	}
+
+	return closest_node;
+}
+
+float CorridorGraph::_edgeCost(uint16_t from_idx, uint16_t to_idx, float static_cost) const
+{
+	// An external static cost overrides distance; the two are never combined.
+	if (static_cost > 0.0f) {
+		return static_cost;
+	}
+
+	// No static cost provided: fall back to the 3D Euclidean distance between nodes.
+	const float h_dist = get_distance_to_next_waypoint(_nodes[from_idx].lat, _nodes[from_idx].lon,
+			     _nodes[to_idx].lat, _nodes[to_idx].lon);
+	const float v_dist = _nodes[from_idx].alt - _nodes[to_idx].alt;
+
+	return sqrtf(h_dist * h_dist + v_dist * v_dist);
+}
 
 
 bool CorridorGraph::findPath(double cur_lat, double cur_lon, float cur_alt,
@@ -301,7 +337,19 @@ bool CorridorGraph::findPath(double cur_lat, double cur_lon, float cur_alt,
 			     mission_corridor_node_s *waypoints_out, uint8_t &num_waypoints,
 			     uint8_t max_waypoints) const
 {
-	// TODO: wire graph search library here
+	// TODO: implement RTL path search using the dijkstra library.
+	//
+	// Steps:
+	//   1. Call _findClosestNode(cur_lat, cur_lon, cur_alt) to get the start node index.
+	//   2. Identify landing node indices (nodes flagged as acceptable landing points).
+	//   3. Call dijkstra::solveBackward(_num_nodes, start, _cost, false, ...) with
+	//      start as the goal so that best_cost[landing_k] gives the path cost from
+	//      each landing node back to the drone's position.
+	//   4. Pick the landing node with the lowest best_cost[].
+	//   5. Walk next_node[] from that landing node toward start, collecting indices.
+	//   6. Reverse the collected indices and copy the corresponding _nodes[] entries
+	//      into waypoints_out[], capped at max_waypoints.
+	//   7. Set num_waypoints and return true. Return false if no reachable landing node.
 	(void)cur_lat; (void)cur_lon; (void)cur_alt;
 	(void)home_lat; (void)home_lon; (void)home_alt;
 	(void)waypoints_out; (void)max_waypoints;
