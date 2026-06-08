@@ -156,7 +156,6 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 	fi
 
 	# Set physics parameters for faster-than-realtime or slower-than-realtime simulation if needed.
-	# See also https://github.com/PX4/PX4-Autopilot/issues/27480
 	if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
 		echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
 
