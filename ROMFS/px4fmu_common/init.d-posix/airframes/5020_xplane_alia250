@@ -330,7 +330,7 @@ param set-default FW_PR_P 0.52
 param set-default FW_PR_I 0.045
 param set-default FW_PR_D 0.355
 param set-default FW_PR_FF 3.6
-param set-default FW_PSP_OFF 8.0
+param set-default FW_PSP_OFF 4.0
 param set-default FW_P_LIM_MAX 24.0
 param set-default FW_P_LIM_MIN -2.0
 param set-default FW_P_TC 0.40

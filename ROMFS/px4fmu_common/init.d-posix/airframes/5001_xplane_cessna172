@@ -58,7 +58,7 @@ param set-default CA_SV_CS4_FLAP 1.0
 param set-default CA_SV_CS5_TYPE 10
 param set-default CA_SV_CS5_FLAP 1.0
 param set-default CA_SV_CS_COUNT 6
-param set-default CA_SV_FLAP_SLEW 0.20
+param set-default CA_SV_FLAP_SLEW 0.08
 
 # PWM output mapping matched to config.ini Cessna172 channels.
 # Output 6 uses PX4's Landing_Gear_Wheel output function for runway steering.
@@ -147,9 +147,9 @@ param set-default FW_RR_P 0.42
 param set-default FW_RR_I 0.11
 param set-default FW_RR_D 0.08
 param set-default FW_RR_FF 3.2
-param set-default FW_R_RMAX 12.0
-param set-default FW_R_TC 1.1
-param set-default FW_R_LIM 20.0
+param set-default FW_R_RMAX 8.0
+param set-default FW_R_TC 1.5
+param set-default FW_R_LIM 15.0
 
 # Pitch.
 param set-default FW_PR_P 0.365
@@ -157,7 +157,7 @@ param set-default FW_PR_I 0.045
 param set-default FW_PR_D 0.355
 param set-default FW_PR_FF 3.4
 param set-default FW_P_LIM_MAX 20.0
-param set-default FW_P_LIM_MIN -4.0
+param set-default FW_P_LIM_MIN 0.0
 param set-default FW_P_TC 0.55
 param set-default FW_PN_R_SLEW_MAX 10.0
 
@@ -174,7 +174,7 @@ param set-default FW_WR_FF 0.35
 
 param set-default FW_AIRSPD_MIN 28.0
 param set-default FW_AIRSPD_MAX 65.0
-param set-default FW_AIRSPD_TRIM 42.0
+param set-default FW_AIRSPD_TRIM 40.0
 param set-default FW_AIRSPD_STALL 25.0
 param set-default FW_AIRSPD_FLP_SC 0.85
 # X-Plane provides the pitot through the simulator stream, not a physical driver.
@@ -189,7 +189,7 @@ param set-default FW_T_ALT_TC 8.0
 param set-default FW_T_RLL2THR 11.0
 param set-default FW_T_STE_R_TC 2.0
 param set-default FW_T_HRATE_FF 0.3
-param set-default FW_T_SPDWEIGHT 0.35
+param set-default FW_T_SPDWEIGHT 0.20
 param set-default FW_T_CLMB_MAX 3.7
 param set-default FW_T_SINK_MIN 1.0
 param set-default FW_T_SINK_MAX 2.5
@@ -201,7 +201,7 @@ param set-default FW_T_SINK_R_SP 1.2
 
 param set-default FW_THR_TRIM 0.60
 param set-default FW_THR_MIN 0.10
-param set-default FW_THR_SLEW_MAX 0.65
+param set-default FW_THR_SLEW_MAX 0.25
 
 
 ################################################################################
@@ -214,8 +214,8 @@ param set-default RWTO_TKOFF 1
 param set-default RWTO_RAMP_TIME 3.0
 param set-default RWTO_ROT_AIRSPD 32.0
 param set-default RWTO_ROT_TIME 2.0
-param set-default FW_TKO_AIRSPD 42.0
-param set-default FW_TKO_PITCH_MIN 12.0
+param set-default FW_TKO_AIRSPD 40.0
+param set-default FW_TKO_PITCH_MIN 10.0
 param set-default FW_FLAPS_TO_SCL 0.33
 param set-default MIS_TAKEOFF_ALT 150.0
 
@@ -242,9 +242,9 @@ param set-default LNDFW_TRIG_TIME 1.0
 # SECTION 6: NPFG GUIDANCE AND MISSION DEFAULTS
 ################################################################################
 
-param set-default NPFG_PERIOD 40.0
+param set-default NPFG_PERIOD 55.0
 param set-default NPFG_DAMPING 0.8
-param set-default NPFG_ROLL_TC 1.0
+param set-default NPFG_ROLL_TC 1.4
 param set-default NPFG_SW_DST_MLT 0.8
 
 param set-default MIS_YAW_ERR 30.0
