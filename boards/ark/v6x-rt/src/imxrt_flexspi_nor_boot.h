@@ -59,7 +59,7 @@
 #define DCD_ARRAY_SIZE              1
 
 #define FLASH_BASE                  0x30000000
-#define FLASH_END                   FLASH_BASE + (3 * (1024*1024)) // We have 64M but we do not want to wait to program it all
+#define FLASH_END                   (FLASH_BASE + (3 * (1024*1024))) // We have 64M but we do not want to wait to program it all
 
 /* This needs to take into account  the memory configuration at boot bootloader */
 
