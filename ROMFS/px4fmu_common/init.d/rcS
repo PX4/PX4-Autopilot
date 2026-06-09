@@ -539,8 +539,13 @@ else
 	else
 		commander start
 
-		dshot start
-		pwm_out start
+		if param compare -s PASSTHRU_EN 0
+		then
+			dshot start
+			pwm_out start
+		else
+			param set PASSTHRU_EN 0
+		fi
 	fi
 
 	#
