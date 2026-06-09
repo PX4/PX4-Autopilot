@@ -392,6 +392,48 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 		return 0;
 	}
 
+#ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
+
+	if (esc_channel >= 0) {
+		// The bitbang UART uses a single shared hardware timer and a single
+		// global state struct — only one ESC channel can be active at a time.
+		// Stop any existing bitbang instance and wait for it to exit before
+		// spawning the new task, otherwise both tasks race on the shared HW
+		// and corrupt each other's RX buffers via bitbang_uart_switch_channel().
+		pthread_mutex_lock(&_instances_mutex);
+
+		for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+			if (_instances[i] && _instances[i]->_esc_channel >= 0) {
+				_instances[i]->request_stop();
+			}
+		}
+
+		pthread_mutex_unlock(&_instances_mutex);
+
+		// Wait up to 100 ms (20 × 5 ms) for the old task to exit and
+		// unregister itself.  The bitbang run-loop polls every 5 ms, so
+		// it should exit almost immediately.
+		for (int i = 0; i < 20; i++) {
+			bool any_bitbang = false;
+			pthread_mutex_lock(&_instances_mutex);
+
+			for (int j = 0; j < SP_MAX_INSTANCES; j++) {
+				if (_instances[j] && _instances[j]->_esc_channel >= 0) {
+					any_bitbang = true;
+					break;
+				}
+			}
+
+			pthread_mutex_unlock(&_instances_mutex);
+
+			if (!any_bitbang) { break; }
+
+			px4_usleep(5000); // 5 ms
+		}
+	}
+
+#endif // CONFIG_SERIALPASSTHROUGH_BITBANG
+
 	if (esc_channel >= 0) {
 		PX4_INFO("serialpassthrough: starting on ESC bitbang channel %d at %lu baud",
 			 esc_channel, (unsigned long)baudrate);
