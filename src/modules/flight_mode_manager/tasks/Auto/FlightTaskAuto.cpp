@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -93,6 +93,7 @@ bool FlightTaskAuto::updateInitialize()
 	_sub_home_position.update();
 	_sub_vehicle_status.update();
 	_position_setpoint_triplet_sub.update();
+	_takeoff_status_sub.update();
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_prec_land_status_sub.update();
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -171,6 +172,12 @@ bool FlightTaskAuto::update()
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
+
+	if (_inTakeoffRamp()) {
+		// Hold the live horizontal position during the takeoff ramp so the climb isn't slowed and tracks a moving deck
+		_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+	}
+
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
 		_position,
@@ -704,6 +711,12 @@ bool FlightTaskAuto::isTargetModified() const
 	const bool z_modified =  z_valid && std::fabs((_triplet_current - _position_setpoint)(2)) > FLT_EPSILON;
 
 	return xy_modified || z_modified;
+}
+
+bool FlightTaskAuto::_inTakeoffRamp() const
+{
+	return (_type == WaypointType::takeoff)
+	       && (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT);
 }
 
 void FlightTaskAuto::_updateTrajConstraints()

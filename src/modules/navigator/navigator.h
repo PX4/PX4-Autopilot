@@ -81,6 +81,7 @@
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -172,6 +173,7 @@ public:
 	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	vehicle_global_position_s   *get_global_position() { return &_global_pos; }
 	vehicle_land_detected_s     *get_land_detected() { return &_land_detected; }
+	uint8_t                      get_takeoff_state() { return _takeoff_status_sub.get().takeoff_state; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 
@@ -321,6 +323,7 @@ private:
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 	uORB::SubscriptionData<fixed_wing_lateral_guidance_status_s> _fw_lateral_guidance_status_sub{ORB_ID(fixed_wing_lateral_guidance_status)};
+	uORB::SubscriptionData<takeoff_status_s>		_takeoff_status_sub{ORB_ID(takeoff_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
