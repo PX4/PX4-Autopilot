@@ -243,10 +243,10 @@ static int bitbang_uart_init_timer(uint32_t baudrate)
 	uart.bit_time_ticks = 1000000 / baudrate; // Assume 1MHz timer
 
 	// Initialize timer using NuttX API
-	uart.timer = stm32_tim_init(CONFIG_BITBANG_TIMER);
+	uart.timer = stm32_tim_init(CONFIG_UART_BITBANG_TIMER);
 
 	if (uart.timer == nullptr) {
-		PX4_ERR("Failed to initialize timer %d", CONFIG_BITBANG_TIMER);
+		PX4_ERR("Failed to initialize timer %d", CONFIG_UART_BITBANG_TIMER);
 		return -1;
 	}
 

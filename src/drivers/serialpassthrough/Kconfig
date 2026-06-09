@@ -17,7 +17,7 @@ config SERIALPASSTHROUGH_BITBANG
 
 if SERIALPASSTHROUGH_BITBANG
 
-config BITBANG_TIMER
+config UART_BITBANG_TIMER
 	int "Timer instance for bit-bang UART"
 	default 13
 	range 1 17
