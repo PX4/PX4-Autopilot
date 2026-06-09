@@ -31,7 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
 add_subdirectory(MissionFeasibility)
 
 if(BUILD_TESTING)
@@ -78,7 +77,6 @@ px4_add_module(
 		dataman_client
 		geo
 		adsb
-		geofence_breach_avoidance
 		motion_planning
 		mission_feasibility_checker
 		rtl_time_estimator
