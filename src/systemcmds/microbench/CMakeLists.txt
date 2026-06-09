@@ -48,6 +48,7 @@ px4_add_module(
 		test_microbench_math.cpp
 		test_microbench_matrix.cpp
 		test_microbench_uorb.cpp
+		test_microbench_perf.cpp
 
 	DEPENDS
 )
