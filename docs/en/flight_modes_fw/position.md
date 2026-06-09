@@ -51,3 +51,14 @@ The mode is affected by the following parameters:
 | <a id="FW_T_CLMB_R_SP"></a>[FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP)       | Max climb rate setpoint. Default: 3 m/s.                             |
 | <a id="FW_T_SINK_R_SP"></a>[FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP)       | Max sink rate setpoint. Default: 2 m/s.                              |
 | <a id="FW_PN_R_SLEW_MAX"></a>[FW_PN_R_SLEW_MAX](../advanced_config/parameter_reference.md#FW_PN_R_SLEW_MAX) | Roll setpoint slew rate limit. Default: 90 °/s.                      |
+
+## MAVLink Commands
+
+The following commands are relevant to this mode:
+
+- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) - Set the cruise airspeed that the throttle stick interpolates around (requires an airspeed sensor).
+  At centered throttle the vehicle holds the commanded airspeed (`param2`, constrained between [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) and [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)), defaulting to [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) if none was sent.
+  Deflecting the throttle stick scales the airspeed toward `FW_AIRSPD_MIN` (back) or `FW_AIRSPD_MAX` (forward) around this value.
+  The value is shared with [Altitude mode](../flight_modes_fw/altitude.md) and resets to trim when entered from any other mode.
+
+Note, other commands may be supported.

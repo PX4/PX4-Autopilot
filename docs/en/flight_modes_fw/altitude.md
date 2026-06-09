@@ -57,6 +57,14 @@ The mode is affected by the following parameters:
 | <a id="FW_T_CLMB_R_SP"></a>[FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) | Max climb rate setpoint. Default: 3 m/s.                             |
 | <a id="FW_T_SINK_R_SP"></a>[FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP) | Max sink rate setpoint. Default: 2 m/s.                              |
 
+## MAVLink Commands
+
+The following commands are relevant to this mode:
+
+- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) - Set the cruise airspeed that the throttle stick interpolates around, as described for [Position mode](../flight_modes_fw/position.md#mavlink-commands). The commanded value is shared between the two modes.
+
+Note, other commands may be supported.
+
 <!--
 FW notes:
 FW position controller is basically 2 independent pieces
