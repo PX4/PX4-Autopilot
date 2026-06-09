@@ -56,9 +56,11 @@ The mode is affected by the following parameters:
 
 The following commands are relevant to this mode:
 
-- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) - Set the cruise airspeed that the throttle stick interpolates around (requires an airspeed sensor).
-  At centered throttle the vehicle holds the commanded airspeed (`param2`, constrained between [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) and [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)), defaulting to [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) if none was sent.
+- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) — Sets the cruise airspeed for centred throttle stick.
+
+  This requires an airspeed sensor.
+  At centered throttle the vehicle holds the commanded airspeed (`param2`) if set.
+  The value is constrained between [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) and [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX), and defaults to [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) if `param2` was not set.
   Deflecting the throttle stick scales the airspeed toward `FW_AIRSPD_MIN` (back) or `FW_AIRSPD_MAX` (forward) around this value.
-  The value is shared with [Altitude mode](../flight_modes_fw/altitude.md) and resets to trim when entered from any other mode.
 
 Note, other commands may be supported.
