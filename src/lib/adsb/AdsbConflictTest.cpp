@@ -71,12 +71,12 @@ protected:
 	void set_f3442_params(float nmac_radius, float nmac_height, float wc_radius,
 			      float wc_height, int nmac_latency_s, int wc_latency_s)
 	{
-		param_set(param_handle(px4::params::F34_LVL_CRIT_RAD), &nmac_radius);
-		param_set(param_handle(px4::params::F34_LVL_CRIT_HGT), &nmac_height);
-		param_set(param_handle(px4::params::F34_LVL_HIGH_RAD), &wc_radius);
-		param_set(param_handle(px4::params::F34_LVL_HIGH_HGT), &wc_height);
-		param_set(param_handle(px4::params::F34_LVL_MED_TIME), &nmac_latency_s);
-		param_set(param_handle(px4::params::F34_LVL_LOW_TIME), &wc_latency_s);
+		param_set(param_handle(px4::params::DAA_LVL_CRIT_RAD), &nmac_radius);
+		param_set(param_handle(px4::params::DAA_LVL_CRIT_HGT), &nmac_height);
+		param_set(param_handle(px4::params::DAA_LVL_HIGH_RAD), &wc_radius);
+		param_set(param_handle(px4::params::DAA_LVL_HIGH_HGT), &wc_height);
+		param_set(param_handle(px4::params::DAA_LVL_MED_TIME), &nmac_latency_s);
+		param_set(param_handle(px4::params::DAA_LVL_LOW_TIME), &wc_latency_s);
 	}
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 

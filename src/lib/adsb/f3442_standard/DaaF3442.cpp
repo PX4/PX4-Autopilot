@@ -52,10 +52,10 @@ bool DaaF3442::try_setting_params()
 {
 	updateParams();
 
-	const matrix::Vector2f nmac_bounds{_param_f34_lvl_critical_rad.get(), _param_f34_lvl_critical_hgt.get()};
-	const matrix::Vector2f wc_bounds{_param_f34_lvl_high_rad.get(), _param_f34_lvl_high_hgt.get()};
-	const int32_t nmac_latency = _param_f34_lvl_medium_time.get();
-	const int32_t wc_latency = _param_f34_lvl_low_time.get();
+	const matrix::Vector2f nmac_bounds{_param_daa_lvl_critical_rad.get(), _param_daa_lvl_critical_hgt.get()};
+	const matrix::Vector2f wc_bounds{_param_daa_lvl_high_rad.get(), _param_daa_lvl_high_hgt.get()};
+	const int32_t nmac_latency = _param_daa_lvl_medium_time.get();
+	const int32_t wc_latency = _param_daa_lvl_low_time.get();
 
 	const bool nmac_ok = nmac_bounds.isAllFinite() && nmac_bounds.min() >= 0.f;
 	const bool wc_ok = wc_bounds.isAllFinite() && wc_bounds.min() >= 0.f;

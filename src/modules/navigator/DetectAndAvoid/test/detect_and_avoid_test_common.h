@@ -66,12 +66,12 @@ static constexpr uint8_t kDaaConflictLvlCritical = 4;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 /* F3442 default volumes. Set simple bounds */
-static constexpr float kDfltF34LvlCriticalRad = 150.f;
-static constexpr float kDfltF34LvlCriticalHgt = 30.f;
-static constexpr float kDfltF34LvlHighRad = 600.f;
-static constexpr float kDfltF34LvlHighHgt = 80.f;
-static constexpr int kDfltF34LvlMediumTime = 30;
-static constexpr int kDfltF34LvlLowTime = 30;
+static constexpr float kDfltDaaLvlCriticalRad = 150.f;
+static constexpr float kDfltDaaLvlCriticalHgt = 30.f;
+static constexpr float kDfltDaaLvlHighRad = 600.f;
+static constexpr float kDfltDaaLvlHighHgt = 80.f;
+static constexpr int kDfltDaaLvlMediumTime = 30;
+static constexpr int kDfltDaaLvlLowTime = 30;
 
 static constexpr float kDfltDaaDfltVel = 5.f;
 static constexpr int kDfltDaaEnDfltVel = 1;
@@ -213,23 +213,23 @@ public:
 		const float uav_hor_vel = uav_vel.xy().norm();
 
 		/* NMAC */
-		breach_distance.nmac_hor = 2 * kDfltF34LvlCriticalRad;
-		breach_distance.nmac_vert = 2 * kDfltF34LvlCriticalHgt;
+		breach_distance.nmac_hor = 2 * kDfltDaaLvlCriticalRad;
+		breach_distance.nmac_vert = 2 * kDfltDaaLvlCriticalHgt;
 
 		/* WC */
-		breach_distance.wc_hor = 2 * kDfltF34LvlHighRad;
-		breach_distance.wc_vert = 2 * kDfltF34LvlHighHgt;
+		breach_distance.wc_hor = 2 * kDfltDaaLvlHighRad;
+		breach_distance.wc_vert = 2 * kDfltDaaLvlHighHgt;
 
 		/* Aug NMAC */
-		breach_distance.aug_nmac_hor = 2 * kDfltF34LvlCriticalRad + kDfltF34LvlMediumTime * (fabsf(
+		breach_distance.aug_nmac_hor = 2 * kDfltDaaLvlCriticalRad + kDfltDaaLvlMediumTime * (fabsf(
 						       traffic_hor_vel) + fabsf(uav_hor_vel));
-		breach_distance.aug_nmac_vert = 2 * kDfltF34LvlCriticalHgt + kDfltF34LvlMediumTime * (fabsf(
+		breach_distance.aug_nmac_vert = 2 * kDfltDaaLvlCriticalHgt + kDfltDaaLvlMediumTime * (fabsf(
 							kDfltDaaDfltVel) + fabsf(uav_vel(2)));
 
 		/* Aug WC */
-		breach_distance.aug_wc_hor = 2 * kDfltF34LvlHighRad + kDfltF34LvlLowTime * (fabsf(
+		breach_distance.aug_wc_hor = 2 * kDfltDaaLvlHighRad + kDfltDaaLvlLowTime * (fabsf(
 						     traffic_hor_vel) + fabsf(uav_hor_vel));
-		breach_distance.aug_wc_vert = 2 * kDfltF34LvlHighHgt + kDfltF34LvlLowTime * (fabsf(
+		breach_distance.aug_wc_vert = 2 * kDfltDaaLvlHighHgt + kDfltDaaLvlLowTime * (fabsf(
 						      kDfltDaaDfltVel) + fabsf(uav_vel(2)));
 		return breach_distance;
 	}
@@ -438,12 +438,12 @@ public:
 	{
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 		// NMAC: (150, 30), WC: (600, 80), Aug-WC: 30s, Aug-NMAC: 30s
-		param_set(param_handle(px4::params::F34_LVL_CRIT_RAD), &kDfltF34LvlCriticalRad);
-		param_set(param_handle(px4::params::F34_LVL_CRIT_HGT), &kDfltF34LvlCriticalHgt);
-		param_set(param_handle(px4::params::F34_LVL_HIGH_RAD), &kDfltF34LvlHighRad);
-		param_set(param_handle(px4::params::F34_LVL_HIGH_HGT), &kDfltF34LvlHighHgt);
-		param_set(param_handle(px4::params::F34_LVL_MED_TIME), &kDfltF34LvlMediumTime);
-		param_set(param_handle(px4::params::F34_LVL_LOW_TIME), &kDfltF34LvlLowTime);
+		param_set(param_handle(px4::params::DAA_LVL_CRIT_RAD), &kDfltDaaLvlCriticalRad);
+		param_set(param_handle(px4::params::DAA_LVL_CRIT_HGT), &kDfltDaaLvlCriticalHgt);
+		param_set(param_handle(px4::params::DAA_LVL_HIGH_RAD), &kDfltDaaLvlHighRad);
+		param_set(param_handle(px4::params::DAA_LVL_HIGH_HGT), &kDfltDaaLvlHighHgt);
+		param_set(param_handle(px4::params::DAA_LVL_MED_TIME), &kDfltDaaLvlMediumTime);
+		param_set(param_handle(px4::params::DAA_LVL_LOW_TIME), &kDfltDaaLvlLowTime);
 
 		param_set(param_handle(px4::params::DAA_EN_DFLT_VEL), &kDfltDaaEnDfltVel);
 		param_set(param_handle(px4::params::DAA_DFLT_VEL), &kDfltDaaDfltVel);

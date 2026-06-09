@@ -54,7 +54,7 @@ TEST_F(DetectAndAvoidTest, ActivationFailsWithInvalidF3442Params)
 
 	// WHEN: A required F3442 parameter is invalid.
 	const float negative_value = -10;
-	param_set(param_handle(px4::params::F34_LVL_CRIT_RAD), &negative_value);
+	param_set(param_handle(px4::params::DAA_LVL_CRIT_RAD), &negative_value);
 
 	navigator->get_detect_and_avoid()->on_activation();
 
@@ -62,7 +62,7 @@ TEST_F(DetectAndAvoidTest, ActivationFailsWithInvalidF3442Params)
 	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_activated());
 	param_reset_all();
 
-	param_set(param_handle(px4::params::F34_LVL_HIGH_RAD), &negative_value);
+	param_set(param_handle(px4::params::DAA_LVL_HIGH_RAD), &negative_value);
 
 	navigator->get_detect_and_avoid()->on_activation();
 	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_activated());
@@ -153,7 +153,7 @@ TEST_F(DetectAndAvoidTest, FailedActivationPublishesBenignNoConflictOutput)
 	drain_detect_and_avoid_most_urgent_topic();
 
 	const float invalid_critical_radius = -10.f;
-	param_set(param_handle(px4::params::F34_LVL_CRIT_RAD), &invalid_critical_radius);
+	param_set(param_handle(px4::params::DAA_LVL_CRIT_RAD), &invalid_critical_radius);
 
 	// WHEN: Activation is retried with invalid F3442 parameters.
 	navigator->get_detect_and_avoid()->on_activation();

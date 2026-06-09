@@ -106,11 +106,11 @@ private:
 	float _aug_wc_latency_s{33};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::F34_LVL_CRIT_RAD>) _param_f34_lvl_critical_rad,
-		(ParamFloat<px4::params::F34_LVL_CRIT_HGT>) _param_f34_lvl_critical_hgt,
-		(ParamFloat<px4::params::F34_LVL_HIGH_RAD>) _param_f34_lvl_high_rad,
-		(ParamFloat<px4::params::F34_LVL_HIGH_HGT>) _param_f34_lvl_high_hgt,
-		(ParamInt<px4::params::F34_LVL_MED_TIME>) _param_f34_lvl_medium_time,
-		(ParamInt<px4::params::F34_LVL_LOW_TIME>) _param_f34_lvl_low_time
+		(ParamFloat<px4::params::DAA_LVL_CRIT_RAD>) _param_daa_lvl_critical_rad,
+		(ParamFloat<px4::params::DAA_LVL_CRIT_HGT>) _param_daa_lvl_critical_hgt,
+		(ParamFloat<px4::params::DAA_LVL_HIGH_RAD>) _param_daa_lvl_high_rad,
+		(ParamFloat<px4::params::DAA_LVL_HIGH_HGT>) _param_daa_lvl_high_hgt,
+		(ParamInt<px4::params::DAA_LVL_MED_TIME>) _param_daa_lvl_medium_time,
+		(ParamInt<px4::params::DAA_LVL_LOW_TIME>) _param_daa_lvl_low_time
 	)
 };

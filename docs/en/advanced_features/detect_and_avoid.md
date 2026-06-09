@@ -178,7 +178,7 @@ This mode is based on the ASTM F3442/F3442M-23 standard, which defines performan
 
 PX4 places one protective zone around the ownship and an identical zone around each detected aircraft, so the radius and height parameters below are defined _per aircraft_.
 A conflict is raised when the two zones touch, which means the separation that triggers it is the **sum of both zones**.
-For two identical aircraft that is simply twice the configured value, which is why the critical radius defaults to roughly half of the NMAC horizontal distance ([F34_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#F34_LVL_CRIT_RAD) = `77 m`, giving `2 × 77 m ≈ 153 m`).
+For two identical aircraft that is simply twice the configured value, which is why the critical radius defaults to roughly half of the NMAC horizontal distance ([DAA_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_RAD) = `77 m`, giving `2 × 77 m ≈ 153 m`).
 
 #### Conflict Levels
 
@@ -186,12 +186,12 @@ F3442 is evaluated in four severity levels and returns the first breached level 
 
 | Conflict level | Meaning in DAA                | Zone                                                                                                                                                           | Action                                                                         |
 | -------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `CRITICAL`     | Near Mid-Air Collision (NMAC) | [F34_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#F34_LVL_CRIT_RAD), [F34_LVL_CRIT_HGT](../advanced_config/parameter_reference.md#F34_LVL_CRIT_HGT) | [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT) |
-| `HIGH`         | Loss of Well Clear (LoWC)     | [F34_LVL_HIGH_RAD](../advanced_config/parameter_reference.md#F34_LVL_HIGH_RAD), [F34_LVL_HIGH_HGT](../advanced_config/parameter_reference.md#F34_LVL_HIGH_HGT) | [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) |
-| `MEDIUM`       | Augmented NMAC                | NMAC bounds expanded using [F34_LVL_MED_TIME](../advanced_config/parameter_reference.md#F34_LVL_MED_TIME)                                                      | [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   |
-| `LOW`          | Augmented WC                  | WC bounds expanded using [F34_LVL_LOW_TIME](../advanced_config/parameter_reference.md#F34_LVL_LOW_TIME)                                                        | [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   |
+| `CRITICAL`     | Near Mid-Air Collision (NMAC) | [DAA_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_RAD), [DAA_LVL_CRIT_HGT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_HGT) | [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT) |
+| `HIGH`         | Loss of Well Clear (LoWC)     | [DAA_LVL_HIGH_RAD](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_RAD), [DAA_LVL_HIGH_HGT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_HGT) | [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) |
+| `MEDIUM`       | Augmented NMAC                | NMAC bounds expanded using [DAA_LVL_MED_TIME](../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME)                                                      | [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   |
+| `LOW`          | Augmented WC                  | WC bounds expanded using [DAA_LVL_LOW_TIME](../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME)                                                        | [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   |
 
-The check is symmetric and conservative: the augmented `MEDIUM` and `LOW` levels enlarge each aircraft's zone in proportion to its horizontal and vertical speed (scaled by [F34_LVL_MED_TIME](../advanced_config/parameter_reference.md#F34_LVL_MED_TIME) and [F34_LVL_LOW_TIME](../advanced_config/parameter_reference.md#F34_LVL_LOW_TIME)), so faster traffic is flagged earlier.
+The check is symmetric and conservative: the augmented `MEDIUM` and `LOW` levels enlarge each aircraft's zone in proportion to its horizontal and vertical speed (scaled by [DAA_LVL_MED_TIME](../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME) and [DAA_LVL_LOW_TIME](../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME)), so faster traffic is flagged earlier.
 
 ::: details Click here to view the F3442 zone computations
 
@@ -209,12 +209,12 @@ Use the following notation:
 
 Parameter mapping:
 
-- [F34_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#F34_LVL_CRIT_RAD) = $R_{nmac}$
-- [F34_LVL_CRIT_HGT](../advanced_config/parameter_reference.md#F34_LVL_CRIT_HGT) = $H_{nmac}$
-- [F34_LVL_HIGH_RAD](../advanced_config/parameter_reference.md#F34_LVL_HIGH_RAD) = $R_{wc}$
-- [F34_LVL_HIGH_HGT](../advanced_config/parameter_reference.md#F34_LVL_HIGH_HGT) = $H_{wc}$
-- [F34_LVL_MED_TIME](../advanced_config/parameter_reference.md#F34_LVL_MED_TIME) = $t_{med}$
-- [F34_LVL_LOW_TIME](../advanced_config/parameter_reference.md#F34_LVL_LOW_TIME) = $t_{low}$
+- [DAA_LVL_CRIT_RAD](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_RAD) = $R_{nmac}$
+- [DAA_LVL_CRIT_HGT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_HGT) = $H_{nmac}$
+- [DAA_LVL_HIGH_RAD](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_RAD) = $R_{wc}$
+- [DAA_LVL_HIGH_HGT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_HGT) = $H_{wc}$
+- [DAA_LVL_MED_TIME](../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME) = $t_{med}$
+- [DAA_LVL_LOW_TIME](../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME) = $t_{low}$
 
 **CRITICAL: NMAC zone**
 
@@ -470,7 +470,7 @@ DAA also removes conflicts that stop receiving updates after [DAA_TRAFF_TOUT](..
 ## Key Parameters
 
 For the operator-facing setup flow, see [ADS-B/FLARM/UTM Receivers > Configure Traffic Avoidance](../peripherals/adsb_flarm.md#configure-traffic-avoidance).
-On this page, parameters are described where their behavior matters: `NAV_TRAFF_*` in [Crosstrack Mode](#crosstrack-mode), `F34_LVL_*`, `DAA_LVL_*_ACT`, `DAA_EN_DFLT_VEL`, and `DAA_DFLT_VEL` in [F3442 Mode](#f3442-mode), [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE) in [Operator Messages](#operator-messages), [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT) in [Traffic Inputs and Identification](#traffic-inputs-and-identification), and ownship ADS-B identification parameters in the same traffic-input section.
+On this page, parameters are described where their behavior matters: `NAV_TRAFF_*` in [Crosstrack Mode](#crosstrack-mode), `DAA_LVL_*`, `DAA_EN_DFLT_VEL`, and `DAA_DFLT_VEL` in [F3442 Mode](#f3442-mode), [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE) in [Operator Messages](#operator-messages), [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT) in [Traffic Inputs and Identification](#traffic-inputs-and-identification), and ownship ADS-B identification parameters in the same traffic-input section.
 F3442-specific parameters are only present in firmware built with `CONFIG_NAVIGATOR_ADSB_F3442`.
 
 ## Telemetry and Logging

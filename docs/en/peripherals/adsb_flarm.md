@@ -155,18 +155,18 @@ A conflict level is breached when both the horizontal and vertical separation ar
 
 | Item           | Parameters                             | Meaning                                                                                                 |
 | -------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `CRITICAL`     | [F34_LVL_CRIT_RAD], [F34_LVL_CRIT_HGT] | Per-aircraft NMAC base radius and vertical bound.                                                       |
-| `HIGH`         | [F34_LVL_HIGH_RAD], [F34_LVL_HIGH_HGT] | Per-aircraft Well Clear base radius and vertical bound.                                                 |
-| `MEDIUM`       | [F34_LVL_MED_TIME]                     | Expands the NMAC base volume using aircraft speed and the configured time margin.                       |
-| `LOW`          | [F34_LVL_LOW_TIME]                     | Expands the Well Clear base volume using aircraft speed and the configured time margin.                 |
+| `CRITICAL`     | [DAA_LVL_CRIT_RAD], [DAA_LVL_CRIT_HGT] | Per-aircraft NMAC base radius and vertical bound.                                                       |
+| `HIGH`         | [DAA_LVL_HIGH_RAD], [DAA_LVL_HIGH_HGT] | Per-aircraft Well Clear base radius and vertical bound.                                                 |
+| `MEDIUM`       | [DAA_LVL_MED_TIME]                     | Expands the NMAC base volume using aircraft speed and the configured time margin.                       |
+| `LOW`          | [DAA_LVL_LOW_TIME]                     | Expands the Well Clear base volume using aircraft speed and the configured time margin.                 |
 | Velocity input | [DAA_EN_DFLT_VEL], [DAA_DFLT_VEL]      | Optional fallback vertical speed used by F3442 if traffic velocity is missing or should not be trusted. |
 
-[F34_LVL_CRIT_RAD]: ../advanced_config/parameter_reference.md#F34_LVL_CRIT_RAD
-[F34_LVL_CRIT_HGT]: ../advanced_config/parameter_reference.md#F34_LVL_CRIT_HGT
-[F34_LVL_HIGH_RAD]: ../advanced_config/parameter_reference.md#F34_LVL_HIGH_RAD
-[F34_LVL_HIGH_HGT]: ../advanced_config/parameter_reference.md#F34_LVL_HIGH_HGT
-[F34_LVL_MED_TIME]: ../advanced_config/parameter_reference.md#F34_LVL_MED_TIME
-[F34_LVL_LOW_TIME]: ../advanced_config/parameter_reference.md#F34_LVL_LOW_TIME
+[DAA_LVL_CRIT_RAD]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_RAD
+[DAA_LVL_CRIT_HGT]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_HGT
+[DAA_LVL_HIGH_RAD]: ../advanced_config/parameter_reference.md#DAA_LVL_HIGH_RAD
+[DAA_LVL_HIGH_HGT]: ../advanced_config/parameter_reference.md#DAA_LVL_HIGH_HGT
+[DAA_LVL_MED_TIME]: ../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME
+[DAA_LVL_LOW_TIME]: ../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME
 [DAA_EN_DFLT_VEL]: ../advanced_config/parameter_reference.md#DAA_EN_DFLT_VEL
 [DAA_DFLT_VEL]: ../advanced_config/parameter_reference.md#DAA_DFLT_VEL
 
