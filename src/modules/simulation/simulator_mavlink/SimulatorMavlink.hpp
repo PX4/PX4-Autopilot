@@ -200,7 +200,10 @@ private:
 	};
 
 	static constexpr uint8_t BARO_COUNT_MAX = 2;
-	PX4Barometer _px4_baro[BARO_COUNT_MAX];
+	PX4Barometer _px4_baro[BARO_COUNT_MAX] {
+		{6620172}, // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+	};
 
 	float _sensors_temperature{0};
 

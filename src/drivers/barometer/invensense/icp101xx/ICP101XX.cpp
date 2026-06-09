@@ -37,7 +37,8 @@ using namespace time_literals;
 
 ICP101XX::ICP101XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config)
+	I2CSPIDriver(config),
+	_px4_baro{get_device_id()}
 {
 }
 
@@ -237,7 +238,6 @@ ICP101XX::RunImpl()
 				float pressure = _pressure_Pa;
 
 				// publish
-				_px4_baro.set_device_id(get_device_id());
 				_px4_baro.set_error_count(perf_event_count(_bad_transfer_perf));
 				_px4_baro.set_temperature(temperature);
 				_px4_baro.update(now, pressure);

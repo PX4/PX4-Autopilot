@@ -52,7 +52,6 @@ GZBridge::GZBridge(const std::string &world, const std::string &model_name) :
 	_model_name(model_name)
 {
 	updateParams();
-	_px4_baro.set_device_id(6619404); // 6619404: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 }
 
 GZBridge::~GZBridge()
@@ -401,7 +400,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 
 void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
-	_px4_baro.set_temperature(_temperature);
+	_px4_baro.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
 	_px4_baro.update(hrt_absolute_time(), msg.pressure());
 }
 

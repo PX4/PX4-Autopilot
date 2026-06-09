@@ -82,7 +82,7 @@ private:
 
 	hrt_abstime _last_update_time{0};
 
-	PX4Barometer _px4_baro;
+	PX4Barometer _px4_baro{6620172}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

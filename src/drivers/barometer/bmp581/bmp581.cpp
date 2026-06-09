@@ -36,6 +36,7 @@
 
 BMP581::BMP581(const I2CSPIDriverConfig &config, IBMP581 *interface) :
 	I2CSPIDriver(config),
+	_px4_baro{interface->get_device_id()},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
@@ -157,7 +158,6 @@ int BMP581::collect()
 	}
 
 	//publish
-	_px4_baro.set_device_id(_interface->get_device_id());
 	_px4_baro.set_error_count(perf_event_count(_comms_errors));
 	_px4_baro.set_temperature(data.temperature);
 	_px4_baro.update(timestamp_sample, data.pressure);

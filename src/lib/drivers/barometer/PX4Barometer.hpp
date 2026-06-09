@@ -42,7 +42,7 @@
 class PX4Barometer
 {
 public:
-	PX4Barometer();
+	PX4Barometer(uint32_t device_id);
 
 	void set_device_id(uint32_t device_id) { _report.device_id = device_id; }
 	void set_error_count(uint32_t error_count) { _report.error_count = error_count; }

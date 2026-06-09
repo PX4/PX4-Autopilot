@@ -45,6 +45,7 @@
 
 TCBP001TA::TCBP001TA(tcbp001ta::ITCBP001TA *interface) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
+	_px4_baro{interface->get_device_id()},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
@@ -251,7 +252,6 @@ TCBP001TA::collect()
 			Praw_sc * Praw_sc * (_fcal.c11 + Praw_sc * _fcal.c21);
 
 	// publish
-	_px4_baro.set_device_id(_interface->get_device_id());
 	_px4_baro.set_error_count(perf_event_count(_comms_errors));
 	_px4_baro.set_temperature(T);
 	_px4_baro.update(timestamp_sample, P);

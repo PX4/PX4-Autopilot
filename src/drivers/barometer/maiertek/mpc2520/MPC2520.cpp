@@ -44,7 +44,8 @@ static constexpr int32_t combine(uint8_t h, uint8_t m, uint8_t l)
 
 MPC2520::MPC2520(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config)
+	I2CSPIDriver(config),
+	_px4_baro{get_device_id()}
 {
 	//_debug_enabled = true;
 }
@@ -243,7 +244,6 @@ void MPC2520::RunImpl()
 					      Traw_sc * Praw_sc * (_prom.c11 + Praw_sc * _prom.c21);
 
 				// publish
-				_px4_baro.set_device_id(get_device_id());
 				_px4_baro.set_error_count(perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_register_perf));
 				_px4_baro.set_temperature(Tcomp);
 				_px4_baro.update(now, Pcomp);

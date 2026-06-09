@@ -96,9 +96,6 @@ SimulatorMavlink::SimulatorMavlink() :
 		param_get(param_find(param_name), &_output_functions[i]);
 	}
 
-	_px4_baro[0].set_device_id(6620172); // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-	_px4_baro[1].set_device_id(6620428); // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
-
 	_esc_status_pub.advertise();
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_fiducial_marker_pos_report_pub.advertise();

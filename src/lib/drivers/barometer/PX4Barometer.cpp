@@ -34,8 +34,9 @@
 
 #include "PX4Barometer.hpp"
 
-PX4Barometer::PX4Barometer()
+PX4Barometer::PX4Barometer(uint32_t device_id)
 {
+	_report.device_id = device_id;
 	_report.temperature = NAN; // if no temperature is set, report NaN to indicate invalid data
 }
 

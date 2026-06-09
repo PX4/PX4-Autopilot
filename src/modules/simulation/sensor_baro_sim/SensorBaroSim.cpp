@@ -44,7 +44,6 @@ SensorBaroSim::SensorBaroSim() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	srand(1234); // initialize the random seed once before calling generate_wgn()
-	_px4_baro.set_device_id(6620172); // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 }
 
 SensorBaroSim::~SensorBaroSim()
