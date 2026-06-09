@@ -47,3 +47,4 @@ add_custom_target(upload_skynode_wifi
 	COMMENT "Uploading PX4"
 	USES_TERMINAL
 )
+

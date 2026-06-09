@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file init.cpp
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
@@ -144,13 +144,8 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
-	/*
-	 * On resets invoked from system (not boot) ensure we establish a low
-	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
-	 * spinning up the motors.
-	 */
 	if (status >= 0) {
-		up_mdelay(100);
+		up_mdelay(6);
 	}
 }
 
@@ -164,7 +159,7 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-extern "C" __EXPORT void
+__EXPORT void
 stm32_boardinitialize(void)
 {
 	board_on_reset(-1); /* Reset PWM first thing */
@@ -172,6 +167,14 @@ stm32_boardinitialize(void)
 	/* configure LEDs */
 
 	board_autoled_initialize();
+
+	/* Configure SYSCFG analog switch for ADC (PC2_C, PC3_C)
+	 * SYSCFG_PMCR register offset 0x04 from SYSCFG_BASE
+	 * Bits 27-24: PA0SO, PA1SO, PC2SO, PC3SO = 0
+	 * (analog switch closed, pads connected to ADC)
+	 */
+	#define STM32_SYSCFG_PMCR (STM32_SYSCFG_BASE + 0x04)
+	modifyreg32(STM32_SYSCFG_PMCR, 0x0F000000, 0);
 
 	/* configure pins */
 

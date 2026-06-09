@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
- *   Copyright (C) 2025 Lectron. All rights reserved.
+ *   Copyright (c) 2025 Lectron FMU-V6X. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,7 +10,8 @@
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
- *    the distribution.
+ *    the documentation and/or other materials provided with the
+ *    distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -32,23 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file i2c.cpp
- * 
- * Lectron FMU-V6X I2C Configuration
- * 
- * Hardware Configuration:
- * - I2C1, I2C2, I2C3: External expansion buses
- * - I2C4 (PF14/PF15): Internal bus with multiple sensors
- *   * BMP390 (Barometer)
- *   * BMM350 (Magnetometer)
- *   * 24LC64T (EEPROM)
+ * @file board_hw_info.c
+ *
+ * Lectron FMU-V6X Hardware Configuration
+ * - Fixed hardware revision and version (V6X000)
+ * - Custom sensor configuration for Lectron hardware
  */
 
-#include <px4_arch/i2c_hw_description.h>
+#include <px4_platform_common/px4_config.h>
+#include <syslog.h>
+#include "board_config.h"
 
-constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-initI2CBusExternal(1),
-initI2CBusExternal(2),
-initI2CBusExternal(3),
-initI2CBusInternal(4),  // Internal bus: BMP390, BMM350, 24LC64T
-};
+#define MODULE_NAME "board_hw"
+
+static int hw_version = 0;  // V6X000
+static int hw_revision = 0;
+static char hw_type_name[] = "V6X000";  // Lectron FMU-V6X
+
+__EXPORT int board_determine_hw_info(void)
+{
+	syslog(LOG_INFO, "[board_hw] Lectron FMU-V6X: Hardware fixed to V6X000\n");
+	return 0; // Success
+}
+
+__EXPORT const char *board_get_hw_type_name(void)
+{
+	return hw_type_name;
+}
+
+__EXPORT int board_get_hw_version(void)
+{
+	return hw_version;
+}
+
+__EXPORT int board_get_hw_revision(void)
+{
+	return hw_revision;
+}
+
+__EXPORT const char *board_get_hw_base_type_name(void)
+{
+	return "LECTRONV6X";
+}
