@@ -74,102 +74,13 @@ static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1224 * 2);
 SerialPassthrough *SerialPassthrough::_instances[SP_MAX_INSTANCES] {};
 pthread_mutex_t    SerialPassthrough::_instances_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// ---------------------------------------------------------------------------
-// Instance registry
-// ---------------------------------------------------------------------------
-
-bool SerialPassthrough::register_instance(uint8_t device_id)
-{
-	pthread_mutex_lock(&_instances_mutex);
-
-	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
-		if (_instances[i] == nullptr) {
-			_instances[i] = this;
-			_registered_device_id = device_id;
-			pthread_mutex_unlock(&_instances_mutex);
-			return true;
-		}
-	}
-
-	pthread_mutex_unlock(&_instances_mutex);
-	return false;
-}
-
-void SerialPassthrough::unregister_instance()
-{
-	pthread_mutex_lock(&_instances_mutex);
-
-	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
-		if (_instances[i] == this) {
-			_instances[i] = nullptr;
-			break;
-		}
-	}
-
-	pthread_mutex_unlock(&_instances_mutex);
-}
-
-SerialPassthrough *SerialPassthrough::get_instance_by_index(int index)
-{
-	if (index < 0 || index >= SP_MAX_INSTANCES) { return nullptr; }
-
-	pthread_mutex_lock(&_instances_mutex);
-	SerialPassthrough *inst = _instances[index];
-	pthread_mutex_unlock(&_instances_mutex);
-	return inst;
-}
-
-SerialPassthrough *SerialPassthrough::get_instance_for_device(uint8_t device_id)
-{
-	pthread_mutex_lock(&_instances_mutex);
-
-	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
-		if (_instances[i] && _instances[i]->_registered_device_id == device_id) {
-			SerialPassthrough *inst = _instances[i];
-			pthread_mutex_unlock(&_instances_mutex);
-			return inst;
-		}
-	}
-
-	pthread_mutex_unlock(&_instances_mutex);
-	return nullptr;
-}
-
-void SerialPassthrough::stop_for_device(uint8_t device_id)
-{
-	pthread_mutex_lock(&_instances_mutex);
-
-	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
-		if (_instances[i] && _instances[i]->_registered_device_id == device_id) {
-			_instances[i]->request_stop();
-			pthread_mutex_unlock(&_instances_mutex);
-			return;
-		}
-	}
-
-	pthread_mutex_unlock(&_instances_mutex);
-}
-
-void SerialPassthrough::stop_all()
-{
-	pthread_mutex_lock(&_instances_mutex);
-
-	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
-		if (_instances[i]) {
-			_instances[i]->request_stop();
-		}
-	}
-
-	pthread_mutex_unlock(&_instances_mutex);
-}
-
 SerialPassthrough::SerialPassthrough(const char *device_path, unsigned baudrate,
 				     bool swap_rxtx, bool single_wire, int esc_channel) :
 	_serial_port(device_path, baudrate,
-		     ByteSize::EightBits,
-		     Parity::None,
-		     StopBits::One,
-		     FlowControl::Disabled),
+		ByteSize::EightBits,
+		Parity::None,
+		StopBits::One,
+		FlowControl::Disabled),
 	_baudrate(baudrate),
 	_swap_rxtx(swap_rxtx),
 	_single_wire(single_wire),
@@ -192,69 +103,6 @@ SerialPassthrough::~SerialPassthrough()
 	pthread_mutex_destroy(&_rx_mutex);
 	pthread_mutex_destroy(&_tx_mutex);
 	pthread_mutex_destroy(&_meta_mutex);
-}
-
-void SerialPassthrough::pushFromMavlink(const uint8_t *data, size_t len,
-					uint8_t sysid, uint8_t compid, uint8_t device,
-					uint8_t channel)
-{
-	// Store reply metadata
-	pthread_mutex_lock(&_meta_mutex);
-	_target_sysid  = sysid;
-	_target_compid = compid;
-	_device_id     = device;
-	_tx_channel    = channel;
-	pthread_mutex_unlock(&_meta_mutex);
-
-	if (len == 0) {
-		return;
-	}
-
-	pthread_mutex_lock(&_rx_mutex);
-	size_t space   = SP_BUF_SIZE - _rx_len;
-	size_t to_copy = (len < space) ? len : space;
-
-	if (to_copy < len) {
-		PX4_WARN("serialpassthrough: rx buffer overflow, dropping %zu bytes", len - to_copy);
-	}
-
-	memcpy(_rx_buf + _rx_len, data, to_copy);
-	_rx_len += to_copy;
-	pthread_mutex_unlock(&_rx_mutex);
-}
-
-size_t SerialPassthrough::popToMavlink(uint8_t *buf, size_t max_len,
-				       uint8_t *out_sysid, uint8_t *out_compid, uint8_t *out_device,
-				       uint8_t channel)
-{
-	pthread_mutex_lock(&_meta_mutex);
-	uint8_t tx_channel = _tx_channel;
-	*out_sysid  = _target_sysid;
-	*out_compid = _target_compid;
-	*out_device = _device_id;
-	pthread_mutex_unlock(&_meta_mutex);
-
-	// Only the channel that received the request should send the reply
-	if (channel != tx_channel) {
-		PX4_DEBUG("popToMavlink: channel %u != tx_channel %u, skipping", channel, tx_channel);
-		return 0;
-	}
-
-	pthread_mutex_lock(&_tx_mutex);
-	size_t to_copy = (_tx_len < max_len) ? _tx_len : max_len;
-
-	if (to_copy > 0) {
-
-		memcpy(buf, _tx_buf, to_copy);
-		_tx_len -= to_copy;
-
-		if (_tx_len > 0) {
-			memmove(_tx_buf, _tx_buf + to_copy, _tx_len);
-		}
-	}
-
-	pthread_mutex_unlock(&_tx_mutex);
-	return to_copy;
 }
 
 void SerialPassthrough::run()
@@ -417,6 +265,69 @@ int SerialPassthrough::run_trampoline(int argc, char *argv[])
 	return 0;
 }
 
+void SerialPassthrough::pushFromMavlink(const uint8_t *data, size_t len,
+					uint8_t sysid, uint8_t compid, uint8_t device,
+					uint8_t channel)
+{
+	// Store reply metadata
+	pthread_mutex_lock(&_meta_mutex);
+	_target_sysid  = sysid;
+	_target_compid = compid;
+	_device_id     = device;
+	_tx_channel    = channel;
+	pthread_mutex_unlock(&_meta_mutex);
+
+	if (len == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_rx_mutex);
+	size_t space   = SP_BUF_SIZE - _rx_len;
+	size_t to_copy = (len < space) ? len : space;
+
+	if (to_copy < len) {
+		PX4_WARN("serialpassthrough: rx buffer overflow, dropping %zu bytes", len - to_copy);
+	}
+
+	memcpy(_rx_buf + _rx_len, data, to_copy);
+	_rx_len += to_copy;
+	pthread_mutex_unlock(&_rx_mutex);
+}
+
+size_t SerialPassthrough::popToMavlink(uint8_t *buf, size_t max_len,
+				       uint8_t *out_sysid, uint8_t *out_compid, uint8_t *out_device,
+				       uint8_t channel)
+{
+	pthread_mutex_lock(&_meta_mutex);
+	uint8_t tx_channel = _tx_channel;
+	*out_sysid  = _target_sysid;
+	*out_compid = _target_compid;
+	*out_device = _device_id;
+	pthread_mutex_unlock(&_meta_mutex);
+
+	// Only the channel that received the request should send the reply
+	if (channel != tx_channel) {
+		PX4_DEBUG("popToMavlink: channel %u != tx_channel %u, skipping", channel, tx_channel);
+		return 0;
+	}
+
+	pthread_mutex_lock(&_tx_mutex);
+	size_t to_copy = (_tx_len < max_len) ? _tx_len : max_len;
+
+	if (to_copy > 0) {
+
+		memcpy(buf, _tx_buf, to_copy);
+		_tx_len -= to_copy;
+
+		if (_tx_len > 0) {
+			memmove(_tx_buf, _tx_buf + to_copy, _tx_len);
+		}
+	}
+
+	pthread_mutex_unlock(&_tx_mutex);
+	return to_copy;
+}
+
 int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 {
 	// Map device_id to device path and options
@@ -523,6 +434,95 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 	argv_buf[argc] = nullptr;
 
 	return task_spawn(argc, (char **)argv_buf);
+}
+
+// ---------------------------------------------------------------------------
+// Instance registry
+// ---------------------------------------------------------------------------
+
+bool SerialPassthrough::register_instance(uint8_t device_id)
+{
+	pthread_mutex_lock(&_instances_mutex);
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		if (_instances[i] == nullptr) {
+			_instances[i] = this;
+			_registered_device_id = device_id;
+			pthread_mutex_unlock(&_instances_mutex);
+			return true;
+		}
+	}
+
+	pthread_mutex_unlock(&_instances_mutex);
+	return false;
+}
+
+void SerialPassthrough::unregister_instance()
+{
+	pthread_mutex_lock(&_instances_mutex);
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		if (_instances[i] == this) {
+			_instances[i] = nullptr;
+			break;
+		}
+	}
+
+	pthread_mutex_unlock(&_instances_mutex);
+}
+
+SerialPassthrough *SerialPassthrough::get_instance_by_index(int index)
+{
+	if (index < 0 || index >= SP_MAX_INSTANCES) { return nullptr; }
+
+	pthread_mutex_lock(&_instances_mutex);
+	SerialPassthrough *inst = _instances[index];
+	pthread_mutex_unlock(&_instances_mutex);
+	return inst;
+}
+
+SerialPassthrough *SerialPassthrough::get_instance_for_device(uint8_t device_id)
+{
+	pthread_mutex_lock(&_instances_mutex);
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		if (_instances[i] && _instances[i]->_registered_device_id == device_id) {
+			SerialPassthrough *inst = _instances[i];
+			pthread_mutex_unlock(&_instances_mutex);
+			return inst;
+		}
+	}
+
+	pthread_mutex_unlock(&_instances_mutex);
+	return nullptr;
+}
+
+void SerialPassthrough::stop_for_device(uint8_t device_id)
+{
+	pthread_mutex_lock(&_instances_mutex);
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		if (_instances[i] && _instances[i]->_registered_device_id == device_id) {
+			_instances[i]->request_stop();
+			pthread_mutex_unlock(&_instances_mutex);
+			return;
+		}
+	}
+
+	pthread_mutex_unlock(&_instances_mutex);
+}
+
+void SerialPassthrough::stop_all()
+{
+	pthread_mutex_lock(&_instances_mutex);
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		if (_instances[i]) {
+			_instances[i]->request_stop();
+		}
+	}
+
+	pthread_mutex_unlock(&_instances_mutex);
 }
 
 int SerialPassthrough::task_spawn(int argc, char *argv[])
