@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# Mavlink ethernet (CFG 1000)
+param set-default MAV_2_CONFIG 1000
+param set-default MAV_2_BROADCAST 1
+param set-default MAV_2_MODE 0
+param set-default MAV_2_RADIO_CTL 0
+param set-default MAV_2_RATE 100000
+param set-default MAV_2_REMOTE_PRT 14550
+param set-default MAV_2_UDP_PRT 14550
+
+# By disabling all 3 INA modules, we use the
+# i2c_launcher instead.
+param set-default SENS_EN_INA238 1
+param set-default SENS_EN_INA228 0
+param set-default SENS_EN_INA226 0
+
+if ver hwbasecmp 009 010 011
+then
+	# Skynode: use the "custom participant" config for uxrce_dds_client
+	param set-default UXRCE_DDS_PTCFG 2
+fi
+
+# Enable UAVCAN on CAN1 and CAN2
+param set-default UAVCAN_ENABLE 3
+
+# Battery Configuration (Lectron PI5-Autopilot)
+# PC3_C (ADC1_CH13 via SYSCFG mapping): Voltage divider 28V -> 3V (ratio: 9.333)
+# Measured: 24.14V -> 2.58V ADC (validation: 24.14/9.333=2.586V)
+# Note: Using 'param set' (not set-default) to override any previously saved wrong values
+param set BAT1_SOURCE 0                 # 0=POWER_MODULE (analog ADC), 1=EXTERNAL (I2C/CAN), 2=ESCS
+param set-default BAT1_V_DIV 9.333
+param set-default BAT1_V_CHANNEL 13
+param set-default BAT1_A_PER_V 0.0
+param set-default BAT1_I_CHANNEL -1
+
+# IMU Heater Configuration (Lectron PI5-Autopilot)
+# Target: ICM-42670P on SPI1 (Primary IMU)
+param set-default SENS_EN_THERMAL 1
+param set-default SENS_TEMP_ID 3604506
+param set-default SENS_IMU_TEMP 50.0
+param set-default SENS_IMU_TEMP_P 2.0       # Proportional gain (default: 1.0)
+param set-default SENS_IMU_TEMP_I 0.05     # Integral gain (default: 0.025)
+param set-default SENS_IMU_TEMP_FF 0.1     # Feedforward (default: 0.05)
+
+safety_button start

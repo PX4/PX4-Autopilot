@@ -184,7 +184,9 @@
 #define ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL     /* PB0  */  ADC1_CH(9)
 #define ADC_SCALED_V5_CHANNEL                   /* PB1  */  ADC1_CH(5)
 #define ADC_ADC3_6V6_CHANNEL                    /* PC2  */  ADC3_CH(12)
-#define ADC_ADC3_3V3_CHANNEL                    /* PC3  */  ADC3_CH(13)
+#define ADC_BATTERY1_VOLTAGE_CHANNEL            /* PC3  */  ADC1_CH(13)  /* PC3_C mapped to ADC1 via SYSCFG */
+#define ADC_BATTERY_VOLTAGE_CHANNEL             ADC_BATTERY1_VOLTAGE_CHANNEL  /* Alias for board_common.h */
+#define ADC_BATTERY_CURRENT_CHANNEL             -1  /* No current sensing */
 #define ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL     /* PF12 */  ADC1_CH(6)
 #define ADC_HW_VER_SENSE_CHANNEL                /* PH3  */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PH4  */  ADC3_CH(15)
@@ -195,8 +197,8 @@
 	 (1 << ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL) | \
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_ADC3_6V6_CHANNEL)                | \
-	 (1 << ADC_ADC3_3V3_CHANNEL))               | \
-	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL)
+	 (1 << ADC_BATTERY1_VOLTAGE_CHANNEL)        | \
+	 (1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
@@ -207,6 +209,13 @@
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
+/* Battery Configuration
+ * 1 Battery brick: Voltage divider on PC3_C (ADC3_CH13)
+ * Voltage divider: 28V -> 3V (ratio: 9.333)
+ * No current sensing on this board
+ * BOARD_BATT_V_LIST and BOARD_BATT_I_LIST are auto-defined by board_common.h
+ */
+
 /* HW Version and Revision drive signals Default to 1 to detect */
 #define BOARD_HAS_HW_SPLIT_VERSIONING
 
@@ -215,7 +224,7 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "V6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 7
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
 //                 Base/FMUM
 #define V6X_0     HW_FMUM_ID(0x0)   // FMUV6X, Auterion,HB  Sensor Set Rev 0
 #define V6X_1     HW_FMUM_ID(0x1)   // FMUV6X, CUAV Sensor Set Rev 1
@@ -230,6 +239,11 @@
 /* HEATER
  * PWM in future
  */
+#define HEATER_NUM 1
+#define GPIO_HEATER1_OUTPUT  /* PB10  T2CH3 */ \
+    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
+#define HEATER1_OUTPUT_EN(on_true) \
+    px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 #define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
 #define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
@@ -258,8 +272,8 @@
 
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
-#define BOARD_NUMBER_DIGITAL_BRICKS     2
+#define BOARD_NUMBER_BRICKS             1
+#define BOARD_NUMBER_DIGITAL_BRICKS     0
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_VDD_5V_PERIPH_nEN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
@@ -318,11 +332,10 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-/* Some RC protocols are bi-directional, therefore we need a half-duplex UART */
+/* RC Serial port */
+
+#define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define RC_SERIAL_SINGLEWIRE
-/* The STM32 UART by default wires half-duplex mode to the TX pin, but our
- * signal in routed to the RX pin, so we need to swap the pins */
-#define RC_SERIAL_SWAP_RXTX
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
@@ -413,6 +426,9 @@
 #else
 #  error Unsupported BOARD_HAS_LTC44XX_VALIDS value
 #endif
+
+/* Lectron FMU-V6X has only 1 brick, alias BOARD_ADC_BRICK_VALID for board_common.h */
+#define BOARD_ADC_BRICK_VALID  BOARD_ADC_BRICK1_VALID
 
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_nOC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_nOC))
