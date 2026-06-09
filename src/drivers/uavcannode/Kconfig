@@ -26,6 +26,10 @@ if DRIVERS_UAVCANNODE
         bool "Include ESC status"
         default n
 
+    config UAVCANNODE_FILE_CLIENT
+        bool "Include generic file-read client (firmware/config pull over uORB)"
+        default n
+
     config UAVCANNODE_FLOW_MEASUREMENT
         bool "Include flow measurement"
         default n

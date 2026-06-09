@@ -1,0 +1,9 @@
+menuconfig DRIVERS_GNSS_UBLOX
+	bool "u-blox GNSS receivers"
+	default n
+	---help---
+		Enable support for a dedicated, self-contained u-blox GNSS driver.
+
+		Unlike the generic "gps" driver, this driver vendors the UBX protocol
+		parser in-tree (no PX4-GPSDrivers submodule) and only supports u-blox
+		receivers. It is the basis for firmware-update-over-CAN on cannodes.

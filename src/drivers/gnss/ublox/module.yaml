@@ -1,0 +1,9 @@
+module_name: ublox
+
+serial_config:
+    - command: ublox start -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
+      port_config_param:
+        name: GPS_1_CONFIG
+        group: GPS
+        default: GPS1
+      label: Main GPS

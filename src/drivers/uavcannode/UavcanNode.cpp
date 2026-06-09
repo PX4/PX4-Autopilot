@@ -132,6 +132,10 @@ extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
 #include "Subscribers/HardpointCommand.hpp"
 #endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
 
+#if defined(CONFIG_UAVCANNODE_FILE_CLIENT)
+#include "Publishers/FileReadClient.hpp"
+#endif // CONFIG_UAVCANNODE_FILE_CLIENT
+
 using namespace time_literals;
 
 namespace uavcannode
@@ -499,6 +503,11 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
 	_subscriber_list.add(new HardpointCommand(_node));
 #endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_FILE_CLIENT)
+	// Driven via BroadcastAnyUpdates() (issues service calls); registered as a publisher.
+	_publisher_list.add(new FileReadClient(this, _node));
+#endif // CONFIG_UAVCANNODE_FILE_CLIENT
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

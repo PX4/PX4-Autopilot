@@ -135,22 +135,26 @@ Per-chunk cost = two thread handoffs + a CAN RTT; ~4096 chunks for a 1 MB image 
 
 ## Staging
 
-### Stage 1 — de-submodule + u-blox-only driver (behavior-preserving, no FW)
+### Stage 1 — de-submodule + u-blox-only driver (behavior-preserving, no FW) — ✅ DONE
+*Result:* cannode builds clean; flash 358893 B (78.23%) vs gps baseline 360325 B (78.54%) → **−1432 B** (dropped dual-instance/SPI/auto-detect + `crc.cpp`); UBX parser vendored byte-for-byte; all files pass `check_code_style`. Only edit to vendored code: `gps_helper.h` `GPS_DEFINITIONS_HEADER` default `"../../definitions.h"` → `"definitions.h"` (flat layout).
+
 1. Create `src/drivers/gnss/ublox/`; vendor `ubx.cpp/.h`, `gps_helper.{h,cpp}`, `base_station.h`, `rtcm.{cpp,h}` (the `RTCMParsing` one), `definitions.h`. Drop `crc.*` (ubx doesn't use it) and all non-ublox parsers.
 2. Write `ublox.cpp` = `gps.cpp` pruned to UBX-only: remove `gps_driver_mode_t`, the auto-detect loop, the `#ifndef CONSTRAINED_FLASH` device branches; keep the `callback()` glue, RTCM injection (`gnss::Rtcm3Parser`, `DEPENDS gnss`), publishers, all `GPS_UBX_*` params, board detection, reset. Single-instance; module `MAIN ublox`.
 3. `CMakeLists.txt` / `Kconfig` (`DRIVERS_GNSS_UBLOX`) / `module.yaml` / `params.yaml` modeled on `gnss/septentrio/`. No `px4_add_git_submodule`.
 4. Cannode wiring: `boards/ark/can-rtk-gps/default.px4board` `DRIVERS_GPS` → `DRIVERS_GNSS_UBLOX`; `init/rc.board_sensors` `gps start -d /dev/ttyS0 -p ubx` → `ublox start -d /dev/ttyS0`.
 5. Checkpoint: `make ark_can-rtk-gps_default`; verify nav parity + flash size.
 
-### Stage 2a — generic file-read pipe + helper + u-blox stub (literal path)
-1. New uORB msgs for the Layer-1 request/response topics (register in `msg/CMakeLists.txt`).
-2. Generic file-read client endpoint in `uavcannode` + Kconfig gate. Migrate the Teseo `ServiceClient` logic here (simplified). GetInfo + Read.
-3. `src/lib/module_fw_update/` helper (choreography + virtual interface).
-4. `UbloxFirmwareUpdater` stub; wire the driver's `fw_update` command + FW-mode loop driving the helper.
-5. Checkpoint: drop a dummy binary on the FC at a literal path, run the trigger, watch GetInfo→Read→stub-write→DONE end to end.
+### Stage 2a — generic file-read pipe + helper + u-blox stub (literal path) — ✅ code-complete (builds clean; runtime test pending HW)
+*Result:* cannode builds clean; flash 366733 B (79.94%), +7.8 KB over Stage 1; all new files pass `check_code_style`. Naming choices made: topics `DronecanFileReadRequest`/`DronecanFileReadResponse` (vendor-neutral per D5); Kconfig gate `UAVCANNODE_FILE_CLIENT` (on for the cannode); helper lib target `module_fw_update`; trigger `ublox fw_update <node_id> [path]` (default path `ublox.bin`); O2 "no update" code = `ERROR_NO_UPDATE=1000`; O4 left open (driver supplies `server_node_id`, 0 rejected). Request path `char[128]` (DroneCAN Path cap is 200). Per-chunk latency is CAN-RTT-bound (uavcannode WQ 10 ms tick + armed uORB callback; driver blocks on `SubscriptionBlocking`).
 
-### Stage 2b — version gating
-1. FC resolver shim over `BasicFileServerBackend` (part-keyed + board override; highest-version match; "no update" error).
+1. New uORB msgs for the Layer-1 request/response topics (register in `msg/CMakeLists.txt`). — ✅ `msg/DronecanFileRead{Request,Response}.msg`
+2. Generic file-read client endpoint in `uavcannode` + Kconfig gate. Migrate the Teseo `ServiceClient` logic here (simplified). GetInfo + Read. — ✅ `uavcannode/Publishers/FileReadClient.hpp` (registered in `_publisher_list`; `ServiceClient<GetInfo>`+`<Read>`; cb publishes response; advertises response topic early)
+3. `src/lib/module_fw_update/` helper (choreography + virtual interface). — ✅ `ModuleFirmwareUpdater` (GetInfo→Read loop→write; session/offset match; 1.5 s × 3 retry; `FirmwareWriter` iface begin/writeChunk/finish/abort)
+4. `UbloxFirmwareUpdater` stub; wire the driver's `fw_update` command + FW-mode loop driving the helper. — ✅ stub (checksum+account); driver breaks nav loop on request, runs helper on its thread (also runs if configure failed → bricked-module recovery)
+5. Checkpoint: drop a dummy binary on the FC at a literal path, run the trigger, watch GetInfo→Read→stub-write→DONE end to end. — ⏳ **needs HW/CAN-SITL** (two nodes + FC file server); no FC-side change required for literal paths.
+
+### Stage 2b — version gating — ⛔ blocked on O1 (version-token comparison rule is Jake's to define)
+1. FC resolver shim over `BasicFileServerBackend` (part-keyed + board override; highest-version match; "no update" error). *Resolver framework can be built now; the highest-version comparison needs O1. "no update" error already reserved as `ERROR_NO_UPDATE=1000`.*
 2. Sentinels `@0` / `@force`; driver builds the version-gated path from MON-VER.
 3. Boot-time auto-check (one GetInfo).
 4. Remove the Teseo prototype (`src/drivers/teseo_fw_proxy/`, its board config + Kconfig).

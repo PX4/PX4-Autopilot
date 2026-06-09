@@ -67,6 +67,8 @@ set(msg_files
 	DifferentialPressure.msg
 	DistanceSensor.msg
 	DistanceSensorModeChangeRequest.msg
+	DronecanFileReadRequest.msg
+	DronecanFileReadResponse.msg
 	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
 	EscEepromRead.msg
