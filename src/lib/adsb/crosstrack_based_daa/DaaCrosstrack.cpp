@@ -93,7 +93,6 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 	waypoint_from_heading_and_distance(traffic_state.lat_lon(0), traffic_state.lat_lon(1),
 					   traffic_state.heading, prediction_distance, &end_lat, &end_lon);
 
-	// TODO: this info should be returned as well
 	crosstrack_error_s crosstrack_error{};
 	const bool line_distance_valid = !get_distance_to_line(crosstrack_error, uav_state.lat_lon(0),
 					 uav_state.lat_lon(1), traffic_state.lat_lon(0),
