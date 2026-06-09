@@ -40,7 +40,7 @@
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 #include "f3442_standard/DaaF3442.h"
 #else
-#include "crosstrack_based_daa/DaaCrosstrack.h"
+#include "crosstrack_standard/DaaCrosstrack.h"
 #endif
 #include "DaaHelper.h"
 #include <matrix/math.hpp>
