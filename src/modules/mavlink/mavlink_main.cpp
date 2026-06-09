@@ -61,8 +61,8 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
-#ifdef CONFIG_SYSTEMCMDS_SERIALPASSTHROUGH
-#include <systemcmds/serialpassthrough/serialpassthrough.hpp>
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+#include <drivers/serialpassthrough/serialpassthrough.hpp>
 #endif
 
 #ifdef MAVLINK_UDP
@@ -2701,7 +2701,7 @@ void Mavlink::handleStatus()
 
 void Mavlink::handleSerialPassthroughOutput()
 {
-#ifdef CONFIG_SYSTEMCMDS_SERIALPASSTHROUGH
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 	// Drain all pending UART->MAVLink data from every active instance,
 	// one SERIAL_CONTROL message at a time.
 	mavlink_serial_control_t msg{};

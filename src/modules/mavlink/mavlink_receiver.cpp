@@ -61,8 +61,8 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
-#ifdef CONFIG_SYSTEMCMDS_SERIALPASSTHROUGH
-#include <systemcmds/serialpassthrough/serialpassthrough.hpp>
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+#include <drivers/serialpassthrough/serialpassthrough.hpp>
 #endif
 
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
@@ -2007,7 +2007,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 
 	// (0=TEL1, 1=TEL2, 2=GPS1, 3=GPS2, 4=TEL3, 5=TEL4)
 	// (20-27: ESC0 - ESC7)
-#ifdef CONFIG_SYSTEMCMDS_SERIALPASSTHROUGH
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
 
 	if (serial_control_mavlink.device <= 5 ||
 	    (serial_control_mavlink.device >= 20 && serial_control_mavlink.device <= 27)) {
@@ -2026,7 +2026,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		return;
 	}
 
-#endif // CONFIG_SYSTEMCMDS_SERIALPASSTHROUGH
+#endif // CONFIG_DRIVERS_SERIALPASSTHROUGH
 
 	// we only support shell commands
 	if (serial_control_mavlink.device != SERIAL_CONTROL_DEV_SHELL) {
