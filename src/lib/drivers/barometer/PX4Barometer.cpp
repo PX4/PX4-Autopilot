@@ -37,7 +37,7 @@
 PX4Barometer::PX4Barometer(uint32_t device_id)
 {
 	_report.device_id = device_id;
-	_report.temperature = NAN; // if no temperature is set, report NaN to indicate invalid data
+	_report.temperature = 15; // if no temperature is set, report 15°C as a default value
 }
 
 void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
