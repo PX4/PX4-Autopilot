@@ -187,8 +187,9 @@ static inline bool param_is_zero(float v)
 		const size_t mid = lo + (hi - lo) / 2;
 
 		if (SupportedCommandParams[mid].cmd == cmd) {
-			const uint8_t mask    = for_mission ? SupportedCommandParams[mid].mission    : SupportedCommandParams[mid].command;
-			const uint8_t mask567 = for_mission ? SupportedCommandParams[mid].mission567 : SupportedCommandParams[mid].command567;
+			const Entry &e = SupportedCommandParams[mid];
+			const uint8_t mask    = for_mission ? e.mission    : e.command;
+			const uint8_t mask567 = for_mission ? e.mission567 : e.command567;
 
 			const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
 			const uint8_t masks[7] = {
@@ -250,8 +251,9 @@ static inline bool int_param_is_unset(int32_t v)
 		const size_t mid = lo + (hi - lo) / 2;
 
 		if (SupportedCommandParams[mid].cmd == cmd) {
-			const uint8_t mask    = for_mission ? SupportedCommandParams[mid].mission    : SupportedCommandParams[mid].command;
-			const uint8_t mask567 = for_mission ? SupportedCommandParams[mid].mission567 : SupportedCommandParams[mid].command567;
+			const Entry &e = SupportedCommandParams[mid];
+			const uint8_t mask    = for_mission ? e.mission    : e.command;
+			const uint8_t mask567 = for_mission ? e.mission567 : e.command567;
 
 			const float ps14[4] = {p1, p2, p3, p4};
 
