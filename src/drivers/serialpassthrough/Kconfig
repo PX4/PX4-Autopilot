@@ -1,4 +1,4 @@
-menuconfig SYSTEMCMDS_SERIALPASSTHROUGH
+menuconfig DRIVERS_SERIALPASSTHROUGH
 	bool "serialpassthrough"
 	default n
 	---help---
@@ -6,7 +6,7 @@ menuconfig SYSTEMCMDS_SERIALPASSTHROUGH
 		Forwards data between a UART and a MAVLink via
 		SERIAL_CONTROL messages.
 
-if SYSTEMCMDS_SERIALPASSTHROUGH
+if DRIVERS_SERIALPASSTHROUGH
 
 config SERIALPASSTHROUGH_BITBANG
 	bool "Enable bit-bang UART support (ESC channel mode)"
@@ -27,4 +27,4 @@ config BITBANG_TIMER
 
 endif # SERIALPASSTHROUGH_BITBANG
 
-endif # SYSTEMCMDS_SERIALPASSTHROUGH
+endif # DRIVERS_SERIALPASSTHROUGH

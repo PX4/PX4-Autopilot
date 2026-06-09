@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE systemcmds__serialpassthrough
+	MODULE drivers__serialpassthrough
 	MAIN serialpassthrough
 	SRCS
 		serialpassthrough.cpp
@@ -43,5 +43,5 @@ px4_add_module(
 	)
 
 if(CONFIG_SERIALPASSTHROUGH_BITBANG)
-	target_link_libraries(systemcmds__serialpassthrough PRIVATE arch_bitbang_uart)
+	target_link_libraries(drivers__serialpassthrough PRIVATE arch_bitbang_uart)
 endif()
