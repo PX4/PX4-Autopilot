@@ -516,6 +516,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.param5 = (double)cmd_mavlink.param5;
 	vcmd.param6 = (double)cmd_mavlink.param6;
 	vcmd.param7 = cmd_mavlink.param7;
+	vcmd.frame = vehicle_command_s::FRAME_GLOBAL; // COMMAND_LONG has no frame field; default to AMSL
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = cmd_mavlink.target_system;
 	vcmd.target_component = cmd_mavlink.target_component;
@@ -641,6 +642,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
+	vcmd.frame = cmd_mavlink.frame;
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = cmd_mavlink.target_system;
 	vcmd.target_component = cmd_mavlink.target_component;

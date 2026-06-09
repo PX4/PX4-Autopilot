@@ -296,7 +296,44 @@ void Navigator::run()
 					position_setpoint.lon = get_global_position()->lon;
 				}
 
-				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+				// Resolve the requested altitude frame to AMSL so the controller and geofence can consume it.
+				// For TERRAIN_ALT frames we additionally mark the setpoint as terrain-relative so the per-loop
+				// refresh in run() keeps `alt` in sync with the EKF terrain estimate as the vehicle moves.
+				const bool is_terrain_frame =
+					(cmd.frame == vehicle_command_s::FRAME_GLOBAL_TERRAIN_ALT
+					 || cmd.frame == vehicle_command_s::FRAME_GLOBAL_TERRAIN_ALT_INT);
+				const bool is_relative_frame =
+					(cmd.frame == vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT
+					 || cmd.frame == vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT_INT);
+
+				position_setpoint.alt = [&] {
+					if (!PX4_ISFINITE(cmd.param7))
+					{
+						return get_global_position()->alt;
+					}
+
+					if (is_terrain_frame)
+					{
+						if (get_global_position()->terrain_alt_valid) {
+							return cmd.param7 + get_global_position()->terrain_alt;
+
+						} else {
+							mavlink_log_warning(&_mavlink_log_pub,
+									    "Reposition: terrain estimate invalid, seeding AMSL from home\t");
+							events::send(events::ID("navigator_reposition_terrain_seed_home"),
+							{events::Log::Warning, events::LogInternal::Info},
+							"Reposition: terrain invalid, seeding from home");
+							return cmd.param7 + _home_pos.alt;
+						}
+					}
+
+					if (is_relative_frame)
+					{
+						return cmd.param7 + _home_pos.alt;
+					}
+
+					return cmd.param7;
+				}();
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -307,9 +344,13 @@ void Navigator::run()
 					rep->previous.lat = get_global_position()->lat;
 					rep->previous.lon = get_global_position()->lon;
 					rep->previous.alt = get_global_position()->alt;
+					rep->previous.alt_is_terrain_relative = false;
+					rep->previous.alt_above_terrain = NAN;
 
 
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					rep->current.alt_is_terrain_relative = is_terrain_frame && PX4_ISFINITE(cmd.param7);
+					rep->current.alt_above_terrain = rep->current.alt_is_terrain_relative ? cmd.param7 : NAN;
 
 					bool only_alt_change_requested = false;
 
@@ -344,7 +385,7 @@ void Navigator::run()
 						rep->current.lon = cmd.param6;
 
 						if (PX4_ISFINITE(cmd.param7)) {
-							rep->current.alt = cmd.param7;
+							rep->current.alt = position_setpoint.alt;
 
 						} else {
 							rep->current.alt = get_global_position()->alt;
@@ -356,7 +397,7 @@ void Navigator::run()
 						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
 
 						if (PX4_ISFINITE(cmd.param7)) {
-							rep->current.alt = cmd.param7;
+							rep->current.alt = position_setpoint.alt;
 							only_alt_change_requested = true;
 
 						} else {
@@ -977,6 +1018,8 @@ void Navigator::run()
 			reset_triplets();
 		}
 
+		refresh_terrain_relative_setpoints();
+
 		if (_pos_sp_triplet_updated) {
 			publish_position_setpoint_triplet();
 		}
@@ -1124,6 +1167,37 @@ int Navigator::print_status()
 
 	_geofence.printStatus();
 	return 0;
+}
+
+void Navigator::refresh_terrain_relative_setpoints()
+{
+	if (!_global_pos.terrain_alt_valid) {
+		// No usable terrain estimate; leave any pre-resolved AMSL `alt`
+		// values in place (held over from when the estimate was valid).
+		return;
+	}
+
+	const float terrain_alt = _global_pos.terrain_alt;
+	bool changed = false;
+
+	auto refresh = [&](position_setpoint_s & sp) {
+		if (sp.valid && sp.alt_is_terrain_relative && PX4_ISFINITE(sp.alt_above_terrain)) {
+			const float new_alt = sp.alt_above_terrain + terrain_alt;
+
+			if (!PX4_ISFINITE(sp.alt) || fabsf(sp.alt - new_alt) > FLT_EPSILON) {
+				sp.alt = new_alt;
+				changed = true;
+			}
+		}
+	};
+
+	refresh(_pos_sp_triplet.previous);
+	refresh(_pos_sp_triplet.current);
+	refresh(_pos_sp_triplet.next);
+
+	if (changed) {
+		_pos_sp_triplet_updated = true;
+	}
 }
 
 void Navigator::publish_position_setpoint_triplet()
