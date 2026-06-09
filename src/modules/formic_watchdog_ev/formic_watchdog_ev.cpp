@@ -32,6 +32,7 @@ void FormicWatchdogEv::parameters_update(bool force)
 	}
 
 	_ev_vel_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 2)) != 0;
+	_ev_hpos_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 0)) != 0;
 }
 
 void FormicWatchdogEv::Run()
@@ -288,11 +289,9 @@ void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
 		return;
 	}
 
-	// Evaluate alignment. Each helper sets the matching *_alligned_with_ev flag and
-	// returns false when it had NO fused EV aid data this cycle (alignment unknown).
 	const bool yaw_data_valid = check_EV_aid_src_heading(raw_yaw, estimtor_yaw);
-	const bool pos_data_valid = handle_pos_reset(odometry.position, esti_odom.position);
-
+	const bool pos_data_valid = _ev_hpos_enabled ? handle_pos_reset(odometry.position, esti_odom.position) : true;
+	
 	if (!at_reset_counter) {
 		return;
 	}
@@ -318,6 +317,8 @@ void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
 	_formic_state.reset_counter++;
 	_last_reset_time = hrt_absolute_time();
 }
+
+
 
 
 

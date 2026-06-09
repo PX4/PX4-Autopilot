@@ -40,6 +40,7 @@ enum class pipline_status : uint8_t {
 	EV_ERROR 	= 5,	// 'ERROR' collides with the ERROR macro in px4_platform_common/defines.h
 };
 
+
 class FormicWatchdogEv : public ModuleBase<FormicWatchdogEv>,
 	public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -72,6 +73,7 @@ private:
 	float finalize_3d_velocity_average() const;  
 	void handle_pos_req_user_intention();
 	bool handle_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
+
 	// --- Subscriptions ---
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _odometry_sub_formic{ORB_ID(formic_odom)};
@@ -95,6 +97,8 @@ private:
 
 	// --- EV velocity state ---
 	bool _ev_vel_enabled{false};
+	bool _ev_hpos_enabled{false};
+
 	float _ev_vel_data_z{0.0f};
 	hrt_abstime _last_ev_timestamp{0};
 	hrt_abstime _first_ev_timestamp{0}; // time the EV stream first started arriving (settle window start)

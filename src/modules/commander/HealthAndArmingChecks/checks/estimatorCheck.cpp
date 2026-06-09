@@ -678,9 +678,15 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 	const bool global_pos_valid = gpos.lat_lon_valid && gpos.alt_valid;
 
+	const bool global_position_invalid_prev = failsafe_flags.global_position_invalid;
 	failsafe_flags.global_position_invalid =
 		!checkPosVelValidity(now, global_pos_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
+
+	if (failsafe_flags.global_position_invalid != global_position_invalid_prev) {
+		PX4_INFO("global_position_invalid -> %d (eph=%.2f m, COM_POS_FS_EPH threshold=%.2f m)",
+			 failsafe_flags.global_position_invalid, (double)gpos.eph, (double)lpos_eph_threshold);
+	}
 
 	// for relaxed global condition we don't have any accuracy requirement
 	const float pos_eph_relaxed_treshold = INFINITY;
@@ -730,9 +736,15 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
+	const bool local_position_invalid_prev = failsafe_flags.local_position_invalid;
 	failsafe_flags.local_position_invalid =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
+
+	if (failsafe_flags.local_position_invalid != local_position_invalid_prev) {
+		PX4_INFO("local_position_invalid -> %d (eph=%.2f m, COM_POS_FS_EPH threshold=%.2f m)",
+			 failsafe_flags.local_position_invalid, (double)lpos.eph, (double)lpos_eph_threshold);
+	}
 
 
 	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error
