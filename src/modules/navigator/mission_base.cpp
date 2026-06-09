@@ -450,6 +450,11 @@ void MissionBase::update_mission()
 	_navigator->reset_vroi();
 
 	if (_navigator->get_mission_result()->valid) {
+		/* re-issue the climb ticket on cursor change while in takeoff phase */
+		if (_land_detected_sub.get().landed || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+			checkClimbRequired(_mission.current_seq);
+		}
+
 		/* reset work item if new mission has been accepted */
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
