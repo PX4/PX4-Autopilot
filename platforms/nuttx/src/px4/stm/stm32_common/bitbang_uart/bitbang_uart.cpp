@@ -57,6 +57,10 @@
 #include <string.h>
 #include <errno.h>
 
+#if !defined(CONFIG_ARCH_CHIP_STM32F7) && !defined(CONFIG_ARCH_CHIP_STM32H7)
+# error "Not supported on this MCU, requires STM32 based MCU"
+#endif
+
 // Timer interrupt sources
 #define GTIM_SR_UIF   (1 << 0)
 #define GTIM_DIER_UIE (1 << 0)

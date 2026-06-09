@@ -11,7 +11,7 @@ if DRIVERS_SERIALPASSTHROUGH
 config SERIALPASSTHROUGH_BITBANG
 	bool "Enable bit-bang UART support (ESC channel mode)"
 	default n
-	depends on PLATFORM_NUTTX && (ARCH_CHIP_STM32F7 || ARCH_CHIP_STM32H7)
+	depends on PLATFORM_NUTTX
 	---help---
 		Enable bit-bang UART.
 
