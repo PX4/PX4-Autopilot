@@ -17,9 +17,9 @@ The following topics should be read first if you're using these vehicle types:
   - Flying vehicles can't switch to this mode without global position.
   - Flying vehicles will failsafe if they lose the position estimate.
 - Mode requires home position is set.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (Vehicle cannot be armed while this mode is selected).
 - RC control switches can be used to change flight modes on any vehicle.
-- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - A VTOL will return as MC or FW based on its mode at the point the return mode was triggered.
   In MC mode it will respect multicopter parameters, such as the landing "cone".
   In FW mode it will respect fixed-wing parameters (ignore the cone), but unless using a mission landing, will transition to MC mode and land at the destination after loitering at the descent altitude.

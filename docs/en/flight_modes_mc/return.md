@@ -28,8 +28,8 @@ The default type is recommended.
 
 ## Technical Summary
 
-Multicopters use the [home/rally point return type](../flight_modes/return.md#home-rally-point-return-type-rtl-type-0) by default.
-For this return type the copter (assuming the [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) is set to 0) :
+Multicopters use the [home/rally point return type](../flight_modes/return.md#home-rally-point-return-type-rtl-type-0) by default ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
+For this return type the copter:
 
 - Ascends to the [minimum return altitude](#minimum-return-altitude) (safely above any expected obstacles).
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
