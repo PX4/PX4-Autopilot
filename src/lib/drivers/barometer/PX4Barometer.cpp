@@ -37,7 +37,7 @@
 PX4Barometer::PX4Barometer(uint32_t device_id)
 {
 	_report.device_id = device_id;
-	_report.temperature = 15; // if no temperature is set, report 15°C as a default value
+	_report.temperature = 15; // if no temperature is set, report the sea level standard temperature of 15°C. As used in VehicleAirData
 }
 
 void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
