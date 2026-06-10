@@ -20,7 +20,7 @@ import time
 from typing import Any, Optional
 
 try:
-    from pymavlink import mavutil  # type: ignore[import-not-found, import-untyped]
+    from pymavlink import mavutil  # type: ignore[import-not-found]
 except ImportError:
     print("ERROR: pymavlink not installed.  Run: pip install pymavlink")
     sys.exit(1)

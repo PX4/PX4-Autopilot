@@ -303,8 +303,6 @@ static constexpr VehicleOverride VehicleParamOverrides[] = {
 	// Populate as per-vehicle param differences are identified.
 };
 
-static constexpr size_t VehicleParamOverridesCount = sizeof(VehicleParamOverrides) / sizeof(VehicleParamOverrides[0]);
-
 /**
  * Variant of check_params that applies vehicle-type-specific parameter overrides.
  *
@@ -332,14 +330,9 @@ static constexpr size_t VehicleParamOverridesCount = sizeof(VehicleParamOverride
 				       ? SupportedCommandParams[mid].mission
 				       : SupportedCommandParams[mid].command;
 
-			if constexpr(VehicleParamOverridesCount > 0) {
-				for (size_t i = 0; i < VehicleParamOverridesCount; ++i) {
-					if (VehicleParamOverrides[i].cmd == cmd &&
-					    (VehicleParamOverrides[i].vehicle_mask & vehicle_type)) {
-						mask |= for_mission
-							? VehicleParamOverrides[i].mission
-							: VehicleParamOverrides[i].command;
-					}
+			for (const auto &ov : VehicleParamOverrides) {
+				if (ov.cmd == cmd && (ov.vehicle_mask & vehicle_type)) {
+					mask |= for_mission ? ov.mission : ov.command;
 				}
 			}
 
