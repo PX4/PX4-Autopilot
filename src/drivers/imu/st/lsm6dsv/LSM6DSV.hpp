@@ -70,11 +70,14 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	static constexpr float FIFO_SAMPLE_DT{1e6f / GYRO_ODR};
-	static constexpr float GYRO_RATE{static_cast<float>(GYRO_ODR)};
-	static constexpr float ACCEL_RATE{static_cast<float>(ACCEL_ODR)};
-
 	static constexpr int32_t FIFO_MAX_SAMPLES{static_cast<int32_t>(FIFO::MAX_DRAIN_SAMPLES)};
+
+	// Sensor ODR and FIFO layout are variant-dependent (set in UpdateVariantRegisterConfig()):
+	//   default (16X/32X/DSK320X): 2000 Hz, 2 FIFO words/period (gyro + low-g)
+	//   LSM6DSV80X:                7680 Hz, 3 FIFO words/period (gyro + low-g + high-g)
+	uint32_t _sensor_odr{GYRO_ODR};
+	float    _fifo_sample_dt{1e6f / GYRO_ODR};
+	uint8_t  _fifo_words_per_period{2};
 
 	struct register_config_t {
 		Register reg;
@@ -107,6 +110,10 @@ private:
 	void ConfigureFIFOWatermark(uint8_t samples);
 	void UpdateVariantRegisterConfig();
 
+	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X)
+	void ManageHighGFullScale(bool high_g_clipping);
+	void ApplyHighGFullScale();
+
 	const spi_drdy_gpio_t _drdy_gpio;
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
@@ -138,14 +145,35 @@ private:
 		LSM6DSV16X,
 		LSM6DSV32X,
 		LSM6DSK320X,
+		LSM6DSV80X,
+		LSM6DSV320X,
 	};
 	DeviceVariant _device_variant{DeviceVariant::LSM6DSV16X};
+
+	// The LSM6DSV80X and LSM6DSV320X share WHO_AM_I 0x73 and cannot be distinguished over SPI, so
+	// the physically-installed part is selected explicitly at start via the -T argument (config.custom1):
+	// 320 -> LSM6DSV320X, anything else (incl. 80 / unset) -> LSM6DSV80X.
+	const int _highg_variant_arg;
+
+	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X): published in place of the
+	// low-g channel whenever the low-g channel clips. Full-scale auto-escalates through the
+	// variant's _hg_table on high-g clipping and de-escalates after a sustained quiet period.
+	bool _high_g_enabled{false};
+	const HighGFullScale *_hg_table{nullptr}; // ascending full-scale steps for this variant
+	uint8_t _hg_table_size{0};
+	uint8_t _hg_index{0};                     // current step within _hg_table
+	hrt_abstime _hg_last_clip_timestamp{0};
+	static constexpr hrt_abstime HG_DEESCALATE_TIMEOUT_US{2'000'000}; // 2 s
 
 	uint16_t _fifo_empty_interval_us{500}; // default 500 us / 2000 Hz
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_ODR))};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{12};
+	static constexpr uint8_t size_register_cfg{14};
+	// Variant-dependent fields (HAODR_CFG, CTRL1/2/6/8, FIFO_CTRL3, COUNTER_BDR_REG1,
+	// CTRL1_XL_HG) are overwritten in UpdateVariantRegisterConfig(); initializers below are
+	// the default-variant (2000 Hz, no high-g) values. The high-g entries are no-ops
+	// (set/clear = 0) unless enabled for the LSM6DSV80X.
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                | Set bits                                              | Clear bits
 		{ Register::CTRL3,          CTRL3_BIT::BDU | CTRL3_BIT::IF_INC,                     CTRL3_BIT::SW_RESET },
@@ -162,6 +190,8 @@ private:
 		{ Register::FIFO_CTRL4,     FIFO_CTRL4_BIT::FIFO_MODE_CONTINUOUS,                    0 },
 		{ Register::INT1_CTRL,      INT1_CTRL_BIT::INT1_FIFO_TH,                             0 },
 		{ Register::CTRL4,          CTRL4_BIT::DRDY_PULSED,                                  0 },
+		{ Register::COUNTER_BDR_REG1, 0, 0 }, // XL_HG_BATCH_EN set per-variant (80X high-g)
+		{ Register::CTRL1_XL_HG,    0, 0 }, // high-g ODR+FS set per-variant (80X high-g)
 		{ Register::FIFO_CTRL1,     0, 0 }, // WTM[7:0] set at runtime by ConfigureFIFOWatermark()
 	};
 };
