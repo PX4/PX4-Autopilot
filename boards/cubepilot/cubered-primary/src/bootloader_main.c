@@ -56,6 +56,26 @@ __EXPORT void stm32_boardinitialize(void)
 {
 	/* configure USB interfaces */
 	stm32_configgpio(GPIO_OTGFS_VBUS);
+
+	/* Power up the peripheral rails so the external QSPI flash is powered when
+	 * the bootloader programs it. These default to their "on" state in the pin
+	 * definitions (PG0 high = 3V3 sensors on, PF2 low = 5V periph on). */
+	stm32_configgpio(GPIO_VDD_3V3_SENSORS_EN);
+	stm32_configgpio(GPIO_nVDD_5V_PERIPH_EN);
+
+	/* Configure the QSPI external-flash pins here, early in board bring-up
+	 * (like ArduPilot's __early_init). On the dual-core STM32H757, configuring
+	 * these later from the bootloader's CM7 context (e.g. from the NuttX QSPI
+	 * driver's stm32h7_qspi_initialize(), whose own stm32_configgpio() calls
+	 * are compiled out for this board) fails to take effect for GPIOB
+	 * (CLK=PB2, CS=PB10). The pull-ups keep /WP and /HOLD high during the
+	 * single-line commands used to talk to the flash. */
+	stm32_configgpio(GPIO_QSPI_SCK);
+	stm32_configgpio(GPIO_QSPI_CS);
+	stm32_configgpio(GPIO_QSPI_IO0);
+	stm32_configgpio(GPIO_QSPI_IO1);
+	stm32_configgpio(GPIO_QSPI_IO2);
+	stm32_configgpio(GPIO_QSPI_IO3);
 }
 
 __EXPORT int board_app_initialize(uintptr_t arg)

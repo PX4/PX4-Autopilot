@@ -69,7 +69,13 @@
 #include "qspi.h"
 
 #ifdef CONFIG_STM32H7_QUADSPI
-#define QSPI_BOOT_IN_MEMORY_MAPPED_MOD
+/* NOTE: unlike the spracing/h7extreme board this driver was copied from, the
+ * CubeRed primary does NOT boot from QSPI. The bootloader runs from internal
+ * flash and must bring the QUADSPI peripheral up from scratch (enable its
+ * clock, select the source, reset it, configure the pins and the controller).
+ * Defining QSPI_BOOT_IN_MEMORY_MAPPED_MOD would skip all of that on the
+ * assumption a previous boot stage already did it, leaving QSPIEN/CR at 0 and
+ * hanging the first transfer. So it is intentionally left undefined here. */
 
 /****************************************************************************
  * This defines exist in NuttX from 8.2.2020.
@@ -1021,18 +1027,38 @@ QUADSPI_RAMFUNC int qspi_setupxctnfrommem(struct qspi_xctnspec_s *xctn,
  *
  ****************************************************************************/
 
+/* DEBUG: live snapshot of the QSPI registers while spinning in the wait loop,
+ * readable over the probe with: print/x g_qspi_wait_dbg  (RAM, not peripheral). */
+volatile struct {
+	uint32_t sr;
+	uint32_t cr;
+	uint32_t ccr;
+	uint32_t dlr;
+	uint32_t mask;
+	uint32_t iters;
+} g_qspi_wait_dbg;
+
 QUADSPI_RAMFUNC static void qspi_waitstatusflags(struct stm32h7_qspidev_s *priv,
 		uint32_t mask, int polarity)
 {
 	uint32_t regval;
 
+	g_qspi_wait_dbg.mask = mask;
+	g_qspi_wait_dbg.cr  = qspi_getreg(priv, STM32_QUADSPI_CR_OFFSET);
+	g_qspi_wait_dbg.ccr = qspi_getreg(priv, STM32_QUADSPI_CCR_OFFSET);
+	g_qspi_wait_dbg.dlr = qspi_getreg(priv, STM32_QUADSPI_DLR_OFFSET);
+
 	if (polarity) {
-		while (!((regval = qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET)) & mask))
-			;
+		while (!((regval = qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET)) & mask)) {
+			g_qspi_wait_dbg.sr = regval;
+			g_qspi_wait_dbg.iters++;
+		}
 
 	} else {
-		while (((regval = qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET)) & mask))
-			;
+		while (((regval = qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET)) & mask)) {
+			g_qspi_wait_dbg.sr = regval;
+			g_qspi_wait_dbg.iters++;
+		}
 	}
 }
 
@@ -2418,12 +2444,15 @@ int qspi_hw_initialize(struct stm32h7_qspidev_s *priv)
 
 	qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
 
-	/* Configure QSPI Clock Prescaler and Sample Shift */
+	/* Configure QSPI Clock Prescaler and Sample Shift. SSHIFT delays the data
+	 * sampling point by half a CLK cycle to account for the round-trip delay of
+	 * the flash, which is required to run the quad fast-read at a high SCLK (as
+	 * used for memory-mapped / XIP execution). */
 
 	regval = qspi_getreg(priv, STM32_QUADSPI_CR_OFFSET);
 	regval &= ~(QSPI_CR_PRESCALER_MASK | QSPI_CR_SSHIFT);
 	regval |= (0x01 << QSPI_CR_PRESCALER_SHIFT);
-	regval |= (0x00);
+	regval |= QSPI_CR_SSHIFT;
 	qspi_putreg(priv, regval, STM32_QUADSPI_CR_OFFSET);
 
 	/* Configure QSPI Flash Size, CS High Time and Clock Mode */
@@ -2526,14 +2555,18 @@ struct qspi_dev_s *stm32h7_qspi_initialize(int intf)
 		regval &= ~RCC_AHB3RSTR_QSPIRST;
 		putreg32(regval, STM32_RCC_AHB3RSTR);
 
-		/* Configure multiplexed pins as connected on the board. */
-
+		/* The QSPI pins are configured very early in stm32_boardinitialize()
+		 * (see bootloader_main.c). On the dual-core STM32H757, re-running
+		 * stm32_configgpio() here from the bootloader's CM7 context wipes the
+		 * GPIOB configuration (CLK=PB2, CS=PB10), so do NOT reconfigure them. */
+#if 0
 		stm32_configgpio(GPIO_QSPI_CS);
 		stm32_configgpio(GPIO_QSPI_IO0);
 		stm32_configgpio(GPIO_QSPI_IO1);
 		stm32_configgpio(GPIO_QSPI_IO2);
 		stm32_configgpio(GPIO_QSPI_IO3);
 		stm32_configgpio(GPIO_QSPI_SCK);
+#endif
 
 #endif  //!defined(QSPI_BOOT_IN_MEMORY_MAPPED_MOD)
 

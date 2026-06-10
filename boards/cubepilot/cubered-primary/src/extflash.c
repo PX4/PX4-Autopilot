@@ -57,6 +57,8 @@
 #include "qspi.h"
 #include "bl.h"
 
+#include <nuttx/arch.h>
+
 /* W25Q256 geometry */
 #define W25Q_SECTOR_SIZE		(4 * 1024)	/* 4 KiB sub-sector erase */
 #define W25Q_PAGE_SIZE			256
@@ -66,12 +68,20 @@
 #define W25Q_FAST_READ_QUAD_DUMMIES	6
 #define W25Q_ADDRESS_SIZE		3
 
+/* Bus clock for the one-time programming session (kept conservative for
+ * reliability) and for memory-mapped XIP, where the app executes code directly
+ * from the flash and read throughput matters. The W25Q256 quad fast-read is
+ * rated past 100 MHz; ArduPilot runs this same part at 100 MHz. */
+#define W25Q_PROGRAM_FREQ		12000000
+#define W25Q_XIP_FREQ			100000000
+
 /* commands */
 #define W25Q_READ_STATUS		0x05
 #define W25Q_WRITE_ENABLE		0x06
-#define W25Q_WRITE_DISABLE		0x04
 #define W25Q_PAGE_PROGRAM		0x02
 #define W25Q_SUBSECTOR_ERASE		0x20
+#define W25Q_RESET_ENABLE		0x66
+#define W25Q_RESET_MEMORY		0x99
 
 /* status register bits */
 #define W25Q_STATUS_BUSY		(1 << 0)
@@ -165,7 +175,26 @@ static bool w25q_program_page(uint32_t offset, const uint8_t *buffer, unsigned l
 
 void board_extf_init(void)
 {
+	/* The QSPI pins are configured early in stm32_boardinitialize() (see
+	 * bootloader_main.c) and the NuttX QSPI driver's own stm32_configgpio()
+	 * calls are compiled out (see qspi.c): on the dual-core STM32H757,
+	 * re-configuring the QSPI GPIOs from the bootloader's CM7 context here
+	 * wipes the GPIOB pin configuration (CLK=PB2, CS=PB10). */
 	g_qspi = stm32h7_qspi_initialize(0);
+
+	/* Run the bus conservatively for programming. This is a one-time session
+	 * for a small image, so a slow, robust clock costs nothing; XIP is bumped
+	 * to a high clock in board_extf_enable_xip() where read speed matters. */
+	QSPI_SETFREQUENCY(g_qspi, W25Q_PROGRAM_FREQ);
+
+	/* The W25Q needs time to settle after power-up, and it must be soft-reset
+	 * out of any XIP / continuous-read mode a previous boot (e.g. ArduPilot)
+	 * may have left it in - that mode survives an MCU reset and makes the chip
+	 * ignore normal commands. Mirrors AP_FlashIface_JEDEC::reset_device(). */
+	up_mdelay(5);                  /* power-up settle, required by w25q */
+	w25q_command(W25Q_RESET_ENABLE);
+	w25q_command(W25Q_RESET_MEMORY);
+	up_udelay(50);                 /* >= 30 us reset recovery, required by w25q */
 }
 
 uint32_t extf_func_sector_size(void)
@@ -227,5 +256,10 @@ uint32_t extf_func_read_word(uintptr_t offset)
 
 void board_extf_enable_xip(void)
 {
+	/* The app executes code (mavlink, romfs) directly from the flash in this
+	 * mode, so run it fast. The frequency cannot be changed once memory-mapped,
+	 * so set it first. SSHIFT (enabled in qspi_hw_initialize) makes the quad
+	 * fast-read reliable at this clock. */
+	QSPI_SETFREQUENCY(g_qspi, W25Q_XIP_FREQ);
 	stm32h7_qspi_enter_memorymapped(g_qspi, &g_read_meminfo, 0);
 }

@@ -194,7 +194,6 @@
 #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
 #define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2     /* ADC 1 2 3 clock source */
-#define STM32_RCC_D1CCIPR_QSPISEL    RCC_D1CCIPR_QSPISEL_PLL2    /* QSPI clock source (used by the bootloader) */
 
 /* UART clock selection */
 /* reset to default to overwrite any changes done by any bootloader */
@@ -303,9 +302,21 @@
 #define CONFIG_STM32H7_QSPI_FIFO_THESHOLD	1
 #define CONFIG_STM32H7_QSPI_CSHT		1 /* CS high time, 1 cycle */
 
-#define GPIO_QSPI_CS	GPIO_QUADSPI_BK1_NCS_3	/* PB10 */
-#define GPIO_QSPI_IO0	GPIO_QUADSPI_BK1_IO0_3	/* PD11 */
-#define GPIO_QSPI_IO1	GPIO_QUADSPI_BK1_IO1_3	/* PD12 */
-#define GPIO_QSPI_IO2	GPIO_QUADSPI_BK1_IO2_1	/* PE2 */
-#define GPIO_QSPI_IO3	GPIO_QUADSPI_BK1_IO3_2	/* PD13 */
-#define GPIO_QSPI_SCK	GPIO_QUADSPI_CLK_1	/* PB2 */
+/* Clock the QUADSPI kernel clock from HCLK3 (the always-running AHB3 clock),
+ * same as the spracing/h7extreme driver this is based on. The driver divides
+ * it by 2 (SCLK = HCLK3 / 2). PLL2R was tried but does not feed the QUADSPI
+ * kernel clock on this part, so transfers start (BUSY) but never clock. */
+#define BOARD_QSPI_CLK				RCC_D1CCIPR_QSPISEL_HCLK
+
+/* Pull-ups on the IO lines so that, in single-line (1-1-1) command mode where
+ * the controller does not drive IO2/IO3, the flash's WP# (IO2) and HOLD# (IO3)
+ * stay deasserted (high). With HOLD# floating low the flash is paused and never
+ * drives data, so reads come back as all zeros. GPIO_SPEED_100MHz gives the
+ * pins a fast enough slew rate for the QSPI clock. The NuttX pinmap macros only
+ * encode the alternate function, so the speed (and pull-ups) are added here. */
+#define GPIO_QSPI_CS	(GPIO_QUADSPI_BK1_NCS_3 | GPIO_SPEED_100MHz)			/* PB10 */
+#define GPIO_QSPI_IO0	(GPIO_QUADSPI_BK1_IO0_3 | GPIO_SPEED_100MHz | GPIO_PULLUP)	/* PD11 */
+#define GPIO_QSPI_IO1	(GPIO_QUADSPI_BK1_IO1_3 | GPIO_SPEED_100MHz | GPIO_PULLUP)	/* PD12 */
+#define GPIO_QSPI_IO2	(GPIO_QUADSPI_BK1_IO2_1 | GPIO_SPEED_100MHz | GPIO_PULLUP)	/* PE2 */
+#define GPIO_QSPI_IO3	(GPIO_QUADSPI_BK1_IO3_2 | GPIO_SPEED_100MHz | GPIO_PULLUP)	/* PD13 */
+#define GPIO_QSPI_SCK	(GPIO_QUADSPI_CLK_1 | GPIO_SPEED_100MHz)			/* PB2 */
