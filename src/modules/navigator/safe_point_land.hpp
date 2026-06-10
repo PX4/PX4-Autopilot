@@ -69,6 +69,8 @@ struct land_approaches_s {
 	land_approaches_s()
 	{
 		resetAllApproaches();
+		land_location_lat_lon(0) = static_cast<double>(NAN);
+		land_location_lat_lon(1) = static_cast<double>(NAN);
 	}
 
 	void resetAllApproaches()

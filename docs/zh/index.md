@@ -3,7 +3,7 @@ import { useData } from 'vitepress'
 const { site } = useData();
 </script>
 
-# PX4 自动驾驶仪用户指南
+# PX4 自动化用户指南
 
 [![Releases](https://img.shields.io/badge/release-main-blue.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![Discuss](https://img.shields.io/badge/discuss-px4-ff69b4.svg)](https://discuss.px4.io//) [![Discord](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.com/invite/dronecode)
 

@@ -52,21 +52,28 @@ This allows, for example, logging of your own uORB topics.
 
 ### 진단SD 카드 설정
 
-Separately, the list of logged topics can also be customized with a file on the SD card.
-Create a file `etc/logging/logger_topics.txt` on the card with a list of topics (For SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`):
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+
+Each topic to be logged is listed on a separate line, with the following format:
 
 ```plain
 <topic_name> <interval> <instance>
 ```
 
-The `<interval>` is optional, and if specified, defines the minimum interval in ms between two logged messages of this topic.
-지정하지 않으면, 주제가 최대 속도로 기록됩니다.
+여기서:
 
-The `<instance>` is optional, and if specified, defines the instance to log.
-지정하지 않으면, 토픽의 모든 인스턴스를 로깅합니다.
-To specify `<instance>`, `<interval>` must be specified. 0 값을 설정하면 최대 기록율로 지정할 수 있습니다.
+- `<interval>` (optional).
+  Defines the minimum interval in ms between two logged messages of this topic.
+  If not specified or `0`, the topic is logged at full rate.
+- `<instance>` (optional).
+  Defines the instance to log.
+  NOte that `<interval>` must be specified in order to set `instance`
 
-이 파일의 주제는 기본적으로 기록된 모든 주제를 대체합니다.
+  지정하지 않으면, 토픽의 모든 인스턴스를 로깅합니다.
+
+The topics in this file will be added on top of the already selected topics.
+To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
+If a topic is already included, it will update it's rate.
 
 예 :
 
@@ -77,7 +84,7 @@ sensor_gyro 200
 sensor_mag 200 1
 ```
 
-이 구성은 최대 속도에서 sensor_accel 0, 10Hz에서 sensor_accel 1, 5Hz에서 모든 sensor_gyro 인스턴스 및 5Hz에서 sensor_mag 1을 기록합니다.
+This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all `sensor_gyro` instances at 5Hz and `sensor_mag` 1 at 5Hz.
 
 ## 스크립트
 

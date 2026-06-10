@@ -639,7 +639,7 @@ void AirspeedModule::select_airspeed_and_publish()
 	bool airspeed_sensor_switching_necessary = false;
 	const int prev_airspeed_index = static_cast<int>(_prev_airspeed_src);
 
-	if (_prev_airspeed_src < AirspeedSource::SENSOR_1) {
+	if (_prev_airspeed_src < AirspeedSource::SENSOR_1 || _prev_airspeed_src > AirspeedSource::SENSOR_3) {
 		airspeed_sensor_switching_necessary = true;
 
 	} else {

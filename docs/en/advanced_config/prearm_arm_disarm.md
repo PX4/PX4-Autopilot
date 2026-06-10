@@ -52,7 +52,8 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
   - _Arm:_ Left-stick to right, right-stick to bottom.
   - _Disarm:_ Left-stick to left, right-stick to the bottom.
 
-Note that disarming in any altitude controlled mode is only possible after landing was detected. In manually piloted modes without altitude control Stabilized, Acro, Manual it's always possible to disarm using gestures or buttons also in flight.
+Note that disarming in any altitude controlled mode is only possible after landing was detected.
+In manually piloted modes without altitude control, such as Stabilized, Acro, and Manual, it's always possible to disarm using gestures or buttons — even in flight.
 
 | Parameter                                                                                                | Description                                                              |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |

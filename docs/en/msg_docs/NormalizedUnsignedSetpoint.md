@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                | Type      | Unit [Frame] | Range/Enum | Description                            |
-| ------------------- | --------- | ------------ | ---------- | -------------------------------------- |
-| timestamp           | `uint64`  |              |            | time since system start (microseconds) |
-| normalized_setpoint | `float32` | 0, 1         |            |
+| Name                                                    | Type      | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`  |              |            | time since system start (microseconds) |
+| <a id="fld_normalized_setpoint"></a>normalized_setpoint | `float32` | 0, 1         |            |
 
 ## Source Message
 

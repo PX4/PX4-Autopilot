@@ -8,19 +8,19 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name        | Type        | Unit [Frame] | Range/Enum | Description                                                    |
-| ----------- | ----------- | ------------ | ---------- | -------------------------------------------------------------- |
-| timestamp   | `uint64`    |              |            | time since system start (microseconds)                         |
-| protocol    | `uint8`     |              |            |
-| device      | `uint8`     |              |            |
-| mode        | `uint8`     |              |            |
-| band        | `int8`      |              |            | Band number (0-23), negative values indicate frequency mode    |
-| channel     | `int8`      |              |            | Channel number (0-15), negative values indicate frequency mode |
-| frequency   | `uint16`    |              |            | Frequency in MHz, zero indicates unknown                       |
-| band_letter | `uint8`     |              |            | Band letter as ASCII                                           |
-| band_name   | `uint8[12]` |              |            | Band name in ASCII without null termination                    |
-| power_level | `int8`      |              |            | Current power level (0-15), negative values indicate unknown   |
-| power_label | `uint8[4]`  |              |            | Current power label in ASCII without null termination          |
+| Name                                    | Type        | Unit [Frame] | Range/Enum | Description                                                    |
+| --------------------------------------- | ----------- | ------------ | ---------- | -------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp     | `uint64`    |              |            | time since system start (microseconds)                         |
+| <a id="fld_protocol"></a>protocol       | `uint8`     |              |            |
+| <a id="fld_device"></a>device           | `uint8`     |              |            |
+| <a id="fld_mode"></a>mode               | `uint8`     |              |            |
+| <a id="fld_band"></a>band               | `int8`      |              |            | Band number (0-23), negative values indicate frequency mode    |
+| <a id="fld_channel"></a>channel         | `int8`      |              |            | Channel number (0-15), negative values indicate frequency mode |
+| <a id="fld_frequency"></a>frequency     | `uint16`    |              |            | Frequency in MHz, zero indicates unknown                       |
+| <a id="fld_band_letter"></a>band_letter | `uint8`     |              |            | Band letter as ASCII                                           |
+| <a id="fld_band_name"></a>band_name     | `uint8[12]` |              |            | Band name in ASCII without null termination                    |
+| <a id="fld_power_level"></a>power_level | `int8`      |              |            | Current power level (0-15), negative values indicate unknown   |
+| <a id="fld_power_label"></a>power_label | `uint8[4]`  |              |            | Current power label in ASCII without null termination          |
 
 ## Constants
 

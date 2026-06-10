@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# AEDROX AEDROXH7 specific board extras init
+#------------------------------------------------------------------------------
+
+# MAX7456 analog OSD on SPI1
+if ! param compare OSD_ATXXXX_CFG 0
+then
+	atxxxx start -s
+fi
+
+# DShot telemetry on UART7 (/dev/ttyS4)
+dshot telemetry -d /dev/ttyS4

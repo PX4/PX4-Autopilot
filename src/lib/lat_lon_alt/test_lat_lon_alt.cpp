@@ -119,3 +119,18 @@ TEST(TestLatLonAlt, fromAndToECEF)
 		}
 	}
 }
+
+TEST(TestLatLonAlt, somiglianaGravity)
+{
+	// Somigliana normal-gravity reference values (m/s^2)
+	EXPECT_NEAR(LatLonAlt::Wgs84::gravity(radians(0.0)),  9.7803253359f, 1e-3f);  // equator
+	EXPECT_NEAR(LatLonAlt::Wgs84::gravity(radians(45.0)), 9.8061992f,     1e-3f);  // mid-latitude
+	EXPECT_NEAR(LatLonAlt::Wgs84::gravity(radians(90.0)), 9.8321849f,     1e-3f);  // pole
+
+	// symmetric about the equator, and monotonically increasing towards the pole
+	EXPECT_FLOAT_EQ(LatLonAlt::Wgs84::gravity(radians(-30.0)), LatLonAlt::Wgs84::gravity(radians(30.0)));
+	EXPECT_GT(LatLonAlt::Wgs84::gravity(radians(60.0)), LatLonAlt::Wgs84::gravity(radians(30.0)));
+
+	// stays within the physical envelope and close to the constant used as the pre-global-position default
+	EXPECT_NEAR(LatLonAlt::Wgs84::gravity(radians(48.0)), CONSTANTS_ONE_G, 0.02f);
+}

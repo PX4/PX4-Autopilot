@@ -10,16 +10,16 @@ Raptor Input.
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
-| ---------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`     | us           |            | Time since system start                                                                                  |
-| timestamp_sample | `uint64`     | us           |            | Sampling timestamp of the data this control response is based on                                         |
-| active           | `bool`       |              |            | Signals if the policy is active (aka publishing actuator_motors)                                         |
-| position         | `float32[3]` | m [FLU]      |            | Position of the vehicle_local_position frame                                                             |
-| orientation      | `float32[4]` |              |            | Orientation in the vehicle_attitude frame but using the FLU convention as a unit quaternion (w, x, y, z) |
-| linear_velocity  | `float32[3]` | m/s [FLU]    |            | Linear velocity in the vehicle_local_position frame                                                      |
-| angular_velocity | `float32[3]` | rad/s [FLU]  |            | Angular velocity in the body frame                                                                       |
-| previous_action  | `float32[4]` |              | [-1 : 1]   | Previous action. Motor commands normalized to [-1, 1]                                                    |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                                              |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     | us           |            | Time since system start                                                                                  |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     | us           |            | Sampling timestamp of the data this control response is based on                                         |
+| <a id="fld_active"></a>active                     | `bool`       |              |            | Signals if the policy is active (aka publishing actuator_motors)                                         |
+| <a id="fld_position"></a>position                 | `float32[3]` | m [FLU]      |            | Position of the vehicle_local_position frame                                                             |
+| <a id="fld_orientation"></a>orientation           | `float32[4]` |              |            | Orientation in the vehicle_attitude frame but using the FLU convention as a unit quaternion (w, x, y, z) |
+| <a id="fld_linear_velocity"></a>linear_velocity   | `float32[3]` | m/s [FLU]    |            | Linear velocity in the vehicle_local_position frame                                                      |
+| <a id="fld_angular_velocity"></a>angular_velocity | `float32[3]` | rad/s [FLU]  |            | Angular velocity in the body frame                                                                       |
+| <a id="fld_previous_action"></a>previous_action   | `float32[4]` |              | [-1 : 1]   | Previous action. Motor commands normalized to [-1, 1]                                                    |
 
 ## Constants
 

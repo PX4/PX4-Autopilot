@@ -32,7 +32,8 @@ PX4 може використовувати це як [зовнішній INS] (
 
 ### Підключення
 
-Підключіть будь-який не використанний інтерфейс серійного керування контролера польоту, такий як запасний порт `GPS` або `TELEM`, до порту UART2 VectorNav (необхідно для PX4).
+Connect any unused flight controller serial interface, such as a spare `GPS` or `TELEM` port, to the VectorNav `UART2` port (default).
+Note that you can also connect to the VectorNav `UART1` port, but in this case you must set [VN_PORT](../advanced_config/parameter_reference.md#VN_PORT) to `1`.
 
 ### Встановлення
 

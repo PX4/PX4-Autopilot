@@ -10,19 +10,19 @@ Sensor check metrics. This will be zero for a sensor that's primary or unpopulat
 
 ## Fields
 
-| Name                      | Type         | Unit [Frame] | Range/Enum | Description                                                                    |
-| ------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------------ |
-| timestamp                 | `uint64`     |              |            | time since system start (microseconds)                                         |
-| accel_device_id_primary   | `uint32`     |              |            | current primary accel device id for reference                                  |
-| accel_device_ids          | `uint32[4]`  |              |            |
-| accel_inconsistency_m_s_s | `float32[4]` |              |            | magnitude of acceleration difference between IMU instance and mean in m/s^2.   |
-| accel_healthy             | `bool[4]`    |              |            |
-| accel_priority            | `uint8[4]`   |              |            |
-| gyro_device_id_primary    | `uint32`     |              |            | current primary gyro device id for reference                                   |
-| gyro_device_ids           | `uint32[4]`  |              |            |
-| gyro_inconsistency_rad_s  | `float32[4]` |              |            | magnitude of angular rate difference between IMU instance and mean in (rad/s). |
-| gyro_healthy              | `bool[4]`    |              |            |
-| gyro_priority             | `uint8[4]`   |              |            |
+| Name                                                                | Type         | Unit [Frame] | Range/Enum | Description                                                                    |
+| ------------------------------------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                                 | `uint64`     |              |            | time since system start (microseconds)                                         |
+| <a id="fld_accel_device_id_primary"></a>accel_device_id_primary     | `uint32`     |              |            | current primary accel device id for reference                                  |
+| <a id="fld_accel_device_ids"></a>accel_device_ids                   | `uint32[4]`  |              |            |
+| <a id="fld_accel_inconsistency_m_s_s"></a>accel_inconsistency_m_s_s | `float32[4]` |              |            | magnitude of acceleration difference between IMU instance and mean in m/s^2.   |
+| <a id="fld_accel_healthy"></a>accel_healthy                         | `bool[4]`    |              |            |
+| <a id="fld_accel_priority"></a>accel_priority                       | `uint8[4]`   |              |            |
+| <a id="fld_gyro_device_id_primary"></a>gyro_device_id_primary       | `uint32`     |              |            | current primary gyro device id for reference                                   |
+| <a id="fld_gyro_device_ids"></a>gyro_device_ids                     | `uint32[4]`  |              |            |
+| <a id="fld_gyro_inconsistency_rad_s"></a>gyro_inconsistency_rad_s   | `float32[4]` |              |            | magnitude of angular rate difference between IMU instance and mean in (rad/s). |
+| <a id="fld_gyro_healthy"></a>gyro_healthy                           | `bool[4]`    |              |            |
+| <a id="fld_gyro_priority"></a>gyro_priority                         | `uint8[4]`   |              |            |
 
 ## Source Message
 

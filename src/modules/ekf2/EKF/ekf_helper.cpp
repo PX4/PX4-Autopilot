@@ -201,7 +201,11 @@ bool Ekf::resetLatLonTo(const double latitude, const double longitude, const flo
 	const Vector2f delta_horz_pos = getLocalHorizontalPosition() - pos_prev;
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+
+	if (_control_status.flags.ev_pos) {
+		_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	updateHorizontalPositionResetStatus(delta_horz_pos);

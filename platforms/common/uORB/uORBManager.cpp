@@ -52,25 +52,23 @@
 pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-uORB::Manager *uORB::Manager::_Instance = nullptr;
-
 bool uORB::Manager::initialize()
 {
-	if (_Instance == nullptr) {
-		_Instance = new uORB::Manager();
+	if (instance_ref() == nullptr) {
+		instance_ref() = new uORB::Manager();
 	}
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 	px4_register_boardct_ioctl(_ORBIOCDEVBASE, orb_ioctl);
 #endif
-	return _Instance != nullptr;
+	return instance_ref() != nullptr;
 }
 
 bool uORB::Manager::terminate()
 {
-	if (_Instance != nullptr) {
-		delete _Instance;
-		_Instance = nullptr;
+	if (instance_ref() != nullptr) {
+		delete instance_ref();
+		instance_ref() = nullptr;
 		return true;
 	}
 

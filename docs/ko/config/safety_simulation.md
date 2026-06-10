@@ -1,3 +1,7 @@
+---
+aside: false
+---
+
 # Failsafe State Machine Simulation
 
 <Badge type="tip" text="PX4 v1.14" />

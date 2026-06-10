@@ -116,6 +116,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink &parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_param_vte_en = param_find("VTE_EN");
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void
@@ -273,6 +276,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID:
+		handle_message_open_drone_id_basic_id(msg);
+		break;
+
 	case MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID:
 		handle_message_open_drone_id_operator_id(msg);
 		break;
@@ -314,6 +321,23 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_debug_float_array(msg);
 		break;
 #endif // !CONSTRAINED_FLASH
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+
+	case MAVLINK_MSG_ID_TARGET_RELATIVE:
+		handle_message_target_relative(msg);
+		break;
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+
+#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+
+	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
+		handle_message_target_absolute(msg);
+		break;
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_ATTITUDE:
 		handle_message_gimbal_manager_set_attitude(msg);
@@ -457,24 +481,8 @@ void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
 bool
 MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
 {
-	/* evaluate if this system should accept this command */
-	bool target_ok = false;
-
-	switch (command) {
-
-	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
-		/* broadcast and ignore component */
-		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
-		break;
-
-	default:
-		target_ok = ((target_system == 0) || (target_system == mavlink_system.sysid))
-			    && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
-		break;
-	}
-
-	return target_ok;
+	return ((target_system == 0) || (target_system == mavlink_system.sysid))
+	       && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
 }
 
 void
@@ -519,6 +527,67 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	handle_message_command_both(msg, cmd_mavlink, vcmd);
 }
 
+bool
+MavlinkReceiver::command_has_location(uint16_t command)
+{
+	switch (command) {
+	// Supported by PX4 as COMMAND_INT
+	case MAV_CMD_NAV_LAND:                               // 21
+	case MAV_CMD_NAV_TAKEOFF:                            // 22
+	case MAV_CMD_NAV_LAND_LOCAL:                         // 23
+	case MAV_CMD_DO_ORBIT:                               // 34
+	case MAV_CMD_DO_FIGURE_EIGHT:                        // 35
+	case MAV_CMD_NAV_ROI:                                // 80
+	case MAV_CMD_NAV_VTOL_TAKEOFF:                       // 84
+	case MAV_CMD_DO_SET_HOME:                            // 179
+	case MAV_CMD_DO_LAND_START:                          // 189
+	case MAV_CMD_DO_REPOSITION:                          // 192
+	case MAV_CMD_DO_SET_ROI_LOCATION:                    // 195
+	case MAV_CMD_DO_SET_ROI:                             // 201
+	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
+	case MAV_CMD_EXTERNAL_POSITION_ESTIMATE:             // 43003
+		return true;
+
+	// Not supported by PX4 as COMMAND_INT (mission items or unimplemented)
+	// case MAV_CMD_NAV_WAYPOINT:                        // 16
+	// case MAV_CMD_NAV_LOITER_UNLIM:                    // 17
+	// case MAV_CMD_NAV_LOITER_TURNS:                    // 18
+	// case MAV_CMD_NAV_LOITER_TIME:                     // 19
+	// case MAV_CMD_NAV_TAKEOFF_LOCAL:                   // 24
+	// case MAV_CMD_NAV_FOLLOW:                          // 25
+	// case MAV_CMD_NAV_LOITER_TO_ALT:                   // 31
+	// case MAV_CMD_NAV_ARC_WAYPOINT:                    // 36
+	// case MAV_CMD_NAV_PATHPLANNING:                    // 81
+	// case MAV_CMD_NAV_SPLINE_WAYPOINT:                 // 82
+	// case MAV_CMD_NAV_VTOL_LAND:                       // 85
+	// case MAV_CMD_NAV_PAYLOAD_PLACE:                   // 94
+	// case MAV_CMD_DO_RETURN_PATH_START:                // 188
+	// case MAV_CMD_OVERRIDE_GOTO:                       // 252
+	// case MAV_CMD_SET_GUIDED_SUBMODE_CIRCLE:           // 4001
+	// case MAV_CMD_CONDITION_GATE:                      // 4501
+	// case MAV_CMD_NAV_FENCE_RETURN_POINT:              // 5000
+	// case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:  // 5001
+	// case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:  // 5002
+	// case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:          // 5003
+	// case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:          // 5004
+	// case MAV_CMD_NAV_RALLY_POINT:                     // 5100
+	// case MAV_CMD_DO_SET_GLOBAL_ORIGIN:                // 611
+	// case MAV_CMD_WAYPOINT_USER_1:                     // 31000
+	// case MAV_CMD_WAYPOINT_USER_2:                     // 31001
+	// case MAV_CMD_WAYPOINT_USER_3:                     // 31002
+	// case MAV_CMD_WAYPOINT_USER_4:                     // 31003
+	// case MAV_CMD_WAYPOINT_USER_5:                     // 31004
+	// case MAV_CMD_SPATIAL_USER_1:                      // 31005
+	// case MAV_CMD_SPATIAL_USER_2:                      // 31006
+	// case MAV_CMD_SPATIAL_USER_3:                      // 31007
+	// case MAV_CMD_SPATIAL_USER_4:                      // 31008
+	// case MAV_CMD_SPATIAL_USER_5:                      // 31009
+
+	default:
+		return false;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 {
@@ -547,9 +616,28 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		vcmd.param5 = (double)NAN;
 		vcmd.param6 = (double)NAN;
 
+	} else if (command_has_location(cmd_mavlink.command)
+		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_NED        // superseded by BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_OFFSET_NED // superseded by BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_BODY_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FRD
+		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_FLU) {
+			vcmd.param5 = ((double)cmd_mavlink.x) / 1e4;
+			vcmd.param6 = ((double)cmd_mavlink.y) / 1e4;
+
+		} else {
+			// Global frames, MAV_FRAME_MISSION, and any unrecognised frames
+			vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
+			vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+		}
+
 	} else {
-		vcmd.param5 = ((double)cmd_mavlink.x) / 1e7;
-		vcmd.param6 = ((double)cmd_mavlink.y) / 1e7;
+		vcmd.param5 = (double)cmd_mavlink.x;
+		vcmd.param6 = (double)cmd_mavlink.y;
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
@@ -627,6 +715,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);
+		send_ack = false;	//Acknowledgement handled by Commander
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
@@ -646,11 +735,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 				switch (vehicle_status.vehicle_type) {
 				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					has_module = param_find("FW_AT_APPLY");
+					has_module = param_find("FW_AT_APPLY") != PARAM_INVALID;
 					break;
 
 				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-					has_module = param_find("MC_AT_APPLY");
+					has_module = param_find("MC_AT_APPLY") != PARAM_INVALID;
 					break;
 
 				default:
@@ -1867,23 +1956,28 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	}
 
 	battery_status.voltage_v = voltage_sum;
-	battery_status.current_a = (float)(battery_mavlink.current_battery) / 100.0f;
-	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
+	battery_status.current_a = (battery_mavlink.current_battery == -1) ?
+				   -1.0f : (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.remaining = (battery_mavlink.battery_remaining == -1) ?
+				   -1.0f : (float)battery_mavlink.battery_remaining / 100.0f;
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
 	battery_status.cell_count = cell_count;
-	battery_status.temperature = (float)battery_mavlink.temperature;
+	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
+				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
 
-	// Set the battery warning based on remaining charge.
+	// Set the battery warning based on remaining charge, if available.
 	//  Note: Smallest values must come first in evaluation.
-	if (battery_status.remaining < _param_bat_emergen_thr.get()) {
-		battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+	if (battery_status.remaining >= 0.0f) {
+		if (battery_status.remaining < _param_bat_emergen_thr.get()) {
+			battery_status.warning = battery_status_s::WARNING_EMERGENCY;
 
-	} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
-		battery_status.warning = battery_status_s::WARNING_CRITICAL;
+		} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
+			battery_status.warning = battery_status_s::WARNING_CRITICAL;
 
-	} else if (battery_status.remaining < _param_bat_low_thr.get()) {
-		battery_status.warning = battery_status_s::WARNING_LOW;
+		} else if (battery_status.remaining < _param_bat_low_thr.get()) {
+			battery_status.warning = battery_status_s::WARNING_LOW;
+		}
 	}
 
 	_battery_pub.publish(battery_status);
@@ -2719,18 +2813,53 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	mavlink_gps_rtcm_data_t gps_rtcm_data_msg;
 	mavlink_msg_gps_rtcm_data_decode(msg, &gps_rtcm_data_msg);
 
+	// Drop packets with an invalid payload length
+	if (gps_rtcm_data_msg.len > sizeof(gps_rtcm_data_msg.data)) {
+		return;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	const size_t packet_len = static_cast<size_t>(gps_rtcm_data_msg.len);
+	size_t message_len = 0;
+
+	const uint8_t *message = _gps_rtcm_message_assembler.addPacket(gps_rtcm_data_msg.flags, gps_rtcm_data_msg.data,
+				 packet_len, now, message_len);
+
+	if (message != nullptr) {
+		publish_gps_inject_data(message, message_len);
+
+		// addPacket() can queue at most one deferred message.
+		const uint8_t *deferred_message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
+
+		if (deferred_message != nullptr) {
+			publish_gps_inject_data(deferred_message, message_len);
+		}
+	}
+}
+
+void
+MavlinkReceiver::publish_gps_inject_data(const uint8_t *data, size_t len)
+{
 	gps_inject_data_s gps_inject_data_topic{};
+	constexpr uint8_t gps_inject_data_flag_fragmented = 1;
 
-	gps_inject_data_topic.timestamp = hrt_absolute_time();
+	const size_t capacity = sizeof(gps_inject_data_topic.data);
+	// gps_inject_data only carries the transport-level fragmented bit. The
+	// MAVLink fragment/sequence bits are consumed by the assembler above.
+	gps_inject_data_topic.flags = (len > capacity) ? gps_inject_data_flag_fragmented : 0;
 
-	gps_inject_data_topic.len = math::min((int)sizeof(gps_rtcm_data_msg.data),
-					      (int)sizeof(uint8_t) * gps_rtcm_data_msg.len);
-	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
-	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
-	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_topic.len));
+	size_t written = 0;
 
-	gps_inject_data_topic.timestamp = hrt_absolute_time();
-	_gps_inject_data_pub.publish(gps_inject_data_topic);
+	// gps_inject_data transports RTCM in 300-byte uORB chunks, so a fully
+	// reassembled RTCM frame may still require multiple publications.
+	while (written < len) {
+		const size_t chunk_len = math::min(len - written, capacity);
+		gps_inject_data_topic.timestamp = hrt_absolute_time();
+		gps_inject_data_topic.len = static_cast<decltype(gps_inject_data_topic.len)>(chunk_len);
+		memcpy(gps_inject_data_topic.data, &data[written], chunk_len);
+		_gps_inject_data_pub.publish(gps_inject_data_topic);
+		written += chunk_len;
+	}
 }
 
 void
@@ -2945,6 +3074,241 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 	_debug_array_pub.publish(debug_topic);
 }
 #endif // !CONSTRAINED_FLASH
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+void
+MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
+{
+	mavlink_target_absolute_t target_absolute;
+	mavlink_msg_target_absolute_decode(msg, &target_absolute);
+
+	target_gnss_s target_GNSS_report{};
+
+	target_GNSS_report.timestamp = hrt_absolute_time();
+	target_GNSS_report.timestamp_sample = _mavlink_timesync.sync_stamp(target_absolute.timestamp);
+
+	bool updated = false;
+
+	// Position: bit 0
+	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kPosition))) {
+		target_GNSS_report.abs_pos_updated = false;
+
+	} else {
+		target_GNSS_report.abs_pos_updated = true;
+		target_GNSS_report.latitude_deg = target_absolute.lat * 1e-7;
+		target_GNSS_report.longitude_deg = target_absolute.lon * 1e-7;
+		target_GNSS_report.altitude_msl_m = target_absolute.alt;
+		target_GNSS_report.eph = target_absolute.position_std[0];
+		target_GNSS_report.epv = target_absolute.position_std[1];
+		updated = true;
+	}
+
+	// Velocity: bit 1
+	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kVelocity))) {
+		target_GNSS_report.vel_ned_updated = false;
+
+	} else {
+		const matrix::Quatf q_target(target_absolute.q_target);
+		const bool target_attitude_available = (fabsf(q_target(0)) + fabsf(q_target(1)) + fabsf(q_target(2)) +
+							fabsf(q_target(3))) > FLT_EPSILON;
+
+		if (target_attitude_available) {
+			const matrix::Vector3f vel_target_body(target_absolute.vel[0], target_absolute.vel[1], target_absolute.vel[2]);
+			const matrix::Vector3f vel_target_ned = q_target.rotateVector(vel_target_body);
+
+			target_GNSS_report.vel_ned_updated = true;
+			target_GNSS_report.vel_n_m_s = vel_target_ned(0);
+			target_GNSS_report.vel_e_m_s = vel_target_ned(1);
+			target_GNSS_report.vel_d_m_s = vel_target_ned(2);
+			target_GNSS_report.s_acc_m_s = fmaxf(fabsf(target_absolute.vel_std[0]),
+							     fmaxf(fabsf(target_absolute.vel_std[1]),
+									     fabsf(target_absolute.vel_std[2])));
+			updated = true;
+
+		} else {
+			target_GNSS_report.vel_ned_updated = false;
+		}
+	}
+
+	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
+}
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+
+#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+void
+MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
+{
+	mavlink_target_relative_t target_relative;
+	mavlink_msg_target_relative_decode(msg, &target_relative);
+
+	vehicle_attitude_s	vehicle_attitude;
+	vehicle_local_position_s vehicle_local_position;
+
+	// Unsupported sensor frame
+	if (target_relative.frame != TARGET_OBS_FRAME_LOCAL_OFFSET_NED && target_relative.frame != TARGET_OBS_FRAME_LOCAL_NED &&
+	    target_relative.frame != TARGET_OBS_FRAME_BODY_FRD && target_relative.frame != TARGET_OBS_FRAME_OTHER) {
+		mavlink_log_critical(&_mavlink_log_pub, "target relative: coordinate frame %" PRIu8 " unsupported.\t",
+				     target_relative.frame);
+		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_coord_frame"), events::Log::Error,
+				      "Target relative: unsupported coordinate frame {1}", target_relative.frame);
+
+		return;
+	}
+
+	// Unsupported measurement type
+	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
+		mavlink_log_critical(&_mavlink_log_pub, "target relative: type %" PRIu8 " unsupported.\t",
+				     target_relative.type);
+		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_type"), events::Log::Error,
+				      "Target relative: unsupported type {1}", target_relative.type);
+		return;
+	}
+
+	matrix::Quatf q_sensor(target_relative.q_sensor);
+	bool attitude_available = (fabsf(q_sensor(0)) + fabsf(q_sensor(1)) + fabsf(q_sensor(2)) +
+				   fabsf(q_sensor(3))) > FLT_EPSILON;
+
+	// Check if attitude can be infered based on the frame
+	if (!attitude_available) {
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_OFFSET_NED || target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+			// Observation already in NED, set quaternion to identity (1,0,0,0)
+			q_sensor.setIdentity();
+			attitude_available = true;
+
+		} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			// Set the quaternion to the current attitude
+			const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			q_sensor = quat_att;
+			attitude_available = true;
+
+		} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
+			// Target sensor frame: OTHER and no quaternion is provided
+			mavlink_log_critical(&_mavlink_log_pub,
+					     "target relative: coordinate frame %" PRIu8 " unsupported when the q_sensor is not filled.\t",
+					     target_relative.frame);
+			events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_q_sensor_not_filled"), events::Log::Error,
+					      "Target relative: unsupported coordinate frame {1} when the q_sensor is not filled", target_relative.frame);
+		}
+	}
+
+	// Target cannot be sent without valid attitude
+	if (!attitude_available) {
+		return;
+	}
+
+	// Forward target to the vision target estimator (VTE) or precland based VTE_EN
+	int32_t vte_enabled = 0;
+
+	if (_param_vte_en == PARAM_INVALID) {
+		if (hrt_elapsed_time(&_vte_en_invalid_warn_last) > 20_s) {
+			PX4_WARN(" Could not find VTE_EN, target_relative msg ignored.");
+			_vte_en_invalid_warn_last = hrt_absolute_time();
+		}
+
+		return;
+
+	} else {
+		param_get(_param_vte_en, &vte_enabled);
+	}
+
+	if (!vte_enabled) {
+
+		// Send the target directly to the precision landing algorithm in local NED frame
+		landing_target_pose_s landing_target_pose{};
+		landing_target_pose.timestamp = _mavlink_timesync.sync_stamp(target_relative.timestamp);
+
+		// Measurement already in local NED
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+
+			landing_target_pose.x_abs = target_relative.x;
+			landing_target_pose.y_abs = target_relative.y;
+			landing_target_pose.z_abs = target_relative.z;
+			landing_target_pose.abs_pos_valid = true;
+
+			_landing_target_pose_pub.publish(landing_target_pose);
+
+		} else if (_vehicle_local_position_sub.copy(&vehicle_local_position)
+			   && vehicle_local_position.xy_valid && vehicle_local_position.z_valid) {
+
+			// If the local position is available, convert from sensor frame to local NED
+			matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
+
+			if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD || target_relative.frame == TARGET_OBS_FRAME_OTHER) {
+				// Rotate measurement into vehicle-carried NED
+				target_relative_frame = q_sensor.rotateVector(target_relative_frame);
+			}
+
+			// Convert from vehicle-carried NED to local NED
+			landing_target_pose.x_abs = target_relative_frame(0) + vehicle_local_position.x;
+			landing_target_pose.y_abs = target_relative_frame(1) + vehicle_local_position.y;
+			landing_target_pose.z_abs = target_relative_frame(2) + vehicle_local_position.z;
+			landing_target_pose.abs_pos_valid = true;
+
+			_landing_target_pose_pub.publish(landing_target_pose);
+		}
+
+	} else {
+
+		// Only supported type: LANDING_TARGET_TYPE_VISION_FIDUCIAL
+
+		// Position report
+		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
+
+		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime timestamp_sample = _mavlink_timesync.sync_stamp(target_relative.timestamp);
+
+		fiducial_marker_pos_report.timestamp = now;
+		fiducial_marker_pos_report.timestamp_sample = timestamp_sample;
+		matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
+
+		// TARGET_OBS_FRAME_LOCAL_NED is absolute in local frame: convert to vehicle-relative.
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+			if (!_vehicle_local_position_sub.copy(&vehicle_local_position)
+			    || !vehicle_local_position.xy_valid || !vehicle_local_position.z_valid) {
+				return;
+			}
+
+			target_relative_frame(0) -= vehicle_local_position.x;
+			target_relative_frame(1) -= vehicle_local_position.y;
+			target_relative_frame(2) -= vehicle_local_position.z;
+		}
+
+		fiducial_marker_pos_report.rel_pos[0] = target_relative_frame(0);
+		fiducial_marker_pos_report.rel_pos[1] = target_relative_frame(1);
+		fiducial_marker_pos_report.rel_pos[2] = target_relative_frame(2);
+
+		fiducial_marker_pos_report.cov_rel_pos[0] = target_relative.pos_std[0] * target_relative.pos_std[0];
+		fiducial_marker_pos_report.cov_rel_pos[1] = target_relative.pos_std[1] * target_relative.pos_std[1];
+		fiducial_marker_pos_report.cov_rel_pos[2] = target_relative.pos_std[2] * target_relative.pos_std[2];
+
+		q_sensor.copyTo(fiducial_marker_pos_report.q);
+		_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
+
+		const matrix::Quatf q_target(target_relative.q_target);
+		const bool target_attitude_available = (fabsf(q_target(0)) + fabsf(q_target(1)) + fabsf(q_target(2)) +
+							fabsf(q_target(3))) > FLT_EPSILON;
+
+		if (target_attitude_available) {
+			// Yaw report
+			fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
+			fiducial_marker_yaw_report.timestamp = now;
+			fiducial_marker_yaw_report.timestamp_sample = timestamp_sample;
+
+			// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
+			const matrix::Quatf q_in_ned = q_sensor * q_target;
+			const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
+
+			fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
+			fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
+			_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
+		}
+	}
+
+}
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void
 MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
@@ -3174,6 +3538,27 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *msg)
+{
+	mavlink_open_drone_id_basic_id_t odid_module {};
+	mavlink_msg_open_drone_id_basic_id_decode(msg, &odid_module);
+
+	if (odid_module.target_system != mavlink_system.sysid ||
+	    (odid_module.target_component != mavlink_system.compid && odid_module.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
+	open_drone_id_basic_id_s odid_basic_id {};
+
+	odid_basic_id.timestamp = hrt_absolute_time();
+	memcpy(odid_basic_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_basic_id.id_or_mac));
+	odid_basic_id.id_type = odid_module.id_type;
+	odid_basic_id.ua_type = odid_module.ua_type;
+	memcpy(odid_basic_id.uas_id, odid_module.uas_id, sizeof(odid_basic_id.uas_id));
+
+	_open_drone_id_basic_id_pub.publish(odid_basic_id);
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_operator_id(

@@ -8,47 +8,47 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                | Type      | Unit [Frame] | Range/Enum | Description                               |
-| ----------------------------------- | --------- | ------------ | ---------- | ----------------------------------------- |
-| timestamp                           | `uint64`  |              |            | time since system start (microseconds)    |
-| type                                | `uint8`   |              |            | type of the radio hardware (LINK*TYPE*\*) |
-| mode                                | `uint8`   |              |            |
-| flow_control                        | `bool`    |              |            |
-| forwarding                          | `bool`    |              |            |
-| mavlink_v2                          | `bool`    |              |            |
-| ftp                                 | `bool`    |              |            |
-| streams                             | `uint8`   |              |            |
-| data_rate                           | `float32` |              |            | configured maximum data rate (Bytes/s)    |
-| rate_multiplier                     | `float32` |              |            |
-| tx_rate_avg                         | `float32` |              |            | transmit rate average (Bytes/s)           |
-| tx_error_rate_avg                   | `float32` |              |            | transmit error rate average (Bytes/s)     |
-| tx_message_count                    | `uint32`  |              |            | total message sent count                  |
-| tx_buffer_overruns                  | `uint32`  |              |            | number of TX buffer overruns              |
-| rx_rate_avg                         | `float32` |              |            | transmit rate average (Bytes/s)           |
-| rx_message_count                    | `uint32`  |              |            | count of total messages received          |
-| rx_message_lost_count               | `uint32`  |              |            |
-| rx_buffer_overruns                  | `uint32`  |              |            | number of RX buffer overruns              |
-| rx_parse_errors                     | `uint32`  |              |            | number of parse errors                    |
-| rx_packet_drop_count                | `uint32`  |              |            | number of packet drops                    |
-| rx_message_lost_rate                | `float32` |              |            |
-| heartbeat_type_antenna_tracker      | `bool`    |              |            | MAV_TYPE_ANTENNA_TRACKER                  |
-| heartbeat_type_gcs                  | `bool`    |              |            | MAV_TYPE_GCS                              |
-| heartbeat_type_onboard_controller   | `bool`    |              |            | MAV_TYPE_ONBOARD_CONTROLLER               |
-| heartbeat_type_gimbal               | `bool`    |              |            | MAV_TYPE_GIMBAL                           |
-| heartbeat_type_adsb                 | `bool`    |              |            | MAV_TYPE_ADSB                             |
-| heartbeat_type_flarm                | `bool`    |              |            | MAV_TYPE_FLARM                            |
-| heartbeat_type_camera               | `bool`    |              |            | MAV_TYPE_CAMERA                           |
-| heartbeat_type_parachute            | `bool`    |              |            | MAV_TYPE_PARACHUTE                        |
-| heartbeat_type_open_drone_id        | `bool`    |              |            | MAV_TYPE_ODID                             |
-| heartbeat_component_telemetry_radio | `bool`    |              |            | MAV_COMP_ID_TELEMETRY_RADIO               |
-| heartbeat_component_log             | `bool`    |              |            | MAV_COMP_ID_LOG                           |
-| heartbeat_component_osd             | `bool`    |              |            | MAV_COMP_ID_OSD                           |
-| heartbeat_component_vio             | `bool`    |              |            | MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY      |
-| heartbeat_component_pairing_manager | `bool`    |              |            | MAV_COMP_ID_PAIRING_MANAGER               |
-| heartbeat_component_udp_bridge      | `bool`    |              |            | MAV_COMP_ID_UDP_BRIDGE                    |
-| heartbeat_component_uart_bridge     | `bool`    |              |            | MAV_COMP_ID_UART_BRIDGE                   |
-| open_drone_id_system_healthy        | `bool`    |              |            |
-| parachute_system_healthy            | `bool`    |              |            |
+| Name                                                                                    | Type      | Unit [Frame] | Range/Enum | Description                               |
+| --------------------------------------------------------------------------------------- | --------- | ------------ | ---------- | ----------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                     | `uint64`  |              |            | time since system start (microseconds)    |
+| <a id="fld_type"></a>type                                                               | `uint8`   |              |            | type of the radio hardware (LINK*TYPE*\*) |
+| <a id="fld_mode"></a>mode                                                               | `uint8`   |              |            |
+| <a id="fld_flow_control"></a>flow_control                                               | `bool`    |              |            |
+| <a id="fld_forwarding"></a>forwarding                                                   | `bool`    |              |            |
+| <a id="fld_mavlink_v2"></a>mavlink_v2                                                   | `bool`    |              |            |
+| <a id="fld_ftp"></a>ftp                                                                 | `bool`    |              |            |
+| <a id="fld_streams"></a>streams                                                         | `uint8`   |              |            |
+| <a id="fld_data_rate"></a>data_rate                                                     | `float32` |              |            | configured maximum data rate (Bytes/s)    |
+| <a id="fld_rate_multiplier"></a>rate_multiplier                                         | `float32` |              |            |
+| <a id="fld_tx_rate_avg"></a>tx_rate_avg                                                 | `float32` |              |            | transmit rate average (Bytes/s)           |
+| <a id="fld_tx_error_rate_avg"></a>tx_error_rate_avg                                     | `float32` |              |            | transmit error rate average (Bytes/s)     |
+| <a id="fld_tx_message_count"></a>tx_message_count                                       | `uint32`  |              |            | total message sent count                  |
+| <a id="fld_tx_buffer_overruns"></a>tx_buffer_overruns                                   | `uint32`  |              |            | number of TX buffer overruns              |
+| <a id="fld_rx_rate_avg"></a>rx_rate_avg                                                 | `float32` |              |            | transmit rate average (Bytes/s)           |
+| <a id="fld_rx_message_count"></a>rx_message_count                                       | `uint32`  |              |            | count of total messages received          |
+| <a id="fld_rx_message_lost_count"></a>rx_message_lost_count                             | `uint32`  |              |            |
+| <a id="fld_rx_buffer_overruns"></a>rx_buffer_overruns                                   | `uint32`  |              |            | number of RX buffer overruns              |
+| <a id="fld_rx_parse_errors"></a>rx_parse_errors                                         | `uint32`  |              |            | number of parse errors                    |
+| <a id="fld_rx_packet_drop_count"></a>rx_packet_drop_count                               | `uint32`  |              |            | number of packet drops                    |
+| <a id="fld_rx_message_lost_rate"></a>rx_message_lost_rate                               | `float32` |              |            |
+| <a id="fld_heartbeat_type_antenna_tracker"></a>heartbeat_type_antenna_tracker           | `bool`    |              |            | MAV_TYPE_ANTENNA_TRACKER                  |
+| <a id="fld_heartbeat_type_gcs"></a>heartbeat_type_gcs                                   | `bool`    |              |            | MAV_TYPE_GCS                              |
+| <a id="fld_heartbeat_type_onboard_controller"></a>heartbeat_type_onboard_controller     | `bool`    |              |            | MAV_TYPE_ONBOARD_CONTROLLER               |
+| <a id="fld_heartbeat_type_gimbal"></a>heartbeat_type_gimbal                             | `bool`    |              |            | MAV_TYPE_GIMBAL                           |
+| <a id="fld_heartbeat_type_adsb"></a>heartbeat_type_adsb                                 | `bool`    |              |            | MAV_TYPE_ADSB                             |
+| <a id="fld_heartbeat_type_flarm"></a>heartbeat_type_flarm                               | `bool`    |              |            | MAV_TYPE_FLARM                            |
+| <a id="fld_heartbeat_type_camera"></a>heartbeat_type_camera                             | `bool`    |              |            | MAV_TYPE_CAMERA                           |
+| <a id="fld_heartbeat_type_parachute"></a>heartbeat_type_parachute                       | `bool`    |              |            | MAV_TYPE_PARACHUTE                        |
+| <a id="fld_heartbeat_type_open_drone_id"></a>heartbeat_type_open_drone_id               | `bool`    |              |            | MAV_TYPE_ODID                             |
+| <a id="fld_heartbeat_component_telemetry_radio"></a>heartbeat_component_telemetry_radio | `bool`    |              |            | MAV_COMP_ID_TELEMETRY_RADIO               |
+| <a id="fld_heartbeat_component_log"></a>heartbeat_component_log                         | `bool`    |              |            | MAV_COMP_ID_LOG                           |
+| <a id="fld_heartbeat_component_osd"></a>heartbeat_component_osd                         | `bool`    |              |            | MAV_COMP_ID_OSD                           |
+| <a id="fld_heartbeat_component_vio"></a>heartbeat_component_vio                         | `bool`    |              |            | MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY      |
+| <a id="fld_heartbeat_component_pairing_manager"></a>heartbeat_component_pairing_manager | `bool`    |              |            | MAV_COMP_ID_PAIRING_MANAGER               |
+| <a id="fld_heartbeat_component_udp_bridge"></a>heartbeat_component_udp_bridge           | `bool`    |              |            | MAV_COMP_ID_UDP_BRIDGE                    |
+| <a id="fld_heartbeat_component_uart_bridge"></a>heartbeat_component_uart_bridge         | `bool`    |              |            | MAV_COMP_ID_UART_BRIDGE                   |
+| <a id="fld_open_drone_id_system_healthy"></a>open_drone_id_system_healthy               | `bool`    |              |            |
+| <a id="fld_parachute_system_healthy"></a>parachute_system_healthy                       | `bool`    |              |            |
 
 ## Constants
 

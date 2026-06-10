@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name          | Type         | Unit [Frame] | Range/Enum | Description                            |
-| ------------- | ------------ | ------------ | ---------- | -------------------------------------- |
-| timestamp     | `uint64`     |              |            | time since system start (microseconds) |
-| control_power | `float32[3]` |              |            |
+| Name                                        | Type         | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp         | `uint64`     |              |            | time since system start (microseconds) |
+| <a id="fld_control_power"></a>control_power | `float32[3]` |              |            |
 
 ## Source Message
 

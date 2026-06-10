@@ -8,17 +8,17 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name              | Type      | Unit [Frame] | Range/Enum | Description                                                         |
-| ----------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------- |
-| timestamp         | `uint64`  |              |            | time since system start (microseconds)                              |
-| nav_roll          | `float32` |              |            | Roll setpoint [rad]                                                 |
-| nav_pitch         | `float32` |              |            | Pitch setpoint [rad]                                                |
-| nav_bearing       | `float32` |              |            | Bearing angle[rad]                                                  |
-| target_bearing    | `float32` |              |            | Bearing angle from aircraft to current target [rad]                 |
-| xtrack_error      | `float32` |              |            | Signed track error [m]                                              |
-| wp_dist           | `float32` |              |            | Distance to active (next) waypoint [m]                              |
-| acceptance_radius | `float32` |              |            | Current horizontal acceptance radius [m]                            |
-| type              | `uint8`   |              |            | Current (applied) position setpoint type (see PositionSetpoint.msg) |
+| Name                                                | Type      | Unit [Frame] | Range/Enum | Description                                                         |
+| --------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                 | `uint64`  |              |            | time since system start (microseconds)                              |
+| <a id="fld_nav_roll"></a>nav_roll                   | `float32` |              |            | Roll setpoint [rad]                                                 |
+| <a id="fld_nav_pitch"></a>nav_pitch                 | `float32` |              |            | Pitch setpoint [rad]                                                |
+| <a id="fld_nav_bearing"></a>nav_bearing             | `float32` |              |            | Bearing angle[rad]                                                  |
+| <a id="fld_target_bearing"></a>target_bearing       | `float32` |              |            | Bearing angle from aircraft to current target [rad]                 |
+| <a id="fld_xtrack_error"></a>xtrack_error           | `float32` |              |            | Signed track error [m]                                              |
+| <a id="fld_wp_dist"></a>wp_dist                     | `float32` |              |            | Distance to active (next) waypoint [m]                              |
+| <a id="fld_acceptance_radius"></a>acceptance_radius | `float32` |              |            | Current horizontal acceptance radius [m]                            |
+| <a id="fld_type"></a>type                           | `uint8`   |              |            | Current (applied) position setpoint type (see PositionSetpoint.msg) |
 
 ## Source Message
 

@@ -13,13 +13,13 @@ It is subscribed by the airspeed selector module, which validates the data from 
 
 ## Fields
 
-| Name                   | Type      | Unit [Frame] | Range/Enum | Description                      |
-| ---------------------- | --------- | ------------ | ---------- | -------------------------------- |
-| timestamp              | `uint64`  | us           |            | Time since system start          |
-| timestamp_sample       | `uint64`  | us           |            | Timestamp of the raw data        |
-| indicated_airspeed_m_s | `float32` | m/s          |            | Indicated airspeed               |
-| true_airspeed_m_s      | `float32` | m/s          |            | True airspeed                    |
-| confidence             | `float32` |              | [0 : 1]    | Confidence value for this sensor |
+| Name                                                          | Type      | Unit [Frame] | Range/Enum | Description                      |
+| ------------------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                           | `uint64`  | us           |            | Time since system start          |
+| <a id="fld_timestamp_sample"></a>timestamp_sample             | `uint64`  | us           |            | Timestamp of the raw data        |
+| <a id="fld_indicated_airspeed_m_s"></a>indicated_airspeed_m_s | `float32` | m/s          |            | Indicated airspeed               |
+| <a id="fld_true_airspeed_m_s"></a>true_airspeed_m_s           | `float32` | m/s          |            | True airspeed                    |
+| <a id="fld_confidence"></a>confidence                         | `float32` |              | [0 : 1]    | Confidence value for this sensor |
 
 ## Source Message
 

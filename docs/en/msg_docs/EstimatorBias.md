@@ -8,16 +8,16 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum | Description                                                               |
-| ---------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------- |
-| timestamp        | `uint64`  |              |            | time since system start (microseconds)                                    |
-| timestamp_sample | `uint64`  |              |            | the timestamp of the raw data (microseconds)                              |
-| device_id        | `uint32`  |              |            | unique device ID for the sensor that does not change between power cycles |
-| bias             | `float32` |              |            | estimated barometric altitude bias (m)                                    |
-| bias_var         | `float32` |              |            | estimated barometric altitude bias variance (m^2)                         |
-| innov            | `float32` |              |            | innovation of the last measurement fusion (m)                             |
-| innov_var        | `float32` |              |            | innovation variance of the last measurement fusion (m^2)                  |
-| innov_test_ratio | `float32` |              |            | normalized innovation squared test ratio                                  |
+| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                                                               |
+| ------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  |              |            | time since system start (microseconds)                                    |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`  |              |            | the timestamp of the raw data (microseconds)                              |
+| <a id="fld_device_id"></a>device_id               | `uint32`  |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_bias"></a>bias                         | `float32` |              |            | estimated barometric altitude bias (m)                                    |
+| <a id="fld_bias_var"></a>bias_var                 | `float32` |              |            | estimated barometric altitude bias variance (m^2)                         |
+| <a id="fld_innov"></a>innov                       | `float32` |              |            | innovation of the last measurement fusion (m)                             |
+| <a id="fld_innov_var"></a>innov_var               | `float32` |              |            | innovation variance of the last measurement fusion (m^2)                  |
+| <a id="fld_innov_test_ratio"></a>innov_test_ratio | `float32` |              |            | normalized innovation squared test ratio                                  |
 
 ## Source Message
 

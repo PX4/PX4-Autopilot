@@ -10,11 +10,11 @@ Sensor ID's for the voted sensors output on the sensor_combined topic. Will be u
 
 ## Fields
 
-| Name            | Type     | Unit [Frame] | Range/Enum | Description                                      |
-| --------------- | -------- | ------------ | ---------- | ------------------------------------------------ |
-| timestamp       | `uint64` |              |            | time since system start (microseconds)           |
-| accel_device_id | `uint32` |              |            | unique device ID for the selected accelerometers |
-| gyro_device_id  | `uint32` |              |            | unique device ID for the selected rate gyros     |
+| Name                                            | Type     | Unit [Frame] | Range/Enum | Description                                      |
+| ----------------------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp             | `uint64` |              |            | time since system start (microseconds)           |
+| <a id="fld_accel_device_id"></a>accel_device_id | `uint32` |              |            | unique device ID for the selected accelerometers |
+| <a id="fld_gyro_device_id"></a>gyro_device_id   | `uint32` |              |            | unique device ID for the selected rate gyros     |
 
 ## Source Message
 

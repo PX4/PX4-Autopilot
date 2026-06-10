@@ -470,7 +470,7 @@ struct parameters {
 	float ekf2_ev_delay{175.0f};            ///< off-board vision measurement delay relative to the IMU (mSec)
 	float ekf2_evv_noise{0.1f};             ///< minimum allowed observation noise for EV velocity fusion (m/sec)
 	float ekf2_evp_noise{0.1f};             ///< minimum allowed observation noise for EV position fusion (m)
-	float ekf2_eva_noise{0.1f};             ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
+	float ekf2_eva_noise{0.1f};             ///< minimum allowed observation noise for EV attitude fusion (rad)
 	int32_t ekf2_ev_qmin{0};                ///< vision minimum acceptable quality integer
 	float ekf2_evv_gate{3.0f};              ///< vision velocity fusion innovation consistency gate size (STD)
 	float ekf2_evp_gate{5.0f};              ///< vision position fusion innovation consistency gate size (STD)

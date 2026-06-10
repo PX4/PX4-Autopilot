@@ -41,6 +41,7 @@
 
 #include "mission_base.h"
 
+#include "mission_item_utils.h"
 #include "px4_platform_common/defines.h"
 
 #include "mission_feasibility_checker.h"
@@ -73,8 +74,8 @@ MissionBase::updateDatamanCache()
 {
 	if ((_mission.count > 0) && (_mission.current_seq != _load_mission_index)) {
 
-		const int32_t start_index = math::constrain(_mission.current_seq, INT32_C(0), int32_t(_mission.count) - 1);
-		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, INT32_C(0),
+		const int32_t start_index = math::constrain(_mission.current_seq, int32_t{0}, int32_t(_mission.count) - 1);
+		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, int32_t{0},
 					  int32_t(_mission.count) - 1);
 
 		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
@@ -98,7 +99,7 @@ void MissionBase::updateMavlinkMission()
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
 		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::constrain(_mission.current_seq, INT32_C(0),
+			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{0},
 						  static_cast<int32_t>(new_mission.count) - 1);
 		}
 
@@ -450,6 +451,11 @@ void MissionBase::update_mission()
 	_navigator->reset_vroi();
 
 	if (_navigator->get_mission_result()->valid) {
+		/* re-issue the climb ticket on cursor change while in takeoff phase */
+		if (_land_detected_sub.get().landed || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+			checkClimbRequired(_mission.current_seq);
+		}
+
 		/* reset work item if new mission has been accepted */
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
@@ -873,8 +879,16 @@ MissionBase::do_abort_landing()
 	}
 
 	const float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	const float alt_sp = math::max(alt_landing + _navigator->get_landing_abort_min_alt(),
-				       _global_pos_sub.get().alt);
+
+	// Use the landing item's per-item abort altitude (NAV_CMD_LAND param1) if specified,
+	// otherwise fall back to the global MIS_LND_ABRT_ALT parameter.
+	float abort_min_alt = _navigator->get_landing_abort_min_alt();
+
+	if (PX4_ISFINITE(_mission_item.land_abort_min_alt) && _mission_item.land_abort_min_alt > FLT_EPSILON) {
+		abort_min_alt = _mission_item.land_abort_min_alt;
+	}
+
+	const float alt_sp = math::max(alt_landing + abort_min_alt, _global_pos_sub.get().alt);
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
@@ -1078,7 +1092,7 @@ bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index
 			return false;
 		}
 
-		if (item_contains_position(mission_item)) {
+		if (mission_item_contains_position(mission_item)) {
 			next_index = traversed_index;
 			return true;
 		}
@@ -1100,7 +1114,7 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 			return false;
 		}
 
-		if (item_contains_position(mission_item)) {
+		if (mission_item_contains_position(mission_item)) {
 			previous_index = traversed_index;
 			return true;
 		}
@@ -1269,7 +1283,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 			return PX4_ERROR;
 		}
 
-		if (MissionBlock::item_contains_position(mission)) {
+		if (mission_item_contains_position(mission)) {
 			// do not consider land waypoints for a fw
 			if (!((mission.nav_cmd == NAV_CMD_LAND) &&
 			      (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
@@ -1530,7 +1544,7 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 {
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
 
-		if (item_contains_position(_mission_item)) {
+		if (mission_item_contains_position(_mission_item)) {
 			const float new_alt = get_absolute_altitude_for_item(_mission_item);
 			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
 

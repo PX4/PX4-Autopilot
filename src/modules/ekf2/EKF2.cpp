@@ -1001,19 +1001,21 @@ void EKF2::initFusionControl()
 
 		const int32_t sens_en = _param_ekf2_sens_en.get();
 
-		_fc.gps.enabled    = sens_en & (1 << SENS_EN_GPS0);
-		_fc.of.enabled     = sens_en & (1 << SENS_EN_OF);
-		_fc.ev.enabled     = sens_en & (1 << SENS_EN_EV);
+		_fc.gps.enabled    = sens_en & SensEn::GPS0;
+		_fc.of.enabled     = sens_en & SensEn::OF;
+		_fc.ev.enabled     = sens_en & SensEn::EV;
+
+		static constexpr SensEn kAgpBits[MAX_AGP_INSTANCES] = {SensEn::AGP0, SensEn::AGP1, SensEn::AGP2, SensEn::AGP3};
 
 		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-			_fc.agp[i].enabled = sens_en & (1 << (SENS_EN_AGP0 + i));
+			_fc.agp[i].enabled = sens_en & kAgpBits[i];
 		}
 
-		_fc.baro.enabled   = sens_en & (1 << SENS_EN_BARO);
-		_fc.rng.enabled    = sens_en & (1 << SENS_EN_RNG);
-		_fc.mag.enabled    = sens_en & (1 << SENS_EN_MAG);
-		_fc.aspd.enabled   = sens_en & (1 << SENS_EN_ASPD);
-		_fc.rngbcn.enabled = sens_en & (1 << SENS_EN_RNGBCN);
+		_fc.baro.enabled   = sens_en & SensEn::BARO;
+		_fc.rng.enabled    = sens_en & SensEn::RNG;
+		_fc.mag.enabled    = sens_en & SensEn::MAG;
+		_fc.aspd.enabled   = sens_en & SensEn::ASPD;
+		_fc.rngbcn.enabled = sens_en & SensEn::RNGBCN;
 	}
 }
 
@@ -1069,25 +1071,27 @@ void EKF2::syncSensEnParam()
 {
 	int32_t sens_en = 0;
 
-	if (_fc.gps.enabled)    { sens_en |= (1 << SENS_EN_GPS0); }
+	if (_fc.gps.enabled)    { sens_en |= SensEn::GPS0; }
 
-	if (_fc.of.enabled)     { sens_en |= (1 << SENS_EN_OF); }
+	if (_fc.of.enabled)     { sens_en |= SensEn::OF; }
 
-	if (_fc.ev.enabled)     { sens_en |= (1 << SENS_EN_EV); }
+	if (_fc.ev.enabled)     { sens_en |= SensEn::EV; }
+
+	static constexpr SensEn kAgpBits[MAX_AGP_INSTANCES] = {SensEn::AGP0, SensEn::AGP1, SensEn::AGP2, SensEn::AGP3};
 
 	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
-		if (_fc.agp[i].enabled) { sens_en |= (1 << (SENS_EN_AGP0 + i)); }
+		if (_fc.agp[i].enabled) { sens_en |= kAgpBits[i]; }
 	}
 
-	if (_fc.baro.enabled)   { sens_en |= (1 << SENS_EN_BARO); }
+	if (_fc.baro.enabled)   { sens_en |= SensEn::BARO; }
 
-	if (_fc.rng.enabled)    { sens_en |= (1 << SENS_EN_RNG); }
+	if (_fc.rng.enabled)    { sens_en |= SensEn::RNG; }
 
-	if (_fc.mag.enabled)    { sens_en |= (1 << SENS_EN_MAG); }
+	if (_fc.mag.enabled)    { sens_en |= SensEn::MAG; }
 
-	if (_fc.aspd.enabled)   { sens_en |= (1 << SENS_EN_ASPD); }
+	if (_fc.aspd.enabled)   { sens_en |= SensEn::ASPD; }
 
-	if (_fc.rngbcn.enabled) { sens_en |= (1 << SENS_EN_RNGBCN); }
+	if (_fc.rngbcn.enabled) { sens_en |= SensEn::RNGBCN; }
 
 	_param_ekf2_sens_en.set(sens_en);
 	_param_ekf2_sens_en.commit_no_notification();
@@ -1754,14 +1758,14 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
-	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
+	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid() || (_ekf.getHeightSensorRef() == HeightSensor::RANGE);
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
-	lpos.dist_bottom_var = _ekf.getTerrainVariance();
+	lpos.dist_bottom_var = _ekf.getHaglVariance();
 	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);
 
 	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
 
-	if (_ekf.control_status_flags().rng_terrain) {
+	if (_ekf.control_status_flags().rng_terrain || _ekf.control_status_flags().rng_hgt) {
 		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
 	}
 
@@ -1987,7 +1991,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	static constexpr float kMinTestRatioPreflight = 0.5f;
-	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio) || !_ekf.control_status_flags().yaw_align;
+	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
 	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);
 	status.pre_flt_fail_innov_pos_horiz = (kMinTestRatioPreflight < status.pos_test_ratio);
 	status.pre_flt_fail_innov_vel_horiz = (kMinTestRatioPreflight < vel_xy_test_ratio);
@@ -2306,9 +2310,13 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 	//  - use the landing target pose estimate as another source of velocity data
 	landing_target_pose_s landing_target_pose;
 
+	if (!_param_ekf2_avel_en.get()) {
+		return;
+	}
+
 	if (_landing_target_pose_sub.update(&landing_target_pose)) {
-		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
-		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
+
+		if (landing_target_pose.rel_vel_ekf2_valid) {
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
 				.time_us = landing_target_pose.timestamp,

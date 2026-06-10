@@ -26,21 +26,10 @@ parameters:
       unit: A/%
       decimal: 2
       increment: 1
-    MOTFAIL_LOW_OFF:
+    MOTFAIL_OFF:
       description:
-        short: Undercurrent motor failure limit offset
-        long: threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
-      type: float
-      default: 10.0
-      min: 0
-      max: 30
-      unit: A
-      decimal: 2
-      increment: 1
-    MOTFAIL_HIGH_OFF:
-      description:
-        short: Overcurrent motor failure limit offset
-        long: threshold = FD_ACT_MOT_C2T * thrust + FD_ACT_HIGH_OFF
+        short: Under/over-current motor failure limit offset
+        long: Check is triggered if `abs(FD_ACT_MOT_C2T * thrust - FD_ACT_OFF)` is above this value.
       type: float
       default: 10.0
       min: 0

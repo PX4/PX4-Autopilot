@@ -18,6 +18,7 @@ psutil
 pycryptodome
 pygments
 pymavlink
+pynacl
 pyros-genmsg
 pyserial
 pyulog>=0.5.0

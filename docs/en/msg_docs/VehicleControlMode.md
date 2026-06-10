@@ -8,24 +8,24 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                      | Type     | Unit [Frame] | Range/Enum | Description                                                   |
-| ----------------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------------------- |
-| timestamp                                 | `uint64` |              |            | time since system start (microseconds)                        |
-| flag_armed                                | `bool`   |              |            | synonym for actuator_armed.armed                              |
-| flag_multicopter_position_control_enabled | `bool`   |              |            |
-| flag_control_manual_enabled               | `bool`   |              |            | true if manual input is mixed in                              |
-| flag_control_auto_enabled                 | `bool`   |              |            | true if onboard autopilot should act                          |
-| flag_control_offboard_enabled             | `bool`   |              |            | true if offboard control should be used                       |
-| flag_control_position_enabled             | `bool`   |              |            | true if position is controlled                                |
-| flag_control_velocity_enabled             | `bool`   |              |            | true if horizontal velocity (implies direction) is controlled |
-| flag_control_altitude_enabled             | `bool`   |              |            | true if altitude is controlled                                |
-| flag_control_climb_rate_enabled           | `bool`   |              |            | true if climb rate is controlled                              |
-| flag_control_acceleration_enabled         | `bool`   |              |            | true if acceleration is controlled                            |
-| flag_control_attitude_enabled             | `bool`   |              |            | true if attitude stabilization is mixed in                    |
-| flag_control_rates_enabled                | `bool`   |              |            | true if rates are stabilized                                  |
-| flag_control_allocation_enabled           | `bool`   |              |            | true if control allocation is enabled                         |
-| flag_control_termination_enabled          | `bool`   |              |            | true if flighttermination is enabled                          |
-| source_id                                 | `uint8`  |              |            | Mode ID (nav_state)                                           |
+| Name                                                                                                | Type     | Unit [Frame] | Range/Enum | Description                                                   |
+| --------------------------------------------------------------------------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                 | `uint64` |              |            | time since system start (microseconds)                        |
+| <a id="fld_flag_armed"></a>flag_armed                                                               | `bool`   |              |            | synonym for actuator_armed.armed                              |
+| <a id="fld_flag_multicopter_position_control_enabled"></a>flag_multicopter_position_control_enabled | `bool`   |              |            |
+| <a id="fld_flag_control_manual_enabled"></a>flag_control_manual_enabled                             | `bool`   |              |            | true if manual input is mixed in                              |
+| <a id="fld_flag_control_auto_enabled"></a>flag_control_auto_enabled                                 | `bool`   |              |            | true if onboard autopilot should act                          |
+| <a id="fld_flag_control_offboard_enabled"></a>flag_control_offboard_enabled                         | `bool`   |              |            | true if offboard control should be used                       |
+| <a id="fld_flag_control_position_enabled"></a>flag_control_position_enabled                         | `bool`   |              |            | true if position is controlled                                |
+| <a id="fld_flag_control_velocity_enabled"></a>flag_control_velocity_enabled                         | `bool`   |              |            | true if horizontal velocity (implies direction) is controlled |
+| <a id="fld_flag_control_altitude_enabled"></a>flag_control_altitude_enabled                         | `bool`   |              |            | true if altitude is controlled                                |
+| <a id="fld_flag_control_climb_rate_enabled"></a>flag_control_climb_rate_enabled                     | `bool`   |              |            | true if climb rate is controlled                              |
+| <a id="fld_flag_control_acceleration_enabled"></a>flag_control_acceleration_enabled                 | `bool`   |              |            | true if acceleration is controlled                            |
+| <a id="fld_flag_control_attitude_enabled"></a>flag_control_attitude_enabled                         | `bool`   |              |            | true if attitude stabilization is mixed in                    |
+| <a id="fld_flag_control_rates_enabled"></a>flag_control_rates_enabled                               | `bool`   |              |            | true if rates are stabilized                                  |
+| <a id="fld_flag_control_allocation_enabled"></a>flag_control_allocation_enabled                     | `bool`   |              |            | true if control allocation is enabled                         |
+| <a id="fld_flag_control_termination_enabled"></a>flag_control_termination_enabled                   | `bool`   |              |            | true if flighttermination is enabled                          |
+| <a id="fld_source_id"></a>source_id                                                                 | `uint8`  |              |            | Mode ID (nav_state)                                           |
 
 ## Constants
 

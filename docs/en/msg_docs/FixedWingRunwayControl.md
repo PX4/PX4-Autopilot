@@ -10,12 +10,12 @@ Auxiliary control fields for fixed-wing runway takeoff/landing.
 
 ## Fields
 
-| Name                        | Type      | Unit [Frame] | Range/Enum | Description                                                                |
-| --------------------------- | --------- | ------------ | ---------- | -------------------------------------------------------------------------- |
-| timestamp                   | `uint64`  | us           |            | time since system start                                                    |
-| runway_takeoff_state        | `uint8`   |              |            | Current state of runway takeoff state machine                              |
-| wheel_steering_enabled      | `bool`    |              |            | Flag that enables the wheel steering.                                      |
-| wheel_steering_nudging_rate | `float32` | FRD          | [-1 : 1]   | Manual wheel nudging, added to controller output. NAN is interpreted as 0. |
+| Name                                                                    | Type      | Unit [Frame] | Range/Enum | Description                                                                |
+| ----------------------------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                     | `uint64`  | us           |            | time since system start                                                    |
+| <a id="fld_runway_takeoff_state"></a>runway_takeoff_state               | `uint8`   |              |            | Current state of runway takeoff state machine                              |
+| <a id="fld_wheel_steering_enabled"></a>wheel_steering_enabled           | `bool`    |              |            | Flag that enables the wheel steering.                                      |
+| <a id="fld_wheel_steering_nudging_rate"></a>wheel_steering_nudging_rate | `float32` | FRD          | [-1 : 1]   | Manual wheel nudging, added to controller output. NAN is interpreted as 0. |
 
 ## Constants
 
