@@ -672,8 +672,13 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+	const uint8_t vtype = mavlink_cmd_params::vehicle_type_bitmask(vehicle_status.is_vtol,
+			      vehicle_status.vehicle_type);
+
 	uint8_t zero_mask = 0;
-	const int command_invalid = mavlink_cmd_params::check_params(cmd_mavlink.command, false,
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, vtype,
 				    vehicle_command.param1, vehicle_command.param2,
 				    vehicle_command.param3, vehicle_command.param4,
 				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,

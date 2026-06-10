@@ -155,127 +155,10 @@ static inline bool param_is_zero(float v)
 	return !std::isnan(v) && (bits & 0x7FFFFFFFu) == 0u;
 }
 
-/**
- * Check params 1–7 of an incoming mission item or command against the table.
- *
- * Pass 0.0f for any of p5–p7 to skip checking that param (treated as unset).
- * For global-frame MISSION_ITEM_INT prefer check_params_int() which validates
- * p5/p6 correctly as int32 against INT32_MAX.
- *
- * @param cmd               MAV_CMD value
- * @param for_mission       true for mission items, false for COMMAND_LONG/INT
- * @param p1–p7             raw float param values from the MAVLink message
- * @param zero_sentinel_mask optional out: bitmask of unsupported params where
- *                          the GCS sent 0.0 instead of NaN (bit 0=p1 … bit 6=p7)
- * @return  0   all unsupported params are unset
- *          1–7 1-based index of the first offending param
- *          -1  command not in table (no validation applied)
- */
-[[maybe_unused]] static int check_params(uint16_t cmd, bool for_mission,
-		float p1, float p2, float p3, float p4,
-		float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
-		uint8_t *zero_sentinel_mask = nullptr)
-{
-	size_t lo = 0;
-	size_t hi = SupportedCommandParamsCount - 1;
-
-	while (lo <= hi) {
-		const size_t mid = lo + (hi - lo) / 2;
-
-		if (SupportedCommandParams[mid].cmd == cmd) {
-			const uint8_t mask = for_mission
-					     ? SupportedCommandParams[mid].mission
-					     : SupportedCommandParams[mid].command;
-
-			const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
-
-			for (int i = 0; i < 7; ++i) {
-				if (!((mask >> i) & 1u)) {
-					if (!param_is_unset(ps[i])) { return i + 1; }
-
-					if (zero_sentinel_mask && param_is_zero(ps[i])) {
-						*zero_sentinel_mask |= (uint8_t)(1u << i);
-					}
-				}
-			}
-
-			return 0;
-
-		} else if (SupportedCommandParams[mid].cmd < cmd) {
-			lo = mid + 1;
-
-		} else {
-			if (mid == 0) { break; }
-
-			hi = mid - 1;
-		}
-	}
-
-	return -1; // command not in table — no validation applied
-}
-
 // INT32_MAX is the MAVLink sentinel for "int32 param not provided".
 static inline bool int_param_is_unset(int32_t v)
 {
 	return v == INT32_MAX;
-}
-
-/**
- * Variant of check_params for global-frame MISSION_ITEM_INT where p5 and p6
- * are raw int32 lat/lon fields.  p7 (z/altitude) remains a float.
- *
- * @param p5_int  raw int32 x (latitude in 1e-7 deg, or INT32_MAX if unset)
- * @param p6_int  raw int32 y (longitude in 1e-7 deg, or INT32_MAX if unset)
- * @param p7      float z (altitude); 0.0f to skip
- * @return same as check_params
- */
-[[maybe_unused]] static int check_params_int(uint16_t cmd, bool for_mission,
-		float p1, float p2, float p3, float p4,
-		int32_t p5_int, int32_t p6_int, float p7 = 0.0f,
-		uint8_t *zero_sentinel_mask = nullptr)
-{
-	size_t lo = 0;
-	size_t hi = SupportedCommandParamsCount - 1;
-
-	while (lo <= hi) {
-		const size_t mid = lo + (hi - lo) / 2;
-
-		if (SupportedCommandParams[mid].cmd == cmd) {
-			const uint8_t mask = for_mission
-					     ? SupportedCommandParams[mid].mission
-					     : SupportedCommandParams[mid].command;
-
-			const float ps14[4] = {p1, p2, p3, p4};
-
-			for (int i = 0; i < 4; ++i) {
-				if (!((mask >> i) & 1u)) {
-					if (!param_is_unset(ps14[i])) { return i + 1; }
-
-					if (zero_sentinel_mask && param_is_zero(ps14[i])) {
-						*zero_sentinel_mask |= (uint8_t)(1u << i);
-					}
-				}
-			}
-
-			if (!((mask >> 4) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
-
-			if (!((mask >> 5) & 1u) && !int_param_is_unset(p6_int)) { return 6; }
-
-			if (!((mask >> 6) & 1u) && !param_is_unset(p7)) { return 7; }
-
-			return 0;
-
-		} else if (SupportedCommandParams[mid].cmd < cmd) {
-			lo = mid + 1;
-
-		} else {
-			if (mid == 0) { break; }
-
-			hi = mid - 1;
-		}
-	}
-
-	return -1;
 }
 
 // Vehicle type bitmask for per-vehicle parameter support.
@@ -288,6 +171,19 @@ enum VehicleType : uint8_t {
 	VEHICLE_ANY  = 0xFF,
 };
 
+// Maps PX4 vehicle_status_s fields to a VehicleType bitmask.
+// vehicle_type: 1 = rotary-wing, 2 = fixed-wing (vehicle_status_s::VEHICLE_TYPE_*).
+static inline uint8_t vehicle_type_bitmask(bool is_vtol, uint8_t vehicle_type)
+{
+	if (is_vtol) { return VEHICLE_VTOL; }
+
+	if (vehicle_type == 2u) { return VEHICLE_FW; }
+
+	if (vehicle_type == 1u) { return VEHICLE_MC; }
+
+	return 0;
+}
+
 // Extends the base table for vehicle-specific params that differ across airframe types.
 // Each entry's masks are OR'd with the base Entry masks when the vehicle_mask matches.
 // Example (not yet active):
@@ -299,25 +195,24 @@ struct VehicleOverride {
 	uint8_t  command;      // additional allowed param bits (bits 0-6 = p1-p7)
 };
 
+// When adding vehicle-specific param differences, add entries here.
+// Example: { 22, VEHICLE_FW, 0x04, 0x04 }  // NAV_TAKEOFF: allow p3 (pitch) on FW only
 static constexpr VehicleOverride VehicleParamOverrides[] = {
-	// Populate as per-vehicle param differences are identified.
 };
 
 /**
- * Variant of check_params that applies vehicle-type-specific parameter overrides.
+ * Check params 1–7 of an incoming mission item or command against the base table,
+ * then OR-extend the allowed mask with any matching VehicleParamOverrides entry.
  *
- * Performs the same binary-search validation as check_params, then OR-extends the
- * allowed-param mask with any matching VehicleParamOverrides entry for vehicle_type.
- * Use this when the vehicle type is known at the call site; existing callers that do
- * not have type information can continue to use check_params unchanged.
- *
- * @param vehicle_type  bitmask of VehicleType (VEHICLE_FW / VEHICLE_MC / VEHICLE_VTOL)
- * @return              same as check_params
+ * @param vehicle_type  bitmask from vehicle_type_bitmask() — VEHICLE_FW / VEHICLE_MC / VEHICLE_VTOL
+ * @return  0   all unsupported params are unset
+ *          1–7 1-based index of the first offending param
+ *          -1  command not in table (no validation applied)
  */
-[[maybe_unused]] static int check_params_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
-		float p1, float p2, float p3, float p4,
-		float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
-		uint8_t *zero_sentinel_mask = nullptr)
+static int check_params_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
+				    float p1, float p2, float p3, float p4,
+				    float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
+				    uint8_t *zero_sentinel_mask = nullptr)
 {
 	size_t lo = 0;
 	size_t hi = SupportedCommandParamsCount - 1;
@@ -347,6 +242,65 @@ static constexpr VehicleOverride VehicleParamOverrides[] = {
 					}
 				}
 			}
+
+			return 0;
+
+		} else if (SupportedCommandParams[mid].cmd < cmd) {
+			lo = mid + 1;
+
+		} else {
+			if (mid == 0) { break; }
+
+			hi = mid - 1;
+		}
+	}
+
+	return -1;
+}
+
+/**
+ * Variant of check_params_for_vehicle for global-frame MISSION_ITEM_INT where p5/p6
+ * are raw int32 lat/lon (INT32_MAX = unset) and p7 (altitude) remains a float.
+ */
+static int check_params_int_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
+					float p1, float p2, float p3, float p4,
+					int32_t p5_int, int32_t p6_int, float p7 = 0.0f,
+					uint8_t *zero_sentinel_mask = nullptr)
+{
+	size_t lo = 0;
+	size_t hi = SupportedCommandParamsCount - 1;
+
+	while (lo <= hi) {
+		const size_t mid = lo + (hi - lo) / 2;
+
+		if (SupportedCommandParams[mid].cmd == cmd) {
+			uint8_t mask = for_mission
+				       ? SupportedCommandParams[mid].mission
+				       : SupportedCommandParams[mid].command;
+
+			for (const auto &ov : VehicleParamOverrides) {
+				if (ov.cmd == cmd && (ov.vehicle_mask & vehicle_type)) {
+					mask |= for_mission ? ov.mission : ov.command;
+				}
+			}
+
+			const float ps14[4] = {p1, p2, p3, p4};
+
+			for (int i = 0; i < 4; ++i) {
+				if (!((mask >> i) & 1u)) {
+					if (!param_is_unset(ps14[i])) { return i + 1; }
+
+					if (zero_sentinel_mask && param_is_zero(ps14[i])) {
+						*zero_sentinel_mask |= (uint8_t)(1u << i);
+					}
+				}
+			}
+
+			if (!((mask >> 4) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
+
+			if (!((mask >> 5) & 1u) && !int_param_is_unset(p6_int)) { return 6; }
+
+			if (!((mask >> 6) & 1u) && !param_is_unset(p7)) { return 7; }
 
 			return 0;
 
