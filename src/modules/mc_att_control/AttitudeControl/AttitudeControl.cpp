@@ -96,7 +96,13 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	q_err.canonicalize();
 	const Vector3f e = 2.f * q_err.imag();
 
-	// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n], using emt = exp(-_omega_n*dt).
+	// Entries of exp(A*dt) for A = [0 -1; _kq -2*_omega_n]. A has the repeated eigenvalue lambda = -_omega_n.
+	// The matrix N = A - lambda*I is then nilpotent (a matrix is nilpotent when
+	// N^k = 0 for some k, and here N^2 = 0). Writing exp(A*dt) = e^(lambda*dt) * exp(N*dt) and expanding the
+	// series for exp(N*dt) = I + N*dt + (N*dt)^2/2! + ... , every term from (N*dt)^2
+	// onward vanishes, so the exponential truncates to the exact closed form
+	//     exp(A*dt) = e^(-_omega_n*dt) * [ (1 + _omega_n*dt) I + dt*A ]
+	//               = emt * [ a  -b ;  gamma  delta ].
 	const float w_dt  = _omega_n * dt;
 	const float emt   = expf(-w_dt);
 	const float a     = (1.f + w_dt) * emt;
