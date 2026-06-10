@@ -669,9 +669,13 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 		// Decode tag from upper 5 bits
 		const uint8_t tag_id = buffer.TAG >> 3;
 
+		// sensor's frame is +x forward, +y left, +z up
+		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		const int16_t data_x = combine(buffer.DATA_X_H, buffer.DATA_X_L);
-		const int16_t data_y = combine(buffer.DATA_Y_H, buffer.DATA_Y_L);
-		const int16_t data_z = combine(buffer.DATA_Z_H, buffer.DATA_Z_L);
+		const int16_t y = combine(buffer.DATA_Y_H, buffer.DATA_Y_L);
+		const int16_t z = combine(buffer.DATA_Z_H, buffer.DATA_Z_L);
+		const int16_t data_y = (y == INT16_MIN) ? INT16_MAX : -y;
+		const int16_t data_z = (z == INT16_MIN) ? INT16_MAX : -z;
 
 		if (tag_id == static_cast<uint8_t>(FifoTag::GYRO_NC)) {
 			if (gyro.samples < (sizeof(gyro.x) / sizeof(gyro.x[0]))) {
