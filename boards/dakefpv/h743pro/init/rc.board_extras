@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# DAKEFPV H743 board extras
+#
+# Ensure /fs/microsd/etc/ exists and seed an empty extras.txt the first time,
+# so the user startup script is present and discoverable on the onboard flash.
+# PX4 runs /fs/microsd/etc/extras.txt at every boot (FEXTRAS in rcS); add your
+# startup commands there.
+#
+
+mkdir -p /fs/microsd/etc
+
+if [ ! -f /fs/microsd/etc/extras.txt ]
+then
+	echo "# DAKEFPV user startup commands - run at every boot" > /fs/microsd/etc/extras.txt
+fi
