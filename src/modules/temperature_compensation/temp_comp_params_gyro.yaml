@@ -1,0 +1,10 @@
+module_name: temperature_compensation
+parameters:
+- group: Thermal Compensation
+  definitions:
+    TC_G_ENABLE:
+      description:
+        short: Thermal compensation for rate gyro sensors
+      type: boolean
+      default: 0
+      reboot_required: true

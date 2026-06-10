@@ -41,6 +41,7 @@
 #include <math.h>
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -100,6 +101,10 @@
 /* Deepstandby enable/disable */
 #define BMP5_DEEP_ENABLED		(0)
 #define BMP5_DEEP_DISABLED              (1)
+
+/* Pressure operating range (Pa) */
+#define BMP5_PRESSURE_MIN_PA            (30000.0f)
+#define BMP5_PRESSURE_MAX_PA            (125000.0f)
 
 /* ODR settings */
 #define BMP5_ODR_50_HZ                  (0x0F)
@@ -278,7 +283,7 @@ private:
 	static constexpr uint8_t	INTERRUPT_POLARITY{BMP5_INT_POL_ACTIVE_HIGH};
 	static constexpr uint8_t 	INTERRUPT_DRIVE{BMP5_INT_OD_PUSHPULL};
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro;
 	IBMP581 		*_interface{nullptr};
 
 	unsigned		_measure_interval{0};			// interval in microseconds needed to measure

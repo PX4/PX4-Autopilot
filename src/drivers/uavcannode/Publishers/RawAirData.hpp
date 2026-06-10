@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "UavcanPublisherBase.hpp"
 
 #include <uavcan/equipment/air_data/RawAirData.hpp>
@@ -76,12 +78,12 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&diff_press)) {
 			uavcan::equipment::air_data::RawAirData raw_air_data{};
 
-			// raw_air_data.static_pressure =
+			raw_air_data.static_pressure = NAN;
+			raw_air_data.static_pressure_sensor_temperature = NAN;
 			raw_air_data.differential_pressure = diff_press.differential_pressure_pa;
-			// raw_air_data.static_pressure_sensor_temperature =
 			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - atmosphere::kAbsoluteNullCelsius;
 			raw_air_data.static_air_temperature = diff_press.temperature - atmosphere::kAbsoluteNullCelsius;
-			// raw_air_data.pitot_temperature
+			raw_air_data.pitot_temperature = NAN;
 			// raw_air_data.covariance
 			uavcan::Publisher<uavcan::equipment::air_data::RawAirData>::broadcast(raw_air_data);
 

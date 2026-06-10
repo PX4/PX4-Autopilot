@@ -36,7 +36,15 @@
 void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (!context.isArmed()) {
-		checkArmingRequirement(context, reporter);
+		if (reporter.failsafeFlags().mode_req_prevent_arming & (1u << context.status().nav_state)) {
+			/* EVENT
+			* @description
+			* Switch to another mode first.
+			*/
+			reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_prevent_arming, health_component_t::system,
+						    events::ID("check_modes_cannot_takeoff"),
+						    events::Log::Info, "Mode not suitable for arming");
+		}
 	}
 
 	// Failing mode requirements generally also clear the can_run bits which prevents mode switching and
@@ -141,17 +149,6 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_mission);
 	}
 
-	if (reporter.failsafeFlags().offboard_control_signal_lost && reporter.failsafeFlags().mode_req_offboard_signal != 0) {
-		/* EVENT
-		 * @description
-		 * The offboard component is not sending setpoints or the required estimate (e.g. position) is missing.
-		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_offboard_signal, health_component_t::system,
-					    events::ID("check_modes_offboard_signal"),
-					    events::Log::Error, "No offboard signal");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_offboard_signal);
-	}
-
 	if (reporter.failsafeFlags().home_position_invalid && reporter.failsafeFlags().mode_req_home_position != 0) {
 		/* EVENT
 		 */
@@ -190,18 +187,5 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	    && reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance != 0) {
 		// Already reported
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance);
-	}
-}
-
-void ModeChecks::checkArmingRequirement(const Context &context, Report &reporter)
-{
-	if (reporter.failsafeFlags().mode_req_prevent_arming & (1u << context.status().nav_state)) {
-		/* EVENT
-		 * @description
-		 * Switch to another mode first.
-		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_prevent_arming, health_component_t::system,
-					    events::ID("check_modes_cannot_takeoff"),
-					    events::Log::Info, "Mode not suitable for arming");
 	}
 }

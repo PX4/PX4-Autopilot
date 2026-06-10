@@ -10,12 +10,12 @@ Rover Rate Status.
 
 ## Fields
 
-| Name                       | Type      | Unit [Frame] | Range/Enum   | Description                                                  |
-| -------------------------- | --------- | ------------ | ------------ | ------------------------------------------------------------ |
-| timestamp                  | `uint64`  | us           |              | Time since system start                                      |
-| measured_yaw_rate          | `float32` | rad/s [NED]  | [-inf : inf] | Measured yaw rate                                            |
-| adjusted_yaw_rate_setpoint | `float32` | rad/s [NED]  | [-inf : inf] | Yaw rate setpoint that is being tracked (Applied slew rates) |
-| pid_yaw_rate_integral      | `float32` |              | [-1 : 1]     | Integral of the PID for the closed loop yaw rate controller  |
+| Name                                                                  | Type      | Unit [Frame] | Range/Enum   | Description                                                  |
+| --------------------------------------------------------------------- | --------- | ------------ | ------------ | ------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                                   | `uint64`  | us           |              | Time since system start                                      |
+| <a id="fld_measured_yaw_rate"></a>measured_yaw_rate                   | `float32` | rad/s [NED]  | [-inf : inf] | Measured yaw rate                                            |
+| <a id="fld_adjusted_yaw_rate_setpoint"></a>adjusted_yaw_rate_setpoint | `float32` | rad/s [NED]  | [-inf : inf] | Yaw rate setpoint that is being tracked (Applied slew rates) |
+| <a id="fld_pid_yaw_rate_integral"></a>pid_yaw_rate_integral           | `float32` |              | [-1 : 1]     | Integral of the PID for the closed loop yaw rate controller  |
 
 ## Source Message
 

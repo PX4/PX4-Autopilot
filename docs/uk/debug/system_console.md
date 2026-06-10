@@ -23,16 +23,10 @@ Developers targeting a number of different boards may wish to use a [debug adapt
 
 ### Проводка, специфічна для плати
 
-The System Console UART pinouts/debug ports are typically documented in [autopilot overview pages](../flight_controller/index.md) (some are linked below):
+The System Console UART pinouts/debug ports are typically documented in the affected [autopilot overview pages](../flight_controller/index.md).
+For example, see [mRo Pixhawk](../flight_controller/mro_pixhawk.md#console-port) and [Pixracer](../flight_controller/pixracer.md#debug-port).
 
-- [3DR Pixhawk v1 Flight Controller](../flight_controller/pixhawk.md#console-port) (also applies to
-  [mRo Pixhawk](../flight_controller/mro_pixhawk.md#debug-ports), [Holybro pix32](../flight_controller/holybro_pix32.md#debug-port))
-- [Pixhawk 3](../flight_controller/pixhawk3_pro.md#debug-port)
-- [Pixracer](../flight_controller/pixracer.md#debug-port)
-
-<a id="pixhawk_debug_port"></a>
-
-### Порти відладки Pixhawk
+### Pixhawk Debug Port {#pixhawk_debug_port}
 
 Pixhawk flight controllers usually come with a [Pixhawk Connector Standard Debug Port](../debug/swd_debug.md#pixhawk-connector-standard-debug-ports) which will be either the 10 pin [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) or 6 pin [Pixhawk Debug Mini](../debug/swd_debug.md#pixhawk-debug-mini) port.
 

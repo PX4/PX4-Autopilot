@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,11 +38,14 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -68,7 +71,18 @@ public:
 	bool init();
 
 private:
+	static constexpr int GPS_MAX_INSTANCES = 2;
+
 	void Run() override;
+
+	void check_failure_injection();
+
+	void publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
+				 uORB::PublicationMulti<sensor_gps_s> &pub);
+
+	bool isBlocked(int instance) const { return (_gps_blocked_mask >> instance) & 1u; }
+	bool isStuck(int instance)   const { return (_gps_stuck_mask   >> instance) & 1u; }
+	bool isWrong(int instance)   const { return (_gps_wrong_mask   >> instance) & 1u; }
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
@@ -79,10 +93,20 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub2{ORB_ID(sensor_gps)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+
+	uint8_t _gps_blocked_mask{0};
+	uint8_t _gps_stuck_mask{0};
+	uint8_t _gps_wrong_mask{0};
+
+	sensor_gps_s _last_gps0{};
+	sensor_gps_s _last_gps1{};
 
 	// GPS Markov process noise state
 	float _gps_pos_noise_n{0.0f};
@@ -101,6 +125,8 @@ private:
 	static constexpr float _vel_markov_time{0.54f};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
+		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
+		(ParamFloat<px4::params::SENS_GPS1_OFFX>)  _param_gps1_offx,
+		(ParamFloat<px4::params::SENS_GPS1_OFFY>)  _param_gps1_offy
 	)
 };

@@ -140,9 +140,9 @@ void RCUpdate::updateParams()
 		param_get(_parameter_handles.max[i], &max);
 		_parameters.max[i] = max;
 
-		float rev = 0.f;
+		int32_t rev = 0;
 		param_get(_parameter_handles.rev[i], &rev);
-		_parameters.rev[i] = (rev < 0.f);
+		_parameters.rev[i] = (rev < 0);
 	}
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {

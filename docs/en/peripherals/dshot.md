@@ -13,7 +13,7 @@ This topic shows how to connect and configure DShot ESCs.
 
 ## Supported ESC
 
-[ESCs & Motors > Supported ESCs](../peripherals/esc_motors#supported-esc) has a list of supported ESC (check "Protocols" column for DShot ESC).
+[ESCs & Motors > Supported ESCs](../peripherals/esc_motors.md#supported-esc) has a list of supported ESC (check "Protocols" column for DShot ESC).
 
 ## Wiring/Connections {#wiring}
 

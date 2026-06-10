@@ -1,0 +1,16 @@
+module_name: vehicle_acceleration
+parameters:
+- group: Sensors
+  definitions:
+    IMU_ACCEL_CUTOFF:
+      description:
+        short: Low pass filter cutoff frequency for accel
+        long: |-
+          The cutoff frequency for the 2nd order butterworth filter on the primary accelerometer.
+          This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+      type: float
+      default: 30.0
+      min: 0
+      max: 1000
+      unit: Hz
+      reboot_required: true

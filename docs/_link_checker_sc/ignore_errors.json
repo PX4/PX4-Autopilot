@@ -1024,148 +1024,708 @@
     "hideReason": "405 Method Not Allowed - works in browser"
   },
   {
-    "link": { "url": "https://www.st.com/en/development-tools/stsw-stm32080.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/development-tools/stsw-stm32080.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.molex.com/en-us/products/part-detail/5024430670", "text": "" },
+    "link": {
+      "url": "https://www.molex.com/en-us/products/part-detail/5024430670",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/development-tools/stlink-v3minie.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/development-tools/stlink-v3minie.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/development-tools/stsw-link004.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/development-tools/stsw-link004.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/mems-and-sensors/iis2mdc.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/mems-and-sensors/iis2mdc.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/positioning/teseo-liv4f.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/positioning/teseo-liv4f.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/development-tools/st-link-v2.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/development-tools/st-link-v2.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f0-series.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f0-series.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f745vg.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f745vg.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers/stm32f405rg.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers/stm32f405rg.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h750vb.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h750vb.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://review.px4.io/plot_app?log=6a1a279c-1df8-4736-9f55-70ec16656d1e", "text": "" },
+    "link": {
+      "url": "https://review.px4.io/plot_app?log=6a1a279c-1df8-4736-9f55-70ec16656d1e",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.skypull.technology/", "text": "" },
+    "link": {
+      "url": "https://www.skypull.technology/",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html", "text": "" },
+    "link": {
+      "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.te.com/usa-en/product-CAT-BLPS0003.html", "text": "" },
+    "link": {
+      "url": "https://www.te.com/usa-en/product-CAT-BLPS0003.html",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://wiki.flightgear.org/Flight_Dynamics_Model", "text": "" },
+    "link": {
+      "url": "https://wiki.flightgear.org/Flight_Dynamics_Model",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA", "text": "" },
+    "link": {
+      "url": "https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://wiki.flightgear.org/Command_line_options", "text": "" },
+    "link": {
+      "url": "https://wiki.flightgear.org/Command_line_options",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://wiki.flightgear.org/Suggested_airports", "text": "" },
+    "link": {
+      "url": "https://wiki.flightgear.org/Suggested_airports",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://wiki.flightgear.org/Howto:Multiplayer", "text": "" },
+    "link": {
+      "url": "https://wiki.flightgear.org/Howto:Multiplayer",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://wiki.flightgear.org/Property_tree", "text": "" },
+    "link": {
+      "url": "https://wiki.flightgear.org/Property_tree",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.nxp.com/", "text": "" },
+    "link": {
+      "url": "https://www.nxp.com/",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://www.hovergames.com/", "text": "" },
+    "link": {
+      "url": "https://www.hovergames.com/",
+      "text": ""
+    },
     "hideReason": "timeout - bot block",
     "expiry": "2026-08-26"
   },
   {
-    "link": { "url": "https://senterasensors.com/phx/", "text": "" },
+    "link": {
+      "url": "https://senterasensors.com/phx/",
+      "text": ""
+    },
     "hideReason": "cert error in Node.js — page OK in browser",
     "expiry": "2027-03-02"
   },
   {
-    "link": { "url": "https://app.gazebosim.org/PX4", "text": "" },
+    "link": {
+      "url": "https://app.gazebosim.org/PX4",
+      "text": ""
+    },
     "hideReason": "reports 404 to automated requests but tested good in browser — likely SPA client-side routing or bot detection",
     "expiry": "2027-03-02"
   },
   {
-    "link": { "url": "https://duo3d.com/product/duo-minilx-lv1", "text": "" },
+    "link": {
+      "url": "https://duo3d.com/product/duo-minilx-lv1",
+      "text": ""
+    },
     "hideReason": "certificate error",
     "expiry": "2027-03-03"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\airframes\\airframe_reference.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini",
+      "text": "HolyBro QAV250"
+    },
+    "hideReason": "Link from source"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\airframes\\airframe_reference.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1",
+      "text": "Aion Robotics R1 UGV"
+    },
+    "hideReason": "Link from airframe data"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\complete_vehicles_mc\\px4_vision_kit.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/complete_vehicles/px4_vision_kit#what-is-inside",
+      "text": "PX4 v1.13 Docs here"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\computer_vision\\path_planning_interface.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.14/en/computer_vision/path_planning_interface",
+      "text": "PX4 v1.14 docs"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\concept\\control_allocation.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/concept/mixing",
+      "text": "Mixing & Actuators"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\concept\\control_allocation.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/concept/geometry_files",
+      "text": "Geometry Files"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\concept\\control_allocation.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/dev_airframes/adding_a_new_frame",
+      "text": "Adding a New Airframe Configuration"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\contribute\\dev_call.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/contribute/dev_call",
+      "text": "See the latest version"
+    },
+    "hideReason": "Expected link to newest version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\contribute\\support.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/contribute/support",
+      "text": "See the latest version"
+    },
+    "hideReason": "Expected link to newest version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\dev_log\\log_encryption.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/dev_log/log_encryption",
+      "text": "Log Encryption (PX4 v1.15)"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/flight_controller/dropix",
+      "text": "PX4 v1.13"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/flight_controller/pixhawk3_pro",
+      "text": "PX4 v1.15"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/flight_controller/omnibus_f4_sd",
+      "text": "PX4 v1.15"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/cuav_x7",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/cuav_v5",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/flight_controller/pixhack_v3",
+      "text": "PX4 v1.15"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.11/en/flight_controller/ocpoc_zynq#aerotenna-ocpoc-zynq-mini-flight-controller",
+      "text": "PX4v1.11"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/pixhawk4_mini",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/flight_controller/kakutef7",
+      "text": "PX4 v1.17"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/pixhawk_mini",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/pixfalcon",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/holybro_pix32",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/modalai_voxl_flight",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.11/en/flight_controller/modalai_fc_v1",
+      "text": "PX4 v1.11"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/mro_x2.1",
+      "text": "PX4 v1.16"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/flight_controller/auav_x2",
+      "text": "PX4 v1.15"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/flight_controller/nxp_rddrone_fmuk66",
+      "text": "PX4 v1.15 docs"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/flight_controller/pixhawk",
+      "text": "PX4 v1.15"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/complete_vehicles_mc/crazyflie2",
+      "text": "PX4 v1.15"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.14/en/complete_vehicles/betafpv_beta75x#betafpv-beta75x-2s-brushless-whoop",
+      "text": "PX4 v1.14"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.12/en/complete_vehicles/intel_aero",
+      "text": "PX4 v1.12"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.11/en/flight_controller/snapdragon_flight",
+      "text": "PX4 v1.11"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\pixhawk6c_mini.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/assembly/quick_start_pixhawk4_mini",
+      "text": "Pixhawk 4 Mini Wiring Quick Start"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\frames_multicopter\\qav_r_5_kiss_esc_racer.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/flight_controller/pixhawk_mini#connector-pin-assignments-pin-outs",
+      "text": "3DR Pixhawk Mini user manual"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\gps_compass\\rtk_gps_drotek_xl.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/gps_compass/rtk_gps_drotek_xl",
+      "text": "PX4 v1.13 here"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\gps_compass\\rtk_gps_hex_hereplus.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.11/en/gps_compass/rtk_gps_hex_hereplus",
+      "text": "PX4v1.11 docs"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\middleware\\micrortps.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/middleware/micrortps#rtps-dds-interface-px4-fast-rtps-dds-bridge",
+      "text": "Fast-RTPS Bridge"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\middleware\\uxrce_dds.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/middleware/micrortps#rtps-dds-interface-px4-fast-rtps-dds-bridge",
+      "text": "Fast-RTPS Bridge"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\middleware\\uxrce_dds.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/ros/ros2_comm",
+      "text": "ROS 2 applications written for PX4 v1.13"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\middleware\\uxrce_dds.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent",
+      "text": "directly"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\middleware\\uxrce_dds.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation",
+      "text": "Fast DDS Installation"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\middleware\\uxrce_dds.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent",
+      "text": "Fast DDS Interface ROS-Independent"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\power_module\\holybro_pm06_pixhawk4mini_power_module.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.16/en/assembly/quick_start_pixhawk4_mini#power",
+      "text": "Pixhawk 4 Mini"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\1.14.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/simulation/ignition_gazebo",
+      "text": "Ignition Gazebo"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\1.14.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/simulation/gazebo",
+      "text": "Gazebo"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\1.14.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/middleware/micrortps",
+      "text": "Fast-RTPS"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\1.17.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/releases/main",
+      "text": "See the latest version"
+    },
+    "hideReason": "Link to latest"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\main.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/releases/main",
+      "text": "See the latest version"
+    },
+    "hideReason": "Link to latest"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\robotics\\index.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.12/en/robotics/dronekit",
+      "text": "PX4 v1.12 > DroneKit"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\ros2\\user_guide.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/ros/ros2_comm",
+      "text": "PX4 v1.13 Docs"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\sensor\\px4flow.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/sensor/px4flow",
+      "text": "Legacy Docs for PX4Flow in v1.13"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\test_and_ci\\test_flights.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/test_and_ci/test_flights",
+      "text": "See the latest version"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "OrphanedImage",
+    "fileRelativeToRoot": "assets\\diagrams\\SIH_diagram.png",
+    "hideReason": ""
   }
 ]

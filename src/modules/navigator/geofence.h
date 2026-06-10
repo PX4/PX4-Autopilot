@@ -54,7 +54,11 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
 
+#if defined(PX4_STORAGEDIR)
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
+#else
+#define GEOFENCE_FILENAME PX4_ROOTFSDIR"/etc/geofence.txt"
+#endif
 
 class Navigator;
 
@@ -138,7 +142,6 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
-	bool getPredict() { return _param_gf_predict.get(); }
 
 	bool isHomeRequired();
 
@@ -230,7 +233,6 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 };

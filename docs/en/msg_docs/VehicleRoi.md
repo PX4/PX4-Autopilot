@@ -10,16 +10,16 @@ Vehicle Region Of Interest (ROI).
 
 ## Fields
 
-| Name         | Type      | Unit [Frame] | Range/Enum | Description                            |
-| ------------ | --------- | ------------ | ---------- | -------------------------------------- |
-| timestamp    | `uint64`  |              |            | time since system start (microseconds) |
-| mode         | `uint8`   |              |            | ROI mode (see above)                   |
-| lat          | `float64` |              |            | Latitude to point to                   |
-| lon          | `float64` |              |            | Longitude to point to                  |
-| alt          | `float32` |              |            | Altitude to point to                   |
-| roll_offset  | `float32` |              |            | angle offset in rad                    |
-| pitch_offset | `float32` |              |            | angle offset in rad                    |
-| yaw_offset   | `float32` |              |            | angle offset in rad                    |
+| Name                                      | Type      | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------------- | --------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`  |              |            | time since system start (microseconds) |
+| <a id="fld_mode"></a>mode                 | `uint8`   |              |            | ROI mode (see above)                   |
+| <a id="fld_lat"></a>lat                   | `float64` |              |            | Latitude to point to                   |
+| <a id="fld_lon"></a>lon                   | `float64` |              |            | Longitude to point to                  |
+| <a id="fld_alt"></a>alt                   | `float32` |              |            | Altitude to point to                   |
+| <a id="fld_roll_offset"></a>roll_offset   | `float32` |              |            | angle offset in rad                    |
+| <a id="fld_pitch_offset"></a>pitch_offset | `float32` |              |            | angle offset in rad                    |
+| <a id="fld_yaw_offset"></a>yaw_offset     | `float32` |              |            | angle offset in rad                    |
 
 ## Constants
 

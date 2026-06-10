@@ -2,7 +2,7 @@
 
 _PX4 Bootloader_ використовується для завантаження прошивки для [Pixhawk boards](../flight_controller/pixhawk_series.md) (PX4FMU, PX4IO).
 
-Зазвичай контролери Pixhawk поставляються з попередньо встановленою відповідною версією завантажувача.
+Pixhawk controllers usually come with an appropriate bootloader version pre-installed.
 Однак у деяких випадках його може бути відсутній, або може бути присутня старіша версія, яку потрібно оновити, або плата може бути відключена і потребує стирання та перевстановлення завантажувача.
 
 Ця тема пояснює, як побудувати завантажувач PX4 та кілька методів для його прошивки на плату.
@@ -38,7 +38,7 @@ You can enable this key in your own custom firmware if needed.
 2. [Оновіть прошивку](../config/firmware.md#custom) з образом, що містить новий/потрібний завантажувач.
 
    ::: info
-   The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
+   The updated bootloader might be included in the default firmware for your board or supplied in custom firmware.
 
 :::
 
@@ -51,7 +51,7 @@ You can enable this key in your own custom firmware if needed.
 
 Зазвичай на цьому етапі ви можливо захочете [оновити прошивку](../config/firmware.md) ще раз, використовуючи правильно/ново встановлений загрузчик.
 
-An specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
+A specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
 
 ## Створення завантажувача PX4
 
@@ -89,7 +89,7 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 1. Отримайте бінарний файл, який містить завантажувальник (або від команди розробників, або [зіберіть його самостійно](#building-the-px4-bootloader)).
 
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
-   Підключіть зонд до комп'ютера за допомогою USB та налаштуйте `gdbserver`.
+   Connect the probe to your PC via USB and setup the `gdbserver`.
 
 3. Перейдіть до каталогу, що містить бінарний файл, і запустіть команду для обраного вами завантажувача в терміналі:
 
@@ -151,7 +151,7 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 
 :::
 
-8. Використовуйте таку команду, щоб знайти SWD Pixhawk і підключитися до нього:
+8. Use the following command to scan for the Pixhawk's SWD and connect to it:
 
    ```sh
    (gdb) mon swdp_scan
@@ -169,7 +169,7 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 ## Оновлення завантажувача FMUv2
 
 Якщо _QGroundControl_ встановлює ціль FMUv2 (див. консоль під час встановлення), і у вас є новіша плата, вам може знадобитися оновити завантажувальник, щоб мати доступ до всієї пам'яті на вашому контролері польоту.
-This example explains how you can use [QGC Bootloader Update](qgc-bootloader-update-sys-bl-update) to update the bootloader.
+This example explains how you can use [QGC Bootloader Update](#qgc-bootloader-update-sys-bl-update) to update the bootloader.
 
 :::info
 Ранні контролери польоту FMUv2 [Pixhawk-series](../flight_controller/pixhawk_series.md#fmu_versions) мали [апаратну проблему](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata), яка обмежувала їх використання 1 Мб флеш-пам’яті.
@@ -208,3 +208,8 @@ This example explains how you can use [QGC Bootloader Update](qgc-bootloader-upd
 Плати, які не є частиною серії [Pixhawk](../flight_controller/pixhawk_series.md), матимуть власні механізми оновлення завантажувача.
 
 Для плат, які передвстановлені за допомогою Betaflight, дивіться [Flash пусковика на системи Betaflight](bootloader_update_from_betaflight.md).
+
+## Дивіться також
+
+- [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md)
+- [OEM/Factory Configuration](../advanced_config/oem.md)

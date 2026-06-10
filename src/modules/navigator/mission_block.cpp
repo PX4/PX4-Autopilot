@@ -41,6 +41,7 @@
  */
 
 #include "mission_block.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <math.h>
@@ -520,7 +521,7 @@ MissionBlock::reset_mission_item_reached()
 void
 MissionBlock::issue_command(const mission_item_s &item)
 {
-	if (item_contains_position(item)
+	if (mission_item_contains_position(item)
 	    || item_contains_gate(item)
 	    || item_contains_marker(item)) {
 		return;
@@ -590,19 +591,6 @@ MissionBlock::item_has_timeout(const mission_item_s &item)
 }
 
 bool
-MissionBlock::item_contains_position(const mission_item_s &item)
-{
-	return item.nav_cmd == NAV_CMD_WAYPOINT ||
-	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	       item.nav_cmd == NAV_CMD_LAND ||
-	       item.nav_cmd == NAV_CMD_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-bool
 MissionBlock::item_contains_gate(const mission_item_s &item)
 {
 	return item.nav_cmd == NAV_CMD_CONDITION_GATE;
@@ -618,7 +606,7 @@ bool
 MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp)
 {
 	// Don't change the setpoint for non-position items
-	if (!item_contains_position(item)) {
+	if (!mission_item_contains_position(item)) {
 		return false;
 	}
 
@@ -758,6 +746,19 @@ MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
 	item->time_inside = 0.0f;
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::setLoiterFromLastLink(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
+
+	const PositionYawSetpoint &last_heartbeat_pos = _navigator->get_last_pos_with_gcs_heartbeat();
+
+	item->lat = PX4_ISFINITE(last_heartbeat_pos.lat) ? last_heartbeat_pos.lat : _navigator->get_global_position()->lat;
+	item->lon = PX4_ISFINITE(last_heartbeat_pos.lon) ? last_heartbeat_pos.lon : _navigator->get_global_position()->lon;
+	item->altitude = PX4_ISFINITE(last_heartbeat_pos.alt) ? last_heartbeat_pos.alt : _navigator->get_global_position()->alt;
+	item->yaw = PX4_ISFINITE(last_heartbeat_pos.yaw) ? last_heartbeat_pos.yaw : NAN;
 }
 
 void
@@ -991,7 +992,7 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item)
 {
 	// Avoid flying into terrain using the distance sensor. Enable through the parameter NAV_MIN_GND_DIST.
-	// Only active during commanded descents with vz>0 (to prevent climb-aways), excluding landing and VTOL transitions.
+	// Only active during commanded descents with vz>0 (to prevent climb-aways) on position mission items, excluding landing.
 	// It changes the altitude setpoint in the triplet to maintain the current altitude and republish the triplet.
 	// We also change the mission item altitude used for acceptance calculations to prevent getting stuck in a loop.
 
@@ -1001,8 +1002,8 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 
 
 	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
-	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND && _mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION
-	    && _mission_item.nav_cmd != NAV_CMD_IDLE
+	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND
+	    && mission_item_contains_position(mission_item)
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON

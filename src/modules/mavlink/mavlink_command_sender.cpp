@@ -48,15 +48,22 @@ px4_sem_t MavlinkCommandSender::_lock;
 
 void MavlinkCommandSender::initialize()
 {
-	px4_sem_init(&_lock, 1, 1);
-
 	if (_instance == nullptr) {
+		px4_sem_init(&_lock, 1, 1);
 		_instance = new MavlinkCommandSender();
+
+		if (_instance == nullptr) {
+			PX4_ERR("MavlinkCommandSender alloc failed");
+		}
 	}
 }
 
 MavlinkCommandSender &MavlinkCommandSender::instance()
 {
+	if (_instance == nullptr) {
+		initialize();
+	}
+
 	return *_instance;
 }
 

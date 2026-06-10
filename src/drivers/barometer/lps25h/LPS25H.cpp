@@ -35,6 +35,7 @@
 
 LPS25H::LPS25H(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
+	_px4_baro{interface->get_device_id()},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors"))
@@ -151,8 +152,12 @@ int LPS25H::collect()
 		int16_t		t;
 	} report{};
 
-	/* get measurements from the device : MSB enables register address auto-increment */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	/* Correct for measurement integration delay: the one-shot conversion
+	 * was started CONVERSION_INTERVAL ago, so the effective sample
+	 * midpoint is half the conversion interval before now. */
+	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime half_meas = LPS25H_CONVERSION_INTERVAL / 2;
+	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
 	int ret = _interface->read(ADDR_STATUS_REG | (1 << 7), (uint8_t *)&report, sizeof(report));
 
 	if (ret != OK) {
@@ -172,14 +177,9 @@ int LPS25H::collect()
 	float pressure_pa = pressure * 100.f;
 
 	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = _interface->get_device_id();
-	sensor_baro.pressure = pressure_pa;
-	sensor_baro.temperature = temperature;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(temperature);
+	_px4_baro.update(timestamp_sample, pressure_pa);
 
 	perf_end(_sample_perf);
 	return PX4_OK;

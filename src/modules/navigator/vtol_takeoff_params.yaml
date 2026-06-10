@@ -1,0 +1,15 @@
+module_name: navigator
+parameters:
+- group: VTOL Takeoff
+  definitions:
+    VTO_LOITER_ALT:
+      description:
+        short: VTOL Takeoff relative loiter altitude
+        long: Altitude relative to home at which vehicle will loiter after front transition.
+      type: float
+      default: 80
+      unit: m
+      min: 20
+      max: 300
+      decimal: 1
+      increment: 1

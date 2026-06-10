@@ -42,7 +42,7 @@
 
 #include "mission_feasibility_checker.h"
 
-#include "mission_block.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_pwm_output.h>
@@ -62,7 +62,8 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 	const bool home_valid = _navigator->home_global_position_valid();
 	const bool home_alt_valid = _navigator->home_alt_valid();
 
-	// trivial case: A mission with length zero cannot be valid
+	// An empty mission is the normal "no mission loaded" state, not a rejection: the commander
+	// surfaces auto_mission_missing via arming checks when mission mode is actually requested.
 	if ((int)mission.count <= 0) {
 		return false;
 	}
@@ -85,6 +86,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 		if (!success) {
 			_navigator->get_mission_result()->warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			logDatamanReadFailure(i, mission.mission_dataman_id);
 			return false;
 		}
 
@@ -125,6 +127,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 
 			if (!success) {
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				logDatamanReadFailure(i, mission.mission_dataman_id);
 				return false;
 			}
 
@@ -138,7 +141,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			// Geofence function checks against home altitude amsl
 			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-			if (MissionBlock::item_contains_position(missionitem) && !_navigator->get_geofence().checkPointAgainstAllGeofences(
+			if (mission_item_contains_position(missionitem) && !_navigator->get_geofence().checkPointAgainstAllGeofences(
 				    missionitem.lat, missionitem.lon, missionitem.altitude)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", i + 1);
@@ -151,4 +154,12 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 	}
 
 	return true;
+}
+
+void MissionFeasibilityChecker::logDatamanReadFailure(const size_t mission_item, const uint8_t dataman_id)
+{
+	mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: dataman read failed at item %zu (dm_id=%u)\t", mission_item,
+			     static_cast<unsigned>(dataman_id));
+	events::send<uint16_t, uint8_t>(events::ID("navigator_mis_dm_read_fail"), {events::Log::Error, events::LogInternal::Info},
+					"Mission rejected: dataman read failed at item {1} (dm_id={2})", static_cast<uint16_t>(mission_item), dataman_id);
 }

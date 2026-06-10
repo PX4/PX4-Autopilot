@@ -44,6 +44,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/geo/geo.h>
@@ -63,9 +64,14 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/irlock_report.h>
+#include <uORB/topics/landing_target_pose.h>
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/fiducial_marker_pos_report.h>
+#include <uORB/topics/fiducial_marker_yaw_report.h>
+#include <uORB/topics/target_gnss.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -112,6 +118,16 @@ static inline SensorSource operator &(A lhs, B rhs)
 		       static_cast<underlying>(rhs)
 	       );
 }
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+enum class TargetAbsoluteSensorCapability : uint8_t {
+	kPosition = (1 << 0),
+	kVelocity = (1 << 1),
+	kAcceleration = (1 << 2),
+	kAttitude = (1 << 3),
+	kRates = (1 << 4),
+};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 class SimulatorMavlink : public ModuleParams
 {
@@ -183,7 +199,11 @@ private:
 		{197644, ROTATION_NONE},
 	};
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
+	static constexpr uint8_t BARO_COUNT_MAX = 2;
+	PX4Barometer _px4_baro[BARO_COUNT_MAX] {
+		{6620172}, // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+	};
 
 	float _sensors_temperature{0};
 
@@ -226,6 +246,8 @@ private:
 	void handle_message_hil_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(const mavlink_message_t *msg);
 	void handle_message_landing_target(const mavlink_message_t *msg);
+	void handle_message_target_relative(const mavlink_message_t *msg);
+	void handle_message_target_absolute(const mavlink_message_t *msg);
 	void handle_message_odometry(const mavlink_message_t *msg);
 	void handle_message_optical_flow(const mavlink_message_t *msg);
 	void handle_message_rc_channels(const mavlink_message_t *msg);
@@ -251,6 +273,14 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
+	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub {ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
+	param_t _param_vte_en{PARAM_INVALID};
+	hrt_abstime _vte_en_invalid_warn_last{0};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	//rpm
 	uORB::Publication<rpm_s>			_rpm_pub{ORB_ID(rpm)};
@@ -268,6 +298,8 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// hil map_ref data
 	MapProjection _global_local_proj_ref{};
@@ -286,8 +318,8 @@ private:
 	sensor_gyro_fifo_s _last_gyro_fifo{};
 	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
 
-	bool _baro_blocked{false};
-	bool _baro_stuck{false};
+	bool _baro_blocked[BARO_COUNT_MAX] {};
+	bool _baro_stuck[BARO_COUNT_MAX] {};
 
 	bool _mag_blocked[MAG_COUNT_MAX] {};
 	bool _mag_stuck[MAG_COUNT_MAX] {};
@@ -304,8 +336,8 @@ private:
 	float _last_magy[MAG_COUNT_MAX] {};
 	float _last_magz[MAG_COUNT_MAX] {};
 
-	float _last_baro_pressure{0.0f};
-	float _last_baro_temperature{0.0f};
+	float _last_baro_pressure[BARO_COUNT_MAX] {};
+	float _last_baro_temperature[BARO_COUNT_MAX] {};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 

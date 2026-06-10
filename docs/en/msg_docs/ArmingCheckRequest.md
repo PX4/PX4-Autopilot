@@ -17,11 +17,11 @@ The reply will also include the registration_id for each external component, pro
 
 ## Fields
 
-| Name                     | Type     | Unit [Frame] | Range/Enum | Description                                                                             |
-| ------------------------ | -------- | ------------ | ---------- | --------------------------------------------------------------------------------------- |
-| timestamp                | `uint64` | us           |            | Time since system start                                                                 |
-| request_id               | `uint8`  |              |            | Id of this request. Allows correlation with associated ArmingCheckReply messages.       |
-| valid_registrations_mask | `uint32` |              |            | Bitmask of valid registration ID's (the bit is also cleared if flagged as unresponsive) |
+| Name                                                              | Type     | Unit [Frame] | Range/Enum | Description                                                                             |
+| ----------------------------------------------------------------- | -------- | ------------ | ---------- | --------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                               | `uint64` | us           |            | Time since system start                                                                 |
+| <a id="fld_request_id"></a>request_id                             | `uint8`  |              |            | Id of this request. Allows correlation with associated ArmingCheckReply messages.       |
+| <a id="fld_valid_registrations_mask"></a>valid_registrations_mask | `uint32` |              |            | Bitmask of valid registration ID's (the bit is also cleared if flagged as unresponsive) |
 
 ## Constants
 

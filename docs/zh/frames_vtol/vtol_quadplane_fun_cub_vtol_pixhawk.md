@@ -55,7 +55,7 @@ For example, you might wire it up like this example (orientation as if "sitting 
 | AUX 2  | Right aileron                              |
 | AUX 3  | Elevator                                   |
 | AUX 4  | Rudder                                     |
-| AUX 5  | 油门                                         |
+| AUX 5  | Throttle                                   |
 
 For further instructions on wiring and configurations please see:
 [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md). <!-- replace with Pixhawk Wiring Quickstart -->

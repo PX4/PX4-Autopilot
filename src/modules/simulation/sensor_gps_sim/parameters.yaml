@@ -1,0 +1,24 @@
+module_name: sensor_gps_sim
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_GPSSIM:
+      description:
+        short: Enable simulated GPS sinstance
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+- group: Simulator
+  definitions:
+    SIM_GPS_USED:
+      description:
+        short: simulated GPS number of satellites used
+      type: int32
+      default: 10
+      min: 0
+      max: 50

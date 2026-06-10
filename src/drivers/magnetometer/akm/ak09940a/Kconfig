@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_AKM_AK09940A
+	bool "ak09940a"
+	default n
+	---help---
+		Enable support for ak09940a

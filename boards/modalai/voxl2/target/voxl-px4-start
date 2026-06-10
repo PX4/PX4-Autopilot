@@ -215,6 +215,12 @@ fi
 if [ "$POWER_MANAGER" == "VOXLPM" ]; then
     # APM power monitor
     qshell voxlpm start -X -b 2
+elif [ "$POWER_MANAGER" == "INA226" ]; then
+    /bin/echo "Starting INA226 power monitor"
+    qshell ina226 start -X -b 2
+elif [ "$POWER_MANAGER" == "INA228" ]; then
+    /bin/echo "Starting INA228 power monitor"
+    qshell ina228 start -X -b 2
 fi
 
 if [ "$AIRSPEED_SENSOR" == "MS4525DO" ]; then
@@ -255,11 +261,14 @@ qshell commander start
 # This is needed for altitude and position hold modes
 qshell flight_mode_manager start
 
-# Start all of the processing modules on the applications processor
+# Start the dataman service on the applications processor before navigator on DSP
 dataman start
-navigator start
+qshell navigator start
+
+# Start the applications processor bridges and services
 vehicle_air_data_bridge start
 sensor_baro_bridge start
+sensor_imu_raw_bridge start
 vehicle_local_position_bridge start
 
 # Start uxrce_dds_client for ros2 offboard messages from agent over localhost

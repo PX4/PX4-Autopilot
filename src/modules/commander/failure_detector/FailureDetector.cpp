@@ -56,6 +56,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
 		updateAttitudeStatus(vehicle_status);
+		updateAltitudeStatus(vehicle_status, vehicle_control_mode);
 
 		if (_param_fd_ext_ats_en.get()) {
 			updateExternalAtsStatus();
@@ -66,6 +67,9 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_failure_detector_status.flags.pitch = false;
 		_failure_detector_status.flags.alt = false;
 		_failure_detector_status.flags.ext = false;
+		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
+		_alt_loss_ref_z = NAN;
+		_alt_loss_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
 	if (_param_fd_imb_prop_thr.get() > 0) {
@@ -139,6 +143,55 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 		_failure_detector_status.flags.roll = _roll_failure_hysteresis.get_state();
 		_failure_detector_status.flags.pitch = _pitch_failure_hysteresis.get_state();
 	}
+}
+
+void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_status,
+		const vehicle_control_mode_s &vehicle_control_mode)
+{
+	const float threshold = _param_fd_alt_loss.get();
+
+	if (threshold < FLT_EPSILON
+	    || !vehicle_control_mode.flag_control_altitude_enabled
+	    || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_failure_detector_status.flags.alt = false;
+		_alt_loss_ref_z = NAN;
+		return;
+	}
+
+	vehicle_local_position_s lpos{};
+	vehicle_local_position_setpoint_s lpos_sp{};
+	_vehicle_local_position_sub.copy(&lpos);
+	_vehicle_local_position_setpoint_sub.copy(&lpos_sp);
+
+	// Adjust reference on EKF z reset to avoid false triggers
+	if (lpos.z_reset_counter != _alt_loss_z_reset_counter) {
+		if (PX4_ISFINITE(_alt_loss_ref_z)) {
+			_alt_loss_ref_z += lpos.delta_z;
+		}
+
+		_alt_loss_z_reset_counter = lpos.z_reset_counter;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (lpos.z > lpos_sp.z) {
+		// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint.
+		if (!PX4_ISFINITE(_alt_loss_ref_z)) {
+			_alt_loss_ref_z = lpos.z;
+		}
+
+		_alt_loss_ref_z = math::constrain(_alt_loss_ref_z, lpos_sp.z, lpos.z);
+
+		const bool is_below_threshold = (lpos.z - _alt_loss_ref_z) > threshold;
+		_alt_loss_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_alt_loss_ttri.get()));
+		_alt_loss_hysteresis.set_state_and_update(is_below_threshold, now);
+
+	} else {
+		_alt_loss_ref_z = NAN;
+		_alt_loss_hysteresis.set_state_and_update(false, now);
+	}
+
+	_failure_detector_status.flags.alt = _alt_loss_hysteresis.get_state();
 }
 
 void FailureDetector::updateExternalAtsStatus()

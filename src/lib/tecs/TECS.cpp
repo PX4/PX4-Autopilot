@@ -103,31 +103,18 @@ void TECSAirspeedFilter::update(const float dt, const Input &input, const Param 
 	new_state_predicted(0) = _airspeed_state.speed + dt * _airspeed_state.speed_rate;
 	new_state_predicted(1) = _airspeed_state.speed_rate;
 
-	const float airspeed_noise_inv{1.0f / param.airspeed_measurement_std_dev};
-	const float airspeed_rate_noise_inv{1.0f / param.airspeed_rate_measurement_std_dev};
-	const float airspeed_rate_noise_inv_squared_process_noise{airspeed_rate_noise_inv *airspeed_rate_noise_inv * param.airspeed_rate_noise_std_dev};
-	const float denom{airspeed_noise_inv + airspeed_rate_noise_inv_squared_process_noise};
-	const float common_nom{std::sqrt(param.airspeed_rate_noise_std_dev * (2.0f * airspeed_noise_inv + airspeed_rate_noise_inv_squared_process_noise))};
-
-	matrix::Matrix<float, 2, 2> kalman_gain;
-	kalman_gain(0, 0) = airspeed_noise_inv * common_nom / denom;
-	kalman_gain(0, 1) = airspeed_rate_noise_inv_squared_process_noise / denom;
-	kalman_gain(1, 0) = airspeed_noise_inv * airspeed_noise_inv * param.airspeed_rate_noise_std_dev / denom;
-	kalman_gain(1, 1) = airspeed_rate_noise_inv_squared_process_noise * common_nom / denom;
-
 	const matrix::Vector2f innovation{(airspeed - new_state_predicted(0)), (airspeed_derivative - new_state_predicted(1))};
+
 	matrix::Vector2f new_state;
-	new_state = new_state_predicted + dt * (kalman_gain * (innovation));
+	new_state(0) = new_state_predicted(0) + dt * (kKg00 * innovation(0) + kKg01 * innovation(1));
+	new_state(1) = new_state_predicted(1) + dt * (kKg10 * innovation(0) + kKg11 * innovation(1));
 
 	// Clip airspeed at zero
 	if (new_state(0) < FLT_EPSILON) {
 		new_state(0) = 0.0f;
 		// calculate input that would result in zero speed.
-		const float desired_airspeed_innovation = (-new_state_predicted(0) / dt - kalman_gain(0,
-				1) * innovation(1)) / kalman_gain(0,
-						0);
-		new_state(1) = new_state_predicted(1) + dt * (kalman_gain(1, 0) * desired_airspeed_innovation + kalman_gain(1,
-				1) * innovation(1));
+		const float desired_airspeed_innovation = (-new_state_predicted(0) / dt - kKg01 * innovation(1)) / kKg00;
+		new_state(1) = new_state_predicted(1) + dt * (kKg10 * desired_airspeed_innovation + kKg11 * innovation(1));
 	}
 
 	// Update states
@@ -399,16 +386,14 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	// Calculate the weight applied to control of specific kinetic energy error
 	float pitch_speed_weight = constrain(param.pitch_speed_weight, 0.0f, 2.0f);
 
-	if (_ratio_undersped > FLT_EPSILON && flag.airspeed_enabled) {
-		pitch_speed_weight = 2.0f * _ratio_undersped + (1.0f - _ratio_undersped) * pitch_speed_weight;
+	// Underspeed or fast descend: interpolate speed weight from nominal
+	// towards max. We take the maximum of the two - this keeps the speed
+	// weight continuous, even when underspeed and fast descend are combined
+	const float max_ratio = fmaxf(_ratio_undersped, param.fast_descend);
+	pitch_speed_weight = max_ratio * 2.0f + (1.0f - max_ratio) * pitch_speed_weight;
 
-	} else if (!flag.airspeed_enabled) {
+	if (!flag.airspeed_enabled) {
 		pitch_speed_weight = 0.0f;
-
-	} else if (param.fast_descend > FLT_EPSILON) {
-		// pitch loop controls the airspeed to max
-		pitch_speed_weight = 1.f + param.fast_descend;
-
 	}
 
 	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 2.f);

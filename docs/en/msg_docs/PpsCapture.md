@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name          | Type     | Unit [Frame] | Range/Enum                    | Description                                                 |
-| ------------- | -------- | ------------ | ----------------------------- | ----------------------------------------------------------- |
-| timestamp     | `uint64` |              |                               | time since system start (microseconds) at PPS capture event |
-| rtc_timestamp | `uint64` |              |                               | Corrected GPS UTC timestamp at PPS capture event            |
-| `uint8`       |          |              | Increments when PPS dt < 50ms |
+| Name                                        | Type     | Unit [Frame] | Range/Enum | Description                                                 |
+| ------------------------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp         | `uint64` |              |            | time since system start (microseconds) at PPS capture event |
+| <a id="fld_rtc_timestamp"></a>rtc_timestamp | `uint64` |              |            | Corrected GPS UTC timestamp at PPS capture event            |
+| <a id="fld_"></a>                           | `uint8`  |              |            | Increments when PPS dt < 50ms                               |
 
 ## Source Message
 

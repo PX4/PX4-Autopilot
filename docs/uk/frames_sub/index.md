@@ -6,15 +6,15 @@
 Support for UUVs is [experimental](../airframes/index.md#experimental-vehicles).
 Maintainer volunteers, [contribution](../contribute/index.md) of new features, new frame configurations, or other improvements would all be very welcome!
 
-На момент написання він був протестований лише з використанням ROS у автономному режимі.
+At time of writing manual and assisted manual modes are available for supported UUV frames, as well as ROS in offboard mode.
 Наступні функції не були реалізовані:
 
-- Такі режими, як місії, утримання глибини, стабілізоване ручне керування тощо.
+- Autonomous mission-style underwater workflows are still limited compared to aerial vehicles.
 - Підтримка BlueRobotics.
 
 :::
 
-PX4 має базову підтримку UUV.
+PX4 has basic support for UUVs. For BlueROV2 Heavy, PX4 currently supports Manual, Stabilized, Acro, Altitude and Position modes.
 
 ## Підтримувані конструкції
 

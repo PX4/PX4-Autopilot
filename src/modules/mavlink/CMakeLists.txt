@@ -126,6 +126,7 @@ px4_add_module(
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml
+		mavlink_params.yaml
 	DEPENDS
 		adsb
 		airspeed
@@ -135,6 +136,7 @@ px4_add_module(
 		drivers_gyroscope
 		drivers_magnetometer
 		conversion
+		gnss
 		sensor_calibration
 		geo
 		mavlink_c

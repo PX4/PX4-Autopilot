@@ -35,6 +35,8 @@
 
 #include "../Common.hpp"
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/failure_detector_status.h>
 
 class FailureDetectorChecks : public HealthAndArmingCheckBase
 {
@@ -45,4 +47,5 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
 };

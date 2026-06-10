@@ -1,0 +1,36 @@
+module_name: vehicle_imu
+parameters:
+- group: Sensors
+  definitions:
+    IMU_INTEG_RATE:
+      description:
+        short: IMU integration rate
+        long: |-
+          The rate at which raw IMU data is integrated to produce delta angles and delta velocities.
+          Recommended to set this to a multiple of the estimator update period (currently 10 ms for ekf2).
+      type: enum
+      values:
+        100: 100 Hz
+        200: 200 Hz
+        250: 250 Hz
+        400: 400 Hz
+      default: 200
+      min: 100
+      max: 1000
+      unit: Hz
+      reboot_required: true
+    SENS_IMU_AUTOCAL:
+      description:
+        short: IMU auto calibration
+        long: Automatically initialize IMU (accel/gyro) calibration from bias estimates
+          if available.
+      category: System
+      type: boolean
+      default: 1
+    SENS_IMU_CLPNOTI:
+      description:
+        short: IMU notify clipping
+        long: Notify the user if the IMU is clipping
+      category: System
+      type: boolean
+      default: 1

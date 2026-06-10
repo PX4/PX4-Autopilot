@@ -14,10 +14,11 @@ They are listed because you may be using them in an existing drone, and because 
 - _CUAV Pixhack v3_ (FMUv3) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhack_v3) <!-- 202603 removed doc -->
 - _Aerotenna OcPoC-Zynq Mini_ — last published in [PX4v1.11](https://docs.px4.io/v1.11/en/flight_controller/ocpoc_zynq#aerotenna-ocpoc-zynq-mini-flight-controller) <!-- 202603 removed doc -->
 - _Holybro Pixhawk 4 Mini_ (FMUv5) -— last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/pixhawk4_mini) <!-- 202603 removed doc -->
-- _Holybro Kakute F7_ — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/kakutef7) <!-- 202603 removed doc -->
-- _Holybro Pixhawk Mini_ (FMUv3) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhawk_mini) <!-- 202603 removed doc -->
+- _Holybro Kakute F7_ — Marked as discontinued in PX4 v1.15.
+  Last published in [PX4 v1.17](https://docs.px4.io/v1.17/en/flight_controller/kakutef7). <!-- 202603 removed doc -->
+- _Holybro Pixhawk Mini_ (FMUv3) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/pixhawk_mini) <!-- 202603 removed doc -->
 - _Holybro Pixfalcon_ (Pixhawk FMUv2) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/pixfalcon) <!-- Discontinued around v1.15/2024. -->
-- _Holybro Pix32_ (FMUv2) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/holybro_pix32) <!-- 202603 removed doc -->
+- _Holybro Pix32_ (FMUv2) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/holybro_pix32) <!-- 202603 removed doc -->
 - _ModalAI VOXL Flight_ — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/modalai_voxl_flight) <!-- 202603 removed doc -->
 - _ModalAI Flight Core v1_ — last published in [PX4 v1.11](https://docs.px4.io/v1.11/en/flight_controller/modalai_fc_v1) <!-- 202603 removed doc -->
 - _mRobotics-X2.1_ (FMUv2) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/mro_x2.1) <!-- 202507 removed doc -->

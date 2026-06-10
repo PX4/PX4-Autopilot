@@ -43,6 +43,7 @@ px4_add_module(
 		TAP_ESC.hpp
 	MODULE_CONFIG
 		module.yaml
+		tap_esc_params.yaml
 	DEPENDS
 		led
 		mixer_module

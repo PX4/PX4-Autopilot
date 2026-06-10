@@ -592,6 +592,10 @@
                             "name": "altitude_cruise",
                             "description": "Altitude Cruise"
                         },
+                        "25": {
+                            "name": "auto_course",
+                            "description": "Course"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"

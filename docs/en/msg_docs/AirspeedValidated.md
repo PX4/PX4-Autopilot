@@ -13,22 +13,24 @@ Used by controllers, estimators and for airspeed reporting to operator.
 
 ## Fields
 
-| Name                             | Type      | Unit [Frame] | Range/Enum        | Description                                                                                                                  |
-| -------------------------------- | --------- | ------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                        | `uint64`  | us           |                   | Time since system start                                                                                                      |
-| indicated_airspeed_m_s           | `float32` | m/s          |                   | Indicated airspeed (IAS) (Invalid: NaN)                                                                                      |
-| calibrated_airspeed_m_s          | `float32` | m/s          |                   | Calibrated airspeed (CAS) (Invalid: NaN)                                                                                     |
-| true_airspeed_m_s                | `float32` | m/s          |                   | True airspeed (TAS) (Invalid: NaN)                                                                                           |
-| airspeed_source                  | `int8`    |              | [SOURCE](#SOURCE) | Source of currently published airspeed values                                                                                |
-| calibrated_ground_minus_wind_m_s | `float32` | m/s          |                   | CAS calculated from groundspeed - windspeed, where windspeed is estimated based on a zero-sideslip assumption (Invalid: NaN) |
-| calibraded_airspeed_synth_m_s    | `float32` | m/s          |                   | Synthetic airspeed (Invalid: NaN)                                                                                            |
-| airspeed_derivative_filtered     | `float32` | m/s^2        |                   | Filtered indicated airspeed derivative                                                                                       |
-| throttle_filtered                | `float32` |              |                   | Filtered fixed-wing throttle                                                                                                 |
-| pitch_filtered                   | `float32` | rad          |                   | Filtered pitch                                                                                                               |
+| Name                                                                              | Type      | Unit [Frame] | Range/Enum        | Description                                                                                                                  |
+| --------------------------------------------------------------------------------- | --------- | ------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                               | `uint64`  | us           |                   | Time since system start                                                                                                      |
+| <a id="fld_indicated_airspeed_m_s"></a>indicated_airspeed_m_s                     | `float32` | m/s          |                   | Indicated airspeed (IAS) (Invalid: NaN)                                                                                      |
+| <a id="fld_calibrated_airspeed_m_s"></a>calibrated_airspeed_m_s                   | `float32` | m/s          |                   | Calibrated airspeed (CAS) (Invalid: NaN)                                                                                     |
+| <a id="fld_true_airspeed_m_s"></a>true_airspeed_m_s                               | `float32` | m/s          |                   | True airspeed (TAS) (Invalid: NaN)                                                                                           |
+| <a id="fld_airspeed_source"></a>airspeed_source                                   | `int8`    |              | [SOURCE](#SOURCE) | Source of currently published airspeed values                                                                                |
+| <a id="fld_calibrated_ground_minus_wind_m_s"></a>calibrated_ground_minus_wind_m_s | `float32` | m/s          |                   | CAS calculated from groundspeed - windspeed, where windspeed is estimated based on a zero-sideslip assumption (Invalid: NaN) |
+| <a id="fld_calibraded_airspeed_synth_m_s"></a>calibraded_airspeed_synth_m_s       | `float32` | m/s          |                   | Synthetic airspeed (Invalid: NaN)                                                                                            |
+| <a id="fld_airspeed_derivative_filtered"></a>airspeed_derivative_filtered         | `float32` | m/s^2        |                   | Filtered indicated airspeed derivative                                                                                       |
+| <a id="fld_throttle_filtered"></a>throttle_filtered                               | `float32` |              |                   | Filtered fixed-wing throttle                                                                                                 |
+| <a id="fld_pitch_filtered"></a>pitch_filtered                                     | `float32` | rad          |                   | Filtered pitch                                                                                                               |
 
 ## Enums
 
 ### SOURCE {#SOURCE}
+
+Used in field(s): [airspeed_source](#fld_airspeed_source)
 
 | Name                                                            | Type   | Value | Description             |
 | --------------------------------------------------------------- | ------ | ----- | ----------------------- |

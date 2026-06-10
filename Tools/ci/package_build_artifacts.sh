@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 mkdir artifacts
 cp **/**/*.px4 artifacts/ 2>/dev/null || true
 cp **/**/*.elf artifacts/ 2>/dev/null || true
+cp **/**/*.deb artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
@@ -28,6 +29,11 @@ for build_dir_path in build/*/ ; do
   # Events
   mkdir -p artifacts/$build_dir/events/
   cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/events/ 2>/dev/null || true
+  # Also copy to top level: firmware advertises the metadata URI without the events/ subdirectory
+  # (see src/lib/component_information/CMakeLists.txt comp_metadata_events_uri_board)
+  cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/ 2>/dev/null || true
+  # SBOM
+  cp $build_dir_path/*.sbom.spdx.json artifacts/$build_dir/ 2>/dev/null || true
   ls -la artifacts/$build_dir
   echo "----------"
 done

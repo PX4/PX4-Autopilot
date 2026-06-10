@@ -32,7 +32,8 @@ VectorNav IMU/AHRS, GNSS/INS, and Dual GNSS/INS solutions are available directly
 
 ### 배선
 
-Connect any unused flight controller serial interface, such as a spare `GPS` or `TELEM` port, to the VectorNav UART2 port (required by PX4).
+Connect any unused flight controller serial interface, such as a spare `GPS` or `TELEM` port, to the VectorNav `UART2` port (default).
+Note that you can also connect to the VectorNav `UART1` port, but in this case you must set [VN_PORT](../advanced_config/parameter_reference.md#VN_PORT) to `1`.
 
 ### 장착
 

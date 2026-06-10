@@ -91,6 +91,8 @@ px4_add_module(
 		-O2 # optimization needed to keep matrix code size reasonable
 	SRCS
 		${srcs}
+	MODULE_CONFIG
+		params.yaml
 	DEPENDS
 		dataman_client
 		version

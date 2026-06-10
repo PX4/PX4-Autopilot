@@ -393,6 +393,18 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			QueueBuffer_Peek(&rx_queue, working_index++, &packet_size);
 			QueueBuffer_Peek(&rx_queue, working_index++, &packet_type);
 
+			// Discard packets with packet_size too small to contain type + CRC.
+			// Without this guard, (packet_size - PACKET_SIZE_TYPE_SIZE) underflows
+			// the uint32_t working_segment_size, permanently stalling the parser.
+			if (packet_size < PACKET_SIZE_TYPE_SIZE) {
+				parser_statistics->invalid_unknown_packet_sizes++;
+				parser_state = PARSER_STATE_HEADER;
+				working_segment_size = HEADER_SIZE;
+				working_index = 0;
+				buffer_count = QueueBuffer_Count(&rx_queue);
+				continue;
+			}
+
 			working_descriptor = FindCrsfDescriptor((enum CRSF_PACKET_TYPE)packet_type);
 
 			// If we know what this packet is...

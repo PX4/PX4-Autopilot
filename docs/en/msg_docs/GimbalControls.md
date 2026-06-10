@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                                                                      |
-| ---------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`     |              |            | time since system start (microseconds)                                                                                           |
-| timestamp_sample | `uint64`     |              |            | the timestamp the data this control response is based on was sampled                                                             |
-| control          | `float32[3]` |              |            | Normalized output. 1 means maximum positive position. -1 maximum negative position. 0 means no deflection. NaN maps to disarmed. |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                                                                      |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     |              |            | time since system start (microseconds)                                                                                           |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |              |            | the timestamp the data this control response is based on was sampled                                                             |
+| <a id="fld_control"></a>control                   | `float32[3]` |              |            | Normalized output. 1 means maximum positive position. -1 maximum negative position. 0 means no deflection. NaN maps to disarmed. |
 
 ## Constants
 

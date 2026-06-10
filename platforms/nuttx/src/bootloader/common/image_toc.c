@@ -41,6 +41,13 @@
 #include "image_toc.h"
 
 #include "bl.h"
+#include "crypto.h"
+
+#ifdef BOOTLOADER_USE_TOC
+
+#ifndef BOARD_IMAGE_TOC_OFFSET
+# error "BOARD_IMAGE_TOC_OFFSET must be defined when BOOTLOADER_USE_TOC is enabled"
+#endif
 
 /* Helper macros to define flash start and end addresses, based on info from
  * hw_config.h
@@ -50,7 +57,7 @@
 
 bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 {
-	const uintptr_t toc_start_u32 = APP_LOAD_ADDRESS + BOOT_DELAY_ADDRESS + 8;
+	const uintptr_t toc_start_u32 = APP_LOAD_ADDRESS + BOARD_IMAGE_TOC_OFFSET;
 	const image_toc_start_t *toc_start = (const image_toc_start_t *)toc_start_u32;
 	const image_toc_entry_t *entry = (const image_toc_entry_t *)(toc_start_u32 + sizeof(image_toc_start_t));
 
@@ -105,3 +112,14 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 	*len = 0;
 	return false;
 }
+
+#else // BOOTLOADER_USE_TOC
+
+bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
+{
+	(void)toc_entries;
+	(void)len;
+	return false;
+}
+
+#endif // BOOTLOADER_USE_TOC

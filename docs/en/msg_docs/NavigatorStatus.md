@@ -10,11 +10,11 @@ Current status of a Navigator mode. The possible values of nav_state are defined
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum | Description                            |
-| --------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64` |              |            | time since system start (microseconds) |
-| nav_state | `uint8`  |              |            | Source mode (values in VehicleStatus)  |
-| failure   | `uint8`  |              |            | Navigator failure enum                 |
+| Name                                | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_nav_state"></a>nav_state | `uint8`  |              |            | Source mode (values in VehicleStatus)  |
+| <a id="fld_failure"></a>failure     | `uint8`  |              |            | Navigator failure enum                 |
 
 ## Constants
 

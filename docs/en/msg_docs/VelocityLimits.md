@@ -10,12 +10,12 @@ Velocity and yaw rate limits for a multicopter position slow mode only.
 
 ## Fields
 
-| Name                | Type      | Unit [Frame] | Range/Enum | Description                            |
-| ------------------- | --------- | ------------ | ---------- | -------------------------------------- |
-| timestamp           | `uint64`  |              |            | time since system start (microseconds) |
-| horizontal_velocity | `float32` | m/s          |            |
-| vertical_velocity   | `float32` | m/s          |            |
-| yaw_rate            | `float32` | rad/s        |            |
+| Name                                                    | Type      | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`  |              |            | time since system start (microseconds) |
+| <a id="fld_horizontal_velocity"></a>horizontal_velocity | `float32` | m/s          |            |
+| <a id="fld_vertical_velocity"></a>vertical_velocity     | `float32` | m/s          |            |
+| <a id="fld_yaw_rate"></a>yaw_rate                       | `float32` | rad/s        |            |
 
 ## Source Message
 

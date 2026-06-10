@@ -243,7 +243,6 @@ public:
 		const ZubaxCompactFeedback *feedback = ((const ZubaxCompactFeedback *)(receive.payload));
 
 		ref.timestamp       = hrt_absolute_time();
-		ref.esc_address     = receive.metadata.remote_node_id;
 		ref.esc_voltage     = 0.2 * feedback->dc_voltage;
 		ref.esc_current     = 0.2 * feedback->dc_current;
 		ref.esc_temperature = NAN;

@@ -2,17 +2,42 @@
 #
 # This file maps all the topics that are to be used on the Zenoh client.
 #
+# Per-publisher options can be overridden via an optional 'options' dict:
+#
+#   - topic: /fmu/out/example
+#     type: px4_msgs::msg::Example
+#     options:
+#       cc: block          # congestion_control: drop | block
+#       express: true      # is_express: true | false
+#       prio: real_time    # priority: real_time | interactive_high | interactive_low |
+#                          #           data_high | data | data_low | background
+#       rel: reliable      # reliability: reliable | best_effort
+#
+# Omitting 'options' (or individual keys) inherits from global PX4 parameters
+# ZENOH_PUB_CC / ZENOH_PUB_REL / ZENOH_PUB_EXPR / ZENOH_PUB_PRIO.
 #####
 publications:
 
   - topic: /fmu/out/register_ext_component_reply
     type: px4_msgs::msg::RegisterExtComponentReply
+    options:
+      cc: block
+      rel: reliable
+      express: true
 
   - topic: /fmu/out/arming_check_request
     type: px4_msgs::msg::ArmingCheckRequest
+    options:
+      cc: block
+      rel: reliable
+      express: true
 
   - topic: /fmu/out/mode_completed
     type: px4_msgs::msg::ModeCompleted
+    options:
+      cc: block
+      rel: reliable
+      express: true
 
   - topic: /fmu/out/battery_status
     type: px4_msgs::msg::BatteryStatus
@@ -46,24 +71,48 @@ publications:
 
   - topic: /fmu/out/vehicle_attitude
     type: px4_msgs::msg::VehicleAttitude
+    options:
+      cc: drop
+      rel: best_effort
+      express: true
 
   - topic: /fmu/out/vehicle_control_mode
     type: px4_msgs::msg::VehicleControlMode
 
   - topic: /fmu/out/vehicle_command_ack
     type: px4_msgs::msg::VehicleCommandAck
+    options:
+      cc: block
+      rel: reliable
+      express: true
 
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
+    options:
+      cc: drop
+      rel: best_effort
+      express: true
 
   - topic: /fmu/out/vehicle_gps_position
     type: px4_msgs::msg::SensorGps
+    options:
+      cc: drop
+      rel: best_effort
+      express: true
 
   - topic: /fmu/out/vehicle_local_position
     type: px4_msgs::msg::VehicleLocalPosition
+    options:
+      cc: drop
+      rel: best_effort
+      express: true
 
   - topic: /fmu/out/vehicle_odometry
     type: px4_msgs::msg::VehicleOdometry
+    options:
+      cc: drop
+      rel: best_effort
+      express: true
 
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus

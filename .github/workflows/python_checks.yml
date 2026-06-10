@@ -14,20 +14,23 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: runs-on/action@v2
+    - uses: actions/checkout@v6
       with:
-        fetch-depth: 0
+        fetch-depth: 1
 
-    - name: Install Python3
-      run: sudo apt-get install python3 python3-setuptools python3-pip -y
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.10"
 
     - name: Install tools
-      run: python3 -m pip install mypy types-requests flake8 --break-system-packages
+      run: pip install mypy types-requests flake8
 
     - name: Check MAVSDK test scripts with mypy
-      run: $HOME/.local/bin/mypy --strict test/mavsdk_tests/*.py
+      run: mypy --strict test/mavsdk_tests/*.py
 
     - name: Check MAVSDK test scripts with flake8
-      run: $HOME/.local/bin/flake8 test/mavsdk_tests/*.py
+      run: flake8 test/mavsdk_tests/*.py

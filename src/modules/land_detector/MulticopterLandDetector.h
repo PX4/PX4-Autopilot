@@ -110,6 +110,8 @@ private:
 	bool _flag_control_climb_rate_enabled{false};
 
 	float _vehicle_thrust_setpoint_throttle{0.f};
+	hrt_abstime _vehicle_thrust_setpoint_last_update{0};
+	bool _vehicle_thrust_setpoint_valid{false};
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 

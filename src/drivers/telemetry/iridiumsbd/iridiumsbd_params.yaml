@@ -1,0 +1,34 @@
+module_name: iridiumsbd
+parameters:
+- group: Iridium SBD
+  definitions:
+    ISBD_READ_INT:
+      description:
+        short: Iridium SBD read interval
+        long: Satellite radio read interval. Only required to be nonzero if data is
+          not sent using a ring call
+      type: int32
+      default: 0
+      unit: s
+      min: 0
+      max: 5000
+    ISBD_SBD_TIMEOUT:
+      description:
+        short: Iridium SBD session timeout
+      type: int32
+      default: 60
+      unit: s
+      min: 0
+      max: 300
+    ISBD_STACK_TIME:
+      description:
+        short: Iridium SBD message stacking wait time
+        long: |-
+          Time the Iridium driver will wait for additional mavlink messages to combine them into one SBD message
+
+          Value 0 turns the functionality off
+      type: int32
+      default: 0
+      unit: ms
+      min: 0
+      max: 500

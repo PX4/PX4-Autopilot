@@ -41,5 +41,6 @@ px4_add_module(
 		MPC2520.cpp
 		MPC2520.hpp
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 )

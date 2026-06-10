@@ -409,6 +409,16 @@ With Valid GNSS Data:
 - **Alternative Sources**: Dead-reckoning mode provides enhanced protection by requiring absence of alternative navigation sources before allowing resets.
 - **Boot Vulnerability**: Initial faulty GNSS data cannot be detected automatically; requires operator intervention and manual position correction.
 
+#### Ground Position Lock
+
+When a vehicle equipped with dead-reckoning sensors (e.g. airspeed for fixed-wing, or optical flow) is sitting on the ground before takeoff, those sensors provide little to no aiding — airspeed and optical flow measurements are unreliable at rest. In this case, the EKF relies on _constant position fusion_ (fusing a synthetic position measurement at the last known position) to prevent the estimate from drifting. However, this is only active when the vehicle is detected as stationary, so handling the vehicle or starting the engine can interrupt it.
+
+To counter this, [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_POS_LOCK) can be enabled to force constant position fusion to run while landed and the global horizontal position has already been initialized.
+
+:::note
+`EKF2_POS_LOCK` has no effect in flight.
+:::
+
 ### 거리 측정기
 
 [Range finder](../sensor/rangefinders.md) distance to ground is used by a single state filter to estimate the vertical position of the terrain relative to the height datum.

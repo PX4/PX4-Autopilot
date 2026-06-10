@@ -618,6 +618,13 @@ int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 	return 0;
 }
 
+int px4_at24c_set_npages(FAR struct mtd_dev_s *dev, uint16_t npages)
+{
+	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
+	priv->npages = npages;
+	return 0;
+}
+
 /*
  * XXX: debug hackery
  */

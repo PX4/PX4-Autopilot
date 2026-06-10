@@ -10,15 +10,15 @@ Configurable overrides by (external) modes or mode executors.
 
 ## Fields
 
-| Name                      | Type     | Unit [Frame] | Range/Enum | Description                                                                      |
-| ------------------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------------- |
-| timestamp                 | `uint64` |              |            | time since system start (microseconds)                                           |
-| disable_auto_disarm       | `bool`   |              |            | Prevent the drone from automatically disarming after landing (if configured)     |
-| defer_failsafes           | `bool`   |              |            | Defer all failsafes that can be deferred (until the flag is cleared)             |
-| defer_failsafes_timeout_s | `int16`  |              |            | Maximum time a failsafe can be deferred. 0 = system default, -1 = no timeout     |
-| disable_auto_set_home     | `bool`   |              |            | Prevent the drone from automatically setting the home position on arm or takeoff |
-| source_type               | `int8`   |              |            |
-| source_id                 | `uint8`  |              |            | ID depending on source_type                                                      |
+| Name                                                                | Type     | Unit [Frame] | Range/Enum | Description                                                                      |
+| ------------------------------------------------------------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                 | `uint64` |              |            | time since system start (microseconds)                                           |
+| <a id="fld_disable_auto_disarm"></a>disable_auto_disarm             | `bool`   |              |            | Prevent the drone from automatically disarming after landing (if configured)     |
+| <a id="fld_defer_failsafes"></a>defer_failsafes                     | `bool`   |              |            | Defer all failsafes that can be deferred (until the flag is cleared)             |
+| <a id="fld_defer_failsafes_timeout_s"></a>defer_failsafes_timeout_s | `int16`  |              |            | Maximum time a failsafe can be deferred. 0 = system default, -1 = no timeout     |
+| <a id="fld_disable_auto_set_home"></a>disable_auto_set_home         | `bool`   |              |            | Prevent the drone from automatically setting the home position on arm or takeoff |
+| <a id="fld_source_type"></a>source_type                             | `int8`   |              |            |
+| <a id="fld_source_id"></a>source_id                                 | `uint8`  |              |            | ID depending on source_type                                                      |
 
 ## Constants
 

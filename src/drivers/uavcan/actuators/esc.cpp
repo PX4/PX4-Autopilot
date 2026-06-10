@@ -115,14 +115,13 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		esc_report_s &esc_report = _esc_status.esc[msg.esc_index];
 		esc_report.timestamp = hrt_absolute_time();
-		esc_report.esc_address = msg.getSrcNodeID().get();
 		esc_report.esc_voltage = msg.voltage;
 		esc_report.esc_current = msg.current;
 		esc_report.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		// esc_report.motor_temperature is filled in the extended status callback
 		esc_report.esc_rpm = msg.rpm;
 		esc_report.esc_errorcount = msg.error_count;
-		esc_report.failures = get_failures(msg.esc_index);
+		esc_report.failures = get_failures(msg.esc_index, msg.getSrcNodeID().get());
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
@@ -169,11 +168,11 @@ uint16_t UavcanEscController::check_escs_status()
 	return esc_status_flags;
 }
 
-uint32_t UavcanEscController::get_failures(uint8_t esc_index)
+uint32_t UavcanEscController::get_failures(uint8_t esc_index, uint8_t node_id)
 {
-	// Check DoneCAN node health of the ESC
+	// Check DroneCAN node health of the ESC
 	dronecan_node_status_s node_status{};
-	uint8_t esc_node_id = _esc_status.esc[esc_index].esc_address;
+	uint8_t esc_node_id = node_id;
 	uint8_t node_health = dronecan_node_status_s::HEALTH_OK;
 	uint16_t vendor_specific_status_code = 0;
 

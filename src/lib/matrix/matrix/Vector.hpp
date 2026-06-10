@@ -178,7 +178,7 @@ OStream &operator<<(OStream &os, const matrix::Vector<Type, M> &vector)
 {
 	os << "\n";
 	// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
-	static const size_t n = 15 * M * 1 + 1 + 1;
+	constexpr size_t n = 15 * M * 1 + 1 + 1;
 	char string[n];
 	vector.transpose().write_string(string, n);
 	os << string;

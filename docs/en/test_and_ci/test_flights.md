@@ -22,6 +22,8 @@ For significant changes to the system you should also run general flight tests u
 These test cards define "standard" flight tests.
 These are run by the test team as part of release testing, and for more significant system changes.
 
+### Multicopter
+
 - [MC_01 - Manual modes](../test_cards/mc_01_manual_modes.md)
 - [MC_02 - Full Autonomous](../test_cards/mc_02_full_autonomous.md)
 - [MC_03 - Auto Manual Mix](../test_cards/mc_03_auto_manual_mix.md)
@@ -32,3 +34,8 @@ These are run by the test team as part of release testing, and for more signific
 - [MC_08 - DSHOT ESC](../test_cards/mc_08_dshot.md)
 - [MC_09 - VIO (Visual-Inertial Odometry)](../test_cards/mc_09_vio.md)
 - [MC_10 - Optical Flow / GPS Mixed](../test_cards/mc_10_optical_flow_gps_mixed.md)
+
+### Fixed Wing
+
+- [FW_01 - Manual Modes](../test_cards/fw_01_manual_modes.md)
+- [FW_02 - Full Autonomous](../test_cards/fw_02_full_autonomous.md)

@@ -8,17 +8,17 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum | Description                            |
-| ---------------- | --------- | ------------ | ---------- | -------------------------------------- |
-| timestamp        | `uint64`  |              |            | time since system start (microseconds) |
-| cap_flags        | `uint32`  |              |            |
-| gimbal_device_id | `uint8`   |              |            |
-| roll_min         | `float32` | rad          |            |
-| roll_max         | `float32` | rad          |            |
-| pitch_min        | `float32` | rad          |            |
-| pitch_max        | `float32` | rad          |            |
-| yaw_min          | `float32` | rad          |            |
-| yaw_max          | `float32` | rad          |            |
+| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------------- | --------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  |              |            | time since system start (microseconds) |
+| <a id="fld_cap_flags"></a>cap_flags               | `uint32`  |              |            |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id | `uint8`   |              |            |
+| <a id="fld_roll_min"></a>roll_min                 | `float32` | rad          |            |
+| <a id="fld_roll_max"></a>roll_max                 | `float32` | rad          |            |
+| <a id="fld_pitch_min"></a>pitch_min               | `float32` | rad          |            |
+| <a id="fld_pitch_max"></a>pitch_max               | `float32` | rad          |            |
+| <a id="fld_yaw_min"></a>yaw_min                   | `float32` | rad          |            |
+| <a id="fld_yaw_max"></a>yaw_max                   | `float32` | rad          |            |
 
 ## Constants
 

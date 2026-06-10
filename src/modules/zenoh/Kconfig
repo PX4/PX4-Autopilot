@@ -43,6 +43,15 @@ if MODULES_ZENOH
                 expression (supported by ROS2 Jazzy and later).
                 Set to false to use in ROS2 Humble and earlier.
 
+    config ZENOH_PUB_OPTION_OVERRIDE
+        bool "Enable per-publisher option overrides"
+        default n
+        ---help---
+                Enable per-publisher overrides for Zenoh publisher options
+                (cc/express/prio/rel) via config file and CLI.
+                Disable this to reduce flash usage and use only global
+                publisher parameters (ZENOH_PUB_CC/REL/EXPR/PRIO).
+
     # Choose exactly one item
     choice ZENOH_PUBSUB_SELECTION
             prompt "Publishers/Subscribers selection"

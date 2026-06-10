@@ -43,6 +43,8 @@ class XMLOutput():
                         xml_param.attrib["volatile"] = "true"
                     if param.GetBoolean():
                         xml_param.attrib["boolean"] = "true"
+                    if param.GetReadonly():
+                        xml_param.attrib["readonly"] = "true"
                     if (param.GetCategory()):
                         xml_param.attrib["category"] = param.GetCategory()
                     last_param_name = param.GetName()

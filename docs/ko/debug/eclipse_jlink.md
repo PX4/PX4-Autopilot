@@ -115,7 +115,7 @@ To enable this feature for use in Eclipse:
      make px4_fmu-v5_default boardguiconfig
      ```
 
-     (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information) on using the config tools).
+     (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information on using the config tools).
 
    - Ensure that the _Enable TCBinfo struct for debug_ is selected as shown:
      ![NuttX: Menuconfig: CONFIG_DEBUG_TCBINFO](../../assets/debug/nuttx_tcb_task_aware.png)

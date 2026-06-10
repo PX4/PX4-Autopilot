@@ -12,9 +12,9 @@ HITL(Hardware-in-the-Loop)은 일반 PX4 펌웨어가 실제 비행 콘트롤러
 
 PX4 supports HITL for multicopters (using [jMAVSim](../sim_jmavsim/index.md) or [Gazebo Classic](../sim_gazebo_classic/index.md)) and VTOL (using Gazebo Classic).
 
-<a id="compatible_airframe"></a>
+For a comparison of HITL and SIH on hardware, see [Hardware Simulation](../simulation/hardware.md).
 
-## HITL 호환 기체
+## HITL-Compatible Airframes {#compatible_airframe}
 
 The set of compatible airframes vs simulators is:
 
@@ -23,9 +23,7 @@ The set of compatible airframes vs simulators is:
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
 | [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |         |
 
-<a id="simulation_environment"></a>
-
-## HITL 시뮬레이션 환경
+## HITL Simulation Environment {#simulation_environment}
 
 HITL(Hardware-in-the-Loop) 시뮬레이션을 사용하여, 일반 PX4 펌웨어가 실제 하드웨어에서 실행됩니다.
 JMAVSim or Gazebo Classic (running on a development computer) are connected to the flight controller hardware via USB/UART.

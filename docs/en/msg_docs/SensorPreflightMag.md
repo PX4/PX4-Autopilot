@@ -10,10 +10,10 @@ Pre-flight sensor check metrics. The topic will not be updated when the vehicle 
 
 ## Fields
 
-| Name                    | Type      | Unit [Frame] | Range/Enum | Description                                                           |
-| ----------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------- |
-| timestamp               | `uint64`  |              |            | time since system start (microseconds)                                |
-| mag_inconsistency_angle | `float32` |              |            | maximum angle between magnetometer instance field vectors in radians. |
+| Name                                                            | Type      | Unit [Frame] | Range/Enum | Description                                                           |
+| --------------------------------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                             | `uint64`  |              |            | time since system start (microseconds)                                |
+| <a id="fld_mag_inconsistency_angle"></a>mag_inconsistency_angle | `float32` |              |            | maximum angle between magnetometer instance field vectors in radians. |
 
 ## Source Message
 

@@ -357,18 +357,18 @@ CollisionPrevention::_enterData(int map_index, float sensor_range, float sensor_
 bool
 CollisionPrevention::_checkSetpointDirectionFeasability()
 {
-	bool setpoint_feasible = true;
-
-	for (int i = 0; i < BIN_COUNT; i++) {
-		// check if our setpoint is either pointing in a direction where data exists, or if not, wether we are allowed to go where there is no data
-		if ((_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == _setpoint_index) && (!_param_cp_go_no_data.get()
-				|| (_param_cp_go_no_data.get() && _data_fov[i]))) {
-			setpoint_feasible =  false;
-
-		}
+	if (_setpoint_index < 0 || _setpoint_index >= BIN_COUNT) {
+		return false; // treat out-of-bounds as unsafe
 	}
 
-	return setpoint_feasible;
+	const bool no_data = (_obstacle_map_body_frame.distances[_setpoint_index] == UINT16_MAX);
+	const bool allow_movement_towards_no_data = _param_cp_go_no_data.get();
+	const bool fov_at_setpoint = _data_fov[_setpoint_index];
+
+	// The setpoint is feasible if:
+	// 1. There is actual data at the setpoint (no_data == false), OR
+	// 2. There is no data, but movement into no-data bins is allowed and the setpoint is outside the sensor FOV.
+	return !no_data || (allow_movement_towards_no_data && !fov_at_setpoint);
 }
 
 void
