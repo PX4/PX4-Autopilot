@@ -3,16 +3,6 @@ module_name: Serial Passthrough (MAVLink)
 parameters:
     - group: Serial Passthrough
       definitions:
-        SER_PASS_BAUD:
-            description:
-                short: Default baud rate for serial passthrough
-                long: |
-                    Baud rate used when starting serialpassthrough without an
-                    explicit baud_rate argument. 0 means use the compiled-in default
-                    (115200).
-            type: int32
-            default: 0
-            reboot_required: false
         PASSTHRU_EN:
             description:
                 short: Serial passthrough enable
