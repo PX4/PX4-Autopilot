@@ -672,12 +672,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
-	vehicle_status_s vs{};
-	_vehicle_status_sub.copy(&vs);
-	const uint8_t vtype = mavlink_cmd_params::vehicle_type_bitmask(vs.is_vtol, vs.vehicle_type);
-
 	uint8_t zero_mask = 0;
-	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, vtype,
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, _vehicle_type_bitmask,
 				    vehicle_command.param1, vehicle_command.param2,
 				    vehicle_command.param3, vehicle_command.param4,
 				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
@@ -3697,6 +3693,12 @@ MavlinkReceiver::run()
 
 			// update parameters from storage
 			updateParams();
+		}
+
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vs{};
+			_vehicle_status_sub.copy(&vs);
+			_vehicle_type_bitmask = mavlink_cmd_params::vehicle_type_bitmask(vs.is_vtol, vs.vehicle_type);
 		}
 
 		// Reload signing key if another instance updated it

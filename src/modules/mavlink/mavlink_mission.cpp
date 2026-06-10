@@ -1444,25 +1444,20 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		}
 
 		{
-			vehicle_status_s vehicle_status{};
-			_vehicle_status_sub.copy(&vehicle_status);
-			const uint8_t vtype = mavlink_cmd_params::vehicle_type_bitmask(vehicle_status.is_vtol,
-					      vehicle_status.vehicle_type);
-
 			uint8_t zero_mask = 0;
 			int bad = -1;
 
 			if (_int_mode) {
 				const mavlink_mission_item_int_t *item_int =
 					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-				bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true, vtype,
+				bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
 						mavlink_mission_item->param1, mavlink_mission_item->param2,
 						mavlink_mission_item->param3, mavlink_mission_item->param4,
 						item_int->x, item_int->y,
 						mavlink_mission_item->z, &zero_mask);
 
 			} else {
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, vtype,
+				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
 						mavlink_mission_item->param1, mavlink_mission_item->param2,
 						mavlink_mission_item->param3, mavlink_mission_item->param4,
 						mavlink_mission_item->x, mavlink_mission_item->y,
@@ -1606,13 +1601,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		// This is a mission item with no coordinates
 
 		{
-			vehicle_status_s vehicle_status{};
-			_vehicle_status_sub.copy(&vehicle_status);
-			const uint8_t vtype = mavlink_cmd_params::vehicle_type_bitmask(vehicle_status.is_vtol,
-					      vehicle_status.vehicle_type);
-
 			uint8_t zero_mask = 0;
-			const int bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, vtype,
+			const int bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
 					mavlink_mission_item->param1, mavlink_mission_item->param2,
 					mavlink_mission_item->param3, mavlink_mission_item->param4,
 					(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
@@ -2003,6 +1993,8 @@ MavlinkMissionManager::update_mission_state()
 	if (!_vehicle_status_sub.update(&vehicle_status)) {
 		return;
 	}
+
+	_vehicle_type_bitmask = mavlink_cmd_params::vehicle_type_bitmask(vehicle_status.is_vtol, vehicle_status.vehicle_type);
 
 	// Get mission result
 	const mission_result_s &mission_result = _mission_result_sub.get();
