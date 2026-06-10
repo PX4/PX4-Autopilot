@@ -1171,11 +1171,13 @@ class BootloaderProtocol:
     def verify_signature(self, image_signed: bool) -> None:
         """Ask the bootloader to verify the signature of the programmed image.
 
-        Always call this — the bootloader is the source of truth for whether
-        signature verification is required, not the host. If the bootloader
-        was built without BOOTLOADER_USE_SECURITY it returns INVALID and
-        we proceed normally; if it does verify, we surface a clean error
-        before REBOOT instead of letting the device silently stay in BL.
+        Only call this for signed firmware. VERIFY_SIG is an unknown opcode to
+        bootloaders without secure boot; sending it right before REBOOT can
+        desync the BOOT handshake and leave the board stuck in the bootloader,
+        so we skip it when there is no signature to check.
+
+        Returns if the bootloader verifies the image or lacks secure boot
+        (INVALID); raises if it reports a bad signature.
 
         Args:
             image_signed: True if the firmware metadata claimed the image
@@ -2009,21 +2011,17 @@ class Uploader:
         # Verify
         protocol.verify(firmware, progress_callback=progress.update_verify)
 
-        # Always ask the bootloader to verify the signature before reboot.
-        # The bootloader is the source of truth for whether secure boot
-        # is enabled — non-secure bootloaders return INVALID and we just
-        # proceed. Reporting a bad signature here is much more actionable
-        # than letting the device silently stay in the bootloader.
-        # The progress bar above uses carriage-return overwrites and
-        # leaves the cursor on the same line; drop to a fresh line so
-        # any verify-step output doesn't clobber the progress bar.
-        if not self.config.json_output:
-            print()
-            if firmware.image_signed:
+        # Only verify signed firmware: VERIFY_SIG before REBOOT can desync the
+        # BOOT handshake and leave the board stuck in the bootloader.
+        if firmware.image_signed:
+            # Progress bar leaves the cursor mid-line; break to a fresh line so
+            # the verify output doesn't clobber it.
+            if not self.config.json_output:
+                print()
                 print("Verifying image signature...", end="", flush=True)
-        protocol.verify_signature(firmware.image_signed)
-        if not self.config.json_output and firmware.image_signed:
-            print(" passed")
+            protocol.verify_signature(firmware.image_signed)
+            if not self.config.json_output:
+                print(" passed")
 
         # Reboot and show summary
         protocol.reboot()
