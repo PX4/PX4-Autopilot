@@ -1778,11 +1778,13 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		const bool body_rates = !(type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)
 					&& !(type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_PITCH_RATE_IGNORE);
 		const bool thrust_body = (type_mask & ATTITUDE_TARGET_TYPEMASK_THRUST_BODY_SET);
+		const bool thrust = !(type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE);
+		const bool has_thrust = thrust || thrust_body;
 
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 
-		if (attitude || body_rates) {
+		if ((attitude || body_rates) && has_thrust) {
 			offboard_control_mode_s ocm{};
 			ocm.attitude = attitude;
 			ocm.body_rate = body_rates;
@@ -1790,7 +1792,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			_offboard_control_mode_pub.publish(ocm);
 		}
 
-		if (attitude) {
+		if (attitude && has_thrust) {
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 
 			const matrix::Quatf q{attitude_target.q};
@@ -1800,7 +1802,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			attitude_setpoint.yaw_sp_move_rate = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE) ?
 							     (float)NAN : attitude_target.body_yaw_rate;
 
-			if (!thrust_body && !(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
+			if (!thrust_body && thrust) {
 				fill_thrust(attitude_setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
 
 			} else if (thrust_body) {
@@ -1826,7 +1828,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 		}
 
-		if (body_rates) {
+		if (body_rates && has_thrust) {
 			vehicle_rates_setpoint_s setpoint{};
 			setpoint.roll  = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)  ? (float)NAN :
 					 attitude_target.body_roll_rate;
@@ -1835,8 +1837,13 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			setpoint.yaw   = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_YAW_RATE_IGNORE)   ? (float)NAN :
 					 attitude_target.body_yaw_rate;
 
-			if (!(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
+			if (!thrust_body && thrust) {
 				fill_thrust(setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
+
+			} else if (thrust_body) {
+				setpoint.thrust_body[0] = attitude_target.thrust_body[0];
+				setpoint.thrust_body[1] = attitude_target.thrust_body[1];
+				setpoint.thrust_body[2] = attitude_target.thrust_body[2];
 			}
 
 			// Publish rate setpoint only once in OFFBOARD
