@@ -209,10 +209,10 @@ static constexpr VehicleOverride VehicleParamOverrides[] = {
  *          1–7 1-based index of the first offending param
  *          -1  command not in table (no validation applied)
  */
-static int check_params_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
-				    float p1, float p2, float p3, float p4,
-				    float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
-				    uint8_t *zero_sentinel_mask = nullptr)
+[[maybe_unused]] static int check_params_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
+		float p1, float p2, float p3, float p4,
+		float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
+		uint8_t *zero_sentinel_mask = nullptr)
 {
 	size_t lo = 0;
 	size_t hi = SupportedCommandParamsCount - 1;
@@ -262,10 +262,10 @@ static int check_params_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehi
  * Variant of check_params_for_vehicle for global-frame MISSION_ITEM_INT where p5/p6
  * are raw int32 lat/lon (INT32_MAX = unset) and p7 (altitude) remains a float.
  */
-static int check_params_int_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
-					float p1, float p2, float p3, float p4,
-					int32_t p5_int, int32_t p6_int, float p7 = 0.0f,
-					uint8_t *zero_sentinel_mask = nullptr)
+[[maybe_unused]] static int check_params_int_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
+		float p1, float p2, float p3, float p4,
+		int32_t p5_int, int32_t p6_int, float p7 = 0.0f,
+		uint8_t *zero_sentinel_mask = nullptr)
 {
 	size_t lo = 0;
 	size_t hi = SupportedCommandParamsCount - 1;
