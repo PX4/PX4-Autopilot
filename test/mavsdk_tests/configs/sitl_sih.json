@@ -1,0 +1,14 @@
+{
+    "mode": "sitl",
+    "simulator": "sih",
+    "mavlink_connection": "udpin://0.0.0.0:14540",
+    "tests":
+    [
+        {
+            "model": "SIH Quadcopter",
+            "sim_model": "sihsim_quadx",
+            "test_filter": "[sih]",
+            "timeout_min": 10
+        }
+    ]
+}
