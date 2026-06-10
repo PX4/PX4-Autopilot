@@ -33,6 +33,30 @@
 
 #include <px4_arch/i2c_hw_description.h>
 
+#include <drivers/drv_sensor.h>
+#include <lib/drivers/device/Device.hpp>
+#include <px4_platform_common/i2c.h>
+
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
 	initI2CBusExternal(2),
 };
+
+bool px4_i2c_device_external(const uint32_t device_id)
+{
+	// The internal SPL06 baro on I2C2 (address 0x76) is started with -X to
+	// match the bus' external marking, but it's a fixed onboard sensor and
+	// should keep internal calibration priority.
+	device::Device::DeviceId baro_id{};
+	baro_id.devid_s.bus_type = device::Device::DeviceBusType_I2C;
+	baro_id.devid_s.bus = 2;
+	baro_id.devid_s.address = 0x76;
+	baro_id.devid_s.devtype = DRV_BARO_DEVTYPE_SPL06;
+
+	if (baro_id.devid == device_id) {
+		return false;
+	}
+
+	device::Device::DeviceId dev_id{};
+	dev_id.devid = device_id;
+	return px4_i2c_bus_external(dev_id.devid_s.bus);
+}
