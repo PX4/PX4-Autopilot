@@ -150,6 +150,11 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
+/* I2C2 carries the internal SPL06 baro and is also exposed externally for an
+ * optional magnetometer, so the bus itself is marked external. Override the
+ * baro's device ID back to internal so it keeps calibration priority. */
+#define BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
