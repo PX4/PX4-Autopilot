@@ -37,3 +37,5 @@ The boards in this category are:
 - [SPRacing SPRacingH7EXTREME](../flight_controller/spracingh7extreme.md)
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
+- [Lectron Jetson Autopilot](../flight_controller/lectron_fmu_v6x.md)
+- [Lectron Pi5 Autopilot](../flight_controller/lectron_pi5_autopilot.md)
