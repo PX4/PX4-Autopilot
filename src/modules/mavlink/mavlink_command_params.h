@@ -38,14 +38,9 @@
  * Params not in the mask must be NaN (or 0.0, the conventional GCS default)
  * on receipt; any other value is rejected at the MAVLink boundary.
  *
- * Four masks per entry:
- *   mission    – params 1-4 for mission items (MISSION_ITEM / MISSION_ITEM_INT)
- *   command    – params 1-4 for commands (COMMAND_LONG / COMMAND_INT)
- *   mission567 – params 5-7 for mission items
- *   command567 – params 5-7 for commands
- *
- * mission/command:      bit 0 = param1, bit 1 = param2, bit 2 = param3, bit 3 = param4.
- * mission567/command567: bit 0 = param5, bit 1 = param6, bit 2 = param7.
+ * Two masks per entry — one for mission items, one for commands:
+ *   bits 0–3: params 1–4  (bit 0 = param1, …, bit 3 = param4)
+ *   bits 4–6: params 5–7  (bit 4 = param5, bit 5 = param6, bit 6 = param7)
  *
  * For global-frame MISSION_ITEM_INT, check_params_int() is used so that p5/p6
  * are validated as int32 (INT32_MAX = unset) and p7 as float (altitude).
@@ -70,62 +65,64 @@ namespace mavlink_cmd_params
 
 struct Entry {
 	uint16_t cmd;
-	uint8_t  mission;    // supported param bits (1-4) for mission items
-	uint8_t  command;    // supported param bits (1-4) for COMMAND_LONG/INT
-	uint8_t  mission567; // supported param bits for params 5-7 in mission items
-	uint8_t  command567; // supported param bits for params 5-7 in commands
+	uint8_t  mission; // bits 0-3: params 1-4; bits 4-6: params 5-7 (mission items)
+	uint8_t  command; // bits 0-3: params 1-4; bits 4-6: params 5-7 (COMMAND_LONG/INT)
 };
 
 // Keep sorted by cmd value. Update when adding new supported commands or params.
 // Symbolic names are listed in comments; raw integers are used so this header
 // remains self-contained and requires no MAVLink includes.
+//
+// Encoding: mission/command byte = (params1_4_mask) | (params5_7_mask << 4)
+//   where params1_4_mask has bit N = param N+1 for N in 0..3,
+//   and   params5_7_mask has bit N = param N+5 for N in 0..2.
 static constexpr Entry SupportedCommandParams[] = {
-	//  cmd   miss  cmd  m567  c567
-	{   16, 0x0B, 0x0B, 0x07, 0x07 }, // NAV_WAYPOINT:               p1:hold,p2:accept_r,p4:yaw; p5-7:lat/lon/alt
-	{   17, 0x0C, 0x0C, 0x07, 0x07 }, // NAV_LOITER_UNLIM:            p3:radius,p4:yaw; p5-7:lat/lon/alt
-	{   19, 0x0F, 0x0F, 0x07, 0x07 }, // NAV_LOITER_TIME:             p1-p4 all used; p5-7:lat/lon/alt
-	{   20, 0x00, 0x00, 0x00, 0x00 }, // NAV_RETURN_TO_LAUNCH:         no params
-	{   21, 0x0A, 0x0A, 0x07, 0x07 }, // NAV_LAND:                    p2:precision,p4:yaw; p5-7:lat/lon/alt
-	{   22, 0x08, 0x08, 0x07, 0x07 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt
-	{   31, 0x0B, 0x0B, 0x07, 0x07 }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
-	{   80, 0x07, 0x07, 0x07, 0x07 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
-	{   84, 0x08, 0x08, 0x07, 0x07 }, // NAV_VTOL_TAKEOFF:            p4:yaw; p5-7:lat/lon/alt
-	{   85, 0x08, 0x08, 0x07, 0x07 }, // NAV_VTOL_LAND:               p4:yaw; p5-7:lat/lon/alt
-	{   93, 0x0F, 0x0F, 0x00, 0x00 }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
-	{  112, 0x01, 0x01, 0x00, 0x00 }, // CONDITION_DELAY:             p1:seconds
-	{  114, 0x01, 0x01, 0x00, 0x00 }, // CONDITION_DISTANCE:          p1:distance
-	{  176, 0x07, 0x07, 0x00, 0x00 }, // DO_SET_MODE:                 p1:mode,p2:custom,p3:submode
-	{  177, 0x03, 0x03, 0x00, 0x00 }, // DO_JUMP:                     p1:index,p2:count
-	{  178, 0x07, 0x07, 0x00, 0x00 }, // DO_CHANGE_SPEED:             p1:type,p2:speed,p3:throttle
-	{  179, 0x0F, 0x0F, 0x07, 0x07 }, // DO_SET_HOME:                 p1:use_current,p2:roll,p3:pitch,p4:yaw; p5-7:lat/lon/alt
-	{  189, 0x00, 0x00, 0x00, 0x00 }, // DO_LAND_START:               no params
-	{  195, 0x00, 0x01, 0x07, 0x07 }, // DO_SET_ROI_LOCATION:         cmd:p1:gimbal; p5-7:lat/lon/alt
-	{  196, 0x01, 0x01, 0x00, 0x00 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
-	{  197, 0x01, 0x01, 0x00, 0x00 }, // DO_SET_ROI_NONE:             p1:gimbal_id
-	{  201, 0x07, 0x07, 0x00, 0x00 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx
-	{  206, 0x0F, 0x0F, 0x00, 0x00 }, // DO_SET_CAM_TRIGG_DIST:       p1:dist,p2:shutter,p3:trigger,p4:camera_id
-	{  211, 0x03, 0x03, 0x00, 0x00 }, // DO_GRIPPER:                  p1:id,p2:action
-	{  212, 0x03, 0x03, 0x00, 0x00 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
-	{  214, 0x07, 0x07, 0x00, 0x00 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
-	{  400, 0x03, 0x03, 0x00, 0x00 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
-	{  420, 0x07, 0x07, 0x00, 0x00 }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance
-	{  530, 0x03, 0x03, 0x00, 0x00 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
-	{  532, 0x07, 0x07, 0x00, 0x00 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
-	{  534, 0x07, 0x07, 0x00, 0x00 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary
-	{ 2000, 0x0F, 0x0F, 0x00, 0x00 }, // IMAGE_START_CAPTURE:         p1:camera_id,p2:interval,p3:total,p4:seq
-	{ 2001, 0x01, 0x01, 0x00, 0x00 }, // IMAGE_STOP_CAPTURE:          p1:camera_id
-	{ 2003, 0x0F, 0x0F, 0x00, 0x00 }, // DO_TRIGGER_CONTROL:          p1:enable,p2:reset,p3:pause,p4:camera_id
-	{ 2500, 0x07, 0x07, 0x00, 0x00 }, // VIDEO_START_CAPTURE:         p1:stream_id,p2:status_freq,p3:camera_id
-	{ 2501, 0x03, 0x03, 0x00, 0x00 }, // VIDEO_STOP_CAPTURE:          p1:stream_id,p2:camera_id
-	{ 3000, 0x03, 0x03, 0x00, 0x00 }, // DO_VTOL_TRANSITION:          p1:state,p2:force_immediate
-	{ 4501, 0x00, 0x00, 0x00, 0x00 }, // CONDITION_GATE:              no params used by PX4
-	{ 5000, 0x00, 0x00, 0x07, 0x00 }, // NAV_FENCE_RETURN_POINT:      mission:p5-7:lat/lon/alt; cmd:none
-	{ 5001, 0x01, 0x01, 0x03, 0x00 }, // NAV_FENCE_POLYGON_VERTEX_INCLUSION: p1:vertex_count; mission:p5-6:lat/lon
-	{ 5002, 0x01, 0x01, 0x03, 0x00 }, // NAV_FENCE_POLYGON_VERTEX_EXCLUSION: p1:vertex_count; mission:p5-6:lat/lon
-	{ 5003, 0x01, 0x01, 0x03, 0x00 }, // NAV_FENCE_CIRCLE_INCLUSION:  p1:radius; mission:p5-6:lat/lon
-	{ 5004, 0x01, 0x01, 0x03, 0x00 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius; mission:p5-6:lat/lon
-	{ 5100, 0x00, 0x00, 0x07, 0x00 }, // NAV_RALLY_POINT:             mission:p5-7:lat/lon/alt; cmd:none
-	{42600, 0x0F, 0x0F, 0x00, 0x00 }, // DO_WINCH:                    p1-p4 all used
+	//  cmd  mission command
+	{   16, 0x7B, 0x7B }, // NAV_WAYPOINT:               p1:hold,p2:accept_r,p4:yaw; p5-7:lat/lon/alt
+	{   17, 0x7C, 0x7C }, // NAV_LOITER_UNLIM:            p3:radius,p4:yaw; p5-7:lat/lon/alt
+	{   19, 0x7F, 0x7F }, // NAV_LOITER_TIME:             p1-p4 all used; p5-7:lat/lon/alt
+	{   20, 0x00, 0x00 }, // NAV_RETURN_TO_LAUNCH:         no params
+	{   21, 0x7A, 0x7A }, // NAV_LAND:                    p2:precision,p4:yaw; p5-7:lat/lon/alt
+	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt
+	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
+	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
+	{   84, 0x78, 0x78 }, // NAV_VTOL_TAKEOFF:            p4:yaw; p5-7:lat/lon/alt
+	{   85, 0x78, 0x78 }, // NAV_VTOL_LAND:               p4:yaw; p5-7:lat/lon/alt
+	{   93, 0x0F, 0x0F }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
+	{  112, 0x01, 0x01 }, // CONDITION_DELAY:             p1:seconds
+	{  114, 0x01, 0x01 }, // CONDITION_DISTANCE:          p1:distance
+	{  176, 0x07, 0x07 }, // DO_SET_MODE:                 p1:mode,p2:custom,p3:submode
+	{  177, 0x03, 0x03 }, // DO_JUMP:                     p1:index,p2:count
+	{  178, 0x07, 0x07 }, // DO_CHANGE_SPEED:             p1:type,p2:speed,p3:throttle
+	{  179, 0x7F, 0x7F }, // DO_SET_HOME:                 p1:use_current,p2:roll,p3:pitch,p4:yaw; p5-7:lat/lon/alt
+	{  189, 0x00, 0x00 }, // DO_LAND_START:               no params
+	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
+	{  196, 0x01, 0x01 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
+	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
+	{  201, 0x07, 0x07 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx
+	{  206, 0x0F, 0x0F }, // DO_SET_CAM_TRIGG_DIST:       p1:dist,p2:shutter,p3:trigger,p4:camera_id
+	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
+	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
+	{  214, 0x07, 0x07 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
+	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
+	{  420, 0x07, 0x07 }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance
+	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
+	{  532, 0x07, 0x07 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
+	{  534, 0x07, 0x07 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary
+	{ 2000, 0x0F, 0x0F }, // IMAGE_START_CAPTURE:         p1:camera_id,p2:interval,p3:total,p4:seq
+	{ 2001, 0x01, 0x01 }, // IMAGE_STOP_CAPTURE:          p1:camera_id
+	{ 2003, 0x0F, 0x0F }, // DO_TRIGGER_CONTROL:          p1:enable,p2:reset,p3:pause,p4:camera_id
+	{ 2500, 0x07, 0x07 }, // VIDEO_START_CAPTURE:         p1:stream_id,p2:status_freq,p3:camera_id
+	{ 2501, 0x03, 0x03 }, // VIDEO_STOP_CAPTURE:          p1:stream_id,p2:camera_id
+	{ 3000, 0x03, 0x03 }, // DO_VTOL_TRANSITION:          p1:state,p2:force_immediate
+	{ 4501, 0x00, 0x00 }, // CONDITION_GATE:              no params used by PX4
+	{ 5000, 0x70, 0x00 }, // NAV_FENCE_RETURN_POINT:      mission:p5-7:lat/lon/alt; cmd:none
+	{ 5001, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_INCLUSION: p1:vertex_count; mission:p5-6:lat/lon
+	{ 5002, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_EXCLUSION: p1:vertex_count; mission:p5-6:lat/lon
+	{ 5003, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_INCLUSION:  p1:radius; mission:p5-6:lat/lon
+	{ 5004, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius; mission:p5-6:lat/lon
+	{ 5100, 0x70, 0x00 }, // NAV_RALLY_POINT:             mission:p5-7:lat/lon/alt; cmd:none
+	{42600, 0x0F, 0x0F }, // DO_WINCH:                    p1-p4 all used
 };
 
 static constexpr size_t SupportedCommandParamsCount = sizeof(SupportedCommandParams) / sizeof(SupportedCommandParams[0]);
@@ -179,7 +176,6 @@ static inline bool param_is_zero(float v)
 		float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
 		uint8_t *zero_sentinel_mask = nullptr)
 {
-	// Binary search
 	size_t lo = 0;
 	size_t hi = SupportedCommandParamsCount - 1;
 
@@ -187,20 +183,14 @@ static inline bool param_is_zero(float v)
 		const size_t mid = lo + (hi - lo) / 2;
 
 		if (SupportedCommandParams[mid].cmd == cmd) {
-			const Entry &e = SupportedCommandParams[mid];
-			const uint8_t mask    = for_mission ? e.mission    : e.command;
-			const uint8_t mask567 = for_mission ? e.mission567 : e.command567;
+			const uint8_t mask = for_mission
+					     ? SupportedCommandParams[mid].mission
+					     : SupportedCommandParams[mid].command;
 
 			const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
-			const uint8_t masks[7] = {
-				(uint8_t)((mask >> 0) & 1u), (uint8_t)((mask >> 1) & 1u),
-				(uint8_t)((mask >> 2) & 1u), (uint8_t)((mask >> 3) & 1u),
-				(uint8_t)((mask567 >> 0) & 1u), (uint8_t)((mask567 >> 1) & 1u),
-				(uint8_t)((mask567 >> 2) & 1u),
-			};
 
 			for (int i = 0; i < 7; ++i) {
-				if (!masks[i]) {
+				if (!((mask >> i) & 1u)) {
 					if (!param_is_unset(ps[i])) { return i + 1; }
 
 					if (zero_sentinel_mask && param_is_zero(ps[i])) {
@@ -251,9 +241,9 @@ static inline bool int_param_is_unset(int32_t v)
 		const size_t mid = lo + (hi - lo) / 2;
 
 		if (SupportedCommandParams[mid].cmd == cmd) {
-			const Entry &e = SupportedCommandParams[mid];
-			const uint8_t mask    = for_mission ? e.mission    : e.command;
-			const uint8_t mask567 = for_mission ? e.mission567 : e.command567;
+			const uint8_t mask = for_mission
+					     ? SupportedCommandParams[mid].mission
+					     : SupportedCommandParams[mid].command;
 
 			const float ps14[4] = {p1, p2, p3, p4};
 
@@ -267,11 +257,11 @@ static inline bool int_param_is_unset(int32_t v)
 				}
 			}
 
-			if (!((mask567 >> 0) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
+			if (!((mask >> 4) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
 
-			if (!((mask567 >> 1) & 1u) && !int_param_is_unset(p6_int)) { return 6; }
+			if (!((mask >> 5) & 1u) && !int_param_is_unset(p6_int)) { return 6; }
 
-			if (!((mask567 >> 2) & 1u) && !param_is_unset(p7)) { return 7; }
+			if (!((mask >> 6) & 1u) && !param_is_unset(p7)) { return 7; }
 
 			return 0;
 
@@ -301,14 +291,12 @@ enum VehicleType : uint8_t {
 // Extends the base table for vehicle-specific params that differ across airframe types.
 // Each entry's masks are OR'd with the base Entry masks when the vehicle_mask matches.
 // Example (not yet active):
-//   { 22, VEHICLE_FW, 0x04, 0x04, 0x00, 0x00 }  // NAV_TAKEOFF: allow p3 (pitch) on FW only
+//   { 22, VEHICLE_FW, 0x04, 0x04 }  // NAV_TAKEOFF: allow p3 (pitch) on FW only
 struct VehicleOverride {
 	uint16_t cmd;
 	uint8_t  vehicle_mask; // bitmask of VehicleType values this entry applies to
-	uint8_t  mission;      // additional allowed param bits (1-4) for mission items
-	uint8_t  command;      // additional allowed param bits (1-4) for commands
-	uint8_t  mission567;   // additional allowed param bits (5-7) for mission items
-	uint8_t  command567;   // additional allowed param bits (5-7) for commands
+	uint8_t  mission;      // additional allowed param bits (bits 0-6 = p1-p7)
+	uint8_t  command;      // additional allowed param bits (bits 0-6 = p1-p7)
 };
 
 static constexpr VehicleOverride VehicleParamOverrides[] = {
@@ -321,7 +309,7 @@ static constexpr size_t VehicleParamOverridesCount = sizeof(VehicleParamOverride
  * Variant of check_params that applies vehicle-type-specific parameter overrides.
  *
  * Performs the same binary-search validation as check_params, then OR-extends the
- * allowed-param masks with any matching VehicleParamOverrides entry for vehicle_type.
+ * allowed-param mask with any matching VehicleParamOverrides entry for vehicle_type.
  * Use this when the vehicle type is known at the call site; existing callers that do
  * not have type information can continue to use check_params unchanged.
  *
@@ -340,27 +328,25 @@ static constexpr size_t VehicleParamOverridesCount = sizeof(VehicleParamOverride
 		const size_t mid = lo + (hi - lo) / 2;
 
 		if (SupportedCommandParams[mid].cmd == cmd) {
-			uint8_t mask    = for_mission ? SupportedCommandParams[mid].mission    : SupportedCommandParams[mid].command;
-			uint8_t mask567 = for_mission ? SupportedCommandParams[mid].mission567 : SupportedCommandParams[mid].command567;
+			uint8_t mask = for_mission
+				       ? SupportedCommandParams[mid].mission
+				       : SupportedCommandParams[mid].command;
 
-			for (size_t i = 0; i < VehicleParamOverridesCount; ++i) {
-				if (VehicleParamOverrides[i].cmd == cmd &&
-				    (VehicleParamOverrides[i].vehicle_mask & vehicle_type)) {
-					mask    |= for_mission ? VehicleParamOverrides[i].mission    : VehicleParamOverrides[i].command;
-					mask567 |= for_mission ? VehicleParamOverrides[i].mission567 : VehicleParamOverrides[i].command567;
+			if constexpr(VehicleParamOverridesCount > 0) {
+				for (size_t i = 0; i < VehicleParamOverridesCount; ++i) {
+					if (VehicleParamOverrides[i].cmd == cmd &&
+					    (VehicleParamOverrides[i].vehicle_mask & vehicle_type)) {
+						mask |= for_mission
+							? VehicleParamOverrides[i].mission
+							: VehicleParamOverrides[i].command;
+					}
 				}
 			}
 
 			const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
-			const uint8_t masks[7] = {
-				(uint8_t)((mask >> 0) & 1u), (uint8_t)((mask >> 1) & 1u),
-				(uint8_t)((mask >> 2) & 1u), (uint8_t)((mask >> 3) & 1u),
-				(uint8_t)((mask567 >> 0) & 1u), (uint8_t)((mask567 >> 1) & 1u),
-				(uint8_t)((mask567 >> 2) & 1u),
-			};
 
 			for (int i = 0; i < 7; ++i) {
-				if (!masks[i]) {
+				if (!((mask >> i) & 1u)) {
 					if (!param_is_unset(ps[i])) { return i + 1; }
 
 					if (zero_sentinel_mask && param_is_zero(ps[i])) {

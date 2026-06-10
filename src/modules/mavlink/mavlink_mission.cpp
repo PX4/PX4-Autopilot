@@ -1458,10 +1458,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 			} else {
 				bad = mavlink_cmd_params::check_params(mavlink_mission_item->command, true,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						mavlink_mission_item->x, mavlink_mission_item->y,
-						mavlink_mission_item->z, &zero_mask);
+								       mavlink_mission_item->param1, mavlink_mission_item->param2,
+								       mavlink_mission_item->param3, mavlink_mission_item->param4,
+								       mavlink_mission_item->x, mavlink_mission_item->y,
+								       mavlink_mission_item->z, &zero_mask);
 			}
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
