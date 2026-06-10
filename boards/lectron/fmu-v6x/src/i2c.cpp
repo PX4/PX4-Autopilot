@@ -33,9 +33,9 @@
 
 /**
  * @file i2c.cpp
- * 
+ *
  * Lectron FMU-V6X I2C Configuration
- * 
+ *
  * Hardware Configuration:
  * - I2C1, I2C2, I2C3: External expansion buses
  * - I2C4 (PF14/PF15): Internal bus with multiple sensors
@@ -47,8 +47,8 @@
 #include <px4_arch/i2c_hw_description.h>
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-initI2CBusExternal(1),
-initI2CBusExternal(2),
-initI2CBusExternal(3),
-initI2CBusInternal(4),  // Internal bus: BMP390, BMM350, 24LC64T
+	initI2CBusExternal(1),
+	initI2CBusExternal(2),
+	initI2CBusExternal(3),
+	initI2CBusInternal(4),  // Internal bus: BMP390, BMM350, 24LC64T
 };

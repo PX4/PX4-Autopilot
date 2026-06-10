@@ -104,7 +104,7 @@ static const px4_mtd_entry_t imu_eeprom = {
 		{
 			.type = MTD_ID,
 			.path = "/fs/mtd_id",
-			.nblocks = 8   
+			.nblocks = 8
 		}
 	},
 };

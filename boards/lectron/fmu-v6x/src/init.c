@@ -173,7 +173,7 @@ stm32_boardinitialize(void)
 	 * Bits 27-24: PA0SO, PA1SO, PC2SO, PC3SO = 0
 	 * (analog switch closed, pads connected to ADC)
 	 */
-	#define STM32_SYSCFG_PMCR (STM32_SYSCFG_BASE + 0x04)
+#define STM32_SYSCFG_PMCR (STM32_SYSCFG_BASE + 0x04)
 	modifyreg32(STM32_SYSCFG_PMCR, 0x0F000000, 0);
 
 	/* configure pins */

@@ -34,9 +34,9 @@
 
 /**
  * @file spi.cpp
- * 
+ *
  * Lectron FMU-V6X SPI Configuration
- * 
+ *
  * Hardware Configuration:
  * - SPI1: ICM-42670-P (FMU Board)     - CS: PI9,  INT: PF2
  * - SPI2: ICM-42670-P (Sensor Board)  - CS: PH5,  INT: PA10
@@ -52,30 +52,30 @@
 constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
 	initSPIFmumID(V6X_0, {
 // SPI1: ICM-42670-P on FMU Board (Primary IMU)
-initSPIBus(SPI::Bus::SPI1, {
-initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-}, {GPIO::PortI, GPIO::Pin11}),
+		initSPIBus(SPI::Bus::SPI1, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
+		}, {GPIO::PortI, GPIO::Pin11}),
 // SPI2: ICM-42670-P on Sensor Board (Secondary IMU)
-initSPIBus(SPI::Bus::SPI2, {
-initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-}, {GPIO::PortF, GPIO::Pin4}),
+		initSPIBus(SPI::Bus::SPI2, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
+		}, {GPIO::PortF, GPIO::Pin4}),
 // SPI3: BMI270 (6-axis IMU: Gyro + Accel)
-initSPIBus(SPI::Bus::SPI3, {
-initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
-}, {GPIO::PortE, GPIO::Pin7}),
+		initSPIBus(SPI::Bus::SPI3, {
+			initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
+		}, {GPIO::PortE, GPIO::Pin7}),
 // SPI5: Internal Flash Memory
-initSPIBus(SPI::Bus::SPI5, {
-initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-}),
+		initSPIBus(SPI::Bus::SPI5, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
+		}),
 // SPI6: External Expansion (PMW3901 Optical Flow + 1 free slot)
 // PMW3901: DRDY removed - using polling mode (DRDY pin floating issue)
-initSPIBus(SPI::Bus::SPI6, {
-initSPIDevice(DRV_FLOW_DEVTYPE_PMW3901, SPI::CS{GPIO::PortI, GPIO::Pin10}),
-}),
-initSPIBusExternal(SPI::Bus::SPI6, {
-initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-}),
-}),
+		initSPIBus(SPI::Bus::SPI6, {
+			initSPIDevice(DRV_FLOW_DEVTYPE_PMW3901, SPI::CS{GPIO::PortI, GPIO::Pin10}),
+		}),
+		initSPIBusExternal(SPI::Bus::SPI6, {
+			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
+		}),
+	}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);
