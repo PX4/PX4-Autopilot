@@ -329,6 +329,11 @@ int bitbang_uart_switch_channel(uint8_t channel)
 		while (uart.tx_busy.load()) {
 			px4_usleep(10);
 		}
+
+		// Stop the timer and clear any pending interrupt so a remaining RX
+		// transfer cannot fire and overwrite the buffer state
+		STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
+		STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
 	}
 
 	// Reset TX/RX buffers to avoid stale data from the previous channel
@@ -397,7 +402,7 @@ int bitbang_uart_deinit()
 	return 0;
 }
 
-int bitbang_uart_write_byte(uint8_t channel, uint8_t byte)
+static int bitbang_uart_write_byte(uint8_t channel, uint8_t byte)
 {
 	if (!uart.initialized) {
 		return -EINVAL;

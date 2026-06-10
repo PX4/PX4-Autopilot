@@ -72,15 +72,6 @@ int bitbang_uart_init(uint32_t baudrate, bool single_wire);
 int bitbang_uart_deinit(void);
 
 /**
- * Transmit a single byte
- *
- * @param channel Timer/GPIO channel
- * @param byte    Byte to transmit
- * @return 0 on success, negative error code on failure
- */
-int bitbang_uart_write_byte(uint8_t channel, uint8_t byte);
-
-/**
  * Transmit multiple bytes
  *
  * @param channel Timer/GPIO channel
