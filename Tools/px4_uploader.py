@@ -78,6 +78,21 @@ except ImportError as e:
     print("\nInstall it with: python -m pip install pyserial", file=sys.stderr)
     sys.exit(1)
 
+# pyserial's POSIX backend implements flush()/reset_input_buffer()/
+# reset_output_buffer() with raw termios.tcdrain()/tcflush() and does NOT wrap
+# their failures. On a vanished device (errno 5 EIO, e.g. the USB CDC node being
+# torn down during a reboot-to-bootloader re-enumeration) those raise a raw
+# termios.error -- which derives directly from Exception, NOT from OSError. It
+# therefore slips past `except (OSError, serial.SerialException)`. Include it
+# explicitly so these surface as ConnectionError and the identify/reboot retry
+# loops can recover instead of crashing. termios is POSIX-only.
+try:
+    import termios
+
+    _PORT_ERRORS: tuple = (OSError, serial.SerialException, termios.error)
+except ImportError:
+    _PORT_ERRORS = (OSError, serial.SerialException)
+
 
 # =============================================================================
 # Logging Configuration
@@ -111,6 +126,21 @@ def setup_logging(verbose: bool = False, debug: bool = False) -> None:
     # Also check environment variable
     if os.environ.get("PX4_UPLOADER_DEBUG", "").lower() in ("1", "true", "yes"):
         logger.setLevel(logging.DEBUG)
+
+
+def _present_ports() -> Optional[set]:
+    """Return the set of serial-port device paths currently present.
+
+    Used to detect USB re-enumeration (a board leaving the bootloader makes its
+    CDC device disappear and the application device appear). Returns None if
+    enumeration itself fails, so callers can tell "no devices" (empty set) apart
+    from "couldn't enumerate" and avoid a false re-enumeration signal.
+    """
+    try:
+        return {p.device for p in serial.tools.list_ports.comports()}
+    except Exception as e:
+        logger.debug(f"Port enumeration failed: {e}")
+        return None
 
 
 # =============================================================================
@@ -525,12 +555,12 @@ class SerialTransport:
         """Flush output buffer."""
         if self._port is None:
             return
-        # tcdrain() can raise termios.error (a bare OSError) if the device
-        # disappeared mid-flush — common right after a reboot-to-bootloader
-        # when the USB CDC node is being torn down and re-enumerated.
+        # tcdrain() can raise termios.error (NOT an OSError subclass) if the
+        # device disappeared mid-flush — common right after a reboot-to-
+        # bootloader when the USB CDC node is being torn down and re-enumerated.
         try:
             self._port.flush()
-        except (OSError, serial.SerialException) as e:
+        except _PORT_ERRORS as e:
             raise ConnectionError(
                 f"Flush failed: {e}", port=self.port_name, operation="flush"
             )
@@ -542,7 +572,7 @@ class SerialTransport:
         try:
             self._port.reset_input_buffer()
             self._port.reset_output_buffer()
-        except (OSError, serial.SerialException) as e:
+        except _PORT_ERRORS as e:
             raise ConnectionError(
                 f"Buffer reset failed: {e}",
                 port=self.port_name,
@@ -1245,23 +1275,79 @@ class BootloaderProtocol:
             operation="verify_signature",
         )
 
-    def reboot(self) -> None:
-        """Reboot into the application.
+    # Reboot confirmation tuning
+    REBOOT_ATTEMPTS = 3
+    REBOOT_REENUM_TIMEOUT = 5.0
+
+    def reboot(self) -> bool:
+        """Reboot into the application and confirm the board left the bootloader.
+
+        Two independent signals confirm a reboot:
+          1. ACK: the in-tree bootloader (bl.c, PROTO_BOOT) sends INSYNC+OK
+             *before* it jumps (sync_response() then delay(100) then
+             jump_to_app()), so an ack means it is booting.
+          2. USB re-enumeration: if there is no ack, the board may still have
+             rebooted silently, or it may have dropped the REBOOT byte. We watch
+             the serial-port list; if our port disappears or a new one appears
+             the board rebooted, otherwise we resend REBOOT.
+
+        Returns:
+            True if the board rebooted, False if it appears stuck in the
+            bootloader after every attempt.
 
         Raises:
-            ProtocolError: If reboot fails (v3+ validates first flash word)
+            ProtocolError: If the bootloader reports a bad image (v3+).
         """
         logger.info("Rebooting to application")
-        self._send_command(BootloaderCommand.REBOOT)
-        self.transport.flush()
+        ports_before = _present_ports() or set()
 
-        # v3+ can report failure if first flash word is invalid
-        if self.bl_rev >= 3:
+        for _ in range(self.REBOOT_ATTEMPTS):
             try:
-                self._get_sync()
-            except TimeoutError:
-                # Timeout is expected - board is rebooting
-                pass
+                self._send_command(BootloaderCommand.REBOOT)
+                self.transport.flush()
+
+                # v3+ acks (INSYNC+OK) before jumping; v2 has no ack.
+                if self.bl_rev >= 3 and self._reboot_acked():
+                    logger.info("Reboot acknowledged")
+                    return True
+            except ConnectionError:
+                # Port vanished mid-command -> the board already left the BL.
+                logger.info("Rebooted (USB re-enumerated)")
+                return True
+
+            # No ack: confirm via USB re-enumeration, else resend.
+            if self._wait_for_reenumeration(ports_before):
+                logger.info("Rebooted (USB re-enumerated)")
+                return True
+            logger.debug("No reboot detected; resending REBOOT")
+
+        logger.warning("Board did not reboot; power-cycle to boot")
+        return False
+
+    def _reboot_acked(self) -> bool:
+        """Return True if the bootloader acked the REBOOT (INSYNC+OK)."""
+        try:
+            self._get_sync()
+            return True
+        except TimeoutError:
+            return False
+
+    def _wait_for_reenumeration(self, ports_before: set) -> bool:
+        """Watch for the board's serial device to go away / a new one to appear.
+
+        Returns True if the port set changes within REBOOT_REENUM_TIMEOUT (the
+        board rebooted), False if nothing changes (likely stuck in bootloader).
+        """
+        our_port = self.transport.port_name
+        deadline = time.monotonic() + self.REBOOT_REENUM_TIMEOUT
+        while time.monotonic() < deadline:
+            time.sleep(0.1)
+            now = _present_ports()
+            if now is None:
+                continue  # transient enumeration failure; try again
+            if our_port not in now or (now - ports_before):
+                return True
+        return False
 
     def send_reboot_commands(
         self, baudrates: list[int], use_protocol_splitter: bool = False
