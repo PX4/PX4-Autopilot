@@ -88,9 +88,8 @@ then
 	# TODO: IIM-20670 driver not yet available rotation?
 	# iim20670 -R 6 -b 2 -s start
 
-	# Internal SPI3 LSM6DSV80X Accel/Gyro
-	# TODO: LSM6DSV80X driver not yet available rotation?
-	# lsm6dsv80x -R 4 -b 3 -s start
+	# Internal SPI3 LSM6DSV80X Accel/Gyro (mounted at 45deg, pin 1 bottom-left)
+	lsm6dsv -R 1 -b 3 -s -T 80 start
 fi
 
 # Internal magnetometer IIS2MDC on I2C3

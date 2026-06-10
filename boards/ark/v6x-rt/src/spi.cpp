@@ -52,8 +52,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	}, {GPIO::Port1, GPIO::Pin22}), // Power GPIO_EMC_B1_22  GPIO1_IO22
 
 	initSPIBus(SPI::Bus::LPSPI3, {
-		// TODO: LSM6DSV80X - driver not yet available, using ICM45686 devtype as placeholder
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::Port2, GPIO::Pin18}, SPI::DRDY{GPIO::Port2, GPIO::Pin28}), /* LSM6DSV80X (placeholder) GPIO_EMC_B2_08 GPIO2_IO18, GPIO_EMC_B2_18 GPIO2_IO28 */
+		initSPIDevice(DRV_IMU_DEVTYPE_ST_LSM6DSV, SPI::CS{GPIO::Port2, GPIO::Pin15}, SPI::DRDY{GPIO::Port2, GPIO::Pin28}), /* LSM6DSV80X CS GPIO_EMC_B2_05 GPIO2_IO15, DRDY GPIO_EMC_B2_18 GPIO2_IO28 */
 	}, {GPIO::Port1, GPIO::Pin14}), // Power GPIO_EMC_B1_14  GPIO1_IO14
 
 	initSPIBusExternal(SPI::Bus::LPSPI6, {
