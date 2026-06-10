@@ -136,9 +136,8 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
             result = False
         if not os.path.isfile(os.path.join(build_dir, 'bin/px4')):
             print("PX4 SITL is not built\n"
-                  "run `DONT_RUN=1 "
-                  "make px4_sitl gazebo mavsdk_tests` or "
-                  "`DONT_RUN=1 make px4_sitl_default gazebo mavsdk_tests`")
+                  "run `DONT_RUN=1 make px4_sitl_default mavsdk_tests` "
+                  "for SIH, or add `sitl_gazebo-classic` for gazebo tests")
             result = False
         if config['simulator'] == 'gazebo':
             if is_running('gzserver'):
@@ -153,9 +152,8 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
     if not os.path.isfile(os.path.join(build_dir,
                                        'mavsdk_tests/mavsdk_tests')):
         print("Test runner is not built\n"
-              "run `DONT_RUN=1 "
-              "make px4_sitl gazebo mavsdk_tests` or "
-              "`DONT_RUN=1 make px4_sitl_default gazebo mavsdk_tests`")
+              "run `DONT_RUN=1 make px4_sitl_default mavsdk_tests` "
+              "for SIH, or add `sitl_gazebo-classic` for gazebo tests")
         result = False
 
     return result

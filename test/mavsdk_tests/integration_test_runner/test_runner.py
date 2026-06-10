@@ -343,24 +343,33 @@ class Tester:
                         self.verbose)
                     self.active_runners.append(gzclient_runner)
 
-                # We must start the PX4 instance at the end, as starting
-                # it in the beginning, then connecting Gazebo server freaks
-                # out the PX4 (it needs to have data coming in when started),
-                # and can lead to EKF to freak out, or the instance itself
-                # to die unexpectedly.
-                px4_runner = ph.Px4Runner(
-                    os.getcwd(),
-                    log_dir,
-                    test['model'],
-                    case,
-                    self.get_max_speed_factor(test),
-                    self.debugger,
-                    self.verbose,
-                    self.build_dir,
-                    self.tester_interface.rootfs_base_dirname())
-                for env_key in test.get('env', []):
-                    px4_runner.env[env_key] = str(test['env'][env_key])
-                self.active_runners.append(px4_runner)
+                sim_model = "gazebo-classic_" + test['model']
+
+            else:
+                # SIH (or any other non-gazebo SITL backend) runs entirely
+                # inside the PX4 instance, so no extra simulator process is
+                # launched. The PX4_SIM_MODEL defaults to the SIH quadrotor.
+                sim_model = test.get('sim_model', 'sihsim_quadx')
+
+            # We must start the PX4 instance at the end, as starting
+            # it in the beginning, then connecting Gazebo server freaks
+            # out the PX4 (it needs to have data coming in when started),
+            # and can lead to EKF to freak out, or the instance itself
+            # to die unexpectedly.
+            px4_runner = ph.Px4Runner(
+                os.getcwd(),
+                log_dir,
+                test['model'],
+                sim_model,
+                case,
+                self.get_max_speed_factor(test),
+                self.debugger,
+                self.verbose,
+                self.build_dir,
+                self.tester_interface.rootfs_base_dirname())
+            for env_key in test.get('env', []):
+                px4_runner.env[env_key] = str(test['env'][env_key])
+            self.active_runners.append(px4_runner)
 
         self.active_runners.append(self.tester_interface.create_test_runner(
             os.getcwd(),
