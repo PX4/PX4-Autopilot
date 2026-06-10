@@ -55,6 +55,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 #include <string.h>
 #include <errno.h>
@@ -676,25 +677,31 @@ int SerialPassthrough::print_status_all()
 int SerialPassthrough::print_usage(const char *reason)
 {
 	if (reason) {
-		PX4_WARN("%s", reason);
+		PX4_WARN("%s\n", reason);
 	}
 
-	PX4_INFO(
-		"Usage:\n"
-		"  serialpassthrough start -d <dev> [-b <baud>] [-x] [-s]\n"
-		"  serialpassthrough stop\n"
-		"  serialpassthrough status\n"
-		"\n"
-		"Options:\n"
-		"  -d <dev>   Serial device path\n"
-		"  -b <baud>  Baudrate (default 115200)\n"
-		"  -x         Swap RX/TX pins\n"
-		"  -s         Single-wire (half-duplex) mode\n"
-		"  -e <ch>    ESC bitbang channel (0-3), instead of -d\n"
-		"\n"
-		"Up to %d instances can run simultaneously.",
-		SP_MAX_INSTANCES
-	);
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial passthrough driver driven by MAVLink SERIAL_CONTROL messages.
+Bridges a MAVLink stream to a hardware UART or an ESC signal pin (bitbang).
+
+Only a single sender is supported at a time. Simultaneous SERIAL_CONTROL
+messages from multiple senders produce undefined behaviour.
+
+Up to 8 instances can run simultaneously, one per device.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("serialpassthrough", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<dev>", "Serial device path", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 115200, 0, 4000000, "Baudrate", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Swap RX/TX pins", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Single-wire (half-duplex) mode", true);
+	PRINT_MODULE_USAGE_PARAM_INT('e', -1, 0, 7, "ESC bitbang channel (0-7), instead of -d", true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 	return 0;
 }
 
