@@ -89,7 +89,7 @@ public:
 	 * Start an instance for a given device ID (from SERIAL_CONTROL device field).
 	 * Maps device IDs to board-specific UART paths using CONFIG_BOARD_SERIAL_*.
 	 * If already running on the same device, does nothing.
-	 * Device IDs: 1=TEL2, 2=GPS1, 3=GPS2, 91-94=ESC bitbang ch0-3
+	 * Device IDs: 0=TEL1, 1=TEL2, 2=GPS1, 3=GPS2, 4=TEL3, 5=TEL4, 20-27=ESC bitbang ch0-7
 	 * Returns 0 on success, -1 if device ID is not supported on this board.
 	 */
 	static int startForDevice(uint8_t device_id, uint32_t baudrate);
@@ -143,12 +143,12 @@ private:
 
 	px4::atomic_bool _should_exit{false};
 
-	// MAVLink → UART ring buffer (written by pushFromMavlink, drained by run())
+	// MAVLink → UART buffer (written by pushFromMavlink, drained by run())
 	uint8_t _rx_buf[SP_BUF_SIZE] {};
 	size_t _rx_len{0};
 	pthread_mutex_t _rx_mutex;
 
-	// UART → MAVLink ring buffer (written by run(), drained by popToMavlink)
+	// UART → MAVLink buffer (written by run(), drained by popToMavlink)
 	uint8_t _tx_buf[SP_BUF_SIZE] {};
 	size_t _tx_len{0};
 	pthread_mutex_t _tx_mutex;
