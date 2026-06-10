@@ -50,6 +50,28 @@ static float computeYawRateSetpointBeforeTurnCoord(const Quatf &q_current, const
 	return att_err(2);
 }
 
+static matrix::Dcmf adaptTailsitterAttitudeForFixedWing(const matrix::Dcmf &R)
+{
+	matrix::Dcmf R_adapted = R;
+
+	/* move z to x */
+	R_adapted(0, 0) = R(0, 2);
+	R_adapted(1, 0) = R(1, 2);
+	R_adapted(2, 0) = R(2, 2);
+
+	/* move x to z */
+	R_adapted(0, 2) = R(0, 0);
+	R_adapted(1, 2) = R(1, 0);
+	R_adapted(2, 2) = R(2, 0);
+
+	/* change direction of pitch (convert to right handed system) */
+	R_adapted(0, 0) = -R_adapted(0, 0);
+	R_adapted(1, 0) = -R_adapted(1, 0);
+	R_adapted(2, 0) = -R_adapted(2, 0);
+
+	return R_adapted;
+}
+
 TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_Identity)
 {
 	// When current and setpoint are both identity, yaw rate should be zero
@@ -113,4 +135,20 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_BankedTurn
 	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
+}
+
+TEST(FixedwingAttitudeControlTest, TailsitterAttitudeErrorUsesFixedWingFrame)
+{
+	// A tailsitter in normal fixed-wing flight is pitched about -90 deg in the
+	// multicopter body frame. The fixed-wing attitude controller must compare
+	// setpoints against the adapted fixed-wing frame, not the raw hover frame.
+	const Quatf q_current_raw(Eulerf(0.f, -math::radians(88.f), 0.f));
+	const Quatf q_current_fw(adaptTailsitterAttitudeForFixedWing(matrix::Dcmf(q_current_raw)));
+	const Quatf q_sp(Eulerf(0.f, math::radians(2.f), 0.f));
+
+	const Vector3f raw_error = computeAttitudeError(q_current_raw, q_sp);
+	const Vector3f fixed_wing_error = computeAttitudeError(q_current_fw, q_sp);
+
+	EXPECT_GT(fabsf(raw_error(1)), math::radians(80.f));
+	EXPECT_NEAR(fixed_wing_error(1), 0.f, math::radians(1.f));
 }
