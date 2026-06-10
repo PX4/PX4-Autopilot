@@ -306,28 +306,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// baro
-	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
-
-		if (!_baro_stuck) {
-			_last_baro_pressure = sensors.abs_pressure * 100.f; // hPa to Pa
-			_last_baro_temperature = sensors.temperature;
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
+		if (sensors.id >= BARO_COUNT_MAX) {
+			PX4_ERR("Number of simulated barometer %d out of range. Max: %d", sensors.id, BARO_COUNT_MAX);
+			return;
 		}
 
-		// publish
-		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = time;
-		sensor_baro.pressure = _last_baro_pressure;
-		sensor_baro.temperature = _last_baro_temperature;
+		if (_baro_stuck[sensors.id]) {
+			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
+			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
 
-		// publish 1st baro
-		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pubs[0].publish(sensor_baro);
-
-		// publish 2nd baro
-		sensor_baro.device_id = 6620428; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pubs[1].publish(sensor_baro);
+		} else if (!_baro_blocked[sensors.id]) {
+			_last_baro_pressure[sensors.id] = sensors.abs_pressure * 100.f; // hPa to Pa
+			_last_baro_temperature[sensors.id] = sensors.temperature;
+			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
+			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
+		}
 	}
 
 	// differential pressure
@@ -1708,20 +1702,55 @@ void SimulatorMavlink::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, baro off");
 				supported = true;
-				_baro_blocked = true;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < BARO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, baro %d off", i);
+						_baro_blocked[i] = true;
+						_baro_stuck[i] = false;
+					}
+
+				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, baro %d off", instance - 1);
+					_baro_blocked[instance - 1] = true;
+					_baro_stuck[instance - 1] = false;
+				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				PX4_WARN("CMD_INJECT_FAILURE, baro stuck");
 				supported = true;
-				_baro_stuck = true;
-				_baro_blocked = false;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < BARO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, baro %d stuck", i);
+						_baro_blocked[i] = false;
+						_baro_stuck[i] = true;
+					}
+
+				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, baro %d stuck", instance - 1);
+					_baro_blocked[instance - 1] = false;
+					_baro_stuck[instance - 1] = true;
+				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, baro ok");
 				supported = true;
-				_baro_blocked = false;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < BARO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, baro %d ok", i);
+						_baro_blocked[i] = false;
+						_baro_stuck[i] = false;
+					}
+
+				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, baro %d ok", instance - 1);
+					_baro_blocked[instance - 1] = false;
+					_baro_stuck[instance - 1] = false;
+				}
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {

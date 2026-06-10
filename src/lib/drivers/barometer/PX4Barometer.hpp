@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,50 +33,28 @@
 
 #pragma once
 
-#include "bmp280.h"
+#include <math.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
-#include <lib/perf/perf_counter.h>
 
-class BMP280 : public I2CSPIDriver<BMP280>
+class PX4Barometer
 {
 public:
-	BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface);
-	virtual ~BMP280();
+	PX4Barometer(uint32_t device_id);
 
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
-	static void print_usage();
+	void set_device_id(uint32_t device_id) { _report.device_id = device_id; }
+	void set_error_count(uint32_t error_count) { _report.error_count = error_count; }
+	void set_temperature(float temperature) { _report.temperature = temperature; }
 
-	int			init();
-	void			print_status();
+	void update(const hrt_abstime &timestamp_sample, float pressure);
 
-	void			RunImpl();
+	int get_instance() { return _sensor_pub.get_instance(); };
+	uint32_t get_device_id() const { return _report.device_id; }
+
 private:
-	void			Start();
+	uORB::PublicationMulti<sensor_baro_s> _sensor_pub{ORB_ID(sensor_baro)};
 
-	int			measure(); //start measure
-	int			collect(); //get results and publish
-
-	PX4Barometer _px4_baro;
-
-	bmp280::IBMP280		*_interface;
-
-	// set config, recommended settings
-	static constexpr uint8_t	_curr_ctrl{BMP280_CTRL_P16 | BMP280_CTRL_T2};
-	static constexpr uint32_t	_measure_interval{BMP280_MT_INIT + BMP280_MT *(16 - 1 + 2 - 1)};
-
-	bool			_collect_phase{false};
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_perf;
-	perf_counter_t		_comms_errors;
-
-	bmp280::calibration_s	*_cal{nullptr}; //stored calibration constants
-	bmp280::fcalibration_s	_fcal{}; //pre processed calibration constants
+	sensor_baro_s	_report{};
 };
