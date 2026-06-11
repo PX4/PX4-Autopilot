@@ -1,0 +1,96 @@
+# SIH (Simulation-In-Hardware) MAVSDK tests.
+# SIH runs the simulator inside the PX4 instance, so unlike the Gazebo SITL tests
+# (see sitl_tests.yml) it needs no separate simulator build.
+
+name: SIH Tests
+
+on:
+  push:
+    branches:
+    - 'main'
+    - 'develop'
+    - 'release/*'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+    - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sih_tests:
+    name: Testing PX4 SIH
+    runs-on: [runs-on,runner=64cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    container:
+      image: px4io/px4-dev:v1.16.2
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Git Ownership Workaround
+        run: git config --system --add safe.directory '*'
+
+      - id: set-timestamp
+        name: Set timestamp for cache
+        run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
+
+      - name: Cache Key Config
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: sih-ccache-${{ steps.set-timestamp.outputs.timestamp }}
+          restore-keys: sih-ccache-${{ steps.set-timestamp.outputs.timestamp }}
+
+      - name: Cache Conf Config
+        run: |
+            mkdir -p ~/.ccache
+            echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+            echo "compression = true" >> ~/.ccache/ccache.conf
+            echo "compression_level = 6" >> ~/.ccache/ccache.conf
+            echo "max_size = 120M" >> ~/.ccache/ccache.conf
+            echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            ccache -s
+            ccache -z
+
+      - name: Download MAVSDK
+        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu24.04_amd64.deb"
+
+      - name: Install MAVSDK
+        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu24.04_amd64.deb"
+
+      # Build PX4 first so the generated MAVLink headers exist before mavsdk_tests compiles.
+      - name: Build PX4
+        run: make px4_sitl_default
+
+      - name: Build PX4 / MAVSDK tests
+        env:
+          DONT_RUN: 1
+        run: make px4_sitl_default mavsdk_tests
+
+      - name: Core Dump Settings
+        run: |
+            ulimit -c unlimited
+            echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
+      - name: Run SIH / MAVSDK Tests
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --upload test/mavsdk_tests/configs/sitl_sih.json --verbose --force-color
+        timeout-minutes: 20
+
+      - name: Upload failed logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-sih-logs.zip
+          path: |
+            logs/**/**/**/*.log
+            logs/**/**/**/*.ulg
+            build/px4_sitl_default/tmp_mavsdk_tests/rootfs/log/**/*.ulg
