@@ -44,6 +44,7 @@
 #include "checks/airspeedCheck.hpp"
 #include "checks/armPermissionCheck.hpp"
 #include "checks/baroCheck.hpp"
+#include "checks/companionComputerCheck.hpp"
 #include "checks/cpuResourceCheck.hpp"
 #include "checks/distanceSensorChecks.hpp"
 #include "checks/opticalFlowCheck.hpp"
@@ -135,6 +136,7 @@ private:
 	AirspeedChecks _airspeed_checks;
 	ArmPermissionChecks _arm_permission_checks;
 	BaroChecks _baro_checks;
+	CompanionComputerChecks _companion_computer_checks;
 	CpuResourceChecks _cpu_resource_checks;
 	DistanceSensorChecks _distance_sensor_checks;
 	OpticalFlowCheck _optical_flow_check;
@@ -170,7 +172,7 @@ private:
 	ExternalChecks _external_checks;
 #endif
 
-	HealthAndArmingCheckBase *_checks[41] = {
+	HealthAndArmingCheckBase *_checks[42] = {
 #ifndef CONSTRAINED_FLASH
 		&_external_checks,
 #endif
@@ -178,6 +180,7 @@ private:
 		&_airspeed_checks,
 		&_arm_permission_checks,
 		&_baro_checks,
+		&_companion_computer_checks,
 		&_cpu_resource_checks,
 		&_distance_sensor_checks,
 		&_optical_flow_check,
