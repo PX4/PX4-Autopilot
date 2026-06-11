@@ -152,12 +152,8 @@ public:
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
 
-	// Request and return the decoded MAVLink HOME_POSITION message (msg id 33). MAVSDK's
-	// Telemetry::home() exposes lat/lon/alt but not the orientation (q) or local x/y/z, so tests that
-	// need those read the raw message here.
 	mavlink_home_position_t get_home_position(std::chrono::seconds timeout = std::chrono::seconds(10));
 
-	// Current estimated attitude as Euler angles (roll/pitch/yaw in degrees).
 	Telemetry::EulerAngle get_attitude_euler();
 
 	void enable_fixedwing_mectrics();
