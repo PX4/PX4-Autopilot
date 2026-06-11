@@ -46,36 +46,19 @@ namespace uORB
 
 bool SubscriptionCallback::registerCallback()
 {
-	if (!_registered) {
-		if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
-			// registered
-			_registered = true;
-
-		} else {
-			// force topic creation by subscribing with old API
-			int fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
-
-			// try to register callback again
-			if (_subscription.subscribe()) {
-				if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
-					_registered = true;
-				}
-			}
-
-			orb_unsubscribe(fd);
+	if (!orb_advert_valid(_subscription.get_node())) {
+		// force topic creation
+		if (!_subscription.subscribe(true)) {
+			return false;
 		}
 	}
 
-	return _registered;
+	return Manager::registerCallback(_subscription.get_node(), this, _last_update, _interval_us, _cb_handle);
 }
 
 void SubscriptionCallback::unregisterCallback()
 {
-	if (_subscription.get_node()) {
-		Manager::unregister_callback(_subscription.get_node(), this);
-	}
-
-	_registered = false;
+	Manager::unregisterCallback(_subscription.get_node(), this, _cb_handle);
 }
 
 } // namespace uORB

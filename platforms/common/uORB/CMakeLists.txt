@@ -38,9 +38,14 @@ if(CONFIG_LIB_CDRSTREAM)
 	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/lib/cdrstream/cyclonedds/src/core/ddsc/include)
 endif()
 
-set(SRCS)
+option(PX4_POSIX_SHM_DISABLED "Disable POSIX shm backing for uORB" OFF)
 
-set(SRCS_COMMON
+# Ensure shm backing is always disabled for all qurt targets.
+if("${PX4_PLATFORM}" STREQUAL "qurt")
+	set(PX4_POSIX_SHM_DISABLED ON CACHE BOOL "Disable POSIX shm backing for uORB" FORCE)
+endif()
+
+px4_add_library(uORB
 	ORBSet.hpp
 	Publication.cpp
 	Publication.hpp
@@ -59,56 +64,25 @@ set(SRCS_COMMON
 	uORBManager.hpp
 	uORBMessageFields.cpp
 	uORBMessageFields.hpp
+	uORBManager.cpp
 	uORBUtils.cpp
 	uORBUtils.hpp
-	uORBDeviceMaster.hpp
+	uORBDeviceNode.cpp
 	uORBDeviceNode.hpp
 	)
 
-set(SRCS_KERNEL
-	uORBDeviceMaster.cpp
-	uORBDeviceNode.cpp
-	uORBManager.cpp
-	)
+target_link_libraries(uORB PRIVATE uorb_msgs heatshrink)
 
-set(SRCS_USER
-	uORBManagerUsr.cpp
-	)
-
-if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
-	# Kernel side library in nuttx kernel/protected build
-	px4_add_library(uORB_kernel
-		${SRCS_COMMON}
-		${SRCS_KERNEL}
-		)
-	target_link_libraries(uORB_kernel PRIVATE cdev uorb_msgs nuttx_mm heatshrink)
-	target_compile_options(uORB_kernel PRIVATE ${MAX_CUSTOM_OPT_LEVEL} -D__KERNEL__)
-
-	# User side library in nuttx kernel/protected build
-	px4_add_library(uORB
-		${SRCS_COMMON}
-		${SRCS_USER}
-		)
-elseif("${PX4_PLATFORM}" MATCHES "nuttx")
-
-	# Library for NuttX (flat build, posix...)
-	px4_add_library(uORB
-		${SRCS_COMMON}
-		${SRCS_KERNEL}
-		)
-	target_link_libraries(uORB PRIVATE cdev nuttx_mm)
-else()
-
-	# Library for all other targets (posix...)
-	px4_add_library(uORB
-		${SRCS_COMMON}
-		${SRCS_KERNEL}
-		)
-	target_link_libraries(uORB PRIVATE cdev)
+if ("${PX4_PLATFORM}" MATCHES "posix" AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_link_libraries(uORB PRIVATE rt)
 endif()
 
-target_link_libraries(uORB PRIVATE uorb_msgs heatshrink)
 target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_link_libraries(uORB PRIVATE uorb_msgs)
+
+if(PX4_POSIX_SHM_DISABLED)
+	target_compile_definitions(uORB PRIVATE POSIX_SHM_DISABLED)
+endif()
 
 if(PX4_TESTING)
 	add_subdirectory(uORB_tests)

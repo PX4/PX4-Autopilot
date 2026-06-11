@@ -33,6 +33,8 @@
 
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 set(APPS_DIR ${NUTTX_SRC_DIR}/apps)
+set(NUTTX_CONFIG_OVERRIDES ${NUTTX_SRC_DIR}/defconfig.ovr)
+set(NUTTX_CONFIG_ADDITIONS ${NUTTX_SRC_DIR}/defconfig.add)
 
 ###############################################################################
 # NuttX build
@@ -55,13 +57,14 @@ endif()
 add_custom_command(
 	OUTPUT ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs ${NUTTX_DIR}/Make.defs
-	COMMAND cat ${NUTTX_DEFCONFIG} ${EXTRA_NUTTX_CONFIG_FILE} > ${NUTTX_DIR}/.config
+	COMMAND cat ${NUTTX_CONFIG_ADDITIONS} ${NUTTX_DEFCONFIG} ${NUTTX_CONFIG_OVERRIDES} ${EXTRA_NUTTX_CONFIG_FILE} > ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/defconfig
 	COMMAND ${NUTTX_SRC_DIR}/tools/px4_nuttx_make_olddefconfig.sh > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.log
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx/.config
 	DEPENDS
 		${NUTTX_DEFCONFIG}
 		${NUTTX_DIR}/defconfig
+		${COMMON_NUTTX_CONFIG}
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs
 		${CMAKE_CURRENT_BINARY_DIR}/../defconfig_inflate_stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}

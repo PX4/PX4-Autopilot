@@ -59,7 +59,7 @@ private:
 	virtual UpdateResult _read_control_data_from_subscription(ControlData &control_data, bool already_active);
 	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
-	int _manual_control_setpoint_sub{-1};
+	orb_sub_t _manual_control_setpoint_sub{ORB_SUB_INVALID};
 
 	float _last_set_aux_values[3] {};
 };

@@ -158,5 +158,4 @@ void
 SyslinkBridge::pipe_message(crtp_message_t *msg)
 {
 	_readbuffer.force(msg, sizeof(msg->size) + msg->size);
-	poll_notify(POLLIN);
 }

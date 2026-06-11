@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,23 +33,25 @@
 
 #pragma once
 
-#include "common.h"
-#include "polyfit.hpp"
+#include <sys/mman.h>
 
-class TemperatureCalibrationAccel : public TemperatureCalibrationCommon<3, 3>
-{
-public:
-	TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature, float max_start_temperature);
-	virtual ~TemperatureCalibrationAccel();
+#if defined(__PX4_NUTTX)
+#include <nuttx/config.h>
+#endif
 
-	/**
-	 * @see TemperatureCalibrationBase::finish()
-	 */
-	int finish();
+#if defined (__PX4_NUTTX) && defined(CONFIG_BUILD_KERNEL)
 
-private:
+/* For size_t */
+#include <sys/types.h>
 
-	virtual inline int update_sensor_instance(PerSensorData &data, orb_sub_t sensor_sub);
+__BEGIN_DECLS
 
-	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);
-};
+void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
+int   px4_munmap(void *start, size_t length);
+
+__END_DECLS
+
+#else
+#define px4_mmap   mmap
+#define px4_munmap munmap
+#endif
