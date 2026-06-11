@@ -241,6 +241,20 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 			max_temperature = temperature;
 			hottest_esc_index = esc_index;
 		}
+
+		if (temperature > warn_temp) {
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>COM_ESC_OT_WARN</param> parameter.
+			* </profile>
+			*/
+			reporter.healthFailure<uint8_t, uint8_t>(NavModes::None, health_component_t::motors_escs,
+					events::ID("check_esc_over_temperature"),
+					events::Log::Warning,
+					"ESC {1} temperature warning, {2:C}",
+					static_cast<uint8_t>(esc_index + 1), static_cast<uint8_t>(temperature));
+		}
 	}
 
 	if (hottest_esc_index < 0) {
@@ -248,23 +262,9 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 	}
 
 	if (max_temperature > warn_temp) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ESC_OT_WARN</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure<uint8_t, float>(NavModes::None, health_component_t::motors_escs,
-						       events::ID("check_esc_over_temperature"),
-						       events::Log::Warning,
-						       "ESC temperature above warning threshold, highest is ESC {1} ({2} degC)",
-						       static_cast<uint8_t>(hottest_esc_index + 1), max_temperature);
-
-
 		if (!_esc_over_temp_warned && reporter.mavlink_log_pub()) {
 			mavlink_log_warning(reporter.mavlink_log_pub(),
-					    "ESC temperature above warning threshold, highest is ESC%d (%.0f degC)",
-					    hottest_esc_index + 1, (double)max_temperature);
+					    "High ESC temperature. Reduce throttle!");
 			_esc_over_temp_warned = true;
 		}
 
