@@ -119,6 +119,17 @@ extern bool extf_func_is_busy(void);                                          /*
 extern bool extf_func_program(uintptr_t offset, const uint8_t *buffer, unsigned length); /* blocking program of a chunk */
 extern uint32_t extf_func_read_word(uintptr_t offset);                        /* read one 32-bit word */
 
+/* Passthrough hook, only used when BOARD_HAS_PASSTHROUGH is defined. Called
+ * repeatedly while the bootloader is idle (waiting for a protocol command); it
+ * shuttles bytes between a secondary-facing USB CDC and the UART link to the
+ * secondary MCU. Returns true if any data was forwarded this call. */
+extern bool board_bootloader_idle(void);
+
+/* Tear the passthrough back down (close the USB/UART devices it opened, which
+ * disables their interrupts) just before jumping to the application, so the
+ * app does not take an unexpected interrupt from a still-enabled peripheral. */
+extern void board_bootloader_finalize(void);
+
 extern void arch_flash_lock(void);
 extern void arch_flash_unlock(void);
 extern void arch_setvtor(const uint32_t *address);

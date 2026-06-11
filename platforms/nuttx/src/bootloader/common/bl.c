@@ -420,6 +420,12 @@ jump_to_app()
 	/* deinitialise the interface */
 	cfini();
 
+#if defined(BOARD_HAS_PASSTHROUGH)
+	/* close the passthrough USB/UART so their interrupts are disabled before
+	 * the app starts (the UART would otherwise fault the app on the next byte) */
+	board_bootloader_finalize();
+#endif
+
 	/* reset the clock */
 	clock_deinit();
 
@@ -668,6 +674,17 @@ bootloader(unsigned timeout)
 
 			/* try to get a byte from the host */
 			c = cin_wait(0);
+
+#if defined(BOARD_HAS_PASSTHROUGH)
+
+			/* while idle, bridge the secondary MCU's bootloader to the host.
+			 * Keep our own boot timeout from expiring while that flash is in
+			 * progress so we stay available to forward. */
+			if (c < 0 && board_bootloader_idle() && timeout) {
+				timer[TIMER_BL_WAIT] = timeout;
+			}
+
+#endif
 
 		} while (c < 0);
 
