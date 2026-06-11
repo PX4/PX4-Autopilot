@@ -87,19 +87,27 @@
 #define SERIAL1_DEV    0x04
 
 #define APP_LOAD_ADDRESS               0x08020000
-#define BOOTLOADER_DELAY               5000
-#define INTERFACE_USB                  1
-#define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
-#define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
 
-//#define USE_VBUS_PULL_DOWN
+/* The secondary MCU has no USB. The bootloader protocol runs over UART7 (wired
+ * to the primary, PE7/PE8) at 2 Mbaud; the host reaches it through the primary's
+ * USB passthrough. Stay in the bootloader longer than the primary so the primary
+ * is up and bridging before the secondary needs to be flashed. */
+#define BOOTLOADER_DELAY               10000
 #define INTERFACE_USART                1
-#define INTERFACE_USART_CONFIG         "/dev/ttyS0,115200"
+#define INTERFACE_USART_CONFIG         "/dev/ttyS0,2000000"
+#define BOOT_DEVICES_SELECTION         SERIAL0_DEV
+#define BOOT_DEVICES_FILTER_ONUSB      SERIAL0_DEV
 #define BOOT_DELAY_ADDRESS             0x000001a0
-#define BOARD_TYPE                     1069
+#define BOARD_TYPE                     1070
 #define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
-#define BOARD_FLASH_SECTORS            (14)
+/* zero-based index of the last app flash sector. The app occupies sectors
+ * 1..13 (1664 KiB); sectors 14 and 15 are reserved for FLASH_BASED_PARAMS. */
+#define BOARD_FLASH_SECTORS            (13)
 #define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)
+
+/* Reserve the last two 128 KiB sectors (14, 15) for flash-based parameters so
+ * the bootloader neither erases nor programs them (matches the app linker). */
+#define APP_RESERVATION_SIZE           (2 * 128 * 1024)
 
 #define OSC_FREQ                       24
 

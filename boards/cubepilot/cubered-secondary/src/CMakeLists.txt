@@ -33,7 +33,6 @@
 if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
-		usb.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
