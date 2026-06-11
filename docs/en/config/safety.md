@@ -264,7 +264,7 @@ The relevant parameters are shown below:
 | Parameter                                                                  | Description                                                                                                       |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | [COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)   | Delay after loss of offboard connection before the failsafe is triggered.                                         |
-| [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) | Failsafe action if RC is available: Position mode, Altitude mode, Manual mode, Return mode, Land mode, Hold mode. |
+| [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) | Failsafe action if RC is available: Position mode, Altitude mode, Stabilized mode, Return mode, Land mode, Hold mode, Terminate, Disarm. |
 
 ## Traffic Avoidance Failsafe
 
