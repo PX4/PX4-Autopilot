@@ -43,6 +43,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
@@ -78,6 +79,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -90,10 +92,18 @@ private:
 
 	bool _force_empty_battery{false};
 
+	// load current summed from ESC telemetry (closes the SIH ESC -> battery loop)
+	float _esc_current_sum_a{0.f};
+	hrt_abstime _esc_status_last_valid{0};
+
+	// nominal per-cell internal resistance used for voltage sag when BAT1_R_INTERNAL is in estimate mode (< 0)
+	static constexpr float DEFAULT_R_INTERNAL_PER_CELL = 0.005f; // [Ohm]
+
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
-		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct //< minimum battery percentage
+		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct, //< minimum battery percentage
+		(ParamFloat<px4::params::BAT1_R_INTERNAL>) _param_bat_r_internal //< per-cell internal resistance
 	)
 };

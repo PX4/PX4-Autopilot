@@ -70,12 +70,15 @@
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -141,9 +144,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
 
+	// per-motor ESC telemetry
+	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
 	static constexpr uint16_t NUM_DYN_THRUSTER = 2;		// number of dynamic thruster model with advance ratio
+	static constexpr int MAX_NUM_MOTORS = 6;		// quad (4) and hex (6) telemetry supported
 
 	// Ranging beacon simulation constants
 	static constexpr uint8_t NUM_RANGING_BEACONS = 4;
@@ -192,6 +200,10 @@ private:
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
+	// compute and publish a per-motor ESC telemetry sample (read-only, does not affect flight dynamics)
+	void publish_esc_status(const hrt_abstime &time_now_us, const float dt);
+	// number of motors exposed in ESC telemetry for the current vehicle type (0 = unsupported)
+	int num_motors() const;
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
@@ -218,7 +230,14 @@ private:
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
 	hrt_abstime _ranging_beacon_time{0};
+	hrt_abstime _esc_status_time{0};
 	uint8_t _ranging_beacon_idx{0};
+
+	// ESC telemetry model state
+	float _esc_omega[MAX_NUM_MOTORS] {};       // low-pass filtered shaft speed [rad/s]
+	float _esc_temperature[MAX_NUM_MOTORS] {}; // winding temperature integrator [degC]
+	bool _esc_temperature_initialized{false};
+	uint16_t _esc_counter{0};
 
 	bool _grounded{true}; // whether the vehicle is on the ground
 
@@ -299,6 +318,12 @@ private:
 
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
 
+	// cached ESC telemetry parameters
+	bool _esc_enable{true};
+	float _esc_kv{0.f}, _esc_R{0.f}, _esc_I0{0.f}, _esc_v_bus_const{0.f};
+	float _esc_T_amb{0.f}, _esc_R_th{0.f}, _esc_C_th{0.f};
+	float _esc_tau_up{0.f}, _esc_tau_dn{0.f}, _esc_omega_max{0.f}, _esc_kQ{0.f};
+
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
@@ -338,6 +363,18 @@ private:
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
 		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
-		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise,
+		// per-motor ESC telemetry model
+		(ParamBool<px4::params::SIH_ESC_EN>) _sih_esc_en,
+		(ParamFloat<px4::params::SIH_ESC_KV>) _sih_esc_kv,
+		(ParamFloat<px4::params::SIH_ESC_R>) _sih_esc_r,
+		(ParamFloat<px4::params::SIH_ESC_I0>) _sih_esc_i0,
+		(ParamFloat<px4::params::SIH_ESC_VBUS>) _sih_esc_vbus,
+		(ParamFloat<px4::params::SIH_ESC_TAMB>) _sih_esc_tamb,
+		(ParamFloat<px4::params::SIH_ESC_RTH>) _sih_esc_rth,
+		(ParamFloat<px4::params::SIH_ESC_CTH>) _sih_esc_cth,
+		(ParamFloat<px4::params::SIH_ESC_RPMMAX>) _sih_esc_rpmmax,
+		(ParamFloat<px4::params::SIH_ESC_TAU_UP>) _sih_esc_tau_up,
+		(ParamFloat<px4::params::SIH_ESC_TAU_DN>) _sih_esc_tau_dn
 	)
 };

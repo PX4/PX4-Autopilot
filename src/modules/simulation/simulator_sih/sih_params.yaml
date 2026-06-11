@@ -369,3 +369,120 @@ parameters:
       default: 6000.0
       min: 0.1
       decimal: 1
+    SIH_ESC_EN:
+      description:
+        short: Enable per-motor ESC telemetry
+        long: |-
+          When enabled, SIH publishes simulated per-motor esc_status (RPM, voltage,
+          current, temperature) for multicopter vehicle types (Quadcopter, Hexacopter).
+          This feeds the MAVLink ESC_STATUS/ESC_INFO streams, the logger, and the
+          battery model (which derives load-dependent current and voltage sag from it).
+      type: boolean
+      default: 1
+      reboot_required: true
+    SIH_ESC_KV:
+      description:
+        short: Motor velocity constant Kv
+        long: |-
+          No-load motor speed per volt. Used to derive the back-EMF/torque constant
+          Ke = Kt = 60 / (2*pi*Kv) for the electrical model. Low values represent large
+          heavy-lift motors, high values small racing motors.
+      type: float
+      default: 2400.0
+      unit: rpm/V
+      min: 1.0
+      decimal: 1
+    SIH_ESC_R:
+      description:
+        short: Motor phase resistance
+        long: Winding resistance used for terminal voltage (V = I*R + Ke*omega) and ohmic heating (I^2*R).
+      type: float
+      default: 0.05
+      unit: Ohm
+      min: 0.0
+      decimal: 4
+      increment: 0.001
+    SIH_ESC_I0:
+      description:
+        short: Motor no-load current
+        long: No-load (idle) current of the motor, scaled by throttle in the current model I = Q/Kt + I0*u.
+      type: float
+      default: 1.0
+      unit: A
+      min: 0.0
+      decimal: 2
+      increment: 0.1
+    SIH_ESC_VBUS:
+      description:
+        short: Nominal ESC bus voltage (fallback)
+        long: |-
+          Bus voltage used to derive the maximum shaft speed and as the reported ESC
+          voltage when no battery_status is available. When a battery is connected, the
+          measured (sagged) battery voltage is reported and used instead.
+      type: float
+      default: 16.0
+      unit: V
+      min: 0.0
+      decimal: 2
+      increment: 0.1
+    SIH_ESC_TAMB:
+      description:
+        short: ESC/motor ambient temperature
+      type: float
+      default: 25.0
+      unit: celcius
+      decimal: 1
+    SIH_ESC_RTH:
+      description:
+        short: Motor thermal resistance to ambient
+        long: Lumped thermal resistance in the model C_th*dT/dt = I^2*R - (T - T_amb)/R_th.
+      type: float
+      default: 5.0
+      unit: K/W
+      min: 0.0
+      decimal: 2
+    SIH_ESC_CTH:
+      description:
+        short: Motor thermal capacitance
+        long: Lumped thermal mass in the model C_th*dT/dt = I^2*R - (T - T_amb)/R_th.
+      type: float
+      default: 20.0
+      unit: J/K
+      min: 0.0
+      decimal: 2
+    SIH_ESC_RPMMAX:
+      description:
+        short: Maximum shaft speed for ESC telemetry
+        long: |-
+          Maximum propeller shaft speed at full throttle. If set to 0, it is derived
+          from Kv and the bus voltage (Kv*V_bus*0.9). Set explicitly for large props
+          where the no-load speed estimate is inaccurate.
+      type: float
+      default: 0.0
+      unit: rpm
+      min: 0.0
+      decimal: 1
+    SIH_ESC_TAU_UP:
+      description:
+        short: ESC spin-up time constant
+        long: |-
+          First-order time constant for the reported RPM when accelerating. If set to 0,
+          the thrust time constant SIH_T_TAU is used. Large high-inertia props spin up
+          fast under power but free-wheel down slowly (see SIH_ESC_TAU_DN).
+      type: float
+      default: 0.0
+      unit: s
+      min: 0.0
+      decimal: 3
+    SIH_ESC_TAU_DN:
+      description:
+        short: ESC spin-down time constant
+        long: |-
+          First-order time constant for the reported RPM when decelerating. If set to 0,
+          the thrust time constant SIH_T_TAU is used. Typically larger than SIH_ESC_TAU_UP
+          for high-inertia propellers.
+      type: float
+      default: 0.0
+      unit: s
+      min: 0.0
+      decimal: 3

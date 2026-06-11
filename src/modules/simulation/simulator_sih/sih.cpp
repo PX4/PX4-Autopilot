@@ -79,6 +79,7 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_ranging_beacon_time = task_start;
+	_esc_status_time = task_start;
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
@@ -239,6 +240,13 @@ void Sih::sensor_step()
 		send_ranging_beacon(now);
 	}
 
+	// per-motor ESC telemetry published at 50 Hz (multicopters only)
+	if (_esc_enable && num_motors() > 0 && now - _esc_status_time >= 20_ms) {
+		const float esc_dt = (now - _esc_status_time) * 1e-6f;
+		_esc_status_time = now;
+		publish_esc_status(now, esc_dt);
+	}
+
 	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
@@ -324,6 +332,34 @@ void Sih::parameters_updated()
 	_T_TAU = _sih_thrust_tau.get();
 
 	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
+
+	// ESC telemetry model parameters
+	_esc_enable = _sih_esc_en.get();
+	_esc_kv = _sih_esc_kv.get();
+	_esc_R = _sih_esc_r.get();
+	_esc_I0 = _sih_esc_i0.get();
+	_esc_v_bus_const = _sih_esc_vbus.get();
+	_esc_T_amb = _sih_esc_tamb.get();
+	_esc_R_th = _sih_esc_rth.get();
+	_esc_C_th = _sih_esc_cth.get();
+	// asymmetric spin-up/spin-down time constants; fall back to the thrust time constant when unset
+	_esc_tau_up = (_sih_esc_tau_up.get() > FLT_EPSILON) ? _sih_esc_tau_up.get() : _T_TAU;
+	_esc_tau_dn = (_sih_esc_tau_dn.get() > FLT_EPSILON) ? _sih_esc_tau_dn.get() : _T_TAU;
+
+	// maximum shaft speed [rad/s]: explicit when set, otherwise derived from the no-load motor speed Kv*V_bus
+	// with a 0.9 loaded-speed factor to approximate the operating point at full throttle
+	if (_sih_esc_rpmmax.get() > FLT_EPSILON) {
+		_esc_omega_max = _sih_esc_rpmmax.get() * 2.f * M_PI_F / 60.f;
+
+	} else {
+		_esc_omega_max = _esc_kv * _esc_v_bus_const * 0.9f * 2.f * M_PI_F / 60.f;
+	}
+
+	// tie the telemetry shaft torque to the configured maximum propeller torque: Q = kQ * omega^2
+	_esc_kQ = (_esc_omega_max > FLT_EPSILON) ? (_Q_MAX / (_esc_omega_max * _esc_omega_max)) : 0.f;
+
+	// force re-initialization of the thermal state to ambient on the next telemetry update
+	_esc_temperature_initialized = false;
 }
 
 void Sih::read_motors(const float dt)
@@ -811,6 +847,110 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
+}
+
+int Sih::num_motors() const
+{
+	switch (_vehicle) {
+	case VehicleType::Quadcopter:
+		return 4;
+
+	case VehicleType::Hexacopter:
+		return 6;
+
+	default:
+		return 0; // ESC telemetry only modeled for multicopters
+	}
+}
+
+void Sih::publish_esc_status(const hrt_abstime &time_now_us, const float dt)
+{
+	const int n = num_motors();
+
+	if (n <= 0 || dt < FLT_EPSILON) {
+		return;
+	}
+
+	// Pick the bus voltage from the battery when available (matches real ESC/HITL semantics),
+	// otherwise fall back to the configured constant. The battery model owns voltage sag, so the
+	// value read back here already reflects the load applied last cycle.
+	float v_bus = _esc_v_bus_const;
+	battery_status_s battery_status;
+
+	if (_battery_status_sub.copy(&battery_status) && battery_status.connected
+	    && PX4_ISFINITE(battery_status.voltage_v) && battery_status.voltage_v > FLT_EPSILON) {
+		v_bus = battery_status.voltage_v;
+	}
+
+	if (v_bus < FLT_EPSILON) {
+		v_bus = 1.f; // guard against division by zero
+	}
+
+	// initialize the thermal state to ambient on the first sample after a (re)configuration
+	if (!_esc_temperature_initialized) {
+		for (int i = 0; i < MAX_NUM_MOTORS; i++) {
+			_esc_temperature[i] = _esc_T_amb;
+		}
+
+		_esc_temperature_initialized = true;
+	}
+
+	// back-EMF / torque constant (equal in SI units): Ke [V*s/rad] = 60 / (2*pi*Kv)
+	const float Ke = (_esc_kv > FLT_EPSILON) ? (60.f / (2.f * M_PI_F * _esc_kv)) : 0.f;
+
+	esc_status_s esc{};
+	esc.timestamp = time_now_us;
+	esc.esc_count = n;
+	esc.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
+	esc.counter = _esc_counter++;
+
+	for (int i = 0; i < n; i++) {
+		const float u = math::constrain(_u[i], 0.f, 1.f);
+
+		// shaft-speed setpoint from throttle (omega ~ omega_max * sqrt(u) so that T = kT*omega^2 ~ T_max*u)
+		const float omega_sp = _esc_omega_max * sqrtf(u);
+
+		// asymmetric first-order spin-up/spin-down lag
+		const float tau = (omega_sp > _esc_omega[i]) ? _esc_tau_up : _esc_tau_dn;
+
+		if (tau > FLT_EPSILON) {
+			_esc_omega[i] += dt / tau * (omega_sp - _esc_omega[i]);
+		}
+
+		const float omega = math::max(_esc_omega[i], 0.f);
+
+		// aerodynamic shaft torque and BLDC electrical chain
+		const float Q = _esc_kQ * omega * omega;                  // [Nm]
+		const float I = (Ke > FLT_EPSILON) ? (Q / Ke + _esc_I0 * u) : 0.f; // motor current [A]
+		const float v_motor = I * _esc_R + Ke * omega;            // terminal voltage [V]
+		const float duty = math::constrain(v_motor / v_bus, 0.f, 1.f);
+		const float i_batt = v_motor * I / v_bus;                 // current drawn from the bus [A]
+
+		// lumped first-order thermal model: C_th * dT/dt = I^2 * R - (T - T_amb) / R_th
+		if (_esc_C_th > FLT_EPSILON) {
+			const float heating = I * I * _esc_R;
+			const float cooling = (_esc_R_th > FLT_EPSILON) ? ((_esc_temperature[i] - _esc_T_amb) / _esc_R_th) : 0.f;
+			_esc_temperature[i] += dt / _esc_C_th * (heating - cooling);
+		}
+
+		esc_report_s &report = esc.esc[i];
+		report.timestamp = time_now_us;
+		report.actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + i;
+		report.esc_rpm = static_cast<int32_t>(roundf(omega * 60.f / (2.f * M_PI_F)));
+		report.esc_voltage = v_bus;
+		report.esc_current = i_batt;
+		report.esc_temperature = _esc_temperature[i];
+		report.motor_temperature = static_cast<int16_t>(roundf(_esc_temperature[i]));
+		report.esc_power = static_cast<int8_t>(roundf(duty * 100.f));
+
+		esc.esc_online_flags |= (1 << i);
+		esc.esc_armed_flags |= (1 << i);
+	}
+
+	// FUTURE: ESC telemetry-failure injection hook (e.g. blocked/stale reports, wrong values,
+	// over-temperature/over-current faults). See FailureInjector::manipulateEscStatus().
+
+	_esc_status_pub.publish(esc);
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1

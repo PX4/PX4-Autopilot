@@ -100,7 +100,30 @@ void BatterySimulator::Run()
 		_last_integration_us = 0;
 	}
 
-	float ibatt = -1.0f; // no current sensor in simulation
+	// Sum the per-motor current reported by SIH ESC telemetry to obtain the battery load current.
+	// Falls back to the legacy timer-based drain (ibatt = -1) when no ESC telemetry is available.
+	if (_esc_status_sub.updated()) {
+		esc_status_s esc_status;
+
+		if (_esc_status_sub.copy(&esc_status)) {
+			float current_sum = 0.f;
+			const int n = math::min(static_cast<int>(esc_status.esc_count),
+						static_cast<int>(esc_status_s::CONNECTED_ESC_MAX));
+
+			for (int i = 0; i < n; i++) {
+				current_sum += esc_status.esc[i].esc_current;
+			}
+
+			if (PX4_ISFINITE(current_sum) && current_sum >= 0.f) {
+				_esc_current_sum_a = current_sum;
+				_esc_status_last_valid = now_us;
+			}
+		}
+	}
+
+	const bool esc_current_valid = (_esc_status_last_valid != 0) && (now_us - _esc_status_last_valid < 1_s);
+
+	float ibatt = -1.0f; // -1 == invalid: no current source
 
 	_battery_percentage = math::max(_battery_percentage, _param_bat_min_pct.get() / 100.f);
 	float vbatt = math::interpolate(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(),
@@ -111,6 +134,21 @@ void BatterySimulator::Run()
 	}
 
 	vbatt *= _battery.cell_count();
+
+	if (esc_current_valid) {
+		ibatt = _esc_current_sum_a;
+
+		// Apply load-dependent voltage sag. The Battery library reports back the voltage we provide
+		// (it only uses the internal resistance to de-sag for SOC estimation), so the sag is applied here.
+		float r_internal_per_cell = _param_bat_r_internal.get();
+
+		if (r_internal_per_cell < 0.f) { // estimate mode: use a nominal resistance so sag is still visible
+			r_internal_per_cell = DEFAULT_R_INTERNAL_PER_CELL;
+		}
+
+		vbatt -= ibatt * r_internal_per_cell * _battery.cell_count();
+		vbatt = math::max(vbatt, _battery.empty_cell_voltage() * _battery.cell_count());
+	}
 
 	_battery.setConnected(true);
 	_battery.updateVoltage(vbatt);
