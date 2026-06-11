@@ -9,6 +9,16 @@
             "sim_model": "sihsim_quadx",
             "test_filter": "[sih]",
             "timeout_min": 10
+        },
+        {
+            "model": "SIH Quadcopter Home Yaw",
+            "sim_model": "sihsim_quadx",
+            "test_filter": "[sih_home_yaw]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_HOME_YAW": "2.3562",
+                "PX4_SIM_GPS_USED": "0"
+            }
         }
     ]
 }
