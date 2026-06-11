@@ -36,6 +36,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 		usb.c
 		qspi.c
 		extflash.c
+		passthrough.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE

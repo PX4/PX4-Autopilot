@@ -97,8 +97,18 @@
 #define BOARD_USB_VBUS_SENSE_DISABLED  1
 
 //#define USE_VBUS_PULL_DOWN
-#define INTERFACE_USART                1
-#define INTERFACE_USART_CONFIG         "/dev/ttyS0,115200"
+
+/* The primary bootloader protocol runs over USB only. UART7 (ttyS0 in the
+ * bootloader config) is NOT a protocol interface - it is the link to the
+ * secondary MCU, used by the transparent passthrough (see passthrough.c). */
+#define BOOT_DEVICES_SELECTION         USB0_DEV
+#define BOOT_DEVICES_FILTER_ONUSB      USB0_DEV
+
+/* Expose a second USB CDC/ACM (ttyACM1) bridged to the secondary MCU's
+ * bootloader over UART7, so the host can flash the secondary through the
+ * primary's USB (composite device set up in usb.c, pumped in passthrough.c). */
+#define BOARD_HAS_PASSTHROUGH          1
+
 #define BOOT_DELAY_ADDRESS             0x000001a0
 #define BOARD_TYPE                     1069
 #define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)

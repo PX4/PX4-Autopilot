@@ -48,7 +48,13 @@
 #include "arm_internal.h"
 #include <px4_platform_common/init.h>
 
-extern int sercon_main(int c, char **argv);
+#ifdef CONFIG_USBDEV_COMPOSITE
+/* Defined in usb.c. Declared here because the prototypes in nuttx/board.h are
+ * gated behind CONFIG_BOARDCTL_USBDEVCTRL, which the bootloader does not use -
+ * it calls board_composite_initialize()/connect() directly. */
+int board_composite_initialize(int port);
+FAR void *board_composite_connect(int port, int configid);
+#endif
 
 __EXPORT void board_on_reset(int status) {}
 
@@ -85,7 +91,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 void board_late_initialize(void)
 {
-	sercon_main(0, NULL);
+	/* Bring up the composite USB device: two CDC/ACM ports - ttyACM0 for the
+	 * bootloader protocol on this MCU, ttyACM1 for transparent passthrough to
+	 * the secondary MCU's bootloader (see usb.c and the passthrough pump). */
+	board_composite_initialize(0);
+	board_composite_connect(0, 0);
 }
 
 extern void sys_tick_handler(void);
