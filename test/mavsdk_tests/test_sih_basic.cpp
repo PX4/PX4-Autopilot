@@ -37,7 +37,7 @@
 #include "autopilot_tester.h"
 
 // SIH-only smoke test.
-TEST_CASE("SIH: takeoff and land", "[sih]")
+TEST_CASE("SIH takeoff and land", "[sih]")
 {
 	const float takeoff_altitude = 5.f;
 
