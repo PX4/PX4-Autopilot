@@ -42,11 +42,13 @@
 
 #include "data.h"
 
-namespace InertialLabs {
+namespace InertialLabs
+{
 
 constexpr uint16_t BUFFER_SIZE{250};
 
-class Sensor {
+class Sensor
+{
 public:
 	// Use C-style function pointer, because we can't use std::function on some platforms
 	using DataHandler = void (*)(void *, SensorsData *);
@@ -65,10 +67,12 @@ public:
 	void printStatus();
 
 private:
-	static void *updateDataThreadHelper(void *context) {
+	static void *updateDataThreadHelper(void *context)
+	{
 		if (!context) {
 			return nullptr;
 		}
+
 		Sensor *sensor = reinterpret_cast<Sensor *>(context);
 		sensor->updateData();
 		return nullptr;
@@ -92,7 +96,7 @@ private:
 	px4::atomic_bool _isInitialized{false};
 	px4::atomic_bool _isDeinitInProcess{false};
 
-	uint8_t  _buf[BUFFER_SIZE]{};
+	uint8_t  _buf[BUFFER_SIZE] {};
 	uint16_t _bufOffset{0};
 
 	SensorsData _sensorData{};

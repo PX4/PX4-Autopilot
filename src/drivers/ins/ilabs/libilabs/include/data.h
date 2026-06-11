@@ -39,13 +39,15 @@
 
 #define PACKED __attribute__((packed))
 
-namespace InertialLabs {
+namespace InertialLabs
+{
 
 // NOLINTBEGIN(clang-analyzer-optin.performance.Padding, altera-struct-pack-align, misc-non-private-member-variables-in-classes)
 struct PACKED vec3_16_t {
 	int16_t x, y, z;
 
-	matrix::Vector3f toFloat() const {
+	matrix::Vector3f toFloat() const
+	{
 		return matrix::Vector3f(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 	}
 };
@@ -53,7 +55,8 @@ struct PACKED vec3_16_t {
 struct PACKED vec3_32_t {
 	int32_t x, y, z;
 
-	matrix::Vector3f toFloat() const {
+	matrix::Vector3f toFloat() const
+	{
 		return matrix::Vector3f(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 	}
 };

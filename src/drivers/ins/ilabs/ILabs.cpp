@@ -51,7 +51,8 @@ constexpr uint64_t GPS_EPOCH_SECS = 315964800ULL;
 
 constexpr uint8_t DECIMATION_VALUE = 20;
 
-uint64_t ToUtcMicroseconds(uint16_t gpsWeek, uint32_t msTow) {
+uint64_t ToUtcMicroseconds(uint16_t gpsWeek, uint32_t msTow)
+{
 	const uint64_t gpsTimeSec = gpsWeek * 7ULL * 86400ULL + msTow / 1000ULL;
 	// 18 is a leap seconds correction
 	const uint64_t utcTimeSec = gpsTimeSec + GPS_EPOCH_SECS - 18;
@@ -68,14 +69,14 @@ ILabs::ILabs(const char *serialDeviceName)
 	: ModuleParams(nullptr),
 	  ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serialDeviceName)),
 	  _attitude_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-			    ? ORB_ID(external_ins_attitude)
-			    : ORB_ID(vehicle_attitude)),
+			? ORB_ID(external_ins_attitude)
+			: ORB_ID(vehicle_attitude)),
 	  _local_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-				  ? ORB_ID(external_ins_local_position)
-				  : ORB_ID(vehicle_local_position)),
+			      ? ORB_ID(external_ins_local_position)
+			      : ORB_ID(vehicle_local_position)),
 	  _global_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-				   ? ORB_ID(external_ins_global_position)
-				   : ORB_ID(vehicle_global_position)),
+			       ? ORB_ID(external_ins_global_position)
+			       : ORB_ID(vehicle_global_position)),
 	  _accel_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Accel publish interval")),
 	  _gyro_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Gyro publish interval")),
 	  _mag_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Mag publish interval")),
@@ -83,7 +84,8 @@ ILabs::ILabs(const char *serialDeviceName)
 	  _baro_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Baro publish interval")),
 	  _attitude_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Attitude publish interval")),
 	  _local_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Local position publish interval")),
-	  _global_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Global position publish interval")) {
+	  _global_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Global position publish interval"))
+{
 	// store port name
 	strncpy(_serialDeviceName, serialDeviceName, sizeof(_serialDeviceName) - 1);
 
@@ -111,7 +113,8 @@ ILabs::ILabs(const char *serialDeviceName)
 	_sensor_gps_pub.advertise();
 }
 
-ILabs::~ILabs() {
+ILabs::~ILabs()
+{
 	_sensor.deinit();
 
 	perf_free(_accel_pub_interval_perf);
@@ -124,7 +127,8 @@ ILabs::~ILabs() {
 	perf_free(_global_position_pub_interval_perf);
 }
 
-int ILabs::task_spawn(int argc, char *argv[]) {
+int ILabs::task_spawn(int argc, char *argv[])
+{
 	bool error_flag = false;
 
 	int         opt_index   = 1;
@@ -134,18 +138,18 @@ int ILabs::task_spawn(int argc, char *argv[]) {
 
 	while ((opt_val = px4_getopt(argc, argv, "d:", &opt_index, &opt_arg)) != EOF) {
 		switch (opt_val) {
-			case 'd':
-				device_name = opt_arg;
-				break;
+		case 'd':
+			device_name = opt_arg;
+			break;
 
-			case '?':
-				error_flag = true;
-				break;
+		case '?':
+			error_flag = true;
+			break;
 
-			default:
-				PX4_WARN("Unrecognized flag");
-				error_flag = true;
-				break;
+		default:
+			PX4_WARN("Unrecognized flag");
+			error_flag = true;
+			break;
 		}
 	}
 
@@ -179,11 +183,13 @@ int ILabs::task_spawn(int argc, char *argv[]) {
 	return PX4_ERROR;
 }
 
-int ILabs::custom_command(int argc, char *argv[]) {
+int ILabs::custom_command(int argc, char *argv[])
+{
 	return print_usage("unknown command");
 }
 
-int ILabs::print_usage(const char *reason) {
+int ILabs::print_usage(const char *reason)
+{
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}

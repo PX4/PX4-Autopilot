@@ -60,7 +60,8 @@
 
 #include "sensor.h"
 
-class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem {
+class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
+{
 public:
 	static Descriptor desc;
 
@@ -82,7 +83,8 @@ public:
 private:
 	void        Run() override;
 	void        processData(InertialLabs::SensorsData *sensordata);
-	static void processDataProxy(void *context, InertialLabs::SensorsData *data) {
+	static void processDataProxy(void *context, InertialLabs::SensorsData *data)
+	{
 		if (!context || !data) {
 			return;
 		}
@@ -95,7 +97,7 @@ private:
 	DEFINE_PARAMETERS((ParamInt<px4::params::ILABS_MODE>)_param_ilabs_mode)
 	InertialLabs::Sensor _sensor{};
 
-	char _serialDeviceName[20]{};
+	char _serialDeviceName[20] {};
 	InertialLabs::AverageSensorsData _average_sensors_data{};
 	device::Device::DeviceId _device_id{};
 
