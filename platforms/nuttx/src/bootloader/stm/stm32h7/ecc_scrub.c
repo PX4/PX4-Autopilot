@@ -31,6 +31,7 @@
 #define ECC_RCC_DMA1EN    (1u << 0)
 
 #define ECC_DMA1          0x40020000u
+#define ECC_DMA_LISR      (*(volatile uint32_t *)(ECC_DMA1 + 0x00u))
 #define ECC_DMA_LIFCR     (*(volatile uint32_t *)(ECC_DMA1 + 0x08u))
 #define ECC_DMA_S0CR      (*(volatile uint32_t *)(ECC_DMA1 + 0x10u))
 #define ECC_DMA_S0NDTR    (*(volatile uint32_t *)(ECC_DMA1 + 0x14u))
@@ -39,6 +40,7 @@
 #define ECC_DMA_S0FCR     (*(volatile uint32_t *)(ECC_DMA1 + 0x24u))
 #define ECC_DMA_S0CR_EN   (1u << 0)
 #define ECC_DMA_S0_FLAGS  (0x3du)   /* stream-0 FE/DME/TE/HT/TC flags in LISR/LIFCR */
+#define ECC_DMA_S0_TCIF   (1u << 5)
 /* DIR=mem-to-mem, PINC, MINC, PSIZE=32, MSIZE=32 */
 #define ECC_DMA_S0CR_CFG  ((2u << 6) | (1u << 9) | (1u << 10) | (2u << 11) | (2u << 13))
 #define ECC_DMA_S0FCR_CFG ((1u << 2) | (3u << 0))   /* direct mode off (FIFO required for M2M), threshold full */
@@ -108,6 +110,12 @@ static bool flash_region_has_ecc_error(uintptr_t base, uint32_t size)
 
 		if ((ECC_FLASH_SR1 & ECC_FLASH_DBECCERR) || (ECC_FLASH_SR2 & ECC_FLASH_DBECCERR)) {
 			return true;
+		}
+
+		/* a clean verdict needs transfer-complete: the stream also stops on
+		 * non-ECC bus errors, which must skip the scan rather than pass it */
+		if (!(ECC_DMA_LISR & ECC_DMA_S0_TCIF)) {
+			return false;
 		}
 	}
 
