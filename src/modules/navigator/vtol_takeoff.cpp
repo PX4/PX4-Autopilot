@@ -73,8 +73,8 @@ VtolTakeoff::on_active()
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 
 				if (!PX4_ISFINITE(_transition_direction_deg)) {
-					_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_navigator->get_home_position()->lat,
-								    _navigator->get_home_position()->lon, _loiter_location(0), _loiter_location(1)));
+					_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
+								    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
 
 				} else {
 					_mission_item.yaw = wrap_pi(math::radians(_transition_direction_deg));
