@@ -89,11 +89,11 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_idx);
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
-			// Worst case: every vertex is acute and splits into two (see PlannerPolygons::addPolygon)
-			num_vertices += 2 * info.vertex_count;
+			// Worst case: the maximum possible number of corners are sharp and have to be split
+			num_vertices += geofence_utils::maxVerticesAfterSplitting(info.vertex_count);
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			num_vertices += kCircleApproxVertices;
+			num_vertices += geofence_utils::PlannerPolygons::kCircleApproxVertices;
 		}
 	}
 
@@ -154,7 +154,7 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION);
 
-			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, kCircleApproxVertices, is_inclusion)) {
+			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, is_inclusion)) {
 				return false;
 			}
 		}

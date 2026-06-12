@@ -45,8 +45,6 @@
 #include <lib/geofence/geofence_utils.h>
 #include "geofence_interface.h"
 
-static constexpr int kCircleApproxVertices = 8;
-
 class GeofenceAvoidancePlanner
 {
 public:
