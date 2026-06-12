@@ -495,15 +495,12 @@ int AS_DT1_COPY::col_to_obstacle_bin(int col)
 	}
 
 	const float col_fraction = static_cast<float>(col) / static_cast<float>(ASDT1_COLS - 1);
-	float angle_deg = LEFT_EDGE_DEG + col_fraction * HORIZONTAL_FOV_DEG;
+	const float angle_deg = LEFT_EDGE_DEG + col_fraction * HORIZONTAL_FOV_DEG;
+	int bin = static_cast<int>(roundf(angle_deg / OBSTACLE_INCREMENT_DEG));
 
-	while (angle_deg < 0.0f) {
-		angle_deg += 360.0f;
+	while (bin < 0) {
+		bin += BIN_COUNT;
 	}
 
-	while (angle_deg >= 360.0f) {
-		angle_deg -= 360.0f;
-	}
-
-	return static_cast<int>(roundf(angle_deg / OBSTACLE_INCREMENT_DEG)) % BIN_COUNT;
+	return bin % BIN_COUNT;
 }
