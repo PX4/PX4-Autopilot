@@ -61,6 +61,10 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+#include <drivers/serialpassthrough/serialpassthrough.hpp>
+#endif
+
 #ifdef MAVLINK_UDP
 #include <sys/time.h>
 #endif
@@ -2519,6 +2523,7 @@ Mavlink::task_main(int argc, char *argv[])
 		handleCommands();
 		handleAndGetCurrentCommandAck();
 		handleMavlinkShellOutput();
+		handleSerialPassthroughOutput();
 
 		check_requested_subscriptions();
 
@@ -2692,6 +2697,39 @@ void Mavlink::handleStatus()
 			}
 		}
 	}
+}
+
+void Mavlink::handleSerialPassthroughOutput()
+{
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+	// Drain all pending UART->MAVLink data from every active instance,
+	// one SERIAL_CONTROL message at a time.
+	mavlink_serial_control_t msg{};
+	msg.baudrate = 0;
+	msg.timeout  = 0;
+	msg.flags    = SERIAL_CONTROL_FLAG_REPLY;
+
+	uint8_t sysid, compid, device;
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		SerialPassthrough *sp = SerialPassthrough::get_instance_by_index(i);
+
+		if (!sp) { continue; }
+
+		while (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+			size_t n = sp->popToMavlink(msg.data, sizeof(msg.data), &sysid, &compid, &device,
+						    (uint8_t)get_channel());
+
+			if (n == 0) { break; }
+
+			PX4_DEBUG("handleSerialPassthroughOutput: sending %zu bytes", n);
+			msg.count  = n;
+			msg.device = device;
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+		}
+	}
+
+#endif
 }
 
 void Mavlink::handleMavlinkShellOutput()

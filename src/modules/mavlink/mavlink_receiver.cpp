@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,6 +60,10 @@
 #include "mavlink_command_sender.h"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
+
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+#include <drivers/serialpassthrough/serialpassthrough.hpp>
+#endif
 
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
 #include <containers/LockGuard.hpp>
@@ -1996,13 +2000,36 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	if ((serial_control_mavlink.target_system != 0 &&
 	     mavlink_system.sysid != serial_control_mavlink.target_system) ||
 	    (serial_control_mavlink.target_component != 0 &&
-	     mavlink_system.compid != serial_control_mavlink.target_component)) {
+	     mavlink_system.compid != serial_control_mavlink.target_component) ||
+	    (serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_REPLY)) {
 		return;
 	}
 
+	// (0=TEL1, 1=TEL2, 2=GPS1, 3=GPS2, 4=TEL3, 5=TEL4)
+	// (20-27: ESC0 - ESC7)
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+
+	if (serial_control_mavlink.device <= 5 ||
+	    (serial_control_mavlink.device >= 20 && serial_control_mavlink.device <= 27)) {
+
+		SerialPassthrough::startForDevice(serial_control_mavlink.device, serial_control_mavlink.baudrate);
+		SerialPassthrough *sp = SerialPassthrough::get_instance_for_device(serial_control_mavlink.device);
+
+		if (sp && serial_control_mavlink.count > 0) {
+			sp->pushFromMavlink(serial_control_mavlink.data,
+					    serial_control_mavlink.count,
+					    msg->sysid, msg->compid,
+					    serial_control_mavlink.device,
+					    (uint8_t)_mavlink.get_channel());
+		}
+
+		return;
+	}
+
+#endif // CONFIG_DRIVERS_SERIALPASSTHROUGH
+
 	// we only support shell commands
-	if (serial_control_mavlink.device != SERIAL_CONTROL_DEV_SHELL
-	    || (serial_control_mavlink.flags & SERIAL_CONTROL_FLAG_REPLY)) {
+	if (serial_control_mavlink.device != SERIAL_CONTROL_DEV_SHELL) {
 		return;
 	}
 

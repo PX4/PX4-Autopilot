@@ -1,0 +1,30 @@
+menuconfig DRIVERS_SERIALPASSTHROUGH
+	bool "serialpassthrough"
+	default n
+	---help---
+		Enable the serialpassthrough module.
+		Forwards data between a UART and a MAVLink via
+		SERIAL_CONTROL messages.
+
+if DRIVERS_SERIALPASSTHROUGH
+
+config SERIALPASSTHROUGH_BITBANG
+	bool "Enable bit-bang UART support (ESC channel mode)"
+	default n
+	depends on PLATFORM_NUTTX
+	---help---
+		Enable bit-bang UART.
+
+if SERIALPASSTHROUGH_BITBANG
+
+config UART_BITBANG_TIMER
+	int "Timer instance for bit-bang UART"
+	default 13
+	range 1 17
+	---help---
+		Timer instance to use for bit-bang UART timing mode.
+		Default TIM13.
+
+endif # SERIALPASSTHROUGH_BITBANG
+
+endif # DRIVERS_SERIALPASSTHROUGH
