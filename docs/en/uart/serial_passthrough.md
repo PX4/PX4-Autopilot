@@ -1,46 +1,28 @@
 # Serial Passthrough (MAVLink SERIAL_CONTROL)
 
-Serial Passthrough is a driver that bridges a MAVLink link to a hardware UART or an ESC signal pin,
-using the MAVLink [SERIAL_CONTROL](https://mavlink.io/en/messages/common.html#SERIAL_CONTROL) message.
-It allows a GCS, companion computer, or any MAVLink-speaking client to transparently read from and write to a serial device on the flight controller without any additional infrastructure.
+Serial Passthrough allows a MAVLink client to read from and write to selected FC serial interfaces using [SERIAL_CONTROL](https://mavlink.io/en/messages/common.html#SERIAL_CONTROL).
+It can be used with normal UART ports and, on supported boards, ESC signal pins.
 
-## How It Works
+Typical use cases include ESC configuration tools and debugging serial peripherals over a telemetry link.
 
-The driver maintains two thread-safe byte buffers and one dedicated OS task per device.
+## Overview
 
-Data flow:
-
-```
-GCS ──SERIAL_CONTROL──► MavlinkReceiver ──pushFromMavlink()──► [rx buffer] ──► UART / ESC pin
-GCS ◄─SERIAL_CONTROL(REPLY)─ Mavlink loop ◄─popToMavlink()─── [tx buffer] ◄── UART / ESC pin
-```
-
-1. When a `SERIAL_CONTROL` message arrives on any MAVLink channel the receiver
-   calls `SerialPassthrough::startForDevice()` to lazily start a task for that
-   device if none is running yet, then pushes the payload bytes into the
-   driver's receive buffer.
-2. The driver task drains the receive buffer to the UART (or ESC pin) and
-   reads any reply bytes back into its transmit buffer.
-3. The MAVLink main loop drains the transmit buffer and sends back a
-   `SERIAL_CONTROL` message with the `FLAG_REPLY` flag set, directed at the
-   original sender.
-
-Up to 8 passthrough instances can run simultaneously, one per device.
-Only a single sender per instance is supported at a time.
-Simultaneous `SERIAL_CONTROL` messages from different senders produce undefined behaviour.
+For most users, passthrough is automatic.
+When SERIAL_CONTROL traffic is sent to a supported target, PX4 starts handling that target and returns reply data over MAVLink.
+You can also start and stop passthrough manually from the PX4 shell.
 
 ## Device IDs
 
 The `device` field of `SERIAL_CONTROL` selects the target:
 
-| Device ID | Target |
-| --------- | ------ |
-| `0`       | TEL1   |
-| `1`       | TEL2   |
-| `2`       | GPS1   |
-| `3`       | GPS2   |
-| `4`       | TEL3   |
-| `5`       | TEL4   |
+| Device ID | Target                  |
+| --------- | ----------------------- |
+| `0`       | TEL1                    |
+| `1`       | TEL2                    |
+| `2`       | GPS1                    |
+| `3`       | GPS2                    |
+| `4`       | TEL3                    |
+| `5`       | TEL4                    |
 | `20`      | ESC channel 0 (bitbang) |
 | `21`      | ESC channel 1 (bitbang) |
 | `22`      | ESC channel 2 (bitbang) |
@@ -95,34 +77,14 @@ the bitbang driver and the DShot/PWM driver cannot share the same ESC signal pin
 Setting `PASSTHRU_EN=1` disables motor control.
 :::
 
-## Usage
 
-The driver starts automatically on the first `SERIAL_CONTROL` message received for a given device.
-Manual control is available via the PX4 shell:
+## Bridge Application
 
-```sh
-# Start manually on a UART at 115200 baud
-serialpassthrough start -d /dev/ttyS1 -b 115200
-
-# Start on ESC channel 0 via bitbang at 19200 baud
-serialpassthrough start -e 0 -b 19200
-
-# Show all running instances
-serialpassthrough status
-
-# Stop all instances
-serialpassthrough stop
-```
-
-### Options
-
-| Flag | Argument | Description |
-| ---- | -------- | ----------- |
-| `-d` | `<path>` | Serial device path (e.g. `/dev/ttyS1`) |
-| `-b` | `<baud>` | Baud rate (default 115200) |
-| `-e` | `0`–`7`  | ESC bitbang channel, instead of `-d` |
-| `-x` |          | Swap RX/TX pins |
-| `-s` |          | Single-wire (half-duplex) mode |
+PX4 does not yet ship a ready-made tool for using Serial Passthrough with common ESC configuration or firmware flashing tools.
+To integrate it, a bridge application connects to the vehicle over MAVLink, exposes a virtual serial port (e.g. a Unix PTY) to the tool on the host, and translates traffic bidirectionally: data written to the PTY is sent as `SERIAL_CONTROL` messages with `SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE` set, and incoming `SERIAL_CONTROL` reply messages (with `FLAG_REPLY` set) are written back to the PTY.
+To initialise the passthrough, the bridge should send one `SERIAL_CONTROL` message with the target device ID, the desired UART baud rate in the `baudrate` field, and `count=0` (no payload), then wait approximately 2 seconds for PX4 to spawn the passthrough task before sending real traffic.
+For ESC bitbang mode (device IDs 20–27), the bridge must first set `PASSTHRU_EN=1` via `PARAM_SET`, confirm the `PARAM_VALUE` acknowledgement, send `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN`, and wait for the FMU heartbeat to return before sending the init message — this ensures the DShot/PWM drivers are not running when the bitbang driver takes over the ESC signal pins.
+We developed such a bridge internally and may upstream it in a future release.
 
 ## Limitations
 
