@@ -197,8 +197,8 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 		// If the velocity setpoint is unknown, set to the current velocity
 		if (!PX4_ISFINITE(vel_prev(i))) { vel_prev(i) = _velocity(i); }
 
-		// No acceleration estimate available, set to zero if the setpoint is NAN
-		if (!PX4_ISFINITE(accel_prev(i))) { accel_prev(i) = 0.f; }
+		// If accel setpoint unknown, set to the current accel
+		if (!PX4_ISFINITE(accel_prev(i))) { accel_prev(i) = _acceleration(i); }
 	}
 
 	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);
@@ -219,7 +219,7 @@ bool FlightTaskOrbit::update()
 			_in_circle_approach = false;
 			_slew_rate_velocity.setForcedValue(0.f); // reset the slew rate when moving between orbits.
 			FlightTaskManualAltitudeSmoothVel::_smoothing.reset(
-				PX4_ISFINITE(_acceleration_setpoint(2)) ? _acceleration_setpoint(2) : 0.f,
+				PX4_ISFINITE(_acceleration_setpoint(2)) ? _acceleration_setpoint(2) : _acceleration(2),
 				PX4_ISFINITE(_velocity_setpoint(2)) ? _velocity_setpoint(2) : _velocity(2),
 				PX4_ISFINITE(_position_setpoint(2)) ? _position_setpoint(2) : _position(2));
 		}
