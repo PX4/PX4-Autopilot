@@ -44,6 +44,8 @@
 
 #include <matrix/math.hpp>
 
+#include <dataman/dataman.h>
+
 namespace geofence_utils
 {
 
@@ -167,6 +169,23 @@ inline SegSegResult segmentsIntersect(int32_t ax, int32_t ay, int32_t bx, int32_
  */
 bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices);
 
+/**
+ * Upper bound on the number of vertices addPolygon() emits for a simple polygon:
+ *  - Sharp convex corners (interior angle < 60 deg) are split in two vertices
+ *  - Interior angles of a simple polygon sum to (n - 2) * 180 deg
+ *  - With k corners below 60 deg and the rest below 360 deg, we have
+ *     (n - 2) * 180 < k * 60 + (n - k) * 360
+ *     =>  k < (180 n + 360) / 300
+ * so k <= ceil(.) - 1, computed as (a - 1) / b in integer arithmetic.
+
+ * Degenerate input (n < 3) is rejected by addPolygon and emits nothing, so
+ * the bound is 0.
+ */
+constexpr int maxVerticesAfterSplitting(int num_vertices)
+{
+	return num_vertices < 3 ? 0 : num_vertices + (180 * num_vertices + 360 - 1) / 300;
+}
+
 
 /**
  * Fence geometry cache for the geofence avoidance planner. Owns a flat
@@ -198,13 +217,42 @@ public:
 	//
 	// * Stephen LaValle, 2006: Planning Algorithms, 6.2.4 - Shortest-Path Roadmaps
 
-	static constexpr int kMaxNodes = 200; // 2x to handle worst-case sharp-corner splits
+	// See static_assert below for reasoning behind kMaxNodes. static_assert rather
+	// than directly defining from these params to introduce some friction when changing
+	// the dataman maximum and clearly point to the higher RTL planning cost.
+	static constexpr int kMaxNodes = 200;
 	static constexpr int kMaxPolygons = 16;
+	static constexpr int kCircleApproxVertices = 8;
+
+	static_assert(
+		kMaxPolygons <= DM_KEY_FENCE_POINTS_MAX,
+		"kMaxPolygons is larger than max number of points"
+	);
+
+	// Ensure that the geofence with the largest possible number of nodes still
+	// fits the budget.
+	static_assert(
+		// All but one zones are circles (most of nodes per dataman item)
+		(kMaxPolygons - 1) * kCircleApproxVertices
+		// The one remaining polygon uses the remaining fence points, AND achieves
+		// the upper bound on the number sharp and convex (thus split) vertices
+		+ maxVerticesAfterSplitting(DM_KEY_FENCE_POINTS_MAX - (kMaxPolygons - 1))
+		+ 1 // Destinations slot
+		<= kMaxNodes,
+		"kMaxNodes cannot hold the worst-case fence storable in dataman"
+	);
 
 	PlannerPolygons() { reset(); }
 
 	// Slot 0 is always reserved for the destination; polygon vertices start at index 1.
-	void reset() { _num_nodes = 1; _x_cm[0] = 0; _y_cm[0] = 0; _num_polygons = 0; _node_not_on_optimal_path[0] = false; }
+	void reset()
+	{
+		_num_nodes = 1;
+		_x_cm[0] = 0;
+		_y_cm[0] = 0;
+		_num_polygons = 0;
+		_node_not_on_optimal_path[0] = false;
+	}
 
 	// Append a polygon:
 	//  - canonicalize orientation,
@@ -218,8 +266,7 @@ public:
 	// Append an approximate circle (k-gon over/underapproximation).
 	//  - shrink/expand according to margin and is_inclusion_zone
 	//  - quantize to cm, append as nodes.
-	bool addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const int num_vertices,
-			     const bool is_inclusion_zone);
+	bool addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const bool is_inclusion_zone);
 
 	int numNodes() const { return _num_nodes; }
 

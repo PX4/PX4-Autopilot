@@ -187,8 +187,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	return true;
 }
 
-bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const float circle_radius, float margin, const int num_vertices,
-				      const bool is_inclusion_zone)
+bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const float circle_radius, float margin, const bool is_inclusion_zone)
 {
 	// For planning we approximate circles by regular k-gons. This adds
 	// quite some nodes and additional restricted area. However, planning
@@ -202,7 +201,7 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	// planner into all controllers, which would then have to also fly
 	// loiter segments, not just pure waypoint sequences.
 
-	if (_num_nodes + num_vertices > kMaxNodes || _num_polygons >= kMaxPolygons || circle_radius <= 0.1f) {
+	if (_num_nodes + kCircleApproxVertices > kMaxNodes || _num_polygons >= kMaxPolygons || circle_radius <= 0.1f) {
 		return false;  // Not enough space
 	}
 
@@ -211,21 +210,21 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	//  - under-approximation of circle shrunk by margin, if inclusion
 	const float k_gon_radius = is_inclusion_zone
 				   ? circle_radius - margin
-				   : circle_radius / cosf(M_PI_F / num_vertices) + margin;
+				   : circle_radius / cosf(M_PI_F / kCircleApproxVertices) + margin;
 
 	if (k_gon_radius <= FLT_EPSILON) {
 		return false;
 	}
 
 	// Canonical orientation: CCW for exclusion, CW for inclusion
-	const float delta_angle = (is_inclusion_zone ? -1.f : 1.f) * 2.f * M_PI_F / num_vertices;
+	const float delta_angle = (is_inclusion_zone ? -1.f : 1.f) * 2.f * M_PI_F / kCircleApproxVertices;
 
 	PolygonInfo &poly = _polygons[_num_polygons];
 	poly.start_index = _num_nodes;
-	poly.num_vertices = num_vertices;
+	poly.num_vertices = kCircleApproxVertices;
 	poly.is_inclusion = is_inclusion_zone;
 
-	for (int i = 0; i < num_vertices; i++) {
+	for (int i = 0; i < kCircleApproxVertices; i++) {
 		const float angle = (i + 0.5f) * delta_angle;
 		const matrix::Vector2f p = center + matrix::Vector2f{
 			k_gon_radius * cosf(angle), k_gon_radius * sinf(angle)
@@ -233,15 +232,15 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 		setNode(poly.start_index + i, p);
 	}
 
-	computeBoundingBox(poly.start_index, num_vertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
+	computeBoundingBox(poly.start_index, kCircleApproxVertices, poly.min_x, poly.max_x, poly.min_y, poly.max_y);
 
 	// For regular k-gons, all corners are either convex or reflex based on
 	// is_inclusion, so the reduced visibility graph criterion is simplified
-	for (int i = 0; i < num_vertices; i++) {
+	for (int i = 0; i < kCircleApproxVertices; i++) {
 		_node_not_on_optimal_path[poly.start_index + i] = is_inclusion_zone;
 	}
 
-	_num_nodes += num_vertices;
+	_num_nodes += kCircleApproxVertices;
 	++_num_polygons;
 	return true;
 }
