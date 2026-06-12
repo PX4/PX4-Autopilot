@@ -77,12 +77,16 @@ private:
 	// raw accel count considered clipped (~98% of ±32768 full scale), used to escalate the range
 	static constexpr int16_t ACCEL_CLIP_THRESHOLD{32100};
 
-	// accel range ladder: start at ±16 g, escalate on clipping (one-way until reset)
+	// accel range: ±32 g full-scale (accel_fs_sel = 011, never changed at runtime); escalate
+	// to the ±64 g low resolution output registers while clipping and recover after a quiet
+	// period. Both register sets are maintained continuously by the sensor, so switching
+	// between them is glitch-free.
 	enum class ACCEL_RANGE : uint8_t {
-		RANGE_16G = 0, // accel_fs_sel = 001, high resolution registers, 2000 LSB/g
-		RANGE_32G,     // accel_fs_sel = 011, high resolution registers, 1000 LSB/g
-		RANGE_64G,     // accel_fs_sel = 011, low resolution registers,   500 LSB/g
+		RANGE_32G = 0, // high resolution registers, 1000 LSB/g
+		RANGE_64G,     // low resolution registers,   500 LSB/g
 	};
+
+	static constexpr hrt_abstime ACCEL_RANGE_QUIET_TIMEOUT_US{2000000}; // de-escalate after 2 s without clipping
 
 	struct SensorData {
 		int16_t gyro_x;
@@ -122,7 +126,7 @@ private:
 	void ConfigureOdrPin();
 
 	void ConfigureAccelRange(ACCEL_RANGE range);
-	void EscalateAccelRange();
+	void ManageAccelRange(bool clipping);
 
 	void SelectRegisterBank(uint16_t bank, bool force = false);
 	void SelectRegisterBank(Register::BANK_0 reg) { SelectRegisterBank(0); }
@@ -179,7 +183,8 @@ private:
 		READ,
 	} _state{STATE::RESET};
 
-	ACCEL_RANGE _accel_range{ACCEL_RANGE::RANGE_16G};
+	ACCEL_RANGE _accel_range{ACCEL_RANGE::RANGE_32G};
+	hrt_abstime _accel_last_clip_timestamp{0};
 
 	uint8_t _checked_register_bank0{0};
 	static constexpr uint8_t size_register_bank0_cfg{3};
@@ -194,8 +199,8 @@ private:
 
 	static constexpr uint8_t size_register_bank6_cfg{1};
 	register_bank6_config_t _register_bank6_cfg[size_register_bank6_cfg] {
-		// Register                                | Set bits, Clear bits (updated when the accel range escalates)
-		{ Register::BANK_6::SENSITIVITY_CONFIG, ACCEL_FS_SEL_16G_SET, ACCEL_FS_SEL_16G_CLEAR },
+		// Register                                | Set bits, Clear bits
+		{ Register::BANK_6::SENSITIVITY_CONFIG, ACCEL_FS_SEL_32G_SET, ACCEL_FS_SEL_32G_CLEAR },
 	};
 
 	static constexpr uint8_t size_register_bank7_cfg{1};
