@@ -144,3 +144,15 @@ PX4 can read and write AM32 ESC firmware settings (EEPROM) via a ground station,
 PX4 automatically reads the full EEPROM from each ESC on boot.
 The ground station can then display individual settings and allow the user to modify them.
 Changes are written back to the ESC one byte at a time using the DShot programming protocol.
+
+## ESC Serial Passthrough (Bitbang UART)
+
+PX4 supports direct UART communication through an ESC signal pin using a software bit-bang UART.
+This allows a ground station or companion computer to talk to ESC configuration tools (e.g. BLHeli Suite, AM32 configurator) over MAVLink, without any additional wiring.
+
+::: warning
+The `PASSTHRU_EN` parameter must be set to `1` (and the vehicle rebooted) before using ESC bitbang passthrough.
+This **disables DShot and PWM output** at boot.
+:::
+
+See [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md) for full configuration details.
