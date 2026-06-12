@@ -45,24 +45,6 @@ static constexpr uint16_t combine_uint(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, const uint32_t c)
-{
-	// 0xXXXAABBC
-	uint32_t high   = ((a << 12) & 0x000FF000);
-	uint32_t low    = ((b << 4)  & 0x00000FF0);
-	uint32_t lowest = (c         & 0x0000000F);
-
-	uint32_t x = high | low | lowest;
-
-	if (a & Bit7) {
-		// sign extend
-		x |= 0xFFF00000u;
-	}
-
-	return static_cast<int32_t>(x);
-}
-
-
 ICM45686::ICM45686(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
@@ -328,6 +310,11 @@ bool ICM45686::Configure()
 	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(4000.f));
 
+	// data is published from the 16-bit FIFO registers (data[19:4]) which always cover the
+	// full range: 1024 LSB/g and 131/16 LSB/dps
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f * 8.f);
+	_px4_gyro.set_scale(math::radians(1.f / 131.f * 16.f));
+
 	return success;
 }
 
@@ -508,94 +495,30 @@ void ICM45686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
+	accel.dt = FIFO_SAMPLE_DT;
 
-	// 19-bits of accelerometer data
-	bool scale_20bit = false;
-
-	// first pass
 	for (int i = 0; i < samples; i++) {
-
-
 		if (_enable_clock_input) {
 			// Swapped as device is in little endian by default.
 			const uint16_t timestamp_fifo = combine_uint(fifo[i].Timestamp_L, fifo[i].Timestamp_H);
 			accel.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
-
-		} else {
-			accel.dt = FIFO_SAMPLE_DT;
 		}
 
-		// 20 bit hires mode
-		// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-		// Accel data is 18 bit ()
-		int32_t accel_x = reassemble_20bit(
-					  fifo[i].ACCEL_DATA_XL,
-					  fifo[i].ACCEL_DATA_XH,
-					  (fifo[i].HIGHRES_X_LSB & 0xF0) >> 4);
-		int32_t accel_y = reassemble_20bit(
-					  fifo[i].ACCEL_DATA_YL,
-					  fifo[i].ACCEL_DATA_YH,
-					  (fifo[i].HIGHRES_Y_LSB & 0xF0) >> 4);
-		int32_t accel_z = reassemble_20bit(
-					  fifo[i].ACCEL_DATA_ZL,
-					  fifo[i].ACCEL_DATA_ZH,
-					  (fifo[i].HIGHRES_Z_LSB & 0xF0) >> 4);
+		// The 16-bit FIFO registers hold data[19:4] of the 20-bit hires packet, covering the
+		// full +/-32 g range at 1024 LSB/g (scale set in Configure()). The 20-bit extension
+		// nibble is intentionally unused so the published scale stays constant instead of
+		// toggling with batch content.
+		const int16_t accel_x = combine(fifo[i].ACCEL_DATA_XL, fifo[i].ACCEL_DATA_XH);
+		const int16_t accel_y = combine(fifo[i].ACCEL_DATA_YL, fifo[i].ACCEL_DATA_YH);
+		const int16_t accel_z = combine(fifo[i].ACCEL_DATA_ZL, fifo[i].ACCEL_DATA_ZH);
 
-		// sample invalid if -524288
-		if (accel_x != -524288 && accel_y != -524288 && accel_z != -524288) {
-
-			// It's not enough to check if any values are exceeding the
-			// int16 limits because there might be a rotation applied later.
-			// If a rotation is 45 degrees, the new component can be up to
-			// sqrt(2) longer than one component. This means the number has
-			// to be constrained to fit the int16 which then triggers
-			// clipping.
-			//
-			// Therefore, we set the limits at int16_max/min / sqrt(2) plus
-			// a bit of margin.
-			static constexpr int16_t max_accel = static_cast<int16_t>(INT16_MAX / sqrt(2.f)) - 100;
-			static constexpr int16_t min_accel = static_cast<int16_t>(INT16_MIN / sqrt(2.f)) + 100;
-
-			if (accel_x >= max_accel || accel_x <= min_accel) {
-				scale_20bit = true;
-			}
-
-			if (accel_y >= max_accel || accel_y <= min_accel) {
-				scale_20bit = true;
-			}
-
-			if (accel_z >= max_accel || accel_z <= min_accel) {
-				scale_20bit = true;
-			}
-
-			// least significant bit is always 0)
-			accel.x[accel.samples] = accel_x / 2;
-			accel.y[accel.samples] = accel_y / 2;
-			accel.z[accel.samples] = accel_z / 2;
+		// sample invalid if -32768 (16-bit truncation of the hires invalid marker -524288)
+		if (accel_x != INT16_MIN && accel_y != INT16_MIN && accel_z != INT16_MIN) {
+			accel.x[accel.samples] = accel_x;
+			accel.y[accel.samples] = accel_y;
+			accel.z[accel.samples] = accel_z;
 			accel.samples++;
 		}
-	}
-
-	if (!scale_20bit) {
-		// if highres enabled accel data is always 8192 LSB/g
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-
-	} else {
-		// 20 bit data scaled to 16 bit (2^4)
-		for (int i = 0; i < samples; i++) {
-			// 20 bit hires mode
-			// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-			// Accel data is 18 bit ()
-			int16_t accel_x = combine(fifo[i].ACCEL_DATA_XL, fifo[i].ACCEL_DATA_XH);
-			int16_t accel_y = combine(fifo[i].ACCEL_DATA_YL, fifo[i].ACCEL_DATA_YH);
-			int16_t accel_z = combine(fifo[i].ACCEL_DATA_ZL, fifo[i].ACCEL_DATA_ZH);
-
-			accel.x[i] = accel_x;
-			accel.y[i] = accel_y;
-			accel.z[i] = accel_z;
-		}
-
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f * 8.0f);
 	}
 
 	// correct frame for publication
@@ -620,72 +543,23 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
+	gyro.dt = FIFO_SAMPLE_DT;
 
-	// 20-bits of gyroscope data
-	bool scale_20bit = false;
-
-	// first pass
 	for (int i = 0; i < samples; i++) {
-
-
 		if (_enable_clock_input) {
 			// Swapped as device is in little endian by default.
-			uint16_t timestamp_fifo = combine_uint(fifo[i].Timestamp_L, fifo[i].Timestamp_H);
+			const uint16_t timestamp_fifo = combine_uint(fifo[i].Timestamp_L, fifo[i].Timestamp_H);
 			gyro.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
-
-		} else {
-			gyro.dt = FIFO_SAMPLE_DT;
 		}
 
-		// 20 bit hires mode
-		// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
-		int32_t gyro_x = reassemble_20bit(fifo[i].GYRO_DATA_XL, fifo[i].GYRO_DATA_XH, fifo[i].HIGHRES_X_LSB & 0x0F);
-		int32_t gyro_y = reassemble_20bit(fifo[i].GYRO_DATA_YL, fifo[i].GYRO_DATA_YH, fifo[i].HIGHRES_Y_LSB & 0x0F);
-		int32_t gyro_z = reassemble_20bit(fifo[i].GYRO_DATA_ZL, fifo[i].GYRO_DATA_ZH, fifo[i].HIGHRES_Z_LSB & 0x0F);
-
-		// It's not enough to check if any values are exceeding the
-		// int16 limits because there might be a rotation applied later.
-		// If a rotation is 45 degrees, the new component can be up to
-		// sqrt(2) longer than one component. This means the number has
-		// to be constrained to fit the int16 which then triggers
-		// clipping.
-		//
-		// Therefore, we set the limits at int16_max/min / sqrt(2) plus
-		// a bit of margin.
-		static constexpr int16_t max_gyro = static_cast<int16_t>(INT16_MAX / sqrt(2.f)) - 100;
-		static constexpr int16_t min_gyro = static_cast<int16_t>(INT16_MIN / sqrt(2.f)) + 100;
-
-		if (gyro_x >= max_gyro || gyro_x <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		if (gyro_y >= max_gyro || gyro_y <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		if (gyro_z >= max_gyro || gyro_z <= min_gyro) {
-			scale_20bit = true;
-		}
-
-		gyro.x[gyro.samples] = gyro_x;
-		gyro.y[gyro.samples] = gyro_y;
-		gyro.z[gyro.samples] = gyro_z;
+		// The 16-bit FIFO registers hold data[19:4] of the 20-bit hires packet, covering the
+		// full +/-4000 dps range (scale set in Configure()). The 20-bit extension nibble is
+		// intentionally unused so the published scale stays constant instead of toggling with
+		// batch content.
+		gyro.x[gyro.samples] = combine(fifo[i].GYRO_DATA_XL, fifo[i].GYRO_DATA_XH);
+		gyro.y[gyro.samples] = combine(fifo[i].GYRO_DATA_YL, fifo[i].GYRO_DATA_YH);
+		gyro.z[gyro.samples] = combine(fifo[i].GYRO_DATA_ZL, fifo[i].GYRO_DATA_ZH);
 		gyro.samples++;
-	}
-
-	if (!scale_20bit) {
-		// if highres enabled gyro data is always 131 LSB/dps
-		_px4_gyro.set_scale(math::radians(1.f / 131.f));
-
-	} else {
-		// 20 bit data scaled to 16 bit (2^4)
-		for (int i = 0; i < samples; i++) {
-			gyro.x[i] = combine(fifo[i].GYRO_DATA_XL, fifo[i].GYRO_DATA_XH);
-			gyro.y[i] = combine(fifo[i].GYRO_DATA_YL, fifo[i].GYRO_DATA_YH);
-			gyro.z[i] = combine(fifo[i].GYRO_DATA_ZL, fifo[i].GYRO_DATA_ZH);
-		}
-
-		_px4_gyro.set_scale(math::radians(1.f / 131.f * 16.0f));
 	}
 
 	// correct frame for publication
