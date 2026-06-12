@@ -348,6 +348,7 @@ private:
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
 		(ParamBool<px4::params::COM_ARM_ON_BOOT>)   _param_com_arm_on_boot,
+		(ParamInt<px4::params::COM_FLTMODE_BOOT>)   _param_com_fltmode_boot,
 		(ParamInt<px4::params::COM_ARM_TRAFF>)      _param_com_arm_traff
 	)
 };

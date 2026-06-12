@@ -330,6 +330,19 @@ parameters:
         0: one arm
         1: two step arm
       default: 0
+    COM_FLTMODE_BOOT:
+      description:
+        short: Flight mode on boot
+        long: |-
+          Flight mode set on boot and after a power cycle, before any RC input or
+          mode command is received.
+      type: enum
+      values:
+        1: Altitude
+        2: Position
+        4: Hold
+        8: Stabilized
+      default: 4
     COM_ARM_ON_BOOT:
       description:
         short: Arm automatically on boot

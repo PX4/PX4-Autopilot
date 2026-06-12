@@ -95,6 +95,13 @@ public:
 	uint8_t get() const { return _user_intented_nav_state; }
 
 	/**
+	 * Set the navigation state used at boot and after disarming (before any user mode change).
+	 * Has no effect once the user has issued a mode change command.
+	 * @param nav_state boot/post-disarm nav state from COM_FLTMODE_BOOT
+	 */
+	void setBootNavState(uint8_t nav_state);
+
+	/**
 	 * Change the user intention to the last user intended mode where arming is possible
 	 */
 	void onDisarm();

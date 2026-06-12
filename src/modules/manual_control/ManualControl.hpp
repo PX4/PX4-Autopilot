@@ -79,7 +79,6 @@ public:
 protected:
 	// protected for testing
 	void processInput(hrt_abstime now);
-	static int8_t navStateFromParam(int32_t param_value);
 
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;

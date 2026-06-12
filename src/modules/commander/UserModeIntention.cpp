@@ -100,3 +100,12 @@ void UserModeIntention::onDisarm()
 		_user_intented_nav_state = _nav_state_after_disarming;
 	}
 }
+
+void UserModeIntention::setBootNavState(uint8_t nav_state)
+{
+	if (!_ever_had_mode_change) {
+		_user_intented_nav_state = nav_state;
+		_nav_state_after_disarming = nav_state;
+		_ever_had_mode_change = true;
+	}
+}
