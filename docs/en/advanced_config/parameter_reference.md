@@ -43065,6 +43065,25 @@ Note: certain drivers such as the GPS can determine the Baudrate automatically.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
+## Serial Passthrough
+
+### PASSTHRU_EN (`INT32`) {#PASSTHRU_EN}
+
+Serial passthrough enable.
+
+When enabled, the serial passthrough mode is active and the
+normal motor output drivers (dshot, pwm_out) are not started
+at boot.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ## Simulation
 
 ### SIM_GZ_EN_ASPD (`INT32`) {#SIM_GZ_EN_ASPD}
