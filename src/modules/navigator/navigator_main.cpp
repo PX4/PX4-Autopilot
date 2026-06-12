@@ -430,9 +430,11 @@ void Navigator::run()
 				// CMD_DO_REPOSITION is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE
-				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				// only update the setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
-				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
+				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				   && (_navigation_mode == &_course
+				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+				// Only update the setpoint if armed and already in a mode that consumes it. Otherwise a later
+				// switch into Hold could execute a stale setpoint (loiter.cpp applies it within a 500ms window).
 
 				if (_navigation_mode == &_course) {
 					// In course mode, update altitude directly (after geofence check)
