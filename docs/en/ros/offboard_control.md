@@ -14,7 +14,7 @@ There are two things you want to setup on the firmware side before starting offb
 
 ### Enable RC Override
 
-In _QGroundControl_ you can set the [COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE) parameter to automatically switch from offboard mode (or any mode) to Position mode if the RC sticks are moved.
+In _QGroundControl_ the [COM_RC_OVR_SPEED](../advanced_config/parameter_reference.md#COM_RC_OVR_SPEED) parameter controls automatically switching from offboard mode (or any mode) to Position mode when the RC sticks are moved. This is enabled by default; set it to 0 to disable.
 This is the best way to ensure that an operator can easily take control of the vehicle and switch to the safest flight mode.
 
 ### Map an RC switch to offboard mode activation

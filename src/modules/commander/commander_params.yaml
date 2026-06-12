@@ -171,8 +171,8 @@ parameters:
         long: |-
           Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
           for the user to realize.
-          During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-          Afterwards the configured failsafe action is triggered and the user may use stick override.
+          During that time the user can switch modes, but cannot take over control via the manual control override feature (see COM_RC_OVR_SPEED).
+          Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
           A zero value disables the delay.
       type: float
@@ -268,32 +268,19 @@ parameters:
         1: Deny arming
         2: Warning only
       default: 2
-    COM_RC_OVERRIDE:
+    COM_RC_OVR_SPEED:
       description:
-        short: Enable manual control stick override
+        short: Manual control override speed threshold
         long: |-
-          When enabled, moving the sticks more than COM_RC_STICK_OV
-          immediately gives control back to the pilot by switching to Position mode and
-          if position is unavailable Altitude mode.
-          Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-      type: bitmask
-      bit:
-        0: Enable override during auto modes (except for in critical battery reaction)
-        1: Enable override during offboard mode
-      default: 1
-      min: 0
-      max: 3
-    COM_RC_STICK_OV:
-      description:
-        short: Stick override velocity threshold
-        long: |-
-          If COM_RC_OVERRIDE is enabled, the pilot takes over control when any stick velocity
-          exceeds this threshold. Unit is normalized stick travel per second: at the default
-          3.0, a half-stick movement in ~170 ms triggers override. Lower = more sensitive.
+          Speed above which moving the manual control sticks gives control back to the
+          pilot by switching to Position mode (or Altitude if position is unavailable).
+          Unit is normalized stick travel per second: at 1.0, moving a stick half its
+          range in ~0.5 s triggers it. Set to 0 to disable.
+          Only affects multicopters and VTOLs in multicopter mode.
       type: float
       default: 1
       unit: '1/s'
-      min: 1.0
+      min: 0
       max: 10.0
       decimal: 1
       increment: 0.5
