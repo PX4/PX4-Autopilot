@@ -34,7 +34,7 @@
 #pragma once
 
 #include <lib/battery/battery.h>
-#include <lib/failure_injection/FailureInjection.hpp>
+#include <lib/failure_injection/FailureInjectionSubscriber.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -78,9 +78,8 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _failure_injection_sub{ORB_ID(failure_injection)};
 
-	failure_injection::Config _failure_config;
+	failure_injection::Subscriber _failure_config;
 
 	Battery _battery;
 

@@ -186,6 +186,20 @@ FailureTable::AckResult FailureTable::inject(uint8_t unit, uint8_t type, uint8_t
 	return AckResult::Accepted;
 }
 
+void FailureTable::reset()
+{
+	if (_count == 0) {
+		return;
+	}
+
+	for (uint8_t i = 0; i < failure_injection_s::MAX_FAILURES; i++) {
+		_entries[i] = Entry{};
+	}
+
+	_count = 0;
+	_changed = true;
+}
+
 void FailureTable::fill(failure_injection_s &msg) const
 {
 	msg.count = _count;

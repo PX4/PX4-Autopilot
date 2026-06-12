@@ -41,14 +41,14 @@
 ModuleBase::Descriptor FailureInjectionManager::desc{task_spawn, custom_command, print_usage};
 
 FailureInjectionManager::FailureInjectionManager() :
+	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-	_handle_sys_failure_en = param_find("SYS_FAILURE_EN");
 }
 
 bool FailureInjectionManager::init()
 {
-	if (!_vehicle_command_sub.registerCallback()) {
+	if (!_vehicle_command_sub.registerCallback() || !_parameter_update_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -58,19 +58,24 @@ bool FailureInjectionManager::init()
 	return true;
 }
 
-bool FailureInjectionManager::failureInjectionEnabled()
-{
-	int32_t enabled = 0;
-	param_get(_handle_sys_failure_en, &enabled);
-	return enabled != 0;
-}
-
 void FailureInjectionManager::Run()
 {
 	if (should_exit()) {
 		_vehicle_command_sub.unregisterCallback();
+		_parameter_update_sub.unregisterCallback();
 		exit_and_cleanup(desc);
 		return;
+	}
+
+	// Disabling SYS_FAILURE_EN clears active failures (in-flight recovery).
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
+
+		if (!_param_sys_failure_en.get()) {
+			_table.reset();
+		}
 	}
 
 	vehicle_command_s cmd;
@@ -93,13 +98,6 @@ void FailureInjectionManager::Run()
 
 void FailureInjectionManager::handleCommand(const vehicle_command_s &cmd)
 {
-	// Defense in depth: the mavlink receiver and the `failure` command already
-	// gate on SYS_FAILURE_EN, but enforce it here too as the sole consumer.
-	if (!failureInjectionEnabled()) {
-		publishAck(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
-		return;
-	}
-
 	const uint8_t unit = static_cast<uint8_t>(lroundf(cmd.param1));
 	const uint8_t type = static_cast<uint8_t>(lroundf(cmd.param2));
 	const uint8_t instance = static_cast<uint8_t>(lroundf(cmd.param3));
@@ -178,7 +176,8 @@ publishes the `failure_injection` topic, republishing only when the configuratio
 changes so that command spam cannot propagate to the consumers that apply the
 failures. It also produces the central `vehicle_command_ack`.
 
-Failure injection is gated by the `SYS_FAILURE_EN` parameter.
+Failure injection is gated by the `SYS_FAILURE_EN` parameter. Clearing the parameter
+at runtime also clears all active failures.
 
 )DESCR_STR");
 

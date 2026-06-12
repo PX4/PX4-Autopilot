@@ -47,7 +47,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <lib/failure_injection/FailureInjection.hpp>
+#include <lib/failure_injection/FailureInjectionSubscriber.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
@@ -294,7 +294,6 @@ private:
 	actuator_outputs_s _actuator_outputs{};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _failure_injection_sub{ORB_ID(failure_injection)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -306,7 +305,7 @@ private:
 	vehicle_status_s _vehicle_status{};
 	battery_status_s _battery_status{};
 
-	failure_injection::Config _failure_config;
+	failure_injection::Subscriber _failure_config;
 
 	bool _accel_blocked[ACCEL_COUNT_MAX] {};
 	bool _accel_stuck[ACCEL_COUNT_MAX] {};

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +31,47 @@
  *
  ****************************************************************************/
 
-#include "FailureInjector.hpp"
+/**
+ * @file FailureInjectionSubscriber.hpp
+ *
+ * Bundles the failure_injection subscription with its cached Config. Keeps
+ * Config free of the uORB runtime so its logic stays unit-testable.
+ */
 
-#include <cstring>
-#include <uORB/topics/actuator_motors.h>
+#pragma once
 
-void FailureInjector::update()
+#include <lib/failure_injection/FailureInjection.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/failure_injection.h>
+
+namespace failure_injection
 {
-	if (_failure_config.update()) {
-		rebuildMasks();
-	}
-}
 
-void FailureInjector::rebuildMasks()
+class Subscriber
 {
-	_motor_stop_mask = 0;
-	_esc_telemetry_blocked_mask = 0;
-	_esc_telemetry_wrong_mask = 0;
+public:
+	/**
+	 * Poll the failure_injection topic and cache a fresh sample if available.
+	 * @return true if a new sample was applied.
+	 */
+	bool update()
+	{
+		failure_injection_s cfg;
 
-	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-		switch (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1)) {
-		case failure_injection::Mode::Off:
-			_motor_stop_mask |= 1u << i;
-			break;
-
-		case failure_injection::Mode::Stuck:
-			_esc_telemetry_blocked_mask |= 1u << i;
-			break;
-
-		case failure_injection::Mode::Wrong:
-			_esc_telemetry_wrong_mask |= 1u << i;
-			break;
-
-		default:
-			break;
+		if (_sub.update(&cfg)) {
+			_config.set(cfg);
+			return true;
 		}
+
+		return false;
 	}
-}
 
-void FailureInjector::manipulateEscStatus(esc_status_s &status)
-{
-	if (_esc_telemetry_blocked_mask != 0 || _esc_telemetry_wrong_mask != 0) {
-		for (int i = 0; i < status.esc_count; i++) {
-			const unsigned i_esc = status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
+	Mode mode(uint8_t unit, uint8_t instance) const { return _config.mode(unit, instance); }
+	bool any_active() const { return _config.any_active(); }
 
-			if (_esc_telemetry_blocked_mask & (1 << i_esc)) {
-				unsigned function = status.esc[i].actuator_function;
-				memset(&status.esc[i], 0, sizeof(status.esc[i]));
-				status.esc[i].actuator_function = function;
-				status.esc_online_flags &= ~(1 << i);
+private:
+	uORB::Subscription _sub{ORB_ID(failure_injection)};
+	Config _config;
+};
 
-			} else if (_esc_telemetry_wrong_mask & (1 << i_esc)) {
-				// Create wrong rerport for this motor by scaling key values up and down
-				status.esc[i].esc_voltage *= 0.1f;
-				status.esc[i].esc_current *= 0.1f;
-				status.esc[i].esc_rpm *= 10.0f;
-			}
-		}
-	}
-}
+} // namespace failure_injection

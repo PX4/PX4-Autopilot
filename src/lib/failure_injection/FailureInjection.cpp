@@ -43,7 +43,7 @@ void Config::set(const failure_injection_s &cfg)
 	for (uint8_t i = 0; i < _count; i++) {
 		_unit[i] = cfg.unit[i];
 		_instance_mask[i] = cfg.instance_mask[i];
-		_failure_type[i] = cfg.failure_type[i];
+		_failure_type[i] = static_cast<Mode>(cfg.failure_type[i]);
 	}
 }
 
@@ -57,7 +57,7 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 		// instance == 0 matches any instance of the unit; otherwise match the
 		// 1-based instance against the bitmask (0xFFFF covers all instances).
 		if (instance == 0 || (_instance_mask[i] & (1u << (instance - 1)))) {
-			return static_cast<Mode>(_failure_type[i]);
+			return _failure_type[i];
 		}
 	}
 

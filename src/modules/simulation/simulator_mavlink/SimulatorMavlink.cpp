@@ -1495,11 +1495,7 @@ void SimulatorMavlink::run()
 
 void SimulatorMavlink::updateFailureConfig()
 {
-	if (_failure_injection_sub.updated()) {
-		failure_injection_s failure_injection;
-		_failure_injection_sub.copy(&failure_injection);
-		_failure_config.set(failure_injection);
-	}
+	_failure_config.update();
 
 	for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
 		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, i + 1);

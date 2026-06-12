@@ -243,11 +243,7 @@ void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, sensor_gp
 
 void SensorGpsSim::updateFailureConfig()
 {
-	failure_injection_s failure_injection;
-
-	if (_failure_injection_sub.update(&failure_injection)) {
-		_failure_config.set(failure_injection);
-	}
+	_failure_config.update();
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

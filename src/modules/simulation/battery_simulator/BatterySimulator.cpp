@@ -122,11 +122,7 @@ void BatterySimulator::Run()
 
 void BatterySimulator::updateFailureConfig()
 {
-	if (_failure_injection_sub.updated()) {
-		failure_injection_s failure_injection;
-		_failure_injection_sub.copy(&failure_injection);
-		_failure_config.set(failure_injection);
-	}
+	_failure_config.update();
 
 	// Force the battery empty for FAILURE_TYPE_OFF - not perfectly accurate, but
 	// achieves the intended battery failsafe.

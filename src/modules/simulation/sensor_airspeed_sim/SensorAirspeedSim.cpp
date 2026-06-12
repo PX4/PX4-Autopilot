@@ -174,11 +174,7 @@ void SensorAirspeedSim::Run()
 
 void SensorAirspeedSim::updateFailureConfig()
 {
-	if (_failure_injection_sub.updated()) {
-		failure_injection_s failure_injection;
-		_failure_injection_sub.copy(&failure_injection);
-		_failure_config.set(failure_injection);
-	}
+	_failure_config.update();
 
 	const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1);
 

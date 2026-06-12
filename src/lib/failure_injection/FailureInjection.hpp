@@ -92,7 +92,7 @@ private:
 	uint8_t  _count{0};
 	uint8_t  _unit[failure_injection_s::MAX_FAILURES] {};
 	uint16_t _instance_mask[failure_injection_s::MAX_FAILURES] {};
-	uint8_t  _failure_type[failure_injection_s::MAX_FAILURES] {};
+	Mode     _failure_type[failure_injection_s::MAX_FAILURES] {};
 };
 
 /**

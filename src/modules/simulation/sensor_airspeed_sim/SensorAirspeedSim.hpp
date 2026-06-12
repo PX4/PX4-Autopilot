@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <lib/failure_injection/FailureInjection.hpp>
+#include <lib/failure_injection/FailureInjectionSubscriber.hpp>
 #include <lib/perf/perf_counter.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -94,11 +94,10 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
-	uORB::Subscription _failure_injection_sub{ORB_ID(failure_injection)};
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	failure_injection::Config _failure_config;
+	failure_injection::Subscriber _failure_config;
 
 	bool _airspeed_disconnected{false};
 	bool _airspeed_stuck{false};
