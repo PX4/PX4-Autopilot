@@ -764,16 +764,19 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				progress = 0;
 				break;
 
+			case autotune_attitude_control_status_s::STATE_ROLL_AMPLITUDE_DETECTION:
 			case autotune_attitude_control_status_s::STATE_ROLL:
 			case autotune_attitude_control_status_s::STATE_ROLL_PAUSE:
 				progress = 20;
 				break;
 
+			case autotune_attitude_control_status_s::STATE_PITCH_AMPLITUDE_DETECTION:
 			case autotune_attitude_control_status_s::STATE_PITCH:
 			case autotune_attitude_control_status_s::STATE_PITCH_PAUSE:
 				progress = 40;
 				break;
 
+			case autotune_attitude_control_status_s::STATE_YAW_AMPLITUDE_DETECTION:
 			case autotune_attitude_control_status_s::STATE_YAW:
 			case autotune_attitude_control_status_s::STATE_YAW_PAUSE:
 				progress = 60;
