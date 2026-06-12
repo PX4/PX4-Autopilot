@@ -119,9 +119,13 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 
 		// The following bit ensures that:
 		//  - The original edges are moved away from the forbidden interior by `margin`
-		//  - If sharp corners (<60deg) exist, they are "cut off" with a new edge that is
-		//    exactly `margin` away from the original vertex. For this the vertex is replaced
-		//    by two new ones.
+		//  - Sharp convex corners (<60deg) are "cut off" with a new edge that is exactly
+		//    `margin` away from the original vertex. For this the vertex is replaced by
+		//    two new ones.
+
+		// Only split convex corners - others are ignored, see _node_not_on_optimal_path
+		const bool corner_convex = edge_in_normalized(0) * edge_out_normalized(1)
+					   - edge_in_normalized(1) * edge_out_normalized(0) > 0.f;
 
 		// Scaling needed wrt the normalised bisector to achieve parallel edges
 		const float offset_scale = 2.f / bisector_len;
@@ -136,7 +140,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		// This never happens if the planner-internal node buffer is 2x the original buffer.
 		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < kMaxNodes;
 
-		if (angle_sharp && margin_nonzero && space_for_split_vertices) {
+		if (corner_convex && angle_sharp && margin_nonzero && space_for_split_vertices) {
 
 			// Sharp corner: cut it off along the line
 			//  - perpendicular to normalized_bisector
