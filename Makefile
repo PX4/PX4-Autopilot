@@ -485,6 +485,10 @@ tests_integration: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
 	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
 
+tests_integration_sih: px4_sitl_default
+	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl_sih.json
+
 tests_integration_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage

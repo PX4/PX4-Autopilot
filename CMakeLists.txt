@@ -497,6 +497,10 @@ endif()
 # firmware added last to generate the builtin for included modules
 add_subdirectory(platforms/${PX4_PLATFORM})
 
+if(TARGET mavsdk_tests AND TARGET px4)
+	add_dependencies(mavsdk_tests px4)
+endif()
+
 #=============================================================================
 # uORB graph generation: add a custom target 'uorb_graph'
 #
