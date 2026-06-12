@@ -70,6 +70,10 @@ private:
 	// Sensor Configuration
 	static constexpr uint32_t SAMPLE_INTERVAL_US{1000000 / 8000}; // 8 kHz internal sampling rate
 
+	// sensor output is invalid while the signal path settles after reset/configuration:
+	// discard samples (no publish, no clip evaluation) until this has elapsed
+	static constexpr hrt_abstime SENSOR_SETTLE_TIME_US{100000}; // 100 ms
+
 	// raw accel count considered clipped (~98% of ±32768 full scale), used to escalate the range
 	static constexpr int16_t ACCEL_CLIP_THRESHOLD{32100};
 
@@ -159,6 +163,7 @@ private:
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
+	hrt_abstime _read_start_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
