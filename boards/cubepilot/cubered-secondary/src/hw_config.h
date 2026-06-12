@@ -95,6 +95,10 @@
 #define BOOTLOADER_DELAY               10000
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,2000000"
+/* No USB and break detection is disabled, so always enter the bootloader and
+ * wait BOOTLOADER_DELAY on every boot instead of jumping straight to the app -
+ * otherwise the host has no window to catch the bootloader for flashing. */
+#define BOARD_BOOTLOADER_WAIT_FOR_HOST 1
 #define BOOT_DEVICES_SELECTION         SERIAL0_DEV
 #define BOOT_DEVICES_FILTER_ONUSB      SERIAL0_DEV
 #define BOOT_DELAY_ADDRESS             0x000001a0

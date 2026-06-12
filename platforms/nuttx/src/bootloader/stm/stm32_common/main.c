@@ -756,6 +756,15 @@ bootloader_main(void)
 
 #endif
 
+#if defined(BOARD_BOOTLOADER_WAIT_FOR_HOST)
+	/* This board has no USB to signal "host present" and break detection is
+	 * disabled, so nothing above would hold us in the bootloader. Always enter
+	 * it and wait the timeout, giving the host a window to flash on every boot
+	 * (matches the ArduPilot secondary, which always holds its bootloader
+	 * window). If the host syncs, the protocol pins timeout to 0 and we stay. */
+	try_boot = false;
+#endif
+
 	/* Try to boot the app if we think we should just go straight there */
 	if (try_boot) {
 
