@@ -392,6 +392,14 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 		return false;
 	}
 
+	if (fifo_packets >= FIFO::SIZE / sizeof(FIFO::DATA)) {
+		// FIFO saturated: in stop-on-full mode newer samples have been dropped, reset for a
+		// clean restart rather than draining a stale backlog
+		perf_count(_fifo_overflow_perf);
+		FIFOReset();
+		return false;
+	}
+
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(sizeof(FIFOTransferBuffer), fifo_packets * sizeof(FIFO::DATA) + 1);
 
