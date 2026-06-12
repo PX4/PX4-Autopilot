@@ -131,11 +131,6 @@ Use firmware built without `CONFIG_NAVIGATOR_ADSB_F3442` if you want the single-
 
 Use firmware built with `CONFIG_NAVIGATOR_ADSB_F3442` if you want staged alerting based on ASTM F3442/F3442M-23 volumes.
 
-<!--
-![volumes](../../assets/advanced/astmf3442.png)
-_Figure 1: Illustration from the ASTM F3442/F3442M − 23 standard showing the near mid-air collision (NMAC) and well clear (WC) safety zones, the NMAC Risk Ratio (RR), and the LoWC risk ratio (LR)._
--->
-
 PX4 evaluates four conflict levels and maps each level to an action:
 
 | Parameter                                       | Description                                       |
