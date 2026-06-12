@@ -1515,9 +1515,11 @@ void SimulatorMavlink::updateFailureConfig()
 		_mag_stuck[i] = (mode == failure_injection::Mode::Stuck);
 	}
 
-	const failure_injection::Mode baro_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, 1);
-	_baro_blocked = (baro_mode == failure_injection::Mode::Off);
-	_baro_stuck = (baro_mode == failure_injection::Mode::Stuck);
+	for (int i = 0; i < BARO_COUNT_MAX; i++) {
+		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, i + 1);
+		_baro_blocked[i] = (mode == failure_injection::Mode::Off);
+		_baro_stuck[i] = (mode == failure_injection::Mode::Stuck);
+	}
 
 	const failure_injection::Mode gps_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, 1);
 	_gps_blocked = (gps_mode == failure_injection::Mode::Off);
