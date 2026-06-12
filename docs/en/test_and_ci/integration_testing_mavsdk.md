@@ -143,6 +143,34 @@ About to run 39 test cases for 3 selected models (1 iteration):
     - 'Fly forward in altitude control'
 ```
 
+## Run SIH (Simulation-In-Hardware) Tests
+
+SIH (Simulation-In-Hardware) tests use the same MAVSDK test runner but run the simulator _inside_ the PX4 instance instead of using Gazebo as a separate process.
+This means no separate simulator build is required.
+
+These tests are defined in [sitl_sih.json](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/configs/sitl_sih.json) and use the `sihsim_quadx` model.
+They run in CI via the [SIH Tests workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/sih_tests.yml).
+
+To build for SIH testing (Gazebo is not needed):
+
+```sh
+DONT_RUN=1 make px4_sitl mavsdk_tests
+```
+
+This builds both the `px4` binary (with the SIH simulator built in, which the runner launches) and the `mavsdk_tests` test binary.
+
+To run the SIH tests:
+
+```sh
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl_sih.json --speed-factor 10
+```
+
+Alternatively, build and run the SIH tests in a single step with the convenience Makefile target:
+
+```sh
+make tests_integration_sih
+```
+
 ## Implementation Notes
 
 - The tests are invoked from the test runner script [mavsdk_test_runner.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/mavsdk_test_runner.py), which is written in Python.
