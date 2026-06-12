@@ -1,5 +1,5 @@
 {
-    "board_id": 42,
+    "board_id": 1002,
     "magic": "OMNIBUSF4SD",
     "description": "Firmware for the OmnibusF4SD board",
     "image": "",
