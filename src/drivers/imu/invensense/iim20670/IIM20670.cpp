@@ -163,6 +163,7 @@ void IIM20670::RunImpl()
 		if (Configure()) {
 			// start reading from the sensor at the full 8 kHz internal sampling rate
 			_state = STATE::READ;
+			_read_start_timestamp = now;
 
 			if (DataReadyInterruptConfigure()) {
 				_data_ready_interrupt_enabled = true;
@@ -211,28 +212,33 @@ void IIM20670::RunImpl()
 			SensorData data{};
 
 			if (ReadData(&data)) {
-				const float temperature = TEMPERATURE_OFFSET + (float)data.temp / TEMPERATURE_SENSITIVITY;
-				_px4_accel.set_temperature(temperature);
-				_px4_gyro.set_temperature(temperature);
+				// discard output while the sensor signal path settles after reset/configuration:
+				// the first samples can read full-scale, which would both publish garbage and
+				// falsely escalate the accel range (the ladder is one-way until reset)
+				if (now - _read_start_timestamp > SENSOR_SETTLE_TIME_US) {
+					const float temperature = TEMPERATURE_OFFSET + (float)data.temp / TEMPERATURE_SENSITIVITY;
+					_px4_accel.set_temperature(temperature);
+					_px4_gyro.set_temperature(temperature);
 
-				// sensor's frame is +x forward, +y left, +z up
-				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				const int16_t accel_y = (data.accel_y == INT16_MIN) ? INT16_MAX : -data.accel_y;
-				const int16_t accel_z = (data.accel_z == INT16_MIN) ? INT16_MAX : -data.accel_z;
-				const int16_t gyro_y = (data.gyro_y == INT16_MIN) ? INT16_MAX : -data.gyro_y;
-				const int16_t gyro_z = (data.gyro_z == INT16_MIN) ? INT16_MAX : -data.gyro_z;
+					// sensor's frame is +x forward, +y left, +z up
+					//  flip y & z to publish right handed with z down (x forward, y right, z down)
+					const int16_t accel_y = (data.accel_y == INT16_MIN) ? INT16_MAX : -data.accel_y;
+					const int16_t accel_z = (data.accel_z == INT16_MIN) ? INT16_MAX : -data.accel_z;
+					const int16_t gyro_y = (data.gyro_y == INT16_MIN) ? INT16_MAX : -data.gyro_y;
+					const int16_t gyro_z = (data.gyro_z == INT16_MIN) ? INT16_MAX : -data.gyro_z;
 
-				_px4_accel.update(timestamp_sample, data.accel_x, accel_y, accel_z);
-				_px4_gyro.update(timestamp_sample, data.gyro_x, gyro_y, gyro_z);
+					_px4_accel.update(timestamp_sample, data.accel_x, accel_y, accel_z);
+					_px4_gyro.update(timestamp_sample, data.gyro_x, gyro_y, gyro_z);
 
-				// escalate the accel full-scale range if any axis is clipping
-				if (_accel_range != ACCEL_RANGE::RANGE_64G) {
-					const int16_t values[3] {data.accel_x, data.accel_y, data.accel_z};
+					// escalate the accel full-scale range if any axis is clipping
+					if (_accel_range != ACCEL_RANGE::RANGE_64G) {
+						const int16_t values[3] {data.accel_x, data.accel_y, data.accel_z};
 
-					for (auto v : values) {
-						if (v >= ACCEL_CLIP_THRESHOLD || v <= -ACCEL_CLIP_THRESHOLD) {
-							EscalateAccelRange();
-							break;
+						for (auto v : values) {
+							if (v >= ACCEL_CLIP_THRESHOLD || v <= -ACCEL_CLIP_THRESHOLD) {
+								EscalateAccelRange();
+								break;
+							}
 						}
 					}
 				}
