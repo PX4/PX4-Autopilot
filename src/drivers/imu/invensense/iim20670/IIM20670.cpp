@@ -87,14 +87,7 @@ void IIM20670::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
-	const char *range_str = "16 g";
-
-	if (_accel_range == ACCEL_RANGE::RANGE_32G) {
-		range_str = "32 g";
-
-	} else if (_accel_range == ACCEL_RANGE::RANGE_64G) {
-		range_str = "64 g";
-	}
+	const char *range_str = (_accel_range == ACCEL_RANGE::RANGE_64G) ? "64 g" : "32 g";
 
 	PX4_INFO("accel range: %s, gyro range: 1966 dps", range_str);
 
@@ -230,17 +223,18 @@ void IIM20670::RunImpl()
 					_px4_accel.update(timestamp_sample, data.accel_x, accel_y, accel_z);
 					_px4_gyro.update(timestamp_sample, data.gyro_x, gyro_y, gyro_z);
 
-					// escalate the accel full-scale range if any axis is clipping
-					if (_accel_range != ACCEL_RANGE::RANGE_64G) {
-						const int16_t values[3] {data.accel_x, data.accel_y, data.accel_z};
+					// manage the accel range: escalate to ±64 g while clipping, recover after quiet
+					bool accel_clipping = false;
+					const int16_t values[3] {data.accel_x, data.accel_y, data.accel_z};
 
-						for (auto v : values) {
-							if (v >= ACCEL_CLIP_THRESHOLD || v <= -ACCEL_CLIP_THRESHOLD) {
-								EscalateAccelRange();
-								break;
-							}
+					for (auto v : values) {
+						if (v >= ACCEL_CLIP_THRESHOLD || v <= -ACCEL_CLIP_THRESHOLD) {
+							accel_clipping = true;
+							break;
 						}
 					}
+
+					ManageAccelRange(accel_clipping);
 				}
 
 				if (_failure_count > 0) {
@@ -346,7 +340,7 @@ bool IIM20670::Configure()
 	// leave the sensor in bank 0 for sensor data reads
 	SelectRegisterBank(0);
 
-	ConfigureAccelRange(ACCEL_RANGE::RANGE_16G);
+	ConfigureAccelRange(ACCEL_RANGE::RANGE_32G);
 
 	// gyro_fs_sel = 0011: ±1966 dps (16.67 LSB/dps)
 	_px4_gyro.set_range(math::radians(1966.08f));
@@ -360,12 +354,6 @@ void IIM20670::ConfigureAccelRange(ACCEL_RANGE range)
 	_accel_range = range;
 
 	switch (range) {
-	case ACCEL_RANGE::RANGE_16G:
-		// accel_fs_sel = 001 high resolution output: ±16.384 g (2000 LSB/g)
-		_px4_accel.set_range(16.384f * CONSTANTS_ONE_G);
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2000.f);
-		break;
-
 	case ACCEL_RANGE::RANGE_32G:
 		// accel_fs_sel = 011 high resolution output: ±32.768 g (1000 LSB/g)
 		_px4_accel.set_range(32.768f * CONSTANTS_ONE_G);
@@ -380,21 +368,25 @@ void IIM20670::ConfigureAccelRange(ACCEL_RANGE range)
 	}
 }
 
-void IIM20670::EscalateAccelRange()
+void IIM20670::ManageAccelRange(bool clipping)
 {
-	if (_accel_range == ACCEL_RANGE::RANGE_16G) {
-		// switch the high resolution output from ±16.384 g to ±32.768 g
-		_register_bank6_cfg[0].set_bits = ACCEL_FS_SEL_32G_SET;
-		_register_bank6_cfg[0].clear_bits = ACCEL_FS_SEL_32G_CLEAR;
-		RegisterSetAndClearBits(Register::BANK_6::SENSITIVITY_CONFIG, ACCEL_FS_SEL_32G_SET, ACCEL_FS_SEL_32G_CLEAR);
-		SelectRegisterBank(0);
-		ConfigureAccelRange(ACCEL_RANGE::RANGE_32G);
-		PX4_INFO("accel clipping, range escalated to ±32 g");
+	const hrt_abstime now = hrt_absolute_time();
 
-	} else if (_accel_range == ACCEL_RANGE::RANGE_32G) {
-		// switch to the low resolution output registers (±65.536 g), no register change required
-		ConfigureAccelRange(ACCEL_RANGE::RANGE_64G);
-		PX4_INFO("accel clipping, range escalated to ±64 g");
+	if (clipping) {
+		_accel_last_clip_timestamp = now;
+
+		if (_accel_range == ACCEL_RANGE::RANGE_32G) {
+			// switch to the low resolution output registers (±65.536 g); the sensor
+			// full-scale configuration is unchanged so the transition is glitch-free
+			ConfigureAccelRange(ACCEL_RANGE::RANGE_64G);
+			PX4_INFO("accel clipping, range escalated to ±64 g");
+		}
+
+	} else if ((_accel_range == ACCEL_RANGE::RANGE_64G)
+		   && (now - _accel_last_clip_timestamp > ACCEL_RANGE_QUIET_TIMEOUT_US)) {
+		// recover the higher resolution registers after a sustained period without clipping
+		ConfigureAccelRange(ACCEL_RANGE::RANGE_32G);
+		PX4_INFO("accel quiet, range reduced to ±32 g");
 	}
 }
 
