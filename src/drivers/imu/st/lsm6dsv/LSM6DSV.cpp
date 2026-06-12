@@ -717,6 +717,13 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 	const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
 
+	// Skip the high-g channel for one cycle after a full-scale change: samples batched before the
+	// change were captured at the previous full-scale, so publishing them would use the wrong scale
+	// and evaluating them for clipping could trigger a spurious extra escalation. The gyro and
+	// low-g scales never change, so their samples flow uninterrupted.
+	const bool hg_scale_settled = !_hg_scale_changed;
+	_hg_scale_changed = false;
+
 	// Evaluate clipping on the raw (pre-rotation) samples before any publish rotates them in place.
 	bool low_g_clipping = false;
 	bool high_g_clipping = false;
@@ -729,7 +736,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 			}
 		}
 
-		for (uint8_t n = 0; n < accel_hg.samples; n++) {
+		for (uint8_t n = 0; hg_scale_settled && (n < accel_hg.samples); n++) {
 			if (SampleClips(accel_hg.x[n], accel_hg.y[n], accel_hg.z[n])) {
 				high_g_clipping = true;
 				break;
@@ -746,7 +753,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 	// Publish accelerometer: fall back to the high-g channel while the low-g channel is clipping.
 	bool accel_published = false;
 
-	if (_high_g_enabled && low_g_clipping && (accel_hg.samples > 0)) {
+	if (_high_g_enabled && low_g_clipping && hg_scale_settled && (accel_hg.samples > 0)) {
 		float scale, range;
 		GetHighGScaleRange(_hg_table[_hg_index], scale, range);
 		_px4_accel.set_range(range);
@@ -890,7 +897,8 @@ void LSM6DSV::ApplyHighGFullScale()
 
 	RegisterWrite(Register::CTRL1_XL_HG, val);
 
-	// flush the FIFO so no samples captured at the previous full-scale remain (they would be
-	// published with the wrong scale)
-	FIFOReset();
+	// High-g samples already batched were captured at the previous full-scale; rather than
+	// flushing the FIFO (which would also discard gyro and low-g samples), the publish path
+	// skips the high-g channel for the next cycle while the stale words drain.
+	_hg_scale_changed = true;
 }

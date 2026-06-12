@@ -162,6 +162,7 @@ private:
 	const HighGFullScale *_hg_table{nullptr}; // ascending full-scale steps for this variant
 	uint8_t _hg_table_size{0};
 	uint8_t _hg_index{0};                     // current step within _hg_table
+	bool _hg_scale_changed{false};            // skip publishing high-g for one cycle after a full-scale change
 	hrt_abstime _hg_last_clip_timestamp{0};
 	static constexpr hrt_abstime HG_DEESCALATE_TIMEOUT_US{2'000'000}; // 2 s
 
