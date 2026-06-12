@@ -258,11 +258,17 @@ private:
 	uORB::Publication<detect_and_avoid_s>		_detect_and_avoid_pub{ORB_ID(detect_and_avoid)};
 	uORB::Publication<detect_and_avoid_most_urgent_s>		_detect_and_avoid_most_urgent_pub{ORB_ID(detect_and_avoid_most_urgent)};
 
-	/** @brief Publish the cached most-urgent conflict on the dedicated topic. */
-	void publish_most_urgent_conflict();
+	/** @brief Publish the cached most-urgent conflict if it was reassigned since the last publication.*/
+	void publish_most_urgent_conflict_if_changed();
 
 	/** @brief Empty the buffer and reset all derived conflict state and timers. */
 	void clear_conflicts();
+
+	/** @brief Re-read parameters and (de)activate the module accordingly. */
+	void update_activation_status();
+
+	/** @brief Run one detection cycle: drop stale state, process new reports, notify and act. */
+	void process_traffic();
 
 	bool _is_activated{false};
 
@@ -309,6 +315,7 @@ private:
 
 	void reset_most_urgent_conflict();
 	conflict_info_s _most_urgent_conflict{};
+	bool _most_urgent_conflict_changed{false};
 	uint8_t _prev_most_urgent_conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 
 	/* Handle actions */

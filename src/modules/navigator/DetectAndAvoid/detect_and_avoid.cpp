@@ -61,7 +61,6 @@ DetectAndAvoid::DetectAndAvoid(Navigator *navigator) :
 {
 	_detect_and_avoid_pub.advertise();
 	_detect_and_avoid_most_urgent_pub.advertise();
-	ModuleParams::updateParams();
 }
 
 void DetectAndAvoid::reset()
@@ -89,31 +88,44 @@ void DetectAndAvoid::on_inactivation()
 {
 	PX4_DEBUG("DAA inactivation");
 	reset();
-	publish_most_urgent_conflict();
+	publish_most_urgent_conflict_if_changed();
 }
 
 void DetectAndAvoid::on_activation()
 {
-	ModuleParams::updateParams();
 	reset();
+	update_activation_status();
+	publish_most_urgent_conflict_if_changed();
+}
+
+void DetectAndAvoid::update_activation_status()
+{
+	ModuleParams::updateParams();
 
 	if (!_param_daa_en.get()) {
-		PX4_DEBUG("DAA: module not enabled");
+		if (_is_activated) {
+			PX4_DEBUG("DAA: module disabled");
+			reset();
+		}
+
 		return;
 	}
 
 	if (!_adsb_conflict_detector.try_updating_params()) {
-		_is_activated = false;
-		publish_most_urgent_conflict();
+		if (_is_activated) {
+			reset();
+		}
 
 		mavlink_log_critical(&_mavlink_log_pub, "DAA invalid params. Traffic warnings and actions disabled.\t");
 		events::send(events::ID("navigator_traffic_init_failed"), events::Log::Critical,
-			     "DAA invalid params. Traffic warnings and actions disabled.");
+			     "DAA invalid params. Traffic warnings and actions disabled");
 		return;
 	}
 
-	PX4_DEBUG("DAA: init ok");
-	_is_activated = true;
+	if (!_is_activated) {
+		PX4_DEBUG("DAA: init ok");
+		_is_activated = true;
+	}
 }
 
 bool DetectAndAvoid::has_elapsed(hrt_abstime &last_time, const hrt_abstime interval)
@@ -129,32 +141,25 @@ bool DetectAndAvoid::has_elapsed(hrt_abstime &last_time, const hrt_abstime inter
 void DetectAndAvoid::on_active()
 {
 	if (_parameter_update_sub.updated()) {
-
-		parameter_update_s pupdate{};
+		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
-		ModuleParams::updateParams();
 
-		if (!_param_daa_en.get()) {
-			PX4_DEBUG("DAA: module disabled");
-			reset();
-			publish_most_urgent_conflict();
-			return;
-		}
-
-		if (!_is_activated) {
-			on_activation();
-		}
+		update_activation_status();
 	}
 
-	if (!_is_activated) {
-		return;
+	if (_is_activated) {
+		process_traffic();
 	}
 
+	publish_most_urgent_conflict_if_changed();
+}
+
+void DetectAndAvoid::process_traffic()
+{
 	if (!uav_pose_valid_and_updated()) {
 		if (!_traffic_buffer.empty() || _most_urgent_conflict.conflict_level != detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
 			PX4_DEBUG("DAA: uav pose stale, clearing conflicts");
-			clear_conflicts();
-			publish_most_urgent_conflict();
+			clear_conflicts(); // do not call reset() to stay activated once the pose recovers
 		}
 
 		return;
@@ -164,24 +169,19 @@ void DetectAndAvoid::on_active()
 	process_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	bool most_urgent_conflict_updated = false;
-
 	if (has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime) && stale_conflicts_removed()) {
 		update_most_urgent_conflict();
-		most_urgent_conflict_updated = true;
 	}
 
 	new_conflicts_pending_notif_s new_conflicts_pending_notif{};
 
 	if (process_transponder_queue(new_conflicts_pending_notif)) {
 		update_most_urgent_conflict();
-		most_urgent_conflict_updated = true;
 	}
 
 	notify_if_needed(new_conflicts_pending_notif);
 
-	if (most_urgent_conflict_updated) {
-		publish_most_urgent_conflict();
+	if (_most_urgent_conflict_changed) {
 		evaluate_and_publish_action();
 
 		_prev_most_urgent_conflict_level = _most_urgent_conflict.conflict_level;
@@ -338,8 +338,14 @@ void DetectAndAvoid::print_status() const
 }
 #endif // !CONSTRAINED_FLASH && !__PX4_NUTTX
 
-void DetectAndAvoid::publish_most_urgent_conflict()
+void DetectAndAvoid::publish_most_urgent_conflict_if_changed()
 {
+	if (!_most_urgent_conflict_changed) {
+		return;
+	}
+
+	_most_urgent_conflict_changed = false;
+
 	detect_and_avoid_most_urgent_s daa_status{};
 
 	daa_status.timestamp = hrt_absolute_time();
@@ -362,10 +368,15 @@ void DetectAndAvoid::reset_most_urgent_conflict()
 	_most_urgent_conflict.latest_update_timestamp = 0;
 	_most_urgent_conflict.conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 	_most_urgent_conflict.aircraft_dist = kNoConflictDistance;
+	_most_urgent_conflict_changed = true;
 }
 
 void DetectAndAvoid::update_most_urgent_conflict()
 {
+	// Every call follows a buffer mutation, so the published status must be
+	// refreshed even if the most urgent conflict itself is unchanged.
+	_most_urgent_conflict_changed = true;
+
 	if (_traffic_buffer.empty()) {
 		PX4_DEBUG("DAA: update_most_urgent_conflict empty buffer.");
 		reset_most_urgent_conflict();
