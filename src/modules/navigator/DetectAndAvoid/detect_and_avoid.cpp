@@ -55,6 +55,11 @@
 
 using namespace time_literals;
 
+// Buffer containing the tracker changes collected over one cycle.
+// Defined as an uninitialized static so the storage lives in .bss (AXI_SRAM on FMU targets).
+// With 37 change slots, this is roughly 1.8 KB on current targets.
+static conflict_cycle_changes_s _cycle_changes;
+
 DetectAndAvoid::DetectAndAvoid(Navigator *navigator) :
 	MissionBlock(navigator, 0),
 	ModuleParams(navigator)

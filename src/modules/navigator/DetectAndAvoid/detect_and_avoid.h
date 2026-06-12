@@ -243,9 +243,6 @@ private:
 	// All DAA operator messaging: formatting, severities and rate limiting.
 	ConflictNotifier _conflict_notifier{};
 
-	// Tracker changes collected over one cycle and passed to the notifier.
-	conflict_cycle_changes_s _cycle_changes{};
-
 	/** @brief Append @p changes to the list sent to the notifier once per cycle. */
 	void collect_tracker_changes(const conflict_tracker_changes_s &changes);
 
