@@ -700,6 +700,7 @@ Up to 8 instances can run simultaneously, one per device.
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Swap RX/TX pins", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Single-wire (half-duplex) mode", true);
 	PRINT_MODULE_USAGE_PARAM_INT('e', -1, 0, 7, "ESC bitbang channel (0-7), instead of -d", true);
+	PRINT_MODULE_USAGE_PARAM_INT('i', -1, 0, 255, "Internal: instance registry key (injected by startForDevice())", true);
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
 	return 0;
