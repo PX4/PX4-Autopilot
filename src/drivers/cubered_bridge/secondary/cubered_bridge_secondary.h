@@ -96,7 +96,7 @@ public:
 
 private:
 	static constexpr const char *DEVICE_NAME = "/dev/ttyS1";
-	static constexpr uint32_t BAUDRATE = 1500000;
+	static constexpr uint32_t BAUDRATE = 2000000;
 	static constexpr uint32_t POLL_TIMEOUT_MS = 1; // 1ms timeout for low latency
 
 	device::Serial _uart{};

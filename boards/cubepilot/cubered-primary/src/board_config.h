@@ -57,7 +57,7 @@
 /* CubeRed bridge link to the secondary MCU (UART7) */
 #define BOARD_USES_PX4IO_VERSION       2
 #define CUBERED_BRIDGE_PRIMARY_DEVICE  "/dev/ttyS4"
-#define CUBERED_BRIDGE_PRIMARY_BITRATE 1500000               /* 1.5 Mbps */
+#define CUBERED_BRIDGE_PRIMARY_BITRATE 2000000               /* 2 Mbps, matches the bootloader passthrough */
 
 
 /* LEDs */
