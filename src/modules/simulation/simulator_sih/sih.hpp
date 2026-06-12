@@ -72,10 +72,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -131,6 +132,7 @@ private:
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
+	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -179,6 +181,8 @@ private:
 
 	// read the motor signals outputted from the mixer
 	void read_motors(const float dt);
+	void publish_esc_status();
+	uint8_t num_motors() const;
 
 	// generate the motors thrust and torque in the body frame
 	void generate_force_and_torques(const float dt);
