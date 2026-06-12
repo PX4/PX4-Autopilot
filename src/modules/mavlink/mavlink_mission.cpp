@@ -1466,7 +1466,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
 
-			if (bad < 0) { PX4_WARN("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)mavlink_mission_item->command); }
+			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)mavlink_mission_item->command); }
 
 			if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)mavlink_mission_item->command, zero_mask); }
 		}
@@ -1602,15 +1602,28 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		{
 			uint8_t zero_mask = 0;
-			const int bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-					mavlink_mission_item->param1, mavlink_mission_item->param2,
-					mavlink_mission_item->param3, mavlink_mission_item->param4,
-					(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
-					mavlink_mission_item->z, &zero_mask);
+			int bad = -1;
+
+			if (_int_mode) {
+				const mavlink_mission_item_int_t *item_int =
+					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
+				bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+						mavlink_mission_item->param1, mavlink_mission_item->param2,
+						mavlink_mission_item->param3, mavlink_mission_item->param4,
+						item_int->x, item_int->y,
+						mavlink_mission_item->z, &zero_mask);
+
+			} else {
+				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+						mavlink_mission_item->param1, mavlink_mission_item->param2,
+						mavlink_mission_item->param3, mavlink_mission_item->param4,
+						(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
+						mavlink_mission_item->z, &zero_mask);
+			}
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
 
-			if (bad < 0) { PX4_WARN("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)mavlink_mission_item->command); }
+			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)mavlink_mission_item->command); }
 
 			if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)mavlink_mission_item->command, zero_mask); }
 		}

@@ -42,8 +42,8 @@
  *   bits 0–3: params 1–4  (bit 0 = param1, …, bit 3 = param4)
  *   bits 4–6: params 5–7  (bit 4 = param5, bit 5 = param6, bit 6 = param7)
  *
- * For global-frame MISSION_ITEM_INT, check_params_int() is used so that p5/p6
- * are validated as int32 (INT32_MAX = unset) and p7 as float (altitude).
+ * For global-frame MISSION_ITEM_INT, check_params_int_for_vehicle() is used so
+ * that p5/p6 are validated as int32 (INT32_MAX = unset) and p7 as float.
  *
  * A secondary VehicleParamOverrides table holds per-airframe additions (e.g.
  * NAV_TAKEOFF pitch angle on FW); use check_params_for_vehicle() for callers
@@ -59,6 +59,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
+#include <uORB/topics/vehicle_status.h>
 
 namespace mavlink_cmd_params
 {
@@ -71,7 +72,7 @@ struct Entry {
 
 // Keep sorted by cmd value. Update when adding new supported commands or params.
 // Symbolic names are listed in comments; raw integers are used so this header
-// remains self-contained and requires no MAVLink includes.
+// remains self-contained (aside from vehicle_status.h for VEHICLE_TYPE_* constants).
 //
 // Encoding: mission/command byte = (params1_4_mask) | (params5_7_mask << 4)
 //   where params1_4_mask has bit N = param N+1 for N in 0..3,
@@ -82,12 +83,12 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   17, 0x7C, 0x7C }, // NAV_LOITER_UNLIM:            p3:radius,p4:yaw; p5-7:lat/lon/alt
 	{   19, 0x7F, 0x7F }, // NAV_LOITER_TIME:             p1-p4 all used; p5-7:lat/lon/alt
 	{   20, 0x00, 0x00 }, // NAV_RETURN_TO_LAUNCH:         no params
-	{   21, 0x7A, 0x7A }, // NAV_LAND:                    p2:precision,p4:yaw; p5-7:lat/lon/alt
-	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt
+	{   21, 0x7B, 0x7B }, // NAV_LAND:                    p1:abort_alt,p2:precision,p4:yaw; p5-7:lat/lon/alt
+	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt (FW/VTOL also get p1 via override)
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
 	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
-	{   84, 0x78, 0x78 }, // NAV_VTOL_TAKEOFF:            p4:yaw; p5-7:lat/lon/alt
-	{   85, 0x78, 0x78 }, // NAV_VTOL_LAND:               p4:yaw; p5-7:lat/lon/alt
+	{   84, 0x7C, 0x7C }, // NAV_VTOL_TAKEOFF:            p3:approach_hdg,p4:yaw; p5-7:lat/lon/alt
+	{   85, 0x7F, 0x7F }, // NAV_VTOL_LAND:               p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
 	{   93, 0x0F, 0x0F }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
 	{  112, 0x01, 0x01 }, // CONDITION_DELAY:             p1:seconds
 	{  114, 0x01, 0x01 }, // CONDITION_DISTANCE:          p1:distance
@@ -162,43 +163,79 @@ static inline bool int_param_is_unset(int32_t v)
 }
 
 // Vehicle type bitmask for per-vehicle parameter support.
-// bit 0 = fixed-wing (FW), bit 1 = multicopter (MC), bit 2 = VTOL.
+// bit 0 = fixed-wing (FW), bit 1 = multicopter (MC), bit 2 = VTOL, bit 3 = rover.
 // 0xFF matches any vehicle type.
 enum VehicleType : uint8_t {
-	VEHICLE_FW   = (1u << 0),
-	VEHICLE_MC   = (1u << 1),
-	VEHICLE_VTOL = (1u << 2),
-	VEHICLE_ANY  = 0xFF,
+	VEHICLE_FW    = (1u << 0),
+	VEHICLE_MC    = (1u << 1),
+	VEHICLE_VTOL  = (1u << 2),
+	VEHICLE_ROVER = (1u << 3),
+	VEHICLE_ANY   = 0xFF,
 };
 
-// Maps PX4 vehicle_status_s fields to a VehicleType bitmask.
-// vehicle_type: 1 = rotary-wing, 2 = fixed-wing (vehicle_status_s::VEHICLE_TYPE_*).
+// Maps vehicle_status_s fields to a VehicleType bitmask.
 static inline uint8_t vehicle_type_bitmask(bool is_vtol, uint8_t vehicle_type)
 {
 	if (is_vtol) { return VEHICLE_VTOL; }
 
-	if (vehicle_type == 2u) { return VEHICLE_FW; }
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) { return VEHICLE_FW; }
 
-	if (vehicle_type == 1u) { return VEHICLE_MC; }
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) { return VEHICLE_MC; }
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) { return VEHICLE_ROVER; }
 
 	return 0;
 }
 
 // Extends the base table for vehicle-specific params that differ across airframe types.
 // Each entry's masks are OR'd with the base Entry masks when the vehicle_mask matches.
-// Example (not yet active):
-//   { 22, VEHICLE_FW, 0x04, 0x04 }  // NAV_TAKEOFF: allow p3 (pitch) on FW only
 struct VehicleOverride {
 	uint16_t cmd;
 	uint8_t  vehicle_mask; // bitmask of VehicleType values this entry applies to
-	uint8_t  mission;      // additional allowed param bits (bits 0-6 = p1-p7)
-	uint8_t  command;      // additional allowed param bits (bits 0-6 = p1-p7)
+	uint8_t  mission;      // additional allowed param bits (bits 0-3 = p1-p4, bits 4-6 = p5-p7)
+	uint8_t  command;      // additional allowed param bits (bits 0-3 = p1-p4, bits 4-6 = p5-p7)
 };
 
 // When adding vehicle-specific param differences, add entries here.
-// Example: { 22, VEHICLE_FW, 0x04, 0x04 }  // NAV_TAKEOFF: allow p3 (pitch) on FW only
 static constexpr VehicleOverride VehicleParamOverrides[] = {
+	// NAV_TAKEOFF: p1 (minimum pitch angle) is used by FW and VTOL-FW; not applicable to MC.
+	{ 22, VEHICLE_FW | VEHICLE_VTOL, 0x01, 0x01 },
 };
+
+// Binary search + vehicle override lookup. Returns the adjusted mask, or -1 if cmd not in table.
+static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
+{
+	size_t lo = 0;
+	size_t hi = SupportedCommandParamsCount - 1;
+
+	while (lo <= hi) {
+		const size_t mid = lo + (hi - lo) / 2;
+
+		if (SupportedCommandParams[mid].cmd == cmd) {
+			uint8_t mask = for_mission
+				       ? SupportedCommandParams[mid].mission
+				       : SupportedCommandParams[mid].command;
+
+			for (const auto &ov : VehicleParamOverrides) {
+				if (ov.cmd == cmd && (ov.vehicle_mask & vehicle_type)) {
+					mask |= for_mission ? ov.mission : ov.command;
+				}
+			}
+
+			return mask;
+
+		} else if (SupportedCommandParams[mid].cmd < cmd) {
+			lo = mid + 1;
+
+		} else {
+			if (mid == 0) { break; }
+
+			hi = mid - 1;
+		}
+	}
+
+	return -1;
+}
 
 /**
  * Check params 1–7 of an incoming mission item or command against the base table,
@@ -214,48 +251,24 @@ static constexpr VehicleOverride VehicleParamOverrides[] = {
 		float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
 		uint8_t *zero_sentinel_mask = nullptr)
 {
-	size_t lo = 0;
-	size_t hi = SupportedCommandParamsCount - 1;
+	const int mask_result = _find_mask(cmd, for_mission, vehicle_type);
 
-	while (lo <= hi) {
-		const size_t mid = lo + (hi - lo) / 2;
+	if (mask_result < 0) { return -1; }
 
-		if (SupportedCommandParams[mid].cmd == cmd) {
-			uint8_t mask = for_mission
-				       ? SupportedCommandParams[mid].mission
-				       : SupportedCommandParams[mid].command;
+	const uint8_t mask = (uint8_t)mask_result;
+	const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
 
-			for (const auto &ov : VehicleParamOverrides) {
-				if (ov.cmd == cmd && (ov.vehicle_mask & vehicle_type)) {
-					mask |= for_mission ? ov.mission : ov.command;
-				}
+	for (int i = 0; i < 7; ++i) {
+		if (!((mask >> i) & 1u)) {
+			if (!param_is_unset(ps[i])) { return i + 1; }
+
+			if (zero_sentinel_mask && param_is_zero(ps[i])) {
+				*zero_sentinel_mask |= (uint8_t)(1u << i);
 			}
-
-			const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
-
-			for (int i = 0; i < 7; ++i) {
-				if (!((mask >> i) & 1u)) {
-					if (!param_is_unset(ps[i])) { return i + 1; }
-
-					if (zero_sentinel_mask && param_is_zero(ps[i])) {
-						*zero_sentinel_mask |= (uint8_t)(1u << i);
-					}
-				}
-			}
-
-			return 0;
-
-		} else if (SupportedCommandParams[mid].cmd < cmd) {
-			lo = mid + 1;
-
-		} else {
-			if (mid == 0) { break; }
-
-			hi = mid - 1;
 		}
 	}
 
-	return -1;
+	return 0;
 }
 
 /**
@@ -267,54 +280,30 @@ static constexpr VehicleOverride VehicleParamOverrides[] = {
 		int32_t p5_int, int32_t p6_int, float p7 = 0.0f,
 		uint8_t *zero_sentinel_mask = nullptr)
 {
-	size_t lo = 0;
-	size_t hi = SupportedCommandParamsCount - 1;
+	const int mask_result = _find_mask(cmd, for_mission, vehicle_type);
 
-	while (lo <= hi) {
-		const size_t mid = lo + (hi - lo) / 2;
+	if (mask_result < 0) { return -1; }
 
-		if (SupportedCommandParams[mid].cmd == cmd) {
-			uint8_t mask = for_mission
-				       ? SupportedCommandParams[mid].mission
-				       : SupportedCommandParams[mid].command;
+	const uint8_t mask = (uint8_t)mask_result;
+	const float ps14[4] = {p1, p2, p3, p4};
 
-			for (const auto &ov : VehicleParamOverrides) {
-				if (ov.cmd == cmd && (ov.vehicle_mask & vehicle_type)) {
-					mask |= for_mission ? ov.mission : ov.command;
-				}
+	for (int i = 0; i < 4; ++i) {
+		if (!((mask >> i) & 1u)) {
+			if (!param_is_unset(ps14[i])) { return i + 1; }
+
+			if (zero_sentinel_mask && param_is_zero(ps14[i])) {
+				*zero_sentinel_mask |= (uint8_t)(1u << i);
 			}
-
-			const float ps14[4] = {p1, p2, p3, p4};
-
-			for (int i = 0; i < 4; ++i) {
-				if (!((mask >> i) & 1u)) {
-					if (!param_is_unset(ps14[i])) { return i + 1; }
-
-					if (zero_sentinel_mask && param_is_zero(ps14[i])) {
-						*zero_sentinel_mask |= (uint8_t)(1u << i);
-					}
-				}
-			}
-
-			if (!((mask >> 4) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
-
-			if (!((mask >> 5) & 1u) && !int_param_is_unset(p6_int)) { return 6; }
-
-			if (!((mask >> 6) & 1u) && !param_is_unset(p7)) { return 7; }
-
-			return 0;
-
-		} else if (SupportedCommandParams[mid].cmd < cmd) {
-			lo = mid + 1;
-
-		} else {
-			if (mid == 0) { break; }
-
-			hi = mid - 1;
 		}
 	}
 
-	return -1;
+	if (!((mask >> 4) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
+
+	if (!((mask >> 5) & 1u) && !int_param_is_unset(p6_int)) { return 6; }
+
+	if (!((mask >> 6) & 1u) && !param_is_unset(p7)) { return 7; }
+
+	return 0;
 }
 
 } // namespace mavlink_cmd_params
