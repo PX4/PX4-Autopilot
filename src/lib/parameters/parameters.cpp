@@ -50,6 +50,7 @@
 #include <crc32.h>
 #include <float.h>
 #include <math.h>
+#include <sys/stat.h>
 
 #include <containers/Bitset.hpp>
 #include <drivers/drv_hrt.h>
@@ -920,6 +921,11 @@ param_load_default()
 	int result = param_load(fd_load);
 	::close(fd_load);
 
+	if (result == 1) {
+		/* blank file: nothing stored yet */
+		return 1;
+	}
+
 	if (result != 0) {
 		PX4_ERR("error reading parameters from '%s'", filename);
 		return -2;
@@ -1226,6 +1232,35 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 static int
 param_import_internal(int fd)
 {
+	/* blank source (nothing stored yet): an empty file, or zeroed/erased
+	 * storage where the BSON document length would be. Unlike the flash
+	 * backend, which scans the whole store, this only inspects the leading
+	 * document length - a length of 0 or -1 can never start a valid BSON
+	 * document, so nothing parseable is diverted here regardless of what
+	 * follows. */
+
+	/* A zero-length regular file is blank. NuttX FAT can't read() a 0-byte
+	 * file (no cluster chain -> error, not EOF), so the content check below
+	 * would miss it; detect it by size. Char-device backends (e.g. FRAM)
+	 * report no meaningful size and fall through to the content check. */
+	struct stat st;
+
+	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size == 0) {
+		return 1;
+	}
+
+	int32_t doc_size = 0;
+	ssize_t len = read(fd, &doc_size, sizeof(doc_size));
+
+	if (len == 0 || (len == (ssize_t)sizeof(doc_size) && (doc_size == 0 || doc_size == -1))) {
+		return 1;
+	}
+
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		PX4_ERR("import lseek failed (%d)", errno);
+		return -1;
+	}
+
 	static constexpr int MAX_ATTEMPTS = 3;
 
 	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
