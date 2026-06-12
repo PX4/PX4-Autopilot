@@ -48,9 +48,14 @@ static constexpr uint16_t combine_uint(uint8_t msb, uint8_t lsb)
 ICM45686::ICM45686(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio),
 	_px4_accel(get_device_id(), config.rotation),
 	_px4_gyro(get_device_id(), config.rotation)
 {
+	if (config.drdy_gpio != 0) {
+		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
+	}
+
 	if (config.custom1 != 0) {
 		_enable_clock_input = true;
 		_input_clock_freq = config.custom1;
@@ -71,6 +76,7 @@ ICM45686::~ICM45686()
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
+	perf_free(_drdy_missed_perf);
 }
 
 int ICM45686::init()
@@ -87,6 +93,7 @@ int ICM45686::init()
 
 bool ICM45686::Reset()
 {
+	DataReadyInterruptDisable();
 	_state = STATE::RESET;
 	ScheduleClear();
 	ScheduleNow();
@@ -95,6 +102,7 @@ bool ICM45686::Reset()
 
 void ICM45686::exit_and_cleanup()
 {
+	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
@@ -110,6 +118,7 @@ void ICM45686::print_status()
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
 	perf_print_counter(_fifo_reset_perf);
+	perf_print_counter(_drdy_missed_perf);
 }
 
 int ICM45686::probe()
@@ -190,12 +199,36 @@ void ICM45686::RunImpl()
 		_state = STATE::FIFO_READ;
 		FIFOReset();
 
-		ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+		if (DataReadyInterruptConfigure()) {
+			_data_ready_interrupt_enabled = true;
+
+			// backup schedule as a watchdog timeout
+			ScheduleDelayed(100_ms);
+
+		} else {
+			_data_ready_interrupt_enabled = false;
+			ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
+		}
 
 		break;
 
 	case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
+
+			if (_data_ready_interrupt_enabled) {
+				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+					timestamp_sample = drdy_timestamp_sample;
+
+				} else {
+					perf_count(_drdy_missed_perf);
+				}
+
+				// push backup schedule back
+				ScheduleDelayed(_fifo_empty_interval_us * 2);
+			}
 
 			bool success = false;
 
@@ -366,6 +399,37 @@ void ICM45686::RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits
 	}
 }
 
+int ICM45686::DataReadyInterruptCallback(int irq, void *context, void *arg)
+{
+	static_cast<ICM45686 *>(arg)->DataReady();
+	return 0;
+}
+
+void ICM45686::DataReady()
+{
+	_drdy_timestamp_sample.store(hrt_absolute_time());
+	ScheduleNow();
+}
+
+bool ICM45686::DataReadyInterruptConfigure()
+{
+	if (_drdy_gpio == 0) {
+		return false;
+	}
+
+	// Setup data ready on falling edge (INT1 is configured pulsed, active low)
+	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
+}
+
+bool ICM45686::DataReadyInterruptDisable()
+{
+	if (_drdy_gpio == 0) {
+		return false;
+	}
+
+	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
+}
+
 uint16_t ICM45686::FIFOReadCount()
 {
 	// read FIFO count
@@ -468,6 +532,7 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 void ICM45686::FIFOReset()
 {
 	perf_count(_fifo_reset_perf);
+	_drdy_timestamp_sample.store(0);
 
 	// Disable FIFO
 	RegisterClearBits(Register::BANK_0::FIFO_CONFIG3,
