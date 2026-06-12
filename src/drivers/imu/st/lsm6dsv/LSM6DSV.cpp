@@ -219,7 +219,20 @@ void LSM6DSV::print_status()
 
 int LSM6DSV::probe()
 {
-	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+	// The first SPI transaction after power-up can return garbage while the device's shared
+	// I2C/I3C/SPI interface latches onto SPI (selected by the first CS falling edge), so retry
+	// the WHO_AM_I read a few times before giving up.
+	uint8_t whoami = 0;
+
+	for (int attempt = 0; attempt < 3; attempt++) {
+		whoami = RegisterRead(Register::WHO_AM_I);
+
+		if (IsSupportedWhoAmI(whoami)) {
+			break;
+		}
+
+		px4_usleep(1000);
+	}
 
 	if (whoami == WHO_AM_I_DSK320X) {
 		_device_variant = DeviceVariant::LSM6DSK320X;
