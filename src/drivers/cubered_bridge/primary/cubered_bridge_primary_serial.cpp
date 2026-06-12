@@ -75,6 +75,8 @@ private:
 
 public:
 	void release();
+	void boot_secondary();
+	void print_perf();
 
 private:
 	device::Serial _uart{};
@@ -300,11 +302,58 @@ int CuberedSerial::read(unsigned address, void *data, unsigned count)
 	return (result == 0) ? (int)count : result;
 }
 
+void CuberedSerial::boot_secondary()
+{
+	px4_sem_wait(&_bus_semaphore);
+
+	if (ensure_open() != 0) {
+		px4_sem_post(&_bus_semaphore);
+		return;
+	}
+
+	// Bootloader wire protocol (see platforms/nuttx/src/bootloader/common/bl.c):
+	// GET_SYNC arms the reboot-allowed state, BOOT then jumps to the app. EOC
+	// terminates each command. We don't read the INSYNC/OK replies back: if the
+	// secondary is in its bootloader it boots; if it's already in the app these
+	// bytes are just a malformed bridge packet and get dropped on CRC.
+	static constexpr uint8_t PROTO_GET_SYNC = 0x21;
+	static constexpr uint8_t PROTO_BOOT     = 0x30;
+	static constexpr uint8_t PROTO_EOC      = 0x20;
+
+	const uint8_t boot_seq[4] = {PROTO_GET_SYNC, PROTO_EOC, PROTO_BOOT, PROTO_EOC};
+	(void)_uart.write(boot_seq, sizeof(boot_seq));
+
+	px4_sem_post(&_bus_semaphore);
+}
+
+void CuberedSerial::print_perf()
+{
+	perf_print_counter(_pc_txns);
+	perf_print_counter(_pc_retries);
+	perf_print_counter(_pc_timeouts);
+	perf_print_counter(_pc_crcerrs);
+	perf_print_counter(_pc_protoerrs);
+}
+
 } // namespace
 
 device::Device *cubered_bridge_primary_interface()
 {
 	return new CuberedSerial();
+}
+
+void cubered_bridge_primary_boot_secondary(device::Device *interface)
+{
+	if (interface != nullptr) {
+		static_cast<CuberedSerial *>(interface)->boot_secondary();
+	}
+}
+
+void cubered_bridge_primary_print_perf(device::Device *interface)
+{
+	if (interface != nullptr) {
+		static_cast<CuberedSerial *>(interface)->print_perf();
+	}
 }
 
 void cubered_bridge_primary_release(device::Device *interface)

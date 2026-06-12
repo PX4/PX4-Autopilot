@@ -172,6 +172,12 @@ private:
 	uint16_t		_max_rc_input{0};		///< Maximum receiver channels supported by CuberedBridgePrimary
 	uint16_t		_max_transfer{16};		///< Maximum number of I2C transfers supported by CuberedBridgePrimary
 
+	/* config cached at init() so print_status() can show it without live reads
+	 * (print_status runs in the nsh task, which doesn't own the serial fd) */
+	uint16_t		_protocol_version{0};
+	uint16_t		_bootloader_version{0};
+	uint16_t		_io_crc[2] {};
+
 	uint16_t    		_group_channels[PX4IO_P_SETUP_PWM_RATE_GROUP3 - PX4IO_P_SETUP_PWM_RATE_GROUP0 + 1] {};
 
 	bool			_first_update_cycle{true};
@@ -191,6 +197,14 @@ private:
 	uint16_t		_setup_arming{0};	///< last arming setup state
 	uint16_t		_last_written_arming_s{0};	///< the last written arming state reg
 	uint16_t		_last_written_arming_c{0};	///< the last written arming state reg
+
+	/* setup registers polled at ~1 Hz in Run() so print_status() (nsh task, no
+	 * serial fd) can show recent values without a live read */
+	uint16_t		_features{0};
+	uint16_t		_sbus_rate{0};
+	uint16_t		_debug_level{0};
+	uint16_t		_thermal{0};
+	hrt_abstime		_status_cache_last{0};
 
 	uORB::Subscription	_t_actuator_armed{ORB_ID(actuator_armed)};		///< system armed control topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};	///< vehicle command topic
@@ -220,6 +234,27 @@ private:
 
 	bool			_test_fmu_fail{false}; ///< To test what happens if IO loses FMU
 	bool			_in_test_mode{false}; ///< true if PWM_SERVO_ENTER_TEST_MODE is active
+
+	/*
+	 * nsh-invoked commands (reboot/debug/sbus) run in a different task than
+	 * Run(), and the serial fd is owned by Run()'s work-queue task — NuttX file
+	 * descriptors aren't shared across tasks, so those commands can't do serial
+	 * I/O directly (it fails with EBADF). Instead they queue a register op here
+	 * under _lock and Run() applies it in its own (fd-valid) context.
+	 */
+	struct PendingRegOp {
+		uint8_t  page;
+		uint8_t  offset;
+		uint16_t set_value;	///< plain-set value, or bits to set for a modify
+		uint16_t clear_bits;	///< bits to clear for a modify (unused for a plain set)
+		bool     modify;	///< true: read-modify-write; false: plain set
+	};
+	static constexpr uint8_t MAX_PENDING_REG_OPS = 4;
+	PendingRegOp		_pending_reg_ops[MAX_PENDING_REG_OPS] {};
+	uint8_t			_pending_reg_op_count{0};
+
+	/** Queue a register op for Run() to apply. Returns false if the queue is full. */
+	bool queue_reg_op(const PendingRegOp &op);
 
 	MixingOutput _mixing_output{"PWM_MAIN", PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
@@ -392,14 +427,20 @@ int CuberedBridgePrimary::init()
 		return ret;
 	}
 
-	/* get some parameters */
+	/* The secondary always comes up in its bootloader and holds a host-flash
+	 * window, so kick it into its application immediately rather than waiting out
+	 * that timeout. No-op if it's already running the app. */
+	cubered_bridge_primary_boot_secondary(_interface);
+
+	/* get some parameters; allow enough time for the secondary to leave its
+	 * bootloader and boot the app (NuttX + module start) after the kick above. */
 	uint16_t protocol;
 	hrt_abstime start_try_time = hrt_absolute_time();
 
 	do {
 		px4_usleep(2000);
 		ret = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION, protocol);
-	} while (ret != OK && (hrt_elapsed_time(&start_try_time) < 700U * 1000U));
+	} while (ret != OK && (hrt_elapsed_time(&start_try_time) < 5U * 1000U * 1000U));
 
 	/* if the error still persists after timing out, we give up */
 	if (ret != OK) {
@@ -422,6 +463,12 @@ int CuberedBridgePrimary::init()
 	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER, _max_transfer);
 	_max_transfer -= 2;
 	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT, _max_rc_input);
+
+	/* cache the static config so print_status() can show it without a live read */
+	_protocol_version = protocol;
+	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION, _bootloader_version);
+	io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC,     _io_crc[0]);
+	io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC + 1, _io_crc[1]);
 
 	if ((_max_actuators < 1) || (_max_actuators > PX4IO_MAX_ACTUATORS) ||
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
@@ -539,6 +586,21 @@ void CuberedBridgePrimary::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
+	/* apply register ops queued by nsh-context commands (reboot/debug/sbus),
+	 * which can't touch the serial fd from their own task. We own the fd here. */
+	for (uint8_t i = 0; i < _pending_reg_op_count; i++) {
+		const PendingRegOp &op = _pending_reg_ops[i];
+
+		if (op.modify) {
+			io_reg_modify(op.page, op.offset, op.clear_bits, op.set_value);
+
+		} else {
+			io_reg_set(op.page, op.offset, op.set_value);
+		}
+	}
+
+	_pending_reg_op_count = 0;
+
 	/* if we have new control data from the ORB, handle it */
 	_mixing_output.update();
 
@@ -551,6 +613,17 @@ void CuberedBridgePrimary::Run()
 
 		/* get raw R/C input from IO */
 		io_publish_raw_rc();
+	}
+
+	/* refresh the cached setup registers at ~1 Hz so print_status() (nsh task,
+	 * no serial fd) can show recent values without doing a live read */
+	if (hrt_elapsed_time(&_status_cache_last) >= 1_s) {
+		_status_cache_last = hrt_absolute_time();
+
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES,  _features);
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE, _sbus_rate);
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, _debug_level);
+		io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL,   _thermal);
 	}
 
 	/* check updates on uORB topics and handle it */
@@ -1247,93 +1320,61 @@ int CuberedBridgePrimary::io_reg_modify(uint8_t page, uint8_t offset, uint16_t c
 	return io_reg_set(page, offset, value);
 }
 
+bool CuberedBridgePrimary::queue_reg_op(const PendingRegOp &op)
+{
+	SmartLock lock_guard(_lock);
+
+	if (_pending_reg_op_count >= MAX_PENDING_REG_OPS) {
+		return false;
+	}
+
+	_pending_reg_ops[_pending_reg_op_count++] = op;
+	return true;
+}
+
 int CuberedBridgePrimary::print_status()
 {
-	uint16_t protocol, hardware, bootloader, buffer, crc1, crc2;
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION, protocol);
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION, hardware);
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION, bootloader);
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_MAX_TRANSFER, buffer);
-	io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC, crc1);
-	io_reg_get(PX4IO_PAGE_SETUP,  PX4IO_P_SETUP_CRC + 1, crc2);
-
-	/* basic configuration */
+	/* print_status() runs in the caller's (nsh) task, which does NOT own the
+	 * serial fd — that belongs to Run()'s work-queue task, and NuttX fds aren't
+	 * shared across tasks (a live read here would fail with EBADF). So print only
+	 * the static config cached at init() and the setup registers Run() refreshes
+	 * at ~1 Hz, plus the runtime state Run() publishes via the px4io_status uORB. */
 	printf("protocol %" PRIu16 " hardware %" PRIu16 " bootloader %" PRIu16 " buffer %" PRIu16 "B crc 0x%04" PRIx16 "%04" PRIx16 "\n",
-	       protocol, hardware, bootloader, buffer, crc1, crc2);
+	       _protocol_version, _hardware, _bootloader_version, _max_transfer, _io_crc[0], _io_crc[1]);
 
-	uint16_t controls, actuators, rc_inputs, adc_input_count;
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_CONTROL_COUNT, controls);
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ACTUATOR_COUNT, actuators);
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_RC_INPUT_COUNT, rc_inputs);
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ADC_INPUT_COUNT, adc_input_count);
-	printf("%" PRIu16 " controls %" PRIu16 " actuators %" PRIu16 " R/C inputs %" PRIu16 " analog inputs\n",
-	       controls, actuators, rc_inputs, adc_input_count);
+	printf("%" PRIu16 " controls %" PRIu16 " actuators %" PRIu16 " R/C inputs (cached)\n",
+	       _max_controls, _max_actuators, _max_rc_input);
 
-	/* status */
+	/* runtime status, published by Run() */
 	uORB::SubscriptionData<px4io_status_s> status_sub{ORB_ID(px4io_status)};
 	status_sub.update();
-
 	print_message(ORB_ID(px4io_status), status_sub.get());
 
-	/* now clear alarms */
-	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0x0000);
-
-	printf("\n");
-
-	uint16_t raw_inputs;
-	io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT, raw_inputs);
-	printf("%" PRIu16 " raw R/C inputs", raw_inputs);
-
-	for (unsigned i = 0; i < raw_inputs; i++) {
-		uint16_t value = 0;
-		io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i, value);
-		printf(" %" PRIu16, value);
-	}
-
-	printf("\n");
-	uint16_t adc_inputs;
-	io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_ADC_INPUT_COUNT, adc_inputs);
-	printf("ADC inputs");
-
-	for (unsigned i = 0; i < adc_inputs; i++) {
-		uint16_t value = 0;
-		io_reg_get(PX4IO_PAGE_RAW_ADC_INPUT, i, value);
-		printf(" %" PRIu16, value);
-	}
-
-	printf("\n");
-
-	/* setup and state */
-	uint16_t features;
-	io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, features);
-	printf("features 0x%04" PRIx16 "%s%s%s\n", features,
-	       ((features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
-	       ((features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
-	       ((features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
+	/* setup registers, refreshed by Run() at ~1 Hz */
+	printf("features 0x%04" PRIx16 "%s%s%s\n", _features,
+	       ((_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) ? " S.BUS1_OUT" : ""),
+	       ((_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) ? " S.BUS2_OUT" : ""),
+	       ((_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) ? " RSSI_ADC" : "")
 	      );
+	printf("sbus rate %" PRIu16 "\n", _sbus_rate);
+	printf("debuglevel %" PRIu16 "\n", _debug_level);
 
-	uint16_t sbus_rate;
-	io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE, sbus_rate);
-	printf("sbus rate %" PRIu16 "\n", sbus_rate);
-
-	uint16_t debug_level;
-	io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, debug_level);
-	printf("debuglevel %" PRIu16 "\n", debug_level);
-
-	/* IMU heater (Pixhawk 2.1) */
-	uint16_t heater_level;
-	io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_THERMAL, heater_level);
-
-	if (heater_level != UINT16_MAX) {
-		if (heater_level == PX4IO_THERMAL_OFF) {
-			printf("\nIMU heater off");
+	if (_thermal != UINT16_MAX) {
+		if (_thermal == PX4IO_THERMAL_OFF) {
+			printf("IMU heater off\n");
 
 		} else {
-			printf("\nIMU heater level %d", heater_level);
+			printf("IMU heater level %" PRIu16 "\n", _thermal);
 		}
 	}
 
-	printf("\n");
+	/* perf counters: cycle/interface timing (this module) + transaction health
+	 * (the serial transport) */
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
+	perf_print_counter(_interface_read_perf);
+	perf_print_counter(_interface_write_perf);
+	cubered_bridge_primary_print_perf(_interface);
 
 	_mixing_output.printStatus();
 	return 0;
@@ -1496,14 +1537,14 @@ int CuberedBridgePrimary::custom_command(int argc, char *argv[])
 		}
 
 		uint8_t level = atoi(argv[1]);
-		int ret = get_instance<CuberedBridgePrimary>(desc)->ioctl(nullptr, PX4IO_SET_DEBUG, level);
+		const PendingRegOp op{PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG, level, 0, false};
 
-		if (ret != 0) {
-			PX4_ERR("SET_DEBUG failed: %d", ret);
+		if (!get_instance<CuberedBridgePrimary>(desc)->queue_reg_op(op)) {
+			PX4_ERR("SET_DEBUG: command queue full");
 			return 1;
 		}
 
-		PX4_INFO("SET_DEBUG %" PRIu8 " OK", level);
+		PX4_INFO("SET_DEBUG %" PRIu8 " queued", level);
 		return 0;
 	}
 
@@ -1517,10 +1558,10 @@ int CuberedBridgePrimary::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sbus1_out")) {
-		int ret = get_instance<CuberedBridgePrimary>(desc)->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
+		const PendingRegOp op{PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_SBUS1_OUT, 0, true};
 
-		if (ret != 0) {
-			PX4_ERR("S.BUS v1 failed (%i)", ret);
+		if (!get_instance<CuberedBridgePrimary>(desc)->queue_reg_op(op)) {
+			PX4_ERR("S.BUS v1: command queue full");
 			return 1;
 		}
 
@@ -1528,10 +1569,10 @@ int CuberedBridgePrimary::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sbus2_out")) {
-		int ret = get_instance<CuberedBridgePrimary>(desc)->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
+		const PendingRegOp op{PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FEATURES, PX4IO_P_SETUP_FEATURES_SBUS2_OUT, 0, true};
 
-		if (ret != 0) {
-			PX4_ERR("S.BUS v2 failed (%i)", ret);
+		if (!get_instance<CuberedBridgePrimary>(desc)->queue_reg_op(op)) {
+			PX4_ERR("S.BUS v2: command queue full");
 			return 1;
 		}
 
@@ -1549,15 +1590,14 @@ int CuberedBridgePrimary::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "reboot")) {
-		int ret = get_instance<CuberedBridgePrimary>(desc)->io_reg_set(
-				  PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC);
+		const PendingRegOp op{PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, PX4IO_REBOOT_BL_MAGIC, 0, false};
 
-		if (ret != 0) {
-			PX4_ERR("reboot failed (%i)", ret);
+		if (!get_instance<CuberedBridgePrimary>(desc)->queue_reg_op(op)) {
+			PX4_ERR("reboot: command queue full");
 			return 1;
 		}
 
-		PX4_INFO("secondary reboot requested");
+		PX4_INFO("secondary reboot into bootloader queued");
 		return 0;
 	}
 

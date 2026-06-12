@@ -51,3 +51,21 @@ device::Device	*cubered_bridge_primary_interface();
  * its own task context — NuttX file descriptors aren't shared across tasks.
  */
 void cubered_bridge_primary_release(device::Device *interface);
+
+/**
+ * Tell the secondary's bootloader to boot straight into its application.
+ *
+ * The secondary bootloader always holds a host-flash window (it has no USB to
+ * signal "host present"), so without this it would wait out its full timeout on
+ * every boot before starting the app. Sending the bootloader's GET_SYNC + BOOT
+ * over the UART7 link kicks it into the app immediately. Safe no-op if the
+ * secondary is already running its app — the two short commands just fail the
+ * bridge CRC and are discarded.
+ */
+void cubered_bridge_primary_boot_secondary(device::Device *interface);
+
+/**
+ * Print the transport-layer perf counters (txns / retries / timeouts / crc /
+ * proto errors). Safe to call from any task — it only reads counter RAM.
+ */
+void cubered_bridge_primary_print_perf(device::Device *interface);
