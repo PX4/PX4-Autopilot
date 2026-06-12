@@ -377,7 +377,7 @@ bool param_value_is_default(param_t param)
 			}
 
 		case PARAM_TYPE_FLOAT: {
-				return user_config_value.f - runtime_default_value.f < FLT_EPSILON;
+				return fabsf(user_config_value.f - runtime_default_value.f) < FLT_EPSILON;
 			}
 		}
 	}
