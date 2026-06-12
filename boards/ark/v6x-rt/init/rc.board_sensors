@@ -85,8 +85,7 @@ then
 	icm45686 -R 6 -b 1 -s start
 
 	# Internal SPI2 IIM-20670 Accel/Gyro
-	# TODO: IIM-20670 driver not yet available rotation?
-	# iim20670 -R 6 -b 2 -s start
+	iim20670 -R 2 -b 2 -s start
 
 	# Internal SPI3 LSM6DSV80X Accel/Gyro (mounted at 45deg, pin 1 bottom-left)
 	lsm6dsv -R 1 -b 3 -s -T 80 start
