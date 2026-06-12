@@ -374,76 +374,31 @@ void DetectAndAvoid::update_most_urgent_conflict()
 	_conflict_tracker.refresh_most_urgent();
 }
 
-bool DetectAndAvoid::eval_conflict_escalation_action(const DaaAction requested_action) const
-{
-	if (requested_action <= DaaAction::kWarnOnly) {
-		PX4_DEBUG("DAA: Escalation to Warn, no action published");
-		return false;
-	}
-
-	DaaAction current_nav_state = nav_state_to_equivalent_daa_action(_navigator->get_vstatus()->nav_state);
-
-	// Only publish command if requested command is more critical than current navigator state.
-	if (requested_action <= current_nav_state) {
-		PX4_DEBUG("DAA: Requested action: %d less critical than current nav state: %d, no action published",
-			  (int)requested_action,
-			  (int)_navigator->get_vstatus()->nav_state);
-		return false;
-	}
-
-	return true;
-}
-
 void DetectAndAvoid::evaluate_and_publish_action()
 {
 	const conflict_info_s &most_urgent_conflict = _conflict_tracker.most_urgent();
 
-	if (most_urgent_conflict.conflict_level == _prev_most_urgent_conflict_level) {
-		return; // No change in conflict level, early return
+	const daa_action_decision_s decision = DaaActionPolicy::decide(
+			most_urgent_conflict.conflict_level, _prev_most_urgent_conflict_level,
+			_navigator->get_vstatus()->nav_state,
+			_navigator->get_land_detected()->landed,
+			_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED,
+			_previous_action, action_params());
+
+	if (decision.warn_on_ground) {
+		_conflict_notifier.maybe_notify_action_on_ground(decision.ground_warning_cause,
+				most_urgent_conflict.conflict_level, notifier_cycle_context());
 	}
 
-	const bool conflict_escalated = most_urgent_conflict.conflict_level > _prev_most_urgent_conflict_level;
+	if (decision.action_command != DaaAction::kDisabled) {
+		PX4_DEBUG("DAA: publish action %d", (int)decision.action_command);
+		publish_action_command(decision.action_command);
 
-	const DaaAction requested_action = get_action_from_conflict_level(most_urgent_conflict.conflict_level);
-	PX4_DEBUG("DAA: Conflict %s, attempt to publish action %d",  conflict_escalated ? "escalation" : "reduction",
-		  (int)requested_action);
-
-	if (_navigator->get_land_detected()->landed) {
-
-		if (requested_action <= DaaAction::kWarnOnly) {
-			PX4_DEBUG("DAA: drone landed and no action required. No action sent");
-			return;
+		if (decision.announce_action) {
+			_conflict_notifier.notify_new_action(most_urgent_conflict, decision.action_command);
 		}
 
-		const NotifyLandedActCause cause =
-			(_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-			? NotifyLandedActCause::kConflictAndArmed
-			: NotifyLandedActCause::kConflictAndDisarmed;
-
-		_conflict_notifier.maybe_notify_action_on_ground(cause, most_urgent_conflict.conflict_level,
-				notifier_cycle_context());
-
-		return;
-	}
-
-	if (conflict_escalated && eval_conflict_escalation_action(requested_action)) {
-		// Publish even if _previous_action == requested_action: it may not match vehicle_status.
-		PX4_DEBUG("DAA: publish action %d", (int)requested_action);
-		publish_action_command(requested_action);
-
-		// Avoid spamming if the vehicle command does not go through.
-		if (_previous_action != requested_action) {
-			_conflict_notifier.notify_new_action(most_urgent_conflict, requested_action);
-		}
-
-		_previous_action = requested_action;
-		return;
-	}
-
-	if (!conflict_escalated) {
-
-		PX4_DEBUG("DAA: De-escalation, prev act %d, nav state %d, ", static_cast<int>(_previous_action),
-			  _navigator->get_vstatus()->nav_state);
+		_previous_action = decision.action_command;
 	}
 }
 
@@ -624,78 +579,23 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transpon
 
 DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_level) const
 {
-	if (conflict_level < detect_and_avoid_s::DAA_CONFLICT_LVL_LOW
-	    || conflict_level > detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL) {
-		return DaaAction::kDisabled;
-	}
-
-#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	// F3442 zones are nested from CRITICAL to LOW. If the action for the
-	// breached zone is disabled, fall back to the next larger breached zone.
-	DaaAction requested_action{DaaAction::kDisabled};
-
-	switch (conflict_level) {
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL:
-		requested_action = action_param_to_daa_action(_param_daa_lvl_crit_act.get());
-
-		if (requested_action != DaaAction::kDisabled) {
-			return requested_action;
-		}
-
-	// FALLTHROUGH
-
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH:
-		requested_action = action_param_to_daa_action(_param_daa_lvl_high_act.get());
-
-		if (requested_action != DaaAction::kDisabled) {
-			return requested_action;
-		}
-
-	// FALLTHROUGH
-
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM:
-		requested_action = action_param_to_daa_action(_param_daa_lvl_med_act.get());
-
-		if (requested_action != DaaAction::kDisabled) {
-			return requested_action;
-		}
-
-	// FALLTHROUGH
-
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_LOW:
-		return action_param_to_daa_action(_param_daa_lvl_low_act.get());
-	}
-
-	return DaaAction::kDisabled;
-#else
-	return action_param_to_daa_action(_param_nav_traff_avoid.get());
-#endif // CONFIG_NAVIGATOR_ADSB_F3442
+	return DaaActionPolicy::action_from_conflict_level(conflict_level, action_params());
 }
 
-DaaAction DetectAndAvoid::action_param_to_daa_action(const int32_t action_param)
+daa_action_params_s DetectAndAvoid::action_params() const
 {
-	switch (action_param) {
-	case 0:
-		return DaaAction::kDisabled;
+	daa_action_params_s params{};
 
-	case 1:
-		return DaaAction::kWarnOnly;
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	params.lvl_low_act = _param_daa_lvl_low_act.get();
+	params.lvl_med_act = _param_daa_lvl_med_act.get();
+	params.lvl_high_act = _param_daa_lvl_high_act.get();
+	params.lvl_crit_act = _param_daa_lvl_crit_act.get();
+#else
+	params.traff_avoid = _param_nav_traff_avoid.get();
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-	case 2:
-		return DaaAction::kReturnMode;
-
-	case 3:
-		return DaaAction::kLandMode;
-
-	case 4:
-		return DaaAction::kPositionHoldMode;
-
-	case 5:
-		return DaaAction::kTerminate;
-
-	default:
-		return DaaAction::kDisabled;
-	}
+	return params;
 }
 
 void DetectAndAvoid::publish_action_command(const DaaAction requested_action)
@@ -741,54 +641,6 @@ void DetectAndAvoid::publish_action_command(const DaaAction requested_action)
 	_navigator->publish_vehicle_command(vcmd);
 }
 
-DaaAction DetectAndAvoid::nav_state_to_equivalent_daa_action(const uint8_t nav_state) const
-{
-	switch (nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF: {
-			return DaaAction::kDisabled;
-		}
-
-	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER: {
-			return DaaAction::kPositionHoldMode;
-		}
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
-			return DaaAction::kReturnMode;
-		}
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-
-	// manual modes overwritten by terminate
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-	case vehicle_status_s::NAVIGATION_STATE_STAB: {
-			return DaaAction::kLandMode;
-		}
-
-	case vehicle_status_s::NAVIGATION_STATE_TERMINATION: {
-			return DaaAction::kTerminate;
-		}
-
-	// OFFBOARD special handling, responsibility is given to offboard
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
-			return DaaAction::kMaxActionValue;
-		}
-
-	default:
-		break;
-	}
-
-	// Unknown states are treated as highest priority so DAA will not override them.
-	return DaaAction::kMaxActionValue;
-}
 
 #if defined(DEBUG_BUILD)
 void DetectAndAvoid::debug_print_buffer_status()

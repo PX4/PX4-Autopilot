@@ -34,6 +34,7 @@
 set(adsb_srcs
 	AdsbConflict.cpp
 	ConflictTracker.cpp
+	DaaActionPolicy.cpp
 	DaaEncodedId.cpp
 )
 
@@ -51,6 +52,7 @@ target_link_libraries(adsb PUBLIC geo)
 
 px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)
 px4_add_functional_gtest(SRC ConflictTrackerTest.cpp LINKLIBS adsb)
+px4_add_unit_gtest(SRC DaaActionPolicyTest.cpp LINKLIBS adsb)
 px4_add_unit_gtest(SRC DaaEncodedIdTest.cpp LINKLIBS adsb)
 
 if(CONFIG_NAVIGATOR_ADSB_F3442)

@@ -77,19 +77,6 @@ static_assert(kUasIdByteLength == PX4_GUID_BYTE_LENGTH, "kUasIdByteLength must m
 
 static constexpr uint64_t kRemoveStaleConflictsTime{2_s};
 
-// Internal action priority order used for escalation comparisons.
-// User-facing parameter values are translated separately so DAA_LVL_*_ACT can
-// share the NAV_TRAFF_AVOID convention without changing the priority ladder.
-enum class DaaAction : uint8_t {
-	kDisabled = 0,
-	kWarnOnly = 1,
-	kPositionHoldMode = 2,
-	kReturnMode = 3,
-	kLandMode = 4,
-	kTerminate = 5,
-	kMaxActionValue = 6
-};
-
 class DetectAndAvoid : public MissionBlock, public ModuleParams
 {
 public:
@@ -154,19 +141,7 @@ public:
 
 	/* Actions */
 
-	/**
-	 * @brief True if @p requested_action is more urgent than the current nav mode.
-	 *
-	 * Public so unit tests can drive the escalation logic directly.
-	 */
-	bool eval_conflict_escalation_action(const DaaAction requested_action) const;
-
-	/**
-	 * @brief Map a conflict level to a DAA action.
-	 *
-	 * For F3442, the zones are nested, so if the configured action is DISABLED the
-	 * function falls back to the action of the next larger zone.
-	 */
+	/** @brief Map a conflict level to a DAA action via the policy, using the current parameters. */
 	DaaAction get_action_from_conflict_level(const uint8_t conflict_level) const;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
@@ -261,18 +236,18 @@ private:
 	/* Handle actions */
 
 	/**
-	 * @brief Decide whether to publish a vehicle command for the current most-urgent conflict.
+	 * @brief Run the action policy for the current most urgent conflict and execute the decision.
 	 *
-	 * Splits in-air escalation, in-air de-escalation, and on-ground warnings.
+	 * Publishes the requested vehicle command and forwards the action/ground messages
+	 * to the notifier.
 	 */
 	void evaluate_and_publish_action();
 
 	/** @brief Convert a DAA action into the matching vehicle_command and publish it. */
 	void publish_action_command(const DaaAction requested_action);
 
-
-	/** @brief Return the DAA action equivalent to the current nav state (used to gate escalation). */
-	DaaAction nav_state_to_equivalent_daa_action(const uint8_t nav_state) const;
+	/** @brief Snapshot of the action parameters handed to the (parameter-free) action policy. */
+	daa_action_params_s action_params() const;
 
 	DaaAction _previous_action = DaaAction::kDisabled;
 
@@ -322,9 +297,6 @@ private:
 
 	/* Parameters */
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	/** @brief Translate the user-facing action param value into the internal DaaAction enum. */
-	static DaaAction action_param_to_daa_action(int32_t action_param);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DAA_EN>) _param_daa_en,

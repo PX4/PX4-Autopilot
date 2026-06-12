@@ -41,21 +41,6 @@
 
 #include "detect_and_avoid_test_common.h"
 
-struct action_priority_test_case_s {
-	const char *name{nullptr};
-	DaaAction action{DaaAction::kDisabled};
-	DetectAndAvoidTest::expected_outcome_s expected_outcome{};
-};
-
-class DetectAndAvoidActionPriorityTest : public DetectAndAvoidTest, public ::testing::WithParamInterface<action_priority_test_case_s>
-{
-};
-
-std::string action_priority_test_case_name(const ::testing::TestParamInfo<action_priority_test_case_s> &info)
-{
-	return info.param.name;
-}
-
 // WHY: Activation and deactivation gate all DetectAndAvoid processing and must fail closed on bad configuration.
 // WHAT: Verify successful startup with default params, then confirm the disabled parameter set leaves the module inactive.
 TEST_F(DetectAndAvoidTest, OnActivation)
@@ -223,25 +208,3 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_self_detection(foreign_uas_id));
 #endif
 }
-
-// WHY: Automatic DAA actions must only escalate when they are stronger than the current navigator state permits.
-// WHAT: Evaluate each requested action across representative navigation states and verify the expected escalation decisions.
-TEST_P(DetectAndAvoidActionPriorityTest, ActionPriorities)
-{
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_activated());
-
-	const action_priority_test_case_s &test_case = GetParam();
-	check_eval_conflict_escalation_action(navigator.get(), test_case.expected_outcome, test_case.action);
-}
-
-INSTANTIATE_TEST_SUITE_P(
-	AllActions,
-	DetectAndAvoidActionPriorityTest,
-	::testing::Values(
-		action_priority_test_case_s{"Disabled", DaaAction::kDisabled, {false, false, false, false}},
-		action_priority_test_case_s{"WarnOnly", DaaAction::kWarnOnly, {false, false, false, false}},
-		action_priority_test_case_s{"Hold", DaaAction::kPositionHoldMode, {true, false, false, false}},
-		action_priority_test_case_s{"ReturnMode", DaaAction::kReturnMode, {true, true, false, false}},
-		action_priority_test_case_s{"LandMode", DaaAction::kLandMode, {true, true, true, false}},
-		action_priority_test_case_s{"Terminate", DaaAction::kTerminate, {true, true, true, true}}),
-	action_priority_test_case_name);

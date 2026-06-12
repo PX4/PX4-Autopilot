@@ -39,7 +39,6 @@
  */
 
 #include "ConflictNotifier.h"
-#include "detect_and_avoid.h"
 
 #include <lib/mathlib/mathlib.h>
 #include <systemlib/err.h>
@@ -451,37 +450,9 @@ void ConflictNotifier::notify_new_action(const conflict_info_s &conflict_info, c
 	 */
 	events::send<uint64_t, uint8_t, uint8_t, uint32_t>(events::ID("navigator_traffic_action"), log_level,
 			"DAA automated action",
-			conflict_info.encoded_id.id, daa_action_to_action_param(action), conflict_level, aircraft_dist);
+			conflict_info.encoded_id.id, DaaActionPolicy::daa_action_to_action_param(action), conflict_level, aircraft_dist);
 }
 
-uint8_t ConflictNotifier::daa_action_to_action_param(const DaaAction action)
-{
-	// Inverse of DetectAndAvoid::action_param_to_daa_action. Operator messages report actions
-	// with the same numbering as the NAV_TRAFF_AVOID / DAA_LVL_*_ACT parameters, not the
-	// internal severity ladder.
-	switch (action) {
-	case DaaAction::kDisabled:
-		return 0;
-
-	case DaaAction::kWarnOnly:
-		return 1;
-
-	case DaaAction::kReturnMode:
-		return 2;
-
-	case DaaAction::kLandMode:
-		return 3;
-
-	case DaaAction::kPositionHoldMode:
-		return 4;
-
-	case DaaAction::kTerminate:
-		return 5;
-
-	default:
-		return 0;
-	}
-}
 
 bool ConflictNotifier::pending_new_conflict_notification_exists(const DaaEncodedId &target_encoded_id,
 		const new_conflicts_pending_notif_s &new_conflicts_pending_notif)

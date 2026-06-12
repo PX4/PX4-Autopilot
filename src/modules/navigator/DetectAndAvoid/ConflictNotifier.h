@@ -46,18 +46,12 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/adsb/ConflictTracker.h>
+#include <lib/adsb/DaaActionPolicy.h>
 #include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/transponder_report.h>
 
-enum class DaaAction : uint8_t;	// defined in detect_and_avoid.h
-
 static constexpr uint8_t kMaxLogMsgSize{128};
-
-enum class NotifyLandedActCause : uint8_t {
-	kConflictAndArmed = 0,
-	kConflictAndDisarmed = 1
-};
 
 // Worst case changes in one cycle: a full stale sweep plus two changes per drained report.
 static constexpr uint8_t kMaxCycleChanges{kDaaMaxTraffic + 2 * transponder_report_s::ORB_QUEUE_LENGTH};
@@ -182,9 +176,6 @@ private:
 
 	static bool pending_new_conflict_notification_exists(const DaaEncodedId &target_encoded_id,
 			const new_conflicts_pending_notif_s &new_conflicts_pending_notif);
-
-	/** @brief Report actions with the NAV_TRAFF_AVOID / DAA_LVL_*_ACT parameter numbering. */
-	static uint8_t daa_action_to_action_param(const DaaAction action);
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 

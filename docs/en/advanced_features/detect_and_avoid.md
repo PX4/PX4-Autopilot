@@ -911,10 +911,11 @@ Notes:
 The implementation is split between a platform-independent core and the navigator integration:
 
 - `src/lib/adsb`: the DAA core, with no uORB or navigator dependencies.
-  It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding (`DaaEncodedId`), and the active-conflict buffer (`ConflictTracker`).
+  It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding (`DaaEncodedId`), the active-conflict buffer (`ConflictTracker`), and the action policy (`DaaActionPolicy`).
   `ConflictTracker` owns the fixed-size conflict buffer and the priority rules: it inserts, updates, and evicts conflicts, caches the most urgent one, and reports every change that may require a user-facing message as a change record (`conflict_tracker_change_s`), without sending any notification itself.
+  `DaaActionPolicy` is a stateless decision function: given the most-urgent level transition, the navigation state, the landed/armed state, and the action parameter values, it returns which vehicle command to request and which action or ground message to send. It implements the level-to-action mapping (including the F3442 nested-zone fallback described in [Automated Actions](#automated-actions)) and the navigator-state escalation gate.
 - `src/modules/navigator/DetectAndAvoid`: the navigator integration.
-  It validates and identifies incoming `transponder_report` data, runs the built standard, feeds the result to the tracker, publishes the DAA topics, and requests [Automated Actions](#automated-actions).
+  It validates and identifies incoming `transponder_report` data, runs the built standard, feeds the result to the tracker, publishes the DAA topics, and executes the policy's action decisions (vehicle commands and action messages).
   All operator messaging is concentrated in one class, `ConflictNotifier`: it turns the change records collected over one cycle into the messages described in [Operator Messages](#operator-messages) in a single per-cycle call (`report_cycle()`), and also owns the message formatting, severity mapping, and rate-limit timers used by the action and ground warnings.
 
 ## Adding a New Standard
