@@ -61,6 +61,19 @@
 
 #define BOARD_OVERLOAD_LED     LED_BLUE
 
+/* WS2812 / NeoPixel serial RGB LED
+ *
+ * Wired to the S6 output pad (PA8 / TIM1_CH1). TIM1 is freed for this use in
+ * the NuttX defconfig (CONFIG_STM32_TIM1 disabled), and the serial-LED DMA
+ * uses DMA2 Stream6 which is freed by disabling the unused SDIO peripheral
+ * (the SD card on this board is wired to SPI2 as SPI-MMCSD).
+ */
+#define BOARD_HAS_N_S_RGB_LED      1
+#define S_RGB_LED_DMA              DMAMAP_TIM1_CH1_1   /* DMA2 Stream6 Channel0 */
+#define S_RGB_LED_TIMER            1
+#define S_RGB_LED_CHANNEL          1
+#define S_RGB_LED_TIM_GPIO         GPIO_TIM1_CH1OUT_1  /* PA8 */
+
 #define  FLASH_BASED_PARAMS
 
 /*

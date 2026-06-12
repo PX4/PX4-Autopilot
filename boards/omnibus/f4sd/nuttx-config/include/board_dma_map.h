@@ -79,7 +79,7 @@
 #define DMACHAN_SPI2_RX    DMAMAP_SPI2_RX     // DMA1, Stream 3, Channel 0    (SPI2 RX)
 #define DMACHAN_SPI2_TX    DMAMAP_SPI2_TX     // DMA1, Stream 4, Channel 0    (SPI2 TX)
 //      AVAILABLE                             // DMA2, Stream 5
-//      AVAILABLE                             // DMA2, Stream 6
+//      WS2812 (TIM1_CH1)                     // DMA2, Stream 6, Channel 0    (serial RGB LED, was SDIO)
 //      AVAILABLE                             // DMA2, Stream 7
 
 //  DMA2 Channel/Stream Selections
@@ -90,5 +90,5 @@
 #define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_1   // DMA2, Stream 3, Channel 3    (SPI1 TX)
 //      AVAILABLE                             // DMA2, Stream 4
 //      AVAILABLE                             // DMA2, Stream 5
-#define DMAMAP_SDIO        DMAMAP_SDIO_2      // DMA2, Stream 6, Channel 4
+// DMA2, Stream 6 reused by WS2812 serial RGB LED (TIM1_CH1, DMAMAP_TIM1_CH1_1); SDIO disabled (SD card is SPI-MMCSD on SPI2)
 //      AVAILABLE                             // DMA2, Stream 7
