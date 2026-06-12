@@ -54,24 +54,26 @@ using namespace time_literals;
 #if defined(DEBUG_BUILD)
 void DetectAndAvoid::debug_print_buffer_status()
 {
+	const conflict_info_s &most_urgent_conflict = _conflict_tracker.most_urgent();
+
 	char encoded_id_str[kUtmGuidMsgLength];
-	_most_urgent_conflict.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
+	most_urgent_conflict.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
 
 	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() -
-					 _most_urgent_conflict.latest_update_timestamp) / 1_s);
-	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(_most_urgent_conflict.aircraft_dist));
+					 most_urgent_conflict.latest_update_timestamp) / 1_s);
+	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(most_urgent_conflict.aircraft_dist));
 
-	const int buff_size = static_cast<int>(_traffic_buffer.size());
+	const int buff_size = static_cast<int>(_conflict_tracker.size());
 
 	PX4_DEBUG("Buffer status: %d conflict(s), max lvl %d, prev max lvl %d,",
 		  buff_size,
-		  _most_urgent_conflict.conflict_level,
+		  most_urgent_conflict.conflict_level,
 		  _prev_most_urgent_conflict_level);
 
 	PX4_DEBUG("Max conflict: Unique ID %lu, ID str %s, lvl %d, distance %d, last comm %d sec \n",
-		  _most_urgent_conflict.encoded_id.id,
+		  most_urgent_conflict.encoded_id.id,
 		  encoded_id_str,
-		  _most_urgent_conflict.conflict_level,
+		  most_urgent_conflict.conflict_level,
 		  aircraft_dist,
 		  time_since_last_comm);
 }
@@ -179,7 +181,7 @@ void DetectAndAvoid::notify_traffic_ignored(const conflict_info_s &conflict_info
 	/* EVENT
 	* @description
 	* - ID: {1}
-	* - cause: {2} (0:buffer full, 1:update failed, 2:removal failed, 3:insert failed, 4:level lookup failed, 5:invalid index)
+	* - cause: {2} (0:buffer full, 1:removal failed, 2:insert failed, 3:level lookup failed, 4:invalid index)
 	* - conflict level: {3}
 	*/
 	events::send<uint64_t, uint8_t, uint8_t>(events::ID("navigator_traffic_ignore"), events::Log::Warning,

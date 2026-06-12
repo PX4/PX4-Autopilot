@@ -1,6 +1,6 @@
 # Detect and Avoid
 
-Detect and Avoid (DAA) is implemented as the `detect_and_avoid` library and runs inside the [`navigator`](../modules/modules_controller.md#navigator) module.
+Detect and Avoid (DAA) runs inside the [`navigator`](../modules/modules_controller.md#navigator) module (`DetectAndAvoid`), on top of the `adsb` library which handles (conflict standards, traffic identification, and conflict tracking; see [Implementation Structure](#implementation-structure)).
 It evaluates cooperative ("transponder-equipped") traffic, such as that from ADS-B, FLARM, or UTM integrations, that is reported through the [`transponder_report`](../msg_docs/TransponderReport.md) topic.
 DAA can warn the operator, request navigator actions, or block arming when a conflict requires an automatic response.
 
@@ -57,9 +57,10 @@ Each navigator cycle, DAA:
    - Filters self-detections using ownship ICAO, ADS-B callsign, and UAS ID.
 2. Evaluates the conflict with the built DAA standard.
    - Publishes the per-traffic result on [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md).
-3. Updates the active-conflict buffer and selects the most urgent conflict.
+3. Applies the result to the active-conflict buffer (`ConflictTracker`) and selects the most urgent conflict.
+   - The tracker reports buffer changes (new, level changed, removed, ignored).
    - Publishes the most urgent conflict summary on [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md).
-4. Sends warnings and, if configured, requests a navigator action.
+4. Translates the tracker report into operator warnings and, if configured, requests a navigator action.
 
 Conflict priority is determined by:
 
@@ -587,11 +588,10 @@ See [Automated Actions](#automated-actions) for the full action parameter conven
     This warning is rate-limited to once every `2 s`.
     The cause can be:
     - BUFFER_FULL = 0,
-    - FAILED_UPDATE = 1,
-    - FAILED_REMOVAL = 2,
-    - FAILED_INCLUSION = 3,
-    - FAILED_TO_GET_LVL = 4,
-    - INVALID_INDEX = 5
+    - FAILED_REMOVAL = 1,
+    - FAILED_INCLUSION = 2,
+    - FAILED_TO_GET_LVL = 3,
+    - INVALID_INDEX = 4
 - **Actions:** `DAA <ID>: Hold!`, `Return!`, `Land!`, `Terminate!`, and the on-ground `DAA do not arm until air conflict solved!` / `DAA do not takeoff until air conflict solved!` warnings only appear when a conflict level is configured with an automatic action stronger than `Warn only`. The default DAA parameters are warn-only so by default these action messages are not emitted.
 - **No more conflicts:** `DAA all conflicts solved.`: emitted immediately when the most urgent conflict clears and no warning-level conflicts remain.
 
@@ -905,6 +905,16 @@ Notes:
 - DAA selects high-level navigator actions; it does not solve conflict geometry beyond the selected conflict model.
 - Conflict handling is bounded by a fixed-size active-conflict buffer.
 - DAA quality depends on the quality and freshness of both traffic data and vehicle state.
+
+## Implementation Structure
+
+The implementation is split between a platform-independent core and the navigator integration:
+
+- `src/lib/adsb`: the DAA core, with no uORB or navigator dependencies.
+  It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding (`DaaEncodedId`), and the active-conflict buffer (`ConflictTracker`).
+  `ConflictTracker` owns the fixed-size conflict buffer and the priority rules: it inserts, updates, and evicts conflicts, caches the most urgent one, and reports every change that may require a user-facing message as a change record (`conflict_tracker_change_s`), without sending any notification itself.
+- `src/modules/navigator/DetectAndAvoid`: the navigator integration.
+  It validates and identifies incoming `transponder_report` data, runs the built standard, feeds the result to the tracker, translates the tracker's change records into the operator messages described in [Operator Messages](#operator-messages), publishes the DAA topics, and requests [Automated Actions](#automated-actions).
 
 ## Adding a New Standard
 

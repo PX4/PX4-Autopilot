@@ -53,6 +53,7 @@
 #include <uORB/topics/detect_and_avoid.h>
 #include <uORB/topics/detect_and_avoid_most_urgent.h>
 #include <lib/adsb/AdsbConflict.h>
+#include <lib/adsb/ConflictTracker.h>
 #include <lib/adsb/DaaEncodedId.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
@@ -78,7 +79,6 @@ static_assert(kUasIdByteLength == PX4_GUID_BYTE_LENGTH, "kUasIdByteLength must m
 
 static constexpr uint8_t kMaxLogMsgSize{128};
 
-static constexpr uint8_t kDaaMaxTraffic{5};
 static constexpr uint64_t kRemoveStaleConflictsTime{2_s};
 
 // Internal action priority order used for escalation comparisons.
@@ -94,23 +94,9 @@ enum class DaaAction : uint8_t {
 	kMaxActionValue = 6
 };
 
-enum class RemoveBufferCause : uint8_t {
-	kStaleConflict = 0,
-	kBufferFull = 1
-};
-
 enum class NotifyLandedActCause : uint8_t {
 	kConflictAndArmed = 0,
 	kConflictAndDisarmed = 1
-};
-
-enum class IgnoreTrafficCause : uint8_t {
-	kBufferFull = 0,
-	kFailedUpdate = 1,
-	kFailedRemoval = 2,
-	kFailedInclusion = 3,
-	kFailedToGetLvl = 4,
-	kInvalidIndex = 5
 };
 
 // Selects the message prefix and severity used when a tracked conflict's level changes.
@@ -120,13 +106,6 @@ enum class ConflictNotifyKind : uint8_t {
 	kMostUrgent = 0,	// already tracked most urgent conflict ("DAA Main:")
 	kMostUrgentNew = 1,	// most urgent conflict that appeared this cycle ("DAA New and Main:")
 	kSecondary = 2		// any other tracked conflict ("DAA SEC:")
-};
-
-struct conflict_info_s {
-	DaaEncodedId encoded_id{};
-	hrt_abstime latest_update_timestamp{0};
-	uint8_t conflict_level{detect_and_avoid_s::DAA_CONFLICT_LVL_NONE};
-	float aircraft_dist{0.f}; // Distance to aircraft = sqrtf(dist_hor^2 + dist_vert^2)
 };
 
 class DetectAndAvoid : public MissionBlock, public ModuleParams
@@ -218,11 +197,9 @@ public:
 	void fake_traffic(const SyntheticTrafficReport &report);
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	conflict_info_s get_most_urgent_conflict() const { return _most_urgent_conflict; }
+	conflict_info_s get_most_urgent_conflict() const { return _conflict_tracker.most_urgent(); }
 
 private:
-	px4::Array<conflict_info_s, kDaaMaxTraffic> _traffic_buffer{};
-
 	using new_conflicts_pending_notif_s = px4::Array<DaaEncodedId, transponder_report_s::ORB_QUEUE_LENGTH>;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
@@ -272,49 +249,31 @@ private:
 
 	bool _is_activated{false};
 
-	/* Handle traffic buffer */
+	/* Conflict tracking */
+
+	// Conflict tracker (buffer, priority rules, most-urgent cache) lives in the
+	// adsb library; this module translates the tracker's changes into operator notifications.
+	ConflictTracker _conflict_tracker{};
 
 	/**
-	 * @brief Update or remove an existing buffer entry from a fresh report.
+	 * @brief Translate tracker changes into operator notifications.
 	 *
-	 * DAA_CONFLICT_LVL_NONE removes the entry; everything else overwrites it.
+	 * New warning-level conflicts are queued in @p new_conflicts_pending_notif until the ORB
+	 * queue drain completes. Removals of entries still pending their "new" warning stay
+	 * silent: they were never user-visible.
 	 */
-	bool handle_existing_conflict(const conflict_info_s &current_conflict, const int current_conflict_idx);
+	void handle_tracker_changes(const conflict_tracker_changes_s &changes,
+				    new_conflicts_pending_notif_s &new_conflicts_pending_notif);
 
 	/**
-	 * @brief Insert a new conflict, evicting the least urgent entry when the buffer is full.
-	 *
-	 * No "removed" warning for entries that were only added in the same spin.
+	 * @brief Announce a tracked conflict's level change unless it is (about to become) the most
+	 * urgent conflict, which is reported through the DAA status instead.
 	 */
-	bool handle_new_conflict(const conflict_info_s &current_conflict, const new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+	void maybe_notify_secondary_level_change(const conflict_tracker_change_s &change);
 
-	/** @brief Walk the buffer back-to-front and remove entries older than the timeout. */
-	bool stale_conflicts_removed();
-
-	bool try_removing_conflict_from_buffer(const int conflict_idx, conflict_info_s &removed_conflict);
-
-	/* Handle conflict level */
-
-	// Selects which extreme of the conflict buffer find_conflict_idx_by_priority() returns.
-	enum class ConflictPriority : uint8_t {
-		kMostUrgent,	// is_conflict_more_important: higher conflict level first, ties broken by the smaller distance
-		kLeastUrgent	// is_conflict_less_important: lower conflict level first, ties broken by the larger distance
-	};
-
-	/** @brief Return the index of the most or least urgent buffer entry, or -1 if the buffer is empty. */
-	int find_conflict_idx_by_priority(const ConflictPriority priority) const;
-
-	static bool is_conflict_more_important(const conflict_info_s &new_conflict, const conflict_info_s &base_conflict);
-	static bool is_conflict_less_important(const conflict_info_s &new_conflict, const conflict_info_s &base_conflict);
-
-	/** @brief Get the highest-priority conflict in the buffer, or false if empty. */
-	bool find_most_urgent_conflict(conflict_info_s &most_urgent_conflict) const;
-
-	/** @brief Recompute @c _most_urgent_conflict from the current buffer state. */
+	/** @brief Refresh the tracker's most-urgent cache and mark the status for publication. */
 	void update_most_urgent_conflict();
 
-	void reset_most_urgent_conflict();
-	conflict_info_s _most_urgent_conflict{};
 	bool _most_urgent_conflict_changed{false};
 	uint8_t _prev_most_urgent_conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 
@@ -369,9 +328,6 @@ private:
 
 	/** @brief Build ownship and traffic inputs for the DAA standard from a valid report. */
 	daa_input_s prepare_daa_input(const transponder_report_s &transponder_report);
-
-	/** @brief Updates an already-tracked conflict in the buffer and handles escalation/de-escalation alerts. */
-	bool process_existing_conflict(const conflict_info_s &current_conflict, int current_conflict_idx);
 
 	/** @brief True if the latest global and local position fixes are finite and recent enough. */
 	bool uav_pose_valid_and_updated() const;
@@ -440,9 +396,6 @@ private:
 
 	/* Helper functions */
 	bool conflict_lvl_requires_warning(const uint8_t conflict_level) const;
-	inline bool is_valid_buffer_idx(const int idx) const {return idx >= 0 && idx < static_cast<int>(_traffic_buffer.size());};
-
-	int find_encoded_id_in_buffer(const DaaEncodedId &target_encoded_id) const;
 
 	/** @brief True (and stamps @p last_time to now) if @p interval has passed since the previous trigger. */
 	bool has_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
