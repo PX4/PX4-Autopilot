@@ -32,8 +32,9 @@
 ############################################################################
 
 set(detect_and_avoid_srcs
+	ConflictNotifier.cpp
+	ConflictNotifier.h
 	detect_and_avoid.cpp
-	detect_and_avoid_notify.cpp
 	detect_and_avoid.h
 )
 

@@ -165,6 +165,12 @@ bool ConflictTracker::update_conflict(const conflict_info_s &conflict, const int
 		change.type = ConflictTrackerChangeType::kConflictLevelChanged;
 		change.conflict = conflict;
 		change.previous_level = previous_conflict_level;
+
+		const int most_urgent_idx = find_conflict_idx_by_priority(ConflictPriority::kMostUrgent);
+		change.conflict_is_most_urgent = (_most_urgent.encoded_id == conflict.encoded_id)
+						 || (is_valid_idx(most_urgent_idx)
+						     && _buffer[most_urgent_idx].encoded_id == conflict.encoded_id);
+
 		changes.push_back(change);
 	}
 

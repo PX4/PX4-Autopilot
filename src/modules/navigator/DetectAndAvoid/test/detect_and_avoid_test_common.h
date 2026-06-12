@@ -571,8 +571,11 @@ public:
 		}
 	};
 
-	void check_highest_conflict(const uint8_t conflict_level, const bool action_required)
+	void check_highest_conflict(const uint8_t conflict_level)
 	{
+
+		const bool action_required = navigator->get_detect_and_avoid()->get_action_from_conflict_level(conflict_level) > DaaAction::kWarnOnly;
+
 		if (_detect_and_avoid_most_urgent_sub.updated()) {
 			ASSERT_TRUE(_detect_and_avoid_most_urgent_sub.update());
 		}

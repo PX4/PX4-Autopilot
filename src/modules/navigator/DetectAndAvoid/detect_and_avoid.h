@@ -41,6 +41,7 @@
 #pragma once
 
 #include "../mission_block.h"
+#include "ConflictNotifier.h"
 
 #include <pthread.h>
 
@@ -63,9 +64,6 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
 
-#include <systemlib/mavlink_log.h>
-#include <px4_platform_common/events.h>
-
 #include <px4_platform_common/board_common.h>
 #include <px4_platform_common/time.h>
 
@@ -76,8 +74,6 @@ using namespace time_literals;
 // DaaEncodedId keeps a board-agnostic copy of the GUID byte length; validate it against the
 // platform definition here, where board_common.h is available.
 static_assert(kUasIdByteLength == PX4_GUID_BYTE_LENGTH, "kUasIdByteLength must match PX4_GUID_BYTE_LENGTH");
-
-static constexpr uint8_t kMaxLogMsgSize{128};
 
 static constexpr uint64_t kRemoveStaleConflictsTime{2_s};
 
@@ -92,20 +88,6 @@ enum class DaaAction : uint8_t {
 	kLandMode = 4,
 	kTerminate = 5,
 	kMaxActionValue = 6
-};
-
-enum class NotifyLandedActCause : uint8_t {
-	kConflictAndArmed = 0,
-	kConflictAndDisarmed = 1
-};
-
-// Selects the message prefix and severity used when a tracked conflict's level changes.
-// The most-urgent conflict drives DAA actions and is reported with
-// level-based severity; secondary conflicts stay informational.
-enum class ConflictNotifyKind : uint8_t {
-	kMostUrgent = 0,	// already tracked most urgent conflict ("DAA Main:")
-	kMostUrgentNew = 1,	// most urgent conflict that appeared this cycle ("DAA New and Main:")
-	kSecondary = 2		// any other tracked conflict ("DAA SEC:")
 };
 
 class DetectAndAvoid : public MissionBlock, public ModuleParams
@@ -179,8 +161,13 @@ public:
 	 */
 	bool eval_conflict_escalation_action(const DaaAction requested_action) const;
 
-	/** @brief True if the conflict level maps to something beyond a warn-only notification. */
-	bool conflict_lvl_requires_action(const uint8_t conflict_level) const;
+	/**
+	 * @brief Map a conflict level to a DAA action.
+	 *
+	 * For F3442, the zones are nested, so if the configured action is DISABLED the
+	 * function falls back to the action of the next larger zone.
+	 */
+	DaaAction get_action_from_conflict_level(const uint8_t conflict_level) const;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 	/**
@@ -200,8 +187,6 @@ public:
 	conflict_info_s get_most_urgent_conflict() const { return _conflict_tracker.most_urgent(); }
 
 private:
-	using new_conflicts_pending_notif_s = px4::Array<DaaEncodedId, transponder_report_s::ORB_QUEUE_LENGTH>;
-
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 	struct fake_traffic_origin_s {
 		double lat{0.0};
@@ -252,24 +237,23 @@ private:
 	/* Conflict tracking */
 
 	// Conflict tracker (buffer, priority rules, most-urgent cache) lives in the
-	// adsb library; this module translates the tracker's changes into operator notifications.
+	// adsb library; the notifier turns its change records into operator messages.
 	ConflictTracker _conflict_tracker{};
 
-	/**
-	 * @brief Translate tracker changes into operator notifications.
-	 *
-	 * New warning-level conflicts are queued in @p new_conflicts_pending_notif until the ORB
-	 * queue drain completes. Removals of entries still pending their "new" warning stay
-	 * silent: they were never user-visible.
-	 */
-	void handle_tracker_changes(const conflict_tracker_changes_s &changes,
-				    new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+	// All DAA operator messaging: formatting, severities and rate limiting.
+	ConflictNotifier _conflict_notifier{};
 
-	/**
-	 * @brief Announce a tracked conflict's level change unless it is (about to become) the most
-	 * urgent conflict, which is reported through the DAA status instead.
-	 */
-	void maybe_notify_secondary_level_change(const conflict_tracker_change_s &change);
+	// Tracker changes collected over one cycle and passed to the notifier.
+	conflict_cycle_changes_s _cycle_changes{};
+
+	/** @brief Append @p changes to the list sent to the notifier once per cycle. */
+	void collect_tracker_changes(const conflict_tracker_changes_s &changes);
+
+	/** @brief Bit i set = conflict level i requires an operator warning (from the action params). */
+	uint8_t warning_levels_mask() const;
+
+	/** @brief Cycle context (previous level, warning mask, notification interval) for the notifier. */
+	ConflictNotifier::cycle_context_s notifier_cycle_context() const;
 
 	/** @brief Refresh the tracker's most-urgent cache and mark the status for publication. */
 	void update_most_urgent_conflict();
@@ -289,13 +273,6 @@ private:
 	/** @brief Convert a DAA action into the matching vehicle_command and publish it. */
 	void publish_action_command(const DaaAction requested_action);
 
-	/**
-	 * @brief Map a conflict level to a DAA action.
-	 *
-	 * For F3442, the zones are nested, so if the configured action is DISABLED the
-	 * function falls back to the action of the next larger zone.
-	 */
-	DaaAction get_action_from_conflict_level(const uint8_t conflict_level) const;
 
 	/** @brief Return the DAA action equivalent to the current nav state (used to gate escalation). */
 	DaaAction nav_state_to_equivalent_daa_action(const uint8_t nav_state) const;
@@ -317,11 +294,10 @@ private:
 	AdsbConflict _adsb_conflict_detector;
 
 	/** @brief Drain queued transponder reports and update the conflict buffer. */
-	bool process_transponder_queue(new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+	bool process_transponder_queue();
 
 	/** @brief Run one valid traffic report through DAA and apply the result. */
-	bool process_transponder_report(const transponder_report_s &transponder_report,
-					new_conflicts_pending_notif_s &new_conflicts_pending_notif);
+	bool process_transponder_report(const transponder_report_s &transponder_report);
 
 	/** @brief Extract a usable traffic identifier and reject ownship reports. */
 	bool identify_traffic_report(const transponder_report_s &transponder_report, DaaEncodedId &encoded_id) const;
@@ -335,73 +311,10 @@ private:
 	/** @brief True if the report has finite coords/altitude, the required flags, and a recent timestamp. */
 	bool transponder_data_valid(const transponder_report_s &transponder_report) const;
 
-	/* Timers to avoid spamming */
 	hrt_abstime _time_last_buffer_clean{0};
-	hrt_abstime _time_last_status_notif{0};
-	hrt_abstime _time_last_traffic_ignored{0};
-	hrt_abstime _time_last_landed_warning{0};
-
-	/* Notifications */
-	orb_advert_t _mavlink_log_pub{nullptr};
-
-	/** @brief Emit the per-spin conflict notifications. */
-	void notify_if_needed(const new_conflicts_pending_notif_s &new_conflicts_pending_notif);
-
-	/**
-	 * @brief Decide whether to notify about a conflict level right now.
-	 *
-	 * Forces a notification on level transitions when either side requires a warning,
-	 * otherwise rate-limits to one notification per @p interval.
-	 */
-	bool must_notify(const uint8_t current_conflict_level, const hrt_abstime time_last_notified,
-			 const hrt_abstime interval, const uint8_t previous_conflict_level = 0) const;
-
-	/** @brief Send the user-facing message and event for a newly-published DAA action. */
-	void notify_new_action(const conflict_info_s &conflict_info, const DaaAction action);
-
-	/** @brief Warn the operator that air traffic is present while the vehicle is on the ground. */
-	void notify_action_on_ground(const NotifyLandedActCause cause);
-
-	/**
-	 * @brief Notify the operator about a tracked conflict whose level changed (or a periodic
-	 * update of the most-urgent conflict).
-	 *
-	 * Handles escalation, de-escalation and the "solved" transition for both the most urgent
-	 * ("main") and secondary conflicts. @p kind selects the message prefix and whether the
-	 * severity follows the conflict level. Secondary conflicts emit nothing when the level is
-	 * unchanged; the most-urgent conflict also emits a periodic status at the unchanged level.
-	 */
-	void notify_conflict_level(const conflict_info_s &conflict_info, const uint8_t previous_conflict_level,
-				   const ConflictNotifyKind kind);
-
-	void maybe_notify_ignored_traffic(const conflict_info_s &conflict, const IgnoreTrafficCause cause);
-
-	/** @brief Warn the user that a traffic report was dropped, tagged with the underlying cause. */
-	void notify_traffic_ignored(const conflict_info_s &conflict_info, const IgnoreTrafficCause cause);
-
-	/** @brief Tell the user a previously-tracked conflict was removed (stale or buffer full). */
-	void notify_traffic_removed(const conflict_info_s &conflict_info, const RemoveBufferCause cause);
-
-	/** @brief Emit the first notification for a newly added conflict. */
-	void notify_new_conflict(const conflict_info_s &conflict_info);
-
-	/**
-	 * @brief Send @p message_buffer over MAVLink with a severity derived from @p conflict_level.
-	 *
-	 * Returns false (and sends nothing) for NONE or out-of-range levels. Sets
-	 * @p log_level so the caller can re-use the same severity for a matching event.
-	 */
-	bool mavlink_log_conflict_by_level(const uint8_t conflict_level, const char message_buffer[kMaxLogMsgSize],
-					   events::Log &log_level);
-
-	/* Helper functions */
-	bool conflict_lvl_requires_warning(const uint8_t conflict_level) const;
 
 	/** @brief True (and stamps @p last_time to now) if @p interval has passed since the previous trigger. */
 	bool has_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
-
-	static bool pending_new_conflict_notification_exists(const DaaEncodedId &target_encoded_id,
-			const new_conflicts_pending_notif_s &new_conflicts_pending_notif);
 
 	/* Debug functions */
 #if defined(DEBUG_BUILD)
@@ -415,9 +328,6 @@ private:
 
 	/** @brief Translate the user-facing action param value into the internal DaaAction enum. */
 	static DaaAction action_param_to_daa_action(int32_t action_param);
-
-	/** @brief Inverse of action_param_to_daa_action: report actions with the parameter numbering. */
-	static uint8_t daa_action_to_action_param(DaaAction action);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DAA_EN>) _param_daa_en,

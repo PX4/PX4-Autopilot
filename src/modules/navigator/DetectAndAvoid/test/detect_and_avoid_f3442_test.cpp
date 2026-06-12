@@ -450,7 +450,7 @@ TEST_F(DetectAndAvoidTest, DisabledHigherPriorityConflictFallsBackToEnabledZone)
 
 	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlCritical);
-	check_highest_conflict(kDaaConflictLvlCritical, true);
+	check_highest_conflict(kDaaConflictLvlCritical);
 
 	// THEN: The module falls back to the next enabled breached action and commands land.
 	ASSERT_TRUE(_vehicle_command_sub.update());
@@ -1428,8 +1428,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	conflict = expect_most_urgent_conflict(prio_6_conflict_level, prio_6_icao_2F1BF1);
 	EXPECT_EQ(conflict.aircraft_dist, prio_6_in_aug_wc_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 5, 4F74EE Aug NMAC conflict");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1441,8 +1440,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	conflict = expect_most_urgent_conflict(prio_5_conflict_level, prio_5_icao_4F74EE);
 	EXPECT_EQ(conflict.aircraft_dist, prio_5_in_aug_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 4, BAF2B4 Aug NMAC conflict");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1454,8 +1452,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	conflict = expect_most_urgent_conflict(prio_4_conflict_level, prio_4_icao_BAF2B4);
 	EXPECT_EQ(conflict.aircraft_dist, prio_4_in_aug_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 3, 32A475 WC conflict");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1467,8 +1464,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	conflict = expect_most_urgent_conflict(prio_3_conflict_level, prio_3_icao_32A475);
 	EXPECT_EQ(conflict.aircraft_dist, prio_3_in_wc_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 2, 36A887 WC conflict");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1480,8 +1476,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	conflict = expect_most_urgent_conflict(prio_2_conflict_level, prio_2_icao_36A887);
 	EXPECT_EQ(conflict.aircraft_dist, prio_2_in_wc_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	// THEN: Priority 2 is the most urgent conflict before overflow cases are exercised.
 
@@ -1499,8 +1494,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer [6, 5, 4, 3, 2]
 	EXPECT_EQ(conflict.aircraft_dist, prio_2_in_wc_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	// WHEN: A new highest-priority conflict arrives.
 	PX4_DEBUG("---- F_TEST DAA: Prio 0, 96CD13 NMAC conflict");
@@ -1516,8 +1510,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [5, 4, 3, 2, 0]
 	EXPECT_EQ(conflict.aircraft_dist, prio_0_in_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	// WHEN: A second high-priority conflict is inserted.
 	PX4_DEBUG("---- F_TEST DAA: Prio 1, A72BC8 NMAC conflict");
@@ -1533,8 +1526,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [4, 3, 2, 1, 0]
 	EXPECT_EQ(conflict.aircraft_dist, prio_0_in_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	// WHEN: The top-priority conflict resolves.
 	PX4_DEBUG("---- F_TEST DAA: Prio 0, 96CD13 resolve");
@@ -1550,8 +1542,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [4, 3, 2, 1]
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	// WHEN: The buffer has room again and a low-priority conflict is added back.
 	PX4_DEBUG("---- F_TEST DAA: Prio 7, 6F0C1B Aug WC conflict");
@@ -1567,8 +1558,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [7, 4, 3, 2, 1]
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	// WHEN: Mid-priority conflicts resolve one by one.
 	PX4_DEBUG("---- F_TEST DAA: Prio 3, 32A475 resolve");
@@ -1582,8 +1572,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [7, 4, 2, 1]
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 2, 36A887 resolve");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1596,8 +1585,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [7, 4, 1]
 	EXPECT_EQ(conflict.aircraft_dist, prio_1_in_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 1, A72BC8 resolve");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1610,8 +1598,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [7, 4]
 	EXPECT_EQ(conflict.aircraft_dist, prio_4_in_aug_nmac_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 4, BAF2B4 resolve");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1624,8 +1611,7 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: [7]
 	EXPECT_EQ(conflict.aircraft_dist, prio_7_in_aug_wc_overall_dist);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 
 	PX4_DEBUG("---- F_TEST DAA: Prio 7, 6F0C1B resolve");
 	navigator->get_detect_and_avoid()->fake_traffic(
@@ -1640,6 +1626,5 @@ TEST_F(DetectAndAvoidTest, BufferFull)
 	// Buffer: []
 	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
-	check_highest_conflict(conflict.conflict_level,
-			       navigator->get_detect_and_avoid()->conflict_lvl_requires_action(conflict.conflict_level));
+	check_highest_conflict(conflict.conflict_level);
 }

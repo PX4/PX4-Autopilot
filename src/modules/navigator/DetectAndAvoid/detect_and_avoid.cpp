@@ -75,13 +75,11 @@ void DetectAndAvoid::reset()
 void DetectAndAvoid::clear_conflicts()
 {
 	_conflict_tracker.clear();
+	_conflict_notifier.reset();
 	_most_urgent_conflict_changed = true;
 	_previous_action = DaaAction::kDisabled;
 	_prev_most_urgent_conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 	_time_last_buffer_clean = 0;
-	_time_last_status_notif = 0;
-	_time_last_traffic_ignored = 0;
-	_time_last_landed_warning = 0;
 }
 
 void DetectAndAvoid::on_inactivation()
@@ -116,9 +114,7 @@ void DetectAndAvoid::update_activation_status()
 			reset();
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "DAA invalid params. Traffic warnings and actions disabled.\t");
-		events::send(events::ID("navigator_traffic_init_failed"), events::Log::Critical,
-			     "DAA invalid params. Traffic warnings and actions disabled");
+		PX4_ERR("DAA invalid params. Traffic warnings and actions disabled");
 		return;
 	}
 
@@ -170,25 +166,24 @@ void DetectAndAvoid::process_traffic()
 	process_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	new_conflicts_pending_notif_s new_conflicts_pending_notif{};
+	_cycle_changes.clear();
 
 	if (has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime)) {
 		conflict_tracker_changes_s stale_changes{};
 
-		const bool stale_conflicts_removed = _conflict_tracker.remove_stale_conflicts(hrt_absolute_time(),
-						     static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s, stale_changes);
-		handle_tracker_changes(stale_changes, new_conflicts_pending_notif);
-
-		if (stale_conflicts_removed) {
+		if (_conflict_tracker.remove_stale_conflicts(hrt_absolute_time(),
+				static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s, stale_changes)) {
 			update_most_urgent_conflict();
 		}
+
+		collect_tracker_changes(stale_changes);
 	}
 
-	if (process_transponder_queue(new_conflicts_pending_notif)) {
+	if (process_transponder_queue()) {
 		update_most_urgent_conflict();
 	}
 
-	notify_if_needed(new_conflicts_pending_notif);
+	_conflict_notifier.report_cycle(_cycle_changes, _conflict_tracker, notifier_cycle_context());
 
 	if (_most_urgent_conflict_changed) {
 		evaluate_and_publish_action();
@@ -197,7 +192,41 @@ void DetectAndAvoid::process_traffic()
 	}
 }
 
-bool DetectAndAvoid::process_transponder_queue(new_conflicts_pending_notif_s &new_conflicts_pending_notif)
+void DetectAndAvoid::collect_tracker_changes(const conflict_tracker_changes_s &changes)
+{
+	for (size_t i = 0; i < changes.size(); ++i) {
+		if (!_cycle_changes.push_back(changes[i])) {
+			// Sized for the worst case; push_back can only fail if that bound is wrong.
+			PX4_ERR("DAA: cycle changes overflow");
+			break;
+		}
+	}
+}
+
+uint8_t DetectAndAvoid::warning_levels_mask() const
+{
+	uint8_t mask = 0;
+
+	for (uint8_t level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
+	     level <= detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL; ++level) {
+		if (get_action_from_conflict_level(level) >= DaaAction::kWarnOnly) {
+			mask |= static_cast<uint8_t>(1u << level);
+		}
+	}
+
+	return mask;
+}
+
+ConflictNotifier::cycle_context_s DetectAndAvoid::notifier_cycle_context() const
+{
+	ConflictNotifier::cycle_context_s context{};
+	context.prev_most_urgent_level = _prev_most_urgent_conflict_level;
+	context.warning_levels_mask = warning_levels_mask();
+	context.status_notif_interval = static_cast<hrt_abstime>(math::max<int32_t>(0, _param_daa_notif_state.get())) * 1_s;
+	return context;
+}
+
+bool DetectAndAvoid::process_transponder_queue()
 {
 	bool buffer_updated = false;
 	transponder_report_s transponder_report{};
@@ -217,15 +246,14 @@ bool DetectAndAvoid::process_transponder_queue(new_conflicts_pending_notif_s &ne
 			continue;
 		}
 
-		const bool report_processed = process_transponder_report(transponder_report, new_conflicts_pending_notif);
+		const bool report_processed = process_transponder_report(transponder_report);
 		buffer_updated = buffer_updated || report_processed;
 	}
 
 	return buffer_updated;
 }
 
-bool DetectAndAvoid::process_transponder_report(const transponder_report_s &transponder_report,
-		new_conflicts_pending_notif_s &new_conflicts_pending_notif)
+bool DetectAndAvoid::process_transponder_report(const transponder_report_s &transponder_report)
 {
 	DaaEncodedId encoded_id{};
 
@@ -266,66 +294,9 @@ bool DetectAndAvoid::process_transponder_report(const transponder_report_s &tran
 	conflict_tracker_changes_s tracker_changes{};
 	const bool buffer_updated = _conflict_tracker.apply_conflict(current_conflict, tracker_changes);
 
-	handle_tracker_changes(tracker_changes, new_conflicts_pending_notif);
+	collect_tracker_changes(tracker_changes);
 
 	return buffer_updated;
-}
-
-void DetectAndAvoid::handle_tracker_changes(const conflict_tracker_changes_s &changes,
-		new_conflicts_pending_notif_s &new_conflicts_pending_notif)
-{
-	for (size_t i = 0; i < changes.size(); ++i) {
-		const conflict_tracker_change_s &change = changes[i];
-
-		switch (change.type) {
-		case ConflictTrackerChangeType::kConflictAdded:
-			if (conflict_lvl_requires_warning(change.conflict.conflict_level)) {
-				// Defer "new conflict" warnings until the full ORB queue has been processed.
-				new_conflicts_pending_notif.push_back(change.conflict.encoded_id);
-			}
-
-			break;
-
-		case ConflictTrackerChangeType::kConflictLevelChanged:
-			maybe_notify_secondary_level_change(change);
-			break;
-
-		case ConflictTrackerChangeType::kConflictRemoved:
-
-			// Traffic removed before their deferred "new" warning was sent were never
-			// user-visible and must not emit a misleading removal warning.
-			// E.g. in the same transponder queue a conflict is added and removed
-			if (conflict_lvl_requires_warning(change.conflict.conflict_level)
-			    && !pending_new_conflict_notification_exists(change.conflict.encoded_id, new_conflicts_pending_notif)) {
-				notify_traffic_removed(change.conflict, change.remove_cause);
-			}
-
-			break;
-
-		case ConflictTrackerChangeType::kReportIgnored:
-			maybe_notify_ignored_traffic(change.conflict, change.ignore_cause);
-			break;
-		}
-	}
-}
-
-void DetectAndAvoid::maybe_notify_secondary_level_change(const conflict_tracker_change_s &change)
-{
-	const bool level_change_requires_notification = conflict_lvl_requires_warning(change.previous_level)
-			|| conflict_lvl_requires_warning(change.conflict.conflict_level);
-
-	// Known traffic, only notify if level changed. If most urgent, no need to notify, will be done in DAA status.
-	if (!level_change_requires_notification
-	    || _conflict_tracker.most_urgent().encoded_id == change.conflict.encoded_id) {
-		return;
-	}
-
-	conflict_info_s current_most_urgent_conflict{};
-
-	if (!_conflict_tracker.find_most_urgent(current_most_urgent_conflict)
-	    || current_most_urgent_conflict.encoded_id != change.conflict.encoded_id) {
-		notify_conflict_level(change.conflict, change.previous_level, ConflictNotifyKind::kSecondary);
-	}
 }
 
 bool DetectAndAvoid::identify_traffic_report(const transponder_report_s &transponder_report,
@@ -378,8 +349,7 @@ void DetectAndAvoid::publish_most_urgent_conflict_if_changed()
 	daa_status.timestamp = hrt_absolute_time();
 	daa_status.unique_id = most_urgent_conflict.encoded_id.id;
 	daa_status.unique_id_encoding = most_urgent_conflict.encoded_id.encoding;
-
-	daa_status.has_action = conflict_lvl_requires_action(most_urgent_conflict.conflict_level);
+	daa_status.has_action = get_action_from_conflict_level(most_urgent_conflict.conflict_level) > DaaAction::kWarnOnly;
 	daa_status.conflict_level = most_urgent_conflict.conflict_level;
 	daa_status.aircraft_dist = most_urgent_conflict.aircraft_dist;
 
@@ -445,12 +415,8 @@ void DetectAndAvoid::evaluate_and_publish_action()
 			? NotifyLandedActCause::kConflictAndArmed
 			: NotifyLandedActCause::kConflictAndDisarmed;
 
-		if (must_notify(most_urgent_conflict.conflict_level, _time_last_landed_warning,
-				static_cast<hrt_abstime>(math::max<int32_t>(0, _param_daa_notif_state.get())) * 1_s,
-				most_urgent_conflict.conflict_level)) {
-			notify_action_on_ground(cause);
-			_time_last_landed_warning = hrt_absolute_time();
-		}
+		_conflict_notifier.maybe_notify_action_on_ground(cause, most_urgent_conflict.conflict_level,
+				notifier_cycle_context());
 
 		return;
 	}
@@ -462,7 +428,7 @@ void DetectAndAvoid::evaluate_and_publish_action()
 
 		// Avoid spamming if the vehicle command does not go through.
 		if (_previous_action != requested_action) {
-			notify_new_action(most_urgent_conflict, requested_action);
+			_conflict_notifier.notify_new_action(most_urgent_conflict, requested_action);
 		}
 
 		_previous_action = requested_action;
@@ -473,49 +439,6 @@ void DetectAndAvoid::evaluate_and_publish_action()
 
 		PX4_DEBUG("DAA: De-escalation, prev act %d, nav state %d, ", static_cast<int>(_previous_action),
 			  _navigator->get_vstatus()->nav_state);
-	}
-}
-
-void DetectAndAvoid::notify_if_needed(const new_conflicts_pending_notif_s &new_conflicts_pending_notif)
-{
-	const conflict_info_s &most_urgent_conflict = _conflict_tracker.most_urgent();
-
-	const bool main_conflict_pending_notif =
-		pending_new_conflict_notification_exists(most_urgent_conflict.encoded_id, new_conflicts_pending_notif);
-
-	// Necessary to avoid a double notification when a new conflict is also the main conflict
-	if (main_conflict_pending_notif) {
-		notify_conflict_level(most_urgent_conflict, _prev_most_urgent_conflict_level, ConflictNotifyKind::kMostUrgentNew);
-		_time_last_status_notif = hrt_absolute_time();
-	}
-
-	for (const DaaEncodedId &new_conflict_id : new_conflicts_pending_notif) {
-		if (main_conflict_pending_notif && new_conflict_id == most_urgent_conflict.encoded_id) {
-			continue;
-		}
-
-		conflict_info_s new_conflict{};
-
-		// No need to notify new conflicts that are not in the buffer anymore
-		if (!_conflict_tracker.get_conflict(new_conflict_id, new_conflict)) {
-			continue;
-		}
-
-		notify_new_conflict(new_conflict);
-	}
-
-	if (main_conflict_pending_notif) {
-		return;
-	}
-
-	// Always notify if the most urgent conflict level has changed.
-	// Note that the conflict level can de-escalate but the action will not change.
-	if (must_notify(most_urgent_conflict.conflict_level, _time_last_status_notif,
-			static_cast<hrt_abstime>(math::max<int32_t>(0, _param_daa_notif_state.get())) * 1_s,
-			_prev_most_urgent_conflict_level)) {
-		notify_conflict_level(most_urgent_conflict, _prev_most_urgent_conflict_level, ConflictNotifyKind::kMostUrgent);
-
-		_time_last_status_notif = hrt_absolute_time();
 	}
 }
 
@@ -694,29 +617,6 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transpon
 	return true;
 }
 
-bool DetectAndAvoid::pending_new_conflict_notification_exists(const DaaEncodedId &target_encoded_id,
-		const new_conflicts_pending_notif_s &new_conflicts_pending_notif)
-{
-	for (size_t i = 0; i < new_conflicts_pending_notif.size(); ++i) {
-		if (new_conflicts_pending_notif[i] == target_encoded_id) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-// Helper function for notifying about ignored traffic if necessary
-void DetectAndAvoid::maybe_notify_ignored_traffic(const conflict_info_s &conflict, const IgnoreTrafficCause cause)
-{
-	static constexpr uint64_t kIgnoredTrafficNotifTime{2_s};
-
-	if (must_notify(conflict.conflict_level, _time_last_traffic_ignored, kIgnoredTrafficNotifTime,
-			conflict.conflict_level)) {
-		notify_traffic_ignored(conflict, cause);
-	}
-}
-
 DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_level) const
 {
 	if (conflict_level < detect_and_avoid_s::DAA_CONFLICT_LVL_LOW
@@ -790,34 +690,6 @@ DaaAction DetectAndAvoid::action_param_to_daa_action(const int32_t action_param)
 
 	default:
 		return DaaAction::kDisabled;
-	}
-}
-
-uint8_t DetectAndAvoid::daa_action_to_action_param(const DaaAction action)
-{
-	// Inverse of action_param_to_daa_action. Operator messages report actions with the same
-	// numbering as the NAV_TRAFF_AVOID / DAA_LVL_*_ACT parameters, not the internal severity ladder.
-	switch (action) {
-	case DaaAction::kDisabled:
-		return 0;
-
-	case DaaAction::kWarnOnly:
-		return 1;
-
-	case DaaAction::kReturnMode:
-		return 2;
-
-	case DaaAction::kLandMode:
-		return 3;
-
-	case DaaAction::kPositionHoldMode:
-		return 4;
-
-	case DaaAction::kTerminate:
-		return 5;
-
-	default:
-		return 0;
 	}
 }
 
@@ -912,3 +784,93 @@ DaaAction DetectAndAvoid::nav_state_to_equivalent_daa_action(const uint8_t nav_s
 	// Unknown states are treated as highest priority so DAA will not override them.
 	return DaaAction::kMaxActionValue;
 }
+
+#if defined(DEBUG_BUILD)
+void DetectAndAvoid::debug_print_buffer_status()
+{
+	const conflict_info_s &most_urgent_conflict = _conflict_tracker.most_urgent();
+
+	char encoded_id_str[kUtmGuidMsgLength];
+	most_urgent_conflict.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
+
+	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() -
+					 most_urgent_conflict.latest_update_timestamp) / 1_s);
+	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(most_urgent_conflict.aircraft_dist));
+
+	const int buff_size = static_cast<int>(_conflict_tracker.size());
+
+	PX4_DEBUG("Buffer status: %d conflict(s), max lvl %d, prev max lvl %d,",
+		  buff_size,
+		  most_urgent_conflict.conflict_level,
+		  _prev_most_urgent_conflict_level);
+
+	PX4_DEBUG("Max conflict: Unique ID %lu, ID str %s, lvl %d, distance %d, last comm %d sec \n",
+		  most_urgent_conflict.encoded_id.id,
+		  encoded_id_str,
+		  most_urgent_conflict.conflict_level,
+		  aircraft_dist,
+		  time_since_last_comm);
+}
+
+void DetectAndAvoid::debug_print_conflict_info(const conflict_info_s &conflict)
+{
+	char encoded_id_str[kUtmGuidMsgLength];
+	conflict.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
+
+	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() - conflict.latest_update_timestamp) / 1_s);
+	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(conflict.aircraft_dist));
+
+	PX4_DEBUG("ID: uint %lu, ID str %s, lvl %d, distance %d, last comm %d sec \n",
+		  conflict.encoded_id.id,
+		  encoded_id_str,
+		  conflict.conflict_level,
+		  aircraft_dist,
+		  time_since_last_comm);
+}
+
+void DetectAndAvoid::debug_print_transponder_report(const transponder_report_s &transponder_report)
+{
+	const int traffic_direction = math::degrees(transponder_report.heading) + 180;
+
+	// Unique ID conversions
+	uint64_t uas_id_int = DaaEncodedId::last_uas_id_bytes_to_uint64(transponder_report.uas_id);
+	char uas_id_char[kUtmGuidMsgLength];
+	DaaEncodedId::convert_uas_id_uint64_to_str(uas_id_int, uas_id_char);
+
+	uint64_t callsign_int = DaaEncodedId::callsign_to_uint64(transponder_report.callsign);
+	char callsign[kCallsignLength];
+	DaaEncodedId::convert_uint64_callsign_to_str(callsign_int, callsign);
+
+	uint64_t icao_address = static_cast<uint64_t>(transponder_report.icao_address);
+	char icao_str[kIcaoLength];
+	DaaEncodedId::convert_icao_uint32_to_hex_str(icao_address, icao_str, sizeof(icao_str));
+
+	PX4_DEBUG("ADSB_IN: ICAO uint %lu, ICAO str %s",
+		  icao_address,
+		  icao_str);
+	PX4_DEBUG("ADSB_IN: Callsign uint %lu, Callsign str %s",
+		  callsign_int,
+		  callsign);
+	PX4_DEBUG("ADSB_IN: UAS_ID uint %lu, UAS_ID str %s",
+		  uas_id_int,
+		  uas_id_char);
+
+	// Log which flags are enabled in one line using printf
+	PX4_DEBUG("ADSB_IN: Flags missing: %s%s%s%s%s%s%s",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS) ? "" : "coord ",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE) ? "" : "alt ",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING) ? "" : "hdg ",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY) ? "" : "vel ",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) ? "" : "callsign ",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) ? "" : "squawk ",
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE) ? "" : "Retranslate ");
+
+	PX4_DEBUG("ADSB_IN: lat %.2f, lon %.2f, alt %.2f, hdg %.d, vel hor %.1f, vel vert %.1f \n",
+		  (double)transponder_report.lat,
+		  (double)transponder_report.lon,
+		  (double)transponder_report.altitude,
+		  traffic_direction,
+		  (double)transponder_report.hor_velocity,
+		  (double)transponder_report.ver_velocity);
+}
+#endif // DEBUG_BUILD

@@ -60,7 +60,7 @@ Each navigator cycle, DAA:
 3. Applies the result to the active-conflict buffer (`ConflictTracker`) and selects the most urgent conflict.
    - The tracker reports buffer changes (new, level changed, removed, ignored).
    - Publishes the most urgent conflict summary on [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md).
-4. Translates the tracker report into operator warnings and, if configured, requests a navigator action.
+4. Hands the cycle's change records to the notifier (`ConflictNotifier`), which decides all operator warnings for the cycle in one place, and, if configured, requests a navigator action.
 
 Conflict priority is determined by:
 
@@ -914,7 +914,8 @@ The implementation is split between a platform-independent core and the navigato
   It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding (`DaaEncodedId`), and the active-conflict buffer (`ConflictTracker`).
   `ConflictTracker` owns the fixed-size conflict buffer and the priority rules: it inserts, updates, and evicts conflicts, caches the most urgent one, and reports every change that may require a user-facing message as a change record (`conflict_tracker_change_s`), without sending any notification itself.
 - `src/modules/navigator/DetectAndAvoid`: the navigator integration.
-  It validates and identifies incoming `transponder_report` data, runs the built standard, feeds the result to the tracker, translates the tracker's change records into the operator messages described in [Operator Messages](#operator-messages), publishes the DAA topics, and requests [Automated Actions](#automated-actions).
+  It validates and identifies incoming `transponder_report` data, runs the built standard, feeds the result to the tracker, publishes the DAA topics, and requests [Automated Actions](#automated-actions).
+  All operator messaging is concentrated in one class, `ConflictNotifier`: it turns the change records collected over one cycle into the messages described in [Operator Messages](#operator-messages) in a single per-cycle call (`report_cycle()`), and also owns the message formatting, severity mapping, and rate-limit timers used by the action and ground warnings.
 
 ## Adding a New Standard
 

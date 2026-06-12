@@ -85,6 +85,8 @@ struct conflict_tracker_change_s {
 	uint8_t previous_level{detect_and_avoid_s::DAA_CONFLICT_LVL_NONE};	// kConflictLevelChanged only
 	RemoveBufferCause remove_cause{RemoveBufferCause::kStaleConflict};	// kConflictRemoved only
 	IgnoreTrafficCause ignore_cause{IgnoreTrafficCause::kBufferFull};	// kReportIgnored only
+	// Required because the caller processes the full Uorb queue before emitting warnings
+	bool conflict_is_most_urgent{false};
 };
 
 // Sized for the worst case of a single call: remove_stale_conflicts() can drop

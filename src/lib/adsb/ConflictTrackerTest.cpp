@@ -178,6 +178,48 @@ TEST(ConflictTrackerTest, ResolvedConflictLeavesBufferAsLevelChange)
 	EXPECT_EQ(tracker.most_urgent().encoded_id.id, 0u);
 }
 
+// WHY: The caller does not emit secondary conflict warnings, and decides this after the transponder report
+// uorb queue has been processed. The change must therefore be captured when the change is recorded.
+// WHAT: Change levels of the most urgent and of a secondary conflict and check the captured flag.
+TEST(ConflictTrackerTest, LevelChangeCapturesMostUrgent)
+{
+	ConflictTracker tracker;
+	conflict_tracker_changes_s changes{};
+
+	// GIVEN: A critical conflict (cached as most urgent) and a secondary low conflict.
+	tracker.apply_conflict(make_conflict(0xA, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, 100.f), changes);
+	tracker.apply_conflict(make_conflict(0xB, detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, 2000.f), changes);
+	tracker.refresh_most_urgent();
+
+	// WHEN: The secondary conflict escalates but stays below the most urgent one.
+	changes = {};
+	EXPECT_TRUE(tracker.apply_conflict(make_conflict(0xB, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM, 1500.f),
+					   changes));
+
+	// THEN: The change is not flagged as the most urgent conflict.
+	ASSERT_EQ(changes.size(), 1u);
+	EXPECT_FALSE(changes[0].conflict_is_most_urgent);
+
+	// WHEN: The most urgent conflict itself changes level.
+	changes = {};
+	EXPECT_TRUE(tracker.apply_conflict(make_conflict(0xA, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH, 400.f), changes));
+
+	// THEN: The change is flagged via the cached most urgent entry.
+	ASSERT_EQ(changes.size(), 1u);
+	EXPECT_TRUE(changes[0].conflict_is_most_urgent);
+
+	// WHEN: A new conflict escalates to most urgent (cache still points at 0xA).
+	changes = {};
+	tracker.apply_conflict(make_conflict(0xC, detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, 3000.f), changes);
+	changes = {};
+	EXPECT_TRUE(tracker.apply_conflict(make_conflict(0xC, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, 50.f),
+					   changes));
+
+	// THEN: The change is flagged via the buffer selection, despite the stale cache.
+	ASSERT_EQ(changes.size(), 1u);
+	EXPECT_TRUE(changes[0].conflict_is_most_urgent);
+}
+
 // WHY: When the buffer is full, a more urgent conflict must displace the least urgent entry and the
 // eviction must be reported so the operator can be told a tracked conflict was dropped.
 // WHAT: Fill the buffer, add a more urgent conflict and inspect the emitted change sequence.
