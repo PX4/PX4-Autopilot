@@ -508,6 +508,7 @@
       - [I2C Bus](sensor_bus/i2c_development.md)
       - [UART/Serial Ports](uart/index.md)
         - [Port-Configurable Serial Drivers](uart/user_configurable_serial_driver.md)
+        - [Serial Passthrough (MAVLink SERIAL_CONTROL)](uart/serial_passthrough.md)
     - [RTK GPS (Integration)](advanced/rtk_gps.md)
     - [PPS Time Synchronization](advanced/pps_time_sync.md)
   - [Middleware](middleware/index.md)
