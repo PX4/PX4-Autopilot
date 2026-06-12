@@ -112,7 +112,7 @@ private:
 
 	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X)
 	void ManageHighGFullScale(bool high_g_clipping);
-	void ApplyHighGFullScale();
+	void ApplyHighGFullScale(float prev_scale_mg_per_lsb);
 
 	const spi_drdy_gpio_t _drdy_gpio;
 	PX4Accelerometer _px4_accel;
@@ -162,7 +162,9 @@ private:
 	const HighGFullScale *_hg_table{nullptr}; // ascending full-scale steps for this variant
 	uint8_t _hg_table_size{0};
 	uint8_t _hg_index{0};                     // current step within _hg_table
-	bool _hg_scale_changed{false};            // skip publishing high-g for one cycle after a full-scale change
+	bool _hg_scale_changed{false};            // high-g samples from before a full-scale change may still be batched
+	float _hg_stale_scale_ratio{1.f};         // previous/current sensitivity ratio to normalize those samples
+	hrt_abstime _hg_scale_change_timestamp{0};
 	hrt_abstime _hg_last_clip_timestamp{0};
 	static constexpr hrt_abstime HG_DEESCALATE_TIMEOUT_US{2'000'000}; // 2 s
 
