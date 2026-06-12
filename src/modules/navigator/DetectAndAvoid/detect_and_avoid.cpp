@@ -106,9 +106,9 @@ void DetectAndAvoid::on_activation()
 		_is_activated = false;
 		publish_most_urgent_conflict();
 
-		mavlink_log_critical(&_mavlink_log_pub, "DAA fail. No traffic info.\t");
+		mavlink_log_critical(&_mavlink_log_pub, "DAA invalid params. Traffic warnings and actions disabled.\t");
 		events::send(events::ID("navigator_traffic_init_failed"), events::Log::Critical,
-			     "DAA init failed");
+			     "DAA invalid params. Traffic warnings and actions disabled.");
 		return;
 	}
 
