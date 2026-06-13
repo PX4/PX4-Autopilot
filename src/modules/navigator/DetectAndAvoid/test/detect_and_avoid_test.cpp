@@ -135,17 +135,53 @@ TEST_F(DetectAndAvoidTest, RejectsNonFiniteTrafficAltitude)
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 }
 
-// WHY: Ownship reports must never enter the avoidance buffer regardless of whether identity comes from ICAO, callsign, or UAS ID.
-// WHAT: Configure each self identifier format and verify is_self_detection() recognizes matching traffic.
+// WHY: Ownship reports must never enter the avoidance buffer regardless of whether identity comes
+// from ICAO, callsign, or UAS ID. The identifiers come from parameters and the board GUID.
+// WHAT: For each identifier format, run matching conflicting traffic through check_traffic() and
+// verify it is dropped, then process an incoming aircraft with the same geometry and verify the
+// conflict is created.
 TEST_F(DetectAndAvoidTest, SelfDetection)
 {
-	// GIVEN: DetectAndAvoid is active with default parameters.
+	// GIVEN: DetectAndAvoid is active, with traffic close to ownship (a conflict in every standard).
 	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_activated());
 
-	char callsign[kCallsignLength];
-	transponder_report_s tr{};
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const matrix::Vector3f uav_vel{5.f, 10.f, 2.f};
+
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+
+	const auto refresh_uav_pose = [&]() {
+		set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
+		sync_navigator_topics();
+	};
+
+	const auto expect_report_filtered = [&](const transponder_report_s & tr) {
+		refresh_uav_pose();
+		drain_detect_and_avoid_topic();
+		publish_transponder_report_and_check(tr);
+
+		EXPECT_FALSE(_detect_and_avoid_sub.update());
+		EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
+	};
+
+	const auto expect_report_in_conflict = [&](const transponder_report_s & tr, const uint64_t expected_id) {
+		refresh_uav_pose();
+		drain_detect_and_avoid_topic();
+		publish_transponder_report_and_check(tr);
+
+		EXPECT_TRUE(_detect_and_avoid_sub.update());
+		const conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
+		EXPECT_GT(conflict.conflict_level, kDaaConflictLvlNone);
+		EXPECT_EQ(conflict.encoded_id.id, expected_id);
+	};
 
 	// WHEN: A callsign is configured as ownship identity (split into the two ADSB_CALLSIGN_* params).
+	char callsign[kCallsignLength];
 	generate_random_callsign(callsign, 8);
 	const uint64_t callsign_64 = DaaEncodedId::callsign_to_uint64(callsign);
 	const uint32_t own_adsb_callsign1 = static_cast<uint32_t>(callsign_64 & 0xFFFFFFFF);
@@ -154,57 +190,53 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 	param_set(param_handle(px4::params::ADSB_CALLSIGN_2), &own_adsb_callsign2);
 	reload_daa_parameters();
 
-	tr.icao_address = 0; // Invalid ICAO so the callsign identifies the report.
-	set_report_callsign(tr, callsign);
-	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+	// THEN: Traffic broadcasting the ownship callsign is dropped (ICAO zeroed so the callsign identifies it).
+	transponder_report_s tr = create_transponder_report(0, callsign, lat_uav, lon_uav, alt_uav, 30.f, 0.f,
+				  flags | transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN);
+	expect_report_filtered(tr);
 
-	// THEN: Traffic broadcasting the ownship callsign is treated as self.
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(DaaEncodedId::from_report(tr)));
+	// THEN: The same geometry with a foreign callsign creates a conflict.
+	char foreign_callsign[kCallsignLength];
+	memcpy(foreign_callsign, callsign, sizeof(foreign_callsign));
+	foreign_callsign[0] = (callsign[0] == 'A') ? 'B' : 'A';
+	set_report_callsign(tr, foreign_callsign);
+	expect_report_in_conflict(tr, DaaEncodedId::callsign_to_uint64(foreign_callsign));
 
-	// WHEN: The primary ICAO address matches ownship.
+	// WHEN: The primary and secondary ICAO addresses are configured as ownship identity.
 	const uint32_t own_icao = 6593425;
-	tr.icao_address = own_icao;
-
-	// THEN: With the default disabled primary ICAO parameter, real traffic is not treated as ownship.
-	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_self_detection(DaaEncodedId::from_report(tr)));
-
-	param_set(param_handle(px4::params::ADSB_ICAO_ID), &own_icao);
-	reload_daa_parameters();
-
-	// THEN: Once configured, matching primary ICAO traffic is treated as self.
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(DaaEncodedId::from_report(tr)));
-
-	// WHEN: The secondary ICAO address matches ownship.
 	const uint32_t own_icao_2 = 3318901;
+	param_set(param_handle(px4::params::ADSB_ICAO_ID), &own_icao);
 	param_set(param_handle(px4::params::ADSB_ICAO_ID_2), &own_icao_2);
-	reload_daa_parameters();
-	tr.icao_address = own_icao_2;
+	reload_daa_parameters(); // also clears the previous foreign conflict
 
-	// THEN: Matching secondary ICAO traffic is also treated as self.
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(DaaEncodedId::from_report(tr)));
+	// THEN: Traffic matching the primary or secondary ICAO is dropped.
+	expect_report_filtered(create_transponder_report(own_icao, "DDF0A1", lat_uav, lon_uav, alt_uav, 30.f, 0.f, flags));
+	expect_report_filtered(create_transponder_report(own_icao_2, "DDF0A1", lat_uav, lon_uav, alt_uav, 30.f, 0.f, flags));
 
-	// WHEN: The traffic report carries only a UAS ID.
-	transponder_report_s tr_uas_id{};
+	// THEN: A foreign ICAO creates a conflict.
+	const uint32_t foreign_icao = 14545057;
+	expect_report_in_conflict(create_transponder_report(foreign_icao, "DDF0A1", lat_uav, lon_uav, alt_uav, 30.f, 0.f,
+				  flags), foreign_icao);
+
+	// WHEN: The traffic report carries only a UAS ID (no ICAO, no valid callsign).
+	reload_daa_parameters(); // clear the previous foreign conflict
 
 #ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid {};
-	board_get_px4_guid(px4_guid);
-	memcpy(tr_uas_id.uas_id, px4_guid, sizeof(px4_guid));
-	const DaaEncodedId own_uas_id = DaaEncodedId::from_report(tr_uas_id);
-	ASSERT_NE(own_uas_id.id, 0u);
+	ASSERT_EQ(board_get_px4_guid(px4_guid), PX4_GUID_BYTE_LENGTH);
 
-	// THEN: On boards with a UUID, the local UAS ID is recognized as self.
-	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_self_detection(own_uas_id));
-#else
+	// THEN: On boards with a UUID, traffic broadcasting the local UAS ID is dropped.
+	transponder_report_s tr_own_uas = create_transponder_report(0, "", lat_uav, lon_uav, alt_uav, 30.f, 0.f, flags);
+	memcpy(tr_own_uas.uas_id, px4_guid, sizeof(px4_guid));
+	expect_report_filtered(tr_own_uas);
+#endif // !BOARD_HAS_NO_UUID
+
+	// THEN: A foreign UAS ID creates a conflict (also on boards without a UUID).
+	transponder_report_s tr_foreign_uas = create_transponder_report(0, "", lat_uav, lon_uav, alt_uav, 30.f, 0.f, flags);
 
 	for (int i = 0; i < PX4_GUID_BYTE_LENGTH; ++i) {
-		tr_uas_id.uas_id[i] = 0xe0 + i;
+		tr_foreign_uas.uas_id[i] = 0xe0 + i;
 	}
 
-	const DaaEncodedId foreign_uas_id = DaaEncodedId::from_report(tr_uas_id);
-	ASSERT_NE(foreign_uas_id.id, 0u);
-
-	// THEN: Without a board UUID, an arbitrary UAS ID is not considered self.
-	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_self_detection(foreign_uas_id));
-#endif
+	expect_report_in_conflict(tr_foreign_uas, DaaEncodedId::last_uas_id_bytes_to_uint64(tr_foreign_uas.uas_id));
 }

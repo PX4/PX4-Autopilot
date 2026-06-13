@@ -60,6 +60,12 @@ using namespace time_literals;
 // With 37 change slots, this is roughly 1.8 KB on current targets.
 static conflict_cycle_changes_s _cycle_changes;
 
+// Buffer containing the conflict outputs collected over one cycle.
+// Same .bss placement rationale as above.
+// Sized for one full transponder queue drain (roughly 0.8 KB on current targets).
+using daa_cycle_outputs_s = px4::Array<detect_and_avoid_s, transponder_report_s::ORB_QUEUE_LENGTH>;
+static daa_cycle_outputs_s _cycle_daa_outputs;
+
 DetectAndAvoid::DetectAndAvoid(Navigator *navigator) :
 	MissionBlock(navigator, 0),
 	ModuleParams(navigator)
@@ -104,6 +110,7 @@ void DetectAndAvoid::on_activation()
 void DetectAndAvoid::update_activation_status()
 {
 	ModuleParams::updateParams();
+	refresh_ownship_ids();
 
 	if (!_param_daa_en.get()) {
 		if (_is_activated) {
@@ -157,7 +164,9 @@ void DetectAndAvoid::on_active()
 
 void DetectAndAvoid::process_traffic()
 {
-	if (!uav_pose_valid_and_updated()) {
+	daa_input_s ownship_input{};
+
+	if (!gather_ownship_input(ownship_input)) {
 		if (!_conflict_tracker.empty()
 		    || _conflict_tracker.most_urgent().conflict_level != detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
 			PX4_DEBUG("DAA: uav pose stale, clearing conflicts");
@@ -172,6 +181,7 @@ void DetectAndAvoid::process_traffic()
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
 	_cycle_changes.clear();
+	_cycle_daa_outputs.clear();
 
 	if (has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime)) {
 		conflict_tracker_changes_s stale_changes{};
@@ -184,10 +194,11 @@ void DetectAndAvoid::process_traffic()
 		collect_tracker_changes(stale_changes);
 	}
 
-	if (process_transponder_queue()) {
+	if (process_transponder_queue(ownship_input)) {
 		update_most_urgent_conflict();
 	}
 
+	publish_daa_outputs();
 	_conflict_notifier.report_cycle(_cycle_changes, _conflict_tracker, notifier_cycle_context());
 
 	if (_most_urgent_conflict_changed) {
@@ -231,10 +242,12 @@ ConflictNotifier::cycle_context_s DetectAndAvoid::notifier_cycle_context() const
 	return context;
 }
 
-bool DetectAndAvoid::process_transponder_queue()
+bool DetectAndAvoid::process_transponder_queue(const daa_input_s &ownship_input)
 {
 	bool buffer_updated = false;
 	transponder_report_s transponder_report{};
+
+	const hrt_abstime traffic_timeout_us = static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s;
 
 	for (uint8_t processed_reports = 0; processed_reports < transponder_report_s::ORB_QUEUE_LENGTH; ++processed_reports) {
 
@@ -246,27 +259,29 @@ bool DetectAndAvoid::process_transponder_queue()
 		debug_print_transponder_report(transponder_report);
 #endif
 
-		if (!transponder_data_valid(transponder_report)) {
+		if (!DaaTrafficFilter::transponder_data_valid(transponder_report, hrt_absolute_time(), traffic_timeout_us)) {
 			PX4_DEBUG("DAA: transponder data not valid.");
 			continue;
 		}
 
-		const bool report_processed = process_transponder_report(transponder_report);
+		const bool report_processed = process_transponder_report(ownship_input, transponder_report);
 		buffer_updated = buffer_updated || report_processed;
 	}
 
 	return buffer_updated;
 }
 
-bool DetectAndAvoid::process_transponder_report(const transponder_report_s &transponder_report)
+bool DetectAndAvoid::process_transponder_report(const daa_input_s &ownship_input,
+		const transponder_report_s &transponder_report)
 {
 	DaaEncodedId encoded_id{};
 
-	if (!identify_traffic_report(transponder_report, encoded_id)) {
+	if (!DaaTrafficFilter::identify_traffic_report(transponder_report, _ownship_ids, encoded_id)) {
 		return false;
 	}
 
-	const daa_input_s daa_input = prepare_daa_input(transponder_report);
+	daa_input_s daa_input{ownship_input};
+	prepare_traffic_input(transponder_report, daa_input);
 
 	detect_and_avoid_s daa_output{};
 
@@ -289,7 +304,11 @@ bool DetectAndAvoid::process_transponder_report(const transponder_report_s &tran
 	daa_output.unique_id = encoded_id.id;
 	daa_output.unique_id_encoding = encoded_id.encoding;
 	daa_output.timestamp = transponder_report.timestamp;
-	_detect_and_avoid_pub.publish(daa_output);
+
+	if (!_cycle_daa_outputs.push_back(daa_output)) {
+		// Sized for one full queue drain; push_back can only fail if that bound is wrong.
+		PX4_ERR("DAA: cycle outputs overflow");
+	}
 
 #if defined(DEBUG_BUILD)
 	PX4_DEBUG("DAA: transponder data processed, conflict detected.");
@@ -304,30 +323,6 @@ bool DetectAndAvoid::process_transponder_report(const transponder_report_s &tran
 	return buffer_updated;
 }
 
-bool DetectAndAvoid::identify_traffic_report(const transponder_report_s &transponder_report,
-		DaaEncodedId &encoded_id) const
-{
-	encoded_id = DaaEncodedId::from_report(transponder_report);
-
-	if (encoded_id.id == 0) {
-		PX4_DEBUG("DAA: No valid unique ID, skipping report");
-		return false;
-	}
-
-	if (is_self_detection(encoded_id)) {
-		PX4_DEBUG("DAA: Self detection, skipping report.");
-		return false;
-	}
-
-#if defined(DEBUG_BUILD)
-	char encoded_id_str[kUtmGuidMsgLength];
-	encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
-	PX4_DEBUG("DAA: unique ID: %s (int:%lu)", encoded_id_str, encoded_id.id);
-#endif
-
-	return true;
-}
-
 #if !defined(CONSTRAINED_FLASH) && !defined(__PX4_NUTTX)
 void DetectAndAvoid::print_status() const
 {
@@ -338,6 +333,13 @@ void DetectAndAvoid::print_status() const
 		 static_cast<double>(_conflict_tracker.most_urgent().aircraft_dist));
 }
 #endif // !CONSTRAINED_FLASH && !__PX4_NUTTX
+
+void DetectAndAvoid::publish_daa_outputs()
+{
+	for (size_t i = 0; i < _cycle_daa_outputs.size(); ++i) {
+		_detect_and_avoid_pub.publish(_cycle_daa_outputs[i]);
+	}
+}
 
 void DetectAndAvoid::publish_most_urgent_conflict_if_changed()
 {
@@ -402,77 +404,53 @@ void DetectAndAvoid::evaluate_and_publish_action()
 	}
 }
 
-bool DetectAndAvoid::is_self_detection(const DaaEncodedId &encoded_id) const
+void DetectAndAvoid::refresh_ownship_ids()
 {
-	switch (encoded_id.encoding) {
-	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO: {
-			const int32_t own_icao = _vehicle_adsb_icao.get();
+	_ownship_ids = {};
+	_ownship_ids.icao = _vehicle_adsb_icao.get();
+	_ownship_ids.icao_2 = _vehicle_adsb_icao_2.get();
 
-			if (own_icao >= 0 && static_cast<uint32_t>(encoded_id.id) == static_cast<uint32_t>(own_icao)) {
-				PX4_DEBUG("DAA: Received own main ICAO.");
-				return true;
-			}
+	// The two callsign parameters hold the lower and upper 32 bits (first and last 4 characters).
+	_ownship_ids.callsign = (static_cast<uint64_t>(static_cast<uint32_t>(_vehicle_adsb_callsign_2.get())) << 32) |
+				static_cast<uint32_t>(_vehicle_adsb_callsign_1.get());
 
-			const int32_t own_icao_2 = _vehicle_adsb_icao_2.get();
-
-			if (own_icao_2 >= 0 && static_cast<uint32_t>(encoded_id.id) == static_cast<uint32_t>(own_icao_2)) {
-				PX4_DEBUG("DAA: Received own secondary ICAO.");
-				return true;
-			}
-
-			break;
-		}
-
-	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN: {
-
-			// Extract the lower and upper 32 bits (first and last 4 characters respectively)
-			const uint32_t lower = static_cast<uint32_t>(encoded_id.id & 0xFFFFFFFF);
-			const uint32_t upper = static_cast<uint32_t>((encoded_id.id >> 32) & 0xFFFFFFFF);
-
-			if (lower == static_cast<uint32_t>(_vehicle_adsb_callsign_1.get()) &&
-			    upper == static_cast<uint32_t>(_vehicle_adsb_callsign_2.get())) {
-				PX4_DEBUG("DAA: Received own Callsign.");
-				return true;
-			}
-
-			break;
-		}
-
-	case detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID: {
 #ifndef BOARD_HAS_NO_UUID
-			px4_guid_t px4_guid {};
+	px4_guid_t px4_guid {};
 
-			if (board_get_px4_guid(px4_guid) != PX4_GUID_BYTE_LENGTH) {
-				PX4_DEBUG("DAA: Failed to get own UAS ID.");
-				return false;
-			}
+	if (board_get_px4_guid(px4_guid) == PX4_GUID_BYTE_LENGTH) {
+		_ownship_ids.uas_id = DaaEncodedId::last_uas_id_bytes_to_uint64(px4_guid);
+		_ownship_ids.uas_id_valid = true;
 
-			if (encoded_id.id == DaaEncodedId::last_uas_id_bytes_to_uint64(px4_guid)) {
-				PX4_DEBUG("DAA: Received own UAS ID.");
-				return true;
-			}
-
-#endif
-
-			break;
-		}
-
-	default:
-		break;
+	} else {
+		PX4_DEBUG("DAA: Failed to get own UAS ID.");
 	}
 
-	return false;
+#endif // BOARD_HAS_NO_UUID
 }
 
-daa_input_s DetectAndAvoid::prepare_daa_input(const transponder_report_s &transponder_report)
+bool DetectAndAvoid::gather_ownship_input(daa_input_s &daa_input) const
 {
-	daa_input_s daa_input{};
-
-	// Process uav pose
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+	if (!PX4_ISFINITE(global_position.lat) || !PX4_ISFINITE(global_position.lon) || !PX4_ISFINITE(global_position.alt)) {
+		PX4_DEBUG("DAA: invalid global pose");
+		return false;
+	}
+
+	if (global_position.timestamp == 0 || hrt_elapsed_time(&global_position.timestamp) > kRemoveStaleConflictsTime) {
+		PX4_DEBUG("DAA: stale global pose");
+		return false;
+	}
+
+	const vehicle_local_position_s &local_position = *_navigator->get_local_position();
+
+	if (local_position.timestamp == 0 || hrt_elapsed_time(&local_position.timestamp) > kRemoveStaleConflictsTime) {
+		PX4_DEBUG("DAA: stale local position");
+		return false;
+	}
+
 	daa_input.uav_lat_lon = matrix::Vector2d(global_position.lat, global_position.lon);
 	daa_input.uav_alt = global_position.alt;
-	const vehicle_local_position_s &local_position = *_navigator->get_local_position();
 	daa_input.uav_vel_ned = matrix::Vector3f(local_position.vx, local_position.vy, local_position.vz);
 
 	// Set infinite velocities to zero to at least detect the fixed-size boundaries in the F3442
@@ -487,6 +465,12 @@ daa_input_s DetectAndAvoid::prepare_daa_input(const transponder_report_s &transp
 	daa_input.uav_heading = (uav_horizontal_speed < kMinGroundSpeedForCourseHeading) ?
 				local_position.heading : atan2f(daa_input.uav_vel_ned(1), daa_input.uav_vel_ned(0));
 
+	return true;
+}
+
+void DetectAndAvoid::prepare_traffic_input(const transponder_report_s &transponder_report,
+		daa_input_s &daa_input) const
+{
 	daa_input.transponder_report = transponder_report;
 
 	// Default to zero velocity if vel not valid PX4_ADSB_FLAGS_VALID_VELOCITY
@@ -505,76 +489,6 @@ daa_input_s DetectAndAvoid::prepare_daa_input(const transponder_report_s &transp
 	}
 
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
-
-	return daa_input;
-}
-
-bool DetectAndAvoid::uav_pose_valid_and_updated() const
-{
-	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
-
-	if (!PX4_ISFINITE(global_position.lat) || !PX4_ISFINITE(global_position.lon) || !PX4_ISFINITE(global_position.alt)) {
-		PX4_DEBUG("DAA: invalid global pose");
-		return false;
-	}
-
-	if (global_position.timestamp == 0 || hrt_elapsed_time(&global_position.timestamp) > kRemoveStaleConflictsTime) {
-		PX4_DEBUG("DAA: stale global pose");
-		return false;
-	}
-
-	const hrt_abstime local_position_timestamp = _navigator->get_local_position()->timestamp;
-
-	if (local_position_timestamp == 0 || hrt_elapsed_time(&local_position_timestamp) > kRemoveStaleConflictsTime) {
-		PX4_DEBUG("DAA: stale local position");
-		return false;
-	}
-
-	return true;
-}
-
-bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &transponder_report) const
-{
-	if (!PX4_ISFINITE(transponder_report.lat) || !PX4_ISFINITE(transponder_report.lon)) {
-		PX4_DEBUG("DAA: transponder data rejected, invalid lat/lon.");
-		return false;
-	}
-
-	if (!PX4_ISFINITE(transponder_report.altitude)) {
-		PX4_DEBUG("DAA: transponder data rejected, invalid altitude.");
-		return false;
-	}
-
-	uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-				  transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-
-#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
-	required_flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-			  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
-#endif // !CONFIG_NAVIGATOR_ADSB_F3442
-
-	if ((transponder_report.flags & required_flags) != required_flags) {
-		PX4_DEBUG("DAA: transponder data rejected, missing flags.");
-		return false;
-	}
-
-#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
-
-	if (!PX4_ISFINITE(transponder_report.heading)) {
-		PX4_DEBUG("DAA: transponder data rejected, invalid heading.");
-		return false;
-	}
-
-#endif // !CONFIG_NAVIGATOR_ADSB_F3442
-
-	const hrt_abstime timeout_us = static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s;
-
-	if (transponder_report.timestamp == 0 || hrt_elapsed_time(&transponder_report.timestamp) > timeout_us) {
-		PX4_DEBUG("DAA: transponder data rejected, too old.");
-		return false;
-	}
-
-	return true;
 }
 
 DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_level) const

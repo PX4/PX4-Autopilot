@@ -56,6 +56,7 @@
 #include <lib/adsb/AdsbConflict.h>
 #include <lib/adsb/ConflictTracker.h>
 #include <lib/adsb/DaaEncodedId.h>
+#include <lib/adsb/DaaTrafficFilter.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <commander/px4_custom_mode.h>
@@ -135,9 +136,6 @@ public:
 		uint16_t flags{kFakeTrafficDefaultFlags};
 	};
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
-
-	/** @brief True if the report's identifier matches ownship (ICAO, callsign or UAS-ID). */
-	bool is_self_detection(const DaaEncodedId &encoded_id) const;
 
 	/* Actions */
 
@@ -265,23 +263,30 @@ private:
 	uORB::Subscription _traffic_sub {ORB_ID(transponder_report)};
 	AdsbConflict _adsb_conflict_detector;
 
+	// Ownship identifiers handed to the traffic filter in the adsb library.
+	daa_ownship_ids_s _ownship_ids{};
+
+	/** @brief Snapshot the ownship identifier parameters and the board GUID for the traffic filter. */
+	void refresh_ownship_ids();
+
+	/**
+	 * @brief Validate the ownship pose and fill the ownship half of the DAA input.
+	 *
+	 * Returns false when the latest global or local position fix is non-finite or too old.
+	 */
+	bool gather_ownship_input(daa_input_s &daa_input) const;
+
+	/** @brief Fill the traffic half of the DAA input from a valid report, applying the velocity defaults. */
+	void prepare_traffic_input(const transponder_report_s &transponder_report, daa_input_s &daa_input) const;
+
 	/** @brief Drain queued transponder reports and update the conflict buffer. */
-	bool process_transponder_queue();
+	bool process_transponder_queue(const daa_input_s &ownship_input);
 
 	/** @brief Run one valid traffic report through DAA and apply the result. */
-	bool process_transponder_report(const transponder_report_s &transponder_report);
+	bool process_transponder_report(const daa_input_s &ownship_input, const transponder_report_s &transponder_report);
 
-	/** @brief Extract a usable traffic identifier and reject ownship reports. */
-	bool identify_traffic_report(const transponder_report_s &transponder_report, DaaEncodedId &encoded_id) const;
-
-	/** @brief Build ownship and traffic inputs for the DAA standard from a valid report. */
-	daa_input_s prepare_daa_input(const transponder_report_s &transponder_report);
-
-	/** @brief True if the latest global and local position fixes are finite and recent enough. */
-	bool uav_pose_valid_and_updated() const;
-
-	/** @brief True if the report has finite coords/altitude, the required flags, and a recent timestamp. */
-	bool transponder_data_valid(const transponder_report_s &transponder_report) const;
+	/** @brief Publish the traffic conflict outputs collected during the transponder report queue drain. */
+	void publish_daa_outputs();
 
 	hrt_abstime _time_last_buffer_clean{0};
 
