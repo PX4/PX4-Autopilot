@@ -78,6 +78,15 @@ If _QGroundControl_ installs the FMUv2 target (see console during installation),
 
 You can update it by following the instructions in [Bootloader update > FMUv2 Bootloader Update](../advanced_config/bootloader_update.md#fmuv2-bootloader-update).
 
+## Firmware Variants
+
+PX4 boards may provide multiple firmware variants for different vehicle types (multicopter, fixed-wing, rover, etc.).
+QGroundControl shows vehicle firmware by default.
+CAN peripheral firmware (for sensor nodes like GPS, optical flow, magnetometer, etc.) is shown in a separate section.
+Developer builds (such as `default` or `zenoh`) are available in advanced mode.
+
+For technical details on how firmware variants are classified and discovered, see [Firmware Manifest & Metadata](../hardware/firmware_manifest.md).
+
 ## Further Information
 
 - [QGroundControl User Guide > Firmware](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/firmware.html).
