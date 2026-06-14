@@ -7,11 +7,6 @@
 # ----------------------------------------------------------------------------
 # Safety / arming
 # ----------------------------------------------------------------------------
-# 743V2 has NO dedicated safety switch pad - bypass the IO safety check so
-# the vehicle can arm without a physical button.  Magic value 22027 matches
-# the circuit-breaker "skip safety" constant in PX4.
-param set-default CBRK_IO_SAFETY 22027
-
 # Disable the 5V supply check (board is powered via PM, no separate rail sense)
 param set-default CBRK_SUPPLY_CHK 894281
 
