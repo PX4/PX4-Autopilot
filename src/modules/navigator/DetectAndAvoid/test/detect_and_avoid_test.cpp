@@ -135,6 +135,70 @@ TEST_F(DetectAndAvoidTest, RejectsNonFiniteTrafficAltitude)
 	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 }
 
+// WHY: A report is only usable when the transponder report is valid for the fields the active
+// standard consumes; reports missing a required flag must be dropped.
+// WHAT: Publish an invalid report that omits the VALID_ALTITUDE flag (required by every
+// standard) and verify that no detect_and_avoid sample is published and no conflict is buffered.
+TEST_F(DetectAndAvoidTest, RejectsTrafficMissingRequiredFlags)
+{
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const matrix::Vector3f uav_vel{5.f, 10.f, 2.f};
+
+	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
+	sync_navigator_topics();
+	drain_detect_and_avoid_topic();
+
+	// Same geometry as ownship (an immediate conflict if processed), but VALID_ALTITUDE is absent.
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
+	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav, alt_uav, 30.f, 0.f, flags);
+
+	publish_transponder_report_and_check(tr);
+
+	EXPECT_FALSE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
+}
+
+// WHY: Stale traffic must never (re)enter the pipeline; reports older than DAA_TRAFF_TOUT are dropped.
+// WHAT: Shorten the timeout, publish an otherwise valid conflicting report with a backdated timestamp,
+// and verify that no detect_and_avoid sample is published and no conflict is buffered.
+TEST_F(DetectAndAvoidTest, RejectsStaleTrafficReport)
+{
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const matrix::Vector3f uav_vel{5.f, 10.f, 2.f};
+
+	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
+	sync_navigator_topics();
+
+	// Shortest allowed timeout so a modest backdate is unambiguously stale.
+	const int32_t traffic_timeout_s = 1;
+	param_set(param_handle(px4::params::DAA_TRAFF_TOUT), &traffic_timeout_s);
+	reload_daa_parameters();
+	drain_detect_and_avoid_topic();
+
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav, alt_uav, 30.f, 0.f, flags);
+
+	// Backdate well beyond the 1 s timeout. The harness has been running long enough (Navigator
+	// construction waits on dataman) that hrt_absolute_time() is comfortably past the offset.
+	const hrt_abstime backdate = 5_s;
+	const hrt_abstime now = hrt_absolute_time();
+	tr.timestamp = (now > backdate) ? (now - backdate) : 1;
+
+	publish_transponder_report_and_check(tr);
+
+	EXPECT_FALSE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
+
+	param_reset_all();
+}
+
 // WHY: Ownship reports must never enter the avoidance buffer regardless of whether identity comes
 // from ICAO, callsign, or UAS ID. The identifiers come from parameters and the board GUID.
 // WHAT: For each identifier format, run matching conflicting traffic through check_traffic() and

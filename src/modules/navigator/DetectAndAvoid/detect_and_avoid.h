@@ -56,7 +56,6 @@
 #include <lib/adsb/AdsbConflict.h>
 #include <lib/adsb/ConflictTracker.h>
 #include <lib/adsb/DaaEncodedId.h>
-#include <lib/adsb/DaaTrafficFilter.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <commander/px4_custom_mode.h>
@@ -278,6 +277,12 @@ private:
 
 	/** @brief Fill the traffic half of the DAA input from a valid report, applying the velocity defaults. */
 	void prepare_traffic_input(const transponder_report_s &transponder_report, daa_input_s &daa_input) const;
+
+	/**
+	 * @brief Check transponder report: true if the raw report has finite coords/altitude, the
+	 * required validity flags, and a recent timestamp.
+	 */
+	static bool transponder_data_valid(const transponder_report_s &report, hrt_abstime now, hrt_abstime timeout_us);
 
 	/** @brief Drain queued transponder reports and update the conflict buffer. */
 	bool process_transponder_queue(const daa_input_s &ownship_input);

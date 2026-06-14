@@ -96,6 +96,68 @@ DaaEncodedId DaaEncodedId::from_report(const transponder_report_s &report)
 	return {};
 }
 
+DaaEncodedId DaaEncodedId::identify_traffic_report(const transponder_report_s &report,
+		const daa_ownship_ids_s &ownship_ids)
+{
+	const DaaEncodedId encoded_id = from_report(report);
+
+	if (encoded_id.id == 0) {
+		PX4_DEBUG("DAA: No valid unique ID, skipping report");
+		return {};
+	}
+
+	if (is_self_detection(encoded_id, ownship_ids)) {
+		PX4_DEBUG("DAA: Self detection, skipping report.");
+		return {};
+	}
+
+	return encoded_id;
+}
+
+bool DaaEncodedId::is_self_detection(const DaaEncodedId &encoded_id, const daa_ownship_ids_s &ownship_ids)
+{
+	switch (encoded_id.encoding) {
+	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO: {
+			if (ownship_ids.icao >= 0
+			    && static_cast<uint32_t>(encoded_id.id) == static_cast<uint32_t>(ownship_ids.icao)) {
+				PX4_DEBUG("DAA: Received own main ICAO.");
+				return true;
+			}
+
+			if (ownship_ids.icao_2 >= 0
+			    && static_cast<uint32_t>(encoded_id.id) == static_cast<uint32_t>(ownship_ids.icao_2)) {
+				PX4_DEBUG("DAA: Received own secondary ICAO.");
+				return true;
+			}
+
+			break;
+		}
+
+	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN: {
+			if (encoded_id.id == ownship_ids.callsign) {
+				PX4_DEBUG("DAA: Received own Callsign.");
+				return true;
+			}
+
+			break;
+		}
+
+	case detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID: {
+			if (ownship_ids.uas_id_valid && encoded_id.id == ownship_ids.uas_id) {
+				PX4_DEBUG("DAA: Received own UAS ID.");
+				return true;
+			}
+
+			break;
+		}
+
+	default:
+		break;
+	}
+
+	return false;
+}
+
 void DaaEncodedId::to_string(char *buffer, size_t buffer_size) const
 {
 	if (buffer == nullptr || buffer_size == 0) { return; }

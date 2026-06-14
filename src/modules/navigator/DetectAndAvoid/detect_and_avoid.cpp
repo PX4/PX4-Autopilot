@@ -242,6 +242,49 @@ ConflictNotifier::cycle_context_s DetectAndAvoid::notifier_cycle_context() const
 	return context;
 }
 
+bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &report, const hrt_abstime now,
+		const hrt_abstime timeout_us)
+{
+	if (!PX4_ISFINITE(report.lat) || !PX4_ISFINITE(report.lon)) {
+		PX4_DEBUG("DAA: transponder data rejected, invalid lat/lon.");
+		return false;
+	}
+
+	if (!PX4_ISFINITE(report.altitude)) {
+		PX4_DEBUG("DAA: transponder data rejected, invalid altitude.");
+		return false;
+	}
+
+	uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+				  transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+	required_flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
+
+	if ((report.flags & required_flags) != required_flags) {
+		PX4_DEBUG("DAA: transponder data rejected, missing flags.");
+		return false;
+	}
+
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+
+	if (!PX4_ISFINITE(report.heading)) {
+		PX4_DEBUG("DAA: transponder data rejected, invalid heading.");
+		return false;
+	}
+
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
+
+	if (report.timestamp == 0 || (now - report.timestamp) > timeout_us) {
+		PX4_DEBUG("DAA: transponder data rejected, too old.");
+		return false;
+	}
+
+	return true;
+}
+
 bool DetectAndAvoid::process_transponder_queue(const daa_input_s &ownship_input)
 {
 	bool buffer_updated = false;
@@ -259,7 +302,7 @@ bool DetectAndAvoid::process_transponder_queue(const daa_input_s &ownship_input)
 		debug_print_transponder_report(transponder_report);
 #endif
 
-		if (!DaaTrafficFilter::transponder_data_valid(transponder_report, hrt_absolute_time(), traffic_timeout_us)) {
+		if (!transponder_data_valid(transponder_report, hrt_absolute_time(), traffic_timeout_us)) {
 			PX4_DEBUG("DAA: transponder data not valid.");
 			continue;
 		}
@@ -274,9 +317,9 @@ bool DetectAndAvoid::process_transponder_queue(const daa_input_s &ownship_input)
 bool DetectAndAvoid::process_transponder_report(const daa_input_s &ownship_input,
 		const transponder_report_s &transponder_report)
 {
-	DaaEncodedId encoded_id{};
+	const DaaEncodedId encoded_id = DaaEncodedId::identify_traffic_report(transponder_report, _ownship_ids);
 
-	if (!DaaTrafficFilter::identify_traffic_report(transponder_report, _ownship_ids, encoded_id)) {
+	if (encoded_id.id == 0) {
 		return false;
 	}
 

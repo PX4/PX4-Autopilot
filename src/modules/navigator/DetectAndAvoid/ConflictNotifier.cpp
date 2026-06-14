@@ -110,10 +110,10 @@ void ConflictNotifier::report_cycle(const conflict_cycle_changes_s &changes, con
 			continue;
 		}
 
-		conflict_info_s new_conflict{};
-
 		// No need to notify new conflicts that are not in the buffer anymore
-		if (!tracker.get_conflict(new_conflict_id, new_conflict)) {
+		const conflict_info_s new_conflict = tracker.get_conflict(new_conflict_id);
+
+		if (new_conflict.encoded_id.id == 0) {
 			continue;
 		}
 

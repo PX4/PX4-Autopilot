@@ -458,7 +458,7 @@ tests:
 # The default px4_sitl_test board builds the F3442 DAA standard.
 # This target builds the crosstrack DAA standard (CONFIG_NAVIGATOR_ADSB_F3442=n).
 tests_daa_crosstrack:
-	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),'detect_and_avoid|DaaCrosstrack|AdsbConflict|DaaActionPolicy|DaaTrafficFilter'))
+	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),'detect_and_avoid|DaaCrosstrack|AdsbConflict|DaaActionPolicy|DaaEncodedId'))
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)

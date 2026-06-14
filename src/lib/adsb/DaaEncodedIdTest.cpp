@@ -229,3 +229,89 @@ TEST(DaaEncodedIdTest, FromReportSelectsEncodingByPriority)
 	transponder_report_s empty_report{};
 	EXPECT_EQ(DaaEncodedId::from_report(empty_report).id, 0u);
 }
+
+// WHY: ICAO identifiers are vehicle-specific; unset (negative) parameters must never discard real traffic.
+// WHAT: Check primary and secondary ICAO matching against set and unset ownship identifiers.
+TEST(DaaEncodedIdTest, SelfDetectionIcao)
+{
+	const DaaEncodedId traffic_id{0x123456, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO};
+
+	daa_ownship_ids_s ownship_ids{};
+	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids.icao = 0x123456;
+	EXPECT_TRUE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids = {};
+	ownship_ids.icao_2 = 0x123456;
+	EXPECT_TRUE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids.icao = 0x654321;
+	ownship_ids.icao_2 = 0x654322;
+	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+}
+
+// WHY: Callsign identity is split across two parameters and the packed comparison must match exactly.
+// WHAT: Compare a packed traffic callsign against matching, unset, and different ownship callsigns.
+TEST(DaaEncodedIdTest, SelfDetectionCallsign)
+{
+	const char callsign[kCallsignLength] = "TST1234";
+	const uint64_t packed_callsign = DaaEncodedId::callsign_to_uint64(callsign);
+	ASSERT_NE(packed_callsign, 0u);
+
+	const DaaEncodedId traffic_id{packed_callsign, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN};
+
+	daa_ownship_ids_s ownship_ids{};
+	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids.callsign = packed_callsign;
+	EXPECT_TRUE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids.callsign = packed_callsign ^ 1u;
+	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+}
+
+// WHY: Without a board UUID there is no own UAS identity, so UAS traffic must never be treated as self.
+// WHAT: Compare a packed traffic UAS-ID against the ownship key with the valid flag set and cleared.
+TEST(DaaEncodedIdTest, SelfDetectionUasId)
+{
+	uint8_t uas_id_bytes[kUasIdByteLength];
+
+	for (int i = 0; i < kUasIdByteLength; ++i) {
+		uas_id_bytes[i] = 0xE0 + i;
+	}
+
+	const uint64_t packed_uas_id = DaaEncodedId::last_uas_id_bytes_to_uint64(uas_id_bytes);
+	ASSERT_NE(packed_uas_id, 0u);
+
+	const DaaEncodedId traffic_id{packed_uas_id, detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID};
+
+	daa_ownship_ids_s ownship_ids{};
+	ownship_ids.uas_id = packed_uas_id;
+	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids.uas_id_valid = true;
+	EXPECT_TRUE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+
+	ownship_ids.uas_id = packed_uas_id ^ 1u;
+	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
+}
+
+// WHY: The identification must reject reports without a usable identity and ownship reports,
+// and hand a decoded identifier to the tracker for everything else.
+// WHAT: Identify an empty report, an incoming ICAO report, and the same report with a matching ownship ICAO.
+TEST(DaaEncodedIdTest, IdentifyTrafficReport)
+{
+	daa_ownship_ids_s ownship_ids{};
+
+	transponder_report_s report{};
+	EXPECT_EQ(DaaEncodedId::identify_traffic_report(report, ownship_ids).id, 0u);
+
+	report.icao_address = 0xABCDEF;
+	const DaaEncodedId encoded_id = DaaEncodedId::identify_traffic_report(report, ownship_ids);
+	EXPECT_EQ(encoded_id.id, 0xABCDEFu);
+	EXPECT_EQ(encoded_id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO);
+
+	ownship_ids.icao = 0xABCDEF;
+	EXPECT_EQ(DaaEncodedId::identify_traffic_report(report, ownship_ids).id, 0u);
+}

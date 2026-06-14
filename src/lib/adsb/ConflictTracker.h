@@ -127,13 +127,13 @@ public:
 	/** @brief Cached most-urgent conflict; only updated by refresh_most_urgent() and clear(). */
 	const conflict_info_s &most_urgent() const { return _most_urgent; }
 
-	/** @brief Compute the highest-priority conflict from the buffer, or false if empty. */
-	bool find_most_urgent(conflict_info_s &most_urgent_conflict) const;
+	/** @brief Compute the highest-priority conflict from the buffer, or id=0 when the buffer is empty. */
+	conflict_info_s find_most_urgent() const;
 
 	bool contains(const DaaEncodedId &encoded_id) const { return find_conflict_idx(encoded_id) >= 0; }
 
-	/** @brief Copy the tracked entry for @p encoded_id into @p conflict, or false if not tracked. */
-	bool get_conflict(const DaaEncodedId &encoded_id, conflict_info_s &conflict) const;
+	/** @brief Return the tracked entry for @p encoded_id, or id=0 when it is not tracked. */
+	conflict_info_s get_conflict(const DaaEncodedId &encoded_id) const;
 
 	size_t size() const { return _buffer.size(); }
 	bool empty() const { return _buffer.empty(); }

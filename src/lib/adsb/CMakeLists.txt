@@ -36,7 +36,6 @@ set(adsb_srcs
 	ConflictTracker.cpp
 	DaaActionPolicy.cpp
 	DaaEncodedId.cpp
-	DaaTrafficFilter.cpp
 )
 
 if(CONFIG_NAVIGATOR_ADSB_F3442)
@@ -55,7 +54,6 @@ px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)
 px4_add_functional_gtest(SRC ConflictTrackerTest.cpp LINKLIBS adsb)
 px4_add_unit_gtest(SRC DaaActionPolicyTest.cpp LINKLIBS adsb)
 px4_add_unit_gtest(SRC DaaEncodedIdTest.cpp LINKLIBS adsb)
-px4_add_unit_gtest(SRC DaaTrafficFilterTest.cpp LINKLIBS adsb)
 
 if(CONFIG_NAVIGATOR_ADSB_F3442)
 	px4_add_functional_gtest(SRC f3442_standard/DaaF3442Test.cpp LINKLIBS adsb)

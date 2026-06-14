@@ -237,38 +237,35 @@ void ConflictTracker::refresh_most_urgent()
 		return;
 	}
 
-	conflict_info_s most_urgent_conflict{};
+	const conflict_info_s most_urgent_conflict = find_most_urgent();
 
-	if (find_most_urgent(most_urgent_conflict)) {
+	if (most_urgent_conflict.encoded_id.id != 0) {
 		PX4_DEBUG("DAA: refresh_most_urgent success.");
 		_most_urgent = most_urgent_conflict;
 	}
 }
 
-bool ConflictTracker::find_most_urgent(conflict_info_s &most_urgent_conflict) const
+conflict_info_s ConflictTracker::find_most_urgent() const
 {
 	const int most_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kMostUrgent);
 
 	if (!is_valid_idx(most_urgent_conflict_idx)) {
 		PX4_ERR("DAA: no most urgent conflict");
-		return false;
+		return {};
 	}
 
-	most_urgent_conflict = _buffer[most_urgent_conflict_idx];
-
-	return true;
+	return _buffer[most_urgent_conflict_idx];
 }
 
-bool ConflictTracker::get_conflict(const DaaEncodedId &encoded_id, conflict_info_s &conflict) const
+conflict_info_s ConflictTracker::get_conflict(const DaaEncodedId &encoded_id) const
 {
 	const int conflict_idx = find_conflict_idx(encoded_id);
 
 	if (!is_valid_idx(conflict_idx)) {
-		return false;
+		return {};
 	}
 
-	conflict = _buffer[conflict_idx];
-	return true;
+	return _buffer[conflict_idx];
 }
 
 int ConflictTracker::find_conflict_idx_by_priority(const ConflictPriority priority) const

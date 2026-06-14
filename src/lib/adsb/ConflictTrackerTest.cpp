@@ -82,8 +82,8 @@ TEST(ConflictTrackerTest, AddsNewConflictAndRefreshesMostUrgent)
 	EXPECT_EQ(tracker.size(), 1u);
 	EXPECT_TRUE(tracker.contains(conflict.encoded_id));
 
-	conflict_info_s tracked{};
-	ASSERT_TRUE(tracker.get_conflict(conflict.encoded_id, tracked));
+	const conflict_info_s tracked = tracker.get_conflict(conflict.encoded_id);
+	ASSERT_NE(tracked.encoded_id.id, 0u);
 	EXPECT_EQ(tracked.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
 
 	// AND: The cached most-urgent conflict only changes after an explicit refresh.
@@ -123,8 +123,8 @@ TEST(ConflictTrackerTest, EmitsLevelChangedOnlyWhenLevelDiffers)
 
 	// THEN: The entry is overwritten without a change.
 	EXPECT_EQ(changes.size(), 0u);
-	conflict_info_s tracked{};
-	ASSERT_TRUE(tracker.get_conflict(make_conflict(0x6E9F7B, 0, 0.f).encoded_id, tracked));
+	const conflict_info_s tracked = tracker.get_conflict(make_conflict(0x6E9F7B, 0, 0.f).encoded_id);
+	ASSERT_NE(tracked.encoded_id.id, 0u);
 	EXPECT_EQ(tracked.latest_update_timestamp, 2000000u);
 	EXPECT_FLOAT_EQ(tracked.aircraft_dist, 1900.f);
 
@@ -315,8 +315,8 @@ TEST(ConflictTrackerTest, PriorityIsLevelFirstThenDistance)
 	tracker.apply_conflict(close_critical, changes);
 
 	// THEN: The closest critical conflict is selected.
-	conflict_info_s most_urgent{};
-	ASSERT_TRUE(tracker.find_most_urgent(most_urgent));
+	const conflict_info_s most_urgent = tracker.find_most_urgent();
+	ASSERT_NE(most_urgent.encoded_id.id, 0u);
 	EXPECT_EQ(most_urgent.encoded_id.id, 3u);
 }
 

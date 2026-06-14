@@ -33,7 +33,7 @@
 
 /**
  * @file DaaEncodedId.h
- * @brief A traffic identifier reduced to a 64-bit key plus the encoding it came from.
+ * @brief Traffic report identification helpers and encoded traffic IDs.
  *
  * A transponder report can identify an aircraft three different ways: an ICAO
  * address, an ADS-B callsign, or a UAS / UTM GUID. The DAA traffic buffer keys
@@ -63,6 +63,15 @@ static constexpr uint8_t kIcaoLength{7};
 // Similar to PX4_GUID_BYTE_LENGTH and transponder_report_s::uas_id;
 static constexpr uint8_t kUasIdByteLength{18};
 
+// The ownship identifiers used to reject self-detections.
+struct daa_ownship_ids_s {
+	int32_t icao{-1};         // ADSB_ICAO_ID convention: negative = unset
+	int32_t icao_2{-1};       // ADSB_ICAO_ID_2 convention: negative = unset
+	uint64_t callsign{0};     // packed with DaaEncodedId::callsign_to_uint64
+	uint64_t uas_id{0};       // packed with DaaEncodedId::last_uas_id_bytes_to_uint64
+	bool uas_id_valid{false}; // false when the board UUID is unavailable
+};
+
 /**
  * @brief A traffic identifier reduced to a 64-bit key plus its source encoding.
  *
@@ -83,6 +92,17 @@ struct DaaEncodedId {
 	 * default-constructed value) when the report carries no usable identifier.
 	 */
 	static DaaEncodedId from_report(const transponder_report_s &report);
+
+	/**
+	 * @brief Identify a transponder traffic report.
+	 *
+	 * Returns the extracted identifier, or id=0 (the default-constructed value) when the report
+	 * carries no usable identifier or matches ownship (self-detection).
+	 */
+	static DaaEncodedId identify_traffic_report(const transponder_report_s &report, const daa_ownship_ids_s &ownship_ids);
+
+	/** @brief True if the report's identifier matches ownship (ICAO, callsign or UAS-ID). */
+	static bool is_self_detection(const DaaEncodedId &encoded_id, const daa_ownship_ids_s &ownship_ids);
 
 	/** @brief Render this id to a null-terminated string according to its encoding. */
 	void to_string(char *buffer, size_t buffer_size) const;

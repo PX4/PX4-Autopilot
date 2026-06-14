@@ -910,8 +910,8 @@ Notes:
 
 The implementation is split between a platform-independent core and the navigator integration:
 
-- `src/lib/adsb`: the DAA core, with no navigator dependency; uORB message structs and enums are only used as boundary data types.
-  It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding (`DaaEncodedId`), the active-conflict buffer (`ConflictTracker`), and the action policy (`DaaActionPolicy`).
+- `src/lib/adsb`: the DAA core, with no navigator dependency; uORB message structs and enums are only used for data types.
+  It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding and self-detection (`DaaEncodedId`), the active-conflict buffer (`ConflictTracker`), and the action policy (`DaaActionPolicy`).
   `ConflictTracker` owns the fixed-size conflict buffer and the priority rules: it inserts, updates, and evicts conflicts, caches the most urgent one, and reports every change that may require a user-facing message as a change record (`conflict_tracker_change_s`), without sending any notification itself.
   `DaaActionPolicy` is a stateless decision function: given the most-urgent level transition, the navigation state, the landed/armed state, and the action parameter values, it returns which vehicle command to request and which action or ground message to send. It implements the level-to-action mapping (including the F3442 nested-zone fallback described in [Automated Actions](#automated-actions)) and the navigator-state escalation gate.
 - `src/modules/navigator/DetectAndAvoid`: the navigator integration.
