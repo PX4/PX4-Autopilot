@@ -44,17 +44,46 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			OUTPUT_VARIABLE DUMMY_RESULTS
 		)
 	else()
-		# Non-default labels merge default.px4board + {label}.px4board,
-		# so reconfigure must also trigger on changes to default.px4board.
-		set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PX4_BOARD_DIR}/default.px4board)
+		# The label's leading dot-component is the target class (e.g. "copter" for
+		# both "copter" and "copter.mavlink-dev").
+		string(REGEX REPLACE "\\..*" "" PX4_TARGET_CLASS "${LABEL}")
+		set(class_base "${PX4_SOURCE_DIR}/boards/common/${PX4_TARGET_CLASS}.px4board")
+		set(board_base "${PX4_BOARD_DIR}/base.px4board")
 
-		# Generate boardconfig from default.px4board and {label}.px4board
-		execute_process(
-			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
-			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${BOARD_DEFCONFIG}
-			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-			OUTPUT_VARIABLE DUMMY_RESULTS
-		)
+		if(EXISTS "${board_base}" AND EXISTS "${class_base}")
+			# Class-based target: merge base.px4board -> boards/common/<class>.px4board
+			# -> optional board <class> overlay -> the resolved label fragment.
+			set(merge_fragments "${board_base}" "${class_base}")
+			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_base} ${class_base})
+
+			# When building a variant (<class>.<variant>), also layer the board's
+			# plain <class> overlay underneath it if present.
+			set(board_class_overlay "${PX4_BOARD_DIR}/${PX4_TARGET_CLASS}.px4board")
+			if(NOT "${LABEL}" STREQUAL "${PX4_TARGET_CLASS}" AND EXISTS "${board_class_overlay}")
+				list(APPEND merge_fragments "${board_class_overlay}")
+				set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_class_overlay})
+			endif()
+
+			list(APPEND merge_fragments "${BOARD_DEFCONFIG}")
+
+			execute_process(
+				COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${merge_fragments}
+				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+				OUTPUT_VARIABLE DUMMY_RESULTS
+			)
+		else()
+			# Legacy: non-default labels merge default.px4board + {label}.px4board,
+			# so reconfigure must also trigger on changes to default.px4board.
+			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PX4_BOARD_DIR}/default.px4board)
+
+			execute_process(
+				COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${BOARD_DEFCONFIG}
+				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+				OUTPUT_VARIABLE DUMMY_RESULTS
+			)
+		endif()
 	endif()
 
 	if(${LABEL} MATCHES "allyes")

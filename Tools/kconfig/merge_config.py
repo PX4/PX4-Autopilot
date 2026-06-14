@@ -80,7 +80,32 @@ def _re_match(regex):
 
 from kconfiglib import Kconfig, BOOL, TRISTATE, TRI_TO_STR
 
-def main(kconfig_file, config1, config2):
+def _revert_unset_symbols(kconf, fragment_path):
+    # PX4 extension: stock kconfiglib only honors "# CONFIG_X is not set" for
+    # bool/tristate symbols on a non-replacing load. Overlay fragments also need
+    # to revert int/hex/string and y-default bool symbols set by an earlier
+    # fragment back to their Kconfig defaults — e.g. mr-canhubk3 fmu/sysview
+    # overlays revert BOARD_ROMFSROOT from "cannode" to "px4fmu_common", which
+    # also gates the bootloaders and uavcannode drivers via Kconfig dependencies.
+    unset_match = re.compile(r"# {}([^ ]+) is not set".format("CONFIG_"), re.ASCII).match
+    with open(fragment_path, 'r') as f:
+        for line in f:
+            match = unset_match(line)
+            if match is not None:
+                sym_name = match.group(1)
+                try:
+                    kconf.syms[sym_name].unset_value()
+
+                    if kconf.syms[sym_name].type is BOOL:
+                        for default, cond in kconf.syms[sym_name].orig_defaults:
+                            if(cond.str_value == 'y'):
+                                # Default is y, our diff is unset thus we've set it to no
+                                kconf.syms[sym_name].set_value(0)
+                except KeyError:
+                    pass
+
+
+def main(kconfig_file, fragments):
 
     kconf = Kconfig(kconfig_file, suppress_traceback=True)
 
@@ -97,37 +122,18 @@ def main(kconfig_file, config1, config2):
     kconf.warn_assign_override = False
     kconf.warn_assign_redun = False
 
-    # Create a merged configuration by loading the fragments with replace=False.
-    # load_config() and write_config() returns a message to print.
-    print(kconf.load_config(config1, replace=False))
-    print(kconf.load_config(config2, replace=False))
-    # PX4 extension: stock kconfiglib only honors "# CONFIG_X is not set" for
-    # bool/tristate symbols. PX4 overlay fragments need to revert int/hex/
-    # string symbols set by default.px4board back to their Kconfig defaults
-    # — e.g. mr-canhubk3 fmu/sysview overlays revert BOARD_ROMFSROOT from
-    # "cannode" to "px4fmu_common", which also gates the bootloaders and
-    # uavcannode drivers via Kconfig dependencies.
-    f = open(config2, 'r')
-
-    unset_match = re.compile(r"# {}([^ ]+) is not set".format("CONFIG_"), re.ASCII).match
-
-    for line in f:
-        match = unset_match(line)
-        #pprint.pprint(line)
-        if match is not None:
-            sym_name = match.group(1)
-            try:
-                kconf.syms[sym_name].unset_value()
-
-                if kconf.syms[sym_name].type is BOOL:
-                    for default, cond in kconf.syms[sym_name].orig_defaults:
-                        if(cond.str_value == 'y'):
-                            # Default is y, our diff is unset thus we've set it to no
-                            kconf.syms[sym_name].set_value(0)
-            except KeyError:
-                pass
-
-    f.close()
+    # Create a merged configuration by layering the fragments in order with
+    # replace=False; later fragments override earlier ones. The chain is
+    # base.px4board -> boards/common/<class>.px4board -> board <class> overlay
+    # -> optional <class>.<variant> overlay (a plain default+label build is just
+    # two fragments). Every fragment after the base may also revert symbols via
+    # "# CONFIG_X is not set"; the base itself is the foundation and is loaded
+    # verbatim, matching the historical default.px4board behavior.
+    # load_config() returns a message to print.
+    for index, fragment in enumerate(fragments):
+        print(kconf.load_config(fragment, replace=False))
+        if index > 0:
+            _revert_unset_symbols(kconf, fragment)
 
     # Print warnings for symbols whose actual value doesn't match the assigned
     # value
@@ -151,6 +157,6 @@ def main(kconfig_file, config1, config2):
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        sys.exit("usage: merge_config.py Kconfig merged_config config1 config2]")
+        sys.exit("usage: merge_config.py Kconfig merged_config config1 [config2 ...]")
     # Write the merged configuration
-    print(main(sys.argv[1],sys.argv[3],sys.argv[4]).write_config(sys.argv[2]))
+    print(main(sys.argv[1], sys.argv[3:]).write_config(sys.argv[2]))
