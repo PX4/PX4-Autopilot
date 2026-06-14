@@ -3,7 +3,6 @@
 # @name Generic 10" Octo coaxial geometry
 #
 # @type Octorotor Coaxial
-# @class Copter
 #
 # @output Motor1 motor 1
 # @output Motor2 motor 2

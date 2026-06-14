@@ -3,7 +3,6 @@
 # @name KTH-ATMOS
 #
 # @type Free-Flyer
-# @class Spacecraft
 #
 # @output Motor1 back left thruster, +x thrust
 # @output Motor2 front left thruster, -x thrust

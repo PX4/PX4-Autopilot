@@ -3,7 +3,6 @@
 # @name Generic Octocopter X geometry
 #
 # @type Octorotor x
-# @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

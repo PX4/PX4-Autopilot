@@ -2,7 +2,6 @@
 #
 # @name Generic Multirotor with tilt
 #
-# @class Copter
 # @type Tricopter Y+
 #
 # @output Motor1 motor 1

@@ -1,0 +1,46 @@
+menu "Airframes"
+
+# Airframe inclusion is selected per vehicle class, decoupled from which
+# controller modules are compiled in. Each option includes the matching
+# ROMFS/px4fmu_common/init.d/airframes/<class>/ directory. The defaults below
+# reproduce the historical behavior (airframes followed their controller
+# module) so existing configs are unchanged; a target overrides them in its
+# .px4board.
+
+config AIRFRAMES_COPTER
+	bool "Copter airframes"
+	default y if MODULES_MC_RATE_CONTROL
+
+config AIRFRAMES_PLANE
+	bool "Plane airframes"
+	default y if MODULES_FW_RATE_CONTROL
+
+config AIRFRAMES_VTOL
+	bool "VTOL airframes"
+	default y if MODULES_VTOL_ATT_CONTROL
+
+config AIRFRAMES_ROVER
+	bool "Rover airframes"
+	default y if MODULES_ROVER_DIFFERENTIAL || MODULES_ROVER_ACKERMANN || MODULES_ROVER_MECANUM
+
+config AIRFRAMES_UUV
+	bool "Underwater (UUV) airframes"
+	default y if MODULES_UUV_ATT_CONTROL
+
+config AIRFRAMES_SPACECRAFT
+	bool "Spacecraft airframes"
+	default y if MODULES_SPACECRAFT
+
+config AIRFRAMES_AIRSHIP
+	bool "Airship airframes"
+	default y if MODULES_AIRSHIP_ATT_CONTROL
+
+config AIRFRAMES_BALLOON
+	bool "Balloon airframes"
+	default y
+
+config AIRFRAMES_SIMULATION
+	bool "Simulation (SIH/HITL) airframes"
+	default y if MODULES_SIMULATION_PWM_OUT_SIM
+
+endmenu

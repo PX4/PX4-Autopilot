@@ -85,32 +85,23 @@ endif()
 if(PX4_ETHERNET)
 	set(added_arguments ${added_arguments} --ethernet)
 endif()
-# Check if board has an rc.board_airframes file to filter airframes
-set(board_airframes_file "${PX4_BOARD_DIR}/init/rc.board_airframes")
-set(airframes_whitelist "")
-if(EXISTS "${board_airframes_file}")
-	message(STATUS "ROMFS: Using board-specific airframes list: ${board_airframes_file}")
-	file(STRINGS "${board_airframes_file}" airframes_whitelist)
-	# Remove comments and empty lines
-	list(FILTER airframes_whitelist EXCLUDE REGEX "^[ \t]*#")
-	list(FILTER airframes_whitelist EXCLUDE REGEX "^[ \t]*$")
+# A board may ship product-specific airframes in init/airframes/; these are
+# copied into the ROMFS alongside the generic, class-selected set. Airframe
+# inclusion is otherwise driven by CONFIG_AIRFRAMES_<class> (see ROMFS/Kconfig),
+# which replaces the former per-board rc.board_airframes whitelist.
+set(board_airframes_dir "${PX4_BOARD_DIR}/init/airframes")
+set(board_airframes_copy_cmd "")
+set(board_airframes_files "")
+if(EXISTS "${board_airframes_dir}")
+	message(STATUS "ROMFS: Adding board airframes from ${board_airframes_dir}")
+	file(GLOB board_airframes_files "${board_airframes_dir}/*")
+	set(board_airframes_copy_cmd COMMAND ${CMAKE_COMMAND} -E copy_directory ${board_airframes_dir} ${romfs_gen_root_dir}/init.d/airframes)
 endif()
 
 # create list of relative romfs file names
 set(romfs_copy_files_relative)
 foreach(romfs_file IN LISTS romfs_copy_files)
 	string(REPLACE "${romfs_src_dir}/" "" romfs_file_rel ${romfs_file})
-
-	# If we have an airframes whitelist, filter airframe files
-	if(airframes_whitelist AND romfs_file_rel MATCHES "^init.d/airframes/")
-		# Extract just the filename
-		get_filename_component(airframe_name "${romfs_file_rel}" NAME)
-		# Check if it's in the whitelist
-		if(NOT "${airframe_name}" IN_LIST airframes_whitelist)
-			continue()
-		endif()
-	endif()
-
 	list(APPEND romfs_copy_files_relative ${romfs_file_rel})
 endforeach()
 # copy the ROMFS files by creating a tar and extracting it to the build
@@ -146,10 +137,13 @@ add_custom_command(
 		${romfs_copy_stamp}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
+	${board_airframes_copy_cmd}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
 		--board ${PX4_BOARD}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px4airframes/flatten_classes.py
+		${romfs_gen_root_dir}/init.d/airframes
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
@@ -160,7 +154,10 @@ add_custom_command(
 		--board-root-path ${CONFIG_BOARD_ROOT_PATH}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
-	DEPENDS ${romfs_tar_file}
+	DEPENDS
+		${romfs_tar_file}
+		${PX4_SOURCE_DIR}/Tools/px4airframes/flatten_classes.py
+		${board_airframes_files}
 	COMMENT "ROMFS: copying, generating airframes"
 	)
 
