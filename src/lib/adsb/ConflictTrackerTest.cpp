@@ -121,7 +121,7 @@ TEST(ConflictTrackerTest, EmitsLevelChangedOnlyWhenLevelDiffers)
 	EXPECT_TRUE(tracker.apply_conflict(make_conflict(0x6E9F7B, detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, 1900.f, 2000000),
 					   changes));
 
-	// THEN: The entry is overwritten without an change.
+	// THEN: The entry is overwritten without a change.
 	EXPECT_EQ(changes.size(), 0u);
 	conflict_info_s tracked{};
 	ASSERT_TRUE(tracker.get_conflict(make_conflict(0x6E9F7B, 0, 0.f).encoded_id, tracked));
@@ -291,21 +291,30 @@ TEST(ConflictTrackerTest, PriorityIsLevelFirstThenDistance)
 	const conflict_info_s far_critical = make_conflict(1, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, 3000.f);
 	const conflict_info_s close_low = make_conflict(2, detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, 10.f);
 	const conflict_info_s close_critical = make_conflict(3, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, 100.f);
+	const conflict_info_s same_as_close_critical =
+		make_conflict(4, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, 100.f);
 
-	// Level dominates distance.
+	// GIVEN: A high-level conflict is farther away than a low-level conflict.
+	// THEN: Level dominates distance.
 	EXPECT_TRUE(ConflictTracker::is_conflict_more_important(far_critical, close_low));
 	EXPECT_TRUE(ConflictTracker::is_conflict_less_important(close_low, far_critical));
 
-	// Distance breaks the tie at equal levels.
+	// GIVEN: Two conflicts have the same level.
+	// THEN: Distance breaks the tie.
 	EXPECT_TRUE(ConflictTracker::is_conflict_more_important(close_critical, far_critical));
 	EXPECT_TRUE(ConflictTracker::is_conflict_less_important(far_critical, close_critical));
+	EXPECT_FALSE(ConflictTracker::is_conflict_more_important(close_critical, same_as_close_critical));
+	EXPECT_FALSE(ConflictTracker::is_conflict_less_important(close_critical, same_as_close_critical));
 
 	ConflictTracker tracker;
 	conflict_tracker_changes_s changes{};
+
+	// WHEN: The conflicts are inserted in non-priority order.
 	tracker.apply_conflict(close_low, changes);
 	tracker.apply_conflict(far_critical, changes);
 	tracker.apply_conflict(close_critical, changes);
 
+	// THEN: The closest critical conflict is selected.
 	conflict_info_s most_urgent{};
 	ASSERT_TRUE(tracker.find_most_urgent(most_urgent));
 	EXPECT_EQ(most_urgent.encoded_id.id, 3u);

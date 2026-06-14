@@ -105,8 +105,8 @@ bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tra
 		return false;
 	}
 
-	if (is_conflict_less_important(conflict, _buffer[least_urgent_conflict_idx])) {
-		PX4_DEBUG("DAA: new conflict is least important conflict, ignoring.");
+	if (!is_conflict_more_important(conflict, _buffer[least_urgent_conflict_idx])) {
+		PX4_DEBUG("DAA: new conflict does not outrank tracked conflicts, ignoring.");
 		record_ignored(changes, conflict, IgnoreTrafficCause::kBufferFull);
 		return false;
 	}
@@ -330,5 +330,9 @@ bool ConflictTracker::is_conflict_less_important(const conflict_info_s &new_conf
 bool ConflictTracker::is_conflict_more_important(const conflict_info_s &new_conflict,
 		const conflict_info_s &base_conflict)
 {
-	return (!is_conflict_less_important(new_conflict, base_conflict));
+	if (new_conflict.conflict_level != base_conflict.conflict_level) {
+		return new_conflict.conflict_level > base_conflict.conflict_level;
+	}
+
+	return new_conflict.aircraft_dist < base_conflict.aircraft_dist;
 }

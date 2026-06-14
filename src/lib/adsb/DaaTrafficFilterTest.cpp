@@ -69,6 +69,15 @@ transponder_report_s valid_report()
 	return report;
 }
 
+void expect_valid_without_flags(const uint16_t removed_flags, const bool expected_valid)
+{
+	transponder_report_s report = valid_report();
+	report.flags &= ~removed_flags;
+
+	EXPECT_EQ(DaaTrafficFilter::transponder_data_valid(report, kNow, kTimeoutUs), expected_valid)
+			<< "removed_flags " << removed_flags;
+}
+
 } // namespace
 
 // WHY: Invalid traffic geometry must be rejected before any DAA math runs to avoid propagating NaNs.
@@ -94,26 +103,23 @@ TEST(DaaTrafficFilterTest, TransponderDataValidRejectsNonFiniteFields)
 // WHAT: Drop each required validity flag and verify the report is rejected (heading/velocity only outside F3442).
 TEST(DaaTrafficFilterTest, TransponderDataValidRequiresFlags)
 {
-	transponder_report_s report = valid_report();
-	report.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
-	EXPECT_FALSE(DaaTrafficFilter::transponder_data_valid(report, kNow, kTimeoutUs));
-
-	report = valid_report();
-	report.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-	EXPECT_FALSE(DaaTrafficFilter::transponder_data_valid(report, kNow, kTimeoutUs));
-
-	report = valid_report();
-	report.flags &= ~(transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-			  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY);
+	expect_valid_without_flags(transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS, false);
+	expect_valid_without_flags(transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE, false);
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	// F3442 does not consume the reported heading or horizontal velocity.
+    // F3442 does not consume the reported heading or horizontal velocity.
+	expect_valid_without_flags(transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING, true);
+	expect_valid_without_flags(transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY, true);
+
+	transponder_report_s report = valid_report();
+	report.heading = std::numeric_limits<float>::quiet_NaN();
 	EXPECT_TRUE(DaaTrafficFilter::transponder_data_valid(report, kNow, kTimeoutUs));
 #else
-	EXPECT_FALSE(DaaTrafficFilter::transponder_data_valid(report, kNow, kTimeoutUs));
+    // Crosstrack mode depends on a finite traffic heading.
+	expect_valid_without_flags(transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING, false);
+	expect_valid_without_flags(transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY, false);
 
-	// Crosstrack mode depends on a finite traffic heading.
-	report = valid_report();
+	transponder_report_s report = valid_report();
 	report.heading = std::numeric_limits<float>::quiet_NaN();
 	EXPECT_FALSE(DaaTrafficFilter::transponder_data_valid(report, kNow, kTimeoutUs));
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
@@ -226,7 +232,7 @@ TEST(DaaTrafficFilterTest, IdentifyTrafficReport)
 	transponder_report_s report{};
 	EXPECT_FALSE(DaaTrafficFilter::identify_traffic_report(report, ownship_ids, encoded_id));
 
-	// WHEN/THEN: Am incoming ICAO report is identified and decoded.
+	// WHEN/THEN: An incoming ICAO report is identified and decoded.
 	report.icao_address = 0xABCDEF;
 	EXPECT_TRUE(DaaTrafficFilter::identify_traffic_report(report, ownship_ids, encoded_id));
 	EXPECT_EQ(encoded_id.id, 0xABCDEFu);

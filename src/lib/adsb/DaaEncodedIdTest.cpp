@@ -40,25 +40,12 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <cstring>
 
 #include <lib/adsb/DaaEncodedId.h>
 
 namespace
 {
-
-void generate_random_callsign(char *callsign, size_t length = 8)
-{
-	const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-	const size_t chars_length = 36;
-
-	for (size_t i = 0; i < length; ++i) {
-		callsign[i] = chars[rand() % chars_length];
-	}
-
-	callsign[length] = '\0';
-}
 
 void set_report_callsign(transponder_report_s &report, const char *callsign)
 {
@@ -69,13 +56,17 @@ void set_report_callsign(transponder_report_s &report, const char *callsign)
 } // namespace
 
 // WHY: Callsign packing and unpacking must round-trip cleanly so buffer keys and operator-facing messages stay consistent.
-// WHAT: Convert random callsigns to the 64-bit key and back, verify the recovered string re-encodes identically, and reject unterminated input.
+// WHAT: Convert representative callsigns to the 64-bit key and back, verify the recovered string re-encodes identically, and reject unterminated input.
 TEST(DaaEncodedIdTest, CallsignRoundTrip)
 {
-	char callsign[kCallsignLength];
+	const char *callsigns[] {
+		"A",
+		"PX4TEST1",
+		"ABCD1234",
+		"ZZ999999",
+	};
 
-	for (int i = 0; i < 30; ++i) {
-		generate_random_callsign(callsign, 8);
+	for (const char *callsign : callsigns) {
 		const uint64_t key = DaaEncodedId::callsign_to_uint64(callsign);
 
 		char recovered[kCallsignLength];
@@ -87,8 +78,7 @@ TEST(DaaEncodedIdTest, CallsignRoundTrip)
 
 	// WHEN/THEN: A callsign that is not null-terminated is rejected.
 	char callsign_non_null[kCallsignLength];
-	generate_random_callsign(callsign_non_null, 8);
-	callsign_non_null[kCallsignLength - 1] = 1;
+	memset(callsign_non_null, 'A', sizeof(callsign_non_null));
 	EXPECT_EQ(DaaEncodedId::callsign_to_uint64(callsign_non_null), 0u);
 }
 
@@ -146,9 +136,9 @@ TEST(DaaEncodedIdTest, UasIdPackingPreservesTailBytes)
 {
 	uint8_t uas_id[kUasIdByteLength];
 
-	for (int i = 0; i < 30; ++i) {
+	for (int i = 0; i < 4; ++i) {
 		for (int b = 0; b < kUasIdByteLength; ++b) {
-			uas_id[b] = static_cast<uint8_t>(rand() % 256);
+			uas_id[b] = static_cast<uint8_t>(0x10 * i + b);
 		}
 
 		const uint64_t key = DaaEncodedId::last_uas_id_bytes_to_uint64(uas_id);
