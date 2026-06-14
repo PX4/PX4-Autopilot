@@ -284,6 +284,7 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 	// arc_start_bearing and arc_sweep are referenced to the center, so test membership with the
 	// center->vehicle bearing. Measuring it in the direction of the sweep handles either sign and
 	// any zero crossing without special cases.
+	// NOLINTNEXTLINE(readability-suspicious-call-argument) intentional reverse bearing: center -> vehicle
 	const float bearing_center_to_now = get_bearing_to_next_waypoint(lat_center, lon_center, lat_now, lon_now);
 	const float bearing_from_start = wrap_2pi((bearing_center_to_now - arc_start_bearing) * (arc_sweep < 0.0f ? -1.0f :
 					 1.0f));
