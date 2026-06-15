@@ -32,7 +32,7 @@ The keys and values that need to be present are:
 Two prebuilt targets are available:
 
 - `make px4_fmu-v6c_visionTargetEstStatic`: static-target hardware build.
-- `make px4_sitl_default`: SITL static-target build.
+- `make px4_sitl`: SITL static-target build.
 
 For the experimental moving-target build, see [Moving-target mode](../advanced_features/vision_target_estimator_advanced.md#moving-target-mode-experimental).
 

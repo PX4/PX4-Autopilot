@@ -292,6 +292,6 @@ make px4_sitl_sih
 cd build/px4_sitl_sih && cpack -G DEB
 
 # Gazebo — produces px4-gazebo_*.deb
-make px4_sitl_default
-cd build/px4_sitl_default && cpack -G DEB
+make px4_sitl
+cd build/px4_sitl && cpack -G DEB
 ```

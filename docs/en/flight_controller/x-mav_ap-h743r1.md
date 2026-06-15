@@ -117,7 +117,7 @@ The board is configure by default for a analog power monitor, and also has Drone
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
 ```sh
-make x-mav_ap-h743r1_default
+make x-mav_ap-h743r1_vtol
 ```
 
 ## Pinouts and Size

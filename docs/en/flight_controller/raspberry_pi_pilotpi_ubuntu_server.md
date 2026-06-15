@@ -257,13 +257,13 @@ Build the executable file:
 
 ```sh
 cd Firmware
-make scumaker_pilotpi_default
+make scumaker_pilotpi
 ```
 
 Then upload it with:
 
 ```sh
-make scumaker_pilotpi_default upload
+make scumaker_pilotpi upload
 ```
 
 #### Alternative build method for armhf (using docker)
@@ -273,7 +273,7 @@ If you are compiling for the first time with docker, please refer to the [offici
 Execute the command in firmware folder:
 
 ```sh
-./Tools/docker_run.sh "export AUTOPILOT_HOST=192.168.X.X; export AUTOPILOT_USER=ubuntu; export NO_NINJA_BUILD=1; make scumaker_pilotpi_default upload"
+./Tools/docker_run.sh "export AUTOPILOT_HOST=192.168.X.X; export AUTOPILOT_USER=ubuntu; export NO_NINJA_BUILD=1; make scumaker_pilotpi upload"
 ```
 
 ::: info
@@ -288,7 +288,7 @@ You can compile without uploading too. Just remove `upload` target.
 It is also possible to just compile the code with command:
 
 ```sh
-./Tools/docker_run.sh "make scumaker_pilotpi_default"
+./Tools/docker_run.sh "make scumaker_pilotpi"
 ```
 
 #### Build for arm64 target

@@ -5,12 +5,12 @@
 # Usage: ./Tools/simulation/sitl_multiple_run.sh [num_instances] [model] [build_target]
 # Examples:
 #   ./Tools/simulation/sitl_multiple_run.sh 3 sihsim_quadx px4_sitl_sih
-#   ./Tools/simulation/sitl_multiple_run.sh 2 gazebo-classic_iris px4_sitl_default
-#   ./Tools/simulation/sitl_multiple_run.sh     # defaults: 2 instances, gazebo-classic_iris, px4_sitl_default
+#   ./Tools/simulation/sitl_multiple_run.sh 2 gazebo-classic_iris px4_sitl
+#   ./Tools/simulation/sitl_multiple_run.sh     # defaults: 2 instances, gazebo-classic_iris, px4_sitl
 
 sitl_num=${1:-2}
 sim_model=${2:-gazebo-classic_iris}
-build_target=${3:-px4_sitl_default}
+build_target=${3:-px4_sitl}
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 src_path="$SCRIPT_DIR/../../"

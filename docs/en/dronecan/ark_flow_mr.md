@@ -59,7 +59,7 @@ As such, it supports firmware update over the CAN bus and [dynamic node allocati
 
 ARK Flow MR boards ship with recent firmware pre-installed, but if you want to build and flash the latest firmware yourself see [PX4 DroneCAN Firmware > Building the Firmware](px4_cannode_fw.md#building-the-firmware).
 
-- Firmware target: `ark_can-flow-mr_default`
+- Firmware target: `ark_can-flow-mr`
 - Bootloader target: `ark_can-flow-mr_canbootloader`
 
 ## Flight Controller Setup
@@ -118,7 +118,7 @@ You may need to [configure the following parameters](../dronecan/index.md#qgc-ca
 If you see a solid red LED there is an error and you should check the following:
 
 - Make sure the flight controller has an SD card installed.
-- Make sure the Ark Flow MR has `ark_can-flow-mr_canbootloader` installed prior to flashing `ark_can-flow-mr_default`.
+- Make sure the Ark Flow MR has `ark_can-flow-mr_canbootloader` installed prior to flashing `ark_can-flow-mr`.
 - Remove binaries from the root and ufw directories of the SD card and try to build and flash again.
 
 ## Video

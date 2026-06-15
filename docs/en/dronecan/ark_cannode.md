@@ -55,7 +55,7 @@ As such, it supports firmware update over the CAN bus and [dynamic node allocati
 
 ARK CANnode boards ship with recent firmware pre-installed, but if you want to build and flash the latest firmware yourself see [PX4 DroneCAN Firmware > Building the Firmware](px4_cannode_fw.md#building-the-firmware).
 
-- Firmware target: `ark_cannode_default`
+- Firmware target: `ark_cannode`
 - Bootloader target: `ark_cannode_canbootloader`
 
 ## Flight Controller Configuration
@@ -96,7 +96,7 @@ On the ARK CANnode, you may need to configure the following parameters:
 If you see a solid red LED there is an error and you should check the following:
 
 - Make sure the flight controller has an SD card installed.
-- Make sure the ARK CANnode has `ark_cannode_canbootloader` installed prior to flashing `ark_cannode_default`.
+- Make sure the ARK CANnode has `ark_cannode_canbootloader` installed prior to flashing `ark_cannode`.
 - Remove binaries from the root and ufw directories of the SD card and try to build and flash again.
 
 ## See Also

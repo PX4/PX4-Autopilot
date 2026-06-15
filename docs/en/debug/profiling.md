@@ -42,7 +42,7 @@ But if you were using a different device you would be able discover the appropri
 Then pass in the appropriate device using the `--gdbdev` argument like this:
 
 ```sh
-./poor-mans-profiler.sh --elf=build/px4_fmu-v4_default/px4_fmu-v4_default.elf --nsamples=30000 --gdbdev=/dev/ttyACM2
+./poor-mans-profiler.sh --elf=build/px4_fmu-v4_vtol/px4_fmu-v4_vtol.elf --nsamples=30000 --gdbdev=/dev/ttyACM2
 ```
 
 ### Running
@@ -51,7 +51,7 @@ Basic usage of the profiler is available through the build system.
 For example, the following command builds and profiles px4*fmu-v4pro target with 10000 samples (fetching \_FlameGraph* and adding it to the path as needed).
 
 ```sh
-make px4_fmu-v4pro_default profile
+make px4_fmu-v4pro_vtol profile
 ```
 
 For more control over the build process, including setting the number of samples, see the [Implementation](#implementation).
@@ -105,14 +105,14 @@ This is done with the help of the option `--elf=<file>`, which expects a path (r
 Usage example:
 
 ```sh
-./poor-mans-profiler.sh --elf=build/px4_fmu-v4_default/px4_fmu-v4_default.elf --nsamples=30000
+./poor-mans-profiler.sh --elf=build/px4_fmu-v4_vtol/px4_fmu-v4_vtol.elf --nsamples=30000
 ```
 
 Note that every launch of the script will overwrite the old stacks.
 Should you want to append to the old stacks rather than overwrite them, use the option `--append`:
 
 ```sh
-./poor-mans-profiler.sh --elf=build/px4_fmu-v4_default/px4_fmu-v4_default.elf --nsamples=30000 --append
+./poor-mans-profiler.sh --elf=build/px4_fmu-v4_vtol/px4_fmu-v4_vtol.elf --nsamples=30000 --append
 ```
 
 As one might suspect, `--append` with `--nsamples=0` will instruct the script to only regenerate the SVG without accessing the target at all.

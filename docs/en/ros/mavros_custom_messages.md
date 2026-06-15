@@ -319,7 +319,7 @@ Now you are ready to build all your work!
    - to build for Pixhawk 4/FMUv5 execute the following command in the root of the PX4-Autopilot directory:
 
    ```sh
-   make px4_fmu-v5_default upload
+   make px4_fmu-v5_vtol upload
    ```
 
    - to build for SITL execute the following command in the root of the PX4-Autopilot directory (using jmavsim simulation):

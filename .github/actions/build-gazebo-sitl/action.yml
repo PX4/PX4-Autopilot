@@ -6,7 +6,7 @@ runs:
   steps:
     - name: Build - PX4 Firmware (SITL)
       shell: bash
-      run: make px4_sitl_default
+      run: make px4_sitl
 
     - name: Cache - Stats after PX4 Firmware
       shell: bash
@@ -14,7 +14,7 @@ runs:
 
     - name: Build - Gazebo Classic Plugins
       shell: bash
-      run: make px4_sitl_default sitl_gazebo-classic
+      run: make px4_sitl sitl_gazebo-classic
 
     - name: Cache - Stats after Gazebo Plugins
       shell: bash

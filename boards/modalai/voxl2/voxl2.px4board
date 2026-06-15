@@ -1,0 +1,4 @@
+# VOXL2 application-processor target (aarch64 Linux). The full apps config lives
+# in base.px4board, so this class overlay is intentionally empty. The companion
+# QURT/SLPI DSP firmware is the slpi variant (modalai_voxl2_slpi), built as a
+# prerequisite of this target.

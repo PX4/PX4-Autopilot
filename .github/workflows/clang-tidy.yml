@@ -94,10 +94,10 @@ jobs:
         apt-get install -y --no-install-recommends libclang-rt-18-dev
 
     # `make clang-ci` prepares both clang build directories:
-    #   - build/px4_sitl_default-clang:       full build, BUILD_TESTING=OFF
+    #   - build/px4_sitl-clang:       full build, BUILD_TESTING=OFF
     #     (used by run-clang-tidy-pr.py for whole-file analysis of
     #      changed production code)
-    #   - build/px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON
+    #   - build/px4_sitl-clang-test:  configure-only, BUILD_TESTING=ON
     #     (used by clang-tidy-diff-18.py so test files are in the
     #      compilation database with resolved gtest/fuzztest includes)
     - name: Build clang SITL
@@ -119,12 +119,12 @@ jobs:
         # submodule code we don't own. Feeding them to clang-tidy-diff
         # produces false positives from unresolved headers.
         python3 Tools/ci/clang-tidy-diff-filter.py \
-          --build-dir build/px4_sitl_default-clang-test \
+          --build-dir build/px4_sitl-clang-test \
           --base-ref origin/${{ github.base_ref }} \
           --out pr-review/diff.patch
         if [ -s pr-review/diff.patch ]; then
           clang-tidy-diff-18.py -p1 \
-            -path build/px4_sitl_default-clang-test \
+            -path build/px4_sitl-clang-test \
             -export-fixes pr-review/fixes.yml \
             -j0 < pr-review/diff.patch || true
         else

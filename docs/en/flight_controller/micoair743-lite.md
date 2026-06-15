@@ -105,7 +105,7 @@ All the connectors used on the board are SH1.0
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make micoair_h743-lite_default
+make micoair_h743-lite_vtol
 ```
 
 ## Installing PX4 Firmware
@@ -115,7 +115,7 @@ The firmware can be installed in any of the normal ways:
 - Build and upload the source
 
   ```sh
-  make micoair_h743-lite_default upload
+  make micoair_h743-lite_vtol upload
   ```
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.

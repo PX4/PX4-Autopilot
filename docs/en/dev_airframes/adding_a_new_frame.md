@@ -273,14 +273,14 @@ The following topics explain how to tune the parameters that will be specified i
 
 To make a new airframe available for section in the _QGroundControl_ [frame configuration](../config/airframe.md):
 
-1. Make a clean build (e.g. by running `make clean` and then `make px4_fmu-v5_default`)
+1. Make a clean build (e.g. by running `make clean` and then `make px4_fmu-v5_vtol`)
 1. Open QGC and select **Custom firmware file...** as shown below:
 
 ![QGC flash custom firmware](../../assets/gcs/qgc_flash_custom_firmware.png)
 
 You will be asked to choose the **.px4** firmware file to flash (this file is a zipped JSON file and contains the airframe metadata).
 
-1. Navigate to the build folder and select the firmware file (e.g. **PX4-Autopilot/build/px4_fmu-v5_default/px4_fmu-v5_default.px4**).
+1. Navigate to the build folder and select the firmware file (e.g. **PX4-Autopilot/build/px4_fmu-v5_vtol/px4_fmu-v5_vtol.px4**).
 1. Press **OK** to start flashing the firmware.
 1. Restart _QGroundControl_.
 

@@ -60,8 +60,8 @@ jobs:
     - name: Cache - Stats after px4_sitl
       run: ccache -s
 
-    - name: Build px4_fmu-v5_default
-      run: make px4_fmu-v5_default
+    - name: Build px4_fmu-v5_vtol
+      run: make px4_fmu-v5_vtol
 
     - uses: ./.github/actions/save-ccache
       if: always()

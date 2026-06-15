@@ -164,13 +164,13 @@ Build the executable file:
 
 ```sh
 cd PX4-Autopilot
-make scumaker_pilotpi_default
+make scumaker_pilotpi
 ```
 
 Then upload it with:
 
 ```sh
-make scumaker_pilotpi_default upload
+make scumaker_pilotpi upload
 ```
 
 Connect over ssh and run it with:
@@ -193,7 +193,7 @@ Then you should compile with docker instead.
 Before proceeding to next step, clear the existing building at first:
 
 ```sh
-rm -rf build/scumaker_pilotpi_default
+rm -rf build/scumaker_pilotpi
 ```
 
 ### Alternative build method (using docker)
@@ -205,7 +205,7 @@ If you are compiling for the first time with docker, please refer to the [offici
 Execute the command in PX4-Autopilot folder:
 
 ```sh
-./Tools/docker_run.sh "export AUTOPILOT_HOST=192.168.X.X; export NO_NINJA_BUILD=1; make scumaker_pilotpi_default upload"
+./Tools/docker_run.sh "export AUTOPILOT_HOST=192.168.X.X; export NO_NINJA_BUILD=1; make scumaker_pilotpi upload"
 ```
 
 ::: info
@@ -220,7 +220,7 @@ You can compile without uploading too. Just remove `upload` target.
 It is also possible to just compile the code with command:
 
 ```sh
-./Tools/docker_run.sh "make scumaker_pilotpi_default"
+./Tools/docker_run.sh "make scumaker_pilotpi"
 ```
 
 ### Post-configuration

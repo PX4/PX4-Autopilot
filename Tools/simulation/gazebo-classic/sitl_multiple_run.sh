@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # run multiple instances of the 'px4' binary, with the gazebo SITL simulation
-# It assumes px4 is already built, with 'make px4_sitl_default sitl_gazebo-classic'
+# It assumes px4 is already built, with 'make px4_sitl sitl_gazebo-classic'
 
 # The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
 # For example gazebo can be run like this:
@@ -80,7 +80,7 @@ done
 
 num_vehicles=${NUM_VEHICLES:=3}
 world=${WORLD:=empty}
-target=${TARGET:=px4_sitl_default}
+target=${TARGET:=px4_sitl}
 vehicle_model=${VEHICLE_MODEL:="iris"}
 export PX4_SIM_MODEL=gazebo-classic_${vehicle_model}
 

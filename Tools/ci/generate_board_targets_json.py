@@ -68,6 +68,30 @@ excluded_labels = [
 # Labels that mark isolated/special builds (poor cache reuse with normal builds)
 special_labels = ci_config.get('special_labels', ['lto', 'protected'])
 
+# Target-class overlay names. A board's sole class collapses to the bare board
+# name; a board with several keeps the explicit <class> suffix.
+CLASS_NAMES = {'copter', 'fixedwing', 'vtol', 'rover', 'uuv', 'spacecraft',
+               'airship', 'cannode', 'linux', 'sitl', 'io', 'ros2', 'voxl2'}
+target_classes_dir = os.path.join(source_dir, '..', 'target_classes')
+
+def board_class_set(board_path):
+    """The target-class overlay stems present for a board (e.g. {'vtol', 'rover'})."""
+    out = set()
+    for f in os.scandir(board_path):
+        if f.is_file() and f.name.endswith('.px4board') and f.name[:-len('.px4board')] in CLASS_NAMES:
+            out.add(f.name[:-len('.px4board')])
+    return out
+
+def sole_class(board_path):
+    """The board's only target class, or None if it has zero or several."""
+    cs = board_class_set(board_path)
+    return next(iter(cs)) if len(cs) == 1 else None
+
+def variant_suffix(label):
+    """The trailing variant component used to match excluded/special labels
+    (e.g. 'vtol.lto' -> 'lto', a bare 'test' -> 'test')."""
+    return label.rsplit('.', 1)[-1]
+
 def detect_chip_family(manufacturer_name, board_name, label):
     """Detect the chip family for a board by reading its NuttX defconfig.
 
@@ -75,7 +99,7 @@ def detect_chip_family(manufacturer_name, board_name, label):
       stm32h7, stm32f7, stm32f4, stm32f1, imxrt, kinetis, s32k, rp2040, native, special
     """
     # Special labels get their own group regardless of chip
-    if label in special_labels:
+    if variant_suffix(label) in special_labels:
         return 'special'
 
     board_path = os.path.join(boards_dir, manufacturer_name, board_name)
@@ -162,13 +186,24 @@ def process_target(px4board_file, target_name, manufacturer_name=None, board_dir
     toolchain = None
     group = None
 
-    if px4board_file.endswith("default.px4board") or \
-        px4board_file.endswith("performance-test.px4board") or \
-        px4board_file.endswith("bootloader.px4board"):
+    if label == "performance-test" or label.startswith("bootloader") or label.startswith("canbootloader"):
+        # Standalone savedefconfig config (complete, not a class delta).
         kconf.load_config(px4board_file, replace=True)
-    else: # Merge config with default.px4board
-        default_kconfig = re.sub(r'[a-zA-Z\d_-]+\.px4board', 'default.px4board', px4board_file)
-        kconf.load_config(default_kconfig, replace=True)
+    else:
+        # Class-based target: merge base.px4board -> target_classes/<class>.px4board
+        # -> optional board <class> overlay -> the label fragment (mirrors kconfig.cmake).
+        board_dir = os.path.dirname(px4board_file)
+        if "." in label:
+            cls = label.split(".", 1)[0]
+        elif label in CLASS_NAMES:
+            cls = label
+        else:
+            cls = sole_class(board_dir)  # bare variant attaches to the board's sole class
+        kconf.load_config(os.path.join(board_dir, "base.px4board"), replace=True)
+        kconf.load_config(os.path.join(target_classes_dir, cls + ".px4board"), replace=False)
+        overlay = os.path.join(board_dir, cls + ".px4board")
+        if os.path.abspath(overlay) != os.path.abspath(px4board_file) and os.path.exists(overlay):
+            kconf.load_config(overlay, replace=False)
         kconf.load_config(px4board_file, replace=False)
 
     if "BOARD_TOOLCHAIN" in kconf.syms:
@@ -255,12 +290,24 @@ for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), ke
         if not board.is_dir():
             continue
 
+        board_sole_class = sole_class(board.path)
+
         for files in sorted(os.scandir(board.path), key=lambda e: e.name):
             if files.is_file() and files.name.endswith('.px4board'):
 
                 board_name = manufacturer.name + '_' + board.name
                 label = files.name[:-9]
-                target_name = manufacturer.name + '_' + board.name + '_' + label
+
+                # base.px4board is the (non-buildable) hardware foundation.
+                if label == 'base':
+                    continue
+
+                # A board's sole target class collapses to the bare board name;
+                # multi-class boards keep their explicit <label> suffix.
+                if label == board_sole_class:
+                    target_name = board_name
+                else:
+                    target_name = board_name + '_' + label
 
                 if target_filter and not any(target_name.startswith(f) for f in target_filter):
                     if verbose: print(f'excluding board {board_name} ({target_name})')
@@ -270,7 +317,7 @@ for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), ke
                     if verbose: print(f'excluding board {board_name} ({target_name})')
                     continue
 
-                if label in excluded_labels:
+                if variant_suffix(label) in excluded_labels:
                     if verbose: print(f'excluding label {label} ({target_name})')
                     continue
                 target = process_target(files.path, target_name,
@@ -330,12 +377,12 @@ for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), ke
                 container = board_container_overrides[board_name]
             target_entry = {'target': deb_target, 'container': container}
             if args.group:
-                # Find the group where this board's _default target already lives
-                default_target = board_name + '_default'
+                # Find the group where this board's parent (sole-class) target lives
+                parent_target = board_name if sole_class(board.path) else board_name + '_default'
                 group = None
                 for g in grouped_targets:
                     targets_in_group = grouped_targets[g].get('manufacturers', {}).get(manufacturer.name, [])
-                    if default_target in targets_in_group:
+                    if parent_target in targets_in_group:
                         group = g
                         break
                 if group is None:
@@ -346,8 +393,8 @@ for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), ke
                 if manufacturer.name not in grouped_targets[group]['manufacturers']:
                     grouped_targets[group]['manufacturers'][manufacturer.name] = []
                 grouped_targets[group]['manufacturers'][manufacturer.name].append(deb_target)
-                # Inherit chip_family from the default target
-                default_chip = target_chip_families.get(default_target, 'native')
+                # Inherit chip_family from the parent target
+                default_chip = target_chip_families.get(parent_target, 'native')
                 target_chip_families[deb_target] = default_chip
             build_configs.append(target_entry)
 
@@ -620,7 +667,7 @@ if (args.group):
             if cf == 'voxl2':
                 seeders.append({
                     'chip_family': 'voxl2',
-                    'target': 'modalai_voxl2_default',
+                    'target': 'modalai_voxl2',
                     'container': voxl2_container,
                     'runner': 'x64',
                 })

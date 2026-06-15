@@ -85,7 +85,7 @@ Download the [kakuteh7_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/doc
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make holybro_kakuteh7_default
+make holybro_kakuteh7
 ```
 
 ## Installing PX4 Firmware
@@ -95,7 +95,7 @@ The firmware can be installed in any of the normal ways:
 - Build and upload the source
 
   ```sh
-  make holybro_kakuteh7_default upload
+  make holybro_kakuteh7 upload
   ```
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.

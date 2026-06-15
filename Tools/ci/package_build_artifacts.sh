@@ -38,28 +38,28 @@ for build_dir_path in build/*/ ; do
   echo "----------"
 done
 
-if [ -d artifacts/px4_sitl_default ]; then
+if [ -d artifacts/px4_sitl ]; then
   # general metadata (used by Flight Review and other downstream consumers)
   mkdir -p artifacts/_general/
   # Airframe
-  if [ -f artifacts/px4_sitl_default/airframes.xml ]; then
-    cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
+  if [ -f artifacts/px4_sitl/airframes.xml ]; then
+    cp artifacts/px4_sitl/airframes.xml artifacts/_general/
   else
-    echo "Error: expected 'artifacts/px4_sitl_default/airframes.xml' not found." >&2
+    echo "Error: expected 'artifacts/px4_sitl/airframes.xml' not found." >&2
     exit 1
   fi
   # Parameters
-  cp artifacts/px4_sitl_default/parameters.xml artifacts/_general/
-  cp artifacts/px4_sitl_default/parameters.json artifacts/_general/
-  cp artifacts/px4_sitl_default/parameters.json.xz artifacts/_general/
+  cp artifacts/px4_sitl/parameters.xml artifacts/_general/
+  cp artifacts/px4_sitl/parameters.json artifacts/_general/
+  cp artifacts/px4_sitl/parameters.json.xz artifacts/_general/
   # Actuators
-  cp artifacts/px4_sitl_default/actuators.json artifacts/_general/
-  cp artifacts/px4_sitl_default/actuators.json.xz artifacts/_general/
+  cp artifacts/px4_sitl/actuators.json artifacts/_general/
+  cp artifacts/px4_sitl/actuators.json.xz artifacts/_general/
   # Events
-  if [ -f artifacts/px4_sitl_default/events/all_events.json.xz ]; then
-    cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
+  if [ -f artifacts/px4_sitl/events/all_events.json.xz ]; then
+    cp artifacts/px4_sitl/events/all_events.json.xz artifacts/_general/
   else
-    echo "Error: expected 'artifacts/px4_sitl_default/events/all_events.json.xz' not found." >&2
+    echo "Error: expected 'artifacts/px4_sitl/events/all_events.json.xz' not found." >&2
     exit 1
   fi
   ls -la artifacts/_general/

@@ -287,7 +287,7 @@ These scenarios are managed by setting the appropriate environment variables.
 The startup syntax takes the form:
 
 ```sh
-ARGS ./build/px4_sitl_default/bin/px4
+ARGS ./build/px4_sitl/bin/px4
 ```
 
 where `ARGS` is a list of environment variables including:
@@ -357,7 +357,7 @@ See [Simulation > Environment Configuration](../simulation/index.md#environment-
 The PX4 Gazebo worlds and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
 
 ::: info
-`gz_env.sh.in` is compiled and made available in `$PX4_DIR/build/px4_sitl_default/rootfs/gz_env.sh`
+`gz_env.sh.in` is compiled and made available in `$PX4_DIR/build/px4_sitl/rootfs/gz_env.sh`
 :::
 
 ### Examples
@@ -367,25 +367,25 @@ Here are some examples of the different scenarios covered above.
 1. **Start simulator + default world + spawn vehicle at default pose**
 
    ```sh
-   PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
+   PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl/bin/px4
    ```
 
 2. **Start simulator + default world + spawn vehicle at custom pose (y=2m)**
 
    ```sh
-   PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
+   PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl/bin/px4
    ```
 
 3. **Start simulator + default world + link to existing vehicle**
 
    ```sh
-   PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_NAME=x500 ./build/px4_sitl_default/bin/px4
+   PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_NAME=x500 ./build/px4_sitl/bin/px4
    ```
 
 4. **Start simulator in standalone mode + connect to Gazebo instance running default world**
 
    ```sh
-   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
+   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl/bin/px4
    ```
 
    In a separate terminal run:
@@ -419,7 +419,7 @@ To add a new model:
    - Setting the default value of `PX4_SIM_MODEL` lets you start the simulation with just:
 
      ```sh
-     PX4_SYS_AUTOSTART=<your new airframe id> ./build/px4_sitl_default/bin/px4
+     PX4_SYS_AUTOSTART=<your new airframe id> ./build/px4_sitl/bin/px4
      ```
 
 1. Add CMake Target for the [airframe](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/CMakeLists.txt).

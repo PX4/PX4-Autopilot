@@ -78,7 +78,7 @@ The ARKV6S bootloader enables only `UART7` (TELEM1), so when flashing firmware o
 ## Building Firmware
 
 ```sh
-make ark_fmu-v6s_default
+make ark_fmu-v6s_vtol
 ```
 
 ## See Also

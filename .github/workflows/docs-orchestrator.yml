@@ -86,8 +86,8 @@ jobs:
           cache-key-prefix: ccache-docs-metadata
           max-size: 1G
 
-      - name: Build px4_sitl_default
-        run: make px4_sitl_default
+      - name: Build px4_sitl
+        run: make px4_sitl
 
       - uses: ./.github/actions/save-ccache
         if: always()
@@ -134,8 +134,8 @@ jobs:
           cache-key-prefix: ccache-docs-metadata
           max-size: 1G
 
-      - name: Build px4_sitl_default
-        run: make px4_sitl_default
+      - name: Build px4_sitl
+        run: make px4_sitl
 
       - uses: ./.github/actions/save-ccache
         if: always()

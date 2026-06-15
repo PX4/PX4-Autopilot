@@ -33,7 +33,7 @@ Note that this is a cut-down version of the not-yet-implemented [BATTERY_STATUS_
 Here we've put the message in `development.xml`, which is fine for testing and if the message is intended to eventually be part of the standard message set, but you might also put a [custom message](../mavlink/custom_messages.md) in its own dialect file.
 :::
 
-Build PX4 for SITL and confirm that the associated message is generated in `/build/px4_sitl_default/mavlink/development/mavlink_msg_battery_status_demo.h`.
+Build PX4 for SITL and confirm that the associated message is generated in `/build/px4_sitl/mavlink/development/mavlink_msg_battery_status_demo.h`.
 
 Because `BatteryStatus` already exists you will not need to do anything to create or build it.
 

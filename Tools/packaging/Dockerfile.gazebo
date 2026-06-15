@@ -3,8 +3,8 @@
 # Runs PX4 SITL with Gazebo Harmonic. Supports X11 forwarding for GUI.
 #
 # Build:
-#   make px4_sitl_default && cd build/px4_sitl_default && cpack -G DEB && cd ../..
-#   docker build -f Tools/packaging/Dockerfile.gazebo -t px4io/px4-sitl-gazebo:v1.17.0 build/px4_sitl_default/
+#   make px4_sitl && cd build/px4_sitl && cpack -G DEB && cd ../..
+#   docker build -f Tools/packaging/Dockerfile.gazebo -t px4io/px4-sitl-gazebo:v1.17.0 build/px4_sitl/
 #
 # Run (headless):
 #   docker run --rm -it --network host px4io/px4-sitl-gazebo:v1.17.0

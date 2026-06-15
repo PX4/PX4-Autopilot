@@ -51,7 +51,7 @@ You can connect a PX4-enabled vehicle to an instance of _gz-server_ using severa
   After dropping the vehicle of your choice into Gazebo, launch PX4 SITL with:
 
   ```sh
-  PX4_SYS_AUTOSTART=<airframe-number-of-choice> PX4_GZ_MODEL_NAME=<vehicle-of-choice> ./build/px4_sitl_default/bin/px4`
+  PX4_SYS_AUTOSTART=<airframe-number-of-choice> PX4_GZ_MODEL_NAME=<vehicle-of-choice> ./build/px4_sitl/bin/px4`
   ```
 
   This will connect PX4 SITL to the running instance of Gazebo.
@@ -101,7 +101,7 @@ This example explains how you can run standalone mode PX4 via two terminals on o
 1. In one terminal run
 
    ```sh
-   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl_default/bin/px4
+   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl/bin/px4
    ```
 
 1. In a second terminal window run:
@@ -149,7 +149,7 @@ We can now start setting up both hosts.
 We first set up the PX4-host:
 
 ```sh
-GZ_PARTITION=relay GZ_RELAY=192.168.24.107 GZ_IP=192.168.24.89 PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=baylands ./build/px4_sitl_default/bin/px4
+GZ_PARTITION=relay GZ_RELAY=192.168.24.107 GZ_IP=192.168.24.89 PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=baylands ./build/px4_sitl/bin/px4
 ```
 
 Explanation of the environment variables:

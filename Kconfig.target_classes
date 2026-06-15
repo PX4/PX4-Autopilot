@@ -76,4 +76,12 @@ config TARGET_CLASS_ROS2
 	help
 		ROS2 platform build (PLATFORM_ROS2), built within a colcon workspace.
 
+config TARGET_CLASS_VOXL2
+	bool "VOXL2 (ModalAI) target class"
+	help
+		ModalAI VOXL2 carve-out: an aarch64 Linux application processor paired
+		with a QURT/SLPI DSP. The apps config lives in the board base.px4board and
+		the DSP half is the slpi variant; this single-board class does not share
+		the vehicle/system controller fragments.
+
 endmenu

@@ -36,7 +36,7 @@ build/<target>/<target>.sbom.spdx.json
 For example:
 
 ```txt
-build/px4_fmu-v6x_default/px4_fmu-v6x_default.sbom.spdx.json
+build/px4_fmu-v6x_vtol/px4_fmu-v6x_vtol.sbom.spdx.json
 ```
 
 The generator script is `Tools/ci/generate_sbom.py`.
@@ -53,13 +53,13 @@ Set the environment variable before building.
 This is checked at CMake configure time, so a clean build or reconfigure is required:
 
 ```sh
-PX4_SBOM_DISABLE=1 make px4_fmu-v6x_default
+PX4_SBOM_DISABLE=1 make px4_fmu-v6x_vtol
 ```
 
 If the build directory already exists, force a reconfigure:
 
 ```sh
-PX4_SBOM_DISABLE=1 cmake -B build/px4_fmu-v6x_default .
+PX4_SBOM_DISABLE=1 cmake -B build/px4_fmu-v6x_vtol .
 ```
 
 ### Manual Generation
@@ -69,10 +69,10 @@ You can also run the generator directly:
 ```sh
 python3 Tools/ci/generate_sbom.py \
     --source-dir . \
-    --board px4_fmu-v6x_default \
-    --modules-file build/px4_fmu-v6x_default/config_module_list.txt \
+    --board px4_fmu-v6x_vtol \
+    --modules-file build/px4_fmu-v6x_vtol/config_module_list.txt \
     --compiler arm-none-eabi-gcc \
-    --output build/px4_fmu-v6x_default/px4_fmu-v6x_default.sbom.spdx.json
+    --output build/px4_fmu-v6x_vtol/px4_fmu-v6x_vtol.sbom.spdx.json
 ```
 
 ## Artifacts
@@ -92,7 +92,7 @@ Validate an SBOM against the SPDX JSON schema:
 ```sh
 python3 -c "
 import json
-doc = json.load(open('build/px4_sitl_default/px4_sitl_default.sbom.spdx.json'))
+doc = json.load(open('build/px4_sitl/px4_sitl.sbom.spdx.json'))
 assert doc['spdxVersion'] == 'SPDX-2.3'
 assert doc['dataLicense'] == 'CC0-1.0'
 assert len(doc['packages']) > 0

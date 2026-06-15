@@ -2052,7 +2052,7 @@ class Uploader:
             if firmware.image_size > 1032192 and not self.config.force:
                 raise SiliconErrataError(
                     "Board uses bootloader v4 and cannot safely flash >1MB.\n"
-                    "Use px4_fmu-v2_default or update the bootloader.\n"
+                    "Use px4_fmu-v2_copter or update the bootloader.\n"
                     "Use --force to override if you know the board is safe."
                 )
 

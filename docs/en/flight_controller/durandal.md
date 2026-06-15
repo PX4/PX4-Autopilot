@@ -161,7 +161,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make holybro_durandal-v1_default
+make holybro_durandal-v1
 ```
 
 ## Serial Port Mapping

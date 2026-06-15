@@ -39,54 +39,54 @@ The table below lists build targets that include SIH at the time of writing:
 
 | Build Target                         | Board                      |
 | ------------------------------------ | -------------------------- |
-| `px4_fmu-v3_default`                 | Pixhawk 2 (Cube Black)     |
-| `px4_fmu-v4_default`                 | Pixhawk 3 Pro              |
-| `px4_fmu-v4pro_default`              | Pixracer                   |
-| `px4_fmu-v5_default`                 | Pixhawk 4                  |
-| `px4_fmu-v5x_default`                | Pixhawk 5X                 |
-| `px4_fmu-v6c_default`                | Pixhawk 6C                 |
+| `px4_fmu-v3_vtol`                 | Pixhawk 2 (Cube Black)     |
+| `px4_fmu-v4_vtol`                 | Pixhawk 3 Pro              |
+| `px4_fmu-v4pro_vtol`              | Pixracer                   |
+| `px4_fmu-v5_vtol`                 | Pixhawk 4                  |
+| `px4_fmu-v5x_vtol`                | Pixhawk 5X                 |
+| `px4_fmu-v6c_vtol`                | Pixhawk 6C                 |
 | `px4_fmu-v6c_raptor`                 | Pixhawk 6C (Raptor)        |
 | `px4_fmu-v6x_multicopter`            | Pixhawk 6X (multicopter)   |
-| `auterion_fmu-v6s_default`           | Auterion FMU-v6S           |
-| `auterion_fmu-v6x_default`           | Auterion FMU-v6X           |
-| `holybro_durandal-v1_default`        | Holybro Durandal           |
-| `holybro_kakuteh7_default`           | Holybro Kakute H7          |
-| `holybro_kakuteh7v2_default`         | Holybro Kakute H7 V2       |
-| `holybro_pix32v5_default`            | Holybro Pix32 V5           |
-| `cuav_nora_default`                  | CUAV Nora                  |
-| `cuav_x7pro_default`                 | CUAV X7 Pro                |
-| `cuav_x25-evo_default`               | CUAV X25 EVO               |
-| `cuav_x25-super_default`             | CUAV X25 Super             |
-| `cubepilot_cubeyellow_default`       | CubePilot Cube Yellow      |
-| `mro_pixracerpro_default`            | MRO PixRacer Pro           |
-| `mro_x21_default`                    | MRO X2.1                   |
-| `mro_ctrl-zero-h7_default`           | MRO Ctrl Zero H7           |
-| `mro_ctrl-zero-h7-oem_default`       | MRO Ctrl Zero H7 OEM       |
-| `mro_ctrl-zero-f7_default`           | MRO Ctrl Zero F7           |
-| `mro_ctrl-zero-f7-oem_default`       | MRO Ctrl Zero F7 OEM       |
-| `mro_ctrl-zero-classic_default`      | MRO Ctrl Zero Classic      |
-| `3dr_ctrl-zero-h7-oem-revg_default`  | 3DR Ctrl Zero H7 OEM RevG  |
-| `modalai_fc-v1_default`              | ModalAI FC V1              |
-| `nxp_fmuk66-v3_default`              | NXP FMUK66-V3              |
-| `nxp_fmuk66-e_default`               | NXP FMUK66-E               |
-| `radiolink_PIX6_default`             | Radiolink PIX6             |
-| `siyi_n7_default`                    | SIYI N7                    |
-| `sky-drones_smartap-airlink_default` | Sky-Drones SmartAP Airlink |
-| `uvify_core_default`                 | UVify Core                 |
-| `atl_mantis-edu_default`             | ATL Mantis EDU             |
-| `av_x-v1_default`                    | AV X-V1                    |
-| `narinfc_h7_default`                 | NarinFC H7                 |
-| `thepeach_k1_default`                | ThePeach K1                |
-| `thepeach_r1_default`                | ThePeach R1                |
-| `airmind_mindpx-v2_default`          | AirMind MindPX V2          |
-| `beaglebone_blue_default`            | BeagleBone Blue            |
-| `bluerobotics_navigator_default`     | BlueRobotics Navigator     |
-| `emlid_navio2_default`               | Emlid Navio2               |
-| `px4_raspberrypi_default`            | Raspberry Pi               |
-| `scumaker_pilotpi_default`           | Scumaker PilotPi           |
+| `auterion_fmu-v6s_vtol`           | Auterion FMU-v6S           |
+| `auterion_fmu-v6x_vtol`           | Auterion FMU-v6X           |
+| `holybro_durandal-v1`        | Holybro Durandal           |
+| `holybro_kakuteh7`           | Holybro Kakute H7          |
+| `holybro_kakuteh7v2`         | Holybro Kakute H7 V2       |
+| `holybro_pix32v5_vtol`            | Holybro Pix32 V5           |
+| `cuav_nora`                  | CUAV Nora                  |
+| `cuav_x7pro`                 | CUAV X7 Pro                |
+| `cuav_x25-evo`               | CUAV X25 EVO               |
+| `cuav_x25-super`             | CUAV X25 Super             |
+| `cubepilot_cubeyellow_vtol`       | CubePilot Cube Yellow      |
+| `mro_pixracerpro_vtol`            | MRO PixRacer Pro           |
+| `mro_x21_vtol`                    | MRO X2.1                   |
+| `mro_ctrl-zero-h7_vtol`           | MRO Ctrl Zero H7           |
+| `mro_ctrl-zero-h7-oem_vtol`       | MRO Ctrl Zero H7 OEM       |
+| `mro_ctrl-zero-f7_vtol`           | MRO Ctrl Zero F7           |
+| `mro_ctrl-zero-f7-oem_vtol`       | MRO Ctrl Zero F7 OEM       |
+| `mro_ctrl-zero-classic_vtol`      | MRO Ctrl Zero Classic      |
+| `3dr_ctrl-zero-h7-oem-revg_vtol`  | 3DR Ctrl Zero H7 OEM RevG  |
+| `modalai_fc-v1_vtol`              | ModalAI FC V1              |
+| `nxp_fmuk66-v3`              | NXP FMUK66-V3              |
+| `nxp_fmuk66-e`               | NXP FMUK66-E               |
+| `radiolink_PIX6_vtol`             | Radiolink PIX6             |
+| `siyi_n7`                    | SIYI N7                    |
+| `sky-drones_smartap-airlink` | Sky-Drones SmartAP Airlink |
+| `uvify_core`                 | UVify Core                 |
+| `atl_mantis-edu`             | ATL Mantis EDU             |
+| `av_x-v1_vtol`                    | AV X-V1                    |
+| `narinfc_h7`                 | NarinFC H7                 |
+| `thepeach_k1_vtol`                | ThePeach K1                |
+| `thepeach_r1_vtol`                | ThePeach R1                |
+| `airmind_mindpx-v2_vtol`          | AirMind MindPX V2          |
+| `beaglebone_blue`            | BeagleBone Blue            |
+| `bluerobotics_navigator`     | BlueRobotics Navigator     |
+| `emlid_navio2`               | Emlid Navio2               |
+| `px4_raspberrypi`            | Raspberry Pi               |
+| `scumaker_pilotpi`           | Scumaker PilotPi           |
 
 ::: info
-Some boards (e.g., `px4_fmu-v6x_default`, `cubepilot_cubeorange_default`) do not include SIH in their default build due to flash memory constraints.
+Some boards (e.g., `px4_fmu-v6x_vtol`, `cubepilot_cubeorange`) do not include SIH in their default build due to flash memory constraints.
 You can add SIH to any board -- see [Check if SIH is in Firmware](#check-if-sih-is-in-firmware).
 :::
 

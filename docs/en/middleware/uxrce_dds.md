@@ -614,7 +614,7 @@ If you do choose to remove the dependencies, take care not to remove anything th
 
 #### `_rtps` targets have been removed
 
-Anywhere you previously used a build target with extension `_rtps`, such as `px4_fmu-v5_rtps` or `px4_sitl_rtps`, you can now use the equivalent default target (for these cases `px4_fmu-v5_default` and `px4_sitl_default`).
+Anywhere you previously used a build target with extension `_rtps`, such as `px4_fmu-v5_rtps` or `px4_sitl_rtps`, you can now use the equivalent default target (for these cases `px4_fmu-v5_vtol` and `px4_sitl`).
 
 The make targets with extension `_rtps` were used to build firmware that included client side RTPS code.
 The uXRCE-DDS middleware is included by default in builds for most boards, so you no longer need a special firmware to work with ROS 2.

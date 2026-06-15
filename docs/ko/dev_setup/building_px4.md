@@ -76,7 +76,7 @@ For example, to build for [Pixhawk 4](../flight_controller/pixhawk4.md) hardware
 
 ```sh
 cd PX4-Autopilot
-make px4_fmu-v4_default
+make px4_fmu-v4_vtol
 ```
 
 :::tip
@@ -84,7 +84,7 @@ You can also build using the [px4-dev Docker container](../test_and_ci/docker.md
 From the PX4-Autopilot directory:
 
 ```sh
-./Tools/docker_run.sh 'make px4_fmu-v5_default'
+./Tools/docker_run.sh 'make px4_fmu-v5_vtol'
 ```
 
 :::
@@ -92,8 +92,8 @@ From the PX4-Autopilot directory:
 A successful run will end with similar output to:
 
 ```sh
--- 빌드 파일은 /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_default에 작성되었습니다.
-[954/954] Creating /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_default/px4_fmu-v4_default.px4
+-- 빌드 파일은 /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_vtol에 작성되었습니다.
+[954/954] Creating /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_vtol/px4_fmu-v4_vtol.px4
 ```
 
 The first part of the build target `px4_fmu-v4` indicates the target flight controller hardware for the firmware.
@@ -106,43 +106,43 @@ For example, `make px4_fmu-v5` and `px4_fmu-v5_default` result in the same firmw
 
 The following list shows the build commands for the [Pixhawk standard](../flight_controller/autopilot_pixhawk_standard.md) boards:
 
-- [Holybro Pixhawk 6X-RT (FMUv6X)](../flight_controller/pixhawk6x-rt.md): `make px4_fmu-v6xrt_default`
+- [Holybro Pixhawk 6X-RT (FMUv6X)](../flight_controller/pixhawk6x-rt.md): `make px4_fmu-v6xrt_vtol`
 
-- [Holybro Pixhawk 6X (FMUv6X)](../flight_controller/pixhawk6x.md): `make px4_fmu-v6x_default`
+- [Holybro Pixhawk 6X (FMUv6X)](../flight_controller/pixhawk6x.md): `make px4_fmu-v6x_vtol`
 
-- [Holybro Pixhawk 6C (FMUv6C)](../flight_controller/pixhawk6c.md): `make px4_fmu-v6c_default`
+- [Holybro Pixhawk 6C (FMUv6C)](../flight_controller/pixhawk6c.md): `make px4_fmu-v6c_vtol`
 
-- [Holybro Pixhawk 6C Mini (FMUv6C)](../flight_controller/pixhawk6c_mini.md): `make px4_fmu-v6c_default`
+- [Holybro Pixhawk 6C Mini (FMUv6C)](../flight_controller/pixhawk6c_mini.md): `make px4_fmu-v6c_vtol`
 
-- [Holybro Pix32 v6 (FMUv6C)](../flight_controller/holybro_pix32_v6.md): `make px4_fmu-v6c_default`
+- [Holybro Pix32 v6 (FMUv6C)](../flight_controller/holybro_pix32_v6.md): `make px4_fmu-v6c_vtol`
 
-- [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md): `make px4_fmu-v5x_default`
+- [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md): `make px4_fmu-v5x_vtol`
 
-- [Pixhawk 4 (FMUv5)](../flight_controller/pixhawk4.md): `make px4_fmu-v5_default`
+- [Pixhawk 4 (FMUv5)](../flight_controller/pixhawk4.md): `make px4_fmu-v5_vtol`
 
-- [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_default`
+- [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_vtol`
 
-- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default`
+- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_vtol`
 
-- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default`
+- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_vtol`
 
-- [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_default`
+- [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_vtol`
 
-- [Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md): `make px4_fmu-v4pro_default`
+- [Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md): `make px4_fmu-v4pro_vtol`
 
-- [Pixhawk Mini](../flight_controller/pixhawk_mini.md): `make px4_fmu-v3_default`
+- [Pixhawk Mini](../flight_controller/pixhawk_mini.md): `make px4_fmu-v3_vtol`
 
-- [Pixhawk 2 (Cube Black) (FMUv3)](../flight_controller/pixhawk-2.md): `make px4_fmu-v3_default`
+- [Pixhawk 2 (Cube Black) (FMUv3)](../flight_controller/pixhawk-2.md): `make px4_fmu-v3_vtol`
 
-- [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (supports 2MB Flash)
+- [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_vtol` (supports 2MB Flash)
 
-- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
-- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
-- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
-- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
   :::warning
   You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
@@ -150,7 +150,7 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 
 :::
 
-- Pixhawk 1 with 2 MB flash: `make px4_fmu-v3_default`
+- Pixhawk 1 with 2 MB flash: `make px4_fmu-v3_vtol`
 
 Build commands for non-Pixhawk NuttX fight controllers (and for all other-boards) are provided in the documentation for the individual [flight controller boards](../flight_controller/index.md).
 
@@ -160,7 +160,7 @@ Append `upload` to the make commands to upload the compiled binary to the autopi
 For example
 
 ```sh
-make px4_fmu-v4_default upload
+make px4_fmu-v4_vtol upload
 ```
 
 A successful run will end with this output:
@@ -209,7 +209,7 @@ make distclean
 ### Flash overflowed by XXX bytes
 
 The `region 'flash' overflowed by XXXX bytes` error indicates that the firmware is too large for the target hardware platform.
-This is common for `make px4_fmu-v2_default` builds, where the flash size is limited to 1MB.
+This is common for `make px4_fmu-v2_copter` builds, where the flash size is limited to 1MB.
 
 If you're building the _vanilla_ master branch, the most likely cause is using an unsupported version of GCC.
 In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
@@ -331,7 +331,7 @@ make px4_sitl list_vmd_make_targets
 - 두 개의 다른 설정 사이에 기본값을 지정하려는 경우에는, 세 개의 밑줄을 사용할 수 있습니다.
   For example, `gazebo-classic___gdb` is equivalent to `gazebo-classic_iris_gdb`.
 - You can use a `none` value for `VIEWER_MODEL_DEBUGGER` to start PX4 and wait for a simulator.
-  For example start PX4 using `make px4_sitl_default none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
+  For example start PX4 using `make px4_sitl none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
 
 :::
 

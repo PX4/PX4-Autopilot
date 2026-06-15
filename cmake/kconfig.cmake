@@ -35,8 +35,9 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	# Depend on BOARD_DEFCONFIG so that we reconfigure on config change
 	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-	if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "performance-test" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
-		# Generate boardconfig from saved defconfig
+	if(PX4_TARGET_CLASS STREQUAL "")
+		# Standalone savedefconfig labels (bootloader, canbootloader, performance-test)
+		# carry a complete config; generate the boardconfig directly from it.
 		execute_process(
 			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
 			${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
@@ -44,49 +45,45 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			OUTPUT_VARIABLE DUMMY_RESULTS
 		)
 	else()
-		# The label's leading dot-component is the target class (e.g. "copter" for
-		# both "copter" and "copter.mavlink-dev").
-		string(REGEX REPLACE "\\..*" "" PX4_TARGET_CLASS "${LABEL}")
+		# Class-based target: merge base.px4board -> target_classes/<class>.px4board
+		# -> optional board <class> overlay -> the resolved label fragment. The class
+		# base defines the class (CONFIG_TARGET_CLASS_<X>=y plus its controller/
+		# platform/romfs membership); the board overlay carries the explicit
+		# CONFIG_AIRFRAMES_<class>=y set and any board-specific deltas. PX4_TARGET_CLASS
+		# is resolved in px4_config.cmake (a bare variant maps to the board's sole class).
 		set(class_base "${PX4_SOURCE_DIR}/target_classes/${PX4_TARGET_CLASS}.px4board")
 		set(board_base "${PX4_BOARD_DIR}/base.px4board")
+		set(merge_fragments "${board_base}" "${class_base}")
+		set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_base} ${class_base})
 
-		if(EXISTS "${board_base}" AND EXISTS "${class_base}")
-			# Class-based target: merge base.px4board -> target_classes/<class>.px4board
-			# -> optional board <class> overlay -> the resolved label fragment. The
-			# class base defines the class (CONFIG_TARGET_CLASS_<X>=y plus its
-			# controller/platform/romfs membership); the board overlay carries the
-			# explicit CONFIG_AIRFRAMES_<class>=y set and any board-specific deltas.
-			set(merge_fragments "${board_base}" "${class_base}")
-			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_base} ${class_base})
-
-			# When building a variant (<class>.<variant>), also layer the board's
-			# plain <class> overlay underneath it if present.
-			set(board_class_overlay "${PX4_BOARD_DIR}/${PX4_TARGET_CLASS}.px4board")
-			if(NOT "${LABEL}" STREQUAL "${PX4_TARGET_CLASS}" AND EXISTS "${board_class_overlay}")
-				list(APPEND merge_fragments "${board_class_overlay}")
-				set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_class_overlay})
-			endif()
-
-			list(APPEND merge_fragments "${BOARD_DEFCONFIG}")
-
-			execute_process(
-				COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
-				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${merge_fragments}
-				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-				OUTPUT_VARIABLE DUMMY_RESULTS
-			)
-		else()
-			# Legacy: non-default labels merge default.px4board + {label}.px4board,
-			# so reconfigure must also trigger on changes to default.px4board.
-			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PX4_BOARD_DIR}/default.px4board)
-
-			execute_process(
-				COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
-				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${BOARD_DEFCONFIG}
-				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-				OUTPUT_VARIABLE DUMMY_RESULTS
-			)
+		# When building a variant (<class>.<variant>, or a bare variant on a
+		# sole-class board), also layer the board's plain <class> overlay underneath
+		# the label fragment if present.
+		set(board_class_overlay "${PX4_BOARD_DIR}/${PX4_TARGET_CLASS}.px4board")
+		if(NOT "${LABEL}" STREQUAL "${PX4_TARGET_CLASS}" AND EXISTS "${board_class_overlay}")
+			list(APPEND merge_fragments "${board_class_overlay}")
+			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_class_overlay})
 		endif()
+
+		# Assemble the lower-layer baseline (everything beneath the label fragment) so
+		# the savedefconfig/boardconfig targets can re-save the label as a minimal
+		# delta (replaces the old diff-against-default.px4board baseline).
+		set(BOARD_LABEL_BASELINE "${PX4_BINARY_DIR}/board_label_baseline.px4board")
+		set(_baseline_text "")
+		foreach(_frag ${merge_fragments})
+			file(READ "${_frag}" _frag_text)
+			string(APPEND _baseline_text "${_frag_text}\n")
+		endforeach()
+		file(WRITE "${BOARD_LABEL_BASELINE}" "${_baseline_text}")
+
+		list(APPEND merge_fragments "${BOARD_DEFCONFIG}")
+
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${merge_fragments}
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+			OUTPUT_VARIABLE DUMMY_RESULTS
+		)
 	endif()
 
 	if(${LABEL} MATCHES "allyes")
@@ -456,7 +453,9 @@ if(EXISTS ${BOARD_DEFCONFIG})
 endif()
 
 
-if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+if(PX4_TARGET_CLASS STREQUAL "")
+	# Standalone savedefconfig labels (bootloader, canbootloader, performance-test):
+	# the label IS the full config, so save it verbatim.
 	add_custom_target(boardconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${MENUCONFIG_PATH} Kconfig
 		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
@@ -493,7 +492,7 @@ elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which is
 	add_custom_target(boardconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${MENUCONFIG_PATH} Kconfig
 		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${BOARD_LABEL_BASELINE} defconfig > ${BOARD_DEFCONFIG}
 		COMMAND ${CMAKE_COMMAND} -E remove defconfig
 		COMMAND ${CMAKE_COMMAND} -E remove ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
@@ -504,7 +503,7 @@ elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which is
 	add_custom_target(boardguiconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${GUICONFIG_PATH} Kconfig
 		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${BOARD_LABEL_BASELINE} defconfig > ${BOARD_DEFCONFIG}
 		COMMAND ${CMAKE_COMMAND} -E remove defconfig
 		COMMAND ${CMAKE_COMMAND} -E remove ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
@@ -514,7 +513,7 @@ elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which is
 
 	add_custom_target(px4_savedefconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${BOARD_LABEL_BASELINE} defconfig > ${BOARD_DEFCONFIG}
 		COMMAND ${CMAKE_COMMAND} -E remove defconfig
 		COMMAND ${CMAKE_COMMAND} -E remove ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}

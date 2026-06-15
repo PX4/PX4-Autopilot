@@ -178,7 +178,7 @@ generate_failsafe_web() {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 sync_parameters() {
-    local src="build/px4_sitl_default/docs/parameters.md"
+    local src="build/px4_sitl/docs/parameters.md"
     local dest="docs/en/advanced_config/parameter_reference.md"
 
     log "Syncing parameters..."
@@ -193,7 +193,7 @@ sync_parameters() {
 }
 
 sync_airframes() {
-    local src="build/px4_sitl_default/docs/airframes.md"
+    local src="build/px4_sitl/docs/airframes.md"
     local dest="docs/en/airframes/airframe_reference.md"
 
     log "Syncing airframes..."
@@ -208,7 +208,7 @@ sync_airframes() {
 }
 
 sync_modules() {
-    local src_dir="build/px4_sitl_default/docs/modules"
+    local src_dir="build/px4_sitl/docs/modules"
     local dest_dir="docs/en/modules"
 
     log "Syncing modules..."
@@ -288,7 +288,7 @@ sync_uorb_graphs() {
 }
 
 sync_failsafe_web() {
-    local src_dir="build/px4_sitl_default_failsafe_web"
+    local src_dir="build/px4_sitl_failsafe_web"
     local dest_dir="docs/public/config/failsafe"
 
     log "Syncing failsafe web..."

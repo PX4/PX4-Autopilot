@@ -861,7 +861,7 @@ Sanity check if we can build PX4 Firmware by building PX4 for your Pixhawk hardw
 Assuming you're using a Pixhawk 6x, the command would be:
 
 ```sh
-make px4_fmu-v6x_default
+make px4_fmu-v6x_vtol
 ```
 
 If this builds successfully, you can connect the Pixhawk USB-C port to the Jetson USB port as shown below (the USB cable comes with the kit).
@@ -871,7 +871,7 @@ If this builds successfully, you can connect the Pixhawk USB-C port to the Jetso
 Then upload the firmware to Pixhawk by building with the `upload` argument:
 
 ```sh
-make px4_fmu-v6x_default upload
+make px4_fmu-v6x_vtol upload
 ```
 
 ## Ethernet Setup using Netplan

@@ -98,7 +98,7 @@ To enable this feature for use in Eclipse:
      This will be something like:
 
      ```sh
-     make px4_fmu-v5_default boardguiconfig
+     make px4_fmu-v5_vtol boardguiconfig
      ```
 
      (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information on using the config tools).

@@ -48,16 +48,16 @@ endif
 #
 # Example usage:
 #
-# make px4_fmu-v2_default 			(builds)
-# make px4_fmu-v2_default upload 	(builds and uploads)
-# make px4_fmu-v2_default test 		(builds and tests)
+# make px4_fmu-v2_copter 			(builds)
+# make px4_fmu-v2_copter upload 	(builds and uploads)
+# make px4_fmu-v2_copter test 		(builds and tests)
 #
-# This tells cmake to build the nuttx px4_fmu-v2 default config in the
-# directory build/px4_fmu-v2_default and then call make
+# This tells cmake to build the nuttx px4_fmu-v2 copter config in the
+# directory build/px4_fmu-v2_copter and then call make
 # in that directory with the target upload.
 
 # explicity set default build target
-all: px4_sitl_default
+all: px4_sitl
 
 # define a space character to be able to explicitly find it in strings
 space := $(subst ,, )
@@ -233,10 +233,12 @@ define colorecho
 +@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
-# Get a list of all config targets boards/*/*.px4board
-# base.px4board is the vehicle-agnostic foundation for class targets, not a
-# buildable label on its own, so it is excluded from the target list.
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' ! -name 'base.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
+# Get a list of all buildable config targets from boards/<vendor>/<model>/<label>.px4board.
+# base.px4board is the (non-buildable) hardware foundation and is excluded. A board's
+# sole target class collapses to the bare board name (px4_sitl, holybro_kakutef7); a
+# board with several keeps the explicit <class> suffix (px4_fmu-v6x_vtol). cmake resolves
+# the bare name back to the sole class.
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' ! -name 'base.px4board' | awk -F/ '{ b=$$2"/"$$3; lab=$$4; sub(/\.px4board$$/,"",lab); L[b]=L[b]" "lab; if (lab ~ /^(copter|fixedwing|vtol|rover|uuv|spacecraft|airship|cannode|linux|sitl|io|ros2|voxl2)$$/) { nc[b]++; sc[b]=lab } } END { for (b in L) { n=split(L[b],a," "); bu=b; gsub(/\//,"_",bu); for (i=1;i<=n;i++) { if (a[i]=="") continue; if (nc[b]==1 && a[i]==sc[b]) print bu; else print bu"_"a[i] } } }' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -246,26 +248,19 @@ ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4bo
 $(ALL_CONFIG_TARGETS):
 	@$(call cmake-build,$@$(BUILD_DIR_SUFFIX))
 
-# Filter for only default targets to allow omiting the "_default" postfix
-CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
-$(CONFIG_TARGETS_DEFAULT):
-	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
-
-# Multi-processor boards: build all processor targets together
-# VOXL2 apps processor (default) depends on SLPI DSP being built first
-modalai_voxl2_default: modalai_voxl2_slpi
+# Multi-processor boards: build all processor targets together.
+# VOXL2 apps processor depends on the SLPI DSP firmware being built first.
 modalai_voxl2: modalai_voxl2_slpi
 modalai_voxl2_deb: modalai_voxl2_slpi
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
-all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
-# DEB package targets: builds _default config, then runs cpack.
+# DEB package targets: build the board firmware, then run cpack.
 # Multi-processor boards (e.g. VOXL2) chain companion builds automatically
 # via existing cmake prerequisites.
 %_deb:
-	@$(call cmake-build,$(subst _deb,_default,$@)$(BUILD_DIR_SUFFIX))
-	@cd "$(SRC_DIR)/build/$(subst _deb,_default,$@)" && cpack -G DEB
+	@$(call cmake-build,$(subst _deb,,$@)$(BUILD_DIR_SUFFIX))
+	@cd "$(SRC_DIR)/build/$(subst _deb,,$@)" && cpack -G DEB
 
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
@@ -276,7 +271,7 @@ define deprecation_warning
 endef
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all px4_sitl_default all_config_targets all_default_targets
+.PHONY: all px4_sitl all_config_targets
 
 # Other targets
 # --------------------------------------------------------------------
@@ -288,21 +283,21 @@ qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
 
 # px4fmu NuttX firmware
 px4fmu_firmware: \
-	check_px4_io-v2_default \
-	check_px4_fmu-v2_default \
-	check_px4_fmu-v3_default \
-	check_px4_fmu-v4_default \
-	check_px4_fmu-v4pro_default \
-	check_px4_fmu-v5_default \
-	check_px4_fmu-v5x_default \
+	check_px4_io-v2 \
+	check_px4_fmu-v2_copter \
+	check_px4_fmu-v3_vtol \
+	check_px4_fmu-v4_vtol \
+	check_px4_fmu-v4pro_vtol \
+	check_px4_fmu-v5_vtol \
+	check_px4_fmu-v5x_vtol \
 	sizes
 
 misc_qgc_extra_firmware: \
-	check_nxp_fmuk66-v3_default \
-	check_mro_x21_default \
-	check_bitcraze_crazyflie_default \
-	check_bitcraze_crazyflie21_default \
-	check_airmind_mindpx-v2_default \
+	check_nxp_fmuk66-v3 \
+	check_mro_x21_vtol \
+	check_bitcraze_crazyflie \
+	check_bitcraze_crazyflie21 \
+	check_airmind_mindpx-v2_vtol \
 	sizes
 
 .PHONY: sizes check quick_check uorb_graphs
@@ -311,10 +306,10 @@ sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
 
 # All default targets that don't require a special build environment
-check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware tests check_format
+check: check_px4_sitl px4fmu_firmware misc_qgc_extra_firmware tests check_format
 
 # quick_check builds a single nuttx and SITL target, runs testing, and checks the style
-quick_check: check_px4_sitl_test check_px4_fmu-v5_default tests check_format
+quick_check: check_px4_sitl_test check_px4_fmu-v5_vtol tests check_format
 
 check_%:
 	@echo
@@ -330,33 +325,33 @@ all_variants_%:
 uorb_graphs:
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --merge-depends --file Tools/uorb_graph/graph_full
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --exclude-path src/modules/mavlink --merge-depends --file Tools/uorb_graph/graph_full_no_mavlink
-	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
-	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
-	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
-	@$(MAKE) --no-print-directory px4_fmu-v5x_default uorb_graph
-	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
-	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v2_copter uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v4_vtol uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v5_vtol uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v5x_vtol uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v6x_vtol uorb_graph
+	@$(MAKE) --no-print-directory px4_sitl uorb_graph
 
 px4io_update:
-	@$(MAKE) --no-print-directory px4_io-v2_default
-	@$(MAKE) --no-print-directory cubepilot_io-v2_default
-	# px4_io-v2_default
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/ark/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21-777/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v2/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v3/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v4pro/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
-	# cubepilot_io-v2_default
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
+	@$(MAKE) --no-print-directory px4_io-v2
+	@$(MAKE) --no-print-directory cubepilot_io-v2
+	# px4_io-v2
+	cp build/px4_io-v2/px4_io-v2.bin boards/ark/fmu-v6x/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/mro/x21/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/mro/x21-777/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v2/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v3/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v4pro/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v5/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v5x/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v6x/extras/px4_io-v2_default.bin
+	cp build/px4_io-v2/px4_io-v2.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
+	# cubepilot_io-v2
+	cp build/cubepilot_io-v2/cubepilot_io-v2.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
+	cp build/cubepilot_io-v2/cubepilot_io-v2.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
+	cp build/cubepilot_io-v2/cubepilot_io-v2.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
 	git status
 
 bootloaders_update: \
@@ -403,23 +398,23 @@ bootloaders_update: \
 
 .PHONY: coverity_scan
 
-coverity_scan: px4_sitl_default
+coverity_scan: px4_sitl
 
 # Documentation
 # --------------------------------------------------------------------
 .PHONY: parameters_metadata airframe_metadata module_documentation extract_events px4_metadata
 
 parameters_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
+	@$(MAKE) --no-print-directory px4_sitl metadata_parameters ver_gen
 
 airframe_metadata:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_airframes ver_gen
+	@$(MAKE) --no-print-directory px4_sitl metadata_airframes ver_gen
 
 module_documentation:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_module_documentation
+	@$(MAKE) --no-print-directory px4_sitl metadata_module_documentation
 
 extract_events:
-	@$(MAKE) --no-print-directory px4_sitl_default metadata_extract_events ver_gen
+	@$(MAKE) --no-print-directory px4_sitl metadata_extract_events ver_gen
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation extract_events
 
@@ -478,36 +473,36 @@ tests_coverage:
 		-o coverage/lcov.info
 
 
-rostest: px4_sitl_default
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
+rostest: px4_sitl
+	@$(MAKE) --no-print-directory px4_sitl sitl_gazebo-classic
 
-tests_integration: px4_sitl_default
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
-	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+tests_integration: px4_sitl
+	@$(MAKE) --no-print-directory px4_sitl sitl_gazebo-classic
+	@$(MAKE) --no-print-directory px4_sitl mavsdk_tests
 	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
 
 tests_integration_coverage:
 	@$(MAKE) clean
-	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
-	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
+	@$(MAKE) --no-print-directory px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory px4_sitl sitl_gazebo-classic
+	@$(MAKE) --no-print-directory px4_sitl mavsdk_tests
 	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
 	@mkdir -p coverage
-	@lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+	@lcov --directory build/px4_sitl --base-directory build/px4_sitl --gcov-tool gcov --capture -o coverage/lcov.info
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
 
-rostest_run: px4_sitl_default
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
+rostest_run: px4_sitl
+	@$(MAKE) --no-print-directory px4_sitl sitl_gazebo-classic
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh $(TEST_FILE) mission:=$(TEST_MISSION) vehicle:=$(TEST_VEHICLE)
 
 tests_mission_coverage:
 	@$(MAKE) clean
-	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory px4_sitl PX4_CMAKE_BUILD_TYPE=Coverage
+	@$(MAKE) --no-print-directory px4_sitl sitl_gazebo-classic PX4_CMAKE_BUILD_TYPE=Coverage
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=VTOL_mission_1 vehicle:=standard_vtol
-	@$(MAKE) --no-print-directory px4_sitl_default generate_coverage
+	@$(MAKE) --no-print-directory px4_sitl generate_coverage
 
 tests_offboard: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
@@ -516,7 +511,7 @@ tests_offboard: rostest
 
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage
-	@cd "$(SRC_DIR)"/build/python_coverage && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DPYTHON_COVERAGE=ON
+	@cd "$(SRC_DIR)"/build/python_coverage && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl -DPYTHON_COVERAGE=ON
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage metadata_airframes
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage metadata_parameters
@@ -527,43 +522,43 @@ python_coverage:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-ci clang-tidy clang-tidy-fix
+.PHONY: scan-build px4_sitl-clang px4_sitl-clang-test clang-ci clang-tidy clang-tidy-fix
 .PHONY: cppcheck shellcheck_all validate_module_configs
 
 scan-build:
 	@export CCC_CC=clang
 	@export CCC_CXX=clang++
-	@rm -rf "$(SRC_DIR)"/build/px4_sitl_default-scan-build
+	@rm -rf "$(SRC_DIR)"/build/px4_sitl-scan-build
 	@rm -rf "$(SRC_DIR)"/build/scan-build/report_latest
-	@mkdir -p "$(SRC_DIR)"/build/px4_sitl_default-scan-build
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-scan-build && scan-build cmake "$(SRC_DIR)" -GNinja -DCONFIG=px4_sitl_default
-	@scan-build -o "$(SRC_DIR)"/build/scan-build cmake --build "$(SRC_DIR)"/build/px4_sitl_default-scan-build
+	@mkdir -p "$(SRC_DIR)"/build/px4_sitl-scan-build
+	@cd "$(SRC_DIR)"/build/px4_sitl-scan-build && scan-build cmake "$(SRC_DIR)" -GNinja -DCONFIG=px4_sitl
+	@scan-build -o "$(SRC_DIR)"/build/scan-build cmake --build "$(SRC_DIR)"/build/px4_sitl-scan-build
 	@find "$(SRC_DIR)"/build/scan-build -maxdepth 1 -mindepth 1 -type d -exec cp -r "{}" "$(SRC_DIR)"/build/scan-build/report_latest \;
 
-px4_sitl_default-clang:
-	@mkdir -p "$(SRC_DIR)"/build/px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
+px4_sitl-clang:
+	@mkdir -p "$(SRC_DIR)"/build/px4_sitl-clang
+	@cd "$(SRC_DIR)"/build/px4_sitl-clang && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl-clang
 
 # Clang SITL configure with BUILD_TESTING=ON so test files land in
 # compile_commands.json with resolved gtest/fuzztest includes. Used by CI
 # to produce a compilation database for diff-based clang-tidy that can
 # lint test files. Configure only: we don't build the test binaries here,
 # just generate the database.
-px4_sitl_default-clang-test:
-	@mkdir -p "$(SRC_DIR)"/build/px4_sitl_default-clang-test
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang-test && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_TESTING=ON
+px4_sitl-clang-test:
+	@mkdir -p "$(SRC_DIR)"/build/px4_sitl-clang-test
+	@cd "$(SRC_DIR)"/build/px4_sitl-clang-test && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_TESTING=ON
 
 # CI-oriented target that prepares both clang build directories used by
 # the Static Analysis workflow:
-#   - px4_sitl_default-clang:       full build, BUILD_TESTING=OFF.
+#   - px4_sitl-clang:       full build, BUILD_TESTING=OFF.
 #       Used by `make clang-tidy` (push-to-main) and run-clang-tidy-pr.py.
-#   - px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON.
+#   - px4_sitl-clang-test:  configure-only, BUILD_TESTING=ON.
 #       Used by clang-tidy-diff-18.py so test files are in the
 #       compilation database with resolved gtest/fuzztest includes.
 # Running one target ensures both dirs exist before any clang-tidy
 # variant runs, and keeps the workflow free of raw cmake invocations.
-clang-ci: px4_sitl_default-clang px4_sitl_default-clang-test
+clang-ci: px4_sitl-clang px4_sitl-clang-test
 
 # Paths to exclude from clang-tidy (auto-generated from .gitmodules + manual additions):
 # - All submodules (external code we consume, not edit)
@@ -581,23 +576,23 @@ CLANG_TIDY_SUBMODULES := $(shell git config --file .gitmodules --get-regexp path
 CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5|src/lib/drivers/smbus|src/drivers/gpio|src/modules/commander/failsafe/emscripten|failsafe_test\.dir|\.pb\.cc
 CLANG_TIDY_EXCLUDE := $(CLANG_TIDY_SUBMODULES)|$(CLANG_TIDY_EXCLUDE_EXTRA)
 
-clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -p .
+clang-tidy: px4_sitl-clang
+	@cd "$(SRC_DIR)"/build/px4_sitl-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
-clang-tidy-fix: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -fix -p .
+clang-tidy-fix: px4_sitl-clang
+	@cd "$(SRC_DIR)"/build/px4_sitl-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -fix -p .
 
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
-cppcheck: px4_sitl_default
+cppcheck: px4_sitl
 	@mkdir -p "$(SRC_DIR)"/build/cppcheck
-	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
+	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
 	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck --source-dir="$(SRC_DIR)"/src/
 
 shellcheck_all:
 	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/ROMFS/px4fmu_common/
-	@make px4_fmu-v5_default shellcheck
+	@make px4_fmu-v5_vtol shellcheck
 
 validate_module_configs:
 	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f \
@@ -657,7 +652,7 @@ help:
 
 # Print a list of all config targets.
 list_config_targets:
-	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
+	@for targ in $(ALL_CONFIG_TARGETS); do echo $$targ; done
 
 check_nuttx : $(call make_list,nuttx) \
 	sizes
@@ -682,11 +677,11 @@ all_px4_savedefconfig:
 .PHONY: failsafe_web run_failsafe_web_server
 failsafe_web:
 	@if ! command -v emcc; then echo -e "Install emscripten first: https://emscripten.org/docs/getting_started/downloads.html\nAnd source the env: source <path>/emsdk_env.sh"; exit 1; fi
-	@$(MAKE) --no-print-directory px4_sitl_default failsafe_test parameters_xml \
+	@$(MAKE) --no-print-directory px4_sitl failsafe_test parameters_xml \
 		PX4_CMAKE_BUILD_TYPE=Release BUILD_DIR_SUFFIX=_failsafe_web \
 		CMAKE_ARGS="-DCMAKE_CXX_COMPILER=em++ -DCMAKE_C_COMPILER=emcc"
 run_failsafe_web_server: failsafe_web
-	@cd build/px4_sitl_default_failsafe_web && \
+	@cd build/px4_sitl_failsafe_web && \
 		python3 -m http.server
 
 # Generate reference documentation for uORB messages

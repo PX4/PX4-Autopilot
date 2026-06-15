@@ -29,7 +29,7 @@ On Linux LinkServer gets installed `/usr/local/LinkServer/LinkServer`
 To flash you can use the `LinkServer flash` command with target `MIMXRT1176xxxxx:MIMXRT1170-EVK-CM7-ONLY` for the FMUv6X-RT
 
 ```sh
-/usr/local/LinkServer/LinkServer flash MIMXRT1176xxxxx:MIMXRT1170-EVK-CM7-ONLY load build/px4_fmu-v6xrt_default/px4_fmu-v6xrt_default.elf
+/usr/local/LinkServer/LinkServer flash MIMXRT1176xxxxx:MIMXRT1170-EVK-CM7-ONLY load build/px4_fmu-v6xrt_vtol/px4_fmu-v6xrt_vtol.elf
 ```
 
 You can launch the GDB server in a new terminal shell:
@@ -41,7 +41,7 @@ You can launch the GDB server in a new terminal shell:
 Then connect to port 3333 via GDB:
 
 ```sh
-arm-none-eabi-gdb build/px4_fmu-v6xrt_default/px4_fmu-v6xrt_default.elf -ex "target extended-remote :3333"
+arm-none-eabi-gdb build/px4_fmu-v6xrt_vtol/px4_fmu-v6xrt_vtol.elf -ex "target extended-remote :3333"
 ```
 
 Use GDB to load the binary into the Pixhawk:
@@ -74,7 +74,7 @@ The target needs to be one of:
 You can then connect to port 3333 via GDB:
 
 ```sh
-arm-none-eabi-gdb build/px4_fmu-v6xrt_default/px4_fmu-v6xrt_default.elf -ex "target extended-remote :3333"
+arm-none-eabi-gdb build/px4_fmu-v6xrt_vtol/px4_fmu-v6xrt_vtol.elf -ex "target extended-remote :3333"
 ```
 
 Use GDB to load the binary into the Pixhawk:

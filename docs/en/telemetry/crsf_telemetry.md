@@ -88,7 +88,7 @@ The steps are:
 1. Launch the [PX4 board config tool (`menuconfig`)](../hardware/porting_guide_config.md#px4-menuconfig-setup) for your `make` target using the `boardconfig` option (here the target is the [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) flight controller):
 
    ```sh
-   make ark_fmu-v6x_default boardconfig
+   make ark_fmu-v6x_vtol boardconfig
    ```
 
 1. In the PX4 board config tool:
@@ -104,7 +104,7 @@ The steps are:
 1. [Build the PX4 source code](../dev_setup/building_px4.md) with your changes (again assuming you are using ARKV6X):
 
    ```sh
-   make ark_fmu-v6x_default
+   make ark_fmu-v6x_vtol
    ```
 
 This will build your custom firmware, which must now be uploaded to your flight controller.
@@ -116,7 +116,7 @@ To upload the custom firmware, first connect your flight controller to the devel
 You can upload firmware as part of the build process using the `upload` options:
 
 ```sh
-make ark_fmu-v6x_default upload
+make ark_fmu-v6x_vtol upload
 ```
 
 Alternatively you can use QGroundControl to install the firmware, as described in [Firmware > Installing PX4 master, beta, or custom firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware).

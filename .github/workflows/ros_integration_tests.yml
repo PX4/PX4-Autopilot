@@ -141,4 +141,4 @@ jobs:
         path: |
           logs/**/**/**/*.log
           logs/**/**/**/*.ulg
-          build/px4_sitl_default/tmp_ros_tests/rootfs/log/**/*.ulg
+          build/px4_sitl/tmp_ros_tests/rootfs/log/**/*.ulg

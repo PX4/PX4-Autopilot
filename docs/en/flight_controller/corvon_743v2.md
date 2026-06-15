@@ -166,7 +166,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 To [build PX4](../dev_setup/building_px4.md) for this target from source:
 
 ```sh
-make corvon_743v2_default
+make corvon_743v2
 ```
 
 Initial firmware flashing can be done over USB via QGroundControl.

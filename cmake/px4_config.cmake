@@ -35,11 +35,11 @@
 #  look for in tree board config that matches CONFIG input
 
 if(NOT CONFIG)
-	# default to px4_ros2_default if building within a ROS2 colcon environment
+	# default to px4_ros2 if building within a ROS2 colcon environment
 	if(("$ENV{COLCON}" MATCHES "1") AND ("$ENV{ROS_VERSION}" MATCHES "2"))
-		set(CONFIG "px4_ros2_default" CACHE STRING "desired configuration")
+		set(CONFIG "px4_ros2" CACHE STRING "desired configuration")
 	else()
-		set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
+		set(CONFIG "px4_sitl" CACHE STRING "desired configuration")
 	endif()
 else()
 	# Promote CONFIG from UNINITIALIZED (set by -D on command line) to STRING
@@ -48,6 +48,10 @@ else()
 	set(CONFIG "${CONFIG}" CACHE STRING "desired configuration" FORCE)
 endif()
 
+# The set of target-class names (the buildable role of a board). A bare board
+# name resolves to its sole class; a board with several is ambiguous.
+set(PX4_CLASS_NAMES copter fixedwing vtol rover uuv spacecraft airship cannode linux sitl io ros2 voxl2)
+
 if(NOT PX4_CONFIG_FILE)
 
 	file(GLOB_RECURSE board_configs
@@ -55,9 +59,15 @@ if(NOT PX4_CONFIG_FILE)
 		"boards/*.px4board"
 		)
 
+	# Resolve the requested CONFIG to a board config fragment:
+	#   <vendor>_<model>_<label>  selects boards/<vendor>/<model>/<label>.px4board
+	#   <vendor>_<model>          bare board name -> the board's SOLE target class
+	# The 'base' foundation fragment is not buildable, and the 'default' label is
+	# retired (replaced by per-class targets).
+	set(_resolved FALSE)
+
+	# Pass 1: exact <vendor>_<model>_<label> match (label may contain '.' or '-')
 	foreach(filename ${board_configs})
-		# parse input CONFIG into components to match with existing in tree configs
-		#  the platform prefix (eg nuttx_) is historical, and removed if present
 		string(REPLACE ".px4board" "" filename_stripped ${filename})
 		string(REPLACE "/" ";" config ${filename_stripped})
 		list(LENGTH config config_len)
@@ -67,35 +77,70 @@ if(NOT PX4_CONFIG_FILE)
 			list(GET config 1 model)
 			list(GET config 2 label)
 
-			set(board "${vendor}${model}")
-
-			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
-			# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
-			if ((${CONFIG} STREQUAL "${vendor}_${model}_${label}") OR # match full vendor, model, label
-			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
-			)
+			if(CONFIG STREQUAL "${vendor}_${model}_${label}")
+				if((label STREQUAL "base") OR (label STREQUAL "default"))
+					message(FATAL_ERROR "'${CONFIG}': '${label}' is not a buildable target; "
+						"build a target class instead (e.g. ${vendor}_${model}_<class>).")
+				endif()
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
 				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
 				set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
 				set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
-				set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
-				break()
-			endif()
-
-			# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
-			# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
-			if ((${CONFIG} STREQUAL "${board}_${label}") OR # match full board, label
-			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
-			)
-				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
-				set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
-				set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
-				set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
+				set(LABEL "${label}" CACHE STRING "PX4 board label" FORCE)
+				set(_resolved TRUE)
 				break()
 			endif()
 		endif()
 	endforeach()
+
+	# Pass 2: bare <vendor>_<model> -> the board's sole target class
+	if(NOT _resolved)
+		foreach(filename ${board_configs})
+			string(REPLACE ".px4board" "" filename_stripped ${filename})
+			string(REPLACE "/" ";" config ${filename_stripped})
+			list(LENGTH config config_len)
+
+			if(${config_len} EQUAL 3)
+				list(GET config 0 vendor)
+				list(GET config 1 model)
+
+				if(CONFIG STREQUAL "${vendor}_${model}")
+					# collect the board's target-class overlays
+					file(GLOB _board_files RELATIVE "${PX4_SOURCE_DIR}/boards/${vendor}/${model}"
+						"${PX4_SOURCE_DIR}/boards/${vendor}/${model}/*.px4board")
+					set(_classes)
+					foreach(_bf ${_board_files})
+						string(REPLACE ".px4board" "" _bl ${_bf})
+						if(_bl IN_LIST PX4_CLASS_NAMES)
+							list(APPEND _classes ${_bl})
+						endif()
+					endforeach()
+					list(LENGTH _classes _nclasses)
+
+					if(_nclasses EQUAL 1)
+						set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${vendor}/${model}/${_classes}.px4board" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+						set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
+						set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+						set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+						set(LABEL "${_classes}" CACHE STRING "PX4 board label" FORCE)
+						set(_resolved TRUE)
+					elseif(_nclasses GREATER 1)
+						list(SORT _classes)
+						string(REPLACE ";" ", " _classlist "${_classes}")
+						message(FATAL_ERROR "'${CONFIG}' is ambiguous: ${vendor}/${model} has multiple "
+							"target classes (${_classlist}); specify one, e.g. ${CONFIG}_vtol.")
+					else()
+						message(FATAL_ERROR "'${CONFIG}': board ${vendor}/${model} defines no target class.")
+					endif()
+					break()
+				endif()
+			endif()
+		endforeach()
+	endif()
+
+	if(NOT _resolved)
+		message(FATAL_ERROR "PX4 config '${CONFIG}' not found.")
+	endif()
 endif()
 
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
@@ -113,6 +158,37 @@ set(PX4_BOARD_VENDOR ${VENDOR} CACHE STRING "PX4 board vendor" FORCE)
 set(PX4_BOARD_MODEL ${MODEL} CACHE STRING "PX4 board model" FORCE)
 
 set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
+
+# Determine the target class that drives the config merge in kconfig.cmake:
+#   <class> or <class>.<variant>                 -> the leading dot-component
+#   bootloader / canbootloader / performance-test -> none (standalone savedefconfig)
+#   a bare variant (e.g. 'test')                  -> the board's sole target class
+set(PX4_TARGET_CLASS "")
+if(LABEL MATCHES "^(bootloader|canbootloader|performance-test)")
+	# standalone savedefconfig labels carry a complete config and no class
+elseif(LABEL MATCHES "\\.")
+	string(REGEX REPLACE "\\..*" "" PX4_TARGET_CLASS "${LABEL}")
+elseif(LABEL IN_LIST PX4_CLASS_NAMES)
+	set(PX4_TARGET_CLASS "${LABEL}")
+else()
+	# bare variant label: attach it to the board's sole target class
+	file(GLOB _board_files RELATIVE "${PX4_BOARD_DIR}" "${PX4_BOARD_DIR}/*.px4board")
+	set(_classes)
+	foreach(_bf ${_board_files})
+		string(REPLACE ".px4board" "" _bl ${_bf})
+		if(_bl IN_LIST PX4_CLASS_NAMES)
+			list(APPEND _classes ${_bl})
+		endif()
+	endforeach()
+	list(LENGTH _classes _nclasses)
+	if(_nclasses EQUAL 1)
+		set(PX4_TARGET_CLASS "${_classes}")
+	else()
+		message(FATAL_ERROR "'${CONFIG}': variant label '${LABEL}' on ${VENDOR}/${MODEL} cannot be "
+			"mapped to a single target class.")
+	endif()
+endif()
+set(PX4_TARGET_CLASS "${PX4_TARGET_CLASS}" CACHE STRING "PX4 target class" FORCE)
 
 set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE STRING "PX4 config" FORCE)
 

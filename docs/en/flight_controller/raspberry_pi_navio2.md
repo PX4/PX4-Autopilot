@@ -151,7 +151,7 @@ mkdir build/px4_raspberrypi_default_clang
 cd build/px4_raspberrypi_default_clang
 cmake \
 -G"Unix Makefiles" \
--DCONFIG=px4_raspberrypi_default \
+-DCONFIG=px4_raspberrypi \
 -UCMAKE_C_COMPILER \
 -DCMAKE_C_COMPILER=clang \
 -UCMAKE_CXX_COMPILER \
@@ -185,7 +185,7 @@ cd PX4-Autopilot
 make emlid_navio2
 ```
 
-The "px4" executable file is in the directory **build/emlid_navio2_default/**.
+The "px4" executable file is in the directory **build/emlid_navio2/**.
 Make sure you can connect to your Pi over SSH, see [instructions how to access your Pi](#setting-up-access) following the instructions for armhf under Raspberry Pi.
 
 Then upload it with:

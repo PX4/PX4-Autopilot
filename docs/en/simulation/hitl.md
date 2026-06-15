@@ -130,7 +130,7 @@ Make sure _QGroundControl_ is not running!
 
    ```sh
    cd <PX4-Autopilot clone>
-   DONT_RUN=1 make px4_sitl_default gazebo-classic
+   DONT_RUN=1 make px4_sitl gazebo-classic
    ```
 
 2. Open the vehicle model's sdf file (e.g. **Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/iris_hitl/iris_hitl.sdf**).
@@ -145,7 +145,7 @@ Make sure _QGroundControl_ is not running!
 4. Set up the environment variables:
 
    ```sh
-   source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+   source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl
    ```
 
    and run Gazebo Classic in HITL mode:

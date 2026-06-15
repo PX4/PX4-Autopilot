@@ -17,7 +17,7 @@ make px4_sitl
 Each instance of PX4 can then be launched in its own terminal, specifying a unique instance number and its desired combination of [environment variables](../sim_gazebo_gz/index.md#usage-configuration-options):
 
 ```sh
-ARGS ./build/px4_sitl_default/bin/px4 [-i <instance>]
+ARGS ./build/px4_sitl/bin/px4 [-i <instance>]
 ```
 
 - `<instance>`:
@@ -47,19 +47,19 @@ This allows for greater flexibility and customization.
   **Terminal 1**
 
   ```sh
-  PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 1
+  PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl/bin/px4 -i 1
   ```
 
   **Terminal 2**
 
   ```sh
-  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 2
+  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl/bin/px4 -i 2
   ```
 
   **Terminal 3**
 
   ```sh
-  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4003 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_rc_cessna ./build/px4_sitl_default/bin/px4 -i 3
+  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4003 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_rc_cessna ./build/px4_sitl/bin/px4 -i 3
   ```
 
 - Start the agent:

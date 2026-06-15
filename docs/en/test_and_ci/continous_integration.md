@@ -81,7 +81,7 @@ Push / Dispatch Event
     ▼
 ┌─────────────────────────────────────┐
 │ T2: Metadata Sync (~10-15 min)     │
-│  • Builds px4_sitl_default          │
+│  • Builds px4_sitl          │
 │  • Generates parameter/airframe/    │
 │    module documentation             │
 │  • Builds failsafe web simulator    │

@@ -76,7 +76,7 @@ pxh> commander takeoff
 
 ```sh
 cd PX4-Autopilot
-make px4_fmu-v5_default
+make px4_fmu-v5_vtol
 ```
 
 :::tip
@@ -84,7 +84,7 @@ You can also build using the [px4-dev Docker container](../test_and_ci/docker.md
 From the PX4-Autopilot directory:
 
 ```sh
-./Tools/docker_run.sh 'make px4_fmu-v5_default'
+./Tools/docker_run.sh 'make px4_fmu-v5_vtol'
 ```
 
 :::
@@ -92,8 +92,8 @@ From the PX4-Autopilot directory:
 运行成功后将输出类似结果：
 
 ```sh
--- Build files have been written to: /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_default
-[954/954] Creating /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_default/px4_fmu-v4_default.px4
+-- Build files have been written to: /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_vtol
+[954/954] Creating /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_vtol/px4_fmu-v4_vtol.px4
 ```
 
 构建目标 `px4_fmu-v4` 的第一部分表示目标飞行控制器固件的硬件。
@@ -106,43 +106,43 @@ From the PX4-Autopilot directory:
 
 以下列表显示了[Pixhawk标准](../flight_controller/autopilot_pixhawk_standard.md)飞行控制板的构建命令：
 
-- [Holybro Pixhawk 6X-RT (FMUv6X)](../flight_controller/pixhawk6x-rt.md): `make px4_fmu-v6xrt_default`
+- [Holybro Pixhawk 6X-RT (FMUv6X)](../flight_controller/pixhawk6x-rt.md): `make px4_fmu-v6xrt_vtol`
 
-- [Holybro Pixhawk 6X (FMUv6X)](../flight_controller/pixhawk6x.md): `make px4_fmu-v6x_default`
+- [Holybro Pixhawk 6X (FMUv6X)](../flight_controller/pixhawk6x.md): `make px4_fmu-v6x_vtol`
 
-- [Holybro Pixhawk 6C (FMUv6C)](../flight_controller/pixhawk6c.md): `make px4_fmu-v6c_default`
+- [Holybro Pixhawk 6C (FMUv6C)](../flight_controller/pixhawk6c.md): `make px4_fmu-v6c_vtol`
 
-- [Holybro Pixhawk 6C Mini (FMUv6C)](../flight_controller/pixhawk6c_mini.md): `make px4_fmu-v6c_default`
+- [Holybro Pixhawk 6C Mini (FMUv6C)](../flight_controller/pixhawk6c_mini.md): `make px4_fmu-v6c_vtol`
 
-- [Holybro Pix32 v6 (FMUv6C)](../flight_controller/holybro_pix32_v6.md): `make px4_fmu-v6c_default`
+- [Holybro Pix32 v6 (FMUv6C)](../flight_controller/holybro_pix32_v6.md): `make px4_fmu-v6c_vtol`
 
-- [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md): `make px4_fmu-v5x_default`
+- [Holybro Pixhawk 5X (FMUv5X)](../flight_controller/pixhawk5x.md): `make px4_fmu-v5x_vtol`
 
-- [Pixhawk 4 (FMUv5)](../flight_controller/pixhawk4.md): `make px4_fmu-v5_default`
+- [Pixhawk 4 (FMUv5)](../flight_controller/pixhawk4.md): `make px4_fmu-v5_vtol`
 
-- [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_default`
+- [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_vtol`
 
-- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default`
+- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_vtol`
 
-- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default`
+- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_vtol`
 
-- [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_default`
+- [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_vtol`
 
-- [Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md): `make px4_fmu-v4pro_default`
+- [Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md): `make px4_fmu-v4pro_vtol`
 
-- [Pixhawk Mini](../flight_controller/pixhawk_mini.md): `make px4_fmu-v3_default`
+- [Pixhawk Mini](../flight_controller/pixhawk_mini.md): `make px4_fmu-v3_vtol`
 
-- [Pixhawk 2 (Cube Black) (FMUv3)](../flight_controller/pixhawk-2.md): `make px4_fmu-v3_default`
+- [Pixhawk 2 (Cube Black) (FMUv3)](../flight_controller/pixhawk-2.md): `make px4_fmu-v3_vtol`
 
-- [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (支持 2MB Flash)
+- [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_vtol` (支持 2MB Flash)
 
-- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Holybro pix32 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
-- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixfalcon (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
-- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Dropix (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
-- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_default` - Discontinued
+- [Pixhawk 1 (FMUv2)](../flight_controller/autopilot_discontinued.md): `make px4_fmu-v2_copter` - Discontinued
 
   :::warning
   You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
@@ -150,7 +150,7 @@ From the PX4-Autopilot directory:
 
 :::
 
-- 具有 2 MB flash 的 Pixhawk 1: `make px4_fmu-v3_default`
+- 具有 2 MB flash 的 Pixhawk 1: `make px4_fmu-v3_vtol`
 
 非 Pixhawk NuttX 飞控的构建命令（以及所有其他主板的命令）均在各款[飞控主板](../flight_controller/index.md)的文档中提供。
 
@@ -160,7 +160,7 @@ From the PX4-Autopilot directory:
 例如
 
 ```sh
-make px4_fmu-v4_default upload
+make px4_fmu-v4_vtol upload
 ```
 
 运行成功后将有以下输出：
@@ -209,7 +209,7 @@ make distclean
 ### 闪存溢出了 XXX 字节
 
 `region 'flash' overflowed by XXXX bytes` 错误表明固件对目标硬件平台太大了。
-这对于`make px4_fmu-v2_default` 构建是常见的，它的 flash 大小被限制在 1MB。
+这对于`make px4_fmu-v2_copter` 构建是常见的，它的 flash 大小被限制在 1MB。
 
 如果您正在构建_vanilla_master 分支，最可能的原因是使用不支持的 GCC版本。
 In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
@@ -331,7 +331,7 @@ make px4_sitl list_vmd_make_targets
 - 如果要在其他两个设置之间指定默认值，可以使用三个下划线。
   例如，`gazebo-classic___gdb`相当于`gazebo-classic_iris_gdb`。
 - 你可以使用 "none" 值为 "VIEWER_MODEBUGER" 来启动 PX4 并等待模拟器。
-  例如，使用 `make px4_sitl_default none` 和 jMAVSim 使用 `./Tools/simulation/jmavsim/jmavsim_run.sh -l` 启动 PX4。
+  例如，使用 `make px4_sitl none` 和 jMAVSim 使用 `./Tools/simulation/jmavsim/jmavsim_run.sh -l` 启动 PX4。
 
 :::
 

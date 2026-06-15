@@ -9,7 +9,7 @@ The configuration files for all boards, including linker scripts and other requi
 
 The following example uses FMUv5 as it is a recent [reference configuration](../hardware/reference_design.md) for NuttX based flight controllers:
 
-- Running `make px4_fmu-v5_default` from the **PX4-Autopilot** directory will build the FMUv5 config
+- Running `make px4_fmu-v5_vtol` from the **PX4-Autopilot** directory will build the FMUv5 config
 - The base FMUv5 configuration files are located in: [/boards/px4/fmu-v5](https://github.com/PX4/PX4-Autopilot/tree/main/boards/px4/fmu-v5).
   - Board specific header (NuttX pins and clock configuration): [/boards/px4/fmu-v5/nuttx-config/include/board.h](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/include/board.h).
   - Board specific header (PX4 configuration): [/boards/px4/fmu-v5/src/board_config.h](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/src/board_config.h).
@@ -21,8 +21,8 @@ The following example uses FMUv5 as it is a recent [reference configuration](../
 To modify the NuttX OS configuration, you can use [menuconfig](https://bitbucket.org/patacongo/nuttx/src/master/) using the PX4 shortcuts:
 
 ```sh
-make px4_fmu-v5_default menuconfig
-make px4_fmu-v5_default qconfig
+make px4_fmu-v5_vtol menuconfig
+make px4_fmu-v5_vtol qconfig
 ```
 
 For fresh installs of PX4 onto Ubuntu using [ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh) <!-- NEED px4_version --> you will also need to install _kconfig_ tools from [NuttX tools](https://bitbucket.org/nuttx/tools/src/master/).

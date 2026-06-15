@@ -27,7 +27,7 @@ Tools/simulation/gazebo-classic/sitl_multiple_run.sh [-m <model>] [-n <number_of
   - The number after the colon indicates the number of vehicles (of that type) to spawn.
   - Maximum number of vehicles is 254.
 
-- `<target>`: build target, e.g: `px4_sitl_default` (default), `px4_sitl_nolockstep`
+- `<target>`: build target, e.g: `px4_sitl` (default), `px4_sitl_nolockstep`
 - `<label>` : specific label for model, e.g: `rplidar`
 
 Each vehicle instance is allocated a unique MAVLink system id (2, 3, 4, etc.).
@@ -114,13 +114,13 @@ To build an example setup, follow the step below:
    ```sh
    cd Firmware_clone
    git submodule update --init --recursive
-   DONT_RUN=1 make px4_sitl_default gazebo-classic
+   DONT_RUN=1 make px4_sitl gazebo-classic
    ```
 
 1. Source your environment:
 
    ```sh
-   source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+   source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl
    export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd):$(pwd)/Tools/simulation/gazebo-classic/sitl_gazebo
    ```
 

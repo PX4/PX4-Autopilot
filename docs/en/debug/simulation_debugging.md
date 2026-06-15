@@ -26,7 +26,7 @@ sudo apt-get install valgrind
 To use valgrind during the SITL simulation:
 
 ```sh
-make px4_sitl_default jmavsim___valgrind
+make px4_sitl jmavsim___valgrind
 ```
 
 ## Launch Gazebo Classic SITL Without Debugger
@@ -34,17 +34,17 @@ make px4_sitl_default jmavsim___valgrind
 By default SITL is launched without a debugger attached when using any simulator backend:
 
 ```sh
-make px4_sitl_default gz
-make px4_sitl_default gazebo-classic
-make px4_sitl_default jmavsim
+make px4_sitl gz
+make px4_sitl gazebo-classic
+make px4_sitl jmavsim
 ```
 
 For Gazebo Classic (only) you can also start the simulator with a debugger attached.
 Note however, that you must provide the vehicle type in the simulator target, as shown below:
 
 ```sh
-make px4_sitl_default gazebo-classic_iris_gdb
-make px4_sitl_default gazebo-classic_iris_lldb
+make px4_sitl gazebo-classic_iris_gdb
+make px4_sitl gazebo-classic_iris_lldb
 ```
 
 This will start the debugger and launch the SITL application with Gazebo and the Iris simulator.
@@ -79,14 +79,14 @@ After that the lldb or gdb shells behave like normal sessions, please refer to t
 The last parameter, the &lt;viewer_model_debugger&gt; triplet, is actually passed to make in the build directory, so
 
 ```sh
-make px4_sitl_default gazebo-classic_iris_gdb
+make px4_sitl gazebo-classic_iris_gdb
 ```
 
 is equivalent with
 
 ```sh
-make px4_sitl_default	# Configure with cmake
-make -C build/px4_sitl_default classic_iris_gdb
+make px4_sitl	# Configure with cmake
+make -C build/px4_sitl classic_iris_gdb
 ```
 
 A full list of the available make targets in the build directory can be obtained with:
@@ -102,7 +102,7 @@ You can also start your simulation, and _then_ attach `gdb`:
 1. In one terminal screen enter the command to start your simulation:
 
    ```sh
-   make px4_sitl_default gazebo-classic
+   make px4_sitl gazebo-classic
    ```
 
    As the script runs, note the **SITL COMMAND:** output text located right above the large "PX4" text.
@@ -159,7 +159,7 @@ You can also start your simulation, and _then_ attach `gdb`:
    For example,
 
    ```sh
-   sudo gdb /home/atlas/px4/base/PX4-Autopilot/build/px4_sitl_default/bin/px4
+   sudo gdb /home/atlas/px4/base/PX4-Autopilot/build/px4_sitl/bin/px4
    ```
 
    Now, you can attach to the PX4 instance by entering the PID noted in step 2.

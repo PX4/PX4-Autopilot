@@ -61,7 +61,7 @@ ARK RTK GPS runs the [PX4 cannode firmware](px4_cannode_fw.md). As such, it supp
 
 ARK RTK GPS boards ship with recent firmware pre-installed, but if you want to build and flash the latest firmware yourself, refer to the [cannode firmware build instructions](px4_cannode_fw.md#building-the-firmware).
 
-Firmware target: `ark_can-rtk-gps_default`
+Firmware target: `ark_can-rtk-gps`
 Bootloader target: `ark_can-rtk-gps_canbootloader`
 
 ## Flight Controller Setup
@@ -175,7 +175,7 @@ For more information see [Rover and Moving Base](../dronecan/index.md#rover-and-
   - Blinking red is error
     - If you see a red LED there is an error and you should check the following
       - Make sure the flight controller has an SD card installed
-      - Make sure the ARK RTK GPS has `ark_can-rtk-gps_canbootloader` installed prior to flashing `ark_can-rtk-gps_default`
+      - Make sure the ARK RTK GPS has `ark_can-rtk-gps_canbootloader` installed prior to flashing `ark_can-rtk-gps`
       - Remove binaries from the root and ufw directories of the SD card and try to build and flash again
 
 ### Updating Ublox F9P Module

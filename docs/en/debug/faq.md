@@ -25,7 +25,7 @@ To remove a module, just comment it out:
 The command below will list the largest static allocations:
 
 ```sh
-arm-none-eabi-nm --size-sort --print-size --radix=dec build/px4_fmu-v5_default/px4_fmu-v5_default.elf | grep " [bBdD] "
+arm-none-eabi-nm --size-sort --print-size --radix=dec build/px4_fmu-v5_vtol/px4_fmu-v5_vtol.elf | grep " [bBdD] "
 ```
 
 ## USB Errors

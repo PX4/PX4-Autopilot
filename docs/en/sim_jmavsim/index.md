@@ -61,7 +61,7 @@ graph LR;
 After ensuring that the [simulation prerequisites](../dev_setup/dev_env.md) are installed on the system, just launch: The convenience make target will compile the POSIX host build and run the simulation.
 
 ```sh
-make px4_sitl_default jmavsim
+make px4_sitl jmavsim
 ```
 
 This will bring up the PX4 shell:
@@ -118,7 +118,7 @@ For example, to set the latitude, longitude and altitude:
 export PX4_HOME_LAT=28.452386
 export PX4_HOME_LON=-13.867138
 export PX4_HOME_ALT=28.5
-make px4_sitl_default jmavsim
+make px4_sitl jmavsim
 ```
 
 ### Change Simulation Speed
@@ -128,20 +128,20 @@ The simulation speed can be increased or decreased with respect to realtime usin
 To run at double real-time:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=2 make px4_sitl_default jmavsim
+PX4_SIM_SPEED_FACTOR=2 make px4_sitl jmavsim
 ```
 
 To run at half real-time:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl_default jmavsim
+PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl jmavsim
 ```
 
 To apply a factor to all SITL runs in the current session, use `EXPORT`:
 
 ```sh
 export PX4_SIM_SPEED_FACTOR=2
-make px4_sitl_default jmavsim
+make px4_sitl jmavsim
 ```
 
 ### Using a Joystick
@@ -204,7 +204,7 @@ In this case the simulator and PX4 use the host system time and do not wait on e
 
 To disable lockstep in:
 
-- PX4, run `make px4_sitl_default boardconfig` and set the `BOARD_NOLOCKSTEP` "Force disable lockstep" symbol which is located under toolchain.
+- PX4, run `make px4_sitl boardconfig` and set the `BOARD_NOLOCKSTEP` "Force disable lockstep" symbol which is located under toolchain.
 - jMAVSim, remove `-l` in [sitl_run.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/simulation/jsbsim/sitl_run.sh#L40), or make sure otherwise that the java binary is started without the `-lockstep` flag.
 
 <!-- Relevant lines in sitl_run.sh are: -->
@@ -230,7 +230,7 @@ The simulation can be [interfaced to ROS](../simulation/ros_interface.md) the sa
 ## Important Files
 
 - The startup scripts are discussed in [System Startup](../concept/system_startup.md).
-- The simulated root file system ("`/`" directory) is created inside the build directory here: `build/px4_sitl_default/rootfs`.
+- The simulated root file system ("`/`" directory) is created inside the build directory here: `build/px4_sitl/rootfs`.
 
 ## Display-Only Mode
 

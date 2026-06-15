@@ -24,7 +24,7 @@ Reasons for this are given below.
 
   ```sh
   export replay=<absolute_path_to_log_file.ulg>
-  make px4_sitl_default
+  make px4_sitl
   ```
 
   This will create the build/make output in a separate build directory `build/px4_sitl_default_replay` (so that the parameters don't interfere with normal builds).
@@ -61,7 +61,7 @@ Reasons for this are given below.
 - Start the replay:
 
   ```sh
-  make px4_sitl_default jmavsim
+  make px4_sitl jmavsim
   ```
 
   This will automatically open the log file, apply the parameters and start the replay.

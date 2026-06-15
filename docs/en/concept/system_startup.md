@@ -46,7 +46,7 @@ The modules can be executed from any terminal when PX4 is already running on a s
 For example:
 
 ```sh
-cd <PX4-Autopilot>/build/px4_sitl_default/bin
+cd <PX4-Autopilot>/build/px4_sitl/bin
 ./px4-commander takeoff
 ./px4-listener sensor_accel
 ```

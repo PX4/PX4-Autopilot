@@ -102,7 +102,7 @@ Download the [aedrox_aedroxh7_bootloader.bin](https://github.com/PX4/PX4-Autopil
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make aedrox_aedroxh7_default
+make aedrox_aedroxh7
 ```
 
 ## Installing PX4 Firmware
@@ -112,7 +112,7 @@ Firmware can be installed in any of the normal ways:
 - Build and upload the source:
 
   ```sh
-  make aedrox_aedroxh7_default upload
+  make aedrox_aedroxh7 upload
   ```
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.

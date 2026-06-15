@@ -551,7 +551,7 @@ def main():
     parser.add_argument(
         "--board",
         default=None,
-        help="Board target name (e.g. px4_fmu-v5x_default)",
+        help="Board target name (e.g. px4_fmu-v5x_vtol)",
     )
     parser.add_argument(
         "--modules-file",

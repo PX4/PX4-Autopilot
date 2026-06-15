@@ -27,7 +27,7 @@ You can find how to update the [blackmagic probe here](https://black-magic.org/u
 To use a Zubax BugFace BF1 with GDB, start GDB with the exact ELF file that is currently flashed on the autopilot:
 
 ```sh
-arm-none-eabi-gdb build/px4_fmu-v5_default/px4_fmu-v5_default.elf
+arm-none-eabi-gdb build/px4_fmu-v5_vtol/px4_fmu-v5_vtol.elf
 ```
 
 Then, you have to select the Zubax BugFace BF1 interface, on Linux this is e.g.:

@@ -107,7 +107,7 @@ After setting up the PX4 development environment, follow these steps to install 
 
    ```sh
    cd PX4-Autopilot/
-   make bitcraze_crazyflie21_default upload
+   make bitcraze_crazyflie21 upload
    ```
 
 1. When prompted to plug in device, plug in Crazyflie 2.1.

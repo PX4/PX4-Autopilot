@@ -59,7 +59,7 @@ As such, it supports firmware update over the CAN bus and [dynamic node allocati
 
 ARK GPS boards ship with recent firmware pre-installed, but if you want to build and flash the latest firmware yourself see [PX4 DroneCAN Firmware > Building the Firmware](px4_cannode_fw.md#building-the-firmware).
 
-- Firmware target: `ark_can-gps_default`
+- Firmware target: `ark_can-gps`
 - Bootloader target: `ark_can-gps_canbootloader`
 
 ## PX4 Configuration
@@ -109,7 +109,7 @@ You will see green, blue and red LEDs on the ARK GPS when it is being flashed, a
 If you see a red LED there is an error and you should check the following:
 
 - Make sure the flight controller has an SD card installed.
-- Make sure the ARK GPS has `ark_can-gps_canbootloader` installed prior to flashing `ark_can-gps_default`.
+- Make sure the ARK GPS has `ark_can-gps_canbootloader` installed prior to flashing `ark_can-gps`.
 - Remove binaries from the root and ufw directories of the SD card and try to build and flash again.
 
 ## See Also

@@ -210,7 +210,7 @@ You must explicitly enable them as shown above.
 Build the example using the board-specific command:
 
 - Gazebo Simulator: `make px4_sitl gz_x500`
-- Pixhawk 6X: `make px4_fmu-v6x_default`
+- Pixhawk 6X: `make px4_fmu-v6x_vtol`
 - Other boards: [Building the Code](../dev_setup/building_px4.md)
 
 ## Test App (Hardware)
@@ -219,7 +219,7 @@ Build the example using the board-specific command:
 
 Enable the uploader and then reset the board:
 
-- Pixhawk 6X: `make px4_fmu-v6x_default upload`
+- Pixhawk 6X: `make px4_fmu-v6x_vtol upload`
 
 It should print before you reset the board a number of compile messages and at the end:
 
@@ -351,7 +351,7 @@ if (fds[0].revents & POLLIN) {
 Compile the app again by entering:
 
 ```sh
-make px4_sitl_default
+make px4_sitl
 ```
 
 ### Testing the uORB Subscription

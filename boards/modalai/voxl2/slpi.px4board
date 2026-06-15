@@ -1,6 +1,6 @@
 CONFIG_PLATFORM_QURT=y
 CONFIG_BOARD_TOOLCHAIN="qurt"
-# Disable modules from default.px4board that are apps-only
+# Disable modules from base.px4board that are apps-only
 CONFIG_BOARD_LINUX_TARGET=n
 CONFIG_DRIVERS_OSD_MSP_OSD=n
 CONFIG_DRIVERS_QSHELL_POSIX=n

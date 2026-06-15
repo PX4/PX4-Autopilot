@@ -52,8 +52,8 @@ The [menuconfig](https://pypi.org/project/kconfiglib/#menuconfig-interfaces) too
 There are command line and GUI variants, both of which can be launched using the PX4 build shortcuts:
 
 ```
-make px4_fmu-v5_default boardconfig
-make px4_fmu-v5_default boardguiconfig
+make px4_fmu-v5_vtol boardconfig
+make px4_fmu-v5_vtol boardguiconfig
 ```
 
 ::: info

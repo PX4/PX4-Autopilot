@@ -87,7 +87,7 @@ Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-Au
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make holybro_kakuteh7mini_default
+make holybro_kakuteh7mini
 ```
 
 ## Installing PX4 Firmware
@@ -102,7 +102,7 @@ Firmware can be manually installed in any of the normal ways:
 - Build and upload the source:
 
   ```sh
-  make holybro_kakuteh7mini_default upload
+  make holybro_kakuteh7mini upload
   ```
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.

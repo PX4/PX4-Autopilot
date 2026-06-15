@@ -101,7 +101,7 @@ If successful, your device will show up with `lsusb` and QGroundControl will con
 You should also be able to build and upload firmware using a command like:
 
 ```sh
-make px4_fmu-v5_default upload
+make px4_fmu-v5_vtol upload
 ```
 
 ### Telemetry over WiFi for QGroundControl

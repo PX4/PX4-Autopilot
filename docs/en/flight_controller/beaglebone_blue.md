@@ -167,7 +167,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 Compile and Upload
 
 ```sh
-make beaglebone_blue_default upload
+make beaglebone_blue upload
 ```
 
 ::: info

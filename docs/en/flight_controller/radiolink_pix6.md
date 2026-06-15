@@ -245,7 +245,7 @@ Port for digital (I2C) power monitor.
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make radiolink_PIX6_default
+make radiolink_PIX6_vtol
 ```
 
 ## Installing PX4 Firmware
@@ -255,7 +255,7 @@ The firmware can be installed in any of the normal ways:
 - Build and upload the source
 
   ```sh
-  make radiolink_PIX6_default upload
+  make radiolink_PIX6_vtol upload
   ```
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.

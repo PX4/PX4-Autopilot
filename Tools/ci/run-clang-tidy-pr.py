@@ -73,7 +73,7 @@ def load_db(build_dir):
     db_path = os.path.join(build_dir, 'compile_commands.json')
     if not os.path.isfile(db_path):
         print(f'error: {db_path} not found', file=sys.stderr)
-        print('Run "make px4_sitl_default-clang" first to generate '
+        print('Run "make px4_sitl-clang" first to generate '
               'the compilation database', file=sys.stderr)
         sys.exit(1)
     try:
@@ -112,7 +112,7 @@ def main():
     args = parser.parse_args()
 
     root = repo_root()
-    build_dir = os.path.join(root, 'build', 'px4_sitl_default-clang')
+    build_dir = os.path.join(root, 'build', 'px4_sitl-clang')
 
     run_tidy = os.path.join(root, 'Tools', 'run-clang-tidy.py')
     if not os.path.isfile(run_tidy):

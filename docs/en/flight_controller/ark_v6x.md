@@ -79,7 +79,7 @@ The mapping above applies to the running PX4 firmware. The ARKV6X bootloader ena
 ## Building Firmware
 
 ```sh
-make ark_fmu-v6x_default
+make ark_fmu-v6x_vtol
 ```
 
 ## See Also

@@ -42,9 +42,20 @@ runs:
         ccache -s
         ccache -z
 
+    - name: Resolve SITL build target
+      shell: bash
+      run: |
+        # 'default' is the bare sole-class sitl target (px4_sitl); any other input
+        # (e.g. sih) is a sitl variant (px4_sitl_<variant>).
+        if [ "${{ inputs.target }}" = "default" ]; then
+          echo "SITL_TARGET=px4_sitl" >> "$GITHUB_ENV"
+        else
+          echo "SITL_TARGET=px4_sitl_${{ inputs.target }}" >> "$GITHUB_ENV"
+        fi
+
     - name: Build PX4 SITL
       shell: bash
-      run: make px4_sitl_${{ inputs.target }}
+      run: make ${{ env.SITL_TARGET }}
 
     - name: ccache stats
       if: always()
@@ -61,13 +72,13 @@ runs:
     - name: Build .deb package
       shell: bash
       run: |
-        cd build/px4_sitl_${{ inputs.target }}
+        cd build/${{ env.SITL_TARGET }}
         cpack -G DEB
 
     - name: Print package info and contents
       shell: bash
       run: |
-        cd build/px4_sitl_${{ inputs.target }}
+        cd build/${{ env.SITL_TARGET }}
         echo "--- Package info ---"
         dpkg-deb -I *.deb
         echo "--- Package contents ---"
@@ -93,7 +104,7 @@ runs:
       if: inputs.target == 'default'
       shell: bash
       run: |
-        cd build/px4_sitl_default
+        cd build/px4_sitl
         echo "--- Verify Gazebo resources in package ---"
         dpkg-deb -c px4-gazebo_*.deb | grep share/gz/models > /dev/null || { echo "FAIL: models missing"; exit 1; }
         dpkg-deb -c px4-gazebo_*.deb | grep share/gz/worlds > /dev/null || { echo "FAIL: worlds missing"; exit 1; }
@@ -111,5 +122,5 @@ runs:
       uses: actions/upload-artifact@v7
       with:
         name: ${{ inputs.artifact-name }}
-        path: build/px4_sitl_${{ inputs.target }}/*.deb
+        path: build/${{ env.SITL_TARGET }}/*.deb
         if-no-files-found: error

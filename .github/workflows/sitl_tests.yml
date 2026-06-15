@@ -75,7 +75,7 @@ jobs:
       - name: Build PX4 / MAVSDK tests
         env:
           DONT_RUN: 1
-        run: make px4_sitl_default sitl_gazebo-classic mavsdk_tests
+        run: make px4_sitl sitl_gazebo-classic mavsdk_tests
 
       - uses: ./.github/actions/save-ccache
         if: always()
@@ -103,11 +103,11 @@ jobs:
           path: |
             logs/**/**/**/*.log
             logs/**/**/**/*.ulg
-            build/px4_sitl_default/tmp_mavsdk_tests/rootfs/log/**/*.ulg
+            build/px4_sitl/tmp_mavsdk_tests/rootfs/log/**/*.ulg
 
       - name: Look at Core files
         if: failure() && ${{ hashFiles('px4.core') != '' }}
-        run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
+        run: gdb build/px4_sitl/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
 
       - name: Upload PX4 coredump
         if: failure() && ${{ hashFiles('px4.core') != '' }}
@@ -124,7 +124,7 @@ jobs:
             echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials # add credential
             git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
             mkdir -p coverage
-            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+            lcov --directory build/px4_sitl --base-directory build/px4_sitl --gcov-tool gcov --capture -o coverage/lcov.info
 
       - name: Upload Coverage Information to Codecov
         if: contains(matrix.config.build_type, 'Coverage')

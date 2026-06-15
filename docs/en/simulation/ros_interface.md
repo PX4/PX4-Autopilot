@@ -60,9 +60,9 @@ To run SITL wrapped in ROS the ROS environment needs to be updated, then launch 
 
 ```sh
 cd <PX4-Autopilot_clone>
-DONT_RUN=1 make px4_sitl_default gazebo-classic
+DONT_RUN=1 make px4_sitl gazebo-classic
 source ~/catkin_ws/devel/setup.bash    # (optional)
-source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 roslaunch px4 posix_sitl.launch
@@ -114,7 +114,7 @@ In the second terminal make sure you will be able to start gazebo with the world
 
 ```sh
 cd <PX4-Autopilot_clone>
-source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 ```
 
@@ -128,7 +128,7 @@ In the third terminal make sure you will be able to spawn the model with the sdf
 
 ```sh
 cd <PX4-Autopilot_clone>
-source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl_default
+source Tools/simulation/gazebo-classic/setup_gazebo.bash $(pwd) $(pwd)/build/px4_sitl
 export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 ```
 

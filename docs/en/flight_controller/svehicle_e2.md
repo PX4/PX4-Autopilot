@@ -138,7 +138,7 @@ The default PDB included with the E2+ is analog and must be connected to `POWER1
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
 ```sh
-make svehicle_e2_default
+make svehicle_e2
 ```
 
 ## Debug Port

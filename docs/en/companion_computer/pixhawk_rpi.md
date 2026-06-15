@@ -109,7 +109,7 @@ On Linux, the default name of a USB connection is `/dev/ttyACM0`:
 ```
 sudo chmod a+rw /dev/ttyACM0
 cd /PX4-Autopilot
-make px4_fmu-v6c_default upload
+make px4_fmu-v6c_vtol upload
 ```
 -->
 

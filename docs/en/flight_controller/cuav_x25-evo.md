@@ -168,7 +168,7 @@ It is pre-built and installed automatically by _QGroundControl_ when the appropr
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
 ```sh
-make cuav_x25-evo_default
+make cuav_x25-evo
 ```
 
 ## Debug Port {#debug_port}

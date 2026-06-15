@@ -15,10 +15,10 @@ Follow the [PX4 building docs](../dev_setup/building_px4.md) just as you would t
 ```sh
 git clone --recursive https://github.com/PX4/PX4-Autopilot
 cd PX4-Autopilot
-make ark_can-flow_default
+make ark_can-flow
 ```
 
-This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
+This will create an output in **build/ark_can-flow** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
 
 ## Configuration
 

@@ -93,7 +93,7 @@ Under these conditions, all power sources cause permanent damage to the flight c
 To build PX4 for this target:
 
 ```jsx
-make thepeach_k1_default
+make thepeach_k1_vtol
 ```
 
 ## Where to buy

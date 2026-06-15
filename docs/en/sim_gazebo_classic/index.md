@@ -180,20 +180,20 @@ The simulation speed can be increased or decreased with respect to realtime usin
 To run at double real-time:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=2 make px4_sitl_default gazebo-classic
+PX4_SIM_SPEED_FACTOR=2 make px4_sitl gazebo-classic
 ```
 
 To run at half real-time:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl_default gazebo-classic
+PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl gazebo-classic
 ```
 
 To apply a factor to all SITL runs in the current session, use `EXPORT`:
 
 ```sh
 export PX4_SIM_SPEED_FACTOR=2
-make px4_sitl_default gazebo-classic
+make px4_sitl gazebo-classic
 ```
 
 ### Change Wind Speed
@@ -286,7 +286,7 @@ You can load any of the worlds by specifying them as the final option in the PX4
 For example, to load the _warehouse_ world, you can append it as shown:
 
 ```sh
-make px4_sitl_default gazebo-classic_plane_cam__warehouse
+make px4_sitl gazebo-classic_plane_cam__warehouse
 ```
 
 ::: info
@@ -374,11 +374,11 @@ The camera also supports video streaming.
 It can be used to test camera capture, in particular within survey missions.
 
 The camera emits the [CAMERA_IMAGE_CAPTURED](https://mavlink.io/en/messages/common.html#CAMERA_IMAGE_CAPTURED) message every time an image is captured.
-The captured images are saved to: `PX4-Autopilot/build/px4_sitl_default/src/modules/simulation/simulator_mavlink/frames/DSC_n.jpg` (where _n_ starts as 00000 and is iterated by one on each capture).
+The captured images are saved to: `PX4-Autopilot/build/px4_sitl/src/modules/simulation/simulator_mavlink/frames/DSC_n.jpg` (where _n_ starts as 00000 and is iterated by one on each capture).
 To simulate a plane with this camera:
 
 ```sh
-make px4_sitl_default gazebo-classic_plane_cam
+make px4_sitl gazebo-classic_plane_cam
 ```
 
 ::: info
@@ -524,7 +524,7 @@ In this case the simulator and PX4 use the host system time and do not wait on e
 
 To disable lockstep in:
 
-- PX4, run `make px4_sitl_default boardconfig` and set the `BOARD_NOLOCKSTEP` "Force disable lockstep" symbol which is located under toolchain.
+- PX4, run `make px4_sitl boardconfig` and set the `BOARD_NOLOCKSTEP` "Force disable lockstep" symbol which is located under toolchain.
 - Gazebo Classic, edit [the model SDF file](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/3062d287c322fabf1b41b8e33518eb449d4ac6ed/models/plane/plane.sdf#L449) and set `<enable_lockstep>false</enable_lockstep>`.
 
 ## Extending and Customizing

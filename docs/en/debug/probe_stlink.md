@@ -43,7 +43,7 @@ The config file needs to be:
 You can then connect to port 3333 via GDB:
 
 ```sh
-arm-none-eabi-gdb build/px4_fmu-v5x_default/px4_fmu-v5x_default.elf -ex "target extended-remote :3333"
+arm-none-eabi-gdb build/px4_fmu-v5x_vtol/px4_fmu-v5x_vtol.elf -ex "target extended-remote :3333"
 ```
 
 See the [Embedded Debug Tools][emdbg] for more advanced debug options.

@@ -84,7 +84,7 @@ This script takes a PX4 build command as an argument (e.g. `make tests`). It sta
 For example, to build SITL you would call (from within the **/PX4-Autopilot** directory):
 
 ```sh
-./Tools/docker_run.sh 'make px4_sitl_default'
+./Tools/docker_run.sh 'make px4_sitl'
 ```
 
 Or to start a bash session using the NuttX toolchain:
