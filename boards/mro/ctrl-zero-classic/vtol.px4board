@@ -1,0 +1,1 @@
+# Board overrides for the vtol target go here; inherits target_classes/vtol.px4board.
