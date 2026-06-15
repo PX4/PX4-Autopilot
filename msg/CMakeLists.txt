@@ -233,7 +233,6 @@ set(msg_files
 	UlogStreamAck.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAccelerationSetpoint.msg
 	VehicleConstraints.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
