@@ -7,23 +7,25 @@ Splits boards/<v>/<b>/default.px4board into:
                                       default that is NOT pulled in by a target
                                       class (controllers, the cannode romfs +
                                       uavcannode driver, the linux platform).
-  * boards/<v>/<b>/<class>.px4board -- the board's self-documenting overlay for
-                                      its class. It explicitly states:
-                                        CONFIG_TARGET_CLASS_<X>=y     (pulls the
-                                          class controllers via Kconfig)
-                                        CONFIG_AIRFRAMES_<Y>=y ...    (the airframe
-                                          classes this target ships)
+  * boards/<v>/<b>/<class>.px4board -- the board's overlay for its class. It
+                                      states the airframe classes this target
+                                      ships:
+                                        CONFIG_AIRFRAMES_<Y>=y ...
                                       plus, for a board that does not want one of
                                       the class controllers, a `# CONFIG_MODULES_X
-                                      is not set` revert line.
+                                      is not set` revert line. The class itself
+                                      (CONFIG_TARGET_CLASS_<X>=y plus its
+                                      controllers) is the merged class base.
 
 The resolved target then merges, in order (cmake/kconfig.cmake):
 
-    base.px4board -> <class>.px4board
+    base.px4board -> target_classes/<class>.px4board -> <class>.px4board
 
-Setting CONFIG_TARGET_CLASS_<X>=y makes Kconfig turn on the class controllers
-(each carries `default y if TARGET_CLASS_<X>`), the cannode romfs/uavcannode
-driver (TARGET_CLASS_CANNODE) or the POSIX/Linux platform (TARGET_CLASS_LINUX).
+The class base fragment target_classes/<class>.px4board (merged by cmake on the
+class name) provides the class controllers, the cannode romfs/uavcannode driver,
+or the POSIX/Linux platform, and sets CONFIG_TARGET_CLASS_<X>=y as a tag. Module
+Kconfigs carry no class coupling (the controllers are plain `default n`, turned on
+by the fragment's explicit =y and overridable by a board's revert line).
 By construction the merge reproduces the original default.px4board configuration,
 verified symbol-by-symbol before anything is written. default.px4board is left in
 place so the legacy `<board>_default` target keeps building during the transition.
@@ -68,9 +70,9 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # A vehicle-class controller module: these move out of the board's base and are
-# pulled back in by CONFIG_TARGET_CLASS_<X> (each module carries `default y if
-# TARGET_CLASS_<X>` in its Kconfig). CONTROL_ALLOCATOR is intentionally NOT a
-# controller here -- it is the vehicle-agnostic actuator stage and stays in base.
+# provided by the class base fragment target_classes/<class>.px4board (merged by
+# cmake on the class name). CONTROL_ALLOCATOR is intentionally NOT a controller
+# here -- it is the vehicle-agnostic actuator stage and stays in base.
 _CTRL_RE = re.compile(r"^MODULES_(MC|FW|VTOL|ROVER|UUV|AIRSHIP)_")
 
 
@@ -114,11 +116,11 @@ _UUV = ["MODULES_UUV_ATT_CONTROL", "MODULES_UUV_POS_CONTROL"]
 _ROVER = ["MODULES_ROVER_ACKERMANN", "MODULES_ROVER_DIFFERENTIAL",
           "MODULES_ROVER_MECANUM"]
 
-# What CONFIG_TARGET_CLASS_<X>=y forces on, mirroring the Kconfig membership
-# (`default y if TARGET_CLASS_<X>` on each controller, plus the cannode
-# romfs/driver and the linux platform). The migrate tool models this to compute
-# the base/overlay split and to verify the layered merge reproduces `default`;
-# the ground-truth check is the real per-target boardconfig diff.
+# What the class base fragment target_classes/<class>.px4board provides (the
+# controllers, plus the cannode romfs/driver and the linux platform). The migrate
+# tool models this to compute the base/overlay split and to verify the layered
+# merge reproduces `default`; the ground-truth check is the real per-target
+# boardconfig diff.
 CLASS_PROVIDES = {
     "copter": {s: "y" for s in _MC},
     "plane": {s: "y" for s in _FW},
@@ -260,14 +262,15 @@ def infer_classes(assignments):
 
 
 def _class_overlay(default, cls):
-    """The self-documenting overlay for `cls`: the explicit TARGET_CLASS +
-    AIRFRAMES symbols, then the board's deltas vs what the class provides over the
-    class-provided symbols plus the board's controllers in this class's families:
-    a revert for a class controller the board lacks (or the cannode uavcannode
-    driver), and an explicit `=y` for a board controller the class does not
-    provide (e.g. a board carrying the legacy/undefined MODULES_FW_POS_CONTROL)."""
+    """The board's overlay for `cls`: the explicit AIRFRAMES symbols, then the
+    board's deltas vs what the class base provides over the class-provided symbols
+    plus the board's controllers in this class's families: a revert for a class
+    controller the board lacks (or the cannode uavcannode driver), and an explicit
+    `=y` for a board controller the class does not provide (e.g. a board carrying
+    the legacy/undefined MODULES_FW_POS_CONTROL). CONFIG_TARGET_CLASS_<X>=y is set
+    by the class base fragment (target_classes/<class>.px4board), not here."""
     provided = CLASS_PROVIDES[cls]
-    lines = ["CONFIG_TARGET_CLASS_%s=y" % cls.upper()]
+    lines = []
     for af in airframes_for(cls, default.assignments):
         lines.append("CONFIG_AIRFRAMES_%s=y" % af)
     cls_controllers = {s for s, v in default.assignments.items()
@@ -283,6 +286,9 @@ def _class_overlay(default, cls):
                 lines.append("# CONFIG_%s is not set" % sym)
         else:
             lines.append("CONFIG_%s=%s" % (sym, desired))
+    if not lines:
+        lines = ["# Board overrides for the %s target go here; inherits "
+                 "target_classes/%s.px4board." % (cls, cls)]
     return lines
 
 

@@ -1,1 +1,1 @@
-CONFIG_TARGET_CLASS_CANNODE=y
+# Board overrides for the cannode target go here; inherits target_classes/cannode.px4board.

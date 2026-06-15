@@ -9,20 +9,25 @@ merge). **109 boards migrated (102 vehicle + 2 cannode + 5 Linux); remaining = 6
 boards, all deferred to Phase 4 (cutover).** Additive — `default.px4board` is kept, so every
 legacy `<board>_default` still builds (but see the airframe caveat below).
 
-**Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling:**
-- A class target = `base.px4board` + `<board>/<class>.px4board`. The overlay explicitly states
-  `CONFIG_TARGET_CLASS_<X>=y` (pulls the class controllers via Kconfig `default y if
-  TARGET_CLASS_<X>` on each module; TARGET_CLASS_LINUX also pulls the POSIX platform, CANNODE
-  the cannode romfs + uavcannode) plus the explicit `CONFIG_AIRFRAMES_<Y>=y` set, plus a
-  `# CONFIG_MODULES_X is not set` for any class controller it drops. `target_classes/`
-  fragments are deleted; the `AIRFRAMES default y if MODULES_*` coupling is gone.
+**Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling. Controller
+membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), modules decoupled:**
+- A class target = `base.px4board` + `target_classes/<class>.px4board` + `<board>/<class>.px4board`.
+  The class base fragment defines the class: `CONFIG_TARGET_CLASS_<X>=y` (a declarative tag) plus
+  the explicit controller `CONFIG_MODULES_*=y` set (linux also POSIX + LINUX_TARGET, cannode the
+  romfs + uavcannode driver); cmake merges it by class name. The board overlay carries the explicit
+  `CONFIG_AIRFRAMES_<Y>=y` set plus a `# CONFIG_MODULES_X is not set` for any class controller it
+  drops (overrides the fragment's `=y`). Module Kconfigs carry NO class coupling — plain `default
+  n`; the rework's `default y if TARGET_CLASS_<X>` on each module (+ the top-level Kconfig
+  POSIX/LINUX_TARGET/ROMFSROOT defaults + uavcannode) is reverted. `TARGET_CLASS_*` symbols remain
+  as tags only (Kconfig.target_classes). The `AIRFRAMES default y if MODULES_*` coupling stays gone.
 - Airframes are flat in `init.d/airframes/` with their `@class` header; a frame ships iff its
   `@class` maps to an enabled `CONFIG_AIRFRAMES_<class>` (init.d/airframes/CMakeLists.txt globs
   + parses `@class`; `.hil` → AIRFRAMES_SIMULATION; unmapped e.g. Autogyro → dangles). Products
   ship with their class again. `BALLOON` stays a global `default y` (was unconditional).
-- `default y if` not select/imply: select can't be dropped (16 vtol + 8 copter boards drop a
-  class controller); imply is silently reverted back on by merge_config's unset-revert. That
-  revert pass now uses `expr_value` to handle the compound `A||B||C` conditions.
+- Override mechanics: a board's `# CONFIG_MODULES_X is not set` wins over the fragment's `=y` via
+  merge_config's unset-revert (16 vtol + 8 copter boards drop a controller); with modules at plain
+  `default n` the revert resolves cleanly to n. The fragment approach is why modules need no
+  `default y if`/select/imply at all — membership is explicit data in one file per class.
 - **Transitional caveat:** decoupling AIRFRAMES means legacy `_default` targets (which don't
   set AIRFRAMES_*) now ship only the balloon frame, not vehicle airframes. The class targets
   are the supported path; `_default` goes away at Phase-4 cutover. SITL/Linux unaffected
@@ -37,11 +42,22 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
   lines; the generated `etc/init.d/airframes/` set is the 36 Copter+Plane+VTOL+Balloon frames
   (products included, `.hil` excluded) = the @class rule.
 - Override canary `make holybro_kakutef7_copter …` → the dropped MC_AUTOTUNE/MC_HOVER are
-  `# … is not set` in the resolved boardconfig (proves `default y if` is overridable; imply
-  would have silently re-enabled them).
+  `# … is not set` in the resolved boardconfig (proves the fragment's `=y` is overridable by the
+  board overlay; modules are plain `default n` so the unset-revert resolves to n).
 - `make cubepilot_cubeyellow_vtol …` and `… _uuv` → enabled-symbol sets UNION to `_default`.
 
 ### Done
+- **Controller membership reverted to `target_classes/` fragments (2026-06-15, dakejahl).**
+  Recreated the 9 `target_classes/<class>.px4board` fragments (`TARGET_CLASS_<X>=y` tag + the
+  controller/platform/romfs/driver set); restored the `class_base` merge in `cmake/kconfig.cmake`;
+  stripped `default y if TARGET_CLASS_<X>` from the 19 modules + uavcannode + the 3 top-level
+  Kconfig defaults (modules now plain `default n`, fully class-agnostic); regenerated the 137
+  overlays to drop the now-redundant `TARGET_CLASS` line (cannode no-delta overlays get the
+  self-doc comment); reworked `migrate_px4board.py` to match. Verified at the real-merge level:
+  v6x_vtol/linux/cannode == legacy `_default`; kakutef7_copter override; cubeyellow vtol+uuv
+  union; orphan rover/uuv/spacecraft secondaries resolve to clean single-class targets. The 17
+  pre-existing "slimmed" rover overlays now correctly pull rover controllers via the fragment
+  (were controller-less under the Kconfig-coupling design).
 - **All 109 boards migrated**, overlays regenerated to the explicit format; build-verified per
   class (module/controller set == legacy `_default`; @class airframe set; override boards;
   multi-class union; linux; cannode; SITL + airframes.xml metadata regenerate). `base.px4board`
@@ -92,13 +108,15 @@ A target is composed by merging, in order (later overrides earlier):
 
 ```
 boards/<v>/<b>/base.px4board               # 1. board hardware foundation (NOT buildable)
-boards/<v>/<b>/<class>.px4board            # 2. CONFIG_TARGET_CLASS_<X>=y + AIRFRAMES_<Y>=y + drops
-boards/<v>/<b>/<class>.<variant>.px4board  # 3. optional variant delta
+target_classes/<class>.px4board            # 2. class definition: TARGET_CLASS_<X>=y + controllers
+boards/<v>/<b>/<class>.px4board            # 3. AIRFRAMES_<Y>=y + board deltas (drops)
+boards/<v>/<b>/<class>.<variant>.px4board  # 4. optional variant delta
 ```
 
-The class controllers are NOT a merged fragment: `CONFIG_TARGET_CLASS_<X>=y` pulls them in via
-Kconfig (`Kconfig.target_classes` defines the symbol; each controller carries `default y if
-TARGET_CLASS_<X>`, so a board can still drop one). Airframes are the explicit
+The class controllers ARE a merged fragment: `target_classes/<class>.px4board` lists the class's
+`CONFIG_MODULES_*=y` (cmake merges it by class name) plus `CONFIG_TARGET_CLASS_<X>=y` as a
+declarative tag. Module Kconfigs are plain `default n` with no class coupling; a board drops a
+controller with `# CONFIG_MODULES_X is not set` in its overlay. Airframes are the explicit
 `CONFIG_AIRFRAMES_<class>=y` set, decoupled from controllers and from each other.
 
 Filename grammar: `<class>[.<variant>].px4board`. Class always first; variant a free
