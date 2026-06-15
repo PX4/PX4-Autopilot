@@ -1,0 +1,79 @@
+# Target classes
+#
+# A target class bundles the controllers (and, for some classes, the platform /
+# ROMFS / drivers) that define a build's "shape". The membership lives in the
+# class base fragment target_classes/<class>.px4board as explicit CONFIG_* lines;
+# cmake merges that fragment by class name (see cmake/kconfig.cmake).
+#
+# These CONFIG_TARGET_CLASS_<X> symbols are the declarative tag the class base
+# sets to name itself. They keep the class visible in the resolved config and are
+# available to ROMFS/tooling, but they do NOT pull modules in -- the controllers
+# are the fragment's explicit CONFIG_MODULES_*=y lines, so module Kconfigs stay
+# class-agnostic. A board drops a class controller with a plain
+# `# CONFIG_MODULES_X is not set` line in its overlay (the fragment's =y is
+# overridden on merge).
+
+menu "Target classes"
+
+config TARGET_CLASS_COPTER
+	bool "Copter target class"
+	help
+		Multicopter controllers. Set by target_classes/copter.px4board.
+
+config TARGET_CLASS_FIXEDWING
+	bool "Fixedwing target class"
+	help
+		Fixed-wing controllers. Set by target_classes/fixedwing.px4board.
+
+config TARGET_CLASS_VTOL
+	bool "VTOL target class"
+	help
+		Air superset: multicopter + fixed-wing + VTOL controllers, one binary.
+
+config TARGET_CLASS_ROVER
+	bool "Rover target class"
+	help
+		Rover controllers (differential + ackermann + mecanum).
+
+config TARGET_CLASS_UUV
+	bool "Underwater (UUV) target class"
+	help
+		Unmanned underwater vehicle controllers.
+
+config TARGET_CLASS_SPACECRAFT
+	bool "Spacecraft target class"
+
+config TARGET_CLASS_AIRSHIP
+	bool "Airship target class"
+
+config TARGET_CLASS_CANNODE
+	bool "CAN node target class"
+	help
+		UAVCAN node: cannode ROMFS + uavcannode driver, no vehicle controllers.
+
+config TARGET_CLASS_LINUX
+	bool "Linux SBC flight controller target class"
+	help
+		One all-vehicle binary cross-compiled for a Linux SBC, runtime-selecting
+		its airframe via init.d-posix. The class base provides the mc+fw+vtol+uuv
+		controllers and the POSIX/Linux platform (PLATFORM_POSIX + BOARD_LINUX_TARGET).
+
+config TARGET_CLASS_SITL
+	bool "SITL simulator target class"
+	help
+		Software-in-the-loop simulator. The class base provides the POSIX
+		platform and the full controller set, runtime-selecting its airframe
+		via init.d-posix.
+
+config TARGET_CLASS_IO
+	bool "PX4IO coprocessor firmware target class"
+	help
+		PX4IO I/O coprocessor firmware blob (no ROMFS, no vehicle controllers).
+		The class base provides MODULES_PX4IOFIRMWARE.
+
+config TARGET_CLASS_ROS2
+	bool "ROS2 platform target class"
+	help
+		ROS2 platform build (PLATFORM_ROS2), built within a colcon workspace.
+
+endmenu

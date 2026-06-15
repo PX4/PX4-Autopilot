@@ -1,0 +1,3 @@
+# Spacecraft target class: spacecraft controller.
+CONFIG_TARGET_CLASS_SPACECRAFT=y
+CONFIG_MODULES_SPACECRAFT=y

@@ -1,0 +1,5 @@
+# PX4IO coprocessor firmware target class: the I/O firmware blob, no ROMFS and
+# no vehicle controllers.
+CONFIG_TARGET_CLASS_IO=y
+CONFIG_BOARD_ROMFSROOT=""
+CONFIG_MODULES_PX4IOFIRMWARE=y

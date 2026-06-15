@@ -31,155 +31,56 @@
 #
 ############################################################################
 
-px4_add_romfs_files(
-	# [0-999] Reserved (historical)
+# Airframes live flat in this directory; each carries an `@class` header naming
+# its vehicle class. A frame is added to the ROMFS iff the matching
+# CONFIG_AIRFRAMES_<class> option is set (see ROMFS/Kconfig) -- inclusion is
+# explicit per target and fully decoupled from which controllers are compiled in.
+# Product/vendor frames carry `@class` too and ship with their class. A frame
+# whose `@class` has no AIRFRAMES_<class> option (e.g. Autogyro) ships nowhere
+# (intentionally unwired). HITL airframes (*.hil) ship under AIRFRAMES_SIMULATION
+# regardless of the vehicle `@class` in their header.
 
-	# [18000, 18999] High-altitude balloons
-	18001_TF-B1
+file(GLOB airframe_files RELATIVE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/*)
+list(REMOVE_ITEM airframe_files CMakeLists.txt)
 
-	# [22000, 22999] Reserve for custom models
-)
+set(selected_airframes)
+foreach(frame ${airframe_files})
+	if(frame MATCHES "\\.hil$")
+		set(option AIRFRAMES_SIMULATION)
+	else()
+		file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/${frame} class_line LIMIT_COUNT 1 REGEX "@class")
+		if(NOT class_line)
+			continue() # no @class header -> not shipped
+		endif()
+		string(REGEX REPLACE "^.*@class" "" class_name "${class_line}")
+		string(STRIP "${class_name}" class_name)
 
-if(CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)
-	px4_add_romfs_files(
-		# [1000, 1999] Simulation setups
-		1001_rc_quad_x.hil
-		1002_standard_vtol.hil
-		1100_rc_quad_x_sih.hil
-		1101_rc_plane_sih.hil
-		1102_tailsitter_duo_sih.hil
-		1103_standard_vtol_sih.hil
-		1105_rc_hexa_x_sih.hil
-	)
-	if(CONFIG_MODULES_ROVER_ACKERMANN)
-		px4_add_romfs_files(
-			1104_standard_ackermann_sih.hil
-		)
+		if(class_name STREQUAL "Copter")
+			set(option AIRFRAMES_COPTER)
+		elseif(class_name STREQUAL "Plane")
+			set(option AIRFRAMES_PLANE)
+		elseif(class_name STREQUAL "VTOL")
+			set(option AIRFRAMES_VTOL)
+		elseif(class_name STREQUAL "Rover")
+			set(option AIRFRAMES_ROVER)
+		elseif(class_name STREQUAL "Underwater Robot")
+			set(option AIRFRAMES_UUV)
+		elseif(class_name STREQUAL "Spacecraft")
+			set(option AIRFRAMES_SPACECRAFT)
+		elseif(class_name STREQUAL "Airship")
+			set(option AIRFRAMES_AIRSHIP)
+		elseif(class_name STREQUAL "Balloon")
+			set(option AIRFRAMES_BALLOON)
+		else()
+			continue() # @class with no AIRFRAMES_<class> option (e.g. Autogyro)
+		endif()
 	endif()
-endif()
 
-if(CONFIG_MODULES_MC_RATE_CONTROL)
-	px4_add_romfs_files(
-		# [4000, 4999] Quadrotor x
-		4001_quad_x
-		4014_s500
-		4015_holybro_s500
-		4016_holybro_px4vision
-		4017_nxp_hovergames
-		4019_x500_v2
-		4020_holybro_px4vision_v1_5
-		4041_beta75x
-		4050_generic_250
-		4052_holybro_qav250
-		4053_holybro_kopis2
-		4061_atl_mantis_edu
-		4071_ifo
-		4073_ifo-s
-		4500_clover4
-		4601_droneblocks_dexi_5
-		4901_crazyflie21
+	if(CONFIG_${option})
+		list(APPEND selected_airframes ${frame})
+	endif()
+endforeach()
 
-		# [5000, 5999] Quadrotor +
-		5001_quad_+
-
-		# [6000, 6999] Hexarotor x
-		6001_hexa_x
-		6002_draco_r
-
-		# [7000, 7999] Hexarotor +
-		7001_hexa_+
-
-		# [8000, 8999] Octorotor +
-		8001_octo_x
-
-		# [9000, 9999] Octorotor +
-		9001_octo_+
-
-		# [11000, 11999] Hexa Cox
-		11001_hexa_cox
-
-		# [12000, 12999] Octo Cox
-		12001_octo_cox
-
-		# [14000, 14999] MC with tilt
-		14001_generic_mc_with_tilt
-
-		16001_helicopter
-
-		24001_dodeca_cox
-	)
-endif()
-
-if(CONFIG_MODULES_FW_RATE_CONTROL)
-	px4_add_romfs_files(
-		# [2000, 2999] Standard planes
-		2100_standard_plane
-		2106_albatross
-
-		# [3000, 3999] Flying wing
-		3000_generic_wing
-
-		# [17000, 17999] Autogyro
-		17002_TF-AutoG2
-		17003_TF-G2
-	)
-endif()
-
-if(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
-	px4_add_romfs_files(
-		2507_cloudship
-	)
-endif()
-
-if(CONFIG_MODULES_VTOL_ATT_CONTROL)
-	px4_add_romfs_files(
-		# [13000, 13999] VTOL
-		13000_generic_vtol_standard
-		13100_generic_vtol_tiltrotor
-		13030_generic_vtol_quad_tiltrotor
-		13200_generic_vtol_tailsitter
-	)
-endif()
-
-if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
-	px4_add_romfs_files(
-		# [50000, 50999] Differential rovers
-		50000_generic_rover_differential
-		50001_aion_robotics_r1_rover
-		50002_hiwonder_tracked
-	)
-endif()
-
-if(CONFIG_MODULES_ROVER_ACKERMANN)
-	px4_add_romfs_files(
-		# [51000, 51999] Ackermann rovers
-		51000_generic_rover_ackermann
-		51001_axial_scx10_2_trail_honcho
-		51002_nxp_b3rb
-		51003_hiwonder_ackermann
-	)
-endif()
-
-if(CONFIG_MODULES_ROVER_MECANUM)
-	px4_add_romfs_files(
-		# [52000, 52999] Mecanum rovers
-		52000_generic_rover_mecanum
-		52001_hiwonder_mecanum
-	)
-endif()
-
-if(CONFIG_MODULES_UUV_ATT_CONTROL)
-	px4_add_romfs_files(
-		# [60000, 61000] (Unmanned) Underwater Robots
-		60000_uuv_generic
-		60001_uuv_hippocampus
-		60002_uuv_bluerov2_heavy
-	)
-endif()
-
-if(CONFIG_MODULES_SPACECRAFT)
-	px4_add_romfs_files(
-		# [70000, 70999] Spacecraft
-		70000_atmos
-	)
+if(selected_airframes)
+	px4_add_romfs_files(${selected_airframes})
 endif()

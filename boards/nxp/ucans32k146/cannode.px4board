@@ -1,0 +1,1 @@
+# Board overrides for the cannode target go here; inherits target_classes/cannode.px4board.

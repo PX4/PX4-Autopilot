@@ -1,0 +1,49 @@
+menu "Airframes"
+
+# Airframe inclusion is explicit per target, fully decoupled from which controller
+# modules are compiled in: a board's <class>.px4board overlay sets
+# CONFIG_AIRFRAMES_<class>=y for each class of airframe it should ship. A frame is
+# shipped iff its @class header maps to an enabled option here (see
+# ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt).
+
+config AIRFRAMES_COPTER
+	bool "Copter airframes"
+	default n
+
+config AIRFRAMES_PLANE
+	bool "Plane airframes"
+	default n
+
+config AIRFRAMES_VTOL
+	bool "VTOL airframes"
+	default n
+
+config AIRFRAMES_ROVER
+	bool "Rover airframes"
+	default n
+
+config AIRFRAMES_UUV
+	bool "Underwater (UUV) airframes"
+	default n
+
+config AIRFRAMES_SPACECRAFT
+	bool "Spacecraft airframes"
+	default n
+
+config AIRFRAMES_AIRSHIP
+	bool "Airship airframes"
+	default n
+
+config AIRFRAMES_BALLOON
+	bool "Balloon airframes"
+	default y
+	help
+		The single balloon fallback frame ships everywhere by default (it was
+		unconditionally on pre-redesign); this is decoupled from controllers, not
+		the coupling being removed. A board may set it = n to drop the frame.
+
+config AIRFRAMES_SIMULATION
+	bool "Simulation (SIH/HITL) airframes"
+	default n
+
+endmenu

@@ -243,6 +243,10 @@ menu "modules"
 source "src/modules/Kconfig"
 endmenu
 
+source "Kconfig.target_classes"
+
+source "ROMFS/Kconfig"
+
 menu "systemcmds"
 source "src/systemcmds/Kconfig"
 endmenu
