@@ -74,6 +74,18 @@ protected:
 		return Action::None;
 	}
 
+	uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
+				       uint8_t user_intended_mode, bool user_intended_mode_updated) const override
+	{
+		if (!user_intended_mode_updated
+		    && (int)previous_action > (int)Action::Warn
+		    && modeFromAction(current_action, user_intended_mode) == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+			return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		}
+
+		return user_intended_mode;
+	}
+
 private:
 	const int _caller_id_test{genCallerId()};
 	bool _last_state_test{false};
@@ -361,6 +373,68 @@ TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
 	ASSERT_FALSE(failsafe.userTakeoverActive());
+}
+
+TEST_F(FailsafeTest, orbit_after_failsafe_explicit_command_allowed)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	bool user_intended_mode_updated = false;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+
+	// Wind limit exceeded -> RTL
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	time += 5_s;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Failsafe resolved AND operator commands Orbit -> enter Orbit (not Loiter)
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	user_intended_mode_updated = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ORBIT;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intented_mode, vehicle_status_s::NAVIGATION_STATE_ORBIT);
+}
+
+TEST_F(FailsafeTest, orbit_autoresume_after_failsafe_downgraded_to_loiter)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ORBIT;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	bool user_intended_mode_updated = false;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+
+	// Wind limit exceeded -> RTL
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	time += 5_s;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Failsafe resolved BUT no new mode chosen -> downgrade ORBIT to Loiter
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intented_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 }
 
 TEST_F(FailsafeTest, defer)

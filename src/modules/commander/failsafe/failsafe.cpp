@@ -708,10 +708,12 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 }
 
 uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action,
-		uint8_t user_intended_mode) const
+		uint8_t user_intended_mode, bool user_intended_mode_updated) const
 {
-	// If we switch from a failsafe back into orbit, switch to loiter instead
-	if ((int)previous_action > (int)Action::Warn
+	// If failsafe clears and orbit mode is leftover, switch to loiter instead.
+	// Don't downgrade if orbit was just explicitly requested.
+	if (!user_intended_mode_updated
+	    && (int)previous_action > (int)Action::Warn
 	    && modeFromAction(current_action, user_intended_mode) == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
 		PX4_DEBUG("Failsafe cleared, switching from ORBIT to LOITER");
 		return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;

@@ -97,7 +97,7 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	_notification_required = false;
 
 	_last_user_intended_mode = modifyUserIntendedMode(_selected_action, action_state.action,
-				   action_state.updated_user_intended_mode);
+				   action_state.updated_user_intended_mode, user_intended_mode_updated);
 	_user_takeover_active = action_state.user_takeover;
 	_selected_action = action_state.action;
 	_last_update = time_us;
