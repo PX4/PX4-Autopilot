@@ -5,55 +5,56 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 ## 0. RESUME HERE
 
 Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
-merge). **Phases 1 & 2 done; Phase 3 migration done for 109 boards — 102 vehicle + 2 cannode
-(esp32, mr-canhubk3) + 5 Linux SBC flight controllers. Remaining: 6 special boards, all
-deferred to Phase 4 (cutover).** The change is purely additive — `default.px4board` is kept
-everywhere, so every legacy `<board>_default` still builds next to the new `<board>_<class>`
-targets.
+merge). **109 boards migrated (102 vehicle + 2 cannode + 5 Linux); remaining = 6 special
+boards, all deferred to Phase 4 (cutover).** Additive — `default.px4board` is kept, so every
+legacy `<board>_default` still builds (but see the airframe caveat below).
 
-A fresh session: read §3 (locked decisions), §4 (class catalog), §5 (phase log), §6 (script
-spec), §7 (Phase-4 ripple list).
+**Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling:**
+- A class target = `base.px4board` + `<board>/<class>.px4board`. The overlay explicitly states
+  `CONFIG_TARGET_CLASS_<X>=y` (pulls the class controllers via Kconfig `default y if
+  TARGET_CLASS_<X>` on each module; TARGET_CLASS_LINUX also pulls the POSIX platform, CANNODE
+  the cannode romfs + uavcannode) plus the explicit `CONFIG_AIRFRAMES_<Y>=y` set, plus a
+  `# CONFIG_MODULES_X is not set` for any class controller it drops. `target_classes/`
+  fragments are deleted; the `AIRFRAMES default y if MODULES_*` coupling is gone.
+- Airframes are flat in `init.d/airframes/` with their `@class` header; a frame ships iff its
+  `@class` maps to an enabled `CONFIG_AIRFRAMES_<class>` (init.d/airframes/CMakeLists.txt globs
+  + parses `@class`; `.hil` → AIRFRAMES_SIMULATION; unmapped e.g. Autogyro → dangles). Products
+  ship with their class again. `BALLOON` stays a global `default y` (was unconditional).
+- `default y if` not select/imply: select can't be dropped (16 vtol + 8 copter boards drop a
+  class controller); imply is silently reverted back on by merge_config's unset-revert. That
+  revert pass now uses `expr_value` to handle the compound `A||B||C` conditions.
+- **Transitional caveat:** decoupling AIRFRAMES means legacy `_default` targets (which don't
+  set AIRFRAMES_*) now ship only the balloon frame, not vehicle airframes. The class targets
+  are the supported path; `_default` goes away at Phase-4 cutover. SITL/Linux unaffected
+  (init.d-posix airframes, a separate flat ungated list).
+
+A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script spec), §7 (Phase-4).
 
 ### State check (all exit 0)
-- `python3 Tools/migrate_px4board.py` (dry run, writes nothing) → `0 ok, 109 skip,
-  6 manual, 0 error` — everything migrated; the 6 manual = the Phase-4 specials below.
-- `make px4_fmu-v6x_vtol romfs_gen_files_target` → `boardconfig` byte-identical to
-  `px4_fmu-v6x_default` except the `# Label:` comment.
-- `make emlid_navio2_linux romfs_gen_files_target` → `boardconfig` byte-identical to
-  `emlid_navio2_default` except the `# Label:` comment (all 5 Linux boards verified).
-- `make cubepilot_cubeyellow_vtol …` and `… _uuv` → their enabled-symbol sets UNION to
-  `cubepilot_cubeyellow_default` (multi-vehicle split: nothing lost, nothing added).
+- `python3 Tools/migrate_px4board.py` (dry run) → `0 ok, 109 skip, 6 manual, 0 error`.
+- `make px4_fmu-v6x_vtol romfs_gen_files_target` → `boardconfig` == `px4_fmu-v6x_default`
+  EXCLUDING `# Label:` and the now-decoupled `CONFIG_AIRFRAMES_*`/`CONFIG_TARGET_CLASS_*`
+  lines; the generated `etc/init.d/airframes/` set is the 36 Copter+Plane+VTOL+Balloon frames
+  (products included, `.hil` excluded) = the @class rule.
+- Override canary `make holybro_kakutef7_copter …` → the dropped MC_AUTOTUNE/MC_HOVER are
+  `# … is not set` in the resolved boardconfig (proves `default y if` is overridable; imply
+  would have silently re-enabled them).
+- `make cubepilot_cubeyellow_vtol …` and `… _uuv` → enabled-symbol sets UNION to `_default`.
 
-### Done (Phase 3 — vehicle + cannode + Linux boards)
-- `Tools/migrate_px4board.py`: splits `default.px4board` → vehicle-agnostic `base.px4board`
-  + per-class `<class>.px4board` overlays inheriting `target_classes/<class>`. Single-class
-  → one target; multi-vehicle → one target per class (vtol + uuv …) sharing one base, whose
-  UNION reproduces `default`. Self-verifies symbol-for-symbol before writing; refuses to
-  guess specials. The pre-write gate tolerates any class-base symbol a board reverts off
-  (controllers AND e.g. cannode `DRIVERS_UAVCANNODE`; all Kconfig default-n).
-- Class bases in top-level `target_classes/` (out of `boards/`, vendors-only): copter, plane,
-  vtol, rover, uuv, airship, spacecraft, cannode, **linux**. cannode base provides
-  `DRIVERS_UAVCANNODE`; `linux` = `PLATFORM_POSIX + BOARD_LINUX_TARGET` + the mc+fw+vtol+uuv
-  controller superset (one all-vehicle SBC binary, runtime-selected airframe via init.d-posix).
-- **102 vehicle boards migrated.** Empty overlays self-document via an "inherits" comment;
-  the air boards' pre-existing `rover` variants were slimmed. Build-verified per class
-  (copter/vtol/cannode == legacy `_default` modulo `# Label:`; multi-class unions to default;
-  flipped rover/uuv/spacecraft variant labels byte-identical). Full per-board build coverage
-  is left to CI.
-- **2 cannode boards** (`espressif/esp32`, `nxp/mr-canhubk3`) migrated — both omit the
-  uavcannode driver the class base force-enables, so each carries a 1-line revert overlay
-  (`# CONFIG_DRIVERS_UAVCANNODE is not set`). Both `_cannode` boardconfigs verified ==
-  legacy `_default` (modulo Label; mr-canhubk3 also shows the unrelated, build-order
-  dependent zenoh topic Kconfig regen). mr-canhubk3's `fmu`/`sysview` vehicle variants
-  keep building via the legacy path.
-- **5 Linux SBC flight controllers** (`beaglebone/blue`, `bluerobotics/navigator`,
-  `emlid/navio2`, `px4/raspberrypi`, `scumaker/pilotpi`) migrated to the `linux` class. The
-  first four match the class controller set exactly (empty overlay); pilotpi reverts the two
-  UUV controllers. All five `_linux` boardconfigs verified byte-identical to `_default`
-  (modulo Label, arm-linux-gnueabihf). `voxl2` (aarch64 muorb/QURT) is refused — no apps-side
-  controllers — and deferred. The aarch64 `_arm64` variants stay on the legacy path.
-- Fixed a Phase-1 regression: `flatten_classes.py` crashed every cannode `romfs_gen` (ROMFS
-  root with no `airframes/`). `Makefile` no longer enumerates `base.px4board` as a `_base`.
+### Done
+- **All 109 boards migrated**, overlays regenerated to the explicit format; build-verified per
+  class (module/controller set == legacy `_default`; @class airframe set; override boards;
+  multi-class union; linux; cannode; SITL + airframes.xml metadata regenerate). `base.px4board`
+  files are unchanged by the rework.
+- `Tools/migrate_px4board.py` reworked to emit `TARGET_CLASS_<X>` + `AIRFRAMES_<Y>` + controller
+  reverts and to model `TARGET_CLASS_<X>` → its controllers (replacing the deleted fragments)
+  for its pre-write self-verification.
+- 5-commit rework `13ede295f5..9dded1fae5`: Kconfig decoupling; merge_config compound-cond fix;
+  drop fragments + simplify merge; @class airframe revert (flat, srcparser reads @class,
+  flatten_classes.py + 4 orphaned rc.board_airframes deleted); regenerate overlays.
+- Earlier this branch: the 2 cannode boards (esp32, mr-canhubk3 — uavcannode revert) and the 5
+  Linux SBC FCs were migrated; `voxl2` (aarch64 muorb/QURT, no apps-side controllers) refused +
+  deferred. mr-canhubk3 `fmu`/`sysview` + the linux `_arm64` variants stay on the legacy path.
 
 ### NOT done (next sessions)
 1. **6 special boards still legacy → all deferred to Phase 4** (the tool refuses them):
@@ -85,16 +86,20 @@ spec), §7 (Phase-4 ripple list).
 Every buildable target belongs to exactly one **target class**. Classes are peers:
 
 - **Vehicle classes:** `copter`, `plane`, `vtol`, `rover`, `uuv`, `spacecraft`, `airship`
-- **System classes:** `cannode`, `bootloader`, `sitl`, `infra`
+- **System classes:** `cannode`, `linux`, `bootloader`, `sitl`, `io`, `ros2`
 
 A target is composed by merging, in order (later overrides earlier):
 
 ```
-boards/<v>/<b>/base.px4board          # 1. board hardware foundation (NOT buildable)
-target_classes/<class>.px4board        # 2. global class base (modules + airframe toggles)
-boards/<v>/<b>/<class>.px4board       # 3. board's overrides for that class (often 1 line)
-boards/<v>/<b>/<class>.<variant>.px4board  # 4. optional variant delta
+boards/<v>/<b>/base.px4board               # 1. board hardware foundation (NOT buildable)
+boards/<v>/<b>/<class>.px4board            # 2. CONFIG_TARGET_CLASS_<X>=y + AIRFRAMES_<Y>=y + drops
+boards/<v>/<b>/<class>.<variant>.px4board  # 3. optional variant delta
 ```
+
+The class controllers are NOT a merged fragment: `CONFIG_TARGET_CLASS_<X>=y` pulls them in via
+Kconfig (`Kconfig.target_classes` defines the symbol; each controller carries `default y if
+TARGET_CLASS_<X>`, so a board can still drop one). Airframes are the explicit
+`CONFIG_AIRFRAMES_<class>=y` set, decoupled from controllers and from each other.
 
 Filename grammar: `<class>[.<variant>].px4board`. Class always first; variant a free
 string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore).
@@ -103,19 +108,20 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
   only. No controllers, no airframes. Building `<board>`, `<board>_default`, or
   `<board>_base` is an **error** (no controllers ⇒ unusable binary).
 
-### Airframes are filed by directory, not by header
-- Generic airframes live in **`ROMFS/px4fmu_common/init.d/airframes/<class>/`**. The
-  directory *is* the class — no `@class` header to remember. A class dir is included
-  iff `CONFIG_AIRFRAMES_<class>=y` (set by `target_classes/<class>.px4board`).
-- `vtol` is the air superset: `target_classes/vtol.px4board` turns on
-  `AIRFRAMES_COPTER + AIRFRAMES_PLANE + AIRFRAMES_VTOL` (one binary flies all air,
-  exactly as today). `rover` is one dir for all of diff/ackermann/mecanum.
-- **Product/vendor airframes stay in the flat `airframes/` root → never globbed →
-  dangling/unwired by construction.** Claimed by moving the file into a board's
-  `boards/<v>/<b>/init/airframes/` (globbed for that target). Cross-board duplication ok.
-- `srcparser.py` derives the QGC `@class` from the directory (map `uuv`→"Underwater
-  Robot", `vtol`→"VTOL", else Title-case). Files keep `@name`/`@type`/`@maintainer`;
-  the `@class` line is dropped.
+### Airframes: flat layout, classified by `@class` header (reworked 2026-06-15)
+- All airframes live flat in **`ROMFS/px4fmu_common/init.d/airframes/`**, each with its
+  `@class` header. `init.d/airframes/CMakeLists.txt` globs the dir, reads each file's
+  `@class`, and ships the frame iff the mapped `CONFIG_AIRFRAMES_<class>` is set (display
+  name → option: Copter→COPTER, "Underwater Robot"→UUV, …). `*.hil` → AIRFRAMES_SIMULATION
+  regardless of vehicle `@class`. A frame whose `@class` has no option (Autogyro) dangles.
+- A board's overlay sets the explicit `AIRFRAMES_<class>` set: a `vtol` target emits
+  `AIRFRAMES_COPTER + AIRFRAMES_PLANE + AIRFRAMES_VTOL` (one binary flies all air). `BALLOON`
+  stays a global `default y`. No `default y if MODULES_*` coupling, no directory magic.
+- **Product/vendor frames carry `@class` too and ship with their class again** (the
+  dangling/tiering experiment was reverted). The `boards/<v>/<b>/init/airframes/` per-board
+  claim path is still available (unused).
+- `srcparser.py` reads `@class` from the file (reverted to the pre-redesign behavior; aborts
+  if a frame has no `@class`).
 
 ## 2. Current-state data (the why)
 
