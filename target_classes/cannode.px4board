@@ -1,0 +1,4 @@
+# CAN node target class: cannode ROMFS + uavcannode driver, no vehicle controllers.
+CONFIG_TARGET_CLASS_CANNODE=y
+CONFIG_BOARD_ROMFSROOT="cannode"
+CONFIG_DRIVERS_UAVCANNODE=y

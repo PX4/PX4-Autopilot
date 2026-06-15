@@ -1,0 +1,3 @@
+# Airship target class: airship attitude controller.
+CONFIG_TARGET_CLASS_AIRSHIP=y
+CONFIG_MODULES_AIRSHIP_ATT_CONTROL=y

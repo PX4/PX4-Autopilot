@@ -1,0 +1,4 @@
+# UUV target class: unmanned underwater vehicle controllers.
+CONFIG_TARGET_CLASS_UUV=y
+CONFIG_MODULES_UUV_ATT_CONTROL=y
+CONFIG_MODULES_UUV_POS_CONTROL=y
