@@ -18,6 +18,10 @@ import sys
 
 
 def flatten(airframes_dir):
+    # ROMFS roots without airframes (e.g. the cannode root) never create this
+    # directory, so there is nothing to flatten.
+    if not os.path.isdir(airframes_dir):
+        return
     for entry in sorted(os.listdir(airframes_dir)):
         class_dir = os.path.join(airframes_dir, entry)
         if not os.path.isdir(class_dir):
