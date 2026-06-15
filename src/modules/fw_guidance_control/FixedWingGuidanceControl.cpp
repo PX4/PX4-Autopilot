@@ -363,13 +363,17 @@ FixedWingGuidanceControl::Run()
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
 
-				if (PX4_ISFINITE(global_path_setpoint.lat) && PX4_ISFINITE(global_path_setpoint.lon)
-				    && PX4_ISFINITE(global_path_setpoint.alt)) {
+				if (PX4_ISFINITE(global_path_setpoint.lat) && PX4_ISFINITE(global_path_setpoint.lon)) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.lat = global_path_setpoint.lat;
 					_pos_sp_triplet.current.lon = global_path_setpoint.lon;
+				}
+
+				if (PX4_ISFINITE(global_path_setpoint.alt)) {
 					_pos_sp_triplet.current.alt = global_path_setpoint.alt;
+				} else {
+					_pos_sp_triplet.current.alt = NAN;
 				}
 
 				if (Vector3f(global_path_setpoint.tangent).isAllFinite()) {
@@ -377,14 +381,18 @@ FixedWingGuidanceControl::Run()
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.vx = global_path_setpoint.tangent[0];
 					_pos_sp_triplet.current.vy = global_path_setpoint.tangent[1];
-					_pos_sp_triplet.current.vz = global_path_setpoint.tangent[2];
 
 					if (PX4_ISFINITE(global_path_setpoint.curvature)) {
 						_pos_sp_triplet.current.loiter_radius = 1.0f/global_path_setpoint.curvature;
-
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
+				}
+
+				if (PX4_ISFINITE(global_path_setpoint.height_rate)) {
+					_pos_sp_triplet.current.vz = global_path_setpoint.height_rate;
+				} else {
+					_pos_sp_triplet.current.vz = NAN;
 				}
 
 				_position_setpoint_current_valid = valid_setpoint;
