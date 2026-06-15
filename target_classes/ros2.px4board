@@ -1,0 +1,3 @@
+# ROS2 target class: the ROS2 platform build (built within a colcon workspace).
+CONFIG_TARGET_CLASS_ROS2=y
+CONFIG_PLATFORM_ROS2=y

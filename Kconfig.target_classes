@@ -58,6 +58,22 @@ config TARGET_CLASS_LINUX
 		its airframe via init.d-posix. The class base provides the mc+fw+vtol+uuv
 		controllers and the POSIX/Linux platform (PLATFORM_POSIX + BOARD_LINUX_TARGET).
 
-# Reserved for Phase 4 (deferred specials): TARGET_CLASS_SITL, _IO, _ROS2.
+config TARGET_CLASS_SITL
+	bool "SITL simulator target class"
+	help
+		Software-in-the-loop simulator. The class base provides the POSIX
+		platform and the full controller set, runtime-selecting its airframe
+		via init.d-posix.
+
+config TARGET_CLASS_IO
+	bool "PX4IO coprocessor firmware target class"
+	help
+		PX4IO I/O coprocessor firmware blob (no ROMFS, no vehicle controllers).
+		The class base provides MODULES_PX4IOFIRMWARE.
+
+config TARGET_CLASS_ROS2
+	bool "ROS2 platform target class"
+	help
+		ROS2 platform build (PLATFORM_ROS2), built within a colcon workspace.
 
 endmenu

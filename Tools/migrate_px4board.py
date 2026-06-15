@@ -35,8 +35,11 @@ cannode, PLATFORM_POSIX + LINUX_TARGET for linux). The air controller families
 collapse to one class (policy A); each extra vehicle class becomes its own target
 sharing the same base:
 
+    PLATFORM_ROS2                        -> ros2   (ROS2 platform build)
+    PLATFORM_POSIX (no LINUX_TARGET)     -> sitl   (simulator, full controller set)
     romfsroot == "cannode"               -> cannode
     PLATFORM_POSIX + BOARD_LINUX_TARGET  -> linux  (all-vehicle SBC binary)
+    PX4IOFIRMWARE, no controllers        -> io     (coprocessor firmware blob)
     MC only                              -> copter
     FW only                              -> plane
     MC + FW + VTOL                       -> vtol   (the air superset)
@@ -48,10 +51,9 @@ For a multi-class board, base = default minus everything the classes pull in, an
 each class gets its own overlay; the per-class targets are strict subsets whose
 UNION reproduces the original default (verified before writing).
 
-SITL (plain PLATFORM_POSIX), muorb/QURT Linux boards with no apps-side controllers
-(voxl2), IO firmware and other no-controller/companion targets are reported as
-MANUAL and never written -- they need a `sitl`/`io`/`ros2` class decision, not a
-vehicle-controller split, and the script refuses to guess.
+muorb/QURT Linux boards with no apps-side controllers (voxl2) carry their
+controllers on a DSP, so they fit no controller-providing class and are reported
+as MANUAL (never written) -- handled separately at the Phase-4 cutover.
 
 Usage:
     Tools/migrate_px4board.py [--apply] [--force] [BOARD ...]
@@ -103,7 +105,10 @@ _CLASS_FAMILIES = {
     "airship": {"airship"},
     "spacecraft": {"spacecraft"},
     "linux": {"mc", "fw", "vtol", "rover", "uuv", "airship", "spacecraft"},
+    "sitl": {"mc", "fw", "vtol", "rover", "uuv", "airship", "spacecraft"},
     "cannode": set(),
+    "io": set(),
+    "ros2": set(),
 }
 
 _MC = ["MODULES_MC_ATT_CONTROL", "MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL",
@@ -131,7 +136,12 @@ CLASS_PROVIDES = {
     "airship": {"MODULES_AIRSHIP_ATT_CONTROL": "y"},
     "linux": dict({s: "y" for s in _MC + _FW + ["MODULES_VTOL_ATT_CONTROL"] + _UUV},
                   PLATFORM_POSIX="y", BOARD_LINUX_TARGET="y"),
+    "sitl": dict({s: "y" for s in _MC + _FW + ["MODULES_VTOL_ATT_CONTROL"]
+                  + _UUV + _ROVER + ["MODULES_AIRSHIP_ATT_CONTROL"]},
+                 PLATFORM_POSIX="y"),
     "cannode": {"BOARD_ROMFSROOT": '"cannode"', "DRIVERS_UAVCANNODE": "y"},
+    "io": {"BOARD_ROMFSROOT": '""', "MODULES_PX4IOFIRMWARE": "y"},
+    "ros2": {"PLATFORM_ROS2": "y"},
 }
 
 # A vehicle controller -> the AIRFRAMES_<class> its presence historically turned
@@ -225,6 +235,8 @@ def infer_classes(assignments):
     """Return (classes, families, reason). `classes` is the sorted list of target
     classes the board splits into (one per vehicle class, air collapsed to vtol);
     an empty list means manual handling is required and `reason` explains why."""
+    if "PLATFORM_ROS2" in assignments:
+        return ["ros2"], [], None
     if "PLATFORM_POSIX" in assignments:
         if assignments.get("BOARD_LINUX_TARGET") == "y":
             # A Linux SBC flight controller: one all-vehicle binary that selects
@@ -235,7 +247,11 @@ def infer_classes(assignments):
             if any(v == "y" and is_controller(s) for s, v in assignments.items()):
                 return ["linux"], [], None
             return [], [], "linux board with no apps-side controllers (muorb/QURT)"
-        return [], [], "posix/sitl board (needs the sitl class)"
+        # Plain POSIX (no Linux cross-target) is the SITL simulator: the class
+        # base provides the POSIX platform plus the full controller set.
+        if any(v == "y" and is_controller(s) for s, v in assignments.items()):
+            return ["sitl"], [], None
+        return [], [], "posix board with no controllers"
     if assignments.get("BOARD_ROMFSROOT") == '"cannode"':
         return ["cannode"], [], None
 
@@ -244,6 +260,9 @@ def infer_classes(assignments):
         if val == "y" and is_controller(sym):
             families.add(controller_family(sym))
     if not families:
+        if assignments.get("MODULES_PX4IOFIRMWARE") == "y":
+            # PX4IO coprocessor firmware blob: no ROMFS, no vehicle controllers.
+            return ["io"], [], None
         return [], [], "no controllers and not a cannode romfs"
 
     classes = set()
