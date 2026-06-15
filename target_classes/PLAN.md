@@ -5,49 +5,69 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 ## 0. RESUME HERE
 
 Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
-merge). **Phases 1 & 2 done; Phase 3 vehicle-board migration done — all 102 vehicle boards
-are class-migrated. Remaining: 13 special boards + Phase 4 (cutover).** Clean 7-commit
-history `be5e70ed6f..0b4f0b0151` (pushed). The change is purely additive — `default.px4board`
-is kept everywhere, so every legacy `<board>_default` still builds next to the new
-`<board>_<class>` targets.
+merge). **Phases 1 & 2 done; Phase 3 migration done for 109 boards — 102 vehicle + 2 cannode
+(esp32, mr-canhubk3) + 5 Linux SBC flight controllers. Remaining: 6 special boards, all
+deferred to Phase 4 (cutover).** The change is purely additive — `default.px4board` is kept
+everywhere, so every legacy `<board>_default` still builds next to the new `<board>_<class>`
+targets.
 
 A fresh session: read §3 (locked decisions), §4 (class catalog), §5 (phase log), §6 (script
 spec), §7 (Phase-4 ripple list).
 
 ### State check (all exit 0)
-- `python3 Tools/migrate_px4board.py` (dry run, writes nothing) → `0 ok, 102 skip,
-  11 manual, 2 error` — everything migrated; manual/error = the 13 leftovers below.
+- `python3 Tools/migrate_px4board.py` (dry run, writes nothing) → `0 ok, 109 skip,
+  6 manual, 0 error` — everything migrated; the 6 manual = the Phase-4 specials below.
 - `make px4_fmu-v6x_vtol romfs_gen_files_target` → `boardconfig` byte-identical to
   `px4_fmu-v6x_default` except the `# Label:` comment.
+- `make emlid_navio2_linux romfs_gen_files_target` → `boardconfig` byte-identical to
+  `emlid_navio2_default` except the `# Label:` comment (all 5 Linux boards verified).
 - `make cubepilot_cubeyellow_vtol …` and `… _uuv` → their enabled-symbol sets UNION to
   `cubepilot_cubeyellow_default` (multi-vehicle split: nothing lost, nothing added).
 
-### Done (the whole of Phase 3 for vehicle boards)
+### Done (Phase 3 — vehicle + cannode + Linux boards)
 - `Tools/migrate_px4board.py`: splits `default.px4board` → vehicle-agnostic `base.px4board`
   + per-class `<class>.px4board` overlays inheriting `target_classes/<class>`. Single-class
   → one target; multi-vehicle → one target per class (vtol + uuv …) sharing one base, whose
   UNION reproduces `default`. Self-verifies symbol-for-symbol before writing; refuses to
-  guess specials.
+  guess specials. The pre-write gate tolerates any class-base symbol a board reverts off
+  (controllers AND e.g. cannode `DRIVERS_UAVCANNODE`; all Kconfig default-n).
 - Class bases in top-level `target_classes/` (out of `boards/`, vendors-only): copter, plane,
-  vtol, rover, uuv, airship, spacecraft, cannode. cannode base provides `DRIVERS_UAVCANNODE`.
-- **All 102 vehicle boards migrated.** Empty overlays self-document via an "inherits" comment;
+  vtol, rover, uuv, airship, spacecraft, cannode, **linux**. cannode base provides
+  `DRIVERS_UAVCANNODE`; `linux` = `PLATFORM_POSIX + BOARD_LINUX_TARGET` + the mc+fw+vtol+uuv
+  controller superset (one all-vehicle SBC binary, runtime-selected airframe via init.d-posix).
+- **102 vehicle boards migrated.** Empty overlays self-document via an "inherits" comment;
   the air boards' pre-existing `rover` variants were slimmed. Build-verified per class
   (copter/vtol/cannode == legacy `_default` modulo `# Label:`; multi-class unions to default;
   flipped rover/uuv/spacecraft variant labels byte-identical). Full per-board build coverage
   is left to CI.
+- **2 cannode boards** (`espressif/esp32`, `nxp/mr-canhubk3`) migrated — both omit the
+  uavcannode driver the class base force-enables, so each carries a 1-line revert overlay
+  (`# CONFIG_DRIVERS_UAVCANNODE is not set`). Both `_cannode` boardconfigs verified ==
+  legacy `_default` (modulo Label; mr-canhubk3 also shows the unrelated, build-order
+  dependent zenoh topic Kconfig regen). mr-canhubk3's `fmu`/`sysview` vehicle variants
+  keep building via the legacy path.
+- **5 Linux SBC flight controllers** (`beaglebone/blue`, `bluerobotics/navigator`,
+  `emlid/navio2`, `px4/raspberrypi`, `scumaker/pilotpi`) migrated to the `linux` class. The
+  first four match the class controller set exactly (empty overlay); pilotpi reverts the two
+  UUV controllers. All five `_linux` boardconfigs verified byte-identical to `_default`
+  (modulo Label, arm-linux-gnueabihf). `voxl2` (aarch64 muorb/QURT) is refused — no apps-side
+  controllers — and deferred. The aarch64 `_arm64` variants stay on the legacy path.
 - Fixed a Phase-1 regression: `flatten_classes.py` crashed every cannode `romfs_gen` (ROMFS
   root with no `airframes/`). `Makefile` no longer enumerates `base.px4board` as a `_base`.
 
 ### NOT done (next sessions)
-1. **13 boards still legacy** — the tool deliberately refuses them:
-   - **11 manual** = 4 no-controller (`px4/io-v2`, `cubepilot/io-v2`, `modalai/voxl2-io`,
-     `px4/ros2`) + 7 POSIX (`px4/sitl` + Linux FCs `beaglebone/blue`, `bluerobotics/navigator`,
-     `emlid/navio2`, `px4/raspberrypi`, `modalai/voxl2`, `scumaker/pilotpi`). Need
-     `sitl`/`infra`/`linux` class decisions (special configs, not vehicle splits; the tool
-     flags POSIX via `PLATFORM_POSIX`, no-controller via empty controller set).
-   - **2 error** = `espressif/esp32`, `nxp/mr-canhubk3` cannodes lack `DRIVERS_UAVCANNODE`
-     (the cannode class base now provides it) → give each a 1-line revert overlay
-     (`# CONFIG_DRIVERS_UAVCANNODE is not set`).
+1. **6 special boards still legacy → all deferred to Phase 4** (the tool refuses them):
+   - `px4/sitl` (PLATFORM_POSIX, all controllers) → `sitl` class.
+   - 3 IO-firmware blobs (`px4/io-v2`, `cubepilot/io-v2`, `modalai/voxl2-io`; NuttX cortex-m3,
+     `PX4IOFIRMWARE`, `ROMFSROOT=""`) → `io` class.
+   - `px4/ros2` (`PLATFORM_ROS2`) → `ros2` class.
+   - `modalai/voxl2` (aarch64 muorb/QURT; controllers run on the SLPI DSP, apps side carries
+     none) → special; its `slpi` variant is the controller-bearing half.
+   Taxonomy LOCKED (dakejahl 2026-06-14): distinct `sitl`/`io`/`ros2` classes, NOT one
+   `infra` catch-all. These are singletons/blobs with no cross-board sharing and (sitl) deep
+   CI entanglement, so they are best classed during the cutover when grammar/CI/naming change
+   together — not migrated additively now (which would only add awkward duplicate targets like
+   `px4_sitl_sitl`).
 2. **Phase 4 — cutover (big, CI-facing; do deliberately, §7):** error on base/default/bare
    (`cmake/px4_config.cmake`), Makefile target-list rework + `all:`, relabel pre-redesign
    variants → `<class>.<variant>`, ~15 workflows, Tools scripts, docs. `default.px4board`
@@ -138,6 +158,17 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
      `18001_TF-B1` as generic. Autogyro has no generic frame → `autogyro/` ships none;
      `17002/17003` stay dangling.
    - Per-class inclusion via `file(GLOB)` of the class dir (drop-in works, no list to edit).
+5. **Linux / special-board taxonomy — LOCKED (dakejahl 2026-06-14):**
+   - Linux SBC flight controllers (`PLATFORM_POSIX + BOARD_LINUX_TARGET` with vehicle
+     controllers) → one shared **`linux`** class: an all-vehicle binary that runtime-selects
+     its airframe via init.d-posix (the SITL model, cross-compiled). Done now — the one
+     special group with real cross-board sharing.
+   - The non-vehicle specials get **distinct** classes, not an `infra` catch-all:
+     `sitl` (simulator), `io` (PX4IO coprocessor firmware), `ros2` (ROS2 platform build).
+     Deferred to Phase 4 (singletons/blobs, sitl is CI-entangled — class them when the
+     grammar changes, not additively now).
+   - `modalai/voxl2` is special (muorb/QURT; vehicle controllers live in its `slpi` variant,
+     not the apps-side default) → handled separately in Phase 4, not forced into `linux`.
 
 ## 4. Target-class catalog
 
@@ -151,9 +182,11 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
 | spacecraft | SPACECRAFT | `spacecraft/` |
 | airship | AIRSHIP_ATT_CONTROL | `airship/` |
 | cannode | cannode romfs, uavcannode drivers | none |
+| linux | POSIX + LINUX_TARGET + mc/fw/vtol/uuv superset (DONE) | none (init.d-posix) |
 | bootloader | bl defconfig path | none |
-| sitl | all controllers (runtime-selected) | `sitl/` + all (exempt from prune) |
-| infra | inherits a vehicle class + CI tweak | per base class |
+| sitl | all controllers, runtime-selected (Phase 4) | `sitl/` + all (exempt from prune) |
+| io | PX4IOFIRMWARE coprocessor blob (Phase 4) | none |
+| ros2 | PLATFORM_ROS2 build (Phase 4) | none |
 
 **Tier-1 generics → move into `airframes/<class>/`:**
 - `copter/`: 4001 quad_x, 5001 quad_+, 6001/7001 hexa, 8001/9001 octo, 11001/12001 cox,
@@ -204,7 +237,7 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
   generics, no cross-contamination. #27539's bug solved structurally.
 - `default.px4board` kept during transition (legacy labels still use it).
 
-### Phase 3 — Migrate boards (scripted) — VEHICLE BOARDS DONE (13 specials + cutover remain, see §0)
+### Phase 3 — Migrate boards (scripted) — DONE for 109 boards (6 specials + cutover remain, see §0)
 - `Tools/migrate_px4board.py` — DONE. Splits each `default` → `base` (= default minus the
   symbols `target_classes/<class>` provides minus the board's controllers) + `<class>` overlay
   (the board's delta vs `target_classes/<class>`; empty when the board matches the class base).
@@ -213,10 +246,11 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
   N overlays, UNION-verified). Before writing it self-verifies that the merge reproduces the
   original `default` symbol-for-symbol (only tolerated delta: an omitted controller the
   overlay pins off — all controllers are `default n`). Refuses POSIX/no-controller specials.
-- `target_classes/{vtol,plane,uuv,airship,spacecraft,cannode}.px4board` — DONE (added to the
-  `copter,rover` from Phase 2). `vtol` = the mc5+fw5+VTOL modal set (38/47 boards match
-  exactly). `cannode` = just `BOARD_ROMFSROOT="cannode"`. (sitl/infra/bootloader deferred —
-  special; bootloader stays on the savedefconfig path, never merged.)
+- `target_classes/{vtol,plane,uuv,airship,spacecraft,cannode,linux}.px4board` — DONE (added
+  to the `copter,rover` from Phase 2). `vtol` = the mc5+fw5+VTOL modal set (38/47 boards match
+  exactly). `cannode` = just `BOARD_ROMFSROOT="cannode"`. `linux` = POSIX + LINUX_TARGET +
+  mc/fw/vtol/uuv superset. (sitl/io/ros2/bootloader deferred — special; bootloader stays on
+  the savedefconfig path, never merged.)
 - **All 102 vehicle boards migrated** — DONE. ark/* (single-class) + `cubepilot/cubeyellow`
   (multi-class) as pilots, then the rest in one additive sweep. Spot build-verified per class
   (== legacy `_default` modulo `# Label:`; multi-class unions to default; flipped variant
@@ -224,7 +258,10 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
 - Fixed `Tools/px4airframes/flatten_classes.py` crash when the ROMFS root has no
   `airframes/` dir (a Phase-1 regression that broke every cannode `romfs_gen_files_target`).
 - `Makefile`: `base.px4board` excluded from `ALL_CONFIG_TARGETS` (no spurious `_base` target).
-- TODO (next): the 13 specials (sitl/infra/linux classes + 2 cannode revert overlays, §0);
+- 2 cannode boards (esp32, mr-canhubk3) migrated with a `DRIVERS_UAVCANNODE` revert overlay;
+  `target_classes/linux.px4board` added and 5 Linux SBC flight controllers migrated (voxl2
+  refused — muorb/QURT). All build-verified == legacy `_default`.
+- TODO (next): the 6 specials (sitl/io/ros2 classes + voxl2, all deferred to Phase 4, §0);
   relabel pre-redesign variants → `<class>.<variant>`; then Phase 4 cutover.
 
 ### Phase 4 — Cutover
@@ -233,13 +270,16 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
 
 ## 6. Migration script (`Tools/migrate_px4board.py`) — IMPLEMENTED
 Per `default.px4board`: infer the class(es) — air (mc/fw/vtol) collapses to `vtol`, each
-extra vehicle class is its own target, `ROMFSROOT="cannode"` → `cannode`. Emit one
+extra vehicle class is its own target, `ROMFSROOT="cannode"` → `cannode`,
+`PLATFORM_POSIX + BOARD_LINUX_TARGET` with vehicle controllers → `linux`. Emit one
 `base.px4board` (= default minus ALL controllers and every symbol the class bases provide)
 + one `<class>.px4board` overlay per class (the board's delta vs `target_classes/<class>`;
 self-documenting comment when empty). Self-verifies the layered merge reproduces `default`
 symbol-for-symbol (UNION of the per-class targets for multi-class) before writing, tolerating
-only an omitted controller pinned off (controllers are `default n`). Refuses (MANUAL/ERROR,
-never writes) POSIX/SITL (`PLATFORM_POSIX`), no-controller boards, and class-base mismatches.
+any class-base symbol the board reverts off (controllers AND e.g. cannode `DRIVERS_UAVCANNODE`;
+all `default n`). Refuses (MANUAL, never writes) plain-POSIX SITL, muorb/QURT Linux boards
+with no apps-side controllers (voxl2), no-controller blobs (IO firmware, ros2), and class-base
+mismatches.
 `--apply` writes; default is a dry-run report; `--force` overwrites an existing base.
 Usage: `Tools/migrate_px4board.py [--apply] [--force] [vendor/model ...]`.
 
