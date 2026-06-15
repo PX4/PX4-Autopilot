@@ -148,11 +148,11 @@ Changes are written back to the ESC one byte at a time using the DShot programmi
 ## ESC Serial Passthrough (Bitbang UART)
 
 PX4 supports direct UART communication through an ESC signal pin using a software bit-bang UART.
-This allows a ground station or companion computer to talk to ESC configuration tools (e.g. BLHeli Suite, AM32 configurator) over MAVLink, without any additional wiring.
+This enables ESC configuration tools (e.g. *BLHeli Suite*, *AM32 configurator*) to communicate with the ESC using UART over Mavlink - provided a MAVLink↔UART bridge is available on the ground station or companion computer side.
 
 ::: warning
 The `PASSTHRU_EN` parameter must be set to `1` (and the vehicle rebooted) before using ESC bitbang passthrough.
-This **disables DShot and PWM output** at boot.
+This **disables DShot and PWM output** at boot. After the next reboot, `PASSTHRU_EN` automatically resets to `0` thereby restoring normal DShot/PWM operation.
 :::
 
 See [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md) for full configuration details.

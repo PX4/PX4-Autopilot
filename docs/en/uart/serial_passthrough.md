@@ -69,12 +69,13 @@ When `PASSTHRU_EN` is set to `1` (and the vehicle rebooted), the normal motor ou
 This is required when you intend to use the ESC bitbang passthrough mode, because
 the bitbang driver and the DShot/PWM driver cannot share the same ESC signal pins.
 
-| Parameter    | Description |
-| ------------ | ----------- |
-| `PASSTHRU_EN` | Set to `1` to suppress normal ESC output drivers at boot. Requires reboot. |
+| Parameter     | Description |
+| ------------- | ----------- |
+| `PASSTHRU_EN` | Set to `1` to suppress normal ESC output drivers at boot. Requires reboot. Automatically resets to `0` after the next reboot, restoring normal DShot/PWM operation. |
 
 ::: warning
 Setting `PASSTHRU_EN=1` disables motor control.
+The parameter auto-resets to `0` on the following reboot, so DShot/PWM output is automatically restored after power cycling.
 :::
 
 
@@ -88,7 +89,7 @@ We developed such a bridge internally and may upstream it in a future release.
 
 ## Limitations
 
-- **One sender at a time:** only the MAVLink channel that sent the most recent `SERIAL_CONTROL` message receives replies.
+- **Single sender:** only one MAVLink sender is supported at a time. A single sender can communicate with multiple ports simultaneously, but replies are always routed back to the MAVLink channel that sent the most recent `SERIAL_CONTROL` message, so concurrent senders could interfere with each other's replies.
 - **ESC bitbang baud rate:** maximum reliable baud rate is 19200.
   Higher rates may work but are not guaranteed.
 - **ESC channel exclusivity:** only one ESC bitbang channel can be active at a time.
