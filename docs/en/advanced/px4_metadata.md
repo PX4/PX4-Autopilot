@@ -48,7 +48,7 @@ This applies, for example, to the [Omnibus F4 SD](../flight_controller/omnibus_f
 The metadata is uploaded via the [build_all_targets](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/build_all_targets.yml) GitHub CI workflow for all build targets (and hence will only be available once parameters have been merged into main).
 
 ::: info
-You can identify memory constrained boards because they specify `CONFIG_BOARD_CONSTRAINED_FLASH=y` in their [px4board definition file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board).
+You can identify memory constrained boards because they specify `CONFIG_BOARD_CONSTRAINED_FLASH=y` in their [px4board definition file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/base.px4board).
 
 If doing custom development on a FLASH-constrained board you can adjust the URL [here](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/component_information/CMakeLists.txt#L41) to point to another server.
 :::

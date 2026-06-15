@@ -274,10 +274,10 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
    For a more detailed explanation see the topic [Writing your first application](../modules/hello_sky.md).
 
-1. Lastly, add your module in the **default.px4board** file correspondent to your board in **PX4-Autopilot/boards/**.
+1. Lastly, add your module in the **base.px4board** file correspondent to your board in **PX4-Autopilot/boards/**.
    For example:
-   -for the Pixhawk 4, add the following code in **PX4-Autopilot/boards/px4/fmu-v5/default.px4board**:
-   -for the SITL, add the following code in **PX4-Autopilot/boards/px4/sitl/default.px4board**
+   -for the Pixhawk 4, add the following code in **PX4-Autopilot/boards/px4/fmu-v5/base.px4board**:
+   -for the SITL, add the following code in **PX4-Autopilot/boards/px4/sitl/base.px4board**
 
    ```
     CONFIG_MODULES_KEY_RECEIVER=y

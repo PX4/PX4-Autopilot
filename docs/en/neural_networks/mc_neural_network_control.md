@@ -48,7 +48,7 @@ make px4_fmu-v6c_neural
 make mro_pixracerpro_neural
 ```
 
-You can add the module to other board configurations by modifying their `default.px4board file` configuration to include these lines:
+You can add the module to other boards by adding these lines to one of the board's [target overlays](../hardware/porting_guide_config.md#px4-board-configuration-files) (for example its `copter.px4board` or `vtol.px4board` file), or to a new variant overlay such as `vtol.neural.px4board`:
 
 ```sh
 CONFIG_LIB_TFLM=y
@@ -56,7 +56,7 @@ CONFIG_MODULES_MC_NN_CONTROL=y
 ```
 
 :::tip
-The `mc_nn_control` module takes up roughly 50KB, and many of the `default.px4board file` are already close to filling all the flash on their boards. To make room for the neural control module you can remove the include statements for other modules, such as FW, rover, VTOL and UUV.
+The `mc_nn_control` module takes up roughly 50KB, and many boards are already close to filling all the flash they have. To make room for the neural control module you can drop controllers you do not need: build the `copter` target instead of `vtol` (which omits the fixed-wing and VTOL controllers), or disable unused controllers in the overlay with `# CONFIG_MODULES_X is not set` (for example the FW, rover, VTOL or UUV controllers).
 :::
 
 ## Example Module Overview

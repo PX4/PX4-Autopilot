@@ -37,15 +37,24 @@ cases (real cmake configures); enumerator output (no `_default`/`_base`, sole-cl
 deb grouped); enumerator↔Makefile parity (all 293 CI targets make-buildable, make-only set =
 CI-excluded labels); `px4_fmu-v6x_copter` ships 26 copter / 0 plane-vtol airframes.
 
-**REMAINING — one follow-up (tracker task: re-document the board-config model):** ~31 docs/en
-files reference `default.px4board` as a CONCEPT — the porting guide (`porting_guide_config.md`,
-`porting_guide.md`, `porting_guide_nuttx.md`, `serial_port_mapping.md`) + ~25 "search/add
-`CONFIG_X` in your board's `default.px4board`" sensor/driver/middleware pages + broken
-`boards/.../default.px4board#L..` links. Needs per-case judgment (a driver/hardware key →
-`base.px4board`; a vehicle controller like rover/neural/vtol modules → `target_classes/<class>`
-or a class overlay) + a porting-guide rewrite explaining base + `target_classes` + class
-overlays. NOT a mechanical replace (would misroute controller configs and break line anchors).
-The build-COMMAND docs (make/build target names) are already done.
+**REMAINING — none in docs/en; one cross-language follow-up.** The board-config MODEL
+re-documentation LANDED (2026-06-15): all 31 `docs/en` files that referenced `default.px4board`
+as a CONCEPT now describe the base + `target_classes` + class-overlay model. The porting guide
+got the real rewrite — `porting_guide_config.md` §"PX4 Board Configuration Files" (was "Kconfig
+Label Inheritance") now spells out the four-layer merge (base → `target_classes/<class>` → board
+`<class>` overlay → `<class>.<variant>`); `porting_guide.md`, `porting_guide_nuttx.md`,
+`serial_port_mapping.md` follow. Per-case routing held: driver/hardware/serial/system/example/
+middleware keys → `base.px4board` (anchors re-pinned to the new files: hold auterion/fmu-v6s L46,
+log_encryption fmu-v4 L76→L64, mavlink sitl L36→L70, uorb fmu-v6x release/1.15 L100→main L88,
+zenoh fmu-v6xrt L91→L81; INS `#L25` anchors dropped since fmu-v6c base lacks the key); vehicle-
+controller pages (`config_rover`, `mc_neural_network_control`) route to the board's class overlay
+and the `copter`-vs-`vtol` target choice; `cube_yellow` stale `hex/cube-orange` link repointed to
+`cubepilot/cubeyellow`; `serial_port_mapping`/`make px4_fmu-v5`→`_vtol` (bare is now ambiguous).
+The build-COMMAND docs were already done. **Only follow-up:** the ko/uk/zh translations (~90
+files) still carry `default.px4board` — left to PX4's translation (Crowdin) sync, which
+regenerates them from `docs/en` (the English `building_px4.md` is already clean while its
+translations lag — same pattern). Not hand-edited: judgment-based prose in three languages belongs
+to the translation workflow, not a manual sweep.
 
 Class names are canonical `copter`/`fixedwing`/... (the `plane`→`fixedwing` rename + #25414
 `_VEHICLE_LABELS` alignment, commit `3503a0006a`, landed earlier — see §9). Pre-cutover phase
@@ -98,6 +107,14 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
 - `make cubepilot_cubeyellow_vtol …` and `… _uuv` → enabled-symbol sets UNION to `_default`.
 
 ### Done
+- **Board-config MODEL re-documented across all 31 `docs/en` files (2026-06-15, dakejahl).**
+  Porting guide rewritten for the four-layer merge (`porting_guide_config.md` §"PX4 Board
+  Configuration Files" + `porting_guide{,_nuttx}.md` + `serial_port_mapping.md`); ~25 sensor/
+  driver/middleware/system pages repointed `default.px4board` → `base.px4board` with anchors
+  re-pinned to the live files; `config_rover` + neural pages route controllers to the class
+  overlay / `copter`-vs-`vtol` choice. 0 `default.px4board` left in `docs/en`; new
+  `#px4-board-configuration-files` anchor + 4 inbound cross-links verified. Translations (ko/uk/
+  zh) deferred to Crowdin sync (see §0 REMAINING).
 - **5 specials migrated to `sitl`/`io`/`ros2` classes (2026-06-15, dakejahl — additive).**
   Created `target_classes/{sitl,io,ros2}.px4board` (`sitl` = POSIX + the full mc/fw/vtol/uuv/
   rover/airship controller set; `io` = ROMFSROOT="" + PX4IOFIRMWARE; `ros2` = PLATFORM_ROS2) +
@@ -135,13 +152,10 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
   deferred. mr-canhubk3 `fmu`/`sysview` + the linux `_arm64` variants stay on the legacy path.
 
 ### NOT done (next sessions)
-1. **Re-document the board-config MODEL — the one real follow-up.** ~31 docs/en files reference
-   `default.px4board` as a concept (the porting guide + "search/add `CONFIG_X` in your board's
-   `default.px4board`" sensor/driver/middleware pages + broken `boards/.../default.px4board#L..`
-   links). Per-case judgment: hardware/driver keys → `base.px4board`; vehicle controllers
-   (rover/neural/vtol modules) → `target_classes/<class>` or a class overlay; rewrite the porting
-   guide for base + `target_classes` + class overlays. NOT a mechanical replace (would misroute
-   controller configs / break line anchors). Detail in §0 REMAINING. Build-COMMAND docs are done.
+1. **ko/uk/zh translation sync (~90 files).** The translated docs still reference
+   `default.px4board` as a concept; they regenerate from `docs/en` via PX4's translation (Crowdin)
+   workflow, so leave them to that sync rather than hand-editing judgment-based prose in three
+   languages. (The `docs/en` MODEL re-documentation itself is DONE — see §0 / the Done list.)
 2. **Optional — slim the 17 "slimmed" rover overlays** (`px4/fmu-v6x|v6c|v6u|v6xrt|v5x|v4|v3|v2`,
    `ark/{fmu-v6s,fmu-v6x,fpv,pi6x}`, `auterion/{fmu-v6s,fmu-v6x}`, `x-mav/ap-h743r1`): pre-redesign
    rover variants on air boards; under the fragment merge they pull the rover controllers by the

@@ -34,15 +34,19 @@ endif #DRIVERS_UAVCAN_V1
 Builds will silently ignore any missing or miss-spelled modules in the `*.px4board` configuration file.
 :::
 
-## PX4 Kconfig Label Inheritance
+## PX4 Board Configuration Files
 
-Each PX4 board must have a `default.px4board` configuration and can have an optional `bootloader.px4board configuration`.
-However you can add also separate configurations under a different label e.g. `cyphal.px4board`.
-Note that by default the configuration of `cyphal.px4board` inherits all settings set in `default.px4board`.
-When changing the `cyphal.px4board` it only stores the delta of the Kconfig keys that are different compared to `default.px4board`, this is useful to simplify configurations management
+A board's Kconfig configuration is split across several `*.px4board` files that are merged, in order, to compose a buildable target (each layer overrides the previous):
+
+1. `base.px4board` — the board hardware foundation: toolchain and architecture, serial port mapping, on-board drivers, and the common modules shared by every vehicle. It contains no vehicle controllers or airframes and is **not buildable on its own**. Every board must provide it. An optional `bootloader.px4board` sits alongside it.
+2. `target_classes/<class>.px4board` (in the repository-root [`target_classes/`](https://github.com/PX4/PX4-Autopilot/tree/main/target_classes) directory) — the **target class** definition. It sets `CONFIG_TARGET_CLASS_<CLASS>=y` and enables that class's controllers (for example `vtol` enables the multicopter, fixed-wing and VTOL controllers). Classes are shared by all boards.
+3. `boards/<vendor>/<model>/<class>.px4board` — the board's overlay for that class: the `CONFIG_AIRFRAMES_<CLASS>=y` set the target ships, plus any board-specific deltas (for example dropping a controller the class enables with `# CONFIG_MODULES_X is not set`).
+4. `boards/<vendor>/<model>/<class>.<variant>.px4board` — an optional variant that stores only the delta versus the composed `<class>` target (for example `vtol.cyphal.px4board`).
+
+For example, the `px4_fmu-v5_vtol` target is composed from `boards/px4/fmu-v5/base.px4board` + [`target_classes/vtol.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/target_classes/vtol.px4board) + `boards/px4/fmu-v5/vtol.px4board`. The target name follows the pattern `<vendor>_<model>_<class>[_<variant>]`.
 
 ::: info
-When modifying a Kconfig key in `default.px4board` it will be modified in all derivative configurations of the same board that had the same config as well.
+Because each label only stores its delta versus the layer below, changing a key in a lower layer (such as `base.px4board`) propagates to every target of that board that did not already override it.
 :::
 
 ## PX4 Menuconfig Setup

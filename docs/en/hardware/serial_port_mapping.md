@@ -17,11 +17,11 @@ Usually the port function is configured to match the name, which is why the port
 This section shows how to get the mappings for NuttX builds on STMxxyyy architectures by inspecting the board configuration files.
 The instructions use FMUv5, but can similarly be extended for other FMU versions/NuttX boards.
 
-### default.px4board
+### base.px4board
 
-The **default.px4board** lists a number of serial port mappings (search for the text "SERIAL_PORTS").
+The **base.px4board** lists a number of serial port mappings (search for the text "SERIAL_PORTS").
 
-From [/boards/px4/fmu-v5/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board):
+From [/boards/px4/fmu-v5/base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/base.px4board):
 
 ```
 CONFIG_BOARD_SERIAL_GPS1="/dev/ttyS0"
@@ -30,7 +30,7 @@ CONFIG_BOARD_SERIAL_TEL2="/dev/ttyS2"
 CONFIG_BOARD_SERIAL_TEL4="/dev/ttyS3"
 ```
 
-Alternatively you can launch boardconfig using `make px4_fmu-v5 boardconfig` and access the serial port menu
+Alternatively you can launch boardconfig using `make px4_fmu-v5_vtol boardconfig` and access the serial port menu
 
 ```
     Serial ports  --->

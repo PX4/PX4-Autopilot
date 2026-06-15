@@ -91,10 +91,10 @@ The easiest way to add support for encrypted logs is to define a custom `make` t
 
 ::: warning
 Many builds are close to their maximum capacity.
-If you run into a build error telling you that you have gone above the maximum flash memory, you will need to disable other features in the `.px4board` file you are working on, or in the `default.px4board` file.
+If you run into a build error telling you that you have gone above the maximum flash memory, you will need to disable other features in the `.px4board` file you are working on, or in the board's `base.px4board` file.
 Be careful not to disable something you need.
 
-For example, if you found you were running out of memory on FMUv4 boards you could disable SIH mode by setting `CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=n` in [boards/px4/fmu-v4/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v4/default.px4board#L76), which may free up enough flash memory to allow crypto to be added.
+For example, if you found you were running out of memory on FMUv4 boards you could disable SIH mode by setting `CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=n` in [boards/px4/fmu-v4/base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v4/base.px4board#L64), which may free up enough flash memory to allow crypto to be added.
 :::
 
 #### Pixhawk FMUv5 boards

@@ -193,7 +193,7 @@ The full API is documented in [platforms/common/uORB/uORBManager.hpp](https://gi
 
 ::: info
 The `listener` command available on most boards after FMUv4.
-You can check for a particular board by searching for the `CONFIG_SYSTEMCMDS_TOPIC_LISTENER` key in the [kconfig](../hardware/porting_guide_config.md) board configuration (for example, see the FMUv6 [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/release/1.15/boards/px4/fmu-v6x/default.px4board#L100) file).
+You can check for a particular board by searching for the `CONFIG_SYSTEMCMDS_TOPIC_LISTENER` key in the [kconfig](../hardware/porting_guide_config.md) board configuration (for example, see the FMUv6 [base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/base.px4board#L88) file).
 :::
 
 To list all topics, list the file handles:

@@ -14,7 +14,7 @@ The following example uses FMUv5 as it is a recent [reference configuration](../
   - Board specific header (NuttX pins and clock configuration): [/boards/px4/fmu-v5/nuttx-config/include/board.h](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/include/board.h).
   - Board specific header (PX4 configuration): [/boards/px4/fmu-v5/src/board_config.h](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/src/board_config.h).
   - NuttX OS config (created with NuttX menuconfig): [/boards/px4/fmu-v5/nuttx-config/nsh/defconfig](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/nsh/defconfig).
-  - Build configuration: [boards/px4/fmu-v5/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board).
+  - Board hardware configuration: [boards/px4/fmu-v5/base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/base.px4board). Buildable targets layer a [target class](porting_guide_config.md#px4-board-configuration-files) and the board's `<class>.px4board` overlay on top of this.
 
 ## NuttX Menuconfig Setup
 
@@ -80,8 +80,9 @@ First you will need a bootloader, which depends on the hardware target:
 Next you need to go through all files under **boards/manufacturer/my-target-v1** and update them according to your board.
 
 1. **firmware.prototype**: update the board ID and name
-1. **default.px4board**: update the **VENDOR** and **MODEL** to match the directory names (**my-target-v1**).
+1. **base.px4board**: update the **VENDOR** and **MODEL** to match the directory names (**my-target-v1**).
    Configure the serial ports.
+   The copied board also carries the vehicle/system overlays it builds (e.g. **vtol.px4board**); keep or remove these to suit your hardware.
 1. Configure NuttX (**defconfig**) via `make manufacturer_my-target-v1 menuconfig`: Adjust the CPU and chip, configure the peripherals (UART's, SPI, I2C, ADC).
 1. **nuttx-config/include/board.h**: Configure the NuttX pins.
    For all peripherals with multiple pin options, NuttX needs to know the pin.

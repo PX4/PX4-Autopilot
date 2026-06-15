@@ -77,7 +77,7 @@ If `pwm_out_sim` is not present you will need to add it to the firmware in order
 
 ### Adding HITL modules to the Firmware
 
-Add the following key to the configuration file for your flight controller to include the required module (for an example see [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)).
+Add the following key to the configuration file for your flight controller to include the required module (for an example see [boards/px4/fmu-v6x/base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/base.px4board)).
 Then re-build the firmware and flash it to the board.
 
 ```text

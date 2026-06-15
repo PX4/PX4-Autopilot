@@ -10,7 +10,7 @@ Driver to enable an external [ASP5033]
 (https://www.qio-tek.com/index.php/product/qiotek-asp5033-dronecan-airspeed-and-compass-module/)
 TE connected via I2C.
 This is not included by default in firmware. It can be included with terminal command: "make <your_board> boardconfig"
-or in default.px4board with adding the line: "CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033=y"
+or in base.px4board with adding the line: "CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033=y"
 It can be enabled with the "SENS_EN_ASP5033" parameter set to 1.
 
 ### Usage {#asp5033_usage}

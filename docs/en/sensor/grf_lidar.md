@@ -36,8 +36,8 @@ In order to use these modules you will first need to update the firmware configu
      4. Save the configuration
 
    - Manually update `default.px4` to include the configuration key:
-     1. Open the `default.px4board` config file that corresponds to the board you want to build for.
-        For example, to add the driver to `fmu-v6x` boards you would update [/boards/px4/fmu-v6x/default.px4board ](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)
+     1. Open the `base.px4board` config file that corresponds to the board you want to build for.
+        For example, to add the driver to `fmu-v6x` boards you would update [/boards/px4/fmu-v6x/base.px4board ](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/base.px4board)
      2. Add the following line and save the file:
 
         ```txt

@@ -17,7 +17,7 @@ INS systems that can be used as a replacement for EKF2 in PX4:
 
 The driver module for your INS system may not be included in the PX4 firmware for your flight controller by default.
 
-You can check by searching the [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6c/default.px4board#L25) configuration file for your target board for either:
+You can check by searching the [base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6c/base.px4board) configuration file for your target board for either:
 
 - `CONFIG_COMMON_INS`, which includes drivers for [all INS systems](https://github.com/PX4/PX4-Autopilot/blob/main/src/drivers/ins/Kconfig).
 - The key for the particular INS system you are using, such as:
@@ -25,7 +25,7 @@ You can check by searching the [default.px4board](https://github.com/PX4/PX4-Aut
   - `CONFIG_DRIVERS_INS_MICROSTRAIN`
   - `CONFIG_DRIVERS_INS_VECTORNAV`
 
-If the required key is not present you can include the module in firmware by adding the key to the `default.px4board` file, or using the [kconfig board configuration tool](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) and then select the driver you want (`Drivers -> INS`).
+If the required key is not present you can include the module in firmware by adding the key to the `base.px4board` file, or using the [kconfig board configuration tool](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) and then select the driver you want (`Drivers -> INS`).
 Note that if you're working on a flight controller where flash memory is limited, you're better off installing just the modules you need.
 
 You will then need to rebuild the firmware.

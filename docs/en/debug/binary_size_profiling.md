@@ -21,10 +21,10 @@ First it locally sets up a build without the driver:
 
 ```sh
  % git diff
-diff --git a/boards/px4/fmu-v2/default.px4board b/boards/px4/fmu-v2/default.px4board
+diff --git a/boards/px4/fmu-v2/base.px4board b/boards/px4/fmu-v2/base.px4board
 index 40d7778..2ce7972 100644
---- a/boards/px4/fmu-v2/default.px4board
-+++ b/boards/px4/fmu-v2/default.px4board
+--- a/boards/px4/fmu-v2/base.px4board
++++ b/boards/px4/fmu-v2/base.px4board
 @@ -36,7 +36,7 @@
 -               CONFIG_DRIVERS_IMU_INVENSENSE_MPU9250=y
 +               CONFIG_DRIVERS_IMU_INVENSENSE_MPU9250=n

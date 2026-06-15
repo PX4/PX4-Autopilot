@@ -88,7 +88,7 @@ This contains XML definition files in [/mavlink/messages/1.0/](https://github.co
 The build toolchain generates the MAVLink 2 C header files at build time.
 The XML file for which headers files are generated may be defined in the [PX4 kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) on a per-board basis, using the variable `CONFIG_MAVLINK_DIALECT`:
 
-- For SITL `CONFIG_MAVLINK_DIALECT` is set to `development` in [boards/px4/sitl/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/default.px4board#L36).
+- For SITL `CONFIG_MAVLINK_DIALECT` is set to `development` in [boards/px4/sitl/base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/base.px4board#L70).
   You can change this to any other definition file, but the file must include `common.xml`.
 - For other boards `CONFIG_MAVLINK_DIALECT` is not set by default, and PX4 builds the definitions in `common.xml` (these are build into the [mavlink module](../modules/modules_communication.md#mavlink) by default — search for `menuconfig MAVLINK_DIALECT` in [src/modules/mavlink/Kconfig](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/Kconfig#L10)).
 

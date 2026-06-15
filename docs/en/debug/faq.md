@@ -13,7 +13,7 @@ region `flash' overflowed by 12456 bytes
 ```
 
 To remedy it, either use more recent hardware or remove modules from the build which are not essential to your use case.
-The configuration is stored in **/PX4-Autopilot/boards/px4** (e.g. [PX4-Autopilot/boards/px4/fmu-v5/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board)).
+The configuration is stored in **/PX4-Autopilot/boards/px4** (e.g. [PX4-Autopilot/boards/px4/fmu-v5/base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/base.px4board)).
 To remove a module, just comment it out:
 
 ```cmake

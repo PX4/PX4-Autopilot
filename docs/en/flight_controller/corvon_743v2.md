@@ -75,7 +75,7 @@ The board does not expose the 5V rail / `system_power` sensing pins that PX4's c
 
 ## Connectors & Pinouts
 
-The following image shows the physical connector and solder-pad layout, with the labels used in this document and in the firmware's `default.px4board`:
+The following image shows the physical connector and solder-pad layout, with the labels used in this document and in the firmware's `base.px4board`:
 
 ![CORVON 743v2 Ports & Connectors](../../assets/flight_controller/corvon_743v2/corvon743v2_portsconnection.png)
 

@@ -27,7 +27,7 @@ This approach can be used if the [`bl-update` module](../modules/modules_command
 The easiest way to check this is just to see if the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter is [found in QGroundControl](../advanced_config/parameters.md#finding-a-parameter).
 
 ::: warning
-Boards that include the module will have the line `CONFIG_SYSTEMCMDS_BL_UPDATE=y` in their `default.px4board` file (for examples [see this search](https://github.com/search?q=repo%3APX4%2FPX4-Autopilot+path%3A**%2Fdefault.px4board+CONFIG_SYSTEMCMDS_BL_UPDATE%3Dy&type=code)).
+Boards that include the module will have the line `CONFIG_SYSTEMCMDS_BL_UPDATE=y` in their `base.px4board` file (for examples [see this search](https://github.com/search?q=repo%3APX4%2FPX4-Autopilot+path%3A**%2Fbase.px4board+CONFIG_SYSTEMCMDS_BL_UPDATE%3Dy&type=code)).
 You can enable this key in your own custom firmware if needed.
 :::
 

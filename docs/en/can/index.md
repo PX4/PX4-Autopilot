@@ -93,7 +93,7 @@ At runtime you can check what DroneCAN ports are enabled and their status using 
 uavcan status
 ```
 
-Note that you can also check the number of supported CAN interfaces for a board by searching for `CONFIG_BOARD_UAVCAN_INTERFACES` in its [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6xrt/default.px4board#) configuration file.
+Note that you can also check the number of supported CAN interfaces for a board by searching for `CONFIG_BOARD_UAVCAN_INTERFACES` in its [base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6xrt/base.px4board) configuration file.
 
 ## Firmware
 

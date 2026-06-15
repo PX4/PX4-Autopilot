@@ -61,7 +61,7 @@ The path is defined by the figure 8 centre position, orientation, and radius of 
 
 The feature is experimental, and is not present in PX4 firmware by default (on most flight controller boards).
 It can be included by setting the `CONFIG_FIGURE_OF_EIGHT` key in the [PX4 board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) for your board and rebuilding.
-For example, this is enabled on the [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/default.px4board#L46) file for the `auterion/fmu-v6s` board.
+For example, this is enabled on the [base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/auterion/fmu-v6s/base.px4board#L46) file for the `auterion/fmu-v6s` board.
 
 The behavior can be triggered using the MAVLink [MAV_CMD_DO_FIGURE_EIGHT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FIGURE_EIGHT) command (PX4 respects all the parameters).
 PX4 outputs the figure 8 status using the [FIGURE_EIGHT_EXECUTION_STATUS](https://mavlink.io/en/messages/common.html#FIGURE_EIGHT_EXECUTION_STATUS) message.

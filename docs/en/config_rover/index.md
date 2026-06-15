@@ -42,7 +42,7 @@ Note that configuration targets are constructed with the format "VENDOR_MODEL_VA
 The built firmware can be installed as custom firmware, as shown above in [Flashing the Rover Build](#flashing-the-rover-build).
 
 ::: info
-You can also enable the modules in default builds by adding these lines to your [board configuration](../hardware/porting_guide_config.md) (e.g. for fmu-v6x you might add them to [`main/boards/px4/fmu-v6x/default.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)):
+You can also add the rover modules to one of the board's other targets (for example its `vtol` build) by adding these lines to that target's [board overlay](../hardware/porting_guide_config.md#px4-board-configuration-files) (e.g. for fmu-v6x you might add them to [`boards/px4/fmu-v6x/vtol.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/vtol.px4board)):
 
 ```sh
 CONFIG_MODULES_ROVER_ACKERMANN=y
@@ -50,5 +50,5 @@ CONFIG_MODULES_ROVER_DIFFERENTIAL=y
 CONFIG_MODULES_ROVER_MECANUM=y
 ```
 
-Adding the rover modules may lead to flash overflow, in which case you will need to disable modules that you do not plan to use (such as those related to multicopter or fixed wing).
+Adding the rover modules may lead to flash overflow, in which case you will need to disable modules that you do not plan to use (such as the multicopter or fixed-wing controllers the `vtol` class enables, by adding e.g. `# CONFIG_MODULES_FW_RATE_CONTROL is not set`).
 :::

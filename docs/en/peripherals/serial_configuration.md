@@ -125,7 +125,7 @@ PX4 firmware includes most drivers by default on [Pixhawk-series](../flight_cont
 Flash-limited boards may comment out/omit the driver (at time of writing this only affects boards based on FMUv2).
 :::
 
-You can include the missing driver in firmware by enabling the driver in the **default.px4board** config file that corresponds to the [board](https://github.com/PX4/PX4-Autopilot/tree/main/boards/px4) you want to build for.
+You can include the missing driver in firmware by enabling the driver in the **base.px4board** config file that corresponds to the [board](https://github.com/PX4/PX4-Autopilot/tree/main/boards/px4) you want to build for.
 For example, to enable the SRF02 driver, you would a the following line to the px4board.
 
 ```

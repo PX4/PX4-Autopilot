@@ -44,9 +44,9 @@ To use the Inertial Labs driver:
 1. Build the firmware with the [ilabs](../modules/modules_driver_ins.md#ilabs) module.
 
    The module is included by default for many boards.
-   You can check by searching for the keys `CONFIG_COMMON_INS` (all INS drivers) and `CONFIG_DRIVERS_INS_ILABS` (ilabs driver) in the [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6c/default.px4board#L25) configuration file for your target board.
+   You can check by searching for the keys `CONFIG_COMMON_INS` (all INS drivers) and `CONFIG_DRIVERS_INS_ILABS` (ilabs driver) in the [base.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6c/base.px4board) configuration file for your target board.
 
-   If it is not present, you can add the key to your `default.px4board` file, or include it using the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig): Drivers -> INS -> ilabs.
+   If it is not present, you can add the key to your `base.px4board` file, or include it using the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig): Drivers -> INS -> ilabs.
 
 1. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
    Make sure that nothing else is configured to use the port (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
