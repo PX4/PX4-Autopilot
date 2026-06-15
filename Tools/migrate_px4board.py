@@ -259,15 +259,26 @@ def migrate_board(default_path, apply, force):
     for cls in classes:
         layers.append(commons[cls])
         layers.append(Fragment(overlays[cls]))
+
+    # Symbols a class base force-enables (controllers, plus extras like the
+    # cannode DRIVERS_UAVCANNODE). A board that does not want one omits it from
+    # its default; its overlay then reverts it to an explicit off, so the merged
+    # config shows off where the original relied on the Kconfig default. That is
+    # equivalent because every such symbol is `default n` -- the same assumption
+    # the vehicle controllers already rely on (they are class-base-provided too).
+    class_provided_on = {s for c in commons.values()
+                         for s, v in c.assignments.items()
+                         if v not in (Fragment.UNSET, "n")}
+
     want = effective([default])
     got = effective(layers)
-    pinned_off = []
+    reverted = []
     unsafe = {}
     for s in set(want) | set(got):
         if want.get(s) == got.get(s):
             continue
-        if is_controller(s) and want.get(s) is None and got.get(s) == OFF:
-            pinned_off.append(s)
+        if s in class_provided_on and want.get(s) is None and got.get(s) == OFF:
+            reverted.append(s)
         else:
             unsafe[s] = (want.get(s), got.get(s))
     if unsafe:
@@ -276,7 +287,7 @@ def migrate_board(default_path, apply, force):
         return result
 
     result["status"] = "ok"
-    result["pinned_off"] = sorted(pinned_off)
+    result["reverted"] = sorted(reverted)
     result["moved"] = sorted(strip & set(default.assignments))
     result["overlays"] = overlays
     result["targets"] = ["%s_%s" % (rel.replace("/", "_"), cls) for cls in classes]
