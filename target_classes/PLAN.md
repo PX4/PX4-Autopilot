@@ -8,10 +8,14 @@ Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface
 merge); pushed to fork `jake` (`dakejahl/PX4-Autopilot`, NOT `origin`=upstream). `git log` for
 the head.
 
-**Status (2026-06-15) — PHASE-4 CUTOVER LANDED (commit `f914c21643`, pushed).** The
-target-class grammar is now the SOLE build vocabulary; the legacy `default` grammar is gone (all
-114 `default.px4board` deleted). A bare board name resolves to its sole class; a multi-class
-board names a class explicitly (`px4_fmu-v6x_vtol`); `default`/`base` error. What landed:
+**Status (2026-06-15) — PHASE-4 CUTOVER LANDED (commit `f914c21643`) + BOARD-CONFIG MODEL
+RE-DOCUMENTED (commit `0090c24b99`); both pushed to `jake`.** The target-class grammar is now the
+SOLE build vocabulary; the legacy `default` grammar is gone (all 114 `default.px4board` deleted)
+and the `docs/en` board-config model is migrated to match. A bare board name resolves to its sole
+class; a multi-class board names a class explicitly (`px4_fmu-v6x_vtol`); `default`/`base` error.
+**The epic is functionally complete — the only open items are (a) the ko/uk/zh translation sync
+(PX4's Crowdin workflow regenerates these from `docs/en`; NOT our work) and (b) optional cosmetic
+slimming of 17 pre-existing rover overlays (§NOT-done #2).** What landed in the cutover:
 - `px4_config.cmake` resolves bare→sole-class, errors on default/base/ambiguous, and exports
   `PX4_TARGET_CLASS` (a bare variant like `px4_sitl_test` attaches to the board's sole class).
   `kconfig.cmake` dropped the legacy `default.px4board` merge; its savedefconfig dev-tooling now
