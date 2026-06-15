@@ -17,14 +17,20 @@ the whole ark/* family is class-migrated + build-verified.** A fresh session:
    - `make ark_cannode_cannode romfs_gen_files_target` → `boardconfig` identical to
      `ark_cannode_default` (cannode romfs, no airframes dir).
 3. **Next: continue Phase 3 fan-out.** Concrete steps:
-   - **Multi-vehicle policy DECIDED = per-class targets (§3.1).** Teach `migrate_px4board.py`
-     to emit one `base` + N class overlays for a multi-class board (vtol+uuv → `<b>_vtol`
-     AND `<b>_uuv`), dropping the ~30 `mc+fw+vtol+uuv|airship|rover` boards out of MANUAL.
-     Still open: the five no-controller specials (`px4/io-v2`, `cubepilot/io-v2`,
-     `modalai/voxl2`, `modalai/voxl2-io`, `px4/ros2`) + `px4/sitl` — need `sitl`/`infra`
-     classes (special; not vehicle-controller-driven).
-   - Fan out the clean cases: `Tools/migrate_px4board.py --apply <family>` per family
-     (the remaining single-class "ok" boards), build-verify each, then commit per family.
+   - **Multi-vehicle per-class split — DONE.** `migrate_px4board.py` now emits one shared
+     `base` + N class overlays (vtol+uuv → `<b>_vtol` AND `<b>_uuv`), verified by the UNION
+     of the per-class targets reproducing `default`. Dry-run: **88 ok / 14 skip / 11 manual
+     / 2 error**. Multi-vehicle pilot `cubepilot/cubeyellow` applied + build-verified: the
+     `_vtol` (196) and `_uuv` (185) targets' enabled symbols UNION to exactly the `_default`
+     (199) set — nothing lost, nothing added; controllers + airframes cleanly partitioned.
+   - **Remaining MANUAL (11):** four no-controller boards (`px4/io-v2`, `cubepilot/io-v2`,
+     `modalai/voxl2-io`, `px4/ros2`) + seven POSIX boards (`px4/sitl` and the Linux flight
+     controllers `beaglebone/blue`, `bluerobotics/navigator`, `emlid/navio2`,
+     `px4/raspberrypi`, `modalai/voxl2`, `scumaker/pilotpi`). Need `sitl`/`infra`/`linux`
+     class decisions — not vehicle-controller splits. **(2 error:** `espressif/esp32`,
+     `nxp/mr-canhubk3` cannodes lack `DRIVERS_UAVCANNODE`; give them a revert overlay.)
+   - Fan out the 88 "ok" boards: `Tools/migrate_px4board.py --apply <family>` per family,
+     build-verify, commit per family.
    - Defer Makefile/CI grammar + cutover to Phase 4.
 
 Done in Phase 3 so far: `Tools/migrate_px4board.py` (generic `base = default −
@@ -39,10 +45,12 @@ build-verified byte-identical to its legacy `_default`. cannode base provides
 non-controller disables + board drivers (verified byte-identical). Fixed a Phase-1
 regression where `flatten_classes.py` crashed on ROMFS roots without an `airframes/` dir
 (broke all cannode builds); `Makefile` no longer enumerates `base.px4board` as a `_base`
-target.
+target. `migrate_px4board.py` extended for multi-class boards (shared base + per-class
+overlays, UNION-verified) with `cubepilot/cubeyellow` (vtol+uuv) applied as the pilot.
 
-NOT done: only ark/* + ark/pi6x are class-migrated (≈102 boards still legacy); the 37
-MANUAL boards need the policy decision above; `default.px4board` kept everywhere (legacy
+NOT done: only ark/* + ark/pi6x + cubepilot/cubeyellow are class-migrated (~100 boards
+still legacy); the 11 MANUAL boards need the sitl/infra/linux class decision;
+`default.px4board` kept everywhere (legacy
 path intact, all current targets still build); Makefile/CI/docs grammar otherwise unchanged;
 products dangle globally. Nothing merged to main. The unrelated
 `boards/ark/fpv/extras/ark_fpv_bootloader.bin` working-tree change is deliberately excluded.
