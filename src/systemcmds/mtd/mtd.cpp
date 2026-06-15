@@ -158,26 +158,42 @@ static void print_usage()
 
 int mtd_erase(mtd_instance_s &instance)
 {
-	uint8_t v[32];
-	memset(v, 0xFF, sizeof(v));
-
-	for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
-
-		uint32_t count = 0;
-		printf("Erasing %s\n", instance.partition_names[i]);
-		int fd = open(instance.partition_names[i], O_WRONLY);
-
-		if (fd == -1) {
-			PX4_ERR("Failed to open partition");
+	if (instance.bulk_erase) {
+		if (!instance.mtd_dev) {
+			PX4_ERR("MTD device not initialized");
 			return 1;
 		}
 
-		while (write(fd, v, sizeof(v)) == sizeof(v)) {
-			count += sizeof(v);
+		int ret = MTD_IOCTL(instance.mtd_dev, MTDIOC_BULKERASE, 0);
+
+		if (ret < 0) {
+			PX4_ERR("MTDIOC_BULKERASE failed: %d", ret);
+			return 1;
 		}
 
-		printf("Erased %" PRIu32 " bytes\n", count);
-		close(fd);
+		printf("Erased device via chip erase\n");
+
+	} else {
+		uint8_t v[32];
+		memset(v, 0xFF, sizeof(v));
+
+		for (uint8_t i = 0; i < instance.n_partitions_current; i++) {
+			uint32_t count = 0;
+			printf("Erasing %s\n", instance.partition_names[i]);
+			int fd = open(instance.partition_names[i], O_WRONLY);
+
+			if (fd == -1) {
+				PX4_ERR("Failed to open partition");
+				return 1;
+			}
+
+			while (write(fd, v, sizeof(v)) == sizeof(v)) {
+				count += sizeof(v);
+			}
+
+			printf("Erased %" PRIu32 " bytes\n", count);
+			close(fd);
+		}
 	}
 
 	return 0;

@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 #pragma once
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef enum  {
@@ -55,6 +56,7 @@ typedef struct  {
 typedef struct  {
 	const px4_mft_device_t  *device;
 	const uint32_t           npart;
+	const bool               bulk_erase;
 	const px4_mtd_part_t     partd[];
 } px4_mtd_entry_t;
 

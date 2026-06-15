@@ -346,6 +346,7 @@ memoryout:
 
 		uint32_t nparts = mtd_list->entries[num_entry]->npart;
 		instances[i]->devid = mtd_list->entries[num_entry]->device->devid;
+		instances[i]->bulk_erase = mtd_list->entries[num_entry]->bulk_erase;
 		instances[i]->mtd_dev = nullptr;
 		instances[i]->n_partitions_current = 0;
 

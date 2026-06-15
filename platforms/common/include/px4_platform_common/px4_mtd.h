@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 #pragma once
+#include <stdbool.h>
 #include <stdint.h>
 
 __BEGIN_DECLS
@@ -48,6 +49,7 @@ typedef struct {
 	struct mtd_dev_s **part_dev;
 	uint32_t         devid;
 	unsigned         n_partitions_current;
+	bool             bulk_erase;
 } mtd_instance_s;
 
 /*
