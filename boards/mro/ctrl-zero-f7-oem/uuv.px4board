@@ -1,1 +1,2 @@
-# Board overrides for the uuv target go here; inherits target_classes/uuv.px4board.
+CONFIG_TARGET_CLASS_UUV=y
+CONFIG_AIRFRAMES_UUV=y

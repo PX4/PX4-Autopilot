@@ -1,1 +1,2 @@
-# Board overrides for the copter target go here; inherits target_classes/copter.px4board.
+CONFIG_TARGET_CLASS_COPTER=y
+CONFIG_AIRFRAMES_COPTER=y

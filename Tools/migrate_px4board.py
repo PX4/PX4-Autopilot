@@ -3,47 +3,53 @@
 
 Splits boards/<v>/<b>/default.px4board into:
 
-  * boards/<v>/<b>/base.px4board   -- vehicle-agnostic foundation (everything
-                                      that is NOT a vehicle-class controller and
-                                      not already provided by the class base).
-  * boards/<v>/<b>/<class>.px4board -- the board's overlay for its class: the
-                                      delta between the board's controllers and
-                                      target_classes/<class>.px4board. For a board
-                                      whose controller set matches the class base
-                                      exactly this file only carries an "inherits"
-                                      comment.
+  * boards/<v>/<b>/base.px4board   -- vehicle-agnostic foundation: everything in
+                                      default that is NOT pulled in by a target
+                                      class (controllers, the cannode romfs +
+                                      uavcannode driver, the linux platform).
+  * boards/<v>/<b>/<class>.px4board -- the board's self-documenting overlay for
+                                      its class. It explicitly states:
+                                        CONFIG_TARGET_CLASS_<X>=y     (pulls the
+                                          class controllers via Kconfig)
+                                        CONFIG_AIRFRAMES_<Y>=y ...    (the airframe
+                                          classes this target ships)
+                                      plus, for a board that does not want one of
+                                      the class controllers, a `# CONFIG_MODULES_X
+                                      is not set` revert line.
 
 The resolved target then merges, in order (cmake/kconfig.cmake):
 
-    base.px4board -> target_classes/<class>.px4board -> <class>.px4board
+    base.px4board -> <class>.px4board
 
-which, by construction, reproduces the original default.px4board configuration
-(verified symbol-by-symbol before anything is written). default.px4board is left
-in place so the legacy `<board>_default` target keeps building during the
-transition.
+Setting CONFIG_TARGET_CLASS_<X>=y makes Kconfig turn on the class controllers
+(each carries `default y if TARGET_CLASS_<X>`), the cannode romfs/uavcannode
+driver (TARGET_CLASS_CANNODE) or the POSIX/Linux platform (TARGET_CLASS_LINUX).
+By construction the merge reproduces the original default.px4board configuration,
+verified symbol-by-symbol before anything is written. default.px4board is left in
+place so the legacy `<board>_default` target keeps building during the transition.
 
 The class(es) are inferred from the enabled controllers (and ROMFSROOT for
-cannode). The air controller families collapse to one class (policy A); each extra
-vehicle class becomes its own target sharing the same base:
+cannode, PLATFORM_POSIX + LINUX_TARGET for linux). The air controller families
+collapse to one class (policy A); each extra vehicle class becomes its own target
+sharing the same base:
 
-    romfsroot == "cannode"      -> cannode
-    MC only                     -> copter
-    FW only                     -> plane
-    MC + FW + VTOL              -> vtol   (the air superset)
-    MC + FW + VTOL + UUV        -> vtol AND uuv      (two targets, shared base)
-    MC + FW + VTOL + AIRSHIP    -> vtol AND airship
-    ROVER / UUV / AIRSHIP only  -> rover / uuv / spacecraft
+    romfsroot == "cannode"               -> cannode
+    PLATFORM_POSIX + BOARD_LINUX_TARGET  -> linux  (all-vehicle SBC binary)
+    MC only                              -> copter
+    FW only                              -> plane
+    MC + FW + VTOL                       -> vtol   (the air superset)
+    MC + FW + VTOL + UUV                 -> vtol AND uuv      (two targets, shared base)
+    MC + FW + VTOL + AIRSHIP             -> vtol AND airship
+    ROVER / UUV / AIRSHIP only           -> rover / uuv / spacecraft
 
-For a multi-class board, base = default minus ALL controllers, and each class gets
-its own overlay; the per-class targets are strict subsets whose UNION reproduces
-the original default (verified before writing).
+For a multi-class board, base = default minus everything the classes pull in, and
+each class gets its own overlay; the per-class targets are strict subsets whose
+UNION reproduces the original default (verified before writing).
 
-A Linux SBC flight controller (PLATFORM_POSIX + BOARD_LINUX_TARGET, carrying
-vehicle controllers) joins the single all-vehicle `linux` class. SITL, the
-muorb/QURT boards (voxl2), IO firmware and other no-controller/companion
-targets are reported as MANUAL and never written -- they need a
-`sitl`/`io`/`ros2` class decision, not a vehicle-controller split, and the
-script refuses to guess.
+SITL (plain PLATFORM_POSIX), muorb/QURT Linux boards with no apps-side controllers
+(voxl2), IO firmware and other no-controller/companion targets are reported as
+MANUAL and never written -- they need a `sitl`/`io`/`ros2` class decision, not a
+vehicle-controller split, and the script refuses to guess.
 
 Usage:
     Tools/migrate_px4board.py [--apply] [--force] [BOARD ...]
@@ -61,10 +67,10 @@ import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# A vehicle-class controller module: these move out of the board's base and into
-# the shared target_classes/<class>.px4board. CONTROL_ALLOCATOR is intentionally
-# NOT a controller here -- it is the vehicle-agnostic actuator stage and stays in
-# base (every class needs it).
+# A vehicle-class controller module: these move out of the board's base and are
+# pulled back in by CONFIG_TARGET_CLASS_<X> (each module carries `default y if
+# TARGET_CLASS_<X>` in its Kconfig). CONTROL_ALLOCATOR is intentionally NOT a
+# controller here -- it is the vehicle-agnostic actuator stage and stays in base.
 _CTRL_RE = re.compile(r"^MODULES_(MC|FW|VTOL|ROVER|UUV|AIRSHIP)_")
 
 
@@ -83,11 +89,9 @@ def controller_family(sym):
 # board is a single vtol target, not separate copter/plane/vtol targets).
 _AIR = {"mc", "fw", "vtol"}
 
-# Class -> the controller families it owns. A board that carries an extra vehicle
-# class on top of the air stack (e.g. vtol+uuv) is split into one target per
-# class, each claiming its own class base. cannode owns no controllers (its base
-# is the cannode romfs + uavcannode driver). linux is the all-vehicle Linux SBC
-# binary (every family in one target, like sitl), so it owns them all.
+# Class -> the controller families it owns (for partitioning a multi-class board's
+# controllers across its per-class overlays). cannode/linux carry their non-vehicle
+# essentials in CLASS_PROVIDES below.
 _CLASS_FAMILIES = {
     "copter": {"mc"},
     "plane": {"fw"},
@@ -99,6 +103,60 @@ _CLASS_FAMILIES = {
     "linux": {"mc", "fw", "vtol", "rover", "uuv", "airship", "spacecraft"},
     "cannode": set(),
 }
+
+_MC = ["MODULES_MC_ATT_CONTROL", "MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL",
+       "MODULES_MC_HOVER_THRUST_ESTIMATOR", "MODULES_MC_POS_CONTROL",
+       "MODULES_MC_RATE_CONTROL"]
+_FW = ["MODULES_FW_ATT_CONTROL", "MODULES_FW_AUTOTUNE_ATTITUDE_CONTROL",
+       "MODULES_FW_LATERAL_LONGITUDINAL_CONTROL", "MODULES_FW_MODE_MANAGER",
+       "MODULES_FW_RATE_CONTROL"]
+_UUV = ["MODULES_UUV_ATT_CONTROL", "MODULES_UUV_POS_CONTROL"]
+_ROVER = ["MODULES_ROVER_ACKERMANN", "MODULES_ROVER_DIFFERENTIAL",
+          "MODULES_ROVER_MECANUM"]
+
+# What CONFIG_TARGET_CLASS_<X>=y forces on, mirroring the Kconfig membership
+# (`default y if TARGET_CLASS_<X>` on each controller, plus the cannode
+# romfs/driver and the linux platform). The migrate tool models this to compute
+# the base/overlay split and to verify the layered merge reproduces `default`;
+# the ground-truth check is the real per-target boardconfig diff.
+CLASS_PROVIDES = {
+    "copter": {s: "y" for s in _MC},
+    "plane": {s: "y" for s in _FW},
+    "vtol": {s: "y" for s in _MC + _FW + ["MODULES_VTOL_ATT_CONTROL"]},
+    "rover": {s: "y" for s in _ROVER},
+    "uuv": {s: "y" for s in _UUV},
+    "spacecraft": {"MODULES_SPACECRAFT": "y"},
+    "airship": {"MODULES_AIRSHIP_ATT_CONTROL": "y"},
+    "linux": dict({s: "y" for s in _MC + _FW + ["MODULES_VTOL_ATT_CONTROL"] + _UUV},
+                  PLATFORM_POSIX="y", BOARD_LINUX_TARGET="y"),
+    "cannode": {"BOARD_ROMFSROOT": '"cannode"', "DRIVERS_UAVCANNODE": "y"},
+}
+
+# A vehicle controller -> the AIRFRAMES_<class> its presence historically turned
+# on (the old `default y if MODULES_*` cascade in ROMFS/Kconfig), now made
+# explicit per board. BALLOON stays a global `default y`; SIMULATION follows
+# PWM_OUT_SIM and is set on the relevant specials in Phase 4.
+_AIRFRAME_TRIGGERS = [
+    ("COPTER", ["MODULES_MC_RATE_CONTROL"]),
+    ("PLANE", ["MODULES_FW_RATE_CONTROL"]),
+    ("VTOL", ["MODULES_VTOL_ATT_CONTROL"]),
+    ("ROVER", _ROVER),
+    ("UUV", ["MODULES_UUV_ATT_CONTROL"]),
+    ("SPACECRAFT", ["MODULES_SPACECRAFT"]),
+    ("AIRSHIP", ["MODULES_AIRSHIP_ATT_CONTROL"]),
+]
+
+
+def airframes_for(cls, assignments):
+    """The AIRFRAMES_<X> this class's target ships: the airframe classes whose
+    trigger controller is both provided by `cls` and enabled by the board (so a
+    vtol target ships copter+plane+vtol frames, a uuv target only uuv)."""
+    provided = CLASS_PROVIDES.get(cls, {})
+    out = []
+    for name, triggers in _AIRFRAME_TRIGGERS:
+        if any(t in provided and assignments.get(t) == "y" for t in triggers):
+            out.append(name)
+    return out
 
 
 class Fragment:
@@ -124,6 +182,11 @@ class Fragment:
     def from_file(cls, path):
         with open(path) as f:
             return cls(f.read().splitlines())
+
+    @classmethod
+    def from_provides(cls, provides):
+        """Synthetic fragment modelling what a TARGET_CLASS pulls in."""
+        return cls(["CONFIG_%s=%s" % (s, v) for s, v in provides.items()])
 
     @classmethod
     def _parse(cls, line):
@@ -196,21 +259,29 @@ def infer_classes(assignments):
     return sorted(classes), sorted(families), None
 
 
-def _overlay_lines(default, common, scope):
-    """The overlay lines that make base + common reproduce `default` over the
-    symbols in `scope` (the class base's symbols plus the board's controllers for
-    that class)."""
-    lines = []
-    for sym in sorted(scope):
-        desired = default.assignments.get(sym)          # rhs, UNSET, or None
-        provided = common.assignments.get(sym)          # rhs or None
-        prov_off = provided in (None, "n", Fragment.UNSET)
+def _class_overlay(default, cls):
+    """The self-documenting overlay for `cls`: the explicit TARGET_CLASS +
+    AIRFRAMES symbols, then the board's deltas vs what the class provides over the
+    class-provided symbols plus the board's controllers in this class's families:
+    a revert for a class controller the board lacks (or the cannode uavcannode
+    driver), and an explicit `=y` for a board controller the class does not
+    provide (e.g. a board carrying the legacy/undefined MODULES_FW_POS_CONTROL)."""
+    provided = CLASS_PROVIDES[cls]
+    lines = ["CONFIG_TARGET_CLASS_%s=y" % cls.upper()]
+    for af in airframes_for(cls, default.assignments):
+        lines.append("CONFIG_AIRFRAMES_%s=y" % af)
+    cls_controllers = {s for s, v in default.assignments.items()
+                       if v == "y" and is_controller(s)
+                       and controller_family(s) in _CLASS_FAMILIES[cls]}
+    for sym in sorted(set(provided) | cls_controllers):
+        prov = provided.get(sym)
+        desired = default.assignments.get(sym)
+        if desired == prov:
+            continue
         if desired is None or desired in ("n", Fragment.UNSET):
-            # Board does not enable this symbol; revert if the class base set it.
-            if not prov_off:
+            if prov is not None and prov not in ("n", Fragment.UNSET):
                 lines.append("# CONFIG_%s is not set" % sym)
-        elif provided != desired:
-            # Board enables it; add it unless the class base already provides it.
+        else:
             lines.append("CONFIG_%s=%s" % (sym, desired))
     return lines
 
@@ -231,56 +302,36 @@ def migrate_board(default_path, apply, force):
         result["reason"] = reason
         return result
 
-    commons = {}
-    for cls in classes:
-        cpath = os.path.join(REPO_ROOT, "target_classes", cls + ".px4board")
-        if not os.path.exists(cpath):
-            result["status"] = "manual"
-            result["reason"] = "no target_classes/%s.px4board" % cls
-            return result
-        commons[cls] = Fragment.from_file(cpath)
-
     base_path = os.path.join(board_dir, "base.px4board")
     if os.path.exists(base_path) and not force:
         result["status"] = "skip"
         result["reason"] = "base.px4board already exists (use --force)"
         return result
 
-    # base = default minus every controller and every symbol any of the board's
-    # class bases provide. The remainder (board hardware, support modules,
+    # base = default minus every controller and every symbol the board's target
+    # classes pull in. The remainder (board hardware, support modules,
     # non-controller disables) is preserved verbatim and shared by all of the
     # board's per-class targets.
     controllers = {s for s, v in default.assignments.items()
                    if v == "y" and is_controller(s)}
-    common_syms = set().union(*(set(c.assignments) for c in commons.values()))
-    strip = common_syms | controllers
+    provided_syms = set().union(*(set(CLASS_PROVIDES[c]) for c in classes))
+    strip = provided_syms | controllers
     base_lines = [ln for ln in default.lines if Fragment.sym_of(ln) not in strip]
 
-    # One overlay per class: the delta over the class base's symbols plus the
-    # board's controllers that belong to that class.
-    overlays = {}
-    for cls in classes:
-        cls_controllers = {s for s in controllers
-                           if controller_family(s) in _CLASS_FAMILIES[cls]}
-        scope = set(commons[cls].assignments) | cls_controllers
-        overlays[cls] = _overlay_lines(default, commons[cls], scope)
+    overlays = {cls: _class_overlay(default, cls) for cls in classes}
 
-    # Pre-write gate: base plus every (class base + its overlay) layered together
-    # must reproduce default. For a multi-class board this is the UNION of its
+    # Pre-write gate: base plus every (class provides + its overlay) layered
+    # together must reproduce default over the controller/platform/romfs symbols.
+    # The TARGET_CLASS_<X> and AIRFRAMES_<Y> lines are intentionally new (not in
+    # default) and excluded. For a multi-class board this is the UNION of its
     # per-class targets (each individual target is a strict subset by design).
     layers = [Fragment(base_lines)]
     for cls in classes:
-        layers.append(commons[cls])
+        layers.append(Fragment.from_provides(CLASS_PROVIDES[cls]))
         layers.append(Fragment(overlays[cls]))
 
-    # Symbols a class base force-enables (controllers, plus extras like the
-    # cannode DRIVERS_UAVCANNODE). A board that does not want one omits it from
-    # its default; its overlay then reverts it to an explicit off, so the merged
-    # config shows off where the original relied on the Kconfig default. That is
-    # equivalent because every such symbol is `default n` -- the same assumption
-    # the vehicle controllers already rely on (they are class-base-provided too).
-    class_provided_on = {s for c in commons.values()
-                         for s, v in c.assignments.items()
+    class_provided_on = {s for cls in classes
+                         for s, v in CLASS_PROVIDES[cls].items()
                          if v not in (Fragment.UNSET, "n")}
 
     want = effective([default])
@@ -288,6 +339,8 @@ def migrate_board(default_path, apply, force):
     reverted = []
     unsafe = {}
     for s in set(want) | set(got):
+        if s.startswith("TARGET_CLASS_") or s.startswith("AIRFRAMES_"):
+            continue
         if want.get(s) == got.get(s):
             continue
         if s in class_provided_on and want.get(s) is None and got.get(s) == OFF:
@@ -310,14 +363,7 @@ def migrate_board(default_path, apply, force):
             f.write("\n".join(base_lines) + ("\n" if base_lines else ""))
         for cls in classes:
             with open(os.path.join(board_dir, cls + ".px4board"), "w") as f:
-                if overlays[cls]:
-                    f.write("\n".join(overlays[cls]) + "\n")
-                else:
-                    # The build needs the label fragment to exist; document that an
-                    # empty overlay simply inherits the class base (kconfig.cmake
-                    # merges base -> target_classes/<class> -> this file).
-                    f.write("# Board overrides for the %s target go here; "
-                            "inherits target_classes/%s.px4board.\n" % (cls, cls))
+                f.write("\n".join(overlays[cls]) + "\n")
     return result
 
 
@@ -351,10 +397,8 @@ def main():
 
     verb = "Wrote" if args.apply else "Would write"
     for r in by_status.get("ok", []):
-        tgts = ", ".join(
-            "%s [%s]" % (t, "inherits" if not r["overlays"][c]
-                         else "%d-line overlay" % len(r["overlays"][c]))
-            for t, c in zip(r["targets"], r["classes"]))
+        tgts = ", ".join("%s [%d-line]" % (t, len(r["overlays"][c]))
+                         for t, c in zip(r["targets"], r["classes"]))
         print("OK    %-22s moved=%-2d -> %s" % (r["board"], len(r["moved"]), tgts))
     for r in by_status.get("skip", []):
         print("SKIP  %-22s    %s" % (r["board"], r["reason"]))

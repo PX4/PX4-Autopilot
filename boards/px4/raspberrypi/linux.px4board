@@ -1,1 +1,5 @@
-# Board overrides for the linux target go here; inherits target_classes/linux.px4board.
+CONFIG_TARGET_CLASS_LINUX=y
+CONFIG_AIRFRAMES_COPTER=y
+CONFIG_AIRFRAMES_PLANE=y
+CONFIG_AIRFRAMES_VTOL=y
+CONFIG_AIRFRAMES_UUV=y

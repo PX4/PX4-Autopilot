@@ -1,1 +1,2 @@
-# Board overrides for the airship target go here; inherits target_classes/airship.px4board.
+CONFIG_TARGET_CLASS_AIRSHIP=y
+CONFIG_AIRFRAMES_AIRSHIP=y

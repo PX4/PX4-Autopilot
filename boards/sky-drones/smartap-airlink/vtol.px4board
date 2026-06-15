@@ -1,1 +1,4 @@
-# Board overrides for the vtol target go here; inherits target_classes/vtol.px4board.
+CONFIG_TARGET_CLASS_VTOL=y
+CONFIG_AIRFRAMES_COPTER=y
+CONFIG_AIRFRAMES_PLANE=y
+CONFIG_AIRFRAMES_VTOL=y
