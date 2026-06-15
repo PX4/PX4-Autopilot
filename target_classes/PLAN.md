@@ -29,9 +29,13 @@ the whole ark/* family is class-migrated + build-verified.** A fresh session:
      `px4/raspberrypi`, `modalai/voxl2`, `scumaker/pilotpi`). Need `sitl`/`infra`/`linux`
      class decisions — not vehicle-controller splits. **(2 error:** `espressif/esp32`,
      `nxp/mr-canhubk3` cannodes lack `DRIVERS_UAVCANNODE`; give them a revert overlay.)
-   - Fan out the 88 "ok" boards: `Tools/migrate_px4board.py --apply <family>` per family,
-     build-verify, commit per family.
-   - Defer Makefile/CI grammar + cutover to Phase 4.
+   - **Fan-out DONE:** all 87 remaining "ok" boards migrated in one sweep (102 boards now
+     have base.px4board; purely additive, default.px4board kept). Spot build-verified per
+     class: copter/vtol/cannode reproduce the legacy `_default` boardconfig (modulo Label),
+     multi-class vtol+uuv unions to it, a flipped non-ark rover variant is byte-identical.
+   - **Now remaining:** (a) the 11 MANUAL specials (sitl/infra/linux classes) + 2 cannode
+     errors (revert overlay); (b) **Phase 4** — Makefile/CI grammar + cutover (error on
+     base/default/bare, target enumeration, ~15 workflows, Tools, docs; §7).
 
 Done in Phase 3 so far: `Tools/migrate_px4board.py` (generic `base = default −
 symbols(target_classes/<class>) − controllers`, overlay = delta, with a symbol-level
@@ -46,10 +50,10 @@ non-controller disables + board drivers (verified byte-identical). Fixed a Phase
 regression where `flatten_classes.py` crashed on ROMFS roots without an `airframes/` dir
 (broke all cannode builds); `Makefile` no longer enumerates `base.px4board` as a `_base`
 target. `migrate_px4board.py` extended for multi-class boards (shared base + per-class
-overlays, UNION-verified) with `cubepilot/cubeyellow` (vtol+uuv) applied as the pilot.
+overlays, UNION-verified), then **all 102 vehicle boards migrated** (single + multi-class).
 
-NOT done: only ark/* + ark/pi6x + cubepilot/cubeyellow are class-migrated (~100 boards
-still legacy); the 11 MANUAL boards need the sitl/infra/linux class decision;
+NOT done: 13 boards still legacy (11 MANUAL specials needing the sitl/infra/linux class
+decision + 2 cannode errors needing a uavcannode revert overlay);
 `default.px4board` kept everywhere (legacy
 path intact, all current targets still build); Makefile/CI/docs grammar otherwise unchanged;
 products dangle globally. Nothing merged to main. The unrelated
