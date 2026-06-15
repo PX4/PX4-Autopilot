@@ -56,10 +56,16 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 {
 	if (num_vertices < 3
 	    || _num_polygons >= kMaxPolygons
-	    || _num_nodes + num_vertices > kMaxNodes) {
-		// TODO: reject any polygon whose vertices are outside the usable fixed-point range,
-		// i.e. if any entries are >= 2^30 cm
+	    || _num_nodes + num_vertices > kMaxNodes
+	    || margin < -FLT_EPSILON) {
 		return false;
+	}
+
+	// Reject vertices outside the usable fixed-point range (see inFixedPointRange).
+	for (int i = 0; i < num_vertices; ++i) {
+		if (!inFixedPointRange(vertices_in[i](0)) || !inFixedPointRange(vertices_in[i](1))) {
+			return false;
+		}
 	}
 
 	// Canonical orientation: walking vertices in stored order, INSIDE is on
@@ -76,13 +82,6 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 	PolygonInfo &poly = _polygons[_num_polygons];
 	poly.start_index  = _num_nodes;
 	poly.is_inclusion = is_inclusion_zone;
-
-	if (margin < -FLT_EPSILON) {
-		// Negative margin makes no sense, would move vertices into illegal region
-		// Zero margin might be desired sometimes
-		return false;
-	}
-
 
 	int out_idx = 0;
 
@@ -212,7 +211,9 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 				   ? circle_radius - margin
 				   : circle_radius / cosf(M_PI_F / kCircleApproxVertices) + margin;
 
-	if (k_gon_radius <= FLT_EPSILON) {
+	if (k_gon_radius <= FLT_EPSILON  // Negative radius - circle empty
+	    || !inFixedPointRange(fabsf(center(0)) + k_gon_radius)
+	    || !inFixedPointRange(fabsf(center(1)) + k_gon_radius)) {
 		return false;
 	}
 

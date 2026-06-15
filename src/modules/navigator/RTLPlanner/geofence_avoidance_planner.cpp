@@ -199,6 +199,12 @@ bool GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 	matrix::Vector2f dest_local;
 	ref.project(destination(0), destination(1), dest_local(0), dest_local(1));
 
+	if (!geofence_utils::inFixedPointRange(dest_local(0))
+	    || !geofence_utils::inFixedPointRange(dest_local(1))) {
+		_destination_healthy = false;
+		return false;
+	}
+
 	// PlannerPolygons stores positions in int32-cm - a roundtrip through
 	// setDestination/getDestination thus introduces up to 0.5cm of error,
 	// hence the higher comparison tolerance.

@@ -349,7 +349,8 @@ TEST_F(GeofenceAvoidancePlannerTest, DuplicateNeighborVertex)
 
 	const int num_waypoints = _planner.updateStartAndFillPath(start);
 
-	// THEN the pathplanner should fail
+	// THEN the pathplanner should fail, printing:
+	// WARN  [geofence_avoidance_planner] geofence avoidance: polygon 0 (7 vertices) rejected by planner
 	ASSERT_EQ(num_waypoints, 0);
 }
 

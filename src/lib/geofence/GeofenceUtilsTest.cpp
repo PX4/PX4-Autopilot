@@ -255,3 +255,52 @@ TEST(GeofenceUtilsTest, LShapeSegmentTangentThroughConvexVertex)
 	// Tangent at both (1, 2) and (2, 1)
 	expectSegmentVsPolygon(kLShape, 6, {0.f, 3.f}, {3.f, 0.f}, true, false);
 }
+
+// ===========================================================================
+// addPolygon rejects input out of bounds
+// ===========================================================================
+
+TEST(GeofenceUtilsTest, AddPolygonRejectsOutOfBounds)
+{
+	// Square inside of bounds, 10000 km.
+	float extent = 10000 * 1000; // km to m
+	const Vector2f square[4] = {{0.f, 0.f}, {extent, 0.f}, {extent, extent}, {0.f, extent}};
+
+	geofence_utils::PlannerPolygons polys;
+	EXPECT_TRUE(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+
+	// Square out of bounds, 12000 km.
+	extent = 12000 * 1000;
+	const Vector2f square_larger[4] = {{0.f, 0.f}, {extent, 0.f}, {extent, extent}, {0.f, extent}};
+
+	geofence_utils::PlannerPolygons polys_larger;
+	EXPECT_FALSE(polys_larger.addPolygon(square_larger, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+}
+
+TEST(GeofenceUtilsTest, AddApproxCircleRejectsOutOfBounds)
+{
+	// 100m circle at origin with 10m margin - works
+	geofence_utils::PlannerPolygons polys0;
+	EXPECT_TRUE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 100.0f, 10.0f, false));
+
+	// 5000km circle -- same
+	EXPECT_TRUE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 5000.f * 1000.f, 10.0f, false));
+
+	// 10000km circle -- fails (circle is within range but approx circle not)
+	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 10000.f * 1000.f, 10.0f, false));
+
+	// 12000km circle -- fails
+	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 12000.f * 1000.f, 10.0f, false));
+
+	// 10000km circle, 2000 km margin (outwards, exclusion zone) -- fails
+	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 12000.f * 1000.f, 2000.f * 1000.f, false));
+
+	// 2000km circle 10000km out - fails
+	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 2000.f * 1000.f, 10.f, false));
+
+	// 100km circle 10000km out - works
+	EXPECT_TRUE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 10.f, false));
+
+	// 100km circle 10000km out, 1000km margin - fails
+	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 1000.f * 1000.f, false));
+}

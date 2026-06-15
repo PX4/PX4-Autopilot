@@ -51,6 +51,11 @@ namespace geofence_utils
 
 static constexpr float CM_PER_M  = 100.f;
 
+// True iff `m_value` (metres) fits into the planner's fixed-point
+// representation. intersectsInsideOf doubles cm coordinates internally, so the
+// usable range is 2^30 cm = 10,737 km from the planner's reference.
+inline bool inFixedPointRange(float m_value) { return fabsf(m_value) < (1u << 30) / CM_PER_M; }
+
 /**
  * Sign of the signed area of triangle abc -- the fundamental 2D orientation
  * predicate. Returns:
