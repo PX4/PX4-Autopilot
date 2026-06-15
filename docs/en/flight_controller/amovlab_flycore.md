@@ -311,7 +311,7 @@ make amovlab_flycore_bootloader
 
 ## Bootloader / Board ID
 
-- **Board ID:** 106 (`boards/amovlab/flycore/firmware.prototype`)
+- **Board ID:** 1218 (`boards/amovlab/flycore/firmware.prototype`)
 - **Bootloader USB product string:** `PX4 BL AMOV FLYCORE`
 
 ## Default Airframe
