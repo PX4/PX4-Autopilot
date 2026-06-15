@@ -124,7 +124,7 @@ def main(kconfig_file, fragments):
 
     # Create a merged configuration by layering the fragments in order with
     # replace=False; later fragments override earlier ones. The chain is
-    # base.px4board -> boards/common/<class>.px4board -> board <class> overlay
+    # base.px4board -> target_classes/<class>.px4board -> board <class> overlay
     # -> optional <class>.<variant> overlay (a plain default+label build is just
     # two fragments). Every fragment after the base may also revert symbols via
     # "# CONFIG_X is not set"; the base itself is the foundation and is loaded
