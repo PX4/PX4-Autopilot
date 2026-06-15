@@ -303,4 +303,27 @@ TEST(GeofenceUtilsTest, AddApproxCircleRejectsOutOfBounds)
 
 	// 100km circle 10000km out, 1000km margin - fails
 	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 1000.f * 1000.f, false));
+
+}
+
+// ===========================================================================
+// addPolygon rejects non-simple input
+// ===========================================================================
+
+TEST(GeofenceUtilsTest, AddPolygonRejectsSelfIntersecting)
+{
+	// Figure-eight quadrilateral: 0->1->2->3 with edges (0,1) and (2,3) crossing.
+	const Vector2f figure_eight[4] = {{0.f, 0.f}, {10.f, 10.f}, {10.f, 0.f}, {0.f, 10.f}};
+
+	geofence_utils::PlannerPolygons polys;
+	EXPECT_FALSE(polys.addPolygon(figure_eight, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+}
+
+TEST(GeofenceUtilsTest, AddPolygonAcceptsSimpleQuad)
+{
+	// Convex simple quadrilateral; must succeed.
+	const Vector2f square[4] = {{0.f, 0.f}, {10.f, 0.f}, {10.f, 10.f}, {0.f, 10.f}};
+
+	geofence_utils::PlannerPolygons polys;
+	EXPECT_TRUE(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
 }

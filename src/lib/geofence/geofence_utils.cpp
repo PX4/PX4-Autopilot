@@ -61,8 +61,27 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		return false;
 	}
 
-	// Reject vertices outside the usable fixed-point range (see inFixedPointRange).
 	for (int i = 0; i < num_vertices; ++i) {
+		// Reject self-intersecting (non-simple) polygons.
+		const matrix::Vector2f &a = vertices_in[i];
+		const matrix::Vector2f &b = vertices_in[(i + 1) % num_vertices];
+
+		for (int j = i + 2; j < num_vertices; ++j) {
+			if (i == 0 && j == num_vertices - 1) {
+				continue; // (last edge, first edge) are adjacent
+			}
+
+			const matrix::Vector2f &c = vertices_in[j];
+			const matrix::Vector2f &d = vertices_in[(j + 1) % num_vertices];
+
+			if (segmentsIntersect(
+				    metersToCm(a(0)), metersToCm(a(1)), metersToCm(b(0)), metersToCm(b(1)),
+				    metersToCm(c(0)), metersToCm(c(1)), metersToCm(d(0)), metersToCm(d(1))) != SegSegResult::Disjoint) {
+				return false;
+			}
+		}
+
+		// Reject vertices outside the usable fixed-point range
 		if (!inFixedPointRange(vertices_in[i](0)) || !inFixedPointRange(vertices_in[i](1))) {
 			return false;
 		}
