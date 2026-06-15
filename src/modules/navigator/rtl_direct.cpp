@@ -273,7 +273,6 @@ void RtlDirect::set_rtl_item()
 			const matrix::Vector2d next_point = planner.getNextWaypoint();
 			const bool is_first_waypoint = 0 == planner.getPathCursor();
 			planner.advanceWaypoint();
-			const bool is_last_waypoint = !planner.hasMore();
 
 			if (!point.isAllFinite()) {
 				// Should never happen, fall back to RTLing straight.
@@ -299,7 +298,7 @@ void RtlDirect::set_rtl_item()
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 
 			// Line following only between points on the path, not when flying to the first point
-			if (is_first_waypoint || is_last_waypoint) {
+			if (is_first_waypoint) {
 				_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 			} else {
