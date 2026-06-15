@@ -1,0 +1,1 @@
+# Board overrides for the linux target go here; inherits target_classes/linux.px4board.
