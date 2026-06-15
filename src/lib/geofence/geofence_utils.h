@@ -50,7 +50,6 @@ namespace geofence_utils
 {
 
 static constexpr float CM_PER_M  = 100.f;
-static constexpr float M_PER_CM = 1 / CM_PER_M;
 
 /**
  * Sign of the signed area of triangle abc -- the fundamental 2D orientation
@@ -275,7 +274,7 @@ public:
 
 	matrix::Vector2f node(int idx) const
 	{
-		return matrix::Vector2f{_x_cm[idx] *M_PER_CM, _y_cm[idx] *M_PER_CM};
+		return matrix::Vector2f{_x_cm[idx] / CM_PER_M, _y_cm[idx] / CM_PER_M};
 	}
 
 	// Update the destination position. Always safe to call after reset().
