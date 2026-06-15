@@ -3,7 +3,7 @@ import argparse, json, os, re, sys
 from typing import Dict
 
 _VEHICLE_LABELS = frozenset({
-    "multicopter", "fixedwing", "vtol", "rover", "uuv", "spacecraft",
+    "copter", "fixedwing", "vtol", "rover", "uuv", "spacecraft", "airship",
 })
 _BOOTLOADER_LABELS = frozenset({
     "bootloader", "canbootloader",
