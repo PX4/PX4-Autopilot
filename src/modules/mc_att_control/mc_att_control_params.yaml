@@ -99,11 +99,9 @@ parameters:
       description:
         short: Attitude reference-model natural frequency
         long: |-
-          Natural frequency of the 2nd-order critically-damped reference model
-          that smooths the attitude setpoint and produces the feed-forward
-          angular rate. Higher values track the raw setpoint more aggressively
-          (less lag, smaller ramp tracking error) but demand more peak rate
-          from the inner rate loop.
+          Bandwidth of the reference model that smooths the attitude setpoint
+          and generates the rate feed-forward. Higher = less lag, more peak
+          rate demand.
       type: float
       default: 50.0
       unit: rad/s
@@ -115,8 +113,7 @@ parameters:
       description:
         short: Attitude reference-model feed-forward gain
         long: |-
-          Scaling applied to the ref-model's angular-velocity feed-forward
-          contribution to the rate setpoint.
+          Scale on the reference-model rate feed-forward. 0 disables it.
       type: float
       default: 1.0
       min: 0.0
@@ -127,9 +124,7 @@ parameters:
       description:
         short: Feed-forward angular-rate cap; 0 = disabled
         long: |-
-          Per-axis cap on the angular-velocity feed-forward contribution to the
-          rate setpoint. Size it from the inner rate loop's headroom (e.g. a
-          fraction of MC_*RATE_MAX).
+          Per-axis cap on the rate feed-forward.
       type: float
       default: 100.0
       unit: deg/s
