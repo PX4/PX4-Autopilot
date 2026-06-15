@@ -508,25 +508,18 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 			_yaw_lock_engaged = false;
 		}
 
-		if (previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION
-		    && previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_ALTITUDE) {
-			// forget any prior MAV_CMD_DO_CHANGE_SPEED override when entering manual airspeed control from outside
-			_commanded_manual_airspeed_setpoint = NAN;
-		}
-
 		_control_mode_current = FW_POSCTRL_MODE_MANUAL_POSITION;
 
 	} else if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
-		if (previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION
-		    && previous_position_control_mode != FW_POSCTRL_MODE_MANUAL_ALTITUDE) {
-			// forget any prior MAV_CMD_DO_CHANGE_SPEED override when entering manual airspeed control from outside
-			_commanded_manual_airspeed_setpoint = NAN;
-		}
 
 		_control_mode_current = FW_POSCTRL_MODE_MANUAL_ALTITUDE;
 
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+	}
+
+	if (_control_mode_current != previous_position_control_mode) {
+		_commanded_manual_airspeed_setpoint = NAN;
 	}
 }
 
