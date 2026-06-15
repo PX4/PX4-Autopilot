@@ -2,6 +2,7 @@
 #
 # @name Cloudship
 # @type Airship
+# @class Airship
 #
 # @output Motor1 starboard thruster
 # @output Motor2 port thruster

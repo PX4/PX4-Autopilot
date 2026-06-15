@@ -3,6 +3,7 @@
 # @name Generic Hexarotor coaxial geometry
 #
 # @type Hexarotor Coaxial
+# @class Copter
 #
 # @output Motor1 front right top, CW; angle:60; direction:CW
 # @output Motor2 front right bottom, CCW; angle:60; direction:CCW

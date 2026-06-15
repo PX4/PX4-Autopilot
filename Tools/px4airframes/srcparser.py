@@ -303,34 +303,6 @@ class SourceParser(object):
         """
         return ["", ".hil"]
 
-    # Maps an airframe class directory name to the display class used in the
-    # generated metadata. Airframes filed under .../airframes/<dir>/ inherit
-    # this class without needing an explicit @class tag.
-    class_dir_map = {
-        "copter": "Copter",
-        "plane": "Plane",
-        "vtol": "VTOL",
-        "rover": "Rover",
-        "uuv": "Underwater Robot",
-        "spacecraft": "Spacecraft",
-        "airship": "Airship",
-        "balloon": "Balloon",
-        "simulation": "Simulation",
-    }
-
-    def GetClassFromDir(self, path):
-        """
-        Derive the airframe class from its parent directory, i.e. the <class>
-        in .../airframes/<class>/<file>. Returns None when the file is not
-        filed under a recognized class directory.
-        """
-        parts = os.path.normpath(path).split(os.sep)
-        if "airframes" in parts:
-            idx = parts.index("airframes")
-            if idx + 2 < len(parts):  # airframes/<class>/<file>
-                return self.class_dir_map.get(parts[idx + 1])
-        return None
-
     def Parse(self, path, contents):
         """
         Incrementally parse program contents and append all found airframes
@@ -447,14 +419,7 @@ class SourceParser(object):
             return False
 
         if airframe_class == None:
-            airframe_class = self.GetClassFromDir(path)
-            if airframe_class is not None:
-                # Expose the directory-derived class as a tag so the field loop
-                # below emits it in the metadata exactly like an explicit @class.
-                tags["class"] = airframe_class
-
-        if airframe_class == None:
-            sys.stderr.write("Aborting: '%s' has no @class tag and is not under an airframes/<class>/ directory\n" % path)
+            sys.stderr.write("Aborting due to missing @class tag in file: '%s'\n" % path)
             return False
 
         if airframe_name == None:

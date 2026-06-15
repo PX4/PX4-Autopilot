@@ -31,37 +31,56 @@
 #
 ############################################################################
 
-# Airframes are filed by vehicle class in per-class subdirectories. A class
-# directory is added to the ROMFS only when its CONFIG_AIRFRAMES_<class> option
-# is set (see ROMFS/Kconfig); the option defaults follow the controller modules
-# so existing configs ship the same set. The build flattens these directories
-# back into /etc/init.d/airframes/ so the runtime layout is unchanged.
-#
-# Product/vendor-specific airframes that are not generally useful stay loose in
-# this directory (no class subdir) and are intentionally not built. A board that
-# needs one copies it into boards/<vendor>/<model>/init/airframes/.
+# Airframes live flat in this directory; each carries an `@class` header naming
+# its vehicle class. A frame is added to the ROMFS iff the matching
+# CONFIG_AIRFRAMES_<class> option is set (see ROMFS/Kconfig) -- inclusion is
+# explicit per target and fully decoupled from which controllers are compiled in.
+# Product/vendor frames carry `@class` too and ship with their class. A frame
+# whose `@class` has no AIRFRAMES_<class> option (e.g. Autogyro) ships nowhere
+# (intentionally unwired). HITL airframes (*.hil) ship under AIRFRAMES_SIMULATION
+# regardless of the vehicle `@class` in their header.
 
-set(airframe_classes
-	"copter:AIRFRAMES_COPTER"
-	"plane:AIRFRAMES_PLANE"
-	"vtol:AIRFRAMES_VTOL"
-	"rover:AIRFRAMES_ROVER"
-	"uuv:AIRFRAMES_UUV"
-	"spacecraft:AIRFRAMES_SPACECRAFT"
-	"airship:AIRFRAMES_AIRSHIP"
-	"balloon:AIRFRAMES_BALLOON"
-	"simulation:AIRFRAMES_SIMULATION"
-)
+file(GLOB airframe_files RELATIVE ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/*)
+list(REMOVE_ITEM airframe_files CMakeLists.txt)
 
-foreach(entry ${airframe_classes})
-	string(REPLACE ":" ";" entry "${entry}")
-	list(GET entry 0 class_dir)
-	list(GET entry 1 class_option)
+set(selected_airframes)
+foreach(frame ${airframe_files})
+	if(frame MATCHES "\\.hil$")
+		set(option AIRFRAMES_SIMULATION)
+	else()
+		file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/${frame} class_line LIMIT_COUNT 1 REGEX "@class")
+		if(NOT class_line)
+			continue() # no @class header -> not shipped
+		endif()
+		string(REGEX REPLACE "^.*@class" "" class_name "${class_line}")
+		string(STRIP "${class_name}" class_name)
 
-	if(CONFIG_${class_option})
-		file(GLOB class_files RELATIVE ${CMAKE_CURRENT_LIST_DIR} ${class_dir}/*)
-		if(class_files)
-			px4_add_romfs_files(${class_files})
+		if(class_name STREQUAL "Copter")
+			set(option AIRFRAMES_COPTER)
+		elseif(class_name STREQUAL "Plane")
+			set(option AIRFRAMES_PLANE)
+		elseif(class_name STREQUAL "VTOL")
+			set(option AIRFRAMES_VTOL)
+		elseif(class_name STREQUAL "Rover")
+			set(option AIRFRAMES_ROVER)
+		elseif(class_name STREQUAL "Underwater Robot")
+			set(option AIRFRAMES_UUV)
+		elseif(class_name STREQUAL "Spacecraft")
+			set(option AIRFRAMES_SPACECRAFT)
+		elseif(class_name STREQUAL "Airship")
+			set(option AIRFRAMES_AIRSHIP)
+		elseif(class_name STREQUAL "Balloon")
+			set(option AIRFRAMES_BALLOON)
+		else()
+			continue() # @class with no AIRFRAMES_<class> option (e.g. Autogyro)
 		endif()
 	endif()
+
+	if(CONFIG_${option})
+		list(APPEND selected_airframes ${frame})
+	endif()
 endforeach()
+
+if(selected_airframes)
+	px4_add_romfs_files(${selected_airframes})
+endif()

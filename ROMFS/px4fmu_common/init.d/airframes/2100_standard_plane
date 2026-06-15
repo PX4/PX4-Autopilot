@@ -3,6 +3,7 @@
 # @name Generic Standard Plane
 #
 # @type Standard Plane
+# @class Plane
 #
 # @board bitcraze_crazyflie exclude
 #

@@ -3,6 +3,7 @@
 # @name Generic Hexarotor + geometry
 #
 # @type Hexarotor +
+# @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #

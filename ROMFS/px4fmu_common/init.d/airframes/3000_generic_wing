@@ -3,6 +3,7 @@
 # @name Generic Flying Wing
 #
 # @type Flying Wing
+# @class Plane
 #
 # @board bitcraze_crazyflie exclude
 #

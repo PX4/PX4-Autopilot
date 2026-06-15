@@ -142,8 +142,6 @@ add_custom_command(
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
 		--board ${PX4_BOARD}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px4airframes/flatten_classes.py
-		${romfs_gen_root_dir}/init.d/airframes
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
@@ -156,7 +154,6 @@ add_custom_command(
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
 	DEPENDS
 		${romfs_tar_file}
-		${PX4_SOURCE_DIR}/Tools/px4airframes/flatten_classes.py
 		${board_airframes_files}
 	COMMENT "ROMFS: copying, generating airframes"
 	)
