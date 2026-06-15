@@ -52,7 +52,8 @@ membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), mo
   are the supported path; `_default` goes away at Phase-4 cutover. SITL/Linux unaffected
   (init.d-posix airframes, a separate flat ungated list).
 
-A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script spec), §7 (Phase-4).
+A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script spec), §7 (Phase-4),
+§9 (PR #25414 firmware-manifest alignment — the two-axis role/artifact model).
 
 ### State check (all exit 0)
 - `python3 Tools/migrate_px4board.py` (dry run) → `0 ok, 114 skip, 1 manual, 0 error` (skips =
@@ -375,3 +376,48 @@ docs-orchestrator,ros_integration_tests}.yml`, `.github/actions/{build-deb,build
 - `vtol`-as-superset naming wart. · Flash unchanged under (A); narrow classes later for savings.
 - `file(GLOB)` won't re-cmake on new airframe until reconfigure (matches existing extras).
 - Transition: dual grammar (default + class) coexists through Phase 3.
+
+## 9. PR #25414 (firmware manifest) alignment
+PR #25414 (mrpollo / Ramon Roche — "feat(manifest): embed per-build metadata and publish
+unified firmware manifest"; QGC companion qgc#13966) generates per-build metadata (`variant`,
+`firmware_category`, `label_pretty`, hardware IDs), embeds it in each `.px4`, and aggregates a
+unified S3 manifest QGC consumes. It currently DERIVES the taxonomy from label-string
+heuristics: `_VEHICLE_LABELS = {multicopter, fixedwing, vtol, rover, uuv, spacecraft}` (old
+vocabulary — `copter`/`plane` vs `multicopter`/`fixedwing`, and **`airship` is missing** →
+micoair boards mis-file as `dev` + warn), `ROMFSROOT=="cannode"` → peripheral, else `dev`; and
+sets `CONFIG_BOARD_LABEL_PRETTY` by hand (their own follow-up = ~258 `.px4board` files). It
+already added an `artifact_type` field (foreseeing "VOXL2 `.deb`").
+
+**Reframe — two orthogonal axes; this redesign owns both sources of truth:**
+- **role** = `CONFIG_TARGET_CLASS_<X>` → manifest `firmware_category`.
+- **artifact** = `CONFIG_PLATFORM_*` (+ `BOARD_LINUX_TARGET` / `cmake/package.cmake`) →
+  manifest `artifact_type`. Not every target is a QGC-flashable MCU `.px4`:
+
+| target group | PLATFORM | emits | QGC-flashable | category |
+|---|---|---|---|---|
+| copter/plane/vtol/rover/uuv/spacecraft/airship | nuttx | `.px4` MCU | yes (serial) | vehicle |
+| cannode | nuttx | `.px4` MCU | yes | peripheral |
+| io | nuttx (cortex-m3) | MCU blob | embedded in FMU | peripheral |
+| bootloader | nuttx | `.px4` (bl) | yes | bootloader |
+| sitl | posix | host exe | no | dev |
+| ros2 | ros2 | colcon libs | no | dev |
+| linux SBC | posix+linux | cross exe/tarball | no (copy to SBC) | vehicle |
+| voxl2 | posix+linux + qurt | `.deb` (on-device) | no | vehicle |
+
+**Alignment actions (do NOT edit #25414 unprompted — coordinate with mrpollo):**
+1. `detect_firmware_category` reads `CONFIG_TARGET_CLASS_<X>` first (authoritative); keep the
+   string heuristics only as the fallback for un-migrated boards, then drop `_VEHICLE_LABELS`.
+2. Carry `CONFIG_BOARD_LABEL_PRETTY` (+ `CONFIG_BOARD_FIRMWARE_CATEGORY` for non-vehicle) IN the
+   `target_classes/<class>.px4board` fragments — the fragment already defines the target's
+   identity, so every board in a class gets correct manifest metadata for free; their ~258-file
+   follow-up collapses to ~13 class entries.
+3. `variant` = class name (aligned post-cutover); ensure #25414's vocabulary = our class names
+   (copter/plane/…), not multicopter/fixedwing, and add `airship`.
+4. Add NO new `artifact_type` symbol — it derives from `PLATFORM`; the manifest publishes the
+   distributable subset keyed on the two axes.
+
+**Cutover coupling (the one hard dependency):** `modalai/voxl2` is a `.deb`/on-device distributed
+build (SLPI DSP `slpi` + ARM64 apps `default`), not a vehicle class — keep the carve-out, but its
+apps target needs a **non-`default` label by the cutover** (the cutover errors on `default`); when
+the manifest reaches it, set `artifact_type=deb`, `firmware_category=vehicle`. ros2/sitl are `dev`
+artifacts (not firmware, not QGC-distributable) — their class is just a platform marker.
