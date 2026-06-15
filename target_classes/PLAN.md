@@ -9,6 +9,14 @@ merge). **109 boards migrated (102 vehicle + 2 cannode + 5 Linux); remaining = 6
 boards, all deferred to Phase 4 (cutover).** Additive — `default.px4board` is kept, so every
 legacy `<board>_default` still builds (but see the airframe caveat below).
 
+**Status (2026-06-15): the controller-membership rework is COMPLETE and pushed.** Controllers
+come from `target_classes/<class>.px4board` fragments (merged by class name in kconfig.cmake)
+and module Kconfigs are fully decoupled from `TARGET_CLASS` — see the design block + State check
+below. PR #27667 head `0ea7306d2b` (3 commits: restore fragments+cmake / decouple modules /
+strip overlays). The fork remote is `jake` (`dakejahl/PX4-Autopilot`), NOT `origin` (upstream) —
+push there. No in-flight work; next open items are the 6 specials and the Phase-4 cutover
+(§NOT done / §7).
+
 **Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling. Controller
 membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), modules decoupled:**
 - A class target = `base.px4board` + `target_classes/<class>.px4board` + `<board>/<class>.px4board`.
@@ -36,7 +44,8 @@ membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), mo
 A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script spec), §7 (Phase-4).
 
 ### State check (all exit 0)
-- `python3 Tools/migrate_px4board.py` (dry run) → `0 ok, 109 skip, 6 manual, 0 error`.
+- `python3 Tools/migrate_px4board.py` (dry run) → `0 ok, 109 skip, 6 manual, 0 error` (skips =
+  already migrated); `… --force` re-verifies the merge model → `109 ok, 0 error`.
 - `make px4_fmu-v6x_vtol romfs_gen_files_target` → `boardconfig` == `px4_fmu-v6x_default`
   EXCLUDING `# Label:` and the now-decoupled `CONFIG_AIRFRAMES_*`/`CONFIG_TARGET_CLASS_*`
   lines; the generated `etc/init.d/airframes/` set is the 36 Copter+Plane+VTOL+Balloon frames
@@ -89,6 +98,14 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
    (`cmake/px4_config.cmake`), Makefile target-list rework + `all:`, relabel pre-redesign
    variants → `<class>.<variant>`, ~15 workflows, Tools scripts, docs. `default.px4board`
    stays until this lands.
+3. **Optional — slim the 17 "slimmed" rover overlays** (`px4/fmu-v6x|v6c|v6u|v6xrt|v5x|v4|v3|v2`,
+   `ark/{fmu-v6s,fmu-v6x,fpv,pi6x}`, `auterion/{fmu-v6s,fmu-v6x}`, `x-mav/ap-h743r1`): pre-redesign
+   rover variants on air boards, no rover controllers in `default`, so the tool does not regenerate
+   them. Under the fragment merge they now correctly pull the rover controllers by the `rover`
+   filename (a latent fix — several were controller-less under the Kconfig-coupling design); each
+   resolves to a clean rover (rover ctrls on, air off, smaller than `_default`). Either canonicalize
+   them (drop the now-redundant explicit rover-controller / air-disable lines the fragment supplies)
+   or leave as-is — does not block Phase 4.
 
 ### Housekeeping
 - The unrelated `boards/ark/fpv/extras/ark_fpv_bootloader.bin` working-tree change is
