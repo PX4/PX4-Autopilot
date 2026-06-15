@@ -47,14 +47,15 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		# The label's leading dot-component is the target class (e.g. "copter" for
 		# both "copter" and "copter.mavlink-dev").
 		string(REGEX REPLACE "\\..*" "" PX4_TARGET_CLASS "${LABEL}")
-		set(class_base "${PX4_SOURCE_DIR}/target_classes/${PX4_TARGET_CLASS}.px4board")
 		set(board_base "${PX4_BOARD_DIR}/base.px4board")
 
-		if(EXISTS "${board_base}" AND EXISTS "${class_base}")
-			# Class-based target: merge base.px4board -> target_classes/<class>.px4board
-			# -> optional board <class> overlay -> the resolved label fragment.
-			set(merge_fragments "${board_base}" "${class_base}")
-			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_base} ${class_base})
+		if(EXISTS "${board_base}")
+			# Class-based target: merge base.px4board -> optional board <class>
+			# overlay -> the resolved label fragment. The overlay sets
+			# CONFIG_TARGET_CLASS_<class>=y (which pulls the class controllers via
+			# Kconfig) and the explicit CONFIG_AIRFRAMES_<class>=y set.
+			set(merge_fragments "${board_base}")
+			set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${board_base})
 
 			# When building a variant (<class>.<variant>), also layer the board's
 			# plain <class> overlay underneath it if present.
