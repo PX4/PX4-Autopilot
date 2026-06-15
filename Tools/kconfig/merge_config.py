@@ -78,7 +78,7 @@ import pprint
 def _re_match(regex):
     return re.compile(regex, re.ASCII).match
 
-from kconfiglib import Kconfig, BOOL, TRISTATE, TRI_TO_STR
+from kconfiglib import Kconfig, BOOL, TRISTATE, TRI_TO_STR, expr_value
 
 def _revert_unset_symbols(kconf, fragment_path):
     # PX4 extension: stock kconfiglib only honors "# CONFIG_X is not set" for
@@ -98,7 +98,10 @@ def _revert_unset_symbols(kconf, fragment_path):
 
                     if kconf.syms[sym_name].type is BOOL:
                         for default, cond in kconf.syms[sym_name].orig_defaults:
-                            if(cond.str_value == 'y'):
+                            # expr_value handles a compound condition (a tuple,
+                            # e.g. `default y if TARGET_CLASS_COPTER || ...`); a
+                            # bare Symbol cond evaluates the same as before.
+                            if expr_value(cond) == 2:
                                 # Default is y, our diff is unset thus we've set it to no
                                 kconf.syms[sym_name].set_value(0)
                 except KeyError:
