@@ -98,9 +98,8 @@ def _revert_unset_symbols(kconf, fragment_path):
 
                     if kconf.syms[sym_name].type is BOOL:
                         for default, cond in kconf.syms[sym_name].orig_defaults:
-                            # expr_value handles a compound condition (a tuple,
-                            # e.g. `default y if TARGET_CLASS_COPTER || ...`); a
-                            # bare Symbol cond evaluates the same as before.
+                            # expr_value evaluates both a bare Symbol condition and
+                            # a compound one (a tuple, e.g. `default y if A || B`).
                             if expr_value(cond) == 2:
                                 # Default is y, our diff is unset thus we've set it to no
                                 kconf.syms[sym_name].set_value(0)

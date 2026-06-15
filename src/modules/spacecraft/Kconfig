@@ -1,6 +1,5 @@
 menuconfig MODULES_SPACECRAFT
 	bool "SPACECRAFT"
-	default y if TARGET_CLASS_SPACECRAFT
 	default n
 	---help---
 		Enable support for spacecraft

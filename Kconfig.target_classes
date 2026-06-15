@@ -1,32 +1,29 @@
 # Target classes
 #
 # A target class bundles the controllers (and, for some classes, the platform /
-# ROMFS / drivers) that define a build's "shape". A board's <class>.px4board
-# overlay sets CONFIG_TARGET_CLASS_<X>=y; the membership is expressed on each
-# member symbol as `default y if TARGET_CLASS_<X>`.
+# ROMFS / drivers) that define a build's "shape". The membership lives in the
+# class base fragment target_classes/<class>.px4board as explicit CONFIG_* lines;
+# cmake merges that fragment by class name (see cmake/kconfig.cmake).
 #
-# Why `default y if` and not `select`/`imply`:
-#  - `select` would force a controller on with no way for a board to drop it, but
-#    16 vtol and 8 copter boards legitimately disable an individual controller.
-#  - `imply` is silently reverted back ON by Tools/kconfig/merge_config.py's
-#    _revert_unset_symbols: it clears a board's `# CONFIG_X is not set`, and only
-#    re-pins X off when a y-valued *default* condition exists. A controller's only
-#    default is `default n`, so the imply re-fires and the board's disable is lost.
-#  - `default y if TARGET_CLASS_<X>` provides exactly that y-valued default, so a
-#    board's `# CONFIG_MODULES_X is not set` overlay line wins. Overridable, and
-#    the class membership is visible in one place (the member symbol's Kconfig).
+# These CONFIG_TARGET_CLASS_<X> symbols are the declarative tag the class base
+# sets to name itself. They keep the class visible in the resolved config and are
+# available to ROMFS/tooling, but they do NOT pull modules in -- the controllers
+# are the fragment's explicit CONFIG_MODULES_*=y lines, so module Kconfigs stay
+# class-agnostic. A board drops a class controller with a plain
+# `# CONFIG_MODULES_X is not set` line in its overlay (the fragment's =y is
+# overridden on merge).
 
 menu "Target classes"
 
 config TARGET_CLASS_COPTER
 	bool "Copter target class"
 	help
-		Multicopter controllers. Set in a board's copter.px4board overlay.
+		Multicopter controllers. Set by target_classes/copter.px4board.
 
 config TARGET_CLASS_PLANE
 	bool "Plane target class"
 	help
-		Fixed-wing controllers. Set in a board's plane.px4board overlay.
+		Fixed-wing controllers. Set by target_classes/plane.px4board.
 
 config TARGET_CLASS_VTOL
 	bool "VTOL target class"
@@ -58,8 +55,8 @@ config TARGET_CLASS_LINUX
 	bool "Linux SBC flight controller target class"
 	help
 		One all-vehicle binary cross-compiled for a Linux SBC, runtime-selecting
-		its airframe via init.d-posix. Pulls the mc+fw+vtol+uuv controllers and
-		the POSIX/Linux platform (PLATFORM_POSIX + BOARD_LINUX_TARGET).
+		its airframe via init.d-posix. The class base provides the mc+fw+vtol+uuv
+		controllers and the POSIX/Linux platform (PLATFORM_POSIX + BOARD_LINUX_TARGET).
 
 # Reserved for Phase 4 (deferred specials): TARGET_CLASS_SITL, _IO, _ROS2.
 

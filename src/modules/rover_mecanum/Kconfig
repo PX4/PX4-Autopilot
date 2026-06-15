@@ -1,6 +1,5 @@
 menuconfig MODULES_ROVER_MECANUM
 	bool "rover_mecanum"
-	default y if TARGET_CLASS_ROVER
 	default n
 	---help---
 		Enable support for mecanum rovers

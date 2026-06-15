@@ -1,6 +1,5 @@
 menuconfig MODULES_ROVER_DIFFERENTIAL
 	bool "rover_differential"
-	default y if TARGET_CLASS_ROVER
 	default n
 	---help---
 		Enable support for differential rovers

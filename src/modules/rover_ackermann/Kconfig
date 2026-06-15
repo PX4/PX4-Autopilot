@@ -1,6 +1,5 @@
 menuconfig MODULES_ROVER_ACKERMANN
 	bool "rover_ackermann"
-	default y if TARGET_CLASS_ROVER
 	default n
 	---help---
 		Enable support for ackermann rovers

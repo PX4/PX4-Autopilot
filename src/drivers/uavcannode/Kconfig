@@ -1,6 +1,5 @@
 menuconfig DRIVERS_UAVCANNODE
 	bool "uavcannode"
-	default y if TARGET_CLASS_CANNODE
 	default n
     depends on BOARD_ROMFSROOT != "px4fmu_common"
 	---help---
