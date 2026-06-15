@@ -164,6 +164,12 @@ private:
 
 	RTLState getActivationState();
 
+	/**
+	 * @brief Whether the geofence-avoidance planner currently has a path to fly.
+	 * Always false for build without geofence avoidance (CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE).
+	 */
+	bool geofenceAvoidanceActive() const;
+
 	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};

@@ -99,14 +99,10 @@ void RtlDirect::on_activation()
 				       "RTL: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
 
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-
-	if (_navigator->get_geofence_avoidance_planner().hasMore()) {
+	if (geofenceAvoidanceActive()) {
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
 	}
-
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 }
 
 void RtlDirect::on_active()
@@ -171,6 +167,15 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 	}
 }
 
+bool RtlDirect::geofenceAvoidanceActive() const
+{
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	return _navigator->get_geofence_avoidance_planner().hasMore();
+#else
+	return false;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+}
+
 void RtlDirect::_updateRtlState()
 {
 	// RTL_LAND_DELAY > 0 -> wait seconds, < 0 wait indefinitely
@@ -180,17 +185,9 @@ void RtlDirect::_updateRtlState()
 	RTLState new_state{RTLState::IDLE};
 
 	switch (_rtl_state) {
-	case RTLState::CLIMBING: {
-			const bool has_avoidance = _navigator->get_geofence_avoidance_planner().hasMore();
-			new_state = has_avoidance ? RTLState::AVOID_GEOFENCE : RTLState::MOVE_TO_LOITER;
-			break;
-		}
-
+	case RTLState::CLIMBING:
 	case RTLState::AVOID_GEOFENCE:
-		// advanceWaypoint() was called in set_rtl_item() when the current waypoint was issued.
-		new_state = _navigator->get_geofence_avoidance_planner().hasMore()
-			    ? RTLState::AVOID_GEOFENCE : RTLState::MOVE_TO_LOITER;
-
+		new_state = geofenceAvoidanceActive() ? RTLState::AVOID_GEOFENCE : RTLState::MOVE_TO_LOITER;
 		break;
 
 	case RTLState::MOVE_TO_LOITER:
@@ -502,12 +499,8 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 		activation_state = RTLState::CLIMBING;
 
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-
-	} else if (_navigator->get_geofence_avoidance_planner().hasMore()) {
+	} else if (geofenceAvoidanceActive()) {
 		activation_state = RTLState::AVOID_GEOFENCE;
-
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	} else {
 		activation_state = RTLState::MOVE_TO_LOITER;
