@@ -339,7 +339,9 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		matrix::Vector2d hor_position_at_calculation_point = add_geofence_avoidance_path_distance(
-					_rtl_time_estimator, _navigator->get_geofence_avoidance_planner(), {_global_pos_sub.get().lat, _global_pos_sub.get().lon}
+					_rtl_time_estimator,
+					_navigator->get_geofence_avoidance_planner(),
+					matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon)
 				);
 #else
 		matrix::Vector2d hor_position_at_calculation_point {_global_pos_sub.get().lat, _global_pos_sub.get().lon};
