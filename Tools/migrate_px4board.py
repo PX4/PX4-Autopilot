@@ -41,7 +41,7 @@ sharing the same base:
     PLATFORM_POSIX + BOARD_LINUX_TARGET  -> linux  (all-vehicle SBC binary)
     PX4IOFIRMWARE, no controllers        -> io     (coprocessor firmware blob)
     MC only                              -> copter
-    FW only                              -> plane
+    FW only                              -> fixedwing
     MC + FW + VTOL                       -> vtol   (the air superset)
     MC + FW + VTOL + UUV                 -> vtol AND uuv      (two targets, shared base)
     MC + FW + VTOL + AIRSHIP             -> vtol AND airship
@@ -90,7 +90,7 @@ def controller_family(sym):
 
 
 # The air controller families collapse into one class (policy A: a generalist air
-# board is a single vtol target, not separate copter/plane/vtol targets).
+# board is a single vtol target, not separate copter/fixedwing/vtol targets).
 _AIR = {"mc", "fw", "vtol"}
 
 # Class -> the controller families it owns (for partitioning a multi-class board's
@@ -98,7 +98,7 @@ _AIR = {"mc", "fw", "vtol"}
 # essentials in CLASS_PROVIDES below.
 _CLASS_FAMILIES = {
     "copter": {"mc"},
-    "plane": {"fw"},
+    "fixedwing": {"fw"},
     "vtol": {"mc", "fw", "vtol"},
     "rover": {"rover"},
     "uuv": {"uuv"},
@@ -128,7 +128,7 @@ _ROVER = ["MODULES_ROVER_ACKERMANN", "MODULES_ROVER_DIFFERENTIAL",
 # boardconfig diff.
 CLASS_PROVIDES = {
     "copter": {s: "y" for s in _MC},
-    "plane": {s: "y" for s in _FW},
+    "fixedwing": {s: "y" for s in _FW},
     "vtol": {s: "y" for s in _MC + _FW + ["MODULES_VTOL_ATT_CONTROL"]},
     "rover": {s: "y" for s in _ROVER},
     "uuv": {s: "y" for s in _UUV},
@@ -270,7 +270,7 @@ def infer_classes(assignments):
     if air == {"mc"}:
         classes.add("copter")
     elif air == {"fw"}:
-        classes.add("plane")
+        classes.add("fixedwing")
     elif air == {"mc", "fw", "vtol"}:
         classes.add("vtol")
     elif air:

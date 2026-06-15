@@ -20,10 +20,10 @@ config TARGET_CLASS_COPTER
 	help
 		Multicopter controllers. Set by target_classes/copter.px4board.
 
-config TARGET_CLASS_PLANE
-	bool "Plane target class"
+config TARGET_CLASS_FIXEDWING
+	bool "Fixedwing target class"
 	help
-		Fixed-wing controllers. Set by target_classes/plane.px4board.
+		Fixed-wing controllers. Set by target_classes/fixedwing.px4board.
 
 config TARGET_CLASS_VTOL
 	bool "VTOL target class"
