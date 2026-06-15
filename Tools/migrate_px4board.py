@@ -38,10 +38,12 @@ For a multi-class board, base = default minus ALL controllers, and each class ge
 its own overlay; the per-class targets are strict subsets whose UNION reproduces
 the original default (verified before writing).
 
-Boards with no controllers and no cannode romfs (IO firmware, companion targets)
-or that run on POSIX (SITL and Linux flight controllers) are reported as MANUAL
-and never written -- they need a `sitl`/`infra` class decision, not a
-vehicle-controller split, and the script refuses to guess.
+A Linux SBC flight controller (PLATFORM_POSIX + BOARD_LINUX_TARGET, carrying
+vehicle controllers) joins the single all-vehicle `linux` class. SITL, the
+muorb/QURT boards (voxl2), IO firmware and other no-controller/companion
+targets are reported as MANUAL and never written -- they need a
+`sitl`/`io`/`ros2` class decision, not a vehicle-controller split, and the
+script refuses to guess.
 
 Usage:
     Tools/migrate_px4board.py [--apply] [--force] [BOARD ...]
@@ -84,7 +86,8 @@ _AIR = {"mc", "fw", "vtol"}
 # Class -> the controller families it owns. A board that carries an extra vehicle
 # class on top of the air stack (e.g. vtol+uuv) is split into one target per
 # class, each claiming its own class base. cannode owns no controllers (its base
-# is the cannode romfs + uavcannode driver).
+# is the cannode romfs + uavcannode driver). linux is the all-vehicle Linux SBC
+# binary (every family in one target, like sitl), so it owns them all.
 _CLASS_FAMILIES = {
     "copter": {"mc"},
     "plane": {"fw"},
@@ -93,6 +96,7 @@ _CLASS_FAMILIES = {
     "uuv": {"uuv"},
     "airship": {"airship"},
     "spacecraft": {"spacecraft"},
+    "linux": {"mc", "fw", "vtol", "rover", "uuv", "airship", "spacecraft"},
     "cannode": set(),
 }
 
@@ -157,6 +161,15 @@ def infer_classes(assignments):
     classes the board splits into (one per vehicle class, air collapsed to vtol);
     an empty list means manual handling is required and `reason` explains why."""
     if "PLATFORM_POSIX" in assignments:
+        if assignments.get("BOARD_LINUX_TARGET") == "y":
+            # A Linux SBC flight controller: one all-vehicle binary that selects
+            # its airframe at boot (via init.d-posix), so it joins the single
+            # `linux` class. muorb/QURT boards (voxl2) run the controllers on a
+            # DSP and carry none on the apps side -> they do not fit a
+            # controller-providing class; leave them for manual handling.
+            if any(v == "y" and is_controller(s) for s, v in assignments.items()):
+                return ["linux"], [], None
+            return [], [], "linux board with no apps-side controllers (muorb/QURT)"
         return [], [], "posix/sitl board (needs the sitl class)"
     if assignments.get("BOARD_ROMFSROOT") == '"cannode"':
         return ["cannode"], [], None
