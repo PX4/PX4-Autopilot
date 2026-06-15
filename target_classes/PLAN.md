@@ -5,7 +5,7 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 ## 0. RESUME HERE
 
 Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
-merge). **114 boards migrated (102 vehicle + 2 cannode + 5 Linux + sitl + 3 io + ros2);
+merge); head `daed530a36` on fork `jake`. **114 boards migrated (102 vehicle + 2 cannode + 5 Linux + sitl + 3 io + ros2);
 remaining = 1 board (`modalai/voxl2`, a documented carve-out) + the Phase-4 cutover.**
 Additive — `default.px4board` is kept, so every legacy `<board>_default` still builds (but
 see the airframe caveat below).
@@ -27,6 +27,13 @@ is kept, so `px4_sitl_default` etc. still build; the new targets are `px4_sitl_s
 removes via bare→sole-class). `modalai/voxl2` stays on the legacy default+slpi path (its rate
 controllers run on the QURT DSP; apps side fits no class — revisit with modalai at cutover).
 Next = pause for review, then the **Phase-4 cutover** (§NOT done #2 / §7).
+
+**Status (2026-06-15, latest):** Two alignment changes since the specials migration (details in
+§9): (1) the fixed-wing class was renamed **`plane` → `fixedwing`** — `copter`/`fixedwing` are
+now the canonical class names (decided with the #25414 manifest in mind: manifest `variant` =
+class name). (2) Ramon's manifest PR #25414 had its `_VEHICLE_LABELS` aligned (multicopter→copter,
++airship, `fixedwing` kept) — **landed on the PR** (commit `3503a0006a`). Still **PAUSED before
+the Phase-4 cutover**.
 
 **Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling. Controller
 membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), modules decoupled:**
@@ -414,14 +421,14 @@ already added an `artifact_type` field (foreseeing "VOXL2 `.deb`").
    follow-up collapses to ~13 class entries.
 3. `variant` = class name (aligned post-cutover). **DONE 2026-06-15:** #25414's `_VEHICLE_LABELS`
    set to `{copter, fixedwing, vtol, rover, uuv, spacecraft, airship}` (multicopter→copter,
-   +airship, `fixedwing` kept over `plane`) — commit `3503a0006a`, local in worktree, pending
-   dakejahl's push to the upstream PR branch.
+   +airship, `fixedwing` kept over `plane`) — commit `3503a0006a`, pushed by dakejahl, now the
+   head of PR #25414.
 4. Add NO new `artifact_type` symbol — it derives from `PLATFORM`; the manifest publishes the
    distributable subset keyed on the two axes.
 
 **Status 2026-06-15:** Decided `fixedwing` over `plane` and `copter` over `multicopter`; our
 redesign's `plane` class is renamed `plane → fixedwing` (fragment + `TARGET_CLASS_FIXEDWING` +
-tool + this doc). The #25414 vocab edit is committed (action 3). The deeper alignment (manifest
+tool + this doc). The #25414 vocab edit landed on the PR (action 3). The deeper alignment (manifest
 reads `TARGET_CLASS`/`PLATFORM`) waits until the redesign merges — those symbols don't exist on
 `main` yet.
 
