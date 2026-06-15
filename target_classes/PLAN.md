@@ -145,7 +145,7 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
 
 Every buildable target belongs to exactly one **target class**. Classes are peers:
 
-- **Vehicle classes:** `copter`, `plane`, `vtol`, `rover`, `uuv`, `spacecraft`, `airship`
+- **Vehicle classes:** `copter`, `fixedwing`, `vtol`, `rover`, `uuv`, `spacecraft`, `airship`
 - **System classes:** `cannode`, `linux`, `bootloader`, `sitl`, `io`, `ros2`
 
 A target is composed by merging, in order (later overrides earlier):
@@ -215,8 +215,9 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
    (vtol+uuv, vtol+airship, vtol+rover) → **one target PER class** (e.g. `<b>_vtol` AND
    `<b>_uuv`), each an empty-overlay board claiming its class base. Preserves all
    capability; no superset binary, no silent drop. (Decided 2026-06-14, dakejahl.)
-2. **Class names — LOCKED:** `copter`/`plane`/`vtol`/`rover`/`uuv`/`spacecraft`/`airship`
-   (not `multicopter`/`fixedwing`).
+2. **Class names — LOCKED:** `copter`/`fixedwing`/`vtol`/`rover`/`uuv`/`spacecraft`/`airship`
+   (`copter` not `multicopter`; `fixedwing` kept over `plane` — revised 2026-06-15 for
+   PR #25414 manifest alignment, since `variant` = class name).
 3. **Classification — LOCKED:** directory-based (§1), not `@class` header.
    Class bases live in top-level **`target_classes/`** (NOT `boards/`, whose children are
    all vendors). cannode base also provides `CONFIG_DRIVERS_UAVCANNODE=y` (boards that
@@ -244,7 +245,7 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
 | class | `target_classes/<class>.px4board` enables | airframe dirs pulled (Tier 1) |
 |---|---|---|
 | copter | MC_RATE_CONTROL, CONTROL_ALLOCATOR | `copter/` |
-| plane | FW_RATE_CONTROL | `plane/` |
+| fixedwing | FW_RATE_CONTROL | `plane/` (Plane frames) |
 | vtol | MC + FW + VTOL_ATT_CONTROL (superset) | `copter/` + `plane/` + `vtol/` |
 | rover | ROVER_DIFFERENTIAL + ACKERMANN + MECANUM | `rover/` |
 | uuv | UUV_ATT_CONTROL | `uuv/` |
@@ -315,7 +316,7 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
   N overlays, UNION-verified). Before writing it self-verifies that the merge reproduces the
   original `default` symbol-for-symbol (only tolerated delta: an omitted controller the
   overlay pins off — all controllers are `default n`). Refuses POSIX/no-controller specials.
-- `target_classes/{vtol,plane,uuv,airship,spacecraft,cannode,linux}.px4board` — DONE (added
+- `target_classes/{vtol,fixedwing,uuv,airship,spacecraft,cannode,linux}.px4board` — DONE (added
   to the `copter,rover` from Phase 2). `vtol` = the mc5+fw5+VTOL modal set (38/47 boards match
   exactly). `cannode` = just `BOARD_ROMFSROOT="cannode"`. `linux` = POSIX + LINUX_TARGET +
   mc/fw/vtol/uuv superset. (sitl/io/ros2/bootloader deferred — special; bootloader stays on
@@ -383,7 +384,7 @@ unified firmware manifest"; QGC companion qgc#13966) generates per-build metadat
 `firmware_category`, `label_pretty`, hardware IDs), embeds it in each `.px4`, and aggregates a
 unified S3 manifest QGC consumes. It currently DERIVES the taxonomy from label-string
 heuristics: `_VEHICLE_LABELS = {multicopter, fixedwing, vtol, rover, uuv, spacecraft}` (old
-vocabulary — `copter`/`plane` vs `multicopter`/`fixedwing`, and **`airship` is missing** →
+vocabulary — `multicopter` vs our `copter`, **`airship` missing**, `fixedwing` shared →
 micoair boards mis-file as `dev` + warn), `ROMFSROOT=="cannode"` → peripheral, else `dev`; and
 sets `CONFIG_BOARD_LABEL_PRETTY` by hand (their own follow-up = ~258 `.px4board` files). It
 already added an `artifact_type` field (foreseeing "VOXL2 `.deb`").
@@ -395,7 +396,7 @@ already added an `artifact_type` field (foreseeing "VOXL2 `.deb`").
 
 | target group | PLATFORM | emits | QGC-flashable | category |
 |---|---|---|---|---|
-| copter/plane/vtol/rover/uuv/spacecraft/airship | nuttx | `.px4` MCU | yes (serial) | vehicle |
+| copter/fixedwing/vtol/rover/uuv/spacecraft/airship | nuttx | `.px4` MCU | yes (serial) | vehicle |
 | cannode | nuttx | `.px4` MCU | yes | peripheral |
 | io | nuttx (cortex-m3) | MCU blob | embedded in FMU | peripheral |
 | bootloader | nuttx | `.px4` (bl) | yes | bootloader |
@@ -411,10 +412,18 @@ already added an `artifact_type` field (foreseeing "VOXL2 `.deb`").
    `target_classes/<class>.px4board` fragments — the fragment already defines the target's
    identity, so every board in a class gets correct manifest metadata for free; their ~258-file
    follow-up collapses to ~13 class entries.
-3. `variant` = class name (aligned post-cutover); ensure #25414's vocabulary = our class names
-   (copter/plane/…), not multicopter/fixedwing, and add `airship`.
+3. `variant` = class name (aligned post-cutover). **DONE 2026-06-15:** #25414's `_VEHICLE_LABELS`
+   set to `{copter, fixedwing, vtol, rover, uuv, spacecraft, airship}` (multicopter→copter,
+   +airship, `fixedwing` kept over `plane`) — commit `3503a0006a`, local in worktree, pending
+   dakejahl's push to the upstream PR branch.
 4. Add NO new `artifact_type` symbol — it derives from `PLATFORM`; the manifest publishes the
    distributable subset keyed on the two axes.
+
+**Status 2026-06-15:** Decided `fixedwing` over `plane` and `copter` over `multicopter`; our
+redesign's `plane` class is renamed `plane → fixedwing` (fragment + `TARGET_CLASS_FIXEDWING` +
+tool + this doc). The #25414 vocab edit is committed (action 3). The deeper alignment (manifest
+reads `TARGET_CLASS`/`PLATFORM`) waits until the redesign merges — those symbols don't exist on
+`main` yet.
 
 **Cutover coupling (the one hard dependency):** `modalai/voxl2` is a `.deb`/on-device distributed
 build (SLPI DSP `slpi` + ARM64 apps `default`), not a vehicle class — keep the carve-out, but its
