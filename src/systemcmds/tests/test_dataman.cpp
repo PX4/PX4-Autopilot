@@ -778,14 +778,22 @@ DatamanTest::testAsyncAbortAndReissue()
 	// and still return current data.
 	const dm_item_t item = DM_KEY_WAYPOINTS_OFFBOARD_0;
 	const uint32_t length = g_per_item_size[item];
-	const uint32_t index = 7;
-	const uint8_t value = 0xC3;
+	const uint32_t stale_index = 7;
+	const uint8_t stale_value = 0xC3;
+	const uint32_t new_index = 8;
+	const uint8_t new_value = 0xAA;
 
-	// Store a known value.
-	memset(_buffer_write, value, sizeof(_buffer_write));
+	memset(_buffer_write, stale_value, sizeof(_buffer_write));
 
-	if (!_dataman_client1.writeSync(item, index, _buffer_write, length)) {
-		PX4_ERR("seed writeSync failed");
+	if (!_dataman_client1.writeSync(item, stale_index, _buffer_write, length)) {
+		PX4_ERR("stale seed writeSync failed");
+		return false;
+	}
+
+	memset(_buffer_write, new_value, sizeof(_buffer_write));
+
+	if (!_dataman_client1.writeSync(item, new_index, _buffer_write, length)) {
+		PX4_ERR("new seed writeSync failed");
 		return false;
 	}
 
@@ -793,7 +801,7 @@ DatamanTest::testAsyncAbortAndReissue()
 	// this leaves a reply queued on the response topic.
 	uint8_t scratch[DM_MAX_DATA_SIZE] = {};
 
-	if (!_dataman_client1.readAsync(item, index, scratch, length)) {
+	if (!_dataman_client1.readAsync(item, stale_index, scratch, length)) {
 		PX4_ERR("first readAsync failed");
 		return false;
 	}
@@ -804,10 +812,10 @@ DatamanTest::testAsyncAbortAndReissue()
 	// Abandon the operation. The queued reply is now stale.
 	_dataman_client1.abortCurrentOperation();
 
-	// A fresh async read must drain the stale reply and return the current value.
+	// A fresh async read must drain the stale reply and return the new request's value.
 	memset(_buffer_read, 0, sizeof(_buffer_read));
 
-	if (!_dataman_client1.readAsync(item, index, _buffer_read, length)) {
+	if (!_dataman_client1.readAsync(item, new_index, _buffer_read, length)) {
 		PX4_ERR("second readAsync failed");
 		return false;
 	}
@@ -837,7 +845,7 @@ DatamanTest::testAsyncAbortAndReissue()
 	}
 
 	for (uint32_t i = 0; i < length; ++i) {
-		if (_buffer_read[i] != value) {
+		if (_buffer_read[i] != new_value) {
 			PX4_ERR("reissued read returned wrong data at %" PRIu32, i);
 			return false;
 		}
