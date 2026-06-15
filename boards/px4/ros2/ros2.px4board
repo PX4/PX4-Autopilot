@@ -1,0 +1,1 @@
+# Board overrides for the ros2 target go here; inherits target_classes/ros2.px4board.
