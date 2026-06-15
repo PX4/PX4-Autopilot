@@ -10,6 +10,7 @@ comment "Label: $(LABEL)"
 menu "Toolchain"
     choice
         prompt "Platform"
+        default PLATFORM_POSIX if TARGET_CLASS_LINUX
         default PLATFORM_NUTTX
         config PLATFORM_NUTTX
             bool "nuttx"
@@ -43,6 +44,7 @@ menu "Toolchain"
     config BOARD_LINUX_TARGET
         bool "Linux OS Target"
         depends on PLATFORM_POSIX
+        default y if TARGET_CLASS_LINUX
         help
             Board Platform is running the Linux operating system
 
@@ -79,6 +81,7 @@ menu "Toolchain"
 
     config BOARD_ROMFSROOT
         string "ROMFSROOT"
+        default "cannode" if TARGET_CLASS_CANNODE
         default "px4fmu_common"
         help
             relative path to the ROMFS root directory
@@ -242,6 +245,8 @@ endmenu
 menu "modules"
 source "src/modules/Kconfig"
 endmenu
+
+source "Kconfig.target_classes"
 
 source "ROMFS/Kconfig"
 

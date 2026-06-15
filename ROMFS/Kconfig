@@ -1,46 +1,49 @@
 menu "Airframes"
 
-# Airframe inclusion is selected per vehicle class, decoupled from which
-# controller modules are compiled in. Each option includes the matching
-# ROMFS/px4fmu_common/init.d/airframes/<class>/ directory. The defaults below
-# reproduce the historical behavior (airframes followed their controller
-# module) so existing configs are unchanged; a target overrides them in its
-# .px4board.
+# Airframe inclusion is explicit per target, fully decoupled from which controller
+# modules are compiled in: a board's <class>.px4board overlay sets
+# CONFIG_AIRFRAMES_<class>=y for each class of airframe it should ship. A frame is
+# shipped iff its @class header maps to an enabled option here (see
+# ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt).
 
 config AIRFRAMES_COPTER
 	bool "Copter airframes"
-	default y if MODULES_MC_RATE_CONTROL
+	default n
 
 config AIRFRAMES_PLANE
 	bool "Plane airframes"
-	default y if MODULES_FW_RATE_CONTROL
+	default n
 
 config AIRFRAMES_VTOL
 	bool "VTOL airframes"
-	default y if MODULES_VTOL_ATT_CONTROL
+	default n
 
 config AIRFRAMES_ROVER
 	bool "Rover airframes"
-	default y if MODULES_ROVER_DIFFERENTIAL || MODULES_ROVER_ACKERMANN || MODULES_ROVER_MECANUM
+	default n
 
 config AIRFRAMES_UUV
 	bool "Underwater (UUV) airframes"
-	default y if MODULES_UUV_ATT_CONTROL
+	default n
 
 config AIRFRAMES_SPACECRAFT
 	bool "Spacecraft airframes"
-	default y if MODULES_SPACECRAFT
+	default n
 
 config AIRFRAMES_AIRSHIP
 	bool "Airship airframes"
-	default y if MODULES_AIRSHIP_ATT_CONTROL
+	default n
 
 config AIRFRAMES_BALLOON
 	bool "Balloon airframes"
 	default y
+	help
+		The single balloon fallback frame ships everywhere by default (it was
+		unconditionally on pre-redesign); this is decoupled from controllers, not
+		the coupling being removed. A board may set it = n to drop the frame.
 
 config AIRFRAMES_SIMULATION
 	bool "Simulation (SIH/HITL) airframes"
-	default y if MODULES_SIMULATION_PWM_OUT_SIM
+	default n
 
 endmenu

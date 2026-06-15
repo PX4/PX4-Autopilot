@@ -1,5 +1,6 @@
 menuconfig MODULES_UUV_ATT_CONTROL
 	bool "uuv_att_control"
+	default y if TARGET_CLASS_UUV || TARGET_CLASS_LINUX
 	default n
 	---help---
 		Enable support for uuv_att_control

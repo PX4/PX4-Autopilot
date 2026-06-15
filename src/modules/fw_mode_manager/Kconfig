@@ -1,5 +1,6 @@
 menuconfig MODULES_FW_MODE_MANAGER
 	bool "fw_mode_manager"
+	default y if TARGET_CLASS_PLANE || TARGET_CLASS_VTOL || TARGET_CLASS_LINUX
 	default n
 	---help---
 		Enable support for fw_mode_manager

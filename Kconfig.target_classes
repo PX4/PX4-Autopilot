@@ -1,0 +1,66 @@
+# Target classes
+#
+# A target class bundles the controllers (and, for some classes, the platform /
+# ROMFS / drivers) that define a build's "shape". A board's <class>.px4board
+# overlay sets CONFIG_TARGET_CLASS_<X>=y; the membership is expressed on each
+# member symbol as `default y if TARGET_CLASS_<X>`.
+#
+# Why `default y if` and not `select`/`imply`:
+#  - `select` would force a controller on with no way for a board to drop it, but
+#    16 vtol and 8 copter boards legitimately disable an individual controller.
+#  - `imply` is silently reverted back ON by Tools/kconfig/merge_config.py's
+#    _revert_unset_symbols: it clears a board's `# CONFIG_X is not set`, and only
+#    re-pins X off when a y-valued *default* condition exists. A controller's only
+#    default is `default n`, so the imply re-fires and the board's disable is lost.
+#  - `default y if TARGET_CLASS_<X>` provides exactly that y-valued default, so a
+#    board's `# CONFIG_MODULES_X is not set` overlay line wins. Overridable, and
+#    the class membership is visible in one place (the member symbol's Kconfig).
+
+menu "Target classes"
+
+config TARGET_CLASS_COPTER
+	bool "Copter target class"
+	help
+		Multicopter controllers. Set in a board's copter.px4board overlay.
+
+config TARGET_CLASS_PLANE
+	bool "Plane target class"
+	help
+		Fixed-wing controllers. Set in a board's plane.px4board overlay.
+
+config TARGET_CLASS_VTOL
+	bool "VTOL target class"
+	help
+		Air superset: multicopter + fixed-wing + VTOL controllers, one binary.
+
+config TARGET_CLASS_ROVER
+	bool "Rover target class"
+	help
+		Rover controllers (differential + ackermann + mecanum).
+
+config TARGET_CLASS_UUV
+	bool "Underwater (UUV) target class"
+	help
+		Unmanned underwater vehicle controllers.
+
+config TARGET_CLASS_SPACECRAFT
+	bool "Spacecraft target class"
+
+config TARGET_CLASS_AIRSHIP
+	bool "Airship target class"
+
+config TARGET_CLASS_CANNODE
+	bool "CAN node target class"
+	help
+		UAVCAN node: cannode ROMFS + uavcannode driver, no vehicle controllers.
+
+config TARGET_CLASS_LINUX
+	bool "Linux SBC flight controller target class"
+	help
+		One all-vehicle binary cross-compiled for a Linux SBC, runtime-selecting
+		its airframe via init.d-posix. Pulls the mc+fw+vtol+uuv controllers and
+		the POSIX/Linux platform (PLATFORM_POSIX + BOARD_LINUX_TARGET).
+
+# Reserved for Phase 4 (deferred specials): TARGET_CLASS_SITL, _IO, _ROS2.
+
+endmenu

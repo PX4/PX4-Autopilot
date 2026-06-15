@@ -1,5 +1,6 @@
 menuconfig MODULES_MC_POS_CONTROL
 	bool "mc_pos_control"
+	default y if TARGET_CLASS_COPTER || TARGET_CLASS_VTOL || TARGET_CLASS_LINUX
 	default n
 	---help---
 		Enable support for mc_pos_control

@@ -1,5 +1,6 @@
 menuconfig MODULES_VTOL_ATT_CONTROL
 	bool "vtol_att_control"
+	default y if TARGET_CLASS_VTOL || TARGET_CLASS_LINUX
 	default n
 	---help---
 		Enable support for vtol_att_control
