@@ -5,35 +5,51 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 ## 0. RESUME HERE
 
 Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
-merge); pushed to fork `jake` (`git log` for the exact head). **114 boards migrated (102 vehicle + 2 cannode + 5 Linux + sitl + 3 io + ros2);
-remaining = 1 board (`modalai/voxl2`, a documented carve-out) + the Phase-4 cutover.**
-Additive — `default.px4board` is kept, so every legacy `<board>_default` still builds (but
-see the airframe caveat below).
+merge); pushed to fork `jake` (`dakejahl/PX4-Autopilot`, NOT `origin`=upstream). `git log` for
+the head.
 
-**Status (2026-06-15): the controller-membership rework is COMPLETE and pushed.** Controllers
-come from `target_classes/<class>.px4board` fragments (merged by class name in kconfig.cmake)
-and module Kconfigs are fully decoupled from `TARGET_CLASS` — see the design block + State check
-below. The fork remote is `jake` (`dakejahl/PX4-Autopilot`), NOT `origin` (upstream) — push there.
+**Status (2026-06-15) — PHASE-4 CUTOVER LANDED (commit `f914c21643`, pushed).** The
+target-class grammar is now the SOLE build vocabulary; the legacy `default` grammar is gone (all
+114 `default.px4board` deleted). A bare board name resolves to its sole class; a multi-class
+board names a class explicitly (`px4_fmu-v6x_vtol`); `default`/`base` error. What landed:
+- `px4_config.cmake` resolves bare→sole-class, errors on default/base/ambiguous, and exports
+  `PX4_TARGET_CLASS` (a bare variant like `px4_sitl_test` attaches to the board's sole class).
+  `kconfig.cmake` dropped the legacy `default.px4board` merge; its savedefconfig dev-tooling now
+  diffs a generated base+class baseline (`board_label_baseline.px4board`).
+- 41 pre-redesign variants relabeled to `<class>.<variant>`; `multicopter`→`copter`
+  (+`AIRFRAMES_COPTER`, verified copter-only airframes); `px4/sitl` made sole-class (its uuv/
+  spacecraft sims → `sitl.uuv`/`sitl.spacecraft`, so `px4_sitl`/`px4_sitl_test` stay clean).
+- **voxl2 carve-out DONE**: now a sole-class `voxl2` board — `base.px4board` (= old apps config)
+  + tag-only `target_classes/voxl2.px4board` + bare `slpi` variant; `TARGET_CLASS_VOXL2` added to
+  `Kconfig.target_classes`. No resolver special-case; behavior preserved.
+- CI enumerator / `updateconfig.py` / `Makefile` (sole-class→bare-name collapse via awk, `all:
+  px4_sitl`, `_deb`→`$(subst _deb,,…)`, check-lists, IO-firmware copy) / `build_all_config.yml`
+  seeders reworked to merge `base.px4board`. Workflows, actions, CI scripts, `Dockerfile.gazebo`,
+  `generate_sbom.py`, `px4_uploader.py`, and the build-command docs (`building_px4.md` + ko/zh/uk
+  + ~97 docs/en pages, 249 target-name replacements) follow the new names. `build-deb/action.yml`
+  maps the `default` input → `px4_sitl` via `SITL_TARGET`.
+- IO blob filenames (`px4_io-v2_default.bin`, `cubepilot_io-v2_default.bin`) intentionally KEPT —
+  they are runtime artifact paths in `rcS`/`board_common.h` (`PX4IO_FW_SEARCH_PATHS`), not build
+  labels. The `px4io_update` target's source path is updated, the blob dest names are not.
 
-**Status (2026-06-15, later — SPECIALS MIGRATED additively):** the 5 non-voxl2 specials are
-now in the class system (decisions by dakejahl: bare-name → sole class for the cutover; voxl2
-deferred as a carve-out; do the specials additively first, then pause before the breaking
-cutover). Added `target_classes/{sitl,io,ros2}.px4board` (+ the `TARGET_CLASS_{SITL,IO,ROS2}`
-tag symbols in `Kconfig.target_classes`) and migrated `px4/sitl` (→ sitl class), the 3 IO
-firmware blobs `px4/io-v2`+`cubepilot/io-v2`+`modalai/voxl2-io` (→ io class), and `px4/ros2`
-(→ ros2 class) via the (extended) `migrate_px4board.py`. Additive: every `default.px4board`
-is kept, so `px4_sitl_default` etc. still build; the new targets are `px4_sitl_sitl`,
-`px4_io-v2_io`, …, `px4_ros2_ros2` (the doubled names are the transient wart the cutover
-removes via bare→sole-class). `modalai/voxl2` stays on the legacy default+slpi path (its rate
-controllers run on the QURT DSP; apps side fits no class — revisit with modalai at cutover).
-Next = pause for review, then the **Phase-4 cutover** (§NOT done #2 / §7).
+Verified: `make px4_sitl` builds end-to-end (`build/px4_sitl/bin/px4`); resolver error+happy
+cases (real cmake configures); enumerator output (no `_default`/`_base`, sole-class bare, voxl2
+deb grouped); enumerator↔Makefile parity (all 293 CI targets make-buildable, make-only set =
+CI-excluded labels); `px4_fmu-v6x_copter` ships 26 copter / 0 plane-vtol airframes.
 
-**Status (2026-06-15, latest):** Two alignment changes since the specials migration (details in
-§9): (1) the fixed-wing class was renamed **`plane` → `fixedwing`** — `copter`/`fixedwing` are
-now the canonical class names (decided with the #25414 manifest in mind: manifest `variant` =
-class name). (2) Ramon's manifest PR #25414 had its `_VEHICLE_LABELS` aligned (multicopter→copter,
-+airship, `fixedwing` kept) — **landed on the PR** (commit `3503a0006a`). Still **PAUSED before
-the Phase-4 cutover**.
+**REMAINING — one follow-up (tracker task: re-document the board-config model):** ~31 docs/en
+files reference `default.px4board` as a CONCEPT — the porting guide (`porting_guide_config.md`,
+`porting_guide.md`, `porting_guide_nuttx.md`, `serial_port_mapping.md`) + ~25 "search/add
+`CONFIG_X` in your board's `default.px4board`" sensor/driver/middleware pages + broken
+`boards/.../default.px4board#L..` links. Needs per-case judgment (a driver/hardware key →
+`base.px4board`; a vehicle controller like rover/neural/vtol modules → `target_classes/<class>`
+or a class overlay) + a porting-guide rewrite explaining base + `target_classes` + class
+overlays. NOT a mechanical replace (would misroute controller configs and break line anchors).
+The build-COMMAND docs (make/build target names) are already done.
+
+Class names are canonical `copter`/`fixedwing`/... (the `plane`→`fixedwing` rename + #25414
+`_VEHICLE_LABELS` alignment, commit `3503a0006a`, landed earlier — see §9). Pre-cutover phase
+history is in §5.
 
 **Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling. Controller
 membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), modules decoupled:**
@@ -119,27 +135,25 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
   deferred. mr-canhubk3 `fmu`/`sysview` + the linux `_arm64` variants stay on the legacy path.
 
 ### NOT done (next sessions)
-1. **`modalai/voxl2` — the one remaining legacy board (carve-out, dakejahl 2026-06-15).** Its
-   apps-side `default.px4board` (aarch64 Linux) carries muorb/commander/allocator but NO rate
-   controllers — those live in the `slpi` (QURT DSP) variant — so it fits no vehicle class and
-   is not a clean `linux` board. Left on the legacy default+slpi path as a documented exception;
-   revisit with modalai at the cutover. The tool still reports it MANUAL by design.
-   - DONE 2026-06-15 (the other 5 specials, additively): `sitl`/`io`/`ros2` classes created
-     and `px4/sitl` + the 3 IO blobs + `px4/ros2` migrated. Taxonomy LOCKED (dakejahl
-     2026-06-14): distinct `sitl`/`io`/`ros2`, NOT one `infra`. The transient `px4_sitl_sitl`/
-     `px4_io-v2_io`/`px4_ros2_ros2` doubled names are removed at the cutover (bare → sole class).
-2. **Phase 4 — cutover (big, CI-facing; do deliberately, §7):** error on base/default/bare
-   (`cmake/px4_config.cmake`), Makefile target-list rework + `all:`, relabel pre-redesign
-   variants → `<class>.<variant>`, ~15 workflows, Tools scripts, docs. `default.px4board`
-   stays until this lands.
-3. **Optional — slim the 17 "slimmed" rover overlays** (`px4/fmu-v6x|v6c|v6u|v6xrt|v5x|v4|v3|v2`,
+1. **Re-document the board-config MODEL — the one real follow-up.** ~31 docs/en files reference
+   `default.px4board` as a concept (the porting guide + "search/add `CONFIG_X` in your board's
+   `default.px4board`" sensor/driver/middleware pages + broken `boards/.../default.px4board#L..`
+   links). Per-case judgment: hardware/driver keys → `base.px4board`; vehicle controllers
+   (rover/neural/vtol modules) → `target_classes/<class>` or a class overlay; rewrite the porting
+   guide for base + `target_classes` + class overlays. NOT a mechanical replace (would misroute
+   controller configs / break line anchors). Detail in §0 REMAINING. Build-COMMAND docs are done.
+2. **Optional — slim the 17 "slimmed" rover overlays** (`px4/fmu-v6x|v6c|v6u|v6xrt|v5x|v4|v3|v2`,
    `ark/{fmu-v6s,fmu-v6x,fpv,pi6x}`, `auterion/{fmu-v6s,fmu-v6x}`, `x-mav/ap-h743r1`): pre-redesign
-   rover variants on air boards, no rover controllers in `default`, so the tool does not regenerate
-   them. Under the fragment merge they now correctly pull the rover controllers by the `rover`
-   filename (a latent fix — several were controller-less under the Kconfig-coupling design); each
-   resolves to a clean rover (rover ctrls on, air off, smaller than `_default`). Either canonicalize
-   them (drop the now-redundant explicit rover-controller / air-disable lines the fragment supplies)
-   or leave as-is — does not block Phase 4.
+   rover variants on air boards; under the fragment merge they pull the rover controllers by the
+   `rover` filename and resolve to a clean rover. Either canonicalize them (drop the now-redundant
+   explicit rover-controller / air-disable lines the fragment supplies) or leave as-is — cosmetic.
+
+### DONE — Phase 4 cutover (commit `f914c21643`, 2026-06-15)
+The breaking cutover landed: grammar/resolver (`px4_config.cmake` bare→sole-class + `PX4_TARGET_CLASS`),
+`kconfig.cmake` legacy-merge removal, 41 variant relabels + `multicopter`→`copter`, all 114
+`default.px4board` deleted, the **`modalai/voxl2` carve-out** (last legacy board → sole-class
+`voxl2`), the CI enumerator / `updateconfig.py` / Makefile / seeders rework, and the
+workflow/action/script/command-doc ripple. Full breakdown + verification in §0.
 
 ### Housekeeping
 - The unrelated `boards/ark/fpv/extras/ark_fpv_bootloader.bin` working-tree change is
@@ -341,7 +355,7 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
 - TODO (next): the 6 specials (sitl/io/ros2 classes + voxl2, all deferred to Phase 4, §0);
   relabel pre-redesign variants → `<class>.<variant>`; then Phase 4 cutover.
 
-### Phase 4 — Cutover
+### Phase 4 — Cutover — DONE (commit `f914c21643`, 2026-06-15; see §0)
 - **Naming LOCKED (dakejahl 2026-06-15): bare board name → its SOLE class.** `px4_config.cmake`
   drops the "omit default" rule and errors on the literal `default`/`base` labels and on a bare
   multi-class board (ambiguous), BUT a bare board name resolves to its one class when exactly one
