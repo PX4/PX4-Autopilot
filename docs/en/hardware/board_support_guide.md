@@ -1,6 +1,6 @@
 # Manufacturer's PX4 Board Support Guide
 
-This guide explains how to get your hardware supported by PX4 and listed on the PX4 website.
+This guide explains how to get your hardware supported by PX4: added to the PX4 codebase, listed on the PX4 website, and available to users in QGroundControl. If you are a hardware manufacturer looking to add a flight controller or peripheral to PX4, or to port PX4 to a new board, start here.
 
 The process is **open and driven through GitHub**. You do not need permission or a private agreement to start. When your hardware works with PX4 and you can prove it, you open a pull request, and the maintainers review it in the open. There is no application form and no waiting on an assignment before you can begin.
 

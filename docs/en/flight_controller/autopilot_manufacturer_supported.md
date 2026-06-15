@@ -1,6 +1,10 @@
 # Manufacturer-Supported Autopilots
 
-Manufacturer-supported autopilots are maintained and supported by a board manufacturer (manufacturers commit to delivering compatibility with the current stable PX4 release within 4 months of the official release announcement).
+Manufacturer-supported autopilots are maintained and supported by a board manufacturer, who owns support for the board and keeps it working across PX4 releases.
+
+::: tip
+**Are you a manufacturer who wants to get a board supported by PX4?** See the [Manufacturer's Board Support Guide](../hardware/board_support_guide.md). It covers the process for all support levels, not just this category.
+:::
 
 ::: tip
 For more information about PX4 project autopilot board support levels see: [px4.io/autopilots/](https://px4.io/autopilots/).
