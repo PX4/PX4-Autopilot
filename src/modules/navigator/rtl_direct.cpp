@@ -70,6 +70,9 @@ void RtlDirect::on_inactivation()
 	}
 
 	_rtl_state = RTLState::IDLE;
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	_avoidance_waypoint_fallback_reported = false;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 }
 
 void RtlDirect::on_activation()
@@ -278,9 +281,19 @@ void RtlDirect::set_rtl_item()
 
 			if (!point.isAllFinite()) {
 				// Should never happen, fall back to RTLing straight.
-				// TODO: report error
 				point(0) = _land_approach.lat;
 				point(1) = _land_approach.lon;
+
+				if (!_avoidance_waypoint_fallback_reported) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+							     "RTL: geofence avoidance path invalid; flying direct\t");
+					events::send(events::ID("rtl_avoidance_waypoint_invalid"),
+						     {events::Log::Critical, events::LogInternal::Error},
+						     "RTL: geofence avoidance path invalid; flying direct");
+					PX4_ERR("geofence avoidance: NaN waypoint at cursor %d/%d",
+						planner.getPathCursor(), planner.get_num_waypoints());
+					_avoidance_waypoint_fallback_reported = true;
+				}
 			}
 
 			float yaw = NAN;

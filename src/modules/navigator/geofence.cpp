@@ -745,9 +745,14 @@ matrix::Vector2<double>Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
 	mission_fence_point_s vertex{};
 
 	dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
-	_dataman_cache.loadWait(fence_dataman_id, info.dataman_index + idx,
-				reinterpret_cast<uint8_t *>(&vertex),
-				sizeof(mission_fence_point_s));
+	const bool success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + idx,
+			     reinterpret_cast<uint8_t *>(&vertex),
+			     sizeof(mission_fence_point_s));
+
+	if (!success) {
+		PX4_ERR("geofence: dataman load failed for polygon %d vertex %d", poly_idx, idx);
+		return matrix::Vector2<double> {(double)NAN, (double)NAN};
+	}
 
 	return matrix::Vector2d {vertex.lat, vertex.lon};
 }

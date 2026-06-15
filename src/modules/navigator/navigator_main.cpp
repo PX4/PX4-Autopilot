@@ -1006,8 +1006,22 @@ void Navigator::run()
 		const bool margin_changed = fabsf(margin - _last_geofence_avoidance_margin) > FLT_EPSILON;
 
 		if (fence_updated || margin_changed) {
-			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
+			const bool ok = _geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
 			_last_geofence_avoidance_margin = margin;
+
+			if (!ok) {
+				if (!_geofence_avoidance_build_failed_reported) {
+					mavlink_log_warning(&_mavlink_log_pub,
+							    "Geofence too complex for RTL avoidance; RTL will fly direct\t");
+					events::send(events::ID("rtl_avoidance_build_failed"),
+						     {events::Log::Warning, events::LogInternal::Info},
+						     "Geofence too complex for RTL avoidance; RTL will fly direct");
+					_geofence_avoidance_build_failed_reported = true;
+				}
+
+			} else {
+				_geofence_avoidance_build_failed_reported = false;
+			}
 		}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE

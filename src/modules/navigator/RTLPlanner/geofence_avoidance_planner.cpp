@@ -35,6 +35,7 @@
 #include <lib/geo/geo.h>
 #include <lib/geofence/geofence_utils.h>
 #include <lib/dijkstra/dijkstra.h>
+#include <px4_platform_common/log.h>
 
 GeofenceAvoidancePlanner::~GeofenceAvoidancePlanner()
 {
@@ -97,9 +98,16 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 		}
 	}
 
-	if (num_vertices == 0 || num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
+	if (num_vertices == 0) {
 		_polygons_healthy = false;
-		return false; // TODO return a more specific error
+		return false;
+	}
+
+	if (num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
+		// Does not happen when kMaxNodes set correctly - see static_assert in geofence_utils::PlannerPolygons
+		PX4_WARN("geofence avoidance: Too many vertices (%d, max is %d)", num_vertices, kMaxNodes - 1);
+		_polygons_healthy = false;
+		return false;
 	}
 
 	perf_begin(_setup_perf);
@@ -145,6 +153,7 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 
 			if (!_polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin)) {
+				PX4_WARN("geofence avoidance: polygon %d (%d vertices) rejected by planner", poly_index, info.vertex_count);
 				return false;
 			}
 
@@ -155,6 +164,7 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION);
 
 			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, is_inclusion)) {
+				PX4_WARN("geofence avoidance: circle %d (radius %.2f m) rejected by planner", poly_index, (double)info.circle_radius);
 				return false;
 			}
 		}
