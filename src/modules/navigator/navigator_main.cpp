@@ -1024,6 +1024,18 @@ void Navigator::run()
 			}
 		}
 
+		const bool unreachable = _geofence_avoidance_planner.hasUnreachableLegalRegion();
+
+		if (unreachable && !_geofence_avoidance_unreachable_region_reported) {
+			mavlink_log_warning(&_mavlink_log_pub,
+					    "Geofence has legal regions with no return path; RTL may fly direct through fence\t");
+			events::send(events::ID("rtl_avoidance_unreachable_region"),
+				     {events::Log::Warning, events::LogInternal::Info},
+				     "Geofence has legal regions with no return path; RTL may fly direct through fence");
+		}
+
+		_geofence_avoidance_unreachable_region_reported = unreachable;
+
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 		perf_end(_loop_perf);

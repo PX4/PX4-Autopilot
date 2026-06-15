@@ -95,6 +95,14 @@ public:
 
 	bool updateDestination(const matrix::Vector2d &destination);
 
+	/**
+	 * If (*) true, the the fence has a legal but unreachable region, from which the vehicle
+	 * would fall back to RTL-ing in a straight line.
+	 *
+	 * * Not iff -- see comment in function for limitations
+	 */
+	bool hasUnreachableLegalRegion() const;
+
 private:
 
 	static constexpr int kMaxNodes = geofence_utils::PlannerPolygons::kMaxNodes;

@@ -75,6 +75,38 @@ bool GeofenceAvoidancePlanner::planPath()
 	return ret;
 }
 
+bool GeofenceAvoidancePlanner::hasUnreachableLegalRegion() const
+{
+	if (!_polygons_healthy || !_destination_healthy) {
+		return false;
+	}
+
+	// A node Dijkstra didn't reach but which has a finite-cost edge in the graph belongs
+	// to a multi-node pocket cut off from the destination.
+	const int N = _polygons.numNodes();
+
+	for (int i = 1; i < N; ++i) {
+		if (_best_distance[i] < INFINITY) { continue; }
+
+		for (int j = 1; j < N; ++j) {
+			if (i != j && _distances[dijkstra::symmetricPairIndex(i, j, N)] < INFINITY) {
+				return true;
+			}
+		}
+	}
+
+	// Note that several cases are not detected -- legal unreachable regions
+	//  - containing no nodes, e.g.
+	//      - Intersection of two long thin inclusion rectangles
+	//  - with only nodes excluded due to _node_not_on_optimal_path
+	//  - with only one legal (and not excluded by _node_not_on_optimal_path)
+	//    node inside of it
+	// Detecting all of these cases properly would require running findBestStartingNode from all:
+	//  - proper nodes, including ones not on optimal path
+	//  - intersection points of edges, which form "nodes" of legal regions
+	return false;
+}
+
 bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofence, float margin)
 {
 	// Polygons are about to change; any previously latched fallback start may no longer be valid.
