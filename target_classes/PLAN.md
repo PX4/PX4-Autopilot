@@ -5,17 +5,28 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 ## 0. RESUME HERE
 
 Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
-merge). **109 boards migrated (102 vehicle + 2 cannode + 5 Linux); remaining = 6 special
-boards, all deferred to Phase 4 (cutover).** Additive — `default.px4board` is kept, so every
-legacy `<board>_default` still builds (but see the airframe caveat below).
+merge). **114 boards migrated (102 vehicle + 2 cannode + 5 Linux + sitl + 3 io + ros2);
+remaining = 1 board (`modalai/voxl2`, a documented carve-out) + the Phase-4 cutover.**
+Additive — `default.px4board` is kept, so every legacy `<board>_default` still builds (but
+see the airframe caveat below).
 
 **Status (2026-06-15): the controller-membership rework is COMPLETE and pushed.** Controllers
 come from `target_classes/<class>.px4board` fragments (merged by class name in kconfig.cmake)
 and module Kconfigs are fully decoupled from `TARGET_CLASS` — see the design block + State check
-below. PR #27667 head `0ea7306d2b` (3 commits: restore fragments+cmake / decouple modules /
-strip overlays). The fork remote is `jake` (`dakejahl/PX4-Autopilot`), NOT `origin` (upstream) —
-push there. No in-flight work; next open items are the 6 specials and the Phase-4 cutover
-(§NOT done / §7).
+below. The fork remote is `jake` (`dakejahl/PX4-Autopilot`), NOT `origin` (upstream) — push there.
+
+**Status (2026-06-15, later — SPECIALS MIGRATED additively):** the 5 non-voxl2 specials are
+now in the class system (decisions by dakejahl: bare-name → sole class for the cutover; voxl2
+deferred as a carve-out; do the specials additively first, then pause before the breaking
+cutover). Added `target_classes/{sitl,io,ros2}.px4board` (+ the `TARGET_CLASS_{SITL,IO,ROS2}`
+tag symbols in `Kconfig.target_classes`) and migrated `px4/sitl` (→ sitl class), the 3 IO
+firmware blobs `px4/io-v2`+`cubepilot/io-v2`+`modalai/voxl2-io` (→ io class), and `px4/ros2`
+(→ ros2 class) via the (extended) `migrate_px4board.py`. Additive: every `default.px4board`
+is kept, so `px4_sitl_default` etc. still build; the new targets are `px4_sitl_sitl`,
+`px4_io-v2_io`, …, `px4_ros2_ros2` (the doubled names are the transient wart the cutover
+removes via bare→sole-class). `modalai/voxl2` stays on the legacy default+slpi path (its rate
+controllers run on the QURT DSP; apps side fits no class — revisit with modalai at cutover).
+Next = pause for review, then the **Phase-4 cutover** (§NOT done #2 / §7).
 
 **Design reworked 2026-06-15 (dakejahl) — self-documenting, no hidden coupling. Controller
 membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), modules decoupled:**
@@ -44,8 +55,15 @@ membership moved back into `target_classes/` fragments 2026-06-15 (dakejahl), mo
 A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script spec), §7 (Phase-4).
 
 ### State check (all exit 0)
-- `python3 Tools/migrate_px4board.py` (dry run) → `0 ok, 109 skip, 6 manual, 0 error` (skips =
-  already migrated); `… --force` re-verifies the merge model → `109 ok, 0 error`.
+- `python3 Tools/migrate_px4board.py` (dry run) → `0 ok, 114 skip, 1 manual, 0 error` (skips =
+  already migrated; the 1 manual is the deferred `modalai/voxl2`); `… --force` re-verifies the
+  merge model for every board → `114 ok, 1 manual, 0 error`.
+- Specials ground-truth (real cmake configure, boardconfig diff): `px4_sitl_sitl` ==
+  `px4_sitl_default` excluding the decoupled `TARGET_CLASS_*`/`AIRFRAMES_*` lines;
+  `px4_io-v2_io` == `px4_io-v2_default` excluding `# Label:`; `px4_ros2_ros2` ==
+  `px4_ros2_default` excluding `# Label:` (both ros2 configures fail identically later for lack
+  of a colcon/ROS2 env — pre-existing, not the migration). cubepilot/voxl2-io share byte-
+  identical io configs (tool self-verify).
 - `make px4_fmu-v6x_vtol romfs_gen_files_target` → `boardconfig` == `px4_fmu-v6x_default`
   EXCLUDING `# Label:` and the now-decoupled `CONFIG_AIRFRAMES_*`/`CONFIG_TARGET_CLASS_*`
   lines; the generated `etc/init.d/airframes/` set is the 36 Copter+Plane+VTOL+Balloon frames
@@ -56,6 +74,17 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
 - `make cubepilot_cubeyellow_vtol …` and `… _uuv` → enabled-symbol sets UNION to `_default`.
 
 ### Done
+- **5 specials migrated to `sitl`/`io`/`ros2` classes (2026-06-15, dakejahl — additive).**
+  Created `target_classes/{sitl,io,ros2}.px4board` (`sitl` = POSIX + the full mc/fw/vtol/uuv/
+  rover/airship controller set; `io` = ROMFSROOT="" + PX4IOFIRMWARE; `ros2` = PLATFORM_ROS2) +
+  the `TARGET_CLASS_{SITL,IO,ROS2}` tag symbols in `Kconfig.target_classes`. Extended
+  `migrate_px4board.py` to classify them (PLATFORM_ROS2→ros2; plain PLATFORM_POSIX+controllers→
+  sitl; no-controller+PX4IOFIRMWARE→io; CLASS_PROVIDES + CLASS_FAMILIES entries) and migrated
+  `px4/sitl`, `px4/io-v2`, `cubepilot/io-v2`, `modalai/voxl2-io`, `px4/ros2`. `default.px4board`
+  kept everywhere (additive). Verified at the real-merge level (see State check). The sitl
+  overlay carries `AIRFRAMES_COPTER/PLANE/VTOL/ROVER/UUV/AIRSHIP` (harmless on POSIX, which
+  ships init.d-posix; matches the linux precedent); io/ros2 overlays are empty (inherits
+  comment); `px4/ros2`'s base is empty (everything moved to the class).
 - **Controller membership reverted to `target_classes/` fragments (2026-06-15, dakejahl).**
   Recreated the 9 `target_classes/<class>.px4board` fragments (`TARGET_CLASS_<X>=y` tag + the
   controller/platform/romfs/driver set); restored the `class_base` merge in `cmake/kconfig.cmake`;
@@ -82,18 +111,15 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
   deferred. mr-canhubk3 `fmu`/`sysview` + the linux `_arm64` variants stay on the legacy path.
 
 ### NOT done (next sessions)
-1. **6 special boards still legacy → all deferred to Phase 4** (the tool refuses them):
-   - `px4/sitl` (PLATFORM_POSIX, all controllers) → `sitl` class.
-   - 3 IO-firmware blobs (`px4/io-v2`, `cubepilot/io-v2`, `modalai/voxl2-io`; NuttX cortex-m3,
-     `PX4IOFIRMWARE`, `ROMFSROOT=""`) → `io` class.
-   - `px4/ros2` (`PLATFORM_ROS2`) → `ros2` class.
-   - `modalai/voxl2` (aarch64 muorb/QURT; controllers run on the SLPI DSP, apps side carries
-     none) → special; its `slpi` variant is the controller-bearing half.
-   Taxonomy LOCKED (dakejahl 2026-06-14): distinct `sitl`/`io`/`ros2` classes, NOT one
-   `infra` catch-all. These are singletons/blobs with no cross-board sharing and (sitl) deep
-   CI entanglement, so they are best classed during the cutover when grammar/CI/naming change
-   together — not migrated additively now (which would only add awkward duplicate targets like
-   `px4_sitl_sitl`).
+1. **`modalai/voxl2` — the one remaining legacy board (carve-out, dakejahl 2026-06-15).** Its
+   apps-side `default.px4board` (aarch64 Linux) carries muorb/commander/allocator but NO rate
+   controllers — those live in the `slpi` (QURT DSP) variant — so it fits no vehicle class and
+   is not a clean `linux` board. Left on the legacy default+slpi path as a documented exception;
+   revisit with modalai at the cutover. The tool still reports it MANUAL by design.
+   - DONE 2026-06-15 (the other 5 specials, additively): `sitl`/`io`/`ros2` classes created
+     and `px4/sitl` + the 3 IO blobs + `px4/ros2` migrated. Taxonomy LOCKED (dakejahl
+     2026-06-14): distinct `sitl`/`io`/`ros2`, NOT one `infra`. The transient `px4_sitl_sitl`/
+     `px4_io-v2_io`/`px4_ros2_ros2` doubled names are removed at the cutover (bare → sole class).
 2. **Phase 4 — cutover (big, CI-facing; do deliberately, §7):** error on base/default/bare
    (`cmake/px4_config.cmake`), Makefile target-list rework + `all:`, relabel pre-redesign
    variants → `<class>.<variant>`, ~15 workflows, Tools scripts, docs. `default.px4board`
@@ -206,8 +232,9 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
      special group with real cross-board sharing.
    - The non-vehicle specials get **distinct** classes, not an `infra` catch-all:
      `sitl` (simulator), `io` (PX4IO coprocessor firmware), `ros2` (ROS2 platform build).
-     Deferred to Phase 4 (singletons/blobs, sitl is CI-entangled — class them when the
-     grammar changes, not additively now).
+     DONE additively 2026-06-15 (kept on the dual grammar; the CI-facing rename + cutover is
+     still Phase 4). Their transient `_<class>` doubled target names collapse to the bare board
+     name at the cutover (bare → sole class).
    - `modalai/voxl2` is special (muorb/QURT; vehicle controllers live in its `slpi` variant,
      not the apps-side default) → handled separately in Phase 4, not forced into `linux`.
 
@@ -225,9 +252,9 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
 | cannode | cannode romfs, uavcannode drivers | none |
 | linux | POSIX + LINUX_TARGET + mc/fw/vtol/uuv superset (DONE) | none (init.d-posix) |
 | bootloader | bl defconfig path | none |
-| sitl | all controllers, runtime-selected (Phase 4) | `sitl/` + all (exempt from prune) |
-| io | PX4IOFIRMWARE coprocessor blob (Phase 4) | none |
-| ros2 | PLATFORM_ROS2 build (Phase 4) | none |
+| sitl | POSIX + full controller set, runtime-selected (DONE) | init.d-posix; overlay also sets AIRFRAMES_* |
+| io | ROMFSROOT="" + PX4IOFIRMWARE blob (DONE) | none |
+| ros2 | PLATFORM_ROS2 build (DONE) | none |
 
 **Tier-1 generics → move into `airframes/<class>/`:**
 - `copter/`: 4001 quad_x, 5001 quad_+, 6001/7001 hexa, 8001/9001 octo, 11001/12001 cox,
@@ -306,21 +333,29 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
   relabel pre-redesign variants → `<class>.<variant>`; then Phase 4 cutover.
 
 ### Phase 4 — Cutover
-- `px4_config.cmake`: drop "omit default" rule; error on base/default/bare.
-- `Makefile`: rework target lists; `all:` → a sitl class. Sweep workflows/Tools/docs (§7).
+- **Naming LOCKED (dakejahl 2026-06-15): bare board name → its SOLE class.** `px4_config.cmake`
+  drops the "omit default" rule and errors on the literal `default`/`base` labels and on a bare
+  multi-class board (ambiguous), BUT a bare board name resolves to its one class when exactly one
+  exists — so `px4_sitl`/`px4_io-v2`/`px4_ros2`/`holybro_kakutef7` keep working and the transient
+  `px4_sitl_sitl` doubled names go away. (Relaxes the earlier §1 "bare is always an error" line.)
+- `Makefile`: rework target lists; `all:` → the sitl class (`px4_sitl`). Sweep workflows/Tools/
+  docs (§7). The CI enumerator `Tools/ci/generate_board_targets_json.py` is the linchpin (its
+  `default.px4board`-merge branch + `<mfr>_<board>_<label>` naming + `excluded_labels`).
 
 ## 6. Migration script (`Tools/migrate_px4board.py`) — IMPLEMENTED
 Per `default.px4board`: infer the class(es) — air (mc/fw/vtol) collapses to `vtol`, each
 extra vehicle class is its own target, `ROMFSROOT="cannode"` → `cannode`,
-`PLATFORM_POSIX + BOARD_LINUX_TARGET` with vehicle controllers → `linux`. Emit one
+`PLATFORM_POSIX + BOARD_LINUX_TARGET` with vehicle controllers → `linux`, `PLATFORM_ROS2` →
+`ros2`, plain `PLATFORM_POSIX` + controllers → `sitl`, no-controller + `PX4IOFIRMWARE` → `io`.
+Emit one
 `base.px4board` (= default minus ALL controllers and every symbol the class bases provide)
 + one `<class>.px4board` overlay per class (the board's delta vs `target_classes/<class>`;
 self-documenting comment when empty). Self-verifies the layered merge reproduces `default`
 symbol-for-symbol (UNION of the per-class targets for multi-class) before writing, tolerating
 any class-base symbol the board reverts off (controllers AND e.g. cannode `DRIVERS_UAVCANNODE`;
-all `default n`). Refuses (MANUAL, never writes) plain-POSIX SITL, muorb/QURT Linux boards
-with no apps-side controllers (voxl2), no-controller blobs (IO firmware, ros2), and class-base
-mismatches.
+all `default n`). Refuses (MANUAL, never writes) only muorb/QURT Linux boards with no
+apps-side controllers (voxl2) and class-base mismatches; sitl/io/ros2 are now handled
+(`CLASS_PROVIDES`/`CLASS_FAMILIES` entries added).
 `--apply` writes; default is a dry-run report; `--force` overwrites an existing base.
 Usage: `Tools/migrate_px4board.py [--apply] [--force] [vendor/model ...]`.
 
