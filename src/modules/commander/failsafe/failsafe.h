@@ -48,7 +48,7 @@ protected:
 	Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const override;
 
 	uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
-				       uint8_t user_intended_mode) const override;
+				       uint8_t user_intended_mode, bool user_intended_mode_updated) const override;
 
 private:
 	void updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags);
