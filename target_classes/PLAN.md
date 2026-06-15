@@ -4,65 +4,61 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 
 ## 0. RESUME HERE
 
-Branch `feat/airframe-class-dirs` (this draft PR is a staging/handoff interface — not for
-merge yet). **Phases 1 & 2 committed; Phase 3 in progress — the migration tool exists and
-the whole ark/* family is class-migrated + build-verified.** A fresh session:
+Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
+merge). **Phases 1 & 2 done; Phase 3 vehicle-board migration done — all 102 vehicle boards
+are class-migrated. Remaining: 13 special boards + Phase 4 (cutover).** Clean 7-commit
+history `be5e70ed6f..0b4f0b0151` (pushed). The change is purely additive — `default.px4board`
+is kept everywhere, so every legacy `<board>_default` still builds next to the new
+`<board>_<class>` targets.
 
-1. Read §3 (locked decisions), §4 (class catalog), §5 (phase log), §6 (migration spec).
-2. Sanity-check current state (all should pass, exit 0):
-   - `python3 Tools/migrate_px4board.py` (dry run, writes nothing) → `77 ok, 1 skip,
-     37 manual, 0 error`. The 37 manual = the open multi-vehicle/special decision (below).
-   - `make ark_fmu-v6x_vtol romfs_gen_files_target` → resolved `boardconfig` byte-identical
-     to `ark_fmu-v6x_default` except the `# Label:` comment; airframes flat (copter+plane+vtol).
-   - `make ark_cannode_cannode romfs_gen_files_target` → `boardconfig` identical to
-     `ark_cannode_default` (cannode romfs, no airframes dir).
-3. **Next: continue Phase 3 fan-out.** Concrete steps:
-   - **Multi-vehicle per-class split — DONE.** `migrate_px4board.py` now emits one shared
-     `base` + N class overlays (vtol+uuv → `<b>_vtol` AND `<b>_uuv`), verified by the UNION
-     of the per-class targets reproducing `default`. Dry-run: **88 ok / 14 skip / 11 manual
-     / 2 error**. Multi-vehicle pilot `cubepilot/cubeyellow` applied + build-verified: the
-     `_vtol` (196) and `_uuv` (185) targets' enabled symbols UNION to exactly the `_default`
-     (199) set — nothing lost, nothing added; controllers + airframes cleanly partitioned.
-   - **Remaining MANUAL (11):** four no-controller boards (`px4/io-v2`, `cubepilot/io-v2`,
-     `modalai/voxl2-io`, `px4/ros2`) + seven POSIX boards (`px4/sitl` and the Linux flight
-     controllers `beaglebone/blue`, `bluerobotics/navigator`, `emlid/navio2`,
-     `px4/raspberrypi`, `modalai/voxl2`, `scumaker/pilotpi`). Need `sitl`/`infra`/`linux`
-     class decisions — not vehicle-controller splits. **(2 error:** `espressif/esp32`,
-     `nxp/mr-canhubk3` cannodes lack `DRIVERS_UAVCANNODE`; give them a revert overlay.)
-   - **Fan-out DONE:** all 87 remaining "ok" boards migrated in one sweep (102 boards now
-     have base.px4board; purely additive, default.px4board kept). Spot build-verified per
-     class: copter/vtol/cannode reproduce the legacy `_default` boardconfig (modulo Label),
-     multi-class vtol+uuv unions to it, a flipped non-ark rover variant is byte-identical.
-   - **Now remaining:** (a) the 11 MANUAL specials (sitl/infra/linux classes) + 2 cannode
-     errors (revert overlay); (b) **Phase 4** — Makefile/CI grammar + cutover (error on
-     base/default/bare, target enumeration, ~15 workflows, Tools, docs; §7).
+A fresh session: read §3 (locked decisions), §4 (class catalog), §5 (phase log), §6 (script
+spec), §7 (Phase-4 ripple list).
 
-Done in Phase 3 so far: `Tools/migrate_px4board.py` (generic `base = default −
-symbols(target_classes/<class>) − controllers`, overlay = delta, with a symbol-level
-self-verification gate — controllers are all `default n`, so an omitted controller pinned
-off by an overlay is behavior-preserving); class bases moved to top-level
-`target_classes/{copter,rover,vtol,plane,uuv,airship,spacecraft,cannode}.px4board` (out of
-`boards/`, which is vendors-only); ark/* migrated (13 boards = 3 vtol + 10 cannode) — empty
-overlays now carry a self-documenting "inherits" comment; every resulting target
-build-verified byte-identical to its legacy `_default`. cannode base provides
-`DRIVERS_UAVCANNODE`. Slimmed the air boards' pre-existing `rover` overlays to just the
-non-controller disables + board drivers (verified byte-identical). Fixed a Phase-1
-regression where `flatten_classes.py` crashed on ROMFS roots without an `airframes/` dir
-(broke all cannode builds); `Makefile` no longer enumerates `base.px4board` as a `_base`
-target. `migrate_px4board.py` extended for multi-class boards (shared base + per-class
-overlays, UNION-verified), then **all 102 vehicle boards migrated** (single + multi-class).
+### State check (all exit 0)
+- `python3 Tools/migrate_px4board.py` (dry run, writes nothing) → `0 ok, 102 skip,
+  11 manual, 2 error` — everything migrated; manual/error = the 13 leftovers below.
+- `make px4_fmu-v6x_vtol romfs_gen_files_target` → `boardconfig` byte-identical to
+  `px4_fmu-v6x_default` except the `# Label:` comment.
+- `make cubepilot_cubeyellow_vtol …` and `… _uuv` → their enabled-symbol sets UNION to
+  `cubepilot_cubeyellow_default` (multi-vehicle split: nothing lost, nothing added).
 
-NOT done: 13 boards still legacy (11 MANUAL specials needing the sitl/infra/linux class
-decision + 2 cannode errors needing a uavcannode revert overlay);
-`default.px4board` kept everywhere (legacy
-path intact, all current targets still build); Makefile/CI/docs grammar otherwise unchanged;
-products dangle globally. Nothing merged to main. The unrelated
-`boards/ark/fpv/extras/ark_fpv_bootloader.bin` working-tree change is deliberately excluded.
+### Done (the whole of Phase 3 for vehicle boards)
+- `Tools/migrate_px4board.py`: splits `default.px4board` → vehicle-agnostic `base.px4board`
+  + per-class `<class>.px4board` overlays inheriting `target_classes/<class>`. Single-class
+  → one target; multi-vehicle → one target per class (vtol + uuv …) sharing one base, whose
+  UNION reproduces `default`. Self-verifies symbol-for-symbol before writing; refuses to
+  guess specials.
+- Class bases in top-level `target_classes/` (out of `boards/`, vendors-only): copter, plane,
+  vtol, rover, uuv, airship, spacecraft, cannode. cannode base provides `DRIVERS_UAVCANNODE`.
+- **All 102 vehicle boards migrated.** Empty overlays self-document via an "inherits" comment;
+  the air boards' pre-existing `rover` variants were slimmed. Build-verified per class
+  (copter/vtol/cannode == legacy `_default` modulo `# Label:`; multi-class unions to default;
+  flipped rover/uuv/spacecraft variant labels byte-identical). Full per-board build coverage
+  is left to CI.
+- Fixed a Phase-1 regression: `flatten_classes.py` crashed every cannode `romfs_gen` (ROMFS
+  root with no `airframes/`). `Makefile` no longer enumerates `base.px4board` as a `_base`.
 
-Known transitional warts: `<vendor>/cannode` → target `ark_cannode_cannode` (redundant but
-correct grammar); variant overlays that pre-date the redesign (e.g. the air boards'
-`rover.px4board`) still carry now-redundant `=n` controller lines — harmless (verified
-byte-identical) and slimmable later.
+### NOT done (next sessions)
+1. **13 boards still legacy** — the tool deliberately refuses them:
+   - **11 manual** = 4 no-controller (`px4/io-v2`, `cubepilot/io-v2`, `modalai/voxl2-io`,
+     `px4/ros2`) + 7 POSIX (`px4/sitl` + Linux FCs `beaglebone/blue`, `bluerobotics/navigator`,
+     `emlid/navio2`, `px4/raspberrypi`, `modalai/voxl2`, `scumaker/pilotpi`). Need
+     `sitl`/`infra`/`linux` class decisions (special configs, not vehicle splits; the tool
+     flags POSIX via `PLATFORM_POSIX`, no-controller via empty controller set).
+   - **2 error** = `espressif/esp32`, `nxp/mr-canhubk3` cannodes lack `DRIVERS_UAVCANNODE`
+     (the cannode class base now provides it) → give each a 1-line revert overlay
+     (`# CONFIG_DRIVERS_UAVCANNODE is not set`).
+2. **Phase 4 — cutover (big, CI-facing; do deliberately, §7):** error on base/default/bare
+   (`cmake/px4_config.cmake`), Makefile target-list rework + `all:`, relabel pre-redesign
+   variants → `<class>.<variant>`, ~15 workflows, Tools scripts, docs. `default.px4board`
+   stays until this lands.
+
+### Housekeeping
+- The unrelated `boards/ark/fpv/extras/ark_fpv_bootloader.bin` working-tree change is
+  deliberately excluded — do NOT commit it.
+- Harmless transitional warts: `<vendor>/cannode` → `ark_cannode_cannode`; a few
+  pre-redesign variant overlays still carry now-redundant `=n` lines (byte-identical,
+  slimmable later).
 
 ## 1. Core model
 
@@ -175,7 +171,7 @@ string. Target name: `<vendor>_<model>_<class>[_<variant>]` (dot → underscore)
 
 ## 5. Phases (each keeps `main` green)
 
-### Phase 1 — Airframe mechanism — DONE (verified), branch `feat/airframe-class-dirs`, uncommitted
+### Phase 1 — Airframe mechanism — DONE (verified + committed)
 Verified: (a) generated airframes.xml + rc.autostart byte-identical to baseline (metadata
 neutral); (b) real `px4_fmu-v6x_default` ROMFS build clean — 19 generics included, runtime
 tree flat (flatten works), all product frames excluded, autostart wired. Intentional
@@ -208,39 +204,44 @@ regression-free; init.d-posix untouched, init.d/airframes flattened correctly.
   generics, no cross-contamination. #27539's bug solved structurally.
 - `default.px4board` kept during transition (legacy labels still use it).
 
-### Phase 3 — Migrate boards (scripted, per family) — IN PROGRESS
+### Phase 3 — Migrate boards (scripted) — VEHICLE BOARDS DONE (13 specials + cutover remain, see §0)
 - `Tools/migrate_px4board.py` — DONE. Splits each `default` → `base` (= default minus the
   symbols `target_classes/<class>` provides minus the board's controllers) + `<class>` overlay
   (the board's delta vs `target_classes/<class>`; empty when the board matches the class base).
-  Class inferred from controllers (+ `ROMFSROOT="cannode"`); `mc+fw+vtol → vtol` (policy A).
-  Before writing it self-verifies that `base → target_classes/<class> → overlay` reproduces the
-  original `default` symbol-for-symbol (the only tolerated delta: an omitted controller the
-  overlay pins off — all controllers are `default n`). Dry-run over all 115 boards:
-  `77 ok, 1 skip (pi6x), 37 manual, 0 error`. The 37 manual are deliberately refused
-  (multi-vehicle air+X and no-controller specials — see §0).
+  Class(es) inferred from controllers (+ `ROMFSROOT="cannode"`); air collapses to `vtol`
+  (policy A), each extra vehicle class becomes its own target (multi-class → shared base +
+  N overlays, UNION-verified). Before writing it self-verifies that the merge reproduces the
+  original `default` symbol-for-symbol (only tolerated delta: an omitted controller the
+  overlay pins off — all controllers are `default n`). Refuses POSIX/no-controller specials.
 - `target_classes/{vtol,plane,uuv,airship,spacecraft,cannode}.px4board` — DONE (added to the
   `copter,rover` from Phase 2). `vtol` = the mc5+fw5+VTOL modal set (38/47 boards match
   exactly). `cannode` = just `BOARD_ROMFSROOT="cannode"`. (sitl/infra/bootloader deferred —
   special; bootloader stays on the savedefconfig path, never merged.)
-- ark/* family migrated + verified — DONE. 13 boards (3 vtol + 10 cannode) split via the
-  tool, all with empty overlays; every resulting target builds; `ark_fmu-v6x_vtol`,
-  `ark_cannode_cannode`, and the flipped `ark_fmu-v6x_rover` variant produce `boardconfig`
-  byte-identical to their legacy `_default`/`_rover` builds (sans `# Label:` comment).
+- **All 102 vehicle boards migrated** — DONE. ark/* (single-class) + `cubepilot/cubeyellow`
+  (multi-class) as pilots, then the rest in one additive sweep. Spot build-verified per class
+  (== legacy `_default` modulo `# Label:`; multi-class unions to default; flipped variant
+  labels byte-identical). The air boards' pre-existing `rover` overlays were slimmed.
 - Fixed `Tools/px4airframes/flatten_classes.py` crash when the ROMFS root has no
   `airframes/` dir (a Phase-1 regression that broke every cannode `romfs_gen_files_target`).
 - `Makefile`: `base.px4board` excluded from `ALL_CONFIG_TARGETS` (no spurious `_base` target).
-- TODO: resolve the 37 manual boards (§0); fan out the remaining clean families; relabel
-  pre-redesign variants → `<class>.<variant>`; CI enumeration is Phase 4.
+- TODO (next): the 13 specials (sitl/infra/linux classes + 2 cannode revert overlays, §0);
+  relabel pre-redesign variants → `<class>.<variant>`; then Phase 4 cutover.
 
 ### Phase 4 — Cutover
 - `px4_config.cmake`: drop "omit default" rule; error on base/default/bare.
 - `Makefile`: rework target lists; `all:` → a sitl class. Sweep workflows/Tools/docs (§7).
 
-## 6. Migration script spec (`Tools/migrate_px4board.py`)
-Input each `default.px4board`; infer class from controllers (mc+fw+vtol → single `vtol`;
-romfs=cannode → `cannode`); emit `base.px4board` (minus controller `MODULES_*`/whitelist)
-+ `<class>.px4board` (ideally just inherits `target_classes/<class>`); per-board diff report; never
-silently drop config.
+## 6. Migration script (`Tools/migrate_px4board.py`) — IMPLEMENTED
+Per `default.px4board`: infer the class(es) — air (mc/fw/vtol) collapses to `vtol`, each
+extra vehicle class is its own target, `ROMFSROOT="cannode"` → `cannode`. Emit one
+`base.px4board` (= default minus ALL controllers and every symbol the class bases provide)
++ one `<class>.px4board` overlay per class (the board's delta vs `target_classes/<class>`;
+self-documenting comment when empty). Self-verifies the layered merge reproduces `default`
+symbol-for-symbol (UNION of the per-class targets for multi-class) before writing, tolerating
+only an omitted controller pinned off (controllers are `default n`). Refuses (MANUAL/ERROR,
+never writes) POSIX/SITL (`PLATFORM_POSIX`), no-controller boards, and class-base mismatches.
+`--apply` writes; default is a dry-run report; `--force` overwrites an existing base.
+Usage: `Tools/migrate_px4board.py [--apply] [--force] [vendor/model ...]`.
 
 ## 7. Ripple checklist
 **Grammar:** `Makefile` (ALL_CONFIG_TARGETS, `_default` omission, `all: px4_sitl_default`),
