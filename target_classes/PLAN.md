@@ -5,7 +5,7 @@ Working tracker for the target-class build/airframe redesign. Supersedes PR #275
 ## 0. RESUME HERE
 
 Branch `feat/airframe-class-dirs` — draft PR #27667 (staging/handoff interface, not for
-merge); head `daed530a36` on fork `jake`. **114 boards migrated (102 vehicle + 2 cannode + 5 Linux + sitl + 3 io + ros2);
+merge); pushed to fork `jake` (`git log` for the exact head). **114 boards migrated (102 vehicle + 2 cannode + 5 Linux + sitl + 3 io + ros2);
 remaining = 1 board (`modalai/voxl2`, a documented carve-out) + the Phase-4 cutover.**
 Additive — `default.px4board` is kept, so every legacy `<board>_default` still builds (but
 see the airframe caveat below).
