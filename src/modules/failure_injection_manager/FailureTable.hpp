@@ -76,9 +76,6 @@ public:
 	 */
 	AckResult inject(uint8_t unit, uint8_t type, uint8_t instance);
 
-	/** Clear all active failures. Marks the table changed if it held any. */
-	void reset();
-
 	/** True if the table changed since the last clearChanged(). */
 	bool changed() const { return _changed; }
 	void clearChanged() { _changed = false; }

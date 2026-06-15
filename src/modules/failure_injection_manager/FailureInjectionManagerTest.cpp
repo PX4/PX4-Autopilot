@@ -263,30 +263,6 @@ TEST(FailureTable, OkClearsTheInstance)
 	EXPECT_EQ(table.count(), 0);
 }
 
-TEST(FailureTable, ResetClearsAllAndMarksChanged)
-{
-	FailureTable table;
-	table.inject(GYRO, OFF, 1);
-	table.inject(GPS, WRONG, 0);
-	table.clearChanged();
-
-	table.reset();
-	EXPECT_TRUE(table.changed());
-	EXPECT_EQ(table.count(), 0);
-
-	failure_injection_s msg{};
-	table.fill(msg);
-	EXPECT_EQ(msg.count, 0);
-}
-
-TEST(FailureTable, ResetOnEmptyTableIsNotAChange)
-{
-	FailureTable table;
-	table.reset();
-	EXPECT_FALSE(table.changed());
-	EXPECT_EQ(table.count(), 0);
-}
-
 TEST(FailureTable, OkClearsOnlyTheAddressedInstance)
 {
 	FailureTable table;

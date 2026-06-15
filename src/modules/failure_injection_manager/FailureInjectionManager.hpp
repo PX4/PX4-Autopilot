@@ -46,16 +46,14 @@
 #include "FailureTable.hpp"
 
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/failure_injection.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-class FailureInjectionManager : public ModuleBase, public ModuleParams, public px4::WorkItem
+class FailureInjectionManager : public ModuleBase, public px4::WorkItem
 {
 public:
 	FailureInjectionManager();
@@ -81,14 +79,9 @@ private:
 	void publishAck(const vehicle_command_s &cmd, uint8_t result);
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
-	uORB::SubscriptionCallbackWorkItem _parameter_update_sub{this, ORB_ID(parameter_update)};
 
 	uORB::Publication<failure_injection_s>  _failure_injection_pub{ORB_ID(failure_injection)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	failure_injection::FailureTable _table;
-
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_en
-	)
 };

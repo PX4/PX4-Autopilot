@@ -41,14 +41,13 @@
 ModuleBase::Descriptor FailureInjectionManager::desc{task_spawn, custom_command, print_usage};
 
 FailureInjectionManager::FailureInjectionManager() :
-	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 }
 
 bool FailureInjectionManager::init()
 {
-	if (!_vehicle_command_sub.registerCallback() || !_parameter_update_sub.registerCallback()) {
+	if (!_vehicle_command_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -62,20 +61,8 @@ void FailureInjectionManager::Run()
 {
 	if (should_exit()) {
 		_vehicle_command_sub.unregisterCallback();
-		_parameter_update_sub.unregisterCallback();
 		exit_and_cleanup(desc);
 		return;
-	}
-
-	// Disabling SYS_FAILURE_EN clears active failures (in-flight recovery).
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-		updateParams();
-
-		if (!_param_sys_failure_en.get()) {
-			_table.reset();
-		}
 	}
 
 	vehicle_command_s cmd;
@@ -176,8 +163,8 @@ publishes the `failure_injection` topic, republishing only when the configuratio
 changes so that command spam cannot propagate to the consumers that apply the
 failures. It also produces the central `vehicle_command_ack`.
 
-Failure injection is gated by the `SYS_FAILURE_EN` parameter. Clearing the parameter
-at runtime also clears all active failures.
+Failure injection is gated by the `SYS_FAILURE_EN` parameter, which the startup
+script checks before starting this module.
 
 )DESCR_STR");
 
