@@ -1001,8 +1001,7 @@ void Navigator::run()
 		const bool fence_updated = _geofence.consumeFenceUpdated();
 		const float margin = geofence_avoidance_margin();
 
-		// Margin is baked into polygons, so a margin change (VTOL transition,
-		// param change) requires rebuilding the polygons.
+		// Margin is baked into polygons, so a margin change requires rebuilding them.
 		const bool margin_changed = fabsf(margin - _last_geofence_avoidance_margin) > FLT_EPSILON;
 
 		if (fence_updated || margin_changed) {
@@ -1657,15 +1656,17 @@ float Navigator::geofence_avoidance_margin() const
 	// These margins should be above the horizontal tracking error that can be expected for each vehicle type.
 	// If re-using the enlarged polygons for a predictive geofence failsafe feature, additionally ensure
 	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
-	switch (_vstatus.vehicle_type) {
-	case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-		return get_default_loiter_rad();
 
-	case vehicle_status_s::VEHICLE_TYPE_ROVER:
-	case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-	default:
-		return 2.0f * get_default_acceptance_radius();
+	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+		// Use FW loiter radius even for VTOL in MC -- changing the
+		// margin on transition is confusing and RTLing in MC as a VTOL
+		// is a very rare edge case
+		return get_default_loiter_rad();
 	}
+
+	// MC, rover, unspecified
+	return 2.0f * get_default_acceptance_radius();
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
