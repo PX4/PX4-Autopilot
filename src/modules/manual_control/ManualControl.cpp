@@ -121,7 +121,17 @@ void ManualControl::processInput(hrt_abstime now)
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
 
-		processStickArming(_selector.setpoint());
+		IgnoreStick ignore_stick = processStickArming(_selector.setpoint());
+
+		if (ignore_stick == IgnoreStick::LEFT || ignore_stick == IgnoreStick::ALL) {
+			_selector.setpoint().throttle = -1.0f;
+			_selector.setpoint().yaw = 0.f;
+		}
+
+		if (ignore_stick == IgnoreStick::ALL) {
+			_selector.setpoint().roll = 0.f;
+			_selector.setpoint().pitch = 0.f;
+		}
 
 		// User override by stick
 		const float dt_s = (now - _timestamp_last_loop) / 1e6f;
@@ -388,7 +398,7 @@ void ManualControl::updateParams()
 	}
 }
 
-void ManualControl::processStickArming(const manual_control_setpoint_s &input)
+ManualControl::IgnoreStick ManualControl::processStickArming(const manual_control_setpoint_s &input)
 {
 	// Arm gesture
 	const bool right_stick_centered = (fabsf(input.pitch) < 0.1f) && (fabsf(input.roll) < 0.1f);
@@ -412,16 +422,32 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	}
 
 	// Kill gesture
-	if (_param_man_kill_gest_t.get() > 0.f) {
-		const bool right_stick_lower_right = (input.pitch < -0.9f) && (input.roll > 0.9f);
+	const bool right_stick_lower_right = (input.pitch < -0.9f) && (input.roll > 0.9f);
 
+	if (_param_man_kill_gest_t.get() > 0.f) {
 		const bool previous_stick_kill_hysteresis = _stick_kill_hysteresis.get_state();
 		_stick_kill_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_lower_right, input.timestamp);
 
 		if (!previous_stick_kill_hysteresis && _stick_kill_hysteresis.get_state()) {
 			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_STICK_GESTURE);
 		}
+
 	}
+
+	// Disable sticks state machine
+	const bool disable_left_stick = _param_man_arm_gesture.get() && right_stick_centered && (left_stick_lower_left
+					|| left_stick_lower_right);
+	const bool disable_all_sticks = _param_man_kill_gest_t.get() > 0.f && right_stick_lower_right && left_stick_lower_left;
+
+	if (disable_all_sticks) {
+		return IgnoreStick::ALL;
+
+	} else if (disable_left_stick) {
+		return IgnoreStick::LEFT;
+
+	}
+
+	return IgnoreStick::NONE;
 }
 
 void ManualControl::evaluateModeSlot(uint8_t mode_slot)
