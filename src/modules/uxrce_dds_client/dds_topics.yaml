@@ -110,6 +110,9 @@ publications:
     type: px4_msgs::msg::GimbalDeviceAttitudeStatus
     rate_limit: 20.
 
+  - topic: /fmu/out/config_overrides_confirm
+    type: px4_msgs::msg::ConfigOverrides
+
   - topic: /fmu/out/vtx
     type: px4_msgs::msg::Vtx
     rate_limit: 1.

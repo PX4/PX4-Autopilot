@@ -190,6 +190,7 @@ private:
 	uORB::Publication<register_ext_component_reply_s> _register_ext_component_reply_pub{ORB_ID(register_ext_component_reply)};
 	uORB::Publication<config_overrides_s> _config_overrides_pub{ORB_ID(config_overrides)};
 	uORB::Subscription _config_overrides_request_sub{ORB_ID(config_overrides_request)};
+	uORB::Publication<config_overrides_s> _config_overrides_confirm_pub{ORB_ID(config_overrides_confirm)};
 
 	ExternalChecks &_external_checks;
 	ModeExecutors _mode_executors;
