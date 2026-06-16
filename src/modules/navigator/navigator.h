@@ -387,7 +387,7 @@ private:
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
-	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes (e.g. vehicle type switch) */
+	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes */
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	bool _navigator_status_updated{false};

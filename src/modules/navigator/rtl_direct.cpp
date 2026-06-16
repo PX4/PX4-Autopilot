@@ -219,8 +219,7 @@ void RtlDirect::_updateRtlState()
 
 	case RTLState::LOITER_HOLD:
 		if (_vehicle_status_sub.get().is_vtol
-		    && _vehicle_status_sub.get().vehicle_type ==
-		    vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			new_state = RTLState::MOVE_TO_LAND;
 
 		} else {

@@ -1013,8 +1013,6 @@ void Navigator::run()
 			using PlannerStatus = GeofenceAvoidancePlanner::Status;
 			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
-			PX4_INFO("Planner status: %d", (int) planner_status);
-
 			switch (planner_status) {
 			case PlannerStatus::Ok:
 			case PlannerStatus::NoFence:
@@ -1024,12 +1022,14 @@ void Navigator::run()
 			case PlannerStatus::FenceTooComplex:
 			case PlannerStatus::PolygonRejected:
 				mavlink_log_warning(&_mavlink_log_pub, "Geofence too complex for RTL avoidance; RTL will fly directly\t");
-				events::send(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info}, "Geofence too complex for RTL avoidance; RTL will fly directly");
+				events::send(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
+					     "Geofence too complex for RTL avoidance; RTL will fly directly");
 				break;
 
 			case PlannerStatus::UnreachableRegions:
 				mavlink_log_warning(&_mavlink_log_pub, "Geofence has legal regions with no return path; RTL may fly direct through fence\t");
-				events::send(events::ID("rtl_avoidance_unreachable_region"), {events::Log::Warning, events::LogInternal::Info}, "Geofence has legal regions with no return path; RTL may fly direct through fence");
+				events::send(events::ID("rtl_avoidance_unreachable_region"), {events::Log::Warning, events::LogInternal::Info},
+					     "Geofence has legal regions with no return path; RTL may fly direct through fence");
 				break;
 			}
 		}
