@@ -78,6 +78,9 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_fixed_wing_lateral_status_pub.advertise();
 	parameters_update();
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
+
+	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
+	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
 }
 
 FwLateralLongitudinalControl::~FwLateralLongitudinalControl()
@@ -111,9 +114,6 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
-
-	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
-	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
 
 	_airspeed_direction_control.setPGainFromPeriodAndDamping(_param_npfg_damping.get(), _param_npfg_period.get());
 }
