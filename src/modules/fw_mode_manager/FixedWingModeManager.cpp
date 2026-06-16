@@ -272,20 +272,19 @@ void FixedWingModeManager::vehicle_attitude_setpoint_poll()
 float
 FixedWingModeManager::get_manual_airspeed_setpoint()
 {
-	float manual_airspeed_setpoint = NAN;
-
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
-		// neutral throttle corresponds to trim airspeed
-		manual_airspeed_setpoint = math::interpolateNXY(_manual_control_setpoint_for_airspeed,
+		// neutral throttle corresponds to last MAV_CMD_DO_CHANGE_SPEED, or trim airspeed if none received
+		const float base_airspeed = PX4_ISFINITE(_commanded_manual_airspeed_setpoint)
+					    ? math::constrain(_commanded_manual_airspeed_setpoint,
+							    _param_fw_airspd_min.get(),
+							    _param_fw_airspd_max.get())
+					    : _param_fw_airspd_trim.get();
+		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
 		{-1.f, 0.f, 1.f},
-		{_param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_airspd_max.get()});
-
-	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
-		// override stick by commanded airspeed
-		manual_airspeed_setpoint = _commanded_manual_airspeed_setpoint;
+		{_param_fw_airspd_min.get(), base_airspeed, _param_fw_airspd_max.get()});
 	}
 
-	return manual_airspeed_setpoint;
+	return _commanded_manual_airspeed_setpoint;
 }
 
 void
@@ -517,6 +516,10 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
+	}
+
+	if (_control_mode_current != previous_position_control_mode) {
+		_commanded_manual_airspeed_setpoint = NAN;
 	}
 }
 
