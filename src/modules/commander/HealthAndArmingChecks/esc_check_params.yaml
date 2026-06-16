@@ -51,12 +51,12 @@ parameters:
       increment: 1
 - group: ESC
   definitions:
-    COM_ESC_OT_WARN:
+    ESC_TEMP_WARN_TH:
       description:
-        short: ESC over-temperature warning threshold
+        short: ESC temperature warning threshold
         long: |-
-          Warning raised if ESC temperature gets above threshold: no failsafe action triggered or arming prevented.
-          Set to -1 to disable the check.
+          Warning only, no failsafe or arming blocked.
+          -1 disables the check.
       type: float
       default: 90.0
       min: -1

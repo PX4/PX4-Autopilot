@@ -61,7 +61,7 @@ private:
 
 
 	static constexpr hrt_abstime ESC_TIMEOUT_US = 400_ms;
-	static constexpr float ESC_OVER_TEMP_RESET_MARGIN = 5.f;
+
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
@@ -80,5 +80,5 @@ private:
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
 					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
 					(ParamFloat<px4::params::MOTFAIL_OFF>) _param_motfail_off,
-					(ParamFloat<px4::params::COM_ESC_OT_WARN>) _param_com_esc_ot_warn);
+					(ParamFloat<px4::params::ESC_TEMP_WARN_TH>) _param_esc_temp_warn_th);
 };
