@@ -81,7 +81,6 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 
 	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
 	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
-
 }
 
 FwLateralLongitudinalControl::~FwLateralLongitudinalControl()
