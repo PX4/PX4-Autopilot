@@ -182,6 +182,7 @@ protected:
 
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
+	matrix::Vector2f _takeoff_locked_xy{NAN, NAN}; /**< lift-off XY tracked during the takeoff ramp and frozen at FLIGHT to keep the climb vertical */
 	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
 
 	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator
