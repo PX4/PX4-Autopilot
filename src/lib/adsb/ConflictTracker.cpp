@@ -45,13 +45,22 @@
 namespace
 {
 
+void append_change(conflict_tracker_changes_s &changes, const conflict_tracker_change_s &change)
+{
+	if (!changes.push_back(change)) {
+		// changes is sized for the worst case of a full cycle (kMaxConflictChangesPerCycle),
+		// so a failure here means that bound is wrong.
+		PX4_ERR("DAA: conflict changes overflow");
+	}
+}
+
 void record_ignored(conflict_tracker_changes_s &changes, const conflict_info_s &conflict, const IgnoreTrafficCause cause)
 {
 	conflict_tracker_change_s change{};
 	change.type = ConflictTrackerChangeType::kReportIgnored;
 	change.conflict = conflict;
 	change.ignore_cause = cause;
-	changes.push_back(change);
+	append_change(changes, change);
 }
 
 void record_removed(conflict_tracker_changes_s &changes, const conflict_info_s &conflict, const RemoveBufferCause cause)
@@ -60,7 +69,7 @@ void record_removed(conflict_tracker_changes_s &changes, const conflict_info_s &
 	change.type = ConflictTrackerChangeType::kConflictRemoved;
 	change.conflict = conflict;
 	change.remove_cause = cause;
-	changes.push_back(change);
+	append_change(changes, change);
 }
 
 } // namespace
@@ -92,7 +101,7 @@ bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tra
 		conflict_tracker_change_s change{};
 		change.type = ConflictTrackerChangeType::kConflictAdded;
 		change.conflict = conflict;
-		changes.push_back(change);
+		append_change(changes, change);
 		return true;
 	}
 
@@ -132,7 +141,7 @@ bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tra
 	conflict_tracker_change_s change{};
 	change.type = ConflictTrackerChangeType::kConflictAdded;
 	change.conflict = conflict;
-	changes.push_back(change);
+	append_change(changes, change);
 	return true;
 }
 
@@ -171,7 +180,7 @@ bool ConflictTracker::update_conflict(const conflict_info_s &conflict, const int
 						 || (is_valid_idx(most_urgent_idx)
 						     && _buffer[most_urgent_idx].encoded_id == conflict.encoded_id);
 
-		changes.push_back(change);
+		append_change(changes, change);
 	}
 
 	return true;

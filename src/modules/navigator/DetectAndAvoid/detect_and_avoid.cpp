@@ -55,10 +55,10 @@
 
 using namespace time_literals;
 
-// Buffer containing the tracker changes collected over one cycle.
+// The conflict tracker appends its change records into this buffer over one detection cycle.
 // Defined as an uninitialized static so the storage lives in .bss (AXI_SRAM on FMU targets).
-// With 37 change slots, this is roughly 1.8 KB on current targets.
-static conflict_cycle_changes_s _cycle_changes;
+// With kMaxConflictChangesPerCycle = 37, this is roughly 1.8 KB on current targets.
+static conflict_tracker_changes_s _cycle_changes;
 
 // Buffer containing the conflict outputs collected over one cycle.
 // Same .bss placement rationale as above.
@@ -164,9 +164,11 @@ void DetectAndAvoid::on_active()
 
 void DetectAndAvoid::process_traffic()
 {
-	daa_input_s ownship_input{};
+	// DAA input for this cycle: gather_ownship_input() fills the ownship half once, and the
+	// traffic half is overwritten in place per report while processing the transponder queue.
+	daa_input_s daa_input{};
 
-	if (!gather_ownship_input(ownship_input)) {
+	if (!gather_ownship_input(daa_input)) {
 		if (!_conflict_tracker.empty()
 		    || _conflict_tracker.most_urgent().conflict_level != detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
 			PX4_DEBUG("DAA: uav pose stale, clearing conflicts");
@@ -184,17 +186,13 @@ void DetectAndAvoid::process_traffic()
 	_cycle_daa_outputs.clear();
 
 	if (has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime)) {
-		conflict_tracker_changes_s stale_changes{};
-
 		if (_conflict_tracker.remove_stale_conflicts(hrt_absolute_time(),
-				static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s, stale_changes)) {
+				static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s, _cycle_changes)) {
 			update_most_urgent_conflict();
 		}
-
-		collect_tracker_changes(stale_changes);
 	}
 
-	if (process_transponder_queue(ownship_input)) {
+	if (process_transponder_queue(daa_input)) {
 		update_most_urgent_conflict();
 	}
 
@@ -203,19 +201,7 @@ void DetectAndAvoid::process_traffic()
 
 	if (_most_urgent_conflict_changed) {
 		evaluate_and_publish_action();
-
 		_prev_most_urgent_conflict_level = _conflict_tracker.most_urgent().conflict_level;
-	}
-}
-
-void DetectAndAvoid::collect_tracker_changes(const conflict_tracker_changes_s &changes)
-{
-	for (size_t i = 0; i < changes.size(); ++i) {
-		if (!_cycle_changes.push_back(changes[i])) {
-			// Sized for the worst case; push_back can only fail if that bound is wrong.
-			PX4_ERR("DAA: cycle changes overflow");
-			break;
-		}
 	}
 }
 
@@ -285,7 +271,7 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &report, 
 	return true;
 }
 
-bool DetectAndAvoid::process_transponder_queue(const daa_input_s &ownship_input)
+bool DetectAndAvoid::process_transponder_queue(daa_input_s &daa_input)
 {
 	bool buffer_updated = false;
 	transponder_report_s transponder_report{};
@@ -307,14 +293,14 @@ bool DetectAndAvoid::process_transponder_queue(const daa_input_s &ownship_input)
 			continue;
 		}
 
-		const bool report_processed = process_transponder_report(ownship_input, transponder_report);
+		const bool report_processed = process_transponder_report(daa_input, transponder_report);
 		buffer_updated = buffer_updated || report_processed;
 	}
 
 	return buffer_updated;
 }
 
-bool DetectAndAvoid::process_transponder_report(const daa_input_s &ownship_input,
+bool DetectAndAvoid::process_transponder_report(daa_input_s &daa_input,
 		const transponder_report_s &transponder_report)
 {
 	const DaaEncodedId encoded_id = DaaEncodedId::identify_traffic_report(transponder_report, _ownship_ids);
@@ -323,7 +309,7 @@ bool DetectAndAvoid::process_transponder_report(const daa_input_s &ownship_input
 		return false;
 	}
 
-	daa_input_s daa_input{ownship_input};
+	// Fill the traffic half in place; the ownship half was set once for the whole cycle.
 	prepare_traffic_input(transponder_report, daa_input);
 
 	detect_and_avoid_s daa_output{};
@@ -358,10 +344,7 @@ bool DetectAndAvoid::process_transponder_report(const daa_input_s &ownship_input
 	debug_print_conflict_info(current_conflict);
 #endif
 
-	conflict_tracker_changes_s tracker_changes{};
-	const bool buffer_updated = _conflict_tracker.apply_conflict(current_conflict, tracker_changes);
-
-	collect_tracker_changes(tracker_changes);
+	const bool buffer_updated = _conflict_tracker.apply_conflict(current_conflict, _cycle_changes);
 
 	return buffer_updated;
 }

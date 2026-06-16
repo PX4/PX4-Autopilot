@@ -53,12 +53,6 @@
 
 static constexpr uint8_t kMaxLogMsgSize{128};
 
-// Worst case changes in one cycle: a full stale sweep plus two changes per drained report.
-static constexpr uint8_t kMaxCycleChanges{kDaaMaxTraffic + 2 * transponder_report_s::ORB_QUEUE_LENGTH};
-
-// All tracker changes collected over one cycle, handed to the notifier in a single call.
-using conflict_cycle_changes_s = px4::Array<conflict_tracker_change_s, kMaxCycleChanges>;
-
 class ConflictNotifier
 {
 public:
@@ -84,7 +78,7 @@ public:
 	 *
 	 * Call exactly once per cycle; the periodic most-urgent status relies on it.
 	 */
-	void report_cycle(const conflict_cycle_changes_s &changes, const ConflictTracker &tracker,
+	void report_cycle(const conflict_tracker_changes_s &changes, const ConflictTracker &tracker,
 			  const cycle_context_s &context);
 
 	/** @brief Send the user-facing message and event for a newly-published DAA action. */

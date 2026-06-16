@@ -215,9 +215,6 @@ private:
 	// All DAA operator messaging: formatting, severities and rate limiting.
 	ConflictNotifier _conflict_notifier{};
 
-	/** @brief Append @p changes to the list sent to the notifier once per cycle. */
-	void collect_tracker_changes(const conflict_tracker_changes_s &changes);
-
 	/** @brief Bit i set = conflict level i requires an operator warning (from the action params). */
 	uint8_t warning_levels_mask() const;
 
@@ -284,11 +281,16 @@ private:
 	 */
 	static bool transponder_data_valid(const transponder_report_s &report, hrt_abstime now, hrt_abstime timeout_us);
 
-	/** @brief Drain queued transponder reports and update the conflict buffer. */
-	bool process_transponder_queue(const daa_input_s &ownship_input);
+	/**
+	 * @brief Process queued transponder reports and update the conflict buffer.
+	 *
+	 * @p daa_input carries the ownship state (filled once per cycle); the traffic half is
+	 * overwritten in place for each processed report, avoiding a copy for each report.
+	 */
+	bool process_transponder_queue(daa_input_s &daa_input);
 
-	/** @brief Run one valid traffic report through DAA and apply the result. */
-	bool process_transponder_report(const daa_input_s &ownship_input, const transponder_report_s &transponder_report);
+	/** @brief Run one valid traffic report through DAA and apply the result. Fills the traffic half of @p daa_input. */
+	bool process_transponder_report(daa_input_s &daa_input, const transponder_report_s &transponder_report);
 
 	/** @brief Publish the traffic conflict outputs collected during the transponder report queue drain. */
 	void publish_daa_outputs();

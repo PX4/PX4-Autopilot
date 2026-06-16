@@ -47,6 +47,7 @@
 #include <containers/Array.hpp>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/detect_and_avoid.h>
+#include <uORB/topics/transponder_report.h>
 
 #include "DaaEncodedId.h"
 
@@ -89,9 +90,14 @@ struct conflict_tracker_change_s {
 	bool conflict_is_most_urgent{false};
 };
 
-// Sized for the worst case of a single call: remove_stale_conflicts() can drop
-// every tracked entry; apply_conflict() emits at most two changes.
-using conflict_tracker_changes_s = px4::Array<conflict_tracker_change_s, kDaaMaxTraffic>;
+// Worst-case number of change records produced over one detection cycle. The caller drives
+// the tracker once per cycle and lets it append straight into a single buffer of this size:
+// a stale sweep can drop every tracked entry (kDaaMaxTraffic) and each report processed from the
+// transponder ORB queue can emit up to two changes (a removal plus an insertion, or a level
+// change). Bounding the buffer here lets the caller keep it off the stack (in .bss, AXI_SRAM on FMU targets).
+static constexpr uint16_t kMaxConflictChangesPerCycle{kDaaMaxTraffic + 2 * transponder_report_s::ORB_QUEUE_LENGTH};
+
+using conflict_tracker_changes_s = px4::Array<conflict_tracker_change_s, kMaxConflictChangesPerCycle>;
 
 class ConflictTracker
 {
