@@ -40,6 +40,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /*****************************************************************************
  * Generic bootloader functions.
@@ -111,11 +112,11 @@ extern uint32_t flash_func_read_sn(uintptr_t address);
 
 /* external (QSPI) flash helpers, only used when BOARD_HAS_EXTF is defined.
  * Offsets passed to these are relative to the start of the external flash. */
-extern void board_extf_init(void);                                            /* init QSPI in indirect/command mode */
-extern void board_extf_enable_xip(void);                                      /* switch QSPI to memory-mapped mode before app boot */
-extern uint32_t extf_func_sector_size(void);                                  /* erase granularity in bytes (uniform) */
+extern void board_extf_init();                                                /* init QSPI in indirect/command mode */
+extern void board_extf_enable_xip();                                          /* switch QSPI to memory-mapped mode before app boot */
+extern uint32_t extf_func_sector_size();                                      /* erase granularity in bytes (uniform) */
 extern bool extf_func_start_sector_erase(unsigned sector);                    /* kick off a non-blocking sector erase */
-extern bool extf_func_is_busy(void);                                          /* true while an erase/program is in progress */
+extern bool extf_func_is_busy();                                              /* true while an erase/program is in progress */
 extern bool extf_func_program(uintptr_t offset, const uint8_t *buffer, unsigned length); /* blocking program of a chunk */
 extern uint32_t extf_func_read_word(uintptr_t offset);                        /* read one 32-bit word */
 
@@ -123,12 +124,12 @@ extern uint32_t extf_func_read_word(uintptr_t offset);                        /*
  * repeatedly while the bootloader is idle (waiting for a protocol command); it
  * shuttles bytes between a secondary-facing USB CDC and the UART link to the
  * secondary MCU. Returns true if any data was forwarded this call. */
-extern bool board_bootloader_idle(void);
+extern bool board_bootloader_idle();
 
 /* Tear the passthrough back down (close the USB/UART devices it opened, which
  * disables their interrupts) just before jumping to the application, so the
  * app does not take an unexpected interrupt from a still-enabled peripheral. */
-extern void board_bootloader_finalize(void);
+extern void board_bootloader_finalize();
 
 extern void arch_flash_lock(void);
 extern void arch_flash_unlock(void);
