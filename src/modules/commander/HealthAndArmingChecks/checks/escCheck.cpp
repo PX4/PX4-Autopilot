@@ -91,7 +91,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			mask |= checkMotorStatus(context, reporter, esc_status, now);
 		}
 
-		if (_param_com_esc_ot_warn.get() >= FLT_EPSILON) {
+		if (_param_esc_temp_warn_th.get() >= FLT_EPSILON) {
 			checkEscTemperature(reporter, esc_status);
 		}
 
@@ -220,12 +220,12 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 
 void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_status)
 {
-	const float warn_temp = _param_com_esc_ot_warn.get();
+	const float warn_temp = _param_esc_temp_warn_th.get();
 
-	int hottest_esc_index = -1;
+	uint8_t hottest_esc_index = UINT8_MAX;
 	float max_temperature = -FLT_MAX;
 
-	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
+	for (uint8_t esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
 		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
 				     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
 			continue;
@@ -246,7 +246,7 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 			/* EVENT
 			* @description
 			* <profile name="dev">
-			* This check can be configured via <param>COM_ESC_OT_WARN</param> parameter.
+			* Configured by <param>ESC_TEMP_WARN_TH</param>
 			* </profile>
 			*/
 			reporter.healthFailure<uint8_t, uint8_t>(NavModes::None, health_component_t::motors_escs,
@@ -257,18 +257,17 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 		}
 	}
 
-	if (hottest_esc_index < 0) {
+	if (hottest_esc_index == UINT8_MAX) {
 		return;
 	}
 
-	if (max_temperature > warn_temp) {
+	if (max_temperature >= warn_temp) {
 		if (!_esc_over_temp_warned && reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(),
-					    "High ESC temperature. Reduce throttle!");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "High ESC temperature. Reduce throttle!");
 			_esc_over_temp_warned = true;
 		}
 
-	} else if (max_temperature < warn_temp - ESC_OVER_TEMP_RESET_MARGIN) {
+	} else if (max_temperature < warn_temp - 5.f) {
 		_esc_over_temp_warned = false;
 	}
 }
