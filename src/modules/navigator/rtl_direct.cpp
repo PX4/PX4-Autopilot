@@ -70,9 +70,6 @@ void RtlDirect::on_inactivation()
 	}
 
 	_rtl_state = RTLState::IDLE;
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	_avoidance_waypoint_fallback_reported = false;
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 }
 
 void RtlDirect::on_activation()
@@ -82,8 +79,8 @@ void RtlDirect::on_activation()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	// Pass the current vehicle position; the planner falls back to its own latched in-fence
 	// anchor if the current position violates a fence. Resets the path cursor to 0.
-	_navigator->get_geofence_avoidance_planner().updateStartAndFillPath(
-		matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
+	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+	planner.updateStartAndFillPath(matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	parameters_update();
@@ -102,10 +99,23 @@ void RtlDirect::on_activation()
 				       "RTL: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	if (geofenceAvoidanceActive()) {
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
+
+	} else if (planner.isRuntimeFallbackRequired()) {
+		// Planner has a graph but couldn't route from the current position -- vehicle will
+		// fly direct and the line will cross a fence. Fires at most once per RTL activation
+		// since on_activation runs once per activation.
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: no geofence avoidance path; flying directly\t");
+		events::send(events::ID("rtl_avoidance_runtime_fallback"),
+		{events::Log::Critical, events::LogInternal::Error},
+		"RTL: no geofence avoidance path; flying direct");
 	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 }
 
 void RtlDirect::on_active()
@@ -280,18 +290,10 @@ void RtlDirect::set_rtl_item()
 			planner.advanceWaypoint();
 
 			if (!point.isAllFinite()) {
-				// Should never happen, fall back to RTLing straight.
+				// Should never happen -- AVOID_GEOFENCE is only entered while hasMore() is true.
+				// Fall back to RTLing in a straight line
 				point(0) = _land_approach.lat;
 				point(1) = _land_approach.lon;
-
-				if (!_avoidance_waypoint_fallback_reported) {
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "%s\t",
-							     "RTL: geofence avoidance path invalid; flying direct");
-					events::send(events::ID("rtl_avoidance_waypoint_invalid"),
-					{events::Log::Critical, events::LogInternal::Error},
-					"RTL: geofence avoidance path invalid; flying direct");
-					_avoidance_waypoint_fallback_reported = true;
-				}
 			}
 
 			float yaw = NAN;

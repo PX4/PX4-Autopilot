@@ -57,54 +57,42 @@ static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx
 
 bool GeofenceAvoidancePlanner::planPath()
 {
-	bool ret = false;
-
 	if (!_polygons_healthy || !_destination_healthy) {
-		// we are not in a state where we can reliably plan a path, return an empty one
-		return ret;
+		// not in a state where we can plan a path
+		return false;
 	}
 
 	perf_begin(_plan_path_perf);
 
-	ret = dijkstra::solveBackward(_polygons.numNodes(), _polygons.destIndex(), _distances, true, _best_distance,
-				      _next_node_buffer, _visited_buffer);
+	const bool ret = dijkstra::solveBackward(_polygons.numNodes(), _polygons.destIndex(), _distances, true, _best_distance,
+			 _next_node_buffer, _visited_buffer);
 
 	perf_end(_plan_path_perf);
 
-	return ret;
-}
+	if (ret) {
+		// A node Dijkstra didn't reach but which has a finite-cost edge in the graph belongs
+		// to a multi-node pocket cut off from the destination. Limitations -- not detected:
+		// legal unreachable regions with no nodes, or with only _node_not_on_optimal_path
+		// corners, or with only one routable node (no visible neighbor in the pocket).
+		_status = Status::Ok;
+		const int N = _polygons.numNodes();
 
-bool GeofenceAvoidancePlanner::hasUnreachableLegalRegion() const
-{
-	if (!_polygons_healthy || !_destination_healthy) {
-		return false;
-	}
+		for (int i = 1; i < N && _status == Status::Ok; ++i) {
+			if (_best_distance[i] < INFINITY) { continue; }
 
-	// A node Dijkstra didn't reach but which has a finite-cost edge in the graph belongs
-	// to a multi-node pocket cut off from the destination.
-	const int N = _polygons.numNodes();
-
-	for (int i = 1; i < N; ++i) {
-		if (_best_distance[i] < INFINITY) { continue; }
-
-		for (int j = 1; j < N; ++j) {
-			if (i != j && _distances[dijkstra::symmetricPairIndex(i, j, N)] < INFINITY) {
-				return true;
+			for (int j = 1; j < N; ++j) {
+				if (i != j && _distances[dijkstra::symmetricPairIndex(i, j, N)] < INFINITY) {
+					_status = Status::UnreachableRegions;
+					break;
+				}
 			}
 		}
 	}
 
-	// Note that several cases are not detected -- legal unreachable regions with:
-	//  - no nodes, e.g. intersection of two long thin inclusion rectangles
-	//  - only nodes excluded due to _node_not_on_optimal_path
-	//  - only one legal (and not excluded by _node_not_on_optimal_path) node inside of it
-	// Detecting all of these cases properly would require running findBestStartingNode from all:
-	//  - proper nodes, including ones not on optimal path
-	//  - intersection points of edges, which form "nodes" of legal regions
-	return false;
+	return ret;
 }
 
-bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofence, float margin)
+void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofence, float margin)
 {
 	// Polygons are about to change; any previously latched fallback start may no longer be valid.
 	_saved_valid_start = matrix::Vector2<double> {(double)NAN, (double)NAN};
@@ -129,13 +117,15 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 
 	if (num_vertices == 0) {
 		_polygons_healthy = false;
-		return false;
+		_status = Status::NoFence;
+		return;
 	}
 
 	if (num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
 		// Does not happen when kMaxNodes set correctly - see static_assert in geofence_utils::PlannerPolygons
 		_polygons_healthy = false;
-		return false;
+		_status = Status::FenceTooComplex;
+		return;
 	}
 
 	perf_begin(_setup_perf);
@@ -145,7 +135,8 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	if (!updatePolygonsFromGeofence(geofence, margin)) {
 		_polygons_healthy = false;
 		perf_cancel(_setup_perf);
-		return false;
+		_status = Status::PolygonRejected;
+		return;
 	}
 
 	updateEdgeCosts();
@@ -155,7 +146,11 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 
 	perf_end(_setup_perf);
 
-	return planPath();
+	// Tentative: graph build succeeded. planPath() will early-return here
+	// (no destination yet); _status will be refined to Ok or UnreachableRegions
+	// by the next updateDestination() call.
+	_status = Status::Ok;
+	planPath();
 }
 
 bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
@@ -203,8 +198,9 @@ void GeofenceAvoidancePlanner::updateEdgeCosts()
 {
 	perf_begin(_setup_distances_perf);
 
+	// All edges in the upper triangle, INCLUDING destination-incident ones (i==0).
 	// Polygon vertices occupy indices 1..numNodes()-1; destination is at 0.
-	for (int i = 1; i < _polygons.numNodes(); i++) {
+	for (int i = 0; i < _polygons.numNodes(); i++) {
 		for (int j = i + 1; j < _polygons.numNodes(); j++) {
 			const size_t idx = dijkstra::symmetricPairIndex(i, j, _polygons.numNodes());
 			_distances[idx] = _polygons.edgeCost(i, j);
@@ -214,11 +210,18 @@ void GeofenceAvoidancePlanner::updateEdgeCosts()
 	perf_end(_setup_distances_perf);
 }
 
-bool GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destination)
+void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destination)
 {
-	if (!destination.isAllFinite() || !latLonWithinBounds(destination) || !_polygons_healthy) {
+	if (!_polygons_healthy) {
+		// Polygons unhealthy -- _status already reflects the build-time problem; do not overwrite.
 		_destination_healthy = false;
-		return false;
+		return;
+	}
+
+	if (!destination.isAllFinite() || !latLonWithinBounds(destination)) {
+		_destination_healthy = false;
+		_status = Status::DestinationInvalid;
+		return;
 	}
 
 	MapProjection ref{_reference(0), _reference(1)};
@@ -228,14 +231,15 @@ bool GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 	if (!geofence_utils::inFixedPointRange(dest_local(0))
 	    || !geofence_utils::inFixedPointRange(dest_local(1))) {
 		_destination_healthy = false;
-		return false;
+		_status = Status::DestinationInvalid;
+		return;
 	}
 
 	// PlannerPolygons stores positions in int32-cm - a roundtrip through
 	// setDestination/getDestination thus introduces up to 0.5cm of error,
 	// hence the higher comparison tolerance.
 	if (_destination_healthy && (dest_local - _polygons.getDestination()).norm() < 0.1f) {
-		return false;
+		return;
 	}
 
 	perf_begin(_update_destination_perf);
@@ -249,7 +253,7 @@ bool GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 	_destination_healthy = true;
 	perf_end(_update_destination_perf);
 
-	return planPath();
+	planPath();   // sets _status to Ok or UnreachableRegions
 }
 
 int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start_local,
@@ -354,5 +358,9 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 
 	_path_length = path_index;
 	_path_cursor = 0;
+	// Runtime fallback condition: we have a usable graph and destination, but neither the live start
+	// nor the saved valid start could route, AND destination isn't directly visible from either ->
+	// the caller will fly direct and the line will cross at least one fence boundary.
+	_runtime_fallback_required = (_path_length == 0) && !direct_path_feasible;
 	return path_index;
 }

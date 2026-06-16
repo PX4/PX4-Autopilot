@@ -174,9 +174,6 @@ private:
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	bool _avoidance_waypoint_fallback_reported {false}; ///< latch: warned that an AVOID_GEOFENCE waypoint was NaN
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	RtlTimeEstimator _rtl_time_estimator;
 
 	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the RTL position to fly to

@@ -1006,36 +1006,34 @@ void Navigator::run()
 		const bool margin_changed = fabsf(margin - _last_geofence_avoidance_margin) > FLT_EPSILON;
 
 		if (fence_updated || margin_changed) {
-			const bool ok = _geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
-			_geofence_avoidance_unreachable_region_reported = false;
+			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
 			_last_geofence_avoidance_margin = margin;
 
-			if (!ok) {
-				if (!_geofence_avoidance_build_failed_reported) {
-					mavlink_log_warning(&_mavlink_log_pub, "%s\t",
-							    "Geofence too complex for RTL avoidance; RTL will fly direct");
-					events::send(events::ID("rtl_avoidance_build_failed"),
-					{events::Log::Warning, events::LogInternal::Info},
-					"Geofence too complex for RTL avoidance; RTL will fly direct");
-					_geofence_avoidance_build_failed_reported = true;
-				}
+			// Notify the user if planner status is not good. Add granularity with
+			// more status values / user messages if needed.
+			using PlannerStatus = GeofenceAvoidancePlanner::Status;
+			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
-			} else {
-				_geofence_avoidance_build_failed_reported = false;
+			PX4_INFO("Planner status: %d", (int) planner_status);
+
+			switch (planner_status) {
+			case PlannerStatus::Ok:
+			case PlannerStatus::NoFence:
+			case PlannerStatus::DestinationInvalid: // If reporting, would need to also check outside of this block...
+				break;
+
+			case PlannerStatus::FenceTooComplex:
+			case PlannerStatus::PolygonRejected:
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence too complex for RTL avoidance; RTL will fly directly\t");
+				events::send(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info}, "Geofence too complex for RTL avoidance; RTL will fly directly");
+				break;
+
+			case PlannerStatus::UnreachableRegions:
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence has legal regions with no return path; RTL may fly direct through fence\t");
+				events::send(events::ID("rtl_avoidance_unreachable_region"), {events::Log::Warning, events::LogInternal::Info}, "Geofence has legal regions with no return path; RTL may fly direct through fence");
+				break;
 			}
 		}
-
-		const bool unreachable = _geofence_avoidance_planner.hasUnreachableLegalRegion();
-
-		if (unreachable && !_geofence_avoidance_unreachable_region_reported) {
-			mavlink_log_warning(&_mavlink_log_pub, "%s\t",
-					    "Geofence has legal regions with no return path; RTL may fly direct through fence");
-			events::send(events::ID("rtl_avoidance_unreachable_region"),
-			{events::Log::Warning, events::LogInternal::Info},
-			"Geofence has legal regions with no return path; RTL may fly direct through fence");
-		}
-
-		_geofence_avoidance_unreachable_region_reported = unreachable;
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

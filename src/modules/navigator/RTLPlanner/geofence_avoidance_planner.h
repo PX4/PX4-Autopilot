@@ -51,6 +51,27 @@ public:
 	GeofenceAvoidancePlanner() = default;
 	~GeofenceAvoidancePlanner();
 
+	/**
+	 * Result of the latest graph build & dijkstra run.
+	 * Is converted to user-facing warning in navigator_main.
+	 */
+	enum class Status {
+		NoFence,             // No fence polygons -- avoidance not applicable.
+		Ok,                  // Graph built, Dijkstra ran, no isolated routable nodes.
+		DestinationInvalid,  // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
+		FenceTooComplex,     // Vertex budget exceeded (should not normally happen, see static_assert).
+		PolygonRejected,     // addPolygon / addApproxCircle refused a zone (degenerate, self-intersecting, out of fixed-point range).
+		UnreachableRegions,  // Graph built but legal pockets exist disconnected from destination.
+	};
+
+	Status status() const { return _status; }
+
+	/**
+	 * True if the latest updateStartAndFillPath() found neither a routed path nor a direct
+	 * line to the destination -- the caller will fly direct and the line will cross a fence.
+	 * The RTL state machine uses this to emit a one-shot runtime-fallback warning.
+	 */
+	bool isRuntimeFallbackRequired() const { return _runtime_fallback_required; }
 
 	/**
 	 * Fill the path from `start` to the destination. If `start` is
@@ -104,17 +125,9 @@ public:
 	// Current cursor position (0-indexed).
 	int getPathCursor() const { return _path_cursor; }
 
-	bool updateGraphFromGeofence(GeofenceInterface &geofence, float margin = 10.0f);
+	void updateGraphFromGeofence(GeofenceInterface &geofence, float margin = 10.0f);
 
-	bool updateDestination(const matrix::Vector2d &destination);
-
-	/**
-	 * If (*) true, the the fence has a legal but unreachable region, from which the vehicle
-	 * would fall back to RTL-ing in a straight line.
-	 *
-	 * * Not iff -- see comment in function for limitations
-	 */
-	bool hasUnreachableLegalRegion() const;
+	void updateDestination(const matrix::Vector2d &destination);
 
 private:
 
@@ -141,6 +154,8 @@ private:
 
 	bool _polygons_healthy{false};
 	bool _destination_healthy{false};
+	Status _status{Status::NoFence};
+	bool _runtime_fallback_required{false};
 
 	// Most recent in-fence position passed to updateStartAndFillPath. Used
 	// by subsequent calls as fallback when we have breached a geofence.
