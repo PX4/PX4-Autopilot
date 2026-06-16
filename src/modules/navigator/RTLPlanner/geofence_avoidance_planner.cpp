@@ -141,14 +141,9 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 
 	updateEdgeCosts();
 
-	// invalidate destination to force a refresh on the next updateDestination()
-	_destination_healthy = false;
-
 	perf_end(_setup_perf);
 
-	// Tentative: graph build succeeded. planPath() will early-return here
-	// (no destination yet); _status will be refined to Ok or UnreachableRegions
-	// by the next updateDestination() call.
+	// The graph has changed, so we need to re-plan.
 	_status = Status::Ok;
 	planPath();
 }
@@ -213,7 +208,7 @@ void GeofenceAvoidancePlanner::updateEdgeCosts()
 void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destination)
 {
 	if (!_polygons_healthy) {
-		// Polygons unhealthy -- _status already reflects the build-time problem; do not overwrite.
+		// Polygons unhealthy -- _status already reflects the root cause, do not overwrite.
 		_destination_healthy = false;
 		return;
 	}
@@ -244,16 +239,15 @@ void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 
 	perf_begin(_update_destination_perf);
 	_polygons.setDestination(dest_local);
+	_destination_healthy = true;
 
-	// Destination changed -- rebuild all edge costs. A targeted update of just the
-	// destination-incident edges would be cheaper at runtime but the flash cost of
-	// the dedicated loop isn't worth it; updateEdgeCosts is O(N^2) and still fast.
+	// Destination changed -- rebuild all edge costs. Could only refresh costs involving
+	// the destination for slightly better performance at the cost of code repetition.
 	updateEdgeCosts();
 
-	_destination_healthy = true;
 	perf_end(_update_destination_perf);
 
-	planPath();   // sets _status to Ok or UnreachableRegions
+	planPath();
 }
 
 int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start_local,
