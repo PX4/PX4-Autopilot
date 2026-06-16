@@ -64,7 +64,8 @@ The following commands are relevant to this mode:
 - [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) — Sets the cruise airspeed for centred throttle stick.
 
   This requires an airspeed sensor.
-  At centered throttle the vehicle holds the commanded airspeed (`param2`) if set.
+  Only the airspeed speed type is handled (`param1` must be `0`); other speed types are ignored.
+  At centered throttle the vehicle holds the commanded airspeed (`param2`) if a positive value is set (non-positive values are ignored).
   The value is constrained between [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) and [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX), and defaults to [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) if no airspeed has been commanded.
   Deflecting the throttle stick scales the airspeed toward `FW_AIRSPD_MIN` (back) or `FW_AIRSPD_MAX` (forward) around this value.
   The commanded airspeed resets to `FW_AIRSPD_TRIM` on every flight mode change.
