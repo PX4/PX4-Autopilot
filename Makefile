@@ -238,7 +238,7 @@ endef
 # sole target class collapses to the bare board name (px4_sitl, holybro_kakutef7); a
 # board with several keeps the explicit <class> suffix (px4_fmu-v6x_vtol). cmake resolves
 # the bare name back to the sole class.
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' ! -name 'base.px4board' | awk -F/ '{ b=$$2"/"$$3; lab=$$4; sub(/\.px4board$$/,"",lab); L[b]=L[b]" "lab; if (lab ~ /^(copter|fixedwing|vtol|rover|uuv|spacecraft|airship|cannode|linux|sitl|io|ros2|voxl2)$$/) { nc[b]++; sc[b]=lab } } END { for (b in L) { n=split(L[b],a," "); bu=b; gsub(/\//,"_",bu); for (i=1;i<=n;i++) { if (a[i]=="") continue; if (nc[b]==1 && a[i]==sc[b]) print bu; else print bu"_"a[i] } } }' | sort)
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' ! -name 'base.px4board' | awk -F/ '{ b=$$2"/"$$3; lab=$$4; sub(/\.px4board$$/,"",lab); L[b]=L[b]" "lab; if (lab ~ /^(copter|fixedwing|vtol|rover|uuv|spacecraft|airship|cannode|linux|sitl|io|ros2)$$/) { nc[b]++; sc[b]=lab } } END { for (b in L) { n=split(L[b],a," "); bu=b; gsub(/\//,"_",bu); for (i=1;i<=n;i++) { if (a[i]=="") continue; if (nc[b]==1 && a[i]==sc[b]) print bu; else print bu"_"a[i] } } }' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------

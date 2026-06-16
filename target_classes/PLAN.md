@@ -23,9 +23,16 @@ slimming of 17 pre-existing rover overlays (§NOT-done #2).** What landed in the
 - 41 pre-redesign variants relabeled to `<class>.<variant>`; `multicopter`→`copter`
   (+`AIRFRAMES_COPTER`, verified copter-only airframes); `px4/sitl` made sole-class (its uuv/
   spacecraft sims → `sitl.uuv`/`sitl.spacecraft`, so `px4_sitl`/`px4_sitl_test` stay clean).
-- **voxl2 carve-out DONE**: now a sole-class `voxl2` board — `base.px4board` (= old apps config)
-  + tag-only `target_classes/voxl2.px4board` + bare `slpi` variant; `TARGET_CLASS_VOXL2` added to
-  `Kconfig.target_classes`. No resolver special-case; behavior preserved.
+- **voxl2 folded into the `linux` class** (2026-06-15; replaced the earlier sole-class `voxl2`
+  carve-out per dakejahl — a class-of-one with no shared content was a smell + forced a manifest
+  special-case). The apps processor is a Linux-SBC vehicle whose flight controllers run on the
+  QURT/SLPI DSP, so `boards/modalai/voxl2/linux.px4board` drops the linux class's 13 controllers
+  (apps runs none); `slpi` stays a bare variant that re-enables them on the QURT side.
+  `target_classes/voxl2.px4board` + `TARGET_CLASS_VOXL2` deleted; `voxl2` removed from
+  `PX4_CLASS_NAMES` + the Makefile/CI class sets. Verified via real cmake configures:
+  `modalai_voxl2` → linux class, controllers off, `TARGET_CLASS_LINUX=y`, MUORB_APPS on;
+  `modalai_voxl2_slpi` → QURT, controllers on, MUORB_SLPI on; enumerator still emits the 4 voxl2
+  targets on the voxl2 container. Manifest now maps `linux`→vehicle, no voxl2 special-case.
 - CI enumerator / `updateconfig.py` / `Makefile` (sole-class→bare-name collapse via awk, `all:
   px4_sitl`, `_deb`→`$(subst _deb,,…)`, check-lists, IO-firmware copy) / `build_all_config.yml`
   seeders reworked to merge `base.px4board`. Workflows, actions, CI scripts, `Dockerfile.gazebo`,
@@ -171,9 +178,10 @@ A fresh session: read §3 (locked decisions), §4 (class catalog), §6 (script s
 ### DONE — Phase 4 cutover (commit `f914c21643`, 2026-06-15)
 The breaking cutover landed: grammar/resolver (`px4_config.cmake` bare→sole-class + `PX4_TARGET_CLASS`),
 `kconfig.cmake` legacy-merge removal, 41 variant relabels + `multicopter`→`copter`, all 114
-`default.px4board` deleted, the **`modalai/voxl2` carve-out** (last legacy board → sole-class
-`voxl2`), the CI enumerator / `updateconfig.py` / Makefile / seeders rework, and the
-workflow/action/script/command-doc ripple. Full breakdown + verification in §0.
+`default.px4board` deleted, the **`modalai/voxl2` carve-out** (last legacy board → at the time a
+sole-class `voxl2` board; **later folded into the `linux` class** 2026-06-15, see §0), the CI
+enumerator / `updateconfig.py` / Makefile / seeders rework, and the workflow/action/script/
+command-doc ripple. Full breakdown + verification in §0.
 
 ### Housekeeping
 - The unrelated `boards/ark/fpv/extras/ark_fpv_bootloader.bin` working-tree change is
@@ -466,8 +474,9 @@ tool + this doc). The #25414 vocab edit landed on the PR (action 3). The deeper 
 reads `TARGET_CLASS`/`PLATFORM`) waits until the redesign merges — those symbols don't exist on
 `main` yet.
 
-**Cutover coupling (the one hard dependency):** `modalai/voxl2` is a `.deb`/on-device distributed
-build (SLPI DSP `slpi` + ARM64 apps `default`), not a vehicle class — keep the carve-out, but its
-apps target needs a **non-`default` label by the cutover** (the cutover errors on `default`); when
-the manifest reaches it, set `artifact_type=deb`, `firmware_category=vehicle`. ros2/sitl are `dev`
-artifacts (not firmware, not QGC-distributable) — their class is just a platform marker.
+**voxl2 (resolved 2026-06-15):** `modalai/voxl2` is a `.deb`/on-device distributed build (SLPI DSP
+`slpi` + ARM64 apps). Its apps target is now the **`linux` class** (the carve-out's class-of-one
+was folded away, see §0), so `firmware_category=vehicle` derives for free from `TARGET_CLASS_LINUX`
+— no voxl2 special-case in the detector. The `.deb`-ness is the orthogonal `artifact_type` axis
+(posix+linux+qurt + CPack), NOT the class. ros2/sitl are `dev` artifacts (not firmware, not
+QGC-distributable) — their class is just a platform marker.

@@ -71,7 +71,7 @@ special_labels = ci_config.get('special_labels', ['lto', 'protected'])
 # Target-class overlay names. A board's sole class collapses to the bare board
 # name; a board with several keeps the explicit <class> suffix.
 CLASS_NAMES = {'copter', 'fixedwing', 'vtol', 'rover', 'uuv', 'spacecraft',
-               'airship', 'cannode', 'linux', 'sitl', 'io', 'ros2', 'voxl2'}
+               'airship', 'cannode', 'linux', 'sitl', 'io', 'ros2'}
 target_classes_dir = os.path.join(source_dir, '..', 'target_classes')
 
 def board_class_set(board_path):

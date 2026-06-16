@@ -1,0 +1,18 @@
+# VOXL2 application processor (aarch64 Linux), built as the linux target class.
+# The full apps config lives in base.px4board. The flight controllers run on the
+# companion QURT/SLPI DSP firmware (modalai_voxl2_slpi), not on the application
+# processor, so the linux class's controller set is dropped here. The .deb that
+# bundles both halves is built with `make modalai_voxl2` (slpi is a prerequisite).
+# CONFIG_MODULES_MC_ATT_CONTROL is not set
+# CONFIG_MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL is not set
+# CONFIG_MODULES_MC_HOVER_THRUST_ESTIMATOR is not set
+# CONFIG_MODULES_MC_POS_CONTROL is not set
+# CONFIG_MODULES_MC_RATE_CONTROL is not set
+# CONFIG_MODULES_FW_ATT_CONTROL is not set
+# CONFIG_MODULES_FW_AUTOTUNE_ATTITUDE_CONTROL is not set
+# CONFIG_MODULES_FW_LATERAL_LONGITUDINAL_CONTROL is not set
+# CONFIG_MODULES_FW_MODE_MANAGER is not set
+# CONFIG_MODULES_FW_RATE_CONTROL is not set
+# CONFIG_MODULES_VTOL_ATT_CONTROL is not set
+# CONFIG_MODULES_UUV_ATT_CONTROL is not set
+# CONFIG_MODULES_UUV_POS_CONTROL is not set

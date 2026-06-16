@@ -50,7 +50,7 @@ endif()
 
 # The set of target-class names (the buildable role of a board). A bare board
 # name resolves to its sole class; a board with several is ambiguous.
-set(PX4_CLASS_NAMES copter fixedwing vtol rover uuv spacecraft airship cannode linux sitl io ros2 voxl2)
+set(PX4_CLASS_NAMES copter fixedwing vtol rover uuv spacecraft airship cannode linux sitl io ros2)
 
 if(NOT PX4_CONFIG_FILE)
 

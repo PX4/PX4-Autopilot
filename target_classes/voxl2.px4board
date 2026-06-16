@@ -1,6 +1,0 @@
-# VOXL2 target class (carve-out): the ModalAI VOXL2 splits PX4 across an aarch64
-# Linux application processor and a QURT/SLPI DSP. That apps+DSP split does not fit
-# the shared vehicle/system classes, so voxl2 is its own single-board class -- the
-# apps config lives in boards/modalai/voxl2/base.px4board and the DSP half is the
-# slpi variant. This fragment carries only the declarative class tag.
-CONFIG_TARGET_CLASS_VOXL2=y
