@@ -24348,6 +24348,17 @@ Required esc hardware version.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 65535    |           | 0       |      | &nbsp;    |
 
+### ESC_TEMP_WARN_TH (`FLOAT`) {#ESC_TEMP_WARN_TH}
+
+ESC temperature warning threshold.
+
+Warning only, no failsafe or arming blocked.
+-1 disables the check.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 150      | 1         | 90.0    | celcius | &nbsp;    |
+
 ## Events
 
 ### EV_TSK_RC_LOSS (`INT32`) {#EV_TSK_RC_LOSS}
