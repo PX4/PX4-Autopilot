@@ -159,7 +159,7 @@ void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode()
 	register_ext_component_request.timestamp = hrt_absolute_time();
 	strncpy(register_ext_component_request.name, "Neural Control", sizeof(register_ext_component_request.name) - 1);
 	register_ext_component_request.request_id = _mode_request_id;
-	register_ext_component_request.px4_ros2_api_version = 1;
+	register_ext_component_request.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 	register_ext_component_request.register_arming_check = true;
 	register_ext_component_request.register_mode = true;
 	_register_ext_component_request_pub.publish(register_ext_component_request);

@@ -255,7 +255,7 @@ bool Raptor::init()
 	register_ext_component_request.timestamp = hrt_absolute_time();
 	strncpy(register_ext_component_request.name, "RAPTOR", sizeof(register_ext_component_request.name) - 1);
 	register_ext_component_request.request_id = Raptor::EXT_COMPONENT_REQUEST_ID;
-	register_ext_component_request.px4_ros2_api_version = 1;
+	register_ext_component_request.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 	register_ext_component_request.register_arming_check = true;
 	register_ext_component_request.register_mode = true;
 	register_ext_component_request.enable_replace_internal_mode = _param_mc_raptor_offboard.get();
