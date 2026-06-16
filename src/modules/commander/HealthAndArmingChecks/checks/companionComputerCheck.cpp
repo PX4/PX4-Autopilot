@@ -65,7 +65,7 @@ void CompanionComputerChecks::checkAndReport(const Context &context, Report &rep
 		 */
 		reporter.healthFailure<int8_t>(NavModes::None, health_component_t::system,
 					       events::ID("check_companion_computer_temperature_high"),
-					       events::Log::Warning, "Companion computer temperature high: {1} degC",
+					       events::Log::Warning, "Companion computer temperature warning, {1} C",
 					       onboard_computer_status.temperature_board);
 	}
 }
