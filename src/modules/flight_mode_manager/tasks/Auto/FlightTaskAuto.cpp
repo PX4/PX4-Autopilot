@@ -74,6 +74,7 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
+	_takeoff_locked_xy.setNaN();
 
 	return ret;
 }
@@ -84,6 +85,7 @@ void FlightTaskAuto::reActivate()
 
 	// On ground, reset acceleration and velocity to zero
 	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.7f}, _position);
+	_takeoff_locked_xy.setNaN();
 }
 
 bool FlightTaskAuto::updateInitialize()
@@ -157,6 +159,21 @@ bool FlightTaskAuto::update()
 		// Simple waypoint navigation: go to xyz target, with standard limitations
 		_position_setpoint = _triplet_current;
 		_velocity_setpoint.setNaN();
+
+		// During takeoff, lock the lift-off XY so the climb stays vertical and wind-robust:
+		// track the live position through the ramp (freezes at FLIGHT as the deck moves), then
+		// hold it as the target until takeoff completes. Z stays at the takeoff target altitude.
+		if (_type == WaypointType::takeoff) {
+			if (_inTakeoffRamp()) {
+				_takeoff_locked_xy = Vector2f(_position);
+			}
+
+			if (_takeoff_locked_xy.isAllFinite()) {
+				_position_setpoint(0) = _takeoff_locked_xy(0);
+				_position_setpoint(1) = _takeoff_locked_xy(1);
+			}
+		}
+
 		break;
 	}
 
