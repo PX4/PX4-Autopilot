@@ -158,7 +158,6 @@ VtolTakeoff::on_active()
 				// the VTOL takeoff is done
 				_navigator->get_mission_result()->finished = true;
 				_navigator->set_mission_result_updated();
-				_navigator->mode_completed(getNavigatorStateId());
 
 				break;
 			}
@@ -168,6 +167,10 @@ VtolTakeoff::on_active()
 				break;
 			}
 		}
+	}
+
+	if (_navigator->get_mission_result()->finished) {
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 
