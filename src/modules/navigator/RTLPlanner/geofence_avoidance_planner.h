@@ -74,10 +74,16 @@ public:
 	bool hasMore() const { return _path_cursor < _path_length; }
 
 	// The waypoint to fly to now. NaN if hasMore() is false.
-	matrix::Vector2d getCurrentWaypoint() const;
+	matrix::Vector2d getCurrentWaypoint() const
+	{
+		return hasMore() ? _path[_path_cursor] : matrix::Vector2d{(double)NAN, (double)NAN};
+	}
 
 	// The waypoint after current (for populating triplet.next). NaN if current is the last.
-	matrix::Vector2d getNextWaypoint() const;
+	matrix::Vector2d getNextWaypoint() const
+	{
+		return (_path_cursor + 1 < _path_length) ? _path[_path_cursor + 1] : matrix::Vector2d{(double)NAN, (double)NAN};
+	}
 
 	// Mark current waypoint reached; advance to next. No-op when hasMore() is false.
 	void advanceWaypoint() { if (_path_cursor < _path_length) { ++_path_cursor; } }
@@ -86,7 +92,14 @@ public:
 	int get_num_waypoints() const { return _path_length; }
 
 	// 0-indexed access to waypoints. Primarily used by time estimators.
-	matrix::Vector2d waypointAtIndex(int index) const;
+	matrix::Vector2d waypointAtIndex(int index) const
+	{
+		if (index < 0 || index >= _path_length) {
+			return matrix::Vector2d{(double)NAN, (double)NAN};
+		}
+
+		return _path[index];
+	}
 
 	// Current cursor position (0-indexed).
 	int getPathCursor() const { return _path_cursor; }
@@ -143,7 +156,11 @@ private:
 	bool planPath();
 
 
-	bool latLonWithinBounds(const matrix::Vector2<double> &lat_lon) const;
+	static bool latLonWithinBounds(const matrix::Vector2<double> &lat_lon)
+	{
+		return lat_lon(0) >= -90.0 && lat_lon(0) <= 90.0
+		       && lat_lon(1) >= -180.0 && lat_lon(1) <= 180.0;
+	}
 
 	/**
 	 * @brief Search for the best polygon node visible from start_local.

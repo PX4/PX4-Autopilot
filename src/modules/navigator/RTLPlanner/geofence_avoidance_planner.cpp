@@ -35,7 +35,6 @@
 #include <lib/geo/geo.h>
 #include <lib/geofence/geofence_utils.h>
 #include <lib/dijkstra/dijkstra.h>
-#include <px4_platform_common/log.h>
 
 GeofenceAvoidancePlanner::~GeofenceAvoidancePlanner()
 {
@@ -135,7 +134,6 @@ bool GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 
 	if (num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
 		// Does not happen when kMaxNodes set correctly - see static_assert in geofence_utils::PlannerPolygons
-		PX4_WARN("geofence avoidance: Too many vertices (%d, max is %d)", num_vertices, kMaxNodes - 1);
 		_polygons_healthy = false;
 		return false;
 	}
@@ -183,7 +181,6 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 
 			if (!_polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin)) {
-				PX4_WARN("geofence avoidance: polygon %d (%d vertices) rejected by planner", poly_index, info.vertex_count);
 				return false;
 			}
 
@@ -194,7 +191,6 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION);
 
 			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, is_inclusion)) {
-				PX4_WARN("geofence avoidance: circle %d (radius %.2f m) rejected by planner", poly_index, (double)info.circle_radius);
 				return false;
 			}
 		}
@@ -245,26 +241,15 @@ bool GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 	perf_begin(_update_destination_perf);
 	_polygons.setDestination(dest_local);
 
-	// Destination changed -- update only the edge costs involving the destination
-	// All other edge costs stay the same, so no full updateEdgeCosts
-	for (int graph_idx = 1; graph_idx < _polygons.numNodes(); graph_idx++) {
-		const size_t dist_idx = dijkstra::symmetricPairIndex(graph_idx, _polygons.destIndex(), _polygons.numNodes());
-		_distances[dist_idx] = _polygons.edgeCost(graph_idx, _polygons.destIndex());
-	}
+	// Destination changed -- rebuild all edge costs. A targeted update of just the
+	// destination-incident edges would be cheaper at runtime but the flash cost of
+	// the dedicated loop isn't worth it; updateEdgeCosts is O(N^2) and still fast.
+	updateEdgeCosts();
 
 	_destination_healthy = true;
 	perf_end(_update_destination_perf);
 
 	return planPath();
-}
-
-bool GeofenceAvoidancePlanner::latLonWithinBounds(const matrix::Vector2<double> &lat_lon) const
-{
-	if (lat_lon(0) > 90.0 || lat_lon(0) < -90.0 || lat_lon(1) > 180.0 || lat_lon(1) < -180.0) {
-		return false;
-	}
-
-	return true;
 }
 
 int GeofenceAvoidancePlanner::findBestStartingNode(const matrix::Vector2f &start_local,
@@ -370,23 +355,4 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	_path_length = path_index;
 	_path_cursor = 0;
 	return path_index;
-}
-
-matrix::Vector2d GeofenceAvoidancePlanner::waypointAtIndex(int index) const
-{
-	if (index < 0 || index >= _path_length) {
-		return matrix::Vector2d{(double)NAN, (double)NAN};
-	}
-
-	return _path[index];
-}
-
-matrix::Vector2d GeofenceAvoidancePlanner::getCurrentWaypoint() const
-{
-	return hasMore() ? _path[_path_cursor] : matrix::Vector2d{(double)NAN, (double)NAN};
-}
-
-matrix::Vector2d GeofenceAvoidancePlanner::getNextWaypoint() const
-{
-	return (_path_cursor + 1 < _path_length) ? _path[_path_cursor + 1] : matrix::Vector2d{(double)NAN, (double)NAN};
 }

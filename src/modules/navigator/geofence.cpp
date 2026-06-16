@@ -750,7 +750,6 @@ matrix::Vector2<double>Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
 			     sizeof(mission_fence_point_s));
 
 	if (!success) {
-		PX4_ERR("geofence: dataman load failed for polygon %d vertex %d", poly_idx, idx);
 		return matrix::Vector2<double> {(double)NAN, (double)NAN};
 	}
 
