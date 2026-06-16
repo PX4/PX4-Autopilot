@@ -487,6 +487,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				--arch		"${CONFIG_ARCH}"
 				--name		"${PX4_BOARD_NAME}"
 				--variant	"${LABEL}"
+				--target-class	"${PX4_TARGET_CLASS}"
 				--chip		"${CONFIG_ARCH_CHIP}"
 				--vid		"${CONFIG_CDCACM_VENDORID}"
 				--pid		"${CONFIG_CDCACM_PRODUCTID}"

@@ -8,6 +8,18 @@ _VEHICLE_LABELS = frozenset({
 _BOOTLOADER_LABELS = frozenset({
     "bootloader", "canbootloader",
 })
+# Authoritative mapping from the target-class build redesign's CONFIG_TARGET_CLASS_<X>
+# (passed by CMake as PX4_TARGET_CLASS) to firmware_category. Vehicle classes and the
+# Linux SBC flight-controller class are vehicles; the CAN node and PX4IO coprocessor
+# classes are peripherals; the simulator and ROS2 platform builds are developer
+# artifacts. Bootloaders carry no target class and are detected from the variant label.
+_CLASS_CATEGORY = {
+    "copter": "vehicle", "fixedwing": "vehicle", "vtol": "vehicle",
+    "rover": "vehicle", "uuv": "vehicle", "spacecraft": "vehicle",
+    "airship": "vehicle", "linux": "vehicle",
+    "cannode": "peripheral", "io": "peripheral",
+    "sitl": "dev", "ros2": "dev",
+}
 
 def parse_defconfig(path: str) -> Dict[str, str]:
     d: Dict[str, str] = {}
@@ -43,23 +55,30 @@ def detect_chip(defcfg: Dict[str,str]) -> str:
     s = defcfg.get("CONFIG_ARCH_CHIP", "")
     return s.lower().replace("_", "") if s else ""
 
-def detect_firmware_category(variant: str, defcfg: Dict[str, str], target: str = "") -> str:
-    """Infer firmware_category from the variant label and defconfig.
+def detect_firmware_category(variant: str, defcfg: Dict[str, str], target: str = "",
+                             target_class: str = "") -> str:
+    """Infer firmware_category from the resolved target class, then fall back to
+    the variant label and defconfig.
 
     Detection order:
-      1. bootloader / canbootloader variants → "bootloader"
-      2. Known vehicle variants → "vehicle"
-      3. ROMFSROOT == "cannode" (CAN peripheral boards) → "peripheral"
-      4. Everything else → "dev"
+      1. bootloader / canbootloader variants → "bootloader" (no target class)
+      2. CONFIG_TARGET_CLASS_<X> (passed as target_class) → mapped category;
+         authoritative once the target-class build redesign has landed
+      3. Legacy fallback for un-migrated boards:
+           a. Known vehicle variants → "vehicle"
+           b. ROMFSROOT == "cannode" (CAN peripheral boards) → "peripheral"
+           c. Everything else → "dev"
 
-    If you are adding a NEW vehicle type (e.g. "balloon"), you must EITHER:
-      1. Add the label to _VEHICLE_LABELS in this file, OR
-      2. Set CONFIG_BOARD_FIRMWARE_CATEGORY="vehicle" in the .px4board file
-    Otherwise the build will be classified as "dev" and hidden from
+    A board can always override the result with CONFIG_BOARD_FIRMWARE_CATEGORY.
+    Otherwise an unrecognized build is classified "dev" and hidden from
     end-users in ground stations like QGroundControl.
     """
     if variant in _BOOTLOADER_LABELS:
         return "bootloader"
+    cls = (target_class or "").lower()
+    if cls in _CLASS_CATEGORY:
+        return _CLASS_CATEGORY[cls]
+    # Fallback for boards not yet migrated to the target-class grammar.
     if variant in _VEHICLE_LABELS:
         return "vehicle"
     # CAN peripheral boards (sensors, GPS, flow, etc.) use cannode ROMFS
@@ -86,7 +105,10 @@ def main():
     ap.add_argument("--target", default="")
     ap.add_argument("--name", default="")
     ap.add_argument("--variant", default="",
-                    help="Build variant label (the .px4board filename stem, e.g. 'multicopter')")
+                    help="Build variant label (the .px4board filename stem, e.g. 'copter')")
+    ap.add_argument("--target-class", default="",
+                    help="Resolved target class (PX4_TARGET_CLASS, e.g. 'vtol'); "
+                         "authoritative source for firmware_category")
     ap.add_argument("--arch", default="")
     ap.add_argument("--chip", default="")
     ap.add_argument("--vid", default="")
@@ -103,6 +125,7 @@ def main():
     target          = args.target or ""
     name            = args.name or ""
     variant         = (args.variant or "").lower()
+    target_class    = (args.target_class or "").lower()
     arch            = (pick(args.arch,       "CONFIG_ARCH",                defcfg)).lower()
     chip            = args.chip or detect_chip(defcfg)
     vid             = norm_hex(pick(args.vid, "CONFIG_CDCACM_VENDORID",    defcfg))
@@ -110,7 +133,8 @@ def main():
     label_pretty    = pick(args.label_pretty,    "CONFIG_BOARD_LABEL_PRETTY",    defcfg)
     firmware_cat    = pick(args.firmware_category,"CONFIG_BOARD_FIRMWARE_CATEGORY",defcfg)
     if not firmware_cat:
-        firmware_cat = detect_firmware_category(variant, defcfg, target=target)
+        firmware_cat = detect_firmware_category(variant, defcfg, target=target,
+                                                target_class=target_class)
 
     manifest = {
         "name": name,
