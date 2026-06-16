@@ -29,8 +29,10 @@ slimming of 17 pre-existing rover overlays (§NOT-done #2).** What landed in the
 - CI enumerator / `updateconfig.py` / `Makefile` (sole-class→bare-name collapse via awk, `all:
   px4_sitl`, `_deb`→`$(subst _deb,,…)`, check-lists, IO-firmware copy) / `build_all_config.yml`
   seeders reworked to merge `base.px4board`. Workflows, actions, CI scripts, `Dockerfile.gazebo`,
-  `generate_sbom.py`, `px4_uploader.py`, and the build-command docs (`building_px4.md` + ko/zh/uk
-  + ~97 docs/en pages, 249 target-name replacements) follow the new names. `build-deb/action.yml`
+  `generate_sbom.py`, `px4_uploader.py`, and the build-command docs (`building_px4.md`
+  + ~97 docs/en pages, ~249 target-name replacements) follow the new names. The cutover's ko/zh/uk
+  `building_px4.md` edits were reverted 2026-06-15 — ALL translated docs are left to the Crowdin
+  workflow, never hand-edited. `build-deb/action.yml`
   maps the `default` input → `px4_sitl` via `SITL_TARGET`.
 - IO blob filenames (`px4_io-v2_default.bin`, `cubepilot_io-v2_default.bin`) intentionally KEPT —
   they are runtime artifact paths in `rcS`/`board_common.h` (`PX4IO_FW_SEARCH_PATHS`), not build
