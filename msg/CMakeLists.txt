@@ -235,6 +235,7 @@ set(msg_files
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleConstraints.msg
+	VehicleControlMode.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
@@ -268,6 +269,8 @@ set(msg_files
 	versioned/RaptorStatus.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
+	versioned/SetpointConfig.msg
+	versioned/SetpointConfigReply.msg
 	versioned/TrajectorySetpoint.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
@@ -275,7 +278,6 @@ set(msg_files
 	versioned/VehicleAttitudeSetpoint.msg
 	versioned/VehicleCommandAck.msg
 	versioned/VehicleCommand.msg
-	versioned/VehicleControlMode.msg
 	versioned/VehicleGlobalPosition.msg
 	versioned/VehicleLandDetected.msg
 	versioned/VehicleLocalPosition.msg

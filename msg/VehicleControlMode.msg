@@ -1,4 +1,4 @@
-uint32 MESSAGE_VERSION = 0
+# Defines which controllers should run
 
 uint64 timestamp		# time since system start (microseconds)
 bool flag_armed			# synonym for actuator_armed.armed
@@ -17,8 +17,3 @@ bool flag_control_attitude_enabled		# true if attitude stabilization is mixed in
 bool flag_control_rates_enabled			# true if rates are stabilized
 bool flag_control_allocation_enabled		# true if control allocation is enabled
 bool flag_control_termination_enabled		# true if flighttermination is enabled
-
-# TODO: use dedicated topic for external requests
-uint8 source_id                  # Mode ID (nav_state)
-
-# TOPICS vehicle_control_mode config_control_setpoints
