@@ -378,7 +378,6 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 				 * In all cases DMA is stopped by either HW or the ISR error service path.
 				 */
 				perf_count(_pc_dmaerrs);
-				printf("DMA error?\n");
 				ret = -EIO;
 				break;
 
@@ -416,7 +415,6 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 		if ((crc != crc_packet(_current_packet)) || (PKT_CODE(*_current_packet) == PKT_CODE_CORRUPT)) {
 			perf_count(_pc_crcerrs);
-			printf("CRC error\n");
 			ret = -EIO;
 		}
 	}
