@@ -72,6 +72,9 @@ DetectAndAvoid::DetectAndAvoid(Navigator *navigator) :
 {
 	_detect_and_avoid_pub.advertise();
 	_detect_and_avoid_most_urgent_pub.advertise();
+#if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
+	_fake_traffic_pub.advertise();
+#endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 }
 
 void DetectAndAvoid::reset()
