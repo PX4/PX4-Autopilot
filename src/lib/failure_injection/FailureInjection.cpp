@@ -36,6 +36,18 @@
 namespace failure_injection
 {
 
+bool Config::update()
+{
+	failure_injection_s cfg;
+
+	if (_sub.update(&cfg)) {
+		set(cfg);
+		return true;
+	}
+
+	return false;
+}
+
 void Config::set(const failure_injection_s &cfg)
 {
 	_count = (cfg.count <= failure_injection_s::MAX_FAILURES) ? cfg.count : failure_injection_s::MAX_FAILURES;

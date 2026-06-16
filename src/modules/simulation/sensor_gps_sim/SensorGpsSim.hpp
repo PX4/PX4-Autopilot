@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <lib/failure_injection/FailureInjectionSubscriber.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -104,7 +104,7 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	failure_injection::Subscriber _failure_config;
+	failure_injection::Config _failure_config;
 
 	sensor_gps_s _last_gps0{};
 	sensor_gps_s _last_gps1{};

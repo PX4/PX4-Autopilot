@@ -34,24 +34,20 @@
 /**
  * @file FailureInjection.hpp
  *
- * Shared helper for applying failure injection at the consumer of a message.
+ * Shared helper for applying failure injection where a message is produced.
  *
- * The failure_injection manager is the sole subscriber to vehicle_command and
- * publishes the deduplicated failure_injection topic. Each consumer caches that
- * topic in a Config and, on its hot path, looks up the active Mode for the
- * (unit, instance) it owns and applies it:
- *
- *   - the no-failure early-out (any_active()) is a cheap local read,
- *   - process<MsgT>() handles the generic Ok / Off / Stuck mechanics
- *     (Off => suppress, Stuck => replay the last good sample),
- *   - composite / value-mutating failures (e.g. GPS Wrong, battery Off,
- *     airspeed ramp) are applied by the consumer based on mode().
+ * The failure_injection manager publishes the deduplicated failure_injection
+ * topic. Each producer caches it in a Config (update() per loop), looks up the
+ * Mode for its (unit, instance), and applies it: process<MsgT>() covers the
+ * generic Off (suppress) / Stuck (replay last sample) for single-message
+ * producers; value-mutating and multi-instance cases are driver-specific.
  */
 
 #pragma once
 
 #include <cstdint>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_injection.h>
 
 namespace failure_injection
@@ -68,14 +64,18 @@ enum class Mode : uint8_t {
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
 };
 
-/**
- * Cached, queryable view of the failure_injection topic. set() is called when a
- * fresh sample arrives; mode() is a cheap local lookup intended for the hot path.
- */
 class Config
 {
 public:
-	/** Cache the latest failure_injection sample. */
+	/**
+	 * Poll the failure_injection subscription and, when a new failure_injection
+	 * message arrives, refresh the cached failure config that mode() / any_active()
+	 * read. Call once per loop iteration.
+	 * @return true if an updated failure config was applied, false if unchanged.
+	 */
+	bool update();
+
+	/** Cache a failure_injection message directly (used by tests). */
 	void set(const failure_injection_s &cfg);
 
 	/**
@@ -89,6 +89,8 @@ public:
 	bool any_active() const { return _count > 0; }
 
 private:
+	uORB::Subscription _sub{ORB_ID(failure_injection)};
+
 	uint8_t  _count{0};
 	uint8_t  _unit[failure_injection_s::MAX_FAILURES] {};
 	uint16_t _instance_mask[failure_injection_s::MAX_FAILURES] {};
@@ -106,18 +108,11 @@ struct Stuck {
 };
 
 /**
- * Generic whole-message processor for the Ok / Off / Stuck mechanics.
+ * Generic whole-message processor for the Ok / Off / Stuck mechanics, for consumers
+ * that publish a single message and want the message-agnostic behaviour.
  *
  * @return false if the message must be suppressed (Off); true otherwise. For
- *         Stuck the message is overwritten with the last good sample (its
- *         timestamp is preserved, so time keeps advancing while the value is
- *         frozen). For every other mode the current sample is recorded as the
- *         last good value and the message is left unchanged.
- *
- * Value-mutating modes (Garbage / Wrong) are intentionally treated as "leave
- * unchanged and record last good" here: their semantics are message-specific
- * and applied by the consumer. Call process() only for modes you are not
- * handling yourself.
+ *         Stuck the message is overwritten with the last good sample.
  */
 template<typename MsgT>
 bool process(Mode mode, MsgT &msg, Stuck<MsgT> &stuck)
@@ -140,6 +135,15 @@ bool process(Mode mode, MsgT &msg, Stuck<MsgT> &stuck)
 		stuck.valid = true;
 		return true;
 	}
+}
+
+/**
+ * Convenience overload to fix the fact that the uORB instance is 0-based but the failure_injection instance is 1-based.
+ */
+template<typename MsgT>
+bool process(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &msg, Stuck<MsgT> &stuck)
+{
+	return process(config.mode(unit, uorb_instance + 1), msg, stuck);
 }
 
 } // namespace failure_injection

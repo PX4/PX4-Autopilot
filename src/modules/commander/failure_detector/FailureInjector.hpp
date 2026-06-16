@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <lib/failure_injection/FailureInjectionSubscriber.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_injection.h>
 
@@ -50,7 +50,7 @@ private:
 	// Rebuild the motor masks from the active failure_injection configuration.
 	void rebuildMasks();
 
-	failure_injection::Subscriber _failure_config;
+	failure_injection::Config _failure_config;
 
 	uint32_t _motor_stop_mask{};
 	uint32_t _esc_telemetry_blocked_mask{};

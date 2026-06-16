@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <lib/failure_injection/FailureInjectionSubscriber.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -97,7 +97,7 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	failure_injection::Subscriber _failure_config;
+	failure_injection::Config _failure_config;
 
 	bool _airspeed_disconnected{false};
 	bool _airspeed_stuck{false};
