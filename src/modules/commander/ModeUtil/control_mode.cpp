@@ -121,8 +121,10 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 
 		} else if (offboard_control_mode.acceleration) {
 			getControlMode(SetpointType::Trajectory, vehicle_control_mode);
+			// There is no dedicated acceleration flag. To make sure the right controllers run, we set the
+			// velocity flag.
+			vehicle_control_mode.flag_control_velocity_enabled = true;
 			vehicle_control_mode.flag_control_position_enabled = false;
-			vehicle_control_mode.flag_control_velocity_enabled = false;
 			vehicle_control_mode.flag_control_altitude_enabled = false;
 			vehicle_control_mode.flag_control_climb_rate_enabled = false;
 

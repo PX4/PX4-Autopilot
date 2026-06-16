@@ -189,7 +189,6 @@ void FwLateralLongitudinalControl::Run()
 
 		const bool should_run = (_control_mode_sub.get().flag_control_position_enabled ||
 					 _control_mode_sub.get().flag_control_velocity_enabled ||
-					 _control_mode_sub.get().flag_control_acceleration_enabled ||
 					 _control_mode_sub.get().flag_control_altitude_enabled ||
 					 _control_mode_sub.get().flag_control_climb_rate_enabled) &&
 					(_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
