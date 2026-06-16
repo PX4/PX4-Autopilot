@@ -147,6 +147,10 @@ px4_add_module(
 	UNITY_BUILD
 	)
 
+if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
+	target_link_libraries(modules__mavlink PRIVATE drivers__serialpassthrough)
+endif()
+
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES
 		${MAVLINK_LIBRARY_DIR}
