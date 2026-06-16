@@ -1007,6 +1007,7 @@ void Navigator::run()
 
 		if (fence_updated || margin_changed) {
 			const bool ok = _geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
+			_geofence_avoidance_unreachable_region_reported = false;
 			_last_geofence_avoidance_margin = margin;
 
 			if (!ok) {
@@ -1014,8 +1015,8 @@ void Navigator::run()
 					mavlink_log_warning(&_mavlink_log_pub,
 							    "Geofence too complex for RTL avoidance; RTL will fly direct\t");
 					events::send(events::ID("rtl_avoidance_build_failed"),
-						     {events::Log::Warning, events::LogInternal::Info},
-						     "Geofence too complex for RTL avoidance; RTL will fly direct");
+					{events::Log::Warning, events::LogInternal::Info},
+					"Geofence too complex for RTL avoidance; RTL will fly direct");
 					_geofence_avoidance_build_failed_reported = true;
 				}
 
@@ -1030,8 +1031,8 @@ void Navigator::run()
 			mavlink_log_warning(&_mavlink_log_pub,
 					    "Geofence has legal regions with no return path; RTL may fly direct through fence\t");
 			events::send(events::ID("rtl_avoidance_unreachable_region"),
-				     {events::Log::Warning, events::LogInternal::Info},
-				     "Geofence has legal regions with no return path; RTL may fly direct through fence");
+			{events::Log::Warning, events::LogInternal::Info},
+			"Geofence has legal regions with no return path; RTL may fly direct through fence");
 		}
 
 		_geofence_avoidance_unreachable_region_reported = unreachable;

@@ -288,8 +288,8 @@ void RtlDirect::set_rtl_item()
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 							     "RTL: geofence avoidance path invalid; flying direct\t");
 					events::send(events::ID("rtl_avoidance_waypoint_invalid"),
-						     {events::Log::Critical, events::LogInternal::Error},
-						     "RTL: geofence avoidance path invalid; flying direct");
+					{events::Log::Critical, events::LogInternal::Error},
+					"RTL: geofence avoidance path invalid; flying direct");
 					PX4_ERR("geofence avoidance: NaN waypoint at cursor %d/%d",
 						planner.getPathCursor(), planner.get_num_waypoints());
 					_avoidance_waypoint_fallback_reported = true;

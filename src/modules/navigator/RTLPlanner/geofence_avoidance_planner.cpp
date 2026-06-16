@@ -95,12 +95,10 @@ bool GeofenceAvoidancePlanner::hasUnreachableLegalRegion() const
 		}
 	}
 
-	// Note that several cases are not detected -- legal unreachable regions
-	//  - containing no nodes, e.g.
-	//      - Intersection of two long thin inclusion rectangles
-	//  - with only nodes excluded due to _node_not_on_optimal_path
-	//  - with only one legal (and not excluded by _node_not_on_optimal_path)
-	//    node inside of it
+	// Note that several cases are not detected -- legal unreachable regions with:
+	//  - no nodes, e.g. intersection of two long thin inclusion rectangles
+	//  - only nodes excluded due to _node_not_on_optimal_path
+	//  - only one legal (and not excluded by _node_not_on_optimal_path) node inside of it
 	// Detecting all of these cases properly would require running findBestStartingNode from all:
 	//  - proper nodes, including ones not on optimal path
 	//  - intersection points of edges, which form "nodes" of legal regions
