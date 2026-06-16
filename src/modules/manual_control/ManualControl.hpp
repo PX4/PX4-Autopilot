@@ -86,8 +86,14 @@ private:
 
 	void Run() override;
 	void updateParams() override;
-	void processStickArming(const manual_control_setpoint_s &input);
 	void processSwitches(hrt_abstime &now);
+
+	enum class IgnoreStick {
+		NONE,
+		LEFT,
+		ALL
+	};
+	IgnoreStick processStickArming(const manual_control_setpoint_s &input);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);

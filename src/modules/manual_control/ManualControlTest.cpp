@@ -36,6 +36,8 @@
 
 static constexpr uint64_t SOME_TIME = 12345678;
 
+static constexpr uint8_t ACTION_ARM = action_request_s::ACTION_ARM;
+static constexpr uint8_t ACTION_DISARM = action_request_s::ACTION_DISARM;
 static constexpr uint8_t ACTION_KILL = action_request_s::ACTION_KILL;
 static constexpr uint8_t ACTION_UNKILL = action_request_s::ACTION_UNKILL;
 static constexpr uint8_t ACTION_VTOL_TRANSITION_TO_FIXEDWING = action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING;
@@ -326,4 +328,180 @@ TEST_F(SwitchTest, ModeSwitchInitializationArmed)
 	EXPECT_TRUE(_action_request_sub.update());
 	EXPECT_EQ(_action_request_sub.get().action, ACTION_SWITCH_MODE);
 	EXPECT_EQ(_action_request_sub.get().mode, TestManualControl::navStateFromParam(NAVIGATION_STATE_MANUAL));
+}
+
+class GestureTest : public SwitchTest
+{
+public:
+	void SetUp() override
+	{
+		SwitchTest::SetUp();
+
+		// Set gesture parameters
+		float man_kill_gest_t = .5f;
+		param_set(param_find("MAN_KILL_GEST_T"), &man_kill_gest_t);
+
+		int man_arm_gesture = 1;
+		param_set(param_find("MAN_ARM_GESTURE"), &man_arm_gesture);
+	}
+
+	void publishArmGesture(hrt_abstime time_step)
+	{
+		_timestamp += time_step;
+		_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .roll = 0.0f, .pitch = 0.0f, .yaw = 1.0f, .throttle = -0.9f, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC,});
+	}
+
+	void publishKillGesture(hrt_abstime time_step)
+	{
+		_timestamp += time_step;
+		_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .roll = 1.0f, .pitch = -1.0f, .yaw = -1.0f, .throttle = -0.9f, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC,});
+	}
+
+	void publishDisarmGesture(hrt_abstime time_step)
+	{
+		_timestamp += time_step;
+		_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .roll = 0.0f, .pitch = 0.0f, .yaw = -1.0f, .throttle = -0.9f, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC,});
+	}
+
+	void publishValidInput(hrt_abstime time_step)
+	{
+		_timestamp += time_step;
+		// Must be some value to distinguish from ignored sticks
+		_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .roll = 0.5f, .pitch = 0.5f, .yaw = 0.5f, .throttle = 0.5f, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC,});
+	}
+};
+
+TEST_F(GestureTest, NoGestureNoIgnore)
+{
+	publishValidInput(100_ms);
+	_manual_control.processInput(_timestamp);
+
+	// THEN: the stick input is published for use
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+
+	// Stick inputs are not ignored
+	auto setpoint = _manual_control_setpoint_sub.get();
+	EXPECT_TRUE(setpoint.valid);
+	EXPECT_GT(fabs(setpoint.roll), FLT_EPSILON);
+	EXPECT_GT(fabs(setpoint.pitch), FLT_EPSILON);
+	EXPECT_GT(fabs(setpoint.yaw), FLT_EPSILON);
+	EXPECT_GT(fabs(setpoint.throttle), FLT_EPSILON);
+
+	// no action requested
+	EXPECT_FALSE(_action_request_sub.update());
+}
+
+TEST_F(GestureTest, ArmingGesture)
+{
+	// ─── Gesture Start ───────────────────────────────────────────────────
+	publishArmGesture(100_ms);
+	_manual_control.processInput(_timestamp);
+
+	// Left stick is ignored during gesture attempt (set to safe default)
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+	auto setpoint = _manual_control_setpoint_sub.get();
+
+	EXPECT_TRUE(setpoint.valid);
+	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+
+	// No kill action requested yet because of hysteresis
+	EXPECT_FALSE(_action_request_sub.update());
+
+
+	// ─── Gesture Hysterisis ──────────────────────────────────────────────
+	// Hysteresis is 1_s but COM_RC_LOSS_T is 0.5s, so using 2 updated at 0.5s
+	publishArmGesture(500_ms);
+	_manual_control.processInput(_timestamp);
+	publishArmGesture(500_ms);
+	_manual_control.processInput(_timestamp);
+
+	// Left stick is still ignored
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+	setpoint = _manual_control_setpoint_sub.get();
+
+	EXPECT_TRUE(setpoint.valid);
+	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+
+	EXPECT_TRUE(_action_request_sub.update());
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_ARM);
+}
+
+TEST_F(GestureTest, DisarmGesture)
+{
+	// ─── Gesture Start ───────────────────────────────────────────────────
+	publishDisarmGesture(100_ms);
+	_manual_control.processInput(_timestamp);
+
+	// Left stick is ignored during gesture attempt (set to safe default)
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+	auto setpoint = _manual_control_setpoint_sub.get();
+
+	EXPECT_TRUE(setpoint.valid);
+	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+
+	// No kill action requested yet because of hysteresis
+	EXPECT_FALSE(_action_request_sub.update());
+
+
+	// ─── Gesture Hysterisis ──────────────────────────────────────────────
+	publishDisarmGesture(500_ms);
+	_manual_control.processInput(_timestamp);
+	publishDisarmGesture(500_ms);
+	_manual_control.processInput(_timestamp);
+
+	// Left stick is still ignored
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+	setpoint = _manual_control_setpoint_sub.get();
+
+	EXPECT_TRUE(setpoint.valid);
+	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+
+	EXPECT_TRUE(_action_request_sub.update());
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_DISARM);
+}
+
+TEST_F(GestureTest, KillGesture)
+{
+	// ─── Gesture Start ───────────────────────────────────────────────────
+	publishKillGesture(100_ms);
+	_manual_control.processInput(_timestamp);
+
+	// Both Sticks ignored during kill gesture attempt
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+	auto setpoint = _manual_control_setpoint_sub.get();
+	EXPECT_TRUE(setpoint.valid);
+
+	// LEFT
+	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+	// RIGHT
+	EXPECT_NEAR(setpoint.roll, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.pitch, 0.0F, FLT_EPSILON);
+
+	// No kill action requested yet because of hysteresis
+	EXPECT_FALSE(_action_request_sub.update());
+
+
+	// ─── Gesture Hysterisis ──────────────────────────────────────────────
+	publishKillGesture(500_ms);
+	_manual_control.processInput(_timestamp);
+
+	// Left stick is still ignored
+	EXPECT_TRUE(_manual_control_setpoint_sub.update());
+	setpoint = _manual_control_setpoint_sub.get();
+	EXPECT_TRUE(setpoint.valid);
+
+	// LEFT
+	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+	// RIGHT
+	EXPECT_NEAR(setpoint.roll, 0.0F, FLT_EPSILON);
+	EXPECT_NEAR(setpoint.pitch, 0.0F, FLT_EPSILON);
+
+	EXPECT_TRUE(_action_request_sub.update());
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_KILL);
 }
