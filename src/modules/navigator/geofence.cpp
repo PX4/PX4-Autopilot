@@ -185,7 +185,7 @@ void Geofence::run()
 
 			_geofence_status_pub.publish(status);
 
-			_planner_vertices_dirty = true;
+			_geofence_updated = true;
 		}
 
 		break;

@@ -154,8 +154,8 @@ public:
 	 */
 	bool consumeFenceUpdated()
 	{
-		const bool updated = _planner_vertices_dirty;
-		_planner_vertices_dirty = false;
+		const bool updated = _geofence_updated;
+		_geofence_updated = false;
 		return updated;
 	}
 
@@ -193,7 +193,7 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
-	bool _planner_vertices_dirty{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
+	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
 	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
 
