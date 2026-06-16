@@ -671,6 +671,10 @@ void ModeManagement::checkConfigOverrides()
 
 			break;
 		}
+
+		// Publish confirmation
+		override_request.timestamp = hrt_absolute_time();
+		_config_overrides_confirm_pub.publish(override_request);
 	}
 }
 

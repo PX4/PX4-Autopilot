@@ -120,6 +120,13 @@ publications:
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
 
+  - topic: /fmu/out/config_overrides_confirm
+    type: px4_msgs::msg::ConfigOverrides
+    options:
+      cc: block
+      rel: reliable
+      express: true
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
