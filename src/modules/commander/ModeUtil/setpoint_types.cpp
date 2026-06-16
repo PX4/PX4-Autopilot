@@ -57,7 +57,6 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
@@ -68,7 +67,6 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
@@ -79,7 +77,6 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
@@ -100,7 +97,6 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		break;
@@ -109,20 +105,17 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::RoverSpeedRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::RoverSpeedSteering:
 		control_mode.flag_control_allocation_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
@@ -130,20 +123,17 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::RoverThrottleRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::RoverThrottleSteering:
 		control_mode.flag_control_allocation_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
@@ -152,7 +142,6 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
@@ -167,7 +156,6 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_altitude_enabled = true;
-		control_mode.flag_control_acceleration_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		control_mode.flag_control_position_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
