@@ -1189,6 +1189,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				setpoint.position[0] = local_pos.x + cosf(yaw) * position_body_sp(0) - sinf(yaw) * position_body_sp(1);
 				setpoint.position[1] = local_pos.y + sinf(yaw) * position_body_sp(0) + cosf(yaw) * position_body_sp(1);
 				setpoint.position[2] = local_pos.z + position_body_sp(2);
+
 			} else {
 				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
 			}
@@ -1208,6 +1209,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				setpoint.velocity[0] = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
 				setpoint.velocity[1] = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
 				setpoint.velocity[2] = velocity_body_sp(2);
+
 			} else {
 				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.velocity);
 			}
