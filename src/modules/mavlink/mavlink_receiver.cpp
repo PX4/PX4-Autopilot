@@ -1165,48 +1165,71 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		} else if (target_local_ned.coordinate_frame == MAV_FRAME_BODY_NED) {
 
 			vehicle_attitude_s vehicle_attitude{};
-			_vehicle_attitude_sub.copy(&vehicle_attitude);
-			const matrix::Dcmf R{matrix::Quatf{vehicle_attitude.q}};
+                        _vehicle_attitude_sub.copy(&vehicle_attitude);
+                        const matrix::Dcmf R{matrix::Quatf{vehicle_attitude.q}};
+                        const float yaw = matrix::Eulerf{R}(2);
 
-			const bool ignore_velocity = type_mask & (POSITION_TARGET_TYPEMASK_VX_IGNORE | POSITION_TARGET_TYPEMASK_VY_IGNORE |
-						     POSITION_TARGET_TYPEMASK_VZ_IGNORE);
+                        // 1. FIX THE POSITION LOGIC
+                        const bool ignore_position = (type_mask & POSITION_TARGET_TYPEMASK_X_IGNORE) &&
+                                                     (type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) &&
+                                                     (type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE);
 
-			if (!ignore_velocity) {
-				const matrix::Vector3f velocity_body_sp{
-					(type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? 0.f : target_local_ned.vx,
-					(type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? 0.f : target_local_ned.vy,
-					(type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? 0.f : target_local_ned.vz
-				};
+                        if (!ignore_position) {
+                                uORB::Subscription local_pos_sub{ORB_ID(vehicle_local_position)};
+                                vehicle_local_position_s local_pos{};
+                                local_pos_sub.copy(&local_pos); // Grab current position from the OS
 
+                                const matrix::Vector3f position_body_sp{
+                                        (type_mask & POSITION_TARGET_TYPEMASK_X_IGNORE) ? 0.f : target_local_ned.x,
+                                        (type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) ? 0.f : target_local_ned.y,
+                                        (type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE) ? 0.f : target_local_ned.z
+                                };
 
-				const float yaw = matrix::Eulerf{R}(2);
+                                // Rotate the offset and add it to the current position
+                                setpoint.position[0] = local_pos.x + cosf(yaw) * position_body_sp(0) - sinf(yaw) * position_body_sp(1);
+                                setpoint.position[1] = local_pos.y + sinf(yaw) * position_body_sp(0) + cosf(yaw) * position_body_sp(1);
+                                setpoint.position[2] = local_pos.z + position_body_sp(2);
+                        } else {
+                                matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
+                        }
 
-				setpoint.velocity[0] = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
-				setpoint.velocity[1] = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
-				setpoint.velocity[2] = velocity_body_sp(2);
+                        // 2. FIX THE VELOCITY BITMASK LOGIC (Changed | to &&)
+                        const bool ignore_velocity = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) &&
+                                                     (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) &&
+                                                     (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE);
 
-			} else {
-				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.velocity);
-			}
+                        if (!ignore_velocity) {
+                                const matrix::Vector3f velocity_body_sp{
+                                        (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? 0.f : target_local_ned.vx,
+                                        (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? 0.f : target_local_ned.vy,
+                                        (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? 0.f : target_local_ned.vz
+                                };
 
-			const bool ignore_acceleration = type_mask & (POSITION_TARGET_TYPEMASK_AX_IGNORE | POSITION_TARGET_TYPEMASK_AY_IGNORE |
-							 POSITION_TARGET_TYPEMASK_AZ_IGNORE);
+                                setpoint.velocity[0] = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
+                                setpoint.velocity[1] = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
+                                setpoint.velocity[2] = velocity_body_sp(2);
+                        } else {
+                                matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.velocity);
+                        }
 
-			if (!ignore_acceleration) {
-				const matrix::Vector3f acceleration_body_sp{
-					(type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? 0.f : target_local_ned.afx,
-					(type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? 0.f : target_local_ned.afy,
-					(type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? 0.f : target_local_ned.afz
-				};
+                        // 3. FIX THE ACCEL BITMASK LOGIC (Changed | to &&)
+                        const bool ignore_acceleration = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) &&
+                                                         (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) &&
+                                                         (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE);
 
-				const matrix::Vector3f acceleration_setpoint{R * acceleration_body_sp};
-				acceleration_setpoint.copyTo(setpoint.acceleration);
+                        if (!ignore_acceleration) {
+                                const matrix::Vector3f acceleration_body_sp{
+                                        (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? 0.f : target_local_ned.afx,
+                                        (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? 0.f : target_local_ned.afy,
+                                        (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? 0.f : target_local_ned.afz
+                                };
 
-			} else {
-				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.acceleration);
-			}
+                                const matrix::Vector3f acceleration_setpoint{R * acceleration_body_sp};
+                                acceleration_setpoint.copyTo(setpoint.acceleration);
 
-			matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
+                        } else {
+                                matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.acceleration);
+                        }
 
 		} else {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %" PRIu8 " unsupported\t",
