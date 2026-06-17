@@ -429,7 +429,6 @@ endif()
 
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
-
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
 	# Secure-boot variants sign the .bin with sign_firmware.py before
@@ -475,6 +474,33 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		set(_mkfw_extra_depends ${_signed_bin})
 	endif()
 
+	# Generate manifest object
+	set(MANIFEST_JSON ${PX4_BINARY_DIR}/manifest.json)
+	add_custom_command(
+		OUTPUT ${MANIFEST_JSON}
+		COMMAND
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/manifest/gen_board_manifest_from_defconfig.py
+				--defconfig	${NUTTX_DEFCONFIG}
+				--manufacturer	"${CONFIG_CDCACM_VENDORSTR}"
+				--productstr	"${CONFIG_CDCACM_PRODUCTSTR}"
+				--target	"${PX4_CONFIG}"
+				--arch		"${CONFIG_ARCH}"
+				--name		"${PX4_BOARD_NAME}"
+				--variant	"${LABEL}"
+				--target-class	"${PX4_TARGET_CLASS}"
+				--chip		"${CONFIG_ARCH_CHIP}"
+				--vid		"${CONFIG_CDCACM_VENDORID}"
+				--pid		"${CONFIG_CDCACM_PRODUCTID}"
+				--label-pretty	"${CONFIG_BOARD_LABEL_PRETTY}"
+				--firmware-category	"${CONFIG_BOARD_FIRMWARE_CATEGORY}"
+				--out		${MANIFEST_JSON}
+		DEPENDS
+			${PX4_SOURCE_DIR}/Tools/manifest/gen_board_manifest_from_defconfig.py
+			${NUTTX_DEFCONFIG}
+		COMMENT "Generating board specific manifest from defconfig"
+		VERBATIM
+	)
+
 	add_custom_command(
 		OUTPUT ${fw_package}
 		COMMAND
@@ -484,12 +510,15 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 				--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
 				${_mkfw_signed_flag}
-				--image ${_mkfw_image} > ${fw_package}
+				--image ${_mkfw_image}
+				--manifest_json ${MANIFEST_JSON}
+				> ${fw_package}
 		DEPENDS
 			${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
 			${_mkfw_extra_depends}
 			airframes_xml
 			parameters_xml
+			${MANIFEST_JSON}
 		COMMENT "Creating ${fw_package}"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		)

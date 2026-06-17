@@ -113,6 +113,9 @@ Contact PX4 board maintainers at [boards@px4.io](mailto:boards@px4.io) and reque
 2. The assignment of REV and VER ID resistor values.
 3. If the board supports USB: Either request the assignment of a USB VID and PID or provide the USB VID and PID.
 
+4. Set `CONFIG_BOARD_LABEL_PRETTY` in all `.px4board` variant files so that ground stations can display a human-readable name for each build variant.
+   See [Firmware Manifest & Metadata](firmware_manifest.md) for details on firmware categories and how QGC discovers firmware.
+
 Integrate the board according to the board porting release process described in the [porting guide](../hardware/porting_guide.md)
 
 :::warning
