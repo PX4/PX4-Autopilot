@@ -98,4 +98,3 @@ void UserModeIntention::onDisarm()
 		_user_intented_nav_state = _nav_state_after_disarming;
 	}
 }
-
