@@ -348,6 +348,7 @@ parameters:
         10: Acro
         14: Offboard
         15: Stabilized
+        17: Takeoff
         23: External 1
         24: External 2
         25: External 3
