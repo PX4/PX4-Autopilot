@@ -21116,6 +21116,18 @@ The settings deny arming and warn, allow arming and warn, or silently allow armi
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 1       |      | &nbsp;    |
 
+### COM_CC_TEMP_WARN (`FLOAT`) {#COM_CC_TEMP_WARN}
+
+Companion computer high-temperature warning threshold.
+
+Arming is not prevented as the temperature typically drops in flight.
+
+Set to -1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 127      | 1         | 80.0    | celcius | &nbsp;    |
+
 ### COM_CPU_MAX (`FLOAT`) {#COM_CPU_MAX}
 
 Maximum allowed CPU load to still arm.
