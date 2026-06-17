@@ -338,10 +338,24 @@ parameters:
           mode command is received.
       type: enum
       values:
+        0: Manual
         1: Altitude
         2: Position
+        3: Mission
         4: Hold
+        6: Position Slow
+        8: Altitude Cruise
+        10: Acro
+        14: Offboard
         15: Stabilized
+        23: External 1
+        24: External 2
+        25: External 3
+        26: External 4
+        27: External 5
+        28: External 6
+        29: External 7
+        30: External 8
       default: 4
     COM_ARM_ON_BOOT:
       description:
