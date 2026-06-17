@@ -44,6 +44,20 @@ px4_add_module(
 		CollisionPrevention
 	MODULE_CONFIG
 		module.yaml
+		)
+
+px4_add_module(
+	MODULE drivers__distance_sensor__sony_asdt1_copy
+	MAIN sony_asdt1_copy
+	COMPILE_FLAGS
+	SRCS
+		sony_asdt1_copy.cpp
+		sony_asdt1_copy.hpp
+		sony_asdt1_main_copy.cpp
+	DEPENDS
+		drivers_rangefinder
+		px4_work_queue
+		CollisionPrevention
 	)
 
 if(PX4_TESTING)
