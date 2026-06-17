@@ -730,7 +730,14 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 
 	_navigator->preproject_stop_point(item->lat, item->lon);
 
-	item->altitude = _navigator->get_global_position()->alt;
+	float loiter_altitude_amsl = _navigator->get_global_position()->alt;
+
+	if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
+		loiter_altitude_amsl = math::max(loiter_altitude_amsl,
+						 _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
+	}
+
+	item->altitude = loiter_altitude_amsl;
 	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
