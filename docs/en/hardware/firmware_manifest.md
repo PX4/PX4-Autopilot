@@ -24,25 +24,25 @@ This manifest is embedded in the `.px4` firmware file and aggregated into a unif
 
 ### Field Descriptions
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Board name without variant label (e.g. `px4_fmu-v6x`) |
-| `target` | string | Full build target including variant (e.g. `px4_fmu-v6x_multicopter`) |
-| `label_pretty` | string | Human-readable variant name shown in ground stations (e.g. "Multicopter") |
-| `firmware_category` | string | Build classification: `vehicle`, `peripheral`, `dev`, or `bootloader` |
-| `manufacturer` | string | Board manufacturer name |
-| `hardware` | object | Hardware details (architecture, USB IDs, chip, product string) |
+| Field               | Type   | Description                                                               |
+| ------------------- | ------ | ------------------------------------------------------------------------- |
+| `name`              | string | Board name without variant label (e.g. `px4_fmu-v6x`)                     |
+| `target`            | string | Full build target including variant (e.g. `px4_fmu-v6x_multicopter`)      |
+| `label_pretty`      | string | Human-readable variant name shown in ground stations (e.g. "Multicopter") |
+| `firmware_category` | string | Build classification: `vehicle`, `peripheral`, `dev`, or `bootloader`     |
+| `manufacturer`      | string | Board manufacturer name                                                   |
+| `hardware`          | object | Hardware details (architecture, USB IDs, chip, product string)            |
 
 ## Firmware Categories
 
 The `firmware_category` field classifies each build for ground station filtering:
 
-| Value | Description | Examples | Ground Station Behavior |
-|-------|-------------|----------|------------------------|
-| `vehicle` | Production firmware for a vehicle type | multicopter, fixedwing, vtol, rover, uuv, spacecraft | Shown to users (primary) |
-| `peripheral` | Firmware for CAN sensor nodes and peripherals | ark/can-gps, holybro/can-gps-v1, ark/can-flow, ark/mag | Shown in a dedicated peripheral/sensor section |
-| `dev` | Developer/engineering builds | default, zenoh, mavlink-dev, flash-analysis, performance-test | Hidden by default, advanced mode only |
-| `bootloader` | Bootloader binaries | bootloader, canbootloader | Never shown to end users |
+| Value        | Description                                   | Examples                                                      | Ground Station Behavior                        |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| `vehicle`    | Production firmware for a vehicle type        | multicopter, fixedwing, vtol, rover, uuv, spacecraft          | Shown to users (primary)                       |
+| `peripheral` | Firmware for CAN sensor nodes and peripherals | ark/can-gps, holybro/can-gps-v1, ark/can-flow, ark/mag        | Shown in a dedicated peripheral/sensor section |
+| `dev`        | Developer/engineering builds                  | default, zenoh, mavlink-dev, flash-analysis, performance-test | Hidden by default, advanced mode only          |
+| `bootloader` | Bootloader binaries                           | bootloader, canbootloader                                     | Never shown to end users                       |
 
 ### Auto-Detection
 
@@ -83,7 +83,7 @@ Ground stations display this instead of raw target strings like `px4_fmu-v6x_def
 
 Set `CONFIG_BOARD_LABEL_PRETTY` in each `.px4board` file:
 
-```
+```text
 CONFIG_BOARD_LABEL_PRETTY="Multicopter"
 ```
 
