@@ -1174,7 +1174,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 							(type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) &&
 							(type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE);
 
-				if (!ignore_position) {
+			if (!ignore_position) {
 				uORB::Subscription local_pos_sub{ORB_ID(vehicle_local_position)};
 				vehicle_local_position_s local_pos{};
 				local_pos_sub.copy(&local_pos); // Grab current position from the OS
