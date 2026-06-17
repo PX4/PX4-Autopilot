@@ -599,10 +599,9 @@ parameters:
       description:
         short: Companion computer high-temperature warning threshold
         long: |-
-          A warning is triggered if the currently estimated companion computer board temperature,
-          reported by the ONBOARD_COMPUTER_STATUS message, is above this value.
+          
+          
           Arming is not prevented as the temperature typically drops in flight.
-          The check is skipped when no companion computer is reporting a temperature.
 
           Set to -1 to disable.
       type: float
@@ -611,7 +610,7 @@ parameters:
       max: 127
       decimal: 0
       increment: 1
-      unit: celsius
+      unit: celcius
     COM_WIND_WARN:
       description:
         short: Wind speed warning threshold
