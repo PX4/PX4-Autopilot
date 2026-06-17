@@ -40,6 +40,10 @@
 #include "sony_asdt1_copy.hpp"
 
 #include <errno.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+
 #include <cmath>
 #include <cstring>
 #include <mathlib/mathlib.h>
@@ -71,6 +75,7 @@ AS_DT1_COPY::~AS_DT1_COPY()
 	stop();
 	perf_free(_comms_errors);
 	perf_free(_sample_perf);
+	perf_free(_bytes_rx);
 }
 
 int AS_DT1_COPY::init()
@@ -81,43 +86,111 @@ int AS_DT1_COPY::init()
 void AS_DT1_COPY::print_info()
 {
 	PX4_INFO("AS-DT1 copy on %s, baud %u", _device, _baud);
+	PX4_INFO("fd: %d, bytes_rx: %llu, last_read: %lld, last_read_age: %llu us",
+		 _fd,
+		 static_cast<unsigned long long>(_bytes_rx_total),
+		 static_cast<long long>(_last_bytes_read),
+		 static_cast<unsigned long long>(_last_read == 0 ? 0 : hrt_elapsed_time(&_last_read)));
+
+	if (_first_rx_len == 0) {
+		PX4_INFO("first rx: empty");
+
+	} else {
+		char ascii[DEBUG_RX_CAPTURE_SIZE + 1]{};
+
+		for (size_t i = 0; i < _first_rx_len; i++) {
+			ascii[i] = (_first_rx[i] >= 32 && _first_rx[i] <= 126) ? static_cast<char>(_first_rx[i]) : '.';
+		}
+
+		PX4_INFO("first rx: %s", ascii);
+	}
+
+	if (_last_rx_len == 0) {
+		PX4_INFO("last rx: empty");
+
+	} else {
+		char ascii[DEBUG_RX_CAPTURE_SIZE + 1]{};
+
+		for (size_t i = 0; i < _last_rx_len; i++) {
+			const size_t index = (_last_rx_len < DEBUG_RX_CAPTURE_SIZE) ? i : ((_last_rx_pos + i) % DEBUG_RX_CAPTURE_SIZE);
+			const uint8_t byte = _last_rx[index];
+			ascii[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
+		}
+
+		PX4_INFO("last rx: %s", ascii);
+	}
+
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_bytes_rx);
 }
 
 int AS_DT1_COPY::start()
 {
-	if (!_uart.setPort(_device)) {
-		PX4_ERR("failed to set serial port %s", _device);
+	_fd = ::open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+	if (_fd < 0) {
+		PX4_ERR("failed to open AS-DT1 copy on %s", _device);
 		perf_count(_comms_errors);
 		return PX4_ERROR;
 	}
 
-	if (!_uart.setBaudrate(_baud)) {
-		PX4_ERR("failed to set UART %u baud", _baud);
+	struct termios uart_config {};
+
+	if (tcgetattr(_fd, &uart_config) < 0) {
+		PX4_ERR("failed to get UART config");
 		perf_count(_comms_errors);
+		::close(_fd);
+		_fd = -1;
 		return PX4_ERROR;
 	}
 
-	if (!_uart.isOpen() && !_uart.open()) {
-		PX4_ERR("failed to open AS-DT1 on %s", _device);
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS | CSIZE);
+	uart_config.c_cflag |= (CLOCAL | CREAD | CS8);
+	uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
+	uart_config.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+	uart_config.c_oflag &= ~ONLCR;
+	uart_config.c_cc[VMIN] = 0;
+	uart_config.c_cc[VTIME] = 0;
+
+	speed_t speed = B115200;
+
+	if (_baud == 921600) {
+		speed = B921600;
+	}
+
+	(void)cfsetispeed(&uart_config, speed);
+	(void)cfsetospeed(&uart_config, speed);
+
+	if (tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
+		PX4_ERR("failed to set UART config");
 		perf_count(_comms_errors);
+		::close(_fd);
+		_fd = -1;
 		return PX4_ERROR;
 	}
 
-	_uart.flush();
+	(void)tcflush(_fd, TCIOFLUSH);
+
+	_first_rx_len = 0;
+	_last_rx_len = 0;
+	_last_rx_pos = 0;
+	_bytes_rx_total = 0;
+	_last_bytes_read = 0;
 
 	if (write_command_padded("format binz") != PX4_OK) {
 		PX4_ERR("failed to configure AS-DT1 binz output");
 		perf_count(_comms_errors);
+		::close(_fd);
+		_fd = -1;
 		return PX4_ERROR;
 	}
 
-	// Start self-triggered measurement at about 15 Hz. This is intentionally
-	// conservative for UART bandwidth while the driver is still experimental.
-	if (write_command_padded("fsync 66") != PX4_OK) {
+	if (write_command_padded("fsync 200") != PX4_OK) {
 		PX4_ERR("failed to configure AS-DT1 frame trigger");
 		perf_count(_comms_errors);
+		::close(_fd);
+		_fd = -1;
 		return PX4_ERROR;
 	}
 
@@ -129,15 +202,16 @@ void AS_DT1_COPY::stop()
 {
 	ScheduleClear();
 
-	if (_uart.isOpen()) {
+	if (_fd >= 0) {
 		(void)write_command_padded("fsync 0");
-		_uart.close();
+		::close(_fd);
+		_fd = -1;
 	}
 }
 
 void AS_DT1_COPY::Run()
 {
-	if (!_uart.isOpen()) {
+	if (_fd < 0) {
 		PX4_ERR("serial port is not open");
 		perf_count(_comms_errors);
 		ScheduleClear();
@@ -149,6 +223,10 @@ void AS_DT1_COPY::Run()
 
 int AS_DT1_COPY::write_command_padded(const char *command)
 {
+	if (_fd < 0) {
+		return PX4_ERROR;
+	}
+
 	if (command == nullptr) {
 		return PX4_ERROR;
 	}
@@ -178,7 +256,7 @@ int AS_DT1_COPY::write_command_padded(const char *command)
 		length = padded_length;
 	}
 
-	const ssize_t written = _uart.write(reinterpret_cast<const uint8_t *>(buffer), length);
+	const ssize_t written = ::write(_fd, buffer, length);
 
 	if (written != static_cast<ssize_t>(length)) {
 		PX4_ERR("failed to write AS-DT1 command");
@@ -190,7 +268,7 @@ int AS_DT1_COPY::write_command_padded(const char *command)
 
 int AS_DT1_COPY::collect()
 {
-	if (!_uart.isOpen()) {
+	if (_fd < 0) {
 		return PX4_ERROR;
 	}
 
@@ -198,38 +276,14 @@ int AS_DT1_COPY::collect()
 
 	uint8_t read_buffer[READ_BUFFER_SIZE]{};
 	bool received_data = false;
-	bool backlog_flushed = false;
-
 	for (uint8_t read_count = 0; read_count < MAX_READS_PER_COLLECT; read_count++) {
-		const ssize_t bytes_available = _uart.bytesAvailable();
-
-		if (bytes_available < 0) {
-			PX4_ERR("failed checking UART bytes available");
-			perf_count(_comms_errors);
-			perf_end(_sample_perf);
-			return PX4_ERROR;
-		}
-
-		if (static_cast<size_t>(bytes_available) > ASDT1_MAX_BACKLOG) {
-			PX4_WARN("AS-DT1 UART backlog, flushing");
-			_uart.flush();
-			_parser_state = ParserState::FindBegin;
-			_frame_buffer_len = 0;
-			_begin_match_index = 0;
-			_end_match_index = 0;
-			_candidate_frame_len = 0;
-			backlog_flushed = true;
-			break;
-		}
-
-		if (bytes_available == 0) {
-			break;
-		}
-
-		const size_t bytes_to_read = math::min(static_cast<size_t>(bytes_available), sizeof(read_buffer));
-		const ssize_t bytes_read = _uart.read(read_buffer, bytes_to_read);
+		const ssize_t bytes_read = ::read(_fd, read_buffer, sizeof(read_buffer));
 
 		if (bytes_read < 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				break;
+			}
+
 			PX4_ERR("UART read failed");
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
@@ -242,19 +296,28 @@ int AS_DT1_COPY::collect()
 
 		received_data = true;
 		_last_read = hrt_absolute_time();
+		_last_bytes_read = bytes_read;
+		_bytes_rx_total += static_cast<uint64_t>(bytes_read);
+		perf_set_count(_bytes_rx, _bytes_rx_total);
 
 		for (ssize_t i = 0; i < bytes_read; i++) {
-			parse_byte(read_buffer[i]);
+			const uint8_t byte = read_buffer[i];
+
+			if (_first_rx_len < DEBUG_RX_CAPTURE_SIZE) {
+				_first_rx[_first_rx_len++] = byte;
+			}
+
+			_last_rx[_last_rx_pos] = byte;
+			_last_rx_pos = (_last_rx_pos + 1) % DEBUG_RX_CAPTURE_SIZE;
+
+			if (_last_rx_len < DEBUG_RX_CAPTURE_SIZE) {
+				_last_rx_len++;
+			}
 		}
 	}
 
-	if (_have_latest_frame) {
-		process_frame(_latest_frame, _latest_frame_len);
-		_have_latest_frame = false;
-	}
-
 	perf_end(_sample_perf);
-	return (received_data || backlog_flushed) ? PX4_OK : -EAGAIN;
+	return received_data ? PX4_OK : -EAGAIN;
 }
 
 bool AS_DT1_COPY::parse_byte(uint8_t byte)

@@ -162,6 +162,11 @@ int AS_DT1::start()
 		return PX4_ERROR;
 	}
 
+	(void)_uart.setBytesize(ByteSize::EightBits);
+	(void)_uart.setParity(Parity::None);
+	(void)_uart.setStopbits(StopBits::One);
+	(void)_uart.setFlowcontrol(FlowControl::Disabled);
+
 	if (!_uart.isOpen() && !_uart.open()) {
 		PX4_ERR("failed to open AS-DT1 on %s", _device);
 		perf_count(_comms_errors);
@@ -187,6 +192,9 @@ int AS_DT1::start()
 	_payload_len_1440_count = 0;
 	_payload_len_unexpected_count = 0;
 	_end_mismatch_count = 0;
+
+	// Start polling before command setup so command echoes and immediate streams
+	// from a simulator or real sensor cannot be missed during startup.
 
 	// Minimal command probe: send exactly one command and log whatever comes back.
 	// if (writeCommandPadded("flshow") != PX4_OK) {
@@ -227,22 +235,20 @@ int AS_DT1::start()
 	if (writeCommandPadded("format binz") != PX4_OK) {
 		PX4_ERR("failed to configure AS-DT1 binz output");
 		perf_count(_comms_errors);
+		ScheduleClear();
 		return PX4_ERROR;
 	}
 
 	if (writeCommandPadded("fsync 200") != PX4_OK) {
 		PX4_ERR("failed to start AS-DT1 frame stream");
 		perf_count(_comms_errors);
+		ScheduleClear();
 		return PX4_ERROR;
 	}
 
-	// px4_usleep(50_ms);
-
-	// Start polling only after command setup is complete so collect() cannot
-	// contend with the startup command writes.
-	ScheduleOnInterval(7_ms);
-	// ScheduleNow();
 	return PX4_OK;
+
+
 }
 
 void AS_DT1::Run()
@@ -401,14 +407,16 @@ int AS_DT1::collect()
 			break;
 		}
 
-		if (bytes_available == 0) {
-			break;
-		}
-
-		const size_t bytes_to_read = math::min(static_cast<size_t>(bytes_available), sizeof(read_buffer));
+		const size_t bytes_to_read = (bytes_available > 0) ?
+					     math::min(static_cast<size_t>(bytes_available), sizeof(read_buffer)) :
+					     sizeof(read_buffer);
 		const ssize_t bytes_read = _uart.read(read_buffer, bytes_to_read);
 
 		if (bytes_read < 0) {
+			if (bytes_available == 0) {
+				break;
+			}
+
 			PX4_ERR("UART read failed");
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);

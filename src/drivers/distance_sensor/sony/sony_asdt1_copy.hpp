@@ -43,12 +43,13 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_sensor.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/obstacle_distance.h>
+
+#include <sys/types.h>
 
 using namespace time_literals;
 
@@ -97,6 +98,7 @@ private:
 	static constexpr size_t ASDT1_BINZ_FRAME_SIZE{1440};
 	static constexpr size_t ASDT1_BINZ_SHORT_FRAME_SIZE{720};
 	static constexpr size_t ASDT1_MAX_BACKLOG{ASDT1_BINZ_FRAME_SIZE * 3};
+	static constexpr size_t DEBUG_RX_CAPTURE_SIZE{64};
 
 	static constexpr int ASDT1_ROWS{24};
 	static constexpr int ASDT1_COLS{24};
@@ -110,7 +112,7 @@ private:
 	static constexpr float LEFT_EDGE_DEG{-HORIZONTAL_FOV_DEG / 2.0f};
 	static constexpr float OBSTACLE_INCREMENT_DEG{5.0f};
 
-	Serial _uart{};
+	int _fd{-1};
 	char _device[20]{};
 
 	uint8_t _frame_buffer[ASDT1_BINZ_FRAME_SIZE]{};
@@ -125,9 +127,17 @@ private:
 	size_t _candidate_frame_len{0};
 
 	hrt_abstime _last_read{0};
+	uint64_t _bytes_rx_total{0};
+	ssize_t _last_bytes_read{0};
+	uint8_t _first_rx[DEBUG_RX_CAPTURE_SIZE]{};
+	size_t _first_rx_len{0};
+	uint8_t _last_rx[DEBUG_RX_CAPTURE_SIZE]{};
+	size_t _last_rx_len{0};
+	size_t _last_rx_pos{0};
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": copy com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": copy read")};
+	perf_counter_t _bytes_rx{perf_alloc(PC_COUNT, MODULE_NAME": copy bytes_rx")};
 
-	unsigned int _baud{921600};
+	unsigned int _baud{115200};
 };
