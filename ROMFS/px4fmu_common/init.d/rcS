@@ -539,12 +539,14 @@ else
 	else
 		commander start
 
-		if param compare -s PASSTHRU_EN 0
+		if param greater -s PASSTHRU_EN 0
 		then
+			# serial passthrough requested: leave the ESC lines free and
+			# reset so the next boot starts the outputs normally
+			param set PASSTHRU_EN 0
+		else
 			dshot start
 			pwm_out start
-		else
-			param set PASSTHRU_EN 0
 		fi
 	fi
 
