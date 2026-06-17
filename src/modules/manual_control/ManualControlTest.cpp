@@ -33,7 +33,6 @@
 
 #include <gtest/gtest.h>
 #include "ManualControl.hpp"
-#include <modules/commander/ModeUtil/conversions.hpp>
 
 static constexpr uint64_t SOME_TIME = 12345678;
 
@@ -55,7 +54,7 @@ class TestManualControl : public ManualControl
 {
 public:
 	void processInput(hrt_abstime now) { ManualControl::processInput(now); }
-	static int8_t navStateFromParam(int32_t param_value) { return mode_util::navStateFromFlightModeParam(param_value); }
+	static int8_t navStateFromParam(int32_t param_value) { return ManualControl::navStateFromParam(param_value); }
 };
 
 class SwitchTest : public ::testing::Test

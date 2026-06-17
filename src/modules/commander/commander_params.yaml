@@ -341,7 +341,7 @@ parameters:
         1: Altitude
         2: Position
         4: Hold
-        8: Stabilized
+        15: Stabilized
       default: 4
     COM_ARM_ON_BOOT:
       description:

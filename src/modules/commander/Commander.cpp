@@ -1939,7 +1939,7 @@ void Commander::updateParameters()
 	_vehicle_status.is_vtol_tailsitter = is_vtol_tailsitter(_vehicle_status);
 
 	// Apply boot flight mode parameter before any user mode change
-	_user_mode_intention.setBootNavState(mode_util::navStateFromFlightModeParam(_param_com_fltmode_boot.get()));
+	_user_mode_intention.setBootNavState((uint8_t)_param_com_fltmode_boot.get());
 
 	// _mode_switch_mapped = (RC_MAP_FLTMODE > 0)
 	if (_param_rc_map_fltmode != PARAM_INVALID && (param_get(_param_rc_map_fltmode, &value_int32) == PX4_OK)) {
@@ -3161,7 +3161,7 @@ void Commander::manualControlCheck()
 
 			// if there's never been a mode change, apply the configured boot flight mode
 			if (!_user_mode_intention.everHadModeChange() && (is_mavlink || !_mode_switch_mapped)) {
-				_user_mode_intention.change(mode_util::navStateFromFlightModeParam(_param_com_fltmode_boot.get()), ModeChangeSource::User, false, true);
+				_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
 			}
 		}
 	}
