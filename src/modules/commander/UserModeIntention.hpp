@@ -95,21 +95,9 @@ public:
 	uint8_t get() const { return _user_intented_nav_state; }
 
 	/**
-	 * Set the navigation state used at boot and after disarming (before any user mode change).
-	 * Has no effect once the user has issued a mode change command.
-	 * @param nav_state boot/post-disarm nav state from COM_FLTMODE_BOOT
-	 */
-	void setBootNavState(uint8_t nav_state);
-
-	/**
 	 * Change the user intention to the last user intended mode where arming is possible
 	 */
 	void onDisarm();
-
-	/**
-	 * Returns false if there has not been any mode change yet
-	 */
-	bool everHadModeChange() const { return _ever_had_mode_change; }
 
 	bool getHadModeChangeAndClear() { bool ret = _had_mode_change; _had_mode_change = false; return ret; }
 
@@ -121,9 +109,8 @@ private:
 	const HealthAndArmingChecks &_health_and_arming_checks;
 	ModeChangeHandler *const _handler{nullptr};
 
-	uint8_t _user_intented_nav_state{vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER}; ///< Current user intended mode
-	uint8_t _nav_state_after_disarming{vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER}; ///< Mode that is switched into after landing/disarming
+	uint8_t _user_intented_nav_state{vehicle_status_s::NAVIGATION_STATE_POSCTL}; ///< Current user intended mode
+	uint8_t _nav_state_after_disarming{vehicle_status_s::NAVIGATION_STATE_POSCTL}; ///< Mode that is switched into after landing/disarming
 
-	bool _ever_had_mode_change{false}; ///< true if there was ever a mode change call (also if the same mode as already set)
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
 };

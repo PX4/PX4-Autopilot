@@ -356,7 +356,7 @@ parameters:
         28: External 6
         29: External 7
         30: External 8
-      default: 4
+      default: 2
     COM_ARM_ON_BOOT:
       description:
         short: Arm automatically on boot

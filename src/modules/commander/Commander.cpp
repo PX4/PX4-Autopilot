@@ -837,6 +837,9 @@ Commander::Commander() :
 
 	updateParameters();
 
+	// Apply the configured boot flight mode before the first run
+	_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
+
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
@@ -1937,9 +1940,6 @@ void Commander::updateParameters()
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);
 	_vehicle_status.is_vtol_tailsitter = is_vtol_tailsitter(_vehicle_status);
-
-	// Apply boot flight mode parameter before any user mode change
-	_user_mode_intention.setBootNavState((uint8_t)_param_com_fltmode_boot.get());
 
 	// _mode_switch_mapped = (RC_MAP_FLTMODE > 0)
 	if (_param_rc_map_fltmode != PARAM_INVALID && (param_get(_param_rc_map_fltmode, &value_int32) == PX4_OK)) {
@@ -3156,13 +3156,6 @@ void Commander::manualControlCheck()
 				}
 			}
 
-		} else {
-			const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
-
-			// if there's never been a mode change, apply the configured boot flight mode
-			if (!_user_mode_intention.everHadModeChange() && (is_mavlink || !_mode_switch_mapped)) {
-				_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
-			}
 		}
 	}
 }
