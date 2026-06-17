@@ -4,7 +4,8 @@ This topic is for developers who want to port PX4 to work with _new_ flight cont
 
 ## PX4 Architecture
 
-PX4 consists of two main layers: The [board support and middleware layer](../middleware/index.md) on top of the host OS (NuttX, Linux or any other POSIX platform like Mac OS), and the applications (Flight Stack in [src/modules](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules)\). Please reference the [PX4 Architectural Overview](../concept/architecture.md) for more information.
+PX4 consists of two main layers: The [board support and middleware layer](../middleware/index.md) on top of the host OS (NuttX, Linux or any other POSIX platform like Mac OS), and the applications (Flight Stack in [src/modules](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules)\).
+Please reference the [PX4 Architectural Overview](../concept/architecture.md) for more information.
 
 This guide is focused only on the host OS and middleware as the applications/flight stack will run on any board target.
 
@@ -56,19 +57,23 @@ One example is [px4fmu-v5](https://github.com/PX4/PX4-Autopilot/blob/main/boards
 
 ## Getting Your Board Supported
 
-This page covers the _technical_ work of porting PX4 to new hardware. The _process_ for getting that port reviewed, merged, and listed on the PX4 website, including board IDs, USB VID/PID, flight-test evidence, and maintenance expectations, is documented separately:
+This page covers the _technical_ work of porting PX4 to new hardware.
+The _process_ for getting that port reviewed, merged, and listed on the PX4 website, including board IDs, USB VID/PID, flight-test evidence, and maintenance expectations, is documented separately:
 
 - [Manufacturer's PX4 Board Support Guide](../hardware/board_support_guide.md)
 
-In short: build your own firmware target based on PX4, demonstrate stable flight on a current release, and open a pull request with your board support code, documentation, and flight logs. The board support guide explains each step.
+In short: build your own firmware target based on PX4, demonstrate stable flight on the current release, and open a pull request with your board support code, documentation, and flight logs.
+The board support guide explains each step.
 
 The PX4 project supports and maintains the [FMU standard reference hardware](../hardware/reference_design.md) and any boards compatible with the standard, including the [Pixhawk series](../flight_controller/pixhawk_series.md) (see the [full list of supported hardware](../flight_controller/index.md)). Boards merged into PX4 benefit from a port in the repository, firmware builds accessible from _QGroundControl_, compatibility with the rest of the ecosystem, and automated CI checks.
 
 :::tip
-The cost of maintaining a port is proportional to how far it diverges from the standard. Consider that cost before deviating: staying close to the reference design lets you benefit from day-to-day PX4 development with minimal maintenance burden.
+The cost of maintaining a port is proportional to how far it diverges from the standard.
+Consider that cost before deviating: staying close to the reference design lets you benefit from day-to-day PX4 development with minimal maintenance burden.
 :::
 
-Manufacturers are responsible for keeping their port up to date and working across PX4 releases. The PX4 project reserves the right to refuse or remove ports that do not meet the project's requirements, and all contributors are expected to follow the [Code of Conduct](https://github.com/PX4/PX4-Autopilot/blob/main/CODE_OF_CONDUCT.md).
+Manufacturers are responsible for keeping their port up to date and working across PX4 releases.
+The PX4 project reserves the right to refuse or remove ports that do not meet the project's requirements, and all contributors are expected to follow the [Code of Conduct](https://github.com/PX4/PX4-Autopilot/blob/main/CODE_OF_CONDUCT.md).
 
 ## Related Information
 
