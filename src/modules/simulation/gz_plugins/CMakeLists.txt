@@ -50,6 +50,13 @@ else()
     find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
 endif()
 
+message(STATUS "gz-transport version: ${gz-transport_VERSION}")
+message(STATUS "gz-sim version: ${gz-sim_VERSION}")
+message(STATUS "GZ_TRANSPORT_TARGET: ${GZ_TRANSPORT_TARGET}")
+message(STATUS "GZ_SIM_TARGET: ${GZ_SIM_TARGET}")
+message(STATUS "GZ_SENSORS_TARGET: ${GZ_SENSORS_TARGET}")
+message(STATUS "GZ_PLUGIN_TARGET: ${GZ_PLUGIN_TARGET}")
+
 if (gz-transport_FOUND)
     # gcc-15 + libstdc++ emits spurious -Wmaybe-uninitialized inside
     # gz-transport15's FullyQualifiedTopic::FullTopic() (std::optional<string>).
