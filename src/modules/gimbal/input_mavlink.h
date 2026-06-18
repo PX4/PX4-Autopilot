@@ -119,6 +119,16 @@ private:
 	void _stream_gimbal_manager_status(const ControlData &control_data);
 	void _read_control_data_from_position_setpoint_sub(ControlData &control_data);
 
+	// Add-in feature to triggle between a normal and mission-only InputMavlinkV2
+	enum class MavlinkInputMode {
+		FULL = 0,
+		MISSION_ONLY = 1
+	};
+
+	MavlinkInputMode _input_mavlinkv2_mode = (_parameters.mnt_mode_out == gimbal::MNT_MODE_OUT_TO_GIMBAL_MANAGER) ?
+			MavlinkInputMode::MISSION_ONLY :
+			MavlinkInputMode::FULL;
+
 	int _vehicle_roi_sub = -1;
 	int _gimbal_manager_set_attitude_sub = -1;
 	int _gimbal_manager_set_manual_control_sub = -1;

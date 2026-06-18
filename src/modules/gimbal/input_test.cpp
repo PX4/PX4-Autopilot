@@ -96,12 +96,12 @@ int InputTest::initialize()
 void InputTest::print_status() const
 {
 	PX4_INFO("Input: Test");
-	PX4_INFO_RAW("  roll : % .1f deg\n", (double)_roll_deg);
-	PX4_INFO_RAW("  pitch: % .1f deg\n", (double)_pitch_deg);
-	PX4_INFO_RAW("  yaw  : % .1f deg\n", (double)_yaw_deg);
-	PX4_INFO_RAW("  rollrate : % .1f deg/s\n", (double)_rollrate_deg_s);
-	PX4_INFO_RAW("  pitchrate: % .1f deg/s\n", (double)_pitchrate_deg_s);
-	PX4_INFO_RAW("  yawrate  : % .1f deg/s\n", (double)_yawrate_deg_s);
+	PX4_INFO_RAW("	roll : % .1f deg\n", (double)_roll_deg);
+	PX4_INFO_RAW("	pitch: % .1f deg\n", (double)_pitch_deg);
+	PX4_INFO_RAW("	yaw  : % .1f deg\n", (double)_yaw_deg);
+	PX4_INFO_RAW("	rollrate : % .1f deg/s\n", (double)_rollrate_deg_s);
+	PX4_INFO_RAW("	pitchrate: % .1f deg/s\n", (double)_pitchrate_deg_s);
+	PX4_INFO_RAW("	yawrate  : % .1f deg/s\n", (double)_yawrate_deg_s);
 }
 
 void InputTest::set_test_input_angles(float roll_deg, float pitch_deg, float yaw_deg)
