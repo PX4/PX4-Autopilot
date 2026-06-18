@@ -31792,6 +31792,14 @@ and relies on the IMU's attitude estimation.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
+### MNT_FIXED_PITCH (`FLOAT`) {#MNT_FIXED_PITCH}
+
+Tracked pitch angle when in fixed mode (MNT_MODE_IN=5).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -90      | 90       |           | 0.0     | deg  | &nbsp;    |
+
 ### MNT_LND_P_MAX (`FLOAT`) {#MNT_LND_P_MAX}
 
 Pitch maximum when landed.
@@ -31919,10 +31927,11 @@ The rest will be deprecated.
 - `2`: MAVLINK_ROI (protocol v1, to be deprecated)
 - `3`: MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
 - `4`: MAVlink gimbal protocol v2
+- `5`: Fixed world-frame attitude, not user controllable
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | -1       | 4        |           | -1      |      | &nbsp;    |
+| &check; | -1       | 5        |           | -1      |      | &nbsp;    |
 
 ### MNT_MODE_OUT (`INT32`) {#MNT_MODE_OUT}
 
