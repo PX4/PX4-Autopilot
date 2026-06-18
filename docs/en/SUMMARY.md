@@ -916,6 +916,7 @@
         - [Test FW_02 - Full Autonomous](test_cards/fw_02_full_autonomous.md)
     - [Unit Tests](test_and_ci/unit_tests.md)
       - [Fuzz Tests](test_and_ci/fuzz_tests.md)
+    - [Sanitizers](test_and_ci/sanitizers.md)
     - [Continuous Integration](test_and_ci/continous_integration.md)
     - [Integration Testing](test_and_ci/integration_testing.md)
       - [MAVSDK Integration Testing](test_and_ci/integration_testing_mavsdk.md)
