@@ -76,9 +76,8 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 	/* is this a publisher? */
 	if (filp->f_oflags == PX4_F_WRONLY) {
 
-		lock();
+		// _advertised is atomic, so no lock is needed around this single store
 		mark_as_advertised();
-		unlock();
 
 		/* now complete the open */
 		return CDev::open(filp);
