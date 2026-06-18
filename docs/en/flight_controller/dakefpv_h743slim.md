@@ -38,31 +38,31 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ![DAKEFPV H743 Slim top](../../assets/flight_controller/dakefpv_h743slim/dakefpvh743_slim_top.png)
 
-| Pin          | Function                                                                  | PX4 Default         |
-| ------------ | ------------------------------------------------------------------------- | ------------------- |
-| Vbat         | Battery positive voltage (2S–12S)                                        |                     |
-| SA1, CL1     | I2C peripheral interface (SDA/SCL)                                       |                     |
-| 5V           | 5V output (2A max) BEC power supply                                      |                     |
-| 4V5          | 4.5V output or USB power supply                                          |                     |
-| 3V3          | 3.3V output (0.25A max)                                                  |                     |
-| Airs         | Airspeed ADC input (PC4)                                                  |                     |
-| Cur          | Battery current ADC input (PC0)                                          |                     |
-| Rssi         | Analog RSSI input (PC5)                                                  |                     |
-| SI, SO, CLK  | External SPI bus MOSI/MISO/CLK                                           |                     |
-| CS1, CS2     | External SPI bus CS1 (PA15) and CS2 (PD3)                                |                     |
-| R1, T1       | UART1 RX/TX                                                              | GPS                 |
-| R2, T2       | UART2 RX/TX                                                              | TELEM1              |
-| R3, T3       | UART3 RX/TX                                                              | TELEM2              |
-| R4, T4       | UART4 RX/TX (PB8/PB9)                                                   | TELEM3              |
-| R5, T5       | UART5 RX/TX                                                              | RC input            |
-| R6, T6       | UART6 RX/TX                                                              | TELEM4              |
-| R7, T7       | UART7 RX/TX                                                              | System console      |
-| R8, T8       | UART8 RX/TX                                                              | GPS2                |
-| CH, CL       | CAN bus                                                                  |                     |
-| Buz-         | Buzzer negative pin (PE10)                                               |                     |
-| S1–S4        | Motor outputs (TIM1: PE9/PE11/PE13/PE14)                                 |                     |
-| S5–S8        | Motor outputs (TIM2: PA0–PA3)                                            |                     |
-| LED          | WS2812 LED strip (TIM3_CH3, PB0)                                         |                     |
+| Pin         | Function                                  | PX4 Default    |
+| ----------- | ----------------------------------------- | -------------- |
+| Vbat        | Battery positive voltage (2S–12S)         |                |
+| SA1, CL1    | I2C peripheral interface (SDA/SCL)        |                |
+| 5V          | 5V output (2A max) BEC power supply       |                |
+| 4V5         | 4.5V output or USB power supply           |                |
+| 3V3         | 3.3V output (0.25A max)                   |                |
+| Airs        | Airspeed ADC input (PC4)                  |                |
+| Cur         | Battery current ADC input (PC0)           |                |
+| Rssi        | Analog RSSI input (PC5)                   |                |
+| SI, SO, CLK | External SPI bus MOSI/MISO/CLK            |                |
+| CS1, CS2    | External SPI bus CS1 (PA15) and CS2 (PD3) |                |
+| R1, T1      | UART1 RX/TX                               | GPS            |
+| R2, T2      | UART2 RX/TX                               | TELEM1         |
+| R3, T3      | UART3 RX/TX                               | TELEM2         |
+| R4, T4      | UART4 RX/TX (PB8/PB9)                     | TELEM3         |
+| R5, T5      | UART5 RX/TX                               | RC input       |
+| R6, T6      | UART6 RX/TX                               | TELEM4         |
+| R7, T7      | UART7 RX/TX                               | System console |
+| R8, T8      | UART8 RX/TX                               | GPS2           |
+| CH, CL      | CAN bus                                   |                |
+| Buz-        | Buzzer negative pin (PE10)                |                |
+| S1–S4       | Motor outputs (TIM1: PE9/PE11/PE13/PE14)  |                |
+| S5–S8       | Motor outputs (TIM2: PA0–PA3)             |                |
+| LED         | WS2812 LED strip (TIM3_CH3, PB0)          |                |
 
 ## Wiring Diagrams
 
@@ -131,8 +131,8 @@ make dakefpv_h743slim_default upload
 
 ## PX4 Configuration
 
-| Parameter                                                             | Setting                                                                        |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Parameter                                                            | Setting                                                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | Disabled by default (no internal mag). Enable if an external mag is connected. |
 
 ## Debug Port

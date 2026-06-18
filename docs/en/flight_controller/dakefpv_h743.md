@@ -83,14 +83,14 @@ For CRSF/ELRS, connect to the RX5/TX5 pads — TX is required for telemetry back
 
 ## OSD
 
-The AT7456E OSD is enabled by default on SPI2. Simultaneous analog OSD and digital HD OSD (via UART4 DisplayPort) is supported.
+The AT7456E OSD is enabled by default on SPI2. Simultaneous analog OSD and digital HD OSD (via UART4 DisplayPort) are supported.
 
 ## Camera Switching and VTX Power
 
-| GPIO | Function                                   | Default state |
-| ---- | ------------------------------------------ | ------------- |
-| 81   | Camera switch (low = CAM2, high = CAM1)    | High (CAM1)   |
-| 82   | VTX 12V power (low = off, high = on)       | High (on)     |
+| GPIO | Function                                | Default state |
+| ---- | --------------------------------------- | ------------- |
+| 81   | Camera switch (low = CAM2, high = CAM1) | High (CAM1)   |
+| 82   | VTX 12V power (low = off, high = on)    | High (on)     |
 
 ## Battery Monitoring
 
@@ -117,7 +117,7 @@ Set `SYS_HAS_MAG = 0` if no external compass is connected.
 
 The board ships with Betaflight. Flash the PX4 bootloader before loading PX4 firmware.
 
-Put the board in DFU mode (hold BOOT button while plugging USB), then:
+Put the board in DFU mode (hold BOOT button while connecting USB), then:
 
 ```sh
 dfu-util -a 0 -s 0x08000000:leave \
