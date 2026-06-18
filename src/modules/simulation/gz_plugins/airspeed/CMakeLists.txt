@@ -52,6 +52,10 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC px4_gz_msgs
 )
 
+target_compile_options(${PROJECT_NAME}
+    PRIVATE -Wno-maybe-uninitialized
+)
+
 if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/px4_gz_plugins)
 endif()
