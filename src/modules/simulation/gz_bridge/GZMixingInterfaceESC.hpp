@@ -55,8 +55,7 @@ public:
 		_node(node)
 	{}
 
-	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	MixingOutput &mixingOutput() { return _mixing_output; }
 
@@ -68,6 +67,14 @@ public:
 		ScheduleClear();
 	}
 
+	// ====== ADIÇÃO UAVISEC ======
+	void setMotorAttack(int option, int index, double speed) {
+		_motor_attack_option = option;
+		_motor_attack_index = index;
+		_motor_attack_speed = speed;
+	}
+	// ============================
+
 private:
 	friend class GZBridge;
 
@@ -77,6 +84,12 @@ private:
 
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;
+
+	// ====== VARIÁVEIS UAVISEC ======
+	int _motor_attack_option{0};
+	int _motor_attack_index{0};
+	double _motor_attack_speed{0.0};
+	// ===============================
 
 	MixingOutput _mixing_output{"SIM_GZ_EC", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
