@@ -106,8 +106,8 @@ make dakefpv_h743pro_default upload
 
 ## PX4 Configuration
 
-| Parameter                                                             | Setting                                                                        |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Parameter                                                            | Setting                                                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | Disabled by default (no internal mag). Enable if an external mag is connected. |
 
 ## Debug Port
