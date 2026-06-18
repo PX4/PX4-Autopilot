@@ -134,6 +134,7 @@ protected:
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 
 	float _yaw_setpoint_previous{NAN}; /**< Used because _yaw_setpoint is overwritten in multiple places */
+	float _rc_yaw_setpoint{NAN}; /**< RC yaw override latch in auto mode (MPC_AUTO_RC_YAW) */
 	HeadingSmoothing _heading_smoothing;
 	bool _yaw_sp_aligned{false};
 
@@ -169,6 +170,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
 					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crwl,
 					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
+					(ParamInt<px4::params::MPC_AUTO_RC_YAW>) _param_mpc_auto_rc_yaw,
 					(ParamFloat<px4::params::MPC_LAND_RADIUS>) _param_mpc_land_radius,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,

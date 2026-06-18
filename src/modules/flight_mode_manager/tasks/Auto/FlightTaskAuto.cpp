@@ -53,6 +53,8 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
 
+	_rc_yaw_setpoint = NAN;
+
 	Vector3f vel_prev{last_setpoint.velocity};
 	Vector3f pos_prev{last_setpoint.position};
 	Vector3f accel_prev{last_setpoint.acceleration};
@@ -232,6 +234,19 @@ bool FlightTaskAuto::update()
 
 	// update previous type
 	_type_previous = _type;
+
+	const bool land_help_yaw = _param_mpc_land_rc_help.get()
+				   && (_type == WaypointType::loiter || _type == WaypointType::land);
+	const bool rc_yaw_type = (_type == WaypointType::position || _type == WaypointType::takeoff
+				  || _type == WaypointType::loiter || _type == WaypointType::land);
+
+	if (_param_mpc_auto_rc_yaw.get() && rc_yaw_type && !land_help_yaw && _sticks.checkAndUpdateStickInputs()) {
+		rcHelpModifyYaw(_rc_yaw_setpoint);
+		_yaw_setpoint = _rc_yaw_setpoint;
+
+	} else {
+		_rc_yaw_setpoint = NAN;
+	}
 
 	_smoothYaw();
 
@@ -686,6 +701,10 @@ void FlightTaskAuto::_ekfResetHandlerHeading(const float delta_psi)
 {
 	_yaw_setpoint_previous = wrap_pi(_yaw_setpoint_previous + delta_psi);
 	_heading_smoothing.reset(wrap_pi(_heading_smoothing.getSmoothedHeading() + delta_psi));
+
+	if (PX4_ISFINITE(_rc_yaw_setpoint)) {
+		_rc_yaw_setpoint = wrap_pi(_rc_yaw_setpoint + delta_psi);
+	}
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()

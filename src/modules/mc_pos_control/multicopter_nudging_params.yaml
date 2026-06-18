@@ -20,6 +20,20 @@ parameters:
       default: 0
       min: 0
       max: 1
+    MPC_AUTO_RC_YAW:
+      description:
+        short: Enable yaw nudging on user input in autonomous modes.
+        long: |-
+          Using yaw stick the vehicle can be yawed in Auto modes (takeoff, mission, RTL, hold, landing).
+
+          Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
+      type: enum
+      values:
+        0: Yaw nudging disabled
+        1: Yaw nudging enabled
+      default: 0
+      min: 0
+      max: 1
     MPC_LAND_RADIUS:
       description:
         short: User assisted landing radius
