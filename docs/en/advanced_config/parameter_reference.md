@@ -21451,6 +21451,39 @@ selected flight mode will be applied.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | -1      |      | &nbsp;    |
 
+### COM_FLTMODE_BOOT (`INT32`) {#COM_FLTMODE_BOOT}
+
+Flight mode on boot.
+
+Flight mode set on boot and after a power cycle, before any RC input or
+mode command is received.
+
+**Values:**
+
+- `0`: Manual
+- `1`: Altitude
+- `2`: Position
+- `3`: Mission
+- `4`: Hold
+- `6`: Position Slow
+- `8`: Altitude Cruise
+- `10`: Acro
+- `14`: Offboard
+- `15`: Stabilized
+- `17`: Takeoff
+- `23`: External 1
+- `24`: External 2
+- `25`: External 3
+- `26`: External 4
+- `27`: External 5
+- `28`: External 6
+- `29`: External 7
+- `30`: External 8
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 4       |      | &nbsp;    |
+
 ### COM_FLTT_LOW_ACT (`INT32`) {#COM_FLTT_LOW_ACT}
 
 Remaining flight time low failsafe.
