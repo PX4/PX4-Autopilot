@@ -230,11 +230,12 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
-		pos_sp_triplet->next.valid = true;
+		// If next point does not exist, we have NaN and inalid next setpoint
+		pos_sp_triplet->next.valid = next_point.isAllFinite();
 		pos_sp_triplet->next.alt = _rtl_alt;
 		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-		pos_sp_triplet->next.lat = next_point.isAllFinite() ? next_point(0) : point(0);
-		pos_sp_triplet->next.lon = next_point.isAllFinite() ? next_point(1) : point(1);
+		pos_sp_triplet->next.lat = next_point(0);
+		pos_sp_triplet->next.lon = next_point(1);
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
