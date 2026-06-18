@@ -16,6 +16,7 @@ This category includes boards that are not fully compliant with the pixhawk stan
 
 The boards in this category are:
 
+- [3DR Control N1](../flight_controller/3dr_ctrl-n1.md)
 - [Accton Godwit GA1](../flight_controller/accton-godwit_ga1.md)
 - [AEDROX AEDROXH7](../flight_controller/aedrox_aedroxh7.md)
 - [AirMind MindPX](../flight_controller/mindpx.md)
