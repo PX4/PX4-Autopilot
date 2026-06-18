@@ -70,6 +70,7 @@ struct SendSubscription {
 	UcdrSerializeMethod ucdr_serialize_method;
 	uint64_t publish_interval_ms;
 	uint8_t orb_instance;
+	bool drain_queue;
 };
 
 // Subscribers for messages to send
@@ -83,8 +84,9 @@ struct SendTopicsSubs {
 			  get_message_version<@(pub['simple_base_type'])_s>(),
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
-			  static_cast<uint64_t>((@(pub.get('rate_limit', 0)) > 0) ? (1e3 / @(pub.get('rate_limit', 1e3))) : UXRCE_DEFAULT_POLL_INTERVAL_MS),
-			  @(pub['instance'])
+			  @(pub['publish_interval_ms'] if pub['publish_interval_ms'] is not None else 'UXRCE_DEFAULT_POLL_INTERVAL_MS'), // ms; 0 = unlimited (rate limit disabled)
+			  @(pub['instance']),
+			  @('true' if pub['drain'] else 'false')
 			},
 @[    end for]@
 	};
@@ -135,38 +137,63 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		if (fds[idx].revents & POLLIN) {
-			// Topic updated, copy data and send
-			orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
-
-			if (send_subscriptions[idx].data_writer.id != UXR_INVALID_ID) {
-
-				ucdrBuffer ub;
-				uint32_t topic_size = send_subscriptions[idx].topic_size;
-				uint16_t req_id = uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub,
-							   topic_size);
-
-				if (req_id == UXR_INVALID_REQUEST_ID) {
-					// The best-effort output buffer can fill up if multiple topics update at once.
-					// Flush once to free space and retry.
-					uxr_flash_output_streams(session);
-					needs_flush = false;
-					req_id = uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub,
-									   topic_size);
-				}
-
-				if (req_id != UXR_INVALID_REQUEST_ID) {
-					send_subscriptions[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
-					needs_flush = true;
-					num_payload_sent += topic_size;
-
-				} else {
-					//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
-				}
-
-			} else {
-				//PX4_ERR("Error UXR_INVALID_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+			// For topics that opt in (drain_queue), empty the whole queue in one pass:
+			// temporarily disable the interval so orb_check does a pure generation check
+			// and isn't gated by the interval timer after each orb_copy; otherwise only
+			// one queued sample would be forwarded per poll wakeup and bursts (e.g. CAN
+			// frames) would be dropped. Topics without the flag keep the previous
+			// behaviour: forward only the latest sample, respecting the configured rate.
+			if (send_subscriptions[idx].drain_queue) {
+				orb_set_interval(fds[idx].fd, 0);
 			}
 
+			bool updated = true;
+
+			while (updated) {
+				// Topic updated, copy data and send
+				orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
+
+				if (send_subscriptions[idx].data_writer.id != UXR_INVALID_ID) {
+
+					ucdrBuffer ub;
+					uint32_t topic_size = send_subscriptions[idx].topic_size;
+					uint16_t req_id = uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub,
+								   topic_size);
+
+					if (req_id == UXR_INVALID_REQUEST_ID) {
+						// The best-effort output buffer can fill up if multiple topics update at once.
+						// Flush once to free space and retry.
+						uxr_flash_output_streams(session);
+						needs_flush = false;
+						req_id = uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub,
+										   topic_size);
+					}
+
+					if (req_id != UXR_INVALID_REQUEST_ID) {
+						send_subscriptions[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
+						needs_flush = true;
+						num_payload_sent += topic_size;
+
+					} else {
+						//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+					}
+
+				} else {
+					//PX4_ERR("Error UXR_INVALID_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+				}
+
+				if (!send_subscriptions[idx].drain_queue) {
+					// Latest sample only; leave the rest of the queue for the next cycle.
+					break;
+				}
+
+				orb_check(fds[idx].fd, &updated);
+			}
+
+			// Restore the configured interval after draining (no-op otherwise).
+			if (send_subscriptions[idx].drain_queue) {
+				orb_set_interval(fds[idx].fd, send_subscriptions[idx].publish_interval_ms);
+			}
 		}
 	}
 
