@@ -57,6 +57,7 @@ if (gz-transport_FOUND)
 		MAIN gz_bridge
 		COMPILE_FLAGS
 			${MAX_CUSTOM_OPT_LEVEL}
+			-Wno-maybe-uninitialized
 		SRCS
 			GZBridge.cpp
 			GZBridge.hpp
