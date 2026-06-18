@@ -118,7 +118,7 @@ public:
 	bool ChangeInstance(uint8_t instance);
 
 	uint8_t  get_instance() const { return _instance; }
-	unsigned get_last_generation() const { return _last_generation.load(); }
+	unsigned get_last_generation() const { return _last_generation; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
 	ORB_ID orb_id() const { return _orb_id; }
@@ -132,7 +132,7 @@ protected:
 
 	void *_node{nullptr};
 
-	px4::atomic<unsigned> _last_generation{0}; /**< last generation the subscriber has seen */
+	unsigned _last_generation{0}; /**< last generation the subscriber has seen */
 
 	ORB_ID _orb_id{ORB_ID::INVALID};
 	uint8_t _instance{0};

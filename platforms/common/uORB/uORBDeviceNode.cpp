@@ -196,7 +196,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	// callbacks
 	for (auto item : _callbacks) {
-		item->call();
+		item->call(generation + 1);
 	}
 
 	/* Mark at least one data has been published */

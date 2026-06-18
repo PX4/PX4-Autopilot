@@ -64,7 +64,7 @@ public:
 		pthread_cond_destroy(&_cv);
 	}
 
-	void call() override
+	void call(unsigned generation) override
 	{
 		// signal immediately if no interval, otherwise only if interval has elapsed
 		hrt_abstime last_update = _last_update.load();
