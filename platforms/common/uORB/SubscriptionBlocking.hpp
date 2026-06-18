@@ -68,8 +68,9 @@ public:
 	{
 		// signal immediately if no interval, otherwise only if interval has elapsed
 		hrt_abstime last_update = _last_update.load();
+		const uint32_t interval_us = _interval_us.load();
 
-		if ((_interval_us == 0) || (hrt_elapsed_time(&last_update) >= _interval_us)) {
+		if ((interval_us == 0) || (hrt_elapsed_time(&last_update) >= interval_us)) {
 			pthread_cond_signal(&_cv);
 		}
 	}
