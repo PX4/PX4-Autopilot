@@ -141,7 +141,7 @@ The calibration process:
    commander calibrate mag quick [heading]
    ```
 
-   | 매개변수                                    | 설명                                                                                                                                                       |
+   | Parameter                               | 설명                                                                                                                                                       |
    | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
    | `heading` (optional) | True heading of the vehicle in degrees (0–359). Defaults to 0° (North) if omitted. |
 
@@ -204,7 +204,7 @@ Further compass configuration should generally not be required.
 ### Enable/Disable a Compass
 
 While no further configuration should be _required_, developers who wish to disable/enable compasses for any reason, such as testing, can do so using the compass parameters.
-These are prefixed with [CAL_MAGx_](../advanced_config/parameter_reference.md#CAL_MAG0_ID) (where `x=0-3`):
+These are prefixed with [CA&#x4C;_&#x4D;AGx_](../advanced_config/parameter_reference.md#CAL_MAG0_ID) (where `x=0-3`):
 
 - [CAL_MAGn_ROT](../advanced_config/parameter_reference.md#CAL_MAG0_ROT) can be used to determine which compasses are internal.
   A compass is internal if `CAL_MAGn_ROT==1`.

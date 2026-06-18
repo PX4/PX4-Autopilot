@@ -96,7 +96,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - TBD
 
-### 탐사선
+### Rover
 
 - TBD
 
