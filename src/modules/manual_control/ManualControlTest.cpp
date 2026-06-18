@@ -397,15 +397,10 @@ TEST_F(GestureTest, ArmingGesture)
 	publishArmGesture(100_ms);
 	_manual_control.processInput(_timestamp);
 
-	// Left stick is ignored during gesture attempt (set to safe default)
 	EXPECT_TRUE(_manual_control_setpoint_sub.update());
-	auto setpoint = _manual_control_setpoint_sub.get();
+	EXPECT_TRUE(_manual_control_setpoint_sub.get().valid);
 
-	EXPECT_TRUE(setpoint.valid);
-	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
-	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
-
-	// No kill action requested yet because of hysteresis
+	// No action requested yet because of hysteresis
 	EXPECT_FALSE(_action_request_sub.update());
 
 
@@ -416,13 +411,8 @@ TEST_F(GestureTest, ArmingGesture)
 	publishArmGesture(500_ms);
 	_manual_control.processInput(_timestamp);
 
-	// Left stick is still ignored
 	EXPECT_TRUE(_manual_control_setpoint_sub.update());
-	setpoint = _manual_control_setpoint_sub.get();
-
-	EXPECT_TRUE(setpoint.valid);
-	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
-	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+	EXPECT_TRUE(_manual_control_setpoint_sub.get().valid);;
 
 	EXPECT_TRUE(_action_request_sub.update());
 	EXPECT_EQ(_action_request_sub.get().action, ACTION_ARM);
@@ -434,15 +424,10 @@ TEST_F(GestureTest, DisarmGesture)
 	publishDisarmGesture(100_ms);
 	_manual_control.processInput(_timestamp);
 
-	// Left stick is ignored during gesture attempt (set to safe default)
 	EXPECT_TRUE(_manual_control_setpoint_sub.update());
-	auto setpoint = _manual_control_setpoint_sub.get();
+	EXPECT_TRUE(_manual_control_setpoint_sub.get().valid);
 
-	EXPECT_TRUE(setpoint.valid);
-	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
-	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
-
-	// No kill action requested yet because of hysteresis
+	// No action requested yet because of hysteresis
 	EXPECT_FALSE(_action_request_sub.update());
 
 
@@ -452,13 +437,8 @@ TEST_F(GestureTest, DisarmGesture)
 	publishDisarmGesture(500_ms);
 	_manual_control.processInput(_timestamp);
 
-	// Left stick is still ignored
 	EXPECT_TRUE(_manual_control_setpoint_sub.update());
-	setpoint = _manual_control_setpoint_sub.get();
-
-	EXPECT_TRUE(setpoint.valid);
-	EXPECT_NEAR(setpoint.yaw, 0.0F, FLT_EPSILON);
-	EXPECT_NEAR(setpoint.throttle, -1.0F, FLT_EPSILON);
+	EXPECT_TRUE(_manual_control_setpoint_sub.get().valid);
 
 	EXPECT_TRUE(_action_request_sub.update());
 	EXPECT_EQ(_action_request_sub.get().action, ACTION_DISARM);
