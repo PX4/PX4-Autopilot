@@ -71,7 +71,6 @@ else()
     target_compile_options(${PROJECT_NAME}
         PRIVATE ${GSTREAMER_CFLAGS}
         PRIVATE ${GSTREAMER_APP_CFLAGS}
-        -Wno-maybe-uninitialized
     )
 
     if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

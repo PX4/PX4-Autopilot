@@ -64,9 +64,5 @@ target_include_directories(${PROJECT_NAME}
     # PUBLIC ${OtherLib_INCLUDE_DIRS}
 )
 
-target_compile_options(${PROJECT_NAME}
-    PRIVATE -Wno-maybe-uninitialized
-)
-
 # Add dependencies if needed
 # add_dependencies(${PROJECT_NAME} ExternalDependency)

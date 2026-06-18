@@ -88,10 +88,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC px4_gz_msgs
 )
 
-target_compile_options(${PROJECT_NAME}
-    PRIVATE -Wno-maybe-uninitialized
-)
-
 # libOpticalFlow.so is built alongside the plugin in the same output directory
 # (CMAKE_LIBRARY_OUTPUT_DIRECTORY is set by the parent gz_plugins CMakeLists),
 # so $ORIGIN is sufficient at both build and install time.

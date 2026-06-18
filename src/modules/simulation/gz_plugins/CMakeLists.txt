@@ -33,9 +33,7 @@
 
 project(px4_gz_plugins)
 
-if(NOT DEFINED ENV{GZ_DISTRO} OR
-   "$ENV{GZ_DISTRO}" STREQUAL "jetty" OR
-   "$ENV{GZ_DISTRO}" STREQUAL "harmonic")
+if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
     find_package(gz-transport NAMES gz-transport gz-transport15 gz-transport14 gz-transport13)
     find_package(gz-sim NAMES gz-sim gz-sim10 gz-sim9 gz-sim8)
     find_package(gz-sensors NAMES gz-sensors gz-sensors10 gz-sensors9 gz-sensors8)
