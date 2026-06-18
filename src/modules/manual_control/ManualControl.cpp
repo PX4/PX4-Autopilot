@@ -121,16 +121,20 @@ void ManualControl::processInput(hrt_abstime now)
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
 
-		IgnoreStick ignore_stick = processStickArming(_selector.setpoint());
+		processStickArming(_selector.setpoint());
+		bool kill_gesture_active = processStickKillGesture(_selector.setpoint());
 
-		if (ignore_stick == IgnoreStick::LEFT || ignore_stick == IgnoreStick::ALL) {
-			_selector.setpoint().throttle = -1.0f;
-			_selector.setpoint().yaw = 0.f;
-		}
+		if (kill_gesture_active) {
+			// Zero sticks and set min throttle to prevent extreme setpoints
+			// while waiting for the kill hysteresis to trigger.
 
-		if (ignore_stick == IgnoreStick::ALL) {
+			// Note: Arm/Disarm gestures dont require stick centering because
+			// they aren't active during flight
+
 			_selector.setpoint().roll = 0.f;
 			_selector.setpoint().pitch = 0.f;
+			_selector.setpoint().throttle = -1.0f;
+			_selector.setpoint().yaw = 0.f;
 		}
 
 		// User override by stick
@@ -398,7 +402,7 @@ void ManualControl::updateParams()
 	}
 }
 
-ManualControl::IgnoreStick ManualControl::processStickArming(const manual_control_setpoint_s &input)
+void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 {
 	// Arm gesture
 	const bool right_stick_centered = (fabsf(input.pitch) < 0.1f) && (fabsf(input.roll) < 0.1f);
@@ -420,34 +424,26 @@ ManualControl::IgnoreStick ManualControl::processStickArming(const manual_contro
 	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_STICK_GESTURE);
 	}
+}
 
-	// Kill gesture
-	const bool right_stick_lower_right = (input.pitch < -0.9f) && (input.roll > 0.9f);
-
+bool ManualControl::processStickKillGesture(const manual_control_setpoint_s &input)
+{
 	if (_param_man_kill_gest_t.get() > 0.f) {
+		const bool right_stick_lower_right = (input.pitch < -0.9f) && (input.roll > 0.9f);
+		const bool left_stick_lower_left = (input.throttle < -0.8f) && (input.yaw < -0.9f);
+		const bool kill_gesture = right_stick_lower_right && left_stick_lower_left;
+
 		const bool previous_stick_kill_hysteresis = _stick_kill_hysteresis.get_state();
-		_stick_kill_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_lower_right, input.timestamp);
+		_stick_kill_hysteresis.set_state_and_update(kill_gesture, input.timestamp);
 
 		if (!previous_stick_kill_hysteresis && _stick_kill_hysteresis.get_state()) {
 			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_STICK_GESTURE);
 		}
 
+		return kill_gesture;
 	}
 
-	// Disable sticks state machine
-	const bool disable_left_stick = _param_man_arm_gesture.get() && right_stick_centered && (left_stick_lower_left
-					|| left_stick_lower_right);
-	const bool disable_all_sticks = _param_man_kill_gest_t.get() > 0.f && right_stick_lower_right && left_stick_lower_left;
-
-	if (disable_all_sticks) {
-		return IgnoreStick::ALL;
-
-	} else if (disable_left_stick) {
-		return IgnoreStick::LEFT;
-
-	}
-
-	return IgnoreStick::NONE;
+	return false;
 }
 
 void ManualControl::evaluateModeSlot(uint8_t mode_slot)
