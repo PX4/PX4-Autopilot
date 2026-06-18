@@ -104,6 +104,7 @@ void RtlDirectMissionLand::on_activation()
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		matrix::Vector2d destination = get_first_position_after_land_start_index();
+		_geofence_planner_destination = destination;
 
 		GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
 
@@ -203,10 +204,15 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		planner.advanceWaypoint();
 
 		if (!point.isAllFinite()) {
-			// Should never happen, fall back to RTLing straight.
-			// TODO: report error
-			point(0) = _global_pos_sub.get().lat;
-			point(1) = _global_pos_sub.get().lon;
+			// Should never happen -- the geofence branch is only entered while hasMore() is true.
+			// Fall back to flying straight to the destination, as rtl_direct does.
+			if (_geofence_planner_destination.isAllFinite()) {
+				point = _geofence_planner_destination;
+
+			} else {
+				point(0) = _global_pos_sub.get().lat;
+				point(1) = _global_pos_sub.get().lon;
+			}
 		}
 
 		// Line following only between points on the path, not when flying to the first point

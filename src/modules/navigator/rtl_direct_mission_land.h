@@ -80,6 +80,12 @@ private:
 	 */
 	matrix::Vector2d get_first_position_after_land_start_index();
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	/// Planner destination (first position item after DO_LAND_START). Cached at activation so the
+	/// last geofence-avoidance leg can point triplet.next at it instead of repeating the current waypoint.
+	matrix::Vector2d _geofence_planner_destination{(double)NAN, (double)NAN};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
