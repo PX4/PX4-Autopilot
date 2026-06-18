@@ -209,11 +209,19 @@ if [[ "${UBUNTU_RELEASE}" == "26.04" ]]; then
 		echo "[ubuntu.sh] No ROS installation found - skipping Gazebo Jetty installation due to missing binaries for native install.	"
 	fi
 	INSTALL_SIM="false"
+
 	echo "[ubuntu.sh] Installing outdated Astyle 3.1 before transitioning to a new linter"
-	sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet purge astyle
-	wget http://archive.ubuntu.com/ubuntu/pool/universe/a/astyle/astyle_3.1-3build1_amd64.deb -P $DIR
-	sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet --no-install-recommends install $DIR/astyle_3.1-3build1_amd64.deb
-	rm $DIR/astyle_3.1-3build1_amd64.deb
+	if [[ "${INSTALL_ARCH}" == "x86_64" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet purge astyle
+		wget http://archive.ubuntu.com/ubuntu/pool/universe/a/astyle/astyle_3.1-3build1_amd64.deb -P $DIR
+		sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet --no-install-recommends install $DIR/astyle_3.1-3build1_amd64.deb
+		rm $DIR/astyle_3.1-3build1_amd64.deb
+	elif [[ "${INSTALL_ARCH}" == "aarch64" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet purge astyle
+		wget http://archive.ubuntu.com/ubuntu/pool/universe/a/astyle/astyle_3.1-3build1_arm64.deb -P $DIR
+		sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet --no-install-recommends install $DIR/astyle_3.1-3build1_arm64.deb
+		rm $DIR/astyle_3.1-3build1_arm64.deb
+	fi
 fi
 
 # Simulation tools
