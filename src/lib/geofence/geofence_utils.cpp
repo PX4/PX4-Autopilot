@@ -51,15 +51,14 @@ void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 	_y_cm[idx] = metersToCm(p(1));
 }
 
-bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
-				 bool is_inclusion_zone, float margin)
+PlannerPolygons::AddResult PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
+		bool is_inclusion_zone, float margin)
 {
-	if (num_vertices < 3
-	    || _num_polygons >= kMaxPolygons
-	    || _num_nodes + num_vertices > kMaxNodes
-	    || margin < -FLT_EPSILON) {
-		return false;
+	if (_num_polygons >= kMaxPolygons || _num_nodes + num_vertices > kMaxNodes) {
+		return AddResult::BudgetExceeded;
 	}
+
+	if (margin < -FLT_EPSILON || num_vertices < 3) { return AddResult::Degenerate; }
 
 	for (int i = 0; i < num_vertices; ++i) {
 		// Reject self-intersecting (non-simple) polygons.
@@ -77,13 +76,13 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 			if (segmentsIntersect(
 				    metersToCm(a(0)), metersToCm(a(1)), metersToCm(b(0)), metersToCm(b(1)),
 				    metersToCm(c(0)), metersToCm(c(1)), metersToCm(d(0)), metersToCm(d(1))) != SegSegResult::Disjoint) {
-				return false;
+				return AddResult::Degenerate;
 			}
 		}
 
 		// Reject vertices outside the usable fixed-point range
 		if (!inFixedPointRange(vertices_in[i](0)) || !inFixedPointRange(vertices_in[i](1))) {
-			return false;
+			return AddResult::OutOfRange;
 		}
 	}
 
@@ -115,7 +114,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		const float edge_out_norm = edge_out.norm();
 
 		if (edge_in_norm < FLT_EPSILON || edge_out_norm < FLT_EPSILON) {
-			return false;
+			return AddResult::Degenerate;
 		}
 
 		const matrix::Vector2f edge_in_normalized = edge_in / edge_in_norm;
@@ -130,7 +129,7 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 		const float bisector_len  = bisector.length();
 
 		if (bisector_len < FLT_EPSILON) {
-			return false; // antiparallel edges - polygon doubles back
+			return AddResult::Degenerate; // antiparallel edges - polygon doubles back
 		}
 
 		const matrix::Vector2f normalized_bisector = bisector / bisector_len;
@@ -202,10 +201,11 @@ bool PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_ve
 
 	_num_nodes += num_out;
 	++_num_polygons;
-	return true;
+	return AddResult::Success;
 }
 
-bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const float circle_radius, float margin, const bool is_inclusion_zone)
+PlannerPolygons::AddResult PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const float circle_radius,
+		float margin, const bool is_inclusion_zone)
 {
 	// For planning we approximate circles by regular k-gons. This adds
 	// quite some nodes and additional restricted area. However, planning
@@ -219,9 +219,11 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 	// planner into all controllers, which would then have to also fly
 	// loiter segments, not just pure waypoint sequences.
 
-	if (_num_nodes + kCircleApproxVertices > kMaxNodes || _num_polygons >= kMaxPolygons || circle_radius <= 0.1f) {
-		return false;  // Not enough space
+	if (_num_polygons >= kMaxPolygons || _num_nodes + kCircleApproxVertices > kMaxNodes) {
+		return AddResult::BudgetExceeded;
 	}
+
+	if (circle_radius <= 0.1f) { return AddResult::Degenerate; }
 
 	// ensures that the k-gon is, w.r.t the real circle:
 	//  - over-approximation of circle grown by margin, if exclusion
@@ -230,10 +232,13 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 				   ? circle_radius - margin
 				   : circle_radius / cosf(M_PI_F / kCircleApproxVertices) + margin;
 
-	if (k_gon_radius <= FLT_EPSILON  // Negative radius - circle empty
-	    || !inFixedPointRange(fabsf(center(0)) + k_gon_radius)
+	if (k_gon_radius <= FLT_EPSILON) { // Negative radius - circle empty
+		return AddResult::Degenerate;
+	}
+
+	if (!inFixedPointRange(fabsf(center(0)) + k_gon_radius)
 	    || !inFixedPointRange(fabsf(center(1)) + k_gon_radius)) {
-		return false;
+		return AddResult::OutOfRange;
 	}
 
 	// Canonical orientation: CCW for exclusion, CW for inclusion
@@ -262,7 +267,7 @@ bool PlannerPolygons::addApproxCircle(const matrix::Vector2f &center, const floa
 
 	_num_nodes += kCircleApproxVertices;
 	++_num_polygons;
-	return true;
+	return AddResult::Success;
 }
 
 void PlannerPolygons::computeBoundingBox(const int start_index, const int num_vertices,

@@ -36,6 +36,7 @@
 
 using namespace matrix;
 using SS = geofence_utils::SegSegResult;
+using AddResult = geofence_utils::PlannerPolygons::AddResult;
 
 // Low level primitives operating on fixed-point int32 coordinates.
 
@@ -75,8 +76,7 @@ TEST(GeofenceUtilsTest, SegmentsCollinear)
 	// Identical segments and sub-intervals are reported as Collinear, not Cross.
 	EXPECT_EQ(SS::Collinear, geofence_utils::segmentsIntersect(0, 0, 2, 2, 1, 1, 2, 2));
 	EXPECT_EQ(SS::Collinear, geofence_utils::segmentsIntersect(0, 0, 300, 0, 0, 0, 300, 0));
-	EXPECT_EQ(SS::Collinear,
-		  geofence_utils::segmentsIntersect(1000, 1000, 4000, 2000, 1000, 1000, 4000, 2000));
+	EXPECT_EQ(SS::Collinear, geofence_utils::segmentsIntersect(1000, 1000, 4000, 2000, 1000, 1000, 4000, 2000));
 	// Same supporting line, non-overlapping intervals.
 	EXPECT_EQ(SS::Collinear, geofence_utils::segmentsIntersect(0, 0, 100, 0, 200, 0, 300, 0));
 }
@@ -267,42 +267,66 @@ TEST(GeofenceUtilsTest, AddPolygonRejectsOutOfBounds)
 	const Vector2f square[4] = {{0.f, 0.f}, {extent, 0.f}, {extent, extent}, {0.f, extent}};
 
 	geofence_utils::PlannerPolygons polys;
-	EXPECT_TRUE(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+	EXPECT_EQ(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f), AddResult::Success);
 
 	// Square out of bounds, 12000 km.
 	extent = 12000 * 1000;
 	const Vector2f square_larger[4] = {{0.f, 0.f}, {extent, 0.f}, {extent, extent}, {0.f, extent}};
 
 	geofence_utils::PlannerPolygons polys_larger;
-	EXPECT_FALSE(polys_larger.addPolygon(square_larger, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+	EXPECT_EQ(polys_larger.addPolygon(square_larger, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f), AddResult::OutOfRange);
 }
 
 TEST(GeofenceUtilsTest, AddApproxCircleRejectsOutOfBounds)
 {
 	// 100m circle at origin with 10m margin - works
 	geofence_utils::PlannerPolygons polys0;
-	EXPECT_TRUE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 100.0f, 10.0f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 0), 100.0f, 10.0f, false),
+		AddResult::Success
+	);
 
 	// 5000km circle -- same
-	EXPECT_TRUE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 5000.f * 1000.f, 10.0f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 0), 5000.f * 1000.f, 10.0f, false),
+		AddResult::Success
+	);
 
 	// 10000km circle -- fails (circle is within range but approx circle not)
-	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 10000.f * 1000.f, 10.0f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 0), 10000.f * 1000.f, 10.0f, false),
+		AddResult::OutOfRange
+	);
 
 	// 12000km circle -- fails
-	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 12000.f * 1000.f, 10.0f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 0), 12000.f * 1000.f, 10.0f, false),
+		AddResult::OutOfRange
+	);
 
 	// 10000km circle, 2000 km margin (outwards, exclusion zone) -- fails
-	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 0), 12000.f * 1000.f, 2000.f * 1000.f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 0), 12000.f * 1000.f, 2000.f * 1000.f, false),
+		AddResult::OutOfRange
+	);
 
 	// 2000km circle 10000km out - fails
-	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 2000.f * 1000.f, 10.f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 2000.f * 1000.f, 10.f, false),
+		AddResult::OutOfRange
+	);
 
 	// 100km circle 10000km out - works
-	EXPECT_TRUE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 10.f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 10.f, false),
+		AddResult::Success
+	);
 
 	// 100km circle 10000km out, 1000km margin - fails
-	EXPECT_FALSE(polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 1000.f * 1000.f, false));
+	EXPECT_EQ(
+		polys0.addApproxCircle(matrix::Vector2f(0, 10000.f * 1000.f), 100.f * 1000.f, 1000.f * 1000.f, false),
+		AddResult::OutOfRange
+	);
 
 }
 
@@ -316,7 +340,7 @@ TEST(GeofenceUtilsTest, AddPolygonRejectsSelfIntersecting)
 	const Vector2f figure_eight[4] = {{0.f, 0.f}, {10.f, 10.f}, {10.f, 0.f}, {0.f, 10.f}};
 
 	geofence_utils::PlannerPolygons polys;
-	EXPECT_FALSE(polys.addPolygon(figure_eight, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+	EXPECT_EQ(polys.addPolygon(figure_eight, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f), AddResult::Degenerate);
 }
 
 TEST(GeofenceUtilsTest, AddPolygonAcceptsSimpleQuad)
@@ -325,5 +349,5 @@ TEST(GeofenceUtilsTest, AddPolygonAcceptsSimpleQuad)
 	const Vector2f square[4] = {{0.f, 0.f}, {10.f, 0.f}, {10.f, 10.f}, {0.f, 10.f}};
 
 	geofence_utils::PlannerPolygons polys;
-	EXPECT_TRUE(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f));
+	EXPECT_EQ(polys.addPolygon(square, 4, /*is_inclusion_zone=*/false, /*margin=*/0.f), AddResult::Success);
 }

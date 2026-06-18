@@ -59,8 +59,9 @@ public:
 		NoFence,             // No fence polygons -- avoidance not applicable.
 		Ok,                  // Graph built, Dijkstra ran, no isolated routable nodes.
 		DestinationInvalid,  // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
-		FenceTooComplex,     // Vertex budget exceeded (should not normally happen, see static_assert).
-		PolygonRejected,     // addPolygon / addApproxCircle refused a zone (degenerate, self-intersecting, out of fixed-point range).
+		BudgetExceeded,      // Node/polygon storage budget exceeded (should not normally happen, see static_assert).
+		OutOfRange,          // A zone's vertex/extent fell outside the usable fixed-point range.
+		Degenerate,          // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
 		UnreachableRegions,  // Graph built but legal pockets exist disconnected from destination.
 	};
 
@@ -166,6 +167,7 @@ private:
 	perf_counter_t _update_destination_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update destination")};
 	perf_counter_t _plan_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: plan path")};
 
+	// Sets _status on failure (matching planPath); returns false to abort the build.
 	bool updatePolygonsFromGeofence(GeofenceInterface &geofence, float margin);
 	void updateEdgeCosts();
 	bool planPath();

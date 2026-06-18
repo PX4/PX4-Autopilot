@@ -1008,8 +1008,7 @@ void Navigator::run()
 			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
 			_last_geofence_avoidance_margin = margin;
 
-			// Notify the user if planner status is not good. Add granularity with
-			// more status values / user messages if needed.
+			// Add granularity with more status values / user messages if needed.
 			using PlannerStatus = GeofenceAvoidancePlanner::Status;
 			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
@@ -1019,17 +1018,20 @@ void Navigator::run()
 			case PlannerStatus::DestinationInvalid: // If reporting, would need to also check outside of this block...
 				break;
 
-			case PlannerStatus::FenceTooComplex:
-			case PlannerStatus::PolygonRejected:
-				mavlink_log_warning(&_mavlink_log_pub, "Geofence too complex for RTL avoidance; RTL will fly directly\t");
-				events::send(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
-					     "Geofence too complex for RTL avoidance; RTL will fly directly");
+			// Failure in building fence graph. Collapse to one generic user message. Add granularity if needed.
+			case PlannerStatus::BudgetExceeded:
+			case PlannerStatus::OutOfRange:
+			case PlannerStatus::Degenerate:
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), RTL will fly directly\t",
+						    (int) planner_status);
+				events::send<uint8_t>(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
+						      "Geofence data invalid (code {1}), RTL will fly directly", (uint8_t)planner_status);
 				break;
 
 			case PlannerStatus::UnreachableRegions:
-				mavlink_log_warning(&_mavlink_log_pub, "Geofence has legal regions with no return path; RTL may fly direct through fence\t");
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence contains unreachable regions, RTL may fly directly\t");
 				events::send(events::ID("rtl_avoidance_unreachable_region"), {events::Log::Warning, events::LogInternal::Info},
-					     "Geofence has legal regions with no return path; RTL may fly direct through fence");
+					     "Geofence contains unreachable regions, RTL may fly directly");
 				break;
 			}
 		}

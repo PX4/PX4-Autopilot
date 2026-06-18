@@ -246,6 +246,14 @@ public:
 		"kMaxNodes cannot hold the worst-case fence storable in dataman"
 	);
 
+	// Return code specifying why a polygon was not added.
+	enum class AddResult {
+		Success,
+		BudgetExceeded,  // node or polygon buffer full (kMaxNodes / kMaxPolygons)
+		OutOfRange,      // vertex or circle extent outside usable fixed-point range
+		Degenerate,      // <3 vertices, zero-length/antiparallel edge, self-intersecting, empty circle, negative margin
+	};
+
 	PlannerPolygons() { reset(); }
 
 	// Slot 0 is always reserved for the destination; polygon vertices start at index 1.
@@ -262,15 +270,13 @@ public:
 	//  - canonicalize orientation,
 	//  - offset each vertex outward (exclusion) or inward (inclusion) by `margin` meters,
 	//  - quantize to cm, append as nodes.
-	// Returns false on budget overflow, fewer than 3 vertices, or a
-	// degenerate edge/antiparallel corner when margin != 0.
-	bool addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
-			bool is_inclusion_zone, float margin = 0.f);
+	AddResult addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
+			     bool is_inclusion_zone, float margin = 0.f);
 
 	// Append an approximate circle (k-gon over/underapproximation).
 	//  - shrink/expand according to margin and is_inclusion_zone
 	//  - quantize to cm, append as nodes.
-	bool addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const bool is_inclusion_zone);
+	AddResult addApproxCircle(const matrix::Vector2f &center, const float radius, float margin, const bool is_inclusion_zone);
 
 	int numNodes() const { return _num_nodes; }
 
@@ -344,7 +350,7 @@ inline bool lineSegmentIntersectsPolygon(const matrix::Vector2f &start, const ma
 {
 	PlannerPolygons polys;
 
-	if (!polys.addPolygon(vertices, num_vertices, is_inclusion_zone)) {
+	if (polys.addPolygon(vertices, num_vertices, is_inclusion_zone) != PlannerPolygons::AddResult::Success) {
 		return false;
 	}
 

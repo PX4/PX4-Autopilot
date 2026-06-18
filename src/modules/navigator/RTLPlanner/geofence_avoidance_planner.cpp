@@ -124,7 +124,7 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	if (num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
 		// Does not happen when kMaxNodes set correctly - see static_assert in geofence_utils::PlannerPolygons
 		_polygons_healthy = false;
-		_status = Status::FenceTooComplex;
+		_status = Status::BudgetExceeded;
 		return;
 	}
 
@@ -135,7 +135,6 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	if (!updatePolygonsFromGeofence(geofence, margin)) {
 		_polygons_healthy = false;
 		perf_cancel(_setup_perf);
-		_status = Status::PolygonRejected;
 		return;
 	}
 
@@ -159,6 +158,8 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 		PolygonInfo info = geofence.getPolygonInfoByIndex(poly_index);
 
+		auto add_result = geofence_utils::PlannerPolygons::AddResult::Success;
+
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
 			// Could skip this local copy and pass e.g. a reference to geofence into addPolygon, so it could access directly
@@ -170,9 +171,7 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION);
 
-			if (!_polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin)) {
-				return false;
-			}
+			add_result = _polygons.addPolygon(local_in, info.vertex_count, is_inclusion, margin);
 
 		} else if (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION || info.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 
@@ -180,9 +179,24 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 			const bool is_inclusion = (info.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION);
 
-			if (!_polygons.addApproxCircle(center, info.circle_radius, margin, is_inclusion)) {
-				return false;
-			}
+			add_result = _polygons.addApproxCircle(center, info.circle_radius, margin, is_inclusion);
+		}
+
+		switch (add_result) {
+		case geofence_utils::PlannerPolygons::AddResult::Success:
+			break;
+
+		case geofence_utils::PlannerPolygons::AddResult::BudgetExceeded:
+			_status = Status::BudgetExceeded;
+			return false;
+
+		case geofence_utils::PlannerPolygons::AddResult::OutOfRange:
+			_status = Status::OutOfRange;
+			return false;
+
+		case geofence_utils::PlannerPolygons::AddResult::Degenerate:
+			_status = Status::Degenerate;
+			return false;
 		}
 	}
 
