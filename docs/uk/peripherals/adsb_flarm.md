@@ -34,7 +34,7 @@ The PingRX comes with connector cable that can be attached directly to the `TELE
 
 The recommended port configuration for this receiver is:
 
-| Параметр                                                                                                                                    | Recommended Value |
+| Parameter                                                                                                                                   | Recommended Value |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                            | `TELEM 2`         |
 | [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                                | uAvionix          |
@@ -64,7 +64,7 @@ The TX and RX on the flight controller must be connected to the RX and TX on the
 The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
 The recommended configuration for most devices (unless they have device-specific configuration like PingRX) is to connect to `TELEM 2` and [set the parameters](../advanced_config/parameters.md) as shown:
 
-| Параметр                                                                                                           | Recommended Value                                    |
+| Parameter                                                                                                          | Recommended Value                                    |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
 | [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2`                                            |
 | [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | Normal                                               |
@@ -79,7 +79,7 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 
 Налаштуйте дію у випадку потенційної зіткнення за допомогою параметри нижче:
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                         |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_TRAFF_AVOID"></a>[NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                         | Увімкніть режим уникнення трафіку, вказавши відповідь уникнення. 0: Вимкнути, 1: Лише попередження, 2: Режим повернення, 3: Режим посадки.   |
 | <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizontal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                                       |
