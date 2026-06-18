@@ -5,9 +5,15 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failure injection also needs to be supported by your simulator, so the set of supported failures depends on the simulator backend.
-All `MAV_CMD_INJECT_FAILURE` commands are handled internaly by the failure-injection module, which acknowledges each command and republishes the active failures for the sensor/actuator simulators to apply.
-Commands for combinations that are not implemented are acknowledged as "unsupported". here its important to know, than if it is supported by one endpoint, it is considered supported. that doesnt necessarly mean that your simulator supports it
+Failure injection must also be be supported by the current simulator, and the set of supported failures is simulator-dependent.
+
+::: info
+PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
+
+All [MAV_CMD_INJECT_FAILURE](https://mavlink.io/en/messages/common.html#MAV_CMD_INJECT_FAILURE) commands are handled internally by the failure-injection module, which acknowledges each command and republishes the active failures for the sensor/actuator simulators to apply.
+The failure-injection module will NACK the command with [MAV_RESULT_UNSUPPORTED](https://mavlink.io/en/messages/common.html#MAV_RESULT_UNSUPPORTED) for failure combinations that are not implemented by PX4 or any simulator.
+However it the module will accept (respond with [MAV_MISSION_ACCEPTED](https://mavlink.io/en/messages/common.html#MAV_MISSION_ACCEPTED)) for any other failure-type, even if it is not supported by your _particular_ simulator.
+:::
 
 ## Failure System Command
 
