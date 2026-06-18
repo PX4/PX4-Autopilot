@@ -41,6 +41,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <drivers/drv_hrt.h>
 
 namespace uORB
 {
@@ -101,14 +102,19 @@ public:
 		return ret;
 	}
 
-	virtual void call() = 0;
+	virtual void call(unsigned generation) = 0;
 
 	bool registered() const { return _registered; }
 
 protected:
 
 	bool _registered{false};
-
+	// Node generation at our last ScheduleNow(), used by the count gate. Only ever
+	// touched from call() (which runs under the publishing node's lock, so it is
+	// serialized) - do NOT write it from the subscriber thread (e.g. in
+	// registerCallback()), or it becomes a cross-thread race. It self-initializes:
+	// the first call() sees a large delta and schedules once, then tracks normally.
+	unsigned _last_scheduled_generation{0};
 };
 
 // Subscription with callback that schedules a WorkItem
@@ -130,14 +136,20 @@ public:
 
 	virtual ~SubscriptionCallbackWorkItem() = default;
 
-	void call() override
+	void call(unsigned generation) override
 	{
-		// schedule immediately if updated (queue depth or subscription interval)
-		uint8_t req = _required_updates.load();
+		// 'generation' is the publishing node's generation, handed in by the
+		// publisher - so unlike before we never read the subscriber's own cursor
+		// (_last_generation, mutated on the subscriber's thread) from here.
+		// Schedule once enough new samples have accrued since our last schedule
+		// (count gate), respecting the optional interval (interval gate).
+		const uint8_t req = _required_updates.load();
 
-		if ((req == 0)
-		    || (Manager::updates_available(_subscription.get_node(), _subscription.get_last_generation()) >= req)) {
-			if (updated()) {
+		if ((generation - _last_scheduled_generation) >= req) {
+			const hrt_abstime last_update = _last_update.load();
+
+			if ((_interval_us == 0) || (hrt_elapsed_time(&last_update) >= _interval_us)) {
+				_last_scheduled_generation = generation;
 				_work_item->ScheduleNow();
 			}
 		}
