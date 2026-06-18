@@ -40,6 +40,9 @@
 
 using namespace matrix;
 
+// First meter after lift-off prioritises altitude over horizontal tracking.
+static constexpr float kTakeoffClimbPriorityHeight = 1.0f; // [m]
+
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
@@ -75,6 +78,7 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
 	_takeoff_locked_xy.setNaN();
+	_takeoff_liftoff_z = NAN;
 
 	return ret;
 }
@@ -86,6 +90,7 @@ void FlightTaskAuto::reActivate()
 	// On ground, reset acceleration and velocity to zero
 	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.7f}, _position);
 	_takeoff_locked_xy.setNaN();
+	_takeoff_liftoff_z = NAN;
 }
 
 bool FlightTaskAuto::updateInitialize()
@@ -160,11 +165,8 @@ bool FlightTaskAuto::update()
 		_position_setpoint = _triplet_current;
 		_velocity_setpoint.setNaN();
 
-		// During takeoff, lock the lift-off XY so the climb stays vertical and wind-robust:
-		// track the live position through the ramp (freezes at FLIGHT as the deck moves), then
-		// hold it as the target until takeoff completes. Z stays at the takeoff target altitude.
 		if (_type == WaypointType::takeoff) {
-			if (_inTakeoffRamp()) {
+			if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
 				_takeoff_locked_xy = Vector2f(_position);
 			}
 
@@ -190,9 +192,16 @@ bool FlightTaskAuto::update()
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
 
-	if (_inTakeoffRamp()) {
-		// Hold the live horizontal position during the takeoff ramp so the climb isn't slowed and tracks a moving deck
-		_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+	if (_type == WaypointType::takeoff) {
+		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
+			_takeoff_liftoff_z = _position(2);
+			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+		}
+
+		if (!PX4_ISFINITE(_takeoff_liftoff_z)
+		    || (_takeoff_liftoff_z - _position(2)) < kTakeoffClimbPriorityHeight) {
+			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
+		}
 	}
 
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
@@ -728,12 +737,6 @@ bool FlightTaskAuto::isTargetModified() const
 	const bool z_modified =  z_valid && std::fabs((_triplet_current - _position_setpoint)(2)) > FLT_EPSILON;
 
 	return xy_modified || z_modified;
-}
-
-bool FlightTaskAuto::_inTakeoffRamp() const
-{
-	return (_type == WaypointType::takeoff)
-	       && (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT);
 }
 
 void FlightTaskAuto::_updateTrajConstraints()
