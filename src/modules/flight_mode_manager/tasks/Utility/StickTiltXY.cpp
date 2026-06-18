@@ -35,6 +35,8 @@
 
 #include <geo/geo.h>
 #include <lib/sticks/Sticks.hpp>
+#include <drivers/drv_hrt.h>
+
 
 using namespace matrix;
 

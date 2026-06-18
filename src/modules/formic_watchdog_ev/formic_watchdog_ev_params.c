@@ -27,7 +27,7 @@ PARAM_DEFINE_INT32(FORMIC_WDEV_EN, 0);
  * @group Formic Watchdog EV
  * @category Standard
  */
-PARAM_DEFINE_INT32(FORMIC_WDEV_INIT, 5);
+PARAM_DEFINE_INT32(FORMIC_WDEV_INIT, 2);
 
 /**
  * User VIO activation AUX channel.
@@ -99,3 +99,22 @@ PARAM_DEFINE_FLOAT(FORMIC_WDEV_DPOS, 1.0f);
  * @category Standard
  */
 PARAM_DEFINE_FLOAT(FORMIC_WDEV_VINI, 10.0f);
+
+
+
+
+/**
+ * EV roll/pitch alignment threshold.
+ *
+ * Maximum allowed difference (degrees) between the EV (VIO) attitude and the
+ * local estimate in roll and pitch. When the difference exceeds this value the
+ * EV attitude is considered misaligned with the drone and the data is treated
+ * as unreliable for this session.
+ *
+ * @min 0.0
+ * @max 50.0
+ * @unit deg
+ * @group Formic Watchdog EV
+ * @category Standard
+ */
+PARAM_DEFINE_FLOAT(FORMIC_WDEV_DATT, 20.0f);

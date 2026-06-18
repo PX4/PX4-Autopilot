@@ -71,7 +71,7 @@ void FormicWatchdogEv::Run()
 				_quality_average_init = finalize_quality_average();
 				_vel_average_init     = finalize_3d_velocity_average();
 				_init_check_done = true;
-				_formic_state.quality_init_check_fail = (_quality_average_init < _param_ekf2_ev_qmin.get());
+				_formic_state.quality_init_check_fail = (_quality_average_init < 95.0f);
 				_formic_state.vel_3d_init_check_fail = (_vel_average_init > _param_formic_wdev_vini.get()); // if the average EV all_vel during the settle window is very low, it's likely that the EV data is not good (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful). In this case we also set the error flag and skip forwarding the data.
 
 				if (_formic_state.quality_init_check_fail || _formic_state.vel_3d_init_check_fail) {
@@ -99,17 +99,16 @@ void FormicWatchdogEv::Run()
 void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
 
 {
-	if (hrt_elapsed_time(&_forwarding_start_time) >= 1_s && _formic_state.heading_alligned_with_ev && _formic_state.pos_alligned_with_ev) {
+	// INIT_FUSED -> VALID_POS depends only on EV alignment (d_pos and d_heading),
+	// no time-based hold-off.
+	if (_formic_state.heading_alligned_with_ev && _formic_state.pos_alligned_with_ev) {
 		_formic_state.status = (uint8_t)pipline_status::VALID_POS;
+		status_3_time = {0};
 	}
-
+	
+	RP_misalignment(odometry);
 	odometry.reset_counter = _formic_state.reset_counter;
 	_odometry_pub.publish(odometry);
-	
-	
-	if (_forwarding_start_time == 0) {
-		_forwarding_start_time = hrt_absolute_time();
-	}
 }
 
 void FormicWatchdogEv::update_pipeline_status()
@@ -136,7 +135,20 @@ void FormicWatchdogEv::update_pipeline_status()
 		return;
 	}
 	if (!_formic_state.heading_alligned_with_ev || !_formic_state.pos_alligned_with_ev) {
-		_formic_state.status = (uint8_t)pipline_status::INIT_FUSED;	
+		if (_formic_state.status != (uint8_t)pipline_status::VALID_POS) {
+			_formic_state.status = (uint8_t)pipline_status::INIT_FUSED;
+
+			// Start the "stuck at INIT_FUSED" timer on entry.
+			if (status_3_time == 0) {
+				status_3_time = hrt_absolute_time();
+			}
+			// Stuck at INIT_FUSED too long without aligning -> re-arm the reset phase so
+			// the reset counter starts nudging the filter again, and restart the timer.
+			else if (hrt_elapsed_time(&status_3_time) > 5_s) {
+				at_reset_counter = true;
+				status_3_time = hrt_absolute_time();
+			}
+		}
 		return;
 	}
 
@@ -207,6 +219,37 @@ float FormicWatchdogEv::get_yaw_from_quat(const vehicle_odometry_s &odometry)
 	return matrix::Eulerf(quat).psi();
 }
 
+bool FormicWatchdogEv::RP_misalignment(vehicle_odometry_s &odometry)
+{
+	const matrix::Quatf quat_vio(odometry.q);
+	if (!quat_vio.isAllFinite() || quat_vio.length() < 0.9f) {
+		return false;
+	}
+
+	vehicle_attitude_s vehicle_attitude{};
+	if (!_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+		return false;
+	}
+	const matrix::Quatf drone_imu_quat(vehicle_attitude.q);
+
+	const matrix::Eulerf euler_vio(quat_vio);
+	const matrix::Eulerf euler_drone(drone_imu_quat);
+
+	// EV (VIO) vs drone roll/pitch difference, in degrees (param is in deg).
+	const float d_roll  = math::degrees(matrix::wrap_pi(euler_vio.phi()   - euler_drone.phi()));
+	const float d_pitch = math::degrees(matrix::wrap_pi(euler_vio.theta() - euler_drone.theta()));
+	const float thr     = _param_formic_wdev_d_attitude.get();
+
+	const bool misaligned = (fabsf(d_roll) > thr) || (fabsf(d_pitch) > thr);
+
+	if (misaligned) {
+		PX4_WARN("EV roll/pitch misaligned: d_roll %.1f deg, d_pitch %.1f deg (thr %.1f deg)",
+			 (double)d_roll, (double)d_pitch, (double)thr);
+	}
+
+	return misaligned;
+}
+
 /*
 checking if the heading is and the distance at the heading between the EV_rad heading and the current heading at the current session
 */
@@ -260,10 +303,6 @@ bool FormicWatchdogEv::handle_pos_reset(const float vio_pos[2], const float esti
 	const bool aligned = d_pos.norm() <= _param_formic_wdev_dpos.get();
 	_formic_state.pos_alligned_with_ev = aligned;
 
-	if (!aligned) {
-		PX4_INFO("EV pos: [%.2f, %.2f], local pos: [%.2f, %.2f], d_pos: [%.2f, %.2f]", (double)vio_pos[0], (double)vio_pos[1], (double)estimator_pos[0], (double)estimator_pos[1], (double)d_pos(0), (double)d_pos(1));
-	}
-
 	return true; // had fused EV position aid data this cycle
 }
 
@@ -281,6 +320,7 @@ void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
 	const float raw_yaw      = get_yaw_from_quat(odometry);  // EV (VIO) yaw
 	const float estimtor_yaw = get_yaw_from_quat(esti_odom); // EKF yaw
 
+
 	// New session (EV just (re)arrived): clear the counter and re-arm the reset phase.
 	if (!_formic_state.ev_data_arrived) {
 		_formic_state.reset_counter = 0;
@@ -290,26 +330,22 @@ void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
 	}
 
 	const bool yaw_data_valid = check_EV_aid_src_heading(raw_yaw, estimtor_yaw);
-	const bool pos_data_valid = _ev_hpos_enabled ? handle_pos_reset(odometry.position, esti_odom.position) : true;
+	// const bool pos_data_valid = _ev_hpos_enabled ? handle_pos_reset(odometry.position, esti_odom.position) : (_formic_state.pos_alligned_with_ev =true);
+	const bool pos_data_valid = _ev_hpos_enabled  ? handle_pos_reset(odometry.position, esti_odom.position) : (_formic_state.pos_alligned_with_ev = true, true);
 	
 	if (!at_reset_counter) {
 		return;
 	}
-	if (!yaw_data_valid || !pos_data_valid) {
-		return;
-	}
 
-	const bool aligned = _formic_state.heading_alligned_with_ev
+	const bool aligned = yaw_data_valid && pos_data_valid
+			     && _formic_state.heading_alligned_with_ev
 			     && _formic_state.pos_alligned_with_ev;
 
-	// Both heading AND position aligned -> leave the reset phase for the rest of this
-	// session and switch to error checking.
 	if (aligned) {
 		at_reset_counter = false;
 		return;
 	}
 
-	// Still misaligned. Throttle: only one reset every 2 seconds.
 	if (_last_reset_time != 0 && hrt_elapsed_time(&_last_reset_time) < 2_s) {
 		return;
 	}

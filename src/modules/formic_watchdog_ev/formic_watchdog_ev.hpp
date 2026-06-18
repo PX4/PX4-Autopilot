@@ -18,7 +18,7 @@
 #include <uORB/topics/formic_pos_req.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-
+#include <uORB/topics/vehicle_attitude.h>
 
 
 // Math / filters
@@ -64,8 +64,8 @@ private:
 	void copy_odometry_msg(vehicle_odometry_s &odometry);
 	bool check_EV_aid_src_heading(float vio_yaw, float estimator_yaw); // returns true if EV yaw aid data was fused this cycle; sets heading_alligned_with_ev
 	void resetcounter(vehicle_odometry_s &odometry);
+	bool RP_misalignment(vehicle_odometry_s &odometry);
 	void no_EvData();
-	bool multi_sensor_z_velocity_check();
 	float get_yaw_from_quat(const vehicle_odometry_s &odometry);
 	void accumulate_quality(const vehicle_odometry_s &odometry); // sum one quality sample during the settle window
 	float finalize_quality_average() const;                      // mean quality over the settle window
@@ -82,17 +82,13 @@ private:
 	uORB::Subscription _estimator_aid_src_pos_sub{ORB_ID(estimator_aid_src_ev_pos)};
 	uORB::Subscription _estimtor_odometry_sub{ORB_ID(estimator_odometry)};
 	uORB::Subscription _formic_pos_req{ORB_ID(formic_pos_req)};  // pos req at the tick time 
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 
 
 	// --- Publications ---
 	uORB::Publication<vehicle_odometry_s> _odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<formic_ev_state_machine_s> _formic_state_machine_pub{ORB_ID(formic_ev_state_machine)};
-
-	// --- Baro state ---
-	// Baro derivative low-pass filter (2nd order, ~20 Hz sample, 1 Hz cutoff)
-	math::LowPassFilter2p<float> _baro_deriv_filter{20.0f, 0.2f};
-	float _baro_filtered{0.0f};
 
 
 	// --- EV velocity state ---
@@ -117,6 +113,8 @@ private:
 	formic_ev_state_machine_s _formic_state{0};
 	bool _pos_requested{false}; // latched formic_pos_req.pos_req: true while a position mode is requested
 
+	hrt_abstime status_3_time{0};
+
 	
 	bool  _init_check_done{false};                 // true once the init average has been computed for this session
 	// quality init check
@@ -137,6 +135,7 @@ private:
 		(ParamInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
 		(ParamFloat<px4::params::FORMIC_WDEV_DYAW>) _param_formic_wdev_dyaw,
 		(ParamFloat<px4::params::FORMIC_WDEV_DPOS>) _param_formic_wdev_dpos,
-		(ParamFloat<px4::params::FORMIC_WDEV_VINI>) _param_formic_wdev_vini
+		(ParamFloat<px4::params::FORMIC_WDEV_VINI>) _param_formic_wdev_vini,
+		(ParamFloat<px4::params::FORMIC_WDEV_DATT>) _param_formic_wdev_d_attitude
 	)
 };

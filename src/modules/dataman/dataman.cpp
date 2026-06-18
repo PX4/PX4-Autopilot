@@ -63,7 +63,7 @@ __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
 __END_DECLS
 
-static constexpr int TASK_STACK_SIZE = 1420;
+static constexpr int TASK_STACK_SIZE = (1420 + 100);
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Private File based Operations */
