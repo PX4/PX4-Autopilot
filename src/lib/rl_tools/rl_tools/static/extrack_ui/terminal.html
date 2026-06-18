@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExTrack Terminal</title>
+    <script src="./lib/ace/ace.js"></script>
+    <script src="./lib/ace/keybinding-vim.js"></script>
+    <script src="./lib/ace/mode-javascript.js"></script>
+    <script src="./lib/ace/theme-tomorrow.js"></script>
+<!--    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>-->
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./lib/three.js",
+                "three-orbitcontrols": "./lib/three.js",
+                "chart.js": "./lib/chart.js",
+                "pako": "./lib/dependencies.js"
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .file-select-container {
+            flex-grow: 1;
+        }
+        .file-select {
+            width: 100%;
+            min-height: 100px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            overflow-x: scroll;
+        }
+        .file-select option {
+            padding: 8px 12px;
+        }
+        .presets {
+            /*display: flex;*/
+            /*justify-content: space-between;*/
+            /*align-items: flex-start;*/
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        #editor {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .output {
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: #f0f0f0;
+        }
+        .vim-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* Switch styles */
+        .form-switch {
+            display: inline-block;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .form-switch i {
+            position: relative;
+            display: inline-block;
+            margin-right: .5rem;
+            width: 46px;
+            height: 26px;
+            background-color: #e6e6e6;
+            border-radius: 23px;
+            vertical-align: text-bottom;
+            transition: all 0.3s linear;
+        }
+        .form-switch i::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 42px;
+            height: 22px;
+            background-color: #fff;
+            border-radius: 11px;
+            transform: translate3d(2px, 2px, 0) scale3d(1, 1, 1);
+            transition: all 0.25s linear;
+        }
+        .form-switch i::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 22px;
+            height: 22px;
+            background-color: #fff;
+            border-radius: 11px;
+            box-shadow: 0 2px 2px rgba(0, 0, 0, 0.24);
+            transform: translate3d(2px, 2px, 0);
+            transition: all 0.2s ease-in-out;
+        }
+        .form-switch:active i::after {
+            width: 28px;
+            transform: translate3d(2px, 2px, 0);
+        }
+        .form-switch:active input:checked + i::after { transform: translate3d(16px, 2px, 0); }
+        .form-switch input { display: none; }
+        .form-switch input:checked + i { background-color: #67b1ae; }
+        .form-switch input:checked + i::before { transform: translate3d(18px, 2px, 0) scale3d(0, 0, 0); }
+        .form-switch input:checked + i::after { transform: translate3d(22px, 2px, 0); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="file-select-container">
+            <select id="fileSelect" multiple class="file-select">
+            </select>
+        </div>
+        <div class="controls">
+            <button id="executeButton">Execute (Ctrl+Enter)</button>
+            <div class="vim-control">
+                <label class="form-switch">
+                    <input type="checkbox" id="vimToggle">
+                    <i></i>
+                </label>
+                <span>Vim Mode</span>
+            </div>
+        </div>
+    </div>
+    <div class="presets">
+        <span style="margin-right: 0.2em;">Presets: </span>
+        <span class="presets-span">
+            <button class="preset-button" onclick='window.load_preset("general_action_trajectory", "Action Trajectory")'>Action Trajectory</button>
+            <button class="preset-button" onclick='window.load_preset("l2f_position_trajectory", "L2F Position Trajectory")'>L2F Position Trajectory</button>
+            <button class="preset-button" onclick='window.load_preset("l2f_distribution", "L2F Distribution")'>L2F Distribution</button>
+            <button class="preset-button" onclick='window.load_preset("l2f_visualization", "L2F Visualization")'>L2F Visualization</button>
+        </span>
+    </div>
+    <div id="editor"></div>
+    <div id="output" class="output"></div>
+    <div id="output2" class="output" style="display: none;">
+    </div>
+</div>
+
+<script type="module">
+    import {Chart, LineController, ScatterController, LineElement, PointElement, LinearScale, CategoryScale, Title, Tooltip, Filler, Legend} from "chart.js"
+    Chart.register(LineController, ScatterController, LineElement, PointElement, LinearScale, CategoryScale, Title, Tooltip, Filler, Legend);
+    import pako from "pako"
+
+    const experiments_path = "/experiments"
+    const STORAGE_KEYS = {
+        CODE: 'editor_code',
+        VIM_MODE: 'editor_vim_mode',
+        SELECTED_FILES: 'selected_files'
+    };
+
+    window.load_preset = null
+
+    async function fetchAndProcessIndex() {
+        try {
+            const response = await fetch(`${experiments_path}/index.txt`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch the index file');
+            }
+            const text = await response.text();
+            const paths = text.split('\n').map(path => path.trim());
+            const filteredPaths = paths.filter(path => path.endsWith('.json') || path.endsWith('.json.gz'));
+            return filteredPaths.sort();
+        } catch (error) {
+            console.error('Error:', error);
+            return [];
+        }
+    }
+
+    async function main(){
+        const paths = await fetchAndProcessIndex();
+
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/tomorrow");
+        editor.session.setMode("ace/mode/javascript");
+        editor.setOptions({
+            fontSize: '14px',
+            showPrintMargin: false,
+        });
+
+        window.load_preset = (preset_id, preset_name) => {
+            if(confirm(`Do you want to load the preset "${preset_name}" (id: "${preset_id}")?`)){
+                fetch(`./terminal/${preset_id}.js`)
+                    .then(res => res.text())
+                    .then(text => {
+                        editor.setValue(text, -1);
+                    })
+            }
+        }
+
+        const savedCode = localStorage.getItem(STORAGE_KEYS.CODE) || `// Selected files data is available as 'data' object
+// Keys are file paths, values are file contents
+// Example: console.log(data)
+
+console.log("Selected files data:", data);
+
+// Example: List all selected file paths
+console.log("\\nSelected files:");
+Object.keys(data).forEach(path => console.log(path));
+scatter([{label: 'test', data: [{x: 1, y: 2}, {x: 2, y: 4}]}], "X-Label", "Y-Label", "Title");
+`;
+
+        editor.setValue(savedCode, -1);
+
+        const selectedFilesString = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES) || "{}";
+        const selectedFiles = JSON.parse(selectedFilesString);
+        const fileSelect = document.getElementById('fileSelect');
+        paths.forEach(filename => {
+            const option = document.createElement('option');
+            option.value = filename;
+            option.textContent = filename;
+            if (selectedFiles[filename]) {
+                option.selected = true;
+            }
+            fileSelect.appendChild(option);
+        });
+
+        const output = document.getElementById('output');
+        const output2 = document.getElementById('output2');
+
+        const vimToggle = document.getElementById('vimToggle');
+
+        const savedVimMode = localStorage.getItem(STORAGE_KEYS.VIM_MODE) === 'true';
+        vimToggle.checked = savedVimMode;
+        editor.setKeyboardHandler(savedVimMode ? "ace/keyboard/vim" : null);
+
+        vimToggle.addEventListener('change', () => {
+            editor.setKeyboardHandler(vimToggle.checked ? "ace/keyboard/vim" : null);
+            localStorage.setItem(STORAGE_KEYS.VIM_MODE, vimToggle.checked);
+        });
+
+        fileSelect.addEventListener('keydown', (e) => {
+            if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                Array.from(fileSelect.options).forEach(option => option.selected = true);
+            }
+        });
+        fileSelect.addEventListener('change', () => {
+            const selectedFiles = Array.from(fileSelect.selectedOptions).reduce((acc, option) => {
+                acc[option.value] = true;
+                return acc;
+            }, {});
+            localStorage.setItem(STORAGE_KEYS.SELECTED_FILES, JSON.stringify(selectedFiles));
+        });
+
+        let state = {
+            charts: []
+        }
+        async function executeCode() {
+            localStorage.setItem(STORAGE_KEYS.CODE, editor.getValue());
+
+            const fetchPromises = Array.from(fileSelect.selectedOptions).map(async (option) => {
+                const res = await fetch(`${experiments_path}/${option.value}`);
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch content from ${option.value}`);
+                }
+                let content;
+                if(option.value.slice(-3) === '.gz'){
+                    const compressedData = await res.arrayBuffer();
+                    const decompressedData = pako.ungzip(new Uint8Array(compressedData), { to: 'string' });
+                    content = JSON.parse(decompressedData);
+                }
+                else{
+                    content = await res.json();
+                }
+                return [option.value, content];
+            });
+
+            const entries = await Promise.all(fetchPromises);
+            const data = Object.fromEntries(entries);
+
+            const code = editor.getValue();
+            output.textContent = '';
+
+            state.charts.map(chart => chart.destroy());
+            output2.innerHTML = '';
+            function scatter(input_data, x_axis_label, y_axis_label, title) {
+                const output2 = document.getElementById('output2');
+                output2.style.display = 'block';
+                const canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '500px';
+                output2.appendChild(canvas);
+                const ctx = canvas.getContext('2d');
+
+                const xAxisLabel = x_axis_label || 'X-Axis';
+                const yAxisLabel = y_axis_label || 'Y-Axis';
+                const chartTitle = title || '';
+
+                const defaultColors = [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ];
+
+                const defaultBorderColors = [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ];
+
+                function apply_default_colors(datasets) {
+                    const new_datasets = structuredClone(datasets)
+                    new_datasets.forEach((dataset, index) => {
+                        if (!dataset.backgroundColor) {
+                            dataset.backgroundColor = defaultColors[index % defaultColors.length];
+                        }
+                        if (!dataset.borderColor) {
+                            dataset.borderColor = defaultBorderColors[index % defaultBorderColors.length];
+                        }
+                    });
+                    return new_datasets;
+                }
+
+                const scatter_chart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: apply_default_colors(input_data)
+                    },
+                    options: {
+                        animation: false,
+                        plugins: {
+                            title: {
+                                display: !!chartTitle,
+                                text: chartTitle
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                title: {
+                                    display: true,
+                                    text: xAxisLabel
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: yAxisLabel
+                                }
+                            }
+                        }
+                    }
+                });
+                state.charts.push(scatter_chart);
+            }
+
+
+            try {
+                const func = new Function('data', 'output', `
+                    const console = {
+                        log: (...args) => {
+                            output.console_container.textContent += args.map(arg =>
+                                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                            ).join(' ') + '\\n';
+                        },
+                        clear: () => {
+                            output.console_container.textContent = '';
+                        }
+                    };
+                    ${code}
+                `);
+
+                func(data, {"console_container": output, "container": output2, "scatter": scatter});
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        document.getElementById('executeButton').addEventListener('click', executeCode);
+
+        editor.commands.addCommand({
+            name: 'executeCode',
+            bindKey: {win: 'Ctrl-Enter', mac: 'Command-Enter'},
+            exec: executeCode
+        });
+    }
+    main()
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,153 @@
+name: Zoo
+on:
+  workflow_dispatch:
+    inputs:
+      num_seeds:
+        description: 'Number of seeds'
+        default: '10'
+      mujoco:
+        description: 'Enable MuJoCo "true"/"false"'
+        default: 'false'
+      acrobot:
+        description: 'Enable Acrobot "true"/"false"'
+        default: 'false'
+  push:
+    branches: [ "main" ]
+jobs:
+  zoo:
+    runs-on: ubuntu-latest
+    env:
+      NUM_SEEDS: 10
+      MUJOCO: false
+      MUJOCO_OPTION: "-DRL_TOOLS_RL_ENVIRONMENTS_ENABLE_MUJOCO=OFF"
+      MKL_NUM_THREADS: 1
+    steps:
+      - name: Set number of seeds from input
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "NUM_SEEDS=${{ github.event.inputs.num_seeds }}" >> $GITHUB_ENV
+      - name: Set MuJoCo from input
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mujoco == 'true'
+        run: |
+          echo "MUJOCO=true" >> $GITHUB_ENV
+          echo "MUJOCO_OPTION=-DRL_TOOLS_RL_ENVIRONMENTS_ENABLE_MUJOCO=ON" >> $GITHUB_ENV
+      - name: Set MuJoCo from input
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.mujoco == 'false'
+        run: |
+          echo "MUJOCO=false" >> $GITHUB_ENV
+          echo "MUJOCO_OPTION=-DRL_TOOLS_RL_ENVIRONMENTS_ENABLE_MUJOCO=OFF" >> $GITHUB_ENV
+      - name: List Environment Variables
+        run: env
+      - uses: actions/checkout@v3
+
+      - name: Setup Git
+        run: |
+          git clone https://github.com/rl-tools/zoo-runs-ci.git runs/ci
+
+      - name: Intel Apt repository
+        timeout-minutes: 1
+        run: |
+          sudo apt update
+          sudo apt install -y gpg-agent wget
+          wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt update
+      - name: Install MKL
+        run: |
+          sudo apt install intel-oneapi-mkl-devel
+
+      - name: Setup Intel oneAPI environment
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          printenv >> $GITHUB_ENV
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libhdf5-dev
+
+      - name: Configure CMake
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -S .
+          $MUJOCO_OPTION
+
+      - name: Build
+        run: cmake --build build --target rl_zoo_pendulum_v1_sac rl_zoo_pendulum_v1_td3 rl_zoo_pendulum_v1_ppo
+      - name: Build Acrobot
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.acrobot == 'true'
+        run: cmake --build build --target rl_zoo_acrobot_swingup_v0_sac
+      - name: Build MuJoCo
+        if: ${{ env.MUJOCO == 'true' }}
+        run: cmake --build build --target rl_zoo_ant_v4_ppo
+      - name: Run Zoo (SAC Pendulum-v1)
+        working-directory: ${{ github.workspace }}
+        run: ./build/src/rl/zoo/rl_zoo_pendulum_v1_sac -n $NUM_SEEDS
+
+      - name: Run Zoo (TD3 Pendulum-v1)
+        working-directory: ${{ github.workspace }}
+        run: ./build/src/rl/zoo/rl_zoo_pendulum_v1_td3 -n $NUM_SEEDS
+
+      - name: Run Zoo (PPO Pendulum-v1)
+        working-directory: ${{ github.workspace }}
+        run: ./build/src/rl/zoo/rl_zoo_pendulum_v1_ppo -n $NUM_SEEDS
+
+      - name: Run Zoo (SAC AcrobotSwingup-v0)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.acrobot == 'true'
+        run: ./build/src/rl/zoo/rl_zoo_acrobot_swingup_v0_sac -n $NUM_SEEDS
+
+      - name: Run Zoo (PPO Ant-v4)
+        if: ${{ env.MUJOCO == 'true' }}
+        working-directory: ${{ github.workspace }}
+        run: ./build/src/rl/zoo/rl_zoo_ant_v4_ppo -n $NUM_SEEDS
+
+      - name: Pull Zoo Blob Again
+        working-directory: ${{ github.workspace }}/runs/ci
+        run: |
+          git pull
+      - name: Strip Experiments
+        working-directory: ${{ github.workspace }}
+        run: python3 runs/ci/strip.py experiments
+      - name: Copy Experiments
+        working-directory: ${{ github.workspace }}
+        run: cp -r experiments/* runs/ci/experiments
+      - name: Generate Index
+        working-directory: ${{ github.workspace }}/tools
+        run: | 
+          ./index_experiments.sh ../runs/ci/experiments
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.ZOO_BLOB_APP_ID }}
+          private-key: ${{ secrets.ZOO_BLOB_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: "rl-tools,zoo-runs-ci,zoo-runs-curated,zoo.rl.tools"
+      - name: Use the token
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          gh api octocat
+          gh repo view rl-tools/zoo-blob --json name
+      - name: Set up git with token
+        working-directory: ${{ github.workspace }}/runs/ci
+        run: |
+          git config --global user.name 'RLtools Bot'
+          git config --global user.email 'jonas.eschmann@gmail.com'
+          git remote set-url origin https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/rl-tools/zoo-blob.git
+      - name: Commit Results
+        working-directory: ${{ github.workspace }}/runs/ci
+        run: |
+          git add .
+          git status
+          git commit -m "workflow results"
+          git push
+
+      - name: Bump Page
+        run: |
+          git clone https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/rl-tools/zoo.rl.tools.git _temp_zoo
+          cd _temp_zoo
+          git submodule update --init --remote
+          git add .
+          git commit -m "bump"
+          git push

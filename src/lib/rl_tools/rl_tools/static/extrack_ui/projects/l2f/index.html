@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .raw-axes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        .raw-axis {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .axis-bar-container {
+            position: relative;
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .axis-bar {
+            position: absolute;
+            height: 100%;
+            background: #007bff;
+            transition: width 0.1s, left 0.1s;
+        }
+
+        .min-max-overlay {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba(0,0,0,0.1);
+            pointer-events: none;
+        }
+
+        .axis-config {
+            margin-bottom: 30px;
+        }
+
+        .axis-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .axis-row:hover {
+            background: #f0f0f0;
+        }
+
+        .axis-label {
+            width: 100px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        .axis-value {
+            width: 60px;
+            text-align: center;
+            margin: 0 15px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #666;
+        }
+
+        select {
+            appearance: none;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 8px 32px 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+            min-width: 120px;
+        }
+
+        select:hover {
+            border-color: #bbb;
+        }
+
+        select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        .invert-checkbox {
+            margin-left: 15px;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+
+        .invert-label {
+            margin-left: 5px;
+            font-size: 14px;
+            color: #444;
+            font-weight: bold;
+        }
+
+        .button-config {
+            margin-top: 30px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .button-mapping {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .button-mapping:hover {
+            background: #f0f0f0;
+        }
+
+        .button-mapping input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .button-mapping input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Drone Gamepad Configuration</h1>
+
+    <div id="status" class="status disconnected">
+        No gamepad detected. Please connect a gamepad and press any button.
+    </div>
+
+    <h2>Raw Axes Input</h2>
+    <div id="rawAxes" class="raw-axes">
+        <!-- Dynamically populated -->
+    </div>
+
+    <div class="axis-config">
+        <h2>Control Mapping</h2>
+        <div class="axis-row">
+            <span class="axis-label">Thrust</span>
+            <select id="thrustAxis" onchange="saveConfiguration()"></select>
+            <span class="axis-value" id="thrustValue">0.00</span>
+            <div class="axis-bar-container">
+                <div class="axis-bar" id="thrustBar"></div>
+            </div>
+            <input type="checkbox" id="invertThrust" class="invert-checkbox" onchange="invertAxis('thrust'); saveConfiguration()">
+            <label for="invertThrust" class="invert-label">Invert</label>
+        </div>
+
+        <div class="axis-row">
+            <span class="axis-label">Yaw</span>
+            <select id="yawAxis" onchange="saveConfiguration()"></select>
+            <span class="axis-value" id="yawValue">0.00</span>
+            <div class="axis-bar-container">
+                <div class="axis-bar" id="yawBar"></div>
+            </div>
+            <input type="checkbox" id="invertYaw" class="invert-checkbox" onchange="invertAxis('yaw'); saveConfiguration()">
+            <label for="invertYaw" class="invert-label">Invert</label>
+        </div>
+
+        <div class="axis-row">
+            <span class="axis-label">Roll</span>
+            <select id="rollAxis" onchange="saveConfiguration()"></select>
+            <span class="axis-value" id="rollValue">0.00</span>
+            <div class="axis-bar-container">
+                <div class="axis-bar" id="rollBar"></div>
+            </div>
+            <input type="checkbox" id="invertRoll" class="invert-checkbox" onchange="invertAxis('roll'); saveConfiguration()">
+            <label for="invertRoll" class="invert-label">Invert</label>
+        </div>
+
+        <div class="axis-row">
+            <span class="axis-label">Pitch</span>
+            <select id="pitchAxis" onchange="saveConfiguration()"></select>
+            <span class="axis-value" id="pitchValue">0.00</span>
+            <div class="axis-bar-container">
+                <div class="axis-bar" id="pitchBar"></div>
+            </div>
+            <input type="checkbox" id="invertPitch" class="invert-checkbox" onchange="invertAxis('pitch'); saveConfiguration()">
+            <label for="invertPitch" class="invert-label">Invert</label>
+        </div>
+    </div>
+
+    <div class="button-config">
+        <h2>Button Configuration</h2>
+        <button onclick="addButtonMapping(); saveConfiguration()">Add Button Mapping</button>
+        <div id="buttonMappings"></div>
+    </div>
+</div>
+<script>
+    let gamepad = null;
+    let buttonMappings = [];
+    let axisSelects = ['thrust', 'yaw', 'roll', 'pitch'].reduce((acc, axis) => {
+        acc[axis] = document.getElementById(axis + 'Axis');
+        // Set initial value to 0
+        acc[axis].value = 0;
+        return acc;
+    }, {});
+
+    let axisInversions = {
+        thrust: false,
+        yaw: false,
+        roll: false,
+        pitch: false
+    };
+
+    let axisRanges = [];
+
+    function createRawAxisElement(index) {
+        const div = document.createElement('div');
+        div.className = 'raw-axis';
+        div.innerHTML = `
+        <div>Axis ${index}</div>
+        <div class="axis-bar-container">
+          <div class="axis-bar"></div>
+          <div class="min-max-overlay"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+          <span class="min-value">-1.00</span>
+          <span class="current-value">0.00</span>
+          <span class="max-value">1.00</span>
+        </div>
+      `;
+        return div;
+    }
+
+    function updateRawAxes() {
+        if (!gamepad) return;
+
+        const container = document.getElementById('rawAxes');
+        if (container.children.length !== gamepad.axes.length) {
+            container.innerHTML = '';
+            for (let i = 0; i < gamepad.axes.length; i++) {
+                container.appendChild(createRawAxisElement(i));
+                axisRanges[i] = { min: 0, max: 0 };
+            }
+        }
+
+        gamepad.axes.forEach((value, i) => {
+            if (typeof value !== 'number') return;
+
+            // Update min/max values
+            axisRanges[i].min = Math.min(axisRanges[i].min, value);
+            axisRanges[i].max = Math.max(axisRanges[i].max, value);
+
+            const axisElement = container.children[i];
+            const bar = axisElement.querySelector('.axis-bar');
+            const overlay = axisElement.querySelector('.min-max-overlay');
+            const currentValue = axisElement.querySelector('.current-value');
+            const minValue = axisElement.querySelector('.min-value');
+            const maxValue = axisElement.querySelector('.max-value');
+
+            // Update the main value bar
+            const percent = ((value + 1) / 2) * 100;
+            bar.style.width = '4px';
+            bar.style.left = `${percent}%`;
+
+            // Update the min-max overlay
+            const minPercent = ((axisRanges[i].min + 1) / 2) * 100;
+            const maxPercent = ((axisRanges[i].max + 1) / 2) * 100;
+            overlay.style.left = `${minPercent}%`;
+            overlay.style.width = `${maxPercent - minPercent}%`;
+
+            // Update text values
+            currentValue.textContent = value.toFixed(2);
+            minValue.textContent = axisRanges[i].min.toFixed(2);
+            maxValue.textContent = axisRanges[i].max.toFixed(2);
+        });
+    }
+
+    function initAxisSelects() {
+        if (!gamepad) return;
+
+        Object.values(axisSelects).forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '';
+            for (let i = 0; i < gamepad.axes.length; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Axis ${i}`;
+                select.appendChild(option);
+            }
+            if (currentValue < gamepad.axes.length) {
+                select.value = currentValue;
+            }
+        });
+    }
+
+    function updateMappedAxis(axis, value) {
+        if (axisInversions[axis]) {
+            value = -value;
+        }
+
+        const bar = document.getElementById(axis + 'Bar');
+        if (!bar) return;
+        const percent = ((value + 1) / 2) * 100;
+        bar.style.width = `${percent}%`;
+    }
+
+    function invertAxis(axis) {
+        axisInversions[axis] = !axisInversions[axis];
+    }
+
+    function addButtonMapping() {
+        const mappingDiv = document.createElement('div');
+        mappingDiv.className = 'button-mapping';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Button identifier';
+
+        const label = document.createElement('span');
+        label.textContent = 'Press button to map...';
+        label.style.marginRight = '10px';
+        label.style.marginLeft = '10px';
+
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove';
+        removeButton.onclick = () => {
+            const index = buttonMappings.findIndex(m => m.div === mappingDiv);
+            if (index > -1) {
+                buttonMappings.splice(index, 1);
+            }
+            mappingDiv.remove();
+            saveConfiguration();
+        };
+
+        mappingDiv.appendChild(input);
+        mappingDiv.appendChild(label);
+        mappingDiv.appendChild(removeButton);
+
+        document.getElementById('buttonMappings').appendChild(mappingDiv);
+
+        const mapping = { div: mappingDiv, label, input, buttonIndex: null };
+        buttonMappings.push(mapping);
+    }
+
+    function updateStatus() {
+        const status = document.getElementById('status');
+        if (gamepad) {
+            status.className = 'status connected';
+            status.textContent = `Connected: ${gamepad.id}`;
+        } else {
+            status.className = 'status disconnected';
+            status.textContent = 'No gamepad detected. Please connect a gamepad and press any button.';
+        }
+    }
+
+    function updateAxisValues() {
+        if (!gamepad) return;
+
+        Object.entries(axisSelects).forEach(([axis, select]) => {
+            if (!select || !gamepad.axes) return;
+
+            const axisIndex = parseInt(select.value);
+            if (isNaN(axisIndex) || axisIndex >= gamepad.axes.length) return;
+
+            let value = gamepad.axes[axisIndex];
+            if (typeof value !== 'number') return;
+
+            if (axisInversions[axis]) {
+                value = -value;
+            }
+
+            const valueElement = document.getElementById(axis + 'Value');
+            if (valueElement) {
+                valueElement.textContent = value.toFixed(2);
+            }
+
+            updateMappedAxis(axis, value);
+        });
+    }
+
+    function updateButtonMappings() {
+        if (!gamepad) return;
+
+        buttonMappings.forEach(mapping => {
+            if (mapping.buttonIndex !== null && gamepad.buttons[mapping.buttonIndex]) {
+                const isPressed = gamepad.buttons[mapping.buttonIndex].pressed;
+                mapping.label.textContent = isPressed ? 'PRESSED!' : `Button ${mapping.buttonIndex}`;
+                mapping.div.style.background = isPressed ? '#e3f2fd' : '';
+            }
+        });
+    }
+
+    window.addEventListener('gamepadconnected', (e) => {
+        gamepad = e.gamepad;
+        updateStatus();
+        initAxisSelects();
+        loadConfiguration();
+    });
+
+    window.addEventListener('gamepaddisconnected', (e) => {
+        gamepad = null;
+        updateStatus();
+    });
+
+    function checkButton(mapping) {
+        if (!gamepad || !gamepad.buttons) return;
+
+        for (let i = 0; i < gamepad.buttons.length; i++) {
+            if (gamepad.buttons[i] && gamepad.buttons[i].pressed && mapping.buttonIndex === null) {
+                mapping.buttonIndex = i;
+                mapping.label.textContent = `Button ${i}`;
+                saveConfiguration();
+                break;
+            }
+        }
+    }
+
+    function saveConfiguration() {
+        const config = {
+            axisSelects: {
+                thrust: axisSelects.thrust.value,
+                yaw: axisSelects.yaw.value,
+                roll: axisSelects.roll.value,
+                pitch: axisSelects.pitch.value
+            },
+            axisInversions,
+            buttonMappings: buttonMappings.map(mapping => ({
+                buttonIndex: mapping.buttonIndex,
+                identifier: mapping.input.value
+            }))
+        };
+        localStorage.setItem('gamepadConfig', JSON.stringify(config));
+    }
+
+    function loadConfiguration() {
+        const config = JSON.parse(localStorage.getItem('gamepadConfig'));
+        if (config) {
+            axisSelects.thrust.value = config.axisSelects.thrust;
+            axisSelects.yaw.value = config.axisSelects.yaw;
+            axisSelects.roll.value = config.axisSelects.roll;
+            axisSelects.pitch.value = config.axisSelects.pitch;
+
+            axisInversions = config.axisInversions;
+            document.getElementById('invertThrust').checked = axisInversions.thrust;
+            document.getElementById('invertYaw').checked = axisInversions.yaw;
+            document.getElementById('invertRoll').checked = axisInversions.roll;
+            document.getElementById('invertPitch').checked = axisInversions.pitch;
+
+            config.buttonMappings.forEach(mapping => {
+                addButtonMapping();
+                const newMapping = buttonMappings[buttonMappings.length - 1];
+                newMapping.buttonIndex = mapping.buttonIndex;
+                newMapping.input.value = mapping.identifier;
+                newMapping.label.textContent = mapping.buttonIndex !== null ? `Button ${mapping.buttonIndex}` : 'Press button to map...';
+            });
+        }
+    }
+
+    function update() {
+        gamepad = navigator.getGamepads()[0];
+
+        if (gamepad) {
+            updateRawAxes();
+            updateAxisValues();
+            updateButtonMappings();
+            buttonMappings.forEach(checkButton);
+        }
+
+        requestAnimationFrame(update);
+    }
+
+    update();
+</script>
+</body>
+</html>
+
+

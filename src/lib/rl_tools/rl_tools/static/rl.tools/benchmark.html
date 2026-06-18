@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RLtools: Pendulum-v1 (SAC)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<link rel="stylesheet" href="index.css">
+<script type="module">
+    const terminalContainer = document.getElementById("terminal-container");
+    const terminalOutput = document.getElementById("terminal-output");
+    function appendToTerminal(text) {
+        if(terminalContainer.style.display !== "none"){
+            terminalOutput.textContent += text + "\n";
+        }
+    }
+    document.getElementById("copy-to-clipboard-button").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(terminalOutput.textContent);
+    })
+
+    let async_main = (async () => {
+        const worker = new Worker('training_worker.js', {type: "module"});
+        worker.addEventListener("error", (error) => {
+            console.error("An error occurred in the Web Worker:", error);
+        });
+
+        worker.addEventListener("message", (event) => {
+            if (event.data.type) {
+                if(event.data.payload){
+                    appendToTerminal(event.data.type + ": " + JSON.stringify(event.data.payload));
+                }
+                else{
+                    appendToTerminal(event.data.type);
+                }
+            }
+            console.log("Message from worker", event.data);
+        });
+        function sendMessageToWorker(type, payload) {
+            return new Promise((resolve, reject) => {
+                const id = Math.random().toString(36); // Generate a unique ID for the message
+                const msg = {id, type, payload}
+                console.log("Sending message to worker", msg);
+                worker.postMessage(msg);
+
+                const handleMessage = (event) => {
+                    if (event.data.id === id) {
+                        worker.removeEventListener('message', handleMessage);
+                        resolve(event.data.payload);
+                    }
+                };
+
+                worker.addEventListener('message', handleMessage);
+            });
+        }
+
+        await sendMessageToWorker("initialize", {benchmark: true});
+        for(let i = 0; i < 10; i++){
+            await sendMessageToWorker("initialize_training_state");
+            let start = performance.now();
+            await sendMessageToWorker("full_training");
+            let end = performance.now();
+            await sendMessageToWorker("destroy_training_state");
+            appendToTerminal("Training took " + (end - start) + " milliseconds");
+        }
+
+    });
+    if (window.Worker) {
+        try {
+            async_main();
+        } catch (error) {
+            console.error("Error running main", error);
+        }
+    } else {
+        console.log('Web Workers are not supported in your browser.');
+    }
+</script>
+
+<div class="container">
+    <div class="controls-container" style="margin-top: 20px;">
+        <input class="fancy-button" type="button" value="Copy to clipboard" id="copy-to-clipboard-button">
+    </div>
+    <div id="terminal-container" class="terminal-container">
+        <div id="terminal">
+            <pre id="terminal-output"></pre>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

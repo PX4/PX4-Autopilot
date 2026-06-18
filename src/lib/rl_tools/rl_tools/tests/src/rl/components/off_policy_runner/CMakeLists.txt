@@ -1,0 +1,3 @@
+add_executable(test_rl_components_off_policy_runner_sequential_batch sequential_batch.cpp)
+target_link_libraries(test_rl_components_off_policy_runner_sequential_batch PRIVATE RLtools::Core GTest::gtest_main)
+gtest_discover_tests(test_rl_components_off_policy_runner_sequential_batch)

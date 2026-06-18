@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Animation for Recording</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow:hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display:block;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script type="importmap">
+    {
+        "imports": {
+            "three": "./lib/three.module.js",
+            "three-orbitcontrols": "./lib/OrbitControls.js",
+            "three-gltfloader": "./lib/gltf-loader/GLTFLoader.js"
+        }
+    }
+</script>
+<script type="module">
+    import * as THREE from "three"
+    const canvas = document.getElementById('canvas');
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let ui_module = null;
+    let ui_state = null;
+    let episode_initialized = false;
+
+    let updateFrameLabel = null;
+    window.init = async (ui, options_param) => {
+        const  default_options = {
+            devicePixelRatio: window.devicePixelRatio,
+            capture: true,
+            frame_counter: false
+        }
+        const options = {...default_options, ...options_param};
+        const blob = new Blob([ui], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        ui_module = await import(url)
+        URL.revokeObjectURL(url);
+        ui_state = await ui_module.init(canvas, options);
+        let labelSprite = null;
+        if(options.frame_counter){
+            const labelCanvas   = document.createElement('canvas');
+            labelCanvas.width   = 256;
+            labelCanvas.height  = 128;
+            const labelCtx      = labelCanvas.getContext('2d');
+
+            const labelTex      = new THREE.CanvasTexture(labelCanvas);
+            labelTex.minFilter  = THREE.LinearFilter;
+            const labelMat      = new THREE.SpriteMaterial({map: labelTex, transparent:true});
+            labelSprite   = new THREE.Sprite(labelMat);
+
+            labelSprite.position.set(0, 0, -0.5);
+            labelSprite.scale.set(0.5, 0.25, 1);
+
+            updateFrameLabel = n =>{
+                labelCtx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+                labelCtx.font      = '64px monospace';
+                labelCtx.textAlign = 'left';
+                labelCtx.textBaseline = 'top';
+                labelCtx.fillStyle = 'white';
+                labelCtx.fillText(`F${n}`, 8, 8);
+                labelCtx.fillStyle = 'black';
+                labelTex.needsUpdate = true;
+            }
+            updateFrameLabel(0);
+        }
+        if(labelSprite){
+            ui_state.camera.add(labelSprite);
+        }
+    }
+
+    window.render_single_frame = async (parameters, state) => {
+        if(!ui_module){
+            console.error('UI module not initialized');
+            return;
+        }
+        if(!ui_state){
+            console.error('UI state not initialized');
+            return;
+        }
+        if(!episode_initialized){
+            episode_initialized = true;
+            await ui_module.episode_init(ui_state, parameters);
+        }
+        await ui_module.render(ui_state, parameters, state.state, state.action)
+    }
+    window.render_trajectory = async (parameters, trajectory) => {
+        if(!ui_module){
+            console.error('UI module not initialized');
+            return;
+        }
+        if(!ui_state){
+            console.error('UI state not initialized');
+            return;
+        }
+        const framePromises = {}
+        return new Promise(async resolve => {
+            async function renderFrame(index) {
+                if(index > 0){
+                    framePromises[index] = new Promise(resolve => {
+                        const dataUrl = canvas.toDataURL('image/png');
+                        const base64  = dataUrl.split(',')[1];
+                        resolve(base64);
+                    });
+                }
+                if(updateFrameLabel){
+                    updateFrameLabel(index);
+                }
+                if (index >= trajectory.length) {
+                    const sortedKeys = Object.keys(framePromises).sort((a, b) => a - b);
+                    const sortedFramePromises = sortedKeys.map(key => framePromises[key]);
+                    resolve(await Promise.all(sortedFramePromises));
+                    return;
+                }
+                const state = trajectory[index];
+                ui_module.render(ui_state, parameters, state.state, state.action).then(() => {
+                    requestAnimationFrame(() => renderFrame(index + 1));
+                });
+            }
+            await ui_module.episode_init(ui_state, parameters);
+            renderFrame(0);
+        })
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const debug = urlParams.get('DEBUG') === '1';
+    if (debug) {
+        console.log('Debug mode enabled');
+        async function run(){
+            const data_response = await fetch('/data.json');
+            const data = await data_response.json();
+            const ui_response = await fetch('/ui.js');
+            const ui = await ui_response.text();
+            await window.init(ui, {camera_position: [0, 0, 10]});
+            await window.render_single_frame(data[0].parameters, data[0].trajectory[0]);
+            // await window.render_trajectory(data[0].parameters, data[0].trajectory);
+        }
+        run()
+    }
+</script>
+</body>
+</html>
+
+

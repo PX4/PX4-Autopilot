@@ -1,0 +1,291 @@
+2.14.9
+    * new crsf_raw_data_t type
+    * new payload_status_t type
+2.14.8
+    * add more robust ion buffer client tracking
+2.14.7
+    * add better ion buffer release functionality
+2.14.6
+    * new functions pipe_send_control_cmd and pipe_send_control_cmd_bytes
+    * revert ion_buf_t size
+2.14.5
+    * add new commands for cpu modes to cpu_stats2_t interface
+2.14.4
+    * Add source field to ion buffer
+    * Set format and consumerFlags fields of ion buffer
+    * add RAW14 to list of supported formats
+    * suppress unsupported format warning for RGBA and RAW16
+2.14.3
+    * new functions pipe_send_control_cmd and pipe_send_control_cmd_bytes
+2.14.2
+    * Fix for ion buffer shutdown
+2.14.1
+    * new tool: voxl-inspect-pipe-info
+2.14.0
+    * new timing and sleep functions
+    * new cpu_stats2_t type
+2.13.4
+    * Add new backtrack active field to vfc type
+    * fix optional support of mavlink
+2.13.3
+    * Seperate interface files, add barometer
+2.13.2
+    * Reset accepting p frames flag for all clients on encoded streams when receiving a new stream header
+    * servers now detect when clients disconnect without having received data or when they crash
+2.13.1
+    * move to cross4
+2.13.0
+    * Added ion buffer types to MPA
+2.12.0
+    * Added a new vfc_data_t for VFC status data
+    * Added autogeneration of pympa interface types
+2.11.0
+    * Added a Python interface to use MPA
+2.10.6
+    * fix build system
+2.10.5
+    * add function pipe_suggest_cam_pipe_size()
+2.10.4
+    * add definitions for vio frames of reference
+2.10.3
+    * add set of functions for controlling CPU affinity
+2.10.2
+    * inconsequential fix in error print text
+2.10.1
+    * add raw10 + raw12 format definitions
+2.10.0
+    * add new tof2_data_t type for new PMD LIOW2 TOF sensor
+2.9.2
+    * improve pipe_server cleanup step
+    * automatically truncate long client names when constructing a new pipe path
+    * increase random digits to 8
+    * make sure random digits are positive and have leading zeros
+2.9.1
+    * fix regression on old platforms where glibc was <2.25
+2.9.0
+    * remove limit of number of parallel clients with the same name
+    * each client now gets a new unique pipe filename with each connection
+    * remove useless detection of same-client reconnects
+    * fix bug where multiple clients with the same name clash if connecting too fast
+2.8.5
+    * more robust handling of systems with small max pipe sizes
+2.8.4
+    * more helpful print when pipes get backed up
+2.8.3
+    * make sure h264 clients get an I frame before any p frames
+2.8.2
+    * allow old mavlink 1 packets through the mavlink helper checks
+2.8.1
+    * move away from variable argument lists for robustness and to avoid compiler warnings
+2.8.0
+    * robustness improvements
+    * don't write to a pipe unless there is space
+2.7.2
+    * new function pipe_construct_vio_error_string
+2.7.1
+    * add pipe_server_write_list, writing arbitrary number of pointers of data
+2.7.0
+    * add server state machine for robust encoded video output
+    * add framerate to camera metadata
+2.6.0
+    * added in id and server_name fields to point_cloud_metadata_t
+2.5.0
+    * migrate to LGPL License
+2.4.4
+    * more robust disconnect detection on QRB5165
+2.4.3
+    * added int32_t cam_id field to vio_feature_t
+2.4.2
+    * add claiming functionality to servers
+2.4.1
+    * debug print enabling is now server/client specific instead of global
+2.4.0
+    * updated vio_data_t struct to include covariances and integer quality
+    * added ext_vio_data_t struct and validate helper for features/debug 
+2.3.1
+    * prevent apq8096 from trying to get pthread FIFO proiorities which doesn't work due to a bug in apq8096 glibc
+2.3.0
+    * new functions for setting thread and process priorities
+    * modal_pipe_ping test program
+    * no longer force exit helper thread from inside itself when calling pipe_client_close()
+2.2.0
+    * clients connect much more quickly
+    * servers can still write to other clients while a new client connects
+    * pipe size is now guaranteed to be set before server's first write
+2.1.11
+    * new vio error code "stalled"
+2.1.10
+    * add missing strings for recently added camera formats
+2.1.9
+    * fix bug in server control listener not adding null terminator to strings
+2.1.8
+    * new function pipe_server_write_string()
+2.1.7
+    * New CI Stuff
+2.1.6
+    * add IMAGE_FORMAT_STEREO_NV12
+    * add thread name print to segfault handler
+2.1.5
+    * print stack trace during segfault handler
+2.1.4
+    * add 32-bit for qrb5165
+2.1.3
+    * new function pipe_client_flush()
+2.1.2
+    * Added new camera frame format YUV422_UYVY
+2.1.0
+    * add new stereo color formats
+2.1.0
+    * new test program: modal_hello_pause
+    * pause, resume, and claiming is now thread safe
+    * now builds both an ipk and deb package
+2.0.11
+    * add support for claiming channels without yet initializing them
+    * add support for pausing and resuming clients
+    * increase max number of pipes a client can connect to 128
+2.0.10
+    * fix pipe_server_write_stereo_frame
+2.0.9
+    update default dir and dir string size for android build
+2.0.8
+    * cleanup garbage characters from echo when requesting a new pipe
+2.0.7
+    * pipe client cam & pc helpers now flush their pipe if they get out of sync
+    * pipe_expand_location_string now purges unreadable characters from the input
+    * add clients being able to exit from their own helper threads
+    * add tag_detection_t and helpers
+    * add get_next_available_channel functions to server and client
+2.0.6
+    * remove mavlink submodule, now uses voxl-mavlink package to build
+    * mavlink is optional in the header now
+2.0.5
+    * new function: pipe_server_set_available_control_commands
+2.0.4
+    * add const qualifiers where appropriate
+    * new function: pipe_server_set_control_pipe_size
+    * improve control pipe robustness at large data rates
+    * add point cloud XY and XYC formats
+2.0.3
+    * remove unnecessary argument check to improve backwards compatability
+2.0.2
+    * keep track of info struct locally for future use
+2.0.1
+    * fix default pipe size
+2.0.0
+    * add in mavlink headers for convenience
+    * new mavlink validate helper and recommended pipe sizes
+    * default pipe size added (1M)
+    * use libmodal_json for pipe information
+    * add a standard info file for every pipe
+    * refresh client server and sink APIs to be consistent
+    * new functions to check status and info of pipes
+1.8.1
+    * improve robustness when servers publish infrequently
+    * improve robustness when servers crash and don't clean up
+1.8.0
+    * client and server inits can now take a base topic name
+    * clients has dedicated context pointers for all 5 callbacks
+1.7.9
+    * add all-in-one tof data packet type
+1.7.8
+    * fix extern "C" macros in headers
+    * fix running check in cleanup
+1.7.7
+    * pipe_server_get_num_clients includes initialized clients too
+1.7.6
+    * fix bug in pipe_server_send_point_cloud_to_channel()
+1.7.5
+    * new function kill_pipe_server_process
+    * new utility modal-kill-pipe
+1.7.4
+    * new function pipe_client_is_connected()
+    * pipe_server_get_num_clients() only counts connected clients now
+    * new function pipe_server_close_all() to match equivalent client function
+    * deprecated pipe_server_close_all_channels()
+1.7.3
+    * servers now create a PID pipe to indicate what process owns the pipe dir
+    * more client functions now return descriptive error codes
+    * client helper restructure
+    * New mode: EN_PIPE_CLIENT_AUTO_RECONNECT
+    * new connect and disconnect callbacks
+1.7.2
+    * new server helpers for writing camera and point cloud data
+1.7.1
+    * prevent hangup when opening dangling request pipe
+1.7.0
+    * add modal_pipe_interfaces.h
+    * add float32 image format
+    * add modal_pipe.h
+    * add modal_image_format_name(int i)
+1.6.3
+    * add 16-bit and 24-bit rgb camera formats
+1.6.2
+    * add support for info pipes, demos can be seen in hello client/server
+1.6.1
+    * new YUV-420 format
+    * add recommended pipe and buffer sizes for 6dof pose
+1.6.0
+    * new YUV-422 format
+    * expose #defines for MAX_CHANNELS and MAX_CLIENTS in headers
+    * impose safety limits on pipe directory, name, and path lengths
+    * dir, path, and name length limits exposed in modal_pipe_common.h
+    * add context pointers to all callbacks
+    * make camera helper tolerant to degmented writes
+    * remove stereo helper (use camera helper instead)
+    * add debug flag to server and client interfaces
+    * repoganize and cleanup server.c
+    * protect server functions with mutexes
+    * move server to non-blocking writes
+1.5.4
+    * add client/server functions for getting and setting pipe sizes
+    * add client/server functions to see how many bytes are in a pipe
+    * add recommended read buffer and pipe sizes for vio/imu/pose
+1.5.3
+    * update camera/stereo helpers
+    * update camera metadata documentation for stereo
+1.5.2
+    * fix bug in signal handler
+    * fix server not cleaning up clients that disconnected before first read
+    * cleanup names and prints in modal-hello-client
+1.5.1
+    * more camera image formats
+1.5.0
+    * now builds in voxl-cross and makes multi-arch package
+1.4.2
+    * add pipe_client_print_error()
+1.4.1
+    * add imu and vio interface headers
+    * clients simple helper callbacks are now called when server disconnects
+    * pipe_client_set_data_cb() now deprecated
+    * new function pipe_client_set_simple_helper_cb()
+1.4.0
+    * add helper specifically for camera frames
+    * new header modal_camera_server_interface.h
+1.3.0
+    * now supports multiple clients with the same name.
+1.2.2
+    * add #define MODAL_PIPE_DEFAULT_BASE_DIR   "/run/modal_pipes/"
+    * allow pipe_server_init_channel() to also create parent directories
+    * allow pipe_sink_init_channel() to also create parent directories
+    * cleanup output from modal_hello_sink
+1.2.1
+    * new function: int pipe_server_set_disconnect_cb(int ch, void (*func)(int ch, int client_id, char* name));
+1.2.0
+    * new type: pipe_client_state_t
+    * new function: int pipe_server_add_client(int ch, const char* name);
+    * new function: int pipe_server_send_to_client(int ch, int client_id, char* data, int bytes);
+    * new function: pipe_client_state_t pipe_server_get_client_state(int ch, int client_id);
+    * new function: int pipe_server_get_num_clients(int ch);
+    * new function: void pipe_server_close_channel(int ch);
+    * new function: int pipe_server_get_client_id_from_name(int ch, char* name);
+    * new function: char* pipe_server_get_client_name_from_id(int ch, int client_id);
+1.1.0
+    * rename to libmodal_pipe
+1.0.0
+    * add sink module
+    * improve clean shutdown reliability
+0.9.0
+    * first release
+    * support for multiple pipes
+0.0.1
+    * work in process

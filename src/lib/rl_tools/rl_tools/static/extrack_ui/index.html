@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RLtools Experiment Tracking Dashboard</title>
+    <link rel="stylesheet" href="index.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./lib/three.js",
+                "three-orbitcontrols": "./lib/three.js",
+                "three-gltfloader": "./lib/three.js",
+                "chart.js": "./lib/chart.js",
+                "pako": "./lib/dependencies.js"
+            }
+        }
+    </script>
+    <script type="module">
+        if (window.location.protocol === "file:") {
+            alert(
+                "It looks like you're opening this page locally. To avoid CORS issues, please start a local HTTP server.\n\n" +
+                "Here's how:\n" +
+                "1. Open a terminal or command prompt.\n" +
+                "2. Navigate to this folder.\n" +
+                "3. Run:\n\n" +
+                "   python -m http.server 8000\n\n" +
+                "4. Open your browser and go to: http://localhost:8000\n\n"
+            );
+        }
+    </script>
+    <script type="module">
+        function check_dependency(path){
+            fetch(path).then((response) => {
+                if(!response.ok){
+                    alert(`Error: Could not load dependency: ${path}. Please run check the README.md in the \`./static/extrack_ui\` directory to install and bundle the required packages`)
+                }
+            })
+        }
+        check_dependency("./lib/three.js")
+        const url = window.location.href;
+        const urlObj = new URL(url);
+        const params = new URLSearchParams(urlObj.search);
+        let experiments_base_path = "../../experiments/"
+        let latest_run_size = 500;
+        if(params.has('experiments') === true){
+            experiments_base_path = params.get('experiments');
+        }
+        if(params.has('latest-run-size') === true){
+            latest_run_size = parseInt(params.get('latest-run-size'));
+        }
+        console.log("Using experiments_base_path: ", experiments_base_path)
+
+        import { DynamicFileSystem } from "./DynamicFileSystem.js";
+        import { StaticFileSystem } from "./StaticFileSystem.js";
+        import { Index, group_by } from "./Index.js";
+        import { ShowRun } from "./ShowRun.js";
+        import { TableExplorer } from "./TableExplorer.js";
+        import { Zoo } from "./Zoo.js";
+
+        window.group_by = group_by // make available in the developer console
+        const idx_promise = fetch(`${experiments_base_path}index.txt`).then((response) => {
+            let fs;
+            if(response.ok){
+                fs = new StaticFileSystem(experiments_base_path)
+            }
+            else{
+                fs = new DynamicFileSystem(experiments_base_path)
+            }
+            const idx = new Index(fs)
+            window.idx = idx
+            return idx.refresh()
+        })
+
+        idx_promise.then((idx) => {
+            // Create Zoo first with empty selection
+            const zoo = new Zoo([]);
+            const zooContainer = document.getElementById('zoo-container');
+            zooContainer.appendChild(zoo.getContainer());
+            
+            // Create TableExplorer with callback to update Zoo
+            const tableExplorer = new TableExplorer(idx, {
+                onSelectionChange: (selectedRuns) => {
+                    zoo.updateRuns(selectedRuns);
+                }
+            });
+            const explorerContainer = document.getElementById('explorer-container');
+            explorerContainer.appendChild(tableExplorer.getContainer());
+            
+            // Wait for table to initialize and set default selections
+            tableExplorer.initialized.then(() => {
+                // For each algorithm-environment pair, select the most recent 3 runs
+                const allGroups = tableExplorer.groupedRuns;
+                
+                // Group by algorithm-environment pair
+                const algoEnvPairs = {};
+                for (const group of allGroups) {
+                    const key = `${group.algorithm}_${group.environment}`;
+                    if (!algoEnvPairs[key]) {
+                        algoEnvPairs[key] = [];
+                    }
+                    algoEnvPairs[key].push(group);
+                }
+                
+                // For each pair, select the most recent 3 runs (already sorted by experiment timestamp descending)
+                const selectedGroups = [];
+                for (const [key, groups] of Object.entries(algoEnvPairs)) {
+                    // Skip N/A pairs
+                    if (key === 'N/A_N/A') {
+                        continue;
+                    }
+                    // Add up to 3 most recent runs for this algo-env pair
+                    selectedGroups.push(...groups.slice(0, 3));
+                }
+                
+                // Extract all individual runs from selected groups
+                const defaultSelections = selectedGroups.flatMap(g => g.runs);
+                
+                if (defaultSelections.length > 0) {
+                    tableExplorer.setSelectedRuns(defaultSelections);
+                    // Show learning curves section when runs are selected
+                    const learning_curve_section = document.getElementById('learning-curve-section');
+                    learning_curve_section.style.display = "block";
+                }
+            });
+        })
+
+
+        idx_promise.then((idx) => {
+            const runs_with_ui = idx.run_list.filter(run => run.ui_jsm)
+            const runs_with_steps = runs_with_ui.filter((run) => {
+                if(run.steps && Object.keys(run.steps).length > 0){
+                    return Object.values(run.steps).some(step => step.trajectories || step.trajectories_compressed)
+                }
+                return false
+            })
+            // const runs_with_steps = runs_with_ui.filter(run => run.steps && Object.keys(run.steps).length > 0)
+            let selected_runs = runs_with_steps
+            if(params.has('experiment') === true){
+                const potential_selected_runs = runs_with_steps.filter(run => run.config.experiment === params.get('experiment'))
+                if(potential_selected_runs.length > 0){
+                    selected_runs = potential_selected_runs
+                }
+            }
+            if(params.has("experiment_name") === true){
+                const potential_selected_runs = runs_with_steps.filter(run => run.config.name === params.get('experiment_name'))
+                if(potential_selected_runs.length > 0){
+                    selected_runs = potential_selected_runs
+                }
+            }
+            if(params.has("experiment_population_values") === true){
+                const potential_selected_runs = runs_with_steps.filter(run => run.config.population_values === params.get('experiment_population_values'))
+                if(potential_selected_runs.length > 0){
+                    selected_runs = potential_selected_runs
+                }
+            }
+            if(params.has("experiment_seed") === true){
+                const potential_selected_runs = runs_with_steps.filter(run => parseInt(run.config.seed) === parseInt(params.get('experiment_seed')))
+                if(potential_selected_runs.length > 0){
+                    selected_runs = potential_selected_runs
+                }
+            }
+            const run = selected_runs[0]
+            const latest_run_container = document.getElementById('latest-run-container')
+            const show_run = new ShowRun(latest_run_container, run, latest_run_size)
+        })
+
+        // Latest Zoo Runs
+        idx_promise.then((idx) => {
+            const runs_with_ui = idx.run_list.filter(run => run.ui_jsm)
+            const runs_with_steps = runs_with_ui.filter((run) => {
+                if(run.steps && Object.keys(run.steps).length > 0){
+                    return Object.values(run.steps).some(step => step.trajectories || step.trajectories_compressed)
+                }
+                return false
+            })
+            const runs_zoo = runs_with_steps.filter(run => run.config.name === "zoo")
+            if(runs_zoo.length === 0){
+                return
+            }
+            const latest_zoo_runs_section = document.getElementById('latest-zoo-runs-section')
+            latest_zoo_runs_section.style.display = "block"
+            const runs_by_population = group_by(runs_zoo, ["population_values"])
+            const populations = Object.keys(runs_by_population)
+            const populations_sorted = populations.sort((a, b) => {
+                const example_run_a = runs_by_population[a].items[0]
+                const example_run_b = runs_by_population[b].items[0]
+                return example_run_a.config.population.environment === "acrobot-swingup-v0" ? -1 : 1
+            })
+            const container = document.getElementById('latest-zoo-runs-container')
+            container.innerHTML = ""
+            for(const population_values of populations_sorted){
+                const group_runs = runs_by_population[population_values].items
+                const title = document.createElement('h2')
+                const example_run = group_runs[0]
+                title.innerHTML = `<b>Algorithm</b>: ${example_run.config.population.algorithm} </br> Environment: ${example_run.config.population.environment}`
+                const this_container = document.createElement('div')
+                this_container.classList.add('latest-zoo-runs-container-element')
+                this_container.appendChild(title)
+                const run_container = document.createElement('div')
+                const show_run = new ShowRun(run_container, example_run)
+                this_container.appendChild(run_container)
+                container.appendChild(this_container)
+            }
+        })
+
+    </script>
+</head>
+<body>
+    <h1>Latest Run</h1>
+    <div id="latest-run-container">
+        Loading...
+    </div>
+    <div id="latest-zoo-runs-section" style="display: none;">
+        <h1>Latest Zoo Runs</h1>
+        <div id="latest-zoo-runs-container">
+            Loading...
+        </div>
+    </div>
+    <h1>ExTrack Terminal</h1>
+    <a href="./terminal.html">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="72" height="72" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="3" ry="3"></rect>
+            <polyline points="5 8 11 12 5 16" stroke-width="1.8"></polyline>
+            <line x1="13" y1="16" x2="19" y2="16" stroke-width="1.8"></line>
+        </svg>
+    </a>
+    <div id="learning-curve-section" style="display: none">
+        <h1>Learning Curves</h1>
+        <div class="zoo-container-container">
+            <div id="zoo-container" class="zoo-container-container-element"></div>
+        </div>
+    </div>
+    <h1>Run Table</h1>
+    <div id="explorer-container"></div>
+
+    <div>
+        <h3>Usage</h3>
+        <div>Latest run container size: <i>?latest-run-size=800</i></div>
+        <div>Specify ExTrack experiments folder path: <i>?experiments=../../experiments/</i></div>
+        <div>Filter by experiment name: <i>?experiment=2025-01-29_14-55-20</i></div>
+        <div>Filter by experiment name: <i>?experiment_name=zoo</i></div>
+        <div>Filter by experiment population values: <i>?experiment_population_values=l2f_sac</i></div>
+        <div>Filter by experiment seed: <i>?experiment_seed=0</i></div>
+
+    </div>
+
+</body>
+</html>
+

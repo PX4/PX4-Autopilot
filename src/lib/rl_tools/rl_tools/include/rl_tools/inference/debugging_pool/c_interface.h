@@ -1,0 +1,12 @@
+#define RL_TOOLS_ENABLE_DEBUGGING_POOL
+#ifdef RL_TOOLS_ENABLE_DEBUGGING_POOL
+#define RL_TOOLS_DEBUGGING_POOL_NUMBER 10
+#define RL_TOOLS_DEBUGGING_POOL_SIZE 10
+#define RL_TOOLS_DEBUGGING_POOL_NAME_LENGTH 30
+extern float rl_tools_debugging_pool[RL_TOOLS_DEBUGGING_POOL_NUMBER][RL_TOOLS_DEBUGGING_POOL_SIZE];
+extern char rl_tools_debugging_pool_names[RL_TOOLS_DEBUGGING_POOL_NUMBER][RL_TOOLS_DEBUGGING_POOL_NAME_LENGTH];
+extern uint64_t rl_tools_debugging_pool_indices[RL_TOOLS_DEBUGGING_POOL_NUMBER];
+extern uint64_t rl_tools_debugging_pool_index;
+extern bool rl_tools_debugging_pool_locked;
+extern bool rl_tools_debugging_pool_updated;
+#endif

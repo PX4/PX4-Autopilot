@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "deepsweep"
+version = "0.0.3"
+description = "Minimal REST server for ML experiment orchestration."
+readme = "README.md"
+authors = [{name = "Jonas Eschmann", email = "jonas.eschmann@gmail.com"}]
+license = {text = "MIT"}
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["deepsweep"]
+
+[project.scripts]
+deepsweep = "deepsweep.client:main"
+sweeptop = "deepsweep.sweeptop:main"

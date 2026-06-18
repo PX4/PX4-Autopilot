@@ -1,0 +1,7 @@
+add_executable(rl_environments_l2f_dr_sac l2f_dr_sac.cpp)
+target_link_libraries(rl_environments_l2f_dr_sac RLtools::RLtools)
+#target_compile_options(rl_environments_l2f_dr_sac -Wall)
+
+add_executable(rl_environments_l2f_dr_sac_benchmark l2f_dr_sac.cpp)
+target_link_libraries(rl_environments_l2f_dr_sac_benchmark RLtools::RLtools)
+target_compile_definitions(rl_environments_l2f_dr_sac_benchmark PRIVATE -DBENCHMARK)

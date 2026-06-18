@@ -1,0 +1,22 @@
+
+before_script:
+    - git clone -q --depth 1 https://gitlab.com/voxl-public/voxl-sdk/ci-tools
+
+
+# Build for the qrb5165 1.X (18.04) and 2.X (20.04) system images
+
+include:
+  - project: 'voxl-public/voxl-sdk/ci-tools'
+    file: '/pipeline-configs/common.yml'
+  - project: 'voxl-public/voxl-sdk/ci-tools'
+    file: '/pipeline-configs/cross-v4-qrb5165-1.yml'
+  - project: 'voxl-public/voxl-sdk/ci-tools'
+    file: '/pipeline-configs/cross-v4-qrb5165-2.yml'
+  - project: 'voxl-public/voxl-sdk/ci-tools'
+    file: '/pipeline-configs/cross-v4-qcs6490.yml'
+  - project: 'voxl-public/voxl-sdk/ci-tools'
+    file: '/pipeline-configs/defect_dojo.yml'
+
+variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+

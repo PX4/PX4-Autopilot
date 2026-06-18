@@ -1,0 +1,265 @@
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .canvas-container {
+            width: min(90vh, 90vw);
+            height: min(90vh, 90vw);
+        }
+
+        #canvas {
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./lib/three.module.js",
+                "three-orbitcontrols": "./lib/OrbitControls.js",
+                "three-gltfloader": "./lib/gltf-loader/GLTFLoader.js"
+            }
+        }
+    </script>
+    <script>
+        function check_dependency(path){
+            fetch(path).then((response) => {
+                if(!response.ok){
+                    alert(`Error: Could not load dependency: ${path}. Please run \`./download_dependencies.sh\` in the \`./static/extrack_ui\` directory`)
+                }
+            })
+        }
+        check_dependency("./lib/three.module.js")
+        check_dependency("./lib/OrbitControls.js")
+        check_dependency("./lib/GLTFLoader.js")
+        class Client{
+            constructor(restart_callback){
+                this.setParametersCallback = null;
+                this.restart_callback = restart_callback
+                const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+                this.ws = new WebSocket( protocol + '://' + window.location.host + "/ui");
+
+                this.ws.onopen = event=>{
+                    console.log('Connection opened:', event);
+                };
+
+                this.ws.addEventListener("message", (event)=>{
+                    const message = JSON.parse(event.data);
+                    console.log('Message:', message);
+                    this.onMessage(message);
+                })
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket Error:', error);
+                };
+
+                this.ws.onclose = (event) => {
+                    if (event.wasClean) {
+                        console.log('Connection closed cleanly, code=', event.code, 'reason=', event.reason);
+                    } else {
+                        console.error('Connection died');
+                    }
+                    this.restart()
+                };
+            }
+            restart(){
+                console.log("retrying connection in 500ms")
+                setTimeout(()=>{
+                    this.restart_callback()
+                }, 500)
+            }
+            setEnvironmentCallbacks({setParametersCallback, setStateCallback, setActionCallback, setUICallback}){
+                this.setParametersCallback = setParametersCallback;
+                this.setStateCallback = setStateCallback;
+                this.setActionCallback = setActionCallback;
+                this.setUICallback = setUICallback
+            }
+
+
+            onMessage(message){
+                let {channel, data} = message
+                if(channel === "setParameters"){
+                    if(this.setParametersCallback){
+                        this.setParametersCallback(data)
+                    }
+                }
+                else{
+                    if(channel === "setState"){
+                        if(this.setStateCallback){
+                            this.setStateCallback(data)
+                        }
+                    }
+                    else{
+                        if(channel === "setAction"){
+                            if(this.setActionCallback){
+                                this.setActionCallback(data)
+                            }
+                        }
+                        else{
+                            if(channel === "setUI"){
+                                if(this.setUICallback){
+                                    this.setUICallback(data)
+                                }
+                            }
+                            else{
+                                console.error('Unknown channel:', channel)
+                            }
+                        }
+                    }
+                }
+            }
+            sendMessage(channel, data){
+                this.ws.send(JSON.stringify({channel, data}));
+            }
+        }
+
+
+        window.addEventListener('load', ()=>{
+            const info_container = document.getElementById('info');
+            info_container.textContent = '0';
+            const canvas_container = document.getElementById("canvas-container");
+            const canvas = document.getElementById('canvas');
+            const ratio = window.devicePixelRatio || 1;
+
+            const onResize = () => {
+                const size = Math.min(canvas_container.clientWidth, canvas_container.clientHeight);
+                canvas.width = size * ratio;
+                canvas.height = size * ratio;
+
+                canvas.style.width = size + 'px';
+                canvas.style.height = size + 'px';
+            }
+            onResize();
+            window.addEventListener('resize', onResize);
+
+            let parameters = null
+
+
+            let episode_initialized = false
+            let multi = false;
+            let ui_module = null;
+            let ui_state = null;
+            let state = null;
+
+
+            const renderLoop = async () => {
+                try{
+                    if(ui_module && ui_state && episode_initialized && state){
+                        const uim = await ui_module;
+                        const uis = await ui_state;
+                        if(multi){
+                            console.assert(Array.isArray(parameters) && Array.isArray(state.state) && Array.isArray(state.action))
+                            await uim.render_multi(uis, parameters, state.state, state.action)
+                        }
+                        else{
+                            await uim.render(uis, parameters, state.state, state.action)
+                        }
+                    }
+                }
+                catch(error){
+                    console.error('Error during render loop:', error);
+                }
+                requestAnimationFrame(renderLoop);
+            }
+
+            const environmentCallbacks = {
+                setParametersCallback: async (new_parameters)=>{
+                    console.log('Parameters:', new_parameters);
+                    parameters = new_parameters
+                    if(ui_module && ui_state){
+                        const uim = await ui_module;
+                        const uis = await ui_state;
+                        if(Array.isArray(parameters)){
+                            console.assert(uim.episode_init_multi)
+                            await uim.episode_init_multi(uis, parameters)
+                            episode_initialized = true
+                            multi = true;
+                            state = null
+                        }
+                        else{
+                            if((await ui_module).episode_init){
+                                await uim.episode_init(uis, parameters)
+                                multi = false;
+                                episode_initialized = true
+                                state = null
+                            }
+                        }
+                    }
+                    else{
+                        console.error('UI not set, cannot set parameters')
+                    }
+                },
+                setStateCallback: async (new_state)=>{
+                    console.log('State:', new_state);
+                    if(ui_module && ui_state){
+                        // render(ctx, parameters, state.state, state.action)
+                        if(!episode_initialized){
+                            if(!parameters){
+                                console.error('Parameters not set')
+                            }
+                        }
+                        state = new_state
+                    }
+                },
+                setActionCallback: (action)=>{
+                    console.log('Action:', action);
+                },
+                setUICallback: async (ui)=>{
+                    console.log('UI:', ui);
+                    if(ui.type === "2d"){
+                        if(!ui_module){
+                            let url = null
+                            if(!ui.debug){
+                                const blob = new Blob([ui.render_function], { type: 'application/javascript' });
+                                url = URL.createObjectURL(blob);
+                                ui_module = import(url)
+                            }
+                            else{
+                                ui_module = import(`./debug/${ui.debug}`)
+                            }
+                            ui_state = ui_module.then(async (module)=>{
+                                if(url){
+                                    URL.revokeObjectURL(url);
+                                }
+                                const options = {...{devicePixelRatio: window.devicePixelRatio}, ...ui.options}
+                                ui_state = await module.init(canvas, options)
+                                if(ui_state.cursor_grab){
+                                    canvas.style.cursor = "grab"
+                                }
+                                else{
+                                    canvas.style.cursor = "default"
+                                }
+                                renderLoop()
+                                return ui_state
+                            })
+                        }
+                    }
+                    else{
+                        console.error('Unknown UI type:', ui.type)
+                    }
+                }
+            }
+
+            let client = null;
+            function createClient(){
+                client = new Client(createClient)
+                client.setEnvironmentCallbacks(environmentCallbacks);
+            }
+            createClient()
+        })
+
+    </script>
+</head>
+<body>
+<div id="canvas-container" class="canvas-container">
+    <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+<div id="info" style="display: none"></div>
+</body>
+</html>

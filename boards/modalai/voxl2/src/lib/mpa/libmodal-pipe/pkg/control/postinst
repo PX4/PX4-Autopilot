@@ -1,0 +1,12 @@
+#!/bin/sh
+################################################################################
+# Copyright (c) 2025 ModalAI, Inc. All rights reserved.
+#
+# author: james@modalai.com
+################################################################################
+
+set -e
+
+if [ -f "/sbin/ldconfig" ]; then
+    ldconfig
+fi

@@ -1,0 +1,7 @@
+project(rl_environments_pendulum_ppo_training_cuda CUDA)
+add_executable(rl_environments_pendulum_ppo_training_cuda training.cu)
+set_property(TARGET rl_environments_pendulum_ppo_training_cuda PROPERTY CXX_STANDARD 17)
+target_link_libraries(rl_environments_pendulum_ppo_training_cuda PRIVATE RLtools::RLtools)
+target_compile_definitions(rl_environments_pendulum_ppo_training_cuda PRIVATE RL_TOOLS_DISABLE_TENSORBOARD)
+target_compile_options(rl_environments_pendulum_ppo_training_cuda PRIVATE -Werror cross-execution-space-call)
+target_compile_options(rl_environments_pendulum_ppo_training_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe --diag_suppress=186>)

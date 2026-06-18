@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trajectory Player</title>
+    <link rel="stylesheet" href="play_trajectory.css">
+    <script type="module">
+        import { TrajectoryPlayer } from './TrajectoryPlayer.js';
+
+        const urlObj = new URL(window.location.href);
+        const params = new URLSearchParams(urlObj.search);
+
+        const trajectories_path = params.get("experiments") + "/" + params.get('trajectories');
+        const ui_path = params.get("experiments") + "/" + params.get('ui');
+        const trajectory_player = new TrajectoryPlayer(ui_path, {"verbose": true});
+
+        const trajectoryPlayerContainer = document.getElementById('trajectoryPlayerContainer');
+        trajectoryPlayerContainer.appendChild(trajectory_player.getCanvas())
+
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            trajectory_player.playTrajectories(trajectories_path);
+        });
+
+    </script>
+</head>
+<body>
+<div id="trajectoryPlayerContainer"></div>
+</body>
+</html>
+

@@ -1,0 +1,3 @@
+[submodule "external/klt_feature_tracker"]
+	path = external/klt_feature_tracker
+	url = https://github.com/PX4/klt_feature_tracker.git

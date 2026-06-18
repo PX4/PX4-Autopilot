@@ -1,0 +1,12 @@
+# probably requires enabling execution of project .lldbinit files in ~/.lldbinit:
+# echo "settings set target.load-cwd-lldbinit true" >> ~/.lldbinit
+command script import tools/pretty_print_lldb/matrix.py
+command script import tools/pretty_print_lldb/tensor.py
+type summary add -F matrix.pretty_print_row_major_alignment -x "^rl_tools::Matrix<rl_tools::matrix::Specification<[^<]+rl_tools::matrix::layouts::RowMajorAlignment<[^>]+>[^>]+>[^>]*>$"
+type summary add -F matrix.pretty_print_fixed_alignment -x "^rl_tools::Matrix<rl_tools::matrix::Specification<[^<]+rl_tools::matrix::layouts::Fixed<[^>]+>[^>]+>[^>]*>$"
+type summary add -F tensor.pretty_print -x "^rl_tools::Tensor.*>$"
+type summary add -F tensor.pretty_print -x "^rl_tools::Tensor.*>\s&\s$"
+type summary add -F tensor.pretty_print -x "^const\srl_tools::Tensor.*>\s&\s$"
+type summary add -F tensor.pretty_print -x "^const\srl_tools::Tensor.*>$"
+# type synthetic add --python-class matrix.PrettyPrintRowMajorAlignment -x "^rl_tools::Matrix<rl_tools::matrix::Specification<[^<]+rl_tools::matrix::layouts::RowMajorAlignment<[^>]+>[^>]+>[^>]*>$"
+

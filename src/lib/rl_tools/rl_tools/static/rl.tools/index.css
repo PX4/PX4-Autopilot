@@ -1,0 +1,303 @@
+body {
+    display: flex;
+    justify-content: center;
+    /*align-items: center;*/
+    height: 80%;
+    min-height: 80vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1em;
+    width: 90%;
+    max-width: 900px;
+}
+.returns-chart-container {
+    width: 100%;
+    height: 50vw;
+    min-height: 10em;
+    max-height: 20vh;
+}
+
+.github-container {
+    margin-top: 5vh;
+    margin-bottom: 5vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 10em;
+    max-height: 30vh;
+    position: relative;
+    width: 100%;
+}
+
+.pendulum-container {
+    margin-top: 5vh;
+    margin-bottom: 5vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60vw; /* Adjusted height to accommodate full pendulum rotation */
+    min-height: 10em;
+    max-height: 20vh;
+    position: relative;
+    width: 100%;
+}
+
+.pendulum {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: top center;
+    width: 4px;
+    height: 50%;
+    background-color: #333;
+    transform: translateX(-50%);
+}
+
+.pendulum:before {
+    content: "";
+    position: absolute;
+    bottom: -12.5px;
+    left: calc(-12.5px + 2px);
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background-color: #333;
+}
+
+.terminal-container{
+    width: 100%;
+}
+#terminal {
+    font-family: monospace;
+    padding: 10px;
+    color: #00ff00;
+    background-color: #000;
+}
+
+#terminal-output {
+    margin: 0;
+}
+
+.center-circle-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #fff;
+}
+
+.center-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #000; /* Change the color if desired */
+}
+
+.controls-container {
+}
+
+.fancy-button, .car-input {
+    display: inline-block;
+    margin: 5px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-decoration: none;
+    letter-spacing: 2px;
+    padding: 20px 40px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(to right, #6fd0cb, #7DB9B6);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    white-space: nowrap;
+}
+
+.fancy-button:hover, .car-input:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+.fancy-button:disabled, .car-input:disabled {
+    background: linear-gradient(to right, #cccccc, #dddddd);
+    color: #666666;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+
+.fancy-button-small, .car-input {
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    border-radius: 25px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 70%;
+}
+
+.fancy-button-small:hover, .car-input:hover {
+    transform: translateY(-2.5px);
+    box-shadow: 0 4px 7.5px rgba(0, 0, 0, 0.3);
+}
+
+.checkbox-container{
+}
+
+.checkbox-label {
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    /*text-transform: uppercase;*/
+    /*letter-spacing: 1px;*/
+    font-size: 18px;
+    display: inline-block;
+    position: relative;
+    padding-left: 30px;
+    cursor: pointer;
+}
+
+.checkbox-input {
+    position: absolute;
+    left: -9999px;
+}
+
+.checkbox-custom {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    transition: background-color 0.2s ease-in-out;
+    box-shadow: inset 0 0px 5px rgba(0, 0, 0, 0.2);
+}
+
+.checkbox-custom:before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #fff;
+    transition: transform 0.2s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.checkbox-input:checked ~ .checkbox-custom {
+    background-color: #7DB9B6;
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2), 0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+.checkbox-input:checked ~ .checkbox-custom:before {
+    transform: translate(-50%, -50%) scale(1);
+    background-color: #fff;
+}
+
+.fancy-number-input {
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 25px;
+    background: linear-gradient(to right, #6fd0cb, #7DB9B6);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    width: 70px;
+}
+
+.fancy-number-input:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+.fancy-number-input:focus {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+}
+
+.fancy-number-input::placeholder {
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.5);
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.info-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 1em;
+    margin-bottom: 3em;
+}
+
+.info-box{
+    font-family: "Open Sans", sans-serif;
+    padding: 20px 20px;
+    border: none;
+    border-radius: 20px;
+    background: #fff;
+    color: #000000;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    width: 100%;
+}
+
+.info-box>h3 {
+    margin: 0 0 0.5em 0;
+}
+
+.mujoco-ant-gif {
+    width: 100%;
+    height: 240px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+#car-canvas-container {
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 20px;
+    background: #fff;
+    color: #000000;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    overflow:hidden;
+}
+
+#car-message-container{
+    text-align: center;
+    margin-top: 10px;
+}
+
+#car-control-container{
+    display: flex;
+    margin-top: 10px;
+    justify-content: center;
+    margin-bottom: 10px;
+}

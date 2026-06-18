@@ -1,0 +1,1 @@
+docker run -d -p 10.8.0.1:13338:13338 -p 10.0.0.2:13338:13338 --restart unless-stopped --name sweep rltools/sweep

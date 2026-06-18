@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="media/favicon.png">
+    <title>RLtools: The Fastest Deep Reinforcement Learning Library</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.umd.min.js"></script>
+</head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-6E6ZCWNB2H"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-6E6ZCWNB2H');
+</script>
+<body>
+<link rel="stylesheet" href="index.css">
+<link rel="stylesheet" href="./car/canvas.css">
+<script type="module" src="main.js"></script>
+
+<div class="container" id="container-body">
+    <div class="info-container" style="margin-bottom: 1px">
+        <div class="info-box">
+            <h3 style="margin: 2px; padding: 0px; text-align: center;">
+<!--                <span style="color: #7DB9B6">RLtools</span>:-->
+                <img src="media/logo.svg" alt="RLtools" style="display: inline; vertical-align: middle; height: 2em; margin-right: -0.25em"></img>:
+                The Fastest Deep Reinforcement Learning Library</h3>
+        </div>
+    </div>
+    <div style="text-align: center;">
+        <a class="fancy-button fancy-button-small" id="arxiv-button" href="https://arxiv.org/abs/2306.03530">Paper on arXiv</a>
+        <a class="fancy-button fancy-button-small" id="documentation-button" href="https://docs.rl.tools">Documentation</a>
+        <a class="fancy-button fancy-button-small" id="github-button" href="https://github.com/rl-tools/rl-tools">Code on Github</a>
+        <!-- <a class="github-button" href="https://github.com/RLtools/RLtools" aria-label="Code on Github">Code on Github</a> -->
+    </div>
+    <div class="pendulum-container">
+        <div class="pendulum" id="pendulum"></div>
+        <div class="center-circle"></div>
+        <div class="center-circle-inner"></div>
+    </div>
+    <div class="checkbox-container">
+        <label for="realtime-checkbox" class="checkbox-label">
+            <input type="checkbox" id="realtime-checkbox" class="checkbox-input">
+            <span class="checkbox-custom"></span>
+            Realtime
+        </label>
+    </div>
+    <div>
+        <input id="seed-input" class="fancy-number-input" type="number" placeholder="seed">
+    </div>
+    <div class="controls-container">
+        <input class="fancy-button" type="button" value="Loading..." id="training-button" disabled>
+    </div>
+    <div class="returns-chart-container">
+        <canvas id="returns-chart"></canvas>
+    </div>
+    <div class="info-container">
+        <div class="info-box">
+            <!-- <h3><span style="color: #7DB9B6">RLtools</span>: A Fast, Portable Deep Reinforcement Learning Library for Continuous Control</h3>
+            </br> -->
+            <div style="text-align: center;">
+<!--                <div class="mujoco-ant-gif" style="background-image: url('media/rl_tools_mujoco_ant_ppo.gif');"></div>-->
+<!--                <div class="mujoco-ant-gif" style="background-image: url('media/rl_tools_mujoco_ant_ppo.gif');"></div>-->
+                <video class="mujoco-ant-gif" autoplay muted playsinline>
+                    <source src="media/rl_tools_mujoco_ant_ppo.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div style="text-align: center; margin-top: 0.6em;">
+                Trained on a 2020 MacBook Pro (M1) using <span style="color:#7DB9B6">RLtools</span> PPO
+            </div>
+            </br>
+            In the previous example the Pendulum-v1 swingup is trained directly in your browser using the SAC deep reinforcement learning algorithm. RLtools is a pure C++ header-only, dependency free deep supervised- and reinforcmeent learning library that runs on a broad variety of devices (as e.g. your browser). To run it in a browser the C++ code is compiled to WASM which can be called from JavaScript. For more information read the paper and/or the source code (both linked on top of the page).
+        </div>
+    </div>
+    <div id="terminal-container" class="terminal-container" style="display: none;">
+        <div id="terminal">
+            <pre id="terminal-output">Terminal Output</pre>
+        </div>
+    </div>
+    <div class="info-box" style="max-width: 650px;">
+        <h3 style="margin: 0px; padding: 0px; text-align: center;">
+            Interactive Example: Racing Car (PPO)</h3>
+        <div id="car-message-container">
+
+        </div>
+    </div>
+    <div id="car-control-container">
+
+    </div>
+    <div id="car-canvas-container">
+
+    </div>
+</div>
+
+</body>
+</html>

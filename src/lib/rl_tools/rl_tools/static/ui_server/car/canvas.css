@@ -1,0 +1,67 @@
+#car-aspectRatioContainerContainerContainer{
+    display: flex;
+    justify-content: center;
+}
+#car-aspectRatioContainerContainer{
+    width: 100%;
+    max-width: 600px;
+}
+#car-aspectRatioContainer{
+    width: 100%;
+    padding-top: 100%;
+    position: relative;
+    margin: 0 auto;
+}
+
+#car-canvasContainerInner{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /*background-color: rgba(0, 0, 255, 0.2);*/
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+}
+
+/*#car-drawingCanvasTrainingOverlay{*/
+/*    position: absolute;*/
+/*    top: 0;*/
+/*    left: 0;*/
+/*    width: 100%;*/
+/*    height: 100%;*/
+/*    background: rgba(0, 0, 0, 0.75);*/
+/*    display: flex;*/
+/*    align-items: center;*/
+/*    justify-content: center;*/
+/*    z-index: 10;*/
+/*}*/
+#car-drawingCanvasTrainingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: none; /* Initial state: hidden */
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0; /* Initially transparent */
+    transform: scale(0.95); /* Optional: Slightly scaled down */
+    transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+}
+#car-drawingCanvasTrainingOverlay.show {
+    display: flex; /* Change display to flex */
+    opacity: 1; /* Fade in */
+    transform: scale(1); /* Return to full size */
+}
+#car-drawingCanvasTrainingOverlayText {
+    color: white;
+    font-size: 50px;
+    font-weight: bold;
+}

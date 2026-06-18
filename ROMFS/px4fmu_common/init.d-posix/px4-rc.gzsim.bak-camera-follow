@@ -1,0 +1,206 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+# Enforce minimum gz version as Harmonic (gz-sim8)
+MIN_GZ_VERSION="8.0.0"
+GZ_SIM_VERSION=$(gz sim --versions 2>/dev/null | head -n 1 | tr -d ' ')
+
+if [ -z "$GZ_SIM_VERSION" ]; then
+	echo "ERROR [init] Gazebo gz sim not found. Please install gz-harmonic"
+	exit 1
+fi
+
+# Use sort compare, check that MIN_GZ_VERSION is ordered last
+if [ "$(printf '%s\n' "$GZ_SIM_VERSION" "$MIN_GZ_VERSION" | sort -V | head -n1)" = "$MIN_GZ_VERSION" ]; then
+	gz_command="gz"
+	gz_sub_command="sim"
+
+	echo "INFO  [init] Gazebo simulator $GZ_SIM_VERSION"
+
+	# Specify render engine if `GZ_SIM_RENDER_ENGINE` is set
+	# (for example, if you want to use Ogre 1.x instead of Ogre 2.x):
+	if [ -n "${PX4_GZ_SIM_RENDER_ENGINE}" ]; then
+		echo "INFO  [init] Setting Gazebo render engine to '${PX4_GZ_SIM_RENDER_ENGINE}'!"
+		gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
+	fi
+else
+	echo "ERROR [init] Gazebo version too hold ($GZ_SIM_VERSION). Minimum required version is $MIN_GZ_VERSION"
+	exit 1
+fi
+
+# If not standalone launch the world
+if [ -z "${PX4_GZ_STANDALONE}" ]; then
+
+	# Look for an already running world
+	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+
+	# shellcheck disable=SC2153
+	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
+
+		# Setup gz environment variables
+		if [ -f ./gz_env.sh ]; then
+			. ./gz_env.sh
+
+		elif [ -f ../gz_env.sh ]; then
+			. ../gz_env.sh
+		fi
+
+		echo "INFO  [init] Starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
+
+		${gz_command} ${gz_sub_command} --verbose=${GZ_VERBOSE:=1} -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+
+		if [ -z "${HEADLESS}" ]; then
+			echo "INFO  [init] Starting gz gui"
+			${gz_command} ${gz_sub_command} -g > /dev/null 2>&1 &
+		fi
+
+	else
+		# Gazebo is already running
+		echo "INFO  [init] gazebo already running world: ${gz_world}"
+		PX4_GZ_WORLD=${gz_world}
+	fi
+
+else
+	echo "INFO  [init] Standalone PX4 launch, waiting for Gazebo"
+fi
+
+# Wait for Gazebo world to be ready before proceeding
+check_scene_info() {
+	SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
+	if echo "$SERVICE_INFO" | grep -q "Service providers"; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+ATTEMPTS=30
+while [ $ATTEMPTS -gt 0 ]; do
+	if check_scene_info; then
+		echo "INFO  [init] Gazebo world is ready"
+		break
+	fi
+	ATTEMPTS=$((ATTEMPTS-1))
+	if [ $ATTEMPTS -eq 0 ]; then
+		echo "ERROR [init] Timed out waiting for Gazebo world"
+		exit 1
+	fi
+	echo "INFO  [init] Waiting for Gazebo world..."
+	sleep 1
+done
+
+# World is ready, check if custom location is provided
+if [ -n "${PX4_HOME_LAT}" ] || [ -n "${PX4_HOME_LON}" ] || [ -n "${PX4_HOME_ALT}" ]; then
+	# must have all three
+	if [ -z "${PX4_HOME_LAT}" ] || [ -z "${PX4_HOME_LON}" ] || [ -z "${PX4_HOME_ALT}" ]; then
+		echo "ERROR [init] PX4_HOME_LAT, PX4_HOME_LON and PX4_HOME_ALT must all be set"
+		exit 1
+	fi
+	echo "INFO  [init] Setting world origin to lat: ${PX4_HOME_LAT}, lon: ${PX4_HOME_LON}, alt: ${PX4_HOME_ALT}"
+	${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_spherical_coordinates" \
+		--reqtype gz.msgs.SphericalCoordinates \
+		--reptype gz.msgs.Boolean \
+		--timeout 1000 \
+		--req "surface_model: EARTH_WGS84, latitude_deg: ${PX4_HOME_LAT}, longitude_deg: ${PX4_HOME_LON}, elevation: ${PX4_HOME_ALT}" > /dev/null 2>&1
+fi
+
+# Start gz_bridge - either spawn a model or connect to existing one
+if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
+	# Spawn a model
+	MODEL_NAME="${PX4_SIM_MODEL#*gz_}"
+	MODEL_NAME_INSTANCE="${MODEL_NAME}_${px4_instance}"
+
+	sdf_pose_str=""
+
+	if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
+		pose_x=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $1}')
+		pose_y=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $2}')
+		pose_z=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $3}')
+		pose_roll=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $4}')
+		pose_pitch=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $5}')
+		pose_yaw=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $6}')
+
+		pose_x=${pose_x:-0}
+		pose_y=${pose_y:-0}
+		pose_z=${pose_z:-0}
+		pose_roll=${pose_roll:-0}
+		pose_pitch=${pose_pitch:-0}
+		pose_yaw=${pose_yaw:-0}
+
+		sdf_pose_str="<pose> ${pose_x} ${pose_y} ${pose_z} ${pose_roll} ${pose_pitch} ${pose_yaw} </pose>"
+		echo "INFO  [init] Gazebo model pose: ${pose_x} ${pose_y} ${pose_z} ${pose_roll} ${pose_pitch} ${pose_yaw}"
+	fi
+
+	echo "INFO  [init] Spawning Gazebo model"
+
+	# include the actual SDF in this one, containing the pose if given
+	sdf_str="<sdf version=\"1.6\"> <include> <uri>file://${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf</uri> ${sdf_pose_str} </include> </sdf>"
+
+	# Spawn model
+	${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
+			--reptype gz.msgs.Boolean --timeout 5000 \
+			--req "name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false, sdf: '${sdf_str}'" > /dev/null 2>&1
+
+	# Wait for model to spawn
+	sleep 1
+
+	# Start gz_bridge
+	if ! gz_bridge start -w "${PX4_GZ_WORLD}" -n "${MODEL_NAME_INSTANCE}"; then
+		echo "ERROR [init] gz_bridge failed to start and spawn model"
+		exit 1
+	fi
+
+	# Set physics parameters for faster-than-realtime simulation if needed
+	if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
+		echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
+		${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_physics" --reqtype gz.msgs.Physics \
+					--reptype gz.msgs.Boolean --timeout 5000 \
+					--req "real_time_factor: ${PX4_SIM_SPEED_FACTOR}" > /dev/null 2>&1
+	fi
+
+	# Set up camera to follow the model if requested
+	if [ -n "${PX4_GZ_FOLLOW}" ]; then
+
+		echo "INFO  [init] Setting camera to follow ${MODEL_NAME_INSTANCE}"
+
+		# Set camera to follow the model
+		${gz_command} service -s "/gui/follow" --reqtype gz.msgs.StringMsg \
+				--reptype gz.msgs.Boolean --timeout 5000 \
+				--req "data: \"${MODEL_NAME_INSTANCE}\"" > /dev/null 2>&1
+
+		# Set default camera offset if not specified
+		follow_x=${PX4_GZ_FOLLOW_OFFSET_X:--2.0}
+		follow_y=${PX4_GZ_FOLLOW_OFFSET_Y:--2.0}
+		follow_z=${PX4_GZ_FOLLOW_OFFSET_Z:-2.0}
+
+		# Set camera offset
+		${gz_command} service -s "/gui/follow/offset" --reqtype gz.msgs.Vector3d \
+				--reptype gz.msgs.Boolean --timeout 5000 \
+				--req "x: ${follow_x}, y: ${follow_y}, z: ${follow_z}" > /dev/null 2>&1
+
+		echo "INFO  [init] Camera follow offset set to ${follow_x}, ${follow_y}, ${follow_z}"
+	fi
+
+elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
+	# Connect to existing model
+	echo "INFO  [init] PX4_GZ_MODEL_NAME set, PX4 will attach to existing model"
+	if ! gz_bridge start -w "${PX4_GZ_WORLD}" -n "${PX4_GZ_MODEL_NAME}"; then
+		echo "ERROR [init] gz_bridge failed to start and attach to existing model"
+		exit 1
+	fi
+else
+	echo "ERROR [init] failed to pass either PX4_GZ_MODEL_NAME or PX4_SIM_MODEL"
+	exit 1
+fi
+
+# NOTE: Only for rover_mecanum and spacecraft_2d. All other models have
+# the magnetometer sensor in the model.sdf.
+if param compare -s SENS_EN_MAGSIM 1
+then
+	sensor_mag_sim start
+fi
+# NOTE: new gz has airspeed sensor, remove once added
+if param compare -s SENS_EN_ARSPDSIM 1
+then
+	sensor_airspeed_sim start
+fi

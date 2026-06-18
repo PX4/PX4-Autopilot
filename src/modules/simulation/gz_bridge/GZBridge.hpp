@@ -202,13 +202,13 @@ private:
 
     matrix::Vector3d _position_prev{};
     matrix::Vector3d _velocity_prev{};
-    matrix::Quatf _q_nb_prev{1.0f, 0.0f, 0.0f, 0.0f};  // quaternion NED<-body anterior, para calculo correto de velocidade angular
+    matrix::Quatf _q_nb_prev{1.0f, 0.0f, 0.0f, 0.0f};  // Ultima amostra do quaternion NED<-body usada no calculo de velocidade angular
     hrt_abstime _timestamp_prev{};
 
     const std::string _world_name;
     const std::string _model_name;
 
-    float _temperature{288.15};  // 15 degrees
+    float _temperature{288.15};  // Temperatura ambiente em Kelvin
 
     bool _realtime_clock_set{false};
     gz::transport::Node _node;
@@ -296,7 +296,6 @@ private:
     // Covariancia maxima da estimativa
     static constexpr float  JMIT_P_MAX         = 625.0f;  // [m2]   = 25 m
 
-    // ======== MITIGACAO BLACKOUT GPS - CONSTANTES ========
     // Tempo maximo em que a mitigacao mantem a pseudo-medicao GPS durante blackout.
     static constexpr uint64_t BLACKOUT_MAX_HOLD_US = 300000000ULL; // 300 s
 
@@ -315,7 +314,7 @@ private:
     // Tempo limite usado para identificar ausencia de atualizacoes GPS.
     static constexpr uint64_t BLACKOUT_GPS_TIMEOUT_US = 1500000ULL; // 1.5 s
 
-    // ======== POUSO AUTOMATICO GPS - CONSTANTES ========
+    // Parametros de chegada, estabilidade e desarme usados pelo pouso GPS mitigado.
     static constexpr float AUTO_LAND_DEST_RADIUS_M = 1.2f;
     static constexpr float AUTO_LAND_MAX_SPEED_M_S = 0.25f;
     static constexpr float AUTO_LAND_ANOMALY_DEST_RADIUS_M = 1.2f;
@@ -379,7 +378,6 @@ private:
     double _jmit_baro_alt_offset{0.0};
     bool _jmit_baro_alt_offset_valid{false};
 
-    // ======== MITIGACAO BLACKOUT GPS - ESTADO ========
     // Indica se ha uma ancora de blackout inicializada e pronta para publicacao.
     bool     _blackout_anchor_initialized{false};
     // Posicao ancora capturada no inicio do blackout (coordenadas locais [m]).
@@ -459,7 +457,7 @@ private:
     uint64_t _sim_att_timestamp{0};
 
     // Contador de confirmacoes consecutivas de contato com o solo via AGL simulado.
-    // Exige N amostras consecutivas abaixo do limiar antes de autorizar o desarme forcado.
+    // Define quantas amostras consecutivas abaixo do limiar confirmam contato com o solo.
     uint32_t _sim_agl_ground_count{0};
     static constexpr uint32_t SIM_AGL_GROUND_CONFIRM_COUNT = 1;
 

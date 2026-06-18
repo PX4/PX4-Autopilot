@@ -1,0 +1,43 @@
+<html>
+    <head>
+		<title>Learning to Fly in Seconds</title>
+		<link rel="icon" type="image/png" href="favicon.png">
+		<link rel="stylesheet" href="index.css">
+	</head>
+	<body>
+		<!-- Current value: <strong id="counter">0</strong> -->
+		<script type="importmap">
+			{
+              "imports": {
+                "three": "./lib/three.module.js"
+              }
+            }
+		</script>
+		<script type="module" src="main.js"></script>
+		<style>
+			body { margin: 0; }
+			canvas { display: block; }
+			#canvasContainer {
+				position: absolute;
+				height: 100vh;
+				width: 100vw;
+			}
+			#controlContainer {
+				position: absolute;
+			}
+		</style>
+	<div id="resultContainer">test</div>
+	<div id="canvasContainer"></div>
+	<div id="controlContainer">
+		<div id="controlContainerInteractiveTraining" style="display: none;">
+			<div style="text-align: center; margin-bottom: 0.6em;">
+				<input id="seed-input" class="fancy-number-input" type="number" placeholder="seed">
+			</div>
+			<div>
+				<button id="button" class="fancy-button">Start Training</button>
+			</div>
+		</div>
+		<div id="infoContainer"></div>
+	</div>
+	</body>
+</html>

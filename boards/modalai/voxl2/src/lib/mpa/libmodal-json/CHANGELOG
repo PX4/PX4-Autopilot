@@ -1,0 +1,51 @@
+0.4.8
+    * migrate to cross4.3
+0.4.7
+    * migrate to cross4
+0.4.6
+    * re-add missing libs
+0.4.5
+    * update to newer version of cmake
+0.4.4
+    * bump version to fix qrb5165-2 build
+0.4.3
+    * migrate to LGPL license
+0.4.2
+    * New CI Stuff
+0.4.1
+    * ci / repo updates, _ to - remnants cleaned
+0.4.0
+    * add rudimentary yaml parsing for lens cal files
+0.3.7
+    * add 32-bit built to qrb5165
+0.3.6
+    * call sync() on any file system write to help prevent FS corruption
+0.3.5
+    * add android build scripts
+0.3.4
+    * version bump to mark the CI changes
+0.3.3
+    * remove common config stuff which is now in voxl-mpa-tools
+0.3.2
+    * update default extrinsics file to match voxl-camera-server names
+    * cleanups
+0.3.1
+    * ditch camera calibration stuff in favor of opencv files
+    * add initial configure extrinsics script
+0.3.0
+    * now multi-arch
+0.2.1
+    * add extern C to common configs to help c++ people
+0.2.0
+    * new functions to allow printing a header to beginning of files
+    * automatically minify input files to allow for comments
+    * add newline to end of files
+    * new common file formats and helper functions for:
+    * apriltags
+    * camera calibrations
+    * extrinsic relations
+    * helper functions to read out data from those 3 files
+0.1.1
+    * add single-precision float and vector helper
+0.1.0
+    * first dev release

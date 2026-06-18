@@ -285,15 +285,29 @@ bool GZBridge::subscribeLaserScan(bool required)
 // Inscreve a ponte no sensor de distancia usado como LiDAR/sonar.
 bool GZBridge::subscribeDistanceSensor(bool required)
 {
-    std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
-                   "/link/lidar_sensor_link/sensor/lidar/scan";
+    const std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+                     "/link/lidar_sensor_link/sensor/lidar/scan";
 
-    if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+    const std::string lidar_down_sensor = "/world/" + _world_name + "/model/" + _model_name +
+                          "/link/lidar_down_sensor_link/sensor/lidar_down/scan";
+
+    bool subscribed = false;
+
+    if (_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+        subscribed = true;
+
+    } else {
         PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
-        return required ? false : true;
     }
 
-    return true;
+    if (_node.Subscribe(lidar_down_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+        subscribed = true;
+
+    } else {
+        PX4_WARN("failed to subscribe to %s", lidar_down_sensor.c_str());
+    }
+
+    return subscribed || !required;
 }
 
 // Inscreve a ponte no sensor de velocidade do ar.
@@ -352,7 +366,6 @@ bool GZBridge::subscribeOpticalFlow(bool required)
     return true;
 }
 
-// ======== TOPICOS DE ATAQUE E MITIGACAO - INICIO ========
 // Inscreve a ponte nos topicos de comando dos ataques UAVJamSim e da mitigacao.
 bool GZBridge::subscribeAttacks(bool required)
 {
@@ -428,9 +441,7 @@ bool GZBridge::subscribeAttacks(bool required)
 
     return true;
 }
-// ======== TOPICOS DE ATAQUE E MITIGACAO - FIM ========
 
-// ======== ATAQUE GPS OFFSET - INICIO ========
 // Ataque GPS por offset: atualiza deslocamentos artificiais de latitude, longitude e altitude.
 void GZBridge::gpsAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -438,9 +449,7 @@ void GZBridge::gpsAttackCallback(const gz::msgs::Vector3d &msg)
     // msg.x/y/z representam offsets aplicados diretamente a latitude, longitude e altitude.
     _gps_attack_offset.Set(msg.x(), msg.y(), msg.z());
 }
-// ======== ATAQUE GPS OFFSET - FIM ========
 
-// ======== ATAQUE GPS ROTACAO - INICIO ========
 // Ataque GPS por rotacao: configura magnitude, angulo e offset vertical da perturbacao circular.
 void GZBridge::gpsRotAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -448,9 +457,7 @@ void GZBridge::gpsRotAttackCallback(const gz::msgs::Vector3d &msg)
     // msg.x define o raio em graus, msg.y o angulo e msg.z o deslocamento vertical.
     _gps_attack_rot.Set(msg.x(), msg.y(), msg.z());
 }
-// ======== ATAQUE GPS ROTACAO - FIM ========
 
-// ======== ATAQUE STREAM DE CAMERA - INICIO ========
 // Ataque no stream de camera: traduz o comando UAVJamSim para o plugin de camera do Gazebo.
 void GZBridge::streamAttackCallback(const gz::msgs::Int32 &msg)
 {
@@ -474,9 +481,7 @@ void GZBridge::streamAttackCallback(const gz::msgs::Int32 &msg)
 
     _stream_cmd_pub.Publish(stream_cmd);
 }
-// ======== ATAQUE STREAM DE CAMERA - FIM ========
 
-// ======== ATAQUE MOTOR - INICIO ========
 // Ataque em motor: repassa opcao, indice do motor e velocidade para a interface de mistura dos ESCs.
 void GZBridge::motorAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -487,9 +492,7 @@ void GZBridge::motorAttackCallback(const gz::msgs::Vector3d &msg)
     // A alteracao efetiva do motor ocorre dentro da interface de mistura dos ESCs.
     _mixing_interface_esc.setMotorAttack(option, index, speed);
 }
-// ======== ATAQUE MOTOR - FIM ========
 
-// ======== ATAQUE MAGNETOMETRO - INICIO ========
 // Ataque no magnetometro: seleciona o modo de alteracao aplicado durante a publicacao do sensor.
 void GZBridge::magAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -497,9 +500,7 @@ void GZBridge::magAttackCallback(const gz::msgs::Vector3d &msg)
     // A opcao e aplicada posteriormente em magnetometerCallback().
     _mag_attack_option = static_cast<int>(msg.x());
 }
-// ======== ATAQUE MAGNETOMETRO - FIM ========
 
-// ======== ATAQUE LIDAR - INICIO ========
 // Ataque no LiDAR: configura ativacao e offset de distancia em metros.
 void GZBridge::lidarAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -510,9 +511,7 @@ void GZBridge::lidarAttackCallback(const gz::msgs::Vector3d &msg)
 
     PX4_INFO("Lidar Attack: Option=%d, Offset=%.2f", _lidar_attack_option, _lidar_distance_offset);
 }
-// ======== ATAQUE LIDAR - FIM ========
 
-// ======== ATAQUE SONAR - INICIO ========
 // Ataque no sonar: configura ativacao e offset de distancia em metros.
 void GZBridge::sonarAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -523,9 +522,7 @@ void GZBridge::sonarAttackCallback(const gz::msgs::Vector3d &msg)
 
     PX4_INFO("Sonar Attack: Option=%d, Offset=%.2f", _sonar_attack_option, _sonar_distance_offset);
 }
-// ======== ATAQUE SONAR - FIM ========
 
-// ======== ATAQUE IMU - INICIO ========
 // Ataque na IMU: habilita offsets, desabilitacao total ou limpeza das perturbacoes por eixo.
 void GZBridge::imuAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -564,9 +561,7 @@ void GZBridge::imuAttackCallback(const gz::msgs::Vector3d &msg)
             break;
     }
 }
-// ======== ATAQUE IMU - FIM ========
 
-// ======== ATAQUE BAROMETRO - INICIO ========
 // Ataque no barometro: configura offset de altitude que sera convertido em perturbacao de pressao.
 void GZBridge::baroAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -577,9 +572,7 @@ void GZBridge::baroAttackCallback(const gz::msgs::Vector3d &msg)
 
     PX4_INFO("Baro Attack: Option=%d, Alt_Offset=%.2f m", _baro_attack_option, _baro_alt_offset);
 }
-// ======== ATAQUE BAROMETRO - FIM ========
 
-// ======== ATAQUE GPS JAMMING - INICIO ========
 // Ataque de jamming GPS: seleciona ruido continuo, blackout ou jamming pulsado.
 void GZBridge::jammingAttackCallback(const gz::msgs::Vector3d &msg)
 {
@@ -587,7 +580,6 @@ void GZBridge::jammingAttackCallback(const gz::msgs::Vector3d &msg)
     _jamming_attack_type = static_cast<int>(msg.x());
     _jamming_intensity   = static_cast<float>(msg.y());
 
-    // ======== ATAQUE GPS JAMMING DESATIVADO - INICIO ========
     // Tipo 0: desativa o jamming e reinicia a maquina de estados pulsada.
     if (_jamming_attack_type == 0) {
 
@@ -597,22 +589,16 @@ void GZBridge::jammingAttackCallback(const gz::msgs::Vector3d &msg)
         _jamming_intermittent_active = false;
         _pjam_noise_factor         = 0.0f;
         PX4_INFO("[Jamming] DISABLED");
-    // ======== ATAQUE GPS JAMMING DESATIVADO - FIM ========
 
-    // ======== ATAQUE 1 GPS NOISE JAMMING - INICIO ========
     // Tipo 1: jamming por ruido continuo aplicado a posicao, altitude e velocidade GPS.
     } else if (_jamming_attack_type == 1) {
         PX4_WARN("[Jamming] NOISE: ENABLED, Intensity=%.2f",
                  static_cast<double>(_jamming_intensity));
-    // ======== ATAQUE 1 GPS NOISE JAMMING - FIM ========
 
-    // ======== ATAQUE 2 GPS BLACKOUT - INICIO ========
     // Tipo 2: blackout, simulando perda total de atualizacao GPS.
     } else if (_jamming_attack_type == 2) {
         PX4_WARN("[Jamming] BLACKOUT: ENABLED (Signal Drop)");
-    // ======== ATAQUE 2 GPS BLACKOUT - FIM ========
 
-    // ======== ATAQUE 3 GPS PULSED JAMMING - INICIO ========
     // Tipo 3: jamming pulsado com subida, bloqueio, decaimento e recuperacao.
     } else if (_jamming_attack_type == 3) {
 
@@ -640,11 +626,8 @@ void GZBridge::jammingAttackCallback(const gz::msgs::Vector3d &msg)
                  (unsigned long long)(_pjam_decay_us / 1000),
                  (unsigned long long)(_pjam_off_us   / 1000));
     }
-    // ======== ATAQUE 3 GPS PULSED JAMMING - FIM ========
 }
-// ======== ATAQUE GPS JAMMING - FIM ========
 
-// ======== MITIGACAO GPS - INICIO ========
 // Controle da mitigacao GPS: liga/desliga o filtro de rejeicao e reinicia o estado da ancora.
 void GZBridge::attackMitigationCallback(const gz::msgs::Vector3d &msg)
 {
@@ -655,7 +638,7 @@ void GZBridge::attackMitigationCallback(const gz::msgs::Vector3d &msg)
         return;
     }
 
-    // Ao mudar o estado, reinicia a ancora e o filtro interno da mitigacao.
+    // Alterna a mitigacao e reinicia os estados internos usados pelo filtro e pelo pouso.
     _attack_mitigation_enabled = requested_state;
 
     _kf_initialized   = false;
@@ -714,7 +697,6 @@ void GZBridge::attackMitigationCallback(const gz::msgs::Vector3d &msg)
         PX4_INFO("\n[Mitigation] KF-Jamming mitigation DISABLED\n");
     }
 }
-// ======== MITIGACAO GPS - FIM ========
 
 // Sincroniza o relogio do PX4 SITL com o tempo de simulacao do Gazebo.
 void GZBridge::clockCallback(const gz::msgs::Clock &msg)
@@ -770,7 +752,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 {
     const uint64_t timestamp = hrt_absolute_time();
 
-    // Montagem da mensagem sensor_gps publicada para o PX4.
+    // Monta o identificador do magnetometro simulado publicado no PX4.
     device::Device::DeviceId id{};
     id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
     id.devid_s.devtype = DRV_MAG_DEVTYPE_MAGSIM;
@@ -788,7 +770,6 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
     float raw_y = -msg.field_tesla().x();
     float raw_z = msg.field_tesla().z();
 
-    // ======== ATAQUE MAGNETOMETRO - INICIO ========
     // Ataque de magnetometro: opcao 1 troca os eixos X e Y.
     switch (_mag_attack_option) {
         case 1:
@@ -804,7 +785,6 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
         report.z = raw_z;
         break;
     }
-    // ======== ATAQUE MAGNETOMETRO - FIM ========
 
     _sensor_mag_pub.publish(report);
 }
@@ -829,7 +809,6 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
     float raw_pressure = msg.pressure();
     float raw_temperature = this->_temperature;
 
-    // ======== ATAQUE BAROMETRO - INICIO ========
     // Ataque barometrico: converte offset de altitude em alteracao fisica de pressao.
     if (_baro_attack_option == 1) {
 
@@ -847,11 +826,9 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
         report.pressure = raw_pressure;
         report.temperature = raw_temperature;
     }
-    // ======== ATAQUE BAROMETRO - FIM ========
 
     _sensor_baro_pub.publish(report);
 
-    // ======== MITIGACAO GPS - INICIO ========
     // Cache usado pela mitigacao quando o barometro esta em estado nominal.
     if (_baro_attack_option == 0) {
         constexpr float P0 = 101325.0f;
@@ -869,7 +846,6 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
             _jmit_baro_timestamp = timestamp;
         }
     }
-    // ======== MITIGACAO GPS - FIM ========
 
 }
 
@@ -943,7 +919,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
     gyro.temperature = NAN;
     gyro.samples = 1;
 
-    // ======== ATAQUE IMU - INICIO ========
     // Ataque IMU: pode zerar completamente o sensor ou somar offsets configurados por eixo.
     if (_imu_disabled) {
         accel.x = 0.0f; accel.y = 0.0f; accel.z = 0.0f;
@@ -957,7 +932,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
         gyro.y += static_cast<float>(_imu_active_offsets[4]);
         gyro.z += static_cast<float>(_imu_active_offsets[5]);
     }
-    // ======== ATAQUE IMU - FIM ========
 
     _sensor_accel_pub.publish(accel);
     _sensor_gyro_pub.publish(gyro);
@@ -1003,7 +977,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
         }
     }
 
-    // ======== MITIGACAO GPS - INICIO ========
     // Cache da estimativa local usado para validar posicao, calcular velocidade horizontal
     // e manter uma referencia de altitude MSL.
 
@@ -1044,9 +1017,7 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
         }
     }
 
-    // ======== MITIGACAO GPS - FIM ========
 
-    // ======== MITIGACAO BLACKOUT GPS - INICIO ========
     // A mitigacao detecta blackout por sintoma: o GPS real ficou sem publicacao recente,
     // enquanto o restante do sistema continua executando. A condicao e definida pelo timeout do GPS real.
     const bool gps_real_recent =
@@ -1144,7 +1115,7 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
             _blackout_last_dr_us = timestamp;
 
         } else if (lpos_recent) {
-            // Fallback: estimativa local do PX4, usada apenas se VIO nao estiver recente.
+            // Fallback: usa a estimativa local do PX4 quando a odometria visual esta indisponivel.
             _blackout_dr_n_m   = _lpos_n_m;
             _blackout_dr_e_m   = _lpos_e_m;
             _blackout_dr_alt   = _lpos_alt_msl;
@@ -1198,7 +1169,7 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
             ((timestamp - _sim_agl_timestamp) <= AUTO_LAND_GROUND_SENSOR_TIMEOUT_US) &&
             PX4_ISFINITE(_sim_agl_m);
 
-        // A componente vertical da pseudo-GPS nao deve depender de DR.
+        // A componente vertical da pseudo-GPS usa fontes de altitude recentes para evitar deriva acumulada.
         // Quando VIO esta recente, usa a altitude VIO; caso contrario usa AGL como referencia de altura.
         if (!_gps_auto_disarm_sent) {
             double aux_alt_msl = NAN;
@@ -1345,7 +1316,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
         _blackout_detected = false;
         PX4_INFO("\n[Blackout-Mitig] Real GPS recovered by timeout. Pseudo-GPS stopped.\n");
     }
-    // ======== MITIGACAO BLACKOUT GPS - FIM ========
 
     // Diagnostico da inclinacao durante a aproximacao e o pouso.
     // Mostra se o roll/pitch aparece por correcao horizontal, velocidade residual ou divergencia entre fontes.
@@ -1473,14 +1443,11 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
         }
     }
 
-    // ======== MITIGACAO DE POUSO GPS - INICIO ========
     checkGpsAutoLand(timestamp);
     checkGpsAutoDisarm(timestamp);
-    // ======== MITIGACAO DE POUSO GPS - FIM ========
 
 }
 
-// ======== MITIGACAO DE POUSO GPS - INICIO ========
 // Controla o pouso quando a mitigacao GPS esta ativa.
 // A origem pode ser blackout ou anomalia GPS persistente rejeitada pelo filtro.
 void GZBridge::checkGpsAutoLand(uint64_t timestamp)
@@ -1769,7 +1736,7 @@ void GZBridge::checkGpsAutoDisarm(uint64_t timestamp)
         return;
     }
 
-    // No blackout, o pouso pode tocar o solo antes da janela minima anterior.
+    // Durante o pouso mitigado, qualquer detector confiavel de contato com o solo pode autorizar o desarme.
     // Assim que o land detector ou o sensor inferior indicar contato, o desarme e liberado.
     vehicle_land_detected_s land_detected{};
     const bool land_detector_available = _vehicle_land_detected_sub.copy(&land_detected);
@@ -1951,9 +1918,7 @@ void GZBridge::publishGpsDisarmCommand(uint64_t timestamp, bool force_disarm)
     PX4_WARN("\n[GPS-Land] %s disarm command sent after ground contact confirmation.\n",
         force_disarm ? "Forced" : "Normal");
 }
-// ======== MITIGACAO DE POUSO GPS - FIM ========
 
-// ======== MITIGACAO BLACKOUT GPS - INICIO ========
 // Publica uma pseudo-medicao GPS durante blackout usando VIO quando disponivel
 // ou dead-reckoning horizontal a partir da ultima velocidade confiavel.
 void GZBridge::publishBlackoutPseudoGPS(uint64_t timestamp)
@@ -2062,7 +2027,6 @@ void GZBridge::publishBlackoutPseudoGPS(uint64_t timestamp)
             static_cast<double>(_blackout_dr_vel_d));
     }
 }
-// ======== MITIGACAO BLACKOUT GPS - FIM ========
 
 // Publica estados simulados auxiliares de atitude, velocidade angular e posicao local.
 void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
@@ -2107,8 +2071,7 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 
             // Velocidade angular via diferenca de quaternions, sem wrap-around de Euler.
             // q_delta = q_prev^{-1} * q_now  =>  v_body = 2 * vec(q_delta) / dt
-            // Isso evita o spike que ocorre quando yaw cruza +/-pi durante o pouso,
-            // que causava 'Attitude failure (roll)' no EKF do PX4.
+            // A diferenca por quaternion mantem a velocidade angular continua quando o yaw cruza +/-pi.
             vehicle_angular_velocity_s vehicle_angular_velocity_groundtruth{};
             vehicle_angular_velocity_groundtruth.timestamp_sample = timestamp;
             {
@@ -2202,9 +2165,8 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
     report.position[1] = msg.pose_with_covariance().pose().position().x();
     report.position[2] = -msg.pose_with_covariance().pose().position().z();
 
-    // ======== MITIGACAO BLACKOUT GPS - INICIO ========
-    // Cache VIO used as auxiliary localization during GPS blackout.
-    // The cache is accepted only when covariance and motion are plausible.
+    // Cache de odometria visual usado como localizacao auxiliar durante blackout GPS.
+    // A amostra e aceita quando covariancia e movimento permanecem plausiveis.
     if (_pos_ref.isInitialized() &&
             PX4_ISFINITE(report.position[0]) &&
             PX4_ISFINITE(report.position[1]) &&
@@ -2260,7 +2222,6 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
             _vio_valid = false;
         }
     }
-    // ======== MITIGACAO BLACKOUT GPS - FIM ========
 
     gz::msgs::Quaternion pose_orientation = msg.pose_with_covariance().pose().orientation();
     gz::math::Quaterniond q_gr = gz::math::Quaterniond(
@@ -2369,7 +2330,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 {
     const uint64_t timestamp = hrt_absolute_time();
 
-    // ======== ATAQUE 2 GPS BLACKOUT - INICIO ========
     // Ataque 2: blackout GPS. O ataque apenas bloqueia a publicacao do GPS real.
     // A mitigacao detecta a falha por timeout
     // da ultima publicacao GPS real no imuCallback().
@@ -2383,7 +2343,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 
         return;
     }
-    // ======== ATAQUE 2 GPS BLACKOUT - FIM ========
 
     // Apos o desarme, interrompe a publicacao de medicoes GPS no chao.
     if (_gps_auto_disarm_sent) {
@@ -2397,7 +2356,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         return;
     }
 
-    // ======== ATAQUE GPS OFFSET E ROTACAO - INICIO ========
     // Ataques GPS por offset e rotacao sao aplicados antes do ruido nominal.
     double lat_offset = _gps_attack_offset.X();
     double lon_offset = _gps_attack_offset.Y();
@@ -2412,7 +2370,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
     double latitude = msg.latitude_deg() + lat_offset;
     double longitude = msg.longitude_deg() + lon_offset;
     double altitude = msg.altitude() + _gps_attack_offset.Z() + _gps_attack_rot.Z();
-    // ======== ATAQUE GPS OFFSET E ROTACAO - FIM ========
 
     float vel_north = msg.velocity_north();
     float vel_east = msg.velocity_east();
@@ -2430,7 +2387,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
     // Ruido nominal do receptor GPS simulado.
     addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
 
-    // ======== ATAQUE 1 GPS NOISE JAMMING - INICIO ========
     // Ataque 1: jamming por ruido continuo. A perturbacao afeta posicao, altitude e velocidade.
     if (_jamming_attack_type == 1) {
 
@@ -2450,9 +2406,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         vel_east += generate_wgn() * _jamming_intensity * 10.0f;
         vel_down += generate_wgn() * _jamming_intensity * 10.0f;
     }
-    // ======== ATAQUE 1 GPS NOISE JAMMING - FIM ========
 
-    // ======== MITIGACAO GPS - INICIO ========
     bool gps_anomalous_now = false;
     // Mitigacao GPS: detecta medicoes anomalas por NIS e publica uma pseudo-medicao degradada.
     {
@@ -2593,10 +2547,10 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
                 _jmit_pub_vel_n = dr_vel_n;
                 _jmit_pub_vel_e = dr_vel_e;
 
-                // During noise jamming, keep the pseudo-GPS altitude fixed at the
-                // last trusted filter altitude captured when the anomaly started.
-                // Do not follow local_position altitude or vertical dead-reckoning here,
-                // because both can drift downward after GPS innovations are rejected.
+                // Durante jamming por ruido, mantem a altitude da pseudo-GPS na ultima
+                // estimativa confiavel capturada no inicio da anomalia.
+                // A componente vertical permanece desacoplada de local_position e do dead-reckoning
+                // vertical para manter a pseudo-medicao estavel durante a rejeicao das inovacoes GPS.
                 if (!PX4_ISFINITE(_jmit_pub_alt)) {
                     _jmit_pub_alt = _kf_alt;
                 }
@@ -2698,9 +2652,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
             }
         }
     }
-    // ======== MITIGACAO GPS - FIM ========
 
-    // ======== MITIGACAO DE POUSO GPS - INICIO ========
     checkGpsAutoLand(timestamp);
 
     const bool anomaly_preland_active =
@@ -2832,9 +2784,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
     }
 
     checkGpsAutoDisarm(timestamp);
-    // ======== MITIGACAO DE POUSO GPS - FIM ========
 
-    // ======== ATAQUE 3 GPS PULSED JAMMING - INICIO ========
     // Ataque 3: maquina de estados do jamming pulsado.
     if (_jamming_attack_type == 3 && _jamming_pulsed_initialized) {
         const uint64_t now     = hrt_absolute_time();
@@ -2899,7 +2849,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         }
 
         case PulsedJamState::VALID: {
-            // VALID: janela com GPS limpo antes do proximo pulso.
+            // Estado VALID: publica GPS nominal durante a janela entre pulsos.
             _pjam_noise_factor           = 0.0f;
             _jamming_intermittent_active = false;
 
@@ -2932,7 +2882,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
             vel_down  += generate_wgn() * noise_factor * _jamming_intensity * 15.0f;
         }
     }
-    // ======== ATAQUE 3 GPS PULSED JAMMING - FIM ========
 
     device::Device::DeviceId id{};
     id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
@@ -2959,7 +2908,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         sensor_gps.vdop     = 100.f;
     }
 
-    // ======== ATAQUE 3 GPS PULSED JAMMING - INICIO ========
     // No jamming pulsado, degrada eph/epv/HDOP/VDOP e reduz satelites durante RAMP_UP/DECAY.
     if (_pjam_noise_factor > 0.0f) {
         const float noise_factor = _pjam_noise_factor;
@@ -2976,9 +2924,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
     } else {
         sensor_gps.satellites_used = _sim_gps_used.get();
     }
-    // ======== ATAQUE 3 GPS PULSED JAMMING - FIM ========
 
-    // ======== QUALIDADE GPS DURANTE NOISE JAMMING - INICIO ========
     // O GPS ruidoso continua valido, mas com incerteza maior para evitar
     // que o estimador trate saltos grandes como medicoes precisas.
     if (_jamming_attack_type == 1) {
@@ -2987,7 +2933,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         sensor_gps.hdop = math::max(sensor_gps.hdop, 2.5f);
         sensor_gps.vdop = math::max(sensor_gps.vdop, 3.5f);
     }
-    // ======== QUALIDADE GPS DURANTE NOISE JAMMING - FIM ========
 
     sensor_gps.timestamp = timestamp;
     sensor_gps.timestamp_sample = timestamp;
@@ -3010,7 +2955,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         sensor_gps.cog_rad = atan2(vel_east, vel_north);
     }
 
-    // ======== MITIGACAO GPS - INICIO ========
     // Em modo ancora, a pseudo-medicao GPS e marcada como degradada, mas continua publicada.
     const bool is_anchor_now = _attack_mitigation_enabled && ((_kf_attack_dur_us > 0) || _gps_landing_active || _gps_auto_disarm_sent);
     const bool landing_now = _gps_landing_active || _gps_auto_disarm_sent;
@@ -3031,9 +2975,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
             sensor_gps.vdop = BLACKOUT_VDOP_DEGRADE;
         }
     }
-    // ======== MITIGACAO GPS - FIM ========
 
-    // ======== INDICADORES DE GPS JAMMING E MITIGACAO - INICIO ========
     // Apenas amostras GPS reais anomalas recebem indicador de jamming.
     // A pseudo-medicao mitigada e tratada como saida operacional da contramedida.
 
@@ -3043,11 +2985,9 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         !landing_now;
     sensor_gps.jamming_indicator = is_jamming_now ? 255 : 0;
     sensor_gps.jamming_state     = is_jamming_now ? 3   : 0;
-    // ======== INDICADORES DE GPS JAMMING E MITIGACAO - FIM ========
 
     sensor_gps.vel_ned_valid = true;
 
-    // ======== MITIGACAO BLACKOUT GPS - INICIO ========
     // Este timestamp marca a chegada fisica de uma callback GPS ao bridge.
     // Ele deve ser atualizado mesmo em ancora/KF para evitar falso blackout em ABS, rotacao e noise.
     _gps_real_last_us = timestamp;
@@ -3066,7 +3006,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
         _gps_real_vel_e = vel_east;
         _gps_real_vel_d = vel_down;
     }
-    // ======== MITIGACAO BLACKOUT GPS - FIM ========
 
     _sensor_gps_pub.publish(sensor_gps);
 }
@@ -3091,19 +3030,15 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
     float raw_dist = static_cast<float>(msg.ranges()[0]);
     float processed_dist = raw_dist;
 
-    // ======== ATAQUE LIDAR - INICIO ========
     // Ataque LiDAR: soma offset a medicao de distancia.
     if (_lidar_attack_option == 1) {
         processed_dist += static_cast<float>(_lidar_distance_offset);
     }
-    // ======== ATAQUE LIDAR - FIM ========
 
-    // ======== ATAQUE SONAR - INICIO ========
     // Ataque sonar: soma offset a medicao de distancia.
     else if (_sonar_attack_option == 1) {
         processed_dist += static_cast<float>(_sonar_distance_offset);
     }
-    // ======== ATAQUE SONAR - FIM ========
 
     // Limita a medicao ao intervalo fisico aceito pelo PX4.
     report.current_distance = math::constrain(processed_dist, report.min_distance, report.max_distance);
@@ -3141,7 +3076,7 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
             touchdown_range_sensor &&
             PX4_ISFINITE(report.current_distance)) {
         // This callback is subscribed to the vertical rangefinder topic.
-        // Accept CUSTOM orientation as a valid Gazebo-mounted rangefinder.
+        // Aceita orientacao CUSTOM para sensores de distancia montados no Gazebo.
         _ground_distance_m = report.current_distance;
         _ground_distance_valid = true;
         _ground_distance_timestamp = report.timestamp;

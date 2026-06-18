@@ -1,0 +1,70 @@
+@import url('./play_trajectory.css');
+.run-container{
+    margin-left: 30px;
+}
+
+#latest-run-container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+#latest-zoo-runs-container{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.latest-zoo-runs-container-element{
+    flex: 0 0 auto;
+    margin: 10px;
+    width: 400px;
+    max-width: 90vw;
+}
+.latest-zoo-runs-container-element > h2{
+    height: 3.0em;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+.show-run-description {
+    height: 9em;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+.info-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #5b9bd5;
+    color: #5b9bd5;
+    font-family: serif;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.info-button:hover {
+    background-color: #5b9bd5;
+    color: white;
+}
+
+.zoo-container-container{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    min-height: 600px;
+    transition: min-height 0.3s ease;
+}
+.zoo-container-container-element{
+    max-width: 900px;
+    width: 100%;
+    text-align: center;
+}

@@ -1,0 +1,6 @@
+#add_executable(test_rl_tools_nn_models_mlp_compile_actor compile_actor.cpp)
+#target_link_libraries(test_rl_tools_nn_models_mlp_compile_actor rl_tools)
+
+add_executable(test_rl_tools_nn_models_mlp_static mlp_static.cpp)
+target_link_libraries(test_rl_tools_nn_models_mlp_static RLtools::Core RLtools::Test)
+gtest_discover_tests(test_rl_tools_nn_models_mlp_static)

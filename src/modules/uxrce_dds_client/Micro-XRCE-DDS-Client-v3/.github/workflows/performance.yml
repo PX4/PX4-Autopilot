@@ -1,0 +1,240 @@
+name: Weekly Performance
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Manual trigger"
+  schedule:
+    - cron: '12 13 * * 0'
+
+permissions:
+  contents: write
+
+jobs:
+  performance:
+    name: Performance
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Install CMake and prerequisites
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl python3-pip valgrind
+          python3 -m pip install --upgrade pip
+          python3 -m pip install msparser
+
+          # CMake 3.31.8
+          CMAKE_VER=3.31.8
+          curl -L "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-linux-x86_64.tar.gz" -o cmake-${CMAKE_VER}.tgz
+          sudo tar -C /opt -xzf cmake-${CMAKE_VER}.tgz
+          echo "/opt/cmake-${CMAKE_VER}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Run tests
+        shell: bash
+        run: |
+          ./test/memory/memory_test.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: |
+            build/complete_profile.csv
+            build/core_profile.csv
+            build/stack.csv
+            build/profiles_bss.csv
+            build/profiles_data.csv
+            build/profiles_text.csv
+          if-no-files-found: error
+
+  save-metrics-and-plots:
+    name: Save Metrics and Generate Plots
+    runs-on: ubuntu-24.04
+    needs: performance
+
+    steps:
+      - name: Set branch name
+        run: echo "BR=memory/performance" >> $GITHUB_ENV # Use this branch to store performance results
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ env.BR }}
+
+      - name: Install Python and prerequisites
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          python3 -m pip install --upgrade pip
+          python3 -m pip install matplotlib
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: performance-results
+          path: results
+
+      - name: Save results into memory
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          git config user.name  "github-actions"
+          git config user.email "github-actions@github.com"
+
+          python3 ci/metrics/save_results.py \
+            --input results/complete_profile.csv \
+            --output ci/metrics/memory/complete_profile_timeseries.csv
+          python3 ci/metrics/save_results.py \
+            --input results/core_profile.csv \
+            --output ci/metrics/memory/core_profile_timeseries.csv
+          python3 ci/metrics/save_results.py \
+            --input results/stack.csv \
+            --output ci/metrics/memory/stack_timeseries.csv
+          python3 ci/metrics/save_results.py \
+            --input results/profiles_bss.csv \
+            --output ci/metrics/memory/profiles_bss_timeseries.csv
+          python3 ci/metrics/save_results.py \
+            --input results/profiles_data.csv \
+            --output ci/metrics/memory/profiles_data_timeseries.csv
+          python3 ci/metrics/save_results.py \
+            --input results/profiles_text.csv \
+            --output ci/metrics/memory/profiles_text_timeseries.csv
+
+          git add ci/metrics/memory/*_timeseries.csv
+          git diff --cached --quiet || git commit -m "metrics: append run ${GITHUB_RUN_NUMBER} (${GITHUB_SHA::8})"
+          git push origin "${{ env.BR }}"
+
+      - name: Generate plots
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          LAST_N=52
+          
+          python3 ci/metrics/generate_plot.py \
+            --input ci/metrics/memory/complete_profile_timeseries.csv \
+            --output ci/metrics/plots/complete_profile_plot.svg \
+            --title "Complete Profile" \
+            --ylabel "Bytes" \
+            --last "$LAST_N"
+          python3 ci/metrics/generate_plot.py \
+            --input ci/metrics/memory/core_profile_timeseries.csv \
+            --output ci/metrics/plots/core_profile_plot.svg \
+            --title "Core Profile" \
+            --ylabel "Bytes" \
+            --last "$LAST_N"
+          python3 ci/metrics/generate_plot.py \
+            --input ci/metrics/memory/stack_timeseries.csv \
+            --output ci/metrics/plots/stack_plot.svg \
+            --title "Simple App Stack Usage" \
+            --ylabel "Bytes" \
+            --last "$LAST_N"
+          python3 ci/metrics/generate_plot.py \
+            --input ci/metrics/memory/profiles_bss_timeseries.csv \
+            --output ci/metrics/plots/profiles_bss_plot.svg \
+            --title "Increase of .bss memory by enabling profiles" \
+            --ylabel "Bytes" \
+            --last "$LAST_N"
+          python3 ci/metrics/generate_plot.py \
+            --input ci/metrics/memory/profiles_data_timeseries.csv \
+            --output ci/metrics/plots/profiles_data_plot.svg \
+            --title "Increase of .data memory by enabling profiles" \
+            --ylabel "Bytes" \
+            --last "$LAST_N"
+          python3 ci/metrics/generate_plot.py \
+            --input ci/metrics/memory/profiles_text_timeseries.csv \
+            --output ci/metrics/plots/profiles_text_plot.svg \
+            --title "Increase of .text memory by enabling profiles" \
+            --ylabel "Bytes" \
+            --last "$LAST_N"
+
+          git add ci/metrics/plots/*.svg
+          git diff --cached --quiet || git commit -m "metrics: update plots (${GITHUB_RUN_NUMBER})"
+          git push origin "${{ env.BR }}"
+
+      - name: Upload plots
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-plots
+          path: ci/metrics/plots/*.svg
+          if-no-files-found: warn
+
+      - name: Add plots to summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          BASE="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/memory/performance/ci/metrics/plots"
+          CB="?r=${GITHUB_RUN_NUMBER}"
+
+          {
+            echo "## 📊 Performance Metrics (last 52 runs)"
+            echo
+            echo "The workflow triggering this run can be found in the default branch."
+            echo "The python scripts and the data used to generate these plots can be found in the [memory/performance](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/memory/performance) branch."
+            echo "The scripts and data can be modified without affecting develop nor master branches."
+            echo "The \`memory/performance\` branch is unprotected and can be pushed to in case any manual modifications are needed."
+            echo
+            echo "### Complete Profile"
+            echo "<img src=\"${BASE}/complete_profile_plot.svg${CB}\" alt=\"Complete Profile\" width=\"720\"/>"
+            echo
+            echo "### Core Profile"
+            echo "<img src=\"${BASE}/core_profile_plot.svg${CB}\" alt=\"Core Profile\" width=\"720\"/>"
+            echo
+            echo "### Simple App Stack Usage"
+            echo "<img src=\"${BASE}/stack_plot.svg${CB}\" alt=\"Stack\" width=\"720\"/>"
+            echo
+            echo "### Increase of .bss memory by enabling profiles"
+            echo "<img src=\"${BASE}/profiles_bss_plot.svg${CB}\" alt=\"bss\" width=\"720\"/>"
+            echo
+            echo "### Increase of .data memory by enabling profiles"
+            echo "<img src=\"${BASE}/profiles_data_plot.svg${CB}\" alt=\"data\" width=\"720\"/>"
+            echo
+            echo "### Increase of .text memory by enabling profiles"
+            echo "<img src=\"${BASE}/profiles_text_plot.svg${CB}\" alt=\"text\" width=\"720\"/>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  analyze-metrics:
+    name: Analyze Metrics
+    runs-on: ubuntu-24.04
+    needs: save-metrics-and-plots
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: memory/performance
+
+      - name: Analyze results
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## Analyze Memory Metrics"
+            echo
+            echo "⚠️ Failure of this job should be treated as a warning. It can be safely ignored if there are intentional changes that affect memory usage."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          python3 ci/metrics/check_last_result.py --input ci/metrics/memory/complete_profile_timeseries.csv
+          python3 ci/metrics/check_last_result.py --input ci/metrics/memory/core_profile_timeseries.csv
+          python3 ci/metrics/check_last_result.py --input ci/metrics/memory/stack_timeseries.csv
+          python3 ci/metrics/check_last_result.py --input ci/metrics/memory/profiles_bss_timeseries.csv
+          python3 ci/metrics/check_last_result.py --input ci/metrics/memory/profiles_data_timeseries.csv
+          python3 ci/metrics/check_last_result.py --input ci/metrics/memory/profiles_text_timeseries.csv

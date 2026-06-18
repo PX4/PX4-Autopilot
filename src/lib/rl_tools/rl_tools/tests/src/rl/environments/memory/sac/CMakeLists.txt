@@ -1,0 +1,4 @@
+add_executable(rl_environments_memory_sac_approximators approximators.cpp)
+target_link_libraries(rl_environments_memory_sac_approximators PRIVATE RLtools::Core GTest::gtest_main)
+target_compile_options(rl_environments_memory_sac_approximators PRIVATE -ftemplate-backtrace-limit=0)
+gtest_discover_tests(rl_environments_memory_sac_approximators)

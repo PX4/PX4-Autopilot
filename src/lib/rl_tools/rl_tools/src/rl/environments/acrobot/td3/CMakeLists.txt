@@ -1,0 +1,3 @@
+add_executable(rl_environments_acrobot_td3_training acrobot.cpp)
+target_link_libraries(rl_environments_acrobot_td3_training PRIVATE RLtools::Core)
+target_compile_definitions(rl_environments_acrobot_td3_training PRIVATE RL_TOOLS_DISABLE_TENSORBOARD)

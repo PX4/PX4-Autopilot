@@ -1,0 +1,85 @@
+name: CI Windows
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Manual trigger"
+  schedule:
+    - cron: '50 18 * * 6'
+
+permissions:
+  pull-requests: write
+
+jobs:
+  build-and-tests:
+    name: Build and Tests
+    runs-on: windows-2022
+
+    env:
+      TOOLSET: v142
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Install CMake
+        uses: ssrobins/install-cmake@v1
+        with:
+          version: '3.31.8'
+
+      - name: Show tool versions
+        shell: pwsh
+        run: |
+          cmake --version
+          ctest --version
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          mkdir build
+          cd build
+          cmake ..\ci\windows `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
+            -T $env:TOOLSET `
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      - name: Run tests and export JUnit
+        shell: pwsh
+        run: |
+          ctest --test-dir build\microxrcedds_client-build `
+            -C Release `
+            --output-on-failure `
+            --no-tests=error `
+            --output-junit "$env:GITHUB_WORKSPACE\build\CTestResults.xml"
+          Get-Item "$env:GITHUB_WORKSPACE\build\CTestResults.xml" | Format-List -Property *
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifact
+          path: |
+            build/CTestResults.xml
+          if-no-files-found: error
+
+      - name: Publish unit test results (JUnit)
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: (!cancelled())
+        with:
+          files: build/CTestResults.xml
+          check_run: false
+          comment_mode: failures
+          comment_title: "Windows Tests Results"

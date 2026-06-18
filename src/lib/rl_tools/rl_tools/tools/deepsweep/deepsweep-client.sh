@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -e
+SEED=$(jq -e ".seed" <<< "$DEEPSWEEP_SPEC")
+RL_TOOLS_DMODEL=$(jq -e ".dmodel" <<< "$DEEPSWEEP_SPEC")
+RL_TOOLS_NUM_EPISODES=$(jq -e ".num_episodes" <<< "$DEEPSWEEP_SPEC")
+RL_TOOLS_NUM_TEACHERS=$(jq -e ".num_teachers" <<< "$DEEPSWEEP_SPEC")
+TEACHER_SELECTION=$(jq -e ".teacher_selection" <<< "$DEEPSWEEP_SPEC")
+if [ "$TEACHER_SELECTION" == "all"]; then
+  TEACHER_SELECTION_OPTS="-DRL_TOOLS_TEACHER_SELECTION_ALL"
+fi
+if [ "$TEACHER_SELECTION" == "best"]; then
+  TEACHER_SELECTION_OPTS="-DRL_TOOLS_TEACHER_SELECTION_BEST"
+fi
+if [ "$TEACHER_SELECTION" == "worst"]; then
+  TEACHER_SELECTION_OPTS="-DRL_TOOLS_TEACHER_SELECTION_WORST"
+fi
+if [ "$TEACHER_SELECTION" == "random"]; then
+  TEACHER_SELECTION_OPTS="-DRL_TOOLS_TEACHER_SELECTION_RANDOM"
+fi
+echo DMODEL $RL_TOOLS_DMODEL
+echo SEED $SEED
+echo NUM_EPISODES $RL_TOOLS_NUM_EPISODES
+echo NUM_TEACHERS $RL_TOOLS_NUM_TEACHERS
+
+EXPERIMENT=deepsweep_runs/$DEEPSWEEP_JOB/SEED-${SEED}_DMODEL-${RL_TOOLS_DMODEL}_NUM_EPISODES-${RL_TOOLS_NUM_EPISODES}_NUM_TEACHERS-${RL_TOOLS_NUM_TEACHERS}_TEACHER_SELECTION-${TEACHER_SELECTION}
+mkdir -p $EXPERIMENT
+MACOS_OPTS="-I /opt/homebrew/include -L /opt/homebrew/lib -DRL_TOOLS_BACKEND_ENABLE_ACCELERATE -framework Accelerate"
+LINUX_OPTS="-I /usr/include/hdf5/serial/ -L/usr/lib/x86_64-linux-gnu/hdf5/serial -DRL_TOOLS_BACKEND_ENABLE_OPENBLAS -lopenblas"
+# check os type
+OS=$(uname -s)
+OPTS=$LINUX_OPTS
+if [ "$OS" == "Darwin" ]; then
+  OPTS=$MACOS_OPTS
+fi
+
+g++ -std=c++17 -O3 -ffast-math -fmax-errors=1 -I include -I external/highfive/include -DRL_TOOLS_ENABLE_JSON -DRL_TOOLS_DISABLE_INTERMEDIATE_CHECKPOINTS -DRL_TOOLS_ENABLE_HDF5 -DRL_TOOLS_DMODEL=$RL_TOOLS_DMODEL -DRL_TOOLS_NUM_EPISODES=$RL_TOOLS_NUM_EPISODES -DRL_TOOLS_NUM_TEACHERS=$RL_TOOLS_NUM_TEACHERS $TEACHER_SELECTION_OPTS src/foundation_policy/post_training/main.cpp $OPTS -lhdf5 -o $EXPERIMENT/a.out
+CMD="MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 RL_TOOLS_EXTRACK_EXPERIMENT=$JOB_ID RL_TOOLS_RUN_PATH=$EXPERIMENT ./$EXPERIMENT/a.out $SEED"
+echo "Executing: $CMD"
+eval $CMD
+
+TEST_STATS_PATH=$EXPERIMENT/test_stats.csv
+jq -n --rawfile csv "$TEST_STATS_PATH" '{test_stats: $csv}' | curl -sS -X POST -H 'Content-Type: application/json' --data @- "$DEEPSWEEP_SERVER/jobs/$DEEPSWEEP_JOB/tasks/$DEEPSWEEP_TASK_ID"

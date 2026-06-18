@@ -1,0 +1,11 @@
+add_executable(
+        test_nn_layers_embedding
+        embedding.cpp
+)
+target_link_libraries(
+        test_nn_layers_embedding
+        PRIVATE
+        RLtools::RLtools
+        GTest::gtest_main
+)
+gtest_discover_tests(test_nn_layers_embedding)

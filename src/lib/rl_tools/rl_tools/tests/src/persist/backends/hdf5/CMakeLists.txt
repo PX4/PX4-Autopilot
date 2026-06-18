@@ -1,0 +1,5 @@
+if(RL_TOOLS_ENABLE_HDF5 AND RL_TOOLS_TEST_DATA_PATH)
+    add_executable(test_persist_backends_hdf5 hdf5.cpp)
+    target_link_libraries(test_persist_backends_hdf5 RLtools::RLtools GTest::gtest_main)
+    gtest_discover_tests(test_persist_backends_hdf5)
+endif()

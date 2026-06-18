@@ -1,0 +1,9 @@
+Package: libmodal-json
+Version: 0.4.8
+Section: base
+Priority: optional
+Architecture: arm64
+Depends:
+Conflicts:
+Maintainer: james@modalai.com
+Description: Helper library for handling JSON config files

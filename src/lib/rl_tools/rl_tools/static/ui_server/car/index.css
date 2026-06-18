@@ -1,0 +1,23 @@
+.body{
+    max-height: 100vh;
+}
+#car-drawingCanvas{
+}
+
+#car-messageContainer{
+    text-align: center;
+    margin-top: 10px;
+}
+#car-controlContainer{
+    display: flex;
+    margin-top: 10px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+.car-input:not(:first-child) {
+    margin-left: 20px;
+}
+.car-h1{
+    text-align: center;
+    margin-bottom: 0px;
+}
