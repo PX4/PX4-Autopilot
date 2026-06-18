@@ -34,7 +34,7 @@ For other ports or boards, you will need to obtain your own cable.
 
 The recommended port configuration for this receiver is:
 
-| 参数                                                                                                                                          | Recommended Value |
+| Parameter                                                                                                                                   | Recommended Value |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                            | `TELEM 2`         |
 | [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                                | uAvionix          |
@@ -64,7 +64,7 @@ The TX and RX on the flight controller must be connected to the RX and TX on the
 The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
 The recommended configuration for most devices (unless they have device-specific configuration like PingRX) is to connect to `TELEM 2` and [set the parameters](../advanced_config/parameters.md) as shown:
 
-| 参数                                                                                                                 | Recommended Value                                    |
+| Parameter                                                                                                          | Recommended Value                                    |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
 | [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2`                                            |
 | [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | Normal                                               |
@@ -79,7 +79,7 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 
 Configure the action when there is a potential collision using the parameter below:
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                                                                                   |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                                                                                                   |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="NAV_TRAFF_AVOID"></a>[NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                         | Enable traffic avoidance mode specify avoidance response. 0: Disable, 1: Warn only, 2: Return mode, 3: Land mode.                    |
 | <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizontal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                               |
