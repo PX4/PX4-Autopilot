@@ -837,6 +837,9 @@ Commander::Commander() :
 
 	updateParameters();
 
+	// Apply the configured boot flight mode before the first run
+	_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
+
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
@@ -3153,13 +3156,6 @@ void Commander::manualControlCheck()
 				}
 			}
 
-		} else {
-			const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
-
-			// if there's never been a mode change force position control as initial state
-			if (!_user_mode_intention.everHadModeChange() && (is_mavlink || !_mode_switch_mapped)) {
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, false, true);
-			}
 		}
 	}
 }
