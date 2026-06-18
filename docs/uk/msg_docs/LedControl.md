@@ -16,7 +16,7 @@ pageClass: is-wide-page
 | <a id="fld_led_mask"></a>led_mask     | `uint8`  |                                                                  |            | bitmask which LED(s) to control, set to 0xff for all                                                                                 |
 | <a id="fld_color"></a>color                                | `uint8`  |                                                                  |            | see COLOR\_\*                                                                                                                     |
 | <a id="fld_mode"></a>mode                                  | `uint8`  |                                                                  |            | see MODE\_\*                                                                                                                      |
-| <a id="fld_num_blinks"></a>num_blinks | `uint8`  |                                                                  |            | how many times to blink (number of on-off cycles if mode is one of MODE_BLINK_\*) . Set to 0 for infinite            |
+| <a id="fld_num_blinks"></a>num_blinks | `uint8`  |                                                                  |            | how many times to blink (number of on-off cycles if mode is one of MOD&#x45;_&#x42;LINK_\*) . Set to 0 for infinite  |
 | <a id="fld_priority"></a>priority                          | `uint8`  |                                                                  |            | priority: higher priority events will override current lower priority events (see MAX_PRIORITY) |
 
 ## Constants
