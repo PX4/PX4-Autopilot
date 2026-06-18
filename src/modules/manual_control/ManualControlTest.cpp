@@ -404,7 +404,7 @@ TEST_F(GestureTest, ArmingGesture)
 	EXPECT_FALSE(_action_request_sub.update());
 
 
-	// ─── Gesture Hysterisis ──────────────────────────────────────────────
+	// ─── Gesture Hysteresis ──────────────────────────────────────────────
 	// Hysteresis is 1_s but COM_RC_LOSS_T is 0.5s, so using 2 updated at 0.5s
 	publishArmGesture(500_ms);
 	_manual_control.processInput(_timestamp);
@@ -412,7 +412,7 @@ TEST_F(GestureTest, ArmingGesture)
 	_manual_control.processInput(_timestamp);
 
 	EXPECT_TRUE(_manual_control_setpoint_sub.update());
-	EXPECT_TRUE(_manual_control_setpoint_sub.get().valid);;
+	EXPECT_TRUE(_manual_control_setpoint_sub.get().valid);
 
 	EXPECT_TRUE(_action_request_sub.update());
 	EXPECT_EQ(_action_request_sub.get().action, ACTION_ARM);
@@ -431,7 +431,7 @@ TEST_F(GestureTest, DisarmGesture)
 	EXPECT_FALSE(_action_request_sub.update());
 
 
-	// ─── Gesture Hysterisis ──────────────────────────────────────────────
+	// ─── Gesture Hysteresis ──────────────────────────────────────────────
 	publishDisarmGesture(500_ms);
 	_manual_control.processInput(_timestamp);
 	publishDisarmGesture(500_ms);
@@ -466,7 +466,7 @@ TEST_F(GestureTest, KillGesture)
 	EXPECT_FALSE(_action_request_sub.update());
 
 
-	// ─── Gesture Hysterisis ──────────────────────────────────────────────
+	// ─── Gesture Hysteresis ──────────────────────────────────────────────
 	publishKillGesture(500_ms);
 	_manual_control.processInput(_timestamp);
 
