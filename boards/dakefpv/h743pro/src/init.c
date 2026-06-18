@@ -64,7 +64,7 @@
 #  include <parameters/flashparams/flashfs.h>
 #endif
 
-#ifdef CONFIG_MTD_W25
+#ifdef CONFIG_MTD_M25P
 #  include <nuttx/spi/spi.h>
 #  include <nuttx/mtd/mtd.h>
 #  include <sys/mount.h>
@@ -197,36 +197,36 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
-#ifdef CONFIG_MTD_W25
-	/* Mount W25Q128 SPI NOR flash (SPI3, CS=PA15) at /fs/microsd */
+#ifdef CONFIG_MTD_M25P
+	/* Mount N25Q128 SPI NOR flash (SPI3, CS=PA15) at /fs/microsd */
 	struct spi_dev_s *spi3 = stm32_spibus_initialize(3);
 
 	if (!spi3) {
-		syslog(LOG_INFO, "[boot] W25: SPI3 init failed\n");
+		syslog(LOG_INFO, "[boot] M25P: SPI3 init failed\n");
 
 	} else {
-		struct mtd_dev_s *mtd = w25_initialize(spi3);
+		struct mtd_dev_s *mtd = m25p_initialize(spi3);
 
 		if (!mtd) {
-			syslog(LOG_INFO, "[boot] W25: chip not recognised\n");
+			syslog(LOG_INFO, "[boot] M25P: chip not recognised\n");
 
 		} else {
-			syslog(LOG_INFO, "[boot] W25: chip ok, registering MTD...\n");
+			syslog(LOG_INFO, "[boot] M25P: chip ok, registering MTD...\n");
 			int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
 
 			if (ret < 0 && ret != -EEXIST) {
-				syslog(LOG_INFO, "[boot] W25: MTD register failed %d\n", ret);
+				syslog(LOG_INFO, "[boot] M25P: MTD register failed %d\n", ret);
 
 			} else {
 				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, NULL);
 
 				if (ret < 0) {
-					syslog(LOG_INFO, "[boot] W25: first mount failed %d, formatting...\n", ret);
+					syslog(LOG_INFO, "[boot] M25P: first mount failed %d, formatting...\n", ret);
 					ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "forceformat");
 				}
 
 				if (ret == 0) {
-					syslog(LOG_INFO, "[boot] W25: mounted at /fs/microsd\n");
+					syslog(LOG_INFO, "[boot] M25P: mounted at /fs/microsd\n");
 
 					/* Seed extras.txt on first boot if not present */
 					mkdir("/fs/microsd/etc", 0755);
@@ -247,7 +247,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 					}
 
 				} else {
-					syslog(LOG_INFO, "[boot] W25: mount failed %d\n", ret);
+					syslog(LOG_INFO, "[boot] M25P: mount failed %d\n", ret);
 				}
 			}
 		}
