@@ -56,23 +56,22 @@ public:
 	 * Is converted to user-facing warning in navigator_main.
 	 */
 	enum class Status {
+		Success,             // No error
 		NoFence,             // No fence polygons -- avoidance not applicable.
-		Ok,                  // Graph built, Dijkstra ran, no isolated routable nodes.
+		DijkstraFailed,      // Dijkstra solve exited due to invalid input data.
 		DestinationInvalid,  // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
 		BudgetExceeded,      // Node/polygon storage budget exceeded (should not normally happen, see static_assert).
 		OutOfRange,          // A zone's vertex/extent fell outside the usable fixed-point range.
 		Degenerate,          // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
-		UnreachableRegions,  // Graph built but legal pockets exist disconnected from destination.
 	};
 
 	Status status() const { return _status; }
 
 	/**
 	 * True if the latest updateStartAndFillPath() found neither a routed path nor a direct
-	 * line to the destination -- the caller will fly direct and the line will cross a fence.
-	 * The RTL state machine uses this to emit a one-shot runtime-fallback warning.
+	 * line to the destination -- the caller will fly directly and ignore geofences.
 	 */
-	bool isRuntimeFallbackRequired() const { return _runtime_fallback_required; }
+	bool needsStraightLineFallback() const { return _straight_line_fallback; }
 
 	/**
 	 * Fill the path from `start` to the destination. If `start` is
@@ -156,7 +155,7 @@ private:
 	bool _polygons_healthy{false};
 	bool _destination_healthy{false};
 	Status _status{Status::NoFence};
-	bool _runtime_fallback_required{false};
+	bool _straight_line_fallback{false};
 
 	// Most recent in-fence position passed to updateStartAndFillPath. Used
 	// by subsequent calls as fallback when we have breached a geofence.
@@ -170,7 +169,7 @@ private:
 	// Sets _status on failure (matching planPath); returns false to abort the build.
 	bool updatePolygonsFromGeofence(GeofenceInterface &geofence, float margin);
 	void updateEdgeCosts();
-	bool planPath();
+	void planPath();
 
 
 	static bool latLonWithinBounds(const matrix::Vector2<double> &lat_lon)

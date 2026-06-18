@@ -55,11 +55,11 @@ static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx
 	return local;
 }
 
-bool GeofenceAvoidancePlanner::planPath()
+void GeofenceAvoidancePlanner::planPath()
 {
 	if (!_polygons_healthy || !_destination_healthy) {
-		// not in a state where we can plan a path
-		return false;
+		// Do not change _status, it already reflects the reason for the unhealthy state
+		return;
 	}
 
 	perf_begin(_plan_path_perf);
@@ -69,27 +69,7 @@ bool GeofenceAvoidancePlanner::planPath()
 
 	perf_end(_plan_path_perf);
 
-	if (ret) {
-		// A node Dijkstra didn't reach but which has a finite-cost edge in the graph belongs
-		// to a multi-node pocket cut off from the destination. Limitations -- not detected:
-		// legal unreachable regions with no nodes, or with only _node_not_on_optimal_path
-		// corners, or with only one routable node (no visible neighbor in the pocket).
-		_status = Status::Ok;
-		const int N = _polygons.numNodes();
-
-		for (int i = 1; i < N && _status == Status::Ok; ++i) {
-			if (_best_distance[i] < INFINITY) { continue; }
-
-			for (int j = 1; j < N; ++j) {
-				if (i != j && _distances[dijkstra::symmetricPairIndex(i, j, N)] < INFINITY) {
-					_status = Status::UnreachableRegions;
-					break;
-				}
-			}
-		}
-	}
-
-	return ret;
+	_status = ret ? Status::Success : Status::DijkstraFailed;
 }
 
 void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofence, float margin)
@@ -143,7 +123,7 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	perf_end(_setup_perf);
 
 	// The graph has changed, so we need to re-plan.
-	_status = Status::Ok;
+	_status = Status::Success;
 	planPath();
 }
 
@@ -307,6 +287,7 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	if (!_polygons_healthy || !_destination_healthy) {
 		_path_length = 0;
 		_path_cursor = 0;
+		_straight_line_fallback = true;
 		return 0;
 	}
 
@@ -366,9 +347,10 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 
 	_path_length = path_index;
 	_path_cursor = 0;
-	// Runtime fallback condition: we have a usable graph and destination, but neither the live start
-	// nor the saved valid start could route, AND destination isn't directly visible from either ->
-	// the caller will fly direct and the line will cross at least one fence boundary.
-	_runtime_fallback_required = (_path_length == 0) && !direct_path_feasible;
+
+	// No path from current position or saved anchor, and destination not
+	// directly reachable from either. Fall back to flying directly
+	_straight_line_fallback = (_path_length == 0) && !direct_path_feasible;
+
 	return path_index;
 }

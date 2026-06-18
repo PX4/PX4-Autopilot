@@ -105,14 +105,10 @@ void RtlDirect::on_activation()
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
 
-	} else if (planner.isRuntimeFallbackRequired()) {
-		// Planner has a graph but couldn't route from the current position -- vehicle will
-		// fly direct and the line will cross a fence. Fires at most once per RTL activation
-		// since on_activation runs once per activation.
+	} else if (planner.needsStraightLineFallback()) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: no geofence avoidance path; flying directly\t");
-		events::send(events::ID("rtl_avoidance_runtime_fallback"),
-		{events::Log::Critical, events::LogInternal::Error},
-		"RTL: no geofence avoidance path; flying direct");
+		events::send(events::ID("rtl_avoidance_runtime_fallback"), {events::Log::Critical, events::LogInternal::Error},
+			     "RTL: no geofence avoidance path; flying directly");
 	}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
