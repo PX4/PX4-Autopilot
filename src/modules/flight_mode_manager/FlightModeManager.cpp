@@ -68,14 +68,18 @@ FlightModeManager::~FlightModeManager()
 
 bool FlightModeManager::init()
 {
+	// Initialise fully before registering the callback: once registered, the
+	// callback fires (and Run() is scheduled) on the publisher's thread, which
+	// would otherwise race with the set_interval_us()/_time_stamp_last_loop writes.
+	// limit to every other vehicle_local_position update (50 Hz)
+	_vehicle_local_position_sub.set_interval_us(20_ms);
+	_time_stamp_last_loop = hrt_absolute_time();
+
 	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	// limit to every other vehicle_local_position update (50 Hz)
-	_vehicle_local_position_sub.set_interval_us(20_ms);
-	_time_stamp_last_loop = hrt_absolute_time();
 	return true;
 }
 
