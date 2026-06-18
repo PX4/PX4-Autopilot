@@ -47,7 +47,11 @@ namespace uORB
 {
 
 // Subscription wrapper class with callbacks on new publications
-class SubscriptionCallback : public SubscriptionInterval, public ListNode<SubscriptionCallback *>
+//
+// Uses SubscriptionIntervalAtomic because call() runs on the publishing thread
+// (synchronously from orb_publish) while the subscriber thread updates the
+// interval / last-update fields.
+class SubscriptionCallback : public SubscriptionIntervalAtomic, public ListNode<SubscriptionCallback *>
 {
 public:
 	/**
@@ -58,7 +62,7 @@ public:
 	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		SubscriptionInterval(meta, interval_us, instance)
+		SubscriptionIntervalAtomic(meta, interval_us, instance)
 	{
 	}
 
@@ -147,8 +151,9 @@ public:
 
 		if ((generation - _last_scheduled_generation) >= req) {
 			const hrt_abstime last_update = _last_update.load();
+			const uint32_t interval_us = _interval_us.load();
 
-			if ((_interval_us == 0) || (hrt_elapsed_time(&last_update) >= _interval_us)) {
+			if ((interval_us == 0) || (hrt_elapsed_time(&last_update) >= interval_us)) {
 				_last_scheduled_generation = generation;
 				_work_item->ScheduleNow();
 			}

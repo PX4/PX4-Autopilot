@@ -41,7 +41,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/uORBTopics.hpp>
 
-#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <lib/mathlib/mathlib.h>
 

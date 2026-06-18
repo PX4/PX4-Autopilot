@@ -33,21 +33,29 @@
 
 #include "SubscriptionInterval.hpp"
 
+#include <drivers/drv_hrt.h>
+
 namespace uORB
 {
 
-bool SubscriptionInterval::updated()
+// The bodies are defined out-of-line and explicitly instantiated below (rather
+// than inline in the header) to keep them from being emitted at every call site
+// - they are shared by many subscribers, so the flash cost matters on target.
+
+template <bool ATOMIC>
+bool SubscriptionIntervalBase<ATOMIC>::updated()
 {
 	hrt_abstime last_update = _last_update.load();
 
-	if (advertised() && (hrt_elapsed_time(&last_update) >= _interval_us)) {
+	if (advertised() && (hrt_elapsed_time(&last_update) >= _interval_us.load())) {
 		return _subscription.updated();
 	}
 
 	return false;
 }
 
-bool SubscriptionInterval::update(void *dst)
+template <bool ATOMIC>
+bool SubscriptionIntervalBase<ATOMIC>::update(void *dst)
 {
 	if (updated()) {
 		return copy(dst);
@@ -56,15 +64,17 @@ bool SubscriptionInterval::update(void *dst)
 	return false;
 }
 
-bool SubscriptionInterval::copy(void *dst)
+template <bool ATOMIC>
+bool SubscriptionIntervalBase<ATOMIC>::copy(void *dst)
 {
 	if (_subscription.copy(dst)) {
 		const hrt_abstime now = hrt_absolute_time();
+		const uint32_t interval_us = _interval_us.load();
 
-		// make sure we don't set a timestamp before the timer started counting (now - _interval_us would wrap because it's unsigned)
-		if (now > _interval_us) {
+		// make sure we don't set a timestamp before the timer started counting (now - interval_us would wrap because it's unsigned)
+		if (now > interval_us) {
 			// shift last update time forward, but don't let it get further behind than the interval
-			_last_update.store(math::constrain(_last_update.load() + _interval_us, now - _interval_us, now));
+			_last_update.store(math::constrain(_last_update.load() + interval_us, now - interval_us, now));
 
 		} else {
 			_last_update.store(now);
@@ -75,5 +85,14 @@ bool SubscriptionInterval::copy(void *dst)
 
 	return false;
 }
+
+// Only these two variants exist, so instantiate them here once each.
+template bool SubscriptionIntervalBase<false>::updated();
+template bool SubscriptionIntervalBase<false>::update(void *dst);
+template bool SubscriptionIntervalBase<false>::copy(void *dst);
+
+template bool SubscriptionIntervalBase<true>::updated();
+template bool SubscriptionIntervalBase<true>::update(void *dst);
+template bool SubscriptionIntervalBase<true>::copy(void *dst);
 
 } // namespace uORB
