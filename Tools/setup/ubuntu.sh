@@ -202,7 +202,12 @@ if [[ "${UBUNTU_RELEASE}" == "25.10" ]]; then
 fi
 
 if [[ "${UBUNTU_RELEASE}" == "26.04" ]]; then
-	echo "[ubuntu.sh] Gazebo binaries are not available for 26.04, skipping installation"
+	if [ -n "${ROS_DISTRO}" ]; then
+		echo "[ubuntu.sh] Installing ROS Gazebo Jetty binaries"
+		sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet --no-install-recommends install ros-${ROS_DISTRO}-ros-gz
+	else
+		echo "[ubuntu.sh] No ROS installation found - skipping Gazebo Jetty installation due to missing binaries for native install.	"
+	fi
 	INSTALL_SIM="false"
 	echo "[ubuntu.sh] Installing outdated Astyle 3.1 before transitioning to a new linter"
 	sudo DEBIAN_FRONTEND=noninteractive apt -y --quiet purge astyle
