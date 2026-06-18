@@ -96,7 +96,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - TBD
 
-### 无人车
+### Rover
 
 - TBD
 
