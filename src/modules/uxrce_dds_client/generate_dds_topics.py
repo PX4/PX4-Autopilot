@@ -102,14 +102,12 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
-    # drain: when true, empty the whole uORB queue each poll wakeup instead of
-    # forwarding only the latest sample. Defaults to false (previous behaviour).
-    msg_type['drain'] = bool(msg_type.get('drain', False))
-
     # publish_interval_ms: maps the optional rate_limit (Hz) to the orb_set_interval
-    # gate, which is expressed in integer milliseconds.
+    # gate, which is expressed in integer milliseconds. An unlimited rate (0) also
+    # makes the bridge drain the whole uORB queue each poll wakeup instead of
+    # forwarding only the latest sample (see SendTopicsSubs::update).
     #   absent                  -> None: template uses UXRCE_DEFAULT_POLL_INTERVAL_MS
-    #   0 or 'unlimited'/'off'   -> 0: rate limiting explicitly disabled, forward every update
+    #   0 or 'unlimited'/'off'   -> 0: rate limiting disabled, drain the whole queue
     #   N > 0                    -> round(1000/N), clamped to a >=1ms floor (anything finer
     #                               than 1ms cannot be expressed and must use 'unlimited')
     rate = msg_type.get('rate_limit', None)

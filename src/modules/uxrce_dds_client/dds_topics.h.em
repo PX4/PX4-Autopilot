@@ -70,7 +70,6 @@ struct SendSubscription {
 	UcdrSerializeMethod ucdr_serialize_method;
 	uint64_t publish_interval_ms;
 	uint8_t orb_instance;
-	bool drain_queue;
 };
 
 // Subscribers for messages to send
@@ -84,9 +83,8 @@ struct SendTopicsSubs {
 			  get_message_version<@(pub['simple_base_type'])_s>(),
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
-			  @(pub['publish_interval_ms'] if pub['publish_interval_ms'] is not None else 'UXRCE_DEFAULT_POLL_INTERVAL_MS'), // ms; 0 = unlimited (rate limit disabled)
-			  @(pub['instance']),
-			  @('true' if pub['drain'] else 'false')
+			  @(pub['publish_interval_ms'] if pub['publish_interval_ms'] is not None else 'UXRCE_DEFAULT_POLL_INTERVAL_MS'), // ms; 0 = unlimited (rate limit disabled, queue drained)
+			  @(pub['instance'])
 			},
 @[    end for]@
 	};
@@ -137,19 +135,18 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		if (fds[idx].revents & POLLIN) {
-			// For topics that opt in (drain_queue), empty the whole queue in one pass:
-			// temporarily disable the interval so orb_check does a pure generation check
-			// and isn't gated by the interval timer after each orb_copy; otherwise only
-			// one queued sample would be forwarded per poll wakeup and bursts (e.g. CAN
-			// frames) would be dropped. Topics without the flag keep the previous
-			// behaviour: forward only the latest sample, respecting the configured rate.
-			if (send_subscriptions[idx].drain_queue) {
-				orb_set_interval(fds[idx].fd, 0);
-			}
-
+			// Topics with an unlimited rate (publish_interval_ms == 0) drain the whole
+			// uORB queue in one pass: the interval is already 0, so orb_check gates only
+			// on the message generation and every queued sample is forwarded, so bursts
+			// (e.g. CAN frames) are not dropped. The pass is bounded by the topic's queue
+			// depth so a publisher producing faster than we drain cannot spin this loop.
+			// Rate-limited topics forward only the latest sample per poll wakeup,
+			// respecting the configured interval.
+			const bool drain_queue = (send_subscriptions[idx].publish_interval_ms == 0);
+			unsigned remaining = drain_queue ? send_subscriptions[idx].orb_meta->o_queue : 1;
 			bool updated = true;
 
-			while (updated) {
+			while (updated && remaining-- > 0) {
 				// Topic updated, copy data and send
 				orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
 
@@ -182,17 +179,12 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 					//PX4_ERR("Error UXR_INVALID_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
 				}
 
-				if (!send_subscriptions[idx].drain_queue) {
+				if (!drain_queue) {
 					// Latest sample only; leave the rest of the queue for the next cycle.
 					break;
 				}
 
 				orb_check(fds[idx].fd, &updated);
-			}
-
-			// Restore the configured interval after draining (no-op otherwise).
-			if (send_subscriptions[idx].drain_queue) {
-				orb_set_interval(fds[idx].fd, send_subscriptions[idx].publish_interval_ms);
 			}
 		}
 	}
