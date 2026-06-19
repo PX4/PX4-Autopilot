@@ -40,8 +40,10 @@ class PID
 public:
 	PID() = default;
 	virtual ~PID() = default;
-	void setOutputLimit(const float limit) { _limit_output = limit; }
-	void setIntegralLimit(const float limit) { _limit_integral = limit; }
+	void setOutputLimit(const float limit) {setOutputLimit(-limit, limit);}
+	void setOutputLimit(const float lower_limit, const float upper_limit);
+	void setIntegralLimit(const float limit) {setIntegralLimit(-limit, limit);}
+	void setIntegralLimit(const float lower_limit, const float upper_limit);
 	void setGains(const float P, const float I, const float D);
 	void setSetpoint(const float setpoint) { _setpoint = setpoint; }
 	float update(const float feedback, const float dt, const bool update_integral = true);
@@ -60,6 +62,8 @@ private:
 	float _gain_proportional{0.f};
 	float _gain_integral{0.f};
 	float _gain_derivative{0.f};
-	float _limit_integral{0.f};
-	float _limit_output{0.f};
+	float _lower_limit_integral{0.f};
+	float _upper_limit_integral{0.f};
+	float _lower_limit_output{0.f};
+	float _upper_limit_output{0.f};
 };

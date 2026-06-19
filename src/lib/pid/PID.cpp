@@ -34,6 +34,18 @@
 #include "PID.hpp"
 #include "lib/mathlib/math/Functions.hpp"
 
+void PID::setOutputLimit(const float lower_limit, const float upper_limit)
+{
+	_lower_limit_output = lower_limit;
+	_upper_limit_output = upper_limit;
+}
+
+void PID::setIntegralLimit(const float lower_limit, const float upper_limit)
+{
+	_lower_limit_integral = lower_limit;
+	_upper_limit_integral = upper_limit;
+}
+
 void PID::setGains(const float P, const float I, const float D)
 {
 	_gain_proportional = P;
@@ -51,7 +63,7 @@ float PID::update(const float feedback, const float dt, const bool update_integr
 	}
 
 	_last_feedback = feedback;
-	return math::constrain(output, -_limit_output, _limit_output);
+	return math::constrain(output, _lower_limit_output, _upper_limit_output);
 }
 
 void PID::updateIntegral(float error, const float dt)
@@ -59,7 +71,7 @@ void PID::updateIntegral(float error, const float dt)
 	const float integral_new = _integral + _gain_integral * error * dt;
 
 	if (std::isfinite(integral_new)) {
-		_integral = math::constrain(integral_new, -_limit_integral, _limit_integral);
+		_integral = math::constrain(integral_new, _lower_limit_integral, _upper_limit_integral);
 	}
 }
 
