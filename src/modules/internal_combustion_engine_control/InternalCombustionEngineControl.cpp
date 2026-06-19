@@ -98,8 +98,8 @@ void InternalCombustionEngineControl::Run()
 		// Set up idle PID controller
 		_rpm_idle_pid.setSetpoint(_param_ice_idle_rpm.get());
 		_rpm_idle_pid.setGains(_param_ice_idle_rpm_p.get() * 1e-3f, _param_ice_ign_rpm_i.get() * 1e-3f, 0.f);
-		_rpm_idle_pid.setIntegralLimit(0.5f);
-		_rpm_idle_pid.setOutputLimit(0.5f);
+		_rpm_idle_pid.setIntegralLimit(-_param_ice_idle_thr.get(), 1.f - _param_ice_idle_thr.get());
+		_rpm_idle_pid.setOutputLimit(-_param_ice_idle_thr.get(), 1.f - _param_ice_idle_thr.get());
 	}
 
 
