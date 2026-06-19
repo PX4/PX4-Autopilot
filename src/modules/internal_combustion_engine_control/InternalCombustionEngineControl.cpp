@@ -322,7 +322,7 @@ void InternalCombustionEngineControl::rpmSubUpdate(const hrt_abstime now)
 			 (now < _rpm_timestamp + 2_s) && _rpm > _param_ice_min_run_rpm.get());
 
 		if (_sub_state == SubState::Idle) {
-			_idle_throttle = _param_ice_idle_thr_ff.get() +
+			_idle_throttle = _param_ice_idle_thr.get() +
 					 _rpm_idle_pid.update(rpm.rpm_estimate, dt, true);
 		}
 	}

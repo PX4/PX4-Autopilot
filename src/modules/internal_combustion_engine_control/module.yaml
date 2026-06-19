@@ -152,7 +152,7 @@ parameters:
           long: |
             Ratio between rpm error devided by 1000 to how much normalized output gets added to correct for it.
 
-            idle_throttle = ICE_IDLE_THR_FF + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
+            idle_throttle = ICE_IDLE_THR + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
         type: float
         decimal: 3
         increment: 0.1
@@ -165,7 +165,7 @@ parameters:
         description:
           short: Integral gain for idle rpm control
           long: |
-            idle_throttle = ICE_IDLE_THR_FF + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
+            idle_throttle = ICE_IDLE_THR + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
         type: float
         decimal: 3
         increment: 0.1
@@ -173,11 +173,13 @@ parameters:
         max: 10
         default: 0.0
 
-      ICE_IDLE_THR_FF:
+      ICE_IDLE_THR:
         description:
-          short: Idle RPM throttle feed-forward
+          short: Idle RPM throttle
           long: |
-            idle_throttle = ICE_IDLE_THR_FF + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
+            Should match approximately the throttle required to maintain the ICE_IDLE_RPM. The idle control throttle output is computed as follows:
+
+            idle_throttle = ICE_IDLE_THR + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
         type: float
         decimal: 3
         increment: 0.01
