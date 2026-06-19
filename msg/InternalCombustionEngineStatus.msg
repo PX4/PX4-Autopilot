@@ -6,6 +6,11 @@ uint8 STATE_RUNNING = 2					# The engine is running normally.
 uint8 STATE_FAULT = 3					# The engine can no longer function.
 uint8 state						# [@enum STATE] Engine state
 
+uint8 SUBSTATE_RUN = 0					# The engine is running. This is the default state.
+uint8 SUBSTATE_IDLE = 1					# The engine idle rpm controller is running.
+uint8 SUBSTATE_REST = 2					# The engine is at rest.
+uint8 substate						# [@enum SUBSTATE] Engine substate
+
 uint32 FLAG_GENERAL_ERROR = 1				# General error.
 
 uint32 FLAG_CRANKSHAFT_SENSOR_ERROR_SUPPORTED = 2	# Error of the crankshaft sensor. This flag is optional.

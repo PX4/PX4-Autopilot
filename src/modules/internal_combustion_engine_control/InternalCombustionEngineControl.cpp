@@ -299,6 +299,7 @@ void InternalCombustionEngineControl::publishControl(const hrt_abstime now)
 
 	internal_combustion_engine_status_s ice_status;
 	ice_status.state = static_cast<uint8_t>(_state);
+	ice_status.substate = static_cast<uint8_t>(_sub_state);
 	ice_status.timestamp = now;
 	ice_status.pid_idle_rpm_integral = _rpm_idle_pid.getIntegral();
 	_internal_combustion_engine_status_pub.publish(ice_status);
