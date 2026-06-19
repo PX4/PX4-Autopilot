@@ -66,25 +66,19 @@ public:
 	void setReturnAltMin(bool min) override { _enforce_rtl_alt = min; };
 	void setRtlAlt(float alt) override {_rtl_alt = alt;};
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	/**
+	 * @brief Destination the geofence-avoidance planner should route to: the start of the mission
+	 * landing sequence (first position item after DO_LAND_START). (NaN, NaN) if not yet known.
+	 */
+	matrix::Vector2d getGeofenceAvoidanceDestination();
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 private:
 	bool setNextMissionItem() override;
 	void setActiveMissionItems() override;
 	void updateDatamanCache() override;
 	bool checkNeedsToClimb();
-
-	/**
-	 * @brief Get lat/lon of the first position-containing mission item after the DO_LAND_START marker.
-	 *
-	 * @return matrix::Vector2d(lat, lon) of the item, or (NaN, NaN) if no such item exists
-	 *         or the dataman load failed.
-	 */
-	matrix::Vector2d get_first_position_after_land_start_index();
-
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	/// Planner destination (first position item after DO_LAND_START). Cached at activation so the
-	/// last geofence-avoidance leg can point triplet.next at it instead of repeating the current waypoint.
-	matrix::Vector2d _geofence_planner_destination{(double)NAN, (double)NAN};
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};

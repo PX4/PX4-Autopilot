@@ -76,12 +76,6 @@ void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
 	_vehicle_status_sub.update();
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	// Pass the current vehicle position; the planner falls back to its own latched in-fence
-	// anchor if the current position violates a fence. Resets the path cursor to 0.
-	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
-	planner.updateStartAndFillPath(matrix::Vector2<double> {_global_pos_sub.get().lat, _global_pos_sub.get().lon});
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	parameters_update();
 
@@ -105,7 +99,7 @@ void RtlDirect::on_activation()
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
 
-	} else if (planner.needsStraightLineFallback()) {
+	} else if (_navigator->get_geofence_avoidance_planner().needsStraightLineFallback()) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: no geofence avoidance path; flying directly\t");
 		events::send(events::ID("rtl_avoidance_runtime_fallback"), {events::Log::Critical, events::LogInternal::Error},
 			     "RTL: no geofence avoidance path; flying directly");
@@ -161,12 +155,6 @@ void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const lo
 		_force_heading = false;
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
-
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-		_navigator->get_geofence_avoidance_planner().updateDestination(
-			matrix::Vector2d{_land_approach.lat, _land_approach.lon}
-		);
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 		const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
 

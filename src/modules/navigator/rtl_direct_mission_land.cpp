@@ -102,19 +102,6 @@ void RtlDirectMissionLand::on_activation()
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
 
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-		matrix::Vector2d destination = get_first_position_after_land_start_index();
-		_geofence_planner_destination = destination;
-
-		GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
-
-		if (destination.isAllFinite()) {
-			planner.updateDestination(destination);
-		}
-
-		planner.updateStartAndFillPath({_global_pos_sub.get().lat, _global_pos_sub.get().lon});
-
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 		_needs_climbing = checkNeedsToClimb();
 
 	} else {
@@ -206,8 +193,10 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		if (!point.isAllFinite()) {
 			// Should never happen -- the geofence branch is only entered while hasMore() is true.
 			// Fall back to flying straight to the destination, as rtl_direct does.
-			if (_geofence_planner_destination.isAllFinite()) {
-				point = _geofence_planner_destination;
+			const matrix::Vector2d destination = getGeofenceAvoidanceDestination();
+
+			if (destination.isAllFinite()) {
+				point = destination;
 
 			} else {
 				point(0) = _global_pos_sub.get().lat;
@@ -519,7 +508,8 @@ bool RtlDirectMissionLand::checkNeedsToClimb()
 	return needs_climbing;
 }
 
-matrix::Vector2d RtlDirectMissionLand::get_first_position_after_land_start_index()
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+matrix::Vector2d RtlDirectMissionLand::getGeofenceAvoidanceDestination()
 {
 	matrix::Vector2d position((double)NAN, (double)NAN);
 
@@ -550,3 +540,4 @@ matrix::Vector2d RtlDirectMissionLand::get_first_position_after_land_start_index
 
 	return position;
 }
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
