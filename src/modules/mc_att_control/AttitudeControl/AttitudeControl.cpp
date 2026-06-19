@@ -39,6 +39,8 @@
 
 #include <mathlib/math/Functions.hpp>
 
+#include <float.h>
+
 using namespace matrix;
 
 static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { return a * b; }
@@ -88,8 +90,9 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	// Tangent-space inputs: rotate the analytical yaw rate into q_ref's body
 	//    frame, and form the small-angle error vector from q_ref to q_d.
 	const Quatf q_ref_inv = qinv(_q_ref);
+	const Vector3f z_world_in_ref = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
 	const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
-					? qzaxis(q_ref_inv) * yawspeed_setpoint
+					? z_world_in_ref * yawspeed_setpoint
 					: Vector3f{};
 
 	Quatf q_err = qmul(q_ref_inv, qd);
@@ -119,6 +122,13 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	// Lift back to SO(3): undo the offset substitution and apply the integrated
 	//    rotation to q_ref by right-multiplying (body-frame composition).
 	_omega_ref = w_offset_new + w_known_in_ref;
+
+	// Yaw-rate command: q_d.yaw is slaved to the measured yaw, so the error-driven FF would feed the
+	// measured yaw rate back (positive feedback). Keep only the commanded rate (w_known) on the yaw axis.
+	if (std::isfinite(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
+		_omega_ref -= w_offset_new.dot(z_world_in_ref) * z_world_in_ref;
+	}
+
 	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
 	_q_ref.normalize();
 }

@@ -294,3 +294,62 @@ TEST_F(AttitudeControlFeedforwardTest, FeedForwardDisabledSuppressesContribution
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(2), 0.f, 1e-3f);
 }
+
+TEST_F(AttitudeControlFeedforwardTest, UnlockedYawDoesNotFeedBackSlavedHeading)
+{
+	// GIVEN: the manual yaw-rate regime. StickYaw slaves the setpoint heading to the measured yaw,
+	// so q_d.yaw ramps at the (large) vehicle yaw rate while the commanded analytical rate is only
+	// the small decaying filter tail. Differentiating the slaved heading would latch the FF onto the
+	// measured rate (the uncommanded-yaw runaway). Reproduce: q_d.yaw ramps fast, yawspeed_sp small.
+	const float ramp_rate  = 0.8f;   // slaved-heading rate (≈ measured yaw rate)
+	const float commanded  = 0.05f;  // small but > FLT_EPSILON: yaw stays "unlocked"
+	rampSetpoint(Vector3f(0.f, 0.f, ramp_rate), commanded, kSettleSteps);
+
+	const Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
+
+	// THEN: yaw FF tracks only the analytical commanded rate, NOT the slaved-heading ramp (no latch)
+	EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f);
+	EXPECT_LT(fabsf(rate_setpoint(2)), 0.2f);
+	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, LockedYawRampStillFeedsForward)
+{
+	// GIVEN: a genuine yaw-angle target slewed with no commanded rate (heading-hold / auto yaw).
+	// yawspeed_sp = 0 → the heading is exogenous, not slaved, so the full reference-model FF must
+	// still differentiate it. This guards against over-gating killing the legitimate yaw FF.
+	const float omega = 0.5f;
+	rampSetpoint(Vector3f(0.f, 0.f, omega), 0.f, kSettleSteps);
+
+	const Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
+
+	EXPECT_NEAR(rate_setpoint(2), omega, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, TiltedUnlockedYawUsesCommandedRateOnly)
+{
+	// GIVEN: tilted while the slaved heading ramps fast (q_d.yaw := measured) but the commanded
+	// analytical rate is small — the tilted form of the uncommanded-yaw runaway.
+	const float tilt        = 0.5f;
+	const float slaved_rate = 0.8f;   // q_d.yaw ramp (≈ measured yaw rate)
+	const float commanded   = 0.05f;  // small but > FLT_EPSILON: yaw stays "unlocked"
+	const Quatf q_pitch(AxisAnglef(Vector3f(0.f, tilt, 0.f)));
+	Quatf q_d;
+
+	for (int i = 0; i < kSettleSteps; i++) {
+		const Quatf q_yaw(AxisAnglef(Vector3f(0.f, 0.f, slaved_rate * kDt * i)));
+		q_d = q_yaw * q_pitch;
+		_attitude_control.setAttitudeSetpoint(q_d, commanded, (i == 0) ? -1.f : kDt);
+	}
+
+	const Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
+
+	// THEN: FF is the commanded world-z rate projected into the body frame (not the slaved ramp),
+	// with no roll/pitch leak from the stripped heading error.
+	EXPECT_NEAR(rate_setpoint(0), -sinf(tilt) * commanded, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(2),  cosf(tilt) * commanded, 1e-3f);
+}
