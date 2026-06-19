@@ -76,6 +76,7 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		// First call (or dt out of range): snap reference to the current setpoint.
 		_q_ref = qd_normalized;
 		_omega_ref.zero();
+		_omega_known_ref.zero();
 		_ref_initialized = true;
 	}
 
@@ -123,11 +124,14 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	//    rotation to q_ref by right-multiplying (body-frame composition).
 	_omega_ref = w_offset_new + w_known_in_ref;
 
-	// Yaw-rate command: q_d.yaw is slaved to the measured yaw, so the error-driven FF would feed the
-	// measured yaw rate back (positive feedback). Keep only the commanded rate (w_known) on the yaw axis.
+	// Yaw-rate command: the heading setpoint just follows the measured yaw, so feeding the error-driven
+	// rate forward closes a positive-feedback loop. Keep only the commanded rate (w_known) on the yaw axis.
 	if (std::isfinite(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
 		_omega_ref -= w_offset_new.dot(z_world_in_ref) * z_world_in_ref;
 	}
+
+	// Commanded (analytical) part of the FF, kept separate so update() can exempt it from FF_MAX.
+	_omega_known_ref = w_known_in_ref;
 
 	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
 	_q_ref.normalize();
@@ -188,8 +192,12 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
 	if (ff_active) {
-		// Rotate _omega_ref from q_ref's body frame into the current body frame.
-		Vector3f omega_ff = _ff_gain * qmul(qinv(q), _q_ref).rotateVector(_omega_ref);
+		// Rotate the reference rate from q_ref's body frame into the current body frame.
+		const Quatf q_rel = qmul(qinv(q), _q_ref);
+
+		// FF_MAX caps only the model's error-driven anticipation; the commanded yaw rate (w_known, already
+		// bounded by MPC_MAN_Y_MAX upstream) passes through, else manual yaw authority would cap at FF_MAX.
+		Vector3f omega_ff = _ff_gain * q_rel.rotateVector(_omega_ref - _omega_known_ref);
 
 		if (_ff_max > 0.f) {
 			for (int i = 0; i < 3; i++) {
@@ -197,6 +205,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 			}
 		}
 
+		omega_ff += _ff_gain * q_rel.rotateVector(_omega_known_ref);
 		rate_setpoint += omega_ff;
 	}
 

@@ -131,6 +131,7 @@ private:
 
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_ref;           ///< reference body angular velocity (FF output)
+	matrix::Vector3f _omega_known_ref;     ///< commanded (analytical) part of _omega_ref; exempt from FF_MAX
 	bool _ref_initialized{false};
 
 	bool _ff_enabled{true};
