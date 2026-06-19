@@ -25,8 +25,11 @@ parameters:
         short: Enable yaw nudging on user input in autonomous modes.
         long: |-
           Using yaw stick the vehicle can be yawed in Auto modes (takeoff, mission, RTL, hold, landing).
+          It deactivates with mode switch until yaw stick is moved again.
 
           Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
+          !Warning! if COM_RC_OVERRIDE = 0 pilot cannot take over control of the vehicle. It is recommended to set a
+          mode switch button on the RC to pass to Position mode in case of emergency.
       type: enum
       values:
         0: Yaw nudging disabled
