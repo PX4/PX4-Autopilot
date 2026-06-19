@@ -13,6 +13,7 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 - RC control switches can be used to change flight modes on any vehicle.
 - Stick movement will [by default](#MAN_OVERRIDE_SPD) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
   This is true for multicopters and VTOL in hover.
+- The yaw stick can optionally nudge vehicle heading during the mission without changing mode (see [MPC_AUTO_RC_YAW](#MPC_AUTO_RC_YAW)).
 
 :::
 
@@ -109,6 +110,7 @@ General parameters:
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc.                                                                                                                                                                                                                                                                                                                                                               |
 | <a id="MAN_OVERRIDE_SPD"></a>[MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) | Speed (normalized stick travel per second) above which moving the sticks controlling a multicopter (or VTOL in hover) gives control back to the pilot by switching to [Position mode](../flight_modes_mc/position.md) (or Altitude mode if position is unavailable). At the default value of 1 a half-stick movement in ~0.5 s triggers it; lower is more sensitive. A stick held statically has zero speed and will not trigger. Set to -1 to disable. <Badge type="tip" text="PX4 v1.18" /> |
+| <a id="MPC_AUTO_RC_YAW"></a>[MPC_AUTO_RC_YAW](../advanced_config/parameter_reference.md#MPC_AUTO_RC_YAW) | Enable yaw stick override of vehicle heading in Auto modes (multicopter). The yaw stick nudges heading without switching modes, and the heading is held when the stick is released. Switching flight mode (e.g. to Hold and back) clears the held heading and returns yaw to the mode default. Requires stick override to be disabled ([MAN_OVERRIDE_SPD](#MAN_OVERRIDE_SPD) = -1). |
 
 Parameters related to [mission feasibility checks](#mission-feasibility-checks):
 
