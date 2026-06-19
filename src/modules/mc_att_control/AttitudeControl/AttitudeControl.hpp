@@ -116,7 +116,7 @@ public:
 private:
 	/**
 	 * Advance the 2nd-order reference model by one step toward the desired attitude
-	 * using an exact (ZOH) discretization, updating _q_ref and _omega_ref.
+	 * using an exact (ZOH) discretization, updating _q_ref and _omega_correction.
 	 * @param qd normalized desired attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 * @param dt [s] time since previous setpoint (> 0)
@@ -130,8 +130,8 @@ private:
 	matrix::Quatf _attitude_setpoint_q; ///< latest known raw attitude setpoint e.g. from position control
 
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
-	matrix::Vector3f _omega_ref;           ///< reference body angular velocity (FF output)
-	matrix::Vector3f _omega_known_ref;     ///< commanded (analytical) part of _omega_ref; exempt from FF_MAX
+	matrix::Vector3f _omega_correction;    ///< error-driven correction (2nd-order state); reference rate = _omega_correction + _omega_command
+	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from FF_MAX
 	bool _ref_initialized{false};
 
 	bool _ff_enabled{true};

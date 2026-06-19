@@ -75,8 +75,8 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 	} else {
 		// First call (or dt out of range): snap reference to the current setpoint.
 		_q_ref = qd_normalized;
-		_omega_ref.zero();
-		_omega_known_ref.zero();
+		_omega_correction.zero();
+		_omega_command.zero();
 		_ref_initialized = true;
 	}
 
@@ -91,10 +91,10 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	// Tangent-space inputs: rotate the analytical yaw rate into q_ref's body
 	//    frame, and form the small-angle error vector from q_ref to q_d.
 	const Quatf q_ref_inv = qinv(_q_ref);
-	const Vector3f z_world_in_ref = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
-	const Vector3f w_known_in_ref = std::isfinite(yawspeed_setpoint)
-					? z_world_in_ref * yawspeed_setpoint
-					: Vector3f{};
+	const Vector3f yaw_axis_body = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
+	const Vector3f omega_command = std::isfinite(yawspeed_setpoint)
+				       ? yaw_axis_body * yawspeed_setpoint
+				       : Vector3f{};
 
 	Quatf q_err = qmul(q_ref_inv, qd);
 	q_err.canonicalize();
@@ -114,24 +114,19 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	const float gamma = _kq * dt * emt;
 	const float delta = (1.f - w_dt) * emt;
 
-	// Propagate in tangent space. delta_phi is the integral of omega over [0, dt];
-	//    the w_offset part collapses to e(0) - e(dt) since e_dot = -w_offset.
-	const Vector3f w_offset     = _omega_ref - w_known_in_ref;
-	const Vector3f delta_phi    = (1.f - a) * e + b * w_offset + w_known_in_ref * dt;
-	const Vector3f w_offset_new = gamma * e + delta * w_offset;
-
-	// Lift back to SO(3): undo the offset substitution and apply the integrated
-	//    rotation to q_ref by right-multiplying (body-frame composition).
-	_omega_ref = w_offset_new + w_known_in_ref;
+	// Propagate the error-driven correction in tangent space (the 2nd-order state). delta_phi is the integral
+	//    of omega over [0, dt]; the correction part collapses to e(0) - e(dt) since e_dot = -correction.
+	const Vector3f delta_phi = (1.f - a) * e + b * _omega_correction + omega_command * dt;
+	_omega_correction = gamma * e + delta * _omega_correction;
 
 	// Yaw-rate command: the heading setpoint just follows the measured yaw, so feeding the error-driven
-	// rate forward closes a positive-feedback loop. Keep only the commanded rate (w_known) on the yaw axis.
+	// rate forward closes a positive-feedback loop. Keep only the commanded rate (omega_command) on the yaw axis.
 	if (std::isfinite(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
-		_omega_ref -= w_offset_new.dot(z_world_in_ref) * z_world_in_ref;
+		_omega_correction -= _omega_correction.dot(yaw_axis_body) * yaw_axis_body;
 	}
 
-	// Commanded (analytical) part of the FF, kept separate so update() can exempt it from FF_MAX.
-	_omega_known_ref = w_known_in_ref;
+	// Commanded (analytical) reference rate, kept separate so update() can exempt it from FF_MAX.
+	_omega_command = omega_command;
 
 	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
 	_q_ref.normalize();
@@ -141,8 +136,8 @@ void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 {
 	_attitude_setpoint_q = qmul(q_delta, _attitude_setpoint_q);
 	_attitude_setpoint_q.normalize();
-	// Apply the same world-frame delta to the reference attitude. _omega_ref is in
-	// the reference body frame and physically invariant under a world relabeling.
+	// Apply the same world-frame delta to the reference attitude. _omega_correction and _omega_command are
+	// in the reference body frame and physically invariant under a world relabeling.
 	_q_ref = qmul(q_delta, _q_ref);
 	_q_ref.normalize();
 }
@@ -195,9 +190,9 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 		// Rotate the reference rate from q_ref's body frame into the current body frame.
 		const Quatf q_rel = qmul(qinv(q), _q_ref);
 
-		// FF_MAX caps only the model's error-driven anticipation; the commanded yaw rate (w_known, already
+		// FF_MAX caps only the model's error-driven anticipation; the commanded yaw rate (omega_command, already
 		// bounded by MPC_MAN_Y_MAX upstream) passes through, else manual yaw authority would cap at FF_MAX.
-		Vector3f omega_ff = _ff_gain * q_rel.rotateVector(_omega_ref - _omega_known_ref);
+		Vector3f omega_ff = _ff_gain * q_rel.rotateVector(_omega_correction);
 
 		if (_ff_max > 0.f) {
 			for (int i = 0; i < 3; i++) {
@@ -205,7 +200,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 			}
 		}
 
-		omega_ff += _ff_gain * q_rel.rotateVector(_omega_known_ref);
+		omega_ff += _ff_gain * q_rel.rotateVector(_omega_command);
 		rate_setpoint += omega_ff;
 	}
 
