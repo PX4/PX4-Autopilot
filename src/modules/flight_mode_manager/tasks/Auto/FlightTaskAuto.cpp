@@ -54,6 +54,8 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_yawspeed_setpoint = 0.0f;
 
 	_rc_yaw_setpoint = NAN;
+	_rc_yaw_active = false;
+	_nav_state_prev = _sub_vehicle_status.get().nav_state;
 
 	Vector3f vel_prev{last_setpoint.velocity};
 	Vector3f pos_prev{last_setpoint.position};
@@ -235,16 +237,36 @@ bool FlightTaskAuto::update()
 	// update previous type
 	_type_previous = _type;
 
+	const uint8_t nav_state = _sub_vehicle_status.get().nav_state;
+
+	if (nav_state != _nav_state_prev) {
+		_rc_yaw_active = false;
+		_rc_yaw_setpoint = NAN;
+	}
+
+	_nav_state_prev = nav_state;
+
 	const bool land_help_yaw = _param_mpc_land_rc_help.get()
 				   && (_type == WaypointType::loiter || _type == WaypointType::land);
 	const bool rc_yaw_type = (_type == WaypointType::position || _type == WaypointType::takeoff
 				  || _type == WaypointType::loiter || _type == WaypointType::land);
+	const bool sticks_available = _sticks.checkAndUpdateStickInputs();
 
-	if (_param_mpc_auto_rc_yaw.get() && rc_yaw_type && !land_help_yaw && _sticks.checkAndUpdateStickInputs()) {
-		rcHelpModifyYaw(_rc_yaw_setpoint);
-		_yaw_setpoint = _rc_yaw_setpoint;
+	if (_param_mpc_auto_rc_yaw.get() && rc_yaw_type && !land_help_yaw && sticks_available) {
+		if (fabsf(_sticks.getYawExpo()) > FLT_EPSILON) {
+			_rc_yaw_active = true;
+		}
+
+		if (_rc_yaw_active) {
+			rcHelpModifyYaw(_rc_yaw_setpoint);
+			_yaw_setpoint = _rc_yaw_setpoint;
+
+		} else {
+			_rc_yaw_setpoint = NAN;
+		}
 
 	} else {
+		_rc_yaw_active = false;
 		_rc_yaw_setpoint = NAN;
 	}
 

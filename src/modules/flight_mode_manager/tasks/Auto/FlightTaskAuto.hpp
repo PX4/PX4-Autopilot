@@ -135,6 +135,8 @@ protected:
 
 	float _yaw_setpoint_previous{NAN}; /**< Used because _yaw_setpoint is overwritten in multiple places */
 	float _rc_yaw_setpoint{NAN}; /**< RC yaw override latch in auto mode (MPC_AUTO_RC_YAW) */
+	bool _rc_yaw_active{false};
+	uint8_t _nav_state_prev{0};
 	HeadingSmoothing _heading_smoothing;
 	bool _yaw_sp_aligned{false};
 
