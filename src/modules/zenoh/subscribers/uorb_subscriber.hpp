@@ -80,8 +80,10 @@ public:
 		size_t len = z_bytes_len(payload);
 
 		// Validate payload size to prevent stack overflow from untrusted input.
-		// CDR payload = 4-byte header + serialized data, which should not exceed o_size + 4.
-		const size_t max_payload_size = _uorb_meta->o_size + 4;
+		// CDR payload = 4-byte header + serialized data. CDR alignment padding can make
+		// the serialized data larger than the in-memory struct, so allow the same
+		// CDR_SAFETY_MARGIN the publisher budgets for (see dds_serializer.h).
+		const size_t max_payload_size = _uorb_meta->o_size + 4 + CDR_SAFETY_MARGIN;
 
 		if (len > max_payload_size || len < 4) {
 			return;

@@ -40,4 +40,12 @@
 extern const struct dds_cdrstream_allocator dds_allocator;
 extern const uint8_t ros2_header[4];
 
+// Upper bound on how many bytes XCDR1 serialization can exceed the in-memory
+// uORB struct size (o_size). The struct layout is sorted by field size to
+// minimize padding, while CDR serializes in declaration order and inserts more
+// alignment padding, so the wire size can be larger than o_size. Used both to
+// size outbound serialization buffers and to bound inbound payloads before
+// stack allocation.
+#define CDR_SAFETY_MARGIN 24
+
 #endif //DDS_CDRSTREAM_SERDER_H
