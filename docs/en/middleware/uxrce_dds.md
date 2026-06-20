@@ -41,7 +41,7 @@ Code that wants to subscribe/publish to PX4 does have a dependency on client-sid
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
 The agent has no dependency on client code.
-It can be built standalone or in a ROS 2 workspace, or installed as a snap package on Ubuntu.
+It can be built standalone or in a ROS 2 workspace.
 
 When PX4 is built, a code generator uses the uORB message definitions in the source tree ([PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)) to compile support for the subset of uORB topics in [/src/modules/uxrce_dds_client/dds_topics.yaml](../middleware/dds_topics.md) into [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client).
 
@@ -88,20 +88,6 @@ To start the agent with settings for connecting to the uXRCE-DDS client running 
 
 ```sh
 MicroXRCEAgent udp4 -p 8888
-```
-
-### Install from Snap Package
-
-Install from a snap package on Ubuntu using the following command:
-
-```sh
-sudo snap install micro-xrce-dds-agent --edge
-```
-
-To start the agent with settings for connecting to the uXRCE-DDS client running on the simulator (note that the command name is different than if you build the agent locally):
-
-```sh
-micro-xrce-dds-agent udp4 -p 8888
 ```
 
 ### Build/Run within ROS 2 Workspace
