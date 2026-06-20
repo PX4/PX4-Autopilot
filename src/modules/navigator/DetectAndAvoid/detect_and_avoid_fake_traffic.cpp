@@ -443,18 +443,18 @@ void DetectAndAvoid::fake_traffic(const SyntheticTrafficReport &report)
 
 	tr.timestamp = hrt_absolute_time();
 	tr.icao_address = report.icao_address;
-	tr.lat = lat; // Latitude, expressed as degrees
-	tr.lon = lon; // Longitude, expressed as degrees
+	tr.lat = lat;
+	tr.lon = lon;
 	tr.altitude_type = 0;
 	tr.altitude = alt;
-	tr.heading = report.traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
-	tr.hor_velocity	= report.hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
-	tr.ver_velocity = report.ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
+	tr.heading = report.traffic_heading;
+	tr.hor_velocity	= report.hor_velocity;
+	tr.ver_velocity = report.ver_velocity;
 	strncpy(&tr.callsign[0], report.callsign != nullptr ? report.callsign : "", sizeof(tr.callsign) - 1);
 	tr.callsign[sizeof(tr.callsign) - 1] = 0;
-	tr.emitter_type = report.emitter_type; // Type from ADSB_EMITTER_TYPE enum
-	tr.tslc = 2; // Time since last communication in seconds
-	tr.flags = report.flags; // Flags to indicate various statuses including valid data fields
+	tr.emitter_type = report.emitter_type;
+	tr.tslc = 2; // seconds since last communication
+	tr.flags = report.flags;
 	tr.squawk = 6667;
 
 #ifndef BOARD_HAS_NO_UUID

@@ -68,14 +68,11 @@ public:
 	~AdsbConflict() = default;
 
 	/**
-	 * @brief Validate the ownship + transponder inputs and calculate the DAA output.
-	 *
-	 * Returns false on non-finite inputs or when the built standard needs a heading
-	 * that the report does not provide.
-	 */
+	 * @brief Validate ownship + transponder inputs and compute the DAA output.
+	 * Returns false on non-finite inputs or when the built standard needs a heading the report does not provide.
+	*/
 	bool calculate_daa_output(const daa_input_s &daa_input, detect_and_avoid_s &daa_output);
 
-	/** @brief Refresh the built standard's parameter cache. Returns false on any invalid value. */
 	bool try_updating_params();
 
 private:

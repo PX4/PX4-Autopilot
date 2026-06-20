@@ -40,7 +40,6 @@ bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and
 {
 	const transponder_report_s &transponder_report = daa_input.transponder_report;
 
-	// Check input data not NAN
 	if (!(PX4_ISFINITE(transponder_report.lat) && PX4_ISFINITE(transponder_report.lon)
 	      && daa_input.uav_lat_lon.isAllFinite())) {
 		PX4_DEBUG("DAA lib: Invalid lat, lon, Early return");
@@ -66,7 +65,6 @@ bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and
 
 #endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
-	// Process input data
 	aircraft_state_s uav_state{};
 	uav_state.lat_lon = daa_input.uav_lat_lon;
 	uav_state.altitude = daa_input.uav_alt;
@@ -88,7 +86,6 @@ bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and
 		traffic_state.velocity_ned = matrix::Vector3f(transponder_report.hor_velocity, 0.f, -transponder_report.ver_velocity);
 	}
 
-	// Use DAA standard to detect traffic
 	daa_stats_s daa_stats{};
 	daa_output.conflict_level = _daa.calculate_daa_stats(uav_state, traffic_state, daa_stats);
 	daa_output.aircraft_dist_hor = daa_stats.aircraft_dist_hor;

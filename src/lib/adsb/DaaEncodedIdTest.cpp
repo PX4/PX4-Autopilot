@@ -55,8 +55,7 @@ void set_report_callsign(transponder_report_s &report, const char *callsign)
 
 } // namespace
 
-// WHY: Callsign packing and unpacking must round-trip cleanly so buffer keys and operator-facing messages stay consistent.
-// WHAT: Convert representative callsigns to the 64-bit key and back, verify the recovered string re-encodes identically, and reject unterminated input.
+// Callsign packs to a 64-bit key and back; the round-trip re-encodes identically, unterminated rejected.
 TEST(DaaEncodedIdTest, CallsignRoundTrip)
 {
 	const char *callsigns[] {
@@ -72,18 +71,16 @@ TEST(DaaEncodedIdTest, CallsignRoundTrip)
 		char recovered[kCallsignLength];
 		DaaEncodedId::convert_uint64_callsign_to_str(key, recovered);
 
-		// THEN: Re-encoding the recovered string yields the same key.
 		EXPECT_EQ(key, DaaEncodedId::callsign_to_uint64(recovered));
 	}
 
-	// WHEN/THEN: A callsign that is not null-terminated is rejected.
+	// unterminated input -> 0
 	char callsign_non_null[kCallsignLength];
 	memset(callsign_non_null, 'A', sizeof(callsign_non_null));
 	EXPECT_EQ(DaaEncodedId::callsign_to_uint64(callsign_non_null), 0u);
 }
 
-// WHY: Callsigns are stored as bytes, so high-bit characters must only affect their own byte slot and never sign-extend across the 64-bit key.
-// WHAT: Encode a callsign containing bytes with the MSB set and verify the key preserves only those byte values.
+// High-bit callsign bytes stay in their own byte slot; no sign extension across the key.
 TEST(DaaEncodedIdTest, CallsignPackingDoesNotSignExtend)
 {
 	const char callsign[kCallsignLength] {static_cast<char>(0x80), static_cast<char>(0xFF), '\0'};
@@ -91,8 +88,7 @@ TEST(DaaEncodedIdTest, CallsignPackingDoesNotSignExtend)
 	EXPECT_EQ(DaaEncodedId::callsign_to_uint64(callsign), static_cast<uint64_t>(0xFF80u));
 }
 
-// WHY: MAVLink fixed-length string fields copy every byte, so unused callsign bytes must be deterministic after decoding.
-// WHAT: Decode a short callsign into a pre-filled buffer and verify all bytes after the terminator are cleared.
+// Decoding a short callsign clears every byte after the terminator (MAVLink copies the whole field).
 TEST(DaaEncodedIdTest, CallsignDecodeClearsUnusedBytes)
 {
 	const char callsign[kCallsignLength] {'A', 'B', '\0'};
@@ -109,29 +105,27 @@ TEST(DaaEncodedIdTest, CallsignDecodeClearsUnusedBytes)
 	}
 }
 
-// WHY: ICAO identifiers are 24-bit values, so operator-facing formatting must stay fixed-width and avoid platform-specific truncation.
-// WHAT: Format representative ICAO values and verify the output is uppercase, zero-padded, derived from the low 24 bits, and that a too-small buffer is left untouched.
+// ICAO formats as fixed-width uppercase hex of the low 24 bits; a too-small buffer is left untouched.
 TEST(DaaEncodedIdTest, FormatsIcaoAsFixedWidthHex)
 {
 	char icao_buffer[kIcaoLength] {};
 
-	// WHEN: A short ICAO value is formatted. THEN: It is zero-padded and uppercased.
+	// zero-padded + uppercased
 	DaaEncodedId::convert_icao_uint32_to_hex_str(0xABCu, icao_buffer, sizeof(icao_buffer));
 	EXPECT_STREQ(icao_buffer, "000ABC");
 
-	// WHEN: High bits are present. THEN: Only the low 24 ICAO bits are rendered.
+	// only the low 24 bits
 	DaaEncodedId::convert_icao_uint32_to_hex_str(0x12ABCDEFu, icao_buffer, sizeof(icao_buffer));
 	EXPECT_STREQ(icao_buffer, "ABCDEF");
 
-	// WHEN: The buffer is too small. THEN: It is left untouched.
+	// too-small buffer untouched
 	char small_buffer[kIcaoLength - 1];
 	memset(small_buffer, 'X', sizeof(small_buffer));
 	DaaEncodedId::convert_icao_uint32_to_hex_str(0xABCu, small_buffer, sizeof(small_buffer));
 	EXPECT_EQ(small_buffer[0], 'X');
 }
 
-// WHY: The reduced UAS-ID key must preserve the exact GUID tail bytes used as the unique identifier.
-// WHAT: Pack random and zero-valued GUID tails and verify each key byte matches the source tail byte.
+// Packed UAS-ID key preserves the exact GUID tail bytes (little-endian); all-zero packs to 0.
 TEST(DaaEncodedIdTest, UasIdPackingPreservesTailBytes)
 {
 	uint8_t uas_id[kUasIdByteLength];
@@ -143,20 +137,18 @@ TEST(DaaEncodedIdTest, UasIdPackingPreservesTailBytes)
 
 		const uint64_t key = DaaEncodedId::last_uas_id_bytes_to_uint64(uas_id);
 
-		// THEN: Key byte k (little-endian) equals the k-th byte of the GUID tail.
+		// key byte k == GUID tail byte k
 		for (int k = 0; k < kIdEncodingNbBytes; ++k) {
 			const uint8_t key_byte = static_cast<uint8_t>((key >>(k * 8)) & 0xFF);
 			EXPECT_EQ(uas_id[kUasIdByteLength - kIdEncodingNbBytes + k], key_byte);
 		}
 	}
 
-	// WHEN/THEN: An all-zero UAS ID packs to a zero key.
 	uint8_t zero_uas_id[kUasIdByteLength] {};
 	EXPECT_EQ(DaaEncodedId::last_uas_id_bytes_to_uint64(zero_uas_id), 0u);
 }
 
-// WHY: Messages for operators use to_string().
-// WHAT: Convert one id per encoding plus an unknown encoding and verify the formatted string.
+// to_string() renders each encoding, plus an explicit placeholder for an unknown one.
 TEST(DaaEncodedIdTest, ToStringRendersEachEncoding)
 {
 	char buffer[kUtmGuidMsgLength];
@@ -180,8 +172,7 @@ TEST(DaaEncodedIdTest, ToStringRendersEachEncoding)
 	EXPECT_STREQ(unknown_buffer, "Unknown ID.");
 }
 
-// WHY: The traffic buffer keys conflicts on {id, encoding}, so equality must consider both fields.
-// WHAT: Compare ids that differ only by value or only by encoding.
+// Equality keys on both id and encoding.
 TEST(DaaEncodedIdTest, EqualityComparesIdAndEncoding)
 {
 	const DaaEncodedId a{42u, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO};
@@ -198,8 +189,7 @@ TEST(DaaEncodedIdTest, EqualityComparesIdAndEncoding)
 	EXPECT_TRUE(a != (DaaEncodedId{42u, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN}));
 }
 
-// WHY: A report can carry several identifiers; the buffer must key on a single, deterministic choice.
-// WHAT: Verify from_report() selects ICAO > callsign > UAS-ID and returns id=0 when nothing usable is present.
+// from_report() selects ICAO > callsign > UAS-ID, or id=0 when nothing usable is present.
 TEST(DaaEncodedIdTest, FromReportSelectsEncodingByPriority)
 {
 	// ICAO present: selected, and it wins even when a valid callsign is also present.
@@ -230,8 +220,7 @@ TEST(DaaEncodedIdTest, FromReportSelectsEncodingByPriority)
 	EXPECT_EQ(DaaEncodedId::from_report(empty_report).id, 0u);
 }
 
-// WHY: ICAO identifiers are vehicle-specific; unset (negative) parameters must never discard real traffic.
-// WHAT: Check primary and secondary ICAO matching against set and unset ownship identifiers.
+// ICAO self-detection matches the primary or secondary ownship ICAO; unset (negative) never matches.
 TEST(DaaEncodedIdTest, SelfDetectionIcao)
 {
 	const DaaEncodedId traffic_id{0x123456, detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO};
@@ -251,8 +240,7 @@ TEST(DaaEncodedIdTest, SelfDetectionIcao)
 	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
 }
 
-// WHY: Callsign identity is split across two parameters and the packed comparison must match exactly.
-// WHAT: Compare a packed traffic callsign against matching, unset, and different ownship callsigns.
+// Callsign self-detection requires an exact packed match.
 TEST(DaaEncodedIdTest, SelfDetectionCallsign)
 {
 	const char callsign[kCallsignLength] = "TST1234";
@@ -271,8 +259,7 @@ TEST(DaaEncodedIdTest, SelfDetectionCallsign)
 	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
 }
 
-// WHY: Without a board UUID there is no own UAS identity, so UAS traffic must never be treated as self.
-// WHAT: Compare a packed traffic UAS-ID against the ownship key with the valid flag set and cleared.
+// UAS-ID self-detection only when the board UUID is valid and the packed key matches.
 TEST(DaaEncodedIdTest, SelfDetectionUasId)
 {
 	uint8_t uas_id_bytes[kUasIdByteLength];
@@ -297,9 +284,7 @@ TEST(DaaEncodedIdTest, SelfDetectionUasId)
 	EXPECT_FALSE(DaaEncodedId::is_self_detection(traffic_id, ownship_ids));
 }
 
-// WHY: The identification must reject reports without a usable identity and ownship reports,
-// and hand a decoded identifier to the tracker for everything else.
-// WHAT: Identify an empty report, an incoming ICAO report, and the same report with a matching ownship ICAO.
+// identify_traffic_report() rejects reports with no identity and ownship reports, decodes the rest.
 TEST(DaaEncodedIdTest, IdentifyTrafficReport)
 {
 	daa_ownship_ids_s ownship_ids{};

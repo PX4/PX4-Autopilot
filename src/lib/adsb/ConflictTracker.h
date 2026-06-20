@@ -90,11 +90,9 @@ struct conflict_tracker_change_s {
 	bool conflict_is_most_urgent{false};
 };
 
-// Worst-case number of change records produced over one detection cycle. The caller drives
-// the tracker once per cycle and lets it append straight into a single buffer of this size:
-// a stale sweep can drop every tracked entry (kDaaMaxTraffic) and each report processed from the
-// transponder ORB queue can emit up to two changes (a removal plus an insertion, or a level
-// change). Bounding the buffer here lets the caller keep it off the stack (in .bss, AXI_SRAM on FMU targets).
+// Worst-case change records per cycle: a stale sweep can drop all kDaaMaxTraffic entries and each
+// queued transponder report can emit two changes (removal + insertion, or a level change). Sizing
+// it here lets the caller keep the buffer off the stack (.bss, AXI_SRAM on FMU targets).
 static constexpr uint16_t kMaxConflictChangesPerCycle{kDaaMaxTraffic + 2 * transponder_report_s::ORB_QUEUE_LENGTH};
 
 using conflict_tracker_changes_s = px4::Array<conflict_tracker_change_s, kMaxConflictChangesPerCycle>;
@@ -124,21 +122,21 @@ public:
 	 */
 	bool remove_stale_conflicts(const hrt_abstime now, const hrt_abstime timeout_us, conflict_tracker_changes_s &changes);
 
-	/** @brief Drop all tracked conflicts and reset the most-urgent cache. */
+	// Drop all conflicts and reset the most-urgent cache.
 	void clear();
 
-	/** @brief Recompute the cached most-urgent conflict from the current buffer state. */
+	// Recompute the cached most-urgent conflict from the buffer.
 	void refresh_most_urgent();
 
-	/** @brief Cached most-urgent conflict; only updated by refresh_most_urgent() and clear(). */
+	// Cached value; only refresh_most_urgent() and clear() update it.
 	const conflict_info_s &most_urgent() const { return _most_urgent; }
 
-	/** @brief Compute the highest-priority conflict from the buffer, or id=0 when the buffer is empty. */
+	// Highest-priority conflict in the buffer, or id=0 when empty.
 	conflict_info_s find_most_urgent() const;
 
 	bool contains(const DaaEncodedId &encoded_id) const { return find_conflict_idx(encoded_id) >= 0; }
 
-	/** @brief Return the tracked entry for @p encoded_id, or id=0 when it is not tracked. */
+	// Tracked entry for encoded_id, or id=0 when not tracked.
 	conflict_info_s get_conflict(const DaaEncodedId &encoded_id) const;
 
 	size_t size() const { return _buffer.size(); }
@@ -155,15 +153,13 @@ private:
 		kLeastUrgent
 	};
 
-	/**
-	 * @brief Insert a new conflict, removing the least urgent entry when the buffer is full.
-	 *
-	 * Removals emit kConflictRemoved (kBufferFull); rejected inserts emit kReportIgnored.
-	 */
+	/** @brief Insert a new conflict, removing the least urgent entry when the buffer is full. */
 	bool add_conflict(const conflict_info_s &conflict, conflict_tracker_changes_s &changes);
 
 	/**
-	 * @brief Overwrite a tracked entry from a new report; DAA_CONFLICT_LVL_NONE drops it.
+	 * @brief Overwrite a tracked entry from a new report.
+	 *
+	 * If the level changed to DAA_CONFLICT_LVL_NONE, the conflict is removed form the buffer.
 	 *
 	 * Emits kConflictLevelChanged when the level differs from the stored entry.
 	 */

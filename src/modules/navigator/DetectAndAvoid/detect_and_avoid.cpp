@@ -548,7 +548,6 @@ void DetectAndAvoid::publish_action_command(const DaaAction requested_action)
 	switch (requested_action) {
 	case DaaAction::kDisabled:
 	case DaaAction::kWarnOnly: {
-			// No action early return
 			return;
 		}
 

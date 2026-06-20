@@ -156,9 +156,7 @@ void expect_command(const daa_action_decision_s &decision, const DaaAction expec
 
 } // namespace
 
-// WHY: Operator messages and parameters share the NAV_TRAFF_AVOID numbering while escalation uses
-// the internal severity ladder.
-// WHAT: Check every public parameter value, its internal action, the inverse mapping and invalid input.
+// Param numbering and the internal action ladder map both ways; out-of-range maps to Disabled.
 TEST(DaaActionPolicyTest, ActionParamMappingUsesParameterNumbering)
 {
 	struct action_param_case_s {
@@ -176,24 +174,19 @@ TEST(DaaActionPolicyTest, ActionParamMappingUsesParameterNumbering)
 	};
 
 	for (const action_param_case_s &test_case : cases) {
-		// Convert parameter value to the internal severity ladder.
 		EXPECT_EQ(DaaActionPolicy::action_param_to_daa_action(test_case.param), test_case.action)
 				<< "param " << test_case.param;
-
-		// Convert internal severity ladder to the original parameter numbering.
 		EXPECT_EQ(DaaActionPolicy::daa_action_to_action_param(test_case.action), test_case.param)
 				<< "action " << static_cast<int>(test_case.action);
 	}
 
-	// WHEN/THEN: Out-of-range values are safe and map to Disabled.
+	// out-of-range -> Disabled
 	EXPECT_EQ(DaaActionPolicy::action_param_to_daa_action(-1), DaaAction::kDisabled);
 	EXPECT_EQ(DaaActionPolicy::action_param_to_daa_action(6), DaaAction::kDisabled);
 	EXPECT_EQ(DaaActionPolicy::daa_action_to_action_param(DaaAction::kMaxActionValue), 0);
 }
 
-// WHY: Automatic DAA actions must only escalate when they are stronger than the current navigator
-// state; this gate protects manual and offboard flight from unintended mode changes.
-// WHAT: Evaluate each requested action across all representative navigation states.
+// An action escalates only when stronger than the current navigator state (protects manual/offboard).
 TEST(DaaActionPolicyTest, ActionEscalatesOnlyAboveNavState)
 {
 	check_escalation_matrix({DaaAction::kDisabled, false, false, false, false});
@@ -204,14 +197,11 @@ TEST(DaaActionPolicyTest, ActionEscalatesOnlyAboveNavState)
 	check_escalation_matrix({DaaAction::kTerminate, true, true, true, true});
 }
 
-// WHY: Invalid conflict levels must never request an action.
-// WHAT: Map NONE and an invalid level with actions configured everywhere.
+// NONE and out-of-range levels never request an action, even with actions configured everywhere.
 TEST(DaaActionPolicyTest, NoActionForInvalidLevels)
 {
-	// GIVEN: Terminate action for every valid level.
-	const daa_action_params_s params = params_for_all_levels(5);
+	const daa_action_params_s params = params_for_all_levels(5); // Terminate everywhere
 
-	// WHEN/THEN: NONE and out-of-range conflict levels are treated as Disabled.
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_NONE, params),
 		  DaaAction::kDisabled);
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL + 1, params),
@@ -219,19 +209,15 @@ TEST(DaaActionPolicyTest, NoActionForInvalidLevels)
 }
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-// WHY: F3442 zones are nested, so a breached inner zone with a disabled action must fall back to
-// the next larger breached zone.
-// WHAT: Configure per-level actions with gaps and verify the fallback chain.
+// F3442: a breached zone with a disabled action falls back to the next larger zone.
 TEST(DaaActionPolicyTest, F3442NestedZoneFallback)
 {
-	// GIVEN: Per-level F3442 actions with HIGH disabled.
 	daa_action_params_s params{};
 	params.lvl_low_act = 1;		// Warn only
 	params.lvl_med_act = 4;		// Hold
 	params.lvl_high_act = 0;	// Disabled -> falls back to MEDIUM's action
 	params.lvl_crit_act = 5;	// Terminate
 
-	// WHEN/THEN: Each level maps to its own action, or to the next broader enabled action.
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, params),
 		  DaaAction::kWarnOnly);
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM, params),
@@ -241,19 +227,16 @@ TEST(DaaActionPolicyTest, F3442NestedZoneFallback)
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, params),
 		  DaaAction::kTerminate);
 
-	// WHEN/THEN: If every level is disabled, the fallback chain ends disabled.
+	// all levels disabled -> fallback chain ends disabled
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL,
 			params_for_all_levels(0)), DaaAction::kDisabled);
 }
 #else
-// WHY: Crosstrack has a single threshold, so every breached level maps through NAV_TRAFF_AVOID.
-// WHAT: Map all in-range levels with one configured action.
+// Crosstrack maps every level through the single NAV_TRAFF_AVOID action.
 TEST(DaaActionPolicyTest, CrosstrackSingleActionMapping)
 {
-	// GIVEN: Crosstrack uses one action parameter for every conflict level.
 	const daa_action_params_s params = params_for_all_levels(3); // Land
 
-	// WHEN/THEN: All in-range levels map through NAV_TRAFF_AVOID.
 	for (uint8_t level = detect_and_avoid_s::DAA_CONFLICT_LVL_LOW;
 	     level <= detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL; ++level) {
 		EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(level, params), DaaAction::kLandMode);
@@ -261,78 +244,66 @@ TEST(DaaActionPolicyTest, CrosstrackSingleActionMapping)
 }
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-// WHY: An unchanged most urgent level must never produce a command or warning.
-// WHAT: Call decide() with equal levels.
+// Unchanged level: no command or warning.
 TEST(DaaActionPolicyTest, DecideNoResponseWithoutLevelChange)
 {
-	// GIVEN/WHEN: The most urgent conflict level is unchanged.
 	const daa_action_decision_s decision = DaaActionPolicy::decide(
 			detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL,
 			vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false, true,
 			DaaAction::kDisabled, params_for_all_levels(5));
 
-	// THEN: No command or warning is requested.
 	expect_no_response(decision);
 }
 
-// WHY: On the ground, an action-requiring conflict must warn the operator (blocked arm or takeoff)
-// WHAT: Run a landed escalation armed, disarmed and with a warn only configuration.
+// On the ground, an action-requiring conflict warns (arm/takeoff blocked) instead of commanding.
 TEST(DaaActionPolicyTest, DecideWarnsOnGroundInsteadOfActing)
 {
 	const uint8_t critical = detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL;
 	const uint8_t none = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 	const uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 
-	// GIVEN/WHEN: A landed and armed vehicle sees an action-requiring escalation.
+	// armed -> takeoff warning
 	daa_action_decision_s decision = DaaActionPolicy::decide(critical, none, nav_state, true, true,
 					 DaaAction::kDisabled, params_for_all_levels(5));
-	// THEN: It warns about takeoff instead of publishing a command.
 	expect_ground_warning(decision, NotifyLandedActCause::kConflictAndArmed);
 
-	// GIVEN/WHEN: The same conflict is seen while disarmed.
+	// disarmed -> arming warning
 	decision = DaaActionPolicy::decide(critical, none, nav_state, true, false,
 					   DaaAction::kDisabled, params_for_all_levels(5));
-	// THEN: It warns about arming.
 	expect_ground_warning(decision, NotifyLandedActCause::kConflictAndDisarmed);
 
-	// GIVEN/WHEN: The conflict is configured as warn-only.
+	// warn-only config -> nothing
 	decision = DaaActionPolicy::decide(critical, none, nav_state, true, true,
 					   DaaAction::kDisabled, params_for_all_levels(1));
-	// THEN: No action-path ground warning is emitted.
 	expect_no_response(decision);
 }
 
-// WHY: In the air, commands are sent once per escalation, requested again without announcing again when
-// the same action is needed again, and never issued on de-escalation or against a stronger mode.
-// WHAT: Test escalation, repeated escalation, blocked escalation and de-escalation.
+// Airborne: command once per escalation, re-requested without re-announcing, never on de-escalation
+// or below the current mode.
 TEST(DaaActionPolicyTest, DecideRequestsCommandOnAirborneEscalationOnly)
 {
 	const uint8_t critical = detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL;
 	const uint8_t low = detect_and_avoid_s::DAA_CONFLICT_LVL_LOW;
 	const daa_action_params_s land_params = params_for_all_levels(3); // Land
-	// GIVEN/WHEN: The conflict escalates while in a mission state.
+
+	// escalation -> Land command, announced
 	daa_action_decision_s decision = DaaActionPolicy::decide(critical, low,
 					 vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, false, true,
 					 DaaAction::kDisabled, land_params);
-	// THEN: A Land command is requested and announced.
 	expect_command(decision, DaaAction::kLandMode, true);
 
-	// GIVEN/WHEN: The same action is requested again after a failed mode change.
+	// repeat after a failed mode change -> retried, not re-announced
 	decision = DaaActionPolicy::decide(critical, low, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION,
 					   false, true, DaaAction::kLandMode, land_params);
-
-	// THEN: The command may be retried, but the operator message is not repeated.
 	expect_command(decision, DaaAction::kLandMode, false);
 
-	// GIVEN/WHEN: The vehicle is already in a stronger navigation state.
+	// already in a stronger mode -> nothing
 	decision = DaaActionPolicy::decide(critical, low, vehicle_status_s::NAVIGATION_STATE_TERMINATION,
 					   false, true, DaaAction::kDisabled, land_params);
-	// THEN: No lower-severity command is requested.
 	expect_no_response(decision);
 
-	// GIVEN/WHEN: The conflict de-escalates.
+	// de-escalation -> nothing
 	decision = DaaActionPolicy::decide(low, critical, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION,
 					   false, true, DaaAction::kLandMode, land_params);
-	// THEN: The policy never commands a weaker mode.
 	expect_no_response(decision);
 }

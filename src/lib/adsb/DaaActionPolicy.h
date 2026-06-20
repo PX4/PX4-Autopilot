@@ -90,9 +90,12 @@ public:
 	/**
 	 * @brief Decide the automated response to a most urgent conflict level escalation.
 	 *
-	 * No response when the level is unchanged. When landed, action-requiring conflicts
-	 * lead to a ground warning instead of a command. In the air, a command is requested
-	 * only on escalation and only when it is stronger than the current navigator state;
+	 * No response when the level is unchanged.
+	 *
+	 * When landed, action-requiring conflicts lead to a ground warning instead of a command.
+	 *
+	 * In the air, a command is requested only on escalation and only when it is stronger than the current navigator state.
+	 *
 	 * de-escalations never trigger commands.
 	 */
 	static daa_action_decision_s decide(const uint8_t conflict_level, const uint8_t prev_conflict_level,
@@ -107,15 +110,15 @@ public:
 	 */
 	static DaaAction action_from_conflict_level(const uint8_t conflict_level, const daa_action_params_s &params);
 
-	/** @brief True if @p requested_action is more urgent than the mode equivalent of @p nav_state. */
+	// True if requested_action is more urgent than the mode equivalent of nav_state.
 	static bool action_escalates_above_nav_state(const DaaAction requested_action, const uint8_t nav_state);
 
-	/** @brief Return the DAA action equivalent to a navigation state (used to gate escalation). */
+	// DAA action equivalent to a navigation state (used to gate escalation).
 	static DaaAction nav_state_to_equivalent_daa_action(const uint8_t nav_state);
 
-	/** @brief Convert the user-facing action param value into the internal DaaAction enum. */
+	// Convert a user-facing action param value into the internal DaaAction enum.
 	static DaaAction action_param_to_daa_action(const int32_t action_param);
 
-	/** @brief Inverse of action_param_to_daa_action: report actions with the parameter numbering. */
+	// Inverse of action_param_to_daa_action.
 	static uint8_t daa_action_to_action_param(const DaaAction action);
 };

@@ -101,24 +101,24 @@ struct DaaEncodedId {
 	 */
 	static DaaEncodedId identify_traffic_report(const transponder_report_s &report, const daa_ownship_ids_s &ownship_ids);
 
-	/** @brief True if the report's identifier matches ownship (ICAO, callsign or UAS-ID). */
+	// True if the report's identifier matches ownship (ICAO, callsign or UAS-ID).
 	static bool is_self_detection(const DaaEncodedId &encoded_id, const daa_ownship_ids_s &ownship_ids);
 
-	/** @brief Render this id to a null-terminated string according to its encoding. */
+	// Render to a null-terminated string per its encoding.
 	void to_string(char *buffer, size_t buffer_size) const;
 
-	/** @brief Pack a callsign string into a 64-bit key. Returns 0 if the input is not null-terminated. */
+	// Pack a callsign into a 64-bit key. Returns 0 if the input is not null-terminated.
 	static uint64_t callsign_to_uint64(const char callsign[kCallsignLength]);
 
-	/** @brief Inverse of callsign_to_uint64; unpack the key back to a null-terminated callsign. */
+	// Inverse of callsign_to_uint64.
 	static void convert_uint64_callsign_to_str(uint64_t value, char callsign[kCallsignLength]);
 
-	/** @brief Pack the trailing bytes of a UAS-ID (UTM GUID) into a 64-bit key. */
+	// Pack the trailing bytes of a UAS-ID (UTM GUID) into a 64-bit key.
 	static uint64_t last_uas_id_bytes_to_uint64(const uint8_t uas_id[kUasIdByteLength]);
 
-	/** @brief Render a packed UAS-ID key as a reduced lowercase hex string. */
+	// Render a packed UAS-ID key as a reduced lowercase hex string.
 	static void convert_uas_id_uint64_to_str(uint64_t uas_id_int, char uas_id_char_arr[kUtmGuidMsgLength]);
 
-	/** @brief Print the low 24 bits of an ICAO address as a 6-digit uppercase hex string. */
+	// Print the low 24 bits of an ICAO address as a 6-digit uppercase hex string.
 	static void convert_icao_uint32_to_hex_str(uint64_t value, char *buffer, size_t buffer_size);
 };

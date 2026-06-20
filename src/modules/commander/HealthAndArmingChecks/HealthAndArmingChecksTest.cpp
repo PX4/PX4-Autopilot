@@ -293,11 +293,9 @@ TEST_F(ReporterTest, reporting_multiple)
 }
 
 #if CONFIG_NAVIGATOR_ADSB
-// WHY: Commander must not block arming on a DetectAndAvoid sample that has already aged past the configured stale timeout.
-// WHAT: First publish a fresh blocking conflict and verify the DAA arming event is emitted, then republish the same conflict as stale and confirm arming is allowed without re-emitting that event.
+// A fresh blocking conflict blocks arming; the same sample gone stale no longer blocks or re-emits.
 TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 {
-	// GIVEN: DAA arming checks are enabled with a short stale-data timeout.
 	param_control_autosave(false);
 	param_reset_all();
 
@@ -320,7 +318,7 @@ TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 
 	while (event_sub.update(&event)) {}
 
-	// WHEN: A fresh most-urgent DAA conflict that requires action is published.
+	// fresh conflict requiring action
 	detect_and_avoid_most_urgent_s daa_status{};
 	daa_status.timestamp = hrt_absolute_time();
 	daa_status.has_action = true;
@@ -344,7 +342,7 @@ TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 
 	EXPECT_TRUE(saw_daa_conflict_event);
 
-	// WHEN: The same conflict sample is republished with a stale timestamp.
+	// same sample republished stale
 	const hrt_abstime now = hrt_absolute_time();
 	daa_status.timestamp = now > 2_s ? now - 2_s : 0;
 	daa_pub.publish(daa_status);
@@ -363,18 +361,15 @@ TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 		}
 	}
 
-	// THEN: Stale DAA data no longer blocks arming or re-emits the conflict event.
 	EXPECT_FALSE(saw_daa_conflict_event);
 }
 
-// WHY: DAA is implemented as an arming check and must not emit prearm failures after the vehicle is armed.
-// WHAT: Publish a fresh blocking conflict while the vehicle is armed and verify the DAA arming event is not sent.
+// The DAA arming check stays silent once the vehicle is armed, even with a fresh blocking conflict.
 TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
 {
 	param_control_autosave(false);
 	param_reset_all();
 
-	// GIVEN: DAA arming checks are enabled and the vehicle is armed
 	const int32_t daa_enabled = 1;
 	const int32_t daa_timeout_s = 1;
 	param_set(param_handle(px4::params::DAA_EN), &daa_enabled);
@@ -395,7 +390,6 @@ TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
 
 	while (event_sub.update(&event)) {}
 
-	// WHEN: A conflict with automated action is published while the vehicle is armed
 	detect_and_avoid_most_urgent_s daa_status{};
 	daa_status.timestamp = hrt_absolute_time();
 	daa_status.has_action = true;
@@ -403,7 +397,6 @@ TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
 	daa_status.aircraft_dist = 15.f;
 	daa_pub.publish(daa_status);
 
-	// THEN: The conflict does not block arming and does not emit the conflict event.
 	reporter.reset();
 	daa_checks.checkAndReport(context, reporter);
 	reporter.finalize();

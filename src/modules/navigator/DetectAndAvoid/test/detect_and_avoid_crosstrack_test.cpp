@@ -45,26 +45,22 @@
 
 #include "detect_and_avoid_test_common.h"
 
-// WHY: Activation must fail closed when a crosstrack gate parameter is invalid.
-// WHAT: Inject a negative crosstrack separation and verify the module refuses to activate.
+// Activation fails closed when a crosstrack gate parameter is invalid.
 TEST_F(DetectAndAvoidTest, ActivationFailsWithInvalidCrosstrackParams)
 {
-	// GIVEN: The module activated cleanly with the default parameter set.
 	EXPECT_TRUE(navigator->get_detect_and_avoid()->is_activated());
 
-	// WHEN: A required crosstrack parameter is invalid.
 	const float negative_value = -10.f;
 	param_set(param_handle(px4::params::NAV_TRAFF_A_HOR), &negative_value);
 
 	navigator->get_detect_and_avoid()->on_activation();
 
-	// THEN: Activation fails closed.
 	EXPECT_FALSE(navigator->get_detect_and_avoid()->is_activated());
 	param_reset_all();
 }
 
-// WHY: Runtime NAV_TRAFF_AVOID action updates must not re-evaluate the current buffer, but later conflict escalations must use the refreshed action value.
-// WHAT: Start with a crosstrack conflict in warn-only mode, switch NAV_TRAFF_AVOID to terminate at runtime, verify no immediate command is sent, then clear and re-trigger the conflict and confirm termination is commanded.
+// A runtime NAV_TRAFF_AVOID change doesn't re-evaluate the current buffer, but the next conflict
+// uses the refreshed action.
 TEST_F(DetectAndAvoidTest, RuntimeCrosstrackTerminateUpdateAppliesOnNextConflict)
 {
 	const int warn_only = action_param_value(DaaAction::kWarnOnly);
@@ -132,14 +128,11 @@ TEST_F(DetectAndAvoidTest, RuntimeCrosstrackTerminateUpdateAppliesOnNextConflict
 	EXPECT_EQ(_vehicle_command_sub.get().command, vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION);
 }
 
-// WHY: Crosstrack mode depends on a finite traffic heading and must fail closed if the heading value is NaN or Inf.
-// WHAT: Publish invalid heading values with the VALID_HEADING flag set, and verify no output or buffered conflict is produced.
+// Crosstrack mode fails closed on a NaN/Inf traffic heading even with VALID_HEADING set.
 TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 {
-	// GIVEN: DetectAndAvoid is built in crosstrack mode.
 	recreate_navigator();
 
-	// GIVEN: Ownship is initialized and traffic headings are marked as valid.
 	const double lat_uav = 46.52342;
 	const double lon_uav = 6.524234;
 	const float alt_uav = 400.f;
@@ -153,7 +146,6 @@ TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 
-	// WHEN: Traffic is published with non-finite heading values.
 	for (const float heading : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
 		drain_detect_and_avoid_topic();
 
@@ -162,7 +154,6 @@ TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 		tr.heading = heading;
 		publish_transponder_report_and_check(tr);
 
-		// THEN: No detect_and_avoid output is published and no conflict is buffered.
 		EXPECT_FALSE(_detect_and_avoid_sub.update());
 
 		conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
@@ -170,14 +161,12 @@ TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 	}
 }
 
-// WHY: A hovering ownship has no meaningful course-over-ground, so crosstrack mode must use the local-position yaw instead of atan2f(0, 0).
-// WHAT: Publish a hovering ownship with unavailable local yaw and verify crosstrack processing fails instead of inventing a north heading.
+// A hovering ownship with no local-position yaw fails closed instead of inventing a north heading
+// (no meaningful course-over-ground, so crosstrack can't use atan2f(0, 0)).
 TEST_F(DetectAndAvoidTest, HoveringCrosstrackRejectsNonFiniteOwnshipHeading)
 {
-	// GIVEN: DetectAndAvoid is built in crosstrack mode.
 	recreate_navigator();
 
-	// GIVEN: Ownship is hovering and local-position yaw is unavailable.
 	const double lat_uav = 46.52342;
 	const double lon_uav = 6.524234;
 	const float alt_uav = 400.f;
@@ -198,10 +187,9 @@ TEST_F(DetectAndAvoidTest, HoveringCrosstrackRejectsNonFiniteOwnshipHeading)
 				  alt_uav, 30.f, 0.f, flags);
 	tr.heading = 3.f * M_PI_2_F;
 
-	// WHEN: A traffic report that would otherwise be processed by crosstrack mode is received.
 	publish_transponder_report_and_check(tr);
 
-	// THEN: No output is published and no conflict is buffered because ownship yaw is not finite.
+	// nothing published or buffered: ownship yaw is not finite
 	EXPECT_FALSE(_detect_and_avoid_sub.update());
 
 	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();

@@ -66,11 +66,11 @@ class DaaCrosstrack : public ModuleParams
 public:
 	DaaCrosstrack();
 
-	/** @brief Compute the crosstrack-based conflict level for one traffic target. */
+	// Crosstrack-based conflict level for one traffic target.
 	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
 				    daa_stats_s &daa_stats);
 
-	/** @brief Refresh the crosstrack thresholds from parameters. Returns false on invalid values. */
+	// Refresh the crosstrack thresholds from parameters. False on invalid values.
 	bool try_setting_params();
 
 private:

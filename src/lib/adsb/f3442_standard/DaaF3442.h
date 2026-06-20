@@ -65,11 +65,11 @@ class DaaF3442 : public ModuleParams
 public:
 	DaaF3442();
 
-	/** @brief Compute distance, time-to-min-distance and the F3442 conflict level for one target. */
+	// Distance, time-to-min-distance and the F3442 conflict level for one target.
 	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
 				    daa_stats_s &daa_stats);
 
-	/** @brief True if every component of @p distance is within the symmetric @p bounds box. */
+	// True if every component of distance is within the symmetric bounds box.
 	static bool is_in_bounds(const matrix::Vector2f &distance, const matrix::Vector2f &bounds);
 
 	/**
@@ -80,11 +80,11 @@ public:
 	static void calculate_aircraft_conflict_volume(const matrix::Vector2f &base_bounds, const matrix::Vector2f &vel,
 			const float latency, matrix::Vector2f &output_bounds);
 
-	/** @brief Sum of the ownship and traffic augmented volumes for a given base zone and latency. */
+	// Sum of the ownship and traffic augmented volumes for a base zone and latency.
 	static void calculate_augmented_boundaries(const matrix::Vector2f &base_bounds, const matrix::Vector2f &uav_vel_hor_vert,
 			const matrix::Vector2f &traffic_vel, const float latency, matrix::Vector2f &augmented_bounds);
 
-	/** @brief Walk the four nested zones from CRITICAL outwards and return the strictest one breached. */
+	// Walk the four nested zones from CRITICAL outwards; return the strictest one breached.
 	uint8_t calculate_conflict_level(const matrix::Vector2f &distance, const matrix::Vector2f &uav_vel_hor_vert,
 					 const matrix::Vector2f &traffic_vel);
 

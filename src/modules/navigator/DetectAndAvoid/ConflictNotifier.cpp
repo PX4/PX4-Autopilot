@@ -57,11 +57,9 @@ void ConflictNotifier::reset()
 void ConflictNotifier::report_cycle(const conflict_tracker_changes_s &changes, const ConflictTracker &tracker,
 				    const cycle_context_s &context)
 {
-	// Defer "new conflict" warnings after all other warnings.
-	// This is required to avoid emitting a warning for a new conflict
-	// that ends up being removed form the buffer in the same cycle.
-	// The navigator is single-threaded and calls report_cycle() exactly once per cycle, so this
-	// buffer lives in .bss (static) to keep it off the stack; clear it at the start of each call.
+	// Defer "new conflict" warnings until after the others, so a conflict added and removed in the
+	// same cycle is never announced. report_cycle() runs once per cycle on the single navigator
+	// thread, so this lives in .bss (static, off the stack) and is cleared at the start of each call.
 	static new_conflicts_pending_notif_s new_conflicts_pending_notif{};
 	new_conflicts_pending_notif.clear();
 

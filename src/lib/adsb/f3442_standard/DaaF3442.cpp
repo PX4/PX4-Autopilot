@@ -63,7 +63,6 @@ bool DaaF3442::try_setting_params()
 	const bool latencies_ok = nmac_latency >= 0 && wc_latency >= 0;
 
 	if (!(nmac_ok && wc_ok && ordering_ok && latencies_ok)) {
-		// Zones must be finite, non-negative and nested (NMAC inside Well-Clear).
 		PX4_ERR("DAA: invalid F3442 parameters");
 		return false;
 	}
@@ -95,7 +94,7 @@ void DaaF3442::calculate_aircraft_conflict_volume(const matrix::Vector2f &base_b
 		const matrix::Vector2f &vel,
 		const float latency, matrix::Vector2f &augmented_bounds)
 {
-	// Bounds are intentionally symmetric (abs value) to account for sudden changes in course
+	// Symmetric (abs) to cover sudden course changes.
 	augmented_bounds = base_bounds + vel.abs() * fabsf(latency);
 }
 

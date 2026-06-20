@@ -98,43 +98,36 @@ protected:
 	}
 };
 
-// WHY: Crosstrack parameters directly control the conflict gate, so invalid runtime values must be rejected immediately.
-// WHAT: Exercise each tuning parameter with NaN, Inf, and out-of-range inputs through try_setting_params() and verify the object fails closed.
+// try_setting_params() rejects NaN/Inf/zero separations and negative collision time.
 TEST_F(DaaCrosstrackTest, RejectsNonFiniteParams)
 {
-	// GIVEN: Baseline valid params installed by SetUp(), try_setting_params() must accept them.
 	ASSERT_TRUE(daa.try_setting_params());
 
 	const float nan = std::numeric_limits<float>::quiet_NaN();
 	const float inf = std::numeric_limits<float>::infinity();
 	const int negative_time = -1;
 
-	// WHEN: The horizontal separation is invalidated with NaN, Inf, or zero.
 	for (const float bad : {nan, inf, 0.f}) {
 		set_crosstrack_params(bad, 500.f, 60);
 		EXPECT_FALSE(daa.try_setting_params()) << "horizontal separation = " << bad;
 	}
 
-	// WHEN: The vertical separation is invalidated with NaN, Inf, or zero.
 	for (const float bad : {nan, inf, 0.f}) {
 		set_crosstrack_params(500.f, bad, 60);
 		EXPECT_FALSE(daa.try_setting_params()) << "vertical separation = " << bad;
 	}
 
-	// WHEN: The collision time is set to a negative value.
 	set_crosstrack_params(500.f, 500.f, negative_time);
 	EXPECT_FALSE(daa.try_setting_params());
 
-	// THEN: Restoring valid values lets try_setting_params() succeed again.
+	// valid again
 	set_crosstrack_params(500.f, 500.f, 60);
 	EXPECT_TRUE(daa.try_setting_params());
 }
 
-// WHY: The crosstrack solver relies on a finite traffic heading to build the predicted path line.
-// WHAT: Pass a NaN traffic heading directly into `calculate_daa_stats()` and verify it returns no conflict with cleared output stats.
+// A NaN traffic heading (no predicted path line) returns no conflict with cleared stats.
 TEST_F(DaaCrosstrackTest, InvalidTrafficHeadingReturnsNoConflict)
 {
-	// GIVEN: Valid crosstrack parameters and a traffic encounter with a NaN heading.
 	ASSERT_TRUE(daa.try_setting_params());
 
 	const aircraft_state_s uav_state{
@@ -146,21 +139,17 @@ TEST_F(DaaCrosstrackTest, InvalidTrafficHeadingReturnsNoConflict)
 	aircraft_state_s traffic_state = create_aircraft_state(kUavLatLon, kUavAlt, 200.f, math::radians(90.f), 0.f,
 					 std::numeric_limits<float>::quiet_NaN(), matrix::Vector3f(0.f, -30.f, 0.f));
 
-	// WHEN: The crosstrack implementation evaluates that encounter.
 	daa_stats_s daa_stats{};
 	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
-	// THEN: It fails closed and clears all reported stats.
 	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist_hor, 0.f);
 	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist_vert, 0.f);
 	EXPECT_FLOAT_EQ(daa_stats.expected_min_dist_time_sec, 0.f);
 }
 
-// WHY: A representative approaching encounter should trigger the crosstrack gates without requiring the test to duplicate the full line-distance math.
-// WHAT: Run one conflict scenario through `calculate_daa_stats()` and verify severity plus bounded cross-track, vertical, and timing outputs.
+// A head-on approaching encounter is flagged HIGH with bounded crosstrack, vertical and timing stats.
 TEST_F(DaaCrosstrackTest, DetectsApproachingConflictAndReportsExpectedStats)
 {
-	// GIVEN: Valid crosstrack parameters and an approaching head-on encounter.
 	ASSERT_TRUE(daa.try_setting_params());
 
 	const aircraft_state_s uav_state{
@@ -172,21 +161,18 @@ TEST_F(DaaCrosstrackTest, DetectsApproachingConflictAndReportsExpectedStats)
 	const aircraft_state_s traffic_state = create_aircraft_state(kUavLatLon, kUavAlt, 200.f, math::radians(90.f), 0.f,
 					       math::radians(270.f), matrix::Vector3f(0.f, -30.f, 0.f));
 
-	// WHEN: The crosstrack implementation evaluates the encounter.
 	daa_stats_s daa_stats{};
 	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
 
-	// THEN: It reports a high conflict with the expected cross-track, vertical, and timing outputs.
 	EXPECT_LT(fabsf(daa_stats.aircraft_dist_hor), 500.f);
 	EXPECT_NEAR(daa_stats.aircraft_dist_vert, 0.f, 0.1f);
 	EXPECT_NEAR(daa_stats.expected_min_dist_time_sec, 200.f / 30.f, 0.1f);
 }
 
-// WHY: Ensure that the new DAA work preserves the old crosstrack conflict decisions from the adsb/test_adsb_helper.ipynb dataset.
-// WHAT: Replay every legacy traffic sample from `DaaCrosstrackTestData.h` through `DaaCrosstrack` and verify the published conflict level matches the historic data.
+// Regression: the current solver reproduces the legacy conflict decisions for every frozen sample
+// (dataset from adsb/test_adsb_helper.ipynb).
 TEST_F(DaaCrosstrackTest, MatchesLegacyNotebookDataset)
 {
-	// GIVEN: The same ownship state and runtime parameters that the original crosstrack test used.
 	ASSERT_TRUE(daa.try_setting_params());
 
 	const aircraft_state_s uav_state{
@@ -196,7 +182,6 @@ TEST_F(DaaCrosstrackTest, MatchesLegacyNotebookDataset)
 		0.f
 	};
 
-	// WHEN: Every frozen traffic sample is replayed through the current crosstrack solver.
 	for (uint32_t i = 0; i < sizeof(kTrafficDataset) / sizeof(kTrafficDataset[0]); ++i) {
 		const traffic_data_s &traffic = kTrafficDataset[i];
 		SCOPED_TRACE(testing::Message() << "kTrafficDataset[" << i << "]");
@@ -206,7 +191,6 @@ TEST_F(DaaCrosstrackTest, MatchesLegacyNotebookDataset)
 		const uint8_t expected_conflict_level = traffic.in_conflict ? detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH :
 							detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 
-		// THEN: The new implementation keeps the legacy conflict decisions for every historic sample.
 		EXPECT_EQ(conflict_level, expected_conflict_level);
 	}
 }

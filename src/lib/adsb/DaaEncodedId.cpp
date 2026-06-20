@@ -162,7 +162,7 @@ void DaaEncodedId::to_string(char *buffer, size_t buffer_size) const
 {
 	if (buffer == nullptr || buffer_size == 0) { return; }
 
-	memset(buffer, 0, buffer_size); // Clear buffer
+	memset(buffer, 0, buffer_size);
 
 	switch (encoding) {
 	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO: {
@@ -225,7 +225,6 @@ void DaaEncodedId::convert_uint64_callsign_to_str(uint64_t value, char callsign[
 	const int max_chars = kCallsignLength - 1;
 
 	if (value == 0) {
-		// If value is zero, fill the string with '0' characters up to max_chars
 		memset(callsign, '0', max_chars);
 
 	} else {
@@ -235,12 +234,11 @@ void DaaEncodedId::convert_uint64_callsign_to_str(uint64_t value, char callsign[
 			callsign[i] = c;
 
 			if (c == 0) {
-				break; // Stop if we hit a null character
+				break;
 			}
 		}
 	}
 
-	// Ensure null-termination. This also handles the case where the loop did not run.
 	callsign[max_chars] = '\0';
 }
 
@@ -250,10 +248,9 @@ uint64_t DaaEncodedId::last_uas_id_bytes_to_uint64(const uint8_t uas_id[kUasIdBy
 		return 0;
 	}
 
-	// Reset the integer ID
 	uint64_t uas_id_int = 0;
 
-	// Convert the last kIdEncodingNbBytes bytes into a uint64_t
+	// Pack the last kIdEncodingNbBytes bytes into the key.
 	for (int i = 0; i < kIdEncodingNbBytes; ++i) {
 		uas_id_int |= static_cast<uint64_t>(uas_id[kUasIdByteLength - kIdEncodingNbBytes + i]) << (i * 8);
 	}
@@ -270,12 +267,11 @@ void DaaEncodedId::convert_uas_id_uint64_to_str(const uint64_t uas_id_int, char 
 	static constexpr char kHexDigits[] = "0123456789abcdef";
 
 	if (uas_id_int == 0) {
-		// Handle the zero case: fill with '0' characters to represent zero in hexadecimal
 		memset(uas_id_char_arr, '0', kUtmGuidMsgLength - 1);
 
 	} else {
 
-		// Convert the last reduced_uas_id_length bytes of the UAS_id byte array to a char array for User Warning
+		// Render the low reduced_uas_id_length bytes as hex.
 		const int reduced_uas_id_length = (kUtmGuidMsgLength - 1) / 2;
 
 		for (int i = 0; i < reduced_uas_id_length; ++i) {
@@ -285,7 +281,6 @@ void DaaEncodedId::convert_uas_id_uint64_to_str(const uint64_t uas_id_int, char 
 		}
 	}
 
-	// Ensure the string is null-terminated
 	uas_id_char_arr[kUtmGuidMsgLength - 1] = '\0';
 }
 

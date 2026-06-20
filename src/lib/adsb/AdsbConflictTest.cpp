@@ -88,10 +88,7 @@ protected:
 		param_set(param_handle(px4::params::NAV_TRAFF_COLL_T), &collision_time_s);
 	}
 
-	/**
-	 * @brief Build a traffic report from a relative encounter with the fixed
-	 * ownship state used by these tests.
-	 */
+	// Build a traffic report from a relative encounter against the fixed ownship state.
 	transponder_report_s create_relative_report(const RelativeTrafficScenario &scenario)
 	{
 		transponder_report_s report{};
@@ -118,11 +115,9 @@ protected:
 	}
 };
 
-// WHY: Input validation must fail closed so NaNs and infinities never reach the conflict algorithms.
-// WHAT: Feed non-finite coordinates and velocities into `calculate_daa_output()` and verify the library rejects them.
+// calculate_daa_output() rejects non-finite coordinates and velocities.
 TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 {
-	// GIVEN: The built DAA standard with an otherwise valid traffic encounter.
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario valid_traffic{200.f, math::radians(90.f), 0.f, uav_heading_, 30.f, 0.f};
 
@@ -131,37 +126,33 @@ TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 	const float nan = std::numeric_limits<float>::quiet_NaN();
 	const float inf = std::numeric_limits<float>::infinity();
 
-	// WHEN: Any ownship coordinate becomes non-finite.
+	// non-finite ownship coordinate
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(nan, uav_lat_lon_(1)), uav_alt_,
 			uav_heading_, stationary_uav_vel_ned_, report), daa_output));
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), nan), uav_alt_,
 			uav_heading_, stationary_uav_vel_ned_, report), daa_output));
 
-	// WHEN: The traffic position becomes non-finite.
+	// non-finite traffic position
 	report.lat = nan;
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
 			stationary_uav_vel_ned_, report), daa_output));
 
-	// WHEN: Either aircraft advertises a non-finite velocity.
+	// non-finite traffic velocity
 	report = create_relative_report(valid_traffic);
 	report.hor_velocity = inf;
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
 			stationary_uav_vel_ned_, report), daa_output));
 
+	// non-finite ownship velocity
 	report = create_relative_report(valid_traffic);
-
-	// THEN: The wrapper fails and never publishes conflict output.
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
 			matrix::Vector3f(0.f, nan, 0.f), report), daa_output));
 }
 
 #if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
-// WHY: Crosstrack mode depends on finite headings, and the wrapper must block invalid values before delegating.
-// WHAT: Select crosstrack mode, inject NaN headings on both the traffic and ownship sides, and verify
-// `calculate_daa_output()` fails.
+// Crosstrack mode rejects non-finite headings (for traffic and ownship).
 TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 {
-	// GIVEN: Crosstrack mode with a valid approaching encounter.
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario approaching_traffic{200.f, math::radians(90.f), 0.f, math::radians(270.f), 30.f, 0.f};
 
@@ -169,28 +160,23 @@ TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 	transponder_report_s report = create_relative_report(approaching_traffic);
 	const float nan = std::numeric_limits<float>::quiet_NaN();
 
-	// WHEN: The ownship heading is non-finite.
-	// THEN: Crosstrack processing rejects the encounter.
+	// non-finite ownship heading
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, nan,
 			stationary_uav_vel_ned_, report), daa_output));
 
-	// WHEN: The traffic heading is non-finite.
+	// non-finite traffic heading
 	report.heading = nan;
-	// THEN: Crosstrack processing rejects the encounter.
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
 			stationary_uav_vel_ned_, report), daa_output));
 }
 #endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
-// WHY: `try_updating_params()` is the last line of defense against invalid runtime tuning.
-// WHAT: Validate a good parameter set for the built standard, then break a required parameter and confirm the update is rejected.
+// try_updating_params() validates against the built standard and rejects bad values.
 TEST_F(AdsbConflictTest, UsesBuiltStandardForParamValidation)
 {
-	// GIVEN: A wrapper using the standard selected at build time.
 	AdsbConflict adsb_conflict;
 	constexpr float invalid_bound{-1.f};
 
-	// WHEN: The built standard starts with valid parameters.
 	EXPECT_TRUE(adsb_conflict.try_updating_params());
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
@@ -199,33 +185,27 @@ TEST_F(AdsbConflictTest, UsesBuiltStandardForParamValidation)
 	set_crosstrack_params(invalid_bound, 500.f, 60);
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-	// THEN: The built standard validates against its own parameter set.
 	EXPECT_FALSE(adsb_conflict.try_updating_params());
 }
 
-// WHY: `AdsbConflict` owns output forwarding, not the detailed math inside the built standard.
-// WHAT: Evaluate one representative encounter and verify the wrapper publishes the built standard's result.
+// The wrapper forwards the built standard's result (level + distances).
 TEST_F(AdsbConflictTest, DelegatesToBuiltStandardAndForwardsOutput)
 {
-	// GIVEN: One representative encounter for the built standard.
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario approaching_traffic{19.f, math::radians(90.f), 9.f, math::radians(270.f), 5.f, 0.f};
 	const transponder_report_s report = create_relative_report(approaching_traffic);
 
 	detect_and_avoid_s daa_output{};
 
-	// WHEN: The encounter is processed.
 	ASSERT_TRUE(adsb_conflict.try_updating_params());
 	ASSERT_TRUE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
 			stationary_uav_vel_ned_, report), daa_output));
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	// THEN: The wrapper publishes the delegated F3442 result.
 	EXPECT_EQ(daa_output.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
 	EXPECT_NEAR(daa_output.aircraft_dist_hor, approaching_traffic.distance_m, 0.1f);
 	EXPECT_NEAR(daa_output.aircraft_dist_vert, approaching_traffic.altitude_offset_m, 0.1f);
 #else
-	// THEN: The wrapper publishes the delegated crosstrack result instead.
 	EXPECT_EQ(daa_output.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
 	EXPECT_NEAR(daa_output.aircraft_dist_vert, approaching_traffic.altitude_offset_m, 0.1f);
 	EXPECT_LT(fabsf(daa_output.aircraft_dist_hor), 500.f);

@@ -71,9 +71,10 @@ public:
 	/**
 	 * @brief Decide and send all of this cycle's conflict messages.
 	 *
-	 * Processes the tracker changes in the order they were recorded (secondary level
-	 * changes, removals, ignored reports), then sends the deferred "new conflict"
-	 * warnings and the most-urgent status. Conflicts that were removed but have a "new" warning
+	 * Processes the tracker changes in the order they were recorded, then sends the deferred "new conflict"
+	 * warnings and the most-urgent status.
+	 *
+	 * Conflicts that were removed but have a "new" warning
 	 * is still pending from the same cycle are not sent because they were never user-visible.
 	 *
 	 * Call exactly once per cycle; the periodic most-urgent status relies on it.
@@ -81,18 +82,13 @@ public:
 	void report_cycle(const conflict_tracker_changes_s &changes, const ConflictTracker &tracker,
 			  const cycle_context_s &context);
 
-	/** @brief Send the user-facing message and event for a newly-published DAA action. */
+	// Message and event for a newly-published DAA action.
 	void notify_new_action(const conflict_info_s &conflict_info, const DaaAction action);
 
-	/**
-	 * @brief Warn the operator that air traffic is present while the vehicle is on the ground.
-	 *
-	 * Limit notif rate to one warning per status interval.
-	 */
 	void maybe_notify_action_on_ground(const NotifyLandedActCause cause, const uint8_t conflict_level,
 					   const cycle_context_s &context);
 
-	/** @brief Restart all rate limit timers (called when the conflict state is cleared). */
+	// Restart all rate-limit timers (when the conflict state is cleared).
 	void reset();
 
 private:
@@ -107,34 +103,27 @@ private:
 
 	using new_conflicts_pending_notif_s = px4::Array<DaaEncodedId, transponder_report_s::ORB_QUEUE_LENGTH>;
 
-	/**
-	 * @brief Decide whether to notify about a conflict level right now.
-	 *
-	 * Forces a notification on level transitions when either side requires a warning,
-	 * otherwise one notification per @p interval.
-	 */
+	// Forces a notification on level transitions when either side requires a warning,
+	// otherwise one per interval.
 	bool must_notify(const uint8_t current_conflict_level, const hrt_abstime time_last_notified,
 			 const hrt_abstime interval, const uint8_t previous_conflict_level,
 			 const uint8_t warning_levels_mask) const;
 
-	/**
-	 * @brief Announce a tracked conflict's level change unless it was (about to become) the most
-	 * urgent conflict at recording time, which is reported through the DAA status instead.
-	 */
+	// Announce a tracked conflict's level change, unless it was (about to become) the most urgent at
+	// recording time, which the DAA status reports instead.
 	void maybe_notify_secondary_level_change(const conflict_tracker_change_s &change,
 			const uint8_t warning_levels_mask);
 
-	/** @brief Helper function for notifying about ignored traffic if necessary. */
 	void maybe_notify_ignored_traffic(const conflict_info_s &conflict, const IgnoreTrafficCause cause,
 					  const uint8_t warning_levels_mask);
 
-	/** @brief Warn the user that a traffic report was dropped and why. */
+	// Warn that a traffic report was dropped and why.
 	void notify_traffic_ignored(const conflict_info_s &conflict_info, const IgnoreTrafficCause cause);
 
-	/** @brief Tell the user that a previous conflict was removed (stale or buffer full). */
+	// Warn that a tracked conflict was removed (stale or buffer full).
 	void notify_traffic_removed(const conflict_info_s &conflict_info, const RemoveBufferCause cause);
 
-	/** @brief Emit the first notification for a newly added conflict. */
+	// First notification for a newly added conflict.
 	void notify_new_conflict(const conflict_info_s &conflict_info);
 
 	/**

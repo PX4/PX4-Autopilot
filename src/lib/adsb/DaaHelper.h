@@ -59,18 +59,16 @@ struct daa_stats_s {
 	float expected_min_dist_time_sec{0.f};
 };
 
-/** @brief Split a NED velocity into (horizontal magnitude, vertical magnitude). */
 inline matrix::Vector2f calculate_horizontal_vertical_speed_magnitudes(const aircraft_state_s &aircraft_state)
 {
 	return matrix::Vector2f(aircraft_state.velocity_ned.xy().norm(), fabsf(aircraft_state.velocity_ned(2)));
 }
 
-/** @brief Worst-case closing speed (UAV and traffic flying straight at each other). */
+// Worst-case closing speed (UAV and traffic flying straight at each other).
 inline float calculate_relative_uav_traffic_speed(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state)
 {
 	const float xyz_traffic_speed = traffic_state.velocity_ned.norm();
 	const float xyz_uav_speed = uav_state.velocity_ned.norm();
 
-	// Assume worst-case scenario, uav and traffic pointing at each other
 	return xyz_traffic_speed + xyz_uav_speed;
 };

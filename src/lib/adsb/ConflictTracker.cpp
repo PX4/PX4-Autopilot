@@ -48,8 +48,6 @@ namespace
 void append_change(conflict_tracker_changes_s &changes, const conflict_tracker_change_s &change)
 {
 	if (!changes.push_back(change)) {
-		// changes is sized for the worst case of a full cycle (kMaxConflictChangesPerCycle),
-		// so a failure here means that bound is wrong.
 		PX4_ERR("DAA: conflict changes overflow");
 	}
 }
