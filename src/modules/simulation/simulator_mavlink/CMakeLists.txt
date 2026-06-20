@@ -70,3 +70,15 @@ add_custom_target(none_iris
 		${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/10016_none_iris
 	COMMENT "launching px4 none_iris (SYS_AUTOSTART=10016)"
 )
+
+# none_astro_max — Freefly Astro Max, decoupled SITL: PX4 runs with no in-process
+# simulator; an external simulator connects to it over MAVLink on TCP:4560. Mirrors none_iris.
+add_custom_target(none_astro_max
+	COMMAND ${CMAKE_COMMAND} -E env PX4_SYS_AUTOSTART=80000 $<TARGET_FILE:px4>
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	USES_TERMINAL
+	DEPENDS
+		px4
+		${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/80000_none_astro_max
+	COMMENT "launching px4 none_astro_max (SYS_AUTOSTART=80000)"
+)
