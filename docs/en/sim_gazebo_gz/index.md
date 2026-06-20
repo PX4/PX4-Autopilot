@@ -173,6 +173,7 @@ The [supported worlds](../sim_gazebo_gz/worlds.md) are listed below.
 | `baylands`        | `make px4_sitl *_baylands`        | Baylands world surrounded by water                          |
 | `lawn`            | `make px4_sitl *_lawn`            | Lawn world for testing rovers                               |
 | `rover`           | `make px4_sitl *_rover`           | Rover world (optimised/preferred)                           |
+| `ridge`           | `make px4_sitl *_ridge`           | World with a sloped ridge for testing terrain following     |
 | `walls`           | `make px4_sitl *_walls`           | Wall world for testing collision prevention                 |
 | `windy`           | `make px4_sitl *_windy`           | Empty world with wind enabled                               |
 | `moving_platform` | `make px4_sitl *_moving_platform` | World with moving takeoff / landing platform                |

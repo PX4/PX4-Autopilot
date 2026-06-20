@@ -21116,6 +21116,18 @@ The settings deny arming and warn, allow arming and warn, or silently allow armi
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 1       |      | &nbsp;    |
 
+### COM_CC_TEMP_WARN (`FLOAT`) {#COM_CC_TEMP_WARN}
+
+Companion computer high-temperature warning threshold.
+
+Arming is not prevented as the temperature typically drops in flight.
+
+Set to -1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 127      | 1         | 80.0    | celcius | &nbsp;    |
+
 ### COM_CPU_MAX (`FLOAT`) {#COM_CPU_MAX}
 
 Maximum allowed CPU load to still arm.
@@ -21438,6 +21450,39 @@ selected flight mode will be applied.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | -1      |      | &nbsp;    |
+
+### COM_FLTMODE_BOOT (`INT32`) {#COM_FLTMODE_BOOT}
+
+Flight mode on boot.
+
+Flight mode set on boot and after a power cycle, before any RC input or
+mode command is received.
+
+**Values:**
+
+- `0`: Manual
+- `1`: Altitude
+- `2`: Position
+- `3`: Mission
+- `4`: Hold
+- `6`: Position Slow
+- `8`: Altitude Cruise
+- `10`: Acro
+- `14`: Offboard
+- `15`: Stabilized
+- `17`: Takeoff
+- `23`: External 1
+- `24`: External 2
+- `25`: External 3
+- `26`: External 4
+- `27`: External 5
+- `28`: External 6
+- `29`: External 7
+- `30`: External 8
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 4       |      | &nbsp;    |
 
 ### COM_FLTT_LOW_ACT (`INT32`) {#COM_FLTT_LOW_ACT}
 
@@ -24347,6 +24392,17 @@ Required esc hardware version.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 65535    |           | 0       |      | &nbsp;    |
+
+### ESC_TEMP_WARN_TH (`FLOAT`) {#ESC_TEMP_WARN_TH}
+
+ESC temperature warning threshold.
+
+Warning only, no failsafe or arming blocked.
+-1 disables the check.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 150      | 1         | 90.0    | celcius | &nbsp;    |
 
 ## Events
 
@@ -31769,6 +31825,14 @@ and relies on the IMU's attitude estimation.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
+### MNT_FIXED_PITCH (`FLOAT`) {#MNT_FIXED_PITCH}
+
+Tracked pitch angle when in fixed mode (MNT_MODE_IN=5).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -90      | 90       |           | 0.0     | deg  | &nbsp;    |
+
 ### MNT_LND_P_MAX (`FLOAT`) {#MNT_LND_P_MAX}
 
 Pitch maximum when landed.
@@ -31896,10 +31960,11 @@ The rest will be deprecated.
 - `2`: MAVLINK_ROI (protocol v1, to be deprecated)
 - `3`: MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
 - `4`: MAVlink gimbal protocol v2
+- `5`: Fixed world-frame attitude, not user controllable
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | -1       | 4        |           | -1      |      | &nbsp;    |
+| &check; | -1       | 5        |           | -1      |      | &nbsp;    |
 
 ### MNT_MODE_OUT (`INT32`) {#MNT_MODE_OUT}
 
@@ -41259,16 +41324,16 @@ Configure on which serial port to run LeddarOne Rangefinder.
 
 Magnetometer auto calibration.
 
-Automatically initialize magnetometer calibration from bias estimate if available.
+Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended. Mainly intended for remote nodes (e.g. CAN GPS units) that cannot be calibrated from a ground station.
 
 **Values:**
 
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SENS_MAG_AUTOROT (`INT32`) {#SENS_MAG_AUTOROT}
 
@@ -43064,6 +43129,25 @@ Note: certain drivers such as the GPS can determine the Baudrate automatically.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
+
+## Serial Passthrough
+
+### PASSTHRU_EN (`INT32`) {#PASSTHRU_EN}
+
+Serial passthrough enable.
+
+When enabled, the serial passthrough mode is active and the
+normal motor output drivers (dshot, pwm_out) are not started
+at boot.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ## Simulation
 

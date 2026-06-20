@@ -54,7 +54,11 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
 
+#if defined(PX4_STORAGEDIR)
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
+#else
+#define GEOFENCE_FILENAME PX4_ROOTFSDIR"/etc/geofence.txt"
+#endif
 
 class Navigator;
 

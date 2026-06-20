@@ -1319,6 +1319,40 @@ septentrio <command> [arguments...]
      cold|warm|hot Specify reset type
 ```
 
+## serialpassthrough
+
+Source: [drivers/serialpassthrough](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/serialpassthrough)
+
+### Description
+
+Serial passthrough driver driven by MAVLink SERIAL_CONTROL messages.
+Bridges a MAVLink stream to a hardware UART or an ESC signal pin (bitbang).
+
+Only a single sender is supported at a time. Simultaneous SERIAL_CONTROL
+messages from multiple senders produce undefined behaviour.
+
+Up to 8 instances can run simultaneously, one per device.
+
+### Usage {#serialpassthrough_usage}
+
+```
+serialpassthrough <command> [arguments...]
+ Commands:
+   start
+     [-d <val>]  Serial device path
+                 values: <dev>
+     [-b <val>]  Baudrate
+                 default: 115200
+     [-x]        Swap RX/TX pins
+     [-s]        Single-wire (half-duplex) mode
+     [-e <val>]  ESC bitbang channel (0-7), instead of -d
+     [-i <val>]  Internal: instance registry key (injected by startForDevice())
+
+   stop
+
+   status
+```
+
 ## sht3x
 
 Source: [drivers/hygrometer/sht3x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hygrometer/sht3x)

@@ -165,7 +165,7 @@ You must separately configure the PX4 IP address and other _network settings_ ([
 
 PX4配置串行端口以通过MAVLink连接到地面站，使用下面的参数:
 
-| 参数                                                                                                                                            | 值      | 描述                             |
+| Parameter                                                                                                                                     | 值      | 描述                             |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------ |
 | [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                              | 1000   | 配置以太网端口                        |
 | [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                        | 1      | Broadcast `HEARTBEAT` messages |

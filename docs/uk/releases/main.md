@@ -34,6 +34,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Інші зміни
 
+- Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
+
 ### Підтримка обладнання
 
 - Уточнюється
@@ -90,11 +92,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Уточнюється
 
-### Літак з фіксованим крилом
+### Fixed-wing
 
 - Уточнюється
 
-### Ровер
+### Rover
 
 - Уточнюється
 

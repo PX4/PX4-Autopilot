@@ -174,8 +174,7 @@ public:
 
 	bool currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const;
 
-	void updateActiveConfigOverrides(uint8_t previous_nav_state, uint8_t nav_state, int previous_executor_in_charge,
-					 config_overrides_s &overrides_in_out);
+	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 
 private:
 	bool checkConfigControlSetpointUpdates();
@@ -246,8 +245,7 @@ public:
 		return nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 	}
 
-	void updateActiveConfigOverrides(uint8_t previous_nav_state, uint8_t nav_state, int previous_executor_in_charge,
-					 config_overrides_s &overrides_in_out) { }
+	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out) { }
 
 private:
 };

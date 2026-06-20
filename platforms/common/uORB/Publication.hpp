@@ -54,14 +54,7 @@ public:
 
 	bool advertised() const { return _handle != nullptr; }
 
-	bool advertise()
-	{
-		if (!advertised()) {
-			_handle = orb_advertise(get_topic(), nullptr);
-		}
-
-		return advertised();
-	}
+	bool advertise();
 
 	bool unadvertise() { return (Manager::orb_unadvertise(_handle) == PX4_OK); }
 
@@ -82,14 +75,7 @@ protected:
 	}
 
 	// type-independent publish; data points to a message of the topic's type
-	bool publish(const void *data)
-	{
-		if (!advertised()) {
-			advertise();
-		}
-
-		return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
-	}
+	bool publish(const void *data);
 
 	orb_advert_t _handle{nullptr};
 	const ORB_ID _orb_id;

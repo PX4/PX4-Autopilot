@@ -90,6 +90,8 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 	int32_t ret = 0;
 	hrt_abstime time_elapsed = hrt_elapsed_time(&start_time);
 	perf_begin(_sync_perf);
+	clearPendingResponse();
+
 	_dataman_request_pub.publish(request);
 
 	while (!response_received && (time_elapsed < timeout)) {
@@ -255,6 +257,24 @@ bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 	return success;
 }
 
+void DatamanClient::clearPendingResponse()
+{
+	if (_dataman_response_sub < 0) {
+		return;
+	}
+
+	// Drain queued replies first so a response from an aborted or timed-out
+	// operation cannot be matched to the next request.
+	bool updated = false;
+	orb_check(_dataman_response_sub, &updated);
+
+	while (updated) {
+		dataman_response_s response{};
+		orb_copy(ORB_ID(dataman_response), _dataman_response_sub, &response);
+		orb_check(_dataman_response_sub, &updated);
+	}
+}
+
 bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length)
 {
 	if (_client_id == CLIENT_ID_NOT_SET) {
@@ -269,6 +289,8 @@ bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 	bool success = false;
 
 	if (_state == State::Idle) {
+		// Drop any queued stale replies before publishing a fresh async request.
+		clearPendingResponse();
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
@@ -311,6 +333,8 @@ bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, 
 	bool success = false;
 
 	if (_state == State::Idle) {
+		// Drop any queued stale replies before publishing a fresh async request.
+		clearPendingResponse();
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
@@ -350,6 +374,8 @@ bool DatamanClient::clearAsync(dm_item_t item)
 	bool success = false;
 
 	if (_state == State::Idle) {
+		// Drop any queued stale replies before publishing a fresh async request.
+		clearPendingResponse();
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
@@ -464,6 +490,10 @@ void DatamanClient::abortCurrentOperation()
 DatamanCache::DatamanCache(const char *cache_miss_perf_counter_name, uint32_t num_items)
 	: _cache_miss_perf(perf_alloc(PC_COUNT, cache_miss_perf_counter_name))
 {
+	if (num_items == 0) {
+		return;
+	}
+
 	_items = new Item[num_items] {};
 
 	if (_items != nullptr) {
@@ -476,24 +506,46 @@ DatamanCache::DatamanCache(const char *cache_miss_perf_counter_name, uint32_t nu
 
 DatamanCache::~DatamanCache()
 {
+	_client.abortCurrentOperation();
 	delete[] _items;
 	perf_free(_cache_miss_perf);
 }
 
 void DatamanCache::resize(uint32_t num_items)
 {
+	if (num_items == 0) {
+		// Allow callers to explicitly disable caching while leaving the DatamanClient usable.
+		_client.abortCurrentOperation();
+		delete[] _items;
+		_items = nullptr;
+		resetCacheState();
+		_num_items = 0;
+		return;
+	}
+
 	Item *new_items = new Item[num_items] {};
 
 	if (new_items != nullptr) {
+		_client.abortCurrentOperation();
+
 		uint32_t num_min = num_items < _num_items ? num_items : _num_items;
 
 		for (uint32_t i = 0; i < num_min; ++i) {
 			new_items[i] = _items[i];
+
+			if (new_items[i].cache_state == State::RequestSent) {
+				new_items[i].cache_state = State::RequestPrepared;
+			}
 		}
 
 		delete[] _items;
 		_items = new_items;
 		_num_items = num_items;
+
+		// ensure new bounds are respected after resize
+		_load_index = (_load_index < _num_items) ? _load_index : 0;
+		_update_index = (_update_index < _num_items) ? _update_index : 0;
+		_item_counter = (_item_counter < _num_items) ? _item_counter : _num_items;
 
 	} else {
 		PX4_ERR("alloc failed");
@@ -544,22 +596,20 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 		return false;
 	}
 
-	if (!_items) {
-		return false;
-	}
-
 	bool success = false;
 	bool item_found = false;
 
-	for (uint32_t i = 0; i < _num_items; ++i) {
-		if ((_items[i].response.item == item) &&
-		    (_items[i].response.index == index)) {
-			item_found = true;
+	if (_items) {
+		for (uint32_t i = 0; i < _num_items; ++i) {
+			if ((_items[i].response.item == item) &&
+			    (_items[i].response.index == index)) {
+				item_found = true;
 
-			if (_items[i].cache_state == State::ResponseReceived) {
-				memcpy(buffer, _items[i].response.data, length);
-				success = true;
-				break;
+				if (_items[i].cache_state == State::ResponseReceived) {
+					memcpy(buffer, _items[i].response.data, length);
+					success = true;
+					break;
+				}
 			}
 		}
 	}
@@ -569,7 +619,7 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 		success = _client.readSync(item, index, buffer, length, timeout);
 
 		// Cache the item if not found already (it could be in the process of being loaded)
-		if (success && !item_found && _item_counter < _num_items) {
+		if (success && !item_found && _items && (_item_counter < _num_items)) {
 			_items[_load_index].cache_state = State::ResponseReceived;
 			_items[_load_index].response.item = item;
 			_items[_load_index].response.index = index;
@@ -676,20 +726,31 @@ void DatamanCache::update()
 	}
 }
 
+void DatamanCache::resetCacheState()
+{
+	_update_index = 0;
+	_item_counter = 0;
+	_load_index = 0;
+}
+
 void DatamanCache::invalidate()
 {
 	for (uint32_t i = 0; i < _num_items; ++i) {
 		_items[i].cache_state = State::Idle;
 	}
 
-	_update_index = 0;
-	_item_counter = 0;
-	_load_index = 0;
+	resetCacheState();
 	_client.abortCurrentOperation();
 }
 
 inline void DatamanCache::changeUpdateIndex()
 {
+	if (_num_items == 0) {
+		_update_index = 0;
+		_item_counter = 0;
+		return;
+	}
+
 	_update_index = (_update_index + 1) % _num_items;
 
 	if (_item_counter > 0) {

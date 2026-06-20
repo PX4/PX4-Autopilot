@@ -165,7 +165,7 @@ The Ethernet port configuration sets the properties of the _serial link_ (which 
 
 PX4 налаштовує серійний порт для підключення до GCS через MAVLink, використовуючи параметри, показані нижче:
 
-| Параметр                                                                                                                                      | Значення | Опис                                                                                 |
+| Parameter                                                                                                                                     | Значення | Опис                                                                                 |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------ |
 | [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                              | 1000     | Налаштування Ethernet порту                                                          |
 | [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                        | 1        | Broadcast `HEARTBEAT` messages                                                       |

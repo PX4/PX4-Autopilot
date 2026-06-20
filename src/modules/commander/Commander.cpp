@@ -837,6 +837,9 @@ Commander::Commander() :
 
 	updateParameters();
 
+	// Apply the configured boot flight mode before the first run
+	_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
+
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
@@ -2493,7 +2496,6 @@ void Commander::handleAutoDisarm()
 bool Commander::handleModeIntentionAndFailsafe()
 {
 	const uint8_t prev_nav_state = _vehicle_status.nav_state;
-	const int prev_executor_in_charge = _vehicle_status.executor_in_charge;
 	const FailsafeBase::Action prev_failsafe_action = _failsafe.selectedAction();
 	const uint8_t prev_failsafe_defer_state = _vehicle_status.failsafe_defer_state;
 
@@ -2548,8 +2550,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 		_vehicle_status.nav_state_timestamp = hrt_absolute_time();
 	}
 
-	_mode_management.updateActiveConfigOverrides(prev_nav_state, _vehicle_status.nav_state, prev_executor_in_charge,
-			_config_overrides);
+	_mode_management.updateActiveConfigOverrides(_vehicle_status.nav_state, _config_overrides);
 
 	// Apply failsafe deferring & get the current state
 	_failsafe.deferFailsafes(_config_overrides.defer_failsafes, _config_overrides.defer_failsafes_timeout_s);
@@ -3155,13 +3156,6 @@ void Commander::manualControlCheck()
 				}
 			}
 
-		} else {
-			const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
-
-			// if there's never been a mode change force position control as initial state
-			if (!_user_mode_intention.everHadModeChange() && (is_mavlink || !_mode_switch_mapped)) {
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, false, true);
-			}
 		}
 	}
 }

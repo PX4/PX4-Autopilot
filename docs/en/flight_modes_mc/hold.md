@@ -2,7 +2,7 @@
 
 <img src="../../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" />
 
-The _Hold_ flight mode causes the vehicle to stop and hover at its current GPS position and altitude.
+The _Hold_ flight mode causes the vehicle to stop and hover, maintaining its position and altitude.
 
 :::tip
 _Hold mode_ can be used to pause a mission or to help you regain control of a vehicle in an emergency.
@@ -18,7 +18,7 @@ It is usually activated with a pre-programmed switch.
   - Disarmed vehicles can switch to mode without valid position estimate but can't arm.
 - Mode requires wind and flight time are within allowed limits (specified via parameters).
 - RC control switches can be used to change flight modes on any vehicle.
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 
@@ -26,7 +26,7 @@ It is usually activated with a pre-programmed switch.
 
 ## Technical Summary
 
-The vehicle hovers at the current position and altitude.
+The vehicle stops and hovers, maintaining its position and altitude.
 The vehicle will first ascend to [NAV_MIN_LTR_ALT](#NAV_MIN_LTR_ALT) if the mode is engaged below this altitude.
 
 RC stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#COM_RC_OVERRIDE)).
