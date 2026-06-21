@@ -83,15 +83,19 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (!subscribeImu(true)) {
-		return PX4_ERROR;
-	}
-
-	if (!subscribeMag(true)) {
-		return PX4_ERROR;
-	}
-
 	// OPTIONAL:
+	if (_sim_gz_en_imu.get()) {
+		if (!subscribeImu(false)) {
+			return PX4_ERROR;
+		}
+	}
+
+	if (_sim_gz_en_mag.get()) {
+		if (!subscribeMag(false)) {
+			return PX4_ERROR;
+		}
+	}
+
 	if (_sim_gz_en_gps.get()) {
 		if (!subscribeNavsat(false)) {
 			return PX4_ERROR;
