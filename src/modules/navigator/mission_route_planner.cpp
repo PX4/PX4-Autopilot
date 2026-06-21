@@ -45,6 +45,8 @@
 
 #include "mission_route_planner.h"
 
+#include <new>
+
 #include <lib/perf/perf_counter.h>
 
 #include <px4_platform_common/log.h>
@@ -52,16 +54,28 @@
 using namespace mission_route;
 
 /**
- * TODO: FIX: for now this does not work because some variables are init to NAN.
- * Therefore, the large struct lives in .data instead of .bss
+ * The ProjectionReferenceBatch is reused by collectVehicleProjection and selectSafePoint.
+ * Defined static so navigator task stack does not scale with the batch size (~370 bytes per kMaxSafePointBatch slot,
+ * i.e. ~24 KB at a batch size of 64, tunable via CONFIG_RTL_SAFE_POINT_BATCH_SIZE).
  *
- * The ProjectionReferenceBatch (~370 bytes per kMaxSafePointBatch slot, i.e. ~24 KB at a batch
- * size of 64, board-tunable via CONFIG_RTL_SAFE_POINT_BATCH_SIZE) is reused by
- * collectVehicleProjection and selectSafePoint. It is file-static rather than stack-allocated so the
- * navigator task stack does not scale with the batch size. There is no thread concern, we just need to
- * find a way to define it in the .bss
+ * Because the type defaults some fields to NAN/-1/NAV_CMD_INVALID, raw storage is kept in .bss and constructed
+ * at runtime. This preserves the normal default object state without storing the full initialized image
+ * in flash.
  */
-static ProjectionReferenceBatch _projection_reference_batch;
+alignas(ProjectionReferenceBatch)
+static uint8_t _projection_reference_batch_storage[sizeof(ProjectionReferenceBatch)] {};
+
+static ProjectionReferenceBatch *_projection_reference_batch{nullptr};
+
+static ProjectionReferenceBatch *projectionReferenceBatch()
+{
+	if (_projection_reference_batch == nullptr) {
+		_projection_reference_batch =
+			new (_projection_reference_batch_storage) ProjectionReferenceBatch{};
+	}
+
+	return _projection_reference_batch;
+}
 
 namespace
 {
@@ -110,14 +124,28 @@ RoutePlanResult routePlanSuccess(const RoutePlan &plan)
 
 } // namespace
 
+MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
+	_projection(provider),
+	_goal_selector(provider, _projection),
+	_reference_batch(projectionReferenceBatch())
+{
+	if (_reference_batch == nullptr) {
+		PX4_ERR("RTL route planner scratch init failed");
+	}
+}
+
 VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const RoutePlanRequest &request) const
 {
+	if (_reference_batch == nullptr) {
+		return vehicleProjectionFailure(FailureReason::kInternalError);
+	}
+
 	if (!request.config.parameters.validForVehicleProjection()) {
 		return vehicleProjectionFailure(FailureReason::kInvalidRequest);
 	}
 
 	perf_begin(_collect_vehicle_projection_perf.counter);
-	const VehicleProjectionResult result = _projection.collectVehicleProjection(request, _projection_reference_batch);
+	const VehicleProjectionResult result = _projection.collectVehicleProjection(request, *_reference_batch);
 	perf_end(_collect_vehicle_projection_perf.counter);
 	return result;
 }
@@ -125,14 +153,22 @@ VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const Rout
 GoalSelection MissionRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
 		const PlannerConfig &config) const
 {
-	return _goal_selector.selectSafePoint(projection_context, config, _projection_reference_batch).selection;
+	if (_reference_batch == nullptr) {
+		return {};
+	}
+
+	return _goal_selector.selectSafePoint(projection_context, config, *_reference_batch).selection;
 }
 
 GoalSelection MissionRoutePlanner::selectBestGoal(const ProjectionContext &projection_context,
 		const PlannerConfig &config) const
 {
+	if (_reference_batch == nullptr) {
+		return {};
+	}
+
 	perf_begin(_select_best_goal_perf.counter);
-	const GoalSelectionResult result = _goal_selector.selectBestGoal(projection_context, config, _projection_reference_batch);
+	const GoalSelectionResult result = _goal_selector.selectBestGoal(projection_context, config, *_reference_batch);
 	perf_end(_select_best_goal_perf.counter);
 	return result.selection;
 }
@@ -191,7 +227,7 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const RoutePlanRequest &req
 	// Find closest safe point, falling back to mission end points if none found
 	perf_begin(_select_best_goal_perf.counter);
 	const GoalSelectionResult selection = _goal_selector.selectBestGoal(plan.projection_context, request.config,
-					      _projection_reference_batch);
+					      *_reference_batch);
 	perf_end(_select_best_goal_perf.counter);
 
 	if (!selection.success) {

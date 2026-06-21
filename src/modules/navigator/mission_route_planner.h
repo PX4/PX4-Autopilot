@@ -55,8 +55,7 @@
 class MissionRoutePlanner
 {
 public:
-	explicit MissionRoutePlanner(const mission_route::Provider &provider) :
-		_projection(provider), _goal_selector(provider, _projection) {}
+	explicit MissionRoutePlanner(const mission_route::Provider &provider);
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner(MissionRoutePlanner &&) = delete;
@@ -101,6 +100,7 @@ private:
 
 	mission_route::MissionRouteProjection _projection;
 	mission_route::MissionRouteGoalSelector _goal_selector;
+	mission_route::ProjectionReferenceBatch *_reference_batch{nullptr};
 	PerfCounterGuard _collect_vehicle_projection_perf{"rtl_route_collect_vehicle_proj"};
 	PerfCounterGuard _select_best_goal_perf{"rtl_route_select_best_goal"};
 };

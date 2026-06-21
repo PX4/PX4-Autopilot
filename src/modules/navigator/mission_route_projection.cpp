@@ -53,6 +53,9 @@ using namespace math;
 
 namespace mission_route
 {
+
+MissionRouteProjection::BatchSearchState MissionRouteProjection::_batch_search_state{};
+
 namespace
 {
 
@@ -561,7 +564,12 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 	SegmentPositions segment_positions{};
 	bool have_previous = false;
 	float total_dist = 0.f;
-	BatchSearchState batch_state{};
+	BatchSearchState &batch_state = _batch_search_state;
+	batch_state.stats = {};
+
+	for (uint8_t i = 0; i < batch.count; ++i) {
+		batch_state.candidate_states[i].reset();
+	}
 
 	// Scan the full mission once, evaluating segments against every batch item.
 	for (int32_t index = first_position_index; index < _provider.missionCount(); ++index) {
