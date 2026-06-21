@@ -1608,10 +1608,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				const mavlink_mission_item_int_t *item_int =
 					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
 				// x/y are p5/p6 generic params (not lat/lon) for non-position frames.
-				// Normalize INT32_MAX (MISSION_ITEM_INT "unused" sentinel) to 0.0f so
-				// both the int sentinel and the conventional float zero are treated as unset.
-				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? 0.0f : (float)item_int->x;
-				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? 0.0f : (float)item_int->y;
+				// Normalize INT32_MAX (MISSION_ITEM_INT "unused" sentinel) to NaN so
+				// both the int sentinel and the NaN are treated as unset.
+				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? NAN : (float)item_int->x;
+				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? NAN : (float)item_int->y;
 				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
 						mavlink_mission_item->param1, mavlink_mission_item->param2,
 						mavlink_mission_item->param3, mavlink_mission_item->param4,

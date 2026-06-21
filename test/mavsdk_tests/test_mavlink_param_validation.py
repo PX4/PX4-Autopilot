@@ -47,6 +47,8 @@ MAV_FRAME_MISSION = 2
 CMD_NAV_WAYPOINT = 16
 CMD_NAV_RTL = 20
 CMD_NAV_TAKEOFF = 22
+CMD_NAV_VTOL_TAKEOFF = 84
+CMD_NAV_VTOL_LAND = 85
 CMD_NAV_DELAY = 93
 CMD_COMPONENT_ARM_DISARM = 400
 
@@ -211,22 +213,24 @@ def run_mission_tests(mav: Any, timeout: float) -> None:
         result, MAV_MISSION_INVALID_PARAM3,
     )
 
-    # 3. NAV_RTL with param1 set (mask 0x00, no params)
+    # 3. NAV_RTL with param1 set (mask 0x00, no params). RTL is only a valid
+    # mission item under MAV_FRAME_MISSION (no coordinates) in PX4; sending
+    # it as MAV_FRAME_GLOBAL_INT hits the frame switch's default case
+    # (MAV_MISSION_UNSUPPORTED) once params pass, regardless of param values.
     result = _upload_mission(mav, [
-        _item(0, CMD_NAV_RTL, MAV_FRAME_GLOBAL_INT,
-              p1=1.0, p2=NAN, p3=NAN, p4=NAN,
-              x=LAT, y=LON, z=ALT, current=1),
+        _item(0, CMD_NAV_RTL, MAV_FRAME_MISSION,
+              p1=1.0, p2=NAN, p3=NAN, p4=NAN, current=1),
     ], timeout)
     _check(
         "NAV_RTL unsupported param1 -> INVALID_PARAM1",
         result, MAV_MISSION_INVALID_PARAM1,
     )
 
-    # 4. NAV_RTL with all params NaN (should pass)
+    # 4. NAV_RTL with all params NaN (should pass). mask 0x00 means p5-7
+    # (x/y/z) are unsupported too, so they must stay at the unset sentinel.
     result = _upload_mission(mav, [
-        _item(0, CMD_NAV_RTL, MAV_FRAME_GLOBAL_INT,
-              p1=NAN, p2=NAN, p3=NAN, p4=NAN,
-              x=LAT, y=LON, z=ALT, current=1),
+        _item(0, CMD_NAV_RTL, MAV_FRAME_MISSION,
+              p1=NAN, p2=NAN, p3=NAN, p4=NAN, current=1),
     ], timeout)
     _check(
         "NAV_RTL all params NaN -> ACCEPTED",
@@ -265,6 +269,52 @@ def run_mission_tests(mav: Any, timeout: float) -> None:
     _check(
         "NAV_TAKEOFF unsupported param2 -> INVALID_PARAM2",
         result, MAV_MISSION_INVALID_PARAM2,
+    )
+
+    # 13. NAV_VTOL_LAND mission with unsupported param1 set (mission mask
+    # 0x78: only p4/yaw; mission_block.cpp never reads p1-p3 for VTOL_LAND).
+    result = _upload_mission(mav, [
+        _item(0, CMD_NAV_VTOL_LAND, MAV_FRAME_GLOBAL_INT,
+              p1=1.0, p2=NAN, p3=NAN, p4=NAN,
+              x=LAT, y=LON, z=ALT, current=1),
+    ], timeout)
+    _check(
+        "NAV_VTOL_LAND mission unsupported param1 -> INVALID_PARAM1",
+        result, MAV_MISSION_INVALID_PARAM1,
+    )
+
+    # 14. NAV_VTOL_LAND mission valid (only p4/yaw set)
+    result = _upload_mission(mav, [
+        _item(0, CMD_NAV_VTOL_LAND, MAV_FRAME_GLOBAL_INT,
+              p1=NAN, p2=NAN, p3=NAN, p4=90.0,
+              x=LAT, y=LON, z=ALT, current=1),
+    ], timeout)
+    _check(
+        "NAV_VTOL_LAND mission valid (p4=yaw only) -> ACCEPTED",
+        result, MAV_MISSION_ACCEPTED,
+    )
+
+    # 15. NAV_VTOL_TAKEOFF mission with unsupported param3 set (mission mask
+    # 0x78: only p4/yaw; mission_block.cpp never reads p3/approach_hdg).
+    result = _upload_mission(mav, [
+        _item(0, CMD_NAV_VTOL_TAKEOFF, MAV_FRAME_GLOBAL_INT,
+              p1=NAN, p2=NAN, p3=45.0, p4=NAN,
+              x=LAT, y=LON, z=ALT, current=1),
+    ], timeout)
+    _check(
+        "NAV_VTOL_TAKEOFF mission unsupported param3 -> INVALID_PARAM3",
+        result, MAV_MISSION_INVALID_PARAM3,
+    )
+
+    # 16. NAV_VTOL_TAKEOFF mission valid (only p4/yaw set)
+    result = _upload_mission(mav, [
+        _item(0, CMD_NAV_VTOL_TAKEOFF, MAV_FRAME_GLOBAL_INT,
+              p1=NAN, p2=NAN, p3=NAN, p4=90.0,
+              x=LAT, y=LON, z=ALT, current=1),
+    ], timeout)
+    _check(
+        "NAV_VTOL_TAKEOFF mission valid (p4=yaw only) -> ACCEPTED",
+        result, MAV_MISSION_ACCEPTED,
     )
 
 
@@ -310,6 +360,36 @@ def run_command_tests(mav: Any, timeout: float) -> None:
     _check(
         "NAV_WAYPOINT command unsupported param3 -> DENIED",
         result, MAV_RESULT_DENIED,
+    )
+
+    # 17. NAV_VTOL_LAND command with p1 (land options) set -> supported
+    # on the command path (mask 0x7F), unlike the mission path.
+    result = _send_command(
+        mav, CMD_NAV_VTOL_LAND, timeout, p1=1.0,
+    )
+    _check(
+        "NAV_VTOL_LAND command p1 (options) -> not DENIED",
+        result != MAV_RESULT_DENIED, True,
+    )
+
+    # 18. NAV_VTOL_TAKEOFF command with p1 set -> unsupported even on the
+    # command path (mask 0x7C: only p3/p4 + p5-7).
+    result = _send_command(
+        mav, CMD_NAV_VTOL_TAKEOFF, timeout, p1=1.0,
+    )
+    _check(
+        "NAV_VTOL_TAKEOFF command unsupported param1 -> DENIED",
+        result, MAV_RESULT_DENIED,
+    )
+
+    # 19. NAV_VTOL_TAKEOFF command with p3 (approach heading) set ->
+    # supported on the command path (mask 0x7C).
+    result = _send_command(
+        mav, CMD_NAV_VTOL_TAKEOFF, timeout, p3=45.0,
+    )
+    _check(
+        "NAV_VTOL_TAKEOFF command p3 (approach_hdg) -> not DENIED",
+        result != MAV_RESULT_DENIED, True,
     )
 
 
