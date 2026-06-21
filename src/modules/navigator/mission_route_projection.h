@@ -120,10 +120,18 @@ private:
 	struct BranchInSelectionResult;
 
 	struct CandidateSearchState {
-		bool prev_projection_on_end{true};
+		bool prev_projection_on_end{false};
 		bool projection_on_end_for_segment{false};
-		float min_xtrack{FLT_MAX};
-		float xtrack_limit{FLT_MAX};
+		float min_xtrack{0.f};
+		float xtrack_limit{0.f};
+
+		void reset()
+		{
+			prev_projection_on_end = true;
+			projection_on_end_for_segment = false;
+			min_xtrack = FLT_MAX;
+			xtrack_limit = FLT_MAX;
+		}
 	};
 
 	struct RouteSegmentView {
@@ -148,6 +156,8 @@ private:
 		CandidateSearchState candidate_states[kMaxSafePointBatch] {};
 		ProjectionScanStats stats{};
 	};
+
+	static BatchSearchState _batch_search_state;
 
 	PositionLookupStatus findNextValidPositionIndex(int32_t start_index, float home_altitude_amsl,
 			int32_t &next_position_index) const;
