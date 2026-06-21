@@ -28,7 +28,7 @@ The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publis
 
 The [eProsima Micro XRCE-DDS _Agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
 
-The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS.
+The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS as long version compatibility is ensured.
 
 Code that wants to subscribe/publish to PX4 does have a dependency on client-side code; it requires uORB message definitions that match those used to create the PX4 uXRCE-DDS client so that it can interpret the messages.
 
@@ -51,6 +51,25 @@ ROS 2 applications need to be built in a workspace that includes the _same_ mess
 These can be included into a workspace by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your ROS 2 workspace and switching to the appropriate branch.
 Note that all code generation associated with the messages is handled by ROS 2.
 
+## Version selection
+
+There are two main major active Micro XRCE-DDS versions: `v2.x` and `v3.x` which needs to be paired to the corresponding major DDS version.
+In standalone DDS applications it is suggested to use the latest one.
+However, in ROS 2 applications the DDS version is locked down by the chosen ROS 2 distribution.
+
+<Badge type="tip" text="PX4 v1.18" /> In its default configuration _uxrce_dds_client_ is build targeting Micro XRCE-DDS `v2.x`. To target instead `v3.x` and use the latest ROS 2 distributions the [`Kconfig`](../hardware/porting_guide_config.md#px4-menuconfig-setup) variable `UXRCE_DDS_CLIENT_USE_DDS_V3` needs to be set and a custom build performed.
+
+The following table explains the required Micro-XRCE-DDS-Agent versions and `UXRCE_DDS_CLIENT_USE_DDS_V3` value for different ROS 2 distributions.
+
+| ROS 2 version | fast-dds version | required Micro-XRCE-DDS-Agent version | `UXRCE_DDS_CLIENT_USE_DDS_V3` <Badge type="tip" text="PX4 v1.18" /> |
+|---------------|------------------|---------------------------------------|---------------------------------------------------------------------|
+| Foxy          | 2.0.x            | 2.4.2                                 | unset / `N`                                                         |
+| Humble        | 2.6.x            | 2.4.2                                 | unset / `N`                                                         |
+| Jazzy         | 2.14.0           | 2.4.3                                 | unset / `N`                                                         |
+| Kilted        | 2.14.4           | 2.4.3                                 | unset / `N`                                                         |
+| Lyrical       | 3.6.x            | 3.0.1                                 | set / `Y`                                                           |
+| Rolling       | 3.6.x            | 3.0.1                                 | set / `Y`                                                           |
+
 ## Micro XRCE-DDS Agent Installation
 
 The Micro XRCE-DDS Agent can be installed on the companion computer using a binary package, built and installed from source, or built and run from within a ROS 2 workspace.
@@ -61,13 +80,13 @@ The official (and more complete) installation guide is the Eprosima: [micro XRCE
 This section summarises the options that have been tested with PX4 during creation of these docs.
 :::
 
-::: warning
-PX4 Micro XRCE-DDS Client is based on version `v2.x` which is not compatible with the latest `v3.x` Agent version.
-:::
-
 ### Install Standalone from Source
 
 On Ubuntu you can build from source and install the Agent standalone using the following commands:
+
+::::tabs
+
+::: tab DDS v2
 
 ```sh
 git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
@@ -80,32 +99,35 @@ sudo make install
 sudo ldconfig /usr/local/lib/
 ```
 
+:::
+
+::: tab DDS v3
+
+```sh
+git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+cd Micro-XRCE-DDS-Agent
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig /usr/local/lib/
+```
+
+Don't forget to set `UXRCE_DDS_CLIENT_USE_DDS_V3` before building PX4 when using DDS v3
+
+:::
+
+::::
+
 ::: info
 There are various build configuration options linked from the corresponding topic in the [official guide](https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-agent-standalone), but these have not been tested.
 :::
-
-To start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
-
-```sh
-MicroXRCEAgent udp4 -p 8888
-```
 
 ### Build/Run within ROS 2 Workspace
 
 The agent can be built and launched within a ROS 2 workspace (or build standalone and launched from a workspace).
 You must already have installed ROS 2 following the instructions in: [ROS 2 User Guide > Install ROS 2](../ros2/user_guide.md#install-ros-2).
-
-::: warning
-This approach will use the existing ROS 2 versions of the Agent dependencies, such as `fastcdr` and `fastdds`.
-This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones:
-
-| ROS 2 version | Micro-XRCE-DDS-Agent version |
-| ------------- | ---------------------------- |
-| Foxy          | v2.4.2                       |
-| Humble        | v2.4.2                       |
-| Jazzy         | v2.4.3                       |
-
-:::
 
 To build the agent within ROS:
 
@@ -118,6 +140,26 @@ To build the agent within ROS:
 1. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
    ::::tabs
+
+   ::: tab lyrical
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   Don't forget to set `UXRCE_DDS_CLIENT_USE_DDS_V3` before building PX4 when using DDS v3
+
+   :::
+
+   ::: tab kilted
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   :::
 
    ::: tab jazzy
 
@@ -152,6 +194,24 @@ To build the agent within ROS:
 
    :::: tabs
 
+   ::: tab lyrical
+
+   ```sh
+   source /opt/ros/lyrical/setup.bash
+   colcon build
+   ```
+
+   :::
+
+   ::: tab kilted
+
+   ```sh
+   source /opt/ros/kilted/setup.bash
+   colcon build
+   ```
+
+   :::
+
    ::: tab jazzy
 
    ```sh
@@ -181,48 +241,58 @@ To build the agent within ROS:
 
    ::::
 
-   This builds all the folders under `/src` using the sourced toolchain.
+   This builds all the folders under `~/px4_ros_uxrce_dds_ws/src` using the sourced toolchain.
 
-To run the Micro XRCE-DDS Agent in the workspace:
+To run the Micro XRCE-DDS Agent in the workspace you just need to source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
 
-1. Source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
+  :::: tabs
 
-   :::: tabs
+  ::: tab lyrical
 
-   ::: tab jazzy
+  ```sh
+  source /opt/ros/lyrical/setup.bash
+  source install/local_setup.bash
+  ```
 
-   ```sh
-   source /opt/ros/jazzy/setup.bash
-   source install/local_setup.bash
-   ```
+  :::
 
-   :::
+  ::: tab kilted
 
-   ::: tab humble
+  ```sh
+  source /opt/ros/kilted/setup.bash
+  source install/local_setup.bash
+  ```
 
-   ```sh
-   source /opt/ros/humble/setup.bash
-   source install/local_setup.bash
-   ```
+  :::
 
-   :::
+  ::: tab jazzy
 
-   ::: tab foxy
+  ```sh
+  source /opt/ros/jazzy/setup.bash
+  source install/local_setup.bash
+  ```
 
-   ```sh
-   source /opt/ros/foxy/setup.bash
-   source install/local_setup.bash
-   ```
+  :::
 
-   :::
+  ::: tab humble
 
-   ::::
+  ```sh
+  source /opt/ros/humble/setup.bash
+  source install/local_setup.bash
+  ```
 
-1) Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
+  :::
 
-   ```sh
-   MicroXRCEAgent udp4 -p 8888
-   ```
+  ::: tab foxy
+
+  ```sh
+  source /opt/ros/foxy/setup.bash
+  source install/local_setup.bash
+  ```
+
+  :::
+
+  ::::
 
 ## Starting Agent and Client
 
