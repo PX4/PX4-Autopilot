@@ -45,6 +45,7 @@
 
 #include "navigator_mode.h"
 #include "navigation.h"
+#include "mission_route_planner.h"
 #include "rtl_base.h"
 #include "rtl_direct.h"
 #include "rtl_direct_mission_land.h"
@@ -184,6 +185,7 @@ private:
 	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
 	RtlDirect _rtl_direct;
+	MissionRoutePlanner _mission_route_planner;
 
 	bool _enforce_rtl_alt{false};
 
