@@ -233,7 +233,7 @@ private:
 	 * @brief Run the action policy for the current most urgent conflict
 	 *
 	 * Publish the requested vehicle command and forward the action/ground messages to the notifier.
-	 * /
+	 */
 	void evaluate_and_publish_action();
 
 	// Convert a DAA action into the matching vehicle_command and publish it.
