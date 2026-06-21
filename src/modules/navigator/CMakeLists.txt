@@ -37,9 +37,6 @@ add_subdirectory(RTLPlanner)
 px4_add_library(navigator_mission_route_planner
 	mission_route_types.cpp
 	mission_route_provider.cpp
-	mission_route_projection.cpp
-	mission_route_goal.cpp
-	mission_route_planner.cpp
 )
 
 target_link_libraries(navigator_mission_route_planner PUBLIC geo)
