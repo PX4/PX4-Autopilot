@@ -195,10 +195,15 @@ else
 		param load /fs/mtd_caldata
 	fi
 
+	# Load parameters from storage. A blank store (first boot, or after
+	# switching firmware) is seeded from the backup or defaults and persisted
+	# by 'load-or-init' itself - that is not an error and does not beep. A
+	# corrupt or unwritable store, or a backup that fails to import, returns
+	# failure.
 	param select $PARAM_FILE
-	if ! param import
+	if ! param load-or-init $PARAM_BACKUP_FILE
 	then
-		echo "ERROR [init] param import failed"
+		echo "ERROR [init] param load-or-init failed"
 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 
 		bsondump $PARAM_FILE
@@ -219,10 +224,13 @@ else
 				# dump current backup file contents for comparison
 				bsondump $PARAM_BACKUP_FILE
 
-				param import $PARAM_BACKUP_FILE
-
-				# overwrite invalid $PARAM_FILE with backup
-				cp $PARAM_BACKUP_FILE $PARAM_FILE
+				# only persist when the backup actually imported, so a
+				# corrupt backup keeps the storage invalid and the
+				# operator keeps being alerted on the next boot
+				if param import $PARAM_BACKUP_FILE
+				then
+					param save
+				fi
 			fi
 
 			param status
