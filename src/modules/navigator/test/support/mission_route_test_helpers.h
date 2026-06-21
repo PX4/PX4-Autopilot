@@ -43,7 +43,8 @@
 
 #include <gtest/gtest.h>
 
-#include "mission_route_planner.h"
+#include "mission_route_provider.h"
+#include "mission_route_types.h"
 #include "vector_mission_item_store.h"
 
 #include <lib/geo/geo.h>
@@ -205,26 +206,6 @@ static inline mission_route::Position makePositionAbsolute(double lat, double lo
 	return mission_route::Position{lat, lon, alt};
 }
 
-static inline mission_route::PlannerConfig defaultConfig()
-{
-	mission_route::PlannerConfig config{};
-	config.parameters.vehicle_projection_search_dist = 60.f;
-	config.parameters.safe_point_projection_search_dist = 60.f;
-	config.parameters.acceptance_radius = 10.f;
-	config.parameters.direct_acceptance_radius = 10.f;
-	config.parameters.altitude_acceptance_radius = 10.f;
-	config.parameters.home_altitude_amsl = 500.f;
-	return config;
-}
-
-static inline mission_route::PlannerConfig fwConfig()
-{
-	mission_route::PlannerConfig config = defaultConfig();
-	config.state.is_fixed_wing = true;
-	config.parameters.u_turn_penalty_m = 4000.f;
-	return config;
-}
-
 namespace route_test_reference
 {
 static constexpr double kBaseLat = 47.397742;
@@ -236,41 +217,10 @@ static constexpr double kLatLonToleranceDeg = 1e-7;
 static constexpr float kAltitudeTolerance = 2.0f;
 static constexpr float kDistanceTolerance = 5.0f;
 
-// Test-only adapters that exercise the request/result planner API while keeping the
-// out-parameter ergonomics the test bodies were written against. They construct a
-// RoutePlanRequest and unpack the result struct; they are not production wrappers.
-static inline bool collectVehicleProjection(const MissionRoutePlanner &planner,
-		const mission_route::Position &vehicle_position, int32_t mission_index,
-		const mission_route::PlannerConfig &config, mission_route::ProjectionContext &projection_context,
-		mission_route::FailureReason &failure_reason)
-{
-	const mission_route::VehicleProjectionResult result =
-		planner.collectVehicleProjection({vehicle_position, mission_index, config});
-	projection_context = result.projection_context;
-	failure_reason = result.failure_reason;
-	return result.success;
-}
-
-static inline bool planRouteToGoal(const MissionRoutePlanner &planner,
-				   const mission_route::Position &vehicle_position, int32_t mission_index,
-				   const mission_route::PlannerConfig &config, mission_route::RoutePlan &plan,
-				   mission_route::FailureReason &failure_reason)
-{
-	const mission_route::RoutePlanResult result =
-		planner.planRouteToGoal({vehicle_position, mission_index, config});
-	plan = result.plan;
-	failure_reason = result.failure_reason;
-	return result.success;
-}
-
 } // namespace navigator_test
 
 using navigator_test::VectorMissionRouteProvider;
 using VectorProvider = navigator_test::VectorMissionRouteProvider;
-using navigator_test::collectVehicleProjection;
-using navigator_test::defaultConfig;
-using navigator_test::fwConfig;
-using navigator_test::planRouteToGoal;
 using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
@@ -286,11 +236,3 @@ using navigator_test::makeSafePointFromOffset;
 using navigator_test::makeTakeoffItem;
 using navigator_test::makeTakeoffItemFromOffset;
 using navigator_test::makeVtolTransitionItem;
-
-class MissionRouteTestBase : public ::testing::Test
-{
-protected:
-	mission_route::PlannerConfig config = defaultConfig();
-	mission_route::ProjectionContext ctx{};
-	mission_route::FailureReason reason{};
-};

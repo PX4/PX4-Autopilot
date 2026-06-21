@@ -69,8 +69,7 @@ static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
 RTL::RTL(Navigator *navigator) :
 	NavigatorMode(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator),
-	_rtl_direct(navigator),
-	_mission_route_planner(*navigator->get_mission_route_cache())
+	_rtl_direct(navigator)
 {
 	_rtl_direct.initialize();
 }
