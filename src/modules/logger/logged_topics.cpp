@@ -195,6 +195,9 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_status_flags", 10);
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
+	// EV aid source status (only advertised when EKF2_EV_CTRL enables them)
+	add_optional_topic_multi("estimator_aid_src_ev_vel", 200);
+
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 3);
 	add_topic_multi("differential_pressure", 1000, 2);

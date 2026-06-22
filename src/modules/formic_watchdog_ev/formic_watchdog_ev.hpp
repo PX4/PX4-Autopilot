@@ -114,7 +114,7 @@ private:
 	bool _pos_requested{false}; // latched formic_pos_req.pos_req: true while a position mode is requested
 
 	hrt_abstime status_3_time{0};
-
+	hrt_abstime _alignment_lost_time{0};
 	
 	bool  _init_check_done{false};                 // true once the init average has been computed for this session
 	// quality init check
