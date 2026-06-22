@@ -43,7 +43,7 @@ namespace sony_as_dt1_copy
 
 AS_DT1_COPY *g_dev{nullptr};
 
-static int start(const char *port)
+static int start(const char *port, bool one_shot)
 {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
@@ -55,7 +55,7 @@ static int start(const char *port)
 		return -1;
 	}
 
-	g_dev = new AS_DT1_COPY(port);
+	g_dev = new AS_DT1_COPY(port, one_shot);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -101,11 +101,13 @@ static int usage()
 		R"DESCR_STR(
 ### Description
 
-Debug copy of the Sony AS-DT1 serial driver. It opens the UART and records raw RX bytes only.
+Debug copy of the Sony AS-DT1 serial driver. It opens the UART, configures 115200 8N1, and writes one
+padded `format binz` command followed by one padded `fsync 200` command.
 
 ### Examples
 
 $ sony_asdt1_copy start -d /dev/ttyS4
+$ sony_asdt1_copy start -d /dev/ttyS4 -o
 $ sony_asdt1_copy status
 $ sony_asdt1_copy stop
 )DESCR_STR");
@@ -114,6 +116,7 @@ $ sony_asdt1_copy stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_FLAG('o', "Read once after 1 second instead of scheduled 10 ms reads", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 	return PX4_OK;
@@ -124,14 +127,19 @@ $ sony_asdt1_copy stop
 extern "C" __EXPORT int sony_asdt1_copy_main(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
+	bool one_shot = false;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:o", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
+			break;
+
+		case 'o':
+			one_shot = true;
 			break;
 
 		default:
@@ -146,7 +154,7 @@ extern "C" __EXPORT int sony_asdt1_copy_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return sony_as_dt1_copy::start(device_path);
+		return sony_as_dt1_copy::start(device_path, one_shot);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		return sony_as_dt1_copy::stop();

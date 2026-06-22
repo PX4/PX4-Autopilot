@@ -55,9 +55,7 @@ px4_add_module(
 		sony_asdt1_copy.hpp
 		sony_asdt1_main_copy.cpp
 	DEPENDS
-		drivers_rangefinder
 		px4_work_queue
-		CollisionPrevention
 	)
 
 if(PX4_TESTING)

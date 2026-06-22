@@ -34,7 +34,7 @@
 /**
  * @file sony_asdt1_copy.cpp
  *
- * Experimental AS-DT1 binz/index-based obstacle_distance driver copy.
+ * Minimal AS-DT1 serial write probe.
  */
 
 #include "sony_asdt1_copy.hpp"
@@ -45,12 +45,13 @@
 #include <unistd.h>
 
 #include <cmath>
+#include <cstdio>
 #include <cstring>
-#include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
 
-AS_DT1_COPY::AS_DT1_COPY(const char *device) :
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
+AS_DT1_COPY::AS_DT1_COPY(const char *device, bool one_shot) :
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
+	_one_shot(one_shot)
 {
 	if (device != nullptr) {
 		strncpy(_device, device, sizeof(_device) - 1);
@@ -73,75 +74,125 @@ AS_DT1_COPY::AS_DT1_COPY(const char *device) :
 AS_DT1_COPY::~AS_DT1_COPY()
 {
 	stop();
-	perf_free(_comms_errors);
-	perf_free(_sample_perf);
-	perf_free(_bytes_rx);
 }
 
 int AS_DT1_COPY::init()
 {
-	return start();
+	if (_one_shot) {
+		if (open_port() != PX4_OK) {
+			return PX4_ERROR;
+		}
+
+		if (write_start_command() != PX4_OK) {
+			close_port();
+			return PX4_ERROR;
+		}
+
+		px4_usleep(1000000);
+		(void)read_once();
+
+	} else {
+		start();
+	}
+
+	return PX4_OK;
 }
 
 void AS_DT1_COPY::print_info()
 {
-	PX4_INFO("AS-DT1 copy on %s, baud %u", _device, _baud);
-	PX4_INFO("fd: %d, bytes_rx: %llu, last_read: %lld, last_read_age: %llu us",
-		 _fd,
-		 static_cast<unsigned long long>(_bytes_rx_total),
-		 static_cast<long long>(_last_bytes_read),
+	PX4_INFO("AS-DT1 copy on %s, baud %u, mode %s", _device, _baud, _one_shot ? "one-shot" : "scheduled");
+	PX4_INFO("fd: %d, last command: %s, command bytes: %u, last write: %lld",
+		 _fd, _last_command, static_cast<unsigned>(_last_command_len), static_cast<long long>(_last_write));
+	PX4_INFO("read: attempts %llu, total %llu bytes, no data %llu, errors %llu, last read %lld, last read age %llu us",
+		 static_cast<unsigned long long>(_read_attempts),
+		 static_cast<unsigned long long>(_bytes_read_total),
+		 static_cast<unsigned long long>(_no_data_reads),
+		 static_cast<unsigned long long>(_read_errors),
+		 static_cast<long long>(_last_read_size),
 		 static_cast<unsigned long long>(_last_read == 0 ? 0 : hrt_elapsed_time(&_last_read)));
+	PX4_INFO("parser: state %u, begin match %u, frame buffer %u bytes, frames rx %llu, frames pub %llu, resets %llu",
+		 static_cast<unsigned>(_parser_state),
+		 static_cast<unsigned>(_begin_match_index),
+		 static_cast<unsigned>(_frame_buffer_len),
+		 static_cast<unsigned long long>(_frames_rx),
+		 static_cast<unsigned long long>(_frames_pub),
+		 static_cast<unsigned long long>(_parser_resets));
+	PX4_INFO("last processed: frame %u bytes, samples %u, valid bins %u, closest %u cm",
+		 static_cast<unsigned>(_last_frame_processed_len),
+		 static_cast<unsigned>(_last_sample_count),
+		 static_cast<unsigned>(_last_valid_bins),
+		 static_cast<unsigned>(_last_closest_distance));
 
-	if (_first_rx_len == 0) {
-		PX4_INFO("first rx: empty");
+	if (_last_read_bytes_len == 0) {
+		PX4_INFO("last read bytes: empty");
 
 	} else {
-		char ascii[DEBUG_RX_CAPTURE_SIZE + 1]{};
+		for (size_t offset = 0; offset < _last_read_bytes_len; offset += 16) {
+			const size_t chunk_len = math::min(static_cast<size_t>(16), _last_read_bytes_len - offset);
+			char hex[16 * 3]{};
+			char ascii[17]{};
+			size_t hex_pos = 0;
 
-		for (size_t i = 0; i < _first_rx_len; i++) {
-			ascii[i] = (_first_rx[i] >= 32 && _first_rx[i] <= 126) ? static_cast<char>(_first_rx[i]) : '.';
+			for (size_t i = 0; i < chunk_len; i++) {
+				const uint8_t byte = _last_read_bytes[offset + i];
+				hex_pos += snprintf(&hex[hex_pos], sizeof(hex) - hex_pos, "%02x%s", byte, (i + 1 < chunk_len) ? " " : "");
+				ascii[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
+			}
+
+			PX4_INFO("last read[%u..%u] hex: %s ascii: %s",
+				 static_cast<unsigned>(offset),
+				 static_cast<unsigned>(offset + chunk_len - 1),
+				 hex,
+				 ascii);
 		}
-
-		PX4_INFO("first rx: %s", ascii);
 	}
-
-	if (_last_rx_len == 0) {
-		PX4_INFO("last rx: empty");
-
-	} else {
-		char ascii[DEBUG_RX_CAPTURE_SIZE + 1]{};
-
-		for (size_t i = 0; i < _last_rx_len; i++) {
-			const size_t index = (_last_rx_len < DEBUG_RX_CAPTURE_SIZE) ? i : ((_last_rx_pos + i) % DEBUG_RX_CAPTURE_SIZE);
-			const uint8_t byte = _last_rx[index];
-			ascii[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
-		}
-
-		PX4_INFO("last rx: %s", ascii);
-	}
-
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_bytes_rx);
 }
 
-int AS_DT1_COPY::start()
+void AS_DT1_COPY::start()
+{
+	ScheduleNow();
+}
+
+void AS_DT1_COPY::stop()
+{
+	ScheduleClear();
+	close_port();
+}
+
+void AS_DT1_COPY::Run()
+{
+	if (_fd < 0) {
+		if (open_port() != PX4_OK) {
+			return;
+		}
+
+		if (write_start_command() != PX4_OK) {
+			close_port();
+			return;
+		}
+
+		ScheduleDelayed(_interval);
+		return;
+	}
+
+	(void)read_once();
+	ScheduleDelayed(_interval);
+}
+
+int AS_DT1_COPY::open_port()
 {
 	_fd = ::open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (_fd < 0) {
-		PX4_ERR("failed to open AS-DT1 copy on %s", _device);
-		perf_count(_comms_errors);
+		PX4_ERR("open failed (%i)", errno);
 		return PX4_ERROR;
 	}
 
 	struct termios uart_config {};
 
 	if (tcgetattr(_fd, &uart_config) < 0) {
-		PX4_ERR("failed to get UART config");
-		perf_count(_comms_errors);
-		::close(_fd);
-		_fd = -1;
+		PX4_ERR("tcgetattr failed (%i)", errno);
+		close_port();
 		return PX4_ERROR;
 	}
 
@@ -163,62 +214,37 @@ int AS_DT1_COPY::start()
 	(void)cfsetospeed(&uart_config, speed);
 
 	if (tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
-		PX4_ERR("failed to set UART config");
-		perf_count(_comms_errors);
-		::close(_fd);
-		_fd = -1;
+		PX4_ERR("tcsetattr failed (%i)", errno);
+		close_port();
 		return PX4_ERROR;
 	}
 
 	(void)tcflush(_fd, TCIOFLUSH);
-
-	_first_rx_len = 0;
-	_last_rx_len = 0;
-	_last_rx_pos = 0;
-	_bytes_rx_total = 0;
-	_last_bytes_read = 0;
-
-	if (write_command_padded("format binz") != PX4_OK) {
-		PX4_ERR("failed to configure AS-DT1 binz output");
-		perf_count(_comms_errors);
-		::close(_fd);
-		_fd = -1;
-		return PX4_ERROR;
-	}
-
-	if (write_command_padded("fsync 200") != PX4_OK) {
-		PX4_ERR("failed to configure AS-DT1 frame trigger");
-		perf_count(_comms_errors);
-		::close(_fd);
-		_fd = -1;
-		return PX4_ERROR;
-	}
-
-	ScheduleOnInterval(7_ms);
 	return PX4_OK;
 }
 
-void AS_DT1_COPY::stop()
+void AS_DT1_COPY::close_port()
 {
-	ScheduleClear();
-
 	if (_fd >= 0) {
-		(void)write_command_padded("fsync 0");
 		::close(_fd);
 		_fd = -1;
 	}
 }
 
-void AS_DT1_COPY::Run()
+int AS_DT1_COPY::write_start_command()
 {
-	if (_fd < 0) {
-		PX4_ERR("serial port is not open");
-		perf_count(_comms_errors);
-		ScheduleClear();
-		return;
+	if (write_command_padded("format binz") != PX4_OK) {
+		return PX4_ERROR;
 	}
+	tcdrain(_fd);
+	px4_usleep(200000);
 
-	collect();
+	if (write_command_padded("fsync 200") != PX4_OK) {
+		return PX4_ERROR;
+	}
+	tcdrain(_fd);
+
+	return PX4_OK;
 }
 
 int AS_DT1_COPY::write_command_padded(const char *command)
@@ -257,75 +283,59 @@ int AS_DT1_COPY::write_command_padded(const char *command)
 	}
 
 	const ssize_t written = ::write(_fd, buffer, length);
+	_last_write = written;
+	_last_command_len = length;
+	strncpy(_last_command, command, sizeof(_last_command) - 1);
+	_last_command[sizeof(_last_command) - 1] = '\0';
 
 	if (written != static_cast<ssize_t>(length)) {
-		PX4_ERR("failed to write AS-DT1 command");
+		PX4_ERR("write failed (%i)", errno);
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-int AS_DT1_COPY::collect()
+int AS_DT1_COPY::read_once()
 {
-	if (_fd < 0) {
+	_read_attempts++;
+
+	uint8_t buffer[READ_BUFFER_SIZE]{};
+	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+
+	if (bytes_read <= 0) {
+		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+			_no_data_reads++;
+			return PX4_OK;
+		}
+
+		_read_errors++;
 		return PX4_ERROR;
 	}
 
-	perf_begin(_sample_perf);
+	_last_read = hrt_absolute_time();
+	_last_read_size = bytes_read;
+	_bytes_read_total += static_cast<uint64_t>(bytes_read);
+	_last_read_bytes_len = math::min(static_cast<size_t>(bytes_read), LAST_READ_CAPTURE_SIZE);
+	memcpy(_last_read_bytes, buffer, _last_read_bytes_len);
 
-	uint8_t read_buffer[READ_BUFFER_SIZE]{};
-	bool received_data = false;
-	for (uint8_t read_count = 0; read_count < MAX_READS_PER_COLLECT; read_count++) {
-		const ssize_t bytes_read = ::read(_fd, read_buffer, sizeof(read_buffer));
-
-		if (bytes_read < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				break;
-			}
-
-			PX4_ERR("UART read failed");
-			perf_count(_comms_errors);
-			perf_end(_sample_perf);
-			return PX4_ERROR;
-		}
-
-		if (bytes_read == 0) {
-			break;
-		}
-
-		received_data = true;
-		_last_read = hrt_absolute_time();
-		_last_bytes_read = bytes_read;
-		_bytes_rx_total += static_cast<uint64_t>(bytes_read);
-		perf_set_count(_bytes_rx, _bytes_rx_total);
-
-		for (ssize_t i = 0; i < bytes_read; i++) {
-			const uint8_t byte = read_buffer[i];
-
-			if (_first_rx_len < DEBUG_RX_CAPTURE_SIZE) {
-				_first_rx[_first_rx_len++] = byte;
-			}
-
-			_last_rx[_last_rx_pos] = byte;
-			_last_rx_pos = (_last_rx_pos + 1) % DEBUG_RX_CAPTURE_SIZE;
-
-			if (_last_rx_len < DEBUG_RX_CAPTURE_SIZE) {
-				_last_rx_len++;
-			}
-		}
+	for (ssize_t i = 0; i < bytes_read; i++) {
+		parse_byte(buffer[i]);
 	}
 
-	perf_end(_sample_perf);
-	return received_data ? PX4_OK : -EAGAIN;
+	return PX4_OK;
 }
 
 bool AS_DT1_COPY::parse_byte(uint8_t byte)
 {
 	constexpr char begin_marker[] = "BEGIN MP\r\n";
 	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
-	constexpr char end_marker[] = "END";
-	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
+
+	const auto reset_parser = [this]() {
+		_parser_state = ParserState::FindBegin;
+		_frame_buffer_len = 0;
+		_begin_match_index = 0;
+	};
 
 	switch (_parser_state) {
 	case ParserState::FindBegin:
@@ -336,7 +346,6 @@ bool AS_DT1_COPY::parse_byte(uint8_t byte)
 				_parser_state = ParserState::ReadPayload;
 				_frame_buffer_len = 0;
 				_begin_match_index = 0;
-				_candidate_frame_len = 0;
 			}
 
 		} else {
@@ -346,59 +355,20 @@ bool AS_DT1_COPY::parse_byte(uint8_t byte)
 		break;
 
 	case ParserState::ReadPayload:
-		_frame_buffer[_frame_buffer_len++] = byte;
-
-		if (_frame_buffer_len == ASDT1_BINZ_SHORT_FRAME_SIZE || _frame_buffer_len == ASDT1_BINZ_FRAME_SIZE) {
-			_parser_state = ParserState::FindEnd;
-			_end_match_index = 0;
-			_candidate_frame_len = _frame_buffer_len;
+		if (_frame_buffer_len >= ASDT1_BINZ_FRAME_SIZE) {
+			_parser_resets++;
+			reset_parser();
+			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
+			break;
 		}
 
-		break;
+		_frame_buffer[_frame_buffer_len++] = byte;
 
-	case ParserState::FindEnd:
-		if (byte == static_cast<uint8_t>(end_marker[_end_match_index])) {
-			_end_match_index++;
-
-			if (_end_match_index == end_marker_len) {
-				memcpy(_latest_frame, _frame_buffer, _candidate_frame_len);
-				_latest_frame_len = _candidate_frame_len;
-				_have_latest_frame = true;
-
-				_parser_state = ParserState::FindBegin;
-				_frame_buffer_len = 0;
-				_begin_match_index = 0;
-				_end_match_index = 0;
-				_candidate_frame_len = 0;
-				return true;
-			}
-
-		} else {
-			if (_candidate_frame_len == ASDT1_BINZ_SHORT_FRAME_SIZE && _frame_buffer_len < ASDT1_BINZ_FRAME_SIZE) {
-				for (size_t i = 0; i < _end_match_index && _frame_buffer_len < ASDT1_BINZ_FRAME_SIZE; i++) {
-					_frame_buffer[_frame_buffer_len++] = static_cast<uint8_t>(end_marker[i]);
-				}
-
-				if (_frame_buffer_len < ASDT1_BINZ_FRAME_SIZE) {
-					_frame_buffer[_frame_buffer_len++] = byte;
-				}
-
-				_parser_state = ParserState::ReadPayload;
-				_end_match_index = 0;
-				_candidate_frame_len = 0;
-
-				if (_frame_buffer_len == ASDT1_BINZ_FRAME_SIZE) {
-					_parser_state = ParserState::FindEnd;
-					_candidate_frame_len = _frame_buffer_len;
-				}
-
-			} else {
-				_parser_state = ParserState::FindBegin;
-				_frame_buffer_len = 0;
-				_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
-				_end_match_index = 0;
-				_candidate_frame_len = 0;
-			}
+		if (_frame_buffer_len == ASDT1_BINZ_FRAME_SIZE) {
+			_frames_rx++;
+			process_frame(_frame_buffer, _frame_buffer_len);
+			reset_parser();
+			return true;
 		}
 
 		break;
@@ -409,19 +379,22 @@ bool AS_DT1_COPY::parse_byte(uint8_t byte)
 
 int AS_DT1_COPY::process_frame(const uint8_t *frame, size_t length)
 {
-	if (frame == nullptr || (length != ASDT1_BINZ_SHORT_FRAME_SIZE && length != ASDT1_BINZ_FRAME_SIZE)) {
+	if (frame == nullptr || length != ASDT1_BINZ_FRAME_SIZE) {
 		PX4_ERR("invalid AS-DT1 binz frame length: %u", static_cast<unsigned>(length));
-		perf_count(_comms_errors);
+		_parser_resets++;
 		return PX4_ERROR;
 	}
 
-	const size_t sample_count = (length == ASDT1_BINZ_SHORT_FRAME_SIZE) ? ASDT1_SHORT_SAMPLE_COUNT : ASDT1_MAX_SAMPLE_COUNT;
+	_last_frame_processed_len = length;
+	_last_sample_count = ASDT1_MAX_SAMPLE_COUNT;
+	_last_valid_bins = 0;
+	_last_closest_distance = UINT16_MAX;
 
 	for (uint8_t i = 0; i < BIN_COUNT; i++) {
 		_obstacle_distance.distances[i] = UINT16_MAX;
 	}
 
-	for (size_t sample = 0; sample < sample_count; sample++) {
+	for (size_t sample = 0; sample < ASDT1_MAX_SAMPLE_COUNT; sample++) {
 		const int layout_index = sample_to_layout_index(sample);
 		int row = 0;
 		int col = 0;
@@ -440,37 +413,31 @@ int AS_DT1_COPY::process_frame(const uint8_t *frame, size_t length)
 			continue;
 		}
 
-		const int32_t z_raw = decode_20bit_signed(decode_20bit_raw(frame, sample));
+		const uint32_t z_raw = decode_20bit_raw(frame, sample);
 
 		if (z_raw == 0) {
 			continue;
 		}
 
 		const uint16_t distance_cm = z_raw_to_distance_cm(z_raw);
-
 		const uint16_t obstacle_distance_cm = (distance_cm > _obstacle_distance.max_distance) ?
 						     _obstacle_distance.max_distance + 1 : distance_cm;
 
 		if (obstacle_distance_cm < _obstacle_distance.distances[bin]) {
+			if (_obstacle_distance.distances[bin] == UINT16_MAX) {
+				_last_valid_bins++;
+			}
+
 			_obstacle_distance.distances[bin] = obstacle_distance_cm;
+			_last_closest_distance = math::min(_last_closest_distance, obstacle_distance_cm);
 		}
 	}
 
 	_obstacle_distance.timestamp = hrt_absolute_time();
 	_obstacle_distance_pub.publish(_obstacle_distance);
+	_frames_pub++;
 
 	return PX4_OK;
-}
-
-int32_t AS_DT1_COPY::decode_20bit_signed(uint32_t raw)
-{
-	raw &= 0x000fffff;
-
-	if (raw & 0x00080000) {
-		return -static_cast<int32_t>(0x00100000 - raw);
-	}
-
-	return static_cast<int32_t>(raw);
 }
 
 uint32_t AS_DT1_COPY::decode_20bit_raw(const uint8_t *data, size_t sample_index)
@@ -488,12 +455,8 @@ uint32_t AS_DT1_COPY::decode_20bit_raw(const uint8_t *data, size_t sample_index)
 	       | static_cast<uint32_t>(data[offset + 4]);
 }
 
-uint16_t AS_DT1_COPY::z_raw_to_distance_cm(int32_t z_raw)
+uint16_t AS_DT1_COPY::z_raw_to_distance_cm(uint32_t z_raw)
 {
-	if (z_raw < 0) {
-		z_raw = -z_raw;
-	}
-
 	const float z_mm = static_cast<float>(z_raw) / 4.0f;
 	const float z_cm = z_mm / 10.0f;
 

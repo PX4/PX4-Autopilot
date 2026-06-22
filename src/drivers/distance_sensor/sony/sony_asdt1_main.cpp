@@ -36,6 +36,8 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
+#include <cstring>
+
 namespace sony_as_dt1
 {
 
@@ -116,6 +118,7 @@ $ sony_asdt1 stop
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 	return PX4_OK;
 }
 

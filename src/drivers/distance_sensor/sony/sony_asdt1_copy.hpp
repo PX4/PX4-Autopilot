@@ -34,30 +34,28 @@
 /**
  * @file sony_asdt1_copy.hpp
  *
- * Experimental AS-DT1 driver copy using binz Z-only output and index-based
- * obstacle_distance binning.
+ * Minimal AS-DT1 serial write probe.
  */
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_sensor.h>
-#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/obstacle_distance.h>
 
-#include <sys/types.h>
+#include <mathlib/mathlib.h>
 
-using namespace time_literals;
+#include <stdint.h>
+#include <sys/types.h>
 
 class AS_DT1_COPY : public px4::ScheduledWorkItem
 {
 public:
-	AS_DT1_COPY(const char *device);
-	virtual ~AS_DT1_COPY();
+	AS_DT1_COPY(const char *device, bool one_shot);
+	~AS_DT1_COPY() override;
 
 	int init();
 	void print_info();
@@ -66,78 +64,69 @@ private:
 	enum class ParserState {
 		FindBegin,
 		ReadPayload,
-		FindEnd,
 	};
 
-	int start();
+	void start();
 	void stop();
 	void Run() override;
 
-	int collect();
+	int open_port();
+	void close_port();
+	int write_start_command();
+	int write_command_padded(const char *command);
+	int read_once();
 	bool parse_byte(uint8_t byte);
 	int process_frame(const uint8_t *frame, size_t length);
-	int write_command_padded(const char *command);
 
-	static int32_t decode_20bit_signed(uint32_t raw);
 	static uint32_t decode_20bit_raw(const uint8_t *data, size_t sample_index);
-	static uint16_t z_raw_to_distance_cm(int32_t z_raw);
+	static uint16_t z_raw_to_distance_cm(uint32_t z_raw);
 	static int sample_to_layout_index(size_t sample_index);
 	static bool layout_index_to_row_col(int layout_index, int &row, int &col);
 	static int col_to_obstacle_bin(int col);
 
-	obstacle_distance_s _obstacle_distance{};
-	uORB::Publication<obstacle_distance_s> _obstacle_distance_pub{ORB_ID(obstacle_distance)};
-
+	static constexpr size_t COMMAND_BUFFER_SIZE{32};
+	static constexpr size_t READ_BUFFER_SIZE{512};
+	static constexpr size_t LAST_READ_CAPTURE_SIZE{64};
 	static constexpr uint8_t BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
-
-	static constexpr size_t READ_BUFFER_SIZE{512};
-	static constexpr uint8_t MAX_READS_PER_COLLECT{8};
 	static constexpr size_t ASDT1_MAX_SAMPLE_COUNT{576};
-	static constexpr size_t ASDT1_SHORT_SAMPLE_COUNT{288};
 	static constexpr size_t ASDT1_BINZ_FRAME_SIZE{1440};
-	static constexpr size_t ASDT1_BINZ_SHORT_FRAME_SIZE{720};
-	static constexpr size_t ASDT1_MAX_BACKLOG{ASDT1_BINZ_FRAME_SIZE * 3};
-	static constexpr size_t DEBUG_RX_CAPTURE_SIZE{64};
-
-	static constexpr int ASDT1_ROWS{24};
+	static constexpr size_t ASDT1_FRAME_BUFFER_SIZE{ASDT1_BINZ_FRAME_SIZE};
 	static constexpr int ASDT1_COLS{24};
-
-	// First-pass vertical crop. This keeps the middle band of the AS-DT1 image
-	// for 2D obstacle avoidance and ignores upper/lower points.
 	static constexpr int MIN_USED_ROW{8};
 	static constexpr int MAX_USED_ROW{15};
-
 	static constexpr float HORIZONTAL_FOV_DEG{35.0f};
 	static constexpr float LEFT_EDGE_DEG{-HORIZONTAL_FOV_DEG / 2.0f};
 	static constexpr float OBSTACLE_INCREMENT_DEG{5.0f};
 
+	obstacle_distance_s _obstacle_distance{};
+	uORB::Publication<obstacle_distance_s> _obstacle_distance_pub{ORB_ID(obstacle_distance)};
+
 	int _fd{-1};
+	int _interval{10000};
 	char _device[20]{};
-
-	uint8_t _frame_buffer[ASDT1_BINZ_FRAME_SIZE]{};
+	bool _one_shot{false};
+	unsigned int _baud{115200};
+	char _last_command[COMMAND_BUFFER_SIZE]{};
+	size_t _last_command_len{0};
+	ssize_t _last_write{-1};
+	uint64_t _read_attempts{0};
+	uint64_t _bytes_read_total{0};
+	uint64_t _no_data_reads{0};
+	uint64_t _read_errors{0};
+	hrt_abstime _last_read{0};
+	ssize_t _last_read_size{0};
+	uint8_t _last_read_bytes[LAST_READ_CAPTURE_SIZE]{};
+	size_t _last_read_bytes_len{0};
+	uint8_t _frame_buffer[ASDT1_FRAME_BUFFER_SIZE]{};
 	size_t _frame_buffer_len{0};
-	uint8_t _latest_frame[ASDT1_BINZ_FRAME_SIZE]{};
-	size_t _latest_frame_len{0};
-	bool _have_latest_frame{false};
-
 	ParserState _parser_state{ParserState::FindBegin};
 	size_t _begin_match_index{0};
-	size_t _end_match_index{0};
-	size_t _candidate_frame_len{0};
-
-	hrt_abstime _last_read{0};
-	uint64_t _bytes_rx_total{0};
-	ssize_t _last_bytes_read{0};
-	uint8_t _first_rx[DEBUG_RX_CAPTURE_SIZE]{};
-	size_t _first_rx_len{0};
-	uint8_t _last_rx[DEBUG_RX_CAPTURE_SIZE]{};
-	size_t _last_rx_len{0};
-	size_t _last_rx_pos{0};
-
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": copy com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": copy read")};
-	perf_counter_t _bytes_rx{perf_alloc(PC_COUNT, MODULE_NAME": copy bytes_rx")};
-
-	unsigned int _baud{115200};
+	uint64_t _frames_rx{0};
+	uint64_t _frames_pub{0};
+	uint64_t _parser_resets{0};
+	size_t _last_frame_processed_len{0};
+	size_t _last_sample_count{0};
+	uint8_t _last_valid_bins{0};
+	uint16_t _last_closest_distance{UINT16_MAX};
 };
