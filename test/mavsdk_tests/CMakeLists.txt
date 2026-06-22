@@ -34,7 +34,6 @@ if(MAVSDK_FOUND)
         test_vtol_rtl.cpp
         test_vtol_mission_wind.cpp
         test_vtol_loiter_airspeed_failure_blockage.cpp
-        test_sih_basic.cpp
         # test_multicopter_follow_me.cpp
     )
 

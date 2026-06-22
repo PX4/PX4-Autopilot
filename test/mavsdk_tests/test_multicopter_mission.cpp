@@ -35,7 +35,7 @@
 #include <chrono>
 
 
-TEST_CASE("Takeoff and Land", "[multicopter][vtol]")
+TEST_CASE("Takeoff and Land", "[sih]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
