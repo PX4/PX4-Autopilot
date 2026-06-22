@@ -93,6 +93,17 @@ private:
 	float computeDesaturationGain(const ActuatorVector &desaturation_vector, const ActuatorVector &actuator_sp);
 
 	/**
+	 * Decide whether folding the yaw demand into the pre-thrust mix reduces the airmode thrust
+	 * bump. When true, yaw is folded into the initial sum so the collective-thrust desaturation
+	 * can credit yaw relieving the saturating actuator, instead of deferring yaw until after the
+	 * thrust step (which over-adds thrust). Compares the unconstrained thrust desaturation gain
+	 * of the roll/pitch-only mix against the roll/pitch+yaw mix.
+	 *
+	 * @return true if including yaw needs a strictly smaller thrust shift to unsaturate.
+	 */
+	bool yawReducesAirmodeThrust();
+
+	/**
 	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
 	 *
 	 * @param roll_pitch_limit fraction in [0,1] of per-actuator headroom the
