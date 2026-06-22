@@ -736,6 +736,20 @@ parameters:
       max: 0.9
       decimal: 2
       increment: 0.01
+    COM_ARM_BAT_VDIF:
+      description:
+        short: Max allowed voltage delta between batteries for arming
+        long: |-
+          Maximum allowed difference between the voltages of all connected batteries.
+          Set to 0 to disable the check. Only applies when two or more batteries
+          are connected.
+      type: float
+      default: 0.0
+      unit: V
+      min: 0.0
+      max: 10.0
+      decimal: 1
+      increment: 0.1
     COM_THROW_EN:
       description:
         short: Enable throw-start
