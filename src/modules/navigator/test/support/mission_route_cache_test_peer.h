@@ -61,6 +61,16 @@ public:
 		return cache._mission.retry.retry_count;
 	}
 
+	static bool missionLandRetryScheduled(const MissionRouteCache &cache)
+	{
+		return cache._mission_land.retry.retry_at != 0;
+	}
+
+	static uint8_t missionLandRetryCount(const MissionRouteCache &cache)
+	{
+		return cache._mission_land.retry.retry_count;
+	}
+
 	static bool safePointRetryScheduled(const MissionRouteCache &cache)
 	{
 		return cache._safe_point.retry.retry_at != 0;

@@ -118,6 +118,25 @@ bool MissionRouteCache::missionCacheFullyLoaded(const mission_s &mission) const
 	return true;
 }
 
+bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
+{
+	if (_mission_land.index < 0 || _mission_land.index >= _mission.count) {
+		return false;
+	}
+
+	mission_item_s land_item{};
+
+	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id),
+					       _mission_land.index,
+					       reinterpret_cast<uint8_t *>(&land_item),
+					       sizeof(land_item),
+					       kCacheOnlyLoadWait)) {
+		return false;
+	}
+
+	return isMissionLandCommand(land_item.nav_cmd);
+}
+
 bool MissionRouteCache::safePointCacheFullyLoaded() const
 {
 	// Validate against the set currently being loaded.
@@ -211,14 +230,21 @@ bool MissionRouteCache::loadSafePointItem(int index, mission_item_s &safe_point_
 
 bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_item) const
 {
-	if (_mission_land.index < 0 || _mission_land.index >= _mission.count) {
+	if (!missionLandItemReady()) {
+		return false;
+	}
+
+	mission_item_s cached_land_item{};
+
+	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index,
+					       reinterpret_cast<uint8_t *>(&cached_land_item), sizeof(cached_land_item),
+					       kCacheOnlyLoadWait)) {
 		return false;
 	}
 
 	index = _mission_land.index;
-	return _dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id), index,
-			reinterpret_cast<uint8_t *>(&land_item), sizeof(land_item),
-			kCacheOnlyLoadWait);
+	land_item = cached_land_item;
+	return true;
 }
 
 bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const
@@ -246,11 +272,40 @@ bool MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
 			return false;
 		}
 
-		if (!_dataman_cache_land_item.updateCachedItem(static_cast<dm_item_t>(_mission_land.dataman_id), index,
-				reinterpret_cast<const uint8_t *>(&mission_item), sizeof(mission_item))) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		if (_mission_land.ready) {
+			if (!_dataman_cache_land_item.updateCachedItem(static_cast<dm_item_t>(_mission_land.dataman_id), index,
+					reinterpret_cast<const uint8_t *>(&mission_item), sizeof(mission_item))) {
+				_dataman_cache_land_item.invalidate();
+				_mission_land.ready = false;
+				_mission_land.validation_pending = false;
+				_mission_land.retry.scheduleRetry(now);
+				return false;
+			}
+
+			if (!isMissionLandCommand(mission_item.nav_cmd)) {
+				_dataman_cache_land_item.invalidate();
+				_mission_land.ready = false;
+				_mission_land.validation_pending = false;
+				_mission_land.retry.scheduleRetry(now);
+			}
+
+		} else {
 			_dataman_cache_land_item.invalidate();
-			_mission_land.index = -1;
-			return false;
+			_mission_land.validation_pending = false;
+			_mission_land.retry.clear();
+
+			if (isMissionLandCommand(mission_item.nav_cmd)) {
+				_mission_land.validation_pending = queueMissionLandItem();
+
+				if (!_mission_land.validation_pending) {
+					_mission_land.retry.scheduleRetry(now);
+				}
+
+			} else {
+				_mission_land.retry.scheduleRetry(now);
+			}
 		}
 	}
 
@@ -324,6 +379,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission)
 void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 {
 	MissionLandState &state = _mission_land;
+	const hrt_abstime now = hrt_absolute_time();
 	// Trust the published land_index, no mission rescanning.
 	const int32_t land_index = (mission.land_index >= 0 && mission.land_index < mission.count) ? mission.land_index : -1;
 	const bool mission_land_changed = mission.mission_id != state.mission_id
@@ -338,29 +394,66 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 		_dataman_cache_land_item.invalidate();
 
 		if (state.index >= 0) {
-			queueMissionLandItem();
-		}
+			state.validation_pending = queueMissionLandItem();
 
-	} else if (state.index >= 0 && state.retry.due(hrt_absolute_time())) {
-		// A transient queue failure must not permanently disable the mission-land fallback.
-		_dataman_cache_land_item.invalidate();
-		queueMissionLandItem();
+			if (!state.validation_pending) {
+				state.retry.scheduleRetry(now);
+			}
+		}
 	}
 
 	_dataman_cache_land_item.update();
-}
 
-void MissionRouteCache::queueMissionLandItem()
-{
-	MissionLandState &state = _mission_land;
-
-	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(state.dataman_id), state.index)) {
-		state.retry.clear();
+	if (state.index < 0 || state.ready) {
 		return;
 	}
 
+	if (state.validation_pending) {
+		if (_dataman_cache_land_item.isLoading()) {
+			return;
+		}
+
+		state.validation_pending = false;
+
+		if (missionLandItemCacheFullyLoaded()) {
+			state.ready = true;
+			state.retry.clear();
+
+		} else {
+			PX4_WARN("Mission land cache invalid or incomplete, retrying mission_id=%" PRIu32 ", index=%" PRIi32,
+				 state.mission_id, state.index);
+			_dataman_cache_land_item.invalidate();
+			state.retry.scheduleRetry(now);
+		}
+
+	} else if (state.retry.due(now)) {
+		_dataman_cache_land_item.invalidate();
+
+		state.validation_pending = queueMissionLandItem();
+
+		if (state.validation_pending) {
+			state.retry.retry_at = 0;
+
+		} else {
+			state.retry.scheduleRetry(now);
+		}
+	}
+}
+
+bool MissionRouteCache::queueMissionLandItem()
+{
+	const MissionLandState &state = _mission_land;
+
+	if (state.index < 0) {
+		return false;
+	}
+
+	if (_dataman_cache_land_item.load(static_cast<dm_item_t>(state.dataman_id), state.index)) {
+		return true;
+	}
+
 	PX4_WARN("Mission land cache queue failed, retrying! item=%" PRIu8 ", index=%" PRIi32, state.dataman_id, state.index);
-	state.retry.scheduleRetry(hrt_absolute_time());
+	return false;
 }
 
 void MissionRouteCache::updateSafePointCache(const mission_s &mission)

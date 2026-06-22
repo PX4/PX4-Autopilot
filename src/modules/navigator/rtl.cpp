@@ -151,6 +151,8 @@ void RTL::on_activation()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
+	updateDatamanCache();
+
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -371,7 +373,9 @@ void RTL::setRtlTypeAndDestination()
 	// Publish rtl status
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache != nullptr ? mission_route_cache->safePointsId() : 0;
-	rtl_status.is_evaluation_pending = mission_route_cache != nullptr && mission_route_cache->safePointUpdatePending();
+	rtl_status.is_evaluation_pending = mission_route_cache != nullptr
+					   && (mission_route_cache->safePointUpdatePending()
+					       || mission_route_cache->missionLandItemUpdatePending());
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
 	rtl_status.safe_point_index = safe_point_index;
@@ -482,10 +486,15 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 			const bool success = mission_route_cache != nullptr && mission_route_cache->getMissionLandItem(land_index, land_mission_item);
 
 			if (!success) {
-				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
-				events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
-					     "Mission land item could not be read");
+				const bool land_item_pending = mission_route_cache != nullptr
+							       && mission_route_cache->missionLandItemUpdatePending();
+
+				if (!land_item_pending) {
+					/* Not supposed to happen unless the datamanager can't access the SD card, etc. */
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
+					events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
+						     "Mission land item could not be read");
+				}
 
 			} else {
 				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
