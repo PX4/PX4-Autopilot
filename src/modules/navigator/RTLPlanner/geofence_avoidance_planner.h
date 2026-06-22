@@ -56,16 +56,19 @@ public:
 	 * Is converted to user-facing warning in navigator_main.
 	 */
 	enum class Status {
-		Success,             // No error
-		NoFence,             // No fence polygons -- avoidance not applicable.
-		DijkstraFailed,      // Dijkstra solve exited due to invalid input data.
-		DestinationInvalid,  // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
-		BudgetExceeded,      // Node/polygon storage budget exceeded (should not normally happen, see static_assert).
-		OutOfRange,          // A zone's vertex/extent fell outside the usable fixed-point range.
-		Degenerate,          // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
+		Success,                     // No error
+		NoFence,                     // No fence polygons -- avoidance not applicable.
+		DijkstraFailed,              // Dijkstra solve exited due to invalid input data.
+		DestinationInvalid,          // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
+		DestinationBreachesGeofence, // Destination breaches geofence
+		BudgetExceeded,              // Node/polygon storage budget exceeded (should not normally happen, see static_assert).
+		OutOfRange,                  // A zone's vertex/extent fell outside the usable fixed-point range.
+		Degenerate,                  // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
 	};
 
 	Status status() const { return _status; }
+
+	void resetStatus() { _status = Status::Success; }
 
 	/**
 	 * True if the latest updateStartAndFillPath() found neither a routed path nor a direct

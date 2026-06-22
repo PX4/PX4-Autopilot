@@ -203,7 +203,6 @@ void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 {
 	if (!_polygons_healthy) {
 		// Polygons unhealthy -- _status already reflects the root cause, do not overwrite.
-		_destination_healthy = false;
 		return;
 	}
 
@@ -224,16 +223,23 @@ void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 		return;
 	}
 
-	// PlannerPolygons stores positions in int32-cm - a roundtrip through
-	// setDestination/getDestination thus introduces up to 0.5cm of error,
-	// hence the higher comparison tolerance.
-	if (_destination_healthy && (dest_local - _polygons.getDestination()).norm() < 0.1f) {
+	// PlannerPolygons stores positions in int32-cm, so a setDestination/getDestination
+	// roundtrip introduces up to 0.5cm of error -- hence the comparison tolerance.
+	if ((dest_local - _polygons.getDestination()).norm() < 0.1f) {
 		return;
 	}
 
+	_destination_healthy = _polygons.setDestination(dest_local);
+
+	if (!_destination_healthy) {
+		// Keep the (breaching) destination so RTL can still fall back to a straight
+		// line; just flag it for the user-facing warning.
+		_status = Status::DestinationBreachesGeofence;
+		return;
+	}
+
+	// Measure only updateEdgeCosts, rest above is negligible
 	perf_begin(_update_destination_perf);
-	_polygons.setDestination(dest_local);
-	_destination_healthy = true;
 
 	// Destination changed -- rebuild all edge costs. Could only refresh costs involving
 	// the destination for slightly better performance at the cost of code repetition.

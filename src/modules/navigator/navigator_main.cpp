@@ -1004,20 +1004,17 @@ void Navigator::run()
 		// Margin is baked into polygons, so a margin change requires rebuilding them.
 		const bool margin_changed = fabsf(margin - _last_geofence_avoidance_margin) > FLT_EPSILON;
 
+
+		using PlannerStatus = GeofenceAvoidancePlanner::Status;
+		const PlannerStatus planner_status = _geofence_avoidance_planner.status();
+
 		if (fence_updated || margin_changed) {
 			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
 			_last_geofence_avoidance_margin = margin;
 
 			// Add granularity with more status values / user messages if needed.
-			using PlannerStatus = GeofenceAvoidancePlanner::Status;
-			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
 			switch (planner_status) {
-			case PlannerStatus::Success:
-			case PlannerStatus::NoFence:
-			case PlannerStatus::DestinationInvalid: // If reporting, would need to also check outside of this block...
-				break;
-
 			// Failure in building fence graph / path. Collapse to one generic user message. Add granularity if needed.
 			case PlannerStatus::BudgetExceeded:
 			case PlannerStatus::OutOfRange:
@@ -1028,8 +1025,35 @@ void Navigator::run()
 				events::send<uint8_t>(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
 						      "Geofence data invalid (code {1}), RTL will fly directly", (uint8_t)planner_status);
 				break;
+
+			default:
+				// Not an error, or reported elsewhere
+				break;
 			}
 		}
+
+		// Signal status values not related to updating geofence data. Reset status to not spam.
+
+		if (planner_status == PlannerStatus::DestinationInvalid) {
+			mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
+			events::send(
+				events::ID("rtl_destination_invalid"),
+				events::LogLevels(events::Log::Warning, events::LogInternal::Info),
+				"RTL destination invalid, not updating"
+			);
+			_geofence_avoidance_planner.resetStatus();
+		}
+
+		if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
+			mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
+			events::send(
+				events::ID("rtl_destination_breaches"),
+				events::LogLevels(events::Log::Warning, events::LogInternal::Info),
+				"RTL destination breaches geofence, will fly directly"
+			);
+			_geofence_avoidance_planner.resetStatus();
+		}
+
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

@@ -289,7 +289,8 @@ public:
 	}
 
 	// Update the destination position. Always safe to call after reset().
-	void setDestination(const matrix::Vector2f &p);
+	// Returns false if the destination violates the geofence, but still updates destionation.
+	bool setDestination(const matrix::Vector2f &p);
 
 	// Get the current destination position.
 	matrix::Vector2f getDestination() const;

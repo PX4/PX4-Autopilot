@@ -425,9 +425,20 @@ bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x,
 	return false;
 }
 
-void PlannerPolygons::setDestination(const matrix::Vector2f &p)
+bool PlannerPolygons::setDestination(const matrix::Vector2f &p)
 {
 	setNode(destIndex(), p);
+
+	const int32_t x_cm = metersToCm(p(0));
+	const int32_t y_cm = metersToCm(p(1));
+
+	if (intersectsAnyInside(x_cm, y_cm, x_cm, y_cm)) {
+		// If the destination breaches a geofence, still use it but
+		// signal to the user that it is invalid.
+		return false;
+	}
+
+	return true;
 }
 
 matrix::Vector2f PlannerPolygons::getDestination() const
