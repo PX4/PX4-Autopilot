@@ -354,6 +354,31 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, YawLimitDiscontinuityAt
 	EXPECT_FALSE(deferred_path == sum_path) << "yaw_limit=0 and yaw_limit>0 must differ";
 }
 
+// Roll/pitch airmode (YLIM=0) folds yaw into the thrust desaturation when yaw relieves the
+// saturating actuator, removing the collective over-command of pure sequential allocation (the
+// "#16" case). Roll, pitch and yaw are still delivered exactly; only the unnecessary extra
+// collective is dropped, so the result matches full roll/pitch/yaw airmode for this command.
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, DeferredYawFoldedWhenItReducesThrust)
+{
+	setAirmodeLimits(1.f, 0.f);
+	const Vector4f folded = allocate(0.05f, 0.05f, -0.025f, 0.f);
+	EXPECT_EQ(folded, Vector4f(0.0125f, 0.f, 0.0125f, 0.05f));
+
+	// Strictly less total collective than the old deferred-yaw allocation (0.01875,...,0.05625).
+	EXPECT_LT(folded(0) + folded(1) + folded(2) + folded(3), 0.1f);
+
+	// Equals what full roll/pitch/yaw airmode (yaw already in the sum) produces for this command.
+	setAirmodeLimits(1.f, 1.f);
+	EXPECT_EQ(allocate(0.05f, 0.05f, -0.025f, 0.f), folded);
+}
+
+// When yaw would worsen the saturating actuator it stays deferred (deprioritized yaw).
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, DeferredYawKeptWhenYawWorsens)
+{
+	setAirmodeLimits(1.f, 0.f);
+	EXPECT_EQ(allocate(0.05f, 0.05f, 0.025f, 0.f), Vector4f(0.025f, 0.f, 0.025f, 0.05f));
+}
+
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsNoAirmode)
 {
 	setAirmode(0); // No airmode
@@ -424,6 +449,11 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsNoAi
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -1.000f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 65
 }
 
+// Rows tagged "yaw folded" (16, 30, 51, 52, 59, 60) differ from the historical multirotor-mixer
+// values because the deferred-yaw path now folds yaw into the collective-thrust desaturation when
+// that relieves the saturating actuator, yielding exactly the full roll/pitch/yaw-airmode
+// allocation for the command: roll, pitch and yaw are delivered at least as well (never worse),
+// while collective thrust may shift to make room for the yaw torque.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirmodeRP)
 {
 	setAirmode(1); // Roll and pitch airmode
@@ -442,7 +472,7 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirm
 	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.450f), Vector4f(0.425000f, 0.450000f, 0.475000f, 0.450000f)); // 13
 	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.900f), Vector4f(0.875000f, 0.900000f, 0.925000f, 0.900000f)); // 14
 	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -1.000f), Vector4f(0.950000f, 0.975000f, 1.000000f, 0.975000f)); // 15
-	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.000f), Vector4f(0.018750f, 0.006250f, 0.018750f, 0.056250f)); // 16
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.000f), Vector4f(0.012500f, 0.000000f, 0.012500f, 0.050000f)); // 16 yaw folded
 	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.100f), Vector4f(0.093750f, 0.081250f, 0.093750f, 0.131250f)); // 17
 	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.450f), Vector4f(0.443750f, 0.431250f, 0.443750f, 0.481250f)); // 18
 	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.900f), Vector4f(0.893750f, 0.881250f, 0.893750f, 0.931250f)); // 19
@@ -456,7 +486,7 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirm
 	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.100f), Vector4f(0.085000f, 0.015000f, 0.160000f, 0.140000f)); // 27
 	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.450f), Vector4f(0.435000f, 0.365000f, 0.510000f, 0.490000f)); // 28
 	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.900f), Vector4f(0.885000f, 0.815000f, 0.960000f, 0.940000f)); // 29
-	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -1.000f), Vector4f(0.922500f, 0.852500f, 0.997500f, 0.977500f)); // 30
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -1.000f), Vector4f(0.925000f, 0.855000f, 1.000000f, 0.980000f)); // 30 yaw folded
 	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.000f), Vector4f(0.082500f, 0.052500f, 0.010000f, 0.000000f)); // 31
 	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.100f), Vector4f(0.146250f, 0.116250f, 0.073750f, 0.063750f)); // 32
 	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.450f), Vector4f(0.496250f, 0.466250f, 0.423750f, 0.413750f)); // 33
@@ -477,16 +507,16 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirm
 	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.450f), Vector4f(0.700000f, 0.200000f, 0.700000f, 0.200000f)); // 48
 	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.900f), Vector4f(1.000000f, 0.500000f, 1.000000f, 0.500000f)); // 49
 	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -1.000f), Vector4f(1.000000f, 0.700000f, 1.000000f, 0.700000f)); // 50
-	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.000f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 51
-	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 52
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 51 yaw folded
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.100f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 52 yaw folded
 	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.450f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 53
 	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.900f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 54
 	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -1.000f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 55
 	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.000f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 56
 	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.100f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 57
 	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.450f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 58
-	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.900f), Vector4f(0.950000f, 0.600000f, 0.000000f, 0.550000f)); // 59
-	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -1.000f), Vector4f(0.950000f, 0.600000f, 0.000000f, 0.550000f)); // 60
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.900f), Vector4f(1.000000f, 1.000000f, 0.050000f, 0.950000f)); // 59 yaw folded
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -1.000f), Vector4f(1.000000f, 1.000000f, 0.050000f, 0.950000f)); // 60 yaw folded
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.000f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 61
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.100f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 62
 	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.450f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 63
