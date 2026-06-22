@@ -295,19 +295,17 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	matrix::Vector2f start_local;
 	ref.project(start(0), start(1), start_local(0), start_local(1));
 
-	// Try the caller provided position (typically the vehicle's current position) first.
+	// Default: plan from given start
 	bool direct_path_feasible = false;
 	int best_starting_index = findBestStartingNode(start_local, direct_path_feasible);
 	const bool path_feasible = best_starting_index >= 0 || direct_path_feasible;
 
-	// If the start is legal (i.e. findBestStartingNode found at least one
-	// edge-visible polygon node), save it for future calls.
+	// Save for future fallback
 	if (path_feasible) {
 		_saved_valid_start = start;
 	}
 
-	// If the provided position has no visible node and the destination isn't directly reachable,
-	// fall back to the most recently saved in-fence position.
+	// If planning failed, use previous fallback
 	if (!path_feasible && _saved_valid_start.isAllFinite()) {
 		matrix::Vector2f fallback_local;
 		ref.project(_saved_valid_start(0), _saved_valid_start(1), fallback_local(0), fallback_local(1));

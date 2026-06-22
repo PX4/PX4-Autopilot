@@ -280,7 +280,7 @@ public:
 
 	int numNodes() const { return _num_nodes; }
 
-	// Number of polygon/circle nodes (excludes the destination at index 0).
+	// Number of polygon nodes (excludes the destination at index 0).
 	int numVertices() const { return _num_nodes - 1; }
 
 	matrix::Vector2f node(int idx) const
@@ -307,6 +307,9 @@ public:
 	float edgeCost(int a, int b) const;
 
 private:
+	int32_t _x_cm[kMaxNodes];
+	int32_t _y_cm[kMaxNodes];
+
 	struct PolygonInfo {
 		int start_index;
 		int num_vertices;
@@ -314,32 +317,58 @@ private:
 		int32_t min_x, max_x, min_y, max_y; // Bouding box
 	};
 
-	int32_t _x_cm[kMaxNodes];
-	int32_t _y_cm[kMaxNodes];
+	PolygonInfo _polygons[kMaxPolygons];
+	int _num_polygons{0};
 
-	// Reduced visibility graph: we can exclude some vertices a priori
-	// because they cannot be part of the shortest path. For convex
-	// inclusion corners or reflex exclusion corners at node B, the path
-	//   (A -> B -> C)
-	// is a detour compared to
-	//   (A -> just before B -> just after B -> C)
-	// and so it cannot be globally optimal.
+	/**
+	 * Reduced visibility graph: we can exclude some vertices a priori
+	 * because they cannot be part of the shortest path. For convex
+	 * inclusion corners or reflex exclusion corners at node B, the path
+	 *   (A -> B -> C)
+	 * is a detour compared to
+	 *   (A -> just before B -> just after B -> C)
+	 * and so it cannot be globally optimal.
+	 */
 	bool _node_not_on_optimal_path[kMaxNodes];
 	int _num_nodes{0};
 
-	PolygonInfo _polygons[kMaxPolygons];
-	int _num_polygons{0};
+	/**
+	 * Line-segment vs polygon intersection check.
+	 *
+	 * Only detects intersection with the _interior_ of the polygon in
+	 * canonical orientation, i.e. the forbidden region. Intersection with
+	 * only the boundary is allowed (necessary for shortest path to be well
+	 * defined)
+	 */
+	bool intersectsInsideOf(const PolygonInfo &poly, int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
+
+	/**
+	 * Return true iff the line segment s-e intersects the inside of _any_ stored polygon.
+	 */
+	bool intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
+
+	/**
+	 * Consider extending the triangle poly[v-1] -> poly[v] -> poly[v+1]
+	 * outward from poly[v] (the inside always being left of the points).
+	 * This cone is the local interior of the forbidden region at the given
+	 * vertex.
+	 *
+	 * Returns true if the point p is in the interior of that cone, which is
+	 * the case iff the line segment poly[v] -> p pierces the interior at
+	 * vertex curr.
+	 */
+	bool pointInsideInteriorCone(const PolygonInfo &poly, int32_t px, int32_t py, int v) const;
+
+	/**
+	 * Update {min,max}_{x,y} with the min/max coordinates of the polygon with vertices
+	 * [start_index, start_index + num_vertices).
+	 */
+	void computeBoundingBox(const int start_index, const int num_vertices,
+				int32_t &min_x, int32_t &max_x, int32_t &min_y, int32_t &max_y);
 
 	// Write float-metre coordinates into an existing node slot (used internally by
 	// addPolygon, addApproxCircle, and setDestination).
 	void setNode(int idx, const matrix::Vector2f &p);
-
-	bool intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
-	bool intersectsInsideOf(const PolygonInfo &poly,
-				int32_t s_x, int32_t s_y, int32_t e_x, int32_t e_y) const;
-	bool pointInsideInteriorCone(const PolygonInfo &poly, int32_t px, int32_t py, int v) const;
-	void computeBoundingBox(const int start_index, const int num_vertices,
-				int32_t &min_x, int32_t &max_x, int32_t &min_y, int32_t &max_y);
 
 };
 

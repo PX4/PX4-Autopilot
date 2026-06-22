@@ -47,6 +47,8 @@ int32_t metersToCm(float m) { return roundf(m * CM_PER_M); }
 
 void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 {
+	idx = math::constrain(idx, 0, kMaxNodes - 1);
+
 	_x_cm[idx] = metersToCm(p(0));
 	_y_cm[idx] = metersToCm(p(1));
 }
@@ -295,15 +297,6 @@ void PlannerPolygons::computeBoundingBox(const int start_index, const int num_ve
 	}
 }
 
-
-/**
- * Consider the cone obtained by extending the triangle poly[prev] -> poly[curr]
- * -> poly[next] outward from poly[curr] (the inside always being left of the
- * points). This cone is the local interior of the forbidden region at the given
- * vertex.
- *
- * Returns true if the point p is in the interior of that cone.
- */
 bool PlannerPolygons::pointInsideInteriorCone(const PolygonInfo &poly,
 		int32_t px, int32_t py, int v) const
 {
@@ -337,7 +330,6 @@ bool PlannerPolygons::intersectsInsideOf(const PolygonInfo &poly,
 	// which will lead to rounding error for uneven numbers, we instead
 	// scale all other inputs by two, reducing the range by a factor of two
 	// (2^31 cm = 21400 km -> 2^30 cm = 10700 km)
-	// TODO: when adding any polygons, return a clear error code when this range is exceeded
 	const int32_t twice_mid_x = s_x + e_x;
 	const int32_t twice_mid_y = s_y + e_y;
 
