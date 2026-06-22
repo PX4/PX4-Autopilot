@@ -71,7 +71,7 @@ public:
 	 * @brief Destination the geofence-avoidance planner should route to: the start of the mission
 	 * landing sequence (first position item after DO_LAND_START). (NaN, NaN) if not yet known.
 	 */
-	matrix::Vector2d getGeofenceAvoidanceDestination();
+	matrix::Vector2d getRtlPlannerDestination() override;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 private:

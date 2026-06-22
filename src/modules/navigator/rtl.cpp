@@ -415,7 +415,7 @@ void RTL::setRtlTypeAndDestination()
 		planner_destination = matrix::Vector2d{landing_loiter.lat, landing_loiter.lon};
 
 	} else if (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND && _rtl_mission_type_handle) {
-		planner_destination = static_cast<RtlDirectMissionLand *>(_rtl_mission_type_handle)->getGeofenceAvoidanceDestination();
+		planner_destination = _rtl_mission_type_handle->getRtlPlannerDestination();
 	}
 
 	if (planner_destination.isAllFinite()) {

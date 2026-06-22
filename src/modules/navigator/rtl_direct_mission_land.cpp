@@ -193,7 +193,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		if (!point.isAllFinite()) {
 			// Should never happen -- the geofence branch is only entered while hasMore() is true.
 			// Fall back to flying straight to the destination, as rtl_direct does.
-			const matrix::Vector2d destination = getGeofenceAvoidanceDestination();
+			const matrix::Vector2d destination = getRtlPlannerDestination();
 
 			if (destination.isAllFinite()) {
 				point = destination;
@@ -509,7 +509,7 @@ bool RtlDirectMissionLand::checkNeedsToClimb()
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-matrix::Vector2d RtlDirectMissionLand::getGeofenceAvoidanceDestination()
+matrix::Vector2d RtlDirectMissionLand::getRtlPlannerDestination()
 {
 	matrix::Vector2d position((double)NAN, (double)NAN);
 
