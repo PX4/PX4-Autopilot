@@ -324,6 +324,9 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::MOVE_TO_LOITER: {
 
+			// Shift waypoint to enable line following with respect to last waypoint
+			pos_sp_triplet->previous = pos_sp_triplet->current;
+
 			PositionYawSetpoint pos_yaw_sp {
 				.lat = _land_approach.lat,
 				.lon = _land_approach.lon,
