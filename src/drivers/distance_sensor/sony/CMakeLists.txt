@@ -39,24 +39,10 @@ px4_add_module(
 		sony_asdt1.hpp
 		sony_asdt1_main.cpp
 	DEPENDS
-		drivers_rangefinder
 		px4_work_queue
-		CollisionPrevention
 	MODULE_CONFIG
 		module.yaml
 		)
-
-px4_add_module(
-	MODULE drivers__distance_sensor__sony_asdt1_copy
-	MAIN sony_asdt1_copy
-	COMPILE_FLAGS
-	SRCS
-		sony_asdt1_copy.cpp
-		sony_asdt1_copy.hpp
-		sony_asdt1_main_copy.cpp
-	DEPENDS
-		px4_work_queue
-	)
 
 if(PX4_TESTING)
 	add_subdirectory(tests)

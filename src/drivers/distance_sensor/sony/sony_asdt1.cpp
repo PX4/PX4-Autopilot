@@ -33,22 +33,25 @@
 
 /**
  * @file sony_asdt1.cpp
- * @author Andrew Brahim <brahim@ascendengineer.com>
- * @author Apoorv Thapliyal
  *
- * Driver for the Sony ASDT1 lidar
+ * Minimal AS-DT1 serial write probe.
  */
 
 #include "sony_asdt1.hpp"
-#include <px4_platform_common/defines.h>
-#include <lib/parameters/param.h>
-#include <lib/drivers/device/Device.hpp>
+
+#include <errno.h>
 #include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <px4_platform_common/defines.h>
 
-AS_DT1::AS_DT1(const char *device) : ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
+AS_DT1::AS_DT1(const char *device, bool one_shot) :
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
+	_one_shot(one_shot)
 {
 	if (device != nullptr) {
 		strncpy(_device, device, sizeof(_device) - 1);
@@ -63,239 +66,241 @@ AS_DT1::AS_DT1(const char *device) : ScheduledWorkItem(MODULE_NAME, px4::serial_
 	_obstacle_distance.max_distance = 2000;
 	_obstacle_distance.angle_offset = 0.0f;
 
-	for (uint32_t i = 0 ; i < BIN_COUNT; i++) { // Initialize all distances to max (no obstacle)
+	for (uint8_t i = 0; i < BIN_COUNT; i++) {
 		_obstacle_distance.distances[i] = UINT16_MAX;
 	}
 }
+
 AS_DT1::~AS_DT1()
 {
-
-	// if (_uart.isOpen()) {
-	// 	_uart.close();
-	// }
-
 	stop();
-	perf_free(_comms_errors);
-	perf_free(_sample_perf);
-	perf_free(_bytes_rx);
-	perf_free(_no_data);
-	perf_free(_frames_rx);
-	perf_free(_frames_pub);
-	perf_free(_parser_resets);
-	perf_free(_backlog_flushes);
-
 }
+
 int AS_DT1::init()
 {
-	return start();
+	if (_one_shot) {
+		if (open_port() != PX4_OK) {
+			return PX4_ERROR;
+		}
+
+		if (write_start_command() != PX4_OK) {
+			close_port();
+			return PX4_ERROR;
+		}
+
+		px4_usleep(1000000);
+		(void)read_once();
+
+	} else {
+		start();
+	}
+
+	return PX4_OK;
 }
 
-
-// TODO:
 void AS_DT1::print_info()
 {
-	PX4_INFO("AS-DT1 on %s, baud %u", _device, _baud);
-	PX4_INFO("parser state: %u, begin match: %u, end match: %u, frame buffer: %u bytes, latest frame: %u bytes",
+	PX4_INFO("AS-DT1 on %s, baud %u, mode %s", _device, _baud, _one_shot ? "one-shot" : "scheduled");
+	PX4_INFO("fd: %d, last command: %s, command bytes: %u, last write: %lld",
+		 _fd, _last_command, static_cast<unsigned>(_last_command_len), static_cast<long long>(_last_write));
+	PX4_INFO("read: attempts %llu, total %llu bytes, no data %llu, errors %llu, last read %lld, last read age %llu us",
+		 static_cast<unsigned long long>(_read_attempts),
+		 static_cast<unsigned long long>(_bytes_read_total),
+		 static_cast<unsigned long long>(_no_data_reads),
+		 static_cast<unsigned long long>(_read_errors),
+		 static_cast<long long>(_last_read_size),
+		 static_cast<unsigned long long>(_last_read == 0 ? 0 : hrt_elapsed_time(&_last_read)));
+	PX4_INFO("startup: state %u, prompt seen %u",
+		 static_cast<unsigned>(_startup_state),
+		 static_cast<unsigned>(_startup_prompt_seen));
+	PX4_INFO("parser: state %u, begin match %u, frame buffer %u bytes, frames rx %llu, frames pub %llu, resets %llu",
 		 static_cast<unsigned>(_parser_state),
 		 static_cast<unsigned>(_begin_match_index),
-		 static_cast<unsigned>(_end_match_index),
 		 static_cast<unsigned>(_frame_buffer_len),
-		 static_cast<unsigned>(_latest_frame_len));
-	PX4_INFO("rx: total %llu bytes, last available %lld, last read %lld, last read age %llu us",
-		 static_cast<unsigned long long>(_bytes_rx_total),
-		 static_cast<long long>(_last_bytes_available),
-		 static_cast<long long>(_last_bytes_read),
-		 static_cast<unsigned long long>(_last_read == 0 ? 0 : hrt_elapsed_time(&_last_read)));
+		 static_cast<unsigned long long>(_frames_rx),
+		 static_cast<unsigned long long>(_frames_pub),
+		 static_cast<unsigned long long>(_parser_resets));
 	PX4_INFO("last processed: frame %u bytes, samples %u, valid bins %u, closest %u cm",
 		 static_cast<unsigned>(_last_frame_processed_len),
 		 static_cast<unsigned>(_last_sample_count),
 		 static_cast<unsigned>(_last_valid_bins),
 		 static_cast<unsigned>(_last_closest_distance));
-	PX4_INFO("rx markers: B %llu, E %llu, CR %llu, LF %llu, prompt %llu",
-		 static_cast<unsigned long long>(_rx_b_count),
-		 static_cast<unsigned long long>(_rx_e_count),
-		 static_cast<unsigned long long>(_rx_cr_count),
-		 static_cast<unsigned long long>(_rx_lf_count),
-		 static_cast<unsigned long long>(_rx_prompt_count));
-	PX4_INFO("payload END: confirmed %u bytes, probe %u bytes, rejected candidate %u bytes",
-		 static_cast<unsigned>(_last_end_payload_len),
-		 static_cast<unsigned>(_last_end_probe_payload_len),
-		 static_cast<unsigned>(_last_rejected_candidate_len));
-	PX4_INFO("payload sizes: 720 %llu, 1440 %llu, unexpected END %llu, candidate miss %llu",
-		 static_cast<unsigned long long>(_payload_len_720_count),
-		 static_cast<unsigned long long>(_payload_len_1440_count),
-		 static_cast<unsigned long long>(_payload_len_unexpected_count),
-		 static_cast<unsigned long long>(_end_mismatch_count));
 
-	print_debug_buffer("first rx", _first_rx, _first_rx_len);
+	if (_last_read_bytes_len == 0) {
+		PX4_INFO("last read bytes: empty");
 
-	uint8_t last_rx_ordered[DEBUG_RX_CAPTURE_SIZE] {};
-	const size_t last_rx_len = math::min(_last_rx_len, DEBUG_RX_CAPTURE_SIZE);
+	} else {
+		for (size_t offset = 0; offset < _last_read_bytes_len; offset += 16) {
+			const size_t chunk_len = math::min(static_cast<size_t>(16), _last_read_bytes_len - offset);
+			char hex[16 * 3]{};
+			char ascii[17]{};
+			size_t hex_pos = 0;
 
-	for (size_t i = 0; i < last_rx_len; i++) {
-		const size_t index = (_last_rx_len < DEBUG_RX_CAPTURE_SIZE) ? i : ((_last_rx_pos + i) % DEBUG_RX_CAPTURE_SIZE);
-		last_rx_ordered[i] = _last_rx[index];
+			for (size_t i = 0; i < chunk_len; i++) {
+				const uint8_t byte = _last_read_bytes[offset + i];
+				hex_pos += snprintf(&hex[hex_pos], sizeof(hex) - hex_pos, "%02x%s", byte, (i + 1 < chunk_len) ? " " : "");
+				ascii[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
+			}
+
+			PX4_INFO("last read[%u..%u] hex: %s ascii: %s",
+				 static_cast<unsigned>(offset),
+				 static_cast<unsigned>(offset + chunk_len - 1),
+				 hex,
+				 ascii);
+		}
 	}
-
-	print_debug_buffer("last rx", last_rx_ordered, last_rx_len);
-	print_debug_buffer("last B probe", _last_begin_probe, _last_begin_probe_len);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_bytes_rx);
-	perf_print_counter(_no_data);
-	perf_print_counter(_frames_rx);
-	perf_print_counter(_frames_pub);
-	perf_print_counter(_parser_resets);
-	perf_print_counter(_backlog_flushes);
 }
-int AS_DT1::start()
+
+void AS_DT1::start()
 {
-	if (!_uart.setPort(_device)) {
-		PX4_ERR("failed to set serial port %s", _device);
-		perf_count(_comms_errors);
-		return PX4_ERROR;
-	}
+	ScheduleNow();
+}
 
-	if (!_uart.setBaudrate(_baud)) {
-		PX4_ERR("failed to set UART %lu baud", static_cast<unsigned long>(_baud));
-		perf_count(_comms_errors);
-		return PX4_ERROR;
-	}
-
-	(void)_uart.setBytesize(ByteSize::EightBits);
-	(void)_uart.setParity(Parity::None);
-	(void)_uart.setStopbits(StopBits::One);
-	(void)_uart.setFlowcontrol(FlowControl::Disabled);
-
-	if (!_uart.isOpen() && !_uart.open()) {
-		PX4_ERR("failed to open AS-DT1 on %s", _device);
-		perf_count(_comms_errors);
-		return PX4_ERROR;
-	}
-
-	// _uart.flush();
-	_first_rx_len = 0;
-	_last_rx_len = 0;
-	_last_rx_pos = 0;
-	_last_begin_probe_len = 0;
-	_last_begin_probe_remaining = 0;
-	_payload_end_probe_match_index = 0;
-	_rx_b_count = 0;
-	_rx_e_count = 0;
-	_rx_cr_count = 0;
-	_rx_lf_count = 0;
-	_rx_prompt_count = 0;
-	_last_end_payload_len = 0;
-	_last_end_probe_payload_len = 0;
-	_last_rejected_candidate_len = 0;
-	_payload_len_720_count = 0;
-	_payload_len_1440_count = 0;
-	_payload_len_unexpected_count = 0;
-	_end_mismatch_count = 0;
-
-	// Start polling before command setup so command echoes and immediate streams
-	// from a simulator or real sensor cannot be missed during startup.
-
-	// Minimal command probe: send exactly one command and log whatever comes back.
-	// if (writeCommandPadded("flshow") != PX4_OK) {
-	// 	PX4_ERR("failed to request AS-DT1 flash settings");
-	// 	perf_count(_comms_errors);
-	// 	return PX4_ERROR;
-	// }
-
-	// readAndLogCommandResponse("flshow response", 2_s);
-	// return PX4_OK;
-
-	// readAndLogCommandResponse("fsync 0 response", 500_ms);
-	// _uart.flush();
-
-	// if (writeCommandPadded("flshow") != PX4_OK) {
-	// 	PX4_ERR("failed to request AS-DT1 flash settings");
-	// 	perf_count(_comms_errors);
-	// 	return PX4_ERROR;
-	// }
-
-	// px4_usleep(250_ms);
-
-
-	// readAndLogCommandResponse("flshow response", 2_s);
-	// return PX4_OK;
-
-	// Normal measurement startup:
-	//
-	// if (writeCommandPadded("fsync 0") != PX4_OK) {
-	// 	PX4_ERR("failed to disable AS-DT1 self trigger");
-	// 	perf_count(_comms_errors);
-	// 	return PX4_ERROR;
-	// }
-
-	// px4_usleep(250_ms);
-	// _uart.flush();
-
-	if (writeCommandPadded("format binz") != PX4_OK) {
-		PX4_ERR("failed to configure AS-DT1 binz output");
-		perf_count(_comms_errors);
-		ScheduleClear();
-		return PX4_ERROR;
-	}
-
-	if (writeCommandPadded("fsync 200") != PX4_OK) {
-		PX4_ERR("failed to start AS-DT1 frame stream");
-		perf_count(_comms_errors);
-		ScheduleClear();
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-
-
+void AS_DT1::stop()
+{
+	ScheduleClear();
+	close_port();
 }
 
 void AS_DT1::Run()
 {
-	if (!_uart.isOpen()) {
-		PX4_ERR("serial port is not open");
-		perf_count(_comms_errors);
-		ScheduleClear();
+	if (_fd < 0) {
+		if (open_port() != PX4_OK) {
+			return;
+		}
+
+		_startup_state = StartupState::SendFormat;
+		_startup_prompt_seen = false;
+		ScheduleNow();
 		return;
 	}
 
-	collect();
-}
+	if (!_one_shot && _startup_state != StartupState::Streaming) {
+		switch (_startup_state) {
+		case StartupState::SendFormat:
+			if (write_command_padded("format binz") != PX4_OK) {
+				close_port();
+				return;
+			}
 
-void
-AS_DT1::stop()
-{
-	ScheduleClear();
+			tcdrain(_fd);
+			_startup_prompt_seen = false;
+			_startup_state = StartupState::WaitFormatPrompt;
+			break;
 
-	if (_uart.isOpen()) {
-		// Leave the minimal command probe quiet on stop. If the port is already invalid,
-		// writing here can hide the useful result from the actual probe.
-		// (void)writeCommandPadded("fsync 0");
-		_uart.close();
+		case StartupState::WaitFormatPrompt:
+			(void)read_once();
+
+			if (_startup_prompt_seen) {
+				_startup_prompt_seen = false;
+				_startup_state = StartupState::SendFsync;
+				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			break;
+
+		case StartupState::SendFsync:
+			if (write_command_padded("fsync 200") != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_state = StartupState::Streaming;
+			break;
+
+		case StartupState::Streaming:
+			break;
+		}
+
+		ScheduleDelayed(_interval);
+		return;
 	}
+
+	(void)read_once();
+	ScheduleDelayed(_interval);
 }
 
-int AS_DT1::writeCommand(const uint8_t *data, size_t length)
+int AS_DT1::open_port()
 {
-	//TODO:
+	_fd = ::open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	// If write fails, print error and return false
-	if (_uart.write(data, length) != static_cast<ssize_t>(length)) {
-		PX4_ERR("Failed to write to AS-DT1");
+	if (_fd < 0) {
+		PX4_ERR("open failed (%i)", errno);
 		return PX4_ERROR;
 	}
+
+	struct termios uart_config {};
+
+	if (tcgetattr(_fd, &uart_config) < 0) {
+		PX4_ERR("tcgetattr failed (%i)", errno);
+		close_port();
+		return PX4_ERROR;
+	}
+
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS | CSIZE);
+	uart_config.c_cflag |= (CLOCAL | CREAD | CS8);
+	uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
+	uart_config.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+	uart_config.c_oflag &= ~ONLCR;
+	uart_config.c_cc[VMIN] = 0;
+	uart_config.c_cc[VTIME] = 0;
+
+	speed_t speed = B115200;
+
+	if (_baud == 921600) {
+		speed = B921600;
+	}
+
+	(void)cfsetispeed(&uart_config, speed);
+	(void)cfsetospeed(&uart_config, speed);
+
+	if (tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
+		PX4_ERR("tcsetattr failed (%i)", errno);
+		close_port();
+		return PX4_ERROR;
+	}
+
+	(void)tcflush(_fd, TCIOFLUSH);
+	return PX4_OK;
+}
+
+void AS_DT1::close_port()
+{
+	if (_fd >= 0) {
+		::close(_fd);
+		_fd = -1;
+	}
+}
+
+int AS_DT1::write_start_command()
+{
+	if (write_command_padded("format binz") != PX4_OK) {
+		return PX4_ERROR;
+	}
+	tcdrain(_fd);
+	px4_usleep(200000);
+
+	if (write_command_padded("fsync 200") != PX4_OK) {
+		return PX4_ERROR;
+	}
+	tcdrain(_fd);
 
 	return PX4_OK;
 }
 
-int AS_DT1::writeCommandPadded(const char *command)
+int AS_DT1::write_command_padded(const char *command)
 {
+	if (_fd < 0) {
+		return PX4_ERROR;
+	}
+
 	if (command == nullptr) {
 		return PX4_ERROR;
 	}
 
-	char buffer[32] {};
+	char buffer[32]{};
 	const size_t command_len = strnlen(command, sizeof(buffer) - 1);
 
 	if (command_len == 0 || command_len >= sizeof(buffer) - 1) {
@@ -320,264 +325,63 @@ int AS_DT1::writeCommandPadded(const char *command)
 		length = padded_length;
 	}
 
-	const ssize_t written = _uart.writeBlocking(reinterpret_cast<const uint8_t *>(buffer), length, 100);
+	const ssize_t written = ::write(_fd, buffer, length);
+	_last_write = written;
+	_last_command_len = length;
+	strncpy(_last_command, command, sizeof(_last_command) - 1);
+	_last_command[sizeof(_last_command) - 1] = '\0';
 
 	if (written != static_cast<ssize_t>(length)) {
-		PX4_ERR("failed to write AS-DT1 command");
+		PX4_ERR("write failed (%i)", errno);
 		return PX4_ERROR;
 	}
 
 	return PX4_OK;
 }
 
-void AS_DT1::readAndLogCommandResponse(const char *label, hrt_abstime timeout)
+int AS_DT1::read_once()
 {
-	const hrt_abstime start = hrt_absolute_time();
-	uint8_t buffer[96] {};
-	size_t total_read = 0;
+	_read_attempts++;
 
-	while (hrt_elapsed_time(&start) < timeout) {
-		const ssize_t bytes_available = _uart.bytesAvailable();
+	uint8_t buffer[READ_BUFFER_SIZE]{};
+	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
 
-		if (bytes_available <= 0) {
-			px4_usleep(10_ms);
-			continue;
+	if (bytes_read <= 0) {
+		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+			_no_data_reads++;
+			return PX4_OK;
 		}
 
-		const size_t bytes_to_read = math::min(static_cast<size_t>(bytes_available), sizeof(buffer) - 1);
-		const ssize_t bytes_read = _uart.read(buffer, bytes_to_read);
-
-		if (bytes_read <= 0) {
-			px4_usleep(10_ms);
-			continue;
-		}
-
-		total_read += static_cast<size_t>(bytes_read);
-
-		char text[sizeof(buffer)] {};
-
-		for (ssize_t i = 0; i < bytes_read; i++) {
-			const uint8_t byte = buffer[i];
-			text[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
-		}
-
-		PX4_INFO("%s: %s", label, text);
-	}
-
-	if (total_read == 0) {
-		PX4_WARN("%s: no response", label);
-	}
-}
-
-
-int AS_DT1::collect()
-{
-	if (!_uart.isOpen()) {
+		_read_errors++;
 		return PX4_ERROR;
 	}
 
-	perf_begin(_sample_perf);
+	_last_read = hrt_absolute_time();
+	_last_read_size = bytes_read;
+	_bytes_read_total += static_cast<uint64_t>(bytes_read);
+	_last_read_bytes_len = math::min(static_cast<size_t>(bytes_read), LAST_READ_CAPTURE_SIZE);
+	memcpy(_last_read_bytes, buffer, _last_read_bytes_len);
 
-	uint8_t read_buffer[READ_BUFFER_SIZE] {};
-	bool received_data = false;
-	bool backlog_flushed = false;
-
-	for (uint8_t read_count = 0; read_count < MAX_READS_PER_COLLECT; read_count++) {
-		ssize_t bytes_available = _uart.bytesAvailable();
-		_last_bytes_available = bytes_available;
-
-		if (bytes_available < 0) {
-			PX4_ERR("failed checking UART bytes available");
-			perf_count(_comms_errors);
-			perf_end(_sample_perf);
-			return PX4_ERROR;
+	for (ssize_t i = 0; i < bytes_read; i++) {
+		if (_startup_state == StartupState::WaitFormatPrompt && buffer[i] == '>') {
+			_startup_prompt_seen = true;
 		}
 
-		if (static_cast<size_t>(bytes_available) > ASDT1_MAX_BACKLOG) {
-			PX4_WARN("AS-DT1 UART backlog, flushing");
-			_uart.flush();
-			_parser_state = ParserState::FindBegin;
-			_frame_buffer_len = 0;
-			_begin_match_index = 0;
-			_end_match_index = 0;
-			_candidate_frame_len = 0;
-			_payload_end_probe_match_index = 0;
-			backlog_flushed = true;
-			perf_count(_backlog_flushes);
-			break;
-		}
-
-		const size_t bytes_to_read = (bytes_available > 0) ?
-					     math::min(static_cast<size_t>(bytes_available), sizeof(read_buffer)) :
-					     sizeof(read_buffer);
-		const ssize_t bytes_read = _uart.read(read_buffer, bytes_to_read);
-
-		if (bytes_read < 0) {
-			if (bytes_available == 0) {
-				break;
-			}
-
-			PX4_ERR("UART read failed");
-			perf_count(_comms_errors);
-			perf_end(_sample_perf);
-			return PX4_ERROR;
-		}
-
-		if (bytes_read == 0) {
-			_last_bytes_read = 0;
-			break;
-		}
-
-		received_data = true;
-		_last_read = hrt_absolute_time();
-		_last_bytes_read = bytes_read;
-		_bytes_rx_total += static_cast<uint64_t>(bytes_read);
-		perf_set_count(_bytes_rx, _bytes_rx_total);
-
-		for (ssize_t i = 0; i < bytes_read; i++) {
-			capture_debug_byte(read_buffer[i]);
-			parse_byte(read_buffer[i]);
-		}
+		parse_byte(buffer[i]);
 	}
 
-
-	if (_have_latest_frame) {
-		process_frame(_latest_frame, _latest_frame_len);
-		_have_latest_frame = false;
-	}
-
-	perf_end(_sample_perf);
-
-	if (!received_data && !backlog_flushed) {
-		perf_count(_no_data);
-	}
-
-	return (received_data || backlog_flushed) ? PX4_OK : -EAGAIN;
-}
-
-void AS_DT1::capture_debug_byte(uint8_t byte)
-{
-	if (_first_rx_len < DEBUG_RX_CAPTURE_SIZE) {
-		_first_rx[_first_rx_len++] = byte;
-	}
-
-	_last_rx[_last_rx_pos] = byte;
-	_last_rx_pos = (_last_rx_pos + 1) % DEBUG_RX_CAPTURE_SIZE;
-
-	if (_last_rx_len < DEBUG_RX_CAPTURE_SIZE) {
-		_last_rx_len++;
-	}
-
-	if (byte == 'B') {
-		_rx_b_count++;
-		_last_begin_probe_len = 0;
-		_last_begin_probe_remaining = DEBUG_RX_CAPTURE_SIZE;
-
-	} else if (byte == 'E') {
-		_rx_e_count++;
-	}
-
-	if (byte == '\r') {
-		_rx_cr_count++;
-
-	} else if (byte == '\n') {
-		_rx_lf_count++;
-
-	} else if (byte == '>') {
-		_rx_prompt_count++;
-	}
-
-	if (_last_begin_probe_remaining > 0) {
-		_last_begin_probe[_last_begin_probe_len++] = byte;
-		_last_begin_probe_remaining--;
-	}
-}
-
-void AS_DT1::print_debug_buffer(const char *label, const uint8_t *buffer, size_t length)
-{
-	if (length == 0) {
-		PX4_INFO("%s: empty", label);
-		return;
-	}
-
-	for (size_t offset = 0; offset < length; offset += 16) {
-		const size_t chunk_len = math::min(static_cast<size_t>(16), length - offset);
-		char ascii[17] {};
-
-		for (size_t i = 0; i < chunk_len; i++) {
-			const uint8_t byte = buffer[offset + i];
-			ascii[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
-		}
-
-		PX4_INFO("%s[%u..%u] ascii: %s",
-			 label,
-			 static_cast<unsigned>(offset),
-			 static_cast<unsigned>(offset + chunk_len - 1),
-			 ascii);
-	}
+	return PX4_OK;
 }
 
 bool AS_DT1::parse_byte(uint8_t byte)
 {
-	constexpr char begin_marker[] = "BEGIN MP";
+	constexpr char begin_marker[] = "BEGIN MP\r\n";
 	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
-	constexpr char end_marker[] = "END";
-	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
 
 	const auto reset_parser = [this]() {
 		_parser_state = ParserState::FindBegin;
 		_frame_buffer_len = 0;
 		_begin_match_index = 0;
-		_end_match_index = 0;
-		_candidate_frame_len = 0;
-		_payload_end_probe_match_index = 0;
-	};
-
-	const auto complete_frame = [this, &reset_parser](size_t length) {
-		memcpy(_latest_frame, _frame_buffer, length);
-		_latest_frame_len = length;
-		_have_latest_frame = true;
-		_last_end_payload_len = length;
-
-		if (length == ASDT1_BINZ_SHORT_FRAME_SIZE) {
-			_payload_len_720_count++;
-
-		} else if (length == ASDT1_BINZ_FRAME_SIZE) {
-			_payload_len_1440_count++;
-		}
-
-		perf_count(_frames_rx);
-		reset_parser();
-		return true;
-	};
-
-	const auto arm_end_check_if_candidate = [this]() {
-		if (_frame_buffer_len == ASDT1_BINZ_SHORT_FRAME_SIZE || _frame_buffer_len == ASDT1_BINZ_FRAME_SIZE) {
-			_parser_state = ParserState::FindEnd;
-			_candidate_frame_len = _frame_buffer_len;
-			_end_match_index = 0;
-			_payload_end_probe_match_index = 0;
-		}
-	};
-
-	const auto probe_unexpected_end = [this, &end_marker, end_marker_len, &reset_parser](uint8_t value) {
-		if (value == static_cast<uint8_t>(end_marker[_payload_end_probe_match_index])) {
-			_payload_end_probe_match_index++;
-
-			if (_payload_end_probe_match_index == end_marker_len) {
-				_last_end_probe_payload_len = (_frame_buffer_len >= end_marker_len) ?
-							      _frame_buffer_len - end_marker_len : 0;
-				_payload_len_unexpected_count++;
-				perf_count(_parser_resets);
-				reset_parser();
-				return true;
-			}
-
-		} else {
-			_payload_end_probe_match_index = (value == static_cast<uint8_t>(end_marker[0])) ? 1 : 0;
-		}
-
-		return false;
 	};
 
 	switch (_parser_state) {
@@ -589,9 +393,6 @@ bool AS_DT1::parse_byte(uint8_t byte)
 				_parser_state = ParserState::ReadPayload;
 				_frame_buffer_len = 0;
 				_begin_match_index = 0;
-				_end_match_index = 0;
-				_candidate_frame_len = 0;
-				_payload_end_probe_match_index = 0;
 			}
 
 		} else {
@@ -601,12 +402,8 @@ bool AS_DT1::parse_byte(uint8_t byte)
 		break;
 
 	case ParserState::ReadPayload:
-		if (_frame_buffer_len == 0 && (byte == '\r' || byte == '\n')) {
-			break;
-		}
-
 		if (_frame_buffer_len >= ASDT1_BINZ_FRAME_SIZE) {
-			perf_count(_parser_resets);
+			_parser_resets++;
 			reset_parser();
 			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
 			break;
@@ -614,50 +411,11 @@ bool AS_DT1::parse_byte(uint8_t byte)
 
 		_frame_buffer[_frame_buffer_len++] = byte;
 
-		arm_end_check_if_candidate();
-
-		if (_parser_state != ParserState::FindEnd && probe_unexpected_end(byte)) {
-			break;
-		}
-
-		break;
-
-	case ParserState::FindEnd:
-		if (byte == static_cast<uint8_t>(end_marker[_end_match_index])) {
-			_end_match_index++;
-
-			if (_end_match_index == end_marker_len) {
-				return complete_frame(_candidate_frame_len);
-			}
-
-		} else {
-			_end_mismatch_count++;
-			_last_rejected_candidate_len = _candidate_frame_len;
-
-			if (_candidate_frame_len >= ASDT1_BINZ_FRAME_SIZE) {
-				perf_count(_parser_resets);
-				reset_parser();
-				_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
-				break;
-			}
-
-			for (size_t i = 0; i < _end_match_index && _frame_buffer_len < ASDT1_BINZ_FRAME_SIZE; i++) {
-				_frame_buffer[_frame_buffer_len++] = static_cast<uint8_t>(end_marker[i]);
-			}
-
-			if (_frame_buffer_len < ASDT1_BINZ_FRAME_SIZE) {
-				_frame_buffer[_frame_buffer_len++] = byte;
-			}
-
-			_parser_state = ParserState::ReadPayload;
-			_end_match_index = 0;
-			_candidate_frame_len = 0;
-
-			arm_end_check_if_candidate();
-
-			if (_parser_state != ParserState::FindEnd && probe_unexpected_end(byte)) {
-				break;
-			}
+		if (_frame_buffer_len == ASDT1_BINZ_FRAME_SIZE) {
+			_frames_rx++;
+			process_frame(_frame_buffer, _frame_buffer_len);
+			reset_parser();
+			return true;
 		}
 
 		break;
@@ -668,23 +426,22 @@ bool AS_DT1::parse_byte(uint8_t byte)
 
 int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 {
-	if (frame == nullptr || (length != ASDT1_BINZ_SHORT_FRAME_SIZE && length != ASDT1_BINZ_FRAME_SIZE)) {
+	if (frame == nullptr || length != ASDT1_BINZ_FRAME_SIZE) {
 		PX4_ERR("invalid AS-DT1 binz frame length: %u", static_cast<unsigned>(length));
-		perf_count(_comms_errors);
+		_parser_resets++;
 		return PX4_ERROR;
 	}
 
-	const size_t sample_count = (length == ASDT1_BINZ_SHORT_FRAME_SIZE) ? ASDT1_SHORT_SAMPLE_COUNT : ASDT1_MAX_SAMPLE_COUNT;
 	_last_frame_processed_len = length;
-	_last_sample_count = sample_count;
+	_last_sample_count = ASDT1_MAX_SAMPLE_COUNT;
 	_last_valid_bins = 0;
 	_last_closest_distance = UINT16_MAX;
 
-	for (uint32_t i = 0; i < BIN_COUNT; i++) {
+	for (uint8_t i = 0; i < BIN_COUNT; i++) {
 		_obstacle_distance.distances[i] = UINT16_MAX;
 	}
 
-	for (size_t sample = 0; sample < sample_count; sample++) {
+	for (size_t sample = 0; sample < ASDT1_MAX_SAMPLE_COUNT; sample++) {
 		const int layout_index = sample_to_layout_index(sample);
 		int row = 0;
 		int col = 0;
@@ -725,20 +482,9 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 
 	_obstacle_distance.timestamp = hrt_absolute_time();
 	_obstacle_distance_pub.publish(_obstacle_distance);
-	perf_count(_frames_pub);
+	_frames_pub++;
 
 	return PX4_OK;
-}
-
-int32_t AS_DT1::decode_20bit_signed(uint32_t raw)
-{
-	raw &= 0x000fffff;
-
-	if (raw & 0x00080000) {
-		return -static_cast<int32_t>(0x00100000 - raw);
-	}
-
-	return static_cast<int32_t>(raw);
 }
 
 uint32_t AS_DT1::decode_20bit_raw(const uint8_t *data, size_t sample_index)
@@ -831,201 +577,3 @@ int AS_DT1::col_to_obstacle_bin(int col)
 
 	return bin % BIN_COUNT;
 }
-
-
-// void AS_DT1::readThreadFunction()
-// {
-// 	while (reading) {
-// 		char buf[50000];
-// 		int n = SERIAL_.read(buf, sizeof(buf));
-//
-// 		if (n > 0) {
-// 			read_buffer.append(buf, n);
-// 			// std::cout.write(buf, n);
-// 			// std::cout.flush();
-//
-// 			// If "END" found, clear buffer and send command
-// 			if (read_buffer.find("END") != std::string::npos) {
-// 				// writeCommand("");
-//
-// 				// Store the latest read data
-// 				latest_read_data = read_buffer;
-//
-// 				// Clear the buffer for the next read
-// 				read_buffer.clear();
-// 			}
-// 		}
-//
-// 		// std::this_thread::sleep_for(std::chrono::milliseconds(1));
-// 	}
-// }
-
-
-
-
-// bool AS_DT1::convertBinaryToPCD()
-// {
-// 	// Thread-safe copy of latest read data
-// 	std::string binary_pcd_data;
-// 	{
-// 		std::lock_guard<std::mutex> lock(buffer_mutex);
-// 		binary_pcd_data = latest_read_data;
-// 	}
-
-// 	std::cout << "Latest read data length: " << binary_pcd_data.size() << "\n";
-// 	// std::cout << "Latest read data : \n" << binary_pcd_data << "\n";
-
-// 	// If the data is empty, print error and return false
-// 	if (binary_pcd_data.empty()) {
-// 		std::cerr << "No binary data to convert to PCD\n";
-// 		return false;
-// 	}
-
-// 	// Find "BEGIN MP" and "END"
-// 	size_t begin_pos = binary_pcd_data.find("BEGIN MP");
-// 	size_t end_pos = binary_pcd_data.find("END");
-
-// 	// Print the string before BEGIN MP
-// 	// std::cout << "Data before BEGIN MP: \n" << binary_pcd_data.substr(0, begin_pos) << "\n";
-
-// 	std::cout << "BEGIN MP position: " << begin_pos << "\n";
-// 	std::cout << "END position: " << end_pos << "\n";
-// 	// std::cout << "Data between BEGIN MP and END: \n" << binary_pcd_data.substr(begin_pos+8, end_pos-begin_pos-8) << "\n";
-
-// 	// If either "BEGIN MP" or "END" is not found, print error and return false
-// 	if (begin_pos == std::string::npos || end_pos == std::string::npos || end_pos <= begin_pos) {
-// 		std::cerr << "Invalid binary data format: missing BEGIN MP or END\n";
-// 		return false;
-// 	}
-
-// 	// Extract the binary data between "BEGIN MP" and "END"
-// 	size_t data_start = begin_pos + std::string("BEGIN MP\r\n").length();
-// 	size_t data_length = end_pos - data_start;
-// 	std::cout << "Binary data length: " << data_length << "\n";
-// 	const uint8_t *data_ptr = (const uint8_t *)binary_pcd_data.c_str() + data_start;
-
-// 	// Read length is set to 4320
-// 	size_t read_length = 4320;
-
-// 	//TODO:
-// 	// Temporary points, fill it with 0s first, then we will fill it with the extracted points
-// 	// matrix::Vector3f pcd_raw(2);
-// 	// pcd_raw[0].reserve(576);
-// 	// pcd_raw[1].reserve(576);
-
-// 	// // Fill temporary points with 0s
-// 	// for (int i = 0; i < 576; ++i) {
-// 	//     pcd_raw[0].emplace_back(Point3D{0, 0, 0});
-// 	//     pcd_raw[1].emplace_back(Point3D{0, 0, 0});
-// 	// }
-
-// 	// int count = 0;
-// 	for (size_t dr_cnt = 0; dr_cnt + 15 <= 4320; dr_cnt += 15) {
-// 		try {
-// 			// Extract 20-bit values from 15 bytes
-// 			// XXXXX YYYYY ZZZZZ XXXXX YYYYY ZZZZZ
-// 			// XX XX XY YY YY ZZ ZZ ZX XX XX YY YY YZ ZZ ZZ
-// 			//  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
-// 			int32_t x1 = (data_ptr[dr_cnt + 0] << 12) | (data_ptr[dr_cnt + 1] << 4) | (data_ptr[dr_cnt + 2] >> 4);
-// 			int32_t y1 = ((data_ptr[dr_cnt + 2] & 0x0f) << 16) | (data_ptr[dr_cnt + 3] << 8) | data_ptr[dr_cnt + 4];
-// 			int32_t z1 = (data_ptr[dr_cnt + 5] << 12) | (data_ptr[dr_cnt + 6] << 4) | (data_ptr[dr_cnt + 7] >> 4);
-// 			int32_t x2 = ((data_ptr[dr_cnt + 7] & 0x0f) << 16) | (data_ptr[dr_cnt + 8] << 8) | data_ptr[dr_cnt + 9];
-// 			int32_t y2 = (data_ptr[dr_cnt + 10] << 12) | (data_ptr[dr_cnt + 11] << 4) | (data_ptr[dr_cnt + 12] >> 4);
-// 			int32_t z2 = ((data_ptr[dr_cnt + 12] & 0x0f) << 16) | (data_ptr[dr_cnt + 13] << 8) | data_ptr[dr_cnt + 14];
-
-// 			// Convert from 20-bit two's complement to signed
-// 			if (x1 & 0x80000) { x1 = -(0x100000 - x1); }
-
-// 			if (y1 & 0x80000) { y1 = -(0x100000 - y1); }
-
-// 			if (x2 & 0x80000) { x2 = -(0x100000 - x2); }
-
-// 			if (y2 & 0x80000) { y2 = -(0x100000 - y2); }
-
-// 			// Store pcd_raw[0][count] and pcd_raw[1][count]
-// 			Eigen::Vector3f p0, p1;
-// 			p0 << x1 / 4.0f, y1 / 4.0f, z1 / 4.0f;
-// 			p1 << x2 / 4.0f, y2 / 4.0f, z2 / 4.0f;
-
-// 			pcd_raw[0].push_back(p0);
-// 			pcd_raw[1].push_back(p1);
-// 			// count++;
-
-// 		} catch (...) {
-// 			std::cerr << "Error processing data\n";
-// 		}
-// 	}
-
-// 	// Make the PCD from the temp points
-// 	std::vector<std::vector<Eigen::Vector3f>> pcd(2);
-// 	pcd[0].resize(576);
-// 	pcd[1].resize(576);
-
-// 	float thrMin = range_min;
-// 	float thrMax = range_max;
-
-// 	// Iterate over 576 points
-// 	for (int cnt = 0; cnt < 576; cnt++) {
-// 		// tx order to picture order
-// 		int mp = xyDataTbl[cnt];
-
-// 		// pcd[1][cnt] = pcd_raw[1][mp];
-// 		Eigen::Vector3f x1_y1_z1 = pcd_raw[1][mp];
-// 		pcd[1][cnt] = x1_y1_z1;
-
-// 		// Range filtering
-// 		Eigen::Vector3f x_y_z = pcd_raw[0][mp];
-// 		float z = x_y_z(2);
-// 		float z1 = x1_y1_z1(2);
-
-// 		if (std::abs(z) < thrMin || std::abs(z) > thrMax) {
-// 			if (std::abs(z1) < thrMin || std::abs(z1) > thrMax) {
-// 				// ignore both z and z1
-// 				pcd[0][cnt] = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-
-// 			} else {
-// 				// z is invalid, z1 is valid
-// 				pcd[0][cnt] = x1_y1_z1;
-// 			}
-
-// 		} else {
-// 			// z is valid
-// 			pcd[0][cnt] = x_y_z;
-// 		}
-// 	}
-
-// 	// Step 3: Convert to meters (divide by 1000)
-// 	for (int i = 0; i < 2; i++) {
-// 		for (auto &p : pcd[i]) {
-// 			p(0) /= 1000.0f;
-// 			p(1) /= 1000.0f;
-// 			p(2) /= 1000.0f;
-// 		}
-// 	}
-
-// 	// Rotate -90 degrees around y-axis
-// 	for (int i = 0; i < 2; i++) {
-// 		for (auto &p : pcd[i]) {
-// 			float x_new = p(2);
-// 			float z_new = -p(0);
-// 			p(0) = x_new;
-// 			p(2) = z_new;
-// 		}
-// 	}
-
-// 	std::cout << "Successfully converted " << pcd[0].size() << " points\n";
-
-// 	// Print all the points
-// 	for (size_t i = 0; i < pcd[0].size(); ++i) {
-// 		const Eigen::Vector3f &p = pcd[0][i];
-// 		std::cout << "Point " << i << ": (" << p(0) << ", " << p(1) << ", " << p(2) << ")\n";
-// 	}
-
-// 	// Update points
-// 	// {
-// 	//     std::lock_guard<std::mutex> lock(buffer_mutex);
-// 	//     points = pcd;
-// 	// }
-
-// 	return true;
-// }

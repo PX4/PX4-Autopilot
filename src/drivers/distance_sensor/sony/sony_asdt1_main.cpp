@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ namespace sony_as_dt1
 
 AS_DT1 *g_dev{nullptr};
 
-static int start(const char *port)
+static int start(const char *port, bool one_shot)
 {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
@@ -55,8 +55,7 @@ static int start(const char *port)
 		return -1;
 	}
 
-	/* create the driver */
-	g_dev = new AS_DT1(port);
+	g_dev = new AS_DT1(port, one_shot);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -102,14 +101,14 @@ static int usage()
 		R"DESCR_STR(
 ### Description
 
-Serial bus driver for the sony ASDT1 LiDAR Depth Sensor.
-
+Sony AS-DT1 serial driver. It opens the UART, configures 115200 8N1, and writes one
+padded `format binz` command followed by one padded `fsync 200` command.
 
 ### Examples
 
-Attempt to start driver on a specified serial device.
-$ sony_asdt1 start -d /dev/ttyS1
-Stop driver
+$ sony_asdt1 start -d /dev/ttyS4
+$ sony_asdt1 start -d /dev/ttyS4 -o
+$ sony_asdt1 status
 $ sony_asdt1 stop
 )DESCR_STR");
 
@@ -117,24 +116,30 @@ $ sony_asdt1 stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_FLAG('o', "Read once after 1 second instead of scheduled 10 ms reads", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 	return PX4_OK;
 }
 
-} // namespace
+} // namespace sony_as_dt1
 
 extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
+	bool one_shot = false;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:o", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
+			break;
+
+		case 'o':
+			one_shot = true;
 			break;
 
 		default:
@@ -149,7 +154,7 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return sony_as_dt1::start(device_path);
+		return sony_as_dt1::start(device_path, one_shot);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		return sony_as_dt1::stop();
