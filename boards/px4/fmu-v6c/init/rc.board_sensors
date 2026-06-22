@@ -15,8 +15,11 @@ else
        bmi055 -G -R 4 -s start
 fi
 
-# Internal SPI bus ICM42688p
-icm42688p -R 6 -s start
+# Internal SPI bus IMU (probe-based: LSM6DSV or ICM42688P on same CS)
+if ! icm42688p -R 6 -s -q start
+then
+    lsm6dsv -R 26 -s start
+fi
 
 # Internal barometer on I2C4 (The same bus is also exposed externally, and therefore marked as external)
 ms5611 -X -b 4 -a 0x77 start
