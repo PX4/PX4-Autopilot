@@ -1007,8 +1007,7 @@ void Navigator::geofence_breach_check()
 		_time_loitering_after_gf_breach = 0;
 	}
 
-	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
+	if (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US) {
 
 		double current_latitude = _global_pos.lat;
 		double current_longitude = _global_pos.lon;
