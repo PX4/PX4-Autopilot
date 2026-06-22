@@ -1,6 +1,30 @@
+---
+pageClass: is-wide-page
+---
+
 # HealthReport (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/HealthReport.msg)
+**TOPICS:** health_report
+
+## Fields
+
+| Назва                                                                                                                                | Тип      | Unit [Frame] | Range/Enum | Опис                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                                                                                                  | `uint64` |                                                                  |            | time since system start (microseconds)                                              |
+| <a id="fld_can_arm_mode_flags"></a>can_arm_mode_flags                 | `uint64` |                                                                  |            | bitfield for each flight mode (NAVIGATIO&#x4E;_&#x53;TATE_\*) if arming is possible |
+| <a id="fld_can_run_mode_flags"></a>can_run_mode_flags                 | `uint64` |                                                                  |            | bitfield for each flight mode if it can run                                                            |
+| <a id="fld_health_is_present_flags"></a>health_is_present_flags       | `uint64` |                                                                  |            | flags for each health_component_t                            |
+| <a id="fld_health_warning_flags"></a>health_warning_flags                                  | `uint64` |                                                                  |            |                                                                                                        |
+| <a id="fld_health_error_flags"></a>health_error_flags                                      | `uint64` |                                                                  |            |                                                                                                        |
+| <a id="fld_arming_check_warning_flags"></a>arming_check_warning_flags | `uint64` |                                                                  |            |                                                                                                        |
+| <a id="fld_arming_check_error_flags"></a>arming_check_error_flags     | `uint64` |                                                                  |            |                                                                                                        |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/HealthReport.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp # time since system start (microseconds)
@@ -15,5 +39,6 @@ uint64 health_error_flags
 
 uint64 arming_check_warning_flags
 uint64 arming_check_error_flags
-
 ```
+
+:::

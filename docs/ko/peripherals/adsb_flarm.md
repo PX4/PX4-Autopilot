@@ -1,6 +1,6 @@
 # ADS-B/FLARM/UTM Receivers: Air Traffic Avoidance
 
-PX4 supports simple air traffic avoidance in [missions](../flying/missions.md) using [ADS-B](https://en.wikipedia.org/wiki/Automatic_dependent_surveillance_%E2%80%93_broadcast), [FLARM](https://en.wikipedia.org/wiki/FLARM), or [UTM](https://www.faa.gov/uas/research_development/traffic_management) transponders that use the standard MAVLink interfaces.
+PX4 supports simple air traffic avoidance in [missions](../flying/missions.md) using [ADS-B](https://en.wikipedia.org/wiki/Automatic_dependent_surveillance_%E2%80%93_broadcast), [FLARM](https://en.wikipedia.org/wiki/FLARM), or [UTM](https://www.faa.gov/uas/advanced_operations/traffic_management) transponders that use the standard MAVLink interfaces.
 
 If a potential collision is detected, PX4 can _warn_, immediately [land](../flight_modes_mc/land.md), or [return](../flight_modes_mc/return.md) (depending on the value of [NAV_TRAFF_AVOID](#NAV_TRAFF_AVOID)).
 
@@ -11,14 +11,14 @@ PX4 traffic avoidance works with ADS-B or FLARM products that supply transponder
 It has been tested with the following devices:
 
 - [PingRX ADS-B Receiver](https://uavionix.com/product/pingrx-pro/) (uAvionix)
-- [FLARM](https://flarm.com/products/uav/atom-uav-flarm-for-drones/) <!-- I think originally https://flarm.com/products/powerflarm/uav/ -->
+- [FLARM](https://www.flarm.com/en/drones/)
 
 ## 하드웨어 설정
 
 Any of the devices can be connected to any free/unused serial port on the flight controller.
 Most commonly they are connected to `TELEM2` (if this is not being use for some other purpose).
 
-### PingRX
+### PingRX Pro
 
 The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown below.
 
@@ -29,8 +29,16 @@ The PingRX MAVLink port uses a JST ZHR-4 mating connector with pinout as shown b
 | 3 (흑)  | 전원                         | +4 to 6V     |
 | 4 (흑)  | GND                        | GND          |
 
-The PingRX comes with connector cable that can be attached directly to the TELEM2 port (DF13-6P) on an [mRo Pixhawk](../flight_controller/mro_pixhawk.md).
+The PingRX comes with connector cable that can be attached directly to the `TELEM2` port (DF13-6P) on an [mRo Pixhawk](../flight_controller/mro_pixhawk.md).
 For other ports or boards, you will need to obtain your own cable.
+
+The recommended port configuration for this receiver is:
+
+| Parameter                                                                                                                                   | Recommended Value |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                            | `TELEM 2`         |
+| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                                | uAvionix          |
+| [MAV_X_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) | Disabled          |
 
 ## FLARM
 
@@ -49,19 +57,19 @@ FLARM has an on-board DF-13 6 Pin connector that has an identical pinout to the 
 The TX and RX on the flight controller must be connected to the RX and TX on the FLARM, respectively.
 :::
 
-## 소프트웨어 설정
+## PX4 설정
 
 ### Port Configuration
 
-The recievers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
-The only _specific_ setup is that the port baud rate must be set to 57600 and the a low-bandwidth profile (`MAV_X_MODE`).
+The receivers are configured in the same way as any other [MAVLink Peripheral](../peripherals/mavlink_peripherals.md).
+The recommended configuration for most devices (unless they have device-specific configuration like PingRX) is to connect to `TELEM 2` and [set the parameters](../advanced_config/parameters.md) as shown:
 
-Assuming you have connected the device to the TELEM2 port, [set the parameters](../advanced_config/parameters.md) as shown:
-
-- [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) = TELEM 2
-- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) = Normal
-- [MAV_1_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE) = 0 (default sending rate for port).
-- [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) = Enabled
+| Parameter                                                                                                          | Recommended Value                                    |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2`                                            |
+| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | Normal                                               |
+| [MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)       | 0 (default sending rate for port) |
+| [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | Enabled                                              |
 
 Then reboot the vehicle.
 
@@ -71,12 +79,29 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 
 Configure the action when there is a potential collision using the parameter below:
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                                                                                   |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                                                   |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="NAV_TRAFF_AVOID"></a>[NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                         | Enable traffic avoidance mode specify avoidance response. 0: Disable, 1: Warn only, 2: Return mode, 3: Land mode.                    |
-| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizonal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                                |
+| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizontal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                               |
 | <a id="NAV_TRAFF_A_VER"></a>[NAV_TRAFF_A_VER](../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER)    | Vertical height above and below vehicle of the cylinder that defines its airspace (also see [NAV_TRAFF_A_HOR](#NAV_TRAFF_A_HOR)).  |
 | <a id="NAV_TRAFF_COLL_T"></a>[NAV_TRAFF_COLL_T](../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T) | Collision time threshold. Avoidance will trigger if the estimated time until collision drops below this value (the estimated time is based on relative speed of traffic and UAV). |
+
+### Arming Check
+
+PX4 can be configured to check for the presence of a traffic avoidance system (ADSB or FLARM transponder) before arming.
+This ensures that a traffic avoidance system is connected and functioning before flight.
+
+The check is configured using the [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) parameter:
+
+| Value | 설명                                                                                                                                                         |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Disabled (default). No check is performed.                                                              |
+| 1     | Warning only. A warning is issued if no traffic avoidance system is detected, but arming is allowed.                       |
+| 2     | Enforce for all modes. Arming is denied if no traffic avoidance system is detected, regardless of flight mode.             |
+| 3     | Enforce for mission modes only. Arming is denied if no traffic avoidance system is detected and a mission mode is planned. |
+
+When a traffic avoidance system is detected, the system tracks its presence with a 3-second timeout.
+If the system is lost or regained, corresponding events are logged ("Traffic avoidance system lost" / "Traffic avoidance system regained").
 
 ## 구현
 
@@ -131,7 +156,7 @@ These simulate ADS-B traffic where there may be a conflict, where there won't be
 :::details
 Information about the test methods
 
-The relevent methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
+The relevant methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
 
 #### `run_fake_traffic()` method
 

@@ -36,7 +36,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Розміри: 35 x 35мм
 - Вага: 8г
 
-## Де купити
+## Where to Buy {#store}
 
 Плату можна придбати в одному з наступних магазинів (наприклад):
 
@@ -83,14 +83,14 @@ Download the [holybro_kakuteh7v2_bootloader.hex](https://github.com/PX4/PX4-Auto
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7v2_default
 ```
 
 ## Встановлення прошивки PX4
 
 :::info
-KakuteH7v2 is supported with PX4 master & PX4 v1.14 or newer. Якщо ви завантажуєте готове програмне забезпечення через QGroundcontrol, вам необхідно використовувати щоденну версію QGC або версію QGC новішу за 4.1.7.
+KakuteH7v2 is supported with PX4 master & PX4 v1.14 or newer. If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 До випуску вам потрібно буде вручну зібрати та встановити прошивку.
 :::
 
@@ -98,7 +98,7 @@ KakuteH7v2 is supported with PX4 master & PX4 v1.14 or newer. Якщо ви за
 
 - Збудуйте та завантажте джерело:
 
-  ```
+  ```sh
   make holybro_kakuteh7v2_default upload
   ```
 
@@ -113,7 +113,7 @@ KakuteH7v2 is supported with PX4 main and v1.14 or newer.
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| Параметр                                                                                                       | Налаштування                                                                                                                                                  |
+| Parameter                                                                                                      | Налаштування                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | Це має бути вимкнено, оскільки у платі немає внутрішнього магніту. Ви можете активувати це, якщо приєднаєте зовнішній магніт. |
 

@@ -89,7 +89,7 @@ public:
 	 *
 	 * @param timeout The maximum amount of time we can keep trying to get responses
 	 */
-	void CoordinateIquartWithPx4Params(hrt_abstime timeout = 100_ms);
+	void CoordinateIquartWithPx4Params(hrt_abstime timeout = 10_ms);
 
 	/**
 	* @brief Gives access to the object ID currently being used
@@ -157,16 +157,16 @@ private:
 ////////////////////////////////////////////////////////////////////////
 //Vertiq Client information
 	//Known Configuration Clients can be created as pointers to certain types of clients
-	EscPropellerInputParserClient *_prop_input_parser_client;
+	EscPropellerInputParserClient _prop_input_parser_client;
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Make all of the clients that we need to talk to the IFCI config params
-	IQUartFlightControllerInterfaceClient *_ifci_client;
+	IQUartFlightControllerInterfaceClient _ifci_client;
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
-	VoltageSuperPositionClient *_voltage_superposition_client;
-	PulsingRectangularInputParserClient *_pulsing_rectangular_input_parser_client;
+	VoltageSuperPositionClient _voltage_superposition_client;
+	PulsingRectangularInputParserClient _pulsing_rectangular_input_parser_client;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 ////////////////////////////////////////////////////////////////////////
 

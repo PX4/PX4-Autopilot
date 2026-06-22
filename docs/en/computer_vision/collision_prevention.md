@@ -60,7 +60,7 @@ Configure collision prevention by [setting the following parameters](../advanced
 | <a id="CP_DELAY"></a>[CP_DELAY](../advanced_config/parameter_reference.md#CP_DELAY)                | Set the sensor and velocity setpoint tracking delay. See [Delay Tuning](#delay_tuning) below.                                                                                                                                                                                                   |
 | <a id="CP_GUIDE_ANG"></a>[CP_GUIDE_ANG](../advanced_config/parameter_reference.md#CP_GUIDE_ANG)    | Set the angle (to both sides of the commanded direction) within which the vehicle may deviate if it finds fewer obstacles in that direction. See [Guidance Tuning](#angle_change_tuning) below.                                                                                                 |
 | <a id="CP_GO_NO_DATA"></a>[CP_GO_NO_DATA](../advanced_config/parameter_reference.md#CP_GO_NO_DATA) | Set to 1 to allow the vehicle to move in directions where there is no sensor coverage (default is 0/`False`).                                                                                                                                                                                   |
-| <a id="MPC_POS_MODE"></a>[MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE)    | Must be set to `Acceleration based`.                                                                                                                                                                                                                                                           |
+| <a id="MPC_POS_MODE"></a>[MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE)    | Must be set to `Acceleration based`.                                                                                                                                                                                                                                                            |
 
 ## Algorithm Description
 
@@ -143,7 +143,7 @@ If you wish to move freely into directions without sensor coverage, this can be 
 
 ### Acceleration Constraining
 
-For this we split out the acceleration setpoint into two components, one parallel to the closest distance to the obstacle and one normal to it. Then we scale each of these components according the the figure below.
+For this we split out the acceleration setpoint into two components, one parallel to the closest distance to the obstacle and one normal to it. Then we scale each of these components according to the figure below.
 
 ![Scalefactor](../../assets/computer_vision/collision_prevention/scalefactor.png)
 
@@ -213,7 +213,6 @@ The steps are:
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
    In the **Script Editor** tab, add following scripts in the appropriate sections:
-
    - **Global code, executed once:**
 
      ```lua

@@ -91,7 +91,6 @@ void Ekf::reset()
 	_control_status_prev.flags.in_air = true;
 
 	_fault_status.value = 0;
-	_innov_check_fail_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
 	_gnss_checks.resetHard();
@@ -233,6 +232,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
 		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
 		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
+		_gravity = LatLonAlt::Wgs84::gravity(_earth_rate_lat_ref_rad);
+		_output_predictor.set_gravity(_gravity);
 	}
 
 	// apply imu bias corrections
@@ -260,7 +261,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel += corrected_delta_vel_ef;
 
 	// compensate for acceleration due to gravity, Coriolis and transport rate
-	const Vector3f gravity_acceleration(0.f, 0.f, CONSTANTS_ONE_G); // simplistic model
+	const Vector3f gravity_acceleration(0.f, 0.f, _gravity);
 	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
 	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
 	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
@@ -330,7 +331,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		const Vector2f innov = (_gpos - gpos_corrected).xy();
 		const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
 
-		const float sq_gate = sq(5.f); // magic hardcoded gate
+		const float sq_gate = sq(10.f); // magic hardcoded gate
 		const float test_ratio = sq(innov(0)) / (sq_gate * innov_var(0)) + sq(innov(1)) / (sq_gate * innov_var(1));
 
 		const bool innov_rejected = (test_ratio > 1.f);
@@ -344,24 +345,43 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			_information_events.flags.reset_pos_to_ext_obs = true;
 
 			resetHorizontalPositionTo(gpos_corrected.latitude_deg(), gpos_corrected.longitude_deg(), obs_var);
+
+			Vector2f new_vel = _state.vel.xy() - _state.wind_vel;
+			resetHorizontalVelocityTo(new_vel, Vector2f(P(State::vel.idx, State::vel.idx), P(State::vel.idx + 1, State::vel.idx + 1)));
+
+			// bump up wind uncertainty to ensure velocity remains correct
+			// eventual reset-by-fusion will have larger effect on wind state
+			P.uncorrelateCovarianceSetVariance<2>(State::wind_vel.idx, 10.f);
+			_state.wind_vel.setZero();
 			_last_known_gpos.setLatLon(gpos_corrected);
 
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
 
+			// External position reset by fusion can correct heading through cross-correlations.
+			// Setting heading_observable = true prevents clearInhibitedStateKalmanGains() from
+			// inhibiting the update.
+			_control_status.flags.heading_observable = true;
+
 			VectorState H;
 			VectorState K;
+			Vector2f innov_var_temp = Vector2f(getStateVariance<State::pos>()) + 0.1f;
 
 			for (unsigned index = 0; index < 2; index++) {
-				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				// Artificially setting the observation variance to a small value to
+				// increase the Kalman gain to basically 1 to force a reset of the position
+				// through fusion. This also enforces a strong correction of the correlated states
+				// (e.g.: velocity, heading, wind)
+				// The update of the covariance matrix is still performed with the correct observation variance
+				// to not artificially reduce the state uncertainty and cross-correlations.
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var_temp(index);
 				H(State::pos.idx + index) = 1.f;
 
-				// Artificially set the position Kalman gain to 1 in order to force a reset
-				// of the position through fusion. This allows the EKF to use part of the information
-				// to continue learning the correlated states (e.g.: velocity, heading, wind) while
-				// performing a position reset.
-				K(State::pos.idx + index) = 1.f;
-				measurementUpdate(K, H, obs_var, innov(index));
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innov(index));
+
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				measurementUpdate(K, H, obs_var, 0.f);
 				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
 			}
 
@@ -406,12 +426,13 @@ void Ekf::updateParameters()
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
-	_aux_global_position.updateParameters();
+
+	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 }
 
 template<typename T>
-static void printRingBuffer(const char *name, RingBuffer<T> *rb)
+static void printRingBuffer(const char *name, TimestampedRingBuffer<T> *rb)
 {
 	if (rb) {
 		printf("%s: %d/%d entries (%d/%d Bytes) (%zu Bytes per entry)\n",

@@ -67,6 +67,8 @@ using namespace device;
 namespace septentrio
 {
 
+ModuleBase::Descriptor SeptentrioDriver::desc{task_spawn, custom_command, print_usage};
+
 /**
  * RTC drift time when time synchronization is needed (in seconds).
 */
@@ -96,6 +98,7 @@ constexpr uint8_t k_max_command_size            = 140;
 constexpr uint16_t k_timeout_5hz                = 500;
 constexpr uint32_t k_read_buffer_size           = 150;
 constexpr time_t k_gps_epoch_secs               = 1234567890ULL; // TODO: This seems wrong
+constexpr hrt_abstime k_message_timeout = 6_s; /// A message is considered missing if we havent received it for this period of time
 
 // Septentrio receiver commands
 // - erst: exeResetReceiver
@@ -310,6 +313,7 @@ void SeptentrioDriver::run()
 
 					SEP_INFO("Automatic configuration finished");
 					_state = State::ReceivingData;
+					initialize_message_tracker();
 
 				} else {
 					_state = State::DetectingBaudRate;
@@ -323,7 +327,8 @@ void SeptentrioDriver::run()
 
 				receive_result = receive(k_timeout_5hz);
 
-				if (receive_result == -1) {
+				if (receive_result == -1 || receiver_configuration_healthy() == false) {
+					SEP_WARN("Receiver unhealthy, reconfiguring the receiver.");
 					_state = State::DetectingBaudRate;
 				}
 
@@ -345,6 +350,13 @@ void SeptentrioDriver::run()
 		}
 	}
 
+}
+
+int SeptentrioDriver::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return SeptentrioDriver::instantiate(ac, av);
+	}, argc, argv);
 }
 
 int SeptentrioDriver::task_spawn(int argc, char *argv[])
@@ -372,14 +384,14 @@ int SeptentrioDriver::task_spawn(int argc, char *argv[], Instance instance)
 						(char *const *)argv);
 
 	if (task_id < 0) {
-		// `_task_id` of module that hasn't been started before or has been stopped should already be -1.
+		// `desc.task_id` of module that hasn't been started before or has been stopped should already be -1.
 		// This is just to make sure.
-		_task_id = -1;
+		desc.task_id = -1;
 		return -errno;
 	}
 
 	if (instance == Instance::Main) {
-		_task_id = task_id;
+		desc.task_id = task_id;
 	}
 
 	return 0;
@@ -428,7 +440,7 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 
 	bool valid_chosen_baud_rate {false};
 
-	for (uint8_t i = 0; i < sizeof(k_supported_baud_rates) / sizeof(k_supported_baud_rates[0]); i++) {
+	for (size_t i = 0; i < sizeof(k_supported_baud_rates) / sizeof(k_supported_baud_rates[0]); i++) {
 		switch (instance) {
 		case Instance::Main:
 			if (arguments.baud_rate_main == static_cast<int>(k_supported_baud_rates[i])) {
@@ -489,12 +501,12 @@ int SeptentrioDriver::custom_command(int argc, char *argv[])
 	const char *failure_reason {"unknown command"};
 	SeptentrioDriver *driver_instance;
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("not running");
 		return -1;
 	}
 
-	driver_instance = get_instance();
+	driver_instance = get_instance<SeptentrioDriver>(desc);
 
 	if (argc >= 1 && strcmp(argv[0], "reset") == 0) {
 		if (argc == 2) {
@@ -1052,7 +1064,7 @@ int SeptentrioDriver::process_message()
 		}
 		case BlockID::DOP: {
 			SEP_TRACE_PARSING("Processing DOP SBF message");
-			_current_interval_messages.dop = true;
+			_message_tracker.dop = hrt_absolute_time();
 
 			DOP dop;
 
@@ -1069,7 +1081,7 @@ int SeptentrioDriver::process_message()
 			using Error = PVTGeodetic::Error;
 
 			SEP_TRACE_PARSING("Processing PVTGeodetic SBF message");
-			_current_interval_messages.pvt_geodetic = true;
+			_message_tracker.pvt_geodetic = hrt_absolute_time();
 
 			Header header;
 			PVTGeodetic pvt_geodetic;
@@ -1334,7 +1346,7 @@ int SeptentrioDriver::process_message()
 		}
 		case BlockID::VelCovGeodetic: {
 			SEP_TRACE_PARSING("Processing VelCovGeodetic SBF message");
-			_current_interval_messages.vel_cov_geodetic = true;
+			_message_tracker.vel_cov_geodetic = hrt_absolute_time();
 
 			VelCovGeodetic vel_cov_geodetic;
 
@@ -1354,7 +1366,7 @@ int SeptentrioDriver::process_message()
 			using Error = AttEuler::Error;
 
 			SEP_TRACE_PARSING("Processing AttEuler SBF message");
-			_current_interval_messages.att_euler = true;
+			_message_tracker.att_euler = hrt_absolute_time();
 
 			AttEuler att_euler;
 
@@ -1379,7 +1391,7 @@ int SeptentrioDriver::process_message()
 			using Error = AttCovEuler::Error;
 
 			SEP_TRACE_PARSING("Processing AttCovEuler SBF message");
-			_current_interval_messages.att_cov_euler = true;
+			_message_tracker.att_cov_euler = hrt_absolute_time();
 
 			AttCovEuler att_cov_euler;
 
@@ -1728,7 +1740,8 @@ void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
 void SeptentrioDriver::dump_gps_data(const uint8_t *data, size_t len, DataDirection data_direction)
 {
 	gps_dump_s *dump_data = data_direction == DataDirection::FromReceiver ? _message_data_from_receiver : _message_data_to_receiver;
-	dump_data->instance = _instance == Instance::Main ? 0 : 1;
+	dump_data->instance = _instance == Instance::Main ? gps_dump_s::INSTANCE_MAIN : gps_dump_s::INSTANCE_SECONDARY;
+	dump_data->device_id = get_device_id();
 
 	while (len > 0) {
 		size_t write_len = len;
@@ -1770,11 +1783,9 @@ void SeptentrioDriver::start_update_monitoring_interval()
 	_last_interval_rtcm_injections = _current_interval_rtcm_injections;
 	_last_interval_bytes_written = _current_interval_bytes_written;
 	_last_interval_bytes_read = _current_interval_bytes_read;
-	_last_interval_messages = _current_interval_messages;
 	_current_interval_rtcm_injections = 0;
 	_current_interval_bytes_written = 0;
 	_current_interval_bytes_read = 0;
-	_current_interval_messages = MessageTracker {};
 	_current_interval_start_time = hrt_absolute_time();
 }
 
@@ -1805,11 +1816,19 @@ uint32_t SeptentrioDriver::input_data_rate() const
 
 bool SeptentrioDriver::receiver_configuration_healthy() const
 {
-	return _last_interval_messages.dop &&
-               _last_interval_messages.pvt_geodetic &&
-               _last_interval_messages.vel_cov_geodetic &&
-               _last_interval_messages.att_euler &&
-               _last_interval_messages.att_cov_euler;
+	return hrt_elapsed_time(&_message_tracker.dop) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.pvt_geodetic) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.vel_cov_geodetic) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.att_euler) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.att_cov_euler) <= k_message_timeout;
+}
+
+void SeptentrioDriver::initialize_message_tracker(){
+	_message_tracker.dop = hrt_absolute_time();
+	_message_tracker.pvt_geodetic = hrt_absolute_time();
+	_message_tracker.vel_cov_geodetic = hrt_absolute_time();
+	_message_tracker.att_euler = hrt_absolute_time();
+	_message_tracker.att_cov_euler = hrt_absolute_time();
 }
 
 float SeptentrioDriver::us_to_s(uint64_t us)
@@ -1860,5 +1879,5 @@ uint32_t SeptentrioDriver::get_parameter(const char *name, float *value)
 
 extern "C" __EXPORT int septentrio_main(int argc, char *argv[])
 {
-	return septentrio::SeptentrioDriver::main(argc, argv);
+	return ModuleBase::main(septentrio::SeptentrioDriver::desc, argc, argv);
 }

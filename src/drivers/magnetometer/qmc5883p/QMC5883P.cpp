@@ -244,6 +244,8 @@ void QMC5883P::RunImpl()
 
 bool QMC5883P::Configure()
 {
+	RegisterWrite(Register::REG_29, 0x06);
+
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);

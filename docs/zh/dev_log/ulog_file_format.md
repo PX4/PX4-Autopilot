@@ -218,7 +218,7 @@ A key defined in the Information message must be unique. Meaning there must not 
 | `char[value_len] ver_sw_branch`     | git branch                                                                    | "master"                                                          |
 | `uint32_t ver_sw_release`           | 软件版本 (见下文)                                                 | 0x010401ff                                                        |
 | `char[value_len] sys_os_name`       | 操作系统名称                                                                        | "Linux"                                                           |
-| `char[value_len] sys_os_ve`r        | 操作系统版本 (git 标签)                                            | "9f82919"                                                         |
+| `char[value_len] sys_os_ver`        | 操作系统版本 (git 标签)                                            | "9f82919"                                                         |
 | `uint32_t ver_os_release`           | 操作系统版本 (见下文)                                               | 0x010401ff                                                        |
 | `char[value_len] sys_toolchain`     | 工具链名称                                                                         | "GNU GCC"                                                         |
 | `char[value_len] sys_toolchain_ver` | 工具链版本                                                                         | "6.2.1"                           |

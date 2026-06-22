@@ -33,7 +33,7 @@ The logging system is configured by default to collect sensible logs for [flight
 Logging may further be configured using the [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parameters.
 The parameters you are most likely to change are listed below.
 
-| 参数                                                                                            | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Parameter                                                                                     | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SDLOG_MODE](../advanced_config/parameter_reference.md#SDLOG_MODE)       | 日志模式 Defines when logging starts and stops.<br />- `0`: Log when armed until disarm (default).<br />- `1`: Log from boot until disarm.<br />- `2`: Log from boot until shutdown.<br />- `3`: Log based on the [AUX1 RC channel](../advanced_config/parameter_reference.md#RC_MAP_AUX1).<br />- `4`: Log from first armed until shutdown. |
 | [SDLOG_BACKEND](../advanced_config/parameter_reference.md#SDLOG_BACKEND) | Logging Backend (bitmask). Setting a bit enables the corresponding backend. If no backend is selected, the logger is disabled.<br />- bit `0`: SD card logging.</br >- bit `1`: Mavlink logging.                                                                                                                                                                                                         |
@@ -52,21 +52,28 @@ This allows, for example, logging of your own uORB topics.
 
 ### 诊断
 
-Separately, the list of logged topics can also be customized with a file on the SD card.
-Create a file `etc/logging/logger_topics.txt` on the card with a list of topics (For SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`):
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+
+Each topic to be logged is listed on a separate line, with the following format:
 
 ```plain
 <topic_name> <interval> <instance>
 ```
 
-The `<interval>` is optional, and if specified, defines the minimum interval in ms between two logged messages of this topic.
-If not specified, the topic is logged at full rate.
+Where:
 
-The `<instance>` is optional, and if specified, defines the instance to log.
-If not specified, all instances of the topic are logged.
-To specify `<instance>`, `<interval>` must be specified. It can be set to 0 to log at full rate
+- `<interval>` (optional).
+  Defines the minimum interval in ms between two logged messages of this topic.
+  If not specified or `0`, the topic is logged at full rate.
+- `<instance>` (optional).
+  Defines the instance to log.
+  NOte that `<interval>` must be specified in order to set `instance`
 
-The topics in this file replace all of the default logged topics.
+  If not specified, all instances of the topic are logged.
+
+The topics in this file will be added on top of the already selected topics.
+To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
+If a topic is already included, it will update it's rate.
 
 By far the best card we know so far is the <strong x-id="1">SanDisk Extreme U3 32GB</strong>. This card is recommended, because it does not exhibit write time spikes (and thus virtually no dropouts). Different card sizes might work equally well, but the performance is usually different.
 
@@ -77,11 +84,36 @@ sensor_gyro 200
 sensor_mag 200 1
 ```
 
-This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all sensor_gyro instances at 5Hz and sensor_mag 1 at 5Hz.
+This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all `sensor_gyro` instances at 5Hz and `sensor_mag` 1 at 5Hz.
 
 ## 脚本
 
 There are several scripts to analyze and convert logging files in the [pyulog](https://github.com/PX4/pyulog) repository.
+
+## Log Cleanup
+
+PX4 automatically manages log storage by rotating log files during writing and cleaning up old logs when starting a new log.
+Rotation is **on by default**: when the current file reaches [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE), the logger closes it and opens a new one, and old `.ulg` files are deleted (oldest first) to keep free space above the threshold set by [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE).
+
+Three parameters control how much space logs may use:
+
+- [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) is the maximum disk usage percentage (default 90).
+  Cleanup prior to logging (see below) ensures at least `(100 - SDLOG_ROTATE)%` of the disk stays free at all times, **even while writing a new log file**.
+  Setting it to `0` disables space-based cleanup entirely; setting it to `100` lets logs fill the disk completely.
+- [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE) is the maximum size of a single log file in MB
+  (default 1024). It also reserves headroom so that a full new file always fits after cleanup.
+- [SDLOG_DIRS_MAX](../advanced_config/parameter_reference.md#SDLOG_DIRS_MAX) optionally caps the number of log directories kept (default 0, disabled).
+  This runs on top of the space-based cleanup and is mainly useful for capping log usage by count independent of available disk size (e.g. in SITL, where it defaults to `7`).
+
+At log start, the cleanup threshold is `((100 - SDLOG_ROTATE)% of disk) + SDLOG_MAX_SIZE`.
+The oldest logs are deleted until the free space meets this threshold.
+For example, on an 8 GB card with defaults, cleanup keeps at least `820 + 1024 = ~1.8 GB` free at log start,
+so ~6 GB is usable for logs and disk usage never exceeds 90% during writing.
+Small flash targets override `SDLOG_MAX_SIZE` to a smaller value to keep more logs within the available space.
+
+PX4 stores logs in directories named with one of two formats, depending on whether the system has valid time: date directories (such as `2024-01-15` or `2024-01-16`) when it does, and session directories (`sess001`) when it doesn't.
+The cleanup algorithm prioritises deleting logs from whichever format is not currently in use.
+This ensures that stale logs from a different time mode are cleaned up before current logs.
 
 ## File size limitations
 
@@ -186,6 +218,6 @@ There are different clients that support ulog streaming:
   Also make sure `txerr` stays at 0.
   Also make sure <code>txerr</code> stays at 0. If this goes up, either the NuttX sending buffer is too small, the physical link is saturated or the hardware is too slow to handle the data.
 
-## See Also
+## 另见
 
 - [Encrypted logging](../dev_log/log_encryption.md)

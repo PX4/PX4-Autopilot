@@ -72,7 +72,7 @@ cd ~/PX4-Autopilot
 make px4_sitl gz_x500
 ```
 
-Open another terminal and start the `MicroXRCEAgent` to connect to the the simulator:
+Open another terminal and start the `MicroXRCEAgent` to connect to the simulator:
 
 ```sh
 MicroXRCEAgent udp4 -p 8888; exec bash

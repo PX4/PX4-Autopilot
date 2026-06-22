@@ -45,9 +45,11 @@
 #include <containers/Array.hpp>
 #include "CSerialProtocol.h"
 
-class EulerNavDriver : public ModuleBase<EulerNavDriver>, public ModuleParams
+class EulerNavDriver : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	/// @brief Class constructor
 	/// @param device_name Serial port to open
 	EulerNavDriver(const char *device_name);
@@ -56,6 +58,9 @@ public:
 
 	/// @brief Required by ModuleBase
 	static int task_spawn(int argc, char *argv[]);
+
+	/// @brief Required by ModuleBase
+	static int run_trampoline(int argc, char *argv[]);
 
 	/// @brief Required by ModuleBase
 	static EulerNavDriver *instantiate(int argc, char *argv[]);

@@ -144,7 +144,7 @@ parameters:
                             allowed: [
                                 '%', 'Hz', '1/s', 'mAh',
                                 'rad', '%/rad', 'rad/s', 'rad/s^2', '%/rad/s',  'rad s^2/m','rad s/m',
-                                'bit/s', 'B/s',
+                                'bit/s', 'B/s', 'MiB',
                                 'deg', 'deg*1e7', 'deg/s', 'deg/s^2',
                                 'celcius', 'gauss', 'gauss/s', 'mgauss', 'mgauss^2',
                                 'hPa', 'kg', 'kg/m^2', 'kg m^2', 'kg/m^3',
@@ -155,7 +155,8 @@ parameters:
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD']
+                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz',
+                                '1/s/sqrt(Hz)', 'liters']
                         bit:
                             # description of all bits for type bitmask.
                             # The first bit is 0.
@@ -323,6 +324,28 @@ actuator_output:
                                         max: 65536
                                     default:
                                         # Default minimum value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
+                            center:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum center value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum center value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default center value
                                         type: integer
                                         min: 0
                                         max: 65536

@@ -39,8 +39,8 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
-UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status)),
+UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status), node_info_publisher),
 	ModuleParams(nullptr),
 	_sub_battery(node),
 	_sub_battery_aux(node),
@@ -95,15 +95,22 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
-		if (_battery_status[instance].id == msg.getSrcNodeID().get() || _battery_status[instance].id == 0) {
+		if (_node_ids[instance] == msg.getSrcNodeID().get() || _node_ids[instance] == 0) {
 			break;
 		}
+	}
+
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				msg.battery_id, NodeInfoPublisher::DeviceCapability::BATTERY);
 	}
 
 	if (instance >= battery_status_s::MAX_INSTANCES
 	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
 		return;
 	}
+
+	_node_ids[instance] = msg.getSrcNodeID().get();
 
 	if (_batt_update_mod[instance] == BatteryDataType::Filter) {
 
@@ -128,7 +135,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 	_battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
 	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
-	_battery_status[instance].id = msg.getSrcNodeID().get();
+	_battery_status[instance].id = msg.battery_id;
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		// Mavlink 2 needs individual cell voltages or cell[0] if cell voltages are not available.
@@ -150,6 +157,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 				 "%" PRIu32, msg.model_instance_id);
 			_battery_info_pub[instance].publish(_battery_info[instance]);
 		}
+
 	}
 }
 
@@ -160,7 +168,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
-		if (_battery_status[instance].id == msg.getSrcNodeID().get()) {
+		if (_node_ids[instance] == msg.getSrcNodeID().get()) {
 			break;
 		}
 	}
@@ -176,7 +184,8 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), (uint8_t)14);
 	_battery_status[instance].cycle_count = msg.cycle_count;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
-	_battery_status[instance].nominal_voltage = msg.nominal_voltage;
+	// ArduPilot BatteryInfoAux convention: nominal_voltage == 0 means "not provided"
+	_battery_status[instance].nominal_voltage = (msg.nominal_voltage > FLT_EPSILON) ? msg.nominal_voltage : NAN;
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
 	if (msg.nominal_voltage > FLT_EPSILON) {
@@ -206,7 +215,7 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
-		if (_battery_status[instance].id == msg.getSrcNodeID().get()) {
+		if (_node_ids[instance] == msg.getSrcNodeID().get() || _node_ids[instance] == 0) {
 			break;
 		}
 	}
@@ -241,6 +250,7 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	_battery_status[instance].connected = true;
 	_battery_status[instance].cell_count = msg.cell_count;
 	_battery_status[instance].source = battery_status_s::SOURCE_EXTERNAL;
+	_node_ids[instance] = msg.getSrcNodeID().get();
 	_battery_status[instance].id = msg.getSrcNodeID().get();
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
@@ -284,6 +294,11 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu16,
 		 msg.serial_number);
 	_battery_info_pub[instance].publish(_battery_info[instance]);
+
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				_node_ids[instance], NodeInfoPublisher::DeviceCapability::BATTERY);
+	}
 }
 
 void
@@ -295,10 +310,10 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery[instance]->updateCurrent(msg.current);
 	_battery[instance]->updateBatteryStatus(hrt_absolute_time());
 
-	/* Override data that is expected to arrive from UAVCAN msg*/
+	/* Override data that is expected to arrive from UAVCAN msg */
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
-	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
+	_battery_status[instance].id = msg.battery_id;
 
 	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
 

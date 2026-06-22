@@ -48,15 +48,20 @@
 static constexpr int TASK_STACK_SIZE   = PX4_STACK_ADJUSTED(1224);
 static constexpr int THREAD_STACK_SIZE = PX4_STACK_ADJUSTED(1224);
 
-class SERIALPASSTHRU : public ModuleBase<SERIALPASSTHRU>
+class SERIALPASSTHRU : public ModuleBase
 {
 public:
+
+	static Descriptor desc;
 
 	SERIALPASSTHRU(const char *external_path, const char *internal_path, unsigned baudrate, bool trackbaud);
 	~SERIALPASSTHRU() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static SERIALPASSTHRU *instantiate(int argc, char *argv[]);
@@ -106,7 +111,7 @@ private:
 		  char *buffer);
 };
 
-
+ModuleBase::Descriptor SERIALPASSTHRU::desc{task_spawn, custom_command, print_usage};
 
 void SERIALPASSTHRU::dump(const char *dirin, const char *dirout, int read, int written,
 			  char *buffer)
@@ -402,6 +407,13 @@ int SERIALPASSTHRU::setBaudrate(int fd, unsigned baud)
 	return 0;
 }
 
+int SERIALPASSTHRU::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return SERIALPASSTHRU::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int SERIALPASSTHRU::task_spawn(int argc, char *argv[])
 {
 	int task_id = px4_task_spawn_cmd("passthru", SCHED_DEFAULT,
@@ -413,7 +425,7 @@ int SERIALPASSTHRU::task_spawn(int argc, char *argv[])
 		return -errno;
 	}
 
-	_task_id = task_id;
+	desc.task_id = task_id;
 	return 0;
 }
 
@@ -478,5 +490,5 @@ extern "C" __EXPORT int serial_passthru_main(int argc, char *argv[]);
 
 int serial_passthru_main(int argc, char *argv[])
 {
-	return SERIALPASSTHRU::main(argc, argv);
+	return ModuleBase::main(SERIALPASSTHRU::desc, argc, argv);
 }

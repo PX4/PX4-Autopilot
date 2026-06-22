@@ -36,17 +36,17 @@
 
 void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	// Check to see if the check has been disabled
+	reporter.failsafeFlags().remote_id_unhealthy =
+		!context.status().open_drone_id_system_present ||
+		!context.status().open_drone_id_system_healthy;
+
 	if (!_param_com_arm_odid.get()) {
 		return;
 	}
 
-	NavModes affected_modes{NavModes::None};
-
-	if (_param_com_arm_odid.get() == 2) {
-		// disallow arming without the Open Drone ID system
-		affected_modes = NavModes::All;
-	}
+	const bool is_error = _param_com_arm_odid.get() >= 2;
+	const NavModes affected_modes = is_error ? NavModes::All : NavModes::None;
+	const events::Log log_level = is_error ? events::Log::Error : events::Log::Warning;
 
 	if (!context.status().open_drone_id_system_present) {
 		/* EVENT
@@ -57,9 +57,9 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 		 * This check can be configured via <param>COM_ARM_ODID</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id,
-					    events::ID("check_open_drone_id_missing"),
-					    events::Log::Error, "Open Drone ID system missing");
+		reporter.healthFailure(affected_modes, health_component_t::open_drone_id,
+				       events::ID("check_open_drone_id_missing"),
+				       log_level, "Open Drone ID system missing");
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system missing");
@@ -74,9 +74,9 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 		 * This check can be configured via <param>COM_ARM_ODID</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id,
-					    events::ID("check_open_drone_id_unhealthy"),
-					    events::Log::Error, "Open Drone ID system not ready");
+		reporter.healthFailure(affected_modes, health_component_t::open_drone_id,
+				       events::ID("check_open_drone_id_unhealthy"),
+				       log_level, "Open Drone ID system not ready");
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system not ready");

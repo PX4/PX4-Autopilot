@@ -1,0 +1,62 @@
+# SPDX license overrides for submodules where auto-detection fails or is wrong.
+# Each entry maps a submodule path to its SPDX license identifier and an
+# optional comment explaining why the override exists.
+#
+# Run `python3 Tools/ci/generate_sbom.py --verify-licenses` to validate.
+
+overrides:
+  src/modules/mavlink/mavlink:
+    license: "LGPL-3.0-only AND MIT"
+    comment: "Generator is LGPL-3.0; PX4 ships only MIT-licensed generated headers."
+
+  Tools/simulation/gazebo-classic/sitl_gazebo-classic:
+    license: "BSD-3-Clause"
+    comment: >-
+      PX4 org project. No LICENSE file in repo; source files carry
+      BSD-3-Clause headers consistent with the PX4 project license.
+
+  src/lib/cdrstream/cyclonedds:
+    license: "EPL-2.0 OR BSD-3-Clause"
+    comment: >-
+      Dual-licensed. PX4 elects BSD-3-Clause.
+      No board currently enables CONFIG_LIB_CDRSTREAM.
+
+  src/lib/cdrstream/rosidl:
+    license: "Apache-2.0"
+
+  src/lib/crypto/monocypher:
+    license: "BSD-2-Clause OR CC0-1.0"
+    comment: >-
+      Dual-licensed. LICENCE.md offers BSD-2-Clause with CC0-1.0 as
+      public domain fallback.
+
+  src/lib/crypto/libtomcrypt:
+    license: "Unlicense"
+    comment: "Public domain dedication. Functionally equivalent to Unlicense."
+
+  src/lib/crypto/libtommath:
+    license: "Unlicense"
+    comment: "Public domain dedication. Functionally equivalent to Unlicense."
+
+  platforms/nuttx/NuttX/nuttx:
+    license: "Apache-2.0"
+    comment: >-
+      Composite LICENSE (6652 lines) includes BSD/MIT/ISC sub-components.
+      Primary license is Apache-2.0. NOTICE file contains FAT LFN patent warnings.
+
+  platforms/nuttx/NuttX/apps:
+    license: "Apache-2.0"
+
+  boards/modalai/voxl2/libfc-sensor-api:
+    license: "NOASSERTION"
+    comment: >-
+      No LICENSE file in repo. README describes it as public interface
+      for proprietary sensor library.
+
+  boards/modalai/voxl2/src/lib/mpa/libmodal-json:
+    license: "LGPL-3.0-only"
+    comment: "LGPL-3.0 weak copyleft. Used via header includes in VOXL2 mpa library."
+
+  boards/modalai/voxl2/src/lib/mpa/libmodal-pipe:
+    license: "LGPL-3.0-only"
+    comment: "LGPL-3.0 weak copyleft. Used via header includes in VOXL2 mpa library."

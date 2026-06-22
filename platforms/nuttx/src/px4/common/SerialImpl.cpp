@@ -180,8 +180,34 @@ bool SerialImpl::configure()
 	//
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-	/* no parity, one stop bit, disable flow control */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	// Control modes
+	uart_config.c_cflag = 0;
+
+	switch (_bytesize) {
+	case ByteSize::FiveBits:  uart_config.c_cflag |= CS5; break;
+
+	case ByteSize::SixBits:   uart_config.c_cflag |= CS6; break;
+
+	case ByteSize::SevenBits: uart_config.c_cflag |= CS7; break;
+
+	case ByteSize::EightBits: uart_config.c_cflag |= CS8; break;
+	}
+
+	if (_flowcontrol == FlowControl::Enabled) {
+		uart_config.c_cflag |= CRTSCTS;
+	}
+
+	if (_parity != Parity::None) {
+		uart_config.c_cflag |= PARENB;
+	}
+
+	if (_parity == Parity::Odd) {
+		uart_config.c_cflag |= PARODD;
+	}
+
+	if (_stopbits == StopBits::Two) {
+		uart_config.c_cflag |= CSTOPB;
+	}
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -267,12 +293,36 @@ ssize_t SerialImpl::bytesAvailable()
 {
 	if (!_open) {
 		PX4_ERR("Device not open!");
+		errno = EBADF;
 		return -1;
 	}
 
 	ssize_t bytes_available = 0;
 	int ret = ioctl(_serial_fd, FIONREAD, &bytes_available);
-	return ret >= 0 ? bytes_available : 0;
+
+	if (ret < 0) {
+		return -1;
+	}
+
+	return bytes_available;
+}
+
+ssize_t SerialImpl::txSpaceAvailable()
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		errno = EBADF;
+		return -1;
+	}
+
+	ssize_t space_available = 0;
+	int ret = ioctl(_serial_fd, FIONSPACE, &space_available);
+
+	if (ret < 0) {
+		return -1;
+	}
+
+	return space_available;
 }
 
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
@@ -486,7 +536,19 @@ ByteSize SerialImpl::getBytesize() const
 
 bool SerialImpl::setBytesize(ByteSize bytesize)
 {
-	return bytesize == ByteSize::EightBits;
+	// check if already configured
+	if ((bytesize == _bytesize) && _open) {
+		return true;
+	}
+
+	_bytesize = bytesize;
+
+	// process bytesize change now if port is already open
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 Parity SerialImpl::getParity() const
@@ -496,7 +558,19 @@ Parity SerialImpl::getParity() const
 
 bool SerialImpl::setParity(Parity parity)
 {
-	return parity == Parity::None;
+	// check if already configured
+	if ((parity == _parity) && _open) {
+		return true;
+	}
+
+	_parity = parity;
+
+	// process parity change now if port is already open
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 StopBits SerialImpl::getStopbits() const
@@ -506,7 +580,19 @@ StopBits SerialImpl::getStopbits() const
 
 bool SerialImpl::setStopbits(StopBits stopbits)
 {
-	return stopbits == StopBits::One;
+	// check if already configured
+	if ((stopbits == _stopbits) && _open) {
+		return true;
+	}
+
+	_stopbits = stopbits;
+
+	// process stopbits change now if port is already open
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 FlowControl SerialImpl::getFlowcontrol() const
@@ -516,7 +602,19 @@ FlowControl SerialImpl::getFlowcontrol() const
 
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
-	return flowcontrol == FlowControl::Disabled;
+	// check if already configured
+	if ((flowcontrol == _flowcontrol) && _open) {
+		return true;
+	}
+
+	_flowcontrol = flowcontrol;
+
+	// process flowcontrol change now if port is already open
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 bool SerialImpl::getSingleWireMode() const

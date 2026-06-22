@@ -29,7 +29,7 @@ In addition you will need:
 The _Kopis 2_ comes preinstalled with Betaflight.
 
 Before loading PX4 firmware you must first install the PX4 bootloader.
-Instructions for installing the bootloader can be found in the [Kakute F7](../flight_controller/kakutef7.md#bootloader) topic (this is the flight controller board on the _Kopis 2_).
+Download the [kakutef7_bl.hex](https://raw.githubusercontent.com/PX4/PX4-Autopilot/release/1.17/docs/assets/flight_controller/kakutef7/kakutef7_bl_0b3fbe2da0.hex?download=true) bootloader binary and read [PX4 Bootloader Flashing onto Betaflight Systems](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 :::tip
 You can always [reinstall Betaflight](../advanced_config/bootloader_update_from_betaflight.md#reinstall-betaflight) later if you want!

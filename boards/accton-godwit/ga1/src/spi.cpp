@@ -38,9 +38,11 @@
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 	}, {GPIO::PortI, GPIO::Pin11}),
 	initSPIBus(SPI::Bus::SPI2, {
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
 	}, {GPIO::PortF, GPIO::Pin4}),
 	initSPIBus(SPI::Bus::SPI3, {
 		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
@@ -48,7 +50,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	}, {GPIO::PortE, GPIO::Pin7}),
 	//  initSPIBus(SPI::Bus::SPI4, {
 	//    // no devices
-	// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
+	// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS_EN from board_config.h
 	//  }, {GPIO::PortG, GPIO::Pin8}),
 	initSPIBus(SPI::Bus::SPI5, {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})

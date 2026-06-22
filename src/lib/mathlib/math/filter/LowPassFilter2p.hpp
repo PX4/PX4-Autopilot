@@ -100,7 +100,7 @@ public:
 		// Direct Form II implementation
 		T delay_element_0{sample - _delay_element_1 *_a1 - _delay_element_2 * _a2};
 
-		const T output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
+		T output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
 
 		_delay_element_2 = _delay_element_1;
 		_delay_element_1 = delay_element_0;

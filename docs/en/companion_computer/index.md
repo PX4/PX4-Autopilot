@@ -33,7 +33,7 @@ They are listed here as they can be updated with "vanilla" PX4 firmware for test
 
 ## Companion Computer Options
 
-PX4 can be used with computers that can be configured to communicate via MAVLink or microROS/uXRCE-DDS over over a serial port (or Ethernet port, if present).
+PX4 can be used with computers that can be configured to communicate via MAVLink or microROS/uXRCE-DDS over a serial port (or Ethernet port, if present).
 A small subset of possible alternatives are listed below.
 
 Larger high power examples:

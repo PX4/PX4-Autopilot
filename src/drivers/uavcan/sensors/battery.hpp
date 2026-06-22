@@ -54,7 +54,7 @@ class UavcanBatteryBridge : public UavcanSensorBridgeBase, public ModuleParams
 public:
 	static const char *const NAME;
 
-	UavcanBatteryBridge(uavcan::INode &node);
+	UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
@@ -110,6 +110,7 @@ private:
 	battery_info_s _battery_info[battery_status_s::MAX_INSTANCES] {};
 	battery_status_s _battery_status[battery_status_s::MAX_INSTANCES] {};
 	BatteryDataType _batt_update_mod[battery_status_s::MAX_INSTANCES] {};
+	uint8_t _node_ids[battery_status_s::MAX_INSTANCES] {}; // UAVCAN node ID per instance
 
 	static constexpr int FILTER_DATA = 2;
 	static constexpr int BATTERY_INDEX_1 = 1;

@@ -2,7 +2,7 @@
 
 :::info
 Holybro initially supplied this kit with a [Pixhawk 5X](../flight_controller/pixhawk5x.md), but at time of writing this has been upgraded to a [Holybro Pixhawk 6C](../flight_controller/pixhawk6c.md).
-This build log is still relevant as the kit assembly is virtually the same, and likely to remain so as the flight controller is upgraded.
+这个构建记录仍然具有相关性，因为套装组件几乎是一样的，而且随着飞行控制器升级，很可能仍然如此。
 :::
 
 This topic provides full instructions for building the [Holybro X500 V2 ARF Kit](https://holybro.com/collections/x500-kits) and configuring PX4 using _QGroundControl_.
@@ -71,15 +71,15 @@ _Figure 1_: X500 V2 ARF Kit what's inside
 
 ### Electronics
 
-| Item Description                                                               | Quantity |
-| ------------------------------------------------------------------------------ | -------- |
-| Pixhawk5x & Assorted Cables                                | 1        |
-| M8N GPS Module                                                                 | 1        |
-| Power Module PM02D (with pre-soldered ESC power cables)     | 1        |
-| Motors 2216 KV880（V2 Update)                                                   | 4        |
-| Holybro BLHeli S ESC 20A x4                                                    | 1        |
-| Holybro BLHeli S ESC 20A x4                                                    | 1        |
-| 433 MHz / 915 MHz [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md) | 1        |
+| 物品描述                                                                       | Quantity |
+| -------------------------------------------------------------------------- | -------- |
+| Pixhawk5x & Assorted Cables                            | 1        |
+| M8N GPS Module                                                             | 1        |
+| Power Module PM02D (with pre-soldered ESC power cables) | 1        |
+| Motors 2216 KV880（V2 Update)                                               | 4        |
+| Holybro BLHeli S ESC 20A x4                                                | 1        |
+| Holybro BLHeli S ESC 20A x4                                                | 1        |
+| 433 MHz / 915 MHz [Holybro数传电台](../telemetry/holybro_sik_radio.md)         | 1        |
 
 ### Tools needed
 
@@ -231,7 +231,7 @@ Ideally you should also do:
 ## 调试
 
 Airframe selection sets _default_ autopilot parameters for the frame.
-These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
+这些足以让它起飞，但是为你的特定框架调整专有参数是一个好主意。
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).
 

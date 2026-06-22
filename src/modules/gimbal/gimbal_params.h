@@ -46,7 +46,8 @@ enum MntModeIn {
 	MNT_MODE_IN_RC,
 	MNT_MODE_IN_MAVLINK_ROI,			// MAVLink gimbal protocol v1 (to be deprecated)
 	MNT_MODE_IN_MAVLINK_DO_MOUNT,		// MAVLink gimbal protocol v1 (to be deprecated)
-	MNT_MODE_IN_MAVLINK_V2			// MAVLink gimbal protocol v2
+	MNT_MODE_IN_MAVLINK_V2,			// MAVLink gimbal protocol v2
+	MNT_MODE_IN_FIXED			// Fixed world-frame attitude, not user controllable
 };
 
 enum MntModeOut {
@@ -64,12 +65,10 @@ struct Parameters {
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
 	int32_t mnt_do_stab;
-	float mnt_range_pitch;
+	float mnt_max_pitch;
+	float mnt_min_pitch;
 	float mnt_range_roll;
 	float mnt_range_yaw;
-	float mnt_off_pitch;
-	float mnt_off_roll;
-	float mnt_off_yaw;
 	int32_t mav_sysid;
 	int32_t mav_compid;
 	float mnt_rate_pitch;
@@ -77,6 +76,8 @@ struct Parameters {
 	int32_t mnt_rc_in_mode;
 	float mnt_lnd_p_min;
 	float mnt_lnd_p_max;
+	float mnt_tau;
+	float mnt_fixed_pitch;
 };
 
 struct ParameterHandles {
@@ -88,12 +89,10 @@ struct ParameterHandles {
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;
 	param_t mnt_do_stab;
-	param_t mnt_range_pitch;
+	param_t mnt_max_pitch;
+	param_t mnt_min_pitch;
 	param_t mnt_range_roll;
 	param_t mnt_range_yaw;
-	param_t mnt_off_pitch;
-	param_t mnt_off_roll;
-	param_t mnt_off_yaw;
 	param_t mav_sysid;
 	param_t mav_compid;
 	param_t mnt_rate_pitch;
@@ -101,6 +100,8 @@ struct ParameterHandles {
 	param_t mnt_rc_in_mode;
 	param_t mnt_lnd_p_min;
 	param_t mnt_lnd_p_max;
+	param_t mnt_tau;
+	param_t mnt_fixed_pitch;
 };
 
 } /* namespace gimbal */

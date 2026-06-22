@@ -1,6 +1,6 @@
 # RaccoonLab FMUv6X Autopilot
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://raccoonlab.co) for hardware support or compliance issues.
 :::
@@ -18,7 +18,7 @@ The [Jetson Xavier NX HAT](https://docs.raccoonlab.co/guide/nx_hat/) is designed
 The [Raspberry Pi CM4 HAT](https://docs.raccoonlab.co/guide/rpi_hat/) provides robust features, including CAN bus connectivity, an LTE modem, internal voltage measurement, SWD debugging for other MCUs, and UART communication with PX4 over MAVLINK.
 These HATs expand the capabilities of devices, making them ideal for advanced robotics and UAV applications.
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -125,12 +125,12 @@ Under these conditions all power sources will be used in this order to power the
 1. **POWER1** and **POWER2** inputs (4.9V to 5.5V)
 2. **USB** input (4.75V to 5.25V)
 
-:::tip
+::: tip
 The manufacturer [RaccoonLab Docs](https://docs.raccoonlab.co/guide/autopilot/RCLv6X.html) are the canonical reference for the RaccoonLab FMUv6X Autopilot.
 They should be used by preference as they contain the most complete and up to date information.
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 [RaccoonLab Store](https://raccoonlab.co/store)
 
@@ -138,7 +138,7 @@ They should be used by preference as they contain the most complete and up to da
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::

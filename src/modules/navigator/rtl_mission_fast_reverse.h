@@ -67,6 +67,7 @@ public:
 private:
 	bool setNextMissionItem() override;
 	void setActiveMissionItems() override;
+	MissionTraversalType traversalType() const override { return MissionTraversalType::IgnoreDoJump; }
 	void handleLanding(WorkItemType &new_work_item_type);
 
 	int32_t _mission_index_prior_rtl{INT32_C(-1)};
@@ -76,6 +77,8 @@ private:
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,
-		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md
+		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md,
+		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
+		(ParamFloat<px4::params::RTL_LAND_DELAY>)  _param_rtl_land_delay
 	)
 };

@@ -38,10 +38,11 @@
 
 const char *const UavcanGnssRelativeBridge::NAME = "gnss_relative";
 
-UavcanGnssRelativeBridge::UavcanGnssRelativeBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_gnss_relative", ORB_ID(sensor_gnss_relative)),
+UavcanGnssRelativeBridge::UavcanGnssRelativeBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_gnss_relative", ORB_ID(sensor_gnss_relative), node_info_publisher),
 	_sub_rel_pos_heading(node)
 {
+	set_device_type(DRV_GPS_DEVTYPE_UAVCAN);
 }
 
 int
@@ -70,7 +71,14 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 	sensor_gnss_relative.position_length = msg.relative_distance_m;
 	sensor_gnss_relative.position[2] = msg.relative_down_pos_m;
 
-	sensor_gnss_relative.device_id = get_device_id();
+	sensor_gnss_relative.device_id = make_uavcan_device_id(msg);
+
+	// Register GPS capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				sensor_gnss_relative.device_id,
+				NodeInfoPublisher::DeviceCapability::GPS);
+	}
 
 	sensor_gnss_relative.timestamp = hrt_absolute_time();
 

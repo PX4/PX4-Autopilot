@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "rgbled.hpp"
+#include <lib/mathlib/mathlib.h>
 
 UavcanRGBController::UavcanRGBController(uavcan::INode &node) :
 	ModuleParams(nullptr),
@@ -44,6 +45,38 @@ UavcanRGBController::UavcanRGBController(uavcan::INode &node) :
 
 int UavcanRGBController::init()
 {
+	// Cache number of lights (0 disables the feature)
+	_num_lights = math::min(static_cast<uint8_t>(_param_uavcan_lgt_num.get()), MAX_NUM_UAVCAN_LIGHTS);
+
+	if (_num_lights == 0) {
+		return 0; // Disabled, don't start timer
+	}
+
+	// Cache parameter handles and values for each light
+	for (uint8_t i = 0; i < _num_lights; i++) {
+		char param_name[17];
+
+		// Light ID parameter
+		snprintf(param_name, sizeof(param_name), "UAVCAN_LGT_ID%u", i);
+		_light_id_params[i] = param_find(param_name);
+
+		if (_light_id_params[i] != PARAM_INVALID) {
+			int32_t light_id = 0;
+			param_get(_light_id_params[i], &light_id);
+			_light_ids[i] = static_cast<uint8_t>(light_id);
+		}
+
+		// Light function parameter
+		snprintf(param_name, sizeof(param_name), "UAVCAN_LGT_FN%u", i);
+		_light_fn_params[i] = param_find(param_name);
+
+		if (_light_fn_params[i] != PARAM_INVALID) {
+			int32_t light_fn = 0;
+			param_get(_light_fn_params[i], &light_fn);
+			_light_functions[i] = static_cast<LightFunction>(light_fn);
+		}
+	}
+
 	// Setup timer and call back function for periodic updates
 	_timer.setCallback(TimerCbBinder(this, &UavcanRGBController::periodic_update));
 	_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
@@ -52,142 +85,152 @@ int UavcanRGBController::init()
 
 void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 {
-	bool publish_lights = false;
-	uavcan::equipment::indication::LightsCommand cmds;
+	// Early return if disabled or no lights configured
+	if (_num_lights == 0) {
+		return;
+	}
 
+	// Check for status color updates from led_controller
 	LedControlData led_control_data;
 
-	if (_led_controller.update(led_control_data) == 1) {
-		publish_lights = true;
+	if (_led_controller.update(led_control_data) != 1) {
+		return; // No update, nothing to do
+	}
 
-		// RGB color in the standard 5-6-5 16-bit palette.
-		// Monocolor lights should interpret this as brightness setpoint: from zero (0, 0, 0) to full brightness (31, 63, 31).
+	// Compute status color from led_control_data
+	uavcan::equipment::indication::RGB565 status_color = color_to_rgb565(led_control_data.leds[0].color, led_control_data.leds[0].brightness);
+
+	// Build and send light commands for all configured lights
+	uavcan::equipment::indication::LightsCommand light_command;
+	const bool light_on = is_light_on();
+
+	for (uint8_t i = 0; i < _num_lights; i++) {
+		uavcan::equipment::indication::RGB565 color_on, color_off;
+		color_on = color_off = color_to_rgb565(led_control_s::COLOR_OFF);
+
+		switch (_light_functions[i]) {
+		// Always show status
+		case LightFunction::Status:
+			color_on = color_off = status_color;
+			break;
+
+		// Static color when UAVCAN_LGT_MODE active
+		case LightFunction::White:
+			color_on = color_to_rgb565(led_control_s::COLOR_WHITE);
+			break;
+
+		case LightFunction::Red:
+			color_on = color_to_rgb565(led_control_s::COLOR_RED);
+			break;
+
+		case LightFunction::Green:
+			color_on = color_to_rgb565(led_control_s::COLOR_GREEN);
+			break;
+
+		// Hybrid functions: show status when UAVCAN_LGT_MODE inactive, static color when active
+		case LightFunction::StatusOrWhite:
+			color_on = color_to_rgb565(led_control_s::COLOR_WHITE);
+			color_off = status_color;
+			break;
+
+		case LightFunction::StatusOrRed:
+			color_on = color_to_rgb565(led_control_s::COLOR_RED);
+			color_off = status_color;
+			break;
+
+		case LightFunction::StatusOrGreen:
+			color_on = color_to_rgb565(led_control_s::COLOR_GREEN);
+			color_off = status_color;
+			break;
+
+		case LightFunction::StatusOrOff:
+			color_off = status_color;
+			break;
+		}
+
 		uavcan::equipment::indication::SingleLightCommand cmd;
-
-		uint8_t brightness = led_control_data.leds[0].brightness;
-
-		switch (led_control_data.leds[0].color) {
-		case led_control_s::COLOR_RED:
-			cmd.color.red = brightness >> 3;
-			cmd.color.green = 0;
-			cmd.color.blue = 0;
-			break;
-
-		case led_control_s::COLOR_GREEN:
-			cmd.color.red = 0;
-			cmd.color.green = brightness >> 2;
-			cmd.color.blue = 0;
-			break;
-
-		case led_control_s::COLOR_BLUE:
-			cmd.color.red = 0;
-			cmd.color.green = 0;
-			cmd.color.blue = brightness >> 3;
-			break;
-
-		case led_control_s::COLOR_AMBER: // make it the same as yellow
-
-		// FALLTHROUGH
-		case led_control_s::COLOR_YELLOW:
-			cmd.color.red = (brightness / 2) >> 3;
-			cmd.color.green = (brightness / 2) >> 2;
-			cmd.color.blue = 0;
-			break;
-
-		case led_control_s::COLOR_PURPLE:
-			cmd.color.red = (brightness / 2) >> 3;
-			cmd.color.green = 0;
-			cmd.color.blue = (brightness / 2) >> 3;
-			break;
-
-		case led_control_s::COLOR_CYAN:
-			cmd.color.red = 0;
-			cmd.color.green = (brightness / 2) >> 2;
-			cmd.color.blue = (brightness / 2) >> 3;
-			break;
-
-		case led_control_s::COLOR_WHITE:
-			cmd.color.red = (brightness / 3) >> 3;
-			cmd.color.green = (brightness / 3) >> 2;
-			cmd.color.blue = (brightness / 3) >> 3;
-			break;
-
-		default: // led_control_s::COLOR_OFF
-			cmd.color.red = 0;
-			cmd.color.green = 0;
-			cmd.color.blue = 0;
-			break;
-		}
-
-		cmds.commands.push_back(cmd);
-
+		cmd.light_id = _light_ids[i];
+		cmd.color = light_on ? color_on : color_off;
+		light_command.commands.push_back(cmd);
 	}
 
-	if (_armed_sub.updated()) {
-		publish_lights = true;
+	_uavcan_pub_lights_cmd.broadcast(light_command);
+}
 
-		actuator_armed_s armed;
+bool UavcanRGBController::is_light_on()
+{
+	actuator_armed_s actuator_armed{};
+	_actuator_armed_sub.copy(&actuator_armed);
 
-		if (_armed_sub.copy(&armed)) {
+	switch (_param_uavcan_lgt_mode.get()) {
+	case 3: // Always on
+		return true;
 
-			/* Determine the current control mode
-			*  If a light's control mode config >= current control mode, the light will be enabled
-			*  Logic must match UAVCAN_LGT_* param values.
-			* @value 0 Always off
-			* @value 1 When autopilot is armed
-			* @value 2 When autopilot is prearmed
-			* @value 3 Always on
-			*/
-			uint8_t control_mode = 0;
+	case 2: // When autopilot is prearmed
+		return actuator_armed.armed || actuator_armed.prearmed;
 
-			if (armed.armed) {
-				control_mode = 1;
+	case 1: // When autopilot is armed
+		return actuator_armed.armed;
 
-			} else if (armed.prearmed) {
-				control_mode = 2;
-
-			} else {
-				control_mode = 3;
-			}
-
-			uavcan::equipment::indication::SingleLightCommand cmd;
-
-			// Beacons
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_ANTI_COLLISION;
-			cmd.color = brightness_to_rgb565(_param_mode_anti_col.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-
-			// Strobes
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_STROBE;
-			cmd.color = brightness_to_rgb565(_param_mode_strobe.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-
-			// Nav lights
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_RIGHT_OF_WAY;
-			cmd.color = brightness_to_rgb565(_param_mode_nav.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-
-			// Landing lights
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_LANDING;
-			cmd.color = brightness_to_rgb565(_param_mode_land.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-		}
-	}
-
-	if (publish_lights) {
-		_uavcan_pub_lights_cmd.broadcast(cmds);
+	case 0: // Always off
+	default:
+		return false;
 	}
 }
 
-uavcan::equipment::indication::RGB565 UavcanRGBController::brightness_to_rgb565(uint8_t brightness)
+uavcan::equipment::indication::RGB565 UavcanRGBController::color_to_rgb565(uint8_t color, uint8_t brightness)
 {
-	// RGB color in the standard 5-6-5 16-bit palette.
-	// Monocolor lights should interpret this as brightness setpoint: from zero (0, 0, 0) to full brightness (31, 63, 31).
-	uavcan::equipment::indication::RGB565 color;
+	uint8_t R = 0, G = 0, B = 0;
 
-	color.red = (31.0f * (float)brightness / 255.0f);
-	color.green = (62.0f * (float)brightness / 255.0f);
-	color.blue = (31.0f * (float)brightness / 255.0f);
+	switch (color) {
+	case led_control_s::COLOR_RED:
+		R = brightness;
+		break;
 
-	return color;
+	case led_control_s::COLOR_GREEN:
+		G = brightness;
+		break;
+
+	case led_control_s::COLOR_BLUE:
+		B = brightness;
+		break;
+
+	case led_control_s::COLOR_AMBER: // make it the same as yellow
+	case led_control_s::COLOR_YELLOW:
+		R = brightness;
+		G = brightness;
+		break;
+
+	case led_control_s::COLOR_PURPLE:
+		R = brightness;
+		B = brightness;
+		break;
+
+	case led_control_s::COLOR_CYAN:
+		G = brightness;
+		B = brightness;
+		break;
+
+	case led_control_s::COLOR_WHITE:
+		R = brightness;
+		G = brightness;
+		B = brightness;
+		break;
+
+	default:
+	case led_control_s::COLOR_OFF:
+		break;
+	}
+
+	return rgb888_to_rgb565(R, G, B);
+}
+
+uavcan::equipment::indication::RGB565 UavcanRGBController::rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue)
+{
+	// RGB565: Full brightness is (31, 63, 31), off is (0, 0, 0)
+	uavcan::equipment::indication::RGB565 rgb565{};
+	rgb565.red = (red * 31 + 127) / 255;
+	rgb565.green = (green * 63 + 127) / 255;
+	rgb565.blue = (blue * 31 + 127) / 255;
+	return rgb565;
 }

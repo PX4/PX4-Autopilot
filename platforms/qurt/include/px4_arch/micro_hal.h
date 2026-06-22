@@ -31,4 +31,33 @@
  *
  ****************************************************************************/
 
-// Placeholder
+#pragma once
+
+#include <stdint.h>
+#include <board_config.h>
+
+#if defined(CONFIG_I2C)
+
+__BEGIN_DECLS
+
+struct i2c_master_s;
+
+struct i2c_msg_s {
+	uint32_t frequency;
+	uint16_t addr;
+	uint16_t flags;
+	uint8_t *buffer;
+	int      length;
+};
+
+#define I2C_M_READ   0x0001
+
+#define I2C_TRANSFER(dev, msgs, count) px4_qurt_i2c_transfer(dev, msgs, count)
+
+struct i2c_master_s *px4_i2cbus_initialize(int bus);
+int                  px4_i2cbus_uninitialize(struct i2c_master_s *dev);
+int                  px4_qurt_i2c_transfer(struct i2c_master_s *dev, struct i2c_msg_s *msgs, unsigned count);
+
+__END_DECLS
+
+#endif /* CONFIG_I2C */

@@ -172,14 +172,26 @@ include(px4_add_module)
 set(config_module_list)
 set(config_kernel_list)
 
-# Find Python
-find_package(PythonInterp 3)
-# We have a custom error message to tell users how to install python3.
-if(NOT PYTHONINTERP_FOUND)
-	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-		"    macOS: brew install python")
+# find_package(Python3) on macOS defaults to picking the highest-versioned
+# framework Python over PATH and hints, missing the venv where pip
+# installed our requirements. Pin to the project-local .venv when
+# present; otherwise stop at the first location hint and keep macOS
+# frameworks last. PYTHON_EXECUTABLE is bridged below for legacy callers.
+if(NOT DEFINED Python3_EXECUTABLE AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
+	set(Python3_EXECUTABLE "${CMAKE_CURRENT_LIST_DIR}/.venv/bin/python")
 endif()
+set(Python3_FIND_STRATEGY LOCATION)
+set(Python3_FIND_FRAMEWORK LAST)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# Preserve PYTHON_EXECUTABLE as passed if any (e.g. via -D on command
+# line, or from the top Makefile); or else default to what
+# find_package(Python3) resolved. Promote to a CACHE FILEPATH entry so
+# cmake -L lists it, to avoid spurious reconfiguration.
+if(NOT DEFINED PYTHON_EXECUTABLE OR PYTHON_EXECUTABLE STREQUAL "")
+	set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
+set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}" CACHE FILEPATH "Python 3 interpreter" FORCE)
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
@@ -229,6 +241,28 @@ endif()
 #
 project(px4 CXX C ASM)
 
+# Silence Apple ranlib "has no symbols" warnings. Several PX4 sources are
+# wrapped in #if defined(CONFIG_*) guards (e.g. platforms/common/i2c.cpp,
+# spi.cpp, board_common.c, pab_manifest.c, px4_log_history.cpp) and some
+# libraries carry a dummy.cpp placeholder, all of which legitimately produce
+# empty object files on POSIX/SITL. GNU ranlib ignores this; Apple's warns.
+#
+# The warning is actually emitted by `ar qc` (which implicitly builds a symbol
+# table), not by the standalone ranlib call. So we use `ar qcS` to skip the
+# implicit symbol table, then let CMAKE_*_ARCHIVE_FINISH run ranlib with the
+# -no_warning_for_no_symbols flag to add it quietly.
+if(APPLE)
+	set(CMAKE_C_ARCHIVE_CREATE    "<CMAKE_AR> qcS <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_CXX_ARCHIVE_CREATE  "<CMAKE_AR> qcS <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_ASM_ARCHIVE_CREATE  "<CMAKE_AR> qcS <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_C_ARCHIVE_APPEND    "<CMAKE_AR> qS  <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_CXX_ARCHIVE_APPEND  "<CMAKE_AR> qS  <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_ASM_ARCHIVE_APPEND  "<CMAKE_AR> qS  <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_C_ARCHIVE_FINISH    "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+	set(CMAKE_CXX_ARCHIVE_FINISH  "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+	set(CMAKE_ASM_ARCHIVE_FINISH  "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+endif()
+
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
 	if(${PX4_PLATFORM} STREQUAL "nuttx")
@@ -240,8 +274,15 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE ${PX4_BUILD_TYPE} CACHE STRING "Build type" FORCE)
 endif()
 
+if(CONFIG_BOARD_SUPPORT_FORTIFIED_TOOLCHAIN)
+	set(PX4_DEBUG_OPT_LEVEL -Og)
+	message(STATUS "fortified toolchain support enabled: PX4_DEBUG_OPT_LEVEL=${PX4_DEBUG_OPT_LEVEL}")
+else()
+	set(PX4_DEBUG_OPT_LEVEL -O0)
+endif()
+
 if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
-	set(MAX_CUSTOM_OPT_LEVEL -O0)
+	set(MAX_CUSTOM_OPT_LEVEL ${PX4_DEBUG_OPT_LEVEL})
 elseif(CMAKE_BUILD_TYPE MATCHES "Sanitizer")
 	set(MAX_CUSTOM_OPT_LEVEL -O1)
 elseif(CMAKE_BUILD_TYPE MATCHES "Release")
@@ -267,7 +308,7 @@ endif()
 
 set(package-contact "px4users@googlegroups.com")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -484,6 +525,7 @@ include(bloaty)
 
 include(metadata)
 include(package)
+include(sbom)
 
 # install python requirements using configured python
 add_custom_target(install_python_requirements

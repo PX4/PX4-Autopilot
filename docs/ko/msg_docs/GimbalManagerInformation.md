@@ -1,6 +1,50 @@
+---
+pageClass: is-wide-page
+---
+
 # GimbalManagerInformation (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalManagerInformation.msg)
+**TOPICS:** gimbal_manager_information
+
+## Fields
+
+| 명칭                                                                                          | 형식        | Unit [Frame] | Range/Enum | 설명                                                        |
+| ------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                         | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_cap_flags"></a>cap_flags                                    | `uint32`  |                                                                  |            |                                                           |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id | `uint8`   |                                                                  |            |                                                           |
+| <a id="fld_roll_min"></a>roll_min                                      | `float32` | rad                                                              |            |                                                           |
+| <a id="fld_roll_max"></a>roll_max                                      | `float32` | rad                                                              |            |                                                           |
+| <a id="fld_pitch_min"></a>pitch_min                                    | `float32` | rad                                                              |            |                                                           |
+| <a id="fld_pitch_max"></a>pitch_max                                    | `float32` | rad                                                              |            |                                                           |
+| <a id="fld_yaw_min"></a>yaw_min                                        | `float32` | rad                                                              |            |                                                           |
+| <a id="fld_yaw_max"></a>yaw_max                                        | `float32` | rad                                                              |            |                                                           |
+
+## Constants
+
+| 명칭                                                                                                                                                                                                                                                                     | 형식       | Value  | 설명 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ | -- |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_RETRACT"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_RETRACT                                                                       | `uint32` | 1      |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_NEUTRAL"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_NEUTRAL                                                                       | `uint32` | 2      |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_AXIS"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_AXIS                                              | `uint32` | 4      |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_FOLLOW"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_FOLLOW                                          | `uint32` | 8      |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_LOCK"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_LOCK                                              | `uint32` | 16     |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_AXIS"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_AXIS                                            | `uint32` | 32     |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_FOLLOW"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_FOLLOW                                        | `uint32` | 64     |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_LOCK"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_LOCK                                            | `uint32` | 128    |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_AXIS"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_AXIS                                                | `uint32` | 256    |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_FOLLOW"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_FOLLOW                                            | `uint32` | 512    |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK"></a> GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK                                                | `uint32` | 1024   |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_SUPPORTS_INFINITE_YAW"></a> GIMBAL_MANAGER_CAP_FLAGS_SUPPORTS_INFINITE_YAW                              | `uint32` | 2048   |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_LOCAL"></a> GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_LOCAL   | `uint32` | 65536  |    |
+| <a id="#GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL"></a> GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL | `uint32` | 131072 |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalManagerInformation.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp						# time since system start (microseconds)
@@ -32,5 +76,6 @@ float32 pitch_max # [rad]
 
 float32 yaw_min # [rad]
 float32 yaw_max # [rad]
-
 ```
+
+:::

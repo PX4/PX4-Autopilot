@@ -54,7 +54,7 @@ PX4 v1.14 (and later) supports the [LightWare LiDAR SF45](../sensor/sf45_rotatin
 
 Configure collision prevention by [setting the following parameters](../advanced_config/parameters.md) in _QGroundControl_:
 
-| Параметр                                                                                                                                                          | Опис                                                                                                                                                                                                                                                                                                                                                               |
+| Parameter                                                                                                                                                         | Опис                                                                                                                                                                                                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="CP_DIST"></a>[CP_DIST](../advanced_config/parameter_reference.md#CP_DIST)                                                             | Set the minimum allowed distance (the closest distance that the vehicle can approach the obstacle). Set negative to disable _collision prevention_. <br>> **Warning** This value is the distance to the sensors, not the outside of your vehicle or propellers. Be sure to leave a safe margin! |
 | <a id="CP_DELAY"></a>[CP_DELAY](../advanced_config/parameter_reference.md#CP_DELAY)                                                          | Set the sensor and velocity setpoint tracking delay. See [Delay Tuning](#delay_tuning) below.                                                                                                                                                                                                                                      |
@@ -143,7 +143,7 @@ If you wish to move freely into directions without sensor coverage, this can be 
 
 ### Acceleration Constraining
 
-For this we split out the acceleration setpoint into two components, one parallel to the closest distance to the obstacle and one normal to it. Then we scale each of these components according the the figure below.
+For this we split out the acceleration setpoint into two components, one parallel to the closest distance to the obstacle and one normal to it. Then we scale each of these components according to the figure below.
 
 ![Scalefactor](../../assets/computer_vision/collision_prevention/scalefactor.png)
 
@@ -214,7 +214,6 @@ The Lua script works by extracting the `obstacle_distance_fused` data at each ti
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
    In the **Script Editor** tab, add following scripts in the appropriate sections:
-
    - **Global code, executed once:**
 
      ```lua

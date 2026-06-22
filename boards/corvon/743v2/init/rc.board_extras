@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# CORVON 743V2 board-specific extras init.
+#
+# Currently empty. USB CDC/ACM is brought up by the cdcacm_autostart driver
+# (CONFIG_DRIVERS_CDCACM_AUTOSTART=y) using PE3 as a fake VBUS-present pin
+# (GPIO_OTGFS_VBUS in board_config.h has an internal pull-up, so
+# board_read_VBUS_state() always returns OK and the state machine transitions
+# to "connected"). This file is left as a placeholder for future board-level
+# add-ons that must run after rc.board_sensors but before rcS finishes.

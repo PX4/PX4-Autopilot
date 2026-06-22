@@ -45,7 +45,7 @@ You can connect a PX4-enabled vehicle to an instance of _gz-server_ using severa
   You can then drag and drop any PX4 model into your simulation.
 
   ::: info
-  These models are taken from an web-server called [Gazebo Fuel](https://app.gazebosim.org/dashboard), which essentially acts as an online database for all types of models and worlds that can be launched in Gazebo.
+  These models are taken from an web-server called [Gazebo Fuel](https://app.gazebosim.org/PX4), which essentially acts as an online database for all types of models and worlds that can be launched in Gazebo.
 
 :::
 
@@ -101,15 +101,15 @@ This example explains how you can run standalone mode PX4 via two terminals on o
 
 1. In one terminal run
 
-  ```sh
-  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl_default/bin/px4
-  ```
+   ```sh
+   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl_default/bin/px4
+   ```
 
 2. In a second terminal window run:
 
-  ```sh
-  python3 /path/to/simulation-gazebo --world windy
-  ```
+   ```sh
+   python3 /path/to/simulation-gazebo --world windy
+   ```
 
 No additional parameters have to be passed to the simulation-gazebo script in order for this example to work, as all Gazebo nodes run on the same host.
 See the example below for a more involved scenario with different hosts.

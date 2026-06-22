@@ -22,18 +22,21 @@ With this environment developers can:
 
 - Build any simulator or hardware target supported by [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) in the WSL Shell.
   (Ubuntu is the best supported and tested PX4 development platform).
+- [Update firmware](#flash-a-flight-control-board) on a real vehicle _using the command line_.
 - Debug code in [Visual Studio Code](dev_env_windows_wsl.md#visual-studio-code-integration) running on Windows.
 - Monitor a _simulation_ using _QGroundControl for Linux_ running in WSL.
   QGC for Linux connects automatically to the simulation.
 
 _QGroundControl for Windows_ is additionally required if you need to:
 
-- [Update firmware](#flash-a-flight-control-board) on a real vehicle.
+- [Update firmware](#flash-a-flight-control-board) using the QGC UI.
 - Monitor a real vehicle.
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
-::: info
-Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
+::: tip
+Connecting to an USB device from within WSL is not natively supported, but can be enabled via [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb).
+
+From PX4 v1.18, you can upload PX4 firmware over USB from the WSL command line using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) target (this uses the Windows Python interpreter on WSL to access the flight controller through the Windows COM port).
 :::
 
 ::: info
@@ -49,19 +52,13 @@ To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
 
 1. Make sure your computer your computer's virtualization feature is enabled in the BIOS.
    It's usually referred as "Virtualization Technology", "Intel VT-x" or "AMD-V" respectively
-1. Open _cmd.exe_ as administrator.
+2. Open _cmd.exe_ as administrator.
    This can be done by pressing the start key, typing `cmd`, right-clicking on the _Command prompt_ entry and selecting **Run as administrator**.
-1. Execute the following commands to install WSL2 and a particular Ubuntu version:
+3. Execute the following commands to install WSL2 and a particular Ubuntu version:
    - Default version (Ubuntu 22.04):
 
      ```sh
      wsl --install
-     ```
-
-   - Ubuntu 20.04 ([Gazebo-Classic Simulation](../sim_gazebo_classic/index.md))
-
-     ```sh
-     wsl --install -d Ubuntu-20.04
      ```
 
    - Ubuntu 22.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
@@ -70,11 +67,17 @@ To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
      wsl --install -d Ubuntu-22.04
      ```
 
+   - Ubuntu 24.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
+
+     ```sh
+     wsl --install -d Ubuntu-24.04
+     ```
+
    ::: info
-   You can also install[Ubuntu 20.04](https://www.microsoft.com/store/productId/9MTTCL66CPXJ) and [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from the store, which allows you to delete the application using the normal Windows Add/Remove settings:
+   You can also [Ubuntu 24.04](https://www.microsoft.com/store/productId/9nz3klhxdjp5) or [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from Microsoft Store, which allows you to delete the application using the normal Windows Add/Remove settings.
    :::
 
-1. WSL will prompt you for a user name and password for the Ubuntu installation.
+4. WSL will prompt you for a user name and password for the Ubuntu installation.
    Record these credentials as you will need them later on!
 
 The command prompt is now a terminal within the newly installed Ubuntu environment.
@@ -106,7 +109,7 @@ To open a WSL shell using a command prompt:
    ```
 
    ```sh
-   wsl -d Ubuntu-20.04
+   wsl -d Ubuntu-24.04
    ```
 
    If you only have one version of Ubuntu, you can just use `wsl`.
@@ -216,7 +219,7 @@ To set up the integration:
 ## QGroundControl
 
 You can run QGroundControl in either WSL or Windows to connect to the running simulation.
-If you need to [flash a flight control board](#flash-a-flight-control-board) with new firmware you can only do this from the QGroundControl for Windows.
+If you want to flash a flight control board using the QGroundControl GUI, you _must_ use QGroundControl for Windows.
 
 ### QGroundControl in WSL
 
@@ -225,9 +228,9 @@ The easiest way to set up and use QGroundControl is to download the Linux versio
 You can do this from within the WSL shell.
 
 1. In a web browser, navigate to the QGC [Ubuntu download section](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html#ubuntu)
-1. Right-click on the **QGroundControl.AppImage** link, and select "Copy link address".
+2. Right-click on the **QGroundControl.AppImage** link, and select "Copy link address".
    This will be something like _https://d176td9ibe4jno.cloudfront.net/builds/master/QGroundControl.AppImage_
-1. [Open a WSL shell](#opening-a-wsl-shell) and enter the following commands to download the appimage and make it executable (replace the AppImage URL where indicated):
+3. [Open a WSL shell](#opening-a-wsl-shell) and enter the following commands to download the appimage and make it executable (replace the AppImage URL where indicated):
 
    ```sh
    cd ~
@@ -235,7 +238,7 @@ You can do this from within the WSL shell.
    chmod +x QGroundControl.AppImage
    ```
 
-1. Run QGroundControl:
+4. Run QGroundControl:
 
    ```sh
    ./QGroundControl.AppImage
@@ -274,33 +277,35 @@ You will have to update the WSL comm link in QGC every time WSL restarts (becaus
 
 ## Flash a Flight Control Board
 
-Flashing a custom built PX4 binary has to be done using [QGroundControl for Windows](#qgroundcontrol-on-windows).
+Custom PX4 firmware built in WSL can be uploaded directly from the WSL command line using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) target.
 
 ::: info
 WSL2 does not natively offer direct access to serial/USB devices like Pixhawk flight controllers connected to your computer.
-That means you can't connect QGC running inside WSL2 to a flight controller to install firmware, or use the `upload` command to [upload firmware as it is built](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board).
-Instead you connect [QGroundControl for Windows](#qgroundcontrol-on-windows) to PX4 running in WSL2 and to the Flight controller in order to upload the firmware.
+The PX4 `upload` target works around this by using the Windows Python interpreter from WSL to access the flight controller through the Windows COM port.
 :::
 
-Do the following steps to flash your custom binary built in WSL:
+To flash your custom binary from WSL:
 
-1. If you haven't already built the binary in WSL e.g. with a [WSL shell](dev_env_windows_wsl.md#opening-a-wsl-shell) and by running:
+1. Connect the flight controller to your computer with a USB cable.
+2. Open a [WSL shell](dev_env_windows_wsl.md#opening-a-wsl-shell), switch to the PX4 repository, and specify `upload` after your make target:
 
    ```sh
    cd ~/PX4-Autopilot
-   make px4_fmu-v5
+   make px4_fmu-v5 upload
    ```
 
    ::: tip
+   This builds `px4_fmu-v5`.
    Use the correct `make` target for your board.
-   `px4_fmu-v5` can be used for a Pixhawk 4 board.
    :::
 
+You can also flash a custom binary built in WSL using [QGroundControl for Windows](#qgroundcontrol-on-windows):
+
 1. Detach the USB cable of your Pixhawk board from the computer if it was connected.
-1. Open QGC and navigate to **Q > Vehicle Setup > Firmware**.
-1. Plug your Pixhawk board via USB
-1. Once connected select "PX4 Flight Stack", check **Advanced settings** and choose _Custom firmware file ..._ from the drop down below.
-1. Continue and select the firmware binary you just built in WSL.
+2. Open QGC and navigate to **Q > Vehicle Setup > Firmware**.
+3. Plug your Pixhawk board via USB
+4. Once connected select "PX4 Flight Stack", check **Advanced settings** and choose _Custom firmware file ..._ from the drop down below.
+5. Continue and select the firmware binary you just built in WSL.
 
    In the open dialog look for the "Linux" location with the penguin icon in the left pane.
    It's usually all the way at the bottom.
@@ -310,7 +315,7 @@ Do the following steps to flash your custom binary built in WSL:
    You can add the folder to the favourites to access it quickly next time.
    :::
 
-1. Start the flashing.
+6. Start the flashing.
 
 For more information see [Installing PX4 Main, Beta or Custom Firmware (Loading Firmware)](../config/firmware.md#installing-px4-main-beta-or-custom-firmware).
 

@@ -21,7 +21,10 @@ endif ()
 
 project(libuavcan)
 
-find_package(PythonInterp)
+if(NOT PYTHON_EXECUTABLE)
+    find_package(Python3 COMPONENTS Interpreter)
+    set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(COMPILER_IS_GCC_COMPATIBLE 1)

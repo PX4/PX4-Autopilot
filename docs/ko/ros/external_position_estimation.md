@@ -77,7 +77,7 @@ For more detailed information, check the [Using PX4's Navigation Filter (EKF2)](
 
 The following parameters must be set to use external position information with EKF2 (these can be set in _QGroundControl_ > **Vehicle Setup > Parameters > EKF2**).
 
-| 매개변수                                                                                                                                                                                                                                                                                                                                                                                                                      | 외부 위치 추정 설정                                                                                                                                              |
+| Parameter                                                                                                                                                                                                                                                                                                                                                                                                                 | 외부 위치 추정 설정                                                                                                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL)                                                                                                                                                                                                                                                                                                          | Set _horizontal position fusion_, _vertical vision fusion_, _velocity fusion_, and _yaw fusion_, according to your desired fusion model. |
 | [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)                                                                                                                                                                                                                                                                                                          | Set to _Vision_ to use the vision as the reference source for altitude estimation.                                                       |
@@ -126,7 +126,7 @@ See [Building the Code](../dev_setup/building_px4.md) for more details.
 
 The following parameters must be set to use external position information with LPE (these can be set in _QGroundControl_ > **Vehicle Setup > Parameters > Local Position Estimator**).
 
-| 매개변수                                                                                                                                    | 외부 위치 추정 설정                                                                                                                       |
+| Parameter                                                                                                                               | 외부 위치 추정 설정                                                                                                                       |
 | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | [LPE_FUSION](../advanced_config/parameter_reference.md#LPE_FUSION)                                                 | Vision integration is enabled if _fuse vision position_ is checked (it is enabled by default). |
 | [ATT_EXT_HDG_M](../advanced_config/parameter_reference.md#ATT_EXT_HDG_M) | 외부 제목 통합을 활성화하려면 1 또는 2로 설정합니다. 1로 설정하면 비전이 사용되는 반면, 2로 설정하면 MoCap 제목 사용이 활성화됩니다.                 |
@@ -189,7 +189,7 @@ To use MoCap data with EKF2 you will have to [remap](https://wiki.ros.org/roslau
   The `geometry_msgs/PoseStamped` topic is most common as MoCap doesn't usually have associated covariances to the data.
 - If you get data through a `nav_msgs/Odometry` ROS message then you will need to remap it to `/mavros/odometry/out`, making sure to update the `frame_id` and `child_frame_id` accordingly.
 - The odometry frames `frame_id = odom`, `child_frame_id = base_link` can be changed by updating the file in `mavros/launch/px4_config.yaml`. However, the current version of mavros (`1.3.0`) needs to be able to use the tf tree to find a transform from `frame_id` to the hardcoded frame `odom_ned`. The same applies to the `child_frame_id`, which needs to be connected in the tf tree to the hardcoded frame `base_link_frd`. If you are using mavros `1.2.0` and you didn't update the file `mavros/launch/px4_config.yaml`, then you can safely use the odometry frames `frame_id = odom`, `child_frame_id = base_link` without much worry.
-- Note that if you are sending odometry data to px4 using `child_frame_id = base_link`, then you need to make sure that the `twist` portion of the `nav_msgs/Odometry` message is **expressed in body frame**, **not in inertial frame!!!!!**.
+- Note that if you are sending odometry data to PX4 using `child_frame_id = base_link`, then you need to make sure that the `twist` portion of the `nav_msgs/Odometry` message is **expressed in body frame**, **not in inertial frame!!!!!**.
 
 ### 기준 프레임과 ROS
 
@@ -253,7 +253,7 @@ This might break the _tf_ tree.
 
 ### OptiTrack MoCap
 
-The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/applications/robotics/) system to PX4.
+The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/applications/robotics) system to PX4.
 MoCap 시스템이 보정된 것으로 가정합니다.
 See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on the calibration process.
 

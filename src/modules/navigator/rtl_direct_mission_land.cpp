@@ -40,6 +40,7 @@
  */
 
 #include "rtl_direct_mission_land.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_hrt.h>
@@ -96,7 +97,7 @@ void RtlDirectMissionLand::on_activation()
 	_needs_climbing = false;
 
 	if (hasMissionLandStart()) {
-		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, false) == PX4_OK);
+		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
 
 		_needs_climbing = checkNeedsToClimb();
 
@@ -115,7 +116,7 @@ void RtlDirectMissionLand::on_activation()
 
 bool RtlDirectMissionLand::setNextMissionItem()
 {
-	return (goToNextPositionItem(true) == PX4_OK);
+	return (goToNextPositionItem() == PX4_OK);
 }
 
 void RtlDirectMissionLand::setActiveMissionItems()
@@ -168,7 +169,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
-	} else if (item_contains_position(_mission_item)) {
+	} else if (mission_item_contains_position(_mission_item)) {
 
 		static constexpr size_t max_num_next_items{1u};
 		int32_t next_mission_items_index[max_num_next_items];

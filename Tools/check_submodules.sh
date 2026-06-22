@@ -17,37 +17,12 @@ if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
 	if ! [[ -z "$STATUSRETVAL" ]]; then
-		echo -e "\033[31mChecked $1 submodule, ACTION REQUIRED:\033[0m"
-		echo ""
-		echo -e "Different commits:"
+		echo -e "\033[33mWarning: $1 submodule has uncommitted changes:\033[0m"
 		echo -e "$SUBMODULE_STATUS"
 		echo ""
+		echo -e "To update submodules to the expected version, run:"
+		echo -e "   \033[94mgit submodule sync --recursive && git submodule update --init --recursive\033[0m"
 		echo ""
-		echo -e " *******************************************************************************"
-		echo -e " *   \033[31mIF YOU DID NOT CHANGE THIS FILE (OR YOU DON'T KNOW WHAT A SUBMODULE IS):\033[0m  *"
-		echo -e " *   \033[31mHit 'u' and <ENTER> to update ALL submodules and resolve this.\033[0m            *"
-		echo -e " *   (performs \033[94mgit submodule sync --recursive\033[0m                                  *"
-		echo -e " *    and \033[94mgit submodule update --init --recursive\033[0m )                            *"
-		echo -e " *******************************************************************************"
-		echo ""
-		echo ""
-		echo -e "   Only for EXPERTS:"
-		echo -e "   $1 submodule is not in the recommended version."
-		echo -e "   Hit 'y' and <ENTER> to continue the build with this version. Hit <ENTER> to resolve manually."
-		echo -e "   Use \033[94mgit add $1 && git commit -m 'Updated $1'\033[0m to choose this version (careful!)"
-		echo ""
-		read user_cmd
-		if [ "$user_cmd" == "y" ]; then
-			echo "Continuing build with manually overridden submodule.."
-		elif [ "$user_cmd" == "u" ]; then
-			git submodule sync --recursive -- $1
-			git submodule update --init --recursive -- $1 || true
-			git submodule update --init --recursive --force -- $1
-			echo "Submodule fixed, continuing build.."
-		else
-			echo "Build aborted."
-			exit 1
-		fi
 	fi
 else
 	git submodule --quiet sync --recursive --quiet -- $1

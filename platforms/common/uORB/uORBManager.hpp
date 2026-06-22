@@ -448,6 +448,8 @@ public:
 
 	static uint8_t orb_get_instance(const void *node_handle);
 
+	virtual ~Manager();
+
 #if defined(CONFIG_BUILD_FLAT)
 	/* These are optimized by inlining in NuttX Flat build */
 	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
@@ -480,6 +482,9 @@ public:
 
 private: // class methods
 
+	/** Internal method to get a reference to the instance pointer */
+	static uORB::Manager *&instance_ref() { return _Instance; }
+
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
 	 *
@@ -489,7 +494,7 @@ private: // class methods
 	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr);
 
 private: // data members
-	static Manager *_Instance;
+	static inline Manager *_Instance = nullptr;
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	// the communicator channel instance.
@@ -504,7 +509,6 @@ private: // data members
 
 private: //class methods
 	Manager();
-	virtual ~Manager();
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	/**

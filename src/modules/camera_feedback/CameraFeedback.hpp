@@ -57,9 +57,11 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
 
-class CameraFeedback : public ModuleBase<CameraFeedback>, public ModuleParams, public px4::WorkItem
+class CameraFeedback : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	CameraFeedback();
 	~CameraFeedback() override = default;
 

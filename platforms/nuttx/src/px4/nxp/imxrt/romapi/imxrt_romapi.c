@@ -158,11 +158,11 @@ void ROM_API_Init(void)
 	g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0020001cU);
 #else
 
-	if ((getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG) & ANADIG_MISC_MISC_DIFPROG_CHIPID(0x10U)) != 0U) {
-		g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0021001cU);
+	if (getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG) == 0x001170A0U) {
+		g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0020001cU);
 
 	} else {
-		g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0020001cU);
+		g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0021001cU);
 	}
 
 #endif
@@ -320,11 +320,14 @@ void ROM_FLEXSPI_NorFlash_ClearCache(uint32_t instance)
 {
 	uint32_t clearCacheFunctionAddress;
 
-	if ((getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG) & ANADIG_MISC_MISC_DIFPROG_CHIPID(0x10U)) != 0U) {
+	if (getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG) == 0x001170a0U) {
+		clearCacheFunctionAddress = 0x0020426bU;
+
+	} else if (getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG) == 0x001170b0U) {
 		clearCacheFunctionAddress = 0x0021a3b7U;
 
 	} else {
-		clearCacheFunctionAddress = 0x0020426bU;
+		clearCacheFunctionAddress = 0x0021a3bfU;
 	}
 
 	clearCacheCommand_t clearCacheCommand;

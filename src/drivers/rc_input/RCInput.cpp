@@ -40,6 +40,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor RCInput::desc{task_spawn, custom_command, print_usage};
+
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(const char *device) :
@@ -181,8 +183,8 @@ RCInput::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleOnInterval(_current_update_interval);
 
@@ -338,7 +340,7 @@ void  RCInput::swap_rx_tx()
 void RCInput::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -348,7 +350,7 @@ void RCInput::Run()
 
 		} else {
 			PX4_ERR("init failed");
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 		}
 
 	} else {
@@ -386,25 +388,29 @@ void RCInput::Run()
 #if defined(SPEKTRUM_POWER)
 
 				if (!_rc_scan_locked && !_armed) {
-					if ((int)vcmd.param1 == 0) {
+					if ((int)vcmd.param1 == vehicle_command_s::RC_TYPE_SPEKTRUM) {
 						// DSM binding command
 						int dsm_bind_mode = (int)vcmd.param2;
 
 						int dsm_bind_pulses = 0;
 
-						if (dsm_bind_mode == 0) {
+						if (dsm_bind_mode == vehicle_command_s::RC_SUB_TYPE_SPEKTRUM_DSM2) {
 							dsm_bind_pulses = DSM2_BIND_PULSES;
 
-						} else if (dsm_bind_mode == 1) {
+						} else if (dsm_bind_mode == vehicle_command_s::RC_SUB_TYPE_SPEKTRUM_DSMX) {
 							dsm_bind_pulses = DSMX_BIND_PULSES;
 
-						} else {
+						} else if (dsm_bind_mode == vehicle_command_s::RC_SUB_TYPE_SPEKTRUM_DSMX8) {
 							dsm_bind_pulses = DSMX8_BIND_PULSES;
+
+						} else {
+							PX4_WARN("invalid Spektrum bind sub-type: %d", dsm_bind_mode);
+							cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 						}
 
-						bind_spektrum(dsm_bind_pulses);
-
-						cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						if (dsm_bind_pulses > 0 && bind_spektrum(dsm_bind_pulses)) {
+							cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						}
 					}
 
 				} else {
@@ -919,7 +925,7 @@ int RCInput::custom_command(int argc, char *argv[])
 #endif /* SPEKTRUM_POWER */
 
 	/* start the FMU if not running */
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = RCInput::task_spawn(argc, argv);
 
 		if (ret) {
@@ -1033,5 +1039,5 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 
 extern "C" __EXPORT int rc_input_main(int argc, char *argv[])
 {
-	return RCInput::main(argc, argv);
+	return ModuleBase::main(RCInput::desc, argc, argv);
 }

@@ -94,8 +94,15 @@ void Zenoh_Subscriber::print()
 
 void Zenoh_Subscriber::print(const char *type_string, const char *topic_string)
 {
+	const z_loaned_keyexpr_t *ke = z_subscriber_keyexpr(z_loan(_sub));
+
+	if (ke == NULL) {
+		printf("Topic: (unavailable) -> %s %s\n", type_string, topic_string);
+		return;
+	}
+
 	z_view_string_t keystr;
-	z_keyexpr_as_view_string(z_subscriber_keyexpr(z_loan(_sub)), &keystr);
+	z_keyexpr_as_view_string(ke, &keystr);
 	printf("Topic: %.*s -> %s %s \n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)), type_string,
 	       topic_string);
 }

@@ -13,11 +13,11 @@ By default a VTOL in FW mode will transition back to MC just before landing.
 
 The VTOL-specific parameters are:
 
-| 参数                                                                                                               | 描述                                                                                                 |
+| Parameter                                                                                                        | 描述                                                                                                 |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) | Force VTOL to takeoff and land as a multicopter (default: true) |
 
-## See Also
+## 另见
 
 - [Land Mode (MC)](../flight_modes_mc/land.md)
 - [Land Mode (FW)](../flight_modes_fw/land.md)

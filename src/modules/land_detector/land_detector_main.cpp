@@ -95,8 +95,8 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	strncpy(_currentMode, argv[1], sizeof(_currentMode) - 1);
 	_currentMode[sizeof(_currentMode) - 1] = '\0';
 
-	_object.store(obj);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(obj);
+	desc.task_id = task_id_is_work_queue;
 
 	obj->start();
 
@@ -149,7 +149,7 @@ The module runs periodically on the HP work queue.
 
 extern "C" __EXPORT int land_detector_main(int argc, char *argv[])
 {
-	return LandDetector::main(argc, argv);
+	return ModuleBase::main(LandDetector::desc, argc, argv);
 }
 
 } // namespace land_detector

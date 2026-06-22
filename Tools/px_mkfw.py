@@ -42,6 +42,7 @@
 import argparse
 import json
 import base64
+import os
 import zlib
 import time
 import subprocess
@@ -76,6 +77,7 @@ parser.add_argument("--git_identity",	action="store", help="the working director
 parser.add_argument("--parameter_xml",	action="store", help="the parameters.xml file")
 parser.add_argument("--airframe_xml",	action="store", help="the airframes.xml file")
 parser.add_argument("--image",		action="store", help="the firmware image")
+parser.add_argument("--image_signed",	action="store_true", help="mark the image as signed for secure-boot verification by the uploader")
 args = parser.parse_args()
 
 # Fetch the firmware descriptor prototype if specified
@@ -99,14 +101,13 @@ if args.summary != None:
 if args.description != None:
 	desc['description']	= str(args.description)
 if args.git_identity != None:
-	cmd = "git --git-dir '{:}/.git' describe --exclude ext/* --always --tags".format(args.git_identity)
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-	desc['git_identity']	= p.read().strip().decode('utf-8')
-	p.close()
-	cmd = "git --git-dir '{:}/.git' rev-parse --verify HEAD".format(args.git_identity)
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-	desc['git_hash']	= p.read().strip().decode('utf-8')
-	p.close()
+	git_dir = os.path.join(args.git_identity, '.git')
+	p = subprocess.run(["git", "--git-dir", git_dir, "describe", "--exclude", "ext/*", "--always", "--tags"],
+		stdout=subprocess.PIPE, text=True)
+	desc['git_identity']	= p.stdout.strip()
+	p = subprocess.run(["git", "--git-dir", git_dir, "rev-parse", "--verify", "HEAD"],
+		stdout=subprocess.PIPE, text=True)
+	desc['git_hash']	= p.stdout.strip()
 if args.parameter_xml != None:
 	f = open(args.parameter_xml, "rb")
 	bytes = f.read()
@@ -123,5 +124,7 @@ if args.image != None:
 	bytes = f.read()
 	desc['image_size'] = len(bytes)
 	desc['image'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+if args.image_signed:
+	desc['image_signed'] = True
 
 print(json.dumps(desc, indent=4))

@@ -100,9 +100,9 @@ void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints
 
 	// gimbal spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
 	// gimbal uses radians, MAVLink uses degrees
-	vehicle_command.param1 = math::degrees(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch));
-	vehicle_command.param2 = math::degrees(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll));
-	vehicle_command.param3 = math::degrees(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw));
+	vehicle_command.param1 = math::degrees(_angle_outputs[1]);
+	vehicle_command.param2 = math::degrees(_angle_outputs[0]);
+	vehicle_command.param3 = math::degrees(_angle_outputs[2]);
 	vehicle_command.param7 = 2.0f; // MAV_MOUNT_MODE_MAVLINK_TARGETING;
 
 	_gimbal_v1_command_pub.publish(vehicle_command);
@@ -245,6 +245,10 @@ void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 
 	if (_absolute_angle[2]) {
 		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK;
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME;
+
+	} else {
+		set_attitude.flags |= gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
 	}
 
 	_gimbal_device_set_attitude_pub.publish(set_attitude);

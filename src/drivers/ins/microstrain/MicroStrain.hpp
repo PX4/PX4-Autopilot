@@ -86,9 +86,11 @@ using matrix::Vector2f;
 
 static constexpr float sq(float x) { return x * x; };
 
-class MicroStrain : public ModuleBase<MicroStrain>, public ModuleParams, public px4::ScheduledWorkItem
+class MicroStrain : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MicroStrain(const char *_device);
 	~MicroStrain() override;
 
@@ -199,11 +201,11 @@ private:
 	float ext_mag_offset[3] = {0};
 	float optical_flow_offset[3] = {0};
 	float ext_heading_offset[3] = {0};
-	mip_aiding_frame_config_command_rotation rotation_sens = {0};
-	mip_aiding_frame_config_command_rotation rotation_gnss = {0};
-	mip_aiding_frame_config_command_rotation rotation_ext_mag = {0};
-	mip_aiding_frame_config_command_rotation rotation_oflow = {0};
-	mip_aiding_frame_config_command_rotation rotation_ext_heading = {0};
+	mip_aiding_frame_config_command_rotation rotation_sens = {};
+	mip_aiding_frame_config_command_rotation rotation_gnss = {};
+	mip_aiding_frame_config_command_rotation rotation_ext_mag = {};
+	mip_aiding_frame_config_command_rotation rotation_oflow = {};
+	mip_aiding_frame_config_command_rotation rotation_ext_heading = {};
 
 	float ext_mag_uncert = 0.0;
 	float opt_flow_uncert = 0.0;

@@ -72,9 +72,11 @@ using namespace time_literals;
 namespace land_detector
 {
 
-class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
+class LandDetector : public ModuleBase, ModuleParams, px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	LandDetector();
 	virtual ~LandDetector();
 
@@ -140,7 +142,6 @@ protected:
 	virtual bool _get_vertical_movement() { return false; }
 	virtual bool _get_rotational_movement() { return false; }
 	virtual bool _get_close_to_ground_or_skipped_check() {  return false; }
-	virtual void _set_hysteresis_factor(const int factor) = 0;
 
 	systemlib::Hysteresis _freefall_hysteresis{false};
 	systemlib::Hysteresis _landed_hysteresis{true};
@@ -156,7 +157,6 @@ protected:
 
 	bool _armed{false};
 	bool _previous_armed_state{false};	///< stores the previous actuator_armed.armed state
-	bool _dist_bottom_is_observable{false};
 
 private:
 	void Run() override;

@@ -62,7 +62,7 @@ public:
 		}
 	}
 
-	void fuseBias(Vector2f bias, Vector2f bias_var)
+	void fuseBias(const Vector2f &bias, const Vector2f &bias_var)
 	{
 		if ((_sensor_ref != _sensor) && _is_sensor_fusion_active) {
 			_bias[0].fuseBias(bias(0), bias_var(0));

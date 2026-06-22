@@ -86,7 +86,7 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 ### Sensor Position Configuration
 
-- For the the single Rover the module should be mounted with the included mast.
+- For the single Rover the module should be mounted with the included mast.
 - For the Dual ZED-F9P setup (moving baseline), the DroneCAN modules should be placed at least 30cm apart on the airframe and elevated on a mast also.
   See the following [mast](https://holybro.com/products/30-antenna-mount?_pos=20&_sid=67b49d76b&_ss=r).
 - F9P module arrow(s) should be pointing forward with respect to the autopilot orientation.
@@ -100,7 +100,6 @@ In order to use dual ZED-F9P GPS heading in PX4, follow these steps:
 1. Components should be visible on the left panel.
    Click on the first `_Component_<ID#>` that maps to the ZED-F9P DroneCAN node (below shown as _Component 124_).
 1. Click on the _GPS_ subsection and configure the parameters listed below:
-
    - `GPS_TYPE`: Either set to `17` for moving baseline _base_, or set to `18` to be the moving baseline _rover_.
      One F9P MUST be _rover_, and the other MUST be _base_.
    - `GPS_AUTO_CONFIG`: set to 1 for both the rover and base

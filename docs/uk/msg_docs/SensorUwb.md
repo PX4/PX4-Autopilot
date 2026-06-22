@@ -1,9 +1,45 @@
+---
+pageClass: is-wide-page
+---
+
 # SensorUwb (Повідомлення UORB)
 
-UWB відстань містить інформацію про відстань, виміряну системою позиціонування з використанням ультраширокосмугової технології,
-такою як Pozyx або NXP Rddrone.
+UWB distance contains the distance information measured by an ultra-wideband positioning system,. such as Pozyx or NXP Rddrone.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorUwb.msg)
+**TOPICS:** sensor_uwb
+
+## Fields
+
+| Назва                                                                                                                        | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                          | `uint64`  |                                                                  |            | time since system start (microseconds)                                             |
+| <a id="fld_sessionid"></a>sessionid                                                                                          | `uint32`  |                                                                  |            | UWB SessionID                                                                                         |
+| <a id="fld_time_offset"></a>time_offset                                                                 | `uint32`  |                                                                  |            | Time between Ranging Rounds in ms                                                                     |
+| <a id="fld_counter"></a>counter                                                                                              | `uint32`  |                                                                  |            | Number of Ranges since last Start of Ranging                                                          |
+| <a id="fld_mac"></a>mac                                                                                                      | `uint16`  |                                                                  |            | MAC adress of Initiator (controller)                                               |
+| <a id="fld_mac_dest"></a>mac_dest                                                                       | `uint16`  |                                                                  |            | MAC adress of Responder (Controlee)                                                |
+| <a id="fld_status"></a>status                                                                                                | `uint16`  |                                                                  |            | status feedback #                                                                                     |
+| <a id="fld_nlos"></a>nlos                                                                                                    | `uint8`   |                                                                  |            | None line of site condition y/n                                                                       |
+| <a id="fld_distance"></a>distance                                                                                            | `float32` |                                                                  |            | distance in m to the UWB receiver                                                                     |
+| <a id="fld_aoa_azimuth_dev"></a>aoa_azimuth_dev                                    | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg                                                            |
+| <a id="fld_aoa_elevation_dev"></a>aoa_elevation_dev                                | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg                                                            |
+| <a id="fld_aoa_azimuth_resp"></a>aoa_azimuth_resp                                  | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg at the responder                                           |
+| <a id="fld_aoa_elevation_resp"></a>aoa_elevation_resp                              | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg at the responder                                           |
+| <a id="fld_aoa_azimuth_fom"></a>aoa_azimuth_fom                                    | `uint8`   |                                                                  |            | AOA Azimuth FOM                                                                                       |
+| <a id="fld_aoa_elevation_fom"></a>aoa_elevation_fom                                | `uint8`   |                                                                  |            | AOA Elevation FOM                                                                                     |
+| <a id="fld_aoa_dest_azimuth_fom"></a>aoa_dest_azimuth_fom     | `uint8`   |                                                                  |            | AOA Azimuth FOM                                                                                       |
+| <a id="fld_aoa_dest_elevation_fom"></a>aoa_dest_elevation_fom | `uint8`   |                                                                  |            | AOA Elevation FOM                                                                                     |
+| <a id="fld_orientation"></a>orientation                                                                                      | `uint8`   |                                                                  |            | Direction the sensor faces from MAV_SENSOR_ORIENTATION enum |
+| <a id="fld_offset_x"></a>offset_x                                                                       | `float32` |                                                                  |            | UWB initiator offset in X axis (NED drone frame)                                   |
+| <a id="fld_offset_y"></a>offset_y                                                                       | `float32` |                                                                  |            | UWB initiator offset in Y axis (NED drone frame)                                   |
+| <a id="fld_offset_z"></a>offset_z                                                                       | `float32` |                                                                  |            | UWB initiator offset in Z axis (NED drone frame)                                   |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorUwb.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # UWB distance contains the distance information measured by an ultra-wideband positioning system,
@@ -40,5 +76,6 @@ uint8 orientation		# Direction the sensor faces from MAV_SENSOR_ORIENTATION enum
 float32 offset_x		# UWB initiator offset in X axis (NED drone frame)
 float32 offset_y		# UWB initiator offset in Y axis (NED drone frame)
 float32 offset_z		# UWB initiator offset in Z axis (NED drone frame)
-
 ```
+
+:::

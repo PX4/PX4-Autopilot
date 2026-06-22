@@ -23,7 +23,7 @@ You can locate the parameters in QGroundControl as shown below:
 1. Open QGroundControl menu: **Settings > Parameters > Sensor Calibration**.
 2. The parameters as located in the section as shown below (or you can search for them):
 
-  ![FC Orientation QGC v2](../../assets/qgc/setup/sensor/fc_orientation_qgc_v2.png)
+   ![FC Orientation QGC v2](../../assets/qgc/setup/sensor/fc_orientation_qgc_v2.png)
 
 ## Parameter Summary
 
@@ -34,3 +34,7 @@ You can locate the parameters in QGroundControl as shown below:
   Positive angles increase in CCW direction, negative angles increase in CW direction.
 - [SENS_BOARD_Z_OFF](../advanced_config/parameter_reference.md#SENS_BOARD_Z_OFF): Rotation, in degrees, around PX4FMU's Z axis Yaw axis.
   Positive angles increase in CCW direction, negative angles increase in CW direction.
+
+## See Also
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

@@ -130,7 +130,7 @@ The manufacturer [RaccoonLab Docs](https://docs.raccoonlab.co/guide/autopilot/RC
 가장 정확한 최신 정보를 포함하고 있습니다.
 :::
 
-## 구매처
+## Where to Buy {#store}
 
 [RaccoonLab Store](https://raccoonlab.co/store)
 

@@ -153,7 +153,7 @@ void VertiqIo::Run()
 
 void VertiqIo::parameters_update()
 {
-	//If someone has changed any parameter in our module. Checked at 1Hz
+	//If someone has changed any parameter in our module. Checked periodically
 	if (_parameter_update_sub.updated()) {
 		//Grab the changed parameter with copy (which lowers the "changed" flag)
 		parameter_update_s param_update;
@@ -183,11 +183,11 @@ void VertiqIo::parameters_update()
 	}
 }
 
-void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS])
+void VertiqIo::OutputControls(float outputs[MAX_ACTUATORS])
 {
 	//Put the mixer outputs into the output message
 	for (uint8_t i = 0; i < _transmission_message.num_cvs; i++) {
-		_transmission_message.commands[i] = outputs[i];
+		_transmission_message.commands[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 	}
 
 	_operational_ifci.PackageIfciCommandsForTransmission(&_transmission_message, _output_message, &_output_len);
@@ -195,8 +195,7 @@ void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS])
 	_serial_interface.ProcessSerialTx();
 }
 
-bool VertiqIo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			     unsigned num_control_groups_updated)
+bool VertiqIo::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 

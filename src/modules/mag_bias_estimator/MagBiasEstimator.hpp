@@ -55,9 +55,11 @@
 namespace mag_bias_estimator
 {
 
-class MagBiasEstimator : public ModuleBase<MagBiasEstimator>, public ModuleParams, public px4::ScheduledWorkItem
+class MagBiasEstimator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MagBiasEstimator();
 	~MagBiasEstimator() override;
 

@@ -1,6 +1,6 @@
 # Holybro Pixhawk 6X
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -51,7 +51,7 @@ Equipped with a high-performance H7 Processor, modular design, triple redundancy
 
 ::::
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -150,7 +150,7 @@ The Pixhawk®​ 6X is perfect for developers at corporate research labs, startu
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6x).
 
@@ -205,7 +205,7 @@ Under these conditions, all power sources will be used in this order to power th
 
 **Absolute Maximum Ratings**
 
-Under these conditions, the system will not draw any power (will not be operational) but will remain intact.
+Under these conditions, the system will not draw any power (will not be operational), but will remain intact.
 
 1. **POWER1** and **POWER2** inputs (operational range 4.1V to 5.7V, 0V to 10V undamaged)
 1. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
@@ -221,20 +221,18 @@ Analog battery monitoring via an ADC is not supported on this particular board b
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

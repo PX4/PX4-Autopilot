@@ -39,6 +39,8 @@ px4_add_module(
 		mcp9808_main.cpp
 		mcp9808.cpp
 		mcp9808.h
+	MODULE_CONFIG
+		mcp9808_params.yaml
 	DEPENDS
 		px4_work_queue
 	)

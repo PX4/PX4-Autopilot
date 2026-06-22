@@ -38,6 +38,8 @@ px4_add_module(
 		asp5033_main.cpp
 		ASP5033.cpp
 		ASP5033.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		px4_work_queue
 	)

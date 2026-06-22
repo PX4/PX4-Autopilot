@@ -1,9 +1,43 @@
+---
+pageClass: is-wide-page
+---
+
 # EstimatorSensorBias (UORB message)
 
-Sensor readings and in-run biases in SI-unit form. Sensor readings are compensated for static offsets,
-scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
+Sensor readings and in-run biases in SI-unit form. Sensor readings are compensated for static offsets,. scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorSensorBias.msg)
+**TOPICS:** estimator_sensor_bias
+
+## Fields
+
+| Name                                                    | Type         | Unit [Frame] | Range/Enum | Description                                                               |
+| ------------------------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`     |              |            | time since system start (microseconds)                                    |
+| <a id="fld_timestamp_sample"></a>timestamp_sample       | `uint64`     |              |            | the timestamp of the raw data (microseconds)                              |
+| <a id="fld_gyro_device_id"></a>gyro_device_id           | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_gyro_bias"></a>gyro_bias                     | `float32[3]` |              |            | gyroscope in-run bias in body frame (rad/s)                               |
+| <a id="fld_gyro_bias_limit"></a>gyro_bias_limit         | `float32`    |              |            | magnitude of maximum gyroscope in-run bias in body frame (rad/s)          |
+| <a id="fld_gyro_bias_variance"></a>gyro_bias_variance   | `float32[3]` |              |            |
+| <a id="fld_gyro_bias_valid"></a>gyro_bias_valid         | `bool`       |              |            |
+| <a id="fld_gyro_bias_stable"></a>gyro_bias_stable       | `bool`       |              |            | true when the gyro bias estimate is stable enough to use for calibration  |
+| <a id="fld_accel_device_id"></a>accel_device_id         | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_accel_bias"></a>accel_bias                   | `float32[3]` |              |            | accelerometer in-run bias in body frame (m/s^2)                           |
+| <a id="fld_accel_bias_limit"></a>accel_bias_limit       | `float32`    |              |            | magnitude of maximum accelerometer in-run bias in body frame (m/s^2)      |
+| <a id="fld_accel_bias_variance"></a>accel_bias_variance | `float32[3]` |              |            |
+| <a id="fld_accel_bias_valid"></a>accel_bias_valid       | `bool`       |              |            |
+| <a id="fld_accel_bias_stable"></a>accel_bias_stable     | `bool`       |              |            | true when the accel bias estimate is stable enough to use for calibration |
+| <a id="fld_mag_device_id"></a>mag_device_id             | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_mag_bias"></a>mag_bias                       | `float32[3]` |              |            | magnetometer in-run bias in body frame (Gauss)                            |
+| <a id="fld_mag_bias_limit"></a>mag_bias_limit           | `float32`    |              |            | magnitude of maximum magnetometer in-run bias in body frame (Gauss)       |
+| <a id="fld_mag_bias_variance"></a>mag_bias_variance     | `float32[3]` |              |            |
+| <a id="fld_mag_bias_valid"></a>mag_bias_valid           | `bool`       |              |            |
+| <a id="fld_mag_bias_stable"></a>mag_bias_stable         | `bool`       |              |            | true when the mag bias estimate is stable enough to use for calibration   |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorSensorBias.msg)
+
+::: details Click here to see original file
 
 ```c
 #
@@ -36,5 +70,6 @@ float32 mag_bias_limit          # magnitude of maximum magnetometer in-run bias 
 float32[3] mag_bias_variance
 bool mag_bias_valid
 bool mag_bias_stable		# true when the mag bias estimate is stable enough to use for calibration
-
 ```
+
+:::

@@ -15,7 +15,7 @@ To use it you will need to build firmware with this feature enabled and then upl
 Log encryption was has been improved in PX4 v1.16 to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
 
 In earlier versions the encrypted symmetric key was stored in a separate file.
-For more information see the [Log Encryption (PX4 v1.15)](https://docs.px4.io/v1.15/en/dev_log/log_encryption.html).
+For more information see the [Log Encryption (PX4 v1.15)](https://docs.px4.io/v1.15/en/dev_log/log_encryption).
 :::
 
 ## How ULog Encryption Works
@@ -30,7 +30,7 @@ If another algorithm is supported in future, the process is _likely_ to remain t
 The encryption process for each new ULog is:
 
 1. A XChaCha20 symmetric key is generated and encrypted using an RSA2048 public key.
-  This wrapped (encrypted) key is stored on the SD card in the beginning of a file that has the suffix `.ulge` ("ulog encrypted").
+   This wrapped (encrypted) key is stored on the SD card in the beginning of a file that has the suffix `.ulge` ("ulog encrypted").
 2. When a log is captured, the ULog data is encrypted with the unwrapped symmetric key and the resulting data is appended into the end of the `.ulge` file immediately after the wrapped key data.
 
 After the flight, the `.ulge` file containing both the wrapped symmetric key and the encrypted log data can be found on the SD card.
@@ -142,7 +142,7 @@ Note that the value is generated fresh for each log, and any value specified in 
 You can use choose different locations for your keys as long as they aren't used by anything else.
 :::
 
-The key in `CONFIG_PUBLIC_KEY1` is the public key used to wrap the symmetric key in the the beginning of `.ulge` file (by default: see [SDLOG_EXCH_KEY](../advanced_config/parameter_reference.md#SDLOG_EXCH_KEY)).
+The key in `CONFIG_PUBLIC_KEY1` is the public key used to wrap the symmetric key in the beginning of `.ulge` file (by default: see [SDLOG_EXCH_KEY](../advanced_config/parameter_reference.md#SDLOG_EXCH_KEY)).
 You can use the `rsa2048.pub` key for testing, or replace it with the path to your own public key in the file (see [Generate RSA Public & Private Keys](#generate-rsa-public-private-keys)).
 
 Build the firmware like this:
@@ -342,7 +342,7 @@ PX4-Autopilot/
 │ │ ├── public_key.pub # Public key in hex format
 ```
 
-참고:
+Notes:
 
 - The script will not overwrite any existing keys in the folders.
   It will generate a new public key if the folder only includes a private key.
@@ -356,26 +356,26 @@ This section explains how you might manually run the same steps as the script (s
 
 2. Use OpenSSL to generate a RSA2048 private and public key:
 
-  ```sh
-  openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
-  ```
+   ```sh
+   openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
+   ```
 
 3. Create a public key from this private key:
 
-  ```sh
-  # Convert private_key.pem to a DER file
-  openssl rsa -pubout -in private_key.pem -outform DER -out public_key.der
-  # From the DER file, generate a public key in hex format, separated by commas
-  xxd -p public_key.der | tr -d '\n' | sed 's/\(..\)/0x\1, /g' > public_key.pub
-  ```
+   ```sh
+   # Convert private_key.pem to a DER file
+   openssl rsa -pubout -in private_key.pem -outform DER -out public_key.der
+   # From the DER file, generate a public key in hex format, separated by commas
+   xxd -p public_key.der | tr -d '\n' | sed 's/\(..\)/0x\1, /g' > public_key.pub
+   ```
 
 4. Copy the keys into the appropriate locations expected by the rest of the toolchain (as shown in previous section).
 
 5. To use this key, modify your `.px4board` file to point `CONFIG_PUBLIC_KEY1` to the file location of `public_key.pub`.
 
-  ```sh
-  CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
-  ```
+   ```sh
+   CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
+   ```
 
 ## Flight Review & Encrypted logs
 
@@ -397,10 +397,10 @@ This can use logs that you have downloaded and decrypted yourself, or you can in
 
 3. Add this key location into the server config file: `flight_review/app/config_default.ini`.
 
-  The line to add should look something like this (for the file above):
+   The line to add should look something like this (for the file above):
 
-  ```sh
-  ulge_private_key = ../private_key/private_key.pem
-  ```
+   ```sh
+   ulge_private_key = ../private_key/private_key.pem
+   ```
 
 4. Follow the Flight Review Instructions to start your server.

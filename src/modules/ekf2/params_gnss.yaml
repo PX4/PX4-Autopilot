@@ -20,23 +20,13 @@ parameters:
     EKF2_GPS_MODE:
       description:
         short: Fusion reset mode
-        long: 'Automatic: reset on fusion timeout if no other source of position is available
-          Dead-reckoning: reset on fusion timeout if no source of velocity is available'
+        long: 'Automatic: reset on fusion timeout if no other source of position is available.
+          Dead-reckoning: reset on fusion timeout if no source of velocity is available.'
       type: enum
       values:
         0: Automatic
         1: Dead-reckoning
       default: 0
-    EKF2_GPS_DELAY:
-      description:
-        short: GPS measurement delay relative to IMU measurements
-      type: float
-      default: 110
-      min: 0
-      max: 300
-      unit: ms
-      reboot_required: true
-      decimal: 1
     EKF2_GPS_P_NOISE:
       description:
         short: Measurement noise for GNSS position
@@ -84,30 +74,6 @@ parameters:
       max: 5.0
       unit: m/s
       decimal: 2
-    EKF2_GPS_POS_X:
-      description:
-        short: X position of GPS antenna in body frame
-        long: Forward (roll) axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
-    EKF2_GPS_POS_Y:
-      description:
-        short: Y position of GPS antenna in body frame
-        long: Right (pitch) axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
-    EKF2_GPS_POS_Z:
-      description:
-        short: Z position of GPS antenna in body frame
-        long: Down (yaw) axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
     EKF2_GPS_CHECK:
       description:
         short: Integer bitmask controlling GPS checks
@@ -126,15 +92,16 @@ parameters:
         8: Vertical speed offset (EKF2_REQ_VDRIFT)
         9: Spoofing
         10: GPS fix type (EKF2_REQ_FIX)
+        11: Jamming
       default: 2047
       min: 0
-      max: 2047
+      max: 4095
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
       type: float
       default: 3.0
-      min: 2
+      min: 0.1
       max: 100
       unit: m
       decimal: 1
@@ -143,7 +110,7 @@ parameters:
         short: Required EPV to use GPS
       type: float
       default: 5.0
-      min: 2
+      min: 0.1
       max: 100
       unit: m
       decimal: 1

@@ -63,7 +63,11 @@ __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
 __END_DECLS
 
+#ifdef CONFIG_FS_LITTLEFS
+static constexpr int TASK_STACK_SIZE = 2000;  /* littlefs needs more stack */
+#else
 static constexpr int TASK_STACK_SIZE = 1420;
+#endif
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Private File based Operations */

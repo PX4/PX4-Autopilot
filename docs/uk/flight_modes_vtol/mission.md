@@ -11,7 +11,7 @@ VTOL-транспортні засоби дотримуються поведін
 - [Режим Місії (MC)](../flight_modes_mc/mission.md)
 - [Режим Місії (FW)](../flight_modes_fw/mission.md)
 
-У наступних розділах описується поведінка режиму місії, яка є специфічною для VTOL.
+The following sections outline mission mode behaviour that is VTOL specific.
 
 ## Команди місій
 

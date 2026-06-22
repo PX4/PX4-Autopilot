@@ -7,6 +7,7 @@ import psutil  # type: ignore
 import signal
 import subprocess
 import sys
+import time
 from mavsdk_tests.integration_test_runner import test_runner, process_helper as ph, logger_helper
 from typing import Any, Dict, List, NoReturn
 
@@ -45,7 +46,20 @@ class MicroXrceAgent:
         if self._verbose:
             print('Stopping micro-xrce-dds-agent')
         self._proc.kill()
+        self._proc.wait()
         self._proc = None
+
+    def restart(self):
+        """Force a fresh Agent process so DDS graph state does not leak across tests.
+
+        The Agent retains writer entries from prior PX4 instances; a fresh PX4 reconnects
+        but the stale entries make count_publishers() return >0 before the new writers
+        are matched, breaking waitForFMU's two-phase discovery in px4-ros2-interface-lib.
+        """
+        self.stop_process_if_started()
+        # Give the OS a moment to release the UDP port before rebinding.
+        time.sleep(0.2)
+        self.start_process()
 
 
 class TesterInterfaceRos(test_runner.TesterInterface):
@@ -187,8 +201,14 @@ def main() -> NoReturn:
 
     # Automatically start & stop the XRCE Agent if not running already
     micro_xrce_agent = MicroXrceAgent(args.verbose)
-    if not micro_xrce_agent.is_running():
+    agent_managed_here = not micro_xrce_agent.is_running()
+    if agent_managed_here:
         micro_xrce_agent.start_process()
+
+        def restart_agent(_model: str, _case: str) -> None:
+            micro_xrce_agent.restart()
+
+        tester.pre_test_hook = restart_agent
 
     try:
         result = tester.run()

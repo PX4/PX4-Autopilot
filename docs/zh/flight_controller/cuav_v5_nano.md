@@ -60,7 +60,7 @@ Main FMU Processor: STM32F765◦32 Bit Arm® Cortex®-M7, 216MHz, 2MB memory, 51
 - 其它特性:
   - 工作温度：-20 ~ 85°C （实测值）
 
-## 购买渠道
+## Where to Buy {#store}
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
@@ -91,13 +91,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 The board does not have an I/O debug interface.
@@ -135,11 +133,11 @@ For more information see [Using JTAG for hardware debugging](#using-jtag-for-har
 | UART   | 设备         | Port                                                       |
 | ------ | ---------- | ---------------------------------------------------------- |
 | UART1  | /dev/ttyS0 | GPS                                                        |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control)                   |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control)                   |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)                             |
+| USART3 | /dev/ttyS2 | TELEM2 (流控)                             |
 | UART4  | /dev/ttyS3 | TELEM4                                                     |
 | USART6 | /dev/ttyS4 | TX is RC input from SBUS_RC connector |
-| UART7  | /dev/ttyS5 | Debug Console                                              |
+| UART7  | /dev/ttyS5 | 调试控制台                                                      |
 | UART8  | /dev/ttyS6 | Not connected (no PX4IO)                |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->

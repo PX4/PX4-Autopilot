@@ -9,9 +9,15 @@ It also links instructions for how you can add PX4 support for:
 
 - [Adding Standard Messages](../mavlink/adding_messages.md)
 - [Streaming MAVLink messages](../mavlink/streaming_messages.md)
+- [Configuring/Using MAVLink Profiles](../mavlink/mavlink_profiles.md)
 - [Handling incoming MAVLink messages (and writing to a uORB topic)](../mavlink/receiving_messages.md)
 - [Custom MAVLink Messages](../mavlink/custom_messages.md)
+- [Message Signing](../mavlink/message_signing.md)
 - [Protocols/Microservices](../mavlink/protocols.md)
+
+:::warning
+MAVLink messages are unauthenticated by default. Without [message signing](../mavlink/message_signing.md) enabled, any device that can send MAVLink messages to the vehicle can execute commands including shell access, file operations, and flight termination. Production deployments must enable signing and follow the [Security Hardening](../mavlink/security_hardening.md) guide.
+:::
 
 :::info
 We do not yet cover _command_ handling and sending, or how to implement your own microservices.
@@ -77,7 +83,7 @@ You will need to work with the [MAVLink team](https://mavlink.io/en/contributing
 :::
 
 PX4 includes the [mavlink/mavlink](https://github.com/mavlink/mavlink) repo as a submodule under [/src/modules/mavlink](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mavlink).
-This contains XML definition files in [/mavlink/messages/1.0/](https://github.com/mavlink/mavlink/blob/master/message_definitions/v1.0/).
+This contains XML definition files in [/mavlink/messages/1.0/](https://github.com/mavlink/mavlink/tree/master/message_definitions/v1.0).
 
 Інструментарій збірки генерує заголовні файли MAVLink 2 C під час збірки.
 The XML file for which headers files are generated may be defined in the [PX4 kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) on a per-board basis, using the variable `CONFIG_MAVLINK_DIALECT`:

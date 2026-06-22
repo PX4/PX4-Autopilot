@@ -1,0 +1,85 @@
+module_name: sensors
+parameters:
+- group: Sensor Calibration
+  definitions:
+    SENS_FLOW_MINHGT:
+      description:
+        short: Minimum height above ground when reliant on optical flow
+        long: |-
+          This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably.
+          The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+      type: float
+      default: 0.08
+      unit: m
+      min: 0.0
+      max: 1.0
+      increment: 0.1
+      decimal: 2
+    SENS_FLOW_MAXHGT:
+      description:
+        short: Maximum height above ground when reliant on optical flow
+        long: |-
+          This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably.
+          The height setpoint will be limited to be no greater than this value when the navigation system
+          is completely reliant on optical flow data and the height above ground estimate is valid.
+          The sensor may be usable above this height, but accuracy will progressively degrade.
+      type: float
+      default: 100.0
+      unit: m
+      min: 1.0
+      max: 100.0
+      increment: 0.1
+      decimal: 2
+    SENS_FLOW_MAXR:
+      description:
+        short: Max angular flow rate measurable by sensor
+        long: |-
+          Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
+
+          Optical flow data will not fused by the estimators if the magnitude of the flow rate exceeds this value and
+          control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground
+          is less than 50% of this value.
+      type: float
+      default: 8.0
+      unit: rad/s
+      min: 1.0
+      decimal: 2
+- group: Sensors
+  definitions:
+    SENS_FLOW_ROT:
+      description:
+        short: Optical flow rotation
+        long: |-
+          This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
+          Zero rotation is defined as X on flow board pointing towards front of vehicle.
+      type: enum
+      values:
+        0: No rotation
+        1: "Yaw 45\xB0"
+        2: "Yaw 90\xB0"
+        3: "Yaw 135\xB0"
+        4: "Yaw 180\xB0"
+        5: "Yaw 225\xB0"
+        6: "Yaw 270\xB0"
+        7: "Yaw 315\xB0"
+      default: 0
+    SENS_FLOW_RATE:
+      description:
+        short: Optical flow max rate
+        long: |-
+          Optical flow data maximum publication rate. This is an upper bound,
+          actual optical flow data rate is still dependent on the sensor.
+      type: float
+      default: 70.0
+      min: 1
+      max: 200
+      unit: Hz
+      reboot_required: true
+    SENS_FLOW_SCALE:
+      description:
+        short: Optical flow scale factor
+      type: float
+      default: 1.0
+      min: 0.5
+      max: 1.5
+      decimal: 2

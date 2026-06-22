@@ -34,21 +34,26 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdint.h>
 
+#include <perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/Serial.hpp>
 
 #include "data.h"
 
-namespace InertialLabs {
+namespace InertialLabs
+{
 
-constexpr uint16_t BUFFER_SIZE{512};
+constexpr uint16_t BUFFER_SIZE{250};
 
-class Sensor {
+class Sensor
+{
 public:
 	// Use C-style function pointer, because we can't use std::function on some platforms
 	using DataHandler = void (*)(void *, SensorsData *);
 
-	Sensor()                          = default;
+	Sensor();
 	Sensor(const Sensor &)            = delete;
 	Sensor &operator=(const Sensor &) = delete;
 	~Sensor();
@@ -59,35 +64,46 @@ public:
 
 	void updateData();
 
+	void printStatus();
+
 private:
-	static void *updateDataThreadHelper(void *context) {
+	static void *updateDataThreadHelper(void *context)
+	{
+		if (!context) {
+			return nullptr;
+		}
+
 		Sensor *sensor = reinterpret_cast<Sensor *>(context);
 		sensor->updateData();
 		return nullptr;
 	}
-	void resetSerial();
 
-	bool moveToBufferStart(const uint8_t *pos);
-	bool skipPackageInBufferStart();
-	bool movePackageHeaderToBufferStart();
-	bool moveValidPackageToBufferStart();
+	bool initSerialPort(const char *serialDeviceName);
 
+	bool readData();
+	bool moveMessageHeaderToBufferStart();
 	bool parseUDDPayload();
 
-	device::Serial *_serial{nullptr};
-	pthread_t       _threadId;
-	bool            _processInThread{false};
+private:
+	device::Serial  *_serial{nullptr};
+	pthread_t        _threadId{0};
+	px4::atomic_bool _processInThread{false};
 
 	// callback. C-style class method pointer
 	void       *_context{nullptr};
 	DataHandler _dataHandler{nullptr};
 
-	bool _isInitialized{false};
+	px4::atomic_bool _isInitialized{false};
+	px4::atomic_bool _isDeinitInProcess{false};
 
-	uint8_t  _buf[BUFFER_SIZE]{};
+	uint8_t  _buf[BUFFER_SIZE] {};
 	uint16_t _bufOffset{0};
 
 	SensorsData _sensorData{};
+
+	perf_counter_t _checksum_fail_perf;
+	perf_counter_t _udd_parse_fail_perf;
+	perf_counter_t _handle_time_perf;
 };
 
 }  // namespace InertialLabs

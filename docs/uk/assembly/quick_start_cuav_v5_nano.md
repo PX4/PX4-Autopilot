@@ -33,7 +33,7 @@ This quick start guide shows how to power the [CUAV V5 nano](../flight_controlle
 | DSM/SBUS/RSSI                      | Включає інтерфейси введення сигналів DSM, SBUS, RSSI, інтерфейс DSM може бути підключений до приймача DSM-супутника, інтерфейс SBUS - до приймача дистанційного керування SBUS, RSSI - для модуля зворотного повернення сили сигналу. |
 
 :::info
-For more interface information, please read [V5 nano Manual](http://manual.cuav.net/V5-nano.pdf).
+For more interface information, please read [V5 nano Manual](https://manual.cuav.net/V5-nano.pdf).
 :::
 
 ![quickstart](../../assets/flight_controller/cuav_v5_nano/connection/v5_nano_quickstart_03.png)
@@ -128,6 +128,6 @@ Motors/servos are connected to the MAIN ports in the order specified for your ve
 
 - [Airframe buildlog using CUAV v5 nano on a DJI FlameWheel450](../frames_multicopter/dji_f450_cuav_5nano.md)
 - [CUAV V5 nano](../flight_controller/cuav_v5_nano.md)
-- [V5 nano manual](http://manual.cuav.net/V5-nano.pdf) (CUAV)
+- [V5 nano manual](https://manual.cuav.net/V5-nano.pdf) (CUAV)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165) (CUAV)
 - [CUAV Github](https://github.com/cuav) (CUAV)

@@ -1,0 +1,107 @@
+module_name: camera_trigger
+parameters:
+- group: Camera trigger
+  definitions:
+    TRIG_INTERFACE:
+      description:
+        short: Camera trigger Interface
+        long: Selects the trigger interface
+      type: enum
+      values:
+        1: GPIO
+        2: Seagull MAP2 (over PWM)
+        3: MAVLink (Camera Protocol v1)
+        4: Generic PWM (IR trigger, servo)
+      default: 4
+      reboot_required: true
+    TRIG_INTERVAL:
+      description:
+        short: Camera trigger interval
+        long: This parameter sets the time between two consecutive trigger events
+      type: float
+      default: 40.0
+      unit: ms
+      min: 4.0
+      max: 10000.0
+      decimal: 1
+      reboot_required: true
+    TRIG_MIN_INTERVA:
+      description:
+        short: Minimum camera trigger interval
+        long: |-
+          This parameter sets the minimum time between two consecutive trigger events
+          the specific camera setup is supporting.
+      type: float
+      default: 1.0
+      unit: ms
+      min: 1.0
+      max: 10000.0
+      decimal: 1
+      reboot_required: true
+    TRIG_POLARITY:
+      description:
+        short: Camera trigger polarity
+        long: This parameter sets the polarity of the trigger (0 = active low, 1 =
+          active high )
+      type: enum
+      values:
+        0: Active low
+        1: Active high
+      default: 0
+      min: 0
+      max: 1
+      reboot_required: true
+    TRIG_ACT_TIME:
+      description:
+        short: Camera trigger activation time
+        long: This parameter sets the time the trigger needs to pulled high or low.
+      type: float
+      default: 40.0
+      unit: ms
+      min: 0.1
+      max: 3000
+      decimal: 1
+      reboot_required: true
+    TRIG_MODE:
+      description:
+        short: Camera trigger mode
+      type: enum
+      values:
+        0: Disable
+        1: Time based, on command
+        2: Time based, always on
+        3: Distance based, always on
+        4: Distance based, on command (Survey mode)
+      default: 0
+      min: 0
+      max: 4
+      reboot_required: true
+    TRIG_DISTANCE:
+      description:
+        short: Camera trigger distance
+        long: Sets the distance at which to trigger the camera.
+      type: float
+      default: 25.0
+      unit: m
+      min: 0
+      increment: 1
+      decimal: 1
+      reboot_required: true
+    TRIG_PWM_SHOOT:
+      description:
+        short: PWM output to trigger shot
+      type: int32
+      default: 1900
+      min: 1000
+      max: 2000
+      unit: us
+      reboot_required: true
+    TRIG_PWM_NEUTRAL:
+      description:
+        short: PWM neutral output on trigger pin
+      type: int32
+      default: 1500
+      min: 1000
+      max: 2000
+      unit: us
+      reboot_required: true

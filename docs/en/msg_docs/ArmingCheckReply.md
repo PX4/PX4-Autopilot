@@ -1,6 +1,10 @@
+---
+pageClass: is-wide-page
+---
+
 # ArmingCheckReply (UORB message)
 
-Arming check reply
+Arming check reply.
 
 This is a response to an ArmingCheckRequest message sent by the FMU to an external component, such as a ROS 2 navigation mode.
 The response contains the current set of external mode requirements, and a queue of events indicating recent failures to set the mode (which the FMU may then forward to a ground station).
@@ -9,7 +13,56 @@ The request is sent regularly to all registered ROS modes, even while armed, so 
 Note that the external component is identified by its registration_id, which is allocated to the component during registration (arming_check_id in RegisterExtComponentReply).
 The message is not used by internal/FMU components, as their mode requirements are known at compile time.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ArmingCheckReply.msg)
+**TOPICS:** arming_check_reply
+
+## Fields
+
+| Name                                                                              | Type       | Unit [Frame] | Range/Enum                                        | Description                                                                                                                                       |
+| --------------------------------------------------------------------------------- | ---------- | ------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                               | `uint64`   | us           |                                                   | Time since system start.                                                                                                                          |
+| <a id="fld_request_id"></a>request_id                                             | `uint8`    |              |                                                   | Id of ArmingCheckRequest for which this is a response                                                                                             |
+| <a id="fld_registration_id"></a>registration_id                                   | `uint8`    |              |                                                   | Id of external component emitting this response                                                                                                   |
+| <a id="fld_health_component_index"></a>health_component_index                     | `uint8`    |              | [HEALTH_COMPONENT_INDEX](#HEALTH_COMPONENT_INDEX) |
+| <a id="fld_health_component_is_present"></a>health_component_is_present           | `bool`     |              |                                                   | Unused. Intended for use with health events interface (health_component_t in events.json)                                                         |
+| <a id="fld_health_component_warning"></a>health_component_warning                 | `bool`     |              |                                                   | Unused. Intended for use with health events interface (health_component_t in events.json)                                                         |
+| <a id="fld_health_component_error"></a>health_component_error                     | `bool`     |              |                                                   | Unused. Intended for use with health events interface (health_component_t in events.json)                                                         |
+| <a id="fld_can_arm_and_run"></a>can_arm_and_run                                   | `bool`     |              |                                                   | True if the component can arm. For navigation mode components, true if the component can arm in the mode or switch to the mode when already armed |
+| <a id="fld_num_events"></a>num_events                                             | `uint8`    |              |                                                   | Number of queued failure messages (Event) in the events field                                                                                     |
+| <a id="fld_events"></a>events                                                     | `Event[5]` |              |                                                   | Arming failure reasons (Queue of events to report to GCS)                                                                                         |
+| <a id="fld_mode_req_angular_velocity"></a>mode_req_angular_velocity               | `bool`     |              |                                                   | Requires angular velocity estimate (e.g. from gyroscope)                                                                                          |
+| <a id="fld_mode_req_attitude"></a>mode_req_attitude                               | `bool`     |              |                                                   | Requires an attitude estimate                                                                                                                     |
+| <a id="fld_mode_req_local_alt"></a>mode_req_local_alt                             | `bool`     |              |                                                   | Requires a local altitude estimate                                                                                                                |
+| <a id="fld_mode_req_local_position"></a>mode_req_local_position                   | `bool`     |              |                                                   | Requires a local position estimate                                                                                                                |
+| <a id="fld_mode_req_local_position_relaxed"></a>mode_req_local_position_relaxed   | `bool`     |              |                                                   | Requires a more relaxed global position estimate                                                                                                  |
+| <a id="fld_mode_req_global_position"></a>mode_req_global_position                 | `bool`     |              |                                                   | Requires a global position estimate                                                                                                               |
+| <a id="fld_mode_req_global_position_relaxed"></a>mode_req_global_position_relaxed | `bool`     |              |                                                   | Requires a relaxed global position estimate                                                                                                       |
+| <a id="fld_mode_req_mission"></a>mode_req_mission                                 | `bool`     |              |                                                   | Requires an uploaded mission                                                                                                                      |
+| <a id="fld_mode_req_home_position"></a>mode_req_home_position                     | `bool`     |              |                                                   | Requires a home position (such as RTL/Return mode)                                                                                                |
+| <a id="fld_mode_req_prevent_arming"></a>mode_req_prevent_arming                   | `bool`     |              |                                                   | Prevent arming (such as in Land mode)                                                                                                             |
+| <a id="fld_mode_req_manual_control"></a>mode_req_manual_control                   | `bool`     |              |                                                   | Requires a manual controller                                                                                                                      |
+
+## Enums
+
+### HEALTH_COMPONENT_INDEX {#HEALTH_COMPONENT_INDEX}
+
+Used in field(s): [health_component_index](#fld_health_component_index)
+
+| Name                                                                  | Type    | Value | Description                                               |
+| --------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------- |
+| <a id="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8` | 0     | Index of health component for which this response applies |
+
+## Constants
+
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 1     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 8     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ArmingCheckReply.msg)
+
+::: details Click here to see original file
 
 ```c
 # Arming check reply
@@ -21,39 +74,43 @@ The message is not used by internal/FMU components, as their mode requirements a
 # Note that the external component is identified by its registration_id, which is allocated to the component during registration (arming_check_id in RegisterExtComponentReply).
 # The message is not used by internal/FMU components, as their mode requirements are known at compile time.
 
-uint32 MESSAGE_VERSION  = 1
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # [us] Time since system start.
 
-uint8 request_id       # [-] Id of ArmingCheckRequest for which this is a response
-uint8 registration_id  # [-] Id of external component emitting this response
+uint8 request_id # [-] Id of ArmingCheckRequest for which this is a response
+uint8 registration_id # [-] Id of external component emitting this response
 
-uint8 HEALTH_COMPONENT_INDEX_NONE = 0  # Index of health component for which this response applies
+uint8 HEALTH_COMPONENT_INDEX_NONE = 0 # Index of health component for which this response applies
 
-uint8 health_component_index      # [@enum HEALTH_COMPONENT_INDEX]
-bool health_component_is_present  # Unused. Intended for use with health events interface (health_component_t in events.json)
-bool health_component_warning     # Unused. Intended for use with health events interface (health_component_t in events.json)
-bool health_component_error       # Unused. Intended for use with health events interface (health_component_t in events.json)
+uint8 health_component_index # [@enum HEALTH_COMPONENT_INDEX]
+bool health_component_is_present # Unused. Intended for use with health events interface (health_component_t in events.json)
+bool health_component_warning # Unused. Intended for use with health events interface (health_component_t in events.json)
+bool health_component_error # Unused. Intended for use with health events interface (health_component_t in events.json)
 
-bool can_arm_and_run  # True if the component can arm. For navigation mode components, true if the component can arm in the mode or switch to the mode when already armed
+bool can_arm_and_run # True if the component can arm. For navigation mode components, true if the component can arm in the mode or switch to the mode when already armed
 
-uint8 num_events  # Number of queued failure messages (Event) in the events field
+uint8 num_events # Number of queued failure messages (Event) in the events field
 
-Event[5] events  # Arming failure reasons (Queue of events to report to GCS)
+Event[5] events # Arming failure reasons (Queue of events to report to GCS)
 
 # Mode requirements
-bool mode_req_angular_velocity         # Requires angular velocity estimate (e.g. from gyroscope)
-bool mode_req_attitude                 # Requires an attitude estimate
-bool mode_req_local_alt                # Requires a local altitude estimate
-bool mode_req_local_position           # Requires a local position estimate
-bool mode_req_local_position_relaxed   # Requires a more relaxed global position estimate
-bool mode_req_global_position          # Requires a global position estimate
-bool mode_req_global_position_relaxed  # Requires a relaxed global position estimate
-bool mode_req_mission                  # Requires an uploaded mission
-bool mode_req_home_position            # Requires a home position (such as RTL/Return mode)
-bool mode_req_prevent_arming           # Prevent arming (such as in Land mode)
-bool mode_req_manual_control           # Requires a manual controller
+bool mode_req_angular_velocity # Requires angular velocity estimate (e.g. from gyroscope)
+bool mode_req_attitude # Requires an attitude estimate
+bool mode_req_local_alt # Requires a local altitude estimate
+bool mode_req_local_position # Requires a local position estimate
+bool mode_req_local_position_relaxed # Requires a more relaxed global position estimate
+bool mode_req_global_position # Requires a global position estimate
+bool mode_req_global_position_relaxed # Requires a relaxed global position estimate
+bool mode_req_mission # Requires an uploaded mission
+bool mode_req_home_position # Requires a home position (such as RTL/Return mode)
+bool mode_req_prevent_arming # Prevent arming (such as in Land mode)
+bool mode_req_manual_control # Requires a manual controller
 
-uint8 ORB_QUEUE_LENGTH  = 4
-
+# Must be >= ExternalChecks::MAX_NUM_REGISTRATIONS so replies from all registered
+# modes fit in the queue within a single request cycle (otherwise replies from the
+# 5th+ mode overwrite earlier ones, causing spurious "unresponsive mode" failures).
+uint8 ORB_QUEUE_LENGTH = 8
 ```
+
+:::

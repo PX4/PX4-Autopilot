@@ -284,7 +284,7 @@ A particular vehicle might have more/fewer motors and actuators, but the wiring 
 The following sections explain each part in more detail.
 
 ::: tip
-If you're using [DroneCAN ESC](../peripherals/esc_motors.md#dronecan) the control signals will be connected to the CAN BUS instead of the PWM outputs as shown.
+If you're using [DroneCAN ESC](../dronecan/escs.md) the control signals will be connected to the CAN BUS instead of the PWM outputs as shown.
 :::
 
 ### Flight Controller Power
@@ -337,7 +337,7 @@ Note:
   Note that the PWM outputs are often labeled `AUX` or `MAIN`.
   Use the `AUX` bus if both are present, and `MAIN` otherwise.
 - [DShot ESC](../peripherals/dshot.md) (recommended) can only be used on the FMU PWM outputs.
-- Motor outputs should be grouped together as much as possible rather than spread randomly across both the FMU and IO busses.
+- Motor outputs should be grouped together as much as possible rather than spread randomly across both the FMU and IO buses.
   This is because if you assign some function to an output, such as DShot ESC, you can't then assign adjacent unused pins for anything other than a DShot ESC.
 
 ### Servos
@@ -363,7 +363,7 @@ If you don't use servos that all accept the same voltage, you'll need to separat
 Other peripherals, such as high-power radios, cameras, and so on have their own power requirements.
 These will usually be supplied off a separate BEC.
 
-The wiring and configuration of optional/less common components is covered within the [Hardware Hardware Selection & Setup](../hardware/drone_parts.md) topics for individual peripherals.
+The wiring and configuration of optional/less common components is covered within the [Hardware Selection & Setup](../hardware/drone_parts.md) topics for individual peripherals.
 
 ## Build Tutorials
 
@@ -409,11 +409,11 @@ They recommend sensors, power systems, and other components from the same manufa
 - [CUAV Pixhawk V6X Wiring QuickStart](../assembly/quick_start_cuav_pixhawk_v6x.md)
 - [CUAV V5+ Wiring Quickstart](../assembly/quick_start_cuav_v5_plus.md)
 - [CUAV V5 nano Wiring Quickstart](../assembly/quick_start_cuav_v5_nano.md)
+- [CUAV X25 EVO Wiring Quickstart](../assembly/quick_start_cuav_x25_evo.md)
 - [Holybro Pixhawk 6C Wiring Quickstart](../assembly/quick_start_pixhawk6c.md)
 - [Holybro Pixhawk 6X Wiring Quickstart](../assembly/quick_start_pixhawk6x.md)
 - [Holybro Pixhawk 5X Wiring Quickstart](../assembly/quick_start_pixhawk5x.md)
 - [Holybro Pixhawk 4 Wiring Quickstart](../assembly/quick_start_pixhawk4.md)
-- [Holybro Pixhawk 4 Mini (Discontinued) Wiring Quickstart](../assembly/quick_start_pixhawk4_mini.md)
 - [Holybro Durandal Wiring Quickstart](../assembly/quick_start_durandal.md)
 - [Holybro Pix32 v5 Wiring Quickstart](../assembly/quick_start_holybro_pix32_v5.md)
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md) (All cube variants)
@@ -425,7 +425,6 @@ They recommend sensors, power systems, and other components from the same manufa
 - [Drone Components & Parts](../getting_started/px4_basic_concepts.md#drone-components-parts) (Basic Concepts)
 - [Payloads](../getting_started/px4_basic_concepts.md#payloads) (Basic Concepts)
 - [Hardware Selection & Setup](../hardware/drone_parts.md) — information about connecting and configuring specific flight controllers, sensors and other peripherals (e.g. airspeed sensor for planes).
-
   - [Mounting the Flight Controller](../assembly/mount_and_orient_controller.md)
   - [Vibration Isolation](../assembly/vibration_isolation.md)
   - [Mounting a Compass](../assembly/mount_gps_compass.md)

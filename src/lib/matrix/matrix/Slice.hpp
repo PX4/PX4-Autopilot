@@ -59,6 +59,11 @@ public:
 	// Separate function needed otherwise the default copy constructor matches before the deep copy implementation
 	Self &operator=(const Self &other)
 	{
+		// Protect against self-assignment
+		if (this == &other) {
+			return *this;
+		}
+
 		return this->operator=<M, N>(other);
 	}
 

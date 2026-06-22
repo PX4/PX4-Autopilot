@@ -234,13 +234,14 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         param_prefix = process_param_prefix(group['param_prefix'])
         standard_params = group.get('standard_params', {})
         standard_params_array = [
-            ( 'function', 'Function', 'FUNC', False ),
-            ( 'disarmed', 'Disarmed', 'DIS', False ),
-            ( 'min', 'Minimum', 'MIN', False ),
-            ( 'max', 'Maximum', 'MAX', False ),
-            ( 'failsafe', 'Failsafe', 'FAIL', True ),
+            ( 'function', 'Function', 'FUNC', False, True ),
+            ( 'disarmed', 'Disarmed', 'DIS', False, True ),
+            ( 'min', 'Minimum', 'MIN', False, True ),
+            ( 'center', 'Center\n(for Servos)', 'CENT', False, False ),
+            ( 'max', 'Maximum', 'MAX', False, True ),
+            ( 'failsafe', 'Failsafe', 'FAIL', True, True ),
             ]
-        for key, label, param_suffix, advanced in standard_params_array:
+        for key, label, param_suffix, advanced, has_function in standard_params_array:
             show_if = None
             if key in standard_params and 'show_if' in standard_params[key]:
                 show_if = standard_params[key]['show_if']
@@ -249,12 +250,11 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 param = {
                         'label': label,
                         'name': param_prefix+'_'+param_suffix+'${i}',
-                        'function': key,
                     }
+                if has_function: param['function'] = key
                 if advanced: param['advanced'] = True
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
-
 
         param = {
                 'label': 'Rev Range\n(for Servos)',

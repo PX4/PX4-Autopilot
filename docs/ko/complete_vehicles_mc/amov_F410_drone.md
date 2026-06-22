@@ -22,7 +22,7 @@ It is pre-installed with PX4 v1.15.4 at time of writing (a more recent version m
    - Compatibility with many different components, providing platform for loading other user sensors, preparing for functional model development.
    - Abundant power supply making it perfect for installing additional sensors and onboard computers (including 5 external output voltages, 3 channels of 5V, 2 channels of 12V).
    - Pc-SDK support.
-      This is a PC-based Python SDK Library based on MAVSDK that significantly simplifies UAV development compared to other approaches, such as using ROS or using C++. All you need is a basic understanding of Python programming and some simple coordinate system principles!
+     This is a PC-based Python SDK Library based on MAVSDK that significantly simplifies UAV development compared to other approaches, such as using ROS or using C++. All you need is a basic understanding of Python programming and some simple coordinate system principles!
    - The [documentation](https://docs.amovlab.com/f450-v6c-wiki/#/en/) shows many of the options.
 7. Quasi-smart battery. The battery has a hard housing design that makes easy to install and remove.
    It provides accurate power estimates, but does not have some more advanced "smart battery" features.

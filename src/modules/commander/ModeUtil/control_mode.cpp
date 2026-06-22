@@ -89,6 +89,7 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
 		vehicle_control_mode.flag_control_auto_enabled = true;
@@ -160,6 +161,8 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		} else if (offboard_control_mode.thrust_and_torque) {
 			vehicle_control_mode.flag_control_allocation_enabled = true;
 		}
+
+		// direct_actuator: no flags set — companion bypasses PX4 controllers and allocator entirely
 
 		break;
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,90 +34,59 @@
 #pragma once
 
 #include <px4_platform_common/Serial.hpp>
-#include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
+#include "DShotCommon.h"
+#include "esc/AM32Settings.h"
 
 class DShotTelemetry
 {
 public:
-	struct EscData {
-		hrt_abstime time;
-		int8_t temperature;  ///< [deg C]
-		int16_t voltage;     ///< [0.01V]
-		int16_t current;     ///< [0.01A]
-		int16_t consumption; ///< [mAh]
-		int16_t erpm;        ///< [100ERPM]
-	};
-
-	static constexpr int esc_info_size_blheli32 = 64;
-	static constexpr int esc_info_size_kiss_v1 = 15;
-	static constexpr int esc_info_size_kiss_v2 = 21;
-	static constexpr int max_esc_info_size = esc_info_size_blheli32;
-
-	struct OutputBuffer {
-		uint8_t buffer[max_esc_info_size];
-		int buf_pos{0};
-		int motor_index;
-	};
 
 	~DShotTelemetry();
 
 	int init(const char *uart_device, bool swap_rxtx);
-
-	/**
-	 * Read telemetry from the UART (non-blocking) and handle timeouts.
-	 * @param num_motors How many DShot enabled motors
-	 * @return -1 if no update, -2 timeout, >= 0 for the motor index. Use @latestESCData() to get the data.
-	 */
-	int update(int num_motors);
-
-	bool redirectActive() const { return _redirect_output != nullptr; }
-
-	/**
-	 * Get the motor index for which telemetry should be requested.
-	 * @return -1 if no request should be made, motor index otherwise
-	 */
-	int getRequestMotorIndex();
-
-	const EscData &latestESCData() const { return _latest_data; }
-
-	/**
-	 * Check whether we are currently expecting to read new data from an ESC
-	 */
-	bool expectingData() const { return _current_request_start != 0; }
-
 	void printStatus() const;
 
-	static void decodeAndPrintEscInfoPacket(const OutputBuffer &buffer);
+	void startTelemetryRequest();
+	bool telemetryResponseFinished();
+
+	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
+
+	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
+	void parseCommandResponse();
+	bool commandResponseFinished();
+	bool commandResponseStarted();
+
+	void setExpectCommandResponse(int motor_index, uint16_t command);
+	void resetCommandResponse();
+	void initSettingsHandlers(ESCType esc_type, uint16_t output_mask);
 
 private:
-	static constexpr int ESC_FRAME_SIZE = 10;
+	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 49;
+	static constexpr int TELEMETRY_FRAME_SIZE = 10;
+	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
 
-	void requestNextMotor(int num_motors);
+	device::Serial _uart{};
 
-	/**
-	 * Decode a single byte from an ESC feedback frame
-	 * @param byte
-	 * @param successful_decoding set to true if checksum matches
-	 * @return true if received the expected amount of bytes and the next motor can be requested
-	 */
-	bool decodeByte(uint8_t byte, bool &successful_decoding);
+	// Command response
+	int _command_response_motor_index{-1};
+	uint16_t _command_response_command{0};
+	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
+	int _command_response_position{0};
+	hrt_abstime _command_response_start{0};
 
-	static uint8_t crc8(const uint8_t *buf, uint8_t len);
-
-	device::Serial _uart {};
-
-	uint8_t _frame_buffer[ESC_FRAME_SIZE];
+	// Telemetry packet
+	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
 	int _frame_position{0};
-
-	EscData _latest_data;
-
-	int _current_motor_index_request{-1};
-	hrt_abstime _current_request_start{0};
-
-	OutputBuffer *_redirect_output{nullptr}; ///< if set, all read bytes are stored here instead of the internal buffer
+	hrt_abstime _telemetry_request_start{0};
 
 	// statistics
 	int _num_timeouts{0};
 	int _num_successful_responses{0};
 	int _num_checksum_errors{0};
+
+	// Settings
+	ESCSettingsInterface *_settings_handlers[DSHOT_MAX_MOTORS] = {nullptr};
+	ESCType _esc_type{ESCType::Unknown};
+	bool _settings_initialized{false};
 };

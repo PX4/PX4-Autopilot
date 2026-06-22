@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
 
-The USA-built [ARKV6X](\(https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x\)) flight controller is based on the [FMUV6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
+The USA-built [ARKV6X](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x) flight controller is based on the [FMUV6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
 
 With triple synced IMUs, data averaging, voting, and filtering is possible.
 The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any [PAB-compatible carrier board](../flight_controller/pixhawk_autopilot_bus.md), such as the [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md).
@@ -16,7 +16,7 @@ The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where To Buy
+## Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 
@@ -32,7 +32,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 - [STM32H743IIK6 MCU](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html)
   - 480MHz
   - 2MB Flash
-  - 1MB Flash
+  - 1MB RAM
 
 ## Other Features
 
@@ -65,12 +65,16 @@ For pinout of the ARKV6X see the [DS-10 Pixhawk Autopilot Bus Standard](https://
 | ------ | ---------- | ------------------------------- |
 | USART1 | /dev/ttyS0 | GPS                             |
 | USART2 | /dev/ttyS1 | TELEM3                          |
-| USART3 | /dev/ttyS2 | Debug Console                   |
+| USART3 | /dev/ttyS2 | 调试控制台                           |
 | UART4  | /dev/ttyS3 | UART4 & I2C |
 | UART5  | /dev/ttyS4 | TELEM2                          |
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
 | UART7  | /dev/ttyS6 | TELEM1                          |
 | UART8  | /dev/ttyS7 | GPS2                            |
+
+:::info
+The mapping above applies to the running PX4 firmware. The ARKV6X bootloader enables only `UART7` (TELEM1), so when flashing firmware over UART with [`px4_uploader.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) you must connect to the **TELEM1** port — no other UART will respond in bootloader mode.
+:::
 
 ## 编译固件
 
@@ -78,6 +82,6 @@ For pinout of the ARKV6X see the [DS-10 Pixhawk Autopilot Bus Standard](https://
 make ark_fmu-v6x_default
 ```
 
-## See Also
+## 另见
 
 - [ARK Electronics ARKV6X](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x) (ARK Docs)

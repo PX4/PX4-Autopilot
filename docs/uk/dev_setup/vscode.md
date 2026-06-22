@@ -61,7 +61,6 @@ You must already have installed the command line [PX4 developer environment](../
 Для збірки:
 
 1. Оберіть свою ціль збірки ("cmake build config"):
-
    - The current _cmake build target_ is shown on the blue _config_ bar at the bottom (if this is already your desired target, skip to next step).
      ![Select Cmake build target](../../assets/toolchain/vscode/cmake_build_config.jpg)
 
@@ -133,10 +132,10 @@ In order for the code completion to work (and other IntelliSense magic) you need
 
 Цей розділ включає вказівки для помилок з налаштування та збірки.
 
-### Ubuntu 18.04: "Visual Studio Code не може спостерігати за змінами в коді у великому робочому середовищі"
+### "Visual Studio Code is unable to watch for file changes in this large workspace"
 
 Ця помилка з'являється при старті.
-On some systems, there is an upper-limit of 8192 file handles imposed on applications, which means that VSCode might not be able to detect file modifications in `/PX4-Autopilot`.
+On some systems, there is an upper-limit on file handles imposed on applications, which means that VSCode might not be able to detect file modifications in `/PX4-Autopilot`.
 
 Ви можете збільшити цей ліміт, щоб уникнути помилки, коштом споживання пам'яті.
 Follow the [instructions here](https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc).

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <drivers/device/i2c.h>
 #include <px4_boardconfig.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 #define PCA9685_REG_MODE1 0x00			// Mode  register  1
 #define PCA9685_REG_MODE2 0x01			// Mode  register  2
@@ -96,13 +97,6 @@ public:
 	int init() override;
 
 	/*
-	 * Write new PWM value to device
-	 *
-	 * *output: pulse width, us
-	 */
-	int updatePWM(const uint16_t *outputs, unsigned num_outputs);
-
-	/*
 	 * Set PWM frequency to new value.
 	 *
 	 * Only a few of precious frequency can be set, while others will be rounded to the nearest possible value.
@@ -150,11 +144,14 @@ public:
 	int wake();
 
 	/*
-	 * If PCA9685 is put into sleep without clearing all the outputs,
-	 * then the restart command will be available, and it can bring back PWM output without the
-	 * need of updatePWM() call.
-	 */
-	int doRestart();
+	* Configure the PCA9685 device with necessary settings. e.g. MODE1 or MODE2
+	*/
+	int configure();
+
+	/*
+	* Verfy whether the registers of PCA9685 are in a consistent state
+	*/
+	int registers_check();
 
 protected:
 	int probe() override;

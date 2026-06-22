@@ -63,7 +63,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - 其它特性:
   - Operating temperature: -20 ~ 80°c（Measured value）
 
-## 购买渠道
+## Where to Buy {#store}
 
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
@@ -119,7 +119,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
@@ -161,11 +161,11 @@ For more information see [Using JTAG for hardware debugging](#using-jtag-for-har
 | UART   | 设备         | Port                                                       |
 | ------ | ---------- | ---------------------------------------------------------- |
 | UART1  | /dev/ttyS0 | GPS                                                        |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control)                   |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control)                   |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)                             |
+| USART3 | /dev/ttyS2 | TELEM2 (流控)                             |
 | UART4  | /dev/ttyS3 | TELEM4                                                     |
 | USART6 | /dev/ttyS4 | TX is RC input from SBUS_RC connector |
-| UART7  | /dev/ttyS5 | Debug Console                                              |
+| UART7  | /dev/ttyS5 | 调试控制台                                                      |
 | UART8  | /dev/ttyS6 | PX4IO                                                      |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
@@ -210,7 +210,7 @@ The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/e
 
 `DSU7` FMU Debug Pin 1 is 5 volts - not the 3.3 volts of the CPU.
 
-Some JTAG use this voltage to set the IO levels when communicating to the target.
+Some JTAG adapters use this voltage to set the IO levels when communicating to the target.
 
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts of DSM/SBUS/RSSI pin 4 as Pin 1 on the debug connector (`Vtref`).
 

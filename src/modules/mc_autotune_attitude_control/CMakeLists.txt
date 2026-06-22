@@ -39,6 +39,8 @@ px4_add_module(
 	SRCS
 		mc_autotune_attitude_control.cpp
 		mc_autotune_attitude_control.hpp
+	MODULE_CONFIG
+		mc_autotune_attitude_control_params.yaml
 	DEPENDS
 		hysteresis
 		mathlib

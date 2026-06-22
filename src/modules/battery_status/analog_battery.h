@@ -36,8 +36,6 @@
 #include <battery/battery.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <parameters/param.h>
-#include <uORB/topics/vehicle_status.h>
-
 class AnalogBattery : public Battery
 {
 public:
@@ -78,8 +76,8 @@ protected:
 		param_t v_div;
 		param_t a_per_v;
 		param_t v_channel;
-		param_t i_channel;
-		param_t i_overwrite;
+		param_t v_filt;
+		param_t i_filt;
 	} _analog_param_handles;
 
 	struct {
@@ -87,8 +85,8 @@ protected:
 		float v_div;
 		float a_per_v;
 		int32_t v_channel;
-		int32_t i_channel;
-		float i_overwrite;
+		float v_filt;
+		float i_filt;
 	} _analog_params;
 
 	virtual void updateParams() override;
@@ -97,20 +95,7 @@ private:
 
 	static constexpr int V_CHANNEL_DISABLED = -2;
 
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uint8_t _arming_state{0};
-
-#if defined(BOARD_BATTERY_ADC_VOLTAGE_FILTER_S) || defined(BOARD_BATTERY_ADC_CURRENT_FILTER_S)
-	hrt_abstime _last_timestamp {0};
-#endif
-
-#ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
-	AlphaFilter<float> _voltage_filter {BOARD_BATTERY_ADC_VOLTAGE_FILTER_S};
-#endif
-
-#ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
-	AlphaFilter<float> _current_filter {BOARD_BATTERY_ADC_CURRENT_FILTER_S};
-#endif
-
-	void updateTopics();
+	hrt_abstime _last_timestamp{0};
+	AlphaFilter<float> _voltage_filter{};
+	AlphaFilter<float> _current_filter{};
 };

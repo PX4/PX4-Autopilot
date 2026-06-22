@@ -44,8 +44,7 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
 }
 
-void
-UavcanServoController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+void UavcanServoController::update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	uavcan::equipment::actuator::ArrayCommand msg;
 
@@ -53,7 +52,7 @@ UavcanServoController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned 
 		uavcan::equipment::actuator::Command cmd;
 		cmd.actuator_id = i;
 		cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
-		cmd.command_value = (float)outputs[i] / 500.f - 1.f; // [-1, 1]
+		cmd.command_value = outputs[i] / 500.f - 1.f; // TODO would benefit from [-1, 1] parameters
 
 		msg.commands.push_back(cmd);
 	}

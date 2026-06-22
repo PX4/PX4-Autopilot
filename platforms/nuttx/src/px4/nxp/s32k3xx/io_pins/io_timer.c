@@ -301,7 +301,7 @@ int io_timer_validate_channel_index(unsigned channel)
 {
 	int rv = -EINVAL;
 
-	if (channel < MAX_TIMER_IO_CHANNELS && timer_io_channels[channel].timer_channel != 0) {
+	if (channel < MAX_TIMER_IO_CHANNELS) {
 
 		unsigned timer = timer_io_channels[channel].timer_index;
 
@@ -731,7 +731,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		/* configure the channel */
 
-		uint32_t chan = timer_io_channels[channel].timer_channel - 1;
+		uint32_t chan = timer_io_channels[channel].timer_channel;
 
 		//FIXME use setbits/clearbits for different modes
 
@@ -830,7 +830,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			masks &= ~(1 << chan_index);
 
 			if (io_timer_validate_channel_index(chan_index) == 0) {
-				uint32_t chan = timer_io_channels[chan_index].timer_channel - 1;
+				uint32_t chan = timer_io_channels[chan_index].timer_channel;
 				uint32_t timer = channels_timer(chan_index);
 
 				if ((state &&
@@ -875,7 +875,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 
 			/* configure the channel */
 			irqstate_t flags = px4_enter_critical_section();
-			rA(channels_timer(channel), timer_io_channels[channel].timer_channel - 1) = EMIOS_A(value * 2);
+			rA(channels_timer(channel), timer_io_channels[channel].timer_channel) = EMIOS_A(value * 2);
 			px4_leave_critical_section(flags);
 		}
 	}
@@ -895,7 +895,7 @@ uint16_t io_channel_get_ccr(unsigned channel)
 		    (mode == IOTimerChanMode_OneShot) ||
 		    (mode == IOTimerChanMode_Trigger)) {
 			/* Read rALTA to fetch AS2 shadow register */
-			value = (rALTA(channels_timer(channel), timer_io_channels[channel].timer_channel - 1) & EMIOS_A_MASK) / 2;
+			value = (rALTA(channels_timer(channel), timer_io_channels[channel].timer_channel) & EMIOS_A_MASK) / 2;
 		}
 	}
 

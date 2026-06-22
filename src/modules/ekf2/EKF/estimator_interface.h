@@ -62,7 +62,7 @@
 #endif
 
 #include "common.h"
-#include "RingBuffer.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 #include "imu_down_sampler/imu_down_sampler.hpp"
 #include "output_predictor/output_predictor.h"
 
@@ -146,11 +146,16 @@ public:
 	void setAuxVelData(const auxVelSample &auxvel_sample);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	void setRangingBeaconData(const rangingBeaconSample &ranging_beacon_sample);
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 	void setSystemFlagData(const systemFlagUpdate &system_flags);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
 	parameters *getParamHandle() { return &_params; }
+	FusionControl *getFusionControlHandle() { return &_fc; }
 
 	// set vehicle landed status data
 	void set_in_air_status(bool in_air)
@@ -190,15 +195,14 @@ public:
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
 
-	// get vehicle landed status data
-	bool get_in_air_status() const { return _control_status.flags.in_air; }
-
 #if defined(CONFIG_EKF2_WIND)
 	bool get_wind_status() const { return _control_status.flags.wind || _external_wind_init; }
 #endif // CONFIG_EKF2_WIND
 
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
+
+	void set_in_transition(bool in_transition) { _control_status.flags.in_transition = in_transition; }
 
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
@@ -304,15 +308,9 @@ public:
 	const filter_control_status_u &control_status_prev() const { return _control_status_prev; }
 	const decltype(filter_control_status_u::flags) &control_status_prev_flags() const { return _control_status_prev.flags; }
 
-	void enableControlStatusAuxGpos() { _control_status.flags.aux_gpos = true; }
-	void disableControlStatusAuxGpos() { _control_status.flags.aux_gpos = false; }
-
 	// get EKF internal fault status
 	const fault_status_u &fault_status() const { return _fault_status; }
 	const decltype(fault_status_u::flags) &fault_status_flags() const { return _fault_status.flags; }
-
-	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
-	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
 
 	const information_event_status_u &information_event_status() const { return _information_events; }
 	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
@@ -339,6 +337,7 @@ protected:
 	virtual bool init(uint64_t timestamp) = 0;
 
 	parameters _params{};		// filter parameters
+	FusionControl _fc{};
 
 	/*
 	 OBS_BUFFER_LENGTH defines how many observations (non-IMU measurements) we can buffer
@@ -373,7 +372,7 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
+	TimestampedRingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	sensor::SensorRangeFinder _range_sensor{};
@@ -381,7 +380,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	RingBuffer<flowSample> 	*_flow_buffer {nullptr};
+	TimestampedRingBuffer<flowSample> 	*_flow_buffer {nullptr};
 
 	flowSample _flow_sample_delayed{};
 
@@ -401,7 +400,7 @@ protected:
 	float _local_origin_alt{NAN};
 
 #if defined(CONFIG_EKF2_GNSS)
-	RingBuffer<gnssSample> *_gps_buffer {nullptr};
+	TimestampedRingBuffer<gnssSample> *_gps_buffer {nullptr};
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
@@ -427,11 +426,9 @@ protected:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	RingBuffer<dragSample> *_drag_buffer {nullptr};
+	TimestampedRingBuffer<dragSample> *_drag_buffer {nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 #endif // CONFIG_EKF2_DRAG_FUSION
-
-	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _horizontal_deadreckon_time_exceeded{true};
 	bool _vertical_position_deadreckon_time_exceeded{true};
@@ -442,29 +439,34 @@ protected:
 
 	// data buffer instances
 	static constexpr uint8_t kBufferLengthDefault = 12;
-	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
+	TimestampedRingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	RingBuffer<magSample> *_mag_buffer {nullptr};
+	TimestampedRingBuffer<magSample> *_mag_buffer {nullptr};
 	uint64_t _time_last_mag_buffer_push{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	RingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
+	TimestampedRingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
 	bool _synthetic_airspeed{false};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	RingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
+	TimestampedRingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
 	uint64_t _time_last_ext_vision_buffer_push{0};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_AUXVEL)
-	RingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
+	TimestampedRingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
-	RingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
+	TimestampedRingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	TimestampedRingBuffer<rangingBeaconSample> *_ranging_beacon_buffer {nullptr};
+	uint64_t _time_last_ranging_beacon_buffer_push{0};
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	RingBuffer<baroSample> *_baro_buffer {nullptr};
+	TimestampedRingBuffer<baroSample> *_baro_buffer {nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
 #endif // CONFIG_EKF2_BAROMETER
 

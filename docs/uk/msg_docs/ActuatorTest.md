@@ -1,6 +1,39 @@
+---
+pageClass: is-wide-page
+---
+
 # ActuatorTest (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorTest.msg)
+**TOPICS:** actuator_test
+
+## Fields
+
+| Назва                                                      | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                                       |
+| ---------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                        | `uint64`  |                                                                  |            | time since system start (microseconds)                                                                  |
+| <a id="fld_action"></a>action                              | `uint8`   |                                                                  |            | one of ACTION\_\*                                                                                    |
+| <a id="fld_function"></a>function                          | `uint16`  |                                                                  |            | actuator output function                                                                                                   |
+| <a id="fld_value"></a>value                                | `float32` |                                                                  |            | range: [-1, 1], where 1 means maximum positive output, |
+| <a id="fld_timeout_ms"></a>timeout_ms | `uint32`  |                                                                  |            | timeout in ms after which to exit test mode (if 0, do not time out)                                     |
+
+## Constants
+
+| Назва                                                                                                 | Тип     | Значення | Опис                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------- | ------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| <a id="#ACTION_RELEASE_CONTROL"></a> ACTION_RELEASE_CONTROL | `uint8` | 0        | exit test mode for the given function                                                                                |
+| <a id="#ACTION_DO_CONTROL"></a> ACTION_DO_CONTROL           | `uint8` | 1        | enable actuator test mode                                                                                            |
+| <a id="#FUNCTION_MOTOR1"></a> FUNCTION_MOTOR1                                    | `uint8` | 101      |                                                                                                                      |
+| <a id="#MAX_NUM_MOTORS"></a> MAX_NUM_MOTORS                 | `uint8` | 12       |                                                                                                                      |
+| <a id="#FUNCTION_SERVO1"></a> FUNCTION_SERVO1                                    | `uint8` | 201      |                                                                                                                      |
+| <a id="#MAX_NUM_SERVOS"></a> MAX_NUM_SERVOS                 | `uint8` | 15       |                                                                                                                      |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH             | `uint8` | 16       | > = MAX_NUM_MOTORS to support code in esc_calibration |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorTest.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp				# time since system start (microseconds)
@@ -13,7 +46,7 @@ uint8 ACTION_DO_CONTROL = 1			# enable actuator test mode
 uint8 FUNCTION_MOTOR1 = 101
 uint8 MAX_NUM_MOTORS  = 12
 uint8 FUNCTION_SERVO1 = 201
-uint8 MAX_NUM_SERVOS  = 8
+uint8 MAX_NUM_SERVOS  = 15
 
 uint8 action					# one of ACTION_*
 uint16 function					# actuator output function
@@ -24,5 +57,6 @@ float32 value					# range: [-1, 1], where 1 means maximum positive output,
 uint32 timeout_ms				# timeout in ms after which to exit test mode (if 0, do not time out)
 
 uint8 ORB_QUEUE_LENGTH = 16                     # >= MAX_NUM_MOTORS to support code in esc_calibration
-
 ```
+
+:::

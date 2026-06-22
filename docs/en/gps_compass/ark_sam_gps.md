@@ -1,6 +1,6 @@
 # ARK SAM GPS
 
-[ARK SAM GPS](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps>) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox SAM-M10Q GPS and industrial magnetometer.
+[ARK SAM GPS](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox SAM-M10Q GPS and industrial magnetometer.
 
 ![ARK SAM GPS](../../assets/hardware/gps/ark/ark_sam_gps.jpg)
 
@@ -33,7 +33,7 @@ Order this module from:
 ## Hardware setup
 
 The module comes with a Pixhawk-standard 6pin connector that will plug into the `GPS2` port on recent Pixhawk flight controllers.
-It should be mounted front facing, as far away from the flight controller and other electronics as possible. 
+It should be mounted front facing, as far away from the flight controller and other electronics as possible.
 
 For more information see [Mounting the GNSS/Compass](../gps_compass/index.md#mounting-the-gnss-compass) and [Hardware Setup](../gps_compass/index.md#hardware-setup).
 

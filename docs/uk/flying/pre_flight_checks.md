@@ -81,7 +81,7 @@ Tuning these parameters is a last resort.
 Це слід робити, лише якщо у вас є дані, які показують, що це покращить продуктивність оцінювача.
 :::
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="EKF2_ABL_LIM"></a>[EKF2_ABL_LIM](../advanced_config/parameter_reference.md#EKF2_ABL_LIM)                                  | Максимальне значення зміщення, яке дозволено оцінити EKF (вище цього значення зміщення буде обрізано, і EKF спробує скинути себе, можливо, навіть переключившись на більш здоровий EKF із робочим IMU у системі з кількома EKF). The autopilot will report a "high accel bias" if the estimated bias exceeds 75% of this parameter during a preflight check and prevent takeoff. Поточне значення 0.4m/s2 вже досить високе, і його збільшення призведе до того, що автопілот виявлятиме проблеми з меншою ймовірністю. |
 | <a id="EKF2_ABIAS_INIT"></a>[EKF2_ABIAS_INIT](../advanced_config/parameter_reference.md#EKF2_ABIAS_INIT)                         | Initial bias uncertainty (if perfectly calibrated, this is related to the "turn-on bias" of the sensor). Деякі користувачі можуть захотіти зменшити це значення, якщо вони знають, що датчик добре відкалібрований і що зміщення увімкнення невелике.                                                                                                                                                                                                                                                                                                   |
@@ -128,7 +128,11 @@ Tuning these parameters is a last resort.
 
 #### COM_ARM_WO_GPS
 
-The [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) parameter controls whether or not arming is allowed without a global position estimate.
+The [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) parameter controls whether or not arming is allowed in modes that require a valid global position estimate when EKF2 GNSS quality checks are failing.
 
-- `1` (default): Arming _is_ allowed without a position estimate for flight modes that do not require position information (only).
-- `0`: Arming is allowed only if EKF is providing a global position estimate and EFK GPS quality checks are passing
+The values are:
+
+- `0`: Deny arming.
+- `1`: Arming allowed with warning (default).
+  This might be used to provide a warning that the GNSS is unhealthy even when there is another source of valid position estimate, such as VIO or optical flow.
+- `2`: Arming allowed without warnings.

@@ -72,7 +72,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 36x36mm with 30.5\*30.5 mouting pattern, M4 holes.
   - Soft-mount M4 to M3 grommets supplied.
 
-## 购买渠道
+## Where to Buy {#store}
 
 The SPRacingH7EXTREME is available from the [Seriously Pro shop](https://shop.seriouslypro.com/sp-racing-h7-extreme).
 

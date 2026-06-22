@@ -61,7 +61,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 - 16- PWM servo outputs
 - 1 Dedicated R/C input for Spektrum / DSM and S.Bus with analog / PWM RSSI input
 - 3 TELEM Ports（with full flow control）
-- 1 UART4(Seial and I2C)
+- 1 UART4(Serial and I2C)
 - 2 GPS ports
   - 1 full GPS plus Safety Switch Port(GPS1)
   - 1 basic GPS port(with I2C,GPS2)
@@ -104,7 +104,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/core.png)
 
-## 购买渠道
+## Where to Buy {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
@@ -116,22 +116,22 @@ The [Pixhawk V6X Wiring Quick Start](../assembly/quick_start_cuav_pixhawk_v6x.md
 
 ![Pixhawk V6x Pinout](../../assets/flight_controller/cuav_pixhawk_v6x/pixhawk_v6x_pinouts.png)
 
-备注：
+Notes:
 
 - The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked above as `FMU_CAP1`.
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS           |
-| USART2 | /dev/ttyS1 | TELEM3        |
-| USART3 | /dev/ttyS2 | Debug Console |
-| UART4  | /dev/ttyS3 | UART4         |
-| UART5  | /dev/ttyS4 | TELEM2        |
-| USART6 | /dev/ttyS5 | PX4IO/RC      |
-| UART7  | /dev/ttyS6 | TELEM1        |
-| UART8  | /dev/ttyS7 | GPS2          |
+| UART   | 设备         | Port     |
+| ------ | ---------- | -------- |
+| USART1 | /dev/ttyS0 | GPS      |
+| USART2 | /dev/ttyS1 | TELEM3   |
+| USART3 | /dev/ttyS2 | 调试控制台    |
+| UART4  | /dev/ttyS3 | UART4    |
+| UART5  | /dev/ttyS4 | TELEM2   |
+| USART6 | /dev/ttyS5 | PX4IO/RC |
+| UART7  | /dev/ttyS6 | TELEM1   |
+| UART8  | /dev/ttyS7 | GPS2     |
 
 ## 额定电压
 
@@ -173,13 +173,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 
-<a id="debug_port"></a>
-
-## 调试接口
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

@@ -73,6 +73,7 @@ enum NAV_CMD {
 	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
 	NAV_CMD_DO_MOUNT_CONTROL = 205,
 	NAV_CMD_DO_GRIPPER = 211,
+	NAV_CMD_DO_AUTOTUNE_ENABLE = 212,
 	NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL = 214,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
 	NAV_CMD_OBLIQUE_SURVEY = 260,
@@ -150,6 +151,7 @@ struct mission_item_s {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
+				float land_abort_min_alt;	/**< minimum abort altitude above landing point in meters (only used for NAV_CMD_LAND) */
 			};
 			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
 			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */

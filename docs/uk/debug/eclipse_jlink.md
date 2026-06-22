@@ -115,14 +115,14 @@ Task-aware debugging (also known as [thread-aware debugging](https://www.segger.
      make px4_fmu-v5_default boardguiconfig
      ```
 
-     (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information) on using the config tools).
+     (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information on using the config tools).
 
    - Ensure that the _Enable TCBinfo struct for debug_ is selected as shown:
      ![NuttX: Menuconfig: CONFIG_DEBUG_TCBINFO](../../assets/debug/nuttx_tcb_task_aware.png)
 
 2. Compile the **jlink-nuttx.so** library in the terminal by running the following command in the terminal: `make jlink-nuttx`
 
-3. Змініть Eclipse, щоб використовувати цю бібліотеку.
+3. Modify Eclipse to use this library.
    In the _J-Link GDB Server Setup_ configuration, update **Other options** to include `-rtos /home/<PX4 path>/Tools/jlink-nuttx.so`, as shown in the image below.
 
    ![Eclipse: GDB Segger Debug config RTOS aware: debugger tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_task_aware.png)

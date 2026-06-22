@@ -71,7 +71,7 @@ PX4 _developers_ need to know the FMU version of their board, as this is require
 
 На дуже високому рівні, основні відмінності полягають у наступному:
 
-- **FMUv2:** Single board with STM32427VI processor ([Pixhawk 1 (Discontinued)](../flight_controller/pixhawk.md), [pix32](../flight_controller/holybro_pix32.md), [Pixfalcon](../flight_controller/pixfalcon.md), [Drotek DroPix](../flight_controller/dropix.md))
+- **FMUv2:** Single board with STM32427VI processor (Pixhawk 1 (discontinued), Holybro pix32 (discontinued), Pixfalcon (discontinued), Drotek DroPix (discontinued))
 - **FMUv3:** Identical to FMUv2, but usable flash doubled to 2MB ([Hex Cube Black](../flight_controller/pixhawk-2.md),[CUAV Pixhack v3](../flight_controller/pixhack_v3.md),[mRo Pixhawk](../flight_controller/mro_pixhawk.md), [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md))
 - **FMUv4:** Increased RAM. Швидший процесор. Більше послідовних портів. No IO processor ([Pixracer](../flight_controller/pixracer.md))
 - **FMUv4-PRO:** Slightly increased RAM. Більше послідовних портів. IO processor ([Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md))
@@ -99,6 +99,24 @@ PX4 _developers_ need to know the FMU version of their board, as this is require
   ([Holybro Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md))
 
 <a id="licensing-and-trademarks"></a>
+
+### FMUv6 Comparison
+
+| Характеристика     | **FMUv6X-RT**                   | **FMUv6X**    | **FMUv6C**    |
+| ------------------ | ------------------------------- | ------------- | ------------- |
+| **FMU MCU**        | NXP i.MX RT1176 | STM32H753     | STM32H743V    |
+| **RAM**            | 2 MB                            | 1 MB          | 1 MB          |
+| **Flash**          | 64 MB Octal SPI                 | 2 MB internal | 2 MB internal |
+| **IO MCU**         | STM32F103                       | STM32F103     | STM32F103     |
+| **Secure Element** | NXP SE051                       | NXP SE051     | Not supported |
+| **PAB Standard**   | Supported                       | Supported     | Not supported |
+| **Ethernet**       | Supported                       | Supported     | Not supported |
+| **IMUs**           | 3×                              | 3×            | 2×            |
+| **Barometers**     | 2×                              | 2×            | 1×            |
+| **Magnetometer**   | 1×                              | 1×            | 1×            |
+| **FMU PWM**        | 12×                             | 8×            | 8×            |
+| **IO PWM**         | 8×                              | 8×            | 8×            |
+| **CAN Bus**        | 3×                              | 2×            | 2×            |
 
 ### Ліцензування та товарні знаки
 
@@ -128,6 +146,6 @@ _Pixhawk_ is a trademark, and cannot be used in product names without permission
 All _Pixhawk-series_ flight controllers support:
 
 - A user facing RGB _UI LED_ to indicate the current _readiness to fly_ status of the vehicle. Зазвичай це дуже яскравий I2C, який може бути встановлений або не встановлений на платі (наприклад FMUv4 не має такого на борту, і зазвичай використовує світлодіод, встановлений на GPS).
-- Three _Status LED_s that provide lower level power status, bootloader mode and activity, and error information.
+- Three _Status LE&#x44;_&#x73; that provide lower level power status, bootloader mode and activity, and error information.
 
 To interpret the LEDs see: [LED Meanings](../getting_started/led_meanings.md).

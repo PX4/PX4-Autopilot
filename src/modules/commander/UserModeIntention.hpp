@@ -44,6 +44,17 @@ enum class ModeChangeSource {
 class ModeChangeHandler
 {
 public:
+	ModeChangeHandler() = default;
+	virtual ~ModeChangeHandler() = default;
+
+	/**
+	 * Explicitly disable copying/moving
+	 */
+	ModeChangeHandler(const ModeChangeHandler &) = delete;
+	ModeChangeHandler &operator=(const ModeChangeHandler &) = delete;
+	ModeChangeHandler(ModeChangeHandler &&) = delete;
+	ModeChangeHandler &operator=(ModeChangeHandler &&) = delete;
+
 	virtual void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) = 0;
 
 	/**
@@ -65,6 +76,12 @@ public:
 	~UserModeIntention() = default;
 
 	/**
+	 * Explicitly disable copying/moving
+	 */
+	UserModeIntention(const UserModeIntention &) = delete;
+	UserModeIntention &operator=(const UserModeIntention &) = delete;
+
+	/**
 	 * Change the user intended mode
 	 * @param user_intended_nav_state new mode
 	 * @param source calling reason
@@ -82,11 +99,6 @@ public:
 	 */
 	void onDisarm();
 
-	/**
-	 * Returns false if there has not been any mode change yet
-	 */
-	bool everHadModeChange() const { return _ever_had_mode_change; }
-
 	bool getHadModeChangeAndClear() { bool ret = _had_mode_change; _had_mode_change = false; return ret; }
 
 private:
@@ -97,9 +109,8 @@ private:
 	const HealthAndArmingChecks &_health_and_arming_checks;
 	ModeChangeHandler *const _handler{nullptr};
 
-	uint8_t _user_intented_nav_state{vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER}; ///< Current user intended mode
-	uint8_t _nav_state_after_disarming{vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER}; ///< Mode that is switched into after landing/disarming
+	uint8_t _user_intented_nav_state{vehicle_status_s::NAVIGATION_STATE_POSCTL}; ///< Current user intended mode
+	uint8_t _nav_state_after_disarming{vehicle_status_s::NAVIGATION_STATE_POSCTL}; ///< Mode that is switched into after landing/disarming
 
-	bool _ever_had_mode_change{false}; ///< true if there was ever a mode change call (also if the same mode as already set)
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
 };

@@ -4,7 +4,6 @@ A **Tiltrotor VTOL** is a [VTOL](../frames_vtol/index.md) vehicle that has rotor
 
 ![Horizon Hobby E-flite Convergence](../../assets/airframes/vtol/eflite_convergence_pixfalcon/hero.jpg)
 
-
 ## Builds
 
 - [Convergence Tiltrotor](../frames_vtol/vtol_tiltrotor_eflite_convergence_pixfalcon.md)

@@ -11,7 +11,7 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 - The vehicle must be armed before this mode can be engaged.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
 - RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
   This is true for multicopters and VTOL in MC mode.
 
 :::
@@ -30,34 +30,33 @@ Missions are uploaded onto a SD card that needs to be inserted **before** bootin
 At high level all vehicle types behave in the same way when MISSION mode is engaged:
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
-
-  - If flying the vehicle will hold.
-  - If landed the vehicle will "wait".
+   - If flying the vehicle will hold.
+   - If landed the vehicle will "wait".
 
 2. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
-  - A `TAKEOFF` item is treated as a normal waypoint.
+   - A `TAKEOFF` item is treated as a normal waypoint.
 
 3. If a mission is stored and PX4 is landed:
-  - PX4 will execute the [mission/flight plan](../flying/missions.md).
-  - If the mission does not have a `TAKEOFF` item then PX4 will fly the vehicle to the minimum altitude before executing the remainder of the flight plan from the current step.
+   - PX4 will execute the [mission/flight plan](../flying/missions.md).
+   - If the mission does not have a `TAKEOFF` item then PX4 will fly the vehicle to the minimum altitude before executing the remainder of the flight plan from the current step.
 
 4. If no mission is stored, or if PX4 has finished executing all mission commands:
-  - If flying the vehicle will hold.
-  - If landed the vehicle will "wait".
+   - If flying the vehicle will hold.
+   - If landed the vehicle will "wait".
 
 5. You can manually change the current mission command by selecting it in _QGroundControl_.
 
-  ::: info
-  If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
-  One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
+   ::: info
+   If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
+   One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
 
 :::
 
 6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
-  :::tip
-  To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
-  Enter the time to wait after landing before disarming the vehicle.
+   :::tip
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
+   Enter the time to wait after landing before disarming the vehicle.
 
 :::
 
@@ -65,7 +64,7 @@ Missions can be paused by switching out of mission mode to any other mode (such 
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
-A mission can be uploaded while the vehicle is paused, in which which case the current active mission item is set to 1.
+A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
 
 :::info
 When a mission is paused while the camera on the vehicle was triggering, PX4 sets the current active mission item to the previous waypoint, so that when the mission is restarted the vehicle will retrace its last mission leg.
@@ -101,8 +100,8 @@ _QGroundControl_ provides additional GCS-level mission handling support (in addi
 
 더 자세한 정보는 다음을 참고하십시오.
 
-- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
-- [Resume mission after Return mode](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
+- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
+- [Resume mission after Return mode](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
 
 ## Mission Parameters
 
@@ -111,7 +110,7 @@ A very small subset are listed below.
 
 General parameters:
 
-| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                                                                                                                    |
+| Parameter                                                                                                                                                               | 설명                                                                                                                                                                                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                                  | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc.                                                                    |
 | <a id="COM_RC_OVERRIDE"></a>[COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE)                      | Controls whether stick movement on a multicopter (or VTOL in MC mode) gives control back to the pilot in [Position mode](../flight_modes_mc/position.md). 자동 모드와 오프보드 모드에 대해 별도로 활성화할 수 있으며, 기본적으로 자동 모드에서 활성화됩니다. |
@@ -119,7 +118,7 @@ General parameters:
 
 Parameters related to [mission feasibility checks](#mission-feasibility-checks):
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_DIST_1WP"></a>[MIS_DIST_1WP](../advanced_config/parameter_reference.md#MIS_DIST_1WP)                                  | There is a warning message if the distance of the first waypoint to Home is more than this value. Disabled if value is 0 or less. |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Maximum landing slope angle.                                                                                                                      |
@@ -171,6 +170,9 @@ Mission Items:
 - [MAV_CMD_NAV_VTOL_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_TAKEOFF)
   - `MAV_CMD_NAV_VTOL_TAKEOFF.param2` (transition heading) is ignored.
     Instead the heading to the next waypoint is used for the transition heading. <!-- at LEAST until PX4 v1.13: https://github.com/PX4/PX4-Autopilot/issues/12660 -->
+- [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE)
+  - Disabling autotune by setting `param1` to zero is currently not supported. To abort autotune during a mission, switch to another flight mode.
+  - Axis selection specified in the MAVLink message is ignored (`param2` must be set to 0) .
 
 GeoFence Definitions
 

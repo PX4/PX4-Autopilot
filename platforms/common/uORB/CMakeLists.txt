@@ -42,10 +42,12 @@ set(SRCS)
 
 set(SRCS_COMMON
 	ORBSet.hpp
+	Publication.cpp
 	Publication.hpp
 	PublicationMulti.hpp
 	Subscription.cpp
 	Subscription.hpp
+	SubscriptionCallback.cpp
 	SubscriptionCallback.hpp
 	SubscriptionInterval.cpp
 	SubscriptionInterval.hpp

@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/register_ext_component_request.h>
@@ -105,6 +107,7 @@ public:
 		bool unresponsive_reported{false};
 		int arming_check_registration_id{-1};
 		int mode_executor_registration_id{-1};
+		bool request_offboard_setpoints{false};
 		config_overrides_s overrides{};
 		vehicle_control_mode_s config_control_setpoint{};
 	};
@@ -130,7 +133,7 @@ class ModeManagement : public ModeChangeHandler
 {
 public:
 	ModeManagement(ExternalChecks &external_checks);
-	~ModeManagement() = default;
+	virtual ~ModeManagement() = default;
 
 	struct UpdateRequest {
 		bool change_user_intended_nav_state{false};
@@ -150,6 +153,12 @@ public:
 	 */
 	int modeExecutorInCharge() const;
 
+	/**
+	 * Returns the executor's navigation state if active, otherwise nav_state.
+	 * Exposes the high-level goal rather than the effective sub-mode.
+	 */
+	uint8_t getNavStateDisplay(uint8_t nav_state) const;
+
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override;
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override;
 
@@ -157,11 +166,13 @@ public:
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true);
 
-	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const;
+	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode);
 
 	void printStatus() const;
 
 	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const;
+
+	bool currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const;
 
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 
@@ -188,6 +199,9 @@ private:
 	int _mode_executor_in_charge{ModeExecutors::AUTOPILOT_EXECUTOR_ID};
 
 	bool _invalid_mode_printed{false};
+
+	uint8_t _last_served_nav_state{0xff};
+	hrt_abstime _last_served_change_us{0};
 };
 
 #else /* CONSTRAINED_FLASH */
@@ -196,7 +210,7 @@ class ModeManagement : public ModeChangeHandler
 {
 public:
 	ModeManagement() = default;
-	~ModeManagement() = default;
+	virtual ~ModeManagement() = default;
 
 	struct UpdateRequest {
 		bool change_user_intended_nav_state{false};
@@ -208,6 +222,7 @@ public:
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
+	uint8_t getNavStateDisplay(uint8_t nav_state) const { return nav_state; }
 
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override {}
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override { return nav_state; }
@@ -215,7 +230,7 @@ public:
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true) { return nav_state; }
 
-	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const { return false; }
+	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) { return false; }
 
 	void printStatus() const {}
 
@@ -223,6 +238,11 @@ public:
 	{
 		valid_nav_state_mask = mode_util::getValidNavStates();
 		can_set_nav_state_mask = valid_nav_state_mask & ~(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+	}
+
+	bool currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const
+	{
+		return nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 	}
 
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out) { }

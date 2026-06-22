@@ -47,5 +47,13 @@ static constexpr params parameters_volatile[] = {
 {% endfor %}
 };
 
+static constexpr params parameters_readonly[] = {
+{% for param in params %}
+	{%- if param.attrib["name"] in readonly_params %}
+	params::{{ param.attrib["name"] }},
+	{%- endif -%}
+{% endfor %}
+};
+
 
 } // namespace px4

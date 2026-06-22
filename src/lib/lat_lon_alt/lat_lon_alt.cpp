@@ -111,6 +111,21 @@ void LatLonAlt::computeRadiiOfCurvature(const double latitude, double &meridian_
 	transverse_radius_of_curvature = Wgs84::equatorial_radius / sqrt_tmp;
 }
 
+matrix::Dcmf LatLonAlt::computeRotEcefToNed() const
+{
+	const double cos_lat = cos(_latitude_rad);
+	const double sin_lat = sin(_latitude_rad);
+	const double cos_lon = cos(_longitude_rad);
+	const double sin_lon = sin(_longitude_rad);
+
+	const float val[] = {(float)(-sin_lat * cos_lon), (float)(-sin_lat * sin_lon), (float)cos_lat,
+			     (float) - sin_lon, (float)cos_lon, 0.f,
+			     (float)(-cos_lat * cos_lon), (float)(-cos_lat * sin_lon), (float) - sin_lat
+			    };
+
+	return matrix::Dcmf(val);
+}
+
 LatLonAlt LatLonAlt::operator+(const matrix::Vector3f &delta_pos) const
 {
 	const matrix::Vector2d d_lat_lon_to_d_xy = deltaLatLonToDeltaXY(latitude_rad(), altitude());

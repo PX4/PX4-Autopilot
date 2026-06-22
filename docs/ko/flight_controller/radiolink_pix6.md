@@ -1,6 +1,6 @@
 # RadiolinkPIX6 Flight Controller
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="tip" text="PX4 v1.17" />
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -27,7 +27,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 32KB FRAM - FM25V02A
   - AT7456E OSD
 - 센서
-  - Bosh BMI088 IMU (accel, gyro)
+  - Bosch BMI088 IMU (accel, gyro)
   - InvenSense ICM-42688 IMU (accel, gyro)
   - SPA06 barometer
   - IST8310 magnetometer
@@ -48,7 +48,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Weight 80g
   - Size 94mm x 51.5mm x 14.5mm
 
-## 구매처
+## Where to Buy {#store}
 
 [Radiolink Amazon](https://www.radiolink.com.cn/pix6_where_to_buy)（International users）
 
@@ -271,14 +271,14 @@ make radiolink_PIX6_default
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| 매개변수                                                                                                           | 설정                                                                                         |
+| Parameter                                                                                                      | 설정                                                                                         |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | 보드에 내부 자력계가 없기 때문에 비활성화하여야 합니다. 외부 자력계를 연결하여 활성화 할 수 있습니다. |
 
 ### Powering the PIX6
 
 The PIX6 has 2 dedicated power monitor ports, each with a 6 pin connector.
-One is the Analog power monitor (`POWER1`), and the others is the I2C power monitor (`POWER2`).
+One is the Analog power monitor (`POWER1`), and the other is the I2C power monitor (`POWER2`).
 
 The power module that comes with the flight controller with a wide voltage input range of 2-12S (7.4-50.4V), a maximum detection current of 90A (single ESC maximum detection current is 22.5A), a BEC output voltage of 5.3±0.2V, and a BEC output current of 2A.
 

@@ -854,6 +854,35 @@ int parameter_flashfs_read(flash_file_token_t token, uint8_t **buffer, size_t
 }
 
 /****************************************************************************
+ * Name: parameter_flashfs_blank
+ *
+ * Description:
+ *   Reports whether the parameter storage is fully erased, so callers can
+ *   tell a blank store from one that holds unparseable data.
+ *
+ ****************************************************************************/
+
+int parameter_flashfs_blank(void)
+{
+	if (sector_map == NULL) {
+		return -ENXIO;
+	}
+
+	for (int s = 0; sector_map[s].address; s++) {
+		uint32_t *pm = (uint32_t *) sector_map[s].address;
+		uint32_t *pe = pm + (sector_map[s].size / sizeof(uint32_t));
+
+		while (pm < pe) {
+			if (!blank_flash(pm++)) {
+				return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
+/****************************************************************************
  * Name: parameter_flashfs_write
  *
  * Description:

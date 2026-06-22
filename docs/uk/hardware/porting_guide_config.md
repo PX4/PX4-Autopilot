@@ -70,3 +70,19 @@ If _kconfiglib_ is not installed, you can do so using the command: `pip3 install
 ### Інтерфейс командного рядка menuconfig
 
 ![menuconfig command line interface](../../assets/hardware/kconfig-guiconfig.png)
+
+## Fortified Toolchain Compatibility
+
+Some toolchains define `_FORTIFY_SOURCE` by default. Those toolchains generally require some optimization, which means PX4 configurations that use `-O0` may fail.
+
+PX4 keeps the default debug optimization unchanged unless you explicitly opt in. To switch `PX4_DEBUG_OPT_LEVEL` from `-O0` to `-Og`, enable:
+
+- `Toolchain > Fortified toolchain support`
+
+This is the Kconfig symbol:
+
+```sh
+CONFIG_BOARD_SUPPORT_FORTIFIED_TOOLCHAIN=y
+```
+
+You can set it either in `boardconfig`/`boardguiconfig` or directly in your board's `*.px4board` file.

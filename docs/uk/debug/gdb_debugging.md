@@ -25,7 +25,7 @@ Developer <=> GDB <=> GDB Server <=> Debug Probe <=> SWD <=> PX4 Autopilot.
 
 - [SEGGER J-Link](probe_jlink.md): commercial probe, no built-in serial console, requires adapter.
 - [Black Magic Probe](probe_bmp.md): integrated GDB server and serial console, requires adapter.
-- [STLink](probe_stlink): best value, integrated serial console, adapter must be soldered.
+- [STLink](probe_stlink.md): best value, integrated serial console, adapter must be soldered.
 
 Рекомендуємо використовувати J-Link з адаптером налагодження Pixhawk або STLinkv3-MINIE зі спеціально спаяним кабелем.
 

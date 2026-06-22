@@ -5,7 +5,7 @@ Gazebo was previously known as "Gazebo Ignition" (while _Gazebo Classic_ was pre
 See the [official blog post](https://www.openrobotics.org/blog/2022/4/6/a-new-era-for-gazebo) for more information.
 :::
 
-[Gazebo](https://gazebosim.org/home) is an open source robotics simulator.
+[Gazebo](https://gazebosim.org/docs/latest/getstarted/) is an open source robotics simulator.
 It supersedes the older [Gazebo Classic](../sim_gazebo_classic/index.md) simulator, and is the only supported version of Gazebo for Ubuntu 22.04 and onwards.
 
 **Supported Vehicles:** Quadrotor, Plane, VTOL, Rover
@@ -173,6 +173,7 @@ The [supported worlds](../sim_gazebo_gz/worlds.md) are listed below.
 | `baylands`        | `make px4_sitl *_baylands`        | Baylands world surrounded by water                          |
 | `lawn`            | `make px4_sitl *_lawn`            | Lawn world for testing rovers                               |
 | `rover`           | `make px4_sitl *_rover`           | Rover world (optimised/preferred)        |
+| `ridge`           | `make px4_sitl *_ridge`           | World with a sloped ridge for testing terrain following     |
 | `walls`           | `make px4_sitl *_walls`           | Wall world for testing collision prevention                 |
 | `windy`           | `make px4_sitl *_windy`           | Empty world with wind enabled                               |
 | `moving_platform` | `make px4_sitl *_moving_platform` | World with moving takeoff / landing platform                |
@@ -228,6 +229,49 @@ In addition to being a precondition for running the simulation faster/slower tha
 Lockstep cannot be disabled on Gazebo.
 :::
 
+### Video Streaming
+
+Some models (e.g. `gz_x500_mono_cam`, `gz_x500_gimbal`) include a camera and support video streaming. By default, the stream is published over UDP on port 5600 using the RTP protocol.
+
+#### 系统必备组件
+
+GStreamer 1.0 is required. The necessary dependencies are included in the standard PX4 installation scripts for Ubuntu Linux and macOS.
+
+:::info
+Required packages: `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-plugins-ugly`, `libgstreamer-plugins-base1.0-dev`. If missing, install them via `apt` or your system package manager.
+:::
+
+#### Viewing the Video Stream
+
+**QGroundControl (recommended)**
+
+Open **Application Settings > General**, set **Video Source** to _UDP h.264 Video Stream_, and set **UDP Port** to `5600`.
+
+![QGC Video Streaming Settings for Gazebo](../../assets/simulation/gazebo_classic/qgc_gazebo_video_stream_udp.png)
+
+The Gazebo video feed will then appear in QGroundControl exactly as it would from a real camera.
+
+![QGC Video Streaming Gazebo Example](../../assets/simulation/gazebo_classic/qgc_gazebo_video_stream_typhoon.jpg)
+
+**GStreamer pipeline**
+
+To view the stream directly from a terminal:
+
+```sh
+gst-launch-1.0 -v udpsrc port=5600 \
+  caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
+  ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
+```
+
+#### 基于gazebo的多飞行器仿真
+
+In a multi-vehicle simulation, each vehicle instance streams to a separate port starting from `5600` — i.e. `5600`, `5601`, `5602`, and so on. If an instance (other than the first, which acts as the Gazebo world host) is restarted, it resumes streaming on its originally assigned port.
+
+#### Advanced Usage
+
+The default port and protocol (RTP) can be changed by modifying the world's SDF file.
+See the [GStreamer plugin README](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_plugins/gstreamer/README.md) for details.
+
 ## Usage/Configuration Options
 
 The startup pipeline allows for highly flexible configuration.
@@ -254,7 +298,6 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_MODEL_NAME`:
   Sets the name of an _existing_ model in the gazebo simulation.
   If provided, the startup script tries to bind a new PX4 instance to the Gazebo resource matching exactly that name.
-
   - The setting is mutually exclusive with `PX4_SIM_MODEL`.
 
 - `PX4_SIM_MODEL`:
@@ -271,7 +314,6 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_MODEL_POSE`:
   Sets the spawning position and orientation of the model when `PX4_SIM_MODEL` is adopted.
   If provided, the startup script spawns the model at a pose following the syntax `"x,y,z,roll,pitch,yaw"`, where the positions are given in metres and the angles are in radians.
-
   - If omitted, the zero pose `[0,0,0,0,0,0]` is used.
   - If less then 6 values are provided, the missing ones are fixed to zero.
   - This can only be used with `PX4_SIM_MODEL` (not `PX4_GZ_MODEL_NAME`).
@@ -279,7 +321,6 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_WORLD`:
   Sets the Gazebo world file for a new simulation.
   If it is not given, then [default](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/default.sdf) is used.
-
   - This variable is ignored if an existing simulation is already running.
   - This value should be [specified for the selected airframe](#adding-new-worlds-and-models) but may be overridden using this argument.
   - If the [moving platform world](../sim_gazebo_gz/worlds.md#moving-platform) is selected using `PX4_GZ_WORLD=moving_platform` (or any world using the moving platform plugin), the platform can be configured using environment variables:
@@ -288,7 +329,6 @@ where `ARGS` is a list of environment variables including:
 
 - `PX4_SIMULATOR=GZ`:
   Sets the simulator, which for Gazebo must be `gz`.
-
   - This value should be [set for the selected airframe](#adding-new-worlds-and-models), in which case it does not need to be set as an argument.
 
 - `PX4_GZ_STANDALONE`:
@@ -307,7 +347,16 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_FOLLOW_OFFSET_X`, `PX4_GZ_FOLLOW_OFFSET_Y`, `PX4_GZ_FOLLOW_OFFSET_Z`:
   Set the relative offset of the follow camera to the vehicle.
 
-The PX4 Gazebo worlds and and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
+- `PX4_NET_INTERFACE`:
+  Binds all MAVLink connections to a specific network interface (e.g., `eth0`).
+  Useful for containerized environments or multi-NIC systems.
+  See [Environment Configuration](../simulation/index.md#environment-configuration) for more information.
+
+:::info
+See [Simulation > Environment Configuration](../simulation/index.md#environment-configuration) for simulation environment variables that are common to all simulators.
+:::
+
+The PX4 Gazebo worlds and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
 
 :::info
 `gz_env.sh.in` is compiled and made available in `$PX4_DIR/build/px4_sitl_default/rootfs/gz_env.sh`
@@ -390,7 +439,6 @@ To add a new world:
 
 1. Add your world to the list of worlds found in the [`CMakeLists.txt` here](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/CMakeLists.txt).
    This is required in order to allow `CMake` to generate correct targets.
-
    - If you plan to use "normal" mode, add your world sdf to `Tools/simulation/gz/worlds/`.
    - If you plan to use _standalone_ mode, add your world SDF to `~/.simulation-gazebo/worlds/`
 

@@ -83,6 +83,7 @@ public:
 	static constexpr uint8_t NUM_AXES = ActuatorEffectiveness::NUM_AXES;
 
 	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
+	using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
 
 	enum ControlAxis {
 		ROLL = 0,
@@ -221,6 +222,24 @@ public:
 	 */
 	ActuatorVector normalizeActuatorSetpoint(const ActuatorVector &actuator)
 	const;
+
+	/**
+	 * Apply a mask of actuators to be set to NaN.
+	 *
+	 * A NaN value in _actuator_sp represents a disabled or stopped actuator.
+	 * This mask is typically used to stop motors in specific flight phases or when certain thrust components are NaN.
+	 *
+	 * @param nan_actuators_mask Bitmask indicating which actuators to set to NaN.
+	 *                           If (nan_actuators_mask & (1 << i)), _actuator_sp(i) becomes NaN.
+	 */
+	void applyNanToActuators(ActuatorBitmask nan_actuators_mask)
+	{
+		for (int i = 0; i < _num_actuators; i++) {
+			if (nan_actuators_mask & (1u << i)) {
+				_actuator_sp(i) = NAN;
+			}
+		}
+	}
 
 	virtual void updateParameters() {}
 

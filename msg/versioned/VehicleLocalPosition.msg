@@ -59,7 +59,7 @@ float32 ref_alt				# Reference altitude AMSL, (metres)
 # Distance to surface
 bool dist_bottom_valid			# true if distance to bottom surface is valid
 float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
-float32 dist_bottom_var                 # terrain estimate variance (m^2)
+float32 dist_bottom_var                 # height above ground estimate variance (m^2)
 
 float32 delta_dist_bottom               # Amount of vertical shift of dist bottom estimate in latest reset [m]
 uint8 dist_bottom_reset_counter         # Index of latest dist bottom estimate reset

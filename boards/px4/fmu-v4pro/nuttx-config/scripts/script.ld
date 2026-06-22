@@ -65,7 +65,6 @@ EXTERN(_vectors)	/* force the vectors to be included in the output */
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
-EXTERN(_bootdelay_signature)
 EXTERN(board_get_manifest)
 
 SECTIONS
@@ -74,12 +73,6 @@ SECTIONS
 		_stext = ABSOLUTE(.);
 		*(.vectors)
 		. = ALIGN(32);
-		/*
-		This signature provides the bootloader with a way to delay booting
-		*/
-		_bootdelay_signature = ABSOLUTE(.);
-		FILL(0xffecc2925d7d05c5)
-		. += 8;
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)

@@ -93,7 +93,7 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
    One approach to determine an appropriate value is:
 
    1. From a standstill, give the rover full throttle until it reaches the maximum speed.
-   2. Disarm the rover and plot the `measured_speed_body_x` from [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md).
+   2. Disarm the rover and plot the `measured_speed_body_x` from [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md).
    3. Divide the maximum speed by the time it took to reach it and set this as the value for [RO_ACCEL_LIM](#RO_ACCEL_LIM).
 
    Some RC rovers have enough torque to lift up if the maximum acceleration is not limited.
@@ -138,7 +138,7 @@ In [Manual mode](../flight_modes_rover/manual.md#manual-mode) we can additionall
 - Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
 - Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
 
-This scaling is useful to limit the normalized steering setpoint, if it is too aggresive for your rover in manual mode.
+This scaling is useful to limit the normalized steering setpoint, if it is too aggressive for your rover in manual mode.
 
 You can experiment with the relationships graphically using the [PX4 SuperExpo Rover calculator](https://www.desmos.com/calculator/gwm8lrlanx).
 
@@ -154,7 +154,7 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ## Огляд параметрів
 
-| Параметр                                                                                                                                                                   | Опис                                                       | Unit    |
+| Parameter                                                                                                                                                                  | Опис                                                       | Unit    |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------- |
 | <a id="RO_MAX_THR_SPEED"></a>[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) | Speed the rover drives at maximum throttle                 | $m/s$   |
 | <a id="RO_ACCEL_LIM"></a>[RO_ACCEL_LIM](../advanced_config/parameter_reference.md#RO_ACCEL_LIM)                                  | (Optional) Maximum allowed acceleration | $m/s^2$ |
@@ -164,7 +164,7 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ### Ackermann Specific
 
-| Параметр                                                                                                                                                                | Опис                                                        | Unit  |
+| Parameter                                                                                                                                                               | Опис                                                        | Unit  |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----- |
 | <a id="RA_WHEEL_BASE"></a>[RA_WHEEL_BASE](../advanced_config/parameter_reference.md#RA_WHEEL_BASE)                            | Wheel base                                                  | $m$   |
 | <a id="RA_MAX_STR_ANG"></a>[RA_MAX_STR_ANG](../advanced_config/parameter_reference.md#RA_MAX_STR_ANG)    | Maximum steering angle                                      | $deg$ |
@@ -172,14 +172,14 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ### Differential Specific
 
-| Параметр                                                                                                                                                                | Опис                                                         | Unit |
+| Parameter                                                                                                                                                               | Опис                                                         | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---- |
 | <a id="RD_WHEEL_TRACK"></a>[RD_WHEEL_TRACK](../advanced_config/parameter_reference.md#RD_WHEEL_TRACK)                         | Wheel track                                                  | $m$  |
 | <a id="RD_YAW_STK_GAIN"></a>[RD_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RD_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |
 
 ### Mecanum Specific
 
-| Параметр                                                                                                                                                                | Опис                                                         | Unit |
+| Parameter                                                                                                                                                               | Опис                                                         | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---- |
 | <a id="RM_WHEEL_TRACK"></a>[RM_WHEEL_TRACK](../advanced_config/parameter_reference.md#RM_WHEEL_TRACK)                         | Wheel track                                                  | $m$  |
 | <a id="RM_YAW_STK_GAIN"></a>[RM_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RM_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |

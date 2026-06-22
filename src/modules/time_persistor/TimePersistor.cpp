@@ -36,6 +36,8 @@
 #include <errno.h>
 #include <px4_platform_common/log.h>
 
+ModuleBase::Descriptor TimePersistor::desc{task_spawn, custom_command, print_usage};
+
 TimePersistor::TimePersistor() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -56,14 +58,14 @@ void TimePersistor::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
 	if (!_file) {
 		if (init() != PX4_OK) {
 			ScheduleClear();
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 			return;
 		}
 	}
@@ -74,7 +76,7 @@ void TimePersistor::Run()
 
 	if (write_time(ts.tv_sec) != PX4_OK) {
 		PX4_ERR("error writing RTC to time file");
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 }
@@ -88,8 +90,8 @@ int TimePersistor::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	instance->start();
 	return PX4_OK;
@@ -124,7 +126,7 @@ Explicitly setting the time backwards (e.g. via system_time) is still possible.
 
 extern "C" __EXPORT int time_persistor_main(int argc, char *argv[])
 {
-	return TimePersistor::main(argc, argv);
+	return ModuleBase::main(TimePersistor::desc, argc, argv);
 }
 
 int TimePersistor::init()

@@ -66,7 +66,7 @@ public:
 	~uORB_Zenoh_Publisher() override = default;
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
-	virtual int8_t update() override
+	virtual z_result_t update() override
 	{
 #ifdef CONFIG_ZENOH_PUB_ON_MATCHING
 		z_matching_status_t status;

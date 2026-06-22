@@ -121,7 +121,7 @@ The parameters have not been verified by an expert, so you should check them in 
 | CYa        | CYa                               | dCy/da (нахил бічної сили відносно кута атаки)                     |
 | Cla        | Cell                              | dCl/da (нахил моменту крену відносно кута атаки)                   |
 | Cma        | Cema                              | dCm/da (нахил моменту тангажу відносно кута атаки - до звалювання) |
-| Cna        | Cena                              | dCn/da (нахил моменту рискання відносно кута атаки)                |
+| Can        | Cena                              | dCn/da (нахил моменту рискання відносно кута атаки)                |
 | CLb        | CLb                               | dCL/dbeta (нахил коефіцієнту сили підйому відносно кута ковзання)  |
 | CYb        | CYb                               | dCY/dbeta (нахил бічної сили відносно кута ковзання)               |
 | Clb        | Cell                              | dCl/dbeta (нахил моменту крену відносно кута ковзання)             |

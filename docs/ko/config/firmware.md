@@ -30,7 +30,7 @@ PX4 설치
 
 :::
 
-4. Select the **PX4 Pro Stable Release vX.x.x** option to install the latest stable version of PX4 _for your flight controller_ (autodetected).
+4. Select the **PX4 Stable Release vX.x.x** option to install the latest stable version of PX4 _for your flight controller_ (autodetected).
 
    ![Install PX4 default](../../assets/qgc/setup/firmware/firmware_connected_default_px4.png)
 
@@ -56,15 +56,15 @@ Next you will need to specify the [vehicle airframe](../config/airframe.md) (and
 
 다른 버전의 PX4 설치
 
-1. Connect the vehicle as above, and select **PX4 Pro Stable Release vX.x.x**.
+1. Connect the vehicle as above, and select **PX4 Stable Release vX.x.x**.
    ![Install PX4 version](../../assets/qgc/setup/firmware/qgc_choose_firmware.png)
 2. Check **Advanced settings** and select the version from the dropdown list:
    - **Standard Version (stable):** The default version (i.e. no need to use advanced settings to install this!)
    - **Beta Testing (beta):** A beta/candidate release.
-      신규 버전 출시 이전에 테스트 할 경우에만 사용할 수 있습니다.
+     신규 버전 출시 이전에 테스트 할 경우에만 사용할 수 있습니다.
    - **Developer Build (master):** The latest build of PX4/PX4-Autopilot _main_ branch.
    - **Custom Firmware file...:** A custom firmware file (e.g. [that you have built locally](../dev_setup/building_px4.md)).
-      사용자 정의 펌웨어 파일을 선택한 경우 다음 단계에서 파일 시스템에서 사용자 정의 펌웨어를 선택하여야 합니다.
+     사용자 정의 펌웨어 파일을 선택한 경우 다음 단계에서 파일 시스템에서 사용자 정의 펌웨어를 선택하여야 합니다.
 
 그러면 펌웨어 업데이트가 이전과 같이 계속됩니다.
 

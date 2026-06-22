@@ -33,7 +33,7 @@ The documentation and driver information here should also make it easier to work
 Якщо використовуєте стандартний Pixhawk, ви можете підключити RoboClaw до автопілота без плати адаптера.
 :::
 
-RoboClaw повинен бути підключений до відповідного послідовного (UART) порту на контролері польоту, такого як `GPS2` або `TELEM1`.
+The RoboClaw should be connected to a suitable serial (UART) port on the flight controller, such as `GPS2` or `TELEM1`.
 Інші з'єднання RoboClaw детально описані в розділі [Посібник користувача RoboClaw](https://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf) "Проводка пакетної послідовної передачі даних" та показані нижче (ця настройка була перевірена на сумісність).
 
 ![Послідовне підключення енкодерів](../../assets/airframes/rover/aion_r1/wiring_r1.jpg)

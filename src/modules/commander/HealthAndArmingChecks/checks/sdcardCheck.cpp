@@ -46,40 +46,29 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 {
 #ifdef PX4_STORAGEDIR
 
-	if (_param_com_arm_sdcard.get() > 0) {
+#ifndef CONFIG_BOARD_NO_SDCARD
+	struct statfs statfs_buf;
 
-		struct statfs statfs_buf;
+	if (!_sdcard_detected && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
+		// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
+		_sdcard_detected = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
+	}
 
-		if (!_sdcard_detected && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
-			// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
-			_sdcard_detected = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
-		}
+	if (!_sdcard_detected) {
+		/* EVENT
+		 * @description
+		 * Insert an SD Card to the autopilot and reboot the system.
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
+					    events::ID("check_missing_fmu_sdcard"),
+					    events::Log::Error, "Missing FMU SD Card");
 
-		if (!_sdcard_detected) {
-			NavModes affected_modes{NavModes::None};
-
-			if (_param_com_arm_sdcard.get() == 2) {
-				// disallow arming without sd card
-				affected_modes = NavModes::All;
-			}
-
-			/* EVENT
-			 * @description
-			 * Insert an SD Card to the autopilot and reboot the system.
-			 *
-			 * <profile name="dev">
-			 * This check can be configured via <param>COM_ARM_SDCARD</param> parameter.
-			 * </profile>
-			 */
-			reporter.armingCheckFailure(affected_modes, health_component_t::system,
-						    events::ID("check_missing_fmu_sdcard"),
-						    events::Log::Error, "Missing FMU SD Card");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Missing FMU SD Card");
-			}
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Missing FMU SD Card");
 		}
 	}
+
+#endif // CONFIG_BOARD_NO_SDCARD
 
 #ifdef __PX4_NUTTX
 	// Check for hardfault files
@@ -125,6 +114,57 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Crash dumps present on SD");
 		}
 	}
+
+#if CONFIG_MODULES_TASK_WATCHDOG
+	// Check for task watchdog dump files
+
+	if (!_watchdog_checked_once && _param_com_arm_hardfault_check.get()) {
+		_watchdog_checked_once = true;
+
+		DIR *wdp = opendir(PX4_STORAGEDIR "/task_watchdog");
+
+		if (wdp != nullptr) {
+
+			struct dirent *wresult;
+
+			while ((wresult = readdir(wdp)) && !_watchdog_file_present) {
+
+				// Check for pattern wdg_*.log or load_*.log
+				const size_t len = strlen(wresult->d_name);
+
+				if (len > 5 && strcmp(wresult->d_name + len - 4, ".log") == 0) {
+					if (strncmp("wdg_", wresult->d_name, 4) == 0
+					    || strncmp("load_", wresult->d_name, 5) == 0) {
+						_watchdog_file_present = true;
+					}
+				}
+			}
+
+			closedir(wdp);
+		}
+	}
+
+	if (_watchdog_file_present && _param_com_arm_hardfault_check.get()) {
+		/* EVENT
+		 * @description
+		 * The SD card contains task watchdog dump files from a previous task starvation event.
+		 *
+		 * <profile name="dev">
+		 * Remove the files in the 'task_watchdog' directory on the SD card after analysis.
+		 *
+		 * This check can be configured via <param>COM_ARM_HFLT_CHK</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system,
+				       events::ID("check_task_watchdog_present"),
+				       events::Log::Error, "Task watchdog dumps present on SD card");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Task watchdog dumps present on SD");
+		}
+	}
+
+#endif /* CONFIG_MODULES_TASK_WATCHDOG */
 
 #endif /* __PX4_NUTTX */
 #endif /* PX4_STORAGEDIR */

@@ -16,13 +16,13 @@ armhf와 arm64 arch가 모두 지원됩니다.
 - [Ubuntu Server 18.04.5 for RPi2](https://cdimage.ubuntu.com/releases/18.04.5/release/ubuntu-18.04.5-preinstalled-server-armhf+raspi2.img.xz)
 - [Ubuntu Server 18.04.5 for RPi3](https://cdimage.ubuntu.com/releases/18.04.5/release/ubuntu-18.04.5-preinstalled-server-armhf+raspi3.img.xz)
 - [Ubuntu Server 18.04.5 for RPi4](https://cdimage.ubuntu.com/releases/18.04.5/release/ubuntu-18.04.5-preinstalled-server-armhf+raspi4.img.xz)
-- [Ubuntu Server 20.04.1 for RPi 2/3/4](https://cdimage.ubuntu.com/releases/20.04.1/release/ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz)
+- [Ubuntu Server 20.04.1 for RPi 2/3/4](https://old-releases.ubuntu.com/releases/focal/ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz)
 
 #### arm64
 
 - [Ubuntu Server 18.04.5 for RPi3](https://cdimage.ubuntu.com/releases/18.04.5/release/ubuntu-18.04.5-preinstalled-server-arm64+raspi3.img.xz)
 - [Ubuntu Server 18.04.5 for RPi4](https://cdimage.ubuntu.com/releases/18.04.5/release/ubuntu-18.04.5-preinstalled-server-arm64+raspi4.img.xz)
-- [Ubuntu Server 20.04.1 for RPi 3/4](https://cdimage.ubuntu.com/releases/20.04.1/release/ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz)
+- [Ubuntu Server 20.04.1 for RPi 3/4](https://old-releases.ubuntu.com/releases/focal/ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz)
 
 #### 최신 운영체제
 
@@ -206,7 +206,7 @@ Don't forget to turn off the switch when it is not needed!
 #### CSI 카메라
 
 :::warning
-Enable CSI camera will stop anything works on I2C-0.
+Enabling CSI camera will stop anything that works on I2C-0.
 :::
 
 ```sh

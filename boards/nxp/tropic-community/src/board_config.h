@@ -112,7 +112,6 @@
 
 #define GPIO_DRDY_OFF_SPI4_DRDY7_EXTERNAL1   _PIN_OFF(GPIO_SPI4_DRDY7_EXTERNAL1)
 
-
 #define ADC_IOMUX (IOMUX_CMOS_INPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_HIZ)
 
 #define ADC1_CH(n)                  (n)
@@ -171,7 +170,7 @@
 #define TONE_ALARM_TIMER        3  /* FlexPWM 3 */
 #define TONE_ALARM_CHANNEL      1  /* GPIO_EMC_31 PWM3_PWMA01 */
 
-#define GPIO_BUZZER_1           /* GPIO_EMC_31  GPIO4_IO31  */ (GPIO_PORT1 | GPIO_PIN23  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
+#define GPIO_BUZZER_1           /* GPIO_EMC_31  GPIO4_IO31  */ (GPIO_PORT4 | GPIO_PIN31  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
 
 #define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
 #define GPIO_TONE_ALARM         (GPIO_FLEXPWM3_PWMA01_1 | GENERAL_OUTPUT_IOMUX)
@@ -262,6 +261,10 @@ static inline int board_read_usb2_vbus_state(void)
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+/* Flash instance for storage */
+#define NOR_INSTANCE      0
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -316,6 +319,8 @@ extern int imxrt1062_spi_bus_initialize(void);
  *
  ************************************************************************************/
 
+extern void imxrt_spiinitialize(void);
+
 extern int imxrt_usb_initialize(void);
 
 extern void imxrt_usbinitialize(void);
@@ -325,6 +330,8 @@ extern void board_peripheral_reset(int ms);
 extern void fmurt1062_timer_initialize(void);
 
 #include <px4_platform_common/board_common.h>
+
+void imxrt_flash_romapi_initialize(void);
 
 int imxrt_flexspi_storage_initialize(void);
 

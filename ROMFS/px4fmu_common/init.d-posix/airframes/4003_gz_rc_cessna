@@ -44,16 +44,12 @@ param set-default FW_T_SINK_MIN 3
 
 param set-default FW_W_EN 1
 
-param set-default FD_ESCS_EN 0
-
 param set-default MIS_TAKEOFF_ALT 30
 
 param set-default NAV_ACC_RAD 15
 param set-default NAV_DLL_ACT 2
 
 param set-default RWTO_TKOFF 1
-
-param set-default CA_AIRFRAME 1
 
 param set-default COM_PREARM_MODE 2
 

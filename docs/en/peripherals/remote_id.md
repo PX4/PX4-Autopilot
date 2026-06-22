@@ -143,20 +143,19 @@ The [CAN Remote ID Not Working](../peripherals/remote_id.md#can-remote-id-not-wo
 
 There is no need to explicitly enable Remote ID (supported Remote ID messages are either streamed by default or must be requested in the current implementation, even if no remote ID is connected).
 
-### Prevent Arming based on Remote ID
+### Remote ID Failsafe and Arming Check
 
-To only allow arming when a Remote ID is ready, [set](../advanced_config/parameters.md#conditional-parameters) the parameter [COM_ARM_ODID](#COM_ARM_ODID) to `2` (it is disabled by default).
+<Badge type="tip" text="PX4 v1.18" />
 
-| Parameter                                                                                       | Description                                                                                                                                                                            |
-| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Enable Drone ID system detection and health check. `0`: Disable (default), `1`: Warn if Remote ID not detected but still allow arming, `2`: Only allow arming if Remote ID is present. |
+The [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) parameter configures both the arming check and the in-flight failsafe action when the Remote ID system is missing or unhealthy.
+For more information see [Remote ID Failsafe](http://localhost:5173/px4_user_guide/en/config/safety#remote-id-failsafe) in _Safety Configuration_.
 
 ## Module Broadcast Testing
 
 Integrators should test than the remote ID module is broadcasting the correct information, such as UAV location, ID, operator ID and so on.
 This is most easily done using a 3rd party application on your mobile device:
 
-- [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
+- [Drone Scanner](https://help.dronetag.com/drone-scanner/) (Google Play or Apple App store)
 - [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## Implementation
@@ -165,7 +164,6 @@ PX4 v1.14 streams these messages by default (in streaming modes: normal, onboard
 
 - [OPEN_DRONE_ID_LOCATION](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_LOCATION) (1 Hz) - UAV location, altitude, direction, and speed.
 - [OPEN_DRONE_ID_SYSTEM](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_SYSTEM) (1 Hz) Operator location/altitude, multiple aircraft information (group/swarm, if applicable), full timestamp and possible category/class information.
-
   - Implementation assumes operator is located at vehicle home position (does not yet support getting operator position from GCS).
     This is believed to be compliant for broadcast-only Remote IDs.
 
@@ -174,7 +172,7 @@ The following message can be streamed on request (using [MAV_CMD_SET_MESSAGE_INT
 - [OPEN_DRONE_ID_BASIC_ID](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_BASIC_ID) - UAV identity information (essentially a serial number)
   - PX4 v1.14 specifies a serial number ([MAV_ODID_ID_TYPE_SERIAL_NUMBER](https://mavlink.io/en/messages/common.html#MAV_ODID_ID_TYPE_SERIAL_NUMBER)) but does not use the required format (ANSI/CTA-2063 format).
 
-PX4 prevents arming based on Remote ID health if parameter [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) is set to `2`.
+PX4 can prevent arming and/or trigger an in-flight failsafe based on Remote ID health via the [COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) parameter.
 The UAV will then require `HEARTBEAT` messages from the Remote ID as a precondition for arming the UAV.
 You can also set the parameter to `1` to warn but still allow arming when Remote ID `HEARTBEAT` messages are not detected.
 
@@ -243,7 +241,7 @@ If the Remote ID CAN node is present and the messages are not being received, th
 2. Navigate to the [Application settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html): **Application Settings > General > Miscellaneous**.
 3. Select `Enable Remote ID`.
    The Remote ID tab should appear.
- 
+
    ::: info
    If this option is not present you may be in a very recent version of QGC.
    In that case, open the view at: **Application Settings > Remote ID**.

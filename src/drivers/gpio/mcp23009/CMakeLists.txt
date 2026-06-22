@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__mcp23009
+	MODULE drivers__gpio__mcp23009
 	MAIN mcp23009
-	COMPILE_FLAGS
 	SRCS
-		mcp23009_main.cpp
-		mcp23009.cpp
+		MCP23009_main.cpp
+		MCP23009.cpp
 	DEPENDS
+		mcp_common
 	)

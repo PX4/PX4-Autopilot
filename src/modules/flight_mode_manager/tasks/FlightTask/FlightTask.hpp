@@ -201,6 +201,7 @@ protected:
 	/* Current vehicle state */
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
+	matrix::Vector3f _acceleration; /**< current vehicle acceleration (derivative of velocity) */
 
 	float _yaw{}; /**< current vehicle yaw heading */
 	float _unaided_yaw{};

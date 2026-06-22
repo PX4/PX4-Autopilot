@@ -14,50 +14,52 @@ This section describes the VTOL types and configurations supported by PX4, and p
 
 ## VTOL Types
 
-PX4 supports the three most important/main VTOL types.
+PX4 supports the three most important/main VTOL types: [Standard VTOL](standardvtol.md), [Tiltrotor](tiltrotor.md), and [Tailsitter](tailsitter.md).
 
-<div class="grid_wrapper three_column">
-  <div class="grid_item">
-    <div class="grid_item_heading"><a href="tailsitter.html" title="Tailsitter"><big>Tailsitter</big></a></div>
-    <div class="grid_text">
-    Rotors permanently in fixed-wing position.
-    Takes off and lands on tail. Whole vehicle tilts forward to enter forward flight.
-    <img src="../../assets/airframes/vtol/wingtraone/hero.jpg" title="wingtraone" />
-    <ul>
-      <li>Simple and robust</li>
-      <li>Minimal set of actuators</li>
-      <li>Can be hard to control, particularly in wind</li>
-      <li>Tradeoff between efficiency in hover and forward flight, as same actuators are used</li>
-    </ul>
-    </div>
-  </div>
-<div class="grid_item">
-  <div class="grid_item_heading"><a href="tiltrotor.html" title="Tiltrotor"><big>Tiltrotor</big></a></div>
-  Rotors swivel 90 degrees to transition from multicopter to forward flight orientation.
-  Takes off and lands on belly.
-  <div class="grid_text">
-  <img src="../../assets/airframes/vtol/eflite_convergence_pixfalcon/hero.jpg" title="Eflight Confvergence" />
-  <ul>
-    <li>Additional actuators for motor tilts</li>
-    <li>Mechanically complex tilting mechanism</li>
-    <li>Easier to control in hover than tailsitters due to more control authority</li>
-  </ul>
-  </div>
-</div>
-<div class="grid_item">
-  <div class="grid_item_heading"><a href="standardvtol.html" title="Standard VTOL"><big>Standard VTOL</big></a></div>
-  <div class="grid_text">
-  Separate rotors/flight controls for multicopter and forward flight. Takes off and lands on belly.
-  <img src="../../assets/airframes/vtol/vertical_technologies_deltaquad/hero_small.png" title="Vertical Technologies: Deltaquad" />
-  <ul>
-    <li>Additional weight from separate hover/forward flight propulsion systems</li>
-    <li>Easiest to control due to dedicated hover/forward flight actuators</li>
-    <li>Can hover</li>
-    <li>Fuel engines for forward flight propulsion can be used</li>
-  </ul>
-  </div>
- </div>
-</div>
+:::: tabs
+
+::: tab Standard VTOL
+
+Separate rotors/flight controls for multicopter and forward flight.
+Takes off and lands on belly.
+
+![Vertical Technologies: Deltaquad](../../assets/airframes/vtol/vertical_technologies_deltaquad/hero_small.png)
+
+- Additional weight from separate hover/forward flight propulsion systems
+- Easiest to control due to dedicated hover/forward flight actuators
+- Can hover
+- Fuel engines can be used for forward flight propulsion
+
+:::
+
+::: tab Tailsitter
+
+Rotors permanently in fixed-wing position.
+Takes off and lands on tail. Whole vehicle tilts forward to enter forward flight.
+
+![wingtraone](../../assets/airframes/vtol/wingtraone/hero.jpg)
+
+- Simple and robust
+- Minimal set of actuators
+- Can be hard to control, particularly in wind
+- Tradeoff between efficiency in hover and forward flight, as same actuators are used
+
+:::
+
+::: tab Tiltrotor
+
+Rotors swivel 90 degrees to transition from multicopter to forward flight orientation.
+Takes off and lands on belly.
+
+![Eflight Confvergence](../../assets/airframes/vtol/eflite_convergence_pixfalcon/hero.jpg)
+
+- Additional actuators for motor tilts
+- Mechanically complex tilting mechanism
+- Easier to control in hover than tailsitters due to more control authority
+
+:::
+
+::::
 
 In general, as mechanical complexity increases the vehicles are easier to fly, but the cost and weight increase.
 Each type has advantages and disadvantages, and there are successful commercial ventures based on all of them.
@@ -125,7 +127,7 @@ VTOL Control & Airspeed Fault Detection (PX4 Developer Summit 2019)
 
 <!-- 20190704 -->
 
-### Tailsitter
+### Tailsitter {#tailsitter_video}
 
 [UAV Works VALAQ Patrol Tailsitter](https://www.valaqpatrol.com/valaq_patrol_technical_data/)
 
@@ -135,7 +137,7 @@ VTOL Control & Airspeed Fault Detection (PX4 Developer Summit 2019)
 
 <lite-youtube videoid="acG0aTuf3f8" title="PX4 VTOL - Call for Testpilots"/>
 
-### Tiltrotor
+### Tiltrotor {#tiltrotor_video}
 
 [Convergence Tiltrotor](../frames_vtol/vtol_tiltrotor_eflite_convergence_pixfalcon.md)
 

@@ -50,6 +50,11 @@ int ActuatorEffectiveness::Configuration::addActuator(ActuatorType type, const m
 		return -1;
 	}
 
+	if (type == ActuatorType::MOTORS && selected_matrix != 0) {
+		PX4_ERR("Trying to add motors to matrix %d (add to matrix 0)", selected_matrix);
+		return -1;
+	}
+
 	effectiveness_matrices[selected_matrix](ActuatorEffectiveness::ControlAxis::ROLL, actuator_idx) = torque(0);
 	effectiveness_matrices[selected_matrix](ActuatorEffectiveness::ControlAxis::PITCH, actuator_idx) = torque(1);
 	effectiveness_matrices[selected_matrix](ActuatorEffectiveness::ControlAxis::YAW, actuator_idx) = torque(2);
@@ -84,10 +89,10 @@ int ActuatorEffectiveness::Configuration::totalNumActuators() const
 	return total_count;
 }
 
-void ActuatorEffectiveness::stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp)
+void ActuatorEffectiveness::stopMaskedMotorsWithZeroThrust(ActuatorBitmask stoppable_motors_mask, ActuatorVector &actuator_sp)
 {
 	for (int actuator_idx = 0; actuator_idx < NUM_ACTUATORS; actuator_idx++) {
-		const uint32_t motor_mask = (1u << actuator_idx);
+		const ActuatorBitmask motor_mask = (1u << actuator_idx);
 
 		if (stoppable_motors_mask & motor_mask) {
 

@@ -1,11 +1,37 @@
+---
+pageClass: is-wide-page
+---
+
 # TrajectorySetpoint (UORB message)
 
-Trajectory setpoint in NED frame
-Input to PID position controller.
-Needs to be kinematically consistent and feasible for smooth flight.
-setting a value to NaN means the state should not be controlled
+Trajectory setpoint in NED frame. Input to PID position controller. Needs to be kinematically consistent and feasible for smooth flight. setting a value to NaN means the state should not be controlled.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/TrajectorySetpoint.msg)
+**TOPICS:** trajectory_setpoint
+
+## Fields
+
+| 参数名                                       | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                  |
+| ----------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`     |                                                                  |            | time since system start (microseconds)                           |
+| <a id="fld_position"></a>position         | `float32[3]` |                                                                  |            | in meters                                                                           |
+| <a id="fld_velocity"></a>velocity         | `float32[3]` |                                                                  |            | in meters/second                                                                    |
+| <a id="fld_acceleration"></a>acceleration | `float32[3]` |                                                                  |            | in meters/second^2                                                                  |
+| <a id="fld_jerk"></a>jerk                 | `float32[3]` |                                                                  |            | in meters/second^3 (for logging only)                            |
+| <a id="fld_yaw"></a>yaw                   | `float32`    |                                                                  |            | euler angle of desired attitude in radians -PI..+PI |
+| <a id="fld_yawspeed"></a>yawspeed         | `float32`    |                                                                  |            | angular velocity around NED frame z-axis in radians/second                          |
+
+## Constants
+
+| 参数名                                                                | 类型       | 值 | 描述 |
+| ------------------------------------------------------------------ | -------- | - | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/TrajectorySetpoint.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Trajectory setpoint in NED frame
@@ -25,5 +51,6 @@ float32[3] jerk # in meters/second^3 (for logging only)
 
 float32 yaw # euler angle of desired attitude in radians -PI..+PI
 float32 yawspeed # angular velocity around NED frame z-axis in radians/second
-
 ```
+
+:::

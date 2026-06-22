@@ -54,7 +54,7 @@ Plan a mission on the ground. Ensure the mission has
 - Take-off should be smooth as throttle is raised
 - Mission should upload on first attempt
 - Vehicle should automatically take-off upon engaging Auto
-- Vehicle shoud adjust height to RTL altitude before returning home
+- Vehicle should adjust height to RTL altitude before returning home
 - Upon landing, copter should not bounce on the ground
 
 <!--

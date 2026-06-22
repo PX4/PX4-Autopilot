@@ -40,6 +40,9 @@ px4_add_module(
 		SPL06_I2C.cpp
 		SPL06_SPI.cpp
 		spl06_main.cpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

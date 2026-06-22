@@ -47,6 +47,7 @@
 #include <lib/mathlib/mathlib.h>
 
 using matrix::Vector2f;
+using matrix::Vector3f;
 using math::constrain;
 
 using namespace time_literals;
@@ -65,7 +66,7 @@ public:
 	// define max number of GPS receivers supported for blending
 	static constexpr int GPS_MAX_RECEIVERS_BLEND = 2;
 
-	void setGpsData(const sensor_gps_s &gps_data, int instance)
+	void setGpsData(const sensor_gps_s &gps_data, uint8_t instance)
 	{
 		if (instance < GPS_MAX_RECEIVERS_BLEND) {
 			_gps_state[instance] = gps_data;
@@ -77,6 +78,11 @@ public:
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }
 	void setBlendingTimeConstant(float tau) { _blending_time_constant = tau; }
 	void setPrimaryInstance(int primary) { _primary_instance = primary; }
+	void setAntennaOffset(const Vector3f &offset, uint8_t instance)
+	{
+		if (instance < GPS_MAX_RECEIVERS_BLEND) { _antenna_offset[instance] = offset; }
+	}
+	const Vector3f &getOutputAntennaOffset() const { return _output_antenna_offset; }
 
 	void update(uint64_t hrt_now_us);
 
@@ -144,4 +150,7 @@ private:
 	bool _blend_use_vpos_acc{false};
 
 	float _blending_time_constant{0.f};
+
+	Vector3f _antenna_offset[GPS_MAX_RECEIVERS_BLEND] {};
+	Vector3f _output_antenna_offset {};
 };

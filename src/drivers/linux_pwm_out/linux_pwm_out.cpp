@@ -40,6 +40,8 @@
 
 using namespace pwm_out;
 
+ModuleBase::Descriptor LinuxPWMOut::desc{task_spawn, custom_command, print_usage};
+
 LinuxPWMOut::LinuxPWMOut() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
@@ -77,8 +79,8 @@ int LinuxPWMOut::task_spawn(int argc, char *argv[])
 	LinuxPWMOut *instance = new LinuxPWMOut();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -89,16 +91,21 @@ int LinuxPWMOut::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
 
-bool LinuxPWMOut::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-				unsigned num_outputs, unsigned num_control_groups_updated)
+bool LinuxPWMOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	_pwm_out->send_output_pwm(outputs, num_outputs);
+	uint16_t hw_outputs[MAX_ACTUATORS] {};
+
+	for (unsigned i = 0; i < num_outputs; i++) {
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
+	}
+
+	_pwm_out->send_output_pwm(hw_outputs, num_outputs);
 	return true;
 }
 
@@ -108,7 +115,7 @@ void LinuxPWMOut::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -166,5 +173,5 @@ Linux PWM output driver with board-specific backend implementation.
 
 extern "C" __EXPORT int linux_pwm_out_main(int argc, char *argv[])
 {
-	return LinuxPWMOut::main(argc, argv);
+	return ModuleBase::main(LinuxPWMOut::desc, argc, argv);
 }

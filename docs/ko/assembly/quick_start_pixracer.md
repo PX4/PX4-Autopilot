@@ -52,7 +52,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 Pixracer has inbuilt WiFi, but also supports telemetry via external Wi-Fi or radio telemetry modules connected to the `TELEM1` or `TELEM2` ports.
 무선 다이어그램은 아래의 그림과 같습니다.
 
-![Pixracer external telemtry options](../../assets/flight_controller/pixracer/pixracer_top_telemetry.jpg)
+![Pixracer external telemetry options](../../assets/flight_controller/pixracer/pixracer_top_telemetry.jpg)
 
 :::info
 The `TELEM2` port must be configured as a second MAVLink instance using the [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) parameter.

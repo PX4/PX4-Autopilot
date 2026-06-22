@@ -211,13 +211,13 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			// This is declared critical so QGC displays a yellow box and reads "low battery" out loud making the user aware
 
 			/* EVENT
-			* @description
-			* The lowest battery state of charge is below the low threshold.
-			*
-			* <profile name="dev">
-			* Can be configured with <param>BAT_LOW_THR</param>.
-			* </profile>
-			*/
+			 * @description
+			 * The lowest battery state of charge is below the low threshold.
+			 *
+			 * <profile name="dev">
+			 * Can be configured with <param>BAT_LOW_THR</param>.
+			 * </profile>
+			 */
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"),
 						    events::Log::Critical, "Low battery");
 
@@ -229,13 +229,13 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 		case battery_status_s::WARNING_CRITICAL:
 			/* EVENT
-			* @description
-			* The lowest battery state of charge is below the critical threshold.
-			*
-			* <profile name="dev">
-			* Can be configured with <param>BAT_CRIT_THR</param> and from when to disalow arming with <param>COM_ARM_BAT_MIN</param>.
-			* </profile>
-			*/
+			 * @description
+			 * The lowest battery state of charge is below the critical threshold.
+			 *
+			 * <profile name="dev">
+			 * Can be configured with <param>BAT_CRIT_THR</param> and from when to disalow arming with <param>COM_ARM_BAT_MIN</param>.
+			 * </profile>
+			 */
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_critical"),
 						    events::Log::Critical, "Critical battery");
 
@@ -247,13 +247,13 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 		case battery_status_s::WARNING_EMERGENCY:
 			/* EVENT
-			* @description
-			* The lowest battery state of charge is below the emergency threshold.
-			*
-			* <profile name="dev">
-			* Can be configured with <param>BAT_EMERGEN_THR</param>.
-			* </profile>
-			*/
+			 * @description
+			 * The lowest battery state of charge is below the emergency threshold.
+			 *
+			 * <profile name="dev">
+			 * Can be configured with <param>BAT_EMERGEN_THR</param>.
+			 * </profile>
+			 */
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_emergency"),
 						    events::Log::Emergency, "Emergency battery level");
 

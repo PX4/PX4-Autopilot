@@ -786,7 +786,7 @@ sudo apt install build-essential cmake git genromfs kconfig-frontends libncurses
 ## Building/Flashing the Pixhawk
 
 The recommended way to update PX4 is on the Pixhawk part of the board is to use your development computer.
-You can either install install prebuilt binaries with QGroundControl, or first build and then upload custom firmware.
+You can either install prebuilt binaries with QGroundControl, or first build and then upload custom firmware.
 
 Alternatively, you can build and deploy PX4 firmware to the Pixhawk part from the Jetson.
 
@@ -1329,7 +1329,7 @@ You should see high frequency sensor messages as the output:
 [sensor_combined_listener-1] accelerometer_integral_dt: 4999
 ```
 
-## See Also
+## 另见
 
 - [Jetson carrier board Holybro Docs](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-jetson-baseboard)
 - [PX4 Middleware docs](../middleware/uxrce_dds.md#starting-the-client)

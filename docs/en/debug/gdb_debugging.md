@@ -25,7 +25,7 @@ See the debug probe documentation for details on how to setup your debug connect
 
 - [SEGGER J-Link](probe_jlink.md): commercial probe, no built-in serial console, requires adapter.
 - [Black Magic Probe](probe_bmp.md): integrated GDB server and serial console, requires adapter.
-- [STLink](probe_stlink): best value, integrated serial console, adapter must be soldered.
+- [STLink](probe_stlink.md): best value, integrated serial console, adapter must be soldered.
 
 We recommend using the J-Link with the Pixhawk Debug Adapter or the STLinkv3-MINIE with a soldered custom cable.
 

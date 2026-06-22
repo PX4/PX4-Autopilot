@@ -38,7 +38,10 @@ px4_add_module(
 	SRCS
 		SensorBaroSim.cpp
 		SensorBaroSim.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
+		drivers_barometer
 		geo
 		px4_work_queue
 	)

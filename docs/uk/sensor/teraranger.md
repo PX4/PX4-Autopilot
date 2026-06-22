@@ -1,12 +1,17 @@
-# Дальніміри TeraRanger
+# TeraRanger Rangefinders (Discontinued)
+
+:::warning
+TeraRanger Evo sensors were discontinued by Terabee in May 2024.
+Limited stock may still be available from third-party resellers such as [Tribotix](https://tribotix.com/product/teraranger-evo-60m/).
+:::
 
 TeraRanger надає ряд легких сенсорів вимірювання відстані на основі інфрачервоної технології часу польоту (ToF).
 Вони зазвичай швидші і мають більший діапазон, ніж ехолокатори, і менші та легші, ніж системи на основі лазера.
 
 PX4 підтримує:
 
-- [TeraRanger Evo 60m](https://www.terabee.com/shop/lidar-tof-range-finders/teraranger-evo-60m/) (0.5 – 60 m)
-- [TeraRanger Evo 600Hz](https://www.terabee.com/shop/lidar-tof-range-finders/teraranger-evo-600hz/) (0.75 - 8 m)
+- [TeraRanger Evo 60m](https://tribotix.com/product/teraranger-evo-60m/) (0.5 – 60 m)
+- [TeraRanger Evo 600Hz](https://tribotix.com/product/teraranger-evo-600hz/) (0.75 - 8 m)
 
 :::info
 PX4 also supports _TeraRanger One_ (I2C adapter required).

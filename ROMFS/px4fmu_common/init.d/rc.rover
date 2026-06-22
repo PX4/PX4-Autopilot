@@ -1,0 +1,10 @@
+#!/bin/sh
+# Standard apps for all rovers.
+
+# Start Land Detector.
+land_detector start rover
+
+if param compare HIWONDER_EMM_EN 1
+then
+	hiwonder_emm start
+fi

@@ -89,12 +89,6 @@ extern int buf_get(void);
 #define LED_ACTIVITY  1
 #define LED_BOOTLOADER  2
 
-#ifdef BOOT_DELAY_ADDRESS
-# define BOOT_DELAY_SIGNATURE1  0x92c2ecff
-# define BOOT_DELAY_SIGNATURE2  0xc5057d5d
-# define BOOT_DELAY_MAX   30
-#endif
-
 #define MAX_DES_LENGTH 20
 #define MAX_VERSION_LENGTH 32
 

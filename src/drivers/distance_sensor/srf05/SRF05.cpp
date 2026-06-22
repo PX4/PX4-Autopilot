@@ -46,6 +46,8 @@
 
 #include <px4_arch/micro_hal.h>
 
+ModuleBase::Descriptor SRF05::desc{task_spawn, custom_command, print_usage};
+
 SRF05::SRF05(const uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0 /* no device type for GPIO input */, rotation)
@@ -114,7 +116,7 @@ SRF05::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -195,8 +197,8 @@ int SRF05::task_spawn(int argc, char *argv[])
 	SRF05 *instance = new SRF05(rotation);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -207,8 +209,8 @@ int SRF05::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -251,7 +253,7 @@ SRF05::print_status()
 
 extern "C" __EXPORT int srf05_main(int argc, char *argv[])
 {
-	return SRF05::main(argc, argv);
+	return ModuleBase::main(SRF05::desc, argc, argv);
 }
 #else
 # error ("GPIO_ULTRASOUND_xxx not defined. Driver not supported.");

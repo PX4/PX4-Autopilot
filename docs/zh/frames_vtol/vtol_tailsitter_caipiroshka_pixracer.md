@@ -4,7 +4,7 @@ The Caipiroshka VTOL is a slightly modified _TBS Caipirinha_.
 
 :::info
 The _TBS Caipirinha_ has been superseded and is no longer available.
-These instructions _should_ work with the updated vehicle: [TBS Caipirinha 2](https://team-blacksheep.com/products/prod:tbs_caipi2_pnp).
+These instructions _should_ work with the updated vehicle: [TBS Caipirinha 2](https://www.team-blacksheep.com/products/prod:tbs_caipi2_pnp).
 A number of other components have been updated in the parts list too.
 :::
 
@@ -12,7 +12,7 @@ A number of other components have been updated in the parts list too.
 
 ## 配件列表
 
-- TBS Caipirinha Wing (no longer available - try [TBS Caipirinha 2](https://team-blacksheep.com/products/prod:tbs_caipi2_pnp))
+- TBS Caipirinha Wing (no longer available - try [TBS Caipirinha 2](https://www.team-blacksheep.com/products/prod:tbs_caipi2_pnp))
 - Left and right 3D-printed motor mount (<a href="https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/caipiroshka/motor_mounts.zip" target="_blank">design files</a>)
 - CW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-CWCCW-Propeller-For-Quadcopters-1-Pair-p-950874.html))
 - CCW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-CWCCW-Propeller-For-Quadcopters-1-Pair-p-950874.html))
@@ -24,7 +24,7 @@ A number of other components have been updated in the parts list too.
   - [GetFPV](https://www.getfpv.com/lumenier-30a-blheli-s-esc-opto-2-4s.html)
 - BEC（3A，5-5.3V）（如果你的电调不能提供5V的输出，可以用这个）
 - 3S 2200 mA锂电池
-  - Team Orion 3S 11.1V 50 C ([Hobbyshop store](https://www.hobbyshop.ch/modellbau-elektronik/akku/team-orion-lipo-2200-3s-11-1v-50c-xt60-ori60163.html))
+  - Team Orion 3S 11.1V 50 C ([Hobbyshop store](https://www.hobbyshop.ch/team-orion-lipo-2200-3s-11-1v-50c-xt60-ori60163.html))
 - [Pixracer autopilot board + power module](../flight_controller/pixracer.md)
 - [Digital airspeed sensor](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
 

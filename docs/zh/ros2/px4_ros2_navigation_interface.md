@@ -104,7 +104,7 @@ Experimental
 要发送位置测量数据，你需要用所测量的值填充位置结构体。
 然后以此结构调用接口的更新功能作为参数。
 
-关于如何使用此接口的基本示例，请在“Auterion/px4-ros2-interface-lib”仓库中查看 [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) 例如[示例/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/local_navigation.hpp)或[示例/cpp/navigation/global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/global_navigation.hpp)。
+For a basic example of how to use this interface, check out the [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) in the `Auterion/px4-ros2-interface-lib` repository, such as [examples/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/local_navigation.hpp) or [examples/cpp/navigation/global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/global_navigation/include/global_navigation.hpp).
 
 ### 局部位置更新
 
@@ -223,7 +223,7 @@ private:
 
 ### 全局位置更新
 
-首先确保正确配置 PX4 参数[`EKF2_EV_CTRL`](../advanced_config/parameter_reference.md#EKF2_AGP_CTRL)通过将相应的位设置为true，可以正确配置（系统）以融合外部全部测量数据：
+First ensure that the PX4 [`EKF2_AGP_CTRLn`](../advanced_config/parameter_reference.md#EKF2_AGP0_CTRL) parameters are properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
 
 - `0`: 水平位置数据
 - `1`：垂直位置数据

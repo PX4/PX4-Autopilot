@@ -46,7 +46,6 @@
 #include <ActuatorEffectivenessStandardVTOL.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
 #include <ActuatorEffectivenessTailsitterVTOL.hpp>
-#include <ActuatorEffectivenessRoverAckermann.hpp>
 #include <ActuatorEffectivenessFixedWing.hpp>
 #include <ActuatorEffectivenessMCTilt.hpp>
 #include <ActuatorEffectivenessCustom.hpp>
@@ -54,6 +53,8 @@
 #include <ActuatorEffectivenessHelicopter.hpp>
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>
 #include <ActuatorEffectivenessSpacecraft.hpp>
+
+#include "ActuatorGroupPreflightCheck.hpp"
 
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
@@ -80,16 +81,23 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
-class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
+class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
 	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
 
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
+	static constexpr float ICE_SHEDDING_ON_SEC = 2.0f;
+	static constexpr float ICE_SHEDDING_OUTPUT = 0.01f;
+
+
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
+	using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
 
 	ControlAllocator();
 
@@ -139,6 +147,10 @@ private:
 
 	void publish_actuator_controls();
 
+	void handle_stopped_motors(const hrt_abstime now);
+
+	float get_ice_shedding_output(hrt_abstime now);
+
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
@@ -159,8 +171,8 @@ private:
 		HELICOPTER_TAIL_ESC = 10,
 		HELICOPTER_TAIL_SERVO = 11,
 		HELICOPTER_COAXIAL = 12,
-		SPACECRAFT_2D = 13,
-		SPACECRAFT_3D = 14,
+		ROVER_MECANUM = 13,
+		SPACECRAFT_2D = 14,
 	};
 
 	enum class FailureMode {
@@ -175,8 +187,15 @@ private:
 	int _num_actuators[(int)ActuatorType::COUNT] {};
 
 	// Inputs
+	//
+	// Torque and thrust setpoints are usually published together.
+	// Only torque drives the callback so control allocation runs once, then Run() reads the latest thrust.
+	// Refs:
+	//   - https://github.com/PX4/PX4-Autopilot/pull/24955
+	//   - https://github.com/PX4/PX4-Autopilot/issues/24230
+	//   - https://github.com/PX4/PX4-Autopilot/issues/26971
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
-	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};  /**< vehicle thrust setpoint subscription, polled when torque is triggered*/
 
 	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
 	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
@@ -203,9 +222,12 @@ private:
 	uint16_t _handled_motor_failure_bitmask{0};
 	uint16_t _motor_stop_mask{0};
 
+	ActuatorGroupPreflightCheck _actuator_group_preflight_check;
+
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	bool _armed{false};
+	bool _is_vtol{false};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
@@ -214,11 +236,13 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ice_shedding_period
 	)
 
 };

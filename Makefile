@@ -162,6 +162,12 @@ else
 
 endif
 
+# Prefer the interpreter from an active Python virtual environment.
+# Otherwise leave PYTHON_EXECUTABLE unset and let CMake resolve Python.
+ifneq ($(strip $(VIRTUAL_ENV)),)
+	PYTHON_EXECUTABLE ?= $(VIRTUAL_ENV)/bin/python
+endif
+
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
 	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
@@ -171,10 +177,27 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-	$(eval override CMAKE_ARGS += -DCONFIG=$(1))
+	# Strip BUILD_DIR_SUFFIX (e.g. _replay, _failsafe_web) from CONFIG so the
+	# board lookup in cmake/px4_config.cmake sees the bare <vendor>_<model>_<label>
+	# even when the build dir is suffixed for variant builds.
+	$(eval override CMAKE_ARGS += -DCONFIG=$(patsubst %$(BUILD_DIR_SUFFIX),%,$(1)))
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
+	@# NuttX builds into the shared submodule trees under platforms/nuttx/NuttX/{nuttx,apps},
+	@# not into build/$(1)/. Recursive make there does not treat PX4 defconfig changes as a
+	@# reason to recompile, so switching board configs links stale objects (e.g. kmm_* from a
+	@# protected build into a flat build). Wipe the submodules when the active target changes,
+	@# mirroring Tools/ci/build_all_runner.sh.
+	@mkdir -p "$(SRC_DIR)/build"
+	@stamp="$(SRC_DIR)/build/.last_target"; \
+	prev=$$(cat "$$stamp" 2>/dev/null || echo ""); \
+	if [ "$$prev" != "$(1)" ]; then \
+		[ -n "$$prev" ] && echo "switching NuttX target $$prev -> $(1): wiping submodule state"; \
+		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/nuttx" clean -dXfq 2>/dev/null || true; \
+		git -C "$(SRC_DIR)/platforms/nuttx/NuttX/apps"  clean -dXfq 2>/dev/null || true; \
+		echo "$(1)" > "$$stamp"; \
+	fi
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 	@# make sure to start from scratch if ninja build file is missing
@@ -226,8 +249,21 @@ CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG
 $(CONFIG_TARGETS_DEFAULT):
 	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
+# Multi-processor boards: build all processor targets together
+# VOXL2 apps processor (default) depends on SLPI DSP being built first
+modalai_voxl2_default: modalai_voxl2_slpi
+modalai_voxl2: modalai_voxl2_slpi
+modalai_voxl2_deb: modalai_voxl2_slpi
+
 all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+
+# DEB package targets: builds _default config, then runs cpack.
+# Multi-processor boards (e.g. VOXL2) chain companion builds automatically
+# via existing cmake prerequisites.
+%_deb:
+	@$(call cmake-build,$(subst _deb,_default,$@)$(BUILD_DIR_SUFFIX))
+	@cd "$(SRC_DIR)/build/$(subst _deb,_default,$@)" && cpack -G DEB
 
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
@@ -317,10 +353,12 @@ px4io_update:
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
 	# cubepilot_io-v2_default
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
+	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
 	git status
 
 bootloaders_update: \
+	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \
@@ -332,6 +370,7 @@ bootloaders_update: \
 	cuav_7-nano_bootloader \
 	cuav_fmu-v6x_bootloader \
 	cuav_x25-evo_bootloader \
+	cuav_x25-super_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
@@ -384,7 +423,7 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 
 # Style
 # --------------------------------------------------------------------
-.PHONY: check_format format check_newlines
+.PHONY: check_format format format_changed check_newlines
 
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
@@ -395,13 +434,17 @@ format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
+format_changed:
+	$(call colorecho,'Formatting changed files with astyle')
+	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix --diff-only
+
 check_newlines:
 	$(call colorecho,'Checking for missing or duplicate newlines at the end of files')
 	@"$(SRC_DIR)"/Tools/astyle/check_newlines.sh
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_vtest_moving tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -411,8 +454,16 @@ tests:
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_test)
 
+tests_vtest_moving:
+	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),VTE))
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_vtest-moving)
+
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
-LCOBUG = --ignore-errors mismatch
+LCOBUG = --ignore-errors mismatch,negative
 tests_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory tests PX4_CMAKE_BUILD_TYPE=Coverage
@@ -474,7 +525,7 @@ python_coverage:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build px4_sitl_default-clang clang-tidy clang-tidy-fix
+.PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-ci clang-tidy clang-tidy-fix
 .PHONY: cppcheck shellcheck_all validate_module_configs
 
 scan-build:
@@ -492,13 +543,49 @@ px4_sitl_default-clang:
 	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
 
+# Clang SITL configure with BUILD_TESTING=ON so test files land in
+# compile_commands.json with resolved gtest/fuzztest includes. Used by CI
+# to produce a compilation database for diff-based clang-tidy that can
+# lint test files. Configure only: we don't build the test binaries here,
+# just generate the database.
+px4_sitl_default-clang-test:
+	@mkdir -p "$(SRC_DIR)"/build/px4_sitl_default-clang-test
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang-test && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_TESTING=ON
+
+# CI-oriented target that prepares both clang build directories used by
+# the Static Analysis workflow:
+#   - px4_sitl_default-clang:       full build, BUILD_TESTING=OFF.
+#       Used by `make clang-tidy` (push-to-main) and run-clang-tidy-pr.py.
+#   - px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON.
+#       Used by clang-tidy-diff-18.py so test files are in the
+#       compilation database with resolved gtest/fuzztest includes.
+# Running one target ensures both dirs exist before any clang-tidy
+# variant runs, and keeps the workflow free of raw cmake invocations.
+clang-ci: px4_sitl_default-clang px4_sitl_default-clang-test
+
+# Paths to exclude from clang-tidy (auto-generated from .gitmodules + manual additions):
+# - All submodules (external code we consume, not edit)
+# - Test code (allowed looser style)
+# - Example code (educational, not production)
+# - Vendored third-party code (e.g., CMSIS_5)
+# - NuttX-only drivers excluded at CMake level (mcp_common); I2C-dependent libs excluded here (smbus)
+# - GPIO excluded here (NuttX platform headers)
+# - Emscripten failsafe web build: source path + Unity build path (failsafe_test.dir)
+#   because CMake Unity Builds merge sources into a generated .cxx under build/
+#
+# To add manual exclusions, append to CLANG_TIDY_EXCLUDE_EXTRA below.
+# Submodules are automatically excluded - no action needed when adding new ones.
+CLANG_TIDY_SUBMODULES := $(shell git config --file .gitmodules --get-regexp path | awk '{print $$2}' | tr '\n' '|' | sed 's/|$$//')
+CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5|src/lib/drivers/smbus|src/drivers/gpio|src/modules/commander/failsafe/emscripten|failsafe_test\.dir|\.pb\.cc
+CLANG_TIDY_EXCLUDE := $(CLANG_TIDY_SUBMODULES)|$(CLANG_TIDY_EXCLUDE_EXTRA)
+
 clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
 clang-tidy-fix: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -fix -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -fix -p .
 
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: px4_sitl_default
@@ -518,7 +605,8 @@ validate_module_configs:
 	-not -path "$(SRC_DIR)/src/modules/zenoh/zenoh-pico/*" \
 	-not -path "$(SRC_DIR)/src/lib/events/libevents/*" \
 	-not -path "$(SRC_DIR)/src/lib/cdrstream/*" \
-	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
+	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" \
+	-not -path "$(SRC_DIR)/src/lib/tensorflow_lite_micro/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 
 # Cleanup
@@ -598,3 +686,10 @@ failsafe_web:
 run_failsafe_web_server: failsafe_web
 	@cd build/px4_sitl_default_failsafe_web && \
 		python3 -m http.server
+
+# Generate reference documentation for uORB messages
+.PHONY: msg_docs
+msg_docs:
+	$(call colorecho,'Generating uORB message reference docs')
+	@mkdir -p build/msg_docs
+	@./Tools/msg/generate_msg_docs.py -d build/msg_docs

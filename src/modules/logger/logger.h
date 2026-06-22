@@ -81,9 +81,11 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 	uint8_t msg_id{MSG_ID_INVALID};
 };
 
-class Logger : public ModuleBase<Logger>, public ModuleParams
+class Logger : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	enum class LogMode {
 		while_armed = 0,
 		boot_until_disarm,
@@ -113,6 +115,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Logger *instantiate(int argc, char *argv[]);
@@ -382,6 +387,8 @@ private:
 	hrt_abstime					_logger_status_last {0};
 	int						_lockstep_component{-1};
 
+	size_t						_max_log_file_size {0}; ///< max log file size in bytes (0 = unlimited)
+
 	uint32_t					_message_gaps{0};
 
 	timer_callback_data_s				_timer_callback_data{};
@@ -394,6 +401,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
+		(ParamInt<px4::params::SDLOG_MAX_SIZE>) _param_sdlog_max_size,
+		(ParamInt<px4::params::SDLOG_ROTATE>) _param_sdlog_rotate,
 		(ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
 		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
 		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,

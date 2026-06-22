@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -40,19 +40,19 @@
  * Coriolis g Corporation - January 2019
  */
 
-// The sensor signals reconstruction and noise levels are from [1]
-// [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
-//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
-// The aerodynamic model is from [2]
-// [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
-//     McGill University (Canada), PhD thesis, 2016.
-// The quaternion integration are from [3]
-// [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
-//     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
-// The tailsitter model is from [4]
-// [4] Chiappinelli R, supervised by Nahon M, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
-//     McGill University (Canada), Masters Thesis, 2018.
-
+/** The sensor signals reconstruction and noise levels are from [1]. The aerodynamic model is from [2].
+ * The quaternion integration are from [3]. The tailsitter model is from [4]. The propeller models are from [5]
+ * [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
+ *     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
+ * [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
+ *     McGill University (Canada), PhD thesis, 2016.
+ * [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
+ *     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
+ * [4] Chiappinelli R, supervised by Nahon M, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
+ *     McGill University (Canada), Masters Thesis, 2018.
+ * [5] J.B. Brandt, R.W. Deters, G.K. Ananda, O.D. Dantsker, and M.S. Selig 2026, UIUC Propeller Database,
+ *     Vols 1-4, University of Illinois at Urbana-Champaign, Department of Aerospace Engineering, retrieved from https://m-selig.ae.illinois.edu/props/propDB.html.
+ */
 #pragma once
 
 #include <px4_platform_common/module.h>
@@ -65,20 +65,23 @@
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/geo/geo.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/ranging_beacon.h>
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
@@ -86,14 +89,19 @@
 
 using namespace time_literals;
 
-class Sih : public ModuleBase<Sih>, public ModuleParams
+class Sih : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Sih();
 	virtual ~Sih();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Sih *instantiate(int argc, char *argv[]);
@@ -121,8 +129,10 @@ private:
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
+	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
+	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -131,10 +141,34 @@ private:
 	uORB::Publication<vehicle_global_position_s>  _global_position_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
+	static constexpr uint16_t NUM_DYN_THRUSTER = 2;		// number of dynamic thruster model with advance ratio
+
+	// Ranging beacon simulation constants
+	static constexpr uint8_t NUM_RANGING_BEACONS = 4;
+	bool _beacons_configured{false};
+	struct RangingBeaconConfig {
+		double lat_deg;
+		double lon_deg;
+		float alt_m;
+	};
+	struct RangingBeaconOffset {
+		float north_m;
+		float east_m;
+		float alt_offset_m;
+	};
+	// NED offsets from SIH_LOC_LAT0/LON0/H0, resolved once in init_variables()
+	static constexpr RangingBeaconOffset RANGING_BEACON_OFFSETS[NUM_RANGING_BEACONS] = {
+		{  5000.f,     0.f,  30.f},  // ~5 km North
+		{     0.f, 10000.f,   0.f},  // ~10 km East
+		{-20000.f, -15000.f, 110.f}, // ~20 km South-West
+		{ 35000.f,  45000.f, 310.f}  // ~50 km North-East
+	};
+	RangingBeaconConfig _ranging_beacons[NUM_RANGING_BEACONS] {};
+
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -145,10 +179,10 @@ private:
 	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
 	static constexpr float FLAP_MAX = M_PI_F / 12.0f; // 15 deg, maximum control surface deflection
 
-	void init_variables();
-
 	// read the motor signals outputted from the mixer
 	void read_motors(const float dt);
+	void publish_esc_status();
+	uint8_t num_motors() const;
 
 	// generate the motors thrust and torque in the body frame
 	void generate_force_and_torques(const float dt);
@@ -160,23 +194,14 @@ private:
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
+	void send_ranging_beacon(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
-	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
+	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
-	static float computeGravity(double lat);
 
 	void ecefToNed();
-	static matrix::Dcmf computeRotEcefToNed(const LatLonAlt &lla);
-
-	struct Wgs84 {
-		static constexpr double equatorial_radius = 6378137.0;
-		static constexpr double eccentricity = 0.0818191908425;
-		static constexpr double eccentricity2 = eccentricity * eccentricity;
-		static constexpr double gravity_equator = 9.7803253359;
-	};
-
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -196,30 +221,43 @@ private:
 	hrt_abstime _last_actuator_output_time{0};
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
+	hrt_abstime _ranging_beacon_time{0};
+	uint8_t _ranging_beacon_idx{0};
 
-	bool        _grounded{true};// whether the vehicle is on the ground
+	bool _grounded{true}; // whether the vehicle is on the ground
 
-	matrix::Vector3f    _T_B{};           // thrust force in body frame [N]
-	matrix::Vector3f    _Mt_B{};          // thruster moments in the body frame [Nm]
-	matrix::Vector3f    _Ma_B{};          // aerodynamic moments in the body frame [Nm]
-	matrix::Vector3f    _lpos{};          // position in a local tangent-plane frame [m]
-	matrix::Vector3f    _v_N{};           // velocity in local navigation frame (NED, body-fixed) [m/s]
-	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
-	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
-	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
+	// Quantities in body frame (FRD)
+	matrix::Vector3f _T_B{};  // thrust force [N]
+	matrix::Vector3f _Mt_B{}; // thruster moments [Nm]
+	matrix::Vector3f _Ma_B{}; // aerodynamic moments [Nm]
+	matrix::Vector3f _w_B{};  // body rates in body frame [rad/s]
+	matrix::Vector3f _v_B{};  // body frame velocity [m/s]
 
-	LatLonAlt _lla{};
+	// Quantities in local navigation frame (NED, body-fixed)
+	matrix::Vector3f _v_N{};          // velocity [m/s]
+	matrix::Vector3f _v_N_dot{};      // time derivative of velocity [m/s^2]
+	matrix::Vector3f _v_wind_N{};     // wind velocity [m/s]
+	matrix::Vector3f _v_apparent_N{}; // vehicle velocity relative to the air [m/s]
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
-	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
-	matrix::Vector3f    _specific_force_E{};
-	matrix::Quatf       _q_E{};
-	matrix::Vector3d    _p_E{};
-	matrix::Vector3f    _v_E{};
-	matrix::Vector3f    _v_E_dot{};
-	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
+	matrix::Vector3f _Fa_E{};             // aerodynamic force [N]
+	matrix::Vector3d _p_E{};              // position [m]
+	matrix::Vector3f _v_E{};              // velocity [m/s]
+	matrix::Vector3f _v_E_dot{};          // time derivative of velocity [m/s^2]
+	matrix::Vector3f _specific_force_E{}; // acceleration except gravity (for IMU) [m/s^2]
+
+	// Frame conversion
+	matrix::Quatf _q_E{}; // Attitude quaternion (rotation from body to ECEF frame)
+	matrix::Quatf _q{};   // Attitude quaternion (rotation from body to local navigation frame)
+	matrix::Dcmf _R_N2E;  // Rotation matrix from local navigation to ECEF frame
+
+	LatLonAlt _lla{};
+	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
+	float       _T[NUM_DYN_THRUSTER] {};         // thruster forces (N)
+	float       _Q[NUM_DYN_THRUSTER] {};         // thruster torque (Nm)
+	Thruster    _thruster[NUM_DYN_THRUSTER] {};	// thruster objects
 
 	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
 	VehicleType _vehicle = VehicleType::Quadcopter;
@@ -256,22 +294,10 @@ private:
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
 	};
 
-	// AeroSeg _ts[NB_TS_SEG] = {
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f, -0.239f, TS_CM-0.083f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f, -0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f, -0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f, -0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0750f, 0.231f, -90.0f, matrix::Vector3f(0.0f,  0.000f, TS_CM-0.173f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f,  0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f,  0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f,  0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
-	// 	};
-
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
-	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU;
+	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
@@ -301,6 +327,21 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
+		// forward propeller
+		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
+		(ParamFloat<px4::params::SIH_F_Q_MAX>) _sih_f_torque_max,
+		(ParamFloat<px4::params::SIH_F_CT0>) _sih_f_ct0,
+		(ParamFloat<px4::params::SIH_F_CT1>) _sih_f_ct1,
+		(ParamFloat<px4::params::SIH_F_CT2>) _sih_f_ct2,
+		(ParamFloat<px4::params::SIH_F_CP0>) _sih_f_cp0,
+		(ParamFloat<px4::params::SIH_F_CP1>) _sih_f_cp1,
+		(ParamFloat<px4::params::SIH_F_CP2>) _sih_f_cp2,
+		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
+		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
+		(ParamInt<px4::params::BAT1_SOURCE>) _bat1_source,
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
+		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
+		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
 	)
 };

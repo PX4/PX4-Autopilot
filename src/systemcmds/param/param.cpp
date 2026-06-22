@@ -78,9 +78,11 @@ static int 	do_save(const char *param_file_name);
 static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name = nullptr);
+static int	do_load_or_init(const char *backup_file_name);
 static int	do_show(const char *search_string, bool only_changed);
 static int	do_show_for_airframe();
 static int	do_show_all();
+static int	do_show_locked();
 static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
@@ -126,6 +128,9 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("import", "Import params from a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("load-or-init",
+					 "Load params from storage; if blank, seed from a backup file or defaults and persist");
+	PRINT_MODULE_USAGE_ARG("<backup_file>", "Backup file to seed from when storage is blank", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save params to a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 
@@ -138,6 +143,7 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (not just used)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params (unused too)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Show only locked (read-only) params", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
 
@@ -179,6 +185,8 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<index>", "Index: an integer >= 0", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("find", "Show index of a param");
 	PRINT_MODULE_USAGE_ARG("<param>", "param name", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("lock", "Lock read-only params (reject future set/reset)");
 }
 
 int
@@ -217,6 +225,15 @@ param_main(int argc, char *argv[])
 
 			} else {
 				return do_import();
+			}
+		}
+
+		if (!strcmp(argv[1], "load-or-init")) {
+			if (argc >= 3) {
+				return do_load_or_init(argv[2]);
+
+			} else {
+				return do_load_or_init(nullptr);
 			}
 		}
 
@@ -267,6 +284,9 @@ param_main(int argc, char *argv[])
 
 				} else if (!strcmp(argv[2], "-a")) {
 					return do_show_all();
+
+				} else if (!strcmp(argv[2], "-l")) {
+					return do_show_locked();
 
 				} else if (!strcmp(argv[2], "-q")) {
 					if (argc >= 4) {
@@ -405,6 +425,11 @@ param_main(int argc, char *argv[])
 				return 1;
 			}
 		}
+
+		if (!strcmp(argv[1], "lock")) {
+			param_lock_readonly();
+			return 0;
+		}
 	}
 
 	print_usage();
@@ -499,6 +524,105 @@ do_import(const char *param_file_name)
 	return 0;
 }
 
+/**
+ * Load parameters from the default storage, initializing it if blank.
+ *
+ * A blank storage (nothing stored yet - e.g. first boot, or after switching
+ * firmware) is not an error: the parameters are seeded from the backup file
+ * if one is given and readable, otherwise the firmware defaults are kept,
+ * and the result is persisted so the storage is valid on the next boot.
+ *
+ * @return 0 if parameters were loaded or the storage was initialized,
+ *         1 if the storage is corrupt, a backup exists but could not be
+ *         imported, or the result could not be persisted
+ */
+static int
+do_load_or_init(const char *backup_file_name)
+{
+	/* resolve the storage like 'param import' does: the selected default
+	 * file, or the flash backend when none is set */
+	const char *param_file_name = param_get_default_file();
+	int result;
+
+	if (param_file_name) {
+		int storage_fd = open(param_file_name, O_RDONLY);
+
+		if (storage_fd >= 0) {
+			result = param_import(storage_fd);
+			close(storage_fd);
+
+		} else if (errno == ENOENT) {
+			/* no file yet */
+			result = 1;
+
+		} else {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			result = -1;
+		}
+
+	} else {
+		result = param_import(-1);
+	}
+
+	if (result == 0) {
+		PX4_INFO("parameters loaded from storage");
+		return 0;
+	}
+
+	if (result < 0) {
+		PX4_ERR("parameter storage is corrupt (%i)", result);
+		return 1;
+	}
+
+	/* result > 0: storage is blank, nothing has been stored yet */
+	PX4_INFO("parameter storage empty, initializing");
+
+	int fd = -1;
+
+	if (backup_file_name) {
+		fd = open(backup_file_name, O_RDONLY);
+
+		if (fd < 0 && errno != ENOENT) {
+			/* a backup exists but cannot be read: report failure so the boot
+			 * recovery alerts the operator instead of silently persisting
+			 * defaults over it */
+			PX4_ERR("open backup '%s' failed (%i)", backup_file_name, errno);
+			return 1;
+		}
+	}
+
+	if (fd >= 0) {
+		PX4_INFO("seeding parameters from backup '%s'", backup_file_name);
+
+		int backup_result = param_import(fd);
+		close(fd);
+
+		if (backup_result < 0) {
+			/* a backup exists but does not import cleanly: report failure so
+			 * the boot recovery alerts the operator. Do not reset to defaults
+			 * - that would also discard parameters loaded before this call
+			 * (e.g. factory calibration from a caldata partition). */
+			PX4_ERR("backup import failed (%i)", backup_result);
+			return 1;
+		}
+
+		if (backup_result > 0) {
+			PX4_INFO("backup is blank, using firmware defaults");
+		}
+
+	} else {
+		PX4_INFO("no backup file, using firmware defaults");
+	}
+
+	if (do_save_default() != 0) {
+		PX4_ERR("failed to persist initial parameters");
+		return 1;
+	}
+
+	PX4_INFO("parameter storage initialized");
+	return 0;
+}
+
 static int
 do_save_default()
 {
@@ -508,7 +632,7 @@ do_save_default()
 static int
 do_show(const char *search_string, bool only_changed)
 {
-	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved\n");
+	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved, l = locked\n");
 	// also show unused params if we show non-default values only
 	param_foreach(do_show_print, (char *)search_string, only_changed, !only_changed);
 	PX4_INFO_RAW("\n %u/%u parameters used.\n", param_count_used(), param_count());
@@ -531,9 +655,26 @@ do_show_for_airframe()
 static int
 do_show_all()
 {
-	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved\n");
+	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved, l = locked\n");
 	param_foreach(do_show_print, nullptr, false, false);
 	PX4_INFO_RAW("\n %u parameters total, %u used.\n", param_count(), param_count_used());
+
+	return 0;
+}
+
+static void
+do_show_print_locked(void *arg, param_t param)
+{
+	if (param_is_readonly(param)) {
+		do_show_print(arg, param);
+	}
+}
+
+static int
+do_show_locked()
+{
+	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved, l = locked\n");
+	param_foreach(do_show_print_locked, nullptr, false, false);
 
 	return 0;
 }
@@ -607,8 +748,9 @@ do_show_index(const char *index, bool used_index)
 		return 1;
 	}
 
-	PX4_INFO_RAW("index %d: %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
+	PX4_INFO_RAW("index %d: %c %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
 		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		    param_is_readonly(param) ? 'l' : ' ',
 		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	switch (param_type(param)) {
@@ -677,8 +819,9 @@ do_show_print(void *arg, param_t param)
 		}
 	}
 
-	PX4_INFO_RAW("%c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
+	PX4_INFO_RAW("%c %c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
 		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		    param_is_readonly(param) ? 'l' : ' ',
 		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	/*
@@ -725,8 +868,7 @@ do_show_print_for_airframe(void *arg, param_t param)
 	}
 
 	if (!strncmp(p_name, "RC", 2) || !strncmp(p_name, "TC_", 3) || !strncmp(p_name, "CAL_", 4) ||
-	    !strncmp(p_name, "SENS_BOARD_", 11) || !strcmp(p_name, "SENS_DPRES_OFF") ||
-	    !strcmp(p_name, "MAV_TYPE")) {
+		!strcmp(p_name, "SENS_DPRES_OFF") || !strcmp(p_name, "MAV_TYPE")) {
 		return;
 	}
 
@@ -770,6 +912,11 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		/* param not found - fail silenty in scripts as it prevents booting */
 		PX4_ERR("Parameter %s not found.", name);
 		return (fail_on_not_found) ? 1 : 0;
+	}
+
+	if (param_is_readonly(param)) {
+		PX4_ERR("Parameter %s is read-only.", name);
+		return 1;
 	}
 
 	/*
@@ -836,6 +983,14 @@ do_set_custom_default(const char *name, const char *val, bool silent_fail)
 	if (param == PARAM_INVALID && !silent_fail) {
 		/* param not found - fail silenty in scripts as it prevents booting */
 		PX4_ERR("Parameter %s not found.", name);
+		return PX4_ERROR;
+	}
+
+	if (param_is_readonly(param)) {
+		if (!silent_fail) {
+			PX4_ERR("Parameter %s is read-only.", name);
+		}
+
 		return PX4_ERROR;
 	}
 

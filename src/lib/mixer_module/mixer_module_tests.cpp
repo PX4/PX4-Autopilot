@@ -54,6 +54,7 @@ static constexpr int MAX_NUM_OUTPUTS = 8;
 static constexpr int DISARMED_VALUE = 900;
 static constexpr int FAILSAFE_VALUE = 800;
 static constexpr int MIN_VALUE = 1000;
+static constexpr int CENTER_VALUE = 1500;
 static constexpr int MAX_VALUE = 2000;
 
 class MixerModuleTest : public ::testing::Test
@@ -86,8 +87,7 @@ public:
 		was_scheduled = true;
 	}
 
-	bool updateOutputs(uint16_t outputs_[MAX_ACTUATORS],
-			   unsigned num_outputs_, unsigned num_control_groups_updated) override
+	bool updateOutputs(float outputs_[MAX_ACTUATORS], unsigned num_outputs_, unsigned num_control_groups_updated) override
 	{
 		memcpy(outputs, outputs_, sizeof(outputs));
 		num_outputs = num_outputs_;
@@ -167,7 +167,7 @@ public:
 		mixer_changed = false;
 	}
 
-	uint16_t outputs[MAX_ACTUATORS] {};
+	float outputs[MAX_ACTUATORS] {};
 	int num_outputs{0};
 	int num_updates{0};
 	bool was_scheduled{false};
@@ -188,6 +188,7 @@ TEST_F(MixerModuleTest, basic)
 	mixing_output.setAllDisarmedValues(DISARMED_VALUE);
 	mixing_output.setAllFailsafeValues(FAILSAFE_VALUE);
 	mixing_output.setAllMinValues(MIN_VALUE);
+	mixing_output.setAllCenterValues(CENTER_VALUE);
 	mixing_output.setAllMaxValues(MAX_VALUE);
 	EXPECT_EQ(test_module.num_updates, 0);
 
@@ -281,6 +282,7 @@ TEST_F(MixerModuleTest, arming)
 	mixing_output.setAllDisarmedValues(DISARMED_VALUE);
 	mixing_output.setAllFailsafeValues(FAILSAFE_VALUE);
 	mixing_output.setAllMinValues(MIN_VALUE);
+	mixing_output.setAllCenterValues(CENTER_VALUE);
 	mixing_output.setAllMaxValues(MAX_VALUE);
 
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
@@ -477,7 +479,7 @@ public:
 			 bool support_esc_calibration, bool ramp_up = true)
 		: MixingOutput(param_prefix, max_num_outputs, interface, scheduling_policy, support_esc_calibration, ramp_up)
 	{};
-	uint16_t output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
+	float output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
 };
 
 TEST_F(MixerModuleTest, OutputLimitCalcSingle)
@@ -488,6 +490,7 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 
 	mixing_output.setAllMinValues(MIN_VALUE); // default range [1000,2000]
 	mixing_output.setAllMaxValues(MAX_VALUE);
+	mixing_output.setAllCenterValues(CENTER_VALUE); // Set center to middle value
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 1000); // In range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 1250);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 1500);
@@ -497,12 +500,15 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 2000);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 1000); // Way ouf of range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 2000);
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0005), 1500); // Rounding down
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0015), 1501); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0005), 1500.25f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.0005))), 1500); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0015), 1500.75f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.0015))), 1501); // Rounding up
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.002), 1501); // Exact value
 
 	mixing_output.setAllMinValues(0); // lower range [0,20]
 	mixing_output.setAllMaxValues(20);
+	mixing_output.setAllCenterValues(10); // Set center to middle value
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 0); // In range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 5);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 10);
@@ -512,12 +518,15 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 20);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 0); // Way ouf of range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 20);
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10); // Rounding down
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 11); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10.25f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.025))), 10); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 10.75f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.075))), 11); // Rounding up
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.1), 11); // Exact value
 
 	mixing_output.setAllMinValues(20); // inverted range [20,0]
 	mixing_output.setAllMaxValues(0);
+	mixing_output.setAllCenterValues(10); // Set center to middle value
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 20); // In range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 15);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 10);
@@ -527,7 +536,9 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 0);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 20); // Way ouf of range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 0);
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10); // Rounding down
-	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 9); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 9.75f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.025))), 10); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 9.25f);
+	EXPECT_EQ(static_cast<uint16_t>(lroundf(mixing_output.output_limit_calc_single(0, 0.075))), 9); // Rounding up
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.1), 9); // Exact value
 }

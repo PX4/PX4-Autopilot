@@ -35,6 +35,8 @@
 
 #include <px4_platform_common/sem.hpp>
 
+ModuleBase::Descriptor TAP_ESC::desc{task_spawn, custom_command, print_usage};
+
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
@@ -241,7 +243,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-bool TAP_ESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool TAP_ESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
 	if (_initialized) {
@@ -250,26 +252,26 @@ bool TAP_ESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_output
 		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {
 		case 4:
-			motor_out[0] = outputs[2];
-			motor_out[1] = outputs[1];
-			motor_out[2] = outputs[3];
-			motor_out[3] = outputs[0];
+			motor_out[0] = static_cast<uint16_t>(lroundf(outputs[2]));
+			motor_out[1] = static_cast<uint16_t>(lroundf(outputs[1]));
+			motor_out[2] = static_cast<uint16_t>(lroundf(outputs[3]));
+			motor_out[3] = static_cast<uint16_t>(lroundf(outputs[0]));
 			break;
 
 		case 6:
-			motor_out[0] = outputs[3];
-			motor_out[1] = outputs[0];
-			motor_out[2] = outputs[4];
-			motor_out[3] = outputs[2];
-			motor_out[4] = outputs[1];
-			motor_out[5] = outputs[5];
+			motor_out[0] = static_cast<uint16_t>(lroundf(outputs[3]));
+			motor_out[1] = static_cast<uint16_t>(lroundf(outputs[0]));
+			motor_out[2] = static_cast<uint16_t>(lroundf(outputs[4]));
+			motor_out[3] = static_cast<uint16_t>(lroundf(outputs[2]));
+			motor_out[4] = static_cast<uint16_t>(lroundf(outputs[1]));
+			motor_out[5] = static_cast<uint16_t>(lroundf(outputs[5]));
 			break;
 
 		default:
 
 			// Use the system defaults
 			for (uint8_t i = 0; i < num_outputs; ++i) {
-				motor_out[i] = outputs[i];
+				motor_out[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 			}
 
 			break;
@@ -333,7 +335,7 @@ void TAP_ESC::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -356,7 +358,7 @@ void TAP_ESC::Run()
 
 		} else {
 			PX4_ERR("init failed");
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 		}
 
 	} else {
@@ -456,8 +458,8 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 	instance->ScheduleNow();
 	return 0;
 }
@@ -510,5 +512,5 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 
 extern "C" __EXPORT int tap_esc_main(int argc, char *argv[])
 {
-	return TAP_ESC::main(argc, argv);
+	return ModuleBase::main(TAP_ESC::desc, argc, argv);
 }

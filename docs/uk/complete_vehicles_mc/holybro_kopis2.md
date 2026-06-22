@@ -29,7 +29,7 @@ _Kopis 2_ можна придбати від кількох виробників
 _Kopis 2_ поставляється із заздалегідь встановленим Betaflight.
 
 Перед завантаженням прошивки PX4 вам спочатку потрібно встановити завантажувач PX4.
-Інструкції по встановленню завантажувача можна знайти в темі [Kakute F7](../flight_controller/kakutef7.md#bootloader) (це плата польотного контролера на _Kopis 2_).
+Download the [kakutef7_bl.hex](https://raw.githubusercontent.com/PX4/PX4-Autopilot/release/1.17/docs/assets/flight_controller/kakutef7/kakutef7_bl_0b3fbe2da0.hex?download=true) bootloader binary and read [PX4 Bootloader Flashing onto Betaflight Systems](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 :::tip
 Ви завжди можете [перевстановити Betaflight](../advanced_config/bootloader_update_from_betaflight.md#reinstall-betaflight) пізніше, якщо захочете!

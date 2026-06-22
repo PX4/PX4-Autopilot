@@ -42,7 +42,6 @@
  #pragma once
 
 // include all required headers
-#include "FlightModeManager.hpp"
 @# loop through all requested tasks
 @[if tasks]@
 @[for task in tasks]@

@@ -54,19 +54,17 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
   - _Озброєння:_ Ліва педаль вправо, права педаль вниз.
   - _Вимкнення:_ Ліва педаль вліво, права педаль вниз.
 
-The required hold time can be configured using [COM_RC_ARM_HYST](#COM_RC_ARM_HYST).
-Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in flight using gestures/buttons: you may choose to disable this to avoid accidental disarming.
+Note that disarming in any altitude controlled mode is only possible after landing was detected.
+In manually piloted modes without altitude control, such as Stabilized, Acro, and Manual, it's always possible to disarm using gestures or buttons — even in flight.
 
-| Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                    |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE)                      | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
-| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)                         | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
-| <a id="COM_RC_ARM_HYST"></a>[COM_RC_ARM_HYST](../advanced_config/parameter_reference.md#COM_RC_ARM_HYST) | Час, протягом якого педаль RC повинна бути утримана в позиції озброєння/вимкнення перед озброєнням/вимкненням (за замовчуванням: 1 секунда).         |
+| Parameter                                                                                                                                          | Опис                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default). |
 
 ## Arming Button/Switch {#arm_disarm_switch}
 
 Кнопку _озброєння_ або "моментальний перемикач" можна налаштувати для спрацьовування озброєння/вимикання _замість_ [озброєння за допомогою жестів](#arm_disarm_gestures) (встановлення перемикача озброєння вимикає озброєння за допомогою жестів).
-Кнопку слід утримувати натиснутою протягом ([зазвичай](#COM_RC_ARM_HYST)) однієї секунди, щоб озброїти (якщо вимкнено) або вимкнути (якщо озброєно).
+The button should be held down for one second to arm (when disarmed) or disarm (when armed).
 
 Двопозиційний перемикач також може використовуватися для озброєння/вимикання, при цьому відповідні команди на озброєння/вимкнення надсилаються при _перемиканні_ перемикача.
 
@@ -76,10 +74,10 @@ Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in 
 
 Перемикач або кнопка призначається (та активується) за допомогою [RC_MAP_ARM_SW](#RC_MAP_ARM_SW), а тип перемикача налаштовується за допомогою [COM_ARM_SWISBTN](#COM_ARM_SWISBTN).
 
-| Параметр                                                                                                                                                          | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Parameter                                                                                                                                                         | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RC_MAP_ARM_SW"></a>[RC_MAP_ARM_SW](../advanced_config/parameter_reference.md#RC_MAP_ARM_SW) | Канал перемикача озброєння радіокерування (типове значення: 0 - не призначено). Якщо визначено, вказаний канал радіокерування (кнопка/перемикач) використовується для озброєння замість жесту палиці. <br>**Note:**<br>- This setting _disables the stick gesture_!<br>- This setting applies to RC controllers. It does not apply to Joystick controllers that are connected via _QGroundControl_. |
-| <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | Перемикач озброєння є моментальною кнопкою. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a button or momentary button where the arm/disarm command ae sent after holding down button for set time ([COM_RC_ARM_HYST](#COM_RC_ARM_HYST)).                                               |
+| <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | Перемикач озброєння є моментальною кнопкою. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a momentary button where the arm/disarm command is sent after holding down the button for one second.                                                                                                                                                                           |
 
 :::info
 Перемикач також можна налаштувати як частину конфігурації _QGroundControl_ для [Режиму польоту](../config/flight_mode.md).
@@ -90,10 +88,32 @@ Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in 
 За замовчуванням транспортні засоби автоматично вимикаються при посадці або якщо ви заберете занадто багато часу, щоб злітати після озброєння.
 Ця функція налаштовується за допомогою наступних таймаутів.
 
-| Параметр                                                                                                                                              | Опис                                                                                                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Час очікування для автоматичного відбрасування після приземлення. За замовчуванням: 2с (значення -1, щоб вимкнути).                               |
-| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Час очікування для автоматичного відбрасування, якщо занадто повільно підйом. За замовчуванням: 10с (<=0, щоб вимкнути). |
+| Parameter                                                                                                                                             | Опис                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Час очікування для автоматичного відбрасування після приземлення. За замовчуванням: 2с (значення -1, щоб вимкнути). |
+| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Час очікування для автоматичного відбрасування, якщо занадто повільно підйом. Default: 10s (-1 to disable).         |
+
+## Auto-Arming on Boot
+
+The vehicle can be configured to arm automatically on boot once all preflight checks pass,
+using the `COM_ARM_ON_BOOT` parameter. For safety, PX4 enforces a minimum 5-second delay after boot before attempting to arm.
+
+Once armed this way, the vehicle will not re-arm automatically after a manual disarm.
+
+:::info
+The parameter value is read once at boot.
+Changing it while the system is running has no effect until the next reboot.
+:::
+
+:::warning
+Use with caution.
+A vehicle that arms automatically can spin up motors and actuators without any operator gesture.
+Ensure the vehicle is in a safe state before powering on.
+:::
+
+| Parameter                                                                                                                                                               | Опис                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ON_BOOT"></a>[COM_ARM_ON_BOOT](../advanced_config/parameter_reference.md#COM_ARM_ON_BOOT) | Arm automatically once preflight checks pass after boot. Default: `0` (Disabled). |
 
 ## Pre-Arm Checks
 
@@ -225,7 +245,7 @@ PX4 також видає підмножину інформації переві
 
 ### Параметри
 
-| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Parameter                                                                                                                                          | Опис                                                                                                                                                                                                                                                                                                                                                                                                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | Умова для входу в режим передпуску. `0`: Disabled, `1`: Safety switch (prearm mode enabled by safety switch; if no switch present cannot be enabled), `2`: Always (prearm mode enabled from power up). Default: `1` (safety button). |
 | <a id="CBRK_IO_SAFETY"></a>[CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY)    | Вимикач безпеки для введення/виведення (I/O).                                                                                                                                                                                                                                                                                                                              |

@@ -1,6 +1,6 @@
 # mRo Pixracer
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::
@@ -10,7 +10,7 @@ In contrast to [Pixfalcon](../flight_controller/pixfalcon.md) and [Pixhawk](../f
 
 <img src="../../assets/flight_controller/pixracer/pixracer_hero_grey.jpg" width="300px" title="pixracer + 8266 grey" />
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -30,7 +30,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - OneShot PWM out (configurable)
 - Optional: Safety switch and buzzer
 
-## Where to Buy
+## Where to Buy {#store}
 
 Pixracer Pro is available from the [store.3dr.com](https://store.3dr.com/pixracer-pro/).
 
@@ -210,14 +210,14 @@ The following PDF files are provided for _convenience only_:
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v4_default
 ```
 

@@ -1,8 +1,34 @@
+---
+pageClass: is-wide-page
+---
+
 # ParameterSetValueRequest (UORB повідомлення)
 
-ЗапитParameterSetValueRequest : Використовується віддалено або основним для оновлення значення параметра на іншому кінці
+ParameterSetValueRequest : Used by a remote or primary to update the value for a parameter at the other end.
 
-[вихідний файл](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ParameterSetValueRequest.msg)
+**TOPICS:** parameter_set_value_request parameter_remote_set_value_request parameter_primary_set_value_request
+
+## Fields
+
+| Назва                                                                | Тип       | Unit [Frame] | Range/Enum | Опис                                    |
+| -------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                  | `uint64`  |                                                                  |            |                                         |
+| <a id="fld_parameter_index"></a>parameter_index | `uint16`  |                                                                  |            |                                         |
+| <a id="fld_int_value"></a>int_value             | `int32`   |                                                                  |            | Optional value for an integer parameter |
+| <a id="fld_float_value"></a>float_value         | `float32` |                                                                  |            | Optional value for a float parameter    |
+
+## Constants
+
+| Назва                                                                                     | Тип     | Значення | Опис |
+| ----------------------------------------------------------------------------------------- | ------- | -------- | ---- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 32       |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ParameterSetValueRequest.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # ParameterSetValueRequest : Used by a remote or primary to update the value for a parameter at the other end
@@ -16,5 +42,6 @@ float32 float_value         # Optional value for a float parameter
 uint8 ORB_QUEUE_LENGTH = 32
 
 # TOPICS parameter_set_value_request parameter_remote_set_value_request parameter_primary_set_value_request
-
 ```
+
+:::

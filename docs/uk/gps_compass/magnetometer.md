@@ -22,7 +22,7 @@ It should not be used otherwise, and is automatically disabled after [calibratio
 ### Частини компасу
 
 PX4 можна використовувати з багатьма деталями магнітометрів, включаючи: Bosch BMM 150 MEMS (через шину I2C), HMC5883 / HMC5983 (I2C або SPI), IST8310 (I2C), LIS3MDL (I2C або SPI), RM3100 та інші.
-Інші підтримувані частини магнітометра та їхні шини можна дізнатися з драйверів, перелічених у [Посилання на модулі: Магнітометр (драйвер)](../modules/modules_driver_magnetometer.md).
+Other supported magnetometer parts and their buses can be inferred from the drivers listed in [Modules Reference: Magnetometer (Driver)](../modules/modules_driver_magnetometer.md).
 
 Ці деталі входять до складу автономних модулів компаса, комбінованих модулів компаса/ГНСС, а також до складу багатьох контролерів польоту,
 
@@ -40,6 +40,7 @@ PX4 можна використовувати з багатьма деталям
 
 | Пристрій                                                                                                        | Компас | DroneCan |
 | :-------------------------------------------------------------------------------------------------------------- | :----: | :------: |
+| [ARK MAG](https://arkelectron.com/product/ark-mag/)                                                             | RM3100 |     ✓    |
 | [Магнітометр UAVCAN Avionics Anonymous](https://www.tindie.com/products/avionicsanonymous/uavcan-magnetometer/) |    ?   |          |
 | [Компас/Магнітометр Holybro DroneCAN RM3100](https://holybro.com/products/dronecan-rm3100-compass)              | RM3100 |     ✓    |
 | [RaccoonLab DroneCAN/Cyphal Magnetometer RM3100](https://holybro.com/products/dronecan-rm3100-compass)          | RM3100 |     ✓    |
@@ -54,7 +55,7 @@ PX4 можна використовувати з багатьма деталям
 
 Internal compasses are not recommended for real use as a heading source, because the performance is almost always very poor.
 
-This is particularly true on on small vehicles where the flight controller has to be mounted close to motor/ESC power lines and other sources of electromagnetic interference.
+This is particularly true on small vehicles where the flight controller has to be mounted close to motor/ESC power lines and other sources of electromagnetic interference.
 While they may be better on larger vehicles (e.g. VTOL), where it is possible to reduce electromagnetic interference by mounting the flight controller a long way from power supply lines, an external compass will almost always be better.
 
 :::tip

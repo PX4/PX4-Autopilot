@@ -33,7 +33,7 @@ The boards support the [Pixhawk Autopilot Bus (PAB)](../flight_controller/pixhaw
 
 ## 机载计算机选项
 
-PX4 可以与计算机一起使用，可以配置为通过基于串口(或以太网端口) 的 MAVLink 或 microROS/uXRCE-DDS 进行通信。
+PX4 can be used with computers that can be configured to communicate via MAVLink or microROS/uXRCE-DDS over a serial port (or Ethernet port, if present).
 以下列出了一小部分可能的替代方案。
 
 高性能计算机：

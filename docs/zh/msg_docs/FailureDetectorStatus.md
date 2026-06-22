@@ -1,6 +1,34 @@
+---
+pageClass: is-wide-page
+---
+
 # FailureDetectorStatus (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FailureDetectorStatus.msg)
+**TOPICS:** failure_detector_status
+
+## Fields
+
+| 参数名                                                                                                     | 类型        | Unit [Frame] | Range/Enum | 描述                                                                       |
+| ------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                                                                     | `uint64`  |                                                                  |            | time since system start (microseconds)                |
+| <a id="fld_fd_roll"></a>fd_roll                                                    | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_pitch"></a>fd_pitch                                                  | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_alt"></a>fd_alt                                                      | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_ext"></a>fd_ext                                                      | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_arm_escs"></a>fd_arm_escs                       | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_battery"></a>fd_battery                                              | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_imbalanced_prop"></a>fd_imbalanced_prop         | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_motor"></a>fd_motor                                                  | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_imbalanced_prop_metric"></a>imbalanced_prop_metric | `float32` |                                                                  |            | Metric of the imbalanced propeller check (low-passed) |
+| <a id="fld_motor_failure_mask"></a>motor_failure_mask         | `uint16`  |                                                                  |            | Bit-mask with motor indices, indicating critical motor failures          |
+| <a id="fld_motor_stop_mask"></a>motor_stop_mask               | `uint16`  |                                                                  |            | Bitmaks of motors stopped by failure injection                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FailureDetectorStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp                    # time since system start (microseconds)
@@ -18,5 +46,6 @@ bool fd_motor
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 uint16 motor_failure_mask           # Bit-mask with motor indices, indicating critical motor failures
 uint16 motor_stop_mask              # Bitmaks of motors stopped by failure injection
-
 ```
+
+:::

@@ -75,8 +75,6 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 
 	// set the heading unhealthy if the test fails
 	if (aid_src_status.innovation_rejected) {
-		_innov_check_fail_status.flags.reject_yaw = true;
-
 		// if we are in air we don't want to fuse the measurement
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
@@ -98,9 +96,6 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		} else {
 			return false;
 		}
-
-	} else {
-		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
 	measurementUpdate(Kfusion, H_YAW, aid_src_status.observation_variance, aid_src_status.innovation);

@@ -49,5 +49,4 @@ Essentially it is an AHRS that also includes position/velocity estimation.
 
 ## 추가 정보
 
-- [What is an Inertial Navigation System?](https://www.vectornav.com/resources/inertial-navigation-articles/what-is-an-ins) (VectorNav)
 - [Inertial Navigation Primer](https://www.vectornav.com/resources/inertial-navigation-primer) (VectorNav)

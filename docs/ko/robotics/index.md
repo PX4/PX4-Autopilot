@@ -4,7 +4,7 @@ Drone APIs let you write code to control and integrate with PX4-powered vehicles
 
 PX4는 <a href="https://mavsdk.mavlink.io/">MAVSDK</a> 및 <a href="../ros/README.md">ROS</a>를 포함하는 로봇 공학 API와 함께 사용할 수 있습니다.
 Drone APIs allow you to do this using high level instructions in your programming language of choice, and the code can then run on-vehicle in a [companion computer](../companion_computer/index.md), or from a ground station.
-Under the the hood the APIs communicate with PX4 using [MAVLink](../middleware/mavlink.md) or [uXRCE-DDS](../middleware/uxrce_dds.md).
+Under the hood the APIs communicate with PX4 using [MAVLink](../middleware/mavlink.md) or [uXRCE-DDS](../middleware/uxrce_dds.md).
 
 PX4 supports the following SDKs/Robotics tools:
 
@@ -66,7 +66,7 @@ Upgrade to ROS 2 for existing projects as soon as possible.
 
 DroneKit-Python is a MAVLink API written in Python.
 It is not optimised for use with PX4, and has not be maintained for some years.
-Legacy docs for using PX4 and DroneKit can be found here: [PX4 v1.12 > DroneKit](https://docs.px4.io/v1.12/en/robotics/dronekit.html).
+Legacy docs for using PX4 and DroneKit can be found here: [PX4 v1.12 > DroneKit](https://docs.px4.io/v1.12/en/robotics/dronekit).
 
 :::tip
 [MAVSDK](https://mavsdk.mavlink.io/) is the recommended MAVLink API for use with PX4.

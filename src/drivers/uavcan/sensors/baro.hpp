@@ -38,16 +38,16 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/air_data/StaticPressure.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
+#include <uavcan/equipment/air_data/RawAirData.hpp>
 
 class UavcanBarometerBridge : public UavcanSensorBridgeBase
 {
 public:
 	static const char *const NAME;
 
-	UavcanBarometerBridge(uavcan::INode &node);
+	UavcanBarometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
@@ -57,6 +57,7 @@ private:
 
 	void air_pressure_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg);
 	void air_temperature_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &msg);
+	void raw_air_data_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &msg);
 
 	int init_driver(uavcan_bridge::Channel *channel) override;
 
@@ -70,8 +71,14 @@ private:
 		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticTemperature> &) >
 		AirTemperatureCbBinder;
 
+	typedef uavcan::MethodBinder < UavcanBarometerBridge *,
+		void (UavcanBarometerBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::air_data::RawAirData> &) >
+		RawAirDataCbBinder;
+
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
+	uavcan::Subscriber<uavcan::equipment::air_data::RawAirData, RawAirDataCbBinder> _sub_raw_air_data;
 
 	float _last_temperature_kelvin{NAN};
 

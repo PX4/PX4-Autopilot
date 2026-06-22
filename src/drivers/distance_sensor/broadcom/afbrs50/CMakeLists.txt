@@ -50,6 +50,8 @@ px4_add_module(
 		API/Src/s2pi.cpp
 		API/Src/timer.c
 		argus_hal_test.c
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		px4_work_queue
 		drivers_rangefinder

@@ -1,12 +1,48 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleGlobalPosition (UORB message)
 
-Fused global position in WGS84.
-This struct contains global position estimation. It is not the raw GPS
-measurement (@see vehicle_gps_position). This topic is usually published by the position
-estimator, which will take more sources of information into account than just GPS,
-e.g. control inputs of the vehicle in a Kalman-filter implementation.
+Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg)
+**TOPICS:** vehicle_global_position vehicle_global_position_groundtruth external_ins_global_position estimator_global_position
+
+## Fields
+
+| 参数名                                                                                                                        | 类型        | Unit [Frame] | Range/Enum | 描述                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                        | `uint64`  |                                                                  |            | time since system start (microseconds)                    |
+| <a id="fld_timestamp_sample"></a>timestamp_sample                                                     | `uint64`  |                                                                  |            | the timestamp of the raw data (microseconds)              |
+| <a id="fld_lat"></a>lat                                                                                                    | `float64` |                                                                  |            | Latitude, (degrees)                                       |
+| <a id="fld_lon"></a>lon                                                                                                    | `float64` |                                                                  |            | Longitude, (degrees)                                      |
+| <a id="fld_alt"></a>alt                                                                                                    | `float32` |                                                                  |            | Altitude AMSL, (meters)                                   |
+| <a id="fld_alt_ellipsoid"></a>alt_ellipsoid                                                           | `float32` |                                                                  |            | Altitude above ellipsoid, (meters)                        |
+| <a id="fld_lat_lon_valid"></a>lat_lon_valid                                      | `bool`    |                                                                  |            |                                                                              |
+| <a id="fld_alt_valid"></a>alt_valid                                                                   | `bool`    |                                                                  |            |                                                                              |
+| <a id="fld_delta_alt"></a>delta_alt                                                                   | `float32` |                                                                  |            | Reset delta for altitude                                                     |
+| <a id="fld_delta_terrain"></a>delta_terrain                                                           | `float32` |                                                                  |            | Reset delta for terrain                                                      |
+| <a id="fld_lat_lon_reset_counter"></a>lat_lon_reset_counter | `uint8`   |                                                                  |            | Counter for reset events on horizontal position coordinates                  |
+| <a id="fld_alt_reset_counter"></a>alt_reset_counter                              | `uint8`   |                                                                  |            | Counter for reset events on altitude                                         |
+| <a id="fld_terrain_reset_counter"></a>terrain_reset_counter                      | `uint8`   |                                                                  |            | Counter for reset events on terrain                                          |
+| <a id="fld_eph"></a>eph                                                                                                    | `float32` |                                                                  |            | Standard deviation of horizontal position error, (metres) |
+| <a id="fld_epv"></a>epv                                                                                                    | `float32` |                                                                  |            | Standard deviation of vertical position error, (metres)   |
+| <a id="fld_terrain_alt"></a>terrain_alt                                                               | `float32` |                                                                  |            | Terrain altitude WGS84, (metres)                          |
+| <a id="fld_terrain_alt_valid"></a>terrain_alt_valid                              | `bool`    |                                                                  |            | Terrain altitude estimate is valid                                           |
+| <a id="fld_dead_reckoning"></a>dead_reckoning                                                         | `bool`    |                                                                  |            | True if this position is estimated through dead-reckoning                    |
+
+## Constants
+
+| 参数名                                                                | 类型       | 值 | 描述 |
+| ------------------------------------------------------------------ | -------- | - | -- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0 |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Fused global position in WGS84.
@@ -45,6 +81,6 @@ bool dead_reckoning		# True if this position is estimated through dead-reckoning
 
 # TOPICS vehicle_global_position vehicle_global_position_groundtruth external_ins_global_position
 # TOPICS estimator_global_position
-# TOPICS aux_global_position
-
 ```
+
+:::
