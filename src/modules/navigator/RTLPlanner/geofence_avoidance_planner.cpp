@@ -38,10 +38,10 @@
 
 GeofenceAvoidancePlanner::~GeofenceAvoidancePlanner()
 {
-	perf_free(_setup_perf);
-	perf_free(_setup_distances_perf);
-	perf_free(_update_destination_perf);
+	perf_free(_update_polygons_perf);
+	perf_free(_update_edge_costs_perf);
 	perf_free(_plan_path_perf);
+	perf_free(_lookup_path_perf);
 }
 
 static matrix::Vector2f get_vertex_local_position(int poly_index, int vertex_idx,
@@ -108,19 +108,14 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 		return;
 	}
 
-	perf_begin(_setup_perf);
-
 	_reference = geofence.getPolygonVertexByIndex(0, 0);
 
 	if (!updatePolygonsFromGeofence(geofence, margin)) {
 		_polygons_healthy = false;
-		perf_cancel(_setup_perf);
 		return;
 	}
 
 	updateEdgeCosts();
-
-	perf_end(_setup_perf);
 
 	// The graph has changed, so we need to re-plan.
 	_status = Status::Success;
@@ -130,6 +125,8 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 	GeofenceInterface &geofence, float margin)
 {
+	perf_begin(_update_polygons_perf);
+
 	const int num_polygons = geofence.getNumPolygons();
 
 	_polygons.reset();
@@ -168,24 +165,29 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 		case geofence_utils::PlannerPolygons::AddResult::BudgetExceeded:
 			_status = Status::BudgetExceeded;
+			perf_cancel(_update_polygons_perf);
 			return false;
 
 		case geofence_utils::PlannerPolygons::AddResult::OutOfRange:
 			_status = Status::OutOfRange;
+			perf_cancel(_update_polygons_perf);
 			return false;
 
 		case geofence_utils::PlannerPolygons::AddResult::Degenerate:
 			_status = Status::Degenerate;
+			perf_cancel(_update_polygons_perf);
 			return false;
 		}
 	}
+
+	perf_end(_update_polygons_perf);
 
 	return true;
 }
 
 void GeofenceAvoidancePlanner::updateEdgeCosts()
 {
-	perf_begin(_setup_distances_perf);
+	perf_begin(_update_edge_costs_perf);
 
 	// All edges in the upper triangle, INCLUDING destination-incident ones (i==0).
 	// Polygon vertices occupy indices 1..numNodes()-1; destination is at 0.
@@ -196,7 +198,7 @@ void GeofenceAvoidancePlanner::updateEdgeCosts()
 		}
 	}
 
-	perf_end(_setup_distances_perf);
+	perf_end(_update_edge_costs_perf);
 }
 
 void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destination)
@@ -238,14 +240,9 @@ void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 		return;
 	}
 
-	// Measure only updateEdgeCosts, rest above is negligible
-	perf_begin(_update_destination_perf);
-
 	// Destination changed -- rebuild all edge costs. Could only refresh costs involving
 	// the destination for slightly better performance at the cost of code repetition.
 	updateEdgeCosts();
-
-	perf_end(_update_destination_perf);
 
 	planPath();
 }
@@ -296,6 +293,8 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 		_straight_line_fallback = true;
 		return 0;
 	}
+
+	perf_begin(_lookup_path_perf);
 
 	MapProjection ref{_reference(0), _reference(1)};
 	matrix::Vector2f start_local;
@@ -355,6 +354,8 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	// No path from current position or saved anchor, and destination not
 	// directly reachable from either. Fall back to flying directly
 	_straight_line_fallback = (_path_length == 0) && !direct_path_feasible;
+
+	perf_end(_lookup_path_perf);
 
 	return path_index;
 }

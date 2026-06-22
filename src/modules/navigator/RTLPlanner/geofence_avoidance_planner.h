@@ -164,10 +164,10 @@ private:
 	// by subsequent calls as fallback when we have breached a geofence.
 	matrix::Vector2<double> _saved_valid_start{(double)NAN, (double)NAN};
 
-	perf_counter_t _setup_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup")};
-	perf_counter_t _setup_distances_perf{perf_alloc(PC_ELAPSED, "rtl_planner: setup distances")};
-	perf_counter_t _update_destination_perf{perf_alloc(PC_ELAPSED, "rtl_planner: update destination")};
+	perf_counter_t _update_polygons_perf{perf_alloc(PC_ELAPSED, "rtl_planner: polygons")};
+	perf_counter_t _update_edge_costs_perf{perf_alloc(PC_ELAPSED, "rtl_planner: edge costs")};
 	perf_counter_t _plan_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: plan path")};
+	perf_counter_t _lookup_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: lookup path")};
 
 	// Sets _status on failure (matching planPath); returns false to abort the build.
 	bool updatePolygonsFromGeofence(GeofenceInterface &geofence, float margin);
