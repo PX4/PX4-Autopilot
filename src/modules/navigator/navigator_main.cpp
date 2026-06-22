@@ -1043,9 +1043,11 @@ void Navigator::geofence_breach_check()
 					current_longitude, current_altitude);
 		}
 
-		_last_geofence_check = hrt_absolute_time();
+		const auto now = hrt_absolute_time();
 
-		_geofence_result.timestamp = hrt_absolute_time();
+		_last_geofence_check = now;
+
+		_geofence_result.timestamp = now;
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
 		const bool breach = _geofence_result.geofence_max_dist_triggered
@@ -1058,7 +1060,7 @@ void Navigator::geofence_breach_check()
 
 				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
-				rep->current.timestamp = hrt_absolute_time();
+				rep->current.timestamp = now;
 				rep->current.yaw = NAN;
 				rep->current.lat = current_latitude;
 				rep->current.lon = current_longitude;
@@ -1071,7 +1073,7 @@ void Navigator::geofence_breach_check()
 				rep->current.cruising_speed = get_cruising_speed();
 
 				_geofence_reposition_sent = true;
-				_time_loitering_after_gf_breach = hrt_absolute_time();
+				_time_loitering_after_gf_breach = now;
 			}
 
 		} else {
