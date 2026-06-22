@@ -80,7 +80,21 @@ public:
 		       || _safe_point.dataman_state != SafePointDatamanState::kUpdateRequestWait;
 	}
 	uint32_t safePointsId() const { return _safe_point.source_id; }
+	bool missionLandItemReady() const
+	{
+		return _mission_land.ready
+		       && _mission_land.index >= 0
+		       && _mission_land.index < _mission.count;
+	}
+	bool missionLandItemUpdatePending() const
+	{
+		return _mission_land.index >= 0
+		       && _mission_land.index < _mission.count
+		       && !_mission_land.ready
+		       && (_mission_land.validation_pending || _mission_land.retry.retry_at != 0);
+	}
 
+	inline bool isMissionLandCommand(uint16_t nav_cmd) const { return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;}
 	int missionCount() const override;
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override;
 	int safePointCount() const override;
@@ -137,6 +151,8 @@ private:
 		uint32_t mission_id{0};
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 		int32_t index{-1};
+		bool ready{false};
+		bool validation_pending{false};
 		RetryBackoff retry{};
 	};
 
@@ -154,11 +170,12 @@ private:
 
 	void updateMissionCache(const mission_s &mission);
 	void updateMissionLandItemCache(const mission_s &mission);
-	void queueMissionLandItem();
+	bool queueMissionLandItem();
 	void updateSafePointCache(const mission_s &mission);
 	bool missionMatchesCache(const mission_s &mission) const;
 	bool queueMissionCacheLoads(const mission_s &mission);
 	bool missionCacheFullyLoaded(const mission_s &mission) const;
+	bool missionLandItemCacheFullyLoaded() const;
 	bool safePointCacheFullyLoaded() const;
 	bool safePointCacheMatchesReadStats() const;
 	void publishSafePointCache();
