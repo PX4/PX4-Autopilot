@@ -40,6 +40,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -79,17 +80,18 @@ private:
 	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
-	static void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos,
-				     const vehicle_attitude_s &attitude);
-	static void fillLocalHomePos(home_position_s &home, float x, float y, float z, float roll, float pitch, float yaw);
+	static void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos);
+	static void fillLocalHomePos(home_position_s &home, float x, float y, float z);
 	static void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos);
 	static void fillGlobalHomePos(home_position_s &home, double lat, double lon, double alt);
+	static void fillAttitude(home_position_s &home, const vehicle_attitude_s &attitude);
 
 	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_attitude_s>	_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionData<vehicle_land_detected_s>	_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	uint64_t _last_gps_timestamp{0};
