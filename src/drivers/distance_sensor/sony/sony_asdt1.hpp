@@ -90,6 +90,7 @@ private:
 	static int sample_to_layout_index(size_t sample_index);
 	static bool layout_index_to_row_col(int layout_index, int &row, int &col);
 	static int col_to_obstacle_bin(int col);
+	static uint16_t max_distance_for_mode(int32_t mode);
 
 	static constexpr size_t COMMAND_BUFFER_SIZE{32};
 	static constexpr size_t READ_BUFFER_SIZE{512};

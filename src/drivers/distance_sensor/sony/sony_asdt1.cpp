@@ -47,6 +47,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
 
 AS_DT1::AS_DT1(const char *device, bool one_shot) :
@@ -63,7 +64,10 @@ AS_DT1::AS_DT1(const char *device, bool one_shot) :
 	_obstacle_distance.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
 	_obstacle_distance.increment = static_cast<uint8_t>(OBSTACLE_INCREMENT_DEG);
 	_obstacle_distance.min_distance = 30;
-	_obstacle_distance.max_distance = 2000;
+
+	int32_t mode = 0;
+	(void)param_get(param_find("SENS_ASDT1_MODE"), &mode);
+	_obstacle_distance.max_distance = max_distance_for_mode(mode);
 	_obstacle_distance.angle_offset = 0.0f;
 
 	for (uint8_t i = 0; i < BIN_COUNT; i++) {
@@ -512,6 +516,23 @@ uint16_t AS_DT1::z_raw_to_distance_cm(uint32_t z_raw)
 	}
 
 	return static_cast<uint16_t>(math::min(roundf(z_cm), static_cast<float>(UINT16_MAX)));
+}
+
+uint16_t AS_DT1::max_distance_for_mode(int32_t mode)
+{
+	switch (mode) {
+	case 3: // 20M
+		return 2000;
+
+	case 4: // 40M
+		return 4000;
+
+	case 0: // 30MSTD
+	case 1: // 30M15F
+	case 2: // 30M30F
+	default:
+		return 3000;
+	}
 }
 
 int AS_DT1::sample_to_layout_index(size_t sample_index)
