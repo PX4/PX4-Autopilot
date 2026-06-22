@@ -416,7 +416,7 @@ TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)
 	ASSERT_FALSE(failsafe.userTakeoverActive());
 }
 
-TEST_F(FailsafeTest, orbit_after_failsafe_explicit_command_allowed)
+TEST_F(FailsafeTest, OrbitAfterFailsafeExplicitCommandAllowed)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -448,7 +448,7 @@ TEST_F(FailsafeTest, orbit_after_failsafe_explicit_command_allowed)
 	ASSERT_EQ(updated_user_intented_mode, vehicle_status_s::NAVIGATION_STATE_ORBIT);
 }
 
-TEST_F(FailsafeTest, orbit_autoresume_after_failsafe_downgraded_to_loiter)
+TEST_F(FailsafeTest, OrbitAutoresumeAfterFailsafeDowngradedToLoiter)
 {
 	FailsafeTester failsafe(nullptr);
 
