@@ -741,8 +741,6 @@ int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
 
 			if (instance->request_stop_and_wait()) {
-				// the instance is the list node, so unlink it before freeing - otherwise
-				// removeInstance() operates on freed memory and can corrupt the list
 				iterator.removeInstance();
 				delete instance;
 
