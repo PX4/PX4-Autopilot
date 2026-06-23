@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name KTH-ATMOS
+# @name KTH-ATMOS-DUAL
 #
 # @type Free-Flyer
 # @class Spacecraft
@@ -13,6 +13,10 @@
 # @output Motor6 front right thruster, -y thrust
 # @output Motor7 back left thruster, +y thrust
 # @output Motor8 back right thruster, -y thrust
+# @output UAVCAN1 propeller 1, -x thrust
+# @output UAVCAN2 propeller 2, +x thrust
+# @output UAVCAN3 propeller 3, -y thrust
+# @output UAVCAN4 propeller 4, +y thrust
 #
 # @maintainer DISCOWER
 # @url https://atmos.discower.io
@@ -161,3 +165,28 @@ param set-default SC_ROLLRATE_I 0.3
 param set-default SC_PITCHRATE_I 0.3
 param set-default SC_ROLLRATE_D 0.004
 param set-default SC_PITCHRATE_D 0.00
+
+# Propeller Plate
+param set-default UAVCAN_ENABLE 3
+param set-default UAVCAN_BITRATE 500000
+param set-default UAVCAN_EC_BIDI 15
+
+param set-default UAVCAN_EC_FUNC1 301
+param set-default UAVCAN_EC_FUNC2 302
+param set-default UAVCAN_EC_FUNC3 303
+param set-default UAVCAN_EC_FUNC4 304
+
+param set-default UAVCAN_EC_DIS1 8192
+param set-default UAVCAN_EC_DIS2 8192
+param set-default UAVCAN_EC_DIS3 8192
+param set-default UAVCAN_EC_DIS4 8192
+
+param set-default UAVCAN_EC_MIN1 0
+param set-default UAVCAN_EC_MIN2 0
+param set-default UAVCAN_EC_MIN3 0
+param set-default UAVCAN_EC_MIN4 0
+
+param set-default UAVCAN_EC_MAX1 16383
+param set-default UAVCAN_EC_MAX2 16383
+param set-default UAVCAN_EC_MAX3 16383
+param set-default UAVCAN_EC_MAX4 16383

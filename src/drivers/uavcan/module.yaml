@@ -73,6 +73,29 @@ parameters:
         5: Status/Red
         6: Status/Green
         7: Status/Off
+    UAVCAN_EC_BIDI:
+      description:
+        short: Enable bidirectional ESC command mapping per channel
+        long: |
+          When disabled (default), MIN/MAX/DIS use range [0, 8191].
+          When enabled, MIN/MAX/DIS use range [0, 16383] where DIS defines
+          the zero-thrust center point.
+      type: bitmask
+      bit:
+        0: ESC1
+        1: ESC2
+        2: ESC3
+        3: ESC4
+        4: ESC5
+        5: ESC6
+        6: ESC7
+        7: ESC8
+        8: ESC9
+        9: ESC10
+        10: ESC11
+        11: ESC12
+      default: 0
+      reboot_required: true
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:
@@ -86,9 +109,15 @@ actuator_output:
       group_label: 'ESCs'
       channel_label: 'ESC'
       standard_params:
-        min: { min: 0, max: 8191, default: 1 }
-        max: { min: 0, max: 8191, default: 8191 }
-        failsafe: { min: 0, max: 8191 }
+        disarmed: { min: 0, max: 16383, default: 0 }
+        min: { min: 0, max: 16383, default: 1 }
+        max: { min: 0, max: 16383, default: 8191 }
+        failsafe: { min: 0, max: 16383 }
+      custom_params:
+        - name: 'BIDI'
+          label: 'Bidirectional'
+          index_offset: -1
+          show_as: bitset
       num_channels: 12
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name KTH-ATMOS
+# @name KTH-ATMOS-DUAL
 #
 # @type Free-Flyer
 # @class Spacecraft
@@ -134,10 +134,6 @@ param set-default SIM_GZ_EC_MIN5 0
 param set-default SIM_GZ_EC_MIN6 0
 param set-default SIM_GZ_EC_MIN7 0
 param set-default SIM_GZ_EC_MIN8 0
-param set-default SIM_GZ_EC_MIN9 1100
-param set-default SIM_GZ_EC_MIN10 1100
-param set-default SIM_GZ_EC_MIN11 1100
-param set-default SIM_GZ_EC_MIN12 1100
 
 param set-default SIM_GZ_EC_MAX1 10000
 param set-default SIM_GZ_EC_MAX2 10000
@@ -147,10 +143,6 @@ param set-default SIM_GZ_EC_MAX5 10000
 param set-default SIM_GZ_EC_MAX6 10000
 param set-default SIM_GZ_EC_MAX7 10000
 param set-default SIM_GZ_EC_MAX8 10000
-param set-default SIM_GZ_EC_MAX9 1900
-param set-default SIM_GZ_EC_MAX10 1900
-param set-default SIM_GZ_EC_MAX11 1900
-param set-default SIM_GZ_EC_MAX12 1900
 
 # Controller Tunings
 param set SC_YAWRATE_P 3.335
@@ -164,3 +156,20 @@ param set SPC_VEL_P 6.55
 param set SPC_VEL_I 0.0
 param set SPC_VEL_D 0.0
 param set SPC_VEL_MAX 12.0
+
+# Match the UAVCAN command range
+param set-default SIM_GZ_EC_MIN9  0
+param set-default SIM_GZ_EC_MIN10 0
+param set-default SIM_GZ_EC_MIN11 0
+param set-default SIM_GZ_EC_MIN12 0
+
+param set-default SIM_GZ_EC_MAX9  16383
+param set-default SIM_GZ_EC_MAX10 16383
+param set-default SIM_GZ_EC_MAX11 16383
+param set-default SIM_GZ_EC_MAX12 16383
+
+# Disarmed at center (bidirectional)
+param set-default SIM_GZ_EC_DIS9  8192
+param set-default SIM_GZ_EC_DIS10 8192
+param set-default SIM_GZ_EC_DIS11 8192
+param set-default SIM_GZ_EC_DIS12 8192

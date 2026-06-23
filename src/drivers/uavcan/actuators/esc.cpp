@@ -56,6 +56,12 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 
 int UavcanEscController::init()
 {
+	_uavcan_ec_bidi_h = param_find("UAVCAN_EC_BIDI");
+
+	if (_uavcan_ec_bidi_h != PARAM_INVALID) {
+		param_get(_uavcan_ec_bidi_h, &_uavcan_ec_bidi_mask);
+	}
+
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
@@ -85,7 +91,8 @@ int UavcanEscController::init()
 	return res;
 }
 
-void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size)
+void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], const uint16_t disarmed_values[MAX_ACTUATORS],
+		uint8_t output_array_size)
 {
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
@@ -99,7 +106,14 @@ void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t o
 	uavcan::equipment::esc::RawCommand msg{};
 
 	for (unsigned i = 0; i < output_array_size; i++) {
-		msg.cmd.push_back(static_cast<int>(lroundf(outputs[i])));
+		const bool bidi_enabled_for_channel = (_uavcan_ec_bidi_mask & (1 << i)) != 0;
+		int command = static_cast<int>(lroundf(outputs[i]));
+
+		if (bidi_enabled_for_channel) {
+			command -= disarmed_values[i];
+		}
+
+		msg.cmd.push_back(command);
 	}
 
 	_uavcan_pub_raw_cmd.broadcast(msg);
