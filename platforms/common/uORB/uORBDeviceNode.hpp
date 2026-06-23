@@ -224,42 +224,49 @@ public:
 	 */
 	bool copy(void *dst, unsigned &generation)
 	{
-		if ((dst != nullptr) && (_data.load() != nullptr)) {
-			if (_meta->o_queue == 1) {
-				ATOMIC_ENTER;
-				memcpy(dst, _data.load(), _meta->o_size);
-				generation = _generation.load();
-				ATOMIC_LEAVE;
-				return true;
-
-			} else {
-				ATOMIC_ENTER;
-				const unsigned current_generation = _generation.load();
-
-				if (current_generation == generation) {
-					/* The subscriber already read the latest message, but nothing new was published yet.
-					* Return the previous message
-					*/
-					--generation;
-				}
-
-				// Compatible with normal and overflow conditions
-				if (!is_in_range(current_generation - _meta->o_queue, generation, current_generation - 1)) {
-					// Reader is too far behind: some messages are lost
-					generation = current_generation - _meta->o_queue;
-				}
-
-				memcpy(dst, _data.load() + (_meta->o_size * (generation % _meta->o_queue)), _meta->o_size);
-				ATOMIC_LEAVE;
-
-				++generation;
-
-				return true;
-			}
+		if (dst == nullptr) {
+			return false;
 		}
 
-		return false;
+		// _data is read (and lazily allocated in write()) under the node lock. On POSIX
+		// ATOMIC_ENTER is that same lock, so reading it here serializes against the
+		// allocation; on NuttX it is a set-once, word-aligned pointer.
+		ATOMIC_ENTER;
 
+		if (_data == nullptr) {
+			ATOMIC_LEAVE;
+			return false;
+		}
+
+		if (_meta->o_queue == 1) {
+			memcpy(dst, _data, _meta->o_size);
+			generation = _generation.load();
+			ATOMIC_LEAVE;
+			return true;
+
+		} else {
+			const unsigned current_generation = _generation.load();
+
+			if (current_generation == generation) {
+				/* The subscriber already read the latest message, but nothing new was published yet.
+				* Return the previous message
+				*/
+				--generation;
+			}
+
+			// Compatible with normal and overflow conditions
+			if (!is_in_range(current_generation - _meta->o_queue, generation, current_generation - 1)) {
+				// Reader is too far behind: some messages are lost
+				generation = current_generation - _meta->o_queue;
+			}
+
+			memcpy(dst, _data + (_meta->o_size * (generation % _meta->o_queue)), _meta->o_size);
+			ATOMIC_LEAVE;
+
+			++generation;
+
+			return true;
+		}
 	}
 
 	// add item to list of work items to schedule on node update
@@ -279,7 +286,7 @@ private:
 
 	const orb_metadata *_meta; /**< object metadata information */
 
-	px4::atomic<uint8_t *> _data{nullptr};   /**< allocated object buffer */
+	uint8_t *_data{nullptr};   /**< allocated object buffer, guarded by the node lock (ATOMIC_ENTER) */
 	bool _data_valid{false}; /**< At least one valid data */
 	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
 	List<uORB::SubscriptionCallback *>	_callbacks;

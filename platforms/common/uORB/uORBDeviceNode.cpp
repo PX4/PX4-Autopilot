@@ -57,7 +57,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	free(_data.load());
+	free(_data);
 
 	const char *devname = get_devname();
 
@@ -147,17 +147,20 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	 *
 	 * Note that filp will usually be NULL.
 	 */
-	if (nullptr == _data.load()) {
+	if (nullptr == _data) {
 
 #ifdef __PX4_NUTTX
 
 		if (!up_interrupt_context()) {
 #endif /* __PX4_NUTTX */
 
+			// Allocate the buffer under the node lock. It cannot be allocated from
+			// ATOMIC_ENTER (an interrupts-off critical section on NuttX), so the lock
+			// is what serializes the lazy allocation against concurrent readers.
 			lock();
 
 			/* re-check size */
-			if (nullptr == _data.load()) {
+			if (nullptr == _data) {
 				const size_t data_size = _meta->o_size * _meta->o_queue;
 				uint8_t *data = (uint8_t *) px4_cache_aligned_alloc(data_size);
 
@@ -165,7 +168,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 					memset(data, 0, data_size);
 				}
 
-				_data.store(data);
+				_data = data;
 			}
 
 			unlock();
@@ -176,7 +179,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 #endif /* __PX4_NUTTX */
 
 		/* failed or could not allocate */
-		if (nullptr == _data.load()) {
+		if (nullptr == _data) {
 			return -ENOMEM;
 		}
 	}
@@ -191,7 +194,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data.load() + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
+	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
 
 	// callbacks
 	for (auto item : _callbacks) {
@@ -412,10 +415,10 @@ int16_t uORB::DeviceNode::process_add_subscription()
 	// send the data to the remote entity.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data.load() != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
+	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
 		// Only send the most recent data to initialize the remote end.
 		if (_data_valid) {
-			ch->send_message(_meta->o_name, _meta->o_size, _data.load() + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
+			ch->send_message(_meta->o_name, _meta->o_size, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
 		}
 	}
 
