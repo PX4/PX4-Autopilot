@@ -353,3 +353,51 @@ TEST_F(AttitudeControlFeedforwardTest, TiltedUnlockedYawUsesCommandedRateOnly)
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(2),  cosf(tilt) * commanded, 1e-3f);
 }
+
+TEST_F(AttitudeControlFeedforwardTest, CommandedYawRateFedForwardWhenFFDisabled)
+{
+	// GIVEN: a settled manual yaw-rate command (heading slaved to measurement, small commanded rate)
+	const float commanded = 0.05f;
+	const Quatf q_d = rampSetpoint(Vector3f(0.f, 0.f, 0.8f), commanded, kSettleSteps);
+
+	// WHEN: the reference-model anticipation is disabled (autotune / MC_REF_FF=0) — the legacy baseline.
+	// Evaluate at the raw setpoint so the P term sees no attitude error and only the feedforward remains.
+	_attitude_control.setFeedForwardEnabled(false);
+	const Vector3f rate_setpoint = _attitude_control.update(q_d);
+
+	// THEN: the commanded yaw rate is still fed forward at unity (legacy applied it unconditionally).
+	EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, FractionalGainDoesNotWeakenCommandedYaw)
+{
+	// GIVEN: a manual yaw-rate command with the anticipation gain detuned to 0.1
+	const float commanded = 0.05f;
+	_attitude_control.setFeedForwardGain(0.1f);
+	rampSetpoint(Vector3f(0.f, 0.f, 0.8f), commanded, kSettleSteps);
+
+	// Evaluate at the reference attitude so the P term is zero; the only yaw contribution is the FF.
+	const Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
+
+	// THEN: commanded yaw authority is preserved at full strength (NOT scaled to 0.1 x commanded).
+	EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, FractionalGainScalesAnticipation)
+{
+	// GIVEN: a settled roll-ramp reference (pure error-driven anticipation, no commanded rate), gain 0.1
+	const float omega = 0.5f;
+	_attitude_control.setFeedForwardGain(0.1f);
+	rampSetpoint(Vector3f(omega, 0.f, 0.f), 0.f, kSettleSteps);
+
+	const Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
+
+	// THEN: the anticipation IS scaled by the gain (0.1 x the settled reference rate), unlike the command.
+	EXPECT_NEAR(rate_setpoint(0), 0.1f * omega, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+	EXPECT_NEAR(rate_setpoint(2), 0.f, 1e-3f);
+}

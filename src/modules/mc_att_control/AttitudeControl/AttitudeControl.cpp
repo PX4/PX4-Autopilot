@@ -144,7 +144,8 @@ void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 
 matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 {
-	// FF off (autotune, MC_REF_FF=0): P targets the raw setpoint. FF on: P targets _q_ref.
+	// MC_REF_FF / autotune gate only the reference-model anticipation: the P target falls back to the raw
+	// setpoint when it is off, while the commanded yaw rate is fed forward in both cases.
 	const bool ff_active = _ff_enabled && (_ff_gain > 0.f);
 	Quatf qd = ff_active ? _q_ref : _attitude_setpoint_q;
 
@@ -186,12 +187,16 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// calculate angular rates setpoint
 	Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
-	if (ff_active) {
-		// Rotate the reference rate from q_ref's body frame into the current body frame.
-		const Quatf q_rel = qmul(qinv(q), _q_ref);
+	// Map reference-frame rates into the current body frame.
+	const Quatf q_rel = qmul(qinv(q), _q_ref);
 
-		// FF_MAX caps only the model's error-driven anticipation; the commanded yaw rate (omega_command, already
-		// bounded by MPC_MAN_Y_MAX upstream) passes through, else manual yaw authority would cap at FF_MAX.
+	// The commanded reference rate (e.g. manual/auto yaw rate) is a setpoint, not a model prediction, so it is
+	// always fed forward at unity exactly as the legacy controller did. This makes MC_REF_FF=0 an exact legacy
+	// baseline and preserves full commanded yaw authority at any fractional gain.
+	rate_setpoint += q_rel.rotateVector(_omega_command);
+
+	if (ff_active) {
+		// MC_REF_FF scales and MC_REF_FF_MAX caps only the model's error-driven anticipation
 		Vector3f omega_ff = _ff_gain * q_rel.rotateVector(_omega_correction);
 
 		if (_ff_max > 0.f) {
@@ -200,7 +205,6 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 			}
 		}
 
-		omega_ff += _ff_gain * q_rel.rotateVector(_omega_command);
 		rate_setpoint += omega_ff;
 	}
 
