@@ -115,7 +115,7 @@ parameters:
         long: |-
           Scale on the reference-model rate feed-forward. 0 disables it.
       type: float
-      default: 1.0
+      default: 0.0
       min: 0.0
       max: 1.0
       decimal: 2
