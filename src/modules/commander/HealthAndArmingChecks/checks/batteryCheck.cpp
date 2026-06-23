@@ -295,13 +295,17 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::battery);
 	}
 
-	batteryVoltageDeltaCheck(reporter);
+	batteryVoltageDeltaCheck(context, reporter);
 
 	_last_armed = context.isArmed();
 }
 
-void BatteryChecks::batteryVoltageDeltaCheck(Report &reporter)
+void BatteryChecks::batteryVoltageDeltaCheck(const Context &context, Report &reporter)
 {
+	if (context.isArmed()) {
+		return;
+	}
+
 	const float max_delta = _param_com_arm_bat_vdif.get();
 
 	if (max_delta <= FLT_EPSILON) {

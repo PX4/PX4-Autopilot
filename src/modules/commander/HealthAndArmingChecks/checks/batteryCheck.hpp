@@ -50,7 +50,7 @@ public:
 
 private:
 	void rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s);
-	void batteryVoltageDeltaCheck(Report &reporter);
+	void batteryVoltageDeltaCheck(const Context &context, Report &reporter);
 
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
