@@ -50,6 +50,28 @@ static float computeYawRateSetpointBeforeTurnCoord(const Quatf &q_current, const
 	return att_err(2);
 }
 
+static Dcmf adaptTailsitterAttitudeForFixedWing(const Dcmf &R)
+{
+	Dcmf R_adapted = R;
+
+	/* move z to x */
+	R_adapted(0, 0) = R(0, 2);
+	R_adapted(1, 0) = R(1, 2);
+	R_adapted(2, 0) = R(2, 2);
+
+	/* move x to z */
+	R_adapted(0, 2) = R(0, 0);
+	R_adapted(1, 2) = R(1, 0);
+	R_adapted(2, 2) = R(2, 0);
+
+	/* change direction of pitch (convert to right handed system) */
+	R_adapted(0, 0) = -R_adapted(0, 0);
+	R_adapted(1, 0) = -R_adapted(1, 0);
+	R_adapted(2, 0) = -R_adapted(2, 0);
+
+	return R_adapted;
+}
+
 TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_Identity)
 {
 	// When current and setpoint are both identity, yaw rate should be zero
@@ -113,4 +135,28 @@ TEST(FixedwingAttitudeControlTest, YawRateSetpointZeroBeforeTurnCoord_BankedTurn
 	const float yaw_rate = computeYawRateSetpointBeforeTurnCoord(q_current, q_sp);
 
 	EXPECT_NEAR(yaw_rate, 0.f, 1e-4f);
+}
+
+TEST(FixedwingAttitudeControlTest, TailsitterFixedWingFrameRemovesAttitudeError)
+{
+	// A level fixed-wing tailsitter attitude is offset by 90 degrees from the
+	// multicopter attitude frame. The FW attitude error must use the adapted
+	// tailsitter frame, otherwise the level FW setpoint appears as a large error.
+	Dcmf R_raw;
+	R_raw(0, 0) = 0.f;
+	R_raw(0, 1) = 0.f;
+	R_raw(0, 2) = -1.f;
+	R_raw(1, 0) = 0.f;
+	R_raw(1, 1) = 1.f;
+	R_raw(1, 2) = 0.f;
+	R_raw(2, 0) = 1.f;
+	R_raw(2, 1) = 0.f;
+	R_raw(2, 2) = 0.f;
+
+	const Quatf q_sp;
+	const Vector3f raw_att_err = computeAttitudeError(Quatf(R_raw), q_sp);
+	const Vector3f adapted_att_err = computeAttitudeError(Quatf(adaptTailsitterAttitudeForFixedWing(R_raw)), q_sp);
+
+	EXPECT_GT(raw_att_err.norm(), 1.f);
+	EXPECT_NEAR(adapted_att_err.norm(), 0.f, 1e-5f);
 }
