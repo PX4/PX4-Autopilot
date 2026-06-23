@@ -110,6 +110,12 @@ void BatterySimulator::Run()
 		vbatt = _battery.empty_cell_voltage();
 	}
 
+	if (_forced_battery_percentage >= 0.f) {
+		_battery_percentage = _forced_battery_percentage;
+		vbatt = math::interpolate(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(),
+					  _battery.full_cell_voltage());
+	}
+
 	vbatt *= _battery.cell_count();
 
 	_battery.setConnected(true);
@@ -146,10 +152,12 @@ void BatterySimulator::updateCommands()
 				if (instance == 0) {
 					supported = true;
 					_force_empty_battery = false;
+					_forced_battery_percentage = -1.f;
+					mavlink_log_info(&_mavlink_log_pub, "battery sim: injection cleared");
 				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				// Force battery empty for FAILURE_TYPE_OFF - not perfectly accurate, but what we want to achieve
+				// Force battery empty
 				handled = true;
 				PX4_WARN("CMD_INJECT_FAILURE, battery empty");
 				supported = false;
@@ -157,6 +165,25 @@ void BatterySimulator::updateCommands()
 				if (instance == 0) {
 					supported = true;
 					_force_empty_battery = true;
+					_forced_battery_percentage = -1.f; // clear any forced percentage
+					mavlink_log_critical(&_mavlink_log_pub, "battery sim: forced empty");
+				}
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
+				// Set battery to specific percentage from param4
+				handled = true;
+				float pct = vehicle_command.param4;
+
+				if (pct > 0.f && pct <= 100.f) {
+					PX4_WARN("CMD_INJECT_FAILURE, battery set to %.0f%%", (double)pct);
+					supported = true;
+					_forced_battery_percentage = pct / 100.f;
+					_force_empty_battery = false; // clear empty flag if set
+
+				} else {
+					PX4_ERR("CMD_INJECT_FAILURE, invalid battery percentage: %.0f", (double)pct);
+					supported = false;
+					mavlink_log_critical(&_mavlink_log_pub, "battery sim: invalid pct %.0f", (double)pct);
 				}
 			}
 		}

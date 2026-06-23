@@ -39,6 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -81,6 +82,7 @@ private:
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	Battery _battery;
 
@@ -89,6 +91,7 @@ private:
 	bool _armed{false};
 
 	bool _force_empty_battery{false};
+	float _forced_battery_percentage{-1.f}; // negative = not forced, 0-1 = forced percentage
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

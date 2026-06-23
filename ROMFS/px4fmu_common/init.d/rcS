@@ -400,6 +400,15 @@ else
 			sensor_mag_sim start
 			sensor_gps_sim start
 			sensor_agp_sim start
+
+			if param compare SIM_BAT_ENABLE 1
+			then
+				# route BAT1 to the sim power-module source (matches Battery::_source gate);
+				# also mute DroneCAN battery. Non-persistent, this boot only.
+				param set BAT1_SOURCE 0
+				param set UAVCAN_SUB_BAT 0
+				battery_simulator start
+			fi
 		fi
 
 	else

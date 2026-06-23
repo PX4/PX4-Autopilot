@@ -12,6 +12,17 @@ parameters:
       min: 0
       increment: 1
       unit: s
+    SIM_BAT_ENABLE:
+      description:
+        short: Enable the battery simulator
+        long: |-
+          When enabled, the battery simulator is started at boot and provides the vehicle's
+          battery state. On hardware in HITL (SYS_HITL=2) this also routes BAT1_SOURCE to the
+          simulated power module and mutes the DroneCAN battery for that boot, so battery
+          failsafes can be exercised (e.g. via MAV_CMD_INJECT_FAILURE) without a physical pack.
+      type: boolean
+      default: 0
+      reboot_required: true
     SIM_BAT_MIN_PCT:
       description:
         short: Simulator Battery minimal percentage
