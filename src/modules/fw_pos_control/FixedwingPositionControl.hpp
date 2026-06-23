@@ -224,6 +224,7 @@ private:
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};  // catapult tail-servo release
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
@@ -328,6 +329,11 @@ private:
 
 	// [rad] current vehicle yaw at the time the launch is detected
 	float _launch_current_yaw{0.f};
+
+	// Catapult-launch extension (active only when CAT_EN=1)
+	hrt_abstime _cat_launch_time{0};  // T0: time launch was detected
+	bool _cat_tail_locked{false};     // tail-lock servos commanded to lock position
+	bool _cat_tail_released{false};   // tail-lock servos commanded to release position
 
 	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
 	RunwayTakeoff _runway_takeoff;
@@ -659,6 +665,15 @@ private:
 	 */
 	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &global_position,
 				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Commands the catapult tail-lock servos (MAIN5/MAIN6) via
+	 *        MAV_CMD_DO_SET_ACTUATOR -> Peripheral_via_Actuator_Set1/2.
+	 *
+	 * @param pwm5_us PWM (us) for tail servo 1 (Set1 / MAIN5)
+	 * @param pwm6_us PWM (us) for tail servo 2 (Set2 / MAIN6)
+	 */
+	void commandCatapultTailServos(int pwm5_us, int pwm6_us);
 
 	/**
 	 * @brief Controls automatic landing with straight approach.
@@ -1051,7 +1066,15 @@ private:
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
+
+		(ParamInt<px4::params::CAT_EN>) _param_cat_en,
+		(ParamFloat<px4::params::CAT_TAIL_DLY>) _param_cat_tail_dly,
+		(ParamInt<px4::params::CAT_TAIL5_LCK>) _param_cat_tail5_lck,
+		(ParamInt<px4::params::CAT_TAIL5_REL>) _param_cat_tail5_rel,
+		(ParamInt<px4::params::CAT_TAIL6_LCK>) _param_cat_tail6_lck,
+		(ParamInt<px4::params::CAT_TAIL6_REL>) _param_cat_tail6_rel,
+		(ParamInt<px4::params::CAT_MOT_REQ_TAIL>) _param_cat_mot_req_tail
 	)
 
 };

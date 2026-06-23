@@ -952,3 +952,92 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
+
+/**
+ * Catapult launch automation enable
+ *
+ * Enables the catapult-launch extension of the fixed-wing takeoff path:
+ * tail-lock servo release (MAIN5/MAIN6) and motor-start gating after launch
+ * detection. When disabled the stock launch/takeoff behaviour is unchanged.
+ *
+ * @boolean
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_EN, 0);
+
+/**
+ * Catapult tail-lock release delay
+ *
+ * Delay from launch detection (T0) until the tail-lock servos are commanded
+ * to their release position.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_FLOAT(CAT_TAIL_DLY, 1.0f);
+
+/**
+ * Catapult tail servo 1 (MAIN5) lock PWM
+ *
+ * PWM (us) commanded to Peripheral_via_Actuator_Set1 while locked, before
+ * release. Normalized as (pwm-1500)/500.
+ *
+ * @unit us
+ * @min 1000
+ * @max 2000
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_TAIL5_LCK, 1000);
+
+/**
+ * Catapult tail servo 1 (MAIN5) release PWM
+ *
+ * PWM (us) commanded to Peripheral_via_Actuator_Set1 on release.
+ *
+ * @unit us
+ * @min 1000
+ * @max 2000
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_TAIL5_REL, 2000);
+
+/**
+ * Catapult tail servo 2 (MAIN6) lock PWM
+ *
+ * PWM (us) commanded to Peripheral_via_Actuator_Set2 while locked.
+ *
+ * @unit us
+ * @min 1000
+ * @max 2000
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_TAIL6_LCK, 1000);
+
+/**
+ * Catapult tail servo 2 (MAIN6) release PWM
+ *
+ * PWM (us) commanded to Peripheral_via_Actuator_Set2 on release.
+ *
+ * @unit us
+ * @min 1000
+ * @max 2000
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_TAIL6_REL, 2000);
+
+/**
+ * Catapult: require tail release before motor
+ *
+ * When enabled the propulsion motor is held at idle until the tail-lock
+ * servos have been released, even after the launch detector reaches the
+ * flying state. Prevents the motor from spinning up while the airframe is
+ * still locked in the tube.
+ *
+ * @boolean
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_MOT_REQ_TAIL, 1);

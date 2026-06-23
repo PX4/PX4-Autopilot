@@ -27,8 +27,3 @@ fw_autotune_attitude_control start
 # Start Land Detector.
 #
 land_detector start fixedwing
-
-#
-# Start Catapult Launch automation (active only when CAT_EN=1).
-#
-catapult_launch start

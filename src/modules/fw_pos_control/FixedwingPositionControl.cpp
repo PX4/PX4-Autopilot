@@ -1626,6 +1626,15 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 	} else {
+		// Catapult extension: hold the tail-lock servos in their locked
+		// position while we wait for launch (commanded once on entry).
+		if (_param_cat_en.get() && !_cat_tail_locked && !_launch_detected) {
+			commandCatapultTailServos(_param_cat_tail5_lck.get(), _param_cat_tail6_lck.get());
+			_cat_tail_locked = true;
+			PX4_INFO("[catapult] tail locked (MAIN5=%dus MAIN6=%dus), waiting for launch",
+				 (int)_param_cat_tail5_lck.get(), (int)_param_cat_tail6_lck.get());
+		}
+
 		/* Perform launch detection */
 		if (!_skipping_takeoff_detection && _param_fw_laun_detcn_on.get() &&
 		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
@@ -1648,6 +1657,20 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
 			_airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed);
+
+			// Catapult extension: stamp T0 for the tail-release delay timer
+			_cat_launch_time = now;
+		}
+
+		// Catapult extension: release the tail-lock servos once the
+		// configured delay after launch detection (T0) has elapsed.
+		if (_param_cat_en.get() && _launch_detected && !_cat_tail_released
+		    && (now - _cat_launch_time) >= (hrt_abstime)(_param_cat_tail_dly.get() * 1e6f)) {
+			commandCatapultTailServos(_param_cat_tail5_rel.get(), _param_cat_tail6_rel.get());
+			_cat_tail_released = true;
+			PX4_INFO("[catapult] tail released at T0+%.2fs (MAIN5=%dus MAIN6=%dus)",
+				 (double)((now - _cat_launch_time) * 1e-6f),
+				 (int)_param_cat_tail5_rel.get(), (int)_param_cat_tail6_rel.get());
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),
@@ -1680,8 +1703,15 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 
-			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
-							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
+			// Catapult extension: hold the motor at idle until the tail-lock
+			// servos have been released, so the airframe never spins up while
+			// still locked in the tube.
+			const bool cat_hold_motor = _param_cat_en.get() && _param_cat_mot_req_tail.get()
+						    && !_cat_tail_released;
+
+			const float max_takeoff_throttle =
+				(cat_hold_motor || _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
+				_param_fw_thr_idle.get() : _param_fw_thr_max.get();
 			const bool disable_underspeed_handling = true;
 
 			tecs_update_pitch_throttle(control_interval,
@@ -1696,8 +1726,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						   is_low_height,
 						   disable_underspeed_handling);
 
-			if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
+			if (cat_hold_motor || _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 				// explicitly set idle throttle until motors are enabled
+				// (and, for catapult, until the tail lock is released)
 				_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 
 			} else {
@@ -2827,7 +2858,38 @@ FixedwingPositionControl::reset_takeoff_state()
 
 	_launch_detected = false;
 
+	// Catapult-launch extension state
+	_cat_launch_time = 0;
+	_cat_tail_locked = false;
+	_cat_tail_released = false;
+
 	_takeoff_ground_alt = _current_altitude;
+}
+
+void
+FixedwingPositionControl::commandCatapultTailServos(int pwm5_us, int pwm6_us)
+{
+	// Route through MAV_CMD_DO_SET_ACTUATOR so the values land on
+	// Peripheral_via_Actuator_Set1/2 (mapped to MAIN5/MAIN6 in QGC) without
+	// fighting the control-surface allocation. FunctionActuatorSet only
+	// processes index 0 (param7=0); param1..param6 map to Set1..Set6.
+	// Normalized value = (pwm_us - 1500) / 500.
+	vehicle_command_s cmd{};
+	cmd.timestamp        = hrt_absolute_time();
+	cmd.command          = vehicle_command_s::VEHICLE_CMD_DO_SET_ACTUATOR;
+	cmd.param1           = ((float)pwm5_us - 1500.f) / 500.f; // Set1 -> MAIN5
+	cmd.param2           = ((float)pwm6_us - 1500.f) / 500.f; // Set2 -> MAIN6
+	cmd.param3           = NAN; // motor slot: do not change
+	cmd.param4           = NAN;
+	cmd.param5           = NAN;
+	cmd.param6           = NAN;
+	cmd.param7           = 0.f; // actuator set index
+	cmd.target_system    = 1;
+	cmd.target_component = 1;
+	cmd.source_system    = 1;
+	cmd.source_component = 1;
+	cmd.from_external    = false;
+	_vehicle_command_pub.publish(cmd);
 }
 
 void
