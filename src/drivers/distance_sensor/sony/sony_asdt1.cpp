@@ -50,9 +50,10 @@
 #include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
 
-AS_DT1::AS_DT1(const char *device, bool one_shot) :
+AS_DT1::AS_DT1(const char *device, bool one_shot, bool flshow_only) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_one_shot(one_shot)
+	_one_shot(one_shot),
+	_flshow_only(flshow_only)
 {
 	if (device != nullptr) {
 		strncpy(_device, device, sizeof(_device) - 1);
@@ -65,9 +66,8 @@ AS_DT1::AS_DT1(const char *device, bool one_shot) :
 	_obstacle_distance.increment = static_cast<uint8_t>(OBSTACLE_INCREMENT_DEG);
 	_obstacle_distance.min_distance = 30;
 
-	int32_t mode = 0;
-	(void)param_get(param_find("SENS_ASDT1_MODE"), &mode);
-	_obstacle_distance.max_distance = max_distance_for_mode(mode);
+	(void)param_get(param_find("SENS_ASDT1_MODE"), &_mode);
+	_obstacle_distance.max_distance = max_distance_for_mode(_mode);
 	_obstacle_distance.angle_offset = 0.0f;
 
 	for (uint8_t i = 0; i < BIN_COUNT; i++) {
@@ -82,7 +82,21 @@ AS_DT1::~AS_DT1()
 
 int AS_DT1::init()
 {
-	if (_one_shot) {
+	if (_flshow_only) {
+		if (open_port() != PX4_OK) {
+			return PX4_ERROR;
+		}
+
+		if (write_command_padded("flshow") != PX4_OK) {
+			close_port();
+			return PX4_ERROR;
+		}
+
+		tcdrain(_fd);
+		px4_usleep(1000000);
+		(void)read_and_print_response("flshow");
+
+	} else if (_one_shot) {
 		if (open_port() != PX4_OK) {
 			return PX4_ERROR;
 		}
@@ -104,7 +118,8 @@ int AS_DT1::init()
 
 void AS_DT1::print_info()
 {
-	PX4_INFO("AS-DT1 on %s, baud %u, mode %s", _device, _baud, _one_shot ? "one-shot" : "scheduled");
+	const char *mode = _flshow_only ? "flshow" : (_one_shot ? "one-shot" : "scheduled");
+	PX4_INFO("AS-DT1 on %s, baud %u, mode %s", _device, _baud, mode);
 	PX4_INFO("fd: %d, last command: %s, command bytes: %u, last write: %lld",
 		 _fd, _last_command, static_cast<unsigned>(_last_command_len), static_cast<long long>(_last_write));
 	PX4_INFO("read: attempts %llu, total %llu bytes, no data %llu, errors %llu, last read %lld, last read age %llu us",
@@ -146,10 +161,9 @@ void AS_DT1::print_info()
 				ascii[i] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
 			}
 
-			PX4_INFO("last read[%u..%u] hex: %s ascii: %s",
+			PX4_INFO("last read[%u..%u] ascii: %s",
 				 static_cast<unsigned>(offset),
 				 static_cast<unsigned>(offset + chunk_len - 1),
-				 hex,
 				 ascii);
 		}
 	}
@@ -215,6 +229,11 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::Streaming:
+			break;
+
+		case StartupState::SendMode:
+		case StartupState::SendReboot:
+			_startup_state = StartupState::SendFormat;
 			break;
 		}
 
@@ -340,6 +359,64 @@ int AS_DT1::write_command_padded(const char *command)
 		return PX4_ERROR;
 	}
 
+	return PX4_OK;
+}
+
+int AS_DT1::read_and_print_response(const char *label)
+{
+	char line[97]{};
+	size_t line_len = 0;
+
+	const auto print_line = [&]() {
+		if (line_len > 0) {
+			line[line_len] = '\0';
+			PX4_INFO("%s: %s", label, line);
+			line_len = 0;
+		}
+	};
+
+	_read_attempts++;
+
+	uint8_t buffer[READ_BUFFER_SIZE]{};
+	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+
+	if (bytes_read <= 0) {
+		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+			_no_data_reads++;
+			PX4_WARN("%s: no response", label);
+			return PX4_OK;
+		}
+
+		_read_errors++;
+		return PX4_ERROR;
+	}
+
+	_last_read = hrt_absolute_time();
+	_last_read_size = bytes_read;
+	_bytes_read_total += static_cast<uint64_t>(bytes_read);
+	_last_read_bytes_len = math::min(static_cast<size_t>(bytes_read), LAST_READ_CAPTURE_SIZE);
+	memcpy(_last_read_bytes, buffer, _last_read_bytes_len);
+
+	for (ssize_t i = 0; i < bytes_read; i++) {
+		const uint8_t byte = buffer[i];
+
+		if (byte == '\r') {
+			continue;
+		}
+
+		if (byte == '\n') {
+			print_line();
+			continue;
+		}
+
+		line[line_len++] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
+
+		if (line_len >= sizeof(line) - 1) {
+			print_line();
+		}
+	}
+
+	print_line();
 	return PX4_OK;
 }
 
@@ -532,6 +609,29 @@ uint16_t AS_DT1::max_distance_for_mode(int32_t mode)
 	case 2: // 30M30F
 	default:
 		return 3000;
+	}
+}
+
+const char *AS_DT1::mode_command_for_param(int32_t mode)
+{
+	switch (mode) {
+	case 0:
+		return "flmode 30mstd";
+
+	case 1:
+		return "flmode 30m15f";
+
+	case 2:
+		return "flmode 30m30f";
+
+	case 3:
+		return "flmode 20m";
+
+	case 4:
+		return "flmode 40m";
+
+	default:
+		return "flmode 30mstd";
 	}
 }
 

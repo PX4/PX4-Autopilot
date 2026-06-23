@@ -43,7 +43,7 @@ namespace sony_as_dt1
 
 AS_DT1 *g_dev{nullptr};
 
-static int start(const char *port, bool one_shot)
+static int start(const char *port, bool one_shot, bool flshow_only)
 {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
@@ -55,7 +55,12 @@ static int start(const char *port, bool one_shot)
 		return -1;
 	}
 
-	g_dev = new AS_DT1(port, one_shot);
+	if (one_shot && flshow_only) {
+		PX4_ERR("choose either -o or -s");
+		return -1;
+	}
+
+	g_dev = new AS_DT1(port, one_shot, flshow_only);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -108,6 +113,7 @@ padded `format binz` command followed by one padded `fsync 200` command.
 
 $ sony_asdt1 start -d /dev/ttyS4
 $ sony_asdt1 start -d /dev/ttyS4 -o
+$ sony_asdt1 start -d /dev/ttyS4 -s
 $ sony_asdt1 status
 $ sony_asdt1 stop
 )DESCR_STR");
@@ -117,6 +123,7 @@ $ sony_asdt1 stop
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_FLAG('o', "Read once after 1 second instead of scheduled 10 ms reads", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Send flshow and print response instead of starting measurements", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 	return PX4_OK;
@@ -128,11 +135,12 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
 	bool one_shot = false;
+	bool flshow_only = false;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:o", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:os", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
@@ -140,6 +148,10 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 
 		case 'o':
 			one_shot = true;
+			break;
+
+		case 's':
+			flshow_only = true;
 			break;
 
 		default:
@@ -154,7 +166,7 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return sony_as_dt1::start(device_path, one_shot);
+		return sony_as_dt1::start(device_path, one_shot, flshow_only);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		return sony_as_dt1::stop();

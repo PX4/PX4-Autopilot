@@ -54,7 +54,7 @@
 class AS_DT1 : public px4::ScheduledWorkItem
 {
 public:
-	AS_DT1(const char *device, bool one_shot);
+	AS_DT1(const char *device, bool one_shot, bool flshow_only);
 	~AS_DT1() override;
 
 	int init();
@@ -71,6 +71,8 @@ private:
 		WaitFormatPrompt,
 		SendFsync,
 		Streaming,
+		SendMode,
+		SendReboot,
 	};
 
 	void start();
@@ -81,6 +83,7 @@ private:
 	void close_port();
 	int write_start_command();
 	int write_command_padded(const char *command);
+	int read_and_print_response(const char *label);
 	int read_once();
 	bool parse_byte(uint8_t byte);
 	int process_frame(const uint8_t *frame, size_t length);
@@ -91,11 +94,13 @@ private:
 	static bool layout_index_to_row_col(int layout_index, int &row, int &col);
 	static int col_to_obstacle_bin(int col);
 	static uint16_t max_distance_for_mode(int32_t mode);
+	static const char *mode_command_for_param(int32_t mode);
 
 	static constexpr size_t COMMAND_BUFFER_SIZE{32};
 	static constexpr size_t READ_BUFFER_SIZE{512};
 	static constexpr size_t LAST_READ_CAPTURE_SIZE{64};
 	static constexpr int FORMAT_SETTLE_INTERVAL{200000};
+	static constexpr int REBOOT_SETTLE_INTERVAL{4000000};
 	static constexpr uint8_t BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
 	static constexpr size_t ASDT1_MAX_SAMPLE_COUNT{576};
@@ -115,6 +120,8 @@ private:
 	int _interval{10000};
 	char _device[20]{};
 	bool _one_shot{false};
+	bool _flshow_only{false};
+	int32_t _mode{0};
 	unsigned int _baud{115200};
 	char _last_command[COMMAND_BUFFER_SIZE]{};
 	size_t _last_command_len{0};
