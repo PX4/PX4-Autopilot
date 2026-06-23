@@ -222,6 +222,8 @@ void CyphalNode::Run()
 
 	perf_end(_cycle_perf);
 
+	bool exiting = false;
+
 	if (_instance && _task_should_exit.load()) {
 		ScheduleClear();
 
@@ -229,10 +231,16 @@ void CyphalNode::Run()
 			_initialized = false;
 		}
 
-		_instance = nullptr;
+		exiting = true;
 	}
 
 	pthread_mutex_unlock(&_node_mutex);
+
+	// clear _instance only after releasing the mutex: ~CyphalNode() waits on _instance
+	// and then frees this object, including _node_mutex
+	if (exiting) {
+		_instance = nullptr;
+	}
 }
 
 template <typename As, typename F>
