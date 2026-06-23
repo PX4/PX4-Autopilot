@@ -733,14 +733,24 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 {
 	bool is_running = false;
+	bool stop_failed = false;
 
 	while (iterator.next()) {
 		if (iterator.instance()) {
-			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
-			instance->request_stop_and_wait();
-			delete iterator.instance();
-			iterator.removeInstance();
 			is_running = true;
+			I2CSPIDriverBase *instance = (I2CSPIDriverBase *)iterator.instance();
+
+			if (instance->request_stop_and_wait()) {
+				// the instance is the list node, so unlink it before freeing - otherwise
+				// removeInstance() operates on freed memory and can corrupt the list
+				iterator.removeInstance();
+				delete instance;
+
+			} else {
+				// the module did not stop: it may still be referenced by its work queue,
+				// so leave it allocated and listed rather than risk a use-after-free
+				stop_failed = true;
+			}
 		}
 	}
 
@@ -749,7 +759,7 @@ int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 		return -1;
 	}
 
-	return 0;
+	return stop_failed ? -1 : 0;
 }
 
 int I2CSPIDriverBase::module_status(BusInstanceIterator &iterator)
@@ -826,7 +836,7 @@ void I2CSPIDriverBase::print_status()
 #endif // CONFIG_SPI
 }
 
-void I2CSPIDriverBase::request_stop_and_wait()
+bool I2CSPIDriverBase::request_stop_and_wait()
 {
 	_task_should_exit.store(true);
 	ScheduleNow(); // wake up the task (in case it is not scheduled anymore or just to be faster)
@@ -837,7 +847,11 @@ void I2CSPIDriverBase::request_stop_and_wait()
 		// wait at most 2 sec
 	} while (++i < 100 && !_task_exited.load());
 
-	if (i >= 100) {
+	const bool exited = _task_exited.load();
+
+	if (!exited) {
 		PX4_ERR("Module did not respond to stop request");
 	}
+
+	return exited;
 }
