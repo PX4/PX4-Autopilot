@@ -87,6 +87,21 @@ int AS_DT1::init()
 			return PX4_ERROR;
 		}
 
+		(void)drain_input();
+		(void)write_prompt_sync();
+		tcdrain(_fd);
+		px4_usleep(PROMPT_SYNC_SETTLE_INTERVAL);
+		(void)drain_input();
+
+		if (write_command_padded("fsync 0") != PX4_OK) {
+			close_port();
+			return PX4_ERROR;
+		}
+
+		tcdrain(_fd);
+		px4_usleep(PROMPT_SYNC_SETTLE_INTERVAL);
+		(void)drain_input();
+
 		if (write_command_padded("flshow") != PX4_OK) {
 			close_port();
 			return PX4_ERROR;
@@ -129,9 +144,17 @@ void AS_DT1::print_info()
 		 static_cast<unsigned long long>(_read_errors),
 		 static_cast<long long>(_last_read_size),
 		 static_cast<unsigned long long>(_last_read == 0 ? 0 : hrt_elapsed_time(&_last_read)));
-	PX4_INFO("startup: state %u, prompt seen %u",
+	PX4_INFO("startup: state %u (%s), prompt seen %u, sync tries %u, stop tries %u, format tries %u, fsync tries %llu",
 		 static_cast<unsigned>(_startup_state),
-		 static_cast<unsigned>(_startup_prompt_seen));
+		 startup_state_name(),
+		 static_cast<unsigned>(_startup_prompt_seen),
+		 static_cast<unsigned>(_startup_sync_attempts),
+		 static_cast<unsigned>(_startup_stop_attempts),
+		 static_cast<unsigned>(_startup_format_attempts),
+		 static_cast<unsigned long long>(_startup_fsync_attempts));
+	PX4_INFO("startup: prompt timeouts %llu, discarded %llu bytes",
+		 static_cast<unsigned long long>(_startup_prompt_timeouts),
+		 static_cast<unsigned long long>(_startup_discarded_bytes));
 	PX4_INFO("parser: state %u, begin match %u, frame buffer %u bytes, frames rx %llu, frames pub %llu, resets %llu",
 		 static_cast<unsigned>(_parser_state),
 		 static_cast<unsigned>(_begin_match_index),
@@ -187,53 +210,231 @@ void AS_DT1::Run()
 			return;
 		}
 
-		_startup_state = StartupState::SendFormat;
-		_startup_prompt_seen = false;
+		_startup_state = StartupState::SyncDrain;
+		reset_startup_prompt();
+		_startup_deadline = 0;
+		_startup_sync_attempts = 0;
+		_startup_stop_attempts = 0;
+		_startup_format_attempts = 0;
+		_startup_fsync_attempts = 0;
+		_startup_frame_wait_baseline = 0;
+		_startup_prompt_timeouts = 0;
+		_startup_discarded_bytes = 0;
+		reset_parser();
 		ScheduleNow();
 		return;
 	}
 
 	if (!_one_shot && _startup_state != StartupState::Streaming) {
 		switch (_startup_state) {
+		case StartupState::SyncDrain:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			_startup_sync_attempts = 0;
+			_startup_state = StartupState::SendPromptSync;
+			ScheduleNow();
+			return;
+
+		case StartupState::SendPromptSync:
+			if (_startup_sync_attempts >= PROMPT_SYNC_ATTEMPT_LIMIT) {
+				_startup_state = StartupState::DrainAfterSync;
+				ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (write_prompt_sync() != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_sync_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(PROMPT_SYNC_INTERVAL);
+			_startup_state = StartupState::WaitPromptSync;
+			break;
+
+		case StartupState::WaitPromptSync: {
+			const ssize_t bytes_read = read_startup_response();
+
+			if (bytes_read < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen || bytes_read > 0) {
+				reset_startup_prompt();
+				_startup_state = StartupState::DrainAfterSync;
+				ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+				_startup_state = StartupState::SendPromptSync;
+				ScheduleNow();
+				return;
+			}
+		}
+
+			break;
+
+		case StartupState::DrainAfterSync:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			reset_startup_prompt();
+			_startup_stop_attempts = 0;
+			_startup_state = StartupState::SendStop;
+			ScheduleNow();
+			return;
+
+		case StartupState::SendStop:
+			if (write_command_padded("fsync 0") != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_stop_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(COMMAND_RESPONSE_TIMEOUT);
+			_startup_state = StartupState::WaitStopPrompt;
+			break;
+
+		case StartupState::WaitStopPrompt:
+			if (read_startup_response() < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen) {
+				reset_startup_prompt();
+				_startup_format_attempts = 0;
+				_startup_state = StartupState::SendFormat;
+				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+
+				if (_startup_stop_attempts < STARTUP_COMMAND_RETRY_LIMIT) {
+					_startup_state = StartupState::SendStop;
+					ScheduleNow();
+					return;
+				}
+
+				PX4_WARN("no fsync 0 prompt after %u tries, continuing",
+					 static_cast<unsigned>(_startup_stop_attempts));
+				_startup_format_attempts = 0;
+				_startup_state = StartupState::SendFormat;
+				ScheduleNow();
+				return;
+			}
+
+			break;
+
 		case StartupState::SendFormat:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
 			if (write_command_padded("format binz") != PX4_OK) {
 				close_port();
 				return;
 			}
 
 			tcdrain(_fd);
-			_startup_prompt_seen = false;
+			_startup_format_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(COMMAND_RESPONSE_TIMEOUT);
 			_startup_state = StartupState::WaitFormatPrompt;
 			break;
 
 		case StartupState::WaitFormatPrompt:
-			(void)read_once();
+			if (read_startup_response() < 0) {
+				close_port();
+				return;
+			}
 
 			if (_startup_prompt_seen) {
-				_startup_prompt_seen = false;
+				reset_startup_prompt();
 				_startup_state = StartupState::SendFsync;
 				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+
+				if (_startup_format_attempts < STARTUP_COMMAND_RETRY_LIMIT) {
+					_startup_state = StartupState::SendFormat;
+					ScheduleNow();
+					return;
+				}
+
+				PX4_WARN("no format prompt after %u tries, sending fsync",
+					 static_cast<unsigned>(_startup_format_attempts));
+				_startup_state = StartupState::SendFsync;
+				ScheduleNow();
 				return;
 			}
 
 			break;
 
 		case StartupState::SendFsync:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
 			if (write_command_padded("fsync 200") != PX4_OK) {
 				close_port();
 				return;
 			}
 
 			tcdrain(_fd);
-			_startup_state = StartupState::Streaming;
+			_startup_fsync_attempts++;
+			_startup_frame_wait_baseline = _frames_rx;
+			reset_parser();
+			reset_startup_prompt();
+			set_startup_deadline(FIRST_FRAME_TIMEOUT);
+			_startup_state = StartupState::WaitFirstFrame;
 			break;
 
 		case StartupState::Streaming:
 			break;
 
+		case StartupState::WaitFirstFrame:
+			if (read_once() != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			if (_frames_rx > _startup_frame_wait_baseline) {
+				_startup_state = StartupState::Streaming;
+				ScheduleDelayed(_interval);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_state = StartupState::SendFsync;
+				ScheduleNow();
+				return;
+			}
+
+			break;
+
 		case StartupState::SendMode:
 		case StartupState::SendReboot:
-			_startup_state = StartupState::SendFormat;
+			_startup_state = StartupState::SyncDrain;
 			break;
 		}
 
@@ -299,6 +500,16 @@ void AS_DT1::close_port()
 
 int AS_DT1::write_start_command()
 {
+	(void)drain_input();
+
+	if (write_command_padded("fsync 0") != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	tcdrain(_fd);
+	px4_usleep(PROMPT_SYNC_SETTLE_INTERVAL);
+	(void)drain_input();
+
 	if (write_command_padded("format binz") != PX4_OK) {
 		return PX4_ERROR;
 	}
@@ -362,6 +573,177 @@ int AS_DT1::write_command_padded(const char *command)
 	return PX4_OK;
 }
 
+int AS_DT1::write_prompt_sync()
+{
+	if (_fd < 0) {
+		return PX4_ERROR;
+	}
+
+	const char prompt_sync[] = "\r";
+	const ssize_t written = ::write(_fd, prompt_sync, sizeof(prompt_sync) - 1);
+	_last_write = written;
+	_last_command_len = sizeof(prompt_sync) - 1;
+	strncpy(_last_command, "prompt sync", sizeof(_last_command) - 1);
+	_last_command[sizeof(_last_command) - 1] = '\0';
+
+	if (written != static_cast<ssize_t>(sizeof(prompt_sync) - 1)) {
+		PX4_ERR("write failed (%i)", errno);
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
+}
+
+ssize_t AS_DT1::drain_input()
+{
+	ssize_t total_read = 0;
+	uint8_t buffer[READ_BUFFER_SIZE]{};
+
+	for (uint8_t i = 0; i < STARTUP_DRAIN_READ_LIMIT; i++) {
+		_read_attempts++;
+		const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+
+		if (bytes_read > 0) {
+			record_read(buffer, bytes_read);
+			_startup_discarded_bytes += static_cast<uint64_t>(bytes_read);
+			total_read += bytes_read;
+			continue;
+		}
+
+		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+			return total_read;
+		}
+
+		_read_errors++;
+		return PX4_ERROR;
+	}
+
+	return total_read;
+}
+
+ssize_t AS_DT1::read_startup_response()
+{
+	_read_attempts++;
+
+	uint8_t buffer[READ_BUFFER_SIZE]{};
+	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+
+	if (bytes_read <= 0) {
+		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+			_no_data_reads++;
+			return 0;
+		}
+
+		_read_errors++;
+		return PX4_ERROR;
+	}
+
+	record_read(buffer, bytes_read);
+
+	constexpr char prompt[] = "\r\n> ";
+	constexpr size_t prompt_len = sizeof(prompt) - 1;
+
+	for (ssize_t i = 0; i < bytes_read; i++) {
+		const char byte = static_cast<char>(buffer[i]);
+
+		if (byte == prompt[_startup_prompt_match_index]) {
+			_startup_prompt_match_index++;
+
+			if (_startup_prompt_match_index == prompt_len) {
+				_startup_prompt_seen = true;
+				_startup_prompt_match_index = 0;
+			}
+
+		} else {
+			_startup_prompt_match_index = (byte == prompt[0]) ? 1 : 0;
+		}
+	}
+
+	return bytes_read;
+}
+
+void AS_DT1::record_read(const uint8_t *buffer, ssize_t bytes_read)
+{
+	if (buffer == nullptr || bytes_read <= 0) {
+		return;
+	}
+
+	_last_read = hrt_absolute_time();
+	_last_read_size = bytes_read;
+	_bytes_read_total += static_cast<uint64_t>(bytes_read);
+	_last_read_bytes_len = math::min(static_cast<size_t>(bytes_read), LAST_READ_CAPTURE_SIZE);
+	memcpy(_last_read_bytes, buffer, _last_read_bytes_len);
+}
+
+void AS_DT1::reset_parser()
+{
+	_parser_state = ParserState::FindBegin;
+	_frame_buffer_len = 0;
+	_begin_match_index = 0;
+}
+
+void AS_DT1::reset_startup_prompt()
+{
+	_startup_prompt_seen = false;
+	_startup_prompt_match_index = 0;
+}
+
+void AS_DT1::set_startup_deadline(hrt_abstime timeout_us)
+{
+	_startup_deadline = hrt_absolute_time() + timeout_us;
+}
+
+bool AS_DT1::startup_deadline_elapsed() const
+{
+	return _startup_deadline != 0 && hrt_absolute_time() >= _startup_deadline;
+}
+
+const char *AS_DT1::startup_state_name() const
+{
+	switch (_startup_state) {
+	case StartupState::SendFormat:
+		return "send format";
+
+	case StartupState::WaitFormatPrompt:
+		return "wait format prompt";
+
+	case StartupState::SendFsync:
+		return "send fsync";
+
+	case StartupState::Streaming:
+		return "streaming";
+
+	case StartupState::WaitFirstFrame:
+		return "wait first frame";
+
+	case StartupState::SyncDrain:
+		return "sync drain";
+
+	case StartupState::SendPromptSync:
+		return "send prompt sync";
+
+	case StartupState::WaitPromptSync:
+		return "wait prompt sync";
+
+	case StartupState::DrainAfterSync:
+		return "drain after sync";
+
+	case StartupState::SendStop:
+		return "send stop";
+
+	case StartupState::WaitStopPrompt:
+		return "wait stop prompt";
+
+	case StartupState::SendMode:
+		return "send mode";
+
+	case StartupState::SendReboot:
+		return "send reboot";
+	}
+
+	return "unknown";
+}
+
 int AS_DT1::read_and_print_response(const char *label)
 {
 	char line[97]{};
@@ -391,11 +773,7 @@ int AS_DT1::read_and_print_response(const char *label)
 		return PX4_ERROR;
 	}
 
-	_last_read = hrt_absolute_time();
-	_last_read_size = bytes_read;
-	_bytes_read_total += static_cast<uint64_t>(bytes_read);
-	_last_read_bytes_len = math::min(static_cast<size_t>(bytes_read), LAST_READ_CAPTURE_SIZE);
-	memcpy(_last_read_bytes, buffer, _last_read_bytes_len);
+	record_read(buffer, bytes_read);
 
 	for (ssize_t i = 0; i < bytes_read; i++) {
 		const uint8_t byte = buffer[i];
@@ -437,11 +815,7 @@ int AS_DT1::read_once()
 		return PX4_ERROR;
 	}
 
-	_last_read = hrt_absolute_time();
-	_last_read_size = bytes_read;
-	_bytes_read_total += static_cast<uint64_t>(bytes_read);
-	_last_read_bytes_len = math::min(static_cast<size_t>(bytes_read), LAST_READ_CAPTURE_SIZE);
-	memcpy(_last_read_bytes, buffer, _last_read_bytes_len);
+	record_read(buffer, bytes_read);
 
 	for (ssize_t i = 0; i < bytes_read; i++) {
 		if (_startup_state == StartupState::WaitFormatPrompt && buffer[i] == '>') {

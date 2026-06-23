@@ -71,6 +71,13 @@ private:
 		WaitFormatPrompt,
 		SendFsync,
 		Streaming,
+		WaitFirstFrame,
+		SyncDrain,
+		SendPromptSync,
+		WaitPromptSync,
+		DrainAfterSync,
+		SendStop,
+		WaitStopPrompt,
 		SendMode,
 		SendReboot,
 	};
@@ -83,6 +90,15 @@ private:
 	void close_port();
 	int write_start_command();
 	int write_command_padded(const char *command);
+	int write_prompt_sync();
+	ssize_t drain_input();
+	ssize_t read_startup_response();
+	void record_read(const uint8_t *buffer, ssize_t bytes_read);
+	void reset_parser();
+	void reset_startup_prompt();
+	void set_startup_deadline(hrt_abstime timeout_us);
+	bool startup_deadline_elapsed() const;
+	const char *startup_state_name() const;
 	int read_and_print_response(const char *label);
 	int read_once();
 	bool parse_byte(uint8_t byte);
@@ -101,6 +117,13 @@ private:
 	static constexpr size_t LAST_READ_CAPTURE_SIZE{64};
 	static constexpr int FORMAT_SETTLE_INTERVAL{200000};
 	static constexpr int REBOOT_SETTLE_INTERVAL{4000000};
+	static constexpr int PROMPT_SYNC_INTERVAL{100000};
+	static constexpr int PROMPT_SYNC_SETTLE_INTERVAL{500000};
+	static constexpr int COMMAND_RESPONSE_TIMEOUT{1000000};
+	static constexpr int FIRST_FRAME_TIMEOUT{2000000};
+	static constexpr uint8_t PROMPT_SYNC_ATTEMPT_LIMIT{16};
+	static constexpr uint8_t STARTUP_COMMAND_RETRY_LIMIT{3};
+	static constexpr uint8_t STARTUP_DRAIN_READ_LIMIT{8};
 	static constexpr uint8_t BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
 	static constexpr size_t ASDT1_MAX_SAMPLE_COUNT{576};
@@ -137,8 +160,17 @@ private:
 	uint8_t _frame_buffer[ASDT1_FRAME_BUFFER_SIZE]{};
 	size_t _frame_buffer_len{0};
 	ParserState _parser_state{ParserState::FindBegin};
-	StartupState _startup_state{StartupState::SendFormat};
+	StartupState _startup_state{StartupState::SyncDrain};
 	bool _startup_prompt_seen{false};
+	size_t _startup_prompt_match_index{0};
+	hrt_abstime _startup_deadline{0};
+	uint8_t _startup_sync_attempts{0};
+	uint8_t _startup_stop_attempts{0};
+	uint8_t _startup_format_attempts{0};
+	uint64_t _startup_fsync_attempts{0};
+	uint64_t _startup_frame_wait_baseline{0};
+	uint64_t _startup_prompt_timeouts{0};
+	uint64_t _startup_discarded_bytes{0};
 	size_t _begin_match_index{0};
 	uint64_t _frames_rx{0};
 	uint64_t _frames_pub{0};
