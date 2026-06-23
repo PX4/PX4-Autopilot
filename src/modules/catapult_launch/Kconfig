@@ -1,0 +1,7 @@
+menuconfig MODULES_CATAPULT_LAUNCH
+	bool "catapult_launch"
+	default n
+	---help---
+		Enable catapult launch automation module (PoC).
+		Controls tail lock servos (MAIN5/MAIN6) and motor (MAIN3)
+		during Takeoff / Mission Takeoff for tube-launched fixed-wing.
