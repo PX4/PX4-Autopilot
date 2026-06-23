@@ -121,7 +121,7 @@ void SendTopicsSubs::reset() {
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		send_subscriptions[idx].data_writer = uxr_object_id(0, UXR_INVALID_ID);
 		orb_unsubscribe(fds[idx].fd);
-		fds[idx].fd = -1;
+		fds[idx].fd = ORB_SUB_INVALID;
 		fds[idx].events = 0;  // force re-subscribe on reconnect (init() skips when events != 0)
 	}
 };
