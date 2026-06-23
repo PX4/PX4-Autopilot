@@ -349,7 +349,7 @@ void BatteryChecks::batteryVoltageDeltaCheck(const Context &context, Report &rep
 			reporter.armingCheckFailure<float, float>(NavModes::All, health_component_t::battery,
 					events::ID("check_battery_vdelta_high"), events::Log::Error,
 					"Battery voltage difference too high: {1:.1} V (max {2:.1} V)",
-					delta, _param_com_arm_bat_vdif.get());
+					delta, max_delta);
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(),
