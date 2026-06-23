@@ -444,11 +444,31 @@ int EKF2::print_status(bool verbose)
 	return 0;
 }
 
+bool EKF2::request_stop_and_wait()
+{
+	request_stop();
+
+	// wait for the work-queue thread to run Run() once more and exit
+	for (int i = 0; i < 100 && !_task_exited.load(); i++) {
+		px4_usleep(20000); // 20 ms, up to 2 s
+	}
+
+	const bool exited = _task_exited.load();
+
+	if (!exited) {
+		PX4_ERR("ekf2 instance did not stop");
+	}
+
+	return exited;
+}
+
 void EKF2::Run()
 {
 	if (should_exit()) {
 		_sensor_combined_sub.unregisterCallback();
 		_vehicle_imu_sub.unregisterCallback();
+		ScheduleClear();
+		_task_exited.store(true);
 
 		return;
 	}
@@ -3269,10 +3289,10 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 				EKF2 *inst = _objects[instance].load();
 
 				if (inst) {
-					inst->request_stop();
-					px4_usleep(20000); // 20 ms
-					delete inst;
-					_objects[instance].store(nullptr);
+					if (inst->request_stop_and_wait()) {
+						delete inst;
+						_objects[instance].store(nullptr);
+					}
 				}
 			} else {
 				PX4_ERR("invalid instance %d", instance);
@@ -3285,10 +3305,12 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
 			if (_ekf2_selector.load()) {
 				PX4_INFO("stopping ekf2 selector");
-				_ekf2_selector.load()->Stop();
-				delete _ekf2_selector.load();
-				_ekf2_selector.store(nullptr);
 				was_running = true;
+
+				if (_ekf2_selector.load()->Stop()) {
+					delete _ekf2_selector.load();
+					_ekf2_selector.store(nullptr);
+				}
 			}
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
@@ -3298,10 +3320,11 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 				if (inst) {
 					PX4_INFO("stopping ekf2 instance %d", i);
 					was_running = true;
-					inst->request_stop();
-					px4_usleep(20000); // 20 ms
-					delete inst;
-					_objects[i].store(nullptr);
+
+					if (inst->request_stop_and_wait()) {
+						delete inst;
+						_objects[i].store(nullptr);
+					}
 				}
 			}
 

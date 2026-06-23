@@ -57,14 +57,28 @@ EKF2Selector::~EKF2Selector()
 	Stop();
 }
 
-void EKF2Selector::Stop()
+bool EKF2Selector::Stop()
 {
-	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
-		_instance[i].estimator_attitude_sub.unregisterCallback();
-		_instance[i].estimator_status_sub.unregisterCallback();
+	if (_task_exited.load()) {
+		// already stopped (Stop() is also called from the destructor)
+		return true;
 	}
 
-	ScheduleClear();
+	_task_should_exit.store(true);
+	ScheduleNow();
+
+	// wait for the work-queue thread to run Run() once more and exit
+	for (int i = 0; i < 100 && !_task_exited.load(); i++) {
+		px4_usleep(20000); // 20 ms, up to 2 s
+	}
+
+	const bool exited = _task_exited.load();
+
+	if (!exited) {
+		PX4_ERR("ekf2 selector did not stop");
+	}
+
+	return exited;
 }
 
 void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance)
@@ -699,6 +713,17 @@ void EKF2Selector::PublishWindEstimate()
 
 void EKF2Selector::Run()
 {
+	if (_task_should_exit.load()) {
+		for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
+			_instance[i].estimator_attitude_sub.unregisterCallback();
+			_instance[i].estimator_status_sub.unregisterCallback();
+		}
+
+		ScheduleClear();
+		_task_exited.store(true);
+		return;
+	}
+
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update

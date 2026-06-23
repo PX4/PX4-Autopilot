@@ -150,7 +150,11 @@ public:
 
 	bool should_exit() const { return _task_should_exit.load(); }
 
-	void request_stop() { _task_should_exit.store(true); }
+	void request_stop() { _task_should_exit.store(true); ScheduleNow(); }
+
+	// request a stop and wait until Run() has exited on the work queue, so the
+	// instance can be safely deleted; returns false if it did not exit in time
+	bool request_stop_and_wait();
 
 	static void lock_module() { pthread_mutex_lock(&ekf2_module_mutex); }
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
@@ -281,6 +285,7 @@ private:
 	int _instance{0};
 
 	px4::atomic_bool _task_should_exit{false};
+	px4::atomic_bool _task_exited{false};
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
