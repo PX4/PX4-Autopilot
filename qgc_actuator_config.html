@@ -1,0 +1,420 @@
+<title>Catapult Launch — QGC Actuator Config (Approach A)</title>
+<style>
+:root {
+  --ground:  #0d1117;
+  --surface: #161b22;
+  --border:  #2a2f3a;
+  --text:    #e6e3d8;
+  --muted:   #6e6d65;
+  --accent:  #f5a623;
+  --red:     #e85d4a;
+  --blue:    #4a9eff;
+  --green:   #3fb950;
+  --mono: 'JetBrains Mono','Fira Code','Cascadia Code',Consolas,monospace;
+  --sans: system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--ground);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.6;
+  padding:2.5rem 1.25rem 4rem;
+}
+.wrap{max-width:880px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:2.5rem}
+.crumb{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.6rem}
+.htitle{font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:2px;letter-spacing:.06em;font-weight:600}
+.chip-warn{background:#2a1010;color:var(--red);border:1px solid #4a2020}
+.chip-ok  {background:#0e2310;color:var(--green);border:1px solid #1a4020}
+.chip-info{background:#0d1f36;color:var(--blue);border:1px solid #1a3358}
+.hsub{color:var(--muted);font-size:13px;margin-top:.4rem}
+
+/* ── Signal diagram (hero) ── */
+.diagram{
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.9;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  padding:1.25rem 1.75rem 1.5rem;
+  margin-bottom:2.75rem;
+  overflow-x:auto;
+  border-radius:0 4px 4px 0;
+}
+.diagram-lbl{
+  font-size:10px;color:var(--muted);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:1rem
+}
+.diagram pre{line-height:1.9;tab-size:2}
+.sa{color:var(--accent)}
+.sb{color:var(--blue)}
+.sg{color:var(--green)}
+.sm{color:var(--muted)}
+
+/* ── Section ── */
+.sec{margin-bottom:2.75rem}
+.sec-eye{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.5rem}
+.sec-h{font-size:15px;font-weight:600;color:var(--text);margin-bottom:1.25rem}
+
+/* ── Table shared ── */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.5rem 1rem;border-bottom:1px solid var(--border)}
+td{font-family:var(--mono);font-size:12px;padding:.7rem 1rem;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+
+/* ── Assignment table ── */
+.td-pin{font-weight:700;color:var(--text);font-size:13px}
+.td-fn{color:var(--blue);font-weight:600}
+.td-fn-keep{color:var(--green);font-weight:600}
+.td-fn-note{color:var(--muted);font-size:10.5px;margin-top:2px}
+.td-p{color:var(--accent)}
+.td-d{color:var(--text);font-family:var(--sans);font-size:12.5px}
+
+/* ── PWM cards ── */
+.pwm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+@media(max-width:580px){.pwm-grid{grid-template-columns:1fr}}
+.pwm-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem}
+.pwm-card-keep{border-left:3px solid var(--green)}
+.pwm-ct{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);padding-bottom:.6rem;margin-bottom:.6rem;border-bottom:1px solid var(--border)}
+.pwm-r{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;margin-top:.35rem}
+.pwm-lbl{color:var(--muted)}
+.pwm-v{color:var(--accent);font-weight:600}
+.pwm-v-keep{color:var(--green);font-weight:600;font-size:10.5px}
+
+/* ── Params table ── */
+.pn{color:var(--blue);font-weight:700}
+.pv{color:var(--accent)}
+.pr{color:var(--green)}
+.pd{color:var(--muted);font-family:var(--sans);font-size:11.5px}
+
+/* ── Steps ── */
+.steps{list-style:none;counter-reset:step}
+.steps li{counter-increment:step;position:relative;padding-left:3.25rem;margin-bottom:1.4rem}
+.steps li::before{
+  content:counter(step,decimal-leading-zero);
+  position:absolute;left:0;top:0;
+  font-family:var(--mono);font-size:12.5px;font-weight:700;
+  color:var(--accent);line-height:1.6
+}
+.steps li strong{font-weight:600;color:var(--text)}
+.path{font-family:var(--mono);font-size:11px;color:var(--blue);background:#0d1f36;padding:1px 6px;border-radius:2px}
+.note{display:block;font-size:12px;color:var(--muted);margin-top:.25rem}
+
+/* ── Checklist ── */
+.chk{list-style:none;display:flex;flex-direction:column;gap:.65rem}
+.chk li{display:flex;align-items:flex-start;gap:.75rem;font-size:13px}
+.box{display:inline-block;width:15px;height:15px;border:1.5px solid var(--border);border-radius:2px;flex-shrink:0;margin-top:2px}
+
+/* ── Warn ── */
+.warn{
+  background:#1c0c0c;border:1px solid #4a2020;
+  border-left:3px solid var(--red);
+  padding:.9rem 1.1rem;margin:1.5rem 0;
+  font-size:12.5px;color:#c09090;border-radius:0 3px 3px 0
+}
+.warn strong{color:var(--red)}
+code{font-family:var(--mono);font-size:11.5px;color:var(--accent);background:#1a1e26;padding:1px 5px;border-radius:2px}
+
+/* ── Info box ── */
+.info{background:#0d1f1a;border:1px solid #1a3a2a;border-left:3px solid var(--green);padding:.85rem 1.1rem;margin-bottom:1.5rem;font-size:12.5px;color:#90b0a0;border-radius:0 3px 3px 0}
+.info-blue{background:#0d1722;border:1px solid #1a3358;border-left:3px solid var(--blue);padding:.85rem 1.1rem;margin-bottom:1.5rem;font-size:12.5px;color:#90a8c0;border-radius:0 3px 3px 0}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="crumb">PX4 v1.16.1 · Pixhawk 6C Mini · src/modules/fw_pos_control（既存Takeoff拡張）</div>
+    <h1 class="htitle">
+      QGC Actuator Configuration
+      <span class="chip chip-info">Approach A</span>
+      <span class="chip chip-warn">Setup Required</span>
+    </h1>
+    <p class="hsub">尾翼ロックサーボ MAIN5 / MAIN6 の割り当て手順 — モーター MAIN3 は通常出力のまま</p>
+  </header>
+
+  <!-- APPROACH A NOTICE -->
+  <div class="info-blue">
+    <strong style="color:var(--blue)">Approach A の要点：</strong>
+    カタパルト処理は独立モジュールではなく既存の固定翼 Takeoff 制御（<code>control_auto_takeoff()</code>）に統合された。
+    モーター（MAIN3）は <strong>PX4 通常の推進出力（Motor 1）のまま</strong>で、カタパルト拡張は
+    「尾翼解放までスロットルを idle 保持する」ゲートを掛けるだけ。
+    したがって <strong>Peripheral via Actuator Set を割り当てるのは MAIN5 / MAIN6 の 2 本だけ</strong>。
+  </div>
+
+  <!-- HERO: SIGNAL FLOW -->
+  <div class="diagram">
+    <div class="diagram-lbl">Signal flow &mdash; Approach A（CAT_EN = 1 のとき）</div>
+    <pre>
+<span class="sm">fw_pos_control (control_auto_takeoff)</span>          <span class="sm">FunctionActuatorSet</span>            <span class="sm">QGC output</span>
+
+  commandCatapultTailServos()   <span class="sm">[DO_SET_ACTUATOR · param7=0]</span>
+  ├─ <span class="sa">param1</span> ──────────────────────────→  <span class="sb">Peripheral_via_Actuator_Set1</span>  →  <span class="sg">MAIN 5</span>  [tail servo A]
+  └─ <span class="sa">param2</span> ──────────────────────────→  <span class="sb">Peripheral_via_Actuator_Set2</span>  →  <span class="sg">MAIN 6</span>  [tail servo B]
+
+  TECS throttle <span class="sm">(_att_sp.thrust_body[0])</span>   <span class="sm">[CAT_MOT_REQ_TAIL でゲート]</span>
+  └─ <span class="sa">control allocation</span> ──────────────→  <span class="sb">Motor 1（通常の推進出力）</span>     →  <span class="sg">MAIN 3</span>  [motor / ESC]
+
+<span class="sm">  尾翼解放まで thrust は FW_THR_IDLE に固定 → 解放後に通常の離陸スロットルへ。</span>
+<span class="sm">  MAIN3 は QGC 上で既存の Motor 割り当てのまま（変更不要）。</span>
+</pre>
+  </div>
+
+  <!-- SECTION A: FUNCTION ASSIGNMENT -->
+  <section class="sec">
+    <div class="sec-eye">Step A</div>
+    <h2 class="sec-h">Actuators 画面での Function 割り当て</h2>
+
+    <div class="info">
+      Approach A で <strong>新たに変更するのは MAIN5 / MAIN6 のみ</strong>。
+      MAIN3（モーター）は既存の固定翼推進設定（Motor 1 等）をそのまま使う。
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>出力ピン</th>
+          <th>QGC Function ドロップダウン</th>
+          <th>param</th>
+          <th>接続機器</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-pin">MAIN 5</td>
+          <td>
+            <div class="td-fn">Peripheral via Actuator Set 1</div>
+            <div class="td-fn-note">Motor / Peripherals グループ内にある</div>
+          </td>
+          <td class="td-p">param1</td>
+          <td class="td-d">テールロックサーボ A</td>
+        </tr>
+        <tr>
+          <td class="td-pin">MAIN 6</td>
+          <td>
+            <div class="td-fn">Peripheral via Actuator Set 2</div>
+            <div class="td-fn-note">Motor / Peripherals グループ内にある</div>
+          </td>
+          <td class="td-p">param2</td>
+          <td class="td-d">テールロックサーボ B</td>
+        </tr>
+        <tr>
+          <td class="td-pin">MAIN 3</td>
+          <td>
+            <div class="td-fn-keep">Motor 1 ✓ 変更不要</div>
+            <div class="td-fn-note">既存の固定翼推進設定のまま</div>
+          </td>
+          <td class="td-p">—</td>
+          <td class="td-d">ESC → 推進モーター（通常のスロットル制御）</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION B: PWM RANGE -->
+  <section class="sec">
+    <div class="sec-eye">Step B</div>
+    <h2 class="sec-h">PWM Range 設定（Actuators 画面の各行）</h2>
+    <div class="info">
+      カタパルト拡張が送る正規化値 <code>(pwm_µs − 1500) / 500</code> がこの Min/Max 範囲に展開される。
+      Min=1000・Max=2000 のとき: −1.0 → 1000 µs、0.0 → 1500 µs、+1.0 → 2000 µs
+    </div>
+    <div class="pwm-grid">
+      <div class="pwm-card">
+        <div class="pwm-ct">MAIN 5 — Tail Servo A</div>
+        <div class="pwm-r"><span class="pwm-lbl">Min</span><span class="pwm-v">1000 µs</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Max</span><span class="pwm-v">2000 µs</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Disarm</span><span class="pwm-v">1000 µs</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Failsafe</span><span class="pwm-v">1000 µs</span></div>
+      </div>
+      <div class="pwm-card">
+        <div class="pwm-ct">MAIN 6 — Tail Servo B</div>
+        <div class="pwm-r"><span class="pwm-lbl">Min</span><span class="pwm-v">1000 µs</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Max</span><span class="pwm-v">2000 µs</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Disarm</span><span class="pwm-v">1000 µs</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Failsafe</span><span class="pwm-v">1000 µs</span></div>
+      </div>
+      <div class="pwm-card pwm-card-keep">
+        <div class="pwm-ct">MAIN 3 — Motor ESC</div>
+        <div class="pwm-r"><span class="pwm-lbl">Min</span><span class="pwm-v-keep">既存値のまま</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Max</span><span class="pwm-v-keep">既存値のまま</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">Disarm</span><span class="pwm-v-keep">既存値のまま</span></div>
+        <div class="pwm-r"><span class="pwm-lbl">ESC校正</span><span class="pwm-v-keep">変更しない</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION C: CAT PARAMS -->
+  <section class="sec">
+    <div class="sec-eye">Step C</div>
+    <h2 class="sec-h">CAT_* パラメータ確認（Approach A）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>パラメータ名</th>
+          <th>デフォルト値</th>
+          <th>正規化 / 単位</th>
+          <th>意味・備考</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="pn">CAT_EN</td>
+          <td class="pv">0</td>
+          <td class="pr">bool</td>
+          <td class="pd">カタパルト拡張の有効化。地上テスト完了まで 0 のまま</td>
+        </tr>
+        <tr>
+          <td class="pn">CAT_TAIL_DLY</td>
+          <td class="pv">1.0</td>
+          <td class="pr">s</td>
+          <td class="pd">launch 検知（T0）から尾翼解放までの遅延</td>
+        </tr>
+        <tr>
+          <td class="pn">CAT_TAIL5_LCK</td>
+          <td class="pv">1000 µs</td>
+          <td class="pr">−1.0</td>
+          <td class="pd">MAIN5 ロック位置（離陸パス進入時に出力）</td>
+        </tr>
+        <tr>
+          <td class="pn">CAT_TAIL5_REL</td>
+          <td class="pv">2000 µs</td>
+          <td class="pr">+1.0</td>
+          <td class="pd">MAIN5 リリース位置</td>
+        </tr>
+        <tr>
+          <td class="pn">CAT_TAIL6_LCK</td>
+          <td class="pv">1000 µs</td>
+          <td class="pr">−1.0</td>
+          <td class="pd">MAIN6 ロック位置（サーボが逆向きなら 2000 に変更）</td>
+        </tr>
+        <tr>
+          <td class="pn">CAT_TAIL6_REL</td>
+          <td class="pv">2000 µs</td>
+          <td class="pr">+1.0</td>
+          <td class="pd">MAIN6 リリース位置</td>
+        </tr>
+        <tr>
+          <td class="pn">CAT_MOT_REQ_TAIL</td>
+          <td class="pv">1</td>
+          <td class="pr">bool</td>
+          <td class="pd">1 のとき尾翼解放までモーターを idle 保持（筒内暴発防止）</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION D: REQUIRED FW PARAMS -->
+  <section class="sec">
+    <div class="sec-eye">Step D</div>
+    <h2 class="sec-h">既存 launch detector の設定（必須）</h2>
+    <div class="warn">
+      <strong>重要：</strong> Approach A は PX4 標準の launch detector を流用する。
+      <code>RWTO_TKOFF</code> が 1（滑走離陸）のままだとカタパルトのパスに入らず尾翼処理が動かない。
+      必ず <code>RWTO_TKOFF = 0</code> にすること。
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>パラメータ名</th>
+          <th>設定値</th>
+          <th>意味・備考</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="pn">RWTO_TKOFF</td>
+          <td class="pv">0</td>
+          <td class="pd">滑走離陸を無効化 → カタパルト / ハンドランチのパスを使う</td>
+        </tr>
+        <tr>
+          <td class="pn">FW_LAUN_DETCN_ON</td>
+          <td class="pv">1</td>
+          <td class="pd">加速度による launch 検知を有効化</td>
+        </tr>
+        <tr>
+          <td class="pn">FW_LAUN_AC_THLD</td>
+          <td class="pv">機体に合わせ調整</td>
+          <td class="pd">射出を検知する body-X 加速度しきい値（G ではなく m/s²）</td>
+        </tr>
+        <tr>
+          <td class="pn">FW_LAUN_AC_T</td>
+          <td class="pv">機体に合わせ調整</td>
+          <td class="pd">しきい値を連続超過する必要がある時間</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION E: QGC STEPS -->
+  <section class="sec">
+    <div class="sec-eye">手順</div>
+    <h2 class="sec-h">QGC 操作手順</h2>
+    <ol class="steps">
+      <li>
+        <strong>QGC を起動し、機体に USB 接続する</strong>
+        <span class="note">上部ステータスバーが緑になり MAVLink 接続が確立していること</span>
+      </li>
+      <li>
+        <strong>Vehicle Setup → <span class="path">Actuators</span> タブを開く</strong>
+        <span class="note">左サイドバーのギアアイコン（⚙）→ "Actuators"</span>
+      </li>
+      <li>
+        <strong>MAIN Output リストで MAIN 5 / 6 の行を確認する</strong>
+        <span class="note">現在の Function 割り当てをメモしておく（ロールバック用）。MAIN3 は触らない</span>
+      </li>
+      <li>
+        <strong>MAIN5 / MAIN6 の Function ドロップダウンを変更する</strong>
+        <span class="note">
+          MAIN 5 → <span class="path">Peripheral via Actuator Set 1</span><br>
+          MAIN 6 → <span class="path">Peripheral via Actuator Set 2</span><br>
+          MAIN 3 → <span class="path">Motor 1（変更しない）</span>
+        </span>
+      </li>
+      <li>
+        <strong>MAIN5 / MAIN6 の Min / Max / Disarm / Failsafe PWM を設定する（Step B 参照）</strong>
+        <span class="note">MAIN3 の ESC 校正値は変更しない</span>
+      </li>
+      <li>
+        <strong><span class="path">Save</span> を押してパラメータを書き込む</strong>
+        <span class="note">再起動不要。変更は即時反映される</span>
+      </li>
+      <li>
+        <strong>Parameters ページで CAT_* と FW_LAUN_* / RWTO_TKOFF を設定する</strong>
+        <span class="note">CAT_EN は飛行テスト前まで 0 のまま。RWTO_TKOFF=0 を忘れずに</span>
+      </li>
+      <li>
+        <strong>Actuator Test で尾翼サーボ動作を確認する</strong>
+        <span class="note">Safety スイッチを解除 → スライダーで MAIN 5 / 6 を動かしてロック↔リリースを確認</span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- SECTION F: CHECKLIST -->
+  <section class="sec">
+    <div class="sec-eye">確認</div>
+    <h2 class="sec-h">セットアップ完了チェックリスト</h2>
+    <ul class="chk">
+      <li><span class="box"></span>MAIN 5 に <code>Peripheral via Actuator Set 1</code> が割り当てられている</li>
+      <li><span class="box"></span>MAIN 6 に <code>Peripheral via Actuator Set 2</code> が割り当てられている</li>
+      <li><span class="box"></span>MAIN 3 は既存の <code>Motor 1</code> 割り当てのまま（変更していない）</li>
+      <li><span class="box"></span>MAIN5 / MAIN6 に Min 1000 µs / Max 2000 µs / Disarm 1000 µs が設定されている</li>
+      <li><span class="box"></span>QGC Actuator Test で MAIN 5 / 6 サーボが動作する</li>
+      <li><span class="box"></span>CAT_TAIL5_LCK でサーボが実機のロック位置に合っている</li>
+      <li><span class="box"></span>CAT_TAIL5_REL でサーボがリリース位置まで動く</li>
+      <li><span class="box"></span>MAIN 6 の方向が MAIN 5 と逆の場合、CAT_TAIL6_LCK / REL を反転させている</li>
+      <li><span class="box"></span>RWTO_TKOFF = 0 / FW_LAUN_DETCN_ON = 1 になっている</li>
+      <li><span class="box"></span>CAT_MOT_REQ_TAIL = 1（尾翼解放までモーター idle 保持）</li>
+      <li><span class="box"></span>CAT_EN = 0 のまま（地上テスト完了後に 1 にする）</li>
+    </ul>
+  </section>
+
+</div>
