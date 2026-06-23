@@ -299,31 +299,17 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		}
 
 		if (!context.isArmed() && ekf_gps_check_fail) {
+			const bool block_arming = _param_sys_has_num_gnss.get() > 0; // do not separate warning and blocking
 			NavModesMessageFail required_modes;
 			events::Log log_level;
 
-			switch (static_cast<GnssArmingCheck>(_param_com_arm_wo_gps.get())) {
-			default:
-
-			/* FALLTHROUGH */
-			case GnssArmingCheck::DenyArming:
+			if (block_arming) {
 				required_modes.message_modes = required_modes.fail_modes = NavModes::All;
 				log_level = events::Log::Error;
-				break;
 
-			case GnssArmingCheck::WarningOnly:
-				required_modes.message_modes = (NavModes)(reporter.failsafeFlags().mode_req_local_position
-							       | reporter.failsafeFlags().mode_req_local_position_relaxed
-							       | reporter.failsafeFlags().mode_req_global_position);
-				// Only warn and don't block arming because there could still be a valid position estimate from another source e.g. optical flow, VIO
-				required_modes.fail_modes = NavModes::None;
-				log_level = events::Log::Warning;
-				break;
-
-			case GnssArmingCheck::Disabled:
+			} else {
 				required_modes.message_modes = required_modes.fail_modes = NavModes::None;
 				log_level = events::Log::Disabled;
-				break;
 			}
 
 			// Only report the first failure to avoid spamming
@@ -334,7 +320,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -346,7 +332,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -358,7 +344,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -370,7 +356,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -382,7 +368,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -394,7 +380,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -406,7 +392,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -418,7 +404,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -430,7 +416,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -442,7 +428,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -454,7 +440,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -466,7 +452,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
-				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>SYS_HAS_NUM_GNSS</param>.
 				 * </profile>
 				 */
 				reporter.armingCheckFailure(required_modes, health_component_t::gps,
@@ -495,20 +481,11 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			}
 
 			if (message && reporter.mavlink_log_pub()) {
-				switch (static_cast<GnssArmingCheck>(_param_com_arm_wo_gps.get())) {
-				default:
-
-				/* FALLTHROUGH */
-				case GnssArmingCheck::DenyArming:
+				if (block_arming) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), message, " Fail");
-					break;
 
-				case GnssArmingCheck::WarningOnly:
+				} else {
 					mavlink_log_warning(reporter.mavlink_log_pub(), message, "");
-					break;
-
-				case GnssArmingCheck::Disabled:
-					break;
 				}
 			}
 		}
