@@ -45,6 +45,7 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_outputs.h>
+#include <perf/perf_counter.h>
 
 class uORB_Zenoh_Subscriber : public Zenoh_Subscriber
 {
@@ -68,6 +69,7 @@ public:
 	{
 		undeclare_subscriber();
 		orb_unadvertise(_uorb_pub_handle);
+		perf_free(_payload_drop_perf);
 	}
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
@@ -79,13 +81,12 @@ public:
 		const z_loaned_bytes_t *payload = z_sample_payload(sample);
 		size_t len = z_bytes_len(payload);
 
-		// Validate payload size to prevent stack overflow from untrusted input.
-		// CDR payload = 4-byte header + serialized data. CDR alignment padding can make
-		// the serialized data larger than the in-memory struct, so allow the same
-		// CDR_SAFETY_MARGIN the publisher budgets for (see dds_serializer.h).
+		// Bound payload before stack allocation to reject oversized/truncated input.
+		// Allow the CDR_SAFETY_MARGIN the publisher budgets for padding (see dds_serializer.h).
 		const size_t max_payload_size = _uorb_meta->o_size + 4 + CDR_SAFETY_MARGIN;
 
 		if (len > max_payload_size || len < 4) {
+			perf_count(_payload_drop_perf);
 			return;
 		}
 
@@ -96,7 +97,7 @@ public:
 		if (z_bytes_get_contiguous_view(payload, &view) == Z_OK) {
 			const uint8_t *ptr = z_slice_data(z_loan(view));
 
-			dds_istream_t is = {.m_buffer = (unsigned char *)(ptr + 4), .m_size = static_cast<int>(len),
+			dds_istream_t is = {.m_buffer = (unsigned char *)(ptr + 4), .m_size = static_cast<int>(len - 4),
 					    .m_index = 0, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1
 					   };
 			dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
@@ -108,7 +109,7 @@ public:
 			z_bytes_reader_t reader = z_bytes_get_reader(payload);
 			z_bytes_reader_read(&reader, reassembled_payload, len);
 
-			dds_istream_t is = {.m_buffer = &reassembled_payload[4], .m_size = static_cast<int>(len),
+			dds_istream_t is = {.m_buffer = &reassembled_payload[4], .m_size = static_cast<int>(len - 4),
 					    .m_index = 0, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1
 					   };
 			dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
@@ -148,4 +149,5 @@ private:
 	const orb_metadata *_uorb_meta;
 	orb_advert_t _uorb_pub_handle;
 	const uint32_t *_cdr_ops;
+	perf_counter_t _payload_drop_perf{perf_alloc(PC_COUNT, "zenoh: rx invalid size")};
 };
