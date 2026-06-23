@@ -34,7 +34,7 @@ uint16[4] instance_mask # Bit i targets instance (i+1); 0xFFFF = all instances
 
 uint8[4] failure_type # [@enum FAILURE_TYPE] failure mode per entry
 # Failure mode.
-@ Mirrors MAVLink FAILURE_TYPE and the FAILURE_TYPE_* values in vehicle_command.
+# Mirrors MAVLink FAILURE_TYPE and the FAILURE_TYPE_* values in vehicle_command.
 uint8 FAILURE_TYPE_OK = 0
 uint8 FAILURE_TYPE_OFF = 1
 uint8 FAILURE_TYPE_STUCK = 2
