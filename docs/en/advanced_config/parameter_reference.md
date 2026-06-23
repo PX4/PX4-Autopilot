@@ -25259,6 +25259,18 @@ system more robust against disturbances (turbulence) in high wind.
 
 ## FW NPFG Control
 
+### FW_WP_RST_DIST (`FLOAT`) {#FW_WP_RST_DIST}
+
+Max position reset distance.
+
+If a horizontal position reset larger than this occurs while flying between two
+waypoints, fly directly to the current waypoint instead of rejoining the line.
+-1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1.0     | 10000.0  | 1         | -1.0    | m    | &nbsp;    |
+
 ### NPFG_DAMPING (`FLOAT`) {#NPFG_DAMPING}
 
 NPFG damping ratio.
