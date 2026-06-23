@@ -83,3 +83,4 @@ px4_add_functional_gtest(SRC HealthAndArmingChecksTest.cpp
 	)
 
 px4_add_functional_gtest(SRC gnssRedundancyChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
+px4_add_functional_gtest(SRC batteryChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
