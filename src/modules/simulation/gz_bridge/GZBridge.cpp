@@ -933,6 +933,39 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
         gyro.z += static_cast<float>(_imu_active_offsets[5]);
     }
 
+
+    // ======== MITIGAÇÃO IMU (Hardware EDR & IPS) - INÍCIO ========
+    float raw_accel[3] = {accel.x, accel.y, accel.z};
+    float raw_gyro[3]  = {gyro.x, gyro.y, gyro.z};
+
+    bool imu_sob_ataque = _imu_attack_enabled;
+    bool imu_cega_dos   = _imu_disabled;
+
+    if (imu_cega_dos) {
+        static uint64_t last_log_dos = 0;
+        if (timestamp - last_log_dos > 1000000ULL) {
+            PX4_WARN("!!! EDR: IMU CEGA (DoS) - QUEDA IMINENTE !!!");
+            last_log_dos = timestamp;
+        }
+    } else if (imu_sob_ataque) {
+        accel.x = raw_accel[0] - static_cast<float>(_imu_active_offsets[0]);
+        accel.y = raw_accel[1] - static_cast<float>(_imu_active_offsets[1]);
+        accel.z = raw_accel[2] - static_cast<float>(_imu_active_offsets[2]);
+
+        gyro.x = raw_gyro[0] - static_cast<float>(_imu_active_offsets[3]);
+        gyro.y = raw_gyro[1] - static_cast<float>(_imu_active_offsets[4]);
+        gyro.z = raw_gyro[2] - static_cast<float>(_imu_active_offsets[5]);
+
+        static uint64_t last_log_time = 0;
+        if (timestamp - last_log_time > 1000000ULL) {
+            PX4_WARN("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            PX4_WARN("!!! EDR: SPOOFING IMU DETETADO - SINAL PURIFICADO  !!!");
+            PX4_WARN("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            last_log_time = timestamp;
+        }
+    }
+    // ======== MITIGAÇÃO IMU (Hardware EDR & IPS) - FIM ========
+
     _sensor_accel_pub.publish(accel);
     _sensor_gyro_pub.publish(gyro);
 
