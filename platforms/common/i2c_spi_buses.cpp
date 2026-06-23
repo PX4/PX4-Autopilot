@@ -747,8 +747,6 @@ int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 				delete instance;
 
 			} else {
-				// the module did not stop: it may still be referenced by its work queue,
-				// so leave it allocated and listed rather than risk a use-after-free
 				stop_failed = true;
 			}
 		}
