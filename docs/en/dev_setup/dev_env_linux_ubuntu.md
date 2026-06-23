@@ -63,6 +63,15 @@ These notes are provided "for information only":
   warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   ```
 
+- PX4 NuttX firmware must be built with exactly the GCC version used by CI so that firmware binaries are reproducible. The build checks `arm-none-eabi-gcc` at configure time and stops with an error if it is a different version. If you have more than one `arm-none-eabi-gcc` installed and the required one is not first on `PATH`, point the build at it:
+
+  ```sh
+  # directory that contains the required arm-none-eabi-gcc
+  export PX4_ARM_TOOLCHAIN_DIR=/usr/bin
+  ```
+
+  Export it (e.g. in your shell profile) rather than setting it for a single command, so it applies to the whole build including the IO firmware and other sub-builds. To build with a different compiler on purpose, set `PX4_ARM_TOOLCHAIN_VERSION` to that version (or to `any` to disable the version check).
+
 - You're going to need the PX4 source code anyway.
   But if you just wanted to set up the development environment without getting all the source code you could instead just download [ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh) and [requirements.txt](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/requirements.txt) and then run **ubuntu.sh**:
 
