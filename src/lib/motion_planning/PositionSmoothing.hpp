@@ -333,9 +333,9 @@ public:
 
 	/**
 	 * @param error Maximum vertical error allowed by the trajectory generator. Set to param MPC_Z_ERR_MAX.
-	 * Zero (default) disables vertical time-stretch — trajectory integration is only slowed by horizontal
-	 * lag. A finite value makes the smoother slow down when the virtual trajectory leads the drone in Z,
-	 * preventing a noisy altitude reference from walking the commanded z away from the drone.
+	 * Zero disables vertical time-stretch — trajectory integration is only slowed by horizontal lag.
+	 * A finite value (param default is 1 m) makes the smoother slow down when the virtual trajectory leads
+	 * the drone in Z, preventing a noisy altitude reference from walking the commanded z away from the drone.
 	 */
 	inline void setMaxAllowedVerticalError(float error)
 	{
