@@ -1259,10 +1259,10 @@ markdown-it@^13.0.1, markdown-it@^14.1.1:
     punycode.js "^2.3.1"
     uc.micro "^2.1.0"
 
-markdown_link_checker_sc@^0.0.144:
-  version "0.0.144"
-  resolved "https://registry.npmjs.org/markdown_link_checker_sc/-/markdown_link_checker_sc-0.0.144.tgz"
-  integrity sha512-8gt9nTvFrg8aIBwvd3uVYBmt0NNQyBIknzrNpaeYXQBs91jM1DtEJIELmVwOsUAilIxu2gI3NzLIoBG3dXkPcQ==
+markdown_link_checker_sc@^0.0.145:
+  version "0.0.145"
+  resolved "https://registry.yarnpkg.com/markdown_link_checker_sc/-/markdown_link_checker_sc-0.0.145.tgz#b4849df81c9fdb437fc2edb87ee3b8d5afaf199f"
+  integrity sha512-IH3AVF1pcc5PaBIce9ZhU0cEqNhwtcRrEAS2w1CjFk4WVD2YJfyLeOsUfeYqlE53lHn5a1pditHPjOKWrYdHow==
   dependencies:
     commander "^10.0.0"
     normalize-path "^3.0.0"
