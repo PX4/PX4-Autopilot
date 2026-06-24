@@ -28,7 +28,7 @@ The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publis
 
 The [eProsima Micro XRCE-DDS _Agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
 
-The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS as long version compatibility is ensured.
+The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS, as long as version compatibility is ensured.
 
 Code that wants to subscribe/publish to PX4 does have a dependency on client-side code; it requires uORB message definitions that match those used to create the PX4 uXRCE-DDS client so that it can interpret the messages.
 
@@ -53,11 +53,15 @@ Note that all code generation associated with the messages is handled by ROS 2.
 
 ## Version selection
 
-There are two main major active Micro XRCE-DDS versions: `v2.x` and `v3.x` which needs to be paired to the corresponding major DDS version.
-In standalone DDS applications it is suggested to use the latest one.
-However, in ROS 2 applications the DDS version is locked down by the chosen ROS 2 distribution.
+There are two main major active Micro XRCE-DDS versions: `v2.x` and `v3.x`.
+These need to be paired to the corresponding major DDS version.
 
-<Badge type="tip" text="PX4 v1.18" /> In its default configuration _uxrce_dds_client_ is build targeting Micro XRCE-DDS `v2.x`. To target instead `v3.x` and use the latest ROS 2 distributions the [`Kconfig`](../hardware/porting_guide_config.md#px4-menuconfig-setup) variable `UXRCE_DDS_CLIENT_USE_DDS_V3` needs to be set and a custom build performed.
+In standalone DDS applications you should use the latest DDS version with `Micro XRCE-DDS v3.x`.
+However, in ROS 2 applications the DDS version is locked down by the chosen ROS 2 distribution: `v3.x` is required if you want to use the latest ROS 2 distributions.
+
+<Badge type="tip" text="PX4 v1.18" />
+In its default configuration `uxrce_dds_client` is built targeting Micro XRCE-DDS `v2.x`.
+To target `v3.x` instead, the [`Kconfig`](../hardware/porting_guide_config.md#px4-menuconfig-setup) variable `UXRCE_DDS_CLIENT_USE_DDS_V3` must be set, and a custom build performed.
 
 The following table explains the required Micro-XRCE-DDS-Agent versions and `UXRCE_DDS_CLIENT_USE_DDS_V3` value for different ROS 2 distributions.
 
