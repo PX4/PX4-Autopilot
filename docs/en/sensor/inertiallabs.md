@@ -42,7 +42,6 @@ You can set offsets for coordinate axes in the sensor-configuration software tha
 To use the Inertial Labs driver:
 
 1. Build the firmware with the [ilabs](../modules/modules_driver_ins.md#ilabs) module.
-
    - Make sure the UART RX-buffer for the serial port connected to the INS is at least **600 bytes**.
 
      ::: tip
