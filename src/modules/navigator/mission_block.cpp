@@ -340,14 +340,17 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			bool passed_curr_wp = false;
 
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			// Fixed-wing and multicopter fly through waypoints, so also accept the waypoint once the
+			// vehicle has passed it along the leg (multicopter has a tight radius it can blow through).
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+			    || _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 				const float dist_prev_to_curr = get_distance_to_next_waypoint(_navigator->get_position_setpoint_triplet()->previous.lat,
 								_navigator->get_position_setpoint_triplet()->previous.lon, _navigator->get_position_setpoint_triplet()->current.lat,
 								_navigator->get_position_setpoint_triplet()->current.lon);
 
 				if (dist_prev_to_curr > 1.0e-6f && _navigator->get_position_setpoint_triplet()->previous.valid) {
-					// Fixed-wing guidance interprets this condition as line segment following
+					// line segment following: accept the waypoint once it has been passed
 
 					// vector from previous waypoint to current waypoint
 					float vector_prev_to_curr_north;
