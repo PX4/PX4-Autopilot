@@ -157,8 +157,16 @@ const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 				_trajectory[2].getCurrentPosition());
 	const Vector3f u_prev_to_target = (waypoints[1] - waypoints[0]).unit_or_zero();
 	const Vector3f prev_to_pos(pos_traj - waypoints[0]);
-	const Vector3f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
-	const Vector3f closest_pt = waypoints[0] + prev_to_closest;
+	const float along_track = prev_to_pos * u_prev_to_target;
+
+	// If the trajectory has already passed the target, aim straight at it instead of
+	// projecting the look-ahead point further along the (extended) leg. Otherwise an
+	// overshoot of a not-yet-accepted waypoint marches the setpoint away from it forever.
+	if (along_track >= (waypoints[1] - waypoints[0]).length()) {
+		return waypoints[1];
+	}
+
+	const Vector3f closest_pt = waypoints[0] + u_prev_to_target * along_track;
 
 	// Compute along-track error using L1 distance and cross-track error
 	const float crosstrack_error = (closest_pt - pos_traj).length();
