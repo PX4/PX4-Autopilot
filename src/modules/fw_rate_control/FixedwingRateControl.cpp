@@ -379,7 +379,16 @@ void FixedwingRateControl::Run()
 				}
 
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f scaled_gain_ff = gain_ff / _airspeed_scaling;
+
+				// Positive feedforward compensates aerodynamic damping and is scaled linearly with airspeed.
+				// Negative feedforward instead weights down the setpoint acting on the P gain (turning the
+				// controller into a 2-DOF controller).
+				Vector3f scaled_gain_ff;
+
+				for (int i = 0; i < 3; i++) {
+					scaled_gain_ff(i) = (gain_ff(i) >= 0.f) ? gain_ff(i) / _airspeed_scaling : gain_ff(i);
+				}
+
 				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
