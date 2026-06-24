@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,54 +31,36 @@
 #
 ############################################################################
 
+include(FetchContent)
+
+# px4-rerun is pulled in via FetchContent (not a git submodule) so the SITL
+# build is self-contained. Pin a released tag for reproducibility.
+set(PX4_RERUN_LOADER OFF CACHE BOOL "" FORCE)
+set(PX4_RERUN_TERRAIN OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(px4_rerun
+	GIT_REPOSITORY https://github.com/breuerpeter/px4-rerun.git
+	GIT_TAG v0.1.0)
+FetchContent_MakeAvailable(px4_rerun)
+
+# Suppress PX4's strict warnings for third-party Rerun SDK code
+target_compile_options(rerun_sdk PRIVATE
+	-Wno-double-promotion
+	-Wno-float-equal
+	-Wno-shadow
+	-Wno-error
+)
+
 px4_add_module(
-	MODULE modules__simulation__simulator_mavlink
-	MAIN simulator_mavlink
-	COMPILE_FLAGS
-		-Wno-double-promotion
-		-Wno-cast-align
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-	INCLUDES
-		${CMAKE_BINARY_DIR}/mavlink
-		${CMAKE_BINARY_DIR}/mavlink/${CONFIG_MAVLINK_DIALECT}
+	MODULE modules__simulation__rerun_logger
+	MAIN rerun_logger
 	SRCS
-		SimulatorMavlink.cpp
-		SimulatorMavlink.hpp
+		RerunLogger.cpp
+		RerunLogger.hpp
 	DEPENDS
-		mavlink_c_generate
-		conversion
+		px4_work_queue
 		geo
-		drivers_accelerometer
-		drivers_barometer
-		drivers_gyroscope
-		drivers_magnetometer
+		px4_rerun
 	)
 
-include(sitl_targets_flightgear.cmake)
-include(sitl_targets_gazebo-classic.cmake)
-include(sitl_targets_jmavsim.cmake)
-include(sitl_targets_jsbsim.cmake)
-
-
-# none_iris (legacy compatibility launch helper)
-add_custom_target(none_iris
-	COMMAND ${CMAKE_COMMAND} -E env PX4_SYS_AUTOSTART=10016 $<TARGET_FILE:px4>
-	WORKING_DIRECTORY ${SITL_WORKING_DIR}
-	USES_TERMINAL
-	DEPENDS
-		px4
-		${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/10016_none_iris
-	COMMENT "launching px4 none_iris (SYS_AUTOSTART=10016)"
-)
-
-# none_astro_max — Freefly Astro Max, decoupled SITL: PX4 runs with no in-process
-# simulator; an external simulator connects to it over MAVLink on TCP:4560. Mirrors none_iris.
-add_custom_target(none_astro_max
-	COMMAND ${CMAKE_COMMAND} -E env PX4_SYS_AUTOSTART=80000 $<TARGET_FILE:px4>
-	WORKING_DIRECTORY ${SITL_WORKING_DIR}
-	USES_TERMINAL
-	DEPENDS
-		px4
-		${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/80000_none_astro_max
-	COMMENT "launching px4 none_astro_max (SYS_AUTOSTART=80000)"
-)
+target_compile_features(modules__simulation__rerun_logger PRIVATE cxx_std_17)

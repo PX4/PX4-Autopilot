@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_RERUN_LOGGER
+	bool "rerun_logger"
+	default n
+	---help---
+		Enable Rerun logging for SITL

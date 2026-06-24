@@ -26,3 +26,7 @@ else
 	echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOSTNAME}"
 	simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
 fi
+
+# Decoupled Newton SITL: stream PX4 state to a Rerun viewer.
+# No-op (prints "command not found") on boards without the module built in.
+rerun_logger start -s newton
