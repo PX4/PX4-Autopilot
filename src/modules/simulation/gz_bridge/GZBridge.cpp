@@ -425,6 +425,7 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	report.differential_pressure_pa = msg.diff_pressure(); // hPa to Pa;
 	_temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
 	report.temperature = _temperature;
+	report.pitot_temperature = NAN;
 	_differential_pressure_pub.publish(report);
 }
 
