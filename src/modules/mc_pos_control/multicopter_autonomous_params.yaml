@@ -123,10 +123,11 @@ parameters:
           trajectory is stopped to wait for the drone.
 
           This value can be adjusted depending on the tracking
-          capabilities of the vehicle.
+          capabilities of the vehicle. Set to 0 to disable the horizontal
+          time-stretch.
       type: float
       default: 2.0
-      min: 0.1
+      min: 0
       max: 10
       decimal: 1
       increment: 1
@@ -139,10 +140,11 @@ parameters:
           slowed down so the virtual setpoint can't walk away from the drone.
           This suppresses altitude overshoots caused by a noisy altitude
           reference (e.g. mission setpoint jittering as the home altitude
-          estimate is refined in flight).
+          estimate is refined in flight). Set to 0 to disable the vertical
+          time-stretch.
       type: float
       default: 1.0
-      min: 0.1
+      min: 0
       max: 10
       decimal: 1
       increment: 0.1
