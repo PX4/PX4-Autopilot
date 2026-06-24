@@ -617,6 +617,11 @@ private:
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
 	px4::atomic<unsigned>	_bytes_rx{0};
+	// Per-message TX counters bumped from both the main and receiver send paths.
+	// Kept as atomics (like _bytes_*) and folded into _tstatus at publish time, so
+	// the hot path does not take _tstatus_mutex on every message.
+	px4::atomic<unsigned>	_tx_message_count{0};
+	px4::atomic<unsigned>	_tx_buffer_overruns{0};
 	hrt_abstime		_bytes_timestamp{0};
 
 #if defined(MAVLINK_UDP)
