@@ -342,6 +342,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		report.differential_pressure_pa = sensors.diff_pressure * 100.f * airspeed_blockage_scale; // hPa to Pa;
 		report.temperature = _sensors_temperature;
+		report.pitot_temperature = NAN;
 		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
