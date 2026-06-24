@@ -44,6 +44,10 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/velocity_error.h>
+#include <uORB/Publication.hpp>
+#include <drivers/drv_hrt.h>
+
 
 struct PositionControlStates {
 	matrix::Vector3f position;
@@ -233,4 +237,6 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	uORB::Publication<velocity_error_s> _velocity_error_pub{ORB_ID(velocity_error)};
 };

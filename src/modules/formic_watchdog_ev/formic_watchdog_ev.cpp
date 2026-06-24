@@ -6,6 +6,20 @@
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
+using namespace math;
+
+void FormicWatchdogEv::parameters_update(bool force)
+{
+	if (force || _parameter_update_sub.updated()) {
+		parameter_update_s param_update{};
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
+	}
+
+	_ev_vel_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 2)) != 0;
+	_ev_hpos_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 0)) != 0;
+}
+
 
 FormicWatchdogEv::FormicWatchdogEv() :
 	ModuleParams(nullptr),
@@ -21,18 +35,7 @@ bool FormicWatchdogEv::init()
 	parameters_update();
 	_ev_pos_deriv_filter.setCutoffFreq(30.0f, 1.0f);
 	return true;
-}
 
-void FormicWatchdogEv::parameters_update(bool force)
-{
-	if (force || _parameter_update_sub.updated()) {
-		parameter_update_s param_update{};
-		_parameter_update_sub.copy(&param_update);
-		updateParams();
-	}
-
-	_ev_vel_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 2)) != 0;
-	_ev_hpos_enabled = (_param_ekf2_ev_ctrl.get() & (1 << 0)) != 0;
 }
 
 void FormicWatchdogEv::Run()
@@ -61,23 +64,14 @@ void FormicWatchdogEv::Run()
 		}
 
 
-		const hrt_abstime settle_us = (hrt_abstime)_param_formic_wdev_init.get() * 1_s;
-		if (hrt_elapsed_time(&_first_ev_timestamp) < settle_us) {
-			accumulate_quality(odometry); // still settling: build the average, don't forward yet
-			accumulate_3d_velocity(odometry); // also accumulate the EV z-velocity for the init average (mirroring the quality)
+		const hrt_abstime init_timer_us = (hrt_abstime)_param_formic_wdev_init.get() * 1_s;
+		if (hrt_elapsed_time(&_first_ev_timestamp) < init_timer_us) {
+			accumulate_value(_quality_count,_quality_sum,odometry.quality);
+			accumulate_value(_vel_count,_vel_sum ,matrix::Vector3f(odometry.velocity).norm());
 		}
 		else if (!_formic_state.error_find) { // only forward the data if the aux switch is active (if configured) and if no error has been found, otherwise we keep publishing the state machine with the error flag set but we don't forward the possibly bad data to the rest of the system
 			if (!_init_check_done) {
-				_quality_average_init = finalize_quality_average();
-				_vel_average_init     = finalize_3d_velocity_average();
-				_init_check_done = true;
-				_formic_state.quality_init_check_fail = (_quality_average_init < 95.0f);
-				_formic_state.vel_3d_init_check_fail = (_vel_average_init > _param_formic_wdev_vini.get()); // if the average EV all_vel during the settle window is very low, it's likely that the EV data is not good (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful). In this case we also set the error flag and skip forwarding the data.
-
-				if (_formic_state.quality_init_check_fail || _formic_state.vel_3d_init_check_fail) {
-					_formic_state.error_find = true;
-					PX4_WARN("EV data did not pass the init checks! quality average: %.2f, vel average: %.2f", (double)_quality_average_init, (double)_vel_average_init);
-				}
+				init_condition_check();
 			}
 			resetcounter(odometry); // (relies on _formic_state.ev_data_arrived being fresh)
 			copy_odometry_msg(odometry);
@@ -110,11 +104,13 @@ void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
 void FormicWatchdogEv::update_pipeline_status()
 {
     if(!_pos_requested){
+	// dont have any pos req -> chage to pos_req 
         _formic_state.status = (uint8_t)pipline_status::MANUAL;
         return;
     }
 
     if (_formic_state.error_find) {
+	// have error -> jump an error 
         _formic_state.status = (uint8_t)pipline_status::EV_ERROR;
         return;
     }
@@ -169,6 +165,7 @@ void FormicWatchdogEv::update_pipeline_status()
 
 
 void FormicWatchdogEv::handle_pos_req_user_intention()
+// handel pos req - see user_mode_intenstion tick function
 {
 	if (_formic_pos_req.updated()) {
 		formic_pos_req_s pos_req{};
@@ -177,50 +174,37 @@ void FormicWatchdogEv::handle_pos_req_user_intention()
 	}
 }
 
-
-void FormicWatchdogEv::accumulate_quality(const vehicle_odometry_s &odometry)
-{
-	_quality_count += 1;
-	_quality_sum   += odometry.quality;
+void FormicWatchdogEv::accumulate_value(int &counter ,float &sum_value , float adding_value){
+/// add value to find the avg value 
+	counter += 1;
+	sum_value += adding_value;
 }
 
-// Mean quality over the samples collected during the settle window.
-float FormicWatchdogEv::finalize_quality_average() const
-{
-	if (_quality_count == 0) {
+float FormicWatchdogEv::calc_avg(int counter, float sum){
+/// calc the avg value after count the value 
+	if (math::isZero(sum)) {
 		return 0.0f; // no samples accumulated during the window
 	}
-
-	return _quality_sum / _quality_count;
+	return sum / counter;
 }
 
-// Accumulate one EV 3D speed sample during the settle window. Uses the full
-// odometry velocity vector (||vx,vy,vz||). Samples with a non-finite velocity
-// (e.g. EV velocity fusion disabled) are skipped.
-void FormicWatchdogEv::accumulate_3d_velocity(const vehicle_odometry_s &odometry)
-{
-	const matrix::Vector3f vel(odometry.velocity);
+void FormicWatchdogEv::init_condition_check(){
 
-	if (!vel.isAllFinite()) {
-		return ; // velocity not available skip this sample
+	_quality_average_init = calc_avg(_quality_count,_quality_sum);
+	_vel_average_init     = calc_avg(_vel_count,_vel_sum);
+	_init_check_done = true;
+	_formic_state.quality_init_check_fail = (_quality_average_init < 95.0f);
+	_formic_state.vel_3d_init_check_fail = (_vel_average_init > _param_formic_wdev_vini.get()); // if the average EV all_vel during the settle window is very low, it's likely that the EV data is not good (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful). In this case we also set the error flag and skip forwarding the data.
+
+
+	if (_formic_state.quality_init_check_fail || _formic_state.vel_3d_init_check_fail) {
+		/// call to an error if have any prblem 
+		_formic_state.error_find = true;
+		PX4_WARN("EV data did not pass the init checks! quality average: %.2f, vel average: %.2f", (double)_quality_average_init, (double)_vel_average_init);
 	}
 
-	_vel_count += 1;
-	_vel_sum   += vel.norm();
+
 }
-
-// Mean EV 3D speed over the samples collected during the settle window.
-float FormicWatchdogEv::finalize_3d_velocity_average() const
-{
-	if (_vel_count == 0) {
-		return 0.0f; // no samples accumulated during the window
-	}
-
-	return _vel_sum / _vel_count;
-}
-
-
-
 
 
 float FormicWatchdogEv::get_yaw_from_quat(const vehicle_odometry_s &odometry)
@@ -321,6 +305,7 @@ bool FormicWatchdogEv::handle_pos_reset(const float vio_pos[2], const float esti
 
 void FormicWatchdogEv::resetcounter(vehicle_odometry_s &odometry)
 {
+	// do some reset counter to the system 
 
 	
 	vehicle_odometry_s esti_odom{};
@@ -374,9 +359,8 @@ void FormicWatchdogEv::no_EvData()
 	/* Determine if there has been a dropout in the EV (Extended Visual) data stream. */
 	if ((_last_ev_timestamp == 0) ||
 	    ((hrt_absolute_time() - _last_ev_timestamp) > 300_ms)) {
-		_formic_state.ev_data_arrived = false;
 		_formic_state.error_find = false; // dropout = end of session: clear latched error so the next session may use EV
-		// No EV data: fall back to WAIT_TO_DATA if a position mode is still requested, otherwise MANUAL.
+		_formic_state.ev_data_arrived = false;
 		_first_ev_timestamp = 0; // EV dropped out: restart the settle window on re-arrival
 		_quality_count = 0;    // reset quality average accumulator
 		_quality_sum   = 0.0f;

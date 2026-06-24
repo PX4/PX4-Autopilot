@@ -4,6 +4,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <mathlib/math/Limits.hpp>
 
 // uORB
 #include <uORB/Subscription.hpp>
@@ -67,13 +68,12 @@ private:
 	bool RP_misalignment(vehicle_odometry_s &odometry);
 	void no_EvData();
 	float get_yaw_from_quat(const vehicle_odometry_s &odometry);
-	void accumulate_quality(const vehicle_odometry_s &odometry); // sum one quality sample during the settle window
-	float finalize_quality_average() const;                      // mean quality over the settle window
-	void accumulate_3d_velocity(const vehicle_odometry_s &odometry); // sum one EV 3D speed sample during the settle window
-	float finalize_3d_velocity_average() const;  
+	// void accumulate_quality(const vehicle_odometry_s &odometry); // sum one quality sample during the settle window
+	void accumulate_value(int &counter ,float &sum_value , float adding_value);
+	float calc_avg(int counter, float sum);             // mean quality over the settle window
 	void handle_pos_req_user_intention();
 	bool handle_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
-
+	void  init_condition_check();
 	// --- Subscriptions ---
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _odometry_sub_formic{ORB_ID(formic_odom)};
