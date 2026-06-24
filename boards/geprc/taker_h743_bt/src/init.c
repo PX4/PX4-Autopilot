@@ -43,11 +43,12 @@
 
 #include "board_config.h"
 
+#include <errno.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
-#include <nuttx/sdio.h>
+#include <nuttx/spi/spi.h>
 #include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
@@ -170,14 +171,20 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_BLUE);
 	}
 
-#ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
-	if (ret != OK) {
+	if (!spi_dev) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		led_on(LED_BLUE);
+		return -ENODEV;
 	}
 
-#endif
+	int ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
+
+	if (ret != OK) {
+		syslog(LOG_ERR, "[boot] Failed to bind SPI microSD slot: %d\n", ret);
+		led_on(LED_BLUE);
+	}
 
 	/* Configure the HW based on the manifest */
 	px4_platform_configure();

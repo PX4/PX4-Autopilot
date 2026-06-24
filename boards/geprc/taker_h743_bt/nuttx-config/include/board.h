@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_MATEKH743SLIM_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_MATEKH743SLIM_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_GEPRC_TAKER_H743_BT_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_GEPRC_TAKER_H743_BT_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The MatekH743-Slim  board provides the following clock sources:
+/* The GEPRC TAKER H743 BT board provides the following clock sources:
  *
  *   X1: 8 MHz crystal for HSE
  *
@@ -353,14 +353,14 @@
 #define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 */
 #define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PA9  */
 
-#define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6  */
-#define GPIO_USART2_TX   GPIO_USART2_TX_2   /* PD5  */
+#define GPIO_USART2_RX   GPIO_USART2_RX_1   /* PA3  */
+#define GPIO_USART2_TX   GPIO_USART2_TX_1   /* PA2  */
 
-#define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9  */
-#define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8  */
+#define GPIO_USART3_RX   GPIO_USART3_RX_1   /* PB11 */
+#define GPIO_USART3_TX   GPIO_USART3_TX_1   /* PB10 */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_3    /* PB8  */
-#define GPIO_UART4_TX    GPIO_UART4_TX_3    /* PB9  */
+#define GPIO_UART4_RX    GPIO_UART4_RX_1    /* PA1  */
+#define GPIO_UART4_TX    GPIO_UART4_TX_2    /* PA0  */
 
 #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
 #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
@@ -374,26 +374,18 @@
 #define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1  */
 
 
-/* CAN
- *
- * CAN1 is routed to transceiver.
- */
-
-#define GPIO_CAN1_RX     GPIO_CAN1_RX_3     /* PD0  */
-#define GPIO_CAN1_TX     GPIO_CAN1_TX_3     /* PD1  */
-
 /* SPI
  *
  * SPI1 is MPU6000
- * SPI2 is MAX7456
- * SPI3 is extern with PD4 and PE2 as CS
- * SPI4 is ICM20602
+ * SPI2 is ICM42688
+ * SPI3 is microSD
+ * SPI4 is MAX7456
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
 
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
-#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_3               /* PD7  */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1               /* PA7  */
 #define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5  */
 
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1               /* PB14 */
@@ -401,12 +393,12 @@
 #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4) /* PB13 */
 
 #define GPIO_SPI3_MISO   GPIO_SPI3_MISO_1               /* PB4  */
-#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_4               /* PB5  */
-#define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_1) /* PB3  */
+#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_2               /* PC12 */
+#define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
 
-#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1               /* PE13 */
-#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1               /* PE14 */
-#define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_1) /* PE12 */
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1               /* PE5  */
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1               /* PE6  */
+#define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE2  */
 
 /* I2C
  *
@@ -416,35 +408,11 @@
  *
  */
 
-#define GPIO_I2C1_SCL GPIO_I2C1_SCL_1       /* PB6  */
-#define GPIO_I2C1_SDA GPIO_I2C1_SDA_1       /* PB7  */
+#define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
+#define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN7)
-
-#define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
-#define GPIO_I2C2_SDA GPIO_I2C2_SDA_1       /* PB11 */
-
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN11)
-
-/* SDMMC1
- *
- *      SDMMC1_D0                          PC8
- *      SDMMC1_D1                          PC9
- *      SDMMC1_D2                          PC10
- *      SDMMC1_D3                          PC11
- *      SDMMC1_CK                          PC12
- *      SDMMC1_CMD                         PD2
- */
-
-// #define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
-// #define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
-// #define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
-// #define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
-// #define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
-// #define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
-
+#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
+#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN9)
 
 /* USB
  *
@@ -490,4 +458,4 @@
 # define PROBE_MARK(n)
 #endif
 
-#endif  /*__NUTTX_CONFIG_MATEKH743SLIM_INCLUDE_BOARD_H  */
+#endif  /* __NUTTX_CONFIG_GEPRC_TAKER_H743_BT_INCLUDE_BOARD_H */

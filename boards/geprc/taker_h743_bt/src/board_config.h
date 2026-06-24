@@ -56,10 +56,11 @@
 // #define FLASH_BASED_PARAMS
 
 
-/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
+/* Single active-low status LED */
 
-#define GPIO_nLED_BLUE          /* PE3 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
-#define GPIO_nLED_GREEN         /* PE4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
+#define GPIO_nLED_RED          /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_nLED_BLUE                   0
+#define GPIO_nLED_GREEN                  GPIO_nLED_RED
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS   1
 #define BOARD_ARMED_STATE_LED           1 // Green LED
@@ -78,48 +79,27 @@
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 #define PX4_ADC_GPIO  \
-	/* PC0  */  GPIO_ADC123_INP10, \
-	/* PC1  */  GPIO_ADC123_INP11, \
-	/* PA4  */  GPIO_ADC12_INP18, \
-	/* PA7  */  GPIO_ADC12_INP7, \
-	/* PC4  */  GPIO_ADC12_INP4, \
-	/* PC5  */  GPIO_ADC12_INP8
+	/* PC3  */  GPIO_ADC123_INP13, \
+	/* PC2  */  GPIO_ADC123_INP12
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC0  */  ADC1_CH(10)
-#define ADC_BATTERY_CURRENT_CHANNEL     /* PC1  */  ADC1_CH(11)
-#define ADC_BATTERY2_VOLTAGE_CHANNEL    /* PA4  */  ADC1_CH(18)
-#define ADC_BATTERY2_CURRENT_CHANNEL    /* PA7  */  ADC1_CH(7)
-#define ADC_AIRSPEED_IN_CHANNEL         /* PC4  */  ADC1_CH(4)
-#define ADC_RSSI_IN_CHANNEL             /* PC5  */  ADC1_CH(8)
+#define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC3  */  ADC1_CH(13)
+#define ADC_BATTERY_CURRENT_CHANNEL     /* PC2  */  ADC1_CH(12)
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-	 (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
-	 (1 << ADC_BATTERY2_VOLTAGE_CHANNEL) | \
-	 (1 << ADC_BATTERY2_CURRENT_CHANNEL) | \
-	 (1 << ADC_AIRSPEED_IN_CHANNEL) | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL))
 
 
 /* Define Battery Voltage Divider and A per V */
-#define BOARD_BATTERY1_V_DIV         (11.0f)     /* measured with the provided PM board */
-#define BOARD_BATTERY1_A_PER_V       (40.0f)
-#define BOARD_BATTERY2_V_DIV         (11.0f)     /* measured with the provided PM board */
-
-
-/* CAN Silence
- *
- * Silent mode control \ ESC Mux select
- */
-
-#define GPIO_CAN1_SILENT_S0  /* PD3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN3)
+#define BOARD_BATTERY1_V_DIV         (11.13f)
+#define BOARD_BATTERY1_A_PER_V       (28.5f)
 
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   12
-#define DIRECT_INPUT_TIMER_CHANNELS  12
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
+#define DIRECT_INPUT_TIMER_CHANNELS  9
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
@@ -133,8 +113,8 @@
 
 /* Tone alarm output */
 
-#define GPIO_TONE_ALARM_IDLE    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
-#define GPIO_TONE_ALARM_GPIO    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+#define GPIO_TONE_ALARM_IDLE    /* PD2 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN2)
+#define GPIO_TONE_ALARM_GPIO    /* PD2 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN2)
 
 // #define TONE_ALARM_TIMER        2  /* Timer 2 */
 // #define TONE_ALARM_CHANNEL      1  /* PA15 GPIO_TIM2_CH1OUT_2 */
@@ -144,10 +124,10 @@
 
 /* USB OTG FS
  *
- * PE2  OTG_FS_VBUS VBUS sensing
+ * VBUS sensing is not wired in the ArduPilot hwdef.
  */
 
-#define GPIO_OTGFS_VBUS         /* PE2 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTE|GPIO_PIN2)
+#define GPIO_OTGFS_VBUS         0
 
 
 /* High-resolution timer */
@@ -156,13 +136,13 @@
 
 
 /* RC Serial port */
-#define RC_SERIAL_PORT          "/dev/ttyS4"
+#define RC_SERIAL_PORT          "/dev/ttyS1"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 // #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
 
-/* SD Card */
+/* SPI microSD */
 #define SDIO_SLOTNO             0  /* Only one slot */
 #define SDIO_MINOR              0
 
@@ -175,10 +155,6 @@
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO, \
-		GPIO_CAN1_TX, \
-		GPIO_CAN1_RX, \
-		GPIO_CAN1_SILENT_S0, \
-		GPIO_nLED_BLUE, \
 		GPIO_nLED_GREEN, \
 		GPIO_TONE_ALARM_IDLE, \
 	}
@@ -203,16 +179,6 @@ __BEGIN_DECLS
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
-
-/****************************************************************************
- * Name: stm32_sdio_initialize
- *
- * Description:
- *   Initialize SDIO-based MMC/SD card support
- *
- ****************************************************************************/
-
-int stm32_sdio_initialize(void);
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize

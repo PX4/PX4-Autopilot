@@ -88,20 +88,20 @@
 #define BOOTLOADER_DELAY               5000
 #define INTERFACE_USB                  1
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
-#define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
+/* No VBUS sense is wired on this board. */
 
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,57600"
-#define BOARD_TYPE                     139
+#define BOARD_TYPE                     1013
 #define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
 #define BOARD_FLASH_SECTORS            (15)
 #define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)
 
 #define OSC_FREQ                       8
 
-#define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_BLUE // BLUE
-#define BOARD_PIN_LED_BOOTLOADER       GPIO_nLED_GREEN // GREEN
+#define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_RED
+#define BOARD_PIN_LED_BOOTLOADER       GPIO_nLED_RED
 #define BOARD_LED_ON                   0
 #define BOARD_LED_OFF                  1
 

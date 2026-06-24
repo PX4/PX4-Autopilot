@@ -64,8 +64,8 @@ __END_DECLS
 
 #  define xlat(p) (p)
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_BLUE,        // Indexed by LED_BLUE (defaulted to an output)
-	GPIO_nLED_GREEN
+	GPIO_nLED_RED,
+	GPIO_nLED_RED
 };
 
 __EXPORT void led_init(void)
