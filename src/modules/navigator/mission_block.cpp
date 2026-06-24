@@ -169,12 +169,18 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		const float mission_item_altitude_amsl = get_absolute_altitude_for_item(_mission_item);
 
+		// Check acceptance against the commanded setpoint altitude, not the live home-relative
+		// item altitude, so acceptance stays consistent when the active leg altitude is held.
+		const position_setpoint_s &current_setpoint = _navigator->get_position_setpoint_triplet()->current;
+		const float acceptance_altitude_amsl = (current_setpoint.valid && PX4_ISFINITE(current_setpoint.alt)) ?
+						       current_setpoint.alt : mission_item_altitude_amsl;
+
 		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
 				_navigator->get_default_loiter_rad();
 
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
+		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, acceptance_altitude_amsl,
 				_navigator->get_global_position()->lat,
 				_navigator->get_global_position()->lon,
 				_navigator->get_global_position()->alt,
@@ -200,14 +206,14 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			/* require only altitude for takeoff for multicopter */
 			if (_navigator->get_global_position()->alt >
-			    mission_item_altitude_amsl - altitude_acceptance_radius) {
+			    acceptance_altitude_amsl - altitude_acceptance_radius) {
 				_waypoint_position_reached = true;
 			}
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			/* fixed-wing takeoff is reached once the vehicle has exceeded the takeoff altitude */
-			if (_navigator->get_global_position()->alt > mission_item_altitude_amsl) {
+			if (_navigator->get_global_position()->alt > acceptance_altitude_amsl) {
 				_waypoint_position_reached = true;
 			}
 
