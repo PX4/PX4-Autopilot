@@ -42,6 +42,11 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "GNSS";
 
+	auto &aid_src = _aid_src_gnss_hgt;
+	HeightBiasEstimator &bias_est = _gps_hgt_b_est;
+
+	bias_est.predict(_dt_ekf_avg);
+
 	if (!_fc.gps.intended()) {
 		if (_control_status.flags.gps_hgt) {
 			ECL_WARN("stopping %s height fusion, GNSS not intended", HGT_SRC_NAME);
@@ -50,11 +55,6 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		stopGpsHgtFusion();
 		return;
 	}
-
-	auto &aid_src = _aid_src_gnss_hgt;
-	HeightBiasEstimator &bias_est = _gps_hgt_b_est;
-
-	bias_est.predict(_dt_ekf_avg);
 
 	if (_gps_data_ready) {
 
