@@ -54,6 +54,12 @@ private:
 #endif
 
 public:
+#ifdef __PX4_POSIX
+	// Initialize the recursive param mutex. Must be called once before any thread
+	// accesses parameters (done from param_init()).
+	static void initialize();
+#endif
+
 	AtomicTransaction()
 	{
 		lock();

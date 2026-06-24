@@ -130,6 +130,11 @@ static pthread_mutex_t file_mutex  =
 void
 param_init()
 {
+#ifdef __PX4_POSIX
+	// Set up the recursive param mutex before any thread can access parameters.
+	AtomicTransaction::initialize();
+#endif
+
 	param_export_perf = perf_alloc(PC_ELAPSED, "param: export");
 	param_find_perf = perf_alloc(PC_COUNT, "param: find");
 	param_get_perf = perf_alloc(PC_COUNT, "param: get");
