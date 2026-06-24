@@ -879,9 +879,7 @@ void Mavlink::send_start(int length)
 		// not enough space in buffer to send
 		count_txerrbytes(length);
 
-		pthread_mutex_lock(&_tstatus_mutex);
-		_tstatus.tx_buffer_overruns++;
-		pthread_mutex_unlock(&_tstatus_mutex);
+		_tx_buffer_overruns.fetch_add(1);
 
 		// prevent writes
 		_tx_buffer_low = true;
@@ -946,9 +944,7 @@ void Mavlink::send_finish()
 #endif // MAVLINK_UDP
 
 	if (ret == (int)_buf_fill) {
-		pthread_mutex_lock(&_tstatus_mutex);
-		_tstatus.tx_message_count++;
-		pthread_mutex_unlock(&_tstatus_mutex);
+		_tx_message_count.fetch_add(1);
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
 
@@ -3119,6 +3115,10 @@ void Mavlink::publish_telemetry_status()
 {
 	// many fields are populated in place
 	pthread_mutex_lock(&_tstatus_mutex);
+
+	// fold in the lock-free per-message counters (cumulative totals)
+	_tstatus.tx_message_count += _tx_message_count.fetch_and(0);
+	_tstatus.tx_buffer_overruns += _tx_buffer_overruns.fetch_and(0);
 
 	_tstatus.mode = _mode;
 	_tstatus.data_rate = _datarate;
