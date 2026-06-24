@@ -220,14 +220,13 @@ html {
 }
 
 
-  /**
-   * Dark mode: invert vectorized diagram SVGs (Google Drawings exports where all
-   * text and arrows are black paths — invisible on a dark background without this).
-   * hue-rotate(180deg) keeps blue tones from turning orange after the invert.
-   * -------------------------------------------------------------------------- */
+/**
+ * Dark mode: invert vectorized diagram SVGs (Google Drawings exports where all
+ * text and arrows are black paths — invisible on a dark background without this).
+ * hue-rotate(180deg) keeps blue tones from turning orange after the invert.
+ * Apply class="diagram-invert" to any image that needs this treatment.
+ * -------------------------------------------------------------------------- */
 
-  .dark img[src*="diagrams/px4_companion_computer_simple"],
-  .dark img[src*="diagrams/px4_arch_fc_companion"],
-  .dark img[src*="diagrams/px4_arch_fc"] {
-    filter: invert(1) hue-rotate(180deg);
-  }
+.dark .diagram-invert {
+  filter: invert(1) hue-rotate(180deg);
+}
