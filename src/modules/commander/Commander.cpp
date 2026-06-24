@@ -3121,9 +3121,12 @@ void Commander::manualControlCheck()
 		_last_manual_throttle = manual_control_setpoint.throttle;
 
 		if (isArmed()) {
-			// Hand control back to the pilot when they override with the sticks. ManualControl sets
-			// sticks_moving only in modes/vehicles where override applies (see COM_RC_OVR_SPEED).
-			if (manual_control_setpoint.sticks_moving) {
+			// Hand control back to the pilot when they override with the sticks (see MAN_OVERRIDE_SPD).
+			// Only applies to multicopters (incl. VTOLs in MC mode) in auto/offboard modes.
+			const bool rotary_wing = (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			const bool overridable_mode = _vehicle_control_mode.flag_control_auto_enabled || _vehicle_control_mode.flag_control_offboard_enabled;
+
+			if (manual_control_setpoint.sticks_moving && rotary_wing && overridable_mode) {
 				// If no failsafe is active, directly change the mode, otherwise pass the request to the failsafe state machine
 				if (_failsafe.selectedAction() <= FailsafeBase::Action::Warn) {
 					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, true)) {

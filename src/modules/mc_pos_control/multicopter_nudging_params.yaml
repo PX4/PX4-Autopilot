@@ -12,7 +12,7 @@ parameters:
           stick centered - MPC_LAND_SPEED
           stick full down - 2 * MPC_LAND_SPEED
 
-          Manual override has to be disabled to use this feature (set COM_RC_OVR_SPEED to 0).
+          Manual override has to be disabled to use this feature (MAN_OVERRIDE_SPD -1).
       type: enum
       values:
         0: Nudging disabled

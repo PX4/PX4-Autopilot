@@ -37,7 +37,7 @@ float32 aux4
 float32 aux5
 float32 aux6
 
-bool sticks_moving	# manual control override request in an auto or offboard mode, not a generic "sticks are moving" flag
+bool sticks_moving # manual control override request in an auto or offboard mode, only gets true if feature is enabled
 
 uint16 buttons		# From uint16 buttons field of Mavlink manual_control message
 

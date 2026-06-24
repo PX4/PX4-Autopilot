@@ -46,7 +46,6 @@
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -113,7 +112,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _manual_control_switches_sub{this, ORB_ID(manual_control_switches)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
@@ -150,12 +148,11 @@ private:
 	uint8_t _system_id{1};
 	bool _rotary_wing{false};
 	bool _vtol{false};
-	vehicle_control_mode_s _vehicle_control_mode{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
-		(ParamFloat<px4::params::COM_RC_OVR_SPEED>) _param_com_rc_ovr_speed,
+		(ParamFloat<px4::params::MAN_OVERRIDE_SPD>) _param_man_override_spd,
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
 		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,

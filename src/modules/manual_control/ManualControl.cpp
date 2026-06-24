@@ -99,8 +99,6 @@ void ManualControl::processInput(hrt_abstime now)
 		}
 	}
 
-	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
-
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -141,27 +139,18 @@ void ManualControl::processInput(hrt_abstime now)
 
 		// User override by stick
 		const float dt_s = (now - _timestamp_last_loop) / 1e6f;
-		// COM_RC_OVR_SPEED == 0 disables stick override entirely.
-		const float velocity_threshold = _param_com_rc_ovr_speed.get();
+		const float velocity_threshold = _param_man_override_spd.get();
 
-		// Update the velocity filters every cycle (independent of mode) so the gesture detector stays
-		// warm: a stale filter could otherwise fire a false override on entering an auto/offboard mode.
-		const bool stick_gesture = (velocity_threshold > FLT_EPSILON)
-					   && ((fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > velocity_threshold
-						&& _roll_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
-					       || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > velocity_threshold
-						   && _pitch_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
-					       || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > velocity_threshold
-						   && _yaw_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
-					       || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > velocity_threshold
-						   && _throttle_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE));
-
-		// Override only applies on a multicopter (incl. VTOL in MC mode) in an auto or offboard mode.
-		const bool overridable_mode = !_vehicle_control_mode.flag_control_manual_enabled
-					      && (_vehicle_control_mode.flag_control_auto_enabled
-						  || _vehicle_control_mode.flag_control_offboard_enabled);
-
-		_selector.setpoint().sticks_moving = stick_gesture && _rotary_wing && overridable_mode;
+		_selector.setpoint().sticks_moving =
+			(velocity_threshold >= 0.f) &&
+			((fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > velocity_threshold
+			  && _roll_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
+			 || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > velocity_threshold
+			     && _pitch_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
+			 || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > velocity_threshold
+			     && _yaw_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
+			 || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > velocity_threshold
+			     && _throttle_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE));
 
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
