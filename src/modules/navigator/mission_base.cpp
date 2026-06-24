@@ -523,6 +523,9 @@ MissionBase::set_mission_items()
 
 			setActiveMissionItems();
 
+			// anchor the altitude reference for home-change handling to the freshly set item
+			_mission_alt_reference_amsl = get_absolute_altitude_for_item(_mission_item);
+
 		} else {
 			set_end_of_mission = true;
 		}
@@ -1546,21 +1549,28 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 
 		if (mission_item_contains_position(_mission_item)) {
 			const float new_alt = get_absolute_altitude_for_item(_mission_item);
-			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
 
-			if (_navigator->get_position_setpoint_triplet()->previous.valid
-			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
-				_navigator->get_position_setpoint_triplet()->previous.alt += altitude_diff;
+			// Shift the other legs to track the corrected home, but leave the leg we are
+			// currently flying untouched so its altitude is not yanked mid-approach. Anchor
+			// the delta on the last synced reference (not current.alt, which we no longer
+			// move) so repeated home corrections do not accumulate on the other legs.
+			if (PX4_ISFINITE(_mission_alt_reference_amsl)) {
+				const float altitude_diff = new_alt - _mission_alt_reference_amsl;
+
+				if (_navigator->get_position_setpoint_triplet()->previous.valid
+				    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
+					_navigator->get_position_setpoint_triplet()->previous.alt += altitude_diff;
+				}
+
+				if (_navigator->get_position_setpoint_triplet()->next.valid
+				    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
+					_navigator->get_position_setpoint_triplet()->next.alt += altitude_diff;
+				}
+
+				_navigator->set_position_setpoint_triplet_updated();
 			}
 
-			_navigator->get_position_setpoint_triplet()->current.alt += altitude_diff;
-
-			if (_navigator->get_position_setpoint_triplet()->next.valid
-			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
-				_navigator->get_position_setpoint_triplet()->next.alt += altitude_diff;
-			}
-
-			_navigator->set_position_setpoint_triplet_updated();
+			_mission_alt_reference_amsl = new_alt;
 		}
 
 		_home_update_counter = _navigator->get_home_position()->update_count;

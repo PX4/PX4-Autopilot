@@ -587,6 +587,7 @@ private:
 	bool canRunMissionFeasibility();
 
 	uint32_t _home_update_counter = 0; /**< Variable to store the previous value for home change detection.*/
+	float _mission_alt_reference_amsl{NAN}; /**< resolved AMSL of the current item at the last home-alt sync */
 
 	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 
