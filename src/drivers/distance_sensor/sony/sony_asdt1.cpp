@@ -429,13 +429,6 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::SendMode:
-			if (_mode == 2) {
-				PX4_WARN("SENS_ASDT1_MODE 30M30F uses 720-byte frames; skipping flmode until parser supports it");
-				_startup_state = StartupState::SendBaud;
-				ScheduleNow();
-				return;
-			}
-
 			if (drain_input() < 0) {
 				close_port();
 				return;
@@ -1279,8 +1272,10 @@ bool AS_DT1::parse_byte(uint8_t byte)
 
 		break;
 
-	case ParserState::ReadPayload:
-		if (_frame_buffer_len >= ASDT1_BINZ_FRAME_SIZE) {
+	case ParserState::ReadPayload: {
+		const size_t expected_frame_size = frame_size_for_mode(_mode);
+
+		if (_frame_buffer_len >= expected_frame_size || _frame_buffer_len >= ASDT1_FRAME_BUFFER_SIZE) {
 			_parser_resets++;
 			reset_parser();
 			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
@@ -1289,7 +1284,7 @@ bool AS_DT1::parse_byte(uint8_t byte)
 
 		_frame_buffer[_frame_buffer_len++] = byte;
 
-		if (_frame_buffer_len == ASDT1_BINZ_FRAME_SIZE) {
+		if (_frame_buffer_len == expected_frame_size) {
 			_frames_rx++;
 			process_frame(_frame_buffer, _frame_buffer_len);
 			reset_parser();
@@ -1298,20 +1293,26 @@ bool AS_DT1::parse_byte(uint8_t byte)
 
 		break;
 	}
+	}
 
 	return false;
 }
 
 int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 {
-	if (frame == nullptr || length != ASDT1_BINZ_FRAME_SIZE) {
+	const size_t expected_frame_size = frame_size_for_mode(_mode);
+	const size_t sample_count = sample_count_for_mode(_mode);
+	const int min_used_row = min_used_row_for_mode(_mode);
+	const int max_used_row = max_used_row_for_mode(_mode);
+
+	if (frame == nullptr || length != expected_frame_size) {
 		PX4_ERR("invalid AS-DT1 binz frame length: %u", static_cast<unsigned>(length));
 		_parser_resets++;
 		return PX4_ERROR;
 	}
 
 	_last_frame_processed_len = length;
-	_last_sample_count = ASDT1_MAX_SAMPLE_COUNT;
+	_last_sample_count = sample_count;
 	_last_valid_bins = 0;
 	_last_closest_distance = UINT16_MAX;
 
@@ -1319,8 +1320,8 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 		_obstacle_distance.distances[i] = UINT16_MAX;
 	}
 
-	for (size_t sample = 0; sample < ASDT1_MAX_SAMPLE_COUNT; sample++) {
-		const int layout_index = sample_to_layout_index(sample);
+	for (size_t sample = 0; sample < sample_count; sample++) {
+		const int layout_index = sample_to_layout_index(sample, _mode);
 		int row = 0;
 		int col = 0;
 
@@ -1328,7 +1329,7 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 			continue;
 		}
 
-		if (row < MIN_USED_ROW || row > MAX_USED_ROW) {
+		if (row < min_used_row || row > max_used_row) {
 			continue;
 		}
 
@@ -1432,9 +1433,39 @@ const char *AS_DT1::mode_command_for_param(int32_t mode)
 	}
 }
 
+bool AS_DT1::short_frame_mode(int32_t mode)
+{
+	return mode == 2;
+}
+
+size_t AS_DT1::sample_count_for_mode(int32_t mode)
+{
+	return short_frame_mode(mode) ? ASDT1_SHORT_SAMPLE_COUNT : ASDT1_MAX_SAMPLE_COUNT;
+}
+
+size_t AS_DT1::frame_size_for_mode(int32_t mode)
+{
+	return short_frame_mode(mode) ? ASDT1_BINZ_SHORT_FRAME_SIZE : ASDT1_BINZ_FRAME_SIZE;
+}
+
+int AS_DT1::min_used_row_for_mode(int32_t mode)
+{
+	return short_frame_mode(mode) ? MIN_USED_SHORT_ROW : MIN_USED_ROW;
+}
+
+int AS_DT1::max_used_row_for_mode(int32_t mode)
+{
+	return short_frame_mode(mode) ? MAX_USED_SHORT_ROW : MAX_USED_ROW;
+}
+
 int AS_DT1::sample_to_layout_index(size_t sample_index)
 {
-	static constexpr int MPDATATBL[ASDT1_MAX_SAMPLE_COUNT] = {
+	return sample_to_layout_index(sample_index, 0);
+}
+
+int AS_DT1::sample_to_layout_index(size_t sample_index, int32_t mode)
+{
+	static constexpr int MPDATATBL_FULL[ASDT1_MAX_SAMPLE_COUNT] = {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
 		48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
 		288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311,
@@ -1461,11 +1492,34 @@ int AS_DT1::sample_to_layout_index(size_t sample_index)
 		552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573, 574, 575
 	};
 
+	static constexpr int MPDATATBL_SHORT[ASDT1_SHORT_SAMPLE_COUNT] = {
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+		24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+		96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119,
+		120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
+		192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215,
+		216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239,
+		48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
+		72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
+		144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167,
+		168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191,
+		240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263,
+		264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287,
+	};
+
+	if (short_frame_mode(mode)) {
+		if (sample_index >= ASDT1_SHORT_SAMPLE_COUNT) {
+			return -1;
+		}
+
+		return MPDATATBL_SHORT[sample_index];
+	}
+
 	if (sample_index >= ASDT1_MAX_SAMPLE_COUNT) {
 		return -1;
 	}
 
-	return MPDATATBL[sample_index];
+	return MPDATATBL_FULL[sample_index];
 }
 
 bool AS_DT1::layout_index_to_row_col(int layout_index, int &row, int &col)

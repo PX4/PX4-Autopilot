@@ -120,6 +120,12 @@ private:
 	static uint32_t decode_20bit_raw(const uint8_t *data, size_t sample_index);
 	static uint16_t z_raw_to_distance_cm(uint32_t z_raw);
 	static int sample_to_layout_index(size_t sample_index);
+	static int sample_to_layout_index(size_t sample_index, int32_t mode);
+	static bool short_frame_mode(int32_t mode);
+	static size_t sample_count_for_mode(int32_t mode);
+	static size_t frame_size_for_mode(int32_t mode);
+	static int min_used_row_for_mode(int32_t mode);
+	static int max_used_row_for_mode(int32_t mode);
 	static bool layout_index_to_row_col(int layout_index, int &row, int &col);
 	static int col_to_obstacle_bin(int col);
 	static uint16_t max_distance_for_mode(int32_t mode);
@@ -144,11 +150,15 @@ private:
 	static constexpr uint8_t BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
 	static constexpr size_t ASDT1_MAX_SAMPLE_COUNT{576};
+	static constexpr size_t ASDT1_SHORT_SAMPLE_COUNT{288};
 	static constexpr size_t ASDT1_BINZ_FRAME_SIZE{1440};
+	static constexpr size_t ASDT1_BINZ_SHORT_FRAME_SIZE{720};
 	static constexpr size_t ASDT1_FRAME_BUFFER_SIZE{ASDT1_BINZ_FRAME_SIZE};
 	static constexpr int ASDT1_COLS{24};
 	static constexpr int MIN_USED_ROW{8};
 	static constexpr int MAX_USED_ROW{15};
+	static constexpr int MIN_USED_SHORT_ROW{4};
+	static constexpr int MAX_USED_SHORT_ROW{7};
 	static constexpr float HORIZONTAL_FOV_DEG{35.0f};
 	static constexpr float LEFT_EDGE_DEG{-HORIZONTAL_FOV_DEG / 2.0f};
 	static constexpr float OBSTACLE_INCREMENT_DEG{5.0f};
