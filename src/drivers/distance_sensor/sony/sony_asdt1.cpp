@@ -102,14 +102,32 @@ int AS_DT1::init()
 		px4_usleep(PROMPT_SYNC_SETTLE_INTERVAL);
 		(void)drain_input();
 
-		if (write_command_padded("flshow") != PX4_OK) {
-			close_port();
-			return PX4_ERROR;
+		bool flshow_complete = false;
+
+		for (uint8_t attempt = 0; attempt < FLSHOW_RETRY_LIMIT; attempt++) {
+			if (write_command_padded("flshow") != PX4_OK) {
+				close_port();
+				return PX4_ERROR;
+			}
+
+			tcdrain(_fd);
+			px4_usleep(1000000);
+			const int response = read_and_print_response("flshow");
+
+			if (response < 0) {
+				close_port();
+				return PX4_ERROR;
+			}
+
+			if (response > 0) {
+				flshow_complete = true;
+				break;
+			}
 		}
 
-		tcdrain(_fd);
-		px4_usleep(1000000);
-		(void)read_and_print_response("flshow");
+		if (!flshow_complete) {
+			PX4_WARN("flshow: no complete response after %u tries", static_cast<unsigned>(FLSHOW_RETRY_LIMIT));
+		}
 
 	} else if (_one_shot) {
 		if (open_port() != PX4_OK) {
@@ -155,6 +173,11 @@ void AS_DT1::print_info()
 	PX4_INFO("startup: prompt timeouts %llu, discarded %llu bytes",
 		 static_cast<unsigned long long>(_startup_prompt_timeouts),
 		 static_cast<unsigned long long>(_startup_discarded_bytes));
+	PX4_INFO("startup: mode command %s, preamble done %u, mode tries %llu, reboot tries %llu",
+		 mode_command_for_param(_mode),
+		 static_cast<unsigned>(_startup_mode_preamble_done),
+		 static_cast<unsigned long long>(_startup_mode_attempts),
+		 static_cast<unsigned long long>(_startup_reboot_attempts));
 	PX4_INFO("parser: state %u, begin match %u, frame buffer %u bytes, frames rx %llu, frames pub %llu, resets %llu",
 		 static_cast<unsigned>(_parser_state),
 		 static_cast<unsigned>(_begin_match_index),
@@ -210,7 +233,7 @@ void AS_DT1::Run()
 			return;
 		}
 
-		_startup_state = StartupState::SyncDrain;
+		_startup_state = _startup_mode_preamble_done ? StartupState::SyncDrain : StartupState::ModeSyncDrain;
 		reset_startup_prompt();
 		_startup_deadline = 0;
 		_startup_sync_attempts = 0;
@@ -227,6 +250,190 @@ void AS_DT1::Run()
 
 	if (!_one_shot && _startup_state != StartupState::Streaming) {
 		switch (_startup_state) {
+		case StartupState::ModeSyncDrain:
+			if (_mode == 2) {
+				PX4_WARN("SENS_ASDT1_MODE 30M30F uses 720-byte frames; skipping flmode until parser supports it");
+				_startup_mode_preamble_done = true;
+				_startup_state = StartupState::SyncDrain;
+				ScheduleNow();
+				return;
+			}
+
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			_startup_sync_attempts = 0;
+			_startup_state = StartupState::ModeSendPromptSync;
+			ScheduleNow();
+			return;
+
+		case StartupState::ModeSendPromptSync:
+			if (_startup_sync_attempts >= PROMPT_SYNC_ATTEMPT_LIMIT) {
+				_startup_state = StartupState::ModeDrainAfterSync;
+				ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (write_prompt_sync() != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_sync_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(PROMPT_SYNC_INTERVAL);
+			_startup_state = StartupState::ModeWaitPromptSync;
+			break;
+
+		case StartupState::ModeWaitPromptSync: {
+			const ssize_t bytes_read = read_startup_response();
+
+			if (bytes_read < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen || bytes_read > 0) {
+				reset_startup_prompt();
+				_startup_state = StartupState::ModeDrainAfterSync;
+				ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+				_startup_state = StartupState::ModeSendPromptSync;
+				ScheduleNow();
+				return;
+			}
+		}
+
+			break;
+
+		case StartupState::ModeDrainAfterSync:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			reset_startup_prompt();
+			_startup_stop_attempts = 0;
+			_startup_state = StartupState::ModeSendStop;
+			ScheduleNow();
+			return;
+
+		case StartupState::ModeSendStop:
+			if (write_command_padded("fsync 0") != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_stop_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(COMMAND_RESPONSE_TIMEOUT);
+			_startup_state = StartupState::ModeWaitStopPrompt;
+			break;
+
+		case StartupState::ModeWaitStopPrompt:
+			if (read_startup_response() < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen) {
+				reset_startup_prompt();
+				_startup_mode_attempts = 0;
+				_startup_state = StartupState::SendMode;
+				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+
+				if (_startup_stop_attempts < STARTUP_COMMAND_RETRY_LIMIT) {
+					_startup_state = StartupState::ModeSendStop;
+					ScheduleNow();
+					return;
+				}
+
+				PX4_WARN("no pre-mode fsync 0 prompt after %u tries, continuing",
+					 static_cast<unsigned>(_startup_stop_attempts));
+				_startup_mode_attempts = 0;
+				_startup_state = StartupState::SendMode;
+				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			break;
+
+		case StartupState::SendMode:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			if (write_command_padded(mode_command_for_param(_mode)) != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_mode_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(COMMAND_RESPONSE_TIMEOUT);
+			_startup_state = StartupState::WaitModePrompt;
+			break;
+
+		case StartupState::WaitModePrompt:
+			if (read_startup_response() < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen) {
+				reset_startup_prompt();
+				_startup_state = StartupState::SendReboot;
+				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+
+				if (_startup_mode_attempts < STARTUP_COMMAND_RETRY_LIMIT) {
+					_startup_state = StartupState::SendMode;
+					ScheduleNow();
+					return;
+				}
+
+				PX4_WARN("no flmode prompt after %llu tries, rebooting anyway",
+					 static_cast<unsigned long long>(_startup_mode_attempts));
+				_startup_state = StartupState::SendReboot;
+				ScheduleNow();
+				return;
+			}
+
+			break;
+
+		case StartupState::SendReboot:
+			if (write_command_padded("reboot") != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_reboot_attempts++;
+			_startup_mode_preamble_done = true;
+			reset_startup_prompt();
+			close_port();
+			ScheduleDelayed(REBOOT_SETTLE_INTERVAL);
+			return;
+
 		case StartupState::SyncDrain:
 			if (drain_input() < 0) {
 				close_port();
@@ -432,10 +639,6 @@ void AS_DT1::Run()
 
 			break;
 
-		case StartupState::SendMode:
-		case StartupState::SendReboot:
-			_startup_state = StartupState::SyncDrain;
-			break;
 		}
 
 		ScheduleDelayed(_interval);
@@ -739,6 +942,27 @@ const char *AS_DT1::startup_state_name() const
 
 	case StartupState::SendReboot:
 		return "send reboot";
+
+	case StartupState::ModeSyncDrain:
+		return "mode sync drain";
+
+	case StartupState::ModeSendPromptSync:
+		return "mode send prompt sync";
+
+	case StartupState::ModeWaitPromptSync:
+		return "mode wait prompt sync";
+
+	case StartupState::ModeDrainAfterSync:
+		return "mode drain after sync";
+
+	case StartupState::ModeSendStop:
+		return "mode send stop";
+
+	case StartupState::ModeWaitStopPrompt:
+		return "mode wait stop prompt";
+
+	case StartupState::WaitModePrompt:
+		return "wait mode prompt";
 	}
 
 	return "unknown";
@@ -748,54 +972,66 @@ int AS_DT1::read_and_print_response(const char *label)
 {
 	char line[97]{};
 	size_t line_len = 0;
+	bool got_response = false;
+	bool got_real_response = false;
 
 	const auto print_line = [&]() {
 		if (line_len > 0) {
 			line[line_len] = '\0';
+
+			if (!strncmp(line, "fl", 2) && strncmp(line, "flshow", 6)) {
+				got_real_response = true;
+			}
+
 			PX4_INFO("%s: %s", label, line);
 			line_len = 0;
 		}
 	};
 
-	_read_attempts++;
+	while (true) {
+		_read_attempts++;
 
-	uint8_t buffer[READ_BUFFER_SIZE]{};
-	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+		uint8_t buffer[READ_BUFFER_SIZE]{};
+		const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
 
-	if (bytes_read <= 0) {
-		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
-			_no_data_reads++;
-			PX4_WARN("%s: no response", label);
-			return PX4_OK;
+		if (bytes_read <= 0) {
+			if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+				_no_data_reads++;
+				print_line();
+
+				if (!got_response) {
+					PX4_WARN("%s: no response", label);
+				}
+
+				return got_real_response ? 1 : PX4_OK;
+			}
+
+			_read_errors++;
+			return PX4_ERROR;
 		}
 
-		_read_errors++;
-		return PX4_ERROR;
+		got_response = true;
+		record_read(buffer, bytes_read);
+
+		for (ssize_t i = 0; i < bytes_read; i++) {
+			const uint8_t byte = buffer[i];
+
+			if (byte == '\r') {
+				continue;
+			}
+
+			if (byte == '\n') {
+				print_line();
+				continue;
+			}
+
+			line[line_len++] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
+
+			if (line_len >= sizeof(line) - 1) {
+				print_line();
+			}
+		}
 	}
-
-	record_read(buffer, bytes_read);
-
-	for (ssize_t i = 0; i < bytes_read; i++) {
-		const uint8_t byte = buffer[i];
-
-		if (byte == '\r') {
-			continue;
-		}
-
-		if (byte == '\n') {
-			print_line();
-			continue;
-		}
-
-		line[line_len++] = (byte >= 32 && byte <= 126) ? static_cast<char>(byte) : '.';
-
-		if (line_len >= sizeof(line) - 1) {
-			print_line();
-		}
-	}
-
-	print_line();
-	return PX4_OK;
 }
 
 int AS_DT1::read_once()

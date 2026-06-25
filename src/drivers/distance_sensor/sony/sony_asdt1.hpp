@@ -80,6 +80,13 @@ private:
 		WaitStopPrompt,
 		SendMode,
 		SendReboot,
+		ModeSyncDrain,
+		ModeSendPromptSync,
+		ModeWaitPromptSync,
+		ModeDrainAfterSync,
+		ModeSendStop,
+		ModeWaitStopPrompt,
+		WaitModePrompt,
 	};
 
 	void start();
@@ -116,7 +123,7 @@ private:
 	static constexpr size_t READ_BUFFER_SIZE{512};
 	static constexpr size_t LAST_READ_CAPTURE_SIZE{64};
 	static constexpr int FORMAT_SETTLE_INTERVAL{200000};
-	static constexpr int REBOOT_SETTLE_INTERVAL{4000000};
+	static constexpr int REBOOT_SETTLE_INTERVAL{3000000};
 	static constexpr int PROMPT_SYNC_INTERVAL{100000};
 	static constexpr int PROMPT_SYNC_SETTLE_INTERVAL{500000};
 	static constexpr int COMMAND_RESPONSE_TIMEOUT{1000000};
@@ -124,6 +131,7 @@ private:
 	static constexpr uint8_t PROMPT_SYNC_ATTEMPT_LIMIT{16};
 	static constexpr uint8_t STARTUP_COMMAND_RETRY_LIMIT{3};
 	static constexpr uint8_t STARTUP_DRAIN_READ_LIMIT{8};
+	static constexpr uint8_t FLSHOW_RETRY_LIMIT{5};
 	static constexpr uint8_t BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
 				obstacle_distance_s::distances[0]);
 	static constexpr size_t ASDT1_MAX_SAMPLE_COUNT{576};
@@ -169,6 +177,9 @@ private:
 	uint8_t _startup_format_attempts{0};
 	uint64_t _startup_fsync_attempts{0};
 	uint64_t _startup_frame_wait_baseline{0};
+	uint64_t _startup_mode_attempts{0};
+	uint64_t _startup_reboot_attempts{0};
+	bool _startup_mode_preamble_done{false};
 	uint64_t _startup_prompt_timeouts{0};
 	uint64_t _startup_discarded_bytes{0};
 	size_t _begin_match_index{0};
