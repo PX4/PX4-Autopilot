@@ -152,6 +152,15 @@ The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimet
 In its simplest form, the perimeter is set up as a cylinder centered around the home position.
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
+Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
+If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
+The margin should be at least:
+
+- **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
+- **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
+
+Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
 :::tip
@@ -173,11 +182,10 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 
 The following settings also apply, but are not displayed in the QGC UI.
 
-| Setting                                                            | Parameter                                                                    | Description                                                                                                                                         |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device.                                                             |
-| <a id="GF_PREDICT"></a>Preemptive geofence triggering              | [GF_PREDICT](../advanced_config/parameter_reference.md#GF_PREDICT)           | (Experimental) Trigger geofence if current motion of the vehicle is predicted to trigger the breach (rather than late triggering after the breach). |
-| <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                                                                                   |
+| Setting                                                            | Parameter                                                                    | Description                                                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device. |
+| <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                       |
 
 ## Position Estimation Failsafes
 
@@ -249,14 +257,13 @@ Loss of a single GPS when none are required is handled by other GPS health check
 ## Offboard Loss Failsafe
 
 The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while under [Offboard control](../flight_modes/offboard.md).
-Different failsafe behaviour can be specified based on whether or not there is also an RC connection available.
 
 The relevant parameters are shown below:
 
-| Parameter                                                                  | Description                                                                                                       |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| [COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)   | Delay after loss of offboard connection before the failsafe is triggered.                                         |
-| [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) | Failsafe action if RC is available: Position mode, Altitude mode, Manual mode, Return mode, Land mode, Hold mode. |
+| Parameter                                                                  | Description                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)   | Delay after loss of offboard connection before the failsafe is triggered. |
+| [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) | Flight mode to switch to if offboard control is lost.                     |
 
 ## Traffic Avoidance Failsafe
 

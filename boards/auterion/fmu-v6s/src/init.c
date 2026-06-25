@@ -87,6 +87,9 @@
 
 /* Configuration ************************************************************/
 
+/* Minimum HW revision (lower rev byte) indicating NOR FLASH being used. */
+#define BOARD_HW_REV_NOR 0x0018
+
 /*
  * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
@@ -199,37 +202,38 @@ static bool eeprom_read_and_check_mft(struct i2c_master_s *i2c, uint16_t address
 }
 
 /****************************************************************************
- * Name: detect_layout_is_fram
+ * Name: detect_eeprom_is_small
  *
  * Description:
- *   Determine which EEPROM layout is present by reading MTD_MFT_VER from
- *   the two possible byte offsets and validating its CRC.
+ *   Returns true if the EEPROM has the small (64Kbit) layout used by FRAM
+ *   and NOR boards. Returns false for the large (128Kbit) EEPROM-only layout
+ *   where MTD_MFT_VER is at offset 0.
  ****************************************************************************/
 
-static bool detect_layout_is_fram(void)
+static bool detect_eeprom_is_small(void)
 {
 	struct i2c_master_s *i2c = px4_i2cbus_initialize(4);
 	bool ret;
 
 	if (!i2c) {
-		syslog(LOG_WARNING, "[boot] EEPROM I2C init failed, defaulting to FRAM layout\n");
+		syslog(LOG_WARNING, "[boot] EEPROM I2C init failed, assuming small layout\n");
 		ret = true;
 		goto out;
 	}
 
-	/* FRAM-variant: MTD_MFT_VER after MTD_CALDATA (224 blocks x 32 B). */
+	/* Small layout: MTD_MFT_VER follows MTD_CALDATA (224 blocks x 32 B). */
 	if (eeprom_read_and_check_mft(i2c, 224u * 32u)) {
 		ret = true;
 		goto out;
 	}
 
-	/* EEPROM-only: MTD_MFT_VER is the first partition (0 blocks x 32 B)*/
+	/* Large layout: MTD_MFT_VER is at offset 0. */
 	if (eeprom_read_and_check_mft(i2c, 0u)) {
 		ret = false;
 		goto out;
 	}
 
-	/* Neither offset contains a valid record, default to FRAM layout. */
+	/* Neither offset valid, assume small layout. */
 	ret = true;
 
 out:
@@ -273,13 +277,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	 * buses/devices can be used. */
 	stm32_spiinitialize();
 
-	bool fram_available = detect_layout_is_fram();
+	bool small_eeprom = detect_eeprom_is_small();
+	board_set_eeprom_manifest(small_eeprom);
 
-	if (fram_available) {
-		board_configure_fram();
-	}
-
-	/* Configure the HW based on the manifest */
+	/* Mount EEPROM only, SPI storage is detected and added later. */
 	px4_platform_configure();
 
 	if (OK == board_determine_hw_info()) {
@@ -290,12 +291,35 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
+	/* Identify SPI storage from the HW revision written at provisioning time.
+	 * EEPROM is already mounted so the revision is available. */
+	bool storage_configured = true;
+	bool fram_available = false;
+	bool nor_available = false;
+
+	if ((board_get_hw_revision() & 0xFF) >= BOARD_HW_REV_NOR) {
+		if (board_configure_nor() == OK) {
+			nor_available = true;
+
+		} else {
+			storage_configured = false;
+		}
+
+	} else if (small_eeprom) {
+		if (board_configure_fram() == OK) {
+			fram_available = true;
+
+		} else {
+			storage_configured = false;
+		}
+	}
+
 	/* EEPROM-only boards use a 128Kbit chip: 512 pages × 32 B = 16 KB.
-	 * FRAM boards use a 64Kbit EEPROM: 256 pages × 32 B = 8 KB.
+	 * FRAM / NOR boards use a 64Kbit EEPROM: 256 pages × 32 B = 8 KB.
 	 * Always use 32-byte page writes (safe for 64-byte page chips too). */
 	unsigned int mtd_count = 0;
 	mtd_instance_s **instances = px4_mtd_get_instances(&mtd_count);
-	uint16_t eeprom_npages = fram_available ? 256 : 512;
+	uint16_t eeprom_npages = small_eeprom ? 256 : 512;
 
 	/* instances[0] is always EEPROM on both board variants. */
 	if (mtd_count > 0 && instances[0]->mtd_dev != NULL) {
@@ -329,31 +353,45 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	/* Mount LittleFS as /fs/microsd:
-	 * FRAM boards:  EEPROM->mtdblock0-4, FRAM->mtdblock5 (LittleFS).
-	 * EEPROM-only: EEPROM->mtdblock0-2, FTL on free EEPROM region mtdblock3 (LittleFS). */
-	const char *lfs_dev;
+	 * FRAM boards:       EEPROM->mtdblock0-4, FRAM->mtdblock5 (LittleFS).
+	 * NOR flash boards:  EEPROM->mtdblock0-4, NOR->MTD direct at /mnt/microsd (LittleFS).
+	 * EEPROM-only:       EEPROM->mtdblock0-2, FTL on free EEPROM region mtdblock3 (LittleFS). */
+	const char *lfs_dev = NULL;
 
-	if (fram_available) {
-		lfs_dev = "/dev/mtdblock5";
+	if (storage_configured) {
+		if (nor_available) {
+			lfs_dev = "/mnt/microsd";
 
-	} else {
-		if (mtd_count > 0 && instances[0]->mtd_dev != NULL) {
-			FAR struct mtd_dev_s *eeprom_fs = mtd_partition(instances[0]->mtd_dev, 3, eeprom_npages - 3);
+		} else if (fram_available) {
+			lfs_dev = "/dev/mtdblock5";
 
-			if (!eeprom_fs || ftl_initialize(3, eeprom_fs) != 0) {
-				syslog(LOG_ERR, "[boot] EEPROM: FTL init failed\n");
+		} else {
+			if (mtd_count > 0 && instances[0]->mtd_dev != NULL) {
+				FAR struct mtd_dev_s *eeprom_fs = mtd_partition(instances[0]->mtd_dev, 3, eeprom_npages - 3);
+
+				if (!eeprom_fs || ftl_initialize(3, eeprom_fs) != 0) {
+					syslog(LOG_ERR, "[boot] EEPROM: FTL init failed\n");
+					led_on(LED_RED);
+				}
+
+			} else {
+				syslog(LOG_ERR, "[boot] EEPROM not found\n");
 				led_on(LED_RED);
 			}
 
-		} else {
-			syslog(LOG_ERR, "[boot] EEPROM not found\n");
-			led_on(LED_RED);
+			lfs_dev = "/dev/mtdblock3";
 		}
 
-		lfs_dev = "/dev/mtdblock3";
+	} else {
+		syslog(LOG_ERR, "[boot] Storage init failed\n");
+		led_on(LED_RED);
 	}
 
-	if (nx_mount(lfs_dev, "/fs/microsd", "littlefs", 0, "autoformat") != 0) {
+	/* NOR flash has native 4KB erase blocks — use factor=1 so littlefs drives
+	 * them directly (512 blocks) instead of the Kconfig default of 4 (128 blocks). */
+	const char *lfs_opts = nor_available ? "autoformat,block_size_factor=1" : "autoformat";
+
+	if (lfs_dev != NULL && nx_mount(lfs_dev, "/fs/microsd", "littlefs", 0, lfs_opts) != 0) {
 		syslog(LOG_ERR, "[boot] failed to mount /fs/microsd\n");
 		led_on(LED_RED);
 	}

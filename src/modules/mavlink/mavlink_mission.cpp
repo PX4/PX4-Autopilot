@@ -1464,14 +1464,16 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param2 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
-			// Yaw is only valid for multicopter but we set it always because
-			// it's just ignored for fixedwing.
-			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+			// Per the MAVLink spec param4 selects the loiter-circle exit cross-track behavior
+			// (forward-only vehicles), not a yaw setpoint. Don't derive a heading from it, so
+			// multicopters keep their current heading instead of being forced to ~param4 degrees.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_LAND:
 			mission_item->nav_cmd = NAV_CMD_LAND;
-			// TODO: abort alt param1
+			// param1 is the minimum abort altitude above the landing point (0 = use the MIS_LND_ABRT_ALT default).
+			mission_item->land_abort_min_alt = mavlink_mission_item->param1;
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			mission_item->land_precision = mavlink_mission_item->param2;
 			break;
@@ -1487,6 +1489,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0);
 			mission_item->loiter_radius = mavlink_mission_item->param2;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
+			// MAV_CMD_NAV_LOITER_TO_ALT has no yaw field. Leave yaw unspecified so multicopters don't
+			// use the zero-initialized default as an unintended north-facing heading setpoint.
+			mission_item->yaw = NAN;
 			break;
 
 		case MAV_CMD_NAV_ROI:
@@ -1639,12 +1644,16 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 		case MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 		case MAV_CMD_DO_SET_ROI_NONE:
-		case MAV_CMD_CONDITION_DELAY:
-		case MAV_CMD_CONDITION_DISTANCE:
 		case MAV_CMD_DO_SET_ACTUATOR:
 		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+
+		case MAV_CMD_CONDITION_DELAY:
+			// PX4 has no dedicated condition-delay execution; treat it as a NAV_DELAY,
+			// which holds for param1 (stored in params[0], aliasing time_inside) seconds.
+			mission_item->nav_cmd = NAV_CMD_DELAY;
 			break;
 
 		default:
@@ -1802,7 +1811,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case NAV_CMD_LAND:
-			// TODO: param1 abort alt
+			mavlink_mission_item->param1 = mission_item->land_abort_min_alt; // minimum abort altitude (0 = default)
 			mavlink_mission_item->param2 = mission_item->land_precision;
 			mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
 			break;

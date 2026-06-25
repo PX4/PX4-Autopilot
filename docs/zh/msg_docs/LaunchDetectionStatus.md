@@ -10,11 +10,11 @@ Status of the launch detection state machine (fixed-wing only).
 
 ## Fields
 
-| 参数名                                                                                              | 类型       | Unit [Frame] | Range/Enum | 描述                                                                                                                               |
-| ------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                                                                                        | `uint64` |                                                                  |            | time since system start (microseconds)                                                                        |
-| launch_detection_state                                 | `uint8`  |                                                                  |            |                                                                                                                                  |
-| selected_control_surface_disarmed | `bool`   |                                                                  |            | flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation) |
+| 参数名                                                                                                                                                | 类型       | Unit [Frame] | Range/Enum | 描述                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                                                | `uint64` |                                                                  |            | time since system start (microseconds)                                                                        |
+| <a id="fld_launch_detection_state"></a>launch_detection_state                                            | `uint8`  |                                                                  |            |                                                                                                                                  |
+| <a id="fld_selected_control_surface_disarmed"></a>selected_control_surface_disarmed | `bool`   |                                                                  |            | flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation) |
 
 ## Constants
 

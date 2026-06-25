@@ -548,8 +548,8 @@ Geofence::loadFromFile(const char *filename)
 
 	dm_item_t write_fence_dataman_id{static_cast<dm_item_t>(stat.dataman_id) == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0};
 
-	/* open the mixer definition file */
-	fp = fopen(GEOFENCE_FILENAME, "r");
+	/* open the geofence file */
+	fp = fopen(filename, "r");
 
 	if (fp == nullptr) {
 		return PX4_ERROR;

@@ -12,7 +12,7 @@ The _Takeoff_ flight mode causes the vehicle to take off to a specified height a
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
   - Роззброєні транспортні засоби можуть переключатися в режим без дійсної оцінки позиції, але не можуть озброюватися.
 - Перемикачі радіокерування можна використовувати для зміни режимів польоту.
-- Рух палиць дистанційного керування буде [за замовчуванням](#COM_RC_OVERRIDE) змінювати транспортний засіб на [режим позиції](../flight_modes_mc/position.md), якщо не виникне критична аварія батареї.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
@@ -29,7 +29,7 @@ RC stick movement will change the vehicle to [Position mode](../flight_modes_mc/
 
 Взліт впливається наступними параметрами:
 
-| Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                                                                                                                                                     |
+| Parameter                                                                                                                                                               | Опис                                                                                                                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT)                      | Цільова висота під час злітання (типово: 2.5м)                                                                                                                                                                                                                                        |
 | <a id="MPC_TKO_SPEED"></a>[MPC_TKO_SPEED](../advanced_config/parameter_reference.md#MPC_TKO_SPEED)                            | Швидкість підйому (за замовчуванням: 1.5м/с)                                                                                                                                                                                                                                          |

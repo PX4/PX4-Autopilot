@@ -601,8 +601,9 @@ int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_
 	}
 
 	if (OK == ret_val) {
-		rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
-		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+		const uint32_t bit_width = dshot_motor_pwm_bit_width(io_timers[timer].clock_freq);
+		rARR(timer)  = bit_width;
+		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / bit_width) - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
 
 		// find the lowest channel index for the timer (they are not necessarily in ascending order)
@@ -639,7 +640,8 @@ int io_timer_set_dshot_capture_mode(uint8_t timer, uint8_t timer_channel_index, 
 	// Timer Autor Reload Register max value
 	rARR(timer) = 0xFFFFFFFF;
 	// Timer Prescalar
-	rPSC(timer) = ((int)(io_timers[timer].clock_freq / (dshot_pwm_freq * 5 / 4)) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+	const uint32_t bit_width = dshot_motor_pwm_bit_width(io_timers[timer].clock_freq);
+	rPSC(timer) = ((int)(io_timers[timer].clock_freq / (dshot_pwm_freq * 5 / 4)) / bit_width) - 1;
 
 	switch (timer_channel_index) {
 	case 0:

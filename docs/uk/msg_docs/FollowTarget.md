@@ -8,16 +8,16 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                        | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
-| ---------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                    | `uint64`  |                                                                  |            | time since system start (microseconds) |
-| lat                          | `float64` |                                                                  |            | target position (deg \* 1e7)           |
-| lon                          | `float64` |                                                                  |            | target position (deg \* 1e7)           |
-| alt                          | `float32` |                                                                  |            | target position                                           |
-| vy                           | `float32` |                                                                  |            | target vel in y                                           |
-| vx                           | `float32` |                                                                  |            | target vel in x                                           |
-| vz                           | `float32` |                                                                  |            | target vel in z                                           |
-| est_cap | `uint8`   |                                                                  |            | target reporting capabilities                             |
+| Назва                                                | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
+| ---------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                  | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_lat"></a>lat                              | `float64` |                                                                  |            | target position (deg \* 1e7)           |
+| <a id="fld_lon"></a>lon                              | `float64` |                                                                  |            | target position (deg \* 1e7)           |
+| <a id="fld_alt"></a>alt                              | `float32` |                                                                  |            | target position                                           |
+| <a id="fld_vy"></a>vy                                | `float32` |                                                                  |            | target vel in y                                           |
+| <a id="fld_vx"></a>vx                                | `float32` |                                                                  |            | target vel in x                                           |
+| <a id="fld_vz"></a>vz                                | `float32` |                                                                  |            | target vel in z                                           |
+| <a id="fld_est_cap"></a>est_cap | `uint8`   |                                                                  |            | target reporting capabilities                             |
 
 ## Source Message
 

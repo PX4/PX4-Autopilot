@@ -17,10 +17,6 @@ on:
     paths-ignore:
       - 'docs/**'
 
-env:
-  MIN_FLASH_POS_DIFF_FOR_COMMENT: 50
-  MIN_FLASH_NEG_DIFF_FOR_COMMENT: -50
-
 jobs:
   analyze_flash:
     name: Analyzing ${{ matrix.target }}
@@ -173,13 +169,12 @@ jobs:
           echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
 
       - name: Write pr-comment artifact
+        # Skip only when the diff is exactly 0 bytes on all targets and no comment exists yet.
         # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
         if: |
           steps.fc.outputs.comment-id != '' ||
-          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
+          env.V5X-SUMMARY-MAP-ABS != 0 ||
+          env.V6X-SUMMARY-MAP-ABS != 0
         run: |
           mkdir -p pr-comment
           cat > pr-comment/manifest.json <<EOF
@@ -214,10 +209,8 @@ jobs:
       - name: Upload pr-comment artifact
         if: |
           steps.fc.outputs.comment-id != '' ||
-          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
+          env.V5X-SUMMARY-MAP-ABS != 0 ||
+          env.V6X-SUMMARY-MAP-ABS != 0
         uses: actions/upload-artifact@v7
         with:
           name: pr-comment

@@ -251,3 +251,15 @@ For setup details and supported message types, refer to the [PX4 ROS 2 Interface
 ::: info
 The PX4 ROS 2 Interface Library is not compatible with ROS 2 Humble and earlier, as it requires the message type hash (RIHS01, as defined in REP-2016) to be included in the Zenoh key expression.
 :::
+
+### Troubleshooting
+
+1. When starting the client you might see
+
+   ```
+   ERROR [zenoh] Could not create a subscriber for type ***
+   ```
+
+   When it happens, check if `src/modules/zenoh/Kconfig.topics` has unstaged changes.
+   If there are any it means that new uorb topics have been added and the previous build updated the `Kconfig.topics` file accordingly.
+   Please perform a clean build so that the new `Kconfig.topics` can be used.

@@ -7,7 +7,7 @@
 Літальні апарати типу VTOL за замовчуванням використовують тип повернення до призначення [місії посадки/точка збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1).
 У цьому типі повернення апарат піднімається на мінімальну безпечну висоту над перешкодами (за необхідності), а потім напряму летить до точки збору або початкової точки призначення місії (яка є найближчою), або додому, якщо жодна з точок збору або місійний маршрут посадки не визначені.
 Якщо призначенням є місійний маршрут посадки, апарат потім дотримуватиметься маршруту для посадки.
-Якщо призначенням є точка збору або домашня позиція, апарат повернеться додому і сяде.
+If the destination is a rally point or the home location, the vehicle will fly to that destination and land.
 
 Літальний апарат повернеться за допомогою режиму польоту (MC або FW), який він використовував у той момент, коли був активований режим повернення.
 Загалом, він буде дотримуватися того ж поведінкового зразка режиму повернення, що й відповідний тип транспортного засобу, але завжди перейде до режиму MC (якщо потрібно) перед посадкою.
@@ -22,7 +22,7 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
   - Літаючі транспортні засоби не можуть переключатися на цей режим без глобального положення.
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
 - Режим вимагає встановленої домашньої позиції.
-- Режим перешкоджає зброюванню (транспортний засіб повинен бути зброєний при переході на цей режим).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
 - Рух стіків радіокерування ігнорується.
 
@@ -49,12 +49,49 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
   Місійний маршрут посадки для літального апарату типу VTOL складається з [MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START), однієї або кількох маршрутних точок розташування та [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND).
 
 - Якщо призначенням є точка збору або домашня локація, апарат:
-  - Переводиться в режим ожидання/спірального спуску на висоту [RTL_DESCEND_ALT](#RTL_DESCEND_ALT).
+  - Fly to the selected [VTOL approach loiter](#vtol-rally-point-approach-loiters) associated with that landing location (if any are defined) and use it to descend to the approach altitude.
+    If several approach loiters are defined for that location, PX4 chooses the one that best matches the estimated wind at the landing point.
+
+    See [VTOL Rally Point Approach Loiter](#vtol-rally-point-approach-loiters) below for information on how to define approach loiters (using [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) items in your _rally plan_).
+
+  - Loiter/spiral down to the approach altitude, or to [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) above the destination if no approach altitude is defined.
+
   - Кружляє протягом короткого часу, визначеного [RTL_LAND_DELAY](#RTL_LAND_DELAY).
-  - Повертається по напрямку до призначення (центр кругового руху).
-  - Переходить в режим MC і сідає.
+
+  - Fly from the approach loiter to the return destination (the rally point or home location).
+
+  - Transition to MC mode at the destination and land.
 
     Зауважте, що [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) ігнорується: апарат завжди сідає як мультикоптер для цих призначень.
+
+#### VTOL Rally Point Approach Loiters
+
+VTOL _rally point approach loiters_ are [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) items associated with a particular rally point ([MAV_CMD_NAV_RALLY_POINT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RALLY_POINT)) in a [Rally plan](../flying/plan_safety_points.md).
+They define options for where the VTOL can descend to the rally point approach altitude, and how it will approach the rally point.
+Several approach loiters can be defined for a rally point, and PX4 will choose the one that best matches the estimated wind at the landing point.
+
+:::tip
+The `MAV_CMD_NAV_LOITER_TO_ALT` items that define approach loiters are associated with a Rally/safety point, and are hence part of the rally point plan when used in this way — _not_ the mission plan.
+This behaviour is not defined in the MAVLink rally point plan specification.
+:::
+
+When uploading VTOL approach loiters through MAVLink, [upload them as rally/safe-point](https://mavlink.io/en/services/mission.html#mission_types) mission items (`MAV_MISSION_TYPE_RALLY`).
+The `MAV_CMD_NAV_RALLY_POINT` item must come first, followed by one or more `MAV_CMD_NAV_LOITER_TO_ALT` items that define the approach loiters for that rally point.
+The next `MAV_CMD_NAV_RALLY_POINT` starts a new landing-location block.
+
+For each `MAV_CMD_NAV_LOITER_TO_ALT` item, `x/y/z` define the loiter center and approach altitude, and `param2` defines the loiter radius used by RTL.
+If `param2` is unset or zero, PX4 falls back to [RTL_LOITER_RAD](#RTL_LOITER_RAD).
+
+For example, a rally upload with one rally point and two possible approach loiters would use:
+
+| Sequence | Команда                                                                                                                                                                                                    | Ціль                        | Key fields                                                                                             |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 0        | [MAV_CMD_NAV_RALLY_POINT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_RALLY_POINT)                          | Landing location            | `x/y/z`: rally latitude, longitude, altitude                                           |
+| 1        | [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) | First VTOL approach loiter  | `x/y/z`: loiter latitude, longitude, altitude; `param2`: loiter radius |
+| 2        | [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT) | Second VTOL approach loiter | `x/y/z`: loiter latitude, longitude, altitude; `param2`: loiter radius |
+
+Note that the approach loiter is not the back-transition point.
+If the selected approach loiter is far from the rally point or home location, the vehicle remains in fixed-wing mode after the loiter, flies to the destination at the approach altitude, and only then back-transitions for landing.
 
 ## Режим мультикоптера (MC) Повернення
 
@@ -70,9 +107,10 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
 Якщо використовується місійна посадка, значення [RTL_RETURN_ALT](#RTL_RETURN_ALT) та [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) є важливими.
 Інші параметри стають актуальними, якщо призначенням є точка збору або домашня локація.
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Тип повернення.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)                            | [VTOL FW only] If set, PX4 only considers home or rally-point RTL destinations when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                                                                                                                                                                                   |
 | <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)                            | Висота повернення в метрах (за замовчуванням: 60 м). Якщо вже знаходиться вище цієї висоти, транспортний засіб повернеться на поточну висоту.                                                                                                                                                                                                                                                                                                                                      |
 | <a id="RTL_CONE_ANG"></a>[RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG)                                  | Половина кута конуса, який визначає висоту повернення транспортного засобу RTL. Значення (у градусах): 0, 25, 45, 65, 80, 90. Зауважте, що 0 означає "без конуса" (завжди повертається на висоту `RTL_RETURN_ALT` або вище), тоді як 90 показує, що транспортний засіб повинен повертатися на поточну висоту або `RTL_DESCEND_ALT` (яка вище).                                                                               |
 | <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)                         | Мінімальна висота повернення і висота, на якій повітряне судно сповільнює або зупиняє своє початкове зниження з вищої висоти повернення (за замовчуванням: 30 м)                                                                                                                                                                                                                                                                                                                                                   |

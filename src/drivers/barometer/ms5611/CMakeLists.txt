@@ -44,5 +44,6 @@ px4_add_module(
 	DEPENDS
 		cdev
 		drivers__device
+		drivers_barometer
 		px4_work_queue
 	)

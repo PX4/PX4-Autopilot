@@ -65,16 +65,18 @@
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/geo/geo.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -127,9 +129,10 @@ private:
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
+	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
+	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -178,6 +181,8 @@ private:
 
 	// read the motor signals outputted from the mixer
 	void read_motors(const float dt);
+	void publish_esc_status();
+	uint8_t num_motors() const;
 
 	// generate the motors thrust and torque in the body frame
 	void generate_force_and_torques(const float dt);
@@ -195,17 +200,8 @@ private:
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
-	static float computeGravity(double lat);
 
 	void ecefToNed();
-
-	struct Wgs84 {
-		static constexpr double equatorial_radius = 6378137.0;
-		static constexpr double eccentricity = 0.0818191908425;
-		static constexpr double eccentricity2 = eccentricity * eccentricity;
-		static constexpr double gravity_equator = 9.7803253359;
-	};
-
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();

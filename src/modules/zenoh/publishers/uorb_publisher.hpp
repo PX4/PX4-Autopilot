@@ -118,6 +118,6 @@ public:
 
 private:
 	const orb_metadata *_uorb_meta;
-	int _uorb_sub;
+	orb_sub_t _uorb_sub{ORB_SUB_INVALID};
 	const uint32_t *_cdr_ops;
 };

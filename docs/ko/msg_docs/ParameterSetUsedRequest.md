@@ -10,10 +10,10 @@ ParameterSetUsedRequest : Used by a remote to update the used flag for a paramet
 
 ## Fields
 
-| 명칭                                   | 형식       | Unit [Frame] | Range/Enum | 설명 |
-| ------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | -- |
-| timestamp                            | `uint64` |                                                                  |            |    |
-| parameter_index | `uint16` |                                                                  |            |    |
+| 명칭                                                                   | 형식       | Unit [Frame] | Range/Enum | 설명 |
+| -------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | -- |
+| <a id="fld_timestamp"></a>timestamp                                  | `uint64` |                                                                  |            |    |
+| <a id="fld_parameter_index"></a>parameter_index | `uint16` |                                                                  |            |    |
 
 ## Constants
 

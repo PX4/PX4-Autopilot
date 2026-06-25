@@ -41,12 +41,9 @@
 #define PX4_MAX_FILEPATH       CONFIG_PATH_MAX
 #define PX4_MAX_FILEPATH_SCANF 255
 #else
-#ifndef PATH_MAX
-#define PATH_MAX 1024 // maximum on macOS
-#endif
 #define PX4LOG_REGULAR_FILE    DT_REG
 #define PX4LOG_DIRECTORY       DT_DIR
-#define PX4_MAX_FILEPATH       PATH_MAX
+#define PX4_MAX_FILEPATH       1024
 #define PX4_MAX_FILEPATH_SCANF 1023
 #endif
 

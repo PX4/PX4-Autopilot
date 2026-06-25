@@ -1,6 +1,6 @@
 # OEM/Factory Configuration
 
-This topic lists configuration and calibration topics that are more relevant to manufacturers/OEMs (though is some cases individual developers may find some relevant).
+This topic lists configuration and calibration topics that are more relevant to manufacturers/OEMs (though in some cases individual developers may find some relevant).
 
 - [IMU Factory Calibration](../advanced_config/imu_factory_calibration.md)
 - [Sensor Thermal Compensation](../advanced_config/sensor_thermal_calibration.md)
@@ -8,6 +8,7 @@ This topic lists configuration and calibration topics that are more relevant to 
 - [飞控方向高级配置](../advanced_config/advanced_flight_controller_orientation_leveling.md)
 - [Static Pressure Buildup](../advanced_config/static_pressure_buildup.md)
 - [Bootloader 更新](../advanced_config/bootloader_update.md)
+- [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md)
 
 ## 另见
 

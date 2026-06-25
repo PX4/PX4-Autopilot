@@ -52,25 +52,23 @@
 pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-uORB::Manager *uORB::Manager::_Instance = nullptr;
-
 bool uORB::Manager::initialize()
 {
-	if (_Instance == nullptr) {
-		_Instance = new uORB::Manager();
+	if (instance_ref() == nullptr) {
+		instance_ref() = new uORB::Manager();
 	}
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 	px4_register_boardct_ioctl(_ORBIOCDEVBASE, orb_ioctl);
 #endif
-	return _Instance != nullptr;
+	return instance_ref() != nullptr;
 }
 
 bool uORB::Manager::terminate()
 {
-	if (_Instance != nullptr) {
-		delete _Instance;
-		_Instance = nullptr;
+	if (instance_ref() != nullptr) {
+		delete instance_ref();
+		instance_ref() = nullptr;
 		return true;
 	}
 
@@ -346,18 +344,18 @@ int uORB::Manager::orb_unadvertise(orb_advert_t handle)
 	return uORB::DeviceNode::unadvertise(handle);
 }
 
-int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
+orb_sub_t uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
 {
 	return node_open(meta, false);
 }
 
-int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
+orb_sub_t uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 {
 	int inst = instance;
 	return node_open(meta, false, &inst);
 }
 
-int uORB::Manager::orb_unsubscribe(int fd)
+int uORB::Manager::orb_unsubscribe(orb_sub_t fd)
 {
 	return px4_close(fd);
 }
@@ -375,7 +373,7 @@ int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t han
 	return uORB::DeviceNode::publish(meta, handle, data);
 }
 
-int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
+int uORB::Manager::orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buffer)
 {
 	int ret;
 
@@ -393,19 +391,19 @@ int uORB::Manager::orb_copy(const struct orb_metadata *meta, int handle, void *b
 	return PX4_OK;
 }
 
-int uORB::Manager::orb_check(int handle, bool *updated)
+int uORB::Manager::orb_check(orb_sub_t handle, bool *updated)
 {
 	/* Set to false here so that if `px4_ioctl` fails to false. */
 	*updated = false;
 	return px4_ioctl(handle, ORBIOCUPDATED, (unsigned long)(uintptr_t)updated);
 }
 
-int uORB::Manager::orb_set_interval(int handle, unsigned interval)
+int uORB::Manager::orb_set_interval(orb_sub_t handle, unsigned interval)
 {
 	return px4_ioctl(handle, ORBIOCSETINTERVAL, interval * 1000);
 }
 
-int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
+int uORB::Manager::orb_get_interval(orb_sub_t handle, unsigned *interval)
 {
 	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
 	*interval /= 1000;

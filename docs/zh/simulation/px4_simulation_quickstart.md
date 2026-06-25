@@ -10,6 +10,17 @@ docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 
 That's it — open [QGroundControl](https://qgroundcontrol.com) and fly!
 
+:::details
+Trouble connecting to QGC?
+This command is recommended for Linux and can also be used on Windows (with recent docker/WSL2).
+It uses a different mechanism for connecting to the host ports, and will often work in rare cases where the other command does not.
+
+```sh
+docker run --rm -it --network host px4io/px4-sitl:latest
+```
+
+:::
+
 ::: tip
 
 To try [other vehicle types](../sim_sih/#supported-vehicle-types), use the `-e` flag to pass the `PX4_SIM_MODEL` environment variable to the `docker run` command:
@@ -29,7 +40,7 @@ docker run --rm -it -p 14550:14550/udp -e PX4_SIM_MODEL=sihsim_standard_vtol px4
 Ackermann rover
 
 ```sh
-docker run --rm -it -p 14550:14550/udp -e PX4_SIM_MODEL=sihsim_rover px4io/px4-sitl:latest
+docker run --rm -it -p 14550:14550/udp -e PX4_SIM_MODEL=sihsim_rover_ackermann px4io/px4-sitl:latest
 ```
 
 For more information and options see [Container Images](../simulation/px4_sitl_prebuilt_packages.md#container-images) (in _Pre-built SITL Packages_) and [SIH Simulation](../sim_sih/index.md).

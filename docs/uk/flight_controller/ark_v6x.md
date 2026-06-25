@@ -32,7 +32,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 - [STM32H743IIK6 MCU](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html)
   - 480MHz
   - 2MB Flash
-  - 1MB Flash
+  - 1MB RAM
 
 ## Інші характеристики
 
@@ -71,6 +71,10 @@ For pinout of the ARKV6X see the [DS-10 Pixhawk Autopilot Bus Standard](https://
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
 | UART7  | /dev/ttyS6 | TELEM1                          |
 | UART8  | /dev/ttyS7 | GPS2                            |
+
+:::info
+The mapping above applies to the running PX4 firmware. The ARKV6X bootloader enables only `UART7` (TELEM1), so when flashing firmware over UART with [`px4_uploader.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) you must connect to the **TELEM1** port — no other UART will respond in bootloader mode.
+:::
 
 ## Збірка прошивки
 

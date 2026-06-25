@@ -151,8 +151,8 @@ commander <command> [arguments...]
 
    mode          Change flight mode
      manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
-                 |auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:
-                 precland|ext1 Flight mode
+                 |auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|aut
+                 o:land|auto:precland|ext1 Flight mode
 
    pair
 
@@ -327,7 +327,7 @@ Source: [drivers/heater](https://github.com/PX4/PX4-Autopilot/tree/main/src/driv
 
 ### Description
 
-Background process running periodically on the INS{i} queue to regulate IMU temperature at a setpoint.
+Background process running periodically on the INS{i} queue to regulate temperature at a setpoint.
 
 This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
 

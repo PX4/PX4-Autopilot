@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# CBUnmanned H753-SOM specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# IMU1 on SPI4
+icm42670p -s -b 4 -c 4 start
+
+# IMU2 on SPI4 (second device)
+icm42670p -s -b 4 -c 15 start
+
+# Barometer on I2C1 (internal)
+lps22hb -I start

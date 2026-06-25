@@ -10,10 +10,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва     | Тип      | Unit [Frame] | Range/Enum | Опис                            |
-| --------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------- |
-| timestamp | `uint64` |                                                                  |            |                                 |
-| command   | `int8`   |                                                                  |            | Commanded state for the gripper |
+| Назва                               | Тип      | Unit [Frame] | Range/Enum | Опис                            |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            |                                 |
+| <a id="fld_command"></a>command     | `int8`   |                                                                  |            | Commanded state for the gripper |
 
 ## Constants
 

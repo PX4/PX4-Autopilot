@@ -110,6 +110,7 @@
 #define PROTO_BOOT                  0x30    // boot the application
 #define PROTO_DEBUG                 0x31    // emit debug information - format not defined
 #define PROTO_SET_BAUD              0x33    // set baud rate on uart
+#define PROTO_VERIFY_SIG            0x39    // verify the signature of the programmed image
 
 // Reserved for external flash programming
 // #define PROTO_EXTF_ERASE         0x34  // Erase sectors from external flash
@@ -1034,6 +1035,68 @@ bootloader(unsigned timeout)
 			 * fake success.
 			 */
 			goto cmd_bad;
+
+#ifdef BOOTLOADER_USE_SECURITY
+
+		// verify the signature of the programmed image
+		//
+		// command:     VERIFY_SIG/EOC
+		// reply:     INSYNC/OK         if image verifies
+		// reply:     INSYNC/FAILED     if TOC is missing or signature check fails
+		//
+		// A bootloader built without BOOTLOADER_USE_SECURITY has no VERIFY_SIG
+		// case at all, so the opcode falls through to the default handler and
+		// is rejected like any other unknown command (INSYNC/INVALID). That
+		// keeps a non-secure bootloader byte-for-byte equivalent to an older
+		// one for this opcode, so the uploader's unconditional probe never
+		// disturbs the command stream before BOOT.
+		case PROTO_VERIFY_SIG:
+			if (!wait_for_eoc(2)) {
+				goto cmd_bad;
+			}
+
+			/* Only accept VERIFY_SIG at the same point in the upload
+			 * state machine where we would accept BOOT — i.e. after
+			 * PROG_MULTI + GET_CRC have been issued in the right order.
+			 */
+			if (first_word != 0xffffffff && (bl_state & STATE_ALLOWS_REBOOT) != STATE_ALLOWS_REBOOT) {
+				goto cmd_bad;
+			}
+
+			/* During PROG_MULTI the first word of the app was held in a
+			 * RAM variable instead of written to flash, to prevent a
+			 * partial upload from becoming bootable. Signature
+			 * verification has to hash the actual image, so we have to
+			 * commit that word to flash first. This mirrors the first
+			 * half of the BOOT handler below.
+			 */
+			if (first_word != 0xffffffff) {
+				flash_func_write_word(APP_VECTOR_OFFSET, first_word);
+
+				if (flash_func_read_word(APP_VECTOR_OFFSET) != first_word) {
+					goto cmd_fail;
+				}
+
+				first_word = 0xffffffff;
+			}
+
+			{
+				const image_toc_entry_t *toc_entries;
+				uint8_t toc_len;
+
+				crypto_init();
+
+				if (!find_toc(&toc_entries, &toc_len) ||
+				    !verify_app(0, toc_entries)) {
+					crypto_deinit();
+					goto cmd_fail;
+				}
+
+				crypto_deinit();
+			}
+
+			break;
+#endif
 
 		// finalise programming and boot the system
 		//

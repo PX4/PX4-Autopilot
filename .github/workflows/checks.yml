@@ -85,7 +85,6 @@ jobs:
           cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Auto-update EKF change indication baselines
-        if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'

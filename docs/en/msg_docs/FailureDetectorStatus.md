@@ -8,20 +8,20 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                   | Type      | Unit [Frame] | Range/Enum | Description                                                     |
-| ---------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------- |
-| timestamp              | `uint64`  |              |            | time since system start (microseconds)                          |
-| fd_roll                | `bool`    |              |            |
-| fd_pitch               | `bool`    |              |            |
-| fd_alt                 | `bool`    |              |            |
-| fd_ext                 | `bool`    |              |            |
-| fd_arm_escs            | `bool`    |              |            |
-| fd_battery             | `bool`    |              |            |
-| fd_imbalanced_prop     | `bool`    |              |            |
-| fd_motor               | `bool`    |              |            |
-| imbalanced_prop_metric | `float32` |              |            | Metric of the imbalanced propeller check (low-passed)           |
-| motor_failure_mask     | `uint16`  |              |            | Bit-mask with motor indices, indicating critical motor failures |
-| motor_stop_mask        | `uint16`  |              |            | Bitmaks of motors stopped by failure injection                  |
+| Name                                                          | Type      | Unit [Frame] | Range/Enum | Description                                                     |
+| ------------------------------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                           | `uint64`  |              |            | time since system start (microseconds)                          |
+| <a id="fld_fd_roll"></a>fd_roll                               | `bool`    |              |            |
+| <a id="fld_fd_pitch"></a>fd_pitch                             | `bool`    |              |            |
+| <a id="fld_fd_alt"></a>fd_alt                                 | `bool`    |              |            |
+| <a id="fld_fd_ext"></a>fd_ext                                 | `bool`    |              |            |
+| <a id="fld_fd_arm_escs"></a>fd_arm_escs                       | `bool`    |              |            |
+| <a id="fld_fd_battery"></a>fd_battery                         | `bool`    |              |            |
+| <a id="fld_fd_imbalanced_prop"></a>fd_imbalanced_prop         | `bool`    |              |            |
+| <a id="fld_fd_motor"></a>fd_motor                             | `bool`    |              |            |
+| <a id="fld_imbalanced_prop_metric"></a>imbalanced_prop_metric | `float32` |              |            | Metric of the imbalanced propeller check (low-passed)           |
+| <a id="fld_motor_failure_mask"></a>motor_failure_mask         | `uint16`  |              |            | Bit-mask with motor indices, indicating critical motor failures |
+| <a id="fld_motor_stop_mask"></a>motor_stop_mask               | `uint16`  |              |            | Bitmaks of motors stopped by failure injection                  |
 
 ## Source Message
 

@@ -86,9 +86,11 @@ public:
 	}
 
 private:
-	static constexpr uint8_t BITS_PER_ELEMENT = 8;
-	static constexpr size_t ARRAY_SIZE = (N % BITS_PER_ELEMENT == 0) ? N / BITS_PER_ELEMENT : N / BITS_PER_ELEMENT + 1;
-	static constexpr size_t ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT;
+	enum : size_t {
+		BITS_PER_ELEMENT = 8,
+		ARRAY_SIZE = (N % BITS_PER_ELEMENT == 0) ? N / BITS_PER_ELEMENT : N / BITS_PER_ELEMENT + 1,
+		ALLOCATED_BITS = ARRAY_SIZE * BITS_PER_ELEMENT
+	};
 
 	size_t array_index(size_t position) const { return position / BITS_PER_ELEMENT; }
 	uint8_t element_mask(size_t position) const { return (1 << position % BITS_PER_ELEMENT); }

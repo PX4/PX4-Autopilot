@@ -10,51 +10,53 @@ Encodes the system state of the vehicle published by commander.
 
 ## Fields
 
-| Name                         | Type     | Unit [Frame]   | Range/Enum                                    | Description                                                                                     |
-| ---------------------------- | -------- | -------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| timestamp                    | `uint64` | us             |                                               | Time since system start                                                                         |
-| armed_time                   | `uint64` | us             |                                               | Arming timestamp                                                                                |
-| takeoff_time                 | `uint64` | us             |                                               | Takeoff timestamp                                                                               |
-| arming_state                 | `uint8`  |                |                                               |
-| latest_arming_reason         | `uint8`  |                |                                               |
-| latest_disarming_reason      | `uint8`  |                |                                               |
-| nav_state_timestamp          | `uint64` |                |                                               | Time when current nav_state activated                                                           |
-| nav_state_user_intention     | `uint8`  |                |                                               | Mode that the user selected (might be different from nav_state in a failsafe situation)         |
-| nav_state                    | `uint8`  |                | [NAVIGATION_STATE](#NAVIGATION_STATE)         | Currently active mode                                                                           |
-| executor_in_charge           | `uint8`  |                |                                               | Current mode executor in charge (0=Autopilot)                                                   |
-| valid_nav_states_mask        | `uint32` |                |                                               | Bitmask for all valid nav_state values                                                          |
-| can_set_nav_states_mask      | `uint32` |                |                                               | Bitmask for all modes that a user can select                                                    |
-| failure_detector_status      | `uint16` |                | [FAILURE](#FAILURE)                           |
-| hil_state                    | `uint8`  | enum HIL_STATE |                                               |
-| vehicle_type                 | `uint8`  |                | [VEHICLE_TYPE](#VEHICLE_TYPE)                 |
-| failsafe                     | `bool`   |                |                                               | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
-| failsafe_and_user_took_over  | `bool`   |                |                                               | true if system is in failsafe state but the user took over control                              |
-| failsafe_defer_state         | `uint8`  |                | [FAILSAFE_DEFER_STATE](#FAILSAFE_DEFER_STATE) |
-| gcs_connection_lost          | `bool`   |                |                                               | datalink to GCS lost                                                                            |
-| gcs_connection_lost_counter  | `uint8`  |                |                                               | counts unique GCS connection lost events                                                        |
-| high_latency_data_link_lost  | `bool`   |                |                                               | Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost |
-| is_vtol                      | `bool`   |                |                                               | True if the system is VTOL capable                                                              |
-| is_vtol_tailsitter           | `bool`   |                |                                               | True if the system performs a 90° pitch down rotation during transition from MC to FW           |
-| in_transition_mode           | `bool`   |                |                                               | True if VTOL is doing a transition                                                              |
-| in_transition_to_fw          | `bool`   |                |                                               | True if VTOL is doing a transition from MC to FW                                                |
-| system_type                  | `uint8`  |                |                                               | system type, contains mavlink MAV_TYPE                                                          |
-| system_id                    | `uint8`  |                |                                               | system id, contains MAVLink's system ID field                                                   |
-| component_id                 | `uint8`  |                |                                               | subsystem / component id, contains MAVLink's component ID field                                 |
-| safety_button_available      | `bool`   |                |                                               | Set to true if a safety button is connected                                                     |
-| safety_off                   | `bool`   |                |                                               | Set to true if safety is off                                                                    |
-| power_input_valid            | `bool`   |                |                                               | Set if input power is valid                                                                     |
-| usb_connected                | `bool`   |                |                                               | Set to true (never cleared) once telemetry received from usb link                               |
-| open_drone_id_system_present | `bool`   |                |                                               |
-| open_drone_id_system_healthy | `bool`   |                |                                               |
-| parachute_system_present     | `bool`   |                |                                               |
-| parachute_system_healthy     | `bool`   |                |                                               |
-| rc_calibration_in_progress   | `bool`   |                |                                               |
-| calibration_enabled          | `bool`   |                |                                               |
-| pre_flight_checks_pass       | `bool`   |                |                                               | true if all checks necessary to arm pass                                                        |
+| Name                                                                      | Type     | Unit [Frame]   | Range/Enum                                    | Description                                                                                     |
+| ------------------------------------------------------------------------- | -------- | -------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                       | `uint64` | us             |                                               | Time since system start                                                                         |
+| <a id="fld_armed_time"></a>armed_time                                     | `uint64` | us             |                                               | Arming timestamp                                                                                |
+| <a id="fld_takeoff_time"></a>takeoff_time                                 | `uint64` | us             |                                               | Takeoff timestamp                                                                               |
+| <a id="fld_arming_state"></a>arming_state                                 | `uint8`  |                |                                               |
+| <a id="fld_latest_arming_reason"></a>latest_arming_reason                 | `uint8`  |                |                                               |
+| <a id="fld_latest_disarming_reason"></a>latest_disarming_reason           | `uint8`  |                |                                               |
+| <a id="fld_nav_state_timestamp"></a>nav_state_timestamp                   | `uint64` |                |                                               | Time when current nav_state activated                                                           |
+| <a id="fld_nav_state_user_intention"></a>nav_state_user_intention         | `uint8`  |                |                                               | Mode that the user selected (might be different from nav_state in a failsafe situation)         |
+| <a id="fld_nav_state"></a>nav_state                                       | `uint8`  |                | [NAVIGATION_STATE](#NAVIGATION_STATE)         | Currently active mode                                                                           |
+| <a id="fld_executor_in_charge"></a>executor_in_charge                     | `uint8`  |                |                                               | Current mode executor in charge (0=Autopilot)                                                   |
+| <a id="fld_valid_nav_states_mask"></a>valid_nav_states_mask               | `uint32` |                |                                               | Bitmask for all valid nav_state values                                                          |
+| <a id="fld_can_set_nav_states_mask"></a>can_set_nav_states_mask           | `uint32` |                |                                               | Bitmask for all modes that a user can select                                                    |
+| <a id="fld_failure_detector_status"></a>failure_detector_status           | `uint16` |                | [FAILURE](#FAILURE)                           |
+| <a id="fld_hil_state"></a>hil_state                                       | `uint8`  | enum HIL_STATE |                                               |
+| <a id="fld_vehicle_type"></a>vehicle_type                                 | `uint8`  |                | [VEHICLE_TYPE](#VEHICLE_TYPE)                 |
+| <a id="fld_failsafe"></a>failsafe                                         | `bool`   |                |                                               | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
+| <a id="fld_failsafe_and_user_took_over"></a>failsafe_and_user_took_over   | `bool`   |                |                                               | true if system is in failsafe state but the user took over control                              |
+| <a id="fld_failsafe_defer_state"></a>failsafe_defer_state                 | `uint8`  |                | [FAILSAFE_DEFER_STATE](#FAILSAFE_DEFER_STATE) |
+| <a id="fld_gcs_connection_lost"></a>gcs_connection_lost                   | `bool`   |                |                                               | datalink to GCS lost                                                                            |
+| <a id="fld_gcs_connection_lost_counter"></a>gcs_connection_lost_counter   | `uint8`  |                |                                               | counts unique GCS connection lost events                                                        |
+| <a id="fld_high_latency_data_link_lost"></a>high_latency_data_link_lost   | `bool`   |                |                                               | Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost |
+| <a id="fld_is_vtol"></a>is_vtol                                           | `bool`   |                |                                               | True if the system is VTOL capable                                                              |
+| <a id="fld_is_vtol_tailsitter"></a>is_vtol_tailsitter                     | `bool`   |                |                                               | True if the system performs a 90° pitch down rotation during transition from MC to FW           |
+| <a id="fld_in_transition_mode"></a>in_transition_mode                     | `bool`   |                |                                               | True if VTOL is doing a transition                                                              |
+| <a id="fld_in_transition_to_fw"></a>in_transition_to_fw                   | `bool`   |                |                                               | True if VTOL is doing a transition from MC to FW                                                |
+| <a id="fld_system_type"></a>system_type                                   | `uint8`  |                |                                               | system type, contains mavlink MAV_TYPE                                                          |
+| <a id="fld_system_id"></a>system_id                                       | `uint8`  |                |                                               | system id, contains MAVLink's system ID field                                                   |
+| <a id="fld_component_id"></a>component_id                                 | `uint8`  |                |                                               | subsystem / component id, contains MAVLink's component ID field                                 |
+| <a id="fld_safety_button_available"></a>safety_button_available           | `bool`   |                |                                               | Set to true if a safety button is connected                                                     |
+| <a id="fld_safety_off"></a>safety_off                                     | `bool`   |                |                                               | Set to true if safety is off                                                                    |
+| <a id="fld_power_input_valid"></a>power_input_valid                       | `bool`   |                |                                               | Set if input power is valid                                                                     |
+| <a id="fld_usb_connected"></a>usb_connected                               | `bool`   |                |                                               | Set to true (never cleared) once telemetry received from usb link                               |
+| <a id="fld_open_drone_id_system_present"></a>open_drone_id_system_present | `bool`   |                |                                               |
+| <a id="fld_open_drone_id_system_healthy"></a>open_drone_id_system_healthy | `bool`   |                |                                               |
+| <a id="fld_parachute_system_present"></a>parachute_system_present         | `bool`   |                |                                               |
+| <a id="fld_parachute_system_healthy"></a>parachute_system_healthy         | `bool`   |                |                                               |
+| <a id="fld_rc_calibration_in_progress"></a>rc_calibration_in_progress     | `bool`   |                |                                               |
+| <a id="fld_calibration_enabled"></a>calibration_enabled                   | `bool`   |                |                                               |
+| <a id="fld_pre_flight_checks_pass"></a>pre_flight_checks_pass             | `bool`   |                |                                               | true if all checks necessary to arm pass                                                        |
 
 ## Enums
 
 ### NAVIGATION_STATE {#NAVIGATION_STATE}
+
+Used in field(s): [nav_state](#fld_nav_state)
 
 | Name                                                                                  | Type    | Value | Description                           |
 | ------------------------------------------------------------------------------------- | ------- | ----- | ------------------------------------- |
@@ -93,6 +95,8 @@ Encodes the system state of the vehicle published by commander.
 
 ### FAILURE {#FAILURE}
 
+Used in field(s): [failure_detector_status](#fld_failure_detector_status)
+
 | Name                                                          | Type     | Value | Description |
 | ------------------------------------------------------------- | -------- | ----- | ----------- |
 | <a id="#FAILURE_NONE"></a> FAILURE_NONE                       | `uint16` | 0     |
@@ -107,6 +111,8 @@ Encodes the system state of the vehicle published by commander.
 
 ### VEHICLE_TYPE {#VEHICLE_TYPE}
 
+Used in field(s): [vehicle_type](#fld_vehicle_type)
+
 | Name                                                            | Type    | Value | Description |
 | --------------------------------------------------------------- | ------- | ----- | ----------- |
 | <a id="#VEHICLE_TYPE_UNSPECIFIED"></a> VEHICLE_TYPE_UNSPECIFIED | `uint8` | 0     |
@@ -115,6 +121,8 @@ Encodes the system state of the vehicle published by commander.
 | <a id="#VEHICLE_TYPE_ROVER"></a> VEHICLE_TYPE_ROVER             | `uint8` | 3     |
 
 ### FAILSAFE_DEFER_STATE {#FAILSAFE_DEFER_STATE}
+
+Used in field(s): [failsafe_defer_state](#fld_failsafe_defer_state)
 
 | Name                                                                                  | Type    | Value | Description                                      |
 | ------------------------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------ |

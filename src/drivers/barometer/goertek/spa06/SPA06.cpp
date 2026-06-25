@@ -35,6 +35,7 @@
 
 SPA06::SPA06(const I2CSPIDriverConfig &config, spa06::ISPA06 *interface) :
 	I2CSPIDriver(config),
+	_px4_baro{interface->get_device_id()},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
@@ -235,14 +236,9 @@ SPA06::collect()
 	float temperature = (float)_cal.c0 * 0.5f + (float)_cal.c1 * ftsc;
 
 
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = _interface->get_device_id();
-	sensor_baro.pressure = fp;
-	sensor_baro.temperature = temperature;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(temperature);
+	_px4_baro.update(timestamp_sample, fp);
 
 	perf_end(_sample_perf);
 

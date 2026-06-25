@@ -150,6 +150,8 @@ parameters:
     RTL_APPR_FORCE:
       description:
         short: RTL force approach landing
-        long: Only consider RTL point, if it has an approach defined.
+        long: |-
+          Only consider home/rally RTL points that have a VTOL approach loiter.
+          A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
       type: boolean
       default: 0
