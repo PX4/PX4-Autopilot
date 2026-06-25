@@ -475,7 +475,7 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 		// Update the pitch integrator state
 		_pitch_integ_state = _pitch_integ_state + pitch_integ_input * dt;
 
-		// Safety check: reset integrator if state became corrupted 
+		// Safety check: reset integrator if state became corrupted
 		if (!PX4_ISFINITE(_pitch_integ_state)) {
 			_pitch_integ_state = 0.f;
 		}
@@ -507,7 +507,14 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
 	// b) The offset between climb angle and pitch angle (angle of attack) is constant, excluding the effect of
 	// pitch transients due to control action or turbulence.
-	const float pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate + _pitch_integ_state;
+	float pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate + _pitch_integ_state;
+
+	// Guard against a non-finite feedforward/damping contribution (e.g. seb_rate going NaN on the energy/speed
+	// side when exiting offboard velocity mode). constrain() does not reject NaN, so fall back to the integrator
+	// state, which is kept finite by _calcPitchControlUpdate, to avoid latching a NaN pitch demand.
+	if (!PX4_ISFINITE(pitch_setpoint_unc)) {
+		pitch_setpoint_unc = _pitch_integ_state;
+	}
 
 	return constrain(pitch_setpoint_unc, param.pitch_min, param.pitch_max);
 }
