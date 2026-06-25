@@ -809,39 +809,9 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
 	// waypoint is a plain navigation waypoint
-	float position_sp_alt = pos_sp_curr.alt;
-
-	// Altitude first order hold (FOH)
-	if (_position_setpoint_previous_valid &&
-	    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
-	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
-	   ) {
-		const float d_curr_prev = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_prev.lat,
-					  pos_sp_prev.lon);
-
-		// Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one
-		if (d_curr_prev > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
-			// Calculate distance to current waypoint
-			const float d_curr = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, _current_latitude,
-					     _current_longitude);
-
-			// Save distance to waypoint if it is the smallest ever achieved, however make sure that
-			// _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp
-			_min_current_sp_distance_xy = math::min(d_curr, _min_current_sp_distance_xy, d_curr_prev);
-
-			// if the minimal distance is smaller than the acceptance radius, we should be at waypoint alt
-			// navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude
-			if (_min_current_sp_distance_xy > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
-				// The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
-				// radius around the current waypoint
-				const float delta_alt = (pos_sp_curr.alt - pos_sp_prev.alt);
-				const float grad = -delta_alt / (d_curr_prev - math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)));
-				const float a = pos_sp_prev.alt - grad * d_curr_prev;
-
-				position_sp_alt = a + grad * _min_current_sp_distance_xy;
-			}
-		}
-	}
+	_foh_altitude_active = true;
+	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr, _current_latitude, _current_longitude,
+				      _current_altitude, acc_rad, _foh_altitude_state);
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
@@ -940,6 +910,10 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
+	// Loiter directly commands the loiter altitude (no altitude first order hold, which is only applied for
+	// position waypoints).
+	const float position_sp_alt = pos_sp_curr.alt;
+
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
@@ -1001,7 +975,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.altitude = pos_sp_curr.alt,
+		.altitude = position_sp_alt,
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
@@ -2048,6 +2022,10 @@ FixedWingModeManager::Run()
 		// mode is active
 		_ctrl_configuration_handler.resetLastPublishTime();
 
+		// The controller (and thus the altitude FOH) does not run while an external mode is active. Mark the FOH
+		// as inactive so that returning to an internal auto mode starts a fresh ramp instead of resuming stale state.
+		_foh_altitude_active = false;
+
 	} else if (_local_pos_sub.update(&_local_pos)) {
 
 		const hrt_abstime now = _local_pos.timestamp;
@@ -2204,8 +2182,9 @@ FixedWingModeManager::Run()
 								&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
 								&& PX4_ISFINITE(_pos_sp_triplet.next.alt);
 
-				// reset the altitude foh (first order hold) logic
-				_min_current_sp_distance_xy = FLT_MAX;
+				// The altitude first order hold (FOH) restarts its ramp itself whenever the target altitude
+				// changes, so it must not be reset here: a new triplet that keeps the same target altitude
+				// (e.g. a lat/lon-only update) has to leave the ongoing ramp progressing.
 
 				_go_direct_to_destination = false;
 			}
@@ -2262,6 +2241,17 @@ FixedWingModeManager::Run()
 		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV) {
 			reset_takeoff_state();
 		}
+
+		if (!_foh_altitude_active) {
+			// The altitude first order hold only runs for AUTO position/loiter waypoints. Whenever it did not run
+			// on the previous cycle (any other mode, but also AUTO sub-types like velocity/idle/course-hold that
+			// skip it) its ramp state is stale, so reset it here. (Re-)engaging FOH then starts a fresh ramp from
+			// the current altitude instead of a last-commanded setpoint that went stale while it was not running.
+			_foh_altitude_state = FirstOrderHoldAltitudeState{};
+		}
+
+		// Cleared here every cycle and set again by the FOH call sites when they actually run this cycle.
+		_foh_altitude_active = false;
 
 		int8_t old_landing_gear_position = _new_landing_gear_position;
 		_new_landing_gear_position = landing_gear_s::GEAR_KEEP; // is overwritten in Takeoff and Land

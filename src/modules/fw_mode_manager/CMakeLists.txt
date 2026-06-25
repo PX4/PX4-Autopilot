@@ -61,6 +61,8 @@ px4_add_module(
 	SRCS
 		FixedWingModeManager.cpp
 		FixedWingModeManager.hpp
+		FirstOrderHoldAltitude.cpp
+		FirstOrderHoldAltitude.hpp
 		ControllerConfigurationHandler.cpp
 		ControllerConfigurationHandler.hpp
 	MODULE_CONFIG
@@ -68,3 +70,5 @@ px4_add_module(
 	DEPENDS
 		${POSCONTROL_DEPENDENCIES}
 	)
+
+px4_add_unit_gtest(SRC FixedWingModeManagerTest.cpp EXTRA_SRCS FirstOrderHoldAltitude.cpp LINKLIBS geo mathlib)
