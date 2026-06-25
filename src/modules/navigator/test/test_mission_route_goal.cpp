@@ -148,6 +148,33 @@ TEST_F(MissionRouteGoalTest, ReturnsEmptyWhenAllSafePointsInvalid)
 	EXPECT_FALSE(selection.found);
 }
 
+// No safe points are available, so selectBestGoal falls back to the configured mission land item.
+TEST_F(MissionRouteGoalTest, MissionEndpointFallbackUsesConfiguredLandIndex)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
+	};
+	const int32_t land_index = 2;
+
+	VectorProvider provider{mission, {}, {}, {}, land_index};
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+
+	mission_route::RoutePlan plan{};
+	ASSERT_TRUE(planRouteToGoal(planner, vehicle_position, 1, config, plan, reason))
+			<< mission_route::failureReasonString(reason);
+
+	ASSERT_TRUE(plan.selection.found);
+	EXPECT_FALSE(plan.selection.safe_point_found);
+	EXPECT_EQ(plan.selection.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_NEAR(plan.selection.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.selection.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.selection.goal_position.alt, mission[land_index].altitude, kAltitudeTolerance);
+}
+
 // A relative-altitude safe point is converted to AMSL using home altitude.
 TEST_F(MissionRouteGoalTest, RelativeAltitudeSafePointUsesHomeAltitude)
 {

@@ -65,8 +65,8 @@ public:
 	virtual int safePointCount() const = 0;
 	virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
 
-	// Default scans backward for NAV_CMD_LAND / NAV_CMD_VTOL_LAND.
-	virtual bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const;
+	/** @brief Load the mission item referenced by the active mission's published land_index. */
+	virtual bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const = 0;
 	/**
 	 * @brief Find the mission takeoff item.
 	 *

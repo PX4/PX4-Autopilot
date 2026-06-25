@@ -215,10 +215,21 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 		return false;
 	}
 
+	mission_item_s cached_land_item{};
+
+	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index,
+					       reinterpret_cast<uint8_t *>(&cached_land_item), sizeof(cached_land_item),
+					       kCacheOnlyLoadWait)) {
+		return false;
+	}
+
+	if (cached_land_item.nav_cmd != NAV_CMD_LAND && cached_land_item.nav_cmd != NAV_CMD_VTOL_LAND) {
+		return false;
+	}
+
 	index = _mission_land.index;
-	return _dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id), index,
-			reinterpret_cast<uint8_t *>(&land_item), sizeof(land_item),
-			kCacheOnlyLoadWait);
+	land_item = cached_land_item;
+	return true;
 }
 
 bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const

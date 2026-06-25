@@ -266,6 +266,25 @@ TEST_F(MissionRouteCacheTest, MissionLandItemRejectsOutOfBoundsPublishedIndex)
 	EXPECT_FALSE(_cache.getMissionLandItem(land_index, land_item));
 }
 
+// The published land_index must refer to an actual landing command.
+TEST_F(MissionRouteCacheTest, MissionLandItemRejectsPublishedNonLandIndex)
+{
+	const std::vector<mission_item_s> mission_items{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f,  0.f, kAlt + 15.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kAlt + 30.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 240.f, 0.f, kAlt),
+	};
+	const mission_s mission = makeMission(22, static_cast<uint16_t>(mission_items.size()), 0, 1);
+	writeMissionItems(mission_items);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+			<< "mission cache did not become ready";
+
+	int32_t land_index = 1;
+	mission_item_s land_item{};
+	EXPECT_FALSE(_cache.getMissionLandItem(land_index, land_item));
+}
+
 // Transient safe-point state errors retry without changing safe_points_id.
 TEST_F(MissionRouteCacheTest, SafePointCacheRetriesAfterInvalidStateWithoutIdChange)
 {
