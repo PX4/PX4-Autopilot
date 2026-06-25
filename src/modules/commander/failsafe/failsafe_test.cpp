@@ -77,11 +77,11 @@ protected:
 	}
 
 	uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
-				       uint8_t user_intended_mode, bool user_intended_mode_updated) const override
+				       uint8_t user_intended_mode) const override
 	{
-		if (!user_intended_mode_updated
-		    && (int)previous_action > (int)Action::Warn
-		    && modeFromAction(current_action, user_intended_mode) == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		if ((int)previous_action <= (int)Action::Warn
+		    && (int)current_action > (int)Action::Warn
+		    && user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
 			return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 		}
 
@@ -458,24 +458,25 @@ TEST_F(FailsafeTest, OrbitAutoresumeAfterFailsafeDowngradedToLoiter)
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ORBIT;
 	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	hrt_abstime time = 3847124342;
-	bool user_intended_mode_updated = false;
 
-	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	failsafe.update(time, state, false, false, failsafe_flags);
 
-	// Wind limit exceeded -> RTL
+	// Wind limit exceeded -> eventually RTL; Orbit is downgraded to Loiter at failsafe entry.
+	// Simulate Commander feeding the returned mode back as user_intended_mode each cycle.
 	time += 10_ms;
 	failsafe_flags.wind_limit_exceeded = true;
-	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	time += 5_s;
-	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	ASSERT_EQ(state.user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 
-	// Failsafe resolved BUT no new mode chosen -> downgrade ORBIT to Loiter
+	// Failsafe resolved, no new mode commanded -> stays Loiter
 	time += 10_ms;
 	failsafe_flags.wind_limit_exceeded = false;
-	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
-	ASSERT_EQ(updated_user_intented_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+	ASSERT_EQ(updated_user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 }
 
 TEST_F(FailsafeTest, defer)

@@ -660,7 +660,7 @@
 *(.text._ZN11MissionBase17parameters_updateEv)
 *(.text.nx_start)
 *(.text._ZN3Ekf17controlDragFusionERKN9estimator9imuSampleE)
-*(.text._ZNK8Failsafe22modifyUserIntendedModeEN12FailsafeBase6ActionES1_hb)
+*(.text._ZNK8Failsafe22modifyUserIntendedModeEN12FailsafeBase6ActionES1_h)
 *(.text._ZN3px417ScheduledWorkItem19schedule_trampolineEPv)
 *(.text.uart_xmitchars_dma)
 *(.text._ZN13land_detector23MulticopterLandDetector19_get_freefall_stateEv)

@@ -237,11 +237,10 @@ protected:
 	 * @param previous_action previous action
 	 * @param current_action current action
 	 * @param user_intended_mode current user intended mode
-	 * @param user_intended_mode_updated whether the user intended mode was just requested/changed this cycle
 	 * @return uint8_t new user intended mode
 	 */
 	virtual uint8_t modifyUserIntendedMode(Action previous_action, Action current_action,
-					       uint8_t user_intended_mode, bool user_intended_mode_updated) const { return user_intended_mode; }
+					       uint8_t user_intended_mode) const { return user_intended_mode; }
 
 	void updateParams() override;
 
