@@ -14,6 +14,15 @@ They are connected using a fast serial or Ethernet link, and typically communica
 
 Communications with the ground stations and the cloud are usually routed via the companion computer (e.g. using the [MAVLink Router](https://github.com/mavlink-router/mavlink-router)).
 
+
+
+## Flight Controllers with integrated Companion Computers
+
+Note, these are FC boards that integrate a companion computer.
+Unlike boards in the next section, they are not baseboards, where the RTOS or Companion computers are swappable.
+
+- [Lectron Pi5 Autopilot](../flight_controller/lectron_pi5_autopilot.md)
+
 ## Pixhawk Autopilot Bus Carrier Boards with Companion Computers
 
 The following carrier boards make it easy to integrate Pixhawk flight controllers with a companion computer, significantly easing both hardware and software setup.
