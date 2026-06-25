@@ -208,6 +208,7 @@
       - [AP-H743-R1](flight_controller/x-mav_ap-h743r1.md)
       - [VOLOLAND NarinFC-H7](flight_controller/vololand_narinfc_h7.md)
       - [SIYI-UniFC-6-PICO](flight_controller/siyi-unifc-6-pico.md)
+      - [Lectron Pi5 Autopilot](flight_controller/lectron_pi5_autopilot.md)
     - [Experimental Autopilots](flight_controller/autopilot_experimental.md)
       - [BeagleBone Blue](flight_controller/beaglebone_blue.md)
       - [Raspberry Pi 2/3 Navio2](flight_controller/raspberry_pi_navio2.md)
