@@ -276,18 +276,17 @@ TEST_F(AttitudeControlFeedforwardTest, FeedForwardDisabledSuppressesContribution
 {
 	// GIVEN: a settled roll-ramp reference
 	const float omega = 0.5f;
-	const Quatf q_d = rampSetpoint(Vector3f(omega, 0.f, 0.f), 0.f, kSettleSteps);
+	rampSetpoint(Vector3f(omega, 0.f, 0.f), 0.f, kSettleSteps);
 
-	// WHEN: FF is disabled (e.g. autotune active). The P term then targets the raw
-	// setpoint and the FF is suppressed — same behavior as the pre-PR controller.
-	_attitude_control.setFeedForwardEnabled(false);
-	Vector3f rate_setpoint = _attitude_control.update(q_d);
+	// WHEN: the feedforward gain is 0, evaluated at the reference attitude so the P term is zero
+	_attitude_control.setFeedForwardGain(0.f);
+	Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
 
-	// THEN: no FF applied; P sees q_d directly so error is zero at the setpoint
+	// THEN: the anticipation feedforward is fully suppressed
 	EXPECT_NEAR(rate_setpoint.norm(), 0.f, 1e-3f);
 
-	// AND WHEN: re-enabled, the FF returns immediately (reference model preserved)
-	_attitude_control.setFeedForwardEnabled(true);
+	// AND WHEN: the gain is restored, the anticipation returns (reference model preserved)
+	_attitude_control.setFeedForwardGain(1.f);
 	rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
 
 	EXPECT_NEAR(rate_setpoint(0), omega, 1e-3f);
@@ -358,14 +357,13 @@ TEST_F(AttitudeControlFeedforwardTest, CommandedYawRateFedForwardWhenFFDisabled)
 {
 	// GIVEN: a settled manual yaw-rate command (heading slaved to measurement, small commanded rate)
 	const float commanded = 0.05f;
-	const Quatf q_d = rampSetpoint(Vector3f(0.f, 0.f, 0.8f), commanded, kSettleSteps);
+	rampSetpoint(Vector3f(0.f, 0.f, 0.8f), commanded, kSettleSteps);
 
-	// WHEN: the reference-model anticipation is disabled (autotune / MC_REF_FF=0) — the legacy baseline.
-	// Evaluate at the raw setpoint so the P term sees no attitude error and only the feedforward remains.
-	_attitude_control.setFeedForwardEnabled(false);
-	const Vector3f rate_setpoint = _attitude_control.update(q_d);
+	// WHEN: the feedforward gain is 0, evaluated at the reference attitude so the P term is zero
+	_attitude_control.setFeedForwardGain(0.f);
+	const Vector3f rate_setpoint = _attitude_control.update(_attitude_control.getReferenceAttitude());
 
-	// THEN: the commanded yaw rate is still fed forward at unity (legacy applied it unconditionally).
+	// THEN: the commanded yaw rate still bypasses the ref model and is fed forward at unity
 	EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);

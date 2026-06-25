@@ -64,10 +64,10 @@ public:
 	 */
 	void setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight);
 
-	/// Set the reference-model natural frequency [rad/s] (zeta=1).
+	/// Set the critically damped reference-model natural frequency [rad/s].
 	void setRefModelFrequency(float omega_n);
 
-	/// Set the FF magnitude scaling [0..1]; 0 disables the FF.
+	/// Set the FF magnitude scaling [0..1]
 	void setFeedForwardGain(float gain) { _ff_gain = math::constrain(gain, 0.f, 1.f); }
 
 	/// Set per-axis saturation on the FF angular-velocity contribution [rad/s]; 0 = disabled.
@@ -83,7 +83,7 @@ public:
 	 * Set a new attitude setpoint replacing the one tracked before
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
-	 * @param dt [s] time since previous setpoint; <= 0 skips the FF derivative update
+	 * @param dt [s] time since previous setpoint
 	 */
 	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint, const float dt = -1.f);
 
@@ -95,12 +95,6 @@ public:
 	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta);
 
 	/**
-	 * Gate the setpoint-derivative feedforward (the filter keeps running, only
-	 * its addition to the rate setpoint is suppressed). Used during autotune.
-	 */
-	void setFeedForwardEnabled(bool enabled) { _ff_enabled = enabled; }
-
-	/**
 	 * Run one control loop cycle calculation
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
@@ -108,15 +102,13 @@ public:
 	matrix::Vector3f update(const matrix::Quatf &q) const;
 
 	/**
-	 * Reference attitude tracked by the model (the smoothed target the cascaded
-	 * controller actually follows). Exposed for tests and diagnostics.
+	 * Attitude state of the reference model
 	 */
 	const matrix::Quatf &getReferenceAttitude() const { return _q_ref; }
 
 private:
 	/**
 	 * Advance the 2nd-order reference model by one step toward the desired attitude
-	 * using an exact (ZOH) discretization, updating _q_ref and _omega_correction.
 	 * @param qd normalized desired attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 * @param dt [s] time since previous setpoint (> 0)
@@ -127,18 +119,14 @@ private:
 	matrix::Vector3f _rate_limit;
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize compared to roll and pitch
 
-	matrix::Quatf _attitude_setpoint_q; ///< latest known raw attitude setpoint e.g. from position control
-
 	matrix::Quatf _q_ref;                  ///< reference attitude tracked by the 2nd-order ref model
 	matrix::Vector3f _omega_correction;    ///< error-driven correction (2nd-order state); reference rate = _omega_correction + _omega_command
-	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from FF_MAX
+	matrix::Vector3f _omega_command;       ///< commanded (analytical) reference rate; exempt from the feedforward limit
 	bool _ref_initialized{false};
 
-	bool _ff_enabled{true};
-
-	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s] (MC_REF_W_N)
+	float _omega_n{50.f};                  ///< ref-model natural frequency [rad/s]
 	float _kq{_omega_n * _omega_n};        ///< stiffness coefficient, kept in sync with _omega_n
 
-	float _ff_gain{1.f};                   ///< FF magnitude scaling 0..1 (MC_REF_FF)
-	float _ff_max{0.f};                    ///< per-axis FF rate cap [rad/s]; 0 = disabled (MC_REF_FF_MAX)
+	float _ff_gain{1.f};
+	float _ff_max{0.f};
 };

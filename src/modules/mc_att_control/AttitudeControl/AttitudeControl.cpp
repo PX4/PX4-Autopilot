@@ -39,8 +39,6 @@
 
 #include <mathlib/math/Functions.hpp>
 
-#include <float.h>
-
 using namespace matrix;
 
 static __attribute__((noinline)) Quatf qmul(const Quatf &a, const Quatf &b) { return a * b; }
@@ -79,8 +77,6 @@ void AttitudeControl::setAttitudeSetpoint(const Quatf &qd, const float yawspeed_
 		_omega_command.zero();
 		_ref_initialized = true;
 	}
-
-	_attitude_setpoint_q = qd_normalized;
 }
 
 void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawspeed_setpoint, const float dt)
@@ -92,7 +88,7 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 	//    frame, and form the small-angle error vector from q_ref to q_d.
 	const Quatf q_ref_inv = qinv(_q_ref);
 	const Vector3f yaw_axis_body = qzaxis(q_ref_inv); // world yaw axis expressed in q_ref's body frame
-	const Vector3f omega_command = std::isfinite(yawspeed_setpoint)
+	const Vector3f omega_command = PX4_ISFINITE(yawspeed_setpoint)
 				       ? yaw_axis_body * yawspeed_setpoint
 				       : Vector3f{};
 
@@ -121,11 +117,11 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 
 	// Yaw-rate command: the heading setpoint just follows the measured yaw, so feeding the error-driven
 	// rate forward closes a positive-feedback loop. Keep only the commanded rate (omega_command) on the yaw axis.
-	if (std::isfinite(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
+	if (PX4_ISFINITE(yawspeed_setpoint) && (fabsf(yawspeed_setpoint) > FLT_EPSILON)) {
 		_omega_correction -= _omega_correction.dot(yaw_axis_body) * yaw_axis_body;
 	}
 
-	// Commanded (analytical) reference rate, kept separate so update() can exempt it from FF_MAX.
+	// Commanded (analytical) reference rate, kept separate so update() can exempt it from the feedforward limit.
 	_omega_command = omega_command;
 
 	_q_ref     = qmul(_q_ref, Quatf(AxisAnglef(delta_phi)));
@@ -134,9 +130,7 @@ void AttitudeControl::propagateReferenceModel(const Quatf &qd, const float yawsp
 
 void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 {
-	_attitude_setpoint_q = qmul(q_delta, _attitude_setpoint_q);
-	_attitude_setpoint_q.normalize();
-	// Apply the same world-frame delta to the reference attitude. _omega_correction and _omega_command are
+	// Apply the world-frame delta to the reference attitude. _omega_correction and _omega_command are
 	// in the reference body frame and physically invariant under a world relabeling.
 	_q_ref = qmul(q_delta, _q_ref);
 	_q_ref.normalize();
@@ -144,10 +138,8 @@ void AttitudeControl::adaptAttitudeSetpoint(const Quatf &q_delta)
 
 matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 {
-	// MC_REF_FF / autotune gate only the reference-model anticipation: the P target falls back to the raw
-	// setpoint when it is off, while the commanded yaw rate is fed forward in both cases.
-	const bool ff_active = _ff_enabled && (_ff_gain > 0.f);
-	Quatf qd = ff_active ? _q_ref : _attitude_setpoint_q;
+	// The P controller always tracks the reference-model attitude.
+	Quatf qd = _q_ref;
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
 	const Vector3f e_z = qzaxis(q);
@@ -190,23 +182,20 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// Map reference-frame rates into the current body frame.
 	const Quatf q_rel = qmul(qinv(q), _q_ref);
 
-	// The commanded reference rate (e.g. manual/auto yaw rate) is a setpoint, not a model prediction, so it is
-	// always fed forward at unity exactly as the legacy controller did. This makes MC_REF_FF=0 an exact legacy
-	// baseline and preserves full commanded yaw authority at any fractional gain.
+	// The commanded reference rate (e.g. manual/auto yaw rate) is a setpoint, not a model prediction, so it
+	// bypasses the reference model: it is fed forward at unity regardless of the feedforward gain and limit.
 	rate_setpoint += q_rel.rotateVector(_omega_command);
 
-	if (ff_active) {
-		// MC_REF_FF scales and MC_REF_FF_MAX caps only the model's error-driven anticipation
-		Vector3f omega_ff = _ff_gain * q_rel.rotateVector(_omega_correction);
+	// the gain scales and the limit caps the model's error-driven anticipation (zero at gain 0)
+	Vector3f omega_ff = _ff_gain * q_rel.rotateVector(_omega_correction);
 
-		if (_ff_max > 0.f) {
-			for (int i = 0; i < 3; i++) {
-				omega_ff(i) = math::constrain(omega_ff(i), -_ff_max, _ff_max);
-			}
+	if (_ff_max > 0.f) {
+		for (int i = 0; i < 3; i++) {
+			omega_ff(i) = math::constrain(omega_ff(i), -_ff_max, _ff_max);
 		}
-
-		rate_setpoint += omega_ff;
 	}
+
+	rate_setpoint += omega_ff;
 
 	// limit rates
 	for (int i = 0; i < 3; i++) {
