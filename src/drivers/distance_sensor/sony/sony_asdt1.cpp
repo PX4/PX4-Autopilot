@@ -178,6 +178,11 @@ void AS_DT1::print_info()
 		 static_cast<unsigned>(_startup_mode_preamble_done),
 		 static_cast<unsigned long long>(_startup_mode_attempts),
 		 static_cast<unsigned long long>(_startup_reboot_attempts));
+	PX4_INFO("startup: baud target %u, probe done %u, probe tries %llu, set tries %llu",
+		 ASDT1_DESIRED_BAUD,
+		 static_cast<unsigned>(_startup_baud_probe_done),
+		 static_cast<unsigned long long>(_startup_baud_probe_attempts),
+		 static_cast<unsigned long long>(_startup_baud_set_attempts));
 	PX4_INFO("parser: state %u, begin match %u, frame buffer %u bytes, frames rx %llu, frames pub %llu, resets %llu",
 		 static_cast<unsigned>(_parser_state),
 		 static_cast<unsigned>(_begin_match_index),
@@ -217,6 +222,7 @@ void AS_DT1::print_info()
 
 void AS_DT1::start()
 {
+	_baud = ASDT1_DESIRED_BAUD;
 	ScheduleNow();
 }
 
@@ -233,7 +239,8 @@ void AS_DT1::Run()
 			return;
 		}
 
-		_startup_state = _startup_mode_preamble_done ? StartupState::SyncDrain : StartupState::ModeSyncDrain;
+		_startup_state = !_startup_baud_probe_done ? StartupState::BaudProbeDrain :
+				 (_startup_mode_preamble_done ? StartupState::SyncDrain : StartupState::ModeSyncDrain);
 		reset_startup_prompt();
 		_startup_deadline = 0;
 		_startup_sync_attempts = 0;
@@ -250,15 +257,65 @@ void AS_DT1::Run()
 
 	if (!_one_shot && _startup_state != StartupState::Streaming) {
 		switch (_startup_state) {
-		case StartupState::ModeSyncDrain:
-			if (_mode == 2) {
-				PX4_WARN("SENS_ASDT1_MODE 30M30F uses 720-byte frames; skipping flmode until parser supports it");
-				_startup_mode_preamble_done = true;
-				_startup_state = StartupState::SyncDrain;
+		case StartupState::BaudProbeDrain:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			reset_startup_prompt();
+			_startup_state = StartupState::BaudProbeSendPromptSync;
+			ScheduleNow();
+			return;
+
+		case StartupState::BaudProbeSendPromptSync:
+			if (_startup_baud_probe_attempts >= BAUD_PROBE_ATTEMPT_LIMIT) {
+				_baud = (_baud == ASDT1_DESIRED_BAUD) ? ASDT1_FALLBACK_BAUD : ASDT1_DESIRED_BAUD;
+				_startup_baud_probe_attempts = 0;
+				reset_startup_prompt();
+				close_port();
 				ScheduleNow();
 				return;
 			}
 
+			if (write_prompt_sync() != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_baud_probe_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(PROMPT_SYNC_INTERVAL);
+			_startup_state = StartupState::BaudProbeWaitResponse;
+			break;
+
+		case StartupState::BaudProbeWaitResponse: {
+			const ssize_t bytes_read = read_baud_probe_response();
+
+			if (bytes_read < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen || _startup_begin_seen) {
+				_startup_baud_probe_done = true;
+				reset_startup_prompt();
+				_startup_state = StartupState::ModeSyncDrain;
+				ScheduleNow();
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_state = StartupState::BaudProbeSendPromptSync;
+				ScheduleNow();
+				return;
+			}
+		}
+
+			break;
+
+		case StartupState::ModeSyncDrain:
 			if (drain_input() < 0) {
 				close_port();
 				return;
@@ -372,6 +429,13 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::SendMode:
+			if (_mode == 2) {
+				PX4_WARN("SENS_ASDT1_MODE 30M30F uses 720-byte frames; skipping flmode until parser supports it");
+				_startup_state = StartupState::SendBaud;
+				ScheduleNow();
+				return;
+			}
+
 			if (drain_input() < 0) {
 				close_port();
 				return;
@@ -397,7 +461,7 @@ void AS_DT1::Run()
 
 			if (_startup_prompt_seen) {
 				reset_startup_prompt();
-				_startup_state = StartupState::SendReboot;
+				_startup_state = StartupState::SendBaud;
 				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
 				return;
 			}
@@ -411,8 +475,57 @@ void AS_DT1::Run()
 					return;
 				}
 
-				PX4_WARN("no flmode prompt after %llu tries, rebooting anyway",
+				PX4_WARN("no flmode prompt after %llu tries, setting baud anyway",
 					 static_cast<unsigned long long>(_startup_mode_attempts));
+				_startup_state = StartupState::SendBaud;
+				ScheduleNow();
+				return;
+			}
+
+			break;
+
+		case StartupState::SendBaud:
+			if (drain_input() < 0) {
+				close_port();
+				return;
+			}
+
+			if (write_command_padded("fluart 921600") != PX4_OK) {
+				close_port();
+				return;
+			}
+
+			tcdrain(_fd);
+			_startup_baud_set_attempts++;
+			reset_startup_prompt();
+			set_startup_deadline(COMMAND_RESPONSE_TIMEOUT);
+			_startup_state = StartupState::WaitBaudPrompt;
+			break;
+
+		case StartupState::WaitBaudPrompt:
+			if (read_startup_response() < 0) {
+				close_port();
+				return;
+			}
+
+			if (_startup_prompt_seen) {
+				reset_startup_prompt();
+				_startup_state = StartupState::SendReboot;
+				ScheduleDelayed(FORMAT_SETTLE_INTERVAL);
+				return;
+			}
+
+			if (startup_deadline_elapsed()) {
+				_startup_prompt_timeouts++;
+
+				if (_startup_baud_set_attempts < STARTUP_COMMAND_RETRY_LIMIT) {
+					_startup_state = StartupState::SendBaud;
+					ScheduleNow();
+					return;
+				}
+
+				PX4_WARN("no fluart prompt after %llu tries, rebooting anyway",
+					 static_cast<unsigned long long>(_startup_baud_set_attempts));
 				_startup_state = StartupState::SendReboot;
 				ScheduleNow();
 				return;
@@ -429,6 +542,8 @@ void AS_DT1::Run()
 			tcdrain(_fd);
 			_startup_reboot_attempts++;
 			_startup_mode_preamble_done = true;
+			_startup_baud_probe_done = true;
+			_baud = ASDT1_DESIRED_BAUD;
 			reset_startup_prompt();
 			close_port();
 			ScheduleDelayed(REBOOT_SETTLE_INTERVAL);
@@ -602,7 +717,7 @@ void AS_DT1::Run()
 				return;
 			}
 
-			if (write_command_padded("fsync 200") != PX4_OK) {
+			if (write_command_padded("fsync 30") != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -719,7 +834,7 @@ int AS_DT1::write_start_command()
 	tcdrain(_fd);
 	px4_usleep(200000);
 
-	if (write_command_padded("fsync 200") != PX4_OK) {
+	if (write_command_padded("fsync 30") != PX4_OK) {
 		return PX4_ERROR;
 	}
 	tcdrain(_fd);
@@ -865,6 +980,61 @@ ssize_t AS_DT1::read_startup_response()
 	return bytes_read;
 }
 
+ssize_t AS_DT1::read_baud_probe_response()
+{
+	_read_attempts++;
+
+	uint8_t buffer[READ_BUFFER_SIZE]{};
+	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+
+	if (bytes_read <= 0) {
+		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+			_no_data_reads++;
+			return 0;
+		}
+
+		_read_errors++;
+		return PX4_ERROR;
+	}
+
+	record_read(buffer, bytes_read);
+
+	constexpr char prompt[] = "\r\n> ";
+	constexpr size_t prompt_len = sizeof(prompt) - 1;
+	constexpr char begin_marker[] = "BEGIN MP\r\n";
+	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
+
+	for (ssize_t i = 0; i < bytes_read; i++) {
+		const char byte = static_cast<char>(buffer[i]);
+
+		if (byte == prompt[_startup_prompt_match_index]) {
+			_startup_prompt_match_index++;
+
+			if (_startup_prompt_match_index == prompt_len) {
+				_startup_prompt_seen = true;
+				_startup_prompt_match_index = 0;
+			}
+
+		} else {
+			_startup_prompt_match_index = (byte == prompt[0]) ? 1 : 0;
+		}
+
+		if (byte == begin_marker[_startup_begin_match_index]) {
+			_startup_begin_match_index++;
+
+			if (_startup_begin_match_index == begin_marker_len) {
+				_startup_begin_seen = true;
+				_startup_begin_match_index = 0;
+			}
+
+		} else {
+			_startup_begin_match_index = (byte == begin_marker[0]) ? 1 : 0;
+		}
+	}
+
+	return bytes_read;
+}
+
 void AS_DT1::record_read(const uint8_t *buffer, ssize_t bytes_read)
 {
 	if (buffer == nullptr || bytes_read <= 0) {
@@ -889,6 +1059,8 @@ void AS_DT1::reset_startup_prompt()
 {
 	_startup_prompt_seen = false;
 	_startup_prompt_match_index = 0;
+	_startup_begin_seen = false;
+	_startup_begin_match_index = 0;
 }
 
 void AS_DT1::set_startup_deadline(hrt_abstime timeout_us)
@@ -963,6 +1135,21 @@ const char *AS_DT1::startup_state_name() const
 
 	case StartupState::WaitModePrompt:
 		return "wait mode prompt";
+
+	case StartupState::BaudProbeDrain:
+		return "baud probe drain";
+
+	case StartupState::BaudProbeSendPromptSync:
+		return "baud probe send prompt sync";
+
+	case StartupState::BaudProbeWaitResponse:
+		return "baud probe wait response";
+
+	case StartupState::SendBaud:
+		return "send baud";
+
+	case StartupState::WaitBaudPrompt:
+		return "wait baud prompt";
 	}
 
 	return "unknown";

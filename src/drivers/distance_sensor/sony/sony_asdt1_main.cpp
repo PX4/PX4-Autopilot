@@ -106,8 +106,8 @@ static int usage()
 		R"DESCR_STR(
 ### Description
 
-Sony AS-DT1 serial driver. It opens the UART, configures 115200 8N1, and writes one
-padded `format binz` command followed by one padded `fsync 200` command.
+Sony AS-DT1 serial driver. It probes 921600 and 115200 baud, configures the sensor
+for 921600 8N1, and starts `format binz` / `fsync 30` streaming.
 
 ### Examples
 

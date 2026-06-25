@@ -87,6 +87,11 @@ private:
 		ModeSendStop,
 		ModeWaitStopPrompt,
 		WaitModePrompt,
+		BaudProbeDrain,
+		BaudProbeSendPromptSync,
+		BaudProbeWaitResponse,
+		SendBaud,
+		WaitBaudPrompt,
 	};
 
 	void start();
@@ -100,6 +105,7 @@ private:
 	int write_prompt_sync();
 	ssize_t drain_input();
 	ssize_t read_startup_response();
+	ssize_t read_baud_probe_response();
 	void record_read(const uint8_t *buffer, ssize_t bytes_read);
 	void reset_parser();
 	void reset_startup_prompt();
@@ -128,7 +134,10 @@ private:
 	static constexpr int PROMPT_SYNC_SETTLE_INTERVAL{500000};
 	static constexpr int COMMAND_RESPONSE_TIMEOUT{1000000};
 	static constexpr int FIRST_FRAME_TIMEOUT{2000000};
+	static constexpr unsigned int ASDT1_DESIRED_BAUD{921600};
+	static constexpr unsigned int ASDT1_FALLBACK_BAUD{115200};
 	static constexpr uint8_t PROMPT_SYNC_ATTEMPT_LIMIT{16};
+	static constexpr uint8_t BAUD_PROBE_ATTEMPT_LIMIT{5};
 	static constexpr uint8_t STARTUP_COMMAND_RETRY_LIMIT{3};
 	static constexpr uint8_t STARTUP_DRAIN_READ_LIMIT{8};
 	static constexpr uint8_t FLSHOW_RETRY_LIMIT{5};
@@ -171,6 +180,8 @@ private:
 	StartupState _startup_state{StartupState::SyncDrain};
 	bool _startup_prompt_seen{false};
 	size_t _startup_prompt_match_index{0};
+	bool _startup_begin_seen{false};
+	size_t _startup_begin_match_index{0};
 	hrt_abstime _startup_deadline{0};
 	uint8_t _startup_sync_attempts{0};
 	uint8_t _startup_stop_attempts{0};
@@ -178,7 +189,10 @@ private:
 	uint64_t _startup_fsync_attempts{0};
 	uint64_t _startup_frame_wait_baseline{0};
 	uint64_t _startup_mode_attempts{0};
+	uint64_t _startup_baud_set_attempts{0};
+	uint64_t _startup_baud_probe_attempts{0};
 	uint64_t _startup_reboot_attempts{0};
+	bool _startup_baud_probe_done{false};
 	bool _startup_mode_preamble_done{false};
 	uint64_t _startup_prompt_timeouts{0};
 	uint64_t _startup_discarded_bytes{0};
