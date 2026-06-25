@@ -50,6 +50,9 @@ public:
 	virtual ~PositionBiasEstimator() = default;
 
 	bool fusionActive() const { return _is_sensor_fusion_active; }
+	// Latched true the first time bias fusion activates (GNSS+EV co-fusing), and
+	// intentionally never cleared. Used on EV restart without GNSS to decide whether
+	// a previously-learned bias exists and can be reused, rather than cold-resetting.
 	bool wasFusionActive() const { return _was_fusion_active; }
 
 	void setFusionActive() { _is_sensor_fusion_active = _was_fusion_active = true;  }
