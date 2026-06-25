@@ -60,12 +60,14 @@ public:
 	VectorMissionRouteProvider(const std::vector<mission_item_s> &mission_items,
 				   const std::vector<mission_item_s> &safe_point_items,
 				   const std::vector<int32_t> &faulty_mission_indices = {},
-				   const std::vector<int32_t> &faulty_safe_point_indices = {})
+				   const std::vector<int32_t> &faulty_safe_point_indices = {},
+				   int32_t land_index = -1)
 	{
 		_mission_items.setItems(mission_items);
 		_safe_point_items.setItems(safe_point_items);
 		_mission_items.setLoadFailureIndices(faulty_mission_indices);
 		_safe_point_items.setLoadFailureIndices(faulty_safe_point_indices);
+		_land_index = land_index;
 	}
 
 	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
@@ -82,6 +84,27 @@ public:
 	{
 		++_safe_point_load_count;
 		return _safe_point_items.loadItem(index, safe_point_item);
+	}
+
+	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override
+	{
+		if (_land_index < 0 || _land_index >= missionCount()) {
+			return false;
+		}
+
+		mission_item_s item{};
+
+		if (!loadMissionItem(_land_index, item)) {
+			return false;
+		}
+
+		if (item.nav_cmd != NAV_CMD_LAND && item.nav_cmd != NAV_CMD_VTOL_LAND) {
+			return false;
+		}
+
+		index = _land_index;
+		land_item = item;
+		return true;
 	}
 
 	bool scanVtolLandApproachBlockForTest(int safe_point_index, float home_altitude_amsl,
@@ -102,6 +125,7 @@ public:
 private:
 	VectorMissionItemStore _mission_items{};
 	VectorMissionItemStore _safe_point_items{};
+	int32_t _land_index{-1};
 	mutable int _mission_load_count{0};
 	mutable int _safe_point_load_count{0};
 };
