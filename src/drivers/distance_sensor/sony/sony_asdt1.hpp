@@ -64,6 +64,7 @@ private:
 	enum class ParserState {
 		FindBegin,
 		ReadPayload,
+		ReadEnd,
 	};
 
 	enum class StartupState {
@@ -134,6 +135,7 @@ private:
 	static constexpr size_t COMMAND_BUFFER_SIZE{32};
 	static constexpr size_t READ_BUFFER_SIZE{512};
 	static constexpr size_t LAST_READ_CAPTURE_SIZE{64};
+	static constexpr uint8_t READ_DRAIN_LIMIT{8};
 	static constexpr int FORMAT_SETTLE_INTERVAL{200000};
 	static constexpr int REBOOT_SETTLE_INTERVAL{3000000};
 	static constexpr int PROMPT_SYNC_INTERVAL{100000};
@@ -167,7 +169,7 @@ private:
 	uORB::Publication<obstacle_distance_s> _obstacle_distance_pub{ORB_ID(obstacle_distance)};
 
 	int _fd{-1};
-	int _interval{10000};
+	int _interval{2000};
 	char _device[20]{};
 	bool _one_shot{false};
 	bool _flshow_only{false};
@@ -207,9 +209,11 @@ private:
 	uint64_t _startup_prompt_timeouts{0};
 	uint64_t _startup_discarded_bytes{0};
 	size_t _begin_match_index{0};
+	size_t _end_match_index{0};
 	uint64_t _frames_rx{0};
 	uint64_t _frames_pub{0};
 	uint64_t _parser_resets{0};
+	uint64_t _end_marker_failures{0};
 	size_t _last_frame_processed_len{0};
 	size_t _last_sample_count{0};
 	uint8_t _last_valid_bins{0};

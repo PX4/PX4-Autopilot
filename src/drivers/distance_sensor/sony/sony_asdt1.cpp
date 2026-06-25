@@ -183,13 +183,16 @@ void AS_DT1::print_info()
 		 static_cast<unsigned>(_startup_baud_probe_done),
 		 static_cast<unsigned long long>(_startup_baud_probe_attempts),
 		 static_cast<unsigned long long>(_startup_baud_set_attempts));
-	PX4_INFO("parser: state %u, begin match %u, frame buffer %u bytes, frames rx %llu, frames pub %llu, resets %llu",
+	PX4_INFO("parser: state %u, begin match %u, end match %u, frame buffer %u bytes",
 		 static_cast<unsigned>(_parser_state),
 		 static_cast<unsigned>(_begin_match_index),
-		 static_cast<unsigned>(_frame_buffer_len),
+		 static_cast<unsigned>(_end_match_index),
+		 static_cast<unsigned>(_frame_buffer_len));
+	PX4_INFO("parser counters: frames rx %llu, frames pub %llu, resets %llu, end fails %llu",
 		 static_cast<unsigned long long>(_frames_rx),
 		 static_cast<unsigned long long>(_frames_pub),
-		 static_cast<unsigned long long>(_parser_resets));
+		 static_cast<unsigned long long>(_parser_resets),
+		 static_cast<unsigned long long>(_end_marker_failures));
 	PX4_INFO("last processed: frame %u bytes, samples %u, valid bins %u, closest %u cm",
 		 static_cast<unsigned>(_last_frame_processed_len),
 		 static_cast<unsigned>(_last_sample_count),
@@ -1046,6 +1049,7 @@ void AS_DT1::reset_parser()
 	_parser_state = ParserState::FindBegin;
 	_frame_buffer_len = 0;
 	_begin_match_index = 0;
+	_end_match_index = 0;
 }
 
 void AS_DT1::reset_startup_prompt()
@@ -1219,26 +1223,34 @@ int AS_DT1::read_once()
 	_read_attempts++;
 
 	uint8_t buffer[READ_BUFFER_SIZE]{};
-	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+	bool got_data = false;
 
-	if (bytes_read <= 0) {
-		if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
-			_no_data_reads++;
-			return PX4_OK;
+	for (uint8_t read_count = 0; read_count < READ_DRAIN_LIMIT; read_count++) {
+		const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
+
+		if (bytes_read <= 0) {
+			if (bytes_read == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+				if (!got_data) {
+					_no_data_reads++;
+				}
+
+				return PX4_OK;
+			}
+
+			_read_errors++;
+			return PX4_ERROR;
 		}
 
-		_read_errors++;
-		return PX4_ERROR;
-	}
+		got_data = true;
+		record_read(buffer, bytes_read);
 
-	record_read(buffer, bytes_read);
+		for (ssize_t i = 0; i < bytes_read; i++) {
+			if (_startup_state == StartupState::WaitFormatPrompt && buffer[i] == '>') {
+				_startup_prompt_seen = true;
+			}
 
-	for (ssize_t i = 0; i < bytes_read; i++) {
-		if (_startup_state == StartupState::WaitFormatPrompt && buffer[i] == '>') {
-			_startup_prompt_seen = true;
+			parse_byte(buffer[i]);
 		}
-
-		parse_byte(buffer[i]);
 	}
 
 	return PX4_OK;
@@ -1248,11 +1260,14 @@ bool AS_DT1::parse_byte(uint8_t byte)
 {
 	constexpr char begin_marker[] = "BEGIN MP\r\n";
 	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
+	constexpr char end_marker[] = "END";
+	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
 
 	const auto reset_parser = [this]() {
 		_parser_state = ParserState::FindBegin;
 		_frame_buffer_len = 0;
 		_begin_match_index = 0;
+		_end_match_index = 0;
 	};
 
 	switch (_parser_state) {
@@ -1285,14 +1300,32 @@ bool AS_DT1::parse_byte(uint8_t byte)
 		_frame_buffer[_frame_buffer_len++] = byte;
 
 		if (_frame_buffer_len == expected_frame_size) {
-			_frames_rx++;
-			process_frame(_frame_buffer, _frame_buffer_len);
-			reset_parser();
-			return true;
+			_parser_state = ParserState::ReadEnd;
+			_end_match_index = 0;
 		}
 
 		break;
 	}
+
+	case ParserState::ReadEnd:
+		if (byte == static_cast<uint8_t>(end_marker[_end_match_index])) {
+			_end_match_index++;
+
+			if (_end_match_index == end_marker_len) {
+				_frames_rx++;
+				process_frame(_frame_buffer, _frame_buffer_len);
+				reset_parser();
+				return true;
+			}
+
+		} else {
+			_parser_resets++;
+			_end_marker_failures++;
+			reset_parser();
+			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
+		}
+
+		break;
 	}
 
 	return false;
