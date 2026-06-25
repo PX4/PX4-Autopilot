@@ -1673,6 +1673,15 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				 (int)_param_cat_tail5_rel.get(), (int)_param_cat_tail6_rel.get());
 		}
 
+		// Catapult extension: once the tail is released, optionally hand the
+		// vehicle over to a selected flight mode (CAT_TO_MODE), e.g. Stabilized
+		// for RC takeover or Hold/Mission for autonomous flight.
+		if (_param_cat_en.get() && _cat_tail_released && !_cat_mode_requested
+		    && _param_cat_to_mode.get() != 0) {
+			commandPostLaunchMode(_param_cat_to_mode.get());
+			_cat_mode_requested = true;
+		}
+
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),
 						       _launch_global_position(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -2862,6 +2871,7 @@ FixedwingPositionControl::reset_takeoff_state()
 	_cat_launch_time = 0;
 	_cat_tail_locked = false;
 	_cat_tail_released = false;
+	_cat_mode_requested = false;
 
 	_takeoff_ground_alt = _current_altitude;
 }
@@ -2890,6 +2900,48 @@ FixedwingPositionControl::commandCatapultTailServos(int pwm5_us, int pwm6_us)
 	cmd.source_component = 1;
 	cmd.from_external    = false;
 	_vehicle_command_pub.publish(cmd);
+}
+
+void
+FixedwingPositionControl::commandPostLaunchMode(int mode)
+{
+	// PX4 custom flight-mode identifiers (see commander/px4_custom_mode.h).
+	// DO_SET_MODE: param1=base(custom), param2=main mode, param3=auto sub-mode.
+	static constexpr float MAIN_MANUAL     = 1.f;
+	static constexpr float MAIN_ALTCTL     = 2.f;
+	static constexpr float MAIN_POSCTL     = 3.f;
+	static constexpr float MAIN_AUTO       = 4.f;
+	static constexpr float MAIN_STABILIZED = 7.f;
+	static constexpr float SUB_AUTO_LOITER  = 3.f;
+	static constexpr float SUB_AUTO_MISSION = 4.f;
+
+	float main_mode = 0.f;
+	float sub_mode  = 0.f;
+	const char *name = "";
+
+	switch (mode) {
+	case 1: main_mode = MAIN_STABILIZED; name = "Stabilized"; break;
+	case 2: main_mode = MAIN_ALTCTL;     name = "Altitude";   break;
+	case 3: main_mode = MAIN_POSCTL;     name = "Position";   break;
+	case 4: main_mode = MAIN_AUTO; sub_mode = SUB_AUTO_LOITER;  name = "Hold";    break;
+	case 5: main_mode = MAIN_AUTO; sub_mode = SUB_AUTO_MISSION; name = "Mission"; break;
+	case 6: main_mode = MAIN_MANUAL;     name = "Manual";     break;
+	default: return; /* 0 or unknown: no transition */
+	}
+
+	vehicle_command_s cmd{};
+	cmd.timestamp        = hrt_absolute_time();
+	cmd.command          = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
+	cmd.param1           = 1.f; /* base mode: custom enabled */
+	cmd.param2           = main_mode;
+	cmd.param3           = sub_mode;
+	cmd.target_system    = 1;
+	cmd.target_component = 1;
+	cmd.source_system    = 1;
+	cmd.source_component = 1;
+	cmd.from_external    = false;
+	_vehicle_command_pub.publish(cmd);
+	PX4_INFO("[catapult] post-launch mode -> %s requested", name);
 }
 
 void

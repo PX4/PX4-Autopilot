@@ -124,6 +124,19 @@ commandCatapultTailServos()          FunctionActuatorSet              QGC output
 | `CAT_TAIL6_LCK` | int [µs] | 1000 | MAIN6 ロック位置PWM |
 | `CAT_TAIL6_REL` | int [µs] | 2000 | MAIN6 リリース位置PWM |
 | `CAT_MOT_REQ_TAIL` | bool | 1 | 1=尾翼解放までモーターをidle保持（筒内暴発防止） |
+| `CAT_TO_MODE` | int | 0 | 射出後の自動モード遷移。0=なし/1=Stab/2=Alt/3=Pos/4=Hold/5=Mission/6=Manual |
+
+### `CAT_TO_MODE`（射出後の自動フライトモード遷移）
+
+尾翼解放（射出シーケンス完了）後に、`DO_SET_MODE` で選択モードへ一度だけ自動遷移する。
+0なら遷移せず標準挙動（AUTO_TAKEOFF継続→高度到達でHold）。手動系（Stab/Alt/Pos/Manual）は
+RC入力が前提、Auto系（Hold/Mission）はRC不要で自律動作。
+
+- 実機でRC操縦に引き継ぐ → `CAT_TO_MODE=1`（Stabilized）
+- SITL（RC無し）で射出後の飛行継続を確認 → `CAT_TO_MODE=4`（Hold）
+
+実装: `commandPostLaunchMode()`（`FixedwingPositionControl.cpp`）。尾翼解放後 `_cat_mode_requested`
+で一度だけ発行。`reset_takeoff_state()` でリセット。
 
 ### 併せて必要な既存パラメータ
 

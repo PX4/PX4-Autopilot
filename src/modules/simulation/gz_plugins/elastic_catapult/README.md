@@ -195,8 +195,27 @@ rm -f /tmp/px4-sock-1 /tmp/px4_lock-1
 | `CAT_TAIL5_LCK/REL` | (既定1000/2000) | MAIN5 ロック/解放PWM[µs] | サーボ向きに合わせ調整 |
 | `CAT_TAIL6_LCK/REL` | (既定1000/2000) | MAIN6 ロック/解放PWM[µs] | 逆向きなら反転 |
 | `CAT_MOT_REQ_TAIL` | (既定1) | 尾翼解放までモーターidle保持 | 0で即モーター許可 |
+| `CAT_TO_MODE` | (既定0) | 射出後の自動モード遷移 | 0=なし/1=Stab/2=Alt/3=Pos/4=Hold/5=Mission/6=Manual |
 | `NAV_DLL_ACT` | `0` | データリンク喪失時の動作無効化 | SITLでGCS無し時の誤failsafe回避 |
 | `COM_RCL_EXCEPT` | `7` | RC喪失を例外扱い | SITLでRC無し時の誤failsafe回避 |
+
+#### `CAT_TO_MODE`（射出後の自動モード遷移）
+
+尾翼解放（射出シーケンス完了）後に、選択したフライトモードへ自動遷移する。
+0なら遷移せず標準挙動（AUTO_TAKEOFF継続→高度到達でHold）。
+
+| 値 | 遷移先 | RC必要 | 用途 |
+|---|---|---|---|
+| 0 | なし（既定） | — | 標準のAUTO_TAKEOFF |
+| 1 | Stabilized | ✅ | 実機RC手動操縦 |
+| 2 | Altitude | ✅ | 高度保持＋手動 |
+| 3 | Position | ✅ | 位置保持＋手動 |
+| 4 | Hold (Loiter) | ❌ | 自律旋回（**SITL検証向き**） |
+| 5 | Mission | ❌ | ミッション自動実行 |
+| 6 | Manual | ✅ | 完全手動 |
+
+> SITLでRC無しなら `CAT_TO_MODE=4`（Hold）が射出後も自律飛行を続けて確認しやすい。
+> 実機でRC操縦に引き継ぐなら `CAT_TO_MODE=1`（Stabilized）。手動系はRC入力が無いと落ちる。
 
 > `CAT_*` の全リストと意味は `CATAPULT_LAUNCH.md`（リポジトリ直下）を参照。
 

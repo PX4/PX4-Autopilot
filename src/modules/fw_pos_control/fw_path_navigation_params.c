@@ -1041,3 +1041,27 @@ PARAM_DEFINE_INT32(CAT_TAIL6_REL, 2000);
  * @group FW Launch detection
  */
 PARAM_DEFINE_INT32(CAT_MOT_REQ_TAIL, 1);
+
+/**
+ * Catapult: auto flight-mode transition after launch
+ *
+ * When non-zero, the vehicle automatically switches to the selected flight
+ * mode once the catapult tail-lock servos have been released (i.e. after the
+ * launch sequence completes). 0 keeps the standard behaviour (stay in
+ * Takeoff, then Hold on completion).
+ *
+ * Manual modes (Stabilized/Altitude/Position/Manual) require RC input.
+ * Auto modes (Hold/Mission) are autonomous and work without RC.
+ *
+ * @value 0 Disabled (default)
+ * @value 1 Stabilized
+ * @value 2 Altitude
+ * @value 3 Position
+ * @value 4 Hold (Loiter)
+ * @value 5 Mission
+ * @value 6 Manual
+ * @min 0
+ * @max 6
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_TO_MODE, 0);

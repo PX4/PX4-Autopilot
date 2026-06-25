@@ -334,6 +334,7 @@ private:
 	hrt_abstime _cat_launch_time{0};  // T0: time launch was detected
 	bool _cat_tail_locked{false};     // tail-lock servos commanded to lock position
 	bool _cat_tail_released{false};   // tail-lock servos commanded to release position
+	bool _cat_mode_requested{false};  // post-launch flight-mode switch already requested
 
 	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
 	RunwayTakeoff _runway_takeoff;
@@ -674,6 +675,14 @@ private:
 	 * @param pwm6_us PWM (us) for tail servo 2 (Set2 / MAIN6)
 	 */
 	void commandCatapultTailServos(int pwm5_us, int pwm6_us);
+
+	/**
+	 * @brief Requests an automatic flight-mode change after the catapult launch
+	 *        sequence completes (CAT_TO_MODE). Issued once via DO_SET_MODE.
+	 *
+	 * @param mode CAT_TO_MODE selector (1=Stab 2=Alt 3=Pos 4=Hold 5=Mission 6=Manual)
+	 */
+	void commandPostLaunchMode(int mode);
 
 	/**
 	 * @brief Controls automatic landing with straight approach.
@@ -1074,7 +1083,8 @@ private:
 		(ParamInt<px4::params::CAT_TAIL5_REL>) _param_cat_tail5_rel,
 		(ParamInt<px4::params::CAT_TAIL6_LCK>) _param_cat_tail6_lck,
 		(ParamInt<px4::params::CAT_TAIL6_REL>) _param_cat_tail6_rel,
-		(ParamInt<px4::params::CAT_MOT_REQ_TAIL>) _param_cat_mot_req_tail
+		(ParamInt<px4::params::CAT_MOT_REQ_TAIL>) _param_cat_mot_req_tail,
+		(ParamInt<px4::params::CAT_TO_MODE>) _param_cat_to_mode
 	)
 
 };
