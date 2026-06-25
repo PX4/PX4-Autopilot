@@ -150,10 +150,12 @@ void ElasticCatapultSystem::holdPoseStationary(gz::sim::EntityComponentManager &
 	const auto pose = _link.WorldPose(ecm);
 
 	if (pose.has_value()) {
-		// Pin position + orientation and zero out all motion.
+		// Pin position + orientation via a pose command only. Do NOT issue
+		// velocity commands here: in gz-sim a LinearVelocityCmd/AngularVelocityCmd
+		// persists and keeps forcing the velocity to zero on later steps, which
+		// would cancel the catapult force during CATAPULTING. The pose teleport
+		// alone keeps the model effectively stationary while WAITING.
 		_model.SetWorldPoseCmd(ecm, gz::math::Pose3d(pose.value().Pos(), _q_hold));
-		_link.SetLinearVelocity(ecm, gz::math::Vector3d::Zero);
-		_link.SetAngularVelocity(ecm, gz::math::Vector3d::Zero);
 	}
 }
 
@@ -214,18 +216,24 @@ void ElasticCatapultSystem::PreUpdate(const gz::sim::UpdateInfo &_info, gz::sim:
 		break;
 
 	case State::CATAPULTING: {
-			holdAttitudeOnly(_ecm);
-
 			if (_force_model == "velocity") {
-				// Deterministic release speed: ramp the launch-direction speed
-				// linearly from 0 to target over t_catapult. Avoids fighting the
-				// physics solver with a pose teleport (see spec note 14).
+				// Kinematic ramp: deterministic release speed but bypasses the
+				// physics force solver, so the IMU registers no acceleration and
+				// PX4's accel-based launch detector will NOT fire. Use only when
+				// the firmware launch detector is not under test.
+				holdAttitudeOnly(_ecm);
 				const double tau = sim_time - _t_start;
 				const double ramp = std::min(1.0, std::max(0.0, tau / _t_catapult));
 				_link.SetLinearVelocity(_ecm, _dir_world * (_target_speed * ramp));
 
 			} else {
-				// Pure force models ("constant" | "spring").
+				// Force models ("constant" | "spring"). The wrench goes through
+				// the physics solver so the IMU sees real acceleration and PX4's
+				// launch detector fires. Do NOT set angular velocity here: in
+				// gz-sim that resets the full spatial velocity each step and would
+				// zero the linear speed the force is building up. The force acts at
+				// the CG (no induced torque) so attitude stays close over the short
+				// catapult window.
 				const gz::math::Vector3d force = computeForce(sim_time, _ecm);
 				_link.AddWorldWrench(_ecm, force, gz::math::Vector3d::Zero);
 			}
