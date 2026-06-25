@@ -162,7 +162,7 @@ private:
 	bool _one_shot{false};
 	bool _flshow_only{false};
 	int32_t _mode{0};
-	unsigned int _baud{115200};
+	unsigned int _baud{ASDT1_DESIRED_BAUD};
 	char _last_command[COMMAND_BUFFER_SIZE]{};
 	size_t _last_command_len{0};
 	ssize_t _last_write{-1};
