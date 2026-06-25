@@ -51,6 +51,7 @@
 #include <sys/boardctl.h>
 #endif
 
+
 static uORB::DeviceMaster *g_dev = nullptr;
 
 int uorb_start(void)
@@ -113,6 +114,18 @@ int uorb_top(char **topic_filter, int num_filters)
 	return OK;
 }
 
+void uorb_shutdown(void)
+{
+#ifdef CONFIG_ORB_COMMUNICATOR
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
+
+	if (ch) {
+		ch->shutdown();
+	}
+
+#endif /* CONFIG_ORB_COMMUNICATOR */
+}
+
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 {
 	return uORB::Manager::get_instance()->orb_advertise(meta, data);
@@ -133,27 +146,27 @@ int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void
 	return uORB::Manager::get_instance()->orb_publish(meta, handle, data);
 }
 
-int orb_subscribe(const struct orb_metadata *meta)
+orb_sub_t orb_subscribe(const struct orb_metadata *meta)
 {
 	return uORB::Manager::get_instance()->orb_subscribe(meta);
 }
 
-int orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
+orb_sub_t orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 {
 	return uORB::Manager::get_instance()->orb_subscribe_multi(meta, instance);
 }
 
-int orb_unsubscribe(int handle)
+int orb_unsubscribe(orb_sub_t handle)
 {
 	return uORB::Manager::get_instance()->orb_unsubscribe(handle);
 }
 
-int orb_copy(const struct orb_metadata *meta, int handle, void *buffer)
+int orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buffer)
 {
 	return uORB::Manager::get_instance()->orb_copy(meta, handle, buffer);
 }
 
-int orb_check(int handle, bool *updated)
+int orb_check(orb_sub_t handle, bool *updated)
 {
 	return uORB::Manager::get_instance()->orb_check(handle, updated);
 }
@@ -174,12 +187,12 @@ int orb_group_count(const struct orb_metadata *meta)
 	return instance;
 }
 
-int orb_set_interval(int handle, unsigned interval)
+int orb_set_interval(orb_sub_t handle, unsigned interval)
 {
 	return uORB::Manager::get_instance()->orb_set_interval(handle, interval);
 }
 
-int orb_get_interval(int handle, unsigned *interval)
+int orb_get_interval(orb_sub_t handle, unsigned *interval)
 {
 	return uORB::Manager::get_instance()->orb_get_interval(handle, interval);
 }

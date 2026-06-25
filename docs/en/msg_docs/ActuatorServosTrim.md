@@ -1,14 +1,38 @@
+---
+pageClass: is-wide-page
+---
+
 # ActuatorServosTrim (UORB message)
 
-Servo trims, added as offset to servo outputs
+Servo trims, added as offset to servo outputs.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorServosTrim.msg)
+**TOPICS:** actuator_servos_trim
+
+## Fields
+
+| Name                                | Type          | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | ------------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`      |              |            | time since system start (microseconds) |
+| <a id="fld_trim"></a>trim           | `float32[15]` |              |            | range: [-1, 1]                         |
+
+## Constants
+
+| Name                                    | Type    | Value | Description |
+| --------------------------------------- | ------- | ----- | ----------- |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS | `uint8` | 15    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorServosTrim.msg)
+
+::: details Click here to see original file
 
 ```c
 # Servo trims, added as offset to servo outputs
 uint64 timestamp			# time since system start (microseconds)
 
-uint8 NUM_CONTROLS = 8
-float32[8] trim    # range: [-1, 1]
-
+uint8 NUM_CONTROLS = 15
+float32[15] trim    # range: [-1, 1]
 ```
+
+:::

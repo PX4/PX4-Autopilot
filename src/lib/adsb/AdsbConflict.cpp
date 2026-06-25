@@ -95,9 +95,9 @@ void AdsbConflict::detect_traffic_conflict(double lat_now, double lon_now, float
 int AdsbConflict::find_icao_address_in_conflict_list(uint32_t icao_address)
 {
 
-	for (uint8_t i = 0; i < _traffic_buffer.icao_address.size(); i++) {
+	for (size_t i = 0; i < _traffic_buffer.icao_address.size(); i++) {
 		if (_traffic_buffer.icao_address[i] == icao_address) {
-			return i;
+			return static_cast<int>(i);
 		}
 	}
 

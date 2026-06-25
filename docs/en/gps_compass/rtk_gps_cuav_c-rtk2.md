@@ -1,6 +1,6 @@
 # CUAV C-RTK2 GNSS Module (RTK/PPK)
 
-The [CUAV C-RTK2 receiver](https://www.cuav.net/en/c_rtk_9ps/) is a high-performance PPK/RTK positioning module created by CUAV for professional applications such as drone aerial surveying and mapping.
+The [CUAV C-RTK2 receiver](https://www.cuav.net/en/c-rtk-9ps-en/) is a high-performance PPK/RTK positioning module created by CUAV for professional applications such as drone aerial surveying and mapping.
 It has a high-precision IMU and positioning module, and can reduce the number of required [control points](https://www.youtube.com/watch?v=3k7v5aXyuKQ) by more than to 80%.
 In addition to surveying/mapping, it is suitable for many other use-cases, including: agricultural plant protection and drone swarms.
 
@@ -10,7 +10,7 @@ In addition to surveying/mapping, it is suitable for many other use-cases, inclu
 
 - High-performance H7 processor
 - High precision industrial grade IMU
-- Support RTK and save RAW raw data (PPK) at the same time
+- Support RTK and save raw data (PPK) at the same time
 - Multi-satellite and multi-frequency receivers
 - UAVCAN/Dronecan protocol
 - Support hotshoe and shutter trigger
@@ -18,7 +18,7 @@ In addition to surveying/mapping, it is suitable for many other use-cases, inclu
 
 ## Where to Buy
 
-- [CUAV Store](https://store.cuav.net/shop/c-rtk-2/)
+- [CUAV Store](https://store.cuav.net/?route=product%2Fproduct&product_id=159)
 - [CUAV aliexpress](https://pt.aliexpress.com/item/1005003754165772.html?spm=a2g0o.store_pc_groupList.8148356.13.2f893550i0NE4o)
 
 # Quick Summary

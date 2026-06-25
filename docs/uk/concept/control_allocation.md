@@ -2,7 +2,7 @@
 
 :::info
 Розподіл керування замінює застарілий підхід змішування, який використовувався в PX4 v1.13 або раніше.
-Документацію по PX4 v1.13 дивіться в: [Змішування та приводи](https://docs.px4.io/v1.13/en/concept/mixing.html), [Файли геометрії](https://docs.px4.io/v1.13/en/concept/geometry_files.html) та [Додавання налаштувань нового планера](https://docs.px4.io/v1.13/en/dev_airframes/adding_a_new_frame.html).
+For PX4 v1.13 documentation see: [Mixing & Actuators](https://docs.px4.io/v1.13/en/concept/mixing), [Geometry Files](https://docs.px4.io/v1.13/en/concept/geometry_files) and [Adding a New Airframe Configuration](https://docs.px4.io/v1.13/en/dev_airframes/adding_a_new_frame).
 :::
 
 PX4 приймає бажані команди моменту та тяги від основних контролерів і перекладає їх у команди приводів, які керують двигунами чи сервоприводами.
@@ -31,7 +31,7 @@ PX4 відокремлює цю логіку перекладу, що назив
 
 ![Pipeline Overview](../../assets/concepts/control_allocation_pipeline.png)
 
-Примітки:
+Notes:
 
 - Регулятор швидкості видає задані значення моменту та тяги
 - модуль `control_allocator`:

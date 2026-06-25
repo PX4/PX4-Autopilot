@@ -1,8 +1,36 @@
+---
+pageClass: is-wide-page
+---
+
 # PowerMonitor (повідомлення UORB)
 
-power monitor message
+power monitor message.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/PowerMonitor.msg)
+**TOPICS:** power_monitor
+
+## Fields
+
+| Назва                                                    | Тип       | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64`  |                                                                  |            | Time since system start (microseconds) |
+| <a id="fld_voltage_v"></a>voltage_v | `float32` |                                                                  |            | Voltage in volts, 0 if unknown                            |
+| <a id="fld_current_a"></a>current_a | `float32` |                                                                  |            | Current in amperes, -1 if unknown                         |
+| <a id="fld_power_w"></a>power_w     | `float32` |                                                                  |            | power in watts, -1 if unknown                             |
+| <a id="fld_rconf"></a>rconf                              | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_rsv"></a>rsv                                  | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_rbv"></a>rbv                                  | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_rp"></a>rp                                    | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_rc"></a>rc                                    | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_rcal"></a>rcal                                | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_me"></a>me                                    | `int16`   |                                                                  |            |                                                           |
+| <a id="fld_al"></a>al                                    | `int16`   |                                                                  |            |                                                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/PowerMonitor.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # power monitor message
@@ -20,5 +48,6 @@ int16 rc
 int16 rcal
 int16 me
 int16 al
-
 ```
+
+:::

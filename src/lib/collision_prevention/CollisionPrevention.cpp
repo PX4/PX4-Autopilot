@@ -40,6 +40,8 @@
 #include "CollisionPrevention.hpp"
 #include "ObstacleMath.hpp"
 #include <px4_platform_common/events.h>
+#include <math.h>
+
 
 using namespace matrix;
 
@@ -329,7 +331,7 @@ CollisionPrevention::_enterData(int map_index, float sensor_range, float sensor_
 	//3. this sensor data is out of range, the last reading was as well and this is the sensor with longest range
 	//4. this sensor data is out of range, the last reading was valid and coming from the same sensor
 
-	uint16_t sensor_range_cm = static_cast<uint16_t>(100.0f * sensor_range + 0.5f); //convert to cm
+	uint16_t sensor_range_cm = static_cast<uint16_t>(lroundf(100.0f * sensor_range)); //convert to cm
 
 	if (sensor_reading < sensor_range) {
 		if ((_obstacle_map_body_frame.distances[map_index] < _data_maxranges[map_index]
@@ -355,18 +357,18 @@ CollisionPrevention::_enterData(int map_index, float sensor_range, float sensor_
 bool
 CollisionPrevention::_checkSetpointDirectionFeasability()
 {
-	bool setpoint_feasible = true;
-
-	for (int i = 0; i < BIN_COUNT; i++) {
-		// check if our setpoint is either pointing in a direction where data exists, or if not, wether we are allowed to go where there is no data
-		if ((_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == _setpoint_index) && (!_param_cp_go_no_data.get()
-				|| (_param_cp_go_no_data.get() && _data_fov[i]))) {
-			setpoint_feasible =  false;
-
-		}
+	if (_setpoint_index < 0 || _setpoint_index >= BIN_COUNT) {
+		return false; // treat out-of-bounds as unsafe
 	}
 
-	return setpoint_feasible;
+	const bool no_data = (_obstacle_map_body_frame.distances[_setpoint_index] == UINT16_MAX);
+	const bool allow_movement_towards_no_data = _param_cp_go_no_data.get();
+	const bool fov_at_setpoint = _data_fov[_setpoint_index];
+
+	// The setpoint is feasible if:
+	// 1. There is actual data at the setpoint (no_data == false), OR
+	// 2. There is no data, but movement into no-data bins is allowed and the setpoint is outside the sensor FOV.
+	return !no_data || (allow_movement_towards_no_data && !fov_at_setpoint);
 }
 
 void
@@ -406,13 +408,13 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 			ObstacleMath::project_distance_on_horizontal_plane(distance_reading, sensor_yaw_body_rad, vehicle_attitude);
 		}
 
-		uint16_t sensor_range = static_cast<uint16_t>(100.0f * distance_sensor.max_distance + 0.5f); // convert to cm
+		uint16_t sensor_range = static_cast<uint16_t>(lroundf(100.0f * distance_sensor.max_distance)); // convert to cm
 
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 			int wrapped_bin = ObstacleMath::wrap_bin(bin, BIN_COUNT);
 
 			if (_enterData(wrapped_bin, distance_sensor.max_distance, distance_reading)) {
-				_obstacle_map_body_frame.distances[wrapped_bin] = static_cast<uint16_t>(100.0f * distance_reading + 0.5f);
+				_obstacle_map_body_frame.distances[wrapped_bin] = static_cast<uint16_t>(lroundf(100.0f * distance_reading));
 				_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
 				_data_maxranges[wrapped_bin] = sensor_range;
 				_data_fov[wrapped_bin] = 1;

@@ -53,11 +53,11 @@ InputMavlinkROI::InputMavlinkROI(Parameters &parameters) :
 
 InputMavlinkROI::~InputMavlinkROI()
 {
-	if (_vehicle_roi_sub >= 0) {
+	if (orb_sub_valid(_vehicle_roi_sub)) {
 		orb_unsubscribe(_vehicle_roi_sub);
 	}
 
-	if (_position_setpoint_triplet_sub >= 0) {
+	if (orb_sub_valid(_position_setpoint_triplet_sub)) {
 		orb_unsubscribe(_position_setpoint_triplet_sub);
 	}
 }
@@ -66,13 +66,13 @@ int InputMavlinkROI::initialize()
 {
 	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
-	if (_vehicle_roi_sub < 0) {
+	if (!orb_sub_valid(_vehicle_roi_sub)) {
 		return -errno;
 	}
 
 	_position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
-	if (_position_setpoint_triplet_sub < 0) {
+	if (!orb_sub_valid(_position_setpoint_triplet_sub)) {
 		return -errno;
 	}
 
@@ -175,14 +175,16 @@ InputMavlinkCmdMount::InputMavlinkCmdMount(Parameters &parameters) :
 
 InputMavlinkCmdMount::~InputMavlinkCmdMount()
 {
-	if (_vehicle_command_sub >= 0) {
+	if (orb_sub_valid(_vehicle_command_sub)) {
 		orb_unsubscribe(_vehicle_command_sub);
 	}
 }
 
 int InputMavlinkCmdMount::initialize()
 {
-	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (!orb_sub_valid(_vehicle_command_sub)) {
 		return -errno;
 	}
 
@@ -323,9 +325,9 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 		// Stabilization params are ignored. Use MNT_DO_STAB param instead.
 
 		const int params[] = {
-			(int)((float) vehicle_command.param5 + 0.5f),
-			(int)((float) vehicle_command.param6 + 0.5f),
-			(int)(vehicle_command.param7 + 0.5f)
+			static_cast<int>(lroundf(vehicle_command.param5)),
+			static_cast<int>(lroundf(vehicle_command.param6)),
+			static_cast<int>(lroundf(vehicle_command.param7))
 		};
 
 		for (int i = 0; i < 3; ++i) {
@@ -391,23 +393,23 @@ InputMavlinkGimbalV2::InputMavlinkGimbalV2(Parameters &parameters) :
 
 InputMavlinkGimbalV2::~InputMavlinkGimbalV2()
 {
-	if (_vehicle_roi_sub >= 0) {
+	if (orb_sub_valid(_vehicle_roi_sub)) {
 		orb_unsubscribe(_vehicle_roi_sub);
 	}
 
-	if (_position_setpoint_triplet_sub >= 0) {
+	if (orb_sub_valid(_position_setpoint_triplet_sub)) {
 		orb_unsubscribe(_position_setpoint_triplet_sub);
 	}
 
-	if (_gimbal_manager_set_attitude_sub >= 0) {
+	if (orb_sub_valid(_gimbal_manager_set_attitude_sub)) {
 		orb_unsubscribe(_gimbal_manager_set_attitude_sub);
 	}
 
-	if (_vehicle_command_sub >= 0) {
+	if (orb_sub_valid(_vehicle_command_sub)) {
 		orb_unsubscribe(_vehicle_command_sub);
 	}
 
-	if (_gimbal_manager_set_manual_control_sub >= 0) {
+	if (orb_sub_valid(_gimbal_manager_set_manual_control_sub)) {
 		orb_unsubscribe(_gimbal_manager_set_manual_control_sub);
 	}
 }
@@ -422,27 +424,31 @@ int InputMavlinkGimbalV2::initialize()
 {
 	_vehicle_roi_sub = orb_subscribe(ORB_ID(vehicle_roi));
 
-	if (_vehicle_roi_sub < 0) {
+	if (!orb_sub_valid(_vehicle_roi_sub)) {
 		return -errno;
 	}
 
 	_position_setpoint_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 
-	if (_position_setpoint_triplet_sub < 0) {
+	if (!orb_sub_valid(_position_setpoint_triplet_sub)) {
 		return -errno;
 	}
 
 	_gimbal_manager_set_attitude_sub = orb_subscribe(ORB_ID(gimbal_manager_set_attitude));
 
-	if (_gimbal_manager_set_attitude_sub < 0) {
+	if (!orb_sub_valid(_gimbal_manager_set_attitude_sub)) {
 		return -errno;
 	}
 
-	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (!orb_sub_valid(_vehicle_command_sub)) {
 		return -errno;
 	}
 
-	if ((_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control))) < 0) {
+	_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control));
+
+	if (!orb_sub_valid(_gimbal_manager_set_manual_control_sub)) {
 		return -errno;
 	}
 
@@ -508,10 +514,12 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK |
 			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL;
 
-		gimbal_manager_info.pitch_max = _parameters.mnt_range_pitch;
-		gimbal_manager_info.pitch_min = -_parameters.mnt_range_pitch;
-		gimbal_manager_info.yaw_max = _parameters.mnt_range_yaw;
-		gimbal_manager_info.yaw_min = -_parameters.mnt_range_yaw;
+		gimbal_manager_info.pitch_max = math::radians(_parameters.mnt_max_pitch);
+		gimbal_manager_info.pitch_min = math::radians(_parameters.mnt_min_pitch);
+		gimbal_manager_info.yaw_max = math::radians(_parameters.mnt_range_yaw * 0.5f);
+		gimbal_manager_info.yaw_min = math::radians(-_parameters.mnt_range_yaw * 0.5f);
+		gimbal_manager_info.roll_max = math::radians(_parameters.mnt_range_roll * 0.5f);
+		gimbal_manager_info.roll_min = math::radians(-_parameters.mnt_range_roll * 0.5f);
 
 		gimbal_manager_info.gimbal_device_id = control_data.device_compid;
 
@@ -777,9 +785,9 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		// Stabilization params are ignored. Use MNT_DO_STAB param instead.
 
 		const int params[] = {
-			(int)((float) vehicle_command.param5 + 0.5f),
-			(int)((float) vehicle_command.param6 + 0.5f),
-			(int)(vehicle_command.param7 + 0.5f)
+			static_cast<int>(lroundf(vehicle_command.param5)),
+			static_cast<int>(lroundf(vehicle_command.param6)),
+			static_cast<int>(lroundf(vehicle_command.param7))
 		};
 
 		for (int i = 0; i < 3; ++i) {
@@ -902,8 +910,10 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		if (vehicle_command.source_system == control_data.sysid_primary_control &&
 		    vehicle_command.source_component == control_data.compid_primary_control) {
 
-			const matrix::Eulerf euler(0.0f, math::radians(vehicle_command.param1),
-						   math::radians(vehicle_command.param2));
+			const matrix::Eulerf euler(
+				0.0f,
+				PX4_ISFINITE(vehicle_command.param1) ? math::radians(vehicle_command.param1) : 0.0f,
+				PX4_ISFINITE(vehicle_command.param2) ? math::radians(vehicle_command.param2) : 0.0f);
 			const matrix::Quatf q(euler);
 			const matrix::Vector3f angular_velocity(NAN, math::radians(vehicle_command.param3),
 								math::radians(vehicle_command.param4));

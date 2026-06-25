@@ -147,6 +147,7 @@ protected:
 		param_t emergen_thr;
 		param_t source;
 		param_t bat_avrg_current;
+		param_t i_overwrite;
 	} _param_handles{};
 
 	struct {
@@ -159,6 +160,7 @@ protected:
 		float emergen_thr;
 		int32_t source;
 		float bat_avrg_current;
+		float i_overwrite;
 	} _params{};
 
 	const int _index;
@@ -200,6 +202,7 @@ private:
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
+	bool _vehicle_status_was_fw{false};
 	hrt_abstime _last_unconnected_timestamp{0};
 
 	// Internal Resistance estimation
@@ -217,4 +220,10 @@ private:
 	static constexpr float OCV_DEFAULT = 4.2f; // [V] Initial per cell estimate of the open circuit voltage
 	static constexpr float R_COVARIANCE = 0.1f; // Initial per cell covariance of the internal resistance
 	static constexpr float OCV_COVARIANCE = 1.5f; // Initial per cell covariance of the open circuit voltage
+
+	// Temperature [degC] above which an overtemperature fault is declared,
+	// leading to a failsafe warning recommending immediate landing. Note
+	// that depending on the setup this may be measured in/close to the
+	// battery (smart battery) or from a separate power monitor module.
+	static constexpr float BAT_TEMP_MAX = 100.0f;
 };

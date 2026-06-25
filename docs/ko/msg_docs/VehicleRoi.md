@@ -1,8 +1,43 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleRoi (UORB message)
 
-Vehicle Region Of Interest (ROI)
+Vehicle Region Of Interest (ROI).
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleRoi.msg)
+**TOPICS:** vehicle_roi
+
+## Fields
+
+| 명칭                                                             | 형식        | Unit [Frame] | Range/Enum | 설명                                                        |
+| -------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                            | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_mode"></a>mode                                      | `uint8`   |                                                                  |            | ROI mode (see above)                   |
+| <a id="fld_lat"></a>lat                                        | `float64` |                                                                  |            | Latitude to point to                                      |
+| <a id="fld_lon"></a>lon                                        | `float64` |                                                                  |            | Longitude to point to                                     |
+| <a id="fld_alt"></a>alt                                        | `float32` |                                                                  |            | Altitude to point to                                      |
+| <a id="fld_roll_offset"></a>roll_offset   | `float32` |                                                                  |            | angle offset in rad                                       |
+| <a id="fld_pitch_offset"></a>pitch_offset | `float32` |                                                                  |            | angle offset in rad                                       |
+| <a id="fld_yaw_offset"></a>yaw_offset     | `float32` |                                                                  |            | angle offset in rad                                       |
+
+## Constants
+
+| 명칭                                                                                | 형식      | Value | 설명                                             |
+| --------------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------- |
+| <a id="#ROI_NONE"></a> ROI_NONE                              | `uint8` | 0     | No region of interest                          |
+| <a id="#ROI_WPNEXT"></a> ROI_WPNEXT                          | `uint8` | 1     | Point toward next MISSION with optional offset |
+| <a id="#ROI_WPINDEX"></a> ROI_WPINDEX                        | `uint8` | 2     | Point toward given MISSION                     |
+| <a id="#ROI_LOCATION"></a> ROI_LOCATION                      | `uint8` | 3     | Point toward fixed location                    |
+| <a id="#ROI_TARGET"></a> ROI_TARGET                          | `uint8` | 4     | Point toward target                            |
+| <a id="#ROI_ENUM_END"></a> ROI_ENUM_END | `uint8` | 5     |                                                |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleRoi.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Vehicle Region Of Interest (ROI)
@@ -26,5 +61,6 @@ float32 alt			    # Altitude to point to
 float32 roll_offset		# angle offset in rad
 float32 pitch_offset		# angle offset in rad
 float32 yaw_offset		# angle offset in rad
-
 ```
+
+:::

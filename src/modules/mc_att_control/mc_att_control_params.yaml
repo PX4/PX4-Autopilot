@@ -1,0 +1,109 @@
+module_name: mc_att_control
+parameters:
+- group: Multicopter Attitude Control
+  definitions:
+    MC_ROLL_P:
+      description:
+        short: Roll P gain
+        long: Roll proportional gain, i.e. desired angular speed in rad/s for error
+          1 rad.
+      type: float
+      default: 4.0
+      min: 0.0
+      max: 12
+      decimal: 2
+      increment: 0.1
+    MC_PITCH_P:
+      description:
+        short: Pitch P gain
+        long: Pitch proportional gain, i.e. desired angular speed in rad/s for error
+          1 rad.
+      type: float
+      default: 4.0
+      min: 0.0
+      max: 12
+      decimal: 2
+      increment: 0.1
+    MC_YAW_P:
+      description:
+        short: Yaw P gain
+        long: Yaw proportional gain, i.e. desired angular speed in rad/s for error
+          1 rad.
+      type: float
+      default: 2.8
+      min: 0.0
+      max: 5
+      decimal: 2
+      increment: 0.1
+    MC_YAW_WEIGHT:
+      description:
+        short: Yaw weight
+        long: |-
+          A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
+          Deprioritizing yaw is necessary because multicopters have much less control authority
+          in yaw compared to the other axes and it makes sense because yaw is not critical for
+          stable hovering or 3D navigation.
+
+          For yaw control tuning use MC_YAW_P. This ratio has no impact on the yaw gain.
+      type: float
+      default: 0.4
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.1
+    MC_ROLLRATE_MAX:
+      description:
+        short: Max roll rate
+        long: |-
+          Limit for roll rate in manual and auto modes (except acro).
+          Has effect for large rotations in autonomous mode, to avoid large control
+          output and mixer saturation.
+
+          This is not only limited by the vehicle's properties, but also by the maximum
+          measurement rate of the gyro.
+      type: float
+      default: 220.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
+    MC_PITCHRATE_MAX:
+      description:
+        short: Max pitch rate
+        long: |-
+          Limit for pitch rate in manual and auto modes (except acro).
+          Has effect for large rotations in autonomous mode, to avoid large control
+          output and mixer saturation.
+
+          This is not only limited by the vehicle's properties, but also by the maximum
+          measurement rate of the gyro.
+      type: float
+      default: 220.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
+    MC_YAWRATE_MAX:
+      description:
+        short: Max yaw rate
+      type: float
+      default: 200.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 1
+      increment: 5
+- group: Multicopter Position Control
+  definitions:
+    MC_MAN_TILT_TAU:
+      description:
+        short: Manual tilt input filter time constant
+        long: Setting this parameter to 0 disables the filter
+      type: float
+      default: 0.0
+      unit: s
+      min: 0.0
+      max: 2.0
+      decimal: 2

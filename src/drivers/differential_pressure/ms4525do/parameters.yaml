@@ -1,0 +1,10 @@
+module_name: ms4525do
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_MS4525DO:
+      description:
+        short: TE MS4525DO differential pressure sensor (external I2C)
+      type: boolean
+      default: 0
+      reboot_required: true

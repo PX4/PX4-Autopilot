@@ -20,8 +20,11 @@ By default this is set to `Disabled (-1)` and the driver does not run.
 在选择输入模式后，请重新启动飞行器以启动挂载驱动程序。
 
 You should set `MNT_MODE_IN` to one of: `RC (1)`, `MAVlink gimbal protocol v2 (4)` or `Auto (0)` (the other options are deprecated).
-If you select `Auto (0)`, the gimbal will automatically select either RC or or MAVLink input based on the latest input.
+If you select `Auto (0)`, the gimbal will automatically select either RC or MAVLink input based on the latest input.
 请注意，从 MAVLink 到 RC 的自动切换需要一个大幅度地杆量操作！
+
+To hold a fixed attitude that the pilot cannot control (e.g. for RF/Satellite receiver stabilization), set `MNT_MODE_IN` to `Fixed attitude (5)`.
+See [Fixed Attitude Gimbal](#fixed-attitude-gimbal) below.
 
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.
 By default the output is set to a PXM port (`AUX (0)`).
@@ -74,8 +77,22 @@ The output pins that are used to control the gimbal are set in the [Acuator Conf
 
 ![Gimbal Actuator config](../../assets/config/actuators/qgc_actuators_gimbal.png)
 
-The PWM values to use for the disarmed, maximum and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low and high position in the slider.
+The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 这些数值也可以在云台文档中提供。
+
+## Fixed Attitude Gimbal
+
+A fixed-attitude gimbal holds a constant world-frame attitude and cannot be controlled by the pilot.
+This is useful for stabilizing a payload that must keep pointing in a fixed direction regardless of vehicle motion, such as an RF or satellite receiver antenna.
+
+To enable it, set [MNT_MODE_IN](../advanced_config/parameter_reference.md#MNT_MODE_IN) to `Fixed attitude (5)` and reboot.
+In this mode no RC or MAVLink input is created, so the attitude cannot be commanded from a transmitter or ground station.
+
+The gimbal holds roll and yaw level (roll at 0, yaw at north), and pitch at the angle set in [MNT_FIXED_PITCH](../advanced_config/parameter_reference.md#MNT_FIXED_PITCH) (in degrees, world frame).
+
+Because the setpoint is in the world frame, stabilization against vehicle motion must be enabled with [MNT_DO_STAB](../advanced_config/parameter_reference.md#MNT_DO_STAB):
+
+- Set `MNT_DO_STAB` to `Stabilize all axis (1)` for the typical servo (AUX) gimbal.
 
 ## Gimbal Control in Missions
 

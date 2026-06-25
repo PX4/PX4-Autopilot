@@ -75,6 +75,18 @@
                             "name": "rtl",
                             "description": "RTL"
                         },
+                        "64": {
+                            "name": "position_slow",
+                            "description": "Position Slow"
+                        },
+                        "128": {
+                            "name": "course",
+                            "description": "Course"
+                        },
+                        "256": {
+                            "name": "altitude_cruise",
+                            "description": "Altitude Cruise"
+                        },
                         "1024": {
                             "name": "acro",
                             "description": "Acro"
@@ -276,6 +288,10 @@
                         "1073741824": {
                             "name": "open_drone_id",
                             "description": "Open Drone ID system"
+                        },
+                        "2147483648": {
+                            "name": "traffic_avoidance",
+                            "description": "Traffic Avoidance (ADSB/FLARM)"
                         }
                     }
                 },
@@ -588,6 +604,10 @@
                             "name": "altitude_cruise",
                             "description": "Altitude Cruise"
                         },
+                        "25": {
+                            "name": "auto_course",
+                            "description": "Course"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
@@ -717,6 +737,9 @@
                     "3": [67371008],
                     "4": [50593792],
                     "5": [84148224],
+                    "6": [33751040],
+                    "7": [319029248],
+                    "8": [720896],
                     "10": [327680],
                     "14": [393216],
                     "15": [458752],

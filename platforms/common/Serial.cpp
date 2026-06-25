@@ -74,6 +74,11 @@ ssize_t Serial::bytesAvailable()
 	return _impl.bytesAvailable();
 }
 
+ssize_t Serial::txSpaceAvailable()
+{
+	return _impl.txSpaceAvailable();
+}
+
 ssize_t Serial::read(uint8_t *buffer, size_t buffer_size)
 {
 	return _impl.read(buffer, buffer_size);

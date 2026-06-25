@@ -70,7 +70,7 @@ int MS4525DO::probe()
 
 			if ((status_1 == (uint8_t)STATUS::Normal_Operation)
 			    && (status_2 == (uint8_t)STATUS::Stale_Data)
-			    && (data_1[2] == data_1[2])) {
+			    && (data_1[2] == data_2[2])) {
 
 				_retries = 1; // enable retries during operation
 				return PX4_OK;
@@ -210,6 +210,7 @@ void MS4525DO::RunImpl()
 					}
 
 					differential_pressure.temperature = temperature_c;
+					differential_pressure.pitot_temperature = NAN;
 					differential_pressure.error_count = perf_event_count(_comms_errors);
 					differential_pressure.timestamp = hrt_absolute_time();
 					_differential_pressure_pub.publish(differential_pressure);

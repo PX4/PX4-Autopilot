@@ -58,9 +58,11 @@
 
 using namespace time_literals;
 
-class GyroFFT : public ModuleBase<GyroFFT>, public ModuleParams, public px4::ScheduledWorkItem
+class GyroFFT : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	GyroFFT();
 	~GyroFFT() override;
 
@@ -109,7 +111,8 @@ private:
 		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z
 			&& _hanning_window
 			&& _fft_input_buffer
-			&& _fft_outupt_buffer);
+			&& _fft_outupt_buffer
+			&& _peak_magnitudes_all);
 	}
 
 	uORB::Publication<sensor_gyro_fft_s> _sensor_gyro_fft_pub{ORB_ID(sensor_gyro_fft)};

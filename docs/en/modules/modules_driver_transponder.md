@@ -4,25 +4,24 @@
 
 Source: [drivers/transponder/sagetech_mxs](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/transponder/sagetech_mxs)
 
+    ### Description
 
-	### Description
+    This driver integrates the Sagetech MXS Certified Transponder to send and receive ADSB messages and traffic.
 
-	This driver integrates the Sagetech MXS Certified Transponder to send and receive ADSB messages and traffic.
+    ### Examples
 
-	### Examples
+    Attempt to start driver on a specified serial device.
+    $ sagetech_mxs start -d /dev/ttyS1
+    Stop driver
+    $ sagetech_mxs stop
+    Set Flight ID (8 char max)
+    $ sagetech_mxs flight_id MXS12345
+    Set MXS Operating Mode
+    $ sagetech_mxs opmode off/on/stby/alt
+    $ sagetech_mxs opmode 0/1/2/3
+    Set the Squawk Code
+    $ sagetech_mxs squawk 1200
 
-	Attempt to start driver on a specified serial device.
-	$ sagetech_mxs start -d /dev/ttyS1
-	Stop driver
-	$ sagetech_mxs stop
-	Set Flight ID (8 char max)
-	$ sagetech_mxs flight_id MXS12345
-	Set MXS Operating Mode
-	$ sagetech_mxs opmode off/on/stby/alt
-	$ sagetech_mxs opmode 0/1/2/3
-	Set the Squawk Code
-	$ sagetech_mxs squawk 1200
-	
 ### Usage {#sagetech_mxs_usage}
 
 ```

@@ -41,6 +41,7 @@ px4_add_module(
 		px4io_uploader.cpp
 	MODULE_CONFIG
 		module.yaml
+		px4io_params.yaml
 	DEPENDS
 		arch_px4io_serial
 		button_publisher

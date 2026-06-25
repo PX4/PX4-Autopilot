@@ -29,14 +29,14 @@ There is also an incomplete section for VirtualBox at the end (we'd welcome expa
 
 VMWare performance is acceptable for basic usage (building Firmware) but not for running ROS or Gazebo Classic.
 
-1. Download [VMWare Player Freeware](https://www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
+1. Download [VMWare Workstation Pro](https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion) (the free player has been discontinued)
 
 2. 将其安装在 Windows 系统上。
 
 3. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).
 
-4. Open _VMWare Player_.
+4. Open _Workstation Pro_.
 
 5. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
 
@@ -57,7 +57,9 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
    Remember all settings are only for within your host operating system usage and hence you can disable any screen saver and local workstation security features which do not increase risk of a network attack.
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
+
     This will enhance performance and usability of your VM usage:
+
     - Significantly enhanced graphics performance
     - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
     - Guest display resolution adaption to the window size

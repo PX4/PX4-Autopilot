@@ -5,7 +5,6 @@ A universal protocol is used for [all Inertial Labs sensors](https://inertiallab
 
 ![INS-U](../../assets/hardware/sensors/inertial/ilabs-ins-u.png)
 
-
 Benefits to PX4 users:
 
 - Higher accuracy heading, pitch, and roll estimates
@@ -22,8 +21,8 @@ The mode is configurable using a parameter.
 [Get technical support or send requests to sales team](https://inertiallabs.com/inertial-labs-inc/contact-inertial-labs-team/).
 Recommended sensors:
 
-- [INS-U GNSS/INS](https://inertiallabs.com/ins-u-datasheet): Recommended for fixed-wing systems without hovering, where static heading is not necessary.
-- [INS-DU DUAL GNSS/INS](https://inertiallabs.com/ins-du-datasheet): Recommended for multicopter systems where hovering and low dynamics requires the use of static heading.
+- [INS-U GNSS/INS](https://inertiallabs.com/wp-content/uploads/2026/01/INS-U_INS-U-OEM_Datasheet_REV2.18_JAN2026.pdf): Recommended for fixed-wing systems without hovering, where static heading is not necessary.
+- [INS-DU DUAL GNSS/INS](https://inertiallabs.com/wp-content/uploads/2025/12/INS-DU_INS-DU-OEM_Datasheet_REV1.00_DEC2025.pdf): Recommended for multicopter systems where hovering and low dynamics requires the use of static heading.
 
 ## Hardware Setup
 
@@ -43,27 +42,50 @@ You can set offsets for coordinate axes in the sensor-configuration software tha
 To use the Inertial Labs driver:
 
 1. Build the firmware with the [ilabs](../modules/modules_driver_ins.md#ilabs) module.
+   - Make sure the UART RX-buffer for the serial port connected to the INS is at least **600 bytes**.
 
-   The module is included by default for many boards.
-   You can check by searching for the keys `CONFIG_COMMON_INS` (all INS drivers) and `CONFIG_DRIVERS_INS_ILABS` (ilabs driver) in the [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6c/default.px4board#L25) configuration file for your target board.
+     ::: tip
+     For example, when using `TELEM2` on Pixhawk 6X, add the following setting to [defconfig](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/nuttx-config/nsh/defconfig):
+     `CONFIG_UART5_RXBUFSIZE=600`
 
-   If it is not present, you can add the key to your `default.px4board` file, or include it using the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig): Drivers -> INS -> ilabs.
+     Note that the mapping between UART number and port name can usually be found in your board's [Serial Port Mapping](../flight_controller/pixhawk6x.md#serial-port-mapping) section.
+     :::
 
-1. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
-   Make sure that nothing else is configured to use the port (for more information see [Serial Port Configuration](../peripherals/serial_configuration.md)).
-1. Restart PX4.
-1. Configure driver as either an external INS or to provide raw data:
+   - Include the module in firmware in the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) by setting the kconfig variables: `CONFIG_DRIVERS_INS_ILABS`.
+     In the kconfig interface: Drivers -> INS -> ilabs.
+
+2. [Set the parameter](../advanced_config/parameters.md) [SENS_ILABS_CFG](../advanced_config/parameter_reference.md#SENS_ILABS_CFG) to the hardware port connected to the sensor, such as a spare `GPS` or `TELEM`.
+
+   ::: warning
+   Disable or change port of other sensors that are using the same one, for example [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG) if using GPS1 port.
+   :::
+
+3. Allow the Inerital Labs driver to initialize by restarting PX4.
+4. Configure driver to provide IMU data or Raw sensors data :
    - For external INS, set [ILABS_MODE](../advanced_config/parameter_reference.md#ILABS_MODE) to `INS`.
+
+     In this case, the [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN), [SENS_IMU_MODE](../advanced_config/parameter_reference.md#SENS_IMU_MODE), and [SENS_MAG_MODE](../advanced_config/parameter_reference.md#SENS_MAG_MODE) parameters are disabled at startup (set to `0`). Аnd the INS's internal EKF is used for orientation.
+
    - For raw inertial sensors, set [ILABS_MODE](../advanced_config/parameter_reference.md#ILABS_MODE) to `Sensors Only`.
 
-     You can then prioritize inertial labs sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where `n` is the instance number of the IMU component (0, 1, etc.).
+     Prioritize Inertial Labs sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where `n` is the instance number of the IMU component (0, 1, etc.).
 
      ::: tip
      In most cases the external IMU is the highest-numbered.
      You can get a list of the IMU components available using [`uorb top -1`](../middleware/uorb.md#uorb-top-command), you can differentiate between them using the [`listener`](../modules/modules_command.md#listener) command and looking through the data, or just the rates.
+
+     Alternatively, you can check [CAL_GYROn_ID](../advanced_config/parameter_reference.md#CAL_GYRO0_ID) to see the device id.
+     The priority is 0-255, where 0 is entirely disabled and 255 is highest priority.
      :::
 
-1. Restart PX4.
+     ::: warning
+     When configuring both Inertial Labs and Pixhawk sensors to have non-zero priority, if the selected sensor is errored (timeout), it can change during operation without being notified.
+     In this case, MAVLink messages will be updated with the newly selected sensor.
+
+     If you don't want to have this fallback mechanism, you must disable unwanted sensors.
+     :::
+
+5. Restart PX4.
 
 Once enabled, the module will be detected on boot.
 
@@ -88,6 +110,8 @@ If enabled as an external INS, publishes:
 - [vehicle_local_position](../msg_docs/VehicleLocalPosition.md)
 - [vehicle_global_positon](../msg_docs/VehicleGlobalPosition.md)
 - [vehicle_attitude](../msg_docs/VehicleAttitude.md)
+- [estimator_status](../msg_docs/EstimatorStatus.md)
+- [estimator_status_flags](../msg_docs/EstimatorStatusFlags.md)
 
 If enabled as external sensor only:
 

@@ -51,34 +51,36 @@ parameters:
             instance_start: 1
             default: [-1, -1]
 
-        BAT${i}_I_CHANNEL:
+        BAT${i}_V_FILT:
             description:
-                short: Battery ${i} Current ADC Channel
+                short: Battery ${i} voltage filter time constant
                 long: |
-                    This parameter specifies the ADC channel used to monitor current of main power battery.
-                    A value of -1 means to use the board default.
-
-            type: int32
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: [-1, -1]
-
-        BAT${i}_I_OVERWRITE:
-            description:
-                short: Battery ${i} idle current overwrite
-                long: |
-                    This parameter allows to overwrite the current measured during
-                    idle (unarmed) state with a user-defined constant value (expressed in amperes).
-                    When the system is armed, the measured current is used. This is useful
-                    because on certain ESCs current measurements are inaccurate in case of no load.
-                    Negative values are ignored and will cause the measured current to be used.
-                    The default value of 0 disables the overwrite, in which case the measured value
-                    is always used.
+                    Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+                    A higher value results in more smoothing and less noise, but slower response.
+                    A value of 0 disables the filter.
 
             type: float
-            decimal: 8
-            reboot_required: true
+            decimal: 3
+            min: 0.0
+            max: 5.0
+            unit: s
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0, 0]
+            default: [0.0, 0.0]
+
+        BAT${i}_I_FILT:
+            description:
+                short: Battery ${i} current filter time constant
+                long: |
+                    Low-pass filter time constant for the battery current ADC reading (in seconds).
+                    A higher value results in more smoothing and less noise, but slower response.
+                    A value of 0 disables the filter.
+
+            type: float
+            decimal: 3
+            min: 0.0
+            max: 5.0
+            unit: s
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0]

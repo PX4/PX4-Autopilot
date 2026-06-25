@@ -1,24 +1,51 @@
+---
+pageClass: is-wide-page
+---
+
 # ActuatorServos (повідомлення UORB)
 
-Повідомлення про керування сервоприводом
+Servo control message.
 
-Normalised output setpoint for up to 8 servos.
+Normalised output setpoint for up to 15 servos.
 Published by the vehicle's allocation and consumed by the actuator output drivers.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorServos.msg)
+**TOPICS:** actuator_servos
+
+## Fields
+
+| Назва                                                                  | Тип           | Unit [Frame] | Range/Enum                                                                   | Опис                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`      | us                                                               |                                                                              | Time since system start                                                                                                                                                                                                                                                |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`      | us                                                               |                                                                              | Sampling timestamp of the data this control response is based on                                                                                                                                                                                                       |
+| <a id="fld_control"></a>control                                        | `float32[15]` |                                                                  | [-1 : 1] | Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed. |
+
+## Constants
+
+| Назва                                                              | Тип      | Значення | Опис |
+| ------------------------------------------------------------------ | -------- | -------- | ---- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1        |      |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS       | `uint8`  | 15       |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorServos.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Servo control message
 #
-# Normalised output setpoint for up to 8 servos.
+# Normalised output setpoint for up to 15 servos.
 # Published by the vehicle's allocation and consumed by the actuator output drivers.
 
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
-uint64 timestamp         # [us] Time since system start
-uint64 timestamp_sample  # [us] Sampling timestamp of the data this control response is based on
+uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Sampling timestamp of the data this control response is based on
 
-uint8 NUM_CONTROLS = 8  #
-float32[8] control      # [-] [@range -1, 1] Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed.
-
+uint8 NUM_CONTROLS = 15
+float32[15] control # [-] [@range -1, 1] Normalized output. 1 means maximum positive position. -1 maximum negative position (if not supported by the output, <0 maps to NaN). NaN maps to disarmed.
 ```
+
+:::

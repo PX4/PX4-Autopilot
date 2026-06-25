@@ -36,6 +36,13 @@
 #include "boot_app_shared.h"
 #include "boot_alt_app_shared.h"
 
+// Weak default: return the compile-time name from uavcan_board_identity.
+// Boards that resolve the name at runtime can provide a strong override.
+extern "C" __attribute__((weak)) const char *board_get_uavcan_hw_name(void)
+{
+	return HW_UAVCAN_NAME;
+}
+
 #include <drivers/drv_watchdog.h>
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
@@ -120,6 +127,10 @@
 #if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
 #include "Subscribers/ServoArrayCommand.hpp"
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
+#include "Subscribers/HardpointCommand.hpp"
+#endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
 
 using namespace time_literals;
 
@@ -280,7 +291,7 @@ void UavcanNode::fill_node_info()
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	char *end = nullptr;
-	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
+	swver.vcs_commit = std::strtoul(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 	swver.major = AppDescriptor.major_version;
 	swver.minor = AppDescriptor.minor_version;
@@ -347,7 +358,7 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 
 int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
-	_node.setName(HW_UAVCAN_NAME);
+	_node.setName(board_get_uavcan_hw_name());
 
 	// Was the node_id supplied by the bootloader?
 
@@ -384,7 +395,13 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
-	_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	int32_t cannode_pub_mag = 1;
+	param_get(param_find("CANNODE_PUB_MAG"), &cannode_pub_mag);
+
+	if (cannode_pub_mag == 1) {
+		_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
 
 #if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
@@ -421,12 +438,25 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new SafetyButton(this, _node));
 #endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
 
+#if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE) || defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
+	int32_t cannode_pub_bar = 1;
+	param_get(param_find("CANNODE_PUB_BAR"), &cannode_pub_bar);
+#endif
+
 #if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE)
-	_publisher_list.add(new StaticPressure(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticPressure(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_PRESSURE
 
 #if defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
-	_publisher_list.add(new StaticTemperature(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticTemperature(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_TEMPERATURE
 
 #if defined(CONFIG_UAVCANNODE_ARMING_STATUS)
@@ -465,6 +495,10 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
 	_subscriber_list.add(new ServoArrayCommand(_node));
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
+	_subscriber_list.add(new HardpointCommand(_node));
+#endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

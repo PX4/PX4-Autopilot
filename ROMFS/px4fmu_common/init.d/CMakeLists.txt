@@ -71,6 +71,7 @@ endif()
 
 if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
 	px4_add_romfs_files(
+		rc.rover
 		rc.rover_differential_apps
 		rc.rover_differential_defaults
 	)
@@ -78,6 +79,7 @@ endif()
 
 if(CONFIG_MODULES_ROVER_ACKERMANN)
 	px4_add_romfs_files(
+		rc.rover
 		rc.rover_ackermann_apps
 		rc.rover_ackermann_defaults
 	)
@@ -92,6 +94,7 @@ endif()
 
 if(CONFIG_MODULES_ROVER_MECANUM)
 	px4_add_romfs_files(
+		rc.rover
 		rc.rover_mecanum_apps
 		rc.rover_mecanum_defaults
 	)
@@ -121,5 +124,11 @@ endif()
 if(CONFIG_MODULES_TEMPERATURE_COMPENSATION)
 	px4_add_romfs_files(
 		rc.thermal_cal
+	)
+endif()
+
+if(CONFIG_DRIVERS_VTXTABLE)
+	px4_add_romfs_files(
+		rc.vtxtable
 	)
 endif()

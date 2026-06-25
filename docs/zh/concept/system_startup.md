@@ -21,7 +21,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
 - PX4 的各个模块需要看起来像系统的单个可执行文件。
   这一点可以通过创建符号链接做到。
   For each module a symbolic link `px4-<module> -> px4` is created in the `bin` directory of the build folder.
-  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main px4 instance (see below).
+  When executed, the binary path is checked (`argv[0]`), and if it is a module (starts with `px4-`), it sends the command to the main PX4 instance (see below).
 
   :::tip
   The `px4-` prefix is used to avoid conflicts with system commands (e.g. `shutdown`), and it also allows for simple tab completion by typing `px4-<TAB>`.
@@ -32,7 +32,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
   For that the `bin` directory with the symbolic links is added to the `PATH` variable right before executing the startup scripts.
 
 - Shell 将每个模块作为一个新的 (客户端) 进程进行启动，
-  每个客户端进程都需要与 PX4 主实例（服务器）进行通讯，实际的模块以线程的形式运行。
+  Each client process needs to communicate with the main instance of PX4 (the server), where the actual modules are running as threads.
   This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   服务器侦听一个 socket，然后客户端将连接该 socket 并通过它发送指令。
   服务器收到客户端的指令后将指令运行的输出结果及返回代码重新发送给客户端。
@@ -40,7 +40,7 @@ On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being sy
 - The startup scripts call the module directly, e.g. `commander start`, rather than using the `px4-` prefix.
   This works via aliases: for each module an alias in the form of `alias <module>=px4-<module>` is created in the file `bin/px4-alias.sh`.
 
-- The `rcS` script is executed from the main px4 instance.
+- The `rcS` script is executed from the main PX4 instance.
   It does not start any modules, but first updates the `PATH` variable and then simply runs a shell with the `rcS` file as argument.
 
 - 除此之外，在进行多飞行器仿真时还可以启动多个服务器实例。

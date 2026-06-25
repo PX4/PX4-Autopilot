@@ -13,7 +13,7 @@ These are covered in the following topics:
 - [Safe Points (Rally)](../flying/plan_safety_points.md)
 - [Prearm/Arm/Disarm Configuration](../advanced_config/prearm_arm_disarm.md)
 - [Flight Termination Configuration](../advanced_config/flight_termination.md)
-- [First Flight Guidelines](../flying/first_flight_guidelines.md) 
+- [First Flight Guidelines](../flying/first_flight_guidelines.md)
 
 ::: tip
 Note that the [First Flight Guidelines](../flying/first_flight_guidelines.md) are listed _last_.

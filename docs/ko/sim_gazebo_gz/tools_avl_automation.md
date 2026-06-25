@@ -11,26 +11,26 @@ The results will then automatically be written into a provided plugin template t
 To setup the tool:
 
 1. Download AVL 3.36 from <https://web.mit.edu/drela/Public/web/avl/>.
-  The file for AVL version 3.36 can be found about halfway down the page.
+   The file for AVL version 3.36 can be found about halfway down the page.
 
 2. After downloading, extract AVL and move it to the home directory using:
 
-  ```sh
-  sudo tar -xf avl3.36.tgz
-  mv ./Avl /home/
-  ```
+   ```sh
+   sudo tar -xf avl3.36.tgz
+   mv ./Avl /home/
+   ```
 
 3. Follow the **index.md** found in `./Avl` to finish the setup process for AVL (this requires that you set up `plotlib` and `eispack` libraries).
-  We recommend using the `gfortran` compile option, which might further require that you to install `gfortran`.
-  On Ubuntu can be done by running:
+   We recommend using the `gfortran` compile option, which might further require that you to install `gfortran`.
+   On Ubuntu can be done by running:
 
-  ```sh
-  sudo apt update
-  sudo apt install gfortran
-  ```
+   ```sh
+   sudo apt update
+   sudo apt install gfortran
+   ```
 
-  When running the Makefile for AVL, you might encounter an `Error 1` message stating that there is a directory missing.
-  This does not prevent AVL from working for our purposes.
+   When running the Makefile for AVL, you might encounter an `Error 1` message stating that there is a directory missing.
+   This does not prevent AVL from working for our purposes.
 
 Once the process described in the AVL README is completed, AVL is ready to be used.
 No further set up is required on the side of the AVL or the tool.
@@ -49,16 +49,16 @@ To run the tool for your plane:
 
 2. Run the tool on your yml file:
 
-  ```sh
-  python input_avl.py <your_custom_yaml_file>.yml
-  ```
+   ```sh
+   python input_avl.py <your_custom_yaml_file>.yml
+   ```
 
-  Note that the `yaml` and `argparse` packages must be present in your Python environment.
+   Note that the `yaml` and `argparse` packages must be present in your Python environment.
 
 3. The tool prompts for a range of vehicle specific parameters that are needed in order to specify the geometry and physical properties of the plane.
-  You can either:
-  - select a predefined model template (such as a Cessna or a VTOL), which has a known number of control surfaces, and just modify some physical properties, or
-  - define a completely custom model
+   You can either:
+   - select a predefined model template (such as a Cessna or a VTOL), which has a known number of control surfaces, and just modify some physical properties, or
+   - define a completely custom model
 
 Once the script has been executed, the generated `.avl`, `.sdf` and a plot of the proposed control surfaces can be found in `<your-plane-name>` directory.
 The sdf file is the generated Advanced Lift Drag Plugin that can be copied and pasted into a model.sdf file, which can then be run in Gazebo.
@@ -121,7 +121,7 @@ From the stability derivatives log file, the following advanced lift drag plugin
 | CYa         | CYa                               | dCy/da (sideforce slope wrt alpha)                      |
 | Cla         | Cell                              | dCl/da (roll moment slope wrt alpha)                    |
 | Cma         | Cema                              | dCm/da (pitching moment slope wrt aLpha - before stall) |
-| Cna         | Cena                              | dCn/da (yaw moment slope wrt alpha)                     |
+| Can         | Cena                              | dCn/da (yaw moment slope wrt alpha)                     |
 | CLb         | CLb                               | dCL/dbeta (lift coefficient slope wrt beta)             |
 | CYb         | CYb                               | dCY/dbeta (side force slope wrt beta)                   |
 | Clb         | Cell                              | dCl/dbeta (roll moment slope wrt beta)                  |

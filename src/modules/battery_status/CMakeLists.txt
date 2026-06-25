@@ -39,6 +39,7 @@ px4_add_module(
 		analog_battery.cpp
 	MODULE_CONFIG
 		module.yaml
+		analog_battery_params_common.yaml
 	DEPENDS
 		battery
 		conversion

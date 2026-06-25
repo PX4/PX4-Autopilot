@@ -2,7 +2,7 @@
 
 The _PX4 Bootloader_ is used to load firmware for [Pixhawk boards](../flight_controller/pixhawk_series.md) (PX4FMU, PX4IO).
 
-Pixhawk控制器通常预安装了适当的引导程序。
+Pixhawk controllers usually come with an appropriate bootloader version pre-installed.
 但在某些情况下，当它不存在，或者有一个的旧版本需要更新。
 
 此篇介绍了更新 Pixhawk bootloader 的几种常见方法。
@@ -38,7 +38,7 @@ You can enable this key in your own custom firmware if needed.
 2. [Update the Firmware](../config/firmware.md#custom) with an image containing the new/desired bootloader.
 
    ::: info
-   The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
+   The updated bootloader might be included in the default firmware for your board or supplied in custom firmware.
 
 :::
 
@@ -51,7 +51,7 @@ You can enable this key in your own custom firmware if needed.
 
 Generally at this point you may then want to [update the firmware](../config/firmware.md) again using the correct/newly installed bootloader.
 
-An specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
+A specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
 
 ## 构建PX4 启动加载器
 
@@ -89,7 +89,7 @@ The following steps explain how you can "manually" update the bootloader using a
 1. Get a binary containing the bootloader (either from dev team or [build it yourself](#building-the-px4-bootloader)).
 
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
-   Connect the probe your PC via USB and setup the `gdbserver`.
+   Connect the probe to your PC via USB and setup the `gdbserver`.
 
 3. Go into the directory containing the binary and run the command for your target bootloader in the terminal:
 
@@ -151,7 +151,7 @@ The following steps explain how you can "manually" update the bootloader using a
 
 :::
 
-8. Use the following command to scan for the Pixhawk\`s SWD and connect to it:
+8. Use the following command to scan for the Pixhawk's SWD and connect to it:
 
    ```sh
    (gdb) mon swdp_scan
@@ -169,7 +169,7 @@ After the bootloader has updated you can [Load PX4 Firmware](../config/firmware.
 ## FMUv2 引导加载器更新
 
 If _QGroundControl_ installs the FMUv2 target (see console during installation), and you have a newer board, you may need to update the bootloader in order to access all the memory on your flight controller.
-This example explains how you can use [QGC Bootloader Update](qgc-bootloader-update-sys-bl-update) to update the bootloader.
+This example explains how you can use [QGC Bootloader Update](#qgc-bootloader-update-sys-bl-update) to update the bootloader.
 
 :::info
 Early FMUv2 [Pixhawk-series](../flight_controller/pixhawk_series.md#fmu_versions) flight controllers had a [hardware issue](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata) that restricted them to using 1MB of flash memory.
@@ -208,3 +208,8 @@ Early FMUv2 [Pixhawk-series](../flight_controller/pixhawk_series.md#fmu_versions
 Boards that are not part of the [Pixhawk Series](../flight_controller/pixhawk_series.md) will have their own mechanisms for bootloader update.
 
 For boards that are preflashed with Betaflight, see [Bootloader Flashing onto Betaflight Systems](bootloader_update_from_betaflight.md).
+
+## 另见
+
+- [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md)
+- [OEM/Factory Configuration](../advanced_config/oem.md)

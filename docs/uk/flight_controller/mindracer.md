@@ -66,7 +66,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make airmind_mindpx-v2_default
 ```
 
@@ -79,7 +79,7 @@ MindRacer має приєднану до себе плату Adapt IO.
 MindRacer має вбудований конвертер UART-to-USB.
 Для підключення комп'ютера-компаньйона встановіть MindRacer на плату інтерфейсу та підключіть супутній комп'ютер до USB-порту на платі інтерфейсу.
 
-Максимальна швидкість BAUD така ж, як у родини px4, яка становить до 921600.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ### Посібник користувача
 
@@ -87,7 +87,7 @@ MindRacer має вбудований конвертер UART-to-USB.
 The user guide is [here](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
 :::
 
-## Де купити
+## Where to Buy {#store}
 
 MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Ви також можете знайти MindRacer на Amazon<sup>&reg;</sup> або на eBay<sup>&reg;</sup>.

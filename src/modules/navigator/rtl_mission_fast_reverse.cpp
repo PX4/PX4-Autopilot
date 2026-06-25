@@ -40,6 +40,7 @@
  */
 
 #include "rtl_mission_fast_reverse.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_hrt.h>
@@ -78,7 +79,7 @@ void RtlMissionFastReverse::on_activation()
 	} else {
 		int32_t previous_mission_item_index;
 		size_t num_found_items{0U};
-		getPreviousPositionItems(math::max(_mission_index_prior_rtl - INT32_C(1), INT32_C(0)), &previous_mission_item_index,
+		getPreviousPositionItems(_mission_index_prior_rtl, &previous_mission_item_index,
 					 num_found_items, UINT8_C(1));
 
 		if (num_found_items > 0U) {
@@ -87,7 +88,7 @@ void RtlMissionFastReverse::on_activation()
 
 		} else {
 			// No prior position items, so try to go to the first one.
-			_is_current_planned_mission_item_valid = (goToNextPositionItem(false) == PX4_OK);
+			_is_current_planned_mission_item_valid = (goToNextPositionItem() == PX4_OK);
 		}
 	}
 
@@ -107,7 +108,7 @@ void RtlMissionFastReverse::on_active()
 
 bool RtlMissionFastReverse::setNextMissionItem()
 {
-	return (goToPreviousPositionItem(true) == PX4_OK);
+	return (goToPreviousPositionItem() == PX4_OK);
 }
 
 void RtlMissionFastReverse::setActiveMissionItems()
@@ -127,7 +128,7 @@ void RtlMissionFastReverse::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
-	} else if (item_contains_position(_mission_item)) {
+	} else if (mission_item_contains_position(_mission_item)) {
 		int32_t next_mission_item_index;
 		size_t num_found_items = 0;
 		getPreviousPositionItems(_mission.current_seq, &next_mission_item_index, num_found_items, 1u);
@@ -257,10 +258,12 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 		} else if ((_work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
-			_mission_item.nav_cmd = NAV_CMD_LAND;
+
 			_mission_item.lat = _home_pos_sub.get().lat;
 			_mission_item.lon = _home_pos_sub.get().lon;
 			_mission_item.yaw = NAN;
+			_mission_item.altitude = _global_pos_sub.get().alt;
+			_mission_item.altitude_is_relative = false;
 
 			// make previous and next setpoints invalid, such that there will be no line following.
 			// If the vehicle drifted off the path during back-transition it should just go straight to the landing point.
@@ -271,15 +274,17 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			    do_need_move_to_item()) {
 				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
-				_mission_item.altitude = _global_pos_sub.get().alt;
-				_mission_item.altitude_is_relative = false;
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 				_mission_item.autocontinue = true;
 				_mission_item.time_inside = 0.0f;
 
 			} else {
-				_mission_item.altitude = _home_pos_sub.get().alt;
-				_mission_item.altitude_is_relative = false;
+				_mission_item.nav_cmd = NAV_CMD_LAND;
+
+				if (_param_rtl_land_delay.get() < -FLT_EPSILON) { // parameter negative -> loiter indefinitely instead of landing
+					_mission_item.altitude = _home_pos_sub.get().alt + _param_rtl_descend_alt.get();
+					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				}
 
 				_mission_item.land_precision = _param_rtl_pld_md.get();
 

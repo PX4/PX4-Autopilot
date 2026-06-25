@@ -82,9 +82,14 @@ Takeoff::on_active()
 					_mission_item.altitude = _loiter_altitude_msl;
 
 					mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-					pos_sp_triplet->current.lat = _loiter_position_lat_lon(0) > DBL_EPSILON ?
+					const bool loiter_lat_valid = PX4_ISFINITE(_loiter_position_lat_lon(0))
+								      && fabs(_loiter_position_lat_lon(0)) > DBL_EPSILON;
+					const bool loiter_lon_valid = PX4_ISFINITE(_loiter_position_lat_lon(1))
+								      && fabs(_loiter_position_lat_lon(1)) > DBL_EPSILON;
+
+					pos_sp_triplet->current.lat = loiter_lat_valid ?
 								      _loiter_position_lat_lon(0) : _navigator->get_global_position()->lat;
-					pos_sp_triplet->current.lon = _loiter_position_lat_lon(1) > DBL_EPSILON ?
+					pos_sp_triplet->current.lon = loiter_lon_valid ?
 								      _loiter_position_lat_lon(1) : _navigator->get_global_position()->lon;
 					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					pos_sp_triplet->current.cruising_speed = -1.f;
@@ -203,6 +208,8 @@ Takeoff::set_takeoff_position()
 	}
 
 	if (!PX4_ISFINITE(_loiter_altitude_msl)) {
+		_loiter_altitude_msl = takeoff_altitude_amsl;
+
 		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
 			_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
 

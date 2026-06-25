@@ -73,13 +73,6 @@ public:
 	void initialize() override;
 
 	/**
-	 * Check if the mission item contains a navigation position
-	 *
-	 * @return false if the mission item does not contain a valid position
-	 */
-	static bool item_contains_position(const mission_item_s &item);
-
-	/**
 	 * Returns true if the mission item is not an instant action, but has a delay / timeout
 	 */
 	bool item_has_timeout(const mission_item_s &item);
@@ -165,6 +158,7 @@ protected:
 
 	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
+	void setLoiterFromLastLink(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 
@@ -198,7 +192,7 @@ protected:
 	void setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
 
 	void startPrecLand(uint16_t land_precision);
-	void updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item);
+	void updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item);
 
 	/**
 	 * @brief Issue a command for mission items with a nav_cmd that specifies an action

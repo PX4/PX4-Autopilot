@@ -4,7 +4,6 @@ This power module has integrated power distribution board and provides regulated
 
 ![PM06](../../assets/hardware/power_module/holybro_pm06_14s/pm06v2_pm06v2-14s.jpg)
 
-
 ## Specifications
 
 - **PCB Current:** 120A continued
@@ -18,7 +17,7 @@ This power module has integrated power distribution board and provides regulated
 ## Mechanical Specifications
 
 - **Dimensions:** 35x35x5mm
-- **Mounting hole:** 30.5mm*30.5mm
+- **Mounting hole:** 30.5mm\*30.5mm
 - **Weight:** 24g
 
 ## Where to Buy
@@ -27,6 +26,8 @@ This power module has integrated power distribution board and provides regulated
 
 ## Wiring/Connections
 
-Wiring and connection examples can be found in: [Pixhawk 4 Mini > Power](../assembly/quick_start_pixhawk4_mini.md#power).
+![pm06_pin_map](../../assets/hardware/power_module/holybro_pm06/pm06_pin_map.jpg)
 
-<img src="../../assets/hardware/power_module/holybro_pm06/pm06_pin_map.jpg" width="450px" title="pm06" />
+This image shows the wiring and connections for the [Pixhawk 4 Mini](https://docs.px4.io/v1.16/en/assembly/quick_start_pixhawk4_mini#power) (discontinued).
+
+![Pixhawk 4 - Power Management Board](../../assets/hardware/power_module/holybro_pm06/pixhawk4mini_power_management.png)

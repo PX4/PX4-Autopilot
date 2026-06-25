@@ -1,8 +1,32 @@
+---
+pageClass: is-wide-page
+---
+
 # OffboardControlMode (UORB message)
 
-Off-board control mode
+Off-board control mode.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/OffboardControlMode.msg)
+**TOPICS:** offboard_control_mode
+
+## Fields
+
+| 명칭                                                                                            | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
+| --------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                           | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_position"></a>position                                                             | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_velocity"></a>velocity                                                             | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_acceleration"></a>acceleration                                                     | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_attitude"></a>attitude                                                             | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_body_rate"></a>body_rate                                      | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_thrust_and_torque"></a>thrust_and_torque | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_direct_actuator"></a>direct_actuator                          | `bool`   |                                                                  |            |                                                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/OffboardControlMode.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Off-board control mode
@@ -16,5 +40,6 @@ bool attitude
 bool body_rate
 bool thrust_and_torque
 bool direct_actuator
-
 ```
+
+:::

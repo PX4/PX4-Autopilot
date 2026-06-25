@@ -80,10 +80,12 @@
 #include <uORB/topics/arming_check_reply.h>
 
 using namespace time_literals; // For the 1_s in the subscription interval
-class MulticopterNeuralNetworkControl : public ModuleBase<MulticopterNeuralNetworkControl>, public ModuleParams,
+class MulticopterNeuralNetworkControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	MulticopterNeuralNetworkControl();
 	~MulticopterNeuralNetworkControl() override;
@@ -147,9 +149,9 @@ private:
 	uint8 _mode_request_id{231}; //Random value
 	int8 _arming_check_id{-1};
 	int8 _mode_id{-1};
-	tflite::MicroInterpreter *_interpreter;
-	TfLiteTensor *_input_tensor;
-	TfLiteTensor *_output_tensor;
+	tflite::MicroInterpreter *_interpreter{nullptr};
+	TfLiteTensor *_input_tensor{nullptr};
+	TfLiteTensor *_output_tensor{nullptr};
 	float _input_data[15];
 	trajectory_setpoint_s _trajectory_setpoint;
 	vehicle_angular_velocity_s _angular_velocity;

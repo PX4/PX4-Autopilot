@@ -38,11 +38,13 @@
 #include "messages.h"
 
 #include <dirent.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 #include <uORB/uORBMessageFields.hpp>
 #include <uORB/Publication.hpp>
@@ -132,7 +134,7 @@ int logger_main(int argc, char *argv[])
 		return 1;
 	}
 
-	return Logger::main(argc, argv);
+	return ModuleBase::main(Logger::desc, argc, argv);
 }
 
 namespace px4
@@ -140,11 +142,13 @@ namespace px4
 namespace logger
 {
 
+ModuleBase::Descriptor Logger::desc{task_spawn, custom_command, print_usage};
+
 constexpr const char *Logger::LOG_ROOT[(int)LogType::Count];
 
 int Logger::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("logger not running");
 		return 1;
 	}
@@ -152,36 +156,43 @@ int Logger::custom_command(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 
 	if (!strcmp(argv[0], "trigger_watchdog")) {
-		get_instance()->trigger_watchdog_now();
+		get_instance<Logger>(desc)->trigger_watchdog_now();
 		return 0;
 	}
 
 #endif
 
 	if (!strcmp(argv[0], "on")) {
-		get_instance()->set_arm_override(true);
+		get_instance<Logger>(desc)->set_arm_override(true);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "off")) {
-		get_instance()->set_arm_override(false);
+		get_instance<Logger>(desc)->set_arm_override(false);
 		return 0;
 	}
 
 	return print_usage("unknown command");
 }
 
+int Logger::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Logger::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Logger::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("logger",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_LOG_CAPTURE,
-				      PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("logger",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_LOG_CAPTURE,
+					  PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -433,8 +444,8 @@ void Logger::update_params()
 
 bool Logger::request_stop_static()
 {
-	if (is_running()) {
-		get_instance()->request_stop();
+	if (is_running(desc)) {
+		get_instance<Logger>(desc)->request_stop();
 		return false;
 	}
 
@@ -495,11 +506,6 @@ bool Logger::initialize_topics()
 {
 	// get the logging profile
 	SDLogProfileMask sdlog_profile = (SDLogProfileMask)_param_sdlog_profile.get();
-
-	if ((int32_t)sdlog_profile == 0) {
-		PX4_WARN("No logging profile selected. Using default set");
-		sdlog_profile = SDLogProfileMask::DEFAULT;
-	}
 
 	LoggedTopics logged_topics;
 	logged_topics.set_rate_factor(_rate_factor);
@@ -587,9 +593,14 @@ void Logger::run()
 			}
 		}
 
-		if (util::check_free_space(LOG_ROOT[(int)LogType::Full], _param_sdlog_dirs_max.get(), _mavlink_log_pub,
-					   _file_name[(int)LogType::Full].sess_dir_index) == 1) {
-			return;
+		// Get the next session directory index
+		util::LogDirInfo dir_info;
+
+		if (util::scan_log_directories(LOG_ROOT[(int)LogType::Full], dir_info)) {
+			_file_name[(int)LogType::Full].sess_dir_index = dir_info.sess_idx_max + 1;
+
+		} else {
+			_file_name[(int)LogType::Full].sess_dir_index = 0;
 		}
 	}
 
@@ -661,12 +672,12 @@ void Logger::run()
 	/* timer_semaphore use case is a signal */
 	px4_sem_setprotocol(&_timer_callback_data.semaphore, SEM_PRIO_NONE);
 
-	int polling_topic_sub = -1;
+	orb_sub_t polling_topic_sub = ORB_SUB_INVALID;
 
 	if (_polling_topic_meta) {
 		polling_topic_sub = orb_subscribe(_polling_topic_meta);
 
-		if (polling_topic_sub < 0) {
+		if (!orb_sub_valid(polling_topic_sub)) {
 			PX4_ERR("Failed to subscribe (%i)", errno);
 		}
 
@@ -689,7 +700,7 @@ void Logger::run()
 	hrt_abstime next_subscribe_check = 0;
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
-	if (polling_topic_sub >= 0) {
+	if (orb_sub_valid(polling_topic_sub)) {
 		_lockstep_component = px4_lockstep_register_component();
 	}
 
@@ -804,7 +815,7 @@ void Logger::run()
 
 			if (_log_message_sub.update(&log_message)) {
 				const char *message = (const char *)log_message.text;
-				int message_len = strlen(message);
+				int message_len = strnlen(message, sizeof(log_message.text));
 
 				if (message_len > 0) {
 					uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
@@ -869,6 +880,14 @@ void Logger::run()
 
 			debug_print_buffer(total_bytes, timer_start);
 
+			// Rotate log file when it exceeds max size (if SDLOG_MAX_SIZE > 0)
+			if (_max_log_file_size > 0 &&
+			    _writer.get_total_written_file(LogType::Full) > _max_log_file_size) {
+				PX4_INFO("Log file size limit reached, rotating");
+				stop_log_file(LogType::Full);
+				start_log_file(LogType::Full);
+			}
+
 			was_started = true;
 
 		} else { // not logging
@@ -898,7 +917,7 @@ void Logger::run()
 		update_params();
 
 		// wait for next loop iteration...
-		if (polling_topic_sub >= 0) {
+		if (orb_sub_valid(polling_topic_sub)) {
 			px4_lockstep_progress(_lockstep_component);
 
 			px4_pollfd_struct_t fds[1];
@@ -939,7 +958,7 @@ void Logger::run()
 	// stop the writer thread
 	_writer.thread_stop();
 
-	if (polling_topic_sub >= 0) {
+	if (orb_sub_valid(polling_topic_sub)) {
 		orb_unsubscribe(polling_topic_sub);
 	}
 
@@ -1176,7 +1195,7 @@ void Logger::handle_vehicle_command_update()
 
 		if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 
-			if ((int)(command.param1 + 0.5f) != 0) {
+			if (static_cast<int>(lroundf(command.param1)) != 0) {
 				ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 			} else if (can_start_mavlink_log()) {
@@ -1240,7 +1259,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 
 	if (tt) {
 		strftime(file_name.log_dir, sizeof(LogFileName::log_dir), "%Y-%m-%d", tt);
-		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+		log_dir[log_dir_len - 1] = '\0';
 		int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (mkdir_ret != OK && errno != EEXIST) {
@@ -1252,7 +1272,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 		uint16_t dir_number = file_name.sess_dir_index;
 
 		if (file_name.has_log_dir) {
-			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+			log_dir[log_dir_len - 1] = '\0';
 		}
 
 		/* look for the next dir that does not exist */
@@ -1265,7 +1286,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 				return -1;
 			}
 
-			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+			log_dir[log_dir_len - 1] = '\0';
 			int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
@@ -1349,26 +1371,38 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 			return -1;
 		}
 
+		// Find the highest existing log file number and use next
 		uint16_t file_number = 100; // start with file log100
+		uint16_t max_existing = 99;
 
-		/* look for the next file that does not exist */
-		while (file_number <= MAX_NO_LOGFILE) {
-			/* format log file path: e.g. /fs/microsd/log/sess001/log001.ulg */
-			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03" PRIu16 "%s.ulg%s", file_number, replay_suffix,
-				 crypto_suffix);
-			snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
+		DIR *dp = opendir(file_name);
 
-			if (!util::file_exist(file_name)) {
-				break;
+		if (dp != nullptr) {
+			struct dirent *entry;
+
+			while ((entry = readdir(dp)) != nullptr) {
+				uint16_t num;
+
+				if (sscanf(entry->d_name, "log%hu", &num) == 1) {
+					if (num > max_existing) {
+						max_existing = num;
+					}
+				}
 			}
 
-			file_number++;
+			closedir(dp);
+			file_number = max_existing + 1;
 		}
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
 			return -1;
 		}
+
+		/* format log file path: e.g. /fs/microsd/log/sess001/log001.ulg */
+		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03" PRIu16 "%s.ulg%s", file_number, replay_suffix,
+			 crypto_suffix);
+		snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
 		if (notify) {
 			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
@@ -1400,6 +1434,35 @@ void Logger::start_log_file(LogType type)
 	}
 
 	if (type == LogType::Full) {
+		int32_t max_size_mib = _param_sdlog_max_size.get();
+
+		if (max_size_mib > 0) {
+			_max_log_file_size = (size_t)max_size_mib * 1024ULL * 1024ULL;
+			PX4_INFO("Max log file size: %" PRId32 " MiB", max_size_mib);
+
+		} else {
+			_max_log_file_size = 0; // unlimited
+		}
+
+		// Cleanup old logs if needed.
+		// SDLOG_ROTATE is the max disk-usage percentage; cleanup ensures at least
+		// (100 - rotate)% is free even during writing. SDLOG_MAX_SIZE is passed so
+		// there's always room for the next log file on top of the free-space target.
+		// SDLOG_DIRS_MAX, if > 0, additionally caps the number of log directories.
+		hrt_abstime cleanup_start = hrt_absolute_time();
+
+		if (util::cleanup_old_logs(LOG_ROOT[(int)LogType::Full], _mavlink_log_pub,
+					   (uint32_t)_param_sdlog_rotate.get(), (uint32_t)max_size_mib,
+					   _param_sdlog_dirs_max.get()) == 1) {
+			return;  // Not enough space even after cleanup
+		}
+
+		const uint64_t cleanup_ms = hrt_elapsed_time(&cleanup_start) / 1000;
+
+		if (cleanup_ms > 100) {
+			PX4_INFO("Log cleanup took %" PRIu64 " ms", cleanup_ms);
+		}
+
 		// initialize cpu load as early as possible to get more data
 		initialize_load_output(PrintLoadReason::Preflight);
 	}
@@ -1714,8 +1777,8 @@ void Logger::write_formats(LogType type)
 
 	formats_to_write.set(_event_subscription.get_topic()->o_id);
 
-
-	static_assert(sizeof(msg.format) > uORB::orb_tokenized_fields_max_length, "uORB message definition too long");
+	// Due to leftover_length we need to add 150 bytes of margin, measured empirically
+	static_assert(sizeof(msg.format) > (uORB::orb_untokenized_fields_max_length + 150u), "uORB message definition too long");
 	uORB::MessageFormatReader format_reader(msg.format, sizeof(msg.format));
 	bool done = false;
 
@@ -1890,7 +1953,7 @@ void Logger::write_info(LogType type, const char *name, const char *value)
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -1916,7 +1979,7 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;

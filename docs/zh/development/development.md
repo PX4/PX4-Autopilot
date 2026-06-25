@@ -16,7 +16,8 @@
   - 支持新的 [airframes](../dev_airframes/index.md)。
 - 学习如何将PX4集成到新的硬件上：
   - 支持新的传感器和执行器, 包括摄像头、测距仪等。
-  - 修改PX4使之能够在新的自驾仪硬件上运行。
+  - Modify PX4 to run on [new autopilot hardware](../hardware/porting_guide.md).
+  - As a manufacturer, [get your board officially supported by PX4](../hardware/board_support_guide.md).
 - 获取一个[最小的开发者设置](../dev_setup/config_initial.md), [从源代码生成PX4](../dev_setup/building_px4.md) 并部署在[众多支持的自动化设备](../flight_controller/index.md)。
 - 与外部机器人的 API 进行联调通信/集成。
 
@@ -24,5 +25,5 @@
 
 - [支持](../contribute/support.md)：使用 [讨论板](https://discuss.px4.io//) 和其他支持渠道获得帮助。
 - [每周开发者电话会议](../contribute/dev_call.md)：这是一个很好的机会来会见 PX4 开发团队，讨论平台技术细节(包括pull requests， 主要问题，一般性问答）。
-- [Licences](../contribute/licenses.md): What you can do with the code (free to use and modify under terms of the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause)!)
+- [Licences](../contribute/licenses.md): 您对代码的操作权限（可在宽松的 [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause)条款下自由使用和修改！）
 - [贡献](../contribute/index.md): 如何使用我们的 [源代码](../contribute/code.md)。

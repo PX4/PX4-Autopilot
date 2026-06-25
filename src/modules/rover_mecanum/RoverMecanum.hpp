@@ -59,10 +59,12 @@
 #include "MecanumDriveModes/MecanumManualMode/MecanumManualMode.hpp"
 #include "MecanumDriveModes/MecanumOffboardMode/MecanumOffboardMode.hpp"
 
-class RoverMecanum : public ModuleBase<RoverMecanum>, public ModuleParams,
+class RoverMecanum : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	/**
 	 * @brief Constructor for RoverMecanum
 	 */

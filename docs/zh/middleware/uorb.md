@@ -145,8 +145,8 @@ Versioned messages include an additional field `uint32 MESSAGE_VERSION = x`, whe
 Versioned and non-versioned messages are separated in the file system:
 
 - Non-versioned topic message files and [server service](../ros2/user_guide.md#px4-ros-2-service-servers) message files remain in the [`msg/`](https://github.com/PX4/PX4-Autopilot/tree/main/msg) and [`srv/`](https://github.com/PX4/PX4-Autopilot/tree/main/srv) directories, respectively.
-- The current (highest) version of message files are located in the `versioned` subfolders ([`msg/versioned`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/versioned) and [`srv/versioned`](https://github.com/PX4/PX4-Autopilot/tree/main/srv/versioned)).
-- Older versions of messages are stored in nested `msg/px4_msgs_old/` subfolders ([`msg/px4_msgs_old/msg/`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/px4_msgs_old/msg) and [`msg/px4_msgs_old/srv/`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/px4_msgs_old/srv)).
+- The current (highest) version of message files are located in the `versioned` subfolders ([`msg/versioned`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/versioned) and [`srv/versioned`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/versioned)).
+- Older versions of messages are stored in nested `msg/px4_msgs_old/` subfolders ([`msg/px4_msgs_old/msg/`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/px4_msgs_old/msg) and [`msg/px4_msgs_old/srv/`](https://github.com/PX4/PX4-Autopilot/tree/main/msg/px4_msgs_old)).
   The files are also renamed with a suffix to indicate their version number.
 
 :::tip
@@ -163,7 +163,7 @@ For the full list of versioned and non-versioned messages see: [uORB Message Ref
 For more on PX4 and ROS 2 communication, see [PX4-ROS 2 Bridge](../ros/ros2_comm.md).
 
 :::info
-ROS 2 plans to natively support message versioning in the future, but this is not implememented yet.
+ROS 2 plans to natively support message versioning in the future, but this is not implemented yet.
 See the related ROS Enhancement Proposal ([REP 2011](https://github.com/ros-infrastructure/rep/pull/358)).
 See also this [Foxglove post](https://foxglove.dev/blog/sending-ros2-message-types-over-the-wire) on message hashing and type fetching.
 :::
@@ -278,7 +278,9 @@ For more information see: [Plotting uORB Topic Data in Real Time using PlotJuggl
 
 <video src="../../assets/debug/realtime_debugging/realtime_debugging.mp4" width="720" controls></video>
 
-## See Also
+## 另见
+
+- [uORB Documentation Standard](../uorb/uorb_documentation.md)
 
 - _PX4 uORB Explained_ Blog series
   - [Part 1](https://px4.io/px4-uorb-explained-part-1/)

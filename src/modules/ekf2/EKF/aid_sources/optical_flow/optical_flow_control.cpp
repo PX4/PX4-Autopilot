@@ -42,7 +42,9 @@
 
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
-	if (!_flow_buffer || (_params.ekf2_of_ctrl != 1)) {
+	_fc.of.available = (_params.ekf2_of_ctrl != 0);
+
+	if (!_flow_buffer || !_fc.of.intended()) {
 		stopFlowFusion();
 		return;
 	}
@@ -146,7 +148,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					       && !flow_sample.flow_rate.longerThan(_flow_max_rate)
 					       && !flow_compensated.longerThan(_flow_max_rate);
 
-		const bool continuing_conditions_passing = (_params.ekf2_of_ctrl == 1)
+		const bool continuing_conditions_passing = _fc.of.intended()
 				&& _control_status.flags.tilt_align
 				&& is_within_sensor_dist;
 
@@ -155,7 +157,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				&& is_magnitude_good
 				&& is_tilt_good
 				&& (_flow_counter > 10)
-				&& (isTerrainEstimateValid() || isHorizontalAidingActive())
+				&& (isTerrainEstimateValid() || isHorizontalAidingActive() || (_height_sensor_ref == HeightSensor::RANGE))
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
 		// If the height is relative to the ground, terrain height cannot be observed.
@@ -233,9 +235,6 @@ void Ekf::resetFlowFusion(const flowSample &flow_sample)
 	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
 
 	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
-
-	_innov_check_fail_status.flags.reject_optflow_X = false;
-	_innov_check_fail_status.flags.reject_optflow_Y = false;
 }
 
 void Ekf::resetTerrainToFlow()
@@ -265,10 +264,6 @@ void Ekf::resetTerrainToFlow()
 
 	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
 
-	_innov_check_fail_status.flags.reject_optflow_X = false;
-	_innov_check_fail_status.flags.reject_optflow_Y = false;
-
-
 	// record the state change
 	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
 		_state_reset_status.hagl_change = delta_terrain;
@@ -290,9 +285,6 @@ void Ekf::stopFlowFusion()
 
 		_fault_status.flags.bad_optflow_X = false;
 		_fault_status.flags.bad_optflow_Y = false;
-
-		_innov_check_fail_status.flags.reject_optflow_X = false;
-		_innov_check_fail_status.flags.reject_optflow_Y = false;
 
 		_flow_counter = 0;
 	}

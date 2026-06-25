@@ -1,0 +1,42 @@
+module_name: manual_control
+parameters:
+- group: Manual Control
+  definitions:
+    MAN_ARM_GESTURE:
+      description:
+        short: Enable arm/disarm stick gesture
+        long: |-
+          This determines if moving the left stick to the lower right
+          arms and to the lower left disarms the vehicle.
+      type: boolean
+      default: 1
+    MAN_KILL_GEST_T:
+      description:
+        short: Trigger time for kill stick gesture
+        long: |-
+          The timeout for holding the left stick to the lower left
+          and the right stick to the lower right at the same time until the gesture
+          kills the actuators one-way.
+
+          A negative value disables the feature.
+      type: float
+      default: -1.0
+      unit: s
+      decimal: 2
+      min: -1
+      max: 15
+    MAN_DEADZONE:
+      description:
+        short: Deadzone for sticks (only specific use cases)
+        long: |-
+          Range around stick center ignored to prevent
+          vehicle drift from stick hardware inaccuracy.
+
+          Does not apply to any precise constant input like
+          throttle and attitude or rate piloting.
+      type: float
+      default: 0.1
+      min: 0
+      max: 1
+      decimal: 2
+      increment: 0.01

@@ -50,11 +50,13 @@
 
 #define MPL3115A2_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
+#define MPL3115A2_CONVERSION_TIME	18000	/* ADC conversion time at OSR 2 (ratio 4), microseconds */
 #define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 
 MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
+	_px4_baro{get_device_id()},
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
@@ -200,6 +202,8 @@ int MPL3115A2::measure()
 		perf_count(_comms_errors);
 	}
 
+	_measure_start_time = hrt_absolute_time();
+
 	perf_end(_measure_perf);
 
 	return PX4_OK;
@@ -228,7 +232,12 @@ int MPL3115A2::collect()
 	 */
 	uint8_t	b[3 + 2] {};
 	uint8_t reg = OUT_P_MSB;
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
+	/* Correct for measurement integration delay: the conversion was
+	 * started in measure(), so the effective sample midpoint is half the
+	 * conversion time after the start. Using the stored start time avoids
+	 * jitter from the polling interval. */
+	const hrt_abstime timestamp_sample = _measure_start_time + MPL3115A2_CONVERSION_TIME / 2;
 	ret = transfer(&reg, 1, &b[0], sizeof(b));
 
 	if (ret == -EIO) {
@@ -260,14 +269,9 @@ int MPL3115A2::collect()
 	float P = (float)(reading.pressure.q >> 8) + ((float)(reading.pressure.b[0]) / 4.0f);
 
 	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = get_device_id();
-	sensor_baro.pressure = P;
-	sensor_baro.temperature = T;
-	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
+	_px4_baro.set_error_count(perf_event_count(_comms_errors));
+	_px4_baro.set_temperature(T);
+	_px4_baro.update(timestamp_sample, P);
 
 	perf_end(_sample_perf);
 

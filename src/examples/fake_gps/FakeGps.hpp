@@ -43,9 +43,11 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_status.h>
 
-class FakeGps : public ModuleBase<FakeGps>, public ModuleParams, public px4::ScheduledWorkItem
+class FakeGps : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FakeGps(double latitude_deg = 29.6603018, double longitude_deg = -82.3160500, double altitude_m = 30.1);
 
 	~FakeGps() override = default;

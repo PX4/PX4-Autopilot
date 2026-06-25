@@ -55,9 +55,11 @@
 
 using namespace time_literals;
 
-class ManualControl : public ModuleBase<ManualControl>, public ModuleParams, public px4::ScheduledWorkItem
+class ManualControl : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	ManualControl();
 	~ManualControl() override;
 
@@ -84,8 +86,11 @@ private:
 
 	void Run() override;
 	void updateParams() override;
-	void processStickArming(const manual_control_setpoint_s &input);
 	void processSwitches(hrt_abstime &now);
+	void processStickArming(const manual_control_setpoint_s &input);
+
+	// Return true if kill switch gesture is detected, false otherwise
+	bool processStickKillGesture(const manual_control_setpoint_s &input);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
@@ -148,8 +153,8 @@ private:
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
 		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
-		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_com_rc_arm_hyst,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
+		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
 		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,

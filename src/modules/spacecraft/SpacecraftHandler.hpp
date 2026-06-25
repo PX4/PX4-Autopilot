@@ -67,9 +67,11 @@
 #include "SpacecraftAttitudeControl/SpacecraftAttitudeControl.hpp"
 #include "SpacecraftPositionControl/SpacecraftPositionControl.hpp"
 
-class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
+class SpacecraftHandler : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SpacecraftHandler();
 

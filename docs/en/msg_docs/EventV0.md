@@ -1,9 +1,35 @@
+---
+pageClass: is-wide-page
+---
+
 # EventV0 (UORB message)
 
-this message is required here in the msg_old folder because other msg are depending on it
-Events interface
+this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/EventV0.msg)
+**TOPICS:** event_v0
+
+## Fields
+
+| Name                                          | Type        | Unit [Frame] | Range/Enum | Description                                            |
+| --------------------------------------------- | ----------- | ------------ | ---------- | ------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp           | `uint64`    |              |            | time since system start (microseconds)                 |
+| <a id="fld_id"></a>id                         | `uint32`    |              |            | Event ID                                               |
+| <a id="fld_event_sequence"></a>event_sequence | `uint16`    |              |            | Event sequence number                                  |
+| <a id="fld_arguments"></a>arguments           | `uint8[25]` |              |            | (optional) arguments, depend on event id               |
+| <a id="fld_log_levels"></a>log_levels         | `uint8`     |              |            | Log levels: 4 bits MSB: internal, 4 bits LSB: external |
+
+## Constants
+
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/EventV0.msg)
+
+::: details Click here to see original file
 
 ```c
 # this message is required here in the msg_old folder because other msg are depending on it
@@ -20,5 +46,6 @@ uint8[25] arguments         # (optional) arguments, depend on event id
 uint8 log_levels            # Log levels: 4 bits MSB: internal, 4 bits LSB: external
 
 uint8 ORB_QUEUE_LENGTH = 16
-
 ```
+
+:::

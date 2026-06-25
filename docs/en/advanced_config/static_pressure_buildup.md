@@ -9,7 +9,7 @@ The problem is particularly visible on multicopters because fixed wing vehicles 
 
 One solution is to use foam-filled venting holes to reduce the buildup (as much as possible) and then attempt dynamic calibration to remove any remaining effects.
 
-:::tip
+::: tip
 Before "fixing" the problem you should first check that the Z setpoint tracks the estimated altitude (to verify that there are no controller issues).
 :::
 
@@ -27,7 +27,7 @@ By looking at the ground station you can review the effects of movement-induced 
 
 This process allows rapid iteration without draining batteries: modify drone, drive/review, repeat!
 
-:::tip
+::: tip
 Aim for a barometer altitude drop of less than 2 metres at maximum horizontal speed before attempting software-based calibration below.
 :::
 
@@ -40,3 +40,7 @@ For more information see [Using PX4's Navigation Filter (EKF2) > Correction for 
 The approach works well if the relationship between the error due to static pressure and the velocity varies linearly.
 If the vehicle has a more complex aerodynamic model it will be less effective.
 :::
+
+## See Also
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

@@ -29,14 +29,14 @@ Allocate as many CPU cores and memory resources to the VM as possible.
 
 Ефективність VMWare прийнятна для основного застосування (збірки прошивки) але не для запуску ROS чи Gazebo Classic.
 
-1. Download [VMWare Player Freeware](https://www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
+1. Download [VMWare Workstation Pro](https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion) (the free player has been discontinued)
 
 2. Установіть його на вашу Windows систему
 
 3. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).
 
-4. Open _VMWare Player_.
+4. Open _Workstation Pro_.
 
 5. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
 
@@ -57,12 +57,14 @@ Allocate as many CPU cores and memory resources to the VM as possible.
    Запам'ятайте, всі налаштування потрібні тільки для використання у вашій основній операційній системі, тому можна вимкнути будь-який режим збереження екрана та функції безпеки локальні робочої станції, що не збільшують ризик мережевої атаки.
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
-    Це підвищить продуктивність та зручність користування віртуальною машиною:
-    - Значно поліпшена продуктивність графіки
-    - Належна підтримка використання апаратного забезпечення, наприклад розподілу портів USB (важливо для завантаження прошивок), прокручування коліщатком миші, підтримка звуку
-    - Адаптація роздільної здатності дисплею гостя до розміру вікна емулятора
-    - Спільний доступ до буфера обміну з основної ОС
-    - Спільний доступ до файлів з основної ОС
+
+    This will enhance performance and usability of your VM usage:
+
+    - Significantly enhanced graphics performance
+    - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
+    - Guest display resolution adaption to the window size
+    - Clipboard sharing to host system
+    - File sharing to host system
 
 11. Continue with [PX4 environment setup for Linux](../dev_setup/dev_env_linux.md)
 

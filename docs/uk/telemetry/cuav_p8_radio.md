@@ -19,7 +19,7 @@ CUAV P8 Radio is a long range (>60km) and high data rate (375 Kbps) remote data 
 
 ## Де купити
 
-- [CUAV store](https://www.cuav.net/en/p8-2/)
+- [CUAV store](https://www.cuav.net/en/p8-en/)
 - [CUAV alibaba](https://www.alibaba.com/product-detail/Free-shipping-CUAV-UAV-P8-Radio_1600324379418.html?spm=a2747.manage.0.0.2dca71d2bY4B0M)
 
 ## Конфігурація PX4
@@ -61,6 +61,6 @@ CUAV P8 Radio does not support power supply from the flight controller, it needs
 
 ## Докладніше
 
-[P8 manual](http://manual.cuav.net/data-transmission/p8-radio/p8-user-manual-en.pdf)
+[P8 manual](https://manual.cuav.net/data-transmission/p8-radio/p8_user_manual_cn.pdf)
 
 [CUAV P8 Radio](https://doc.cuav.net/data-transmission/p8-radio/en/) (Official Guide)

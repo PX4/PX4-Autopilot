@@ -38,7 +38,7 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 ### Power Module
 
-**Screw**- Socket Cap Screw M2.5_6 8pcs | Locknut M3 4pcs |Nylon Standoff M3_5 4pcs | Screw M3\*14 4pcs
+**Screw**- Socket Cap Screw M2.&#x35;_&#x36; 8pcs | Locknut M3 4pcs |Nylon Standoff M&#x33;_&#x35; 4pcs | Screw M3\*14 4pcs
 
 [![Assembly5](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly5.png)](https://youtu.be/0knU3Q_opEo))
 
@@ -84,7 +84,7 @@ Note that the ESC connectors are color-coded and must be inserted in the PWM out
 
 ![esc_connector_pixhawk6c](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/esc_connector.jpg)
 
-### Arms
+### 机臂
 
 **Screw-** Socket Cap Screw M3\*38 16pcs | Flange Locknut M3 16pcs
 
@@ -150,7 +150,7 @@ The following parts can be placed as per usual.
 
 ### Companion Computer (Optional)
 
-**Screw-** Socket Cap Screw M2.5_12 4pcs | Nylon Standoff M2.5_5 4pcs Locknut M2.5 4pcs
+**Screw-** Socket Cap Screw M2.&#x35;_&#x31;2 4pcs | Nylon Standoff M2.&#x35;_&#x35; 4pcs Locknut M2.5 4pcs
 
 The X500 kit is provides space for a companion computer, such as Raspberry Pi or Jetson nano can be placed here [TBD].
 
@@ -207,7 +207,7 @@ Ideally you should also do:
 ## 调试
 
 Airframe selection sets _default_ autopilot parameters for the frame.
-These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
+这些足以让它起飞，但是为你的特定框架调整专有参数是一个好主意。
 
 For instructions on how, start from [Auto-tune](../config/autotune_mc.md).
 

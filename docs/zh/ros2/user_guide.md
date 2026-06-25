@@ -9,7 +9,7 @@ ROS 2-PX4 架构在ROS 2和PX4之间进行了深度整合。 允许 ROS 2 订阅
 
 [migration guide](../middleware/uxrce_dds.md#fast-rtps-to-uxrce-dds-migration-guidelines) 解释您需要做什么来将ROS2 应用程序从 PX4 v1.13 迁移到 PX4 v1.14。
 
-如果您仍然在 PX4 v1.13 上工作，请按照[PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm.html)中的说明操作。
+If you're still working on PX4 v1.13, please follow the instructions in the [PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm).
 
 <!-- remove this when there are PX4 v1.14 docs for some months -->
 
@@ -242,7 +242,7 @@ INFO  [uxrce_dds_client] successfully created rt/fmu/out/timesync_status data wr
 [px4_ros_com](https://github.com/PX4/px4_ros_com) 和 [px4_msgs](https://github.com/PX4/px4_msgs) 这两个功能包会被克隆到工作空间文件夹中，之后使用 colcon 工具对该工作空间进行构建
 此示例使用 "ros2 launch" 运行。
 
-您应该使用一个 px4_msgs 包的版本与 \_same_ 消息定义作为您已经安装在上面步骤中的 PX4 固件。
+您应该使用一个 px&#x34;_&#x6D;sgs 包的版本与 \_same_ 消息定义作为您已经安装在上面步骤中的 PX4 固件。
 px4_msgs 代码仓库中的分支均以特定名称命名，这些名称与不同 PX4 版本的消息定义一一对应。
 如果出于任何原因，您不能确保您的 PX4 固件和 ROS 2 px4_msgs 包之间具有相同的消息定义。 您还需要 [start the message translation node](#optional-starting-the-translation-node)，作为您设置过程的一部分。
 
@@ -435,7 +435,7 @@ subscription_ = this->create_subscription<0>("/fmu/out/sensor_combined", qos,
 
 ROS与 PX4所使用的本地 / 世界坐标系和机体坐标系存在差异。
 
-| 框架    | ROS                                                                 | ROS                                                              |
+| 框架    | PX4                                                                 | ROS                                                              |
 | ----- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | 机体    | FRD (X **F**orward, Y **R**ight, Z **D**own)     | FLU (X **F**orward, Y **L**eft, Z **U**p)     |
 | 世界坐标系 | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU 或 ENU (X **E**ast, Y **N**orth, Z **U**p) |
@@ -552,8 +552,8 @@ ros2 run ros_gz_bridge parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.C
 代码首先导入了与 ROS 2 中间件进行交互所需的 C++ 库，以及该节点所订阅的SensorCombined消息对应的头部文件：
 
 ```cpp
-#include <0>
-#include <1>
+#include <rclcpp/rclcpp.hpp>
+#include <px4_msgs/msg/sensor_combined.hpp>
 ```
 
 随后，代码创建了一个 SensorCombinedListener 类，该类继承自通用的 rclcpp::Node 基类。

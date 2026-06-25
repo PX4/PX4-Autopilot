@@ -1,0 +1,173 @@
+module_name: vehicle_angular_velocity
+parameters:
+- group: Sensors
+  definitions:
+    IMU_GYRO_NF0_FRQ:
+      description:
+        short: Notch filter frequency for gyro
+        long: |-
+          The center frequency for the 2nd order notch filter on the primary gyro.
+          This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
+          This only affects the signal sent to the controllers, not the estimators.
+          Applies to both angular velocity and angular acceleration sent to the controllers.
+          See "IMU_GYRO_NF0_BW" to set the bandwidth of the filter.
+
+          A value of 0 disables the filter.
+      type: float
+      default: 0.0
+      min: 0
+      max: 1000
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      reboot_required: false
+    IMU_GYRO_NF0_BW:
+      description:
+        short: Notch filter bandwidth for gyro
+        long: |-
+          The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
+          See "IMU_GYRO_NF0_FRQ" to activate the filter and to set the notch frequency.
+          Applies to both angular velocity and angular acceleration sent to the controllers.
+      type: float
+      default: 20.0
+      min: 0
+      max: 100
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      reboot_required: false
+    IMU_GYRO_NF1_FRQ:
+      description:
+        short: Notch filter 2 frequency for gyro
+        long: |-
+          The center frequency for the 2nd order notch filter on the primary gyro.
+          This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
+          This only affects the signal sent to the controllers, not the estimators.
+          Applies to both angular velocity and angular acceleration sent to the controllers.
+          See "IMU_GYRO_NF1_BW" to set the bandwidth of the filter.
+
+          A value of 0 disables the filter.
+      type: float
+      default: 0.0
+      min: 0
+      max: 1000
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      reboot_required: false
+    IMU_GYRO_NF1_BW:
+      description:
+        short: Notch filter 1 bandwidth for gyro
+        long: |-
+          The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
+          See "IMU_GYRO_NF1_FRQ" to activate the filter and to set the notch frequency.
+          Applies to both angular velocity and angular acceleration sent to the controllers.
+      type: float
+      default: 20.0
+      min: 0
+      max: 100
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      reboot_required: false
+    IMU_GYRO_CUTOFF:
+      description:
+        short: Low pass filter cutoff frequency for gyro
+        long: |-
+          The cutoff frequency for the 2nd order butterworth filter on the primary gyro.
+          This only affects the angular velocity sent to the controllers, not the estimators.
+          It applies also to the angular acceleration (D-Term filter), see IMU_DGYRO_CUTOFF.
+
+          A value of 0 disables the filter.
+      type: float
+      default: 40.0
+      min: 0
+      max: 1000
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      reboot_required: false
+    IMU_GYRO_RATEMAX:
+      description:
+        short: Gyro control data maximum publication rate (inner loop rate)
+        long: |-
+          The maximum rate the gyro control data (vehicle_angular_velocity) will be
+          allowed to publish at. This is the loop rate for the rate controller and outputs.
+
+          Note: sensor data is always read and filtered at the full raw rate (eg commonly 8 kHz) regardless of this setting.
+      type: enum
+      values:
+        100: 100 Hz
+        250: 250 Hz
+        400: 400 Hz
+        800: 800 Hz
+        1000: 1000 Hz
+        2000: 2000 Hz
+      default: 400
+      min: 100
+      max: 2000
+      unit: Hz
+      reboot_required: true
+    IMU_DGYRO_CUTOFF:
+      description:
+        short: Cutoff frequency for angular acceleration (D-Term filter)
+        long: |-
+          The cutoff frequency for the 2nd order butterworth filter used on
+          the time derivative of the measured angular velocity, also known as
+          the D-term filter in the rate controller. The D-term uses the derivative of
+          the rate and thus is the most susceptible to noise. Therefore, using
+          a D-term filter allows to increase IMU_GYRO_CUTOFF, which
+          leads to reduced control latency and permits to increase the P gains.
+
+          A value of 0 disables the filter.
+      type: float
+      default: 20.0
+      min: 0
+      max: 1000
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      reboot_required: false
+    IMU_GYRO_DNF_EN:
+      description:
+        short: IMU gyro dynamic notch filtering
+        long: |-
+          Enable bank of dynamically updating notch filters.
+          Requires ESC RPM feedback or onboard FFT (IMU_GYRO_FFT_EN).
+      type: bitmask
+      bit:
+        0: ESC RPM
+        1: FFT
+      default: 0
+      min: 0
+      max: 3
+    IMU_GYRO_DNF_BW:
+      description:
+        short: IMU gyro ESC notch filter bandwidth
+        long: Bandwidth per notch filter when using dynamic notch filtering with ESC
+          RPM.
+      type: float
+      default: 15.0
+      unit: Hz
+      increment: 0.1
+      decimal: 1
+      min: 5
+      max: 30
+    IMU_GYRO_DNF_HMC:
+      description:
+        short: IMU gyro dynamic notch filter harmonics
+        long: ESC RPM number of harmonics (multiples of RPM) for ESC RPM dynamic notch
+          filtering.
+      type: int32
+      default: 3
+      min: 1
+      max: 7
+    IMU_GYRO_DNF_MIN:
+      description:
+        short: IMU gyro dynamic notch filter minimum frequency
+        long: Minimum notch filter frequency in Hz.
+      type: float
+      default: 25.0
+      unit: Hz
+      increment: 0.1
+      decimal: 1

@@ -1,9 +1,31 @@
+---
+pageClass: is-wide-page
+---
+
 # TrajectorySetpoint6dof (UORB message)
 
-Trajectory setpoint in NED frame
-Input to position controller.
+Trajectory setpoint in NED frame. Input to position controller.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TrajectorySetpoint6dof.msg)
+**TOPICS:** trajectory_setpoint6dof
+
+## Fields
+
+| Назва                                                                  | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| ---------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_position"></a>position                                      | `float32[3]` |                                                                  |            | in meters                                                 |
+| <a id="fld_velocity"></a>velocity                                      | `float32[3]` |                                                                  |            | in meters/second                                          |
+| <a id="fld_acceleration"></a>acceleration                              | `float32[3]` |                                                                  |            | in meters/second^2                                        |
+| <a id="fld_jerk"></a>jerk                                              | `float32[3]` |                                                                  |            | in meters/second^3 (for logging only)  |
+| <a id="fld_quaternion"></a>quaternion                                  | `float32[4]` |                                                                  |            | unit quaternion                                           |
+| <a id="fld_angular_velocity"></a>angular_velocity | `float32[3]` |                                                                  |            | angular velocity in radians/second                        |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TrajectorySetpoint6dof.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Trajectory setpoint in NED frame
@@ -19,5 +41,6 @@ float32[3] jerk                   # in meters/second^3 (for logging only)
 
 float32[4] quaternion             # unit quaternion
 float32[3] angular_velocity       # angular velocity in radians/second
-
 ```
+
+:::

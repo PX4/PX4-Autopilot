@@ -36,7 +36,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Dimensions: 35x35mm
 - Weight: 8g
 
-## 구매처
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
@@ -83,14 +83,14 @@ Download the [holybro_kakuteh7v2_bootloader.hex](https://github.com/PX4/PX4-Auto
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7v2_default
 ```
 
 ## 펌웨어 설치
 
 :::info
-KakuteH7v2 is supported with PX4 master & PX4 v1.14 or newer. If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+KakuteH7v2 is supported with PX4 master & PX4 v1.14 or newer. If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 Prior to that release you will need to manually build and install the firmware.
 :::
 
@@ -98,7 +98,7 @@ Firmware can be manually installed in any of the normal ways:
 
 - Build and upload the source:
 
-  ```
+  ```sh
   make holybro_kakuteh7v2_default upload
   ```
 
@@ -113,7 +113,7 @@ KakuteH7v2 is supported with PX4 main and v1.14 or newer.
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| 매개변수                                                                                                           | 설정                                                                                         |
+| Parameter                                                                                                      | 설정                                                                                         |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | 보드에 내부 자력계가 없기 때문에 비활성화하여야 합니다. 외부 자력계를 연결하여 활성화 할 수 있습니다. |
 

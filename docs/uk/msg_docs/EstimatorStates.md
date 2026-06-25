@@ -1,6 +1,27 @@
+---
+pageClass: is-wide-page
+---
+
 # EstimatorStates (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg)
+**TOPICS:** estimator_states
+
+## Fields
+
+| Назва                                                                  | Тип           | Unit [Frame] | Range/Enum | Опис                                                            |
+| ---------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`      |                                                                  |            | time since system start (microseconds)       |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`      |                                                                  |            | the timestamp of the raw data (microseconds) |
+| <a id="fld_states"></a>states                                          | `float32[25]` |                                                                  |            | Internal filter states                                          |
+| <a id="fld_n_states"></a>n_states                 | `uint8`       |                                                                  |            | Number of states effectively used                               |
+| <a id="fld_covariances"></a>covariances                                | `float32[24]` |                                                                  |            | Diagonal Elements of Covariance Matrix                          |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp		# time since system start (microseconds)
@@ -10,5 +31,6 @@ float32[25] states		# Internal filter states
 uint8 n_states		# Number of states effectively used
 
 float32[24] covariances	# Diagonal Elements of Covariance Matrix
-
 ```
+
+:::

@@ -142,3 +142,14 @@ parameters:
             category: System
             reboot_required: true
             default: -1
+
+        UXRCE_DDS_FLCTRL:
+            description:
+                short: Enable serial flow control for UXRCE interface
+                long: |
+                    This is used to enable flow control for the serial uXRCE instance.
+                    Used for reliable high bandwidth communication.
+            type: boolean
+            category: System
+            reboot_required: true
+            default: 0

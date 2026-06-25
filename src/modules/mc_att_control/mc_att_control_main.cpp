@@ -48,10 +48,13 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <Sticks.hpp>
 
 #include "AttitudeControl/AttitudeControlMath.hpp"
 
 using namespace matrix;
+
+ModuleBase::Descriptor MulticopterAttitudeControl::desc{task_spawn, custom_command, print_usage};
 
 MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
@@ -94,6 +97,7 @@ MulticopterAttitudeControl::parameters_updated()
 
 	// angular rate limits
 	using math::radians;
+
 	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
 						radians(_param_mc_yawrate_max.get())));
 
@@ -141,12 +145,12 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	// Avoid accumulating absolute yaw error with arming stick gesture
 	const bool arming_gesture = (_manual_control_setpoint.throttle < -.9f) && (_param_mc_airmode.get() != 2);
 
-	if (arming_gesture || !_heading_good_for_control) {
+	if (arming_gesture) {
 		_yaw_setpoint_stabilized = NAN;
 	}
 
 	const float yaw = Eulerf(q).psi();
-	const float yaw_stick_input = math::expo_deadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
+	const float yaw_stick_input = Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
 	_stick_yaw.generateYawSetpoint(attitude_setpoint.yaw_sp_move_rate, _yaw_setpoint_stabilized, yaw_stick_input, yaw, dt,
 				       _unaided_heading);
 
@@ -206,7 +210,7 @@ MulticopterAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_attitude_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -278,7 +282,6 @@ MulticopterAttitudeControl::Run()
 			vehicle_local_position_s vehicle_local_position;
 
 			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
-				_heading_good_for_control = vehicle_local_position.heading_good_for_control;
 				_unaided_heading = vehicle_local_position.unaided_heading;
 			}
 		}
@@ -406,8 +409,8 @@ int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 	MulticopterAttitudeControl *instance = new MulticopterAttitudeControl(vtol);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -418,8 +421,8 @@ int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -466,5 +469,5 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
  */
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
 {
-	return MulticopterAttitudeControl::main(argc, argv);
+	return ModuleBase::main(MulticopterAttitudeControl::desc, argc, argv);
 }

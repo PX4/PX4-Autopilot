@@ -1,4 +1,4 @@
-# 简单的 MAVLink 摄像头(Camera Protcol v1)
+# Simple MAVLink Cameras (Camera Protocol v1)
 
 本节说明了如何使用 PX4 的 MAVLink [相机](../camera/index.md), 实现了 [Camera Protocol v1 (简单触发协议)](https://mavlink.io/en/services/camera_v1.html) 的 PX4 和地面站。
 
@@ -18,7 +18,7 @@
 PX4 支持此命令集以触发通过原生支持协议的相机 （如本节所述），以及连接到飞控输出的相机。
 
 地面站和 MAVLink SDK 通常将相机命令发送给自动驾驶仪，然后转发给连接的类型为 '板载' 的 MAVLink 通道。
-PX4 还会将其在任务中遇到的任何相机任务项重新发出为相机命令：未被接受的命令将被记录。
+PX4 also re-emits any camera mission items it encounters in a mission as camera commands: commands that aren't accepted are logged.
 在所有情况下，命令都是使用自动驾驶仪的系统 ID 和组件 ID 为 0（即发送给所有组件，包括摄像头）。
 
 每次触发图像捕获时 PX4 也会发出一个 [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) (相机本身也可能在触发时发出此消息)。

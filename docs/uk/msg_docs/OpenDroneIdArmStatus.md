@@ -1,10 +1,30 @@
+---
+pageClass: is-wide-page
+---
+
 # OpenDroneIdArmStatus (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/OpenDroneIdArmStatus.msg)
+**TOPICS:** open_drone_id_arm_status
+
+## Fields
+
+| Назва                               | Тип        | Unit [Frame] | Range/Enum | Опис |
+| ----------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | ---- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`   |                                                                  |            |      |
+| <a id="fld_status"></a>status       | `uint8`    |                                                                  |            |      |
+| <a id="fld_error"></a>error         | `char[50]` |                                                                  |            |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/OpenDroneIdArmStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp
 uint8 status
 char[50] error
-
 ```
+
+:::

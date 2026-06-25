@@ -46,8 +46,8 @@ The PM is **NOT** compatible with flight controllers that require an analog powe
 - 1x Електролітична ємність: 220uF 63V (передпаяна)
 - 1x 2.0мм інтервал CLIK-Mate 6pin кабель (Для живлення контролера польоту)
 - 4pin JST GH в USB тип C
-- 4pin JST GH до бочкового штекера (2.1\*5.5мм)
-- 4pin JST GH до бочкового штекера (2.5\*5.5мм)
+- 4pin JST GH to barrel plug (2.1\*5.5mm)
+- 4pin JST GH to barrel plug (2.5\*5.5mm)
 - Кабель Дюпон 4-шпильковий (2шт)
 - Nylon standoffs & nuts
 

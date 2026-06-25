@@ -79,9 +79,11 @@ using namespace time_literals;
 #error "battery_status module requires power bricks"
 #endif
 
-class BatteryStatus : public ModuleBase<BatteryStatus>, public ModuleParams, public px4::ScheduledWorkItem
+class BatteryStatus : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	BatteryStatus();
 	~BatteryStatus() override;
 
@@ -133,6 +135,8 @@ private:
 	 */
 	void		adc_poll();
 };
+
+ModuleBase::Descriptor BatteryStatus::desc{task_spawn, custom_command, print_usage};
 
 BatteryStatus::BatteryStatus() :
 	ModuleParams(nullptr),
@@ -237,7 +241,7 @@ void
 BatteryStatus::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -258,8 +262,8 @@ BatteryStatus::task_spawn(int argc, char *argv[])
 	BatteryStatus *instance = new BatteryStatus();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -270,8 +274,8 @@ BatteryStatus::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -315,5 +319,5 @@ It runs in its own thread and polls on the currently selected gyro topic.
 
 extern "C" __EXPORT int battery_status_main(int argc, char *argv[])
 {
-	return BatteryStatus::main(argc, argv);
+	return ModuleBase::main(BatteryStatus::desc, argc, argv);
 }

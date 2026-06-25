@@ -2,7 +2,7 @@
 
 <LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](mailto:lhf2613@gmail.com) for hardware support or compliance issues.
 :::
@@ -62,7 +62,7 @@ Direct accessible from RPi:
 
 ## Pinout
 
-:::warning
+::: warning
 It still uses old GH1.25 connectors.
 Wiring is compatible with Pixhawk 2.4.8
 :::
@@ -175,7 +175,7 @@ This switch is connected to Pin22(BCM25).
 System rc script will check its value and decide whether PX4 should start alongside with system booting or not.
 
 - On: start PX4 automatically
-- Off: don' t start PX4
+- Off: don't start PX4
 
 ## Developer Quick Start
 

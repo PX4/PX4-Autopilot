@@ -35,3 +35,5 @@ px4_add_library(StickYaw
 	StickYaw.cpp
 )
 target_include_directories(StickYaw PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+px4_add_functional_gtest(SRC StickYawTest.cpp LINKLIBS StickYaw)

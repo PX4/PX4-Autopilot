@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Clean out the build artifacts
 # source /home/build-env.sh

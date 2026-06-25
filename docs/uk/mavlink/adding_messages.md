@@ -39,7 +39,7 @@ Once the message headers for your definitions are generated in the PX4 build, yo
 
 The first step in debugging is to confirm that any messages you've created are being sent/received as you expect.
 
-You should should first use the `uorb top [<message_name>]` command to verify in real-time that your message is published and the rate (see [uORB Messaging](../middleware/uorb.md#uorb-top-command)).
+You should first use the `uorb top [<message_name>]` command to verify in real-time that your message is published and the rate (see [uORB Messaging](../middleware/uorb.md#uorb-top-command)).
 This approach can also be used to test incoming messages that publish a uORB topic (for other messages you might use `printf` in your code and test in SITL).
 
 Існує кілька підходів для перегляду трафіку MAVLink:
@@ -82,16 +82,16 @@ mavlink stream -u 14556 -s CA_TRAJECTORY -r 300
 
 ### Оновлення QGroundControl
 
-You will need to [Build QGroundControl](https://docs.qgroundcontrol.com/master/en/qgc-dev-guide/getting_started/index.html) including a pre-built C library that contains your custom messages.
+You will need to [Build QGroundControl](https://docs.qgroundcontrol.com/master/en/qgc-dev-guide/getting_started/index.html) with your custom messages included.
 
-QGC uses a pre-built C library that must be located at [/qgroundcontrol/libs/mavlink/include/mavlink](https://github.com/mavlink/qgroundcontrol/tree/master/libs/mavlink/include/mavlink) in the QGC source.
+QGC fetches MAVLink via CMake using settings defined in [`cmake/CustomOptions.cmake`](https://github.com/mavlink/qgroundcontrol/blob/master/cmake/CustomOptions.cmake).
+The key variables are `QGC_MAVLINK_GIT_REPO` (the MAVLink repository to fetch), `QGC_MAVLINK_GIT_TAG` (a specific commit or tag), and `QGC_MAVLINK_DIALECT` (the dialect, default: `all`).
+To use a custom MAVLink repository or dialect, override these in a `CustomOverrides.cmake` file in the QGC source root.
 
-By default this is pre-included as a submodule from <https://github.com/mavlink/c_library_v2> but you can [generate your own MAVLink Libraries](https://mavlink.io/en/getting_started/generate_libraries.html).
+QGC uses the **all** dialect by default, which includes **common.xml**.
+You can include your messages in either file, or [generate your own MAVLink Libraries](https://mavlink.io/en/getting_started/generate_libraries.html).
 
-QGC uses the **all.xml** dialect by default, which includes **common.xml**.
-You can include your messages in either file.
-
-Note that if you use your own _custom dialect_ then it should include **ArduPilotMega.xml** (or it will miss all the existing messages), and you will need to change the dialect used by setting it in [`MAVLINK_CONF`](https://github.com/mavlink/qgroundcontrol/blob/master/QGCExternalLibs.pri#L52) when running _qmake_.
+Note that if you use your own _custom dialect_ then it should include **all.xml** (or it may miss all the existing messages), and you will need to set `QGC_MAVLINK_DIALECT` accordingly in `CustomOverrides.cmake`.
 
 ### Оновлення MAVSDK
 

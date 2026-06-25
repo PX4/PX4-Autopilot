@@ -33,7 +33,6 @@ Similarly, PX4 can also run natively Raspberry Pi (this approach is not generall
 - [Raspberry Pi 2/3 Navio2](../flight_controller/raspberry_pi_navio2.md)
 - [Raspberry Pi 2/3/4 PilotPi Shield](../flight_controller/raspberry_pi_pilotpi.md)
 
-
 ## Commercial UAVs that can run PX4
 
 PX4 is available on many popular commercial drone products, including some that ship with PX4 and others that can be updated with PX4 (allowing you to add mission planning and other PX4 Flight modes to your vehicle).

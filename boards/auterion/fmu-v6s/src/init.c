@@ -55,10 +55,12 @@
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
+#include <nuttx/mtd/mtd.h>
 #include <nuttx/mm/gran.h>
 #include <chip.h>
 #include <stm32_uart.h>
@@ -70,16 +72,23 @@
 #include <systemlib/px4_macros.h>
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
+#include <px4_platform_common/micro_hal.h>
 #include <px4_platform_common/px4_manifest.h>
-#include <px4_platform/gpio.h>
+#include <px4_platform_common/px4_mtd.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/board_hw_eeprom_rev_ver.h>
+#include <px4_platform/gpio.h>
+#include <lib/crc/crc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
+/* Minimum HW revision (lower rev byte) indicating NOR FLASH being used. */
+#define BOARD_HW_REV_NOR 0x0018
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,
@@ -158,6 +167,81 @@ stm32_boardinitialize(void)
 	px4_gpio_init(gpio, arraySize(gpio));
 }
 
+#if !defined(BOOTLOADER)
+/****************************************************************************
+ * Name: eeprom_read_and_check_mft
+ *
+ * Description:
+ *   Read an mtd_mft_v0_t from the EEPROM at the given byte offset and
+ *   validate its CRC.  Returns true if the record has a recognised version
+ *   field and a matching CRC16.
+ ****************************************************************************/
+
+static bool eeprom_read_and_check_mft(struct i2c_master_s *i2c, uint16_t address)
+{
+	uint8_t addr_write[2] = { (uint8_t)(address >> 8), (uint8_t)(address & 0xFF) };
+	mtd_mft_v0_t mft = {};
+	struct i2c_msg_s msgs[2] = {
+		{ .frequency = 400000, .addr = 0x50, .flags = 0, .buffer = addr_write, .length = sizeof(addr_write) },
+		{ .frequency = 400000, .addr = 0x50, .flags = I2C_M_READ, .buffer = (uint8_t *) &mft, .length = sizeof(mft) },
+	};
+
+	int retries = 5;
+
+	while (I2C_TRANSFER(i2c, msgs, 2) != OK) {
+		if (--retries == 0) {
+			syslog(LOG_WARNING, "[boot] EEPROM I2C comm failed\n");
+			return false;
+		}
+	}
+
+	if (mft.version.id != MTD_MFT_v0) { return false; }
+
+	uint16_t computed = crc16_signature(CRC16_INITIAL, sizeof(mft) - sizeof(mft.crc), (const uint8_t *)&mft);
+	return computed == mft.crc;
+}
+
+/****************************************************************************
+ * Name: detect_eeprom_is_small
+ *
+ * Description:
+ *   Returns true if the EEPROM has the small (64Kbit) layout used by FRAM
+ *   and NOR boards. Returns false for the large (128Kbit) EEPROM-only layout
+ *   where MTD_MFT_VER is at offset 0.
+ ****************************************************************************/
+
+static bool detect_eeprom_is_small(void)
+{
+	struct i2c_master_s *i2c = px4_i2cbus_initialize(4);
+	bool ret;
+
+	if (!i2c) {
+		syslog(LOG_WARNING, "[boot] EEPROM I2C init failed, assuming small layout\n");
+		ret = true;
+		goto out;
+	}
+
+	/* Small layout: MTD_MFT_VER follows MTD_CALDATA (224 blocks x 32 B). */
+	if (eeprom_read_and_check_mft(i2c, 224u * 32u)) {
+		ret = true;
+		goto out;
+	}
+
+	/* Large layout: MTD_MFT_VER is at offset 0. */
+	if (eeprom_read_and_check_mft(i2c, 0u)) {
+		ret = false;
+		goto out;
+	}
+
+	/* Neither offset valid, assume small layout. */
+	ret = true;
+
+out:
+	px4_i2cbus_uninitialize(i2c);
+	return ret;
+}
+#endif /* !defined(BOOTLOADER) */
+
 /****************************************************************************
  * Name: board_app_initialize
  *
@@ -187,15 +271,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 #if !defined(BOOTLOADER)
 	/* Need hrt running before using the ADC */
-
 	px4_platform_init();
 
-	// Use the default HW_VER_REV(0x0,0x0) for Ramtron
-
+	/* First SPI init. HW version is not enabled yet, so only always-enabled
+	 * buses/devices can be used. */
 	stm32_spiinitialize();
 
-	/* Configure the HW based on the manifest */
+	bool small_eeprom = detect_eeprom_is_small();
+	board_set_eeprom_manifest(small_eeprom);
 
+	/* Mount EEPROM only, SPI storage is detected and added later. */
 	px4_platform_configure();
 
 	if (OK == board_determine_hw_info()) {
@@ -206,14 +291,47 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
-	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
+	/* Identify SPI storage from the HW revision written at provisioning time.
+	 * EEPROM is already mounted so the revision is available. */
+	bool storage_configured = true;
+	bool fram_available = false;
+	bool nor_available = false;
 
+	if ((board_get_hw_revision() & 0xFF) >= BOARD_HW_REV_NOR) {
+		if (board_configure_nor() == OK) {
+			nor_available = true;
+
+		} else {
+			storage_configured = false;
+		}
+
+	} else if (small_eeprom) {
+		if (board_configure_fram() == OK) {
+			fram_available = true;
+
+		} else {
+			storage_configured = false;
+		}
+	}
+
+	/* EEPROM-only boards use a 128Kbit chip: 512 pages × 32 B = 16 KB.
+	 * FRAM / NOR boards use a 64Kbit EEPROM: 256 pages × 32 B = 8 KB.
+	 * Always use 32-byte page writes (safe for 64-byte page chips too). */
+	unsigned int mtd_count = 0;
+	mtd_instance_s **instances = px4_mtd_get_instances(&mtd_count);
+	uint16_t eeprom_npages = small_eeprom ? 256 : 512;
+
+	/* instances[0] is always EEPROM on both board variants. */
+	if (mtd_count > 0 && instances[0]->mtd_dev != NULL) {
+		px4_at24c_set_npages(instances[0]->mtd_dev, eeprom_npages);
+	}
+
+	/* Second SPI init. Now HW version is determined and complete init can be done. */
 	stm32_spiinitialize();
 
 	board_spi_reset(10, 0xffff);
 
 	/* Configure the DMA allocator */
-
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
@@ -234,7 +352,47 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	if (nx_mount("/dev/mtdblock0", "/fs/microsd", "littlefs", 0, "autoformat") != 0) {
+	/* Mount LittleFS as /fs/microsd:
+	 * FRAM boards:       EEPROM->mtdblock0-4, FRAM->mtdblock5 (LittleFS).
+	 * NOR flash boards:  EEPROM->mtdblock0-4, NOR->MTD direct at /mnt/microsd (LittleFS).
+	 * EEPROM-only:       EEPROM->mtdblock0-2, FTL on free EEPROM region mtdblock3 (LittleFS). */
+	const char *lfs_dev = NULL;
+
+	if (storage_configured) {
+		if (nor_available) {
+			lfs_dev = "/mnt/microsd";
+
+		} else if (fram_available) {
+			lfs_dev = "/dev/mtdblock5";
+
+		} else {
+			if (mtd_count > 0 && instances[0]->mtd_dev != NULL) {
+				FAR struct mtd_dev_s *eeprom_fs = mtd_partition(instances[0]->mtd_dev, 3, eeprom_npages - 3);
+
+				if (!eeprom_fs || ftl_initialize(3, eeprom_fs) != 0) {
+					syslog(LOG_ERR, "[boot] EEPROM: FTL init failed\n");
+					led_on(LED_RED);
+				}
+
+			} else {
+				syslog(LOG_ERR, "[boot] EEPROM not found\n");
+				led_on(LED_RED);
+			}
+
+			lfs_dev = "/dev/mtdblock3";
+		}
+
+	} else {
+		syslog(LOG_ERR, "[boot] Storage init failed\n");
+		led_on(LED_RED);
+	}
+
+	/* NOR flash has native 4KB erase blocks — use factor=1 so littlefs drives
+	 * them directly (512 blocks) instead of the Kconfig default of 4 (128 blocks). */
+	const char *lfs_opts = nor_available ? "autoformat,block_size_factor=1" : "autoformat";
+
+	if (lfs_dev != NULL && nx_mount(lfs_dev, "/fs/microsd", "littlefs", 0, lfs_opts) != 0) {
+		syslog(LOG_ERR, "[boot] failed to mount /fs/microsd\n");
 		led_on(LED_RED);
 	}
 

@@ -203,22 +203,22 @@ int up_input_capture_get_filter(unsigned channel, capture_filter_t *filter)
 
 			switch (timer_io_channels[channel].timer_channel) {
 
-			case 1:
+			case 0:
 				rvalue = rCCMR1(timer) & GTIM_CCMR1_IC1F_MASK;
 				*filter = (rvalue >> GTIM_CCMR1_IC1F_SHIFT);
 				break;
 
-			case 2:
+			case 1:
 				rvalue = rCCMR1(timer) & GTIM_CCMR1_IC2F_MASK;
 				*filter = (rvalue >> GTIM_CCMR1_IC2F_SHIFT);
 				break;
 
-			case 3:
+			case 2:
 				rvalue = rCCMR2(timer) & GTIM_CCMR2_IC3F_MASK;
 				*filter = (rvalue >> GTIM_CCMR2_IC3F_SHIFT);
 				break;
 
-			case 4:
+			case 3:
 				rvalue = rCCMR2(timer) & GTIM_CCMR2_IC4F_MASK;
 				*filter = (rvalue >> GTIM_CCMR2_IC4F_SHIFT);
 				break;
@@ -255,25 +255,25 @@ int up_input_capture_set_filter(unsigned channel,  capture_filter_t filter)
 
 			switch (timer_io_channels[channel].timer_channel) {
 
-			case 1:
+			case 0:
 				rvalue = rCCMR1(timer) & ~GTIM_CCMR1_IC1F_MASK;
 				rvalue |= (filter << GTIM_CCMR1_IC1F_SHIFT);
 				rCCMR1(timer) = rvalue;
 				break;
 
-			case 2:
+			case 1:
 				rvalue = rCCMR1(timer) & ~GTIM_CCMR1_IC2F_MASK;
 				rvalue |= (filter << GTIM_CCMR1_IC2F_SHIFT);
 				rCCMR1(timer) = rvalue;
 				break;
 
-			case 3:
+			case 2:
 				rvalue = rCCMR2(timer) & ~GTIM_CCMR2_IC3F_MASK;
 				rvalue |= (filter << GTIM_CCMR2_IC3F_SHIFT);
 				rCCMR2(timer) = rvalue;
 				break;
 
-			case 4:
+			case 3:
 				rvalue = rCCMR2(timer) & ~GTIM_CCMR2_IC4F_MASK;
 				rvalue |= (filter << GTIM_CCMR2_IC4F_SHIFT);
 				rCCMR2(timer) = rvalue;
@@ -309,21 +309,21 @@ int up_input_capture_get_trigger(unsigned channel,  input_capture_edge *edge)
 
 			switch (timer_io_channels[channel].timer_channel) {
 
-			case 1:
+			case 0:
 				rvalue = rCCER(timer) & (GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
 				break;
 
-			case 2:
+			case 1:
 				rvalue = rCCER(timer) & (GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
 				rvalue >>= 4;
 				break;
 
-			case 3:
+			case 2:
 				rvalue = rCCER(timer) & (GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
 				rvalue >>= 8;
 				break;
 
-			case 4:
+			case 3:
 				rvalue = rCCER(timer) & (GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
 				rvalue >>= 12;
 				break;
@@ -400,28 +400,28 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 
 			switch (timer_io_channels[channel].timer_channel) {
 
-			case 1:
+			case 0:
 				rvalue = rCCER(timer);
 				rvalue &= ~(GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
 				rvalue |=  edge_bits;
 				rCCER(timer) = rvalue;
 				break;
 
-			case 2:
+			case 1:
 				rvalue = rCCER(timer);
 				rvalue &= ~(GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
 				rvalue |= (edge_bits << 4);
 				rCCER(timer) = rvalue;
 				break;
 
-			case 3:
+			case 2:
 				rvalue = rCCER(timer);
 				rvalue &= ~(GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
 				rvalue |=  edge_bits << 8;
 				rCCER(timer) = rvalue;
 				break;
 
-			case 4:
+			case 3:
 				rvalue = rCCER(timer);
 				rvalue &= ~(GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
 				rvalue |=  edge_bits << 12;

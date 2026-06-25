@@ -1,0 +1,30 @@
+module_name: vehicle_air_data
+parameters:
+- group: Sensors
+  definitions:
+    SENS_BARO_QNH:
+      description:
+        short: QNH for barometer
+      type: float
+      default: 1013.25
+      min: 500
+      max: 1500
+      unit: hPa
+    SENS_BARO_RATE:
+      description:
+        short: Baro max rate
+        long: |-
+          Barometric air data maximum publication rate. This is an upper bound,
+          actual barometric data rate is still dependent on the sensor.
+      type: float
+      default: 20.0
+      min: 1
+      max: 200
+      unit: Hz
+    SENS_BAR_AUTOCAL:
+      description:
+        short: Barometer auto calibration
+        long: Automatically calibrate barometer based on the GNSS height
+      category: System
+      type: boolean
+      default: 1

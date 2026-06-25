@@ -63,6 +63,8 @@ px4_add_module(
 		FixedWingModeManager.hpp
 		ControllerConfigurationHandler.cpp
 		ControllerConfigurationHandler.hpp
+	MODULE_CONFIG
+		fw_mode_manager_params.yaml
 	DEPENDS
 		${POSCONTROL_DEPENDENCIES}
 	)

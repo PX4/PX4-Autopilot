@@ -40,6 +40,7 @@
  */
 
 #include "rtl_mission_fast.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_hrt.h>
@@ -101,7 +102,7 @@ void RtlMissionFast::on_activation()
 
 bool RtlMissionFast::setNextMissionItem()
 {
-	return (goToNextPositionItem(true) == PX4_OK);
+	return (goToNextPositionItem() == PX4_OK);
 }
 
 void RtlMissionFast::setActiveMissionItems()
@@ -139,7 +140,7 @@ void RtlMissionFast::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
-	} else if (item_contains_position(_mission_item)) {
+	} else if (mission_item_contains_position(_mission_item)) {
 
 		static constexpr size_t max_num_next_items{1u};
 		int32_t next_mission_items_index[max_num_next_items];
@@ -190,8 +191,14 @@ void RtlMissionFast::setActiveMissionItems()
 			pos_sp_triplet->previous = current_setpoint_copy;
 		}
 
-		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && isLanding() &&
-		    _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+		const bool fw_on_mission_landing = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						   && isLanding() &&
+						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
+		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
+				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
+				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 	}

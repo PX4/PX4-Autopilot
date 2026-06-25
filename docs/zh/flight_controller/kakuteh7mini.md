@@ -40,7 +40,7 @@ PX4 runs on the H7 mini v1.3 and later.
 - Dimensions: 30x31x6mm
 - Weight: 5.5g
 
-## 购买渠道
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
@@ -86,14 +86,14 @@ Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-Au
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7mini_default
 ```
 
 ## Installing PX4 Firmware
 
 :::info
-If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 Prior to that release you will need to manually build and install the firmware.
 :::
 
@@ -101,7 +101,7 @@ Firmware can be manually installed in any of the normal ways:
 
 - Build and upload the source:
 
-  ```
+  ```sh
   make holybro_kakuteh7mini_default upload
   ```
 
@@ -116,7 +116,7 @@ KakuteH7mini is supported with PX4 main and v1.14 or newer.
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| 参数                                                                                                             | 设置                                                                                                                                                      |
+| Parameter                                                                                                      | 设置                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | This should be disabled since the board does not have an internal mag. You can enable it if you attach an external mag. |
 
@@ -126,7 +126,7 @@ In addition to the [basic configuration](../config/index.md), the following para
 | ------ | ---------- | ---------------------------------------- |
 | USART1 | /dev/ttyS0 | TELEM1                                   |
 | UART2  | /dev/ttyS1 | TELEM2                                   |
-| USART3 | /dev/ttyS2 | Debug Console                            |
+| USART3 | /dev/ttyS2 | 调试控制台                                    |
 | UART4  | /dev/ttyS3 | GPS1                                     |
 | USART6 | /dev/ttyS4 | RC SBUS                                  |
 | UART7  | /dev/ttyS5 | ESC telemetry (DShot) |

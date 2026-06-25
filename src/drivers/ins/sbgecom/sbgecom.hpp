@@ -63,9 +63,11 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
-class SbgEcom : public ModuleBase<SbgEcom>, public ModuleParams, public px4::ScheduledWorkItem
+class SbgEcom : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SbgEcom(const char *port, uint32_t baudrate, const char *config_file, const char *config_string);
 	~SbgEcom() override;
@@ -182,6 +184,15 @@ private:
 	static void send_config_file(SbgEComHandle *pHandle, const char *file_path);
 
 	/**
+	* @brief Compute the absolute difference between two HRT timestamps.
+	*
+	* @param first_timestamp First HRT timestamp in microseconds.
+	* @param second_timestamp Second HRT timestamp in microseconds.
+	* @return Absolute difference between both timestamps in microseconds.
+	*/
+	static hrt_abstime time_diff(hrt_abstime first_timestamp, hrt_abstime second_timestamp);
+
+	/**
 	* @brief Get and print product info.
 	*
 	* @param handle SbgECom instance.
@@ -216,7 +227,7 @@ private:
 	SbgErrorCode sendMagLog(SbgEComHandle *handle, SbgEcom *instance);
 
 	void set_device_id(uint32_t device_id);
-	uint32_t get_device_id(void);
+	uint32_t get_device_id();
 
 	// SBG interface and state variables
 	SbgInterface _sbg_interface;
@@ -239,7 +250,7 @@ private:
 	int init_result;
 
 	MapProjection _pos_ref{};
-	double _gps_alt_ref{NAN};
+	double _gps_alt_ref{static_cast<double>(NAN)};
 
 	struct GnssData {
 		bool pos_received = false;

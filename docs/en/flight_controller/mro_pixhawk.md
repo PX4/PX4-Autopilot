@@ -1,13 +1,13 @@
 # mRo Pixhawk Flight Controller (Pixhawk 1)
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::
 
 The _mRo Pixhawk<sup>&reg;</sup>_ is a hardware compatible version of the original [Pixhawk 1](../flight_controller/pixhawk.md). It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
-:::tip
+::: tip
 The controller can be used as a drop-in replacement for the 3DR<sup>&reg;</sup> [Pixhawk 1](../flight_controller/pixhawk.md).
 The main difference is that it is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design, which corrects a bug that limited the original Pixhawk 1 to 1MB of flash.
 :::
@@ -16,7 +16,7 @@ The main difference is that it is based on the [Pixhawk-project](https://pixhawk
 
 Assembly/setup instructions for use with PX4 are provided here: [Pixhawk Wiring Quickstart](../assembly/quick_start_pixhawk.md)
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -62,24 +62,185 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 
 ## Debug Ports
 
-See [3DR Pixhawk 1 > Debug Ports](../flight_controller/pixhawk.md#debug-ports)
+### Console Port
+
+The [PX4 System Console](../debug/system_console.md) runs on the port labeled [SERIAL4/5](#serial-4-5-port).
+
+::: tip
+A convenient way to connect to the console is to use a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1), as it comes with connectors that can be used with several different Pixhawk devices.
+Simply connect the 6-pos DF13 1:1 cable on the [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) to the Pixhawk `SERIAL4/5` port.
+
+![Zubax BugFace BF1](../../assets/flight_controller/mro/dronecode_probe.jpg)
+:::
+
+The pinout is standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
+
+| 3DR Pixhawk 1 |           | FTDI |                  |
+| ------------- | --------- | ---- | ---------------- |
+| 1             | +5V (red) |      | N/C              |
+| 2             | S4 Tx     |      | N/C              |
+| 3             | S4 Rx     |      | N/C              |
+| 4             | S5 Tx     | 5    | FTDI RX (yellow) |
+| 5             | S5 Rx     | 4    | FTDI TX (orange) |
+| 6             | GND       | 1    | FTDI GND (black) |
+
+The wiring for an FTDI cable to a 6-pos DF13 1:1 connector is shown in the figure below.
+
+![Console Connector](../../assets/flight_controller/mro/console_connector.jpg)
+
+The complete wiring is shown below.
+
+![Console Debug](../../assets/flight_controller/mro/console_debug.jpg)
+
+::: info
+For information on how to _use_ the console see: [System Console](../debug/system_console.md).
+:::
+
+### SWD Port
+
+The [SWD](../debug/swd_debug.md) (JTAG) ports are hidden under the cover (which must be removed for hardware debugging).
+There are separate ports for FMU and IO, as highlighted below.
+
+![Pixhawk SWD](../../assets/flight_controller/mro/pixhawk_swd.jpg)
+
+The ports are ARM 10-pin JTAG connectors, which you will probably have to solder.
+The pinout for the ports is shown below (the square markers in the corners above indicates pin 1).
+
+![ARM 10-Pin connector pinout](../../assets/flight_controller/mro/arm_10pin_jtag_connector_pinout.jpg)
+
+::: info
+All Pixhawk FMUv2 boards have a similar SWD port.
+:::
 
 ## Pinouts
 
-See [3DR Pixhawk 1 > Pinouts](../flight_controller/pixhawk.md#pinouts)
+#### TELEM1, TELEM2 ports
+
+| Pin     | Signal    | Volt  |
+| ------- | --------- | ----- |
+| 1 (red) | VCC       | +5V   |
+| 2 (blk) | TX (OUT)  | +3.3V |
+| 3 (blk) | RX (IN)   | +3.3V |
+| 4 (blk) | CTS (IN)  | +3.3V |
+| 5 (blk) | RTS (OUT) | +3.3V |
+| 6 (blk) | GND       | GND   |
+
+#### GPS port
+
+| Pin     | Signal   | Volt  |
+| ------- | -------- | ----- |
+| 1 (red) | VCC      | +5V   |
+| 2 (blk) | TX (OUT) | +3.3V |
+| 3 (blk) | RX (IN)  | +3.3V |
+| 4 (blk) | CAN2 TX  | +3.3V |
+| 5 (blk) | CAN2 RX  | +3.3V |
+| 6 (blk) | GND      | GND   |
+
+#### SERIAL 4/5 port
+
+Due to space constraints two ports are on one connector.
+
+| Pin     | Signal  | Volt  |
+| ------- | ------- | ----- |
+| 1 (red) | VCC     | +5V   |
+| 2 (blk) | TX (#4) | +3.3V |
+| 3 (blk) | RX (#4) | +3.3V |
+| 4 (blk) | TX (#5) | +3.3V |
+| 5 (blk) | RX (#5) | +3.3V |
+| 6 (blk) | GND     | GND   |
+
+#### ADC 6.6V
+
+| Pin     | Signal | Volt        |
+| ------- | ------ | ----------- |
+| 1 (red) | VCC    | +5V         |
+| 2 (blk) | ADC IN | up to +6.6V |
+| 3 (blk) | GND    | GND         |
+
+#### ADC 3.3V
+
+| Pin     | Signal | Volt        |
+| ------- | ------ | ----------- |
+| 1 (red) | VCC    | +5V         |
+| 2 (blk) | ADC IN | up to +3.3V |
+| 3 (blk) | GND    | GND         |
+| 4 (blk) | ADC IN | up to +3.3V |
+| 5 (blk) | GND    | GND         |
+
+#### I2C
+
+| Pin     | Signal | Volt           |
+| ------- | ------ | -------------- |
+| 1 (red) | VCC    | +5V            |
+| 2 (blk) | SCL    | +3.3 (pullups) |
+| 3 (blk) | SDA    | +3.3 (pullups) |
+| 4 (blk) | GND    | GND            |
+
+#### CAN
+
+| Pin     | Signal | Volt |
+| ------- | ------ | ---- |
+| 1 (red) | VCC    | +5V  |
+| 2 (blk) | CAN_H  | +12V |
+| 3 (blk) | CAN_L  | +12V |
+| 4 (blk) | GND    | GND  |
+
+#### SPI
+
+| Pin     | Signal       | Volt |
+| ------- | ------------ | ---- |
+| 1 (red) | VCC          | +5V  |
+| 2 (blk) | SPI_EXT_SCK  | +3.3 |
+| 3 (blk) | SPI_EXT_MISO | +3.3 |
+| 4 (blk) | SPI_EXT_MOSI | +3.3 |
+| 5 (blk) | !SPI_EXT_NSS | +3.3 |
+| 6 (blk) | !GPIO_EXT    | +3.3 |
+| 7 (blk) | GND          | GND  |
+
+#### POWER
+
+| Pin     | Signal  | Volt  |
+| ------- | ------- | ----- |
+| 1 (red) | VCC     | +5V   |
+| 2 (blk) | VCC     | +5V   |
+| 3 (blk) | CURRENT | +3.3V |
+| 4 (blk) | VOLTAGE | +3.3V |
+| 5 (blk) | GND     | GND   |
+| 6 (blk) | GND     | GND   |
+
+#### SWITCH
+
+| Pin     | Signal         | Volt  |
+| ------- | -------------- | ----- |
+| 1 (red) | VCC            | +3.3V |
+| 2 (blk) | !IO_LED_SAFETY | GND   |
+| 3 (blk) | SAFETY         | GND   |
+
+## Serial Port Mapping
+
+| UART   | Device     | Port                  |
+| ------ | ---------- | --------------------- |
+| UART1  | /dev/ttyS0 | IO debug              |
+| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
+| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
+| UART4  |            |
+| UART7  | CONSOLE    |
+| UART8  | SERIAL4    |
+
+<!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 
 ## Serial Port Mapping
 

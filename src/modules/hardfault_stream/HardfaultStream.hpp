@@ -52,9 +52,11 @@
 namespace hardfault_stream
 {
 
-class HardfaultStream : public ModuleBase<HardfaultStream>, public ModuleParams, public px4::ScheduledWorkItem
+class HardfaultStream : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	HardfaultStream();
 	~HardfaultStream() override;
 

@@ -48,34 +48,44 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/heater_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_hygrometer.h>
+#include <parameters/param.h>
+#include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
 
 using namespace time_literals;
 
+#ifndef CONTROLLER_PERIOD_DEFAULT
 #define CONTROLLER_PERIOD_DEFAULT    10000
+#endif
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
+#define HEATER_MAX_INSTANCES 3 	// If changed, also need to change `max_num_config_instances` in module.yaml
+#if HEATER_NUM > HEATER_MAX_INSTANCES
+#error "HEATER_NUM must less than HEATER_MAX_INSTANCES"
+#endif
 
-class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
+class Heater : px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	Heater();
+	Heater(uint8_t instance);
 
 	virtual ~Heater();
 
 	/**
-	 * @see ModuleBase::custom_command().
-	 * @brief main Main entry point to the module that should be
-	 *        called directly from the module's main method.
-	 * @param argc The input argument count.
-	 * @param argv Pointer to the input argument array.
-	 * @return Returns 0 iff successful, -1 otherwise.
+	 * @brief Initiates the heater driver work queue, starts a new background task,
+	 *        and fails if it is already running.
+	 * @return Returns 1 iff start was successful.
 	 */
-	static int custom_command(int argc, char *argv[]);
+	int start();
+
+	void stop();
 
 	/**
 	 * @see ModuleBase::print_usage().
@@ -84,21 +94,15 @@ public:
 	 */
 	static int print_usage(const char *reason = nullptr);
 
-	/**
-	 * @see ModuleBase::task_spawn().
-	 * @brief Initializes the class in the same context as the work queue
-	 *        and starts the background listener.
-	 * @param argv Pointer to the input argument array.
-	 * @return Returns 0 iff successful, -1 otherwise.
-	 */
-	static int task_spawn(int argc, char *argv[]);
+	static bool is_running_instance(uint8_t instance);
+	static bool is_running_any();
 
-	/**
-	 * @brief Initiates the heater driver work queue, starts a new background task,
-	 *        and fails if it is already running.
-	 * @return Returns 1 iff start was successful.
-	 */
-	int start();
+	static int start_instance(uint8_t instance);
+	static int stop_all();
+	static int status(uint8_t instance);
+	static const char *heater_instance_name(uint8_t inst);
+
+	static Heater *g_heater[HEATER_MAX_INSTANCES];
 
 private:
 
@@ -142,26 +146,55 @@ private:
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;
 
+#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
+	hrt_abstime _temperature_last_update_time {0};
+#endif
+
+	hrt_abstime _battery_status_last_update_time{0};
+	float _nominal_multiplier = 0.0f;
+
 	int _controller_time_on_usec = 0;
 
 	float _integrator_value   = 0.0f;
 	float _proportional_value = 0.0f;
 
-	uORB::Publication<heater_status_s> _heater_status_pub{ORB_ID(heater_status)};
+	uORB::PublicationMulti<heater_status_s> _heater_status_pub{ORB_ID(heater_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
+	uORB::Subscription _sensor_hygrometer_sub{ORB_ID(sensor_hygrometer)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
 	uint32_t _sensor_device_id{0};
 
 	float _temperature_last{NAN};
+	float _supply_voltage{NAN};
+	float _heater_current{NAN};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>) _param_sens_imu_temp_ff,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>)    _param_sens_imu_temp,
-		(ParamInt<px4::params::SENS_TEMP_ID>)       _param_sens_temp_id
-	)
+	const uint8_t _instance; //! 1-based
+
+	volatile bool _should_exit{false};
+	struct {
+		param_t sens_id;
+		param_t temp;
+		param_t temp_p;
+		param_t temp_i;
+		param_t temp_ff;
+		param_t temp_imax;
+		param_t temp_src;
+		param_t nom_v;
+	} _param_handles;
+
+	struct {
+		int32_t sens_id;  // HEATER<i>_SENS_ID: <0 disable, 0 auto, >0 match device_id
+		float   temp;     // target temperature
+		float   temp_p;
+		float   temp_i;
+		float   temp_ff;
+		float   temp_imax;
+		int32_t temp_src; // 0 = IMU, 1 = hygrometer
+		float   nom_v;    // nominal supply voltage for power limiting (0 = disabled)
+	} _params;
+
 };

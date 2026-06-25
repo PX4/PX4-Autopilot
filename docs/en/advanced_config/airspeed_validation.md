@@ -10,36 +10,13 @@ By default, the [Missing Data](#missing-data-check), [Data Stuck](#data-stuck-ch
 You can configure which checks are active using the [ASPD_DO_CHECKS](#aspd_do_checks_table) parameter.
 :::
 
-## Airspeed in PX4
-
-PX4 handles multiple types of airspeed:
-
-- **IAS (Indicated Airspeed):** The raw measurement from the airspeed sensor, directly influenced by sensor characteristics and installation effects (e.g., pitot-static errors).
-
-- **CAS (Calibrated Airspeed):** IAS corrected for sensor-specific and installation-related errors.
-
-- **EAS (Equivalent Airspeed):** _Not explicitly handled by PX4_ - Calibrated airspeed corrected for compressibility effects.
-  While PX4 does not currently model EAS separately, this correction is negligible at low speeds and altitudes, so EAS is treated as equivalent to CAS for simplicity.
-
-- **TAS (True Airspeed):** CAS adjusted for atmospheric effects such as air pressure and temperature (i.e., altitude and atmospheric conditions).
-
-The standard conversion chain used in PX4 is: `IAS → CAS (= EAS) → TAS`.
-
 ## CAS Scale Estimation
 
-PX4 estimates the IAS to CAS scale (referred to as the CAS scale) during flight using GNSS ground speed and wind estimation.
-To compute the final TAS, standard environment conversions are applied (CAS → TAS).
-
-This CAS scaling plays an important role in keeping the [innovation check](#innovation-check) reliable, since a well-estimated CAS is key to spotting inconsistencies between measured and predicted airspeed.
+Calibrated Airspeed (CAS) is the measured Indicated Airspeed (IAS) scaled to correct for sensor-specific and installation-related errors.
+CAS scaling plays an important role in keeping the [innovation check](#innovation-check) reliable, since a well-estimated CAS is key to spotting inconsistencies between measured and predicted airspeed.
 If the estimated CAS scale is inaccurate, it can mask real airspeed faults or trigger false positives.
 
-If you observe that the CAS scale estimate is consistently off, or if it is converging too slowly, you can manually set it using [ASPD_SCALE_n](#aspd_scale_n_table) (where `n` is the sensor number).
-[ASPD_SCALE_APPLY](#aspd_scale_apply_table) can be used to configure when/if the estimated scale is applied.
-
-::: info
-For a quick manual CAS scale estimate, compare groundspeed minus windspeed (from the [VehicleLocalPosition](../msg_docs/VehicleLocalPosition.md) and [Wind](../msg_docs/Wind.md) messages, respectively) to indicated airspeed values (in the [Airspeed](../msg_docs/Airspeed.md) message).
-The ratio of indicated airspeed to groundspeed minus windspeed can provide a reasonable starting estimate for [ASPD_SCALE_n](#aspd_scale_n_table).
-:::
+If you observe that the CAS scale estimate is consistently off, or if it is converging too slowly, follow the steps outlined in [Airspeed Scale Handling](../config_fw/airspeed_scale_handling.md#recommended-first-flight-process).
 
 ## Validation Checks
 

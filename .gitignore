@@ -109,3 +109,12 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # colcon
 log/
 keys/
+
+# metadata
+_emscripten_sdk/
+
+# virtual Python environment
+.venv
+
+# Claude Code local settings
+.claude/settings.local.json

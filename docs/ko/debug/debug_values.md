@@ -22,7 +22,7 @@ This tutorial shows how to send the MAVLink message `NAMED_VALUE_FLOAT` using th
 이 자습서의 코드는 다음에서 사용할 수 있습니다.
 
 - [Debug Tutorial Code](https://github.com/PX4/PX4-Autopilot/blob/main/src/examples/px4_mavlink_debug/px4_mavlink_debug.cpp)
-- [Enable the tutorial app](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board) by ensuring the MAVLink debug app (**CONFIG_EXAMPLES_PX4_MAVLINK_DEBUG**) is in the config of your board and set set to 'y'.
+- [Enable the tutorial app](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board) by ensuring the MAVLink debug app (**CONFIG_EXAMPLES_PX4_MAVLINK_DEBUG**) is in the config of your board and set to 'y'.
 
 디버그 게시를 설정에 필요한 것은 아래의 코드입니다.
 먼저 헤더 파일을 추가합니다.

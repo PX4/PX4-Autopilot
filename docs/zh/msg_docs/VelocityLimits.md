@@ -1,16 +1,38 @@
+---
+pageClass: is-wide-page
+---
+
 # 速度限制 (UORB 消息)
 
-仅适用于多旋翼飞行器位置慢速模式的速度和偏航率限制
+Velocity and yaw rate limits for a multicopter position slow mode only.
 
-[源文件](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VelocityLimits.msg)
+**TOPICS:** velocity_limits
+
+## Fields
+
+| 参数名                                                                          | 类型        | Unit [Frame] | Range/Enum | 描述                                                        |
+| ---------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                          | `uint64`  |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_horizontal_velocity"></a>horizontal_velocity | `float32` | 米/秒                                                              |            |                                                           |
+| <a id="fld_vertical_velocity"></a>vertical_velocity     | `float32` | 米/秒                                                              |            |                                                           |
+| <a id="fld_yaw_rate"></a>yaw_rate                       | `float32` | rad/s                                                            |            |                                                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VelocityLimits.msg)
+
+:::details
+Click here to see original file
 
 ```c
-# 多片段位置的速度和yaw 率限制仅限
+# Velocity and yaw rate limits for a multicopter position slow mode only
 
-uint64 时间戳 # 系统启动后的时间 (微秒)
+uint64 timestamp # time since system start (microseconds)
 
-# 绝对速度， NAN 表示使用默认限制
-float32 水平速度 # [m/]
-float32 vertical_速度 # [m/]
-float32 yaw_rate # [rad/]
+# absolute speeds, NAN means use default limit
+float32 horizontal_velocity # [m/s]
+float32 vertical_velocity # [m/s]
+float32 yaw_rate # [rad/s]
 ```
+
+:::

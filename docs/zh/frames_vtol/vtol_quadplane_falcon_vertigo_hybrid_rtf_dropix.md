@@ -3,6 +3,7 @@
 :::warning
 Discontinued
 The Falcon Venturi FPV Wing frame on which this vehicle is based is no longer available.
+The Dropix FC used by this vehicle is discontinued.
 :::
 
 The _Falcon Vertigo Hybrid VTOL_ is a quadplane VTOL aircraft that has been designed to work with PX4 and the Dropix (Pixhawk compatible) flight controller. It can carry a small GoPro camera.
@@ -13,7 +14,7 @@ The components can also be purchased separately.
 Key information:
 
 - **Frame:** Falcon Vertigo Hybrid VTOL
-- **Flight controller:** Dropix
+- **Flight controller:** Dropix (Discontineud)
 - **Wing span:** 1.3m
 
 ![Falcon Vertigo Hybrid VTOL RTF](../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_complete.jpg)
@@ -36,7 +37,7 @@ Almost everything you need is provided in the RTF kit (the links next to compone
 - Pusher motor power system
 - Carbon fiber tubes and mounts
 - G10 motor mounts
-- 1 x [3700mah 4S 30C Lipo battery](https://www.overlander.co.uk/batteries/lipo-batteries/power-packs/3700mah-4s-14-8v-25c-lipo-battery-overlander-sport.html)
+- 1 x [3700mah 4S 30C Lipo battery](https://wheelspinmodels.co.uk/i/3700mah-4s-14.8v-25c-lipo-battery-overlander-262221/)
 - Dropix power distribution board and cable
 
 The kit does not come with a radio receiver or (optional) telemetry modules.
@@ -115,10 +116,6 @@ This kit includes Dropix flight controller with most of the required electronics
 
 <img src="../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_23_dropix_and_other_electronics.jpg" width="500px" title="Falcon Vertigo Electronics" />
 
-:::info
-General information about connecting Dropix can be found in [Dropix Flight Controller](../flight_controller/dropix.md).
-:::
-
 #### Connect the ESC power connector and pass the signals cables to the flight controller
 
 1. Connect the ESC to the power module using the XT60 connector
@@ -146,7 +143,7 @@ For example, you might wire it up like this example (orientation as if "sitting 
 | AUX 2  | Right aileron          |
 | AUX 3  | Elevator               |
 | AUX 4  | Rudder                 |
-| AUX 5  | 油门                     |
+| AUX 5  | Throttle               |
 
 <a id="dropix_back"></a>
 
@@ -267,7 +264,7 @@ The final assembly step is to check the vehicle is stable and that the motors ha
 
 Perform the normal [Basic Configuration](../config/index.md).
 
-备注：
+Notes:
 
 1. For [Airframe](../config/airframe.md) select the vehicle group/type as _Standard VTOL_ and the specific vehicle as [Generic Standard VTOL](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol) as shown below.
 

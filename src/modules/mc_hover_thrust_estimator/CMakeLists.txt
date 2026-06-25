@@ -44,6 +44,8 @@ px4_add_module(
 	SRCS
 		MulticopterHoverThrustEstimator.cpp
 		MulticopterHoverThrustEstimator.hpp
+	MODULE_CONFIG
+		hover_thrust_estimator_params.yaml
 	DEPENDS
 		hysteresis
 		mathlib

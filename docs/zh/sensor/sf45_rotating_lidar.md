@@ -12,9 +12,9 @@ You will need to [create and use a custom build](#add-the-driver-to-the-px4-buil
 
 ## LightWare Studio Setup
 
-In the [LightWare Studio](https://www.lightwarelidar.com/resources-software) app set following values:
+In the [LightWare Studio](https://lightwarelidar.com/resources-software/) app set following values:
 
-| 参数        | 描述     |
+| Parameter | 描述     |
 | --------- | ------ |
 | Baud rate | 921600 |
 
@@ -46,7 +46,7 @@ You will need to configure PX4 to indicate the serial port to which the sensor i
 
 The [parameters to change](../advanced_config/parameters.md) are listed in the table.
 
-| 参数                                                                                                                                                                         | 描述                                                                       |
+| Parameter                                                                                                                                                                  | 描述                                                                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | <a id="SENS_EN_SF45_CFG"></a>[SENS_EN_SF45_CFG](../advanced_config/parameter_reference.md#SENS_EN_SF45_CFG) | Set to the serial port you have the sensor connected to. |
 | <a id="SF45_ORIENT_CFG"></a>[SF45_ORIENT_CFG](../advanced_config/parameter_reference.md#SF45_ORIENT_CFG)                         | Set the orientation of the sensor (facing up or down) |

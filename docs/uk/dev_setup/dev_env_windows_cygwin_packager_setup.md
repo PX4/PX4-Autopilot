@@ -33,7 +33,7 @@ This topic explains how to construct and extend the development environment used
 
 1. Make sure you have [Git for Windows](https://git-scm.com/download/win) installed.
 
-2. Клонуйте репозиторій https://github.com/PX4/windows-toolchain туди куди ви хочете встановити інструментарій. Default location and naming is achieved by opening the `Git Bash` and executing:
+2. Clone the repository <https://github.com/PX4/windows-toolchain> to the location you want to install the toolchain. Default location and naming is achieved by opening the `Git Bash` and executing:
 
    ```sh
    cd /c/
@@ -53,13 +53,13 @@ This topic explains how to construct and extend the development environment used
 The toolchain gets maintained and hence these instructions might not cover every detail of all the future changes.
 :::
 
-1. Create the _folders_: \*\*C:\PX4\*\*, \*\*C:\PX4\toolchain\*\* and \*\*C:\PX4\home\*\*
+1. Create the _folders_: **C:\PX4**, **C:\PX4\toolchain** and **C:\PX4\home**
 
 2. Download the _Cygwin installer_ file [setup-x86_64.exe](https://cygwin.com/setup-x86_64.exe) from the [official Cygwin website](https://cygwin.com/install.html)
 
 3. Запустіть завантажений файл встановлювача
 
-4. У майстрі оберіть встановлення в теку: \*\*C:\PX4\toolchain\cygwin64\*\*
+4. In the wizard choose to install into the folder: **C:\PX4\toolchain\cygwin64**
 
 5. Оберіть для встановлення стандартні основні пакети Cygwin і найновішу версію додаткових пакетів:
 

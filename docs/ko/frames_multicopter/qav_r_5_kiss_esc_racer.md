@@ -169,7 +169,7 @@ As we have no ground or positive BEC voltage connections we connect our `PWM` ES
 ### GPS / 외부 자력계
 
 사용한 GPS의 커넥터에 맞는 GPS 케이블을 가져와 Pixracer 세트와 함께 조립하였습니다.
-Sadly the pin assignment was completely wrong and I rewired the connector again using tweezers according to the [3DR Pixhawk Mini user manual](../flight_controller/pixhawk_mini.md#connector-pin-assignments-pin-outs) GPS port.
+Sadly the pin assignment was completely wrong and I rewired the connector again using tweezers according to the [3DR Pixhawk Mini user manual](https://docs.px4.io/v1.16/en/flight_controller/pixhawk_mini#connector-pin-assignments-pin-outs) GPS port.
 
 #### Pixracer GPS/I2C 포트
 

@@ -54,7 +54,7 @@ Plan a mission on the ground. Ensure the mission has
 - 추력을 올릴 때 서서히 이륙한다
 - 첫 시도시 임무 내용이 올라가야 함
 - 자동 모드 인가시 기체는 자동으로 이륙해야 함
-- Vehicle shoud adjust height to RTL altitude before returning home
+- Vehicle should adjust height to RTL altitude before returning home
 - 지면에 착륙시, 콥터가 지면에서 튀면 안됨
 
 <!--

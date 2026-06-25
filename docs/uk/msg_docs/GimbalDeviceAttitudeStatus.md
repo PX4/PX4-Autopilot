@@ -1,6 +1,47 @@
+---
+pageClass: is-wide-page
+---
+
 # GimbalDeviceAttitudeStatus (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalDeviceAttitudeStatus.msg)
+**TOPICS:** gimbal_device_attitude_status
+
+## Fields
+
+| Назва                                                                                                 | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| ----------------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                   | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_target_system"></a>target_system                                      | `uint8`      |                                                                  |            |                                                           |
+| <a id="fld_target_component"></a>target_component                                | `uint8`      |                                                                  |            |                                                           |
+| <a id="fld_device_flags"></a>device_flags                                        | `uint16`     |                                                                  |            |                                                           |
+| <a id="fld_q"></a>q                                                                                   | `float32[4]` |                                                                  |            |                                                           |
+| <a id="fld_angular_velocity_x"></a>angular_velocity_x       | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_angular_velocity_y"></a>angular_velocity_y       | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_angular_velocity_z"></a>angular_velocity_z       | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_failure_flags"></a>failure_flags                                      | `uint32`     |                                                                  |            |                                                           |
+| <a id="fld_delta_yaw"></a>delta_yaw                                              | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_delta_yaw_velocity"></a>delta_yaw_velocity       | `float32`    |                                                                  |            |                                                           |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id           | `uint8`      |                                                                  |            |                                                           |
+| <a id="fld_received_from_mavlink"></a>received_from_mavlink | `bool`       |                                                                  |            |                                                           |
+
+## Constants
+
+| Назва                                                                                                                                                                                      | Тип      | Значення | Опис |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- | ---- |
+| <a id="#DEVICE_FLAGS_RETRACT"></a> DEVICE_FLAGS_RETRACT                                                                                          | `uint16` | 1        |      |
+| <a id="#DEVICE_FLAGS_NEUTRAL"></a> DEVICE_FLAGS_NEUTRAL                                                                                          | `uint16` | 2        |      |
+| <a id="#DEVICE_FLAGS_ROLL_LOCK"></a> DEVICE_FLAGS_ROLL_LOCK                                                                 | `uint16` | 4        |      |
+| <a id="#DEVICE_FLAGS_PITCH_LOCK"></a> DEVICE_FLAGS_PITCH_LOCK                                                               | `uint16` | 8        |      |
+| <a id="#DEVICE_FLAGS_YAW_LOCK"></a> DEVICE_FLAGS_YAW_LOCK                                                                   | `uint16` | 16       |      |
+| <a id="#DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME"></a> DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME | `uint16` | 32       |      |
+| <a id="#DEVICE_FLAGS_YAW_IN_EARTH_FRAME"></a> DEVICE_FLAGS_YAW_IN_EARTH_FRAME     | `uint16` | 64       |      |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalDeviceAttitudeStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp						# time since system start (microseconds)
@@ -29,5 +70,6 @@ float32 delta_yaw_velocity
 uint8 gimbal_device_id
 
 bool received_from_mavlink
-
 ```
+
+:::

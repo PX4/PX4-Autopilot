@@ -166,7 +166,9 @@ void NodeManager::HandleListResponse(const CanardRxTransfer &receive)
 			PX4_INFO("Set portID succesfull");
 
 		} else {
-			PX4_INFO("Register not found %.*s", msg.name.name.count, msg.name.name.elements);
+			PX4_INFO("Register not found %.*s",
+				 static_cast<int>(msg.name.name.count),
+				 msg.name.name.elements);
 		}
 	}
 }

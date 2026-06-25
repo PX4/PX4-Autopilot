@@ -17,6 +17,8 @@
 - Надмірні виграші (і швидкий рух серводвигуна) можуть порушити максимальні сили вашої конструкції повітряного корпусу - збільшуйте виграші обережно.
 - Налаштування крену та тангажу слідують тій самій послідовності.
   The only difference is that pitch is more sensitive to trim offsets, so [trimming](../config_fw/trimming_guide_fixedwing.md) has to be done carefully and integrator gains need more attention to compensate this.
+- Disable automatic [gain compression](../features_fw/gain_compression.md) ([FW_GC_EN](../advanced_config/parameter_reference.md#FW_GC_EN)) to avoid over-tuning.
+  Remember to re-enable it when tuning is done.
 
 ## Встановлення базового каркасу повітряного корпусу
 

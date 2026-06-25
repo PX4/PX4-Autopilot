@@ -105,21 +105,43 @@ parameters:
             description:
                 short: Battery ${i} monitoring source.
                 long: |
-                    This parameter controls the source of battery data. The value 'Power Module'
-                    means that measurements are expected to come from a power module. If the value is set to
-                    'External' then the system expects to receive mavlink battery status messages.
+                    This parameter controls the source of battery data. The value 'Power Module / Analog'
+                    means that measurements are expected to come from either analog (ADC) inputs
+                    or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
+                    measurements read from the board's ADC channels, typically from an onboard
+                    voltage divider and current shunt, or an external analog power module.
+                    I2C power monitors are digital sensors on the I2C bus.
+                    If the value is set to 'External' then the system expects to receive MAVLink
+                    or CAN battery status messages, or the battery data is published by an external driver.
                     If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-                    This requires the ESC to provide both voltage as well as current.
+                    This requires the ESC to provide both voltage as well as current (via ESC telemetry).
             type: enum
             values:
                 -1: Disabled
-                0: Power Module
+                0: Power Module / Analog
                 1: External
                 2: ESCs
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, -1, -1]
+
+        BAT${i}_I_OVERWRITE:
+            description:
+                short: Battery ${i} idle current overwrite
+                long: |
+                    This parameter allows to overwrite the current measured during
+                    idle (unarmed) state with a user-defined constant value (expressed in amperes).
+                    When the system is armed, the measured current is used. This is useful
+                    because on certain ESCs current measurements are inaccurate in case of no load.
+                    Negative values are ignored and will cause the measured current to be used.
+                    The default value of 0 disables the overwrite, in which case the measured value
+                    is always used.
+            type: float
+            decimal: 2
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0, 0, 0]
 
         BAT_LOW_THR:
             description:

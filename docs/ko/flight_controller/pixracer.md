@@ -30,7 +30,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - OneShot PWM 출력(설정 가능)
 - 옵션 : 안전 스위치 및 부저
 
-## 구매처
+## Where to Buy {#store}
 
 Pixracer Pro is available from the [store.3dr.com](https://store.3dr.com/pixracer-pro/).
 
@@ -217,7 +217,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v4_default
 ```
 

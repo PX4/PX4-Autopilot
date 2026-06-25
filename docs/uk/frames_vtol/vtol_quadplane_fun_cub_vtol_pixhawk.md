@@ -42,7 +42,7 @@ QuadPlane VTOL Fun Cub є стандартним повітряним судно
 Motor and servo wiring is nearly entirely up to you, but should match the [Generic Standard VTOL](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol) configuration, as shown in the airframe reference.
 The geometry and output assignment can be configured in the [Actuators Configuration](../config/actuators.md#actuator-outputs)
 
-Наприклад, ви можете з’єднати його так, як у цьому прикладі (орієнтація як у "сидячи в літаку"):
+For example, you might wire it up like this example (orientation as if "sitting in the plane"):
 
 | Порт   | Підключення                                    |
 | ------ | ---------------------------------------------- |
@@ -51,10 +51,10 @@ The geometry and output assignment can be configured in the [Actuators Configura
 | MAIN 3 | Передній лівий мотор (CW)   |
 | MAIN 4 | Правий задній мотор (CW)    |
 | AUX 1  | Лівий елерон TODO                              |
-| AUX 2  | Правий елерон                                  |
+| AUX 2  | Right aileron                                  |
 | AUX 3  | Elevator                                       |
 | AUX 4  | Rudder                                         |
-| AUX 5  | Тяга                                           |
+| AUX 5  | Throttle                                       |
 
 For further instructions on wiring and configurations please see:
 [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md). <!-- replace with Pixhawk Wiring Quickstart -->
@@ -67,9 +67,9 @@ For further instructions on wiring and configurations please see:
 
 2. Configure the outputs and geometry following the instructions in [Actuators Configuration](../config/actuators.md)
 
-3. За замовчуванням параметри часто достатні для стабільного польоту. For more detailed tuning information see [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md).
+3. The default parameters are often sufficient for stable flight. For more detailed tuning information see [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md).
 
-Після завершення калібрування, VTOL готовий до польоту.
+After you finish calibration the VTOL is ready to fly.
 
 ## Відео
 

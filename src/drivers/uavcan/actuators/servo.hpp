@@ -45,14 +45,14 @@
 class UavcanServoController
 {
 public:
-	static constexpr int MAX_ACTUATORS = 8;
+	static constexpr int MAX_ACTUATORS = 15;
 	static constexpr unsigned MAX_RATE_HZ = 50;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 6;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
 	UavcanServoController(uavcan::INode &node);
 	~UavcanServoController() = default;
 
-	void update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
+	void update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 private:
 	uavcan::INode								&_node;

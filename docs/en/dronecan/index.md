@@ -6,7 +6,7 @@
 
 - DroneCAN is not enabled by default, and nor are specific sensors and features that use it.
   For setup information see [PX4 Configuration](#px4-configuration).
-- PX4 requires an SD card to enable dynamic node allocation and for firmware update.
+- PX4 requires an SD card to enable dynamic node allocation and for [firmware update](#firmware-update).
   The SD card is not used in flight.
 
 :::
@@ -27,6 +27,8 @@ Connecting peripherals over DroneCAN has many benefits:
 - Wiring is less complicated as you can have a single bus for connecting all your ESCs and other DroneCAN peripherals.
 - Setup is easier as you configure ESC numbering by manually spinning each motor.
 - It allows users to configure and update the firmware of all CAN-connected devices centrally through PX4.
+- PX4 automatically tracks device information (vendor, model, versions, serial numbers) for maintenance and fleet management.
+  See [Asset Tracking](../debug/asset_tracking.md).
 
 ## Supported Hardware
 
@@ -62,6 +64,8 @@ Supported hardware includes (this is not an exhaustive list):
   - [Holybro RM3100 Professional Grade Compass](https://holybro.com/products/dronecan-rm3100-compass)
   - [RaccoonLab RM3100 Magnetometer](https://docs.raccoonlab.co/guide/gps_mag_baro/mag_rm3100.html)
 - Distance sensors
+  - [ARK Dist](ark_dist.md)
+  - [Ark Dist MR](ark_dist_mr.md)
   - [ARK Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
@@ -148,7 +152,7 @@ DroneCAN peripherals connected to PX4 can also be [configured using parameters v
 By convention, parameters named with the prefix [CANNODE\_](../advanced_config/parameter_reference.md#CANNODE_BITRATE) have prefined meaning, and may be documented in the parameter reference.
 `CANNODE_` parameters prefixed with `CANNODE_PUB_` and `CANNODE_SUB_` enable the peripheral to publish or subscribe the associated DroneCAN message.
 These allow DroneCAN peripherals to be configured to only subscribe and publish messages that they actually need (in the same way that PX4 uses the corresponding `UAVCAN_PUB_`/`UAVCAN_SUB_` parameters).
-Note that a peripheral might might not use `CANNODE_` parameters, in which case it may have to publish/subscribe to particular messages whether or not they are needed.
+Note that a peripheral might not use `CANNODE_` parameters, in which case it may have to publish/subscribe to particular messages whether or not they are needed.
 
 The following sections provide additional detail on the PX4 and DroneCAN peripheral parameters used to enable particular features.
 
@@ -184,7 +188,7 @@ GPS CANNODE parameter ([set using QGC](#qgc-cannode-parameter-configuration)):
 
 Other PX4 Parameters:
 
-- If the GPS is not positioned at the vehicle centre of gravity you can account for the offset using [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z).
+- If the GPS is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ).
 - If the GPS module provides yaw information, you can enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
 
 #### RTK GPS
@@ -277,6 +281,14 @@ PX4 DroneCAN parameters:
 Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
 Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) because ESC messages can saturate the bus and starve other nodes of bandwidth.
 
+### Lights
+
+PX4 can control external LEDs on a connected DroneCAN peripheral using the standard DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) message.
+Up to 2 lights acan be controlled.
+Each light can independently show [system status colours](../getting_started/led_meanings.md#ui-led), a fixed colour (commonly used for indicating aircraft orientation), or switch between both depending on arm state.
+
+See [DroneCAN Lights](lights.md) for full configuration details.
+
 ## QGC CANNODE Parameter Configuration
 
 QGroundControl can inspect and modify parameters belonging to CAN devices attached to the flight controller, provided the device are connected to the flight controller before QGC is started.
@@ -298,10 +310,64 @@ Most DroneCAN nodes require no further setup, unless specifically noted in their
 ## Firmware Update
 
 PX4 can upgrade device firmware over DroneCAN.
-To upgrade the device, all you need to do is copy the firmware binary into the root directory of the flight controller's SD card and reboot.
 
-Upon boot the flight controller will automatically transfer the firmware onto the device and upgrade it.
-If successful, the firmware binary will be removed from the root directory and there will be a file named **XX.bin** in the **/ufw** directory of the SD card.
+::: info
+PX4 identifies valid firmware binaries (`.bin`) based on the presence of an **APDescriptor** — a metadata block embedded in the `.bin` file that contains the target board ID, firmware version, and a checksum.
+PX4 uses this descriptor to match each binary to the correct node and to determine whether an update is needed.
+:::
+
+### Firmware Directories
+
+Place firmware binaries in one of these locations on the SD card before rebooting:
+
+- **SD card root** (`/fs/microsd/`): Simplest option for manual updates.
+- **Staging directory** (`/fs/microsd/ufw_staging/`): Preferred for remote/programmatic updates.
+  Files are moved to `/fs/microsd/ufw/` at boot before any node is flashed, avoiding write conflicts if firmware is uploaded while the vehicle is running.
+
+On boot, PX4 scans both locations, reads the board ID from the _APDescriptor_ of each file, and copies them to `/fs/microsd/ufw/<board_id>.bin`.
+The source file is then deleted.
+Any connected node whose running version does not match is then flashed over the CAN bus.
+
+### Firmware Database
+
+A flat-file database at `/fs/microsd/ufw/FW.db` maps each board ID to the original firmware filename that was installed.
+This may be queried by external tools to determine current firmware versions.
+
+Example entry:
+
+```txt
+122.bin=122-1.17.63eeff1a.uavcan.bin
+```
+
+Entries are removed on boot if their corresponding firmware is not present.
+
+### Remote Update
+
+Remote updates can be made by uploading the corresponding bin files to `/fs/microsd/ufw_staging/`.
+PX4 will then update firmware on next boot.
+
+This approach enables efficient mass-update of binaries from archives (`.zip` or `.tar` that contains `.bin` files for the target CAN nodes).
+Tools can:
+
+1. Read the PX4 firmware database to determine what firmware is present
+2. Extract the more-recent versions of matching firmware to the staging directory
+
+PX4 does not provide such tools.
+
+::: info
+Auterion uses a form of this workflow to update CAN firmware to SkyNode based devices.
+The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle a number of firmware files and upload them to a directory on the companion-computer part.
+
+```sh
+./Tools/auterion/upload_skynode.sh \
+  --ext-fw=build/auterion_canio_default/auterion_canio_default.uavcan.bin
+  --ext-fw=build/auterion_canio_default/another_default.uavcan.bin
+  ...
+  --ext-fw=build/auterion_canio_default/some_other_default.uavcan.bin
+```
+
+Another tool then checks the firmware database and extracts just the relevant files to the PX4 firmware staging area.
+:::
 
 ## Troubleshooting
 

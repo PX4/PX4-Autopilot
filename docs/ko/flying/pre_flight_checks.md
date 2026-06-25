@@ -81,7 +81,7 @@ Tuning these parameters is a last resort.
 추정기 성능이 향상될 수 있는 데이터가 있는 경우에만 시도합니다.
 :::
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                                                                                                                                                                                                                              |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="EKF2_ABL_LIM"></a>[EKF2_ABL_LIM](../advanced_config/parameter_reference.md#EKF2_ABL_LIM)                                  | EKF가 추정할 수 있는 최대 바이어스 값(이 값을 초과하면 바이어스가 잘리고 EKF는 자체 재설정을 시도하며 다중 EKF 시스템에서 작동하는 IMU가 있는 더 건강한 EKF로 전환할 수도 있음). The autopilot will report a "high accel bias" if the estimated bias exceeds 75% of this parameter during a preflight check and prevent takeoff. 0.4m/s2의 현재 값은 이미 상당히 높으며, 이를 높이면 자동조종장치가 문제를 감지할 가능성이 줄어듭니다. |
 | <a id="EKF2_ABIAS_INIT"></a>[EKF2_ABIAS_INIT](../advanced_config/parameter_reference.md#EKF2_ABIAS_INIT)                         | Initial bias uncertainty (if perfectly calibrated, this is related to the "turn-on bias" of the sensor). 일부 사용자는 센서가 잘 보정되어 있고 켜기 바이어스가 작다는 것을 알고 있으면 이 값을 줄이고 싶어할 수 있습니다.                                                                                                                                                                                   |
@@ -128,7 +128,11 @@ Tuning these parameters is a last resort.
 
 #### COM_ARM_WO_GPS
 
-The [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) parameter controls whether or not arming is allowed without a global position estimate.
+The [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) parameter controls whether or not arming is allowed in modes that require a valid global position estimate when EKF2 GNSS quality checks are failing.
 
-- `1` (default): Arming _is_ allowed without a position estimate for flight modes that do not require position information (only).
-- `0`: Arming is allowed only if EKF is providing a global position estimate and EFK GPS quality checks are passing
+The values are:
+
+- `0`: Deny arming.
+- `1`: Arming allowed with warning (default).
+  This might be used to provide a warning that the GNSS is unhealthy even when there is another source of valid position estimate, such as VIO or optical flow.
+- `2`: Arming allowed without warnings.

@@ -44,6 +44,8 @@ using namespace time_literals;
 namespace events
 {
 
+ModuleBase::Descriptor SendEvent::desc{task_spawn, custom_command, print_usage};
+
 // Run it at 30 Hz.
 static constexpr uint32_t SEND_EVENT_INTERVAL_US{1_s / 30};
 
@@ -56,8 +58,8 @@ int SendEvent::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(send_event);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(send_event);
+	desc.task_id = task_id_is_work_queue;
 
 	send_event->start();
 
@@ -95,7 +97,7 @@ int SendEvent::start()
 void SendEvent::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -162,7 +164,7 @@ int SendEvent::custom_command(int argc, char *argv[])
 
 int send_event_main(int argc, char *argv[])
 {
-	return SendEvent::main(argc, argv);
+	return ModuleBase::main(SendEvent::desc, argc, argv);
 }
 
 } /* namespace events */

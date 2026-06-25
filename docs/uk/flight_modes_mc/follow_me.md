@@ -10,7 +10,7 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 - Режим потребує принаймні дійсної локальної оцінки позиції (не потребує глобальної позиції).
   - Літаючі транспортні засоби не можуть переключатися на цей режим без глобального положення.
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
-- Режим перешкоджає зброюванню (транспортний засіб повинен бути зброєний при переході на цей режим).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Режим вимагає, щоб швидкість вітру та час польоту були в межах допустимих значень (вказано через параметри).
 - Цей режим в даний час підтримується лише на багатокоптерних (або VTOL у режимі MC).
 - Також обраний об'єкт повинен мати можливість постачання інформації про позицію.
@@ -31,7 +31,7 @@ The vehicle will automatically yaw to face and follow the target from a specifie
 Користувачі можуть налаштувати кут слідування, висоту та відстань за допомогою пульта дистанційного керування, як показано вище:
 
 - _Follow Height_ is controlled with the `up-down` input ("Throttle").
-  Центруйте палицю, щоб тримати відстеження цілі на постійній висоті. Підніміть або опустіть палицю, щоб налаштувати висоту.
+  Center the stick to keep follow the target at a constant height. Підніміть або опустіть палицю, щоб налаштувати висоту.
 - _Follow Distance_ is controlled with the `forward-back` input ("Pitch").
   Тиснення палиці вперед збільшує відстань слідування, витягування назад зменшує відстань.
 - _Follow Angle_ is controlled with the `left-right` input ("Roll").
@@ -115,10 +115,9 @@ The altitude control mode determine whether the vehicle altitude is relative to 
   Відносна відстань до дрона до цілі зміниться, коли ви підніметесь та опуститесь (використовуйте обережно в гірській місцевості).
 
 - `2D + Terrain` makes the drone follow at a fixed height relative to the terrain underneath it, using information from a distance sensor.
-
   - If the vehicle does not have a distance sensor following will be identical to `2D tracking`.
   - Датчики відстані не завжди точні, і транспортні засоби можуть бути "скачущими" під час польоту в цьому режимі.
-  - Зверніть увагу, що висота вимірюється відносно землі під транспортним засобом, а не цільового об'єкта.
+  - Note that height is relative to the ground underneath the vehicle, not the follow target.
     Дрон може не слідувати за змінами висоти цілі!
 
 - `3D tracking` mode makes the drone follow at a height relative to the follow target, as supplied by its GPS sensor.
@@ -138,7 +137,7 @@ If the drone's altitude is significantly different than specified, assume that t
 
 The follow-me behavior can be configured using the following parameters:
 
-| Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Parameter                                                                                                                                                               | Опис                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FLW_TGT_HT"></a>[FLW_TGT_HT](../advanced_config/parameter_reference.md#FLW_TGT_HT)                                     | Висота автомобіля, який супроводжує, у метрах. Note that this height is fixed _relative to the home/arming position_ (not the target vehicle). Стандартна та мінімальна висота - 8 метрів (близько 26 футів)                                                                                                                                  |
 | <a id="FLW_TGT_DST"></a>[FLW_TGT_DST](../advanced_config/parameter_reference.md#FLW_TGT_DST)                                  | Vehicle/ground station separation in the _horizontal_ (x,y) plane, in metres. Мінімально допустимий інтервал - 1 метр. Стандартна відстань - 8 метрів (близько 26 футів).                                                                                                                                                     |

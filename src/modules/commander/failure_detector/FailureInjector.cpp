@@ -33,6 +33,7 @@
 
 #include "FailureInjector.hpp"
 
+#include <cmath>
 #include <parameters/param.h>
 #include <uORB/topics/actuator_motors.h>
 
@@ -53,15 +54,15 @@ void FailureInjector::update()
 	vehicle_command_s vehicle_command;
 
 	while (_vehicle_command_sub.update(&vehicle_command)) {
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+		const int failure_unit = static_cast<int>(lroundf(vehicle_command.param1));
+		const int failure_type = static_cast<int>(lroundf(vehicle_command.param2));
 
 		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE
 		    || failure_unit != vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR) {
 			continue;
 		}
 
-		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
+		const int instance = static_cast<int>(lroundf(vehicle_command.param3));
 		bool supported = false;
 
 		for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {

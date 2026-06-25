@@ -37,21 +37,9 @@ if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
 
-# get full path for each module
-get_property(module_list GLOBAL PROPERTY PX4_MODULE_PATHS)
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 
 if(DISABLE_PARAMS_MODULE_SCOPING)
-	# search all directories with .c files (potentially containing parameters)
-	file(GLOB_RECURSE c_files
-		${PX4_SOURCE_DIR}/src/*.c
-		${external_module_paths}
-		)
-	foreach(file_path ${c_files})
-		get_filename_component(dir_path ${file_path} PATH)
-		list(APPEND module_list "${dir_path}")
-	endforeach()
-
 	# search for all module configs as well
 	file(GLOB_RECURSE yaml_files
 		${PX4_SOURCE_DIR}/src/*.yaml
@@ -72,11 +60,7 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	endforeach()
 
 	list(REMOVE_DUPLICATES module_config_files)
-else()
-	list(APPEND module_list ${external_module_paths})
 endif()
-
-list(REMOVE_DUPLICATES module_list)
 
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
@@ -114,17 +98,27 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 	COMMENT "Generating serial_params.c"
 )
 
+# readonly params config (used by both px_process_params.py and px_generate_params.py)
+set(READONLY_PARAMS_CONFIG "${PX4_BOARD_DIR}/readonly_params.yaml")
+if(EXISTS ${READONLY_PARAMS_CONFIG})
+	set(READONLY_PARAMS_ARG "--readonly-config" "${READONLY_PARAMS_CONFIG}")
+	set(READONLY_PARAMS_DEPEND "${READONLY_PARAMS_CONFIG}")
+else()
+	set(READONLY_PARAMS_ARG "")
+	set(READONLY_PARAMS_DEPEND "")
+endif()
+
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
-file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c ${PX4_SOURCE_DIR}/src/*parameters.c)
 add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json}.xz
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
-		--src-path ${module_list} ${generated_params_dir}
+		--src-path ${generated_params_dir}
 		--xml ${parameters_xml}
 		--json ${parameters_json}
 		--compress
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
+		${READONLY_PARAMS_ARG}
 		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
 		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
@@ -132,24 +126,28 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
 	DEPENDS
-		${param_src_files}
 		${generated_serial_params_file}
 		${generated_module_params_file}
+		${READONLY_PARAMS_DEPEND}
 		px4params/srcparser.py
 		px4params/srcscanner.py
 		px4params/jsonout.py
 		px4params/xmlout.py
+		px4params/readonly_config.py
 		px_process_params.py
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
 # generate px4_parameters.hpp
+
 add_custom_command(OUTPUT px4_parameters.hpp
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
+		${READONLY_PARAMS_ARG}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
+		${READONLY_PARAMS_DEPEND}
 		px_generate_params.py
 		templates/px4_parameters.hpp.jinja
 	)

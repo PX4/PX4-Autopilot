@@ -166,7 +166,7 @@ D-Port receivers transmit the following messages (from [here](https://github.com
 
 ## 睿思凯遥测接收机
 
-Pixhawk/PX4 supports D (old) and S (new) FrSky telemetry. The table belows all FrSky receivers that support telemetry via a D/S.PORT (in theory all of these should work).
+Pixhawk/PX4 supports D (old) and S (new) FrSky telemetry. The table below lists all FrSky receivers that support telemetry via a D/S.PORT (in theory all of these should work).
 
 :::tip
 Note that the X series receivers listed below are recommended (e.g. XSR, X8R). The R and G series have not been tested/validated by the test team, but should work.
@@ -185,7 +185,7 @@ Note that the X series receivers listed below are recommended (e.g. XSR, X8R). T
 | RX8R        | 1.5km | S.Bus (16)                               | Smart Port                    | 46.25x26.6x14.2mm     | 12.1g |
 | RX8R PRO    | 1.5km | S.Bus (16)                               | Smart Port                    | 46.25x26.6x14.2mm     | 12.1g |
 | R-XSR       | 1.5km | S.Bus (16) / CPPM (8) | Smart Port                    | 16x11x5.4mm                                           | 1.5g  |
-| G-RX8       | 1.5km | S.Bus (16)                               | Smart Port + integrated vario | 55.26_17_8mm                                          | 5.8g  |
+| G-RX8       | 1.5km | S.Bus (16)                               | Smart Port + integrated vario | 55.2&#x36;_&#x31;&#x37;_&#x38;mm                      | 5.8g  |
 | R9          | 10km                  | S.Bus (16)                               | Smart Port                    | 43.3x26.8x13.9mm      | 15.8g |
 | R9 slim     | 10km                  | S.Bus (16)                               | Smart Port                    | 43.3x26.8x13.9mm      | 15.8g |
 
@@ -213,8 +213,8 @@ You will need connectors that are appropriate for your autopilot (e.g. _JST-GH c
 The Pixracer includes electronics for converting between S.PORT and UART signals, but for other boards you will need a UART to S.PORT adapter.
 These can be sourced from:
 
-- [FrSky FUL-1](https://www.frsky-rc.com/product/ful-1/): [unmannedtech.co.uk](https://www.unmannedtechshop.co.uk/frsky-transmitter-receiver-upgrade-adapter-ful-1/)
-- SPC: [getfpv.com](https://www.getfpv.com/frsky-smart-port-converter-cable.html), [unmannedtechshop.co.uk](https://www.unmannedtechshop.co.uk/frsky-smart-port-converter-spc/)
+- [FrSky FUL-1](https://www.frsky-rc.com/product/ful-1/): [unmannedtech.co.uk](https://www.unmannedtechshop.co.uk/products/frsky-transmitter-receiver-upgrade-adapter-ful-1)
+- SPC: [getfpv.com](https://www.getfpv.com/frsky-smart-port-converter-cable.html), [unmannedtechshop.co.uk](https://www.unmannedtechshop.co.uk/products/frsky-smart-port-converter-spc)
 
 More information about the connections for different boards is given below.
 

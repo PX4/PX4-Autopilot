@@ -58,7 +58,7 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
   - Вхід USB Power: 4.75~5.25V
   - Вхід Servo Rail: 0\~36V
 - Номінальний струм:
-  - \`TELEM1\`\` обмежувач максимального вихідного струму: 1A
+  - `TELEM1` Max output current limiter: 1A
   - Комбінований обмежувач вихідного струму всіх інших портів: 1A
 
 ### **Mechanical data**
@@ -94,14 +94,14 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
 - Інші характеристики:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Де купити
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6c-mini).
 
 ## Зборка/інсталяція
 
-Порт Pixhawk 4 Mini дуже схожий з портом Pixhawk 6C Mini.
-Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_pixhawk4_mini.md) as it provides instructions on how to assemble required/important peripherals including GPS, Power Module etc.
+The Pixhawk 6C Mini's ports are very similar to the Pixhawk 4 Mini's ports.
+Please refer to the [Pixhawk 4 Mini Wiring Quick Start](https://docs.px4.io/v1.16/en/assembly/quick_start_pixhawk4_mini) (Discontinued) as it provides instructions on how to assemble required/important peripherals including GPS, Power Module etc.
 
 ## Схема розташування виводів
 
@@ -165,13 +165,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6c_default
 ```
 
-<a id="debug_port"></a>
-
-## Відладочний порт
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 
@@ -208,7 +206,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Дивіться також
 
 - [Holybro Docs](https://docs.holybro.com/) (Holybro)
-- [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_pixhawk4_mini.md) (and [Pixhawk 6C Wiring QuickStart](../assembly/quick_start_pixhawk6c.md))
+- [Pixhawk 6C Wiring QuickStart](../assembly/quick_start_pixhawk6c.md)
 - [PM02 Power Module](../power_module/holybro_pm02.md)
 - [PM06 Power Module](../power_module/holybro_pm06_pixhawk4mini_power_module.md)
 - [PM07 Power Module](../power_module/holybro_pm07_pixhawk4_power_module.md)

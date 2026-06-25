@@ -2,6 +2,7 @@
 
 하위 카테고리:
 
+- [Adc](modules_driver_adc.md)
 - [Airspeed Sensor](modules_driver_airspeed_sensor.md)
 - [Baro](modules_driver_baro.md)
 - [Camera](modules_driver_camera.md)
@@ -13,98 +14,6 @@
 - [Radio Control](modules_driver_radio_control.md)
 - [Rpm Sensor](modules_driver_rpm_sensor.md)
 - [Transponder](modules_driver_transponder.md)
-
-## MCP23009
-
-Source: [drivers/gpio/mcp23009](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/gpio/mcp23009)
-
-### Usage {#MCP23009_usage}
-
-```
-MCP23009 <command> [arguments...]
- Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 37
-     [-D <val>]  Direction
-                 default: 0
-     [-O <val>]  Output
-                 default: 0
-     [-P <val>]  Pullups
-                 default: 0
-     [-U <val>]  Update Interval [ms]
-                 default: 0
-
-   stop
-
-   status        print status info
-```
-
-## adc
-
-Source: [drivers/adc/board_adc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/board_adc)
-
-### 설명
-
-ADC driver.
-
-### Usage {#adc_usage}
-
-```
-adc <command> [arguments...]
- Commands:
-   start
-
-   test
-     [-n]        Do not publish ADC report, only system power
-
-   stop
-
-   status        print status info
-```
-
-## ads1115
-
-Source: [drivers/adc/ads1115](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/ads1115)
-
-### 설명
-
-Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.
-
-The driver is included by default in firmware for boards that do not have an internal analog to digital converter,
-such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
-(search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
-
-It is enabled/disabled using the
-[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
-parameter, and is disabled by default.
-If enabled, internal ADCs are not used.
-
-### Usage {#ads1115_usage}
-
-```
-ads1115 <command> [arguments...]
- Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 72
-
-   stop
-
-   status        print status info
-```
 
 ## atxxxx
 
@@ -130,6 +39,26 @@ atxxxx <command> [arguments...]
      [-m <val>]  SPI mode
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
+
+   stop
+
+   status        print status info
+```
+
+## auterion_autostarter
+
+Source: [drivers/auterion_autostarter](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/auterion_autostarter)
+
+### 설명
+
+Driver for starting and auto-detecting different power monitors.
+
+### Usage {#auterion_autostarter_usage}
+
+```
+auterion_autostarter <command> [arguments...]
+ Commands:
+   start
 
    stop
 
@@ -262,28 +191,13 @@ Source: [drivers/dshot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drive
 
 ### 설명
 
-This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement
+This is the DShot output driver. It can be used as drop-in replacement
 to use DShot as ESC communication protocol instead of PWM.
-
-On startup, the module tries to occupy all available pins for DShot output.
-It skips all pins already in use (e.g. by a camera trigger module).
 
 It supports:
 
 - DShot150, DShot300, DShot600
 - telemetry via separate UART and publishing as esc_status message
-- sending DShot commands via CLI
-
-### 예
-
-Permanently reverse motor 1:
-
-```
-dshot reverse -m 1
-dshot save -m 1
-```
-
-After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.
 
 ### Usage {#dshot_usage}
 
@@ -296,36 +210,6 @@ dshot <command> [arguments...]
      -d <val>    UART device
                  values: <device>
      [-x]        Swap RX/TX pins
-
-   reverse       Reverse motor direction
-     [-m <val>]  Motor index (1-based, default=all)
-
-   normal        Normal motor direction
-     [-m <val>]  Motor index (1-based, default=all)
-
-   save          Save current settings
-     [-m <val>]  Motor index (1-based, default=all)
-
-   3d_on         Enable 3D mode
-     [-m <val>]  Motor index (1-based, default=all)
-
-   3d_off        Disable 3D mode
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep1         Send Beep pattern 1
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep2         Send Beep pattern 2
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep3         Send Beep pattern 3
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep4         Send Beep pattern 4
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep5         Send Beep pattern 5
-     [-m <val>]  Motor index (1-based, default=all)
 
    stop
 
@@ -434,7 +318,7 @@ Source: [modules/gimbal](https://github.com/PX4/PX4-Autopilot/tree/main/src/modu
 Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](../advanced/gimbal_control.md) page.
 
 ### 예
 
@@ -548,6 +432,35 @@ gz_bridge <command> [arguments...]
    status        print status info
 ```
 
+## hiwonder_emm
+
+Source: [drivers/hiwonder_emm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hiwonder_emm)
+
+### 설명
+
+I2C driver for the Hiwonder 4-Channel Encoder Motor Module (EMM), a small motor controller that drives up to
+four brushed DC motors with on-board encoder feedback. Communicates with the EMM on the first external I2C
+bus at address 0x34.
+
+To use this driver, the board configuration must include `CONFIG_DRIVERS_HIWONDER_EMM=y` so the driver is
+compiled into the firmware. At runtime, the driver is enabled by setting the `HIWONDER_EMM_EN` parameter to
+`1` and reboot. It is then started automatically by the rover startup script (`rc.rover`) for ackermann, differential,
+and mecanum rover airframes.
+
+The command to start this driver manually is: `$ hiwonder_emm start`
+
+### Usage {#hiwonder_emm_usage}
+
+```
+hiwonder_emm <command> [arguments...]
+ Commands:
+   start         Start the task
+
+   stop
+
+   status        print status info
+```
+
 ## ina220
 
 Source: [drivers/power_monitor/ina220](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/ina220)
@@ -596,16 +509,12 @@ Source: [drivers/power_monitor/ina226](https://github.com/PX4/PX4-Autopilot/tree
 
 ### 설명
 
-Driver for the INA226 power monitor.
+Driver for the Texas Instruments INA226 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.
-
-If the INA226 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
 ### Usage {#ina226_usage}
 
@@ -622,7 +531,7 @@ ina226 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 65
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -676,16 +585,12 @@ Source: [drivers/power_monitor/ina238](https://github.com/PX4/PX4-Autopilot/tree
 
 ### 설명
 
-Driver for the INA238 power monitor.
+Driver for the Texas Instruments INA237 / INA238 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
-
-If the INA238 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
 ### Usage {#ina238_usage}
 
@@ -702,7 +607,7 @@ ina238 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 69
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -808,6 +713,64 @@ lsm303agr <command> [arguments...]
    status        print status info
 ```
 
+## mcp230xx
+
+Source: [lib/drivers/mcp_common](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/drivers/mcp_common)
+
+### Usage {#mcp230xx_usage}
+
+```
+mcp230xx <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 39
+     [-D <val>]  Direction (1=Input, 0=Output)
+                 default: 0
+     [-O <val>]  Output
+                 default: 0
+     [-P <val>]  Pullups
+                 default: 0
+     [-U <val>]  Update Interval [ms]
+                 default: 0
+     [-M <val>]  First minor number
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
+## mcp9808
+
+Source: [drivers/temperature_sensor/mcp9808](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/temperature_sensor/mcp9808)
+
+### Usage {#mcp9808_usage}
+
+```
+mcp9808 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 24
+
+   stop
+
+   status        print status info
+```
+
 ## msp_osd
 
 Source: [drivers/osd/msp_osd](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/osd/msp_osd)
@@ -840,7 +803,7 @@ msp_osd <command> [arguments...]
    channel       Change VTX channel
 ```
 
-## newpixel
+## neopixel
 
 Source: [drivers/lights/neopixel](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/neopixel)
 
@@ -858,10 +821,10 @@ neopixel -n 8
 
 To drive all available leds.
 
-### Usage {#newpixel_usage}
+### Usage {#neopixel_usage}
 
 ```
-newpixel <command> [arguments...]
+neopixel <command> [arguments...]
  Commands:
    stop
 
@@ -939,7 +902,7 @@ that can be accepted by most ESCs and servos.
 It is typically started with:
 
 ```
-pca9685_pwm_out start -a 0x40 -b 1
+pca9685_pwm_out start -X -a 0x40 -b 1
 ```
 
 ### Usage {#pca9685_pwm_out_usage}
@@ -952,26 +915,6 @@ pca9685_pwm_out <command> [arguments...]
                  values: <addr>, default: 0x40
      [-b <val>]  bus that pca9685 is connected to
                  default: 1
-
-   stop
-
-   status        print status info
-```
-
-## pm_selector_auterion
-
-Source: [drivers/power_monitor/pm_selector_auterion](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/pm_selector_auterion)
-
-### 설명
-
-Driver for starting and auto-detecting different power monitors.
-
-### Usage {#pm_selector_auterion_usage}
-
-```
-pm_selector_auterion <command> [arguments...]
- Commands:
-   start
 
    stop
 
@@ -1376,6 +1319,40 @@ septentrio <command> [arguments...]
      cold|warm|hot Specify reset type
 ```
 
+## serialpassthrough
+
+Source: [drivers/serialpassthrough](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/serialpassthrough)
+
+### 설명
+
+Serial passthrough driver driven by MAVLink SERIAL_CONTROL messages.
+Bridges a MAVLink stream to a hardware UART or an ESC signal pin (bitbang).
+
+Only a single sender is supported at a time. Simultaneous SERIAL_CONTROL
+messages from multiple senders produce undefined behaviour.
+
+Up to 8 instances can run simultaneously, one per device.
+
+### Usage {#serialpassthrough_usage}
+
+```
+serialpassthrough <command> [arguments...]
+ Commands:
+   start
+     [-d <val>]  Serial device path
+                 values: <dev>
+     [-b <val>]  Baudrate
+                 default: 115200
+     [-x]        Swap RX/TX pins
+     [-s]        Single-wire (half-duplex) mode
+     [-e <val>]  ESC bitbang channel (0-7), instead of -d
+     [-i <val>]  Internal: instance registry key (injected by startForDevice())
+
+   stop
+
+   status
+```
+
 ## sht3x
 
 Source: [drivers/hygrometer/sht3x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hygrometer/sht3x)
@@ -1469,6 +1446,30 @@ tap_esc <command> [arguments...]
                  values: <device>
      [-n <val>]  Number of ESCs
                  default: 4
+```
+
+## tmp102
+
+Source: [drivers/temperature_sensor/tmp102](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/temperature_sensor/tmp102)
+
+### Usage {#tmp102_usage}
+
+```
+tmp102 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 72
+
+   stop
+
+   status        print status info
 ```
 
 ## tone_alarm
@@ -1658,6 +1659,76 @@ voxlpm [arguments...]
    stop
 
    status        print status info
+```
+
+## vtx
+
+Source: [drivers/vtx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/vtx)
+
+### 설명
+
+This module communicates with a VTX camera via serial port. It can be used to
+configure the camera settings and to control the camera's video transmission.
+Supported protocols are:
+
+- SmartAudio v1, v2.0, v2.1
+- Tramp
+
+### Usage {#vtx_usage}
+
+```
+vtx <command> [arguments...]
+ Commands:
+   start
+     -d <val>    VTX device
+                 values: <file:dev>
+
+   <int>         Sets an entry in the mapping table: <index> <aux channel>
+                 <band> <channel> <power level> <start range> <end range>
+
+   stop
+
+   status        print status info
+```
+
+## vtxtable
+
+Source: [drivers/vtxtable](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/vtxtable)
+
+### 설명
+
+Manages the VTX frequency, power level and RC mapping table for VTX configuration.
+
+### Usage {#vtxtable_usage}
+
+```
+vtxtable <command> [arguments...]
+ Commands:
+   status        Shows the current VTX table configuration.
+
+   name          Sets the VTX table name: <string>
+
+   bands         Sets the number of bands: <int>
+
+   band          Sets the band frequencies: <1-index> <name> <letter>
+                 <attribute> <frequencies...>
+
+   channels      Sets the number of channels: <int>
+
+   powerlevels   Sets number of power levels: <int>
+
+   powervalues   Sets the power level values: <int...>
+
+   powerlabels   Sets the power level labels: <3 chars...>
+
+   <int>         Sets an entry in the mapping table: <0-index> <aux channel>
+                 <band> <channel> <power level> <start range> <end range>
+
+   clear         Clears the VTX table configuration.
+
+   save          Saves the VTX config to a file: <file>
+
+   load          Loads the VTX config from a file: <file>
 ```
 
 ## zenoh

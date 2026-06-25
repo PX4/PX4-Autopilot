@@ -1,0 +1,7 @@
+menuconfig DRIVERS_IMU_ANALOG_DEVICES_ADIS1650X
+	bool "adis1650x (ADIS16500 / ADIS16501 / ADIS16505 / ADIS16507)"
+	default n
+	---help---
+		Enable support for the Analog Devices ADIS1650x IMU family.
+		Supported variants: ADIS16500, ADIS16501, ADIS16505, ADIS16507.
+		The variant is detected automatically at runtime via PROD_ID.

@@ -45,17 +45,17 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 					    geofence_result.geofence_max_alt_triggered ||
 					    geofence_result.geofence_custom_fence_triggered;
 
-	reporter.failsafeFlags().geofence_breached = any_geofence_triggered;
+	reporter.failsafeFlags().geofence_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
 
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 
 		if (geofence_result.geofence_max_dist_triggered) {
 			/* EVENT
-			* @description
-			* <profile name="dev">
-			* This check can be configured via <param>GF_ACTION</param> and <param>GF_MAX_HOR_DIST</param> parameters.
-			* </profile>
-			*/
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>GF_ACTION</param> and <param>GF_MAX_HOR_DIST</param> parameters.
+			 * </profile>
+			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_max_hor_dist"),
 						    events::Log::Error, "Geofence violation: exceeding maximum distance to Home");
@@ -67,11 +67,11 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 
 		if (geofence_result.geofence_max_alt_triggered) {
 			/* EVENT
-			* @description
-			* <profile name="dev">
-			* This check can be configured via <param>GF_ACTION</param> and <param>GF_MAX_VER_DIST</param> parameters.
-			* </profile>
-			*/
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>GF_ACTION</param> and <param>GF_MAX_VER_DIST</param> parameters.
+			 * </profile>
+			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_max_alt"),
 						    events::Log::Error, "Geofence violation: exceeding maximum altitude above Home");
@@ -83,11 +83,11 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 
 		if (geofence_result.geofence_custom_fence_triggered) {
 			/* EVENT
-			* @description
-			* <profile name="dev">
-			* This check can be configured via <param>GF_ACTION</param> parameter.
-			* </profile>
-			*/
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>GF_ACTION</param> parameter.
+			 * </profile>
+			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_custom_gf"),
 						    events::Log::Error, "Geofence violation: approaching or outside geofence");

@@ -99,7 +99,7 @@ The image below shows the wiring in greater detail.
 
 This section explains how you install your preferred Linux distro, such as "Raspberry Pi OS 64bit" onto the RPi EMCC.
 
-备注：
+Notes:
 
 - If you are using PX4, you will need to use PX4 version 1.13.1 or newer for PX4 to recognize this baseboard.
 - The fan does not indicate if the RPi CM4 is powered/running or not.
@@ -170,7 +170,6 @@ To enable this MAVLink instance on the FC:
    ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 2. [Set the parameters](../advanced_config/parameters.md):
-
    - `MAV_1_CONFIG` = `102`
    - `MAV_1_MODE = 2`
    - `SER_TEL2_BAUD` = `921600`
@@ -184,7 +183,6 @@ On the RPi side:
 1. Connect to the RPi (using WiFi, a router, or a WiFi Dongle).
 
 2. Enable the RPi serial port by running `RPi-config`
-
    - Go to `3 Interface Options`, then `I6 Serial Port`.
      Then choose:
      - `login shell accessible over serial → No`
@@ -418,7 +416,7 @@ And such output is expected if everything is set up correctly:
 [1731210066.597046] info     | ProxyClient.cpp    | create_datareader        | datareader created     | client_key: 0x00000001, datareader_id: 0x804(6), subscriber_id: 0x804(4)
 ```
 
-## See Also
+## 另见
 
 - [Get The Pixhawk Raspberry Pi CM4 Baseboard By Holybro Talking With PX4](https://px4.io/get-the-pixhawk-raspberry-pi-cm4-baseboard-by-holybro-talking-with-px4/) (px4.io blog):
   - 展示如何通过有线以太网连接 Pixhawk 6X + Raspberry Pi 到 CM4 主板。

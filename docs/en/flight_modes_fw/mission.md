@@ -28,7 +28,6 @@ Missions are uploaded onto a SD card that needs to be inserted **before** bootin
 At high level all vehicle types behave in the same way when MISSION mode is engaged:
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
-
    - If flying the vehicle will loiter.
    - If landed the vehicle will "wait".
 
@@ -57,7 +56,7 @@ Missions can be paused by switching out of mission mode to any other mode (such 
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
-A mission can be uploaded while the vehicle is paused, in which which case the current active mission item is set to 1.
+A mission can be uploaded while the vehicle is paused, in which case the current active mission item is set to 1.
 
 ::: info
 When a mission is paused while the camera on the vehicle was triggering, PX4 sets the current active mission item to the previous waypoint, so that when the mission is restarted the vehicle will retrace its last mission leg.
@@ -96,8 +95,8 @@ _QGroundControl_ provides additional GCS-level mission handling support (in addi
 
 For more information see:
 
-- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
-- [Resume mission after Return mode](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
+- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
+- [Resume mission after Return mode](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
 
 ## Mission Parameters
 
@@ -162,6 +161,10 @@ Mission Items:
 - [MAV_CMD_OBLIQUE_SURVEY](https://mavlink.io/en/messages/common.html#MAV_CMD_OBLIQUE_SURVEY)
 - [MAV_CMD_DO_SET_CAMERA_ZOOM](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAMERA_ZOOM)
 - [MAV_CMD_DO_SET_CAMERA_FOCUS](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAMERA_FOCUS)
+- [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE)
+  - Disabling autotune by setting `param1` to zero is currently not supported. To abort autotune during a mission, switch to another flight mode.
+  - Axis selection specified in the MAVLink message is ignored (`param2` must be set to 0).
+    Instead, the axis bitmask defined by [`FW_AT_AXES`](../advanced_config/parameter_reference.md#FW_AT_AXES) is used.
 
 GeoFence Definitions
 
@@ -207,7 +210,7 @@ The diagram below shows the sorts of paths that you might expect.
 ![acc-rad](../../assets/flying/acceptance_radius_mission.png)
 
 Vehicles switch to the next waypoint as soon as they enter the acceptance radius.
-This is defined by the "L1 distance", which is is computed from two parameters: [NPFG_DAMPING](../advanced_config/parameter_reference.md#NPFG_DAMPING) and [NPFG_PERIOD](../advanced_config/parameter_reference.md#NPFG_PERIOD), and the current ground speed.
+This is defined by the "L1 distance", which is computed from two parameters: [NPFG_DAMPING](../advanced_config/parameter_reference.md#NPFG_DAMPING) and [NPFG_PERIOD](../advanced_config/parameter_reference.md#NPFG_PERIOD), and the current ground speed.
 By default, it's about 70 meters.
 
 The equation is:
@@ -309,7 +312,7 @@ On _QGroundControl_ a popup button appears during landing to enable this.
 
 Aborting the landing results in a climb out to an orbit pattern centered above the land waypoint.
 The maximum of the aircraft's current altitude and [MIS_LND_ABRT_ALT](#MIS_LND_ABRT_ALT) is set as the abort orbit altitude height relative to (above) the landing waypoint.
-Landing configuration (e.g. flaps, spoilers, landing airspeed) is disabled during abort and the aicraft flies in cruise conditions.
+Landing configuration (e.g. flaps, spoilers, landing airspeed) is disabled during abort and the aircraft flies in cruise conditions.
 
 The abort command is disabled during the flare for safety.
 Operators may still manually abort the landing by switching to any manual mode, such as [Stabilized mode](../flight_modes_fw/stabilized.md)), though it should be noted that this is risky!
@@ -349,7 +352,7 @@ Note that if the wheel controller is enabled ([FW_W_EN](#FW_W_EN)), the controll
 
 ::: info
 Nudging should not be used to supplement poor position control tuning.
-If the vehicle is regularly showing poor tracking peformance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
 :::
 
 | Parameter                                                                                          | Description                                                                        |
@@ -360,7 +363,7 @@ If the vehicle is regularly showing poor tracking peformance on a defined path, 
 
 ### Near Ground Safety Constraints
 
-In landing mode, the distance sensor is used to determine proximity to the ground, and the airframe's geometry is used to calculate roll contraints to prevent wing strike.
+In landing mode, the distance sensor is used to determine proximity to the ground, and the airframe's geometry is used to calculate roll constraints to prevent wing strike.
 
 ![Fixed-wing landing nudging](../../assets/flying/wing_geometry.png)
 

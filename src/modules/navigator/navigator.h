@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include "course.h"
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
@@ -55,7 +56,8 @@
 
 #include "navigation.h"
 
-#include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/telemetry_status.h>
 
 #if CONFIG_NAVIGATOR_ADSB
 #include <lib/adsb/AdsbConflict.h>
@@ -68,6 +70,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
+#include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
@@ -95,11 +98,13 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
-class Navigator : public ModuleBase<Navigator>, public ModuleParams
+class Navigator : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Navigator();
 	~Navigator() override;
 
@@ -108,6 +113,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Navigator *instantiate(int argc, char *argv[]);
@@ -168,6 +176,9 @@ public:
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+	Course *get_course() { return &_course; }
+
+	const PositionYawSetpoint &get_last_pos_with_gcs_heartbeat() const { return _last_pos_with_gcs_heartbeat; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -304,11 +315,12 @@ public:
 
 private:
 
-	int _local_pos_sub{-1};
-	int _mission_sub{-1};
-	int _vehicle_status_sub{-1};
+	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
+	orb_sub_t _mission_sub{ORB_SUB_INVALID};
+	orb_sub_t _vehicle_status_sub{ORB_SUB_INVALID};
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+	uORB::SubscriptionData<fixed_wing_lateral_guidance_status_s> _fw_lateral_guidance_status_sub{ORB_ID(fixed_wing_lateral_guidance_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -353,16 +365,15 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
-	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check{0};
+	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
+	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};
 
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
 
-	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
-	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
@@ -376,6 +387,7 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
+	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 	traffic_buffer_s _traffic_buffer{};
@@ -396,6 +408,9 @@ private:
 	float _mission_throttle{NAN};
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
+
+	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
+	PositionYawSetpoint _last_pos_with_gcs_heartbeat{(double)NAN, (double)NAN, NAN, NAN};
 
 
 	// timer to trigger a delayed set gimbal neutral command

@@ -277,7 +277,7 @@ void BuoyancyPrivate::CheckForNewEntities(const EntityComponentManager &_ecm)
 		[&](const Entity & _entity,
 		    const components::Link *,
 	const components::Inertial *) -> bool {
-		if (this->basicBuoyancy == true) return true;
+		if (this->basicBuoyancy == true) { return true; }
 		// Skip if the entity already has a volume and center of volume
 		if (_ecm.EntityHasComponentType(_entity,
 						components::CenterOfVolume().TypeId()) &&

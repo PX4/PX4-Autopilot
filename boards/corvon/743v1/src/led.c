@@ -63,11 +63,22 @@ extern void led_toggle(int led);
 __END_DECLS
 
 #  define xlat(p) (p)
+// index: 0=BLUE, 1=RED, 2=SAFETY, 3=GREEN
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_GREEN,   // Indexed by BOARD_LED_GREEN
-	GPIO_nLED_BLUE,    // Indexed by BOARD_LED_BLUE
-	GPIO_nLED_RED,     // Indexed by BOARD_LED_RED
+	GPIO_nLED_BLUE,    // LED_BLUE (0)
+	GPIO_nLED_RED,     // LED_RED (1)
+	0,                 // LED_SAFETY (2) - no independent safety LED, use 0 placeholder
+	GPIO_nLED_GREEN,   // LED_GREEN (3)
 };
+
+#ifndef arraySize
+#define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
+#endif
+
+static inline bool valid_led_index(int led)
+{
+	return (led >= 0) && ((size_t)led < arraySize(g_ledmap));
+}
 
 __EXPORT void led_init(void)
 {
@@ -81,6 +92,10 @@ __EXPORT void led_init(void)
 
 static void phy_set_led(int led, bool state)
 {
+	if (!valid_led_index(led)) {
+		return;
+	}
+
 	/* Drive Low to switch on */
 	if (g_ledmap[led] != 0) {
 		stm32_gpiowrite(g_ledmap[led], !state);
@@ -89,6 +104,10 @@ static void phy_set_led(int led, bool state)
 
 static bool phy_get_led(int led)
 {
+	if (!valid_led_index(led)) {
+		return false;
+	}
+
 	/* If Low it is on */
 	if (g_ledmap[led] != 0) {
 		return !stm32_gpioread(g_ledmap[led]);

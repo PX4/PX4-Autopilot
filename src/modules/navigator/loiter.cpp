@@ -42,6 +42,8 @@
 #include "loiter.h"
 #include "navigator.h"
 
+ModuleBase::Descriptor Navigator::desc{task_spawn, custom_command, print_usage};
+
 Loiter::Loiter(Navigator *navigator) :
 	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER),
 	ModuleParams(navigator)
@@ -71,6 +73,22 @@ Loiter::on_active()
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
 	}
+
+	if (_param_nav_ltr_last_dl.get() && _navigator->get_vstatus()->failsafe && _navigator->get_vstatus()->gcs_connection_lost) {
+		if (!_loiter_at_last_link_position_executed) {
+			set_loiter_position(); // if we already were in hold (e.g. GoTo), we need to reset the position setpoint
+			_loiter_at_last_link_position_executed = true;
+		}
+
+	} else {
+		_loiter_at_last_link_position_executed = false;
+	}
+}
+
+void
+Loiter::on_inactive()
+{
+	_loiter_at_last_link_position_executed = false;
 }
 
 void
@@ -85,7 +103,6 @@ Loiter::set_loiter_position()
 		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
-
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -102,10 +119,13 @@ Loiter::set_loiter_position()
 			const float d_current = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
 						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 			on_loiter = d_current <= (_navigator->get_acceptance_radius() + pos_sp_triplet->current.loiter_radius);
-
 		}
 
-		if (on_loiter) {
+		if (_navigator->get_vstatus()->failsafe && _navigator->get_vstatus()->gcs_connection_lost && _param_nav_ltr_last_dl.get()) {
+
+			setLoiterFromLastLink(&_mission_item);
+
+		} else if (on_loiter) {
 			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
@@ -114,7 +134,6 @@ Loiter::set_loiter_position()
 		} else {
 			setLoiterItemFromCurrentPosition(&_mission_item);
 		}
-
 	}
 
 	// convert mission item to current setpoint

@@ -153,19 +153,19 @@ Examples:
 The correction for thermal offsets (using the calibration parameters) is performed in the [sensors module](../modules/modules_system.md#sensors).
 The reference temperature is subtracted from the measured temperature to obtain a delta temperature where:
 
-```
+```txt
 delta = measured_temperature - reference_temperature
 ```
 
 The delta temperature is then used to calculate a offset, where:
 
-```
+```txt
 offset = X0 + X1*delta + X2*delta**2 + ... + Xn*delta**n
 ```
 
 The offset and temperature scale factor are then used to correct the sensor measurement where:
 
-```
+```txt
 corrected_measurement = (raw_measurement - offset) * scale_factor
 ```
 
@@ -198,3 +198,7 @@ Scale factors are assumed to be temperature invariant due to the difficulty asso
 [^2]: 气压传感器偏置的校准需要一个稳定的气压环境。 The air pressure will change slowly due to weather and inside buildings can change rapidly due to external wind fluctuations and HVAC system operation.
 
 [^3]: Care must be taken when warming a cold soaked board to avoid formation of condensation on the board that can cause board damage under some circumstances.
+
+## 另见
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

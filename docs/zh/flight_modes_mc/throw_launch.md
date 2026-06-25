@@ -22,7 +22,7 @@ The vehicle will not automatically disarm after arming, and must be manually dis
 The vehicle detects that it has been thrown based on reaching a certain speed (5m/s), and then starts the motors at the apex of the throw (once it determines that it has started to fall).
 You need to throw the vehicle high enough so that it can stabilize its height well before falling anywhere near people or obstacles.
 
-备注：
+Notes:
 
 - The mode is disabled by default, and must be enabled using a [parameter](#parameters) before arming.
 - When enabled you cannot take off from the ground using the normal modes.
@@ -95,7 +95,7 @@ The following parameters can be used to enable and configure throw launch:
 - [COM_THROW_SPEED](../advanced_config/parameter_reference.md#COM_THROW_SPEED) determines the minimum speed the aircraft should reach to detect the throw.
   If it is not reached, the engines will not turn on.
 
-## See Also
+## 另见
 
 - [Takeoff Mode (Fixed-Wing) > Catapult/Hand Launch](../flight_modes_fw/takeoff.md#catapult-hand-launch).
 

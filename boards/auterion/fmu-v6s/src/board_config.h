@@ -135,15 +135,14 @@
 
 
 /* PWM Timers */
-#define BOARD_NUM_IO_TIMERS 2
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
+/* 3 for PWM outputs, 1 for input capture */
+#define BOARD_NUM_IO_TIMERS 4
+/* 9 for PWM outputs, 1 for input capture */
+#define DIRECT_PWM_OUTPUT_CHANNELS 10
 
 /* High-resolution timer */
-#define HRT_TIMER               8  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
-
-#define HRT_PPM_CHANNEL         /* T8C2 */  2  /* use capture/compare channel 1 */
-#define GPIO_PPM_IN             /* PC7  */ GPIO_TIM8_CH2IN_1
+#define HRT_TIMER               4  /* use timer4 for the HRT */
+#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -202,6 +201,15 @@ __BEGIN_DECLS
 extern void stm32_spiinitialize(void);
 
 extern void board_peripheral_reset(int ms);
+
+/* Sets EEPROM manifest based on chip size. */
+extern void board_set_eeprom_manifest(bool small_eeprom);
+
+/* Initialise the FRAM MTD and update the manifest. Returns OK on success. */
+extern int board_configure_fram(void);
+
+/* Initialise the NOR flash MTD and update the manifest. Returns OK on success. */
+extern int board_configure_nor(void);
 
 #include <px4_platform_common/board_common.h>
 

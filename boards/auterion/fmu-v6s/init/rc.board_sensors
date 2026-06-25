@@ -37,7 +37,6 @@ then
 	set INA_CONFIGURED yes
 fi
 
-
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
@@ -60,6 +59,9 @@ then
 	set INA_CONFIGURED yes
 fi
 
+# Auterion auto starter
+auterion_autostarter start
+
 if param compare BAT1_V_CHANNEL -2
 then
 	if [ "$INA_CONFIGURED" != "yes" ]
@@ -74,5 +76,5 @@ ist8310 -X -b 1 -R 10 start
 # Start an external PWM generator
 if param greater PCA9685_EN_BUS 0
 then
-	pca9685_pwm_out start -b 1
+	pca9685_pwm_out start -X
 fi

@@ -3,7 +3,7 @@
 <Badge type="tip" text="PX4 v1.14" />
 
 ::: info
-uXRCE-DDS replaces the [Fast-RTPS Bridge](https://docs.px4.io/v1.13/en/middleware/micrortps.html#rtps-dds-interface-px4-fast-rtps-dds-bridge) used in PX4 v1.13.
+uXRCE-DDS replaces the [Fast-RTPS Bridge](https://docs.px4.io/v1.13/en/middleware/micrortps#rtps-dds-interface-px4-fast-rtps-dds-bridge) used in PX4 v1.13.
 If you were using the Fast-RTPS Bridge, please follow the [migration guidelines](#fast-rtps-to-uxrce-dds-migration-guidelines).
 :::
 
@@ -22,21 +22,26 @@ The agent acts as a proxy for the client, enabling it to publish and subscribe t
 
 ![Architecture uXRCE-DDS with ROS 2](../../assets/middleware/xrce_dds/architecture_xrce-dds_ros2.svg)
 
-In order for PX4 uORB topics to be shared on the DDS network you will need _uXRCE-DDS client_ running on PX4, connected to the _micro XRCE-DDS agent_ running on the companion.
+In order for PX4 uORB topics to be shared on the DDS network you will need _uXRCE-DDS client_ running on PX4, connected to the _Micro XRCE-DDS Agent_ running on the companion.
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) publishes to/from a defined set of uORB topics to the global DDS data space.
 
-The [eProsima micro XRCE-DDS _agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
+The [eProsima Micro XRCE-DDS _Agent_](https://github.com/eProsima/Micro-XRCE-DDS-Agent) runs on the companion computer and acts as a proxy for the client in the DDS/ROS 2 network.
 
-The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS.
+The agent itself has no dependency on client-side code and can be built and/or installed independent of PX4 or ROS, as long as version compatibility is ensured.
 
 Code that wants to subscribe/publish to PX4 does have a dependency on client-side code; it requires uORB message definitions that match those used to create the PX4 uXRCE-DDS client so that it can interpret the messages.
 
+- For _versioned_ PX4 messages, the [PX4 ROS 2 Message Transition Node](../ros2/px4_ros2_msg_translation_node.md) handles compatibility automatically.
+  This node acts as an agent-side translator, allowing your code to interact with PX4 without requiring strict, manual message synchronization.
+- For unversioned messages, code that needs to publish to PX4 maintains a direct dependency on client-side definitions.
+  In these cases, you must ensure your local uORB message definitions exactly match those used to create the PX4 uXRCE-DDS client, so that the messages can be correctly interpreted.
+
 ## Code Generation
 
-The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmare by default.
+The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
 The agent has no dependency on client code.
-It can be built standalone or in a ROS 2 workspace, or installed as a snap package on Ubuntu.
+It can be built standalone or in a ROS 2 workspace.
 
 When PX4 is built, a code generator uses the uORB message definitions in the source tree ([PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)) to compile support for the subset of uORB topics in [/src/modules/uxrce_dds_client/dds_topics.yaml](../middleware/dds_topics.md) into [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client).
 
@@ -45,6 +50,28 @@ PX4 main or release builds automatically export the set of uORB messages definit
 ROS 2 applications need to be built in a workspace that includes the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware.
 These can be included into a workspace by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your ROS 2 workspace and switching to the appropriate branch.
 Note that all code generation associated with the messages is handled by ROS 2.
+
+## Version selection
+
+There are two main major active Micro XRCE-DDS versions: `v2.x` and `v3.x`.
+These need to be paired to the corresponding major DDS version.
+
+In standalone DDS applications you should use the latest DDS version with `Micro XRCE-DDS v3.x`.
+However, in ROS 2 applications the DDS version is locked down by the chosen ROS 2 distribution: `v3.x` is required if you want to use the latest ROS 2 distributions.
+
+<Badge type="tip" text="PX4 v1.18" /> In its default configuration `uxrce_dds_client` is built targeting Micro XRCE-DDS `v2.x`.
+To target `v3.x` instead, the [`Kconfig`](../hardware/porting_guide_config.md#px4-menuconfig-setup) variable `UXRCE_DDS_CLIENT_USE_DDS_V3` must be set, and a custom build performed.
+
+The following table explains the required Micro-XRCE-DDS-Agent versions and `UXRCE_DDS_CLIENT_USE_DDS_V3` value for different ROS 2 distributions.
+
+| ROS 2 version | fast-dds version | required Micro-XRCE-DDS-Agent version | `UXRCE_DDS_CLIENT_USE_DDS_V3` <Badge type="tip" text="PX4 v1.18" /> |
+| ------------- | ---------------- | ------------------------------------- | ------------------------------------------------------------------- |
+| Foxy          | 2.0.x            | 2.4.2                                 | unset / `N`                                                         |
+| Humble        | 2.6.x            | 2.4.2                                 | unset / `N`                                                         |
+| Jazzy         | 2.14.0           | 2.4.3                                 | unset / `N`                                                         |
+| Kilted        | 2.14.4           | 2.4.3                                 | unset / `N`                                                         |
+| Lyrical       | 3.6.x            | 3.0.1                                 | set / `Y`                                                           |
+| Rolling       | 3.6.x            | 3.0.1                                 | set / `Y`                                                           |
 
 ## Micro XRCE-DDS Agent Installation
 
@@ -56,13 +83,13 @@ The official (and more complete) installation guide is the Eprosima: [micro XRCE
 This section summarises the options that have been tested with PX4 during creation of these docs.
 :::
 
-::: warning
-PX4 Micro XRCE-DDS Client is based on version `v2.x` which is not compatible with the latest `v3.x` Agent version.
-:::
-
 ### Install Standalone from Source
 
 On Ubuntu you can build from source and install the Agent standalone using the following commands:
+
+::::tabs
+
+::: tab DDS v2
 
 ```sh
 git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
@@ -75,51 +102,35 @@ sudo make install
 sudo ldconfig /usr/local/lib/
 ```
 
+:::
+
+::: tab DDS v3
+
+```sh
+git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+cd Micro-XRCE-DDS-Agent
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig /usr/local/lib/
+```
+
+Don't forget to set `UXRCE_DDS_CLIENT_USE_DDS_V3` before building PX4 when using DDS v3!
+
+:::
+
+::::
+
 ::: info
 There are various build configuration options linked from the corresponding topic in the [official guide](https://micro-xrce-dds.docs.eprosima.com/en/latest/installation.html#installing-the-agent-standalone), but these have not been tested.
 :::
 
-To start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
-
-```sh
-MicroXRCEAgent udp4 -p 8888
-```
-
-### Install from Snap Package
-
-Install from a snap package on Ubuntu using the following command:
-
-```sh
-sudo snap install micro-xrce-dds-agent --edge
-```
-
-To start the agent with settings for connecting to the uXRCE-DDS client running on the simulator (note that the command name is different than if you build the agent locally):
-
-```sh
-micro-xrce-dds-agent udp4 -p 8888
-```
-
-::: info
-At time of writing the stable of version installed from snap connects to PX4 but reports errors creating topics.
-The development version, fetched using `--edge` above, does work.
-:::
-
 ### Build/Run within ROS 2 Workspace
 
-The agent can be built and launched within a ROS 2 workspace (or build standalone and launched from a workspace).
+The agent can be built and launched within a ROS 2 workspace (or built standalone and launched from a workspace).
 You must already have installed ROS 2 following the instructions in: [ROS 2 User Guide > Install ROS 2](../ros2/user_guide.md#install-ros-2).
-
-::: warning
-This approach will use the existing ROS 2 versions of the Agent dependencies, such as `fastcdr` and `fastdds`.
-This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones:
-
-| ROS 2 version | Micro-XRCE-DDS-Agent version |
-| ------------- | ---------------------------- |
-| Foxy          | v2.4.2                       |
-| Humble        | v2.4.2                       |
-| Jazzy         | v2.4.3                       |
-
-:::
 
 To build the agent within ROS:
 
@@ -129,9 +140,29 @@ To build the agent within ROS:
    mkdir -p ~/px4_ros_uxrce_dds_ws/src
    ```
 
-1. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
+2. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
    ::::tabs
+
+   ::: tab lyrical
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v3.0.1 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   Don't forget to set `UXRCE_DDS_CLIENT_USE_DDS_V3` before building PX4 when using DDS v3!
+
+   :::
+
+   ::: tab kilted
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   :::
 
    ::: tab jazzy
 
@@ -162,9 +193,27 @@ To build the agent within ROS:
 
    ::::
 
-1. Source the ROS 2 development environment, and compile the workspace using `colcon`:
+3. Source the ROS 2 development environment, and compile the workspace using `colcon`:
 
    :::: tabs
+
+   ::: tab lyrical
+
+   ```sh
+   source /opt/ros/lyrical/setup.bash
+   colcon build
+   ```
+
+   :::
+
+   ::: tab kilted
+
+   ```sh
+   source /opt/ros/kilted/setup.bash
+   colcon build
+   ```
+
+   :::
 
    ::: tab jazzy
 
@@ -195,48 +244,58 @@ To build the agent within ROS:
 
    ::::
 
-   This builds all the folders under `/src` using the sourced toolchain.
+   This builds all the folders under `~/px4_ros_uxrce_dds_ws/src` using the sourced toolchain.
 
-To run the micro XRCE-DDS agent in the workspace:
+To run the Micro XRCE-DDS Agent in the workspace you just need to source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
 
-1. Source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
+:::: tabs
 
-   :::: tabs
+::: tab lyrical
 
-   ::: tab jazzy
+```sh
+source /opt/ros/lyrical/setup.bash
+source install/local_setup.bash
+```
 
-   ```sh
-   source /opt/ros/jazzy/setup.bash
-   source install/local_setup.bash
-   ```
+:::
 
-   :::
+::: tab kilted
 
-   ::: tab humble
+```sh
+source /opt/ros/kilted/setup.bash
+source install/local_setup.bash
+```
 
-   ```sh
-   source /opt/ros/humble/setup.bash
-   source install/local_setup.bash
-   ```
+:::
 
-   :::
+::: tab jazzy
 
-   ::: tab foxy
+```sh
+source /opt/ros/jazzy/setup.bash
+source install/local_setup.bash
+```
 
-   ```sh
-   source /opt/ros/foxy/setup.bash
-   source install/local_setup.bash
-   ```
+:::
 
-   :::
+::: tab humble
 
-   ::::
+```sh
+source /opt/ros/humble/setup.bash
+source install/local_setup.bash
+```
 
-1) Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
+:::
 
-   ```sh
-   MicroXRCEAgent udp4 -p 8888
-   ```
+::: tab foxy
+
+```sh
+source /opt/ros/foxy/setup.bash
+source install/local_setup.bash
+```
+
+:::
+
+::::
 
 ## Starting Agent and Client
 
@@ -317,16 +376,18 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
     This provides a logical separation between DDS networks, and can be used to separate clients on different networks.
     By default, ROS 2 operates on ID 0.
   - [UXRCE_DDS_PTCFG](../advanced_config/parameter_reference.md#UXRCE_DDS_PTCFG): uXRCE-DDS participant configuration.
-    It allows to restrict the visibility of the DDS topics to the _localhost_ only and to use user-customized participant configuration files stored on the agent side.
+    It allows you to restrict the visibility of the DDS topics to the _localhost_ only and to use user-customized participant configuration files stored on the agent side.
   - [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT): Bridge time synchronization enable.
     The uXRCE-DDS client module can synchronize the timestamp of the messages exchanged over the bridge.
     This is the default configuration. In certain situations, for example during [simulations](../ros2/user_guide.md#ros-gazebo-and-px4-time-synchronization), this feature may be disabled.
-  - [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
+  - [UXRCE_DDS_NS_IDX](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" />: Index-based namespace definition.
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
+  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="PX4 v1.18" />: Serial port hardware flow control enable.
+    To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
 
 ::: info
-Many ports are already have a default configuration.
+Many ports already have a default configuration.
 To use these ports you must first disable the existing configuration:
 
 - `TELEM1` and `TELEM2` are set up by default to connect via MAVLink to a GCS and a companion computer (respectively).
@@ -362,7 +423,7 @@ These allow users to create custom startup files for their simulations:
 - `ROS_DOMAIN_ID`: Use this to replace [UXRCE_DDS_DOM_ID](../advanced_config/parameter_reference.md#UXRCE_DDS_DOM_ID).
 - `PX4_UXRCE_DDS_PORT`: Use this to replace [UXRCE_DDS_PRT](../advanced_config/parameter_reference.md#UXRCE_DDS_PRT).
 
-For example, the following command can be used to start a Gazebo simulation with che client operating on the DDS domain `3`, port `9999` and topic namespace `drone`.
+For example, the following command can be used to start a Gazebo simulation with the client operating on the DDS domain `3`, port `9999` and topic namespace `drone`.
 
 ```sh
 ROS_DOMAIN_ID=3 PX4_UXRCE_DDS_PORT=9999 PX4_UXRCE_DDS_NS=drone make px4_sitl gz_x500
@@ -383,11 +444,14 @@ Therefore,
 - If you're using a main or release version of PX4 you can get the message definitions by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your workspace.
 - If you're creating or modifying uORB messages you must manually update the messages in your workspace from your PX4 source tree.
   Generally this means that you would update [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), clone the interface package, and then manually synchronize it by copying the new/modified message definitions from [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) to its `msg` folders.
-  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/px4_ros_com/src/`, then the command might be:
+  Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/ros2_px4_ws/src/`, then the command might be:
 
   ```sh
-  rm ~/px4_ros_com/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/msg/*.msg ~/px4_ros_com/src/px4_msgs/msg/
+  rm ~/ros2_px4_ws/src/px4_msgs/msg/*.msg
+  rm ~/ros2_px4_ws/src/px4_msgs/srv/*.srv
+  cp ~/PX4-Autopilot/msg/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/versioned/*.msg ~/ros2_px4_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/srv/*.msg ~/ros2_px4_ws/src/px4_msgs/srv/
   ```
 
   ::: info
@@ -426,7 +490,7 @@ will generate topics under the namespaces:
 
 :::
 
-- A simple index-based namespace can be applied by setting the parameter [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) to a value between 0 and 9999.
+- A simple index-based namespace can be applied by setting the parameter [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" /> to a value between 0 and 9999.
   This will generate a namespace such as `/uav_0`, `/uav_1`, and so on.
   This technique is ideal if vehicles must be persistently associated with namespaces because their clients are automatically started through PX4.
 
@@ -503,6 +567,11 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/out/vehicle_imu
+    type: px4_msgs::msg::VehicleImu
+    rate_limit: 50.
+    instance: 1 # OPTIONAL
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
@@ -515,14 +584,14 @@ subscriptions:
 
 subscriptions_multi:
 
-  - topic: /fmu/in/vehicle_optical_flow_vel
-    type: px4_msgs::msg::VehicleOpticalFlowVel
-
-  ...
+  - topic: /fmu/in/aux_global_position
+    type: px4_msgs::msg::AuxGlobalPosition
+    route_field: id       # OPTIONAL: field used to demux into instances
+    max_instances: 4      # Required when route_field is set
 
 ```
 
-Each (`topic`,`type`) pairs defines:
+Each (`topic`, `type`) pair defines:
 
 1. A new `publication`, `subscription`, or `subscriptions_multi`, depending on the list to which it is added.
 2. The topic _base name_, which **must** coincide with the desired uORB topic name that you want to publish/subscribe.
@@ -535,27 +604,41 @@ Each (`topic`,`type`) pairs defines:
 4. The message type (`VehicleOdometry`, `VehicleStatus`, `OffboardControlMode`, etc.) and the ROS 2 package (`px4_msgs`) that is expected to provide the message definition.
 5. **(Optional)**: An additional `rate_limit` field (only for publication entries), which specifies the maximum rate (Hz) at which messages will be published on this topic by PX4 to ROS 2.
    If left unspecified, the maximum publication rate limit is set to 100 Hz.
+6. <Badge type="tip" text="PX4 v1.18" /> **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
+   If provided, this option changes the ROS 2 topic name of the advertised uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
+   In the example above the final topic name would be `/fmu/out/vehicle_imu1`.
 
-`subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS2 publications, respectively.
+`subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS 2 publications, respectively.
 Without this mechanism all ROS 2 messages would be routed to the _same_ uORB topic instance (because ROS 2 does not have the concept of [multiple topic instances](../middleware/uorb.md#multi-instance)), and it would not be possible for PX4 subscribers to differentiate between streams from ROS 2 or PX4 publishers.
 
 Add a topic to the `subscriptions` section to:
 
-- Create a unidirectional route going from the ROS2 topic to the _default_ instance (instance 0) of the associated uORB topic.
-  For example, it creates a ROS2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher of `vehicle_odometry`.
-- If other (internal) PX4 modules are already publishing on the same uORB topic instance as the ROS2 publisher, the instance's subscribers will receive all streams of messages.
-  The uORB subscriber will not be able to determine if an incoming message was published by PX4 or by ROS2.
-- This is the desired behavior when the ROS2 publisher is expected to be the sole publisher on the topic instance (for example, replacing an internal publisher to the topic during offboard control), or when the source of multiple publishing streams does not matter.
+- Create a unidirectional route going from the ROS 2 topic to the _default_ instance (instance 0) of the associated uORB topic.
+  For example, it creates a ROS 2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher of `vehicle_odometry`.
+- If other (internal) PX4 modules are already publishing on the same uORB topic instance as the ROS 2 publisher, the instance's subscribers will receive all streams of messages.
+  The uORB subscriber will not be able to determine if an incoming message was published by PX4 or by ROS 2.
+- This is the desired behavior when the ROS 2 publisher is expected to be the sole publisher on the topic instance (for example, replacing an internal publisher to the topic during offboard control), or when the source of multiple publishing streams does not matter.
 
 Add a topic to the `subscriptions_multi` section to:
 
-- Create a unidirectional route going from the ROS2 topic to a _new_ instance of the associated uORB topic.
-  For example, if `vehicle_odometry` has already `2` instances, it creates a ROS2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher on instance `3` of `vehicle_odometry`.
+- Create a unidirectional route going from the ROS 2 topic to a _new_ instance of the associated uORB topic.
+  For example, if `vehicle_odometry` has already `2` instances, it creates a ROS 2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher on instance `3` of `vehicle_odometry`.
 - This ensures that no other internal PX4 module will publish on the same instance used by uXRCE-DDS.
   The subscribers will be able to subscribe to the desired instance and distinguish between publishers.
-- Note, however, that this guarantees separation between PX4 and ROS2 publishers, not among multiple ROS2 publishers.
-  In that scenario, their messages will still be routed to the same instance.
+- Without `route_field`, this guarantees separation between PX4 and ROS 2 publishers, but not among multiple ROS 2 publishers. In that scenario, their messages will still be routed to the same instance.
 - This is the desired behavior, for example, when you want PX4 to log the readings of two equal sensors; they will both publish on the same topic, but one will use instance 0 and the other will use instance 1.
+
+<Badge type="tip" text="PX4 v1.18" /> Optionally, add `route_field` and `max_instances` to demultiplex a single ROS 2 topic into multiple uORB instances based on a message field value:
+
+- Each unique value of `route_field` is dynamically assigned to a separate uORB instance on first arrival, up to `max_instances`.
+  For example, a single `/fmu/in/aux_global_position` ROS 2 topic can be demultiplexed to up to 4 separate uORB instances of `aux_global_position`, with each unique `id` value mapped to its own instance.
+- This allows multiple ROS 2 publishers to share a single DDS topic while PX4 subscribers can distinguish between them by subscribing to different uORB instances.
+- `route_field` must be a field present in the message definition. `max_instances` is required when `route_field` is set and limits how many distinct sources can be demultiplexed simultaneously.
+
+::: warning
+The `subscriptions_multi` feature with `route_field` is currently only implemented in the uXRCE-DDS client.
+The Zenoh bridge module does not yet support demux routing — topics listed under `subscriptions_multi` in `dds_topics.yaml` will be ignored by the Zenoh bridge.
+:::
 
 You can arbitrarily change the configuration.
 For example, you could use different default namespaces or use a custom package to store the message definitions.
@@ -574,7 +657,7 @@ For a list of services, details and examples see the [service documentation](../
 ## Fast-RTPS to uXRCE-DDS Migration Guidelines
 
 These guidelines explain how to migrate from using PX4 v1.13 [Fast-RTPS](../middleware/micrortps.md) middleware to PX4 v1.14 `uXRCE-DDS` middleware.
-These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm.html), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent).
+These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent).
 
 ::: info
 This section contains migration-specific information.
@@ -583,7 +666,7 @@ You should also read the rest of this page to properly understand uXRCE-DDS.
 
 #### Dependencies do not need to be removed
 
-uXRCE-DDS does not need the dependencies that were required for Fast-RTPS, such as those installed by following the topic [Fast DDS Installation](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html).
+uXRCE-DDS does not need the dependencies that were required for Fast-RTPS, such as those installed by following the topic [Fast DDS Installation](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation).
 You can keep them if you want, without affecting your uXRCE-DDS applications.
 
 If you do choose to remove the dependencies, take care not to remove anything that is used by applications (for example, Java).
@@ -607,7 +690,7 @@ Take a look at the [client startup section](#starting-the-client) to learn how t
 
 #### New file for setting which topics are published
 
-The list of topics that are published and subscribed for a particular firmware is now managed by the [dds_topics.yaml](../middleware/dds_topics.md) configuration file, which replaces [urtps_bridge_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/release/1.13/msg/tools/urtps_bridge_topics.yaml)
+The list of topics that are published and subscribed for a particular firmware is now managed by the [dds_topics.yaml](../middleware/dds_topics.md) configuration file, which replaces [urtps_bridge_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/release/1.13/msg/tools/urtps_bridge_topics.yaml).
 
 See [Supported uORB Messages](#supported-uorb-messages) and [DDS Topics YAML](#dds-topics-yaml) sections for more information.
 
@@ -636,7 +719,7 @@ There are many ways to install it on your PC / companion computer - for more inf
 
 #### Application-Specific Changes
 
-If you where not using ROS 2 alongside the agent ([Fast DDS Interface ROS-Independent](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent)), then you need to migrate to [eProsima Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
+If you were not using ROS 2 alongside the agent ([Fast DDS Interface ROS-Independent](https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent)), then you need to migrate to [eProsima Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
 
 ROS 2 applications still need to compile alongside the PX4 messages, which you do by adding the [px4_msgs](https://github.com/PX4/px4_msgs) package to your workspace.
 You can remove the [px4_ros_com](https://github.com/PX4/px4_ros_com) package as it is no longer needed, other than for example code.

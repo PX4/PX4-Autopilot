@@ -10,12 +10,16 @@ Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or
 ![Cube Yellow](../../assets/flight_controller/cube/yellow/cube_yellow_hero.jpg)
 
 Контролер призначений для використання зі специфічною для домену несучою платою, щоб зменшити кількість дротів, підвищити надійність і спростити збірку.
-Наприклад, несуча плата для комерційного інспекційного апарату може містити з'єднання для комп'ютера-компаньйона, тоді як несуча плата для пілота може містити ESC для рами транспортного засобу.
+For example, a carrier board for a commercial inspection vehicle might include connections for a companion computer, while a carrier board for a racer could include ESCs for the frame of the vehicle.
 
 Cube має віброізоляцію на двох IMU, з третім фіксованим IMU в якості еталонного/резервного.
 
 :::tip
 The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+:::
+
+:::info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
 ## Основні характеристики
@@ -32,9 +36,7 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
 - Потужний багатотональний п'єзозвуковий індикатор
 - Карта microSD для високошвидкісної фіксації даних протягом тривалого періоду часу
 
-<a id="stores"></a>
-
-## Де купити
+## Where to Buy {#store}
 
 - [Reseller list](https://www.cubepilot.com/#/reseller/list)
 
@@ -47,7 +49,7 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
 - **Processor:**
   - STM32F777VI (32bit [ARM Cortex M7](https://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M7))
   - 400 МГц
-  - 512 KB MB RAM
+  - 512 KB RAM
   - 2 MB Flash
 - **Failsafe co-processor:** <!-- inconsistent info on failsafe processor: 32 bit STM32F103 failsafe co-processor -->
   - STM32F100 (32bit _ARM Cortex-M3_)
@@ -130,7 +132,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make cubepilot_cubeyellow
 ```
 

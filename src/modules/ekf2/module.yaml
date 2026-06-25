@@ -92,8 +92,10 @@ parameters:
           by this parameter. The range sensor and vision options should only be used
           when for operation over a flat surface as the local NED origin will move
           up and down with ground level.
-          If GPS is set as reference but altitude fusion is disabled in EKF2_GPS_CTRL,
-          the GPS altitude is still used to initiaize the bias of the other height sensors.
+
+          If GPS is set as reference and EKF2_GPS_CTRL is not 0, the GPS altitude is
+          still used to initiaize the bias of the other height sensors, regardless of
+          the altitude fusion bit in EKF2_GPS_CTRL.
       type: enum
       values:
         0: Barometric pressure
@@ -183,3 +185,37 @@ parameters:
       max: 299792458
       unit: m/s
       decimal: 1
+
+    EKF2_POS_LOCK:
+      description:
+        short: Enable constant position fusion while on ground
+        long: When enabled, constant position fusion is enabled when the vehicle is landeded if position has been initialized but has currently no vel/pos aiding.
+      type: boolean
+      default: 0
+
+    EKF2_SENS_EN:
+      description:
+        short: Sensor fusion enable bitmask
+        long: Bitmask to control which sensor fusion sources are enabled.
+          Sources whose bit is cleared will be disabled.
+          Only applied while disarmed. For in-flight changes use the
+          MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the
+          individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
+      type: bitmask
+      bit:
+        0: GNSS 0
+        1: GNSS 1
+        2: Optical flow
+        3: External vision
+        4: Aux global position 0
+        5: Aux global position 1
+        6: Aux global position 2
+        7: Aux global position 3
+        8: Barometer
+        9: Range finder
+        10: Magnetometer
+        11: Airspeed
+        12: Ranging beacon
+      default: 8191
+      min: 0
+      max: 8191

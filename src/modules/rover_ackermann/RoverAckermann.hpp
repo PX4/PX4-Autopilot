@@ -60,10 +60,12 @@
 #include "AckermannDriveModes/AckermannManualMode/AckermannManualMode.hpp"
 #include "AckermannDriveModes/AckermannOffboardMode/AckermannOffboardMode.hpp"
 
-class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
+class RoverAckermann : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	/**
 	 * @brief Constructor for RoverAckermann
 	 */

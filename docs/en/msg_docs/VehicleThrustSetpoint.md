@@ -1,11 +1,26 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleThrustSetpoint (UORB message)
 
+**TOPICS:** vehicle_thrust_setpoint vehicle_thrust_setpoint_virtual_fw vehicle_thrust_setpoint_virtual_mc
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleThrustSetpoint.msg)
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     |              |            | time since system start (microseconds)                                     |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |              |            | timestamp of the data sample on which this message is based (microseconds) |
+| <a id="fld_xyz"></a>xyz                           | `float32[3]` |              |            | thrust setpoint along X, Y, Z body axis [-1, 1]                            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleThrustSetpoint.msg)
+
+::: details Click here to see original file
 
 ```c
-
 uint64 timestamp        # time since system start (microseconds)
 uint64 timestamp_sample # timestamp of the data sample on which this message is based (microseconds)
 
@@ -13,5 +28,6 @@ float32[3] xyz          # thrust setpoint along X, Y, Z body axis [-1, 1]
 
 # TOPICS vehicle_thrust_setpoint
 # TOPICS vehicle_thrust_setpoint_virtual_fw vehicle_thrust_setpoint_virtual_mc
-
 ```
+
+:::

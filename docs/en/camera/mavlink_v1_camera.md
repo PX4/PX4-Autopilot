@@ -1,4 +1,4 @@
-# Simple MAVLink Cameras (Camera Protcol v1)
+# Simple MAVLink Cameras (Camera Protocol v1)
 
 This topic explains how to use PX4 with a MAVLink [camera](../camera/index.md) that implements the [Camera Protocol v1 (Simple Trigger Protocol)](https://mavlink.io/en/services/camera_v1.html) with PX4 and a Ground Station.
 
@@ -18,7 +18,7 @@ This approach is retained for use with older MAVLink cameras.
 PX4 supports this command set for triggering cameras with native support for the protocol (as described in this topic), and also for [cameras attached to flight controller outputs](../camera/fc_connected_camera.md).
 
 Ground stations and MAVLink SDKs generally address camera commands to the autopilot, which then forwards them to a connected MAVLink channel of type `onboard`.
-PX4 also re-emits any camera mission items it encouters in a mission as camera commands: commands that aren't accepted are logged.
+PX4 also re-emits any camera mission items it encounters in a mission as camera commands: commands that aren't accepted are logged.
 In all cases the commands are sent with the system id of the autopilot and the component ID of 0 (i.e. addressed to all components, including cameras).
 
 PX4 will also emit a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) whenever an image capture is triggered (the camera itself may also emit this message on triggering).

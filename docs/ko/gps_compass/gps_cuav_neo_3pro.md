@@ -36,12 +36,12 @@ It integrates UBLOX M9N, STM32F4 MCU, RM3100 compass, three-color LED light and 
 | Upgrade firmware                                  | support                                                                                                                    |
 | Input voltage                                     | 5V                                                                                                                         |
 | Operating temperature                             | -10~70℃                                                                                                    |
-| Size                                              | 60_60_16MM                                                                                                                 |
+| Size                                              | 6&#x30;_&#x36;&#x30;_&#x31;6MM                                                                                             |
 | 중량                                                | 33g                                                                                                                        |
 
 ## 구매처
 
-- [CUAV](https://cuav.en.alibaba.com/product/1600165544920-820872629/Free_shipping_CUAV_Neo_3_pro_drone_UAVCAN_GNSS_processor_STM32F412_autopilot_ublox_M9N_positioning_RM3100_compass_uav_gps_module.html?spm=a2700.shop_oth.74.2.636e28725EvVHb)
+- [CUAV](https://www.alibaba.com/product-detail/Free_shipping_CUAV_Neo_3_pro_drone_UAVCAN_GNSS_processor_STM32F412_autopilot_ublox_M9N_positioning_RM3100_compass_uav_gps_module_1600165544920.html)
 
 ## 배선
 

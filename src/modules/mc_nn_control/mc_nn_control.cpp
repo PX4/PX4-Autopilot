@@ -45,6 +45,8 @@
 #include <chrono>
 #endif
 
+ModuleBase::Descriptor MulticopterNeuralNetworkControl::desc{task_spawn, custom_command, print_usage};
+
 namespace
 {
 // This number should be the number of operations in the model, like tanh and fully connected
@@ -70,6 +72,10 @@ MulticopterNeuralNetworkControl::MulticopterNeuralNetworkControl() :
 
 MulticopterNeuralNetworkControl::~MulticopterNeuralNetworkControl()
 {
+	delete _interpreter;
+	_interpreter = nullptr;
+	_input_tensor = nullptr;
+	_output_tensor = nullptr;
 	perf_free(_loop_perf);
 }
 
@@ -86,6 +92,14 @@ bool MulticopterNeuralNetworkControl::init()
 
 int MulticopterNeuralNetworkControl::InitializeNetwork()
 {
+	if (_interpreter != nullptr) {
+		delete _interpreter;
+		_interpreter = nullptr;
+	}
+
+	_input_tensor = nullptr;
+	_output_tensor = nullptr;
+
 	// Initialize the neural network
 	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
@@ -101,11 +115,18 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	static uint8_t tensor_arena[kTensorArenaSize];
 	_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
 
+	if (_interpreter == nullptr) {
+		PX4_ERR("interpreter alloc failed");
+		return -1;
+	}
+
 	// Allocate memory for the model's tensors
 	TfLiteStatus allocate_status = _interpreter->AllocateTensors();
 
 	if (allocate_status != kTfLiteOk) {
 		PX4_ERR("AllocateTensors() failed");
+		delete _interpreter;
+		_interpreter = nullptr;
 		return -1;
 	}
 
@@ -113,6 +134,8 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 
 	if (_input_tensor == nullptr) {
 		PX4_ERR("Input tensor is null");
+		delete _interpreter;
+		_interpreter = nullptr;
 		return -1;
 	}
 
@@ -412,8 +435,8 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 	MulticopterNeuralNetworkControl *instance = new MulticopterNeuralNetworkControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() and instance->InitializeNetwork() == PX4_OK) {
 			return PX4_OK;
@@ -427,8 +450,8 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -442,7 +465,7 @@ void MulticopterNeuralNetworkControl::Run()
 			UnregisterNeuralFlightMode(_arming_check_id, _mode_id);
 		}
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -624,5 +647,5 @@ Outputs: [Actuator motors(4)]
 
 extern "C" __EXPORT int mc_nn_control_main(int argc, char *argv[])
 {
-	return MulticopterNeuralNetworkControl::main(argc, argv);
+	return ModuleBase::main(MulticopterNeuralNetworkControl::desc, argc, argv);
 }

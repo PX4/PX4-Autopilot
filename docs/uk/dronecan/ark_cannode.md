@@ -28,7 +28,7 @@
 - Роз'єм стандарту SPI для Pixhawk
   - 7-контактний JST-GH
 - Коннектор PWM
-  - 10-контактний JST-SH
+  - 10 Pin JST
   - 8 PWM виводів
   - Відповідно до схеми підключення штирьових роз'ємів Pixhawk 4 PWM
 - Роз'єм для налагодження стандарту Pixhawk
@@ -77,13 +77,13 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 Вам потрібно буде увімкнути підписника, відповідного для кожного з сенсорів, які підключені до ARK CANnode.
 
-This is done using the the parameters named like `UAVCAN_SUB_*` in the parameter reference (such as [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD), [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO) etc.).
+This is done using the parameters named like `UAVCAN_SUB_*` in the parameter reference (such as [UAVCAN_SUB_ASPD](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD), [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO) etc.).
 
 ## Конфігурування CANNode Ark
 
 На ARK CANnode вам може знадобитися налаштувати наступні параметри:
 
-| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                                        |
+| Parameter                                                                                                                                          | Опис                                                                                                                                                                                                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
 | <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | Вбудована завершення шини CAN.                                                                                                                                                                              |

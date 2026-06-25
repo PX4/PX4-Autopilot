@@ -58,7 +58,7 @@ It brings you ultimate performance, stability, and reliability in every aspect.
 - 1x Dedicated Debug Port
   - FMU Debug
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [S-Vehicle](https://svehicle.cn/).
 

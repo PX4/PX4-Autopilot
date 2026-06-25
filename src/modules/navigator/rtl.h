@@ -62,6 +62,7 @@
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
+class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
 {
@@ -71,11 +72,11 @@ public:
 	~RTL() = default;
 
 	enum class RtlType {
-		NONE,
-		RTL_DIRECT,
-		RTL_DIRECT_MISSION_LAND,
-		RTL_MISSION_FAST,
-		RTL_MISSION_FAST_REVERSE,
+		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
+		RTL_DIRECT = rtl_status_s::RTL_STATUS_TYPE_DIRECT_SAFE_POINT,
+		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
+		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
+		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
 	};
 
 	void on_inactive() override;
@@ -91,11 +92,20 @@ public:
 	bool isLanding();
 
 private:
+	friend class RTLTestPeer;
+
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_SAFE_POINT
 	};
+
+protected:
+
+	/**
+	 * @brief Load one safe-point mission item from the safe-point dataman cache.
+	 */
+	virtual bool loadSafePointItemWait(int seq, mission_item_s &item, hrt_abstime timeout) const;
 
 private:
 
@@ -130,8 +140,13 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt,
-				uint8_t &safe_point_index);
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Find RTL destination if only safe points are considered
+	 *
+	 */
+	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -140,27 +155,27 @@ private:
 	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
 
 	/**
-	 * @brief Set the safepoint as destination.
+	 * @brief Parse a rally-point mission item into a PositionYawSetpoint, validating frame, coordinates and finiteness.
 	 *
-	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
+	 * @return true if the item is a valid rally point with sane coordinates, false otherwise.
 	 */
-	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
+	bool extractValidSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl,
+					   PositionYawSetpoint &position) const;
 
 	/**
-	 * @brief calculate return altitude from cone half angle
+	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
-	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
+	 *
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
-			float cone_half_angle_deg) const;
+	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	/**
 	 * @brief initialize RTL mission type
 	 *
 	 */
-	void init_rtl_mission_type();
+	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 	/**
 	 * @brief Update parameters
@@ -169,31 +184,64 @@ private:
 	void parameters_update();
 
 	/**
-	 * @brief read VTOL land approaches
+	 * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
 	 *
-	 * @param[in] rtl_position landing position of the rtl
-	 *
+	 * A block starts at the associated rally point and contains the consecutive NAV_CMD_LOITER_TO_ALT
+	 * items that follow it. The next rally point starts a new block.
+	 * Invalid rally points are skipped so a later nearby valid rally point can still be considered.
 	 */
-	land_approaches_s readVtolLandApproaches(PositionYawSetpoint rtl_position) const;
+	land_approaches_s getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
+			float home_altitude_amsl) const;
 
 	/**
-	 * @brief Has VTOL land approach
-	 *
-	 * @param[in] rtl_position landing position of the rtl
-	 *
-	 * @return true if home land approaches are defined for home position
-	 * @return false otherwise
+	 * @brief Return whether a valid associated block near rtl_position has at least one valid approach.
 	 */
-	bool hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const;
+	bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position, float home_altitude_amsl) const;
 
 	/**
-	 * @brief Choose best landing approach
-	 *
-	 * Choose best landing approach for home considering wind
-	 *
-	 * @return loiter_point_s best landing approach
+	 * @brief Return whether the block after safe_point_index contains at least one valid approach.
 	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches);
+	bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
+
+	/**
+	 * @brief Choose the most wind-aligned approach in a landing-approach block.
+	 *
+	 * Bearings are evaluated from the block's land location.
+	 */
+	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
+
+	/**
+	 * @brief Return the wind-selected VTOL approach for destination, or an invalid loiter if none exists.
+	 */
+	loiter_point_s selectLandingApproach(const PositionYawSetpoint &destination) const;
+
+	/**
+	 * @brief Find the first rally point whose block should be associated with rtl_position.
+	 *
+	 * Invalid rally points are skipped so nearby valid fallbacks can still be associated.
+	 * On success, safe_point_index and safe_point_item are populated with the rally point that starts the block.
+	 */
+	bool findAssociatedSafePointIndex(const PositionYawSetpoint &rtl_position, float home_altitude_amsl,
+					  int &safe_point_index, mission_item_s &safe_point_item) const;
+
+	/**
+	 * @brief Scan one landing-approach block after a rally point.
+	 *
+	 * A block is the consecutive NAV_CMD_LOITER_TO_ALT items after safe_point_index.
+	 * Scanning stops at the next rally point because it starts a different safe-point block.
+	 *
+	 * If result is non-null, all valid approaches are collected into it.
+	 * If result is null, returns true on the first valid approach (early exit).
+	 *
+	 * @return true if at least one valid approach was found.
+	 */
+	bool scanVtolLandApproachBlock(int safe_point_index, float home_altitude_amsl,
+				       land_approaches_s *result) const;
+
+	/**
+	 * @brief Convert one loiter mission item into a landing-approach entry.
+	 */
+	loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl) const;
 
 	enum class DatamanState {
 		UpdateRequestWait,
@@ -206,8 +254,6 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
-	RtlType _set_rtl_mission_type{RtlType::NONE};
-
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
 
 	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
@@ -232,11 +278,11 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
-		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_half_angle_deg,
+		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_ang,
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)     _param_nav_acc_rad,
-		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_approach_force
+		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_appr_force
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -248,5 +294,5 @@ private:
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
-	uORB::PublicationData<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
+	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
 };

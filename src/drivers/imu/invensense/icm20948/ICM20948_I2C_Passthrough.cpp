@@ -88,24 +88,18 @@ int ICM20948_I2C_Passthrough::probe()
 {
 	// 3 retries
 	for (int i = 0; i < 3; i++) {
+		// force bank 0: the actual register bank after a soft reset is unknown,
+		// but _last_register_bank is default-initialized to 0, so RegisterRead
+		// would otherwise skip the bank select and read from the wrong bank
+		SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
 
 		const uint8_t WHO_AM_I = RegisterRead(Register::BANK_0::WHO_AM_I);
 
 		if (WHO_AM_I == WHOAMI) {
 			return PX4_OK;
-
-		} else {
-			DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", WHO_AM_I);
-
-			uint8_t reg_bank_sel = RegisterRead(Register::BANK_0::REG_BANK_SEL);
-			int bank = reg_bank_sel >> 4;
-
-			if (bank >= 1 && bank <= 3) {
-				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d", reg_bank_sel, bank);
-				// force bank selection and retry
-				SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
-			}
 		}
+
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", WHO_AM_I);
 	}
 
 	return PX4_ERROR;
