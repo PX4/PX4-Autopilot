@@ -279,7 +279,7 @@ set(msg_files
 	FormicEvStateMachine.msg
 	FormicVioJetson.msg
 	FormicPosReq.msg
-	VelocityError.msg
+	FormicVioFeatures.msg
 )
 list(SORT msg_files)
 

@@ -145,13 +145,6 @@ void PositionControl::_velocityControl(const float dt)
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
 
-	// Publish the velocity tracking error (setpoint - measured) for monitoring/watchdog
-	velocity_error_s velocity_error{};
-	velocity_error.timestamp = hrt_absolute_time();
-	vel_error.copyTo(velocity_error.vel_error);
-	_velocity_error_pub.publish(velocity_error);
-
-
 	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
 
 	// No control input from setpoints or corresponding states which are NAN
