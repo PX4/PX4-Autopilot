@@ -75,6 +75,18 @@
                             "name": "rtl",
                             "description": "RTL"
                         },
+                        "64": {
+                            "name": "position_slow",
+                            "description": "Position Slow"
+                        },
+                        "128": {
+                            "name": "course",
+                            "description": "Course"
+                        },
+                        "256": {
+                            "name": "altitude_cruise",
+                            "description": "Altitude Cruise"
+                        },
                         "1024": {
                             "name": "acro",
                             "description": "Acro"
@@ -726,6 +738,7 @@
                     "4": [50593792],
                     "5": [84148224],
                     "6": [33751040],
+                    "7": [319029248],
                     "8": [720896],
                     "10": [327680],
                     "14": [393216],

@@ -22,7 +22,7 @@ The default type is recommended.
   - Flying vehicles can't switch to this mode without global position.
   - Flying vehicles will failsafe if they lose the position estimate.
 - Mode requires home position is set.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
 - RC stick movement is ignored.
 
@@ -107,7 +107,7 @@ The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced
 If using a mission landing, only the [RTL_RETURN_ALT](#RTL_RETURN_ALT) and [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) are relevant.
 The others are relevant if the destination is a rally point or the home location.
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Return type.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)                            | [VTOL FW only] If set, PX4 only considers home or rally-point RTL destinations when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                                                            |

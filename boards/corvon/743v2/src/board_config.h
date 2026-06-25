@@ -113,7 +113,7 @@
 #define ADC_BATTERY2_CURRENT_CHANNEL    8     /* PC5 - ADC12_INP8 */
 
 /* Airspeed (analog) */
-#define ADC_AIRSPEED_IN_CHANNEL         18    /* PA4 - ADC12_INP18 */
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL    18    /* PA4 - ADC12_INP18 */
 
 /* RSSI (analog) */
 #define ADC_RSSI_IN_CHANNEL             3     /* PA6 - ADC12_INP3 */
@@ -123,7 +123,7 @@
 	 (1 << ADC_BATTERY1_CURRENT_CHANNEL) | \
 	 (1 << ADC_BATTERY2_VOLTAGE_CHANNEL) | \
 	 (1 << ADC_BATTERY2_CURRENT_CHANNEL) | \
-	 (1 << ADC_AIRSPEED_IN_CHANNEL)      | \
+	 (1 << ADC_AIRSPEED_VOLTAGE_CHANNEL) | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
 
 /* Battery voltage divider R82=20K (top) / R62=1K (bottom), V_IN = V_ADC * 21.2 */

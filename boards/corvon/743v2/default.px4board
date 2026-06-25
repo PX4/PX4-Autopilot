@@ -47,6 +47,7 @@ CONFIG_DRIVERS_OSD_MSP_OSD=y
 # ============================================================================
 # System commands (px4 command-line utilities)
 # ============================================================================
+CONFIG_SYSTEMCMDS_BL_UPDATE=y
 CONFIG_SYSTEMCMDS_BSONDUMP=y
 CONFIG_SYSTEMCMDS_DMESG=y
 CONFIG_SYSTEMCMDS_DUMPFILE=y

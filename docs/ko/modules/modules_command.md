@@ -441,6 +441,10 @@ param <command> [arguments...]
    import        Import params from a file
      [<file>]    File name (use default if not given)
 
+   load-or-init  Load params from storage; if blank, seed from a backup file or
+                 defaults and persist
+     [<backup_file>] Backup file to seed from when storage is blank
+
    save          Save params to a file
      [<file>]    File name (use default if not given)
 

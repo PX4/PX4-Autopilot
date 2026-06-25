@@ -112,8 +112,8 @@ Heater::Heater(uint8_t instance) :
 	char name[32];
 
 	// Dynamically locate the parameter handle corresponding to the current instance
-	snprintf(name, sizeof(name), "HEATER%u_IMU_ID", (unsigned)_instance);
-	_param_handles.imu_id = param_find(name); //
+	snprintf(name, sizeof(name), "HEATER%u_SENS_ID", (unsigned)_instance);
+	_param_handles.sens_id = param_find(name);
 
 	snprintf(name, sizeof(name), "HEATER%u_TEMP", (unsigned)_instance);
 	_param_handles.temp = param_find(name); //
@@ -316,7 +316,7 @@ void Heater::heater_on()
 
 bool Heater::initialize_topics()
 {
-	// Force a single read of the parameters to ensure _params.imu_id is already up to date.
+	// Force a single read of the parameters to ensure _params.sens_id is up to date.
 	update_params(true);
 
 	if (!_heater_initialized) {
@@ -324,7 +324,7 @@ bool Heater::initialize_topics()
 		return false;
 	}
 
-	const int32_t target = _params.imu_id;
+	const int32_t target = _params.sens_id;
 	const bool use_hygro = (_params.temp_src == heater_status_s::TEMPERATURE_SOURCE_HYGRO);
 
 	int8_t selected_instance = -1;
@@ -540,18 +540,18 @@ int Heater::start()
 {
 	update_params(true);
 
-	const int32_t target = _params.imu_id;
+	const int32_t target = _params.sens_id;
 
 	// Disabled instance
 	if (target < 0) {
-		PX4_INFO("heater %u disabled (HEATER%u_IMU_ID=%ld)",
+		PX4_INFO("heater %u disabled (HEATER%u_SENS_ID=%ld)",
 			 (unsigned)_instance, (unsigned)_instance, (long)target);
 		return PX4_OK;
 	}
 
 	// Auto-select only allowed for legacy single-heater setups
 	if ((target == 0) && (HEATER_NUM > 1)) {
-		PX4_INFO("heater %u disabled (HEATER%u_IMU_ID=0 not allowed when HEATER_NUM>1)",
+		PX4_INFO("heater %u disabled (HEATER%u_SENS_ID=0 not allowed when HEATER_NUM>1)",
 			 (unsigned)_instance, (unsigned)_instance);
 		return PX4_OK;
 	}
@@ -677,8 +677,8 @@ void Heater::update_params(const bool force)
 		_parameter_update_sub.copy(&param_update);
 
 		// update parameters from storage
-		if (_param_handles.imu_id != PARAM_INVALID) {
-			param_get(_param_handles.imu_id, &_params.imu_id);
+		if (_param_handles.sens_id != PARAM_INVALID) {
+			param_get(_param_handles.sens_id, &_params.sens_id);
 		}
 
 		if (_param_handles.temp != PARAM_INVALID) {
