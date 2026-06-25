@@ -242,6 +242,10 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 		return false;
 	}
 
+	if (!isMissionLandCommand(cached_land_item.nav_cmd)) {
+		return false;
+	}
+
 	index = _mission_land.index;
 	land_item = cached_land_item;
 	return true;

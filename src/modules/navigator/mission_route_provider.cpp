@@ -34,8 +34,8 @@
 /**
  * @file mission_route_provider.cpp
  *
- * Default implementations for the mission-route Provider interface: mission land/takeoff
- * lookups and the VTOL landing-approach block scanning shared by RTL features.
+ * Default implementations for the mission-route Provider interface: mission takeoff
+ * lookup and the VTOL landing-approach block scanning shared by RTL features.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -49,22 +49,6 @@
 
 namespace mission_route
 {
-
-bool Provider::getMissionLandItem(int32_t &index, mission_item_s &land_item) const
-{
-	for (int i = missionCount() - 1; i >= 0; --i) {
-		mission_item_s item{};
-
-		if (loadMissionItem(i, item)
-		    && (item.nav_cmd == NAV_CMD_LAND || item.nav_cmd == NAV_CMD_VTOL_LAND)) {
-			index = i;
-			land_item = item;
-			return true;
-		}
-	}
-
-	return false;
-}
 
 bool Provider::getMissionTakeoffItem(int32_t &index, mission_item_s &takeoff_item) const
 {
