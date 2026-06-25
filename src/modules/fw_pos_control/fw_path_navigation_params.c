@@ -1065,3 +1065,35 @@ PARAM_DEFINE_INT32(CAT_MOT_REQ_TAIL, 1);
  * @group FW Launch detection
  */
 PARAM_DEFINE_INT32(CAT_TO_MODE, 0);
+
+/**
+ * Catapult: post-launch mode transition timing select
+ *
+ * Chooses when the CAT_TO_MODE flight-mode switch happens:
+ *  1 = at the moment the tail-lock servos are released (simultaneous, default)
+ *  0 = on an independent timer, CAT_MODE_DLY seconds after launch detection (T0)
+ *
+ * Only used when CAT_TO_MODE != 0.
+ *
+ * @boolean
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(CAT_MODE_SYNC, 1);
+
+/**
+ * Catapult: post-launch mode transition independent delay
+ *
+ * When CAT_MODE_SYNC = 0, the flight mode (CAT_TO_MODE) is switched this many
+ * seconds after launch detection (T0), independently of the tail-release delay.
+ *
+ * Note: set this >= CAT_TAIL_DLY, otherwise the mode change leaves the takeoff
+ * path before the tail servos are released and the auto tail-release will not run.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 30.0
+ * @decimal 2
+ * @increment 0.1
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_FLOAT(CAT_MODE_DLY, 0.0f);

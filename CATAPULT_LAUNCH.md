@@ -125,6 +125,8 @@ commandCatapultTailServos()          FunctionActuatorSet              QGC output
 | `CAT_TAIL6_REL` | int [µs] | 2000 | MAIN6 リリース位置PWM |
 | `CAT_MOT_REQ_TAIL` | bool | 1 | 1=尾翼解放までモーターをidle保持（筒内暴発防止） |
 | `CAT_TO_MODE` | int | 0 | 射出後の自動モード遷移。0=なし/1=Stab/2=Alt/3=Pos/4=Hold/5=Mission/6=Manual |
+| `CAT_MODE_SYNC` | bool | 1 | モード遷移を尾翼解放と同時(1)にするか独立タイマー(0)にするか |
+| `CAT_MODE_DLY` | float [s] | 0.0 | `CAT_MODE_SYNC=0` 時、射出検知(T0)からの遷移遅延 |
 
 ### `CAT_TO_MODE`（射出後の自動フライトモード遷移）
 
@@ -135,8 +137,20 @@ RC入力が前提、Auto系（Hold/Mission）はRC不要で自律動作。
 - 実機でRC操縦に引き継ぐ → `CAT_TO_MODE=1`（Stabilized）
 - SITL（RC無し）で射出後の飛行継続を確認 → `CAT_TO_MODE=4`（Hold）
 
-実装: `commandPostLaunchMode()`（`FixedwingPositionControl.cpp`）。尾翼解放後 `_cat_mode_requested`
-で一度だけ発行。`reset_takeoff_state()` でリセット。
+#### 遷移タイミング（CAT_MODE_SYNC / CAT_MODE_DLY）
+
+- `CAT_MODE_SYNC=1`（既定）: 尾翼解放（T0+`CAT_TAIL_DLY`）と同時に遷移
+- `CAT_MODE_SYNC=0`: 独立タイマー。射出検知(T0)から `CAT_MODE_DLY` 秒後に遷移
+  （尾翼解放・モーター始動とは別タイミングにできる）
+
+> ⚠️ `SYNC=0` で `CAT_MODE_DLY < CAT_TAIL_DLY` だと尾翼解放前にモード遷移し、離陸パスを
+> 抜けて尾翼の自動解放が走らない。`CAT_MODE_DLY >= CAT_TAIL_DLY` にすること。
+
+SITL検証済み（`SYNC=0, DLY=3, CAT_TAIL_DLY=1`）: `tail released at T0+1.00s` →
+`mode switch at T0+3.00s (sync=0)`。
+
+実装: `commandPostLaunchMode()`（`FixedwingPositionControl.cpp`）。尾翼解放後（SYNC=1）または
+T0+CAT_MODE_DLY（SYNC=0）で `_cat_mode_requested` により一度だけ発行。`reset_takeoff_state()` でリセット。
 
 ### 併せて必要な既存パラメータ
 

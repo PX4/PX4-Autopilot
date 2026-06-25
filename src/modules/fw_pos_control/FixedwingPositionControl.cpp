@@ -1673,13 +1673,31 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				 (int)_param_cat_tail5_rel.get(), (int)_param_cat_tail6_rel.get());
 		}
 
-		// Catapult extension: once the tail is released, optionally hand the
-		// vehicle over to a selected flight mode (CAT_TO_MODE), e.g. Stabilized
-		// for RC takeover or Hold/Mission for autonomous flight.
-		if (_param_cat_en.get() && _cat_tail_released && !_cat_mode_requested
-		    && _param_cat_to_mode.get() != 0) {
-			commandPostLaunchMode(_param_cat_to_mode.get());
-			_cat_mode_requested = true;
+		// Catapult extension: optionally hand the vehicle over to a selected
+		// flight mode (CAT_TO_MODE) — Stabilized for RC takeover, Hold/Mission
+		// for autonomous flight. Timing is either tied to the tail release
+		// (CAT_MODE_SYNC=1) or on an independent timer from launch detection
+		// (CAT_MODE_SYNC=0 -> T0 + CAT_MODE_DLY).
+		if (_param_cat_en.get() && !_cat_mode_requested && _param_cat_to_mode.get() != 0) {
+			bool do_switch = false;
+
+			if (_param_cat_mode_sync.get()) {
+				// Simultaneous with tail release.
+				do_switch = _cat_tail_released;
+
+			} else {
+				// Independent timer measured from launch detection (T0).
+				do_switch = _launch_detected
+					    && (now - _cat_launch_time) >= (hrt_abstime)(_param_cat_mode_dly.get() * 1e6f);
+			}
+
+			if (do_switch) {
+				commandPostLaunchMode(_param_cat_to_mode.get());
+				_cat_mode_requested = true;
+				PX4_INFO("[catapult] mode switch at T0+%.2fs (sync=%d)",
+					 (double)((now - _cat_launch_time) * 1e-6f),
+					 (int)_param_cat_mode_sync.get());
+			}
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),

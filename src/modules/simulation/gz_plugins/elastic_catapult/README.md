@@ -217,6 +217,27 @@ rm -f /tmp/px4-sock-1 /tmp/px4_lock-1
 > SITLでRC無しなら `CAT_TO_MODE=4`（Hold）が射出後も自律飛行を続けて確認しやすい。
 > 実機でRC操縦に引き継ぐなら `CAT_TO_MODE=1`（Stabilized）。手動系はRC入力が無いと落ちる。
 
+##### モード遷移のタイミング（CAT_MODE_SYNC / CAT_MODE_DLY）
+
+`CAT_TO_MODE != 0` のとき、遷移タイミングを選べる：
+
+| パラメータ | 既定 | 意味 |
+|---|---|---|
+| `CAT_MODE_SYNC` | 1 | 1=尾翼解放と同時 / 0=独立タイマー使用 |
+| `CAT_MODE_DLY` | 0.0 | `SYNC=0` のとき、射出検知(T0)からの遷移遅延[s] |
+
+- `CAT_MODE_SYNC=1`（既定）→ 尾翼解放（T0+`CAT_TAIL_DLY`）と同時に遷移
+- `CAT_MODE_SYNC=0` + `CAT_MODE_DLY=3.0` → T0+3.0s で遷移（尾翼解放=T0+1.0s とは独立）
+
+> ⚠️ `SYNC=0` で `CAT_MODE_DLY < CAT_TAIL_DLY` にすると、尾翼解放より先にモード遷移してしまい
+> 離陸パスを抜けるため**尾翼の自動解放が起きない**。`CAT_MODE_DLY >= CAT_TAIL_DLY` にすること。
+
+検証ログ例（`SYNC=0, CAT_MODE_DLY=3, CAT_TAIL_DLY=1`）:
+```
+[catapult] tail released at T0+1.00s
+[catapult] mode switch at T0+3.00s (sync=0)
+```
+
 > `CAT_*` の全リストと意味は `CATAPULT_LAUNCH.md`（リポジトリ直下）を参照。
 
 ### 4.C よくある変更例

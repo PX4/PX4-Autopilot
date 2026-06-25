@@ -1084,7 +1084,9 @@ private:
 		(ParamInt<px4::params::CAT_TAIL6_LCK>) _param_cat_tail6_lck,
 		(ParamInt<px4::params::CAT_TAIL6_REL>) _param_cat_tail6_rel,
 		(ParamInt<px4::params::CAT_MOT_REQ_TAIL>) _param_cat_mot_req_tail,
-		(ParamInt<px4::params::CAT_TO_MODE>) _param_cat_to_mode
+		(ParamInt<px4::params::CAT_TO_MODE>) _param_cat_to_mode,
+		(ParamInt<px4::params::CAT_MODE_SYNC>) _param_cat_mode_sync,
+		(ParamFloat<px4::params::CAT_MODE_DLY>) _param_cat_mode_dly
 	)
 
 };
