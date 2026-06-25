@@ -520,7 +520,8 @@ void EKF2::Run()
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
 
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
+			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
 				double latitude = vehicle_command.param5;
 				double longitude = vehicle_command.param6;
 				float altitude = vehicle_command.param7;
