@@ -486,15 +486,11 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 			const bool success = mission_route_cache != nullptr && mission_route_cache->getMissionLandItem(land_index, land_mission_item);
 
 			if (!success) {
-				const bool land_item_pending = mission_route_cache != nullptr
-							       && mission_route_cache->missionLandItemUpdatePending();
 
-				if (!land_item_pending) {
-					/* Not supposed to happen unless the datamanager can't access the SD card, etc. */
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
-					events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
-						     "Mission land item could not be read");
-				}
+				/* Not supposed to happen unless the datamanager can't access the SD card, etc. */
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
+				events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
+					     "Mission land item could not be read");
 
 			} else {
 				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
