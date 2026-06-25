@@ -1,0 +1,7 @@
+menuconfig MODULES_SIMULATION_SIMULATOR_XPLANE
+	bool "simulator_xplane"
+	default n
+	select MODULES_SIMULATION_PWM_OUT_SIM
+	depends on PLATFORM_POSIX
+	---help---
+		Native X-Plane UDP simulator backend (no plugin required)

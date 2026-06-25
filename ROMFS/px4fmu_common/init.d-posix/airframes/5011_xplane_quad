@@ -1,0 +1,352 @@
+#!/bin/sh
+################################################################################
+# PX4 SITL Configuration for 5-Inch Quadrotor in X-Plane
+################################################################################
+#
+# @name              Quad X-Plane SITL
+# @type              Quadrotor Wide
+# @maintainer        px4xplane project
+# @url               https://github.com/alireza787b/px4xplane/
+#
+# Aircraft:          Generic 5-inch Quadrotor
+# Type:              Quadrotor X configuration
+# Compatible Sim:    X-Plane 11/12
+# Prop Diameter:     5 inches (127mm)
+# Wheelbase:         ~200mm diagonal
+# AUW:               ~400g
+#
+################################################################################
+
+. ${R}etc/init.d/rc.mc_defaults
+
+
+################################################################################
+# CONTROL ALLOCATION - Motor Configuration
+################################################################################
+# Quadcopter X, 100mm arm (center to motor)
+#
+# Motor Layout:        Front
+#                        ^
+#                    1       0
+#                     \     /
+#                      \   /
+#                       \ /
+#                       / \
+#                      /   \
+#                     /     \
+#                    2       3
+#
+# Motor 0: Front-Right (CCW) - (+0.10, +0.10)
+# Motor 1: Rear-Left   (CCW) - (-0.10, -0.10)
+# Motor 2: Front-Left  (CW)  - (+0.10, -0.10)
+# Motor 3: Rear-Right  (CW)  - (-0.10, +0.10)
+
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_METHOD 2
+param set-default CA_FAILURE_MODE 0
+
+# Motor 0: Front-Right (CCW)
+param set-default CA_ROTOR0_PX 0.1
+param set-default CA_ROTOR0_PY 0.1
+param set-default CA_ROTOR0_AZ -1
+param set-default CA_ROTOR0_CT 6.5
+param set-default CA_ROTOR0_KM -0.05
+
+# Motor 1: Rear-Left (CCW)
+param set-default CA_ROTOR1_PX -0.1
+param set-default CA_ROTOR1_PY -0.1
+param set-default CA_ROTOR1_AZ -1
+param set-default CA_ROTOR1_CT 6.5
+param set-default CA_ROTOR1_KM -0.05
+
+# Motor 2: Front-Left (CW)
+param set-default CA_ROTOR2_PX 0.1
+param set-default CA_ROTOR2_PY -0.1
+param set-default CA_ROTOR2_AZ -1
+param set-default CA_ROTOR2_CT 6.5
+param set-default CA_ROTOR2_KM 0.05
+
+# Motor 3: Rear-Right (CW)
+param set-default CA_ROTOR3_PX -0.1
+param set-default CA_ROTOR3_PY 0.1
+param set-default CA_ROTOR3_AZ -1
+param set-default CA_ROTOR3_CT 6.5
+param set-default CA_ROTOR3_KM 0.05
+
+# PWM Output Mapping
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+
+
+################################################################################
+# EKF2 SENSOR FUSION
+################################################################################
+
+# Simulation mode enablement
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SYS_HAS_BARO 1
+param set-default SYS_HAS_GPS 1
+
+# Barometer priority
+param set-default CAL_BARO0_PRIO 100
+param set-default CAL_BARO1_PRIO 0
+
+# EKF2 core
+param set-default EKF2_BARO_CTRL 1
+param set-default EKF2_MULTI_IMU 0
+
+# Accelerometer bias
+param set-default EKF2_ABIAS_INIT 0.3
+param set-default EKF2_ABL_LIM 20.0
+param set-default EKF2_ABL_TAU 0.5
+param set-default EKF2_ABL_ACCLIM 35.0
+param set-default EKF2_ACC_NOISE 1.0
+param set-default EKF2_ACC_B_NOISE 0.005
+
+# Gyroscope
+param set-default EKF2_GYR_NOISE 0.015
+param set-default EKF2_GYR_B_NOISE 0.001
+
+# Barometer
+param set-default EKF2_BARO_NOISE 0.005
+param set-default EKF2_BARO_DELAY 0.0
+param set-default EKF2_BARO_GATE 10.0
+
+# GPS
+# EKF2_GPS_DELAY removed in current PX4 — delay derived from timestamps
+param set-default EKF2_GPS_P_NOISE 0.15
+param set-default EKF2_GPS_V_NOISE 0.15
+param set-default EKF2_GPS_P_GATE 5.0
+param set-default EKF2_GPS_V_GATE 5.0
+
+# Magnetometer
+param set-default EKF2_MAG_TYPE 0
+param set-default EKF2_HEAD_NOISE 0.3
+param set-default EKF2_MAG_NOISE 0.05
+param set-default EKF2_MAG_GATE 5.0
+
+# Additional sensors
+# EKF2_AGP_CTRL renamed to per-source EKF2_AGP{i}_CTRL in current PX4
+param set-default EKF2_AGP1_CTRL 3
+param set-default EKF2_ASP_DELAY 0.0
+param set-default EKF2_AVEL_DELAY 0.0
+param set-default EKF2_TAS_GATE 5.0
+param set-default EKF2_WIND_NSD 0.01
+param set-default EKF2_REQ_VDRIFT 2.0
+
+# IMU — higher rate for agile 5-inch
+param set-default IMU_GYRO_RATEMAX 400
+param set-default IMU_INTEG_RATE 200
+
+
+################################################################################
+# MULTICOPTER RATE CONTROL (Inner Loop PID)
+################################################################################
+
+# Roll rate
+param set-default MC_ROLLRATE_P 0.15
+param set-default MC_ROLLRATE_I 0.1
+param set-default MC_ROLLRATE_D 0.01
+param set-default MC_ROLLRATE_FF 0
+param set-default MC_ROLLRATE_K 2.25
+param set-default MC_ROLLRATE_MAX 220
+param set-default MC_RR_INT_LIM 0.3
+
+# Pitch rate
+param set-default MC_PITCHRATE_P 0.15
+param set-default MC_PITCHRATE_I 0.1
+param set-default MC_PITCHRATE_D 0.01
+param set-default MC_PITCHRATE_FF 0
+param set-default MC_PITCHRATE_K 3
+param set-default MC_PITCHRATE_MAX 220
+param set-default MC_PR_INT_LIM 0.3
+
+# Yaw rate
+param set-default MC_YAWRATE_P 2
+param set-default MC_YAWRATE_I 0
+param set-default MC_YAWRATE_D 0
+param set-default MC_YAWRATE_FF 0.2
+param set-default MC_YAWRATE_K 0.6
+param set-default MC_YAWRATE_MAX 100
+param set-default MC_YR_INT_LIM 0.3
+
+
+################################################################################
+# MULTICOPTER ATTITUDE CONTROL (Outer Loop)
+################################################################################
+
+param set-default MC_ROLL_P 0.3
+param set-default MC_PITCH_P 0.3
+param set-default MC_YAW_P 0.6
+param set-default MC_YAW_WEIGHT 0.4
+
+
+################################################################################
+# POSITION & VELOCITY CONTROL
+################################################################################
+
+param set-default MPC_XY_P 0.05
+param set-default MPC_Z_P 0.25
+
+param set-default MPC_XY_VEL_P_ACC 0.45
+param set-default MPC_XY_VEL_I_ACC 0.12
+param set-default MPC_XY_VEL_D_ACC 1.1
+param set-default MPC_Z_VEL_P_ACC 2.5
+param set-default MPC_Z_VEL_I_ACC 1.7
+param set-default MPC_Z_VEL_D_ACC 0.2
+
+param set-default MPC_XY_VEL_MAX 25
+param set-default MPC_Z_VEL_MAX_UP 3
+param set-default MPC_Z_VEL_MAX_DN 1.5
+param set-default MPC_VEL_MANUAL 25
+param set-default MPC_XY_CRUISE 22
+
+param set-default MPC_XY_TRAJ_P 0.5
+# MPC_ACC_HOR is the planner's NORMAL braking accel (default 3 m/s²).
+# MPC_ACC_HOR_MAX is the panic ceiling. The planner uses ACC_HOR for
+# trajectory deceleration — without raising it, vehicle brakes too gently
+# and overshoots waypoints even with high speed limit.
+# At 22 m/s cruise with 10 m/s² brake: stop_dist = 484/20 = 24m, fits NAV_ACC_RAD=25.
+param set-default MPC_ACC_HOR 10.0
+# Speed-up tuning (2026-05-24): jerk 3.0→5.0 + ACC_HOR_MAX 5→8 to support
+# faster acceleration / braking at the new MPC_XY_VEL_MAX=25 m/s.
+param set-default MPC_JERK_AUTO 5.0
+param set-default MPC_ACC_HOR_MAX 14.0
+param set-default MPC_JERK_MAX 6.0
+param set-default MPC_XY_ERR_MAX 2
+
+
+################################################################################
+# MANUAL FLIGHT MODE
+################################################################################
+
+param set-default MPC_MAN_TILT_MAX 35
+param set-default MPC_TILTMAX_AIR 55
+param set-default MPC_TILTMAX_LND 12
+
+param set-default MPC_THR_HOVER 0.5
+param set-default MPC_THR_MIN 0.12
+param set-default MPC_THR_MAX 1
+param set-default MPC_MANTHR_MIN 0.08
+param set-default MPC_THR_XY_MARG 0.3
+
+param set-default MPC_MAN_Y_MAX 20
+param set-default MPC_MAN_Y_TAU 0.08
+param set-default MPC_YAWRAUTO_ACC 20
+param set-default MPC_YAWRAUTO_MAX 30
+
+param set-default MPC_HOLD_MAX_XY 0.8
+param set-default MPC_HOLD_MAX_Z 0.6
+
+param set-default MPC_POS_MODE 4
+param set-default MPC_ALT_MODE 0
+# MPC_USE_HTE removed — hover thrust estimator is unconditionally enabled
+param set-default MPC_VELD_LP 5
+param set-default MPC_VEL_MAN_BACK -1
+param set-default MPC_VEL_MAN_SIDE -1
+param set-default MPC_XY_VEL_ALL -10
+
+
+################################################################################
+# TAKEOFF & LANDING
+################################################################################
+
+# Faster takeoff (2026-05-24): TKO_SPEED 1.5→5 m/s and ramp 3→1 s so the
+# vehicle reaches takeoff altitude before the position controller has time
+# to drift horizontally toward the (potentially offset) TAKEOFF waypoint —
+# was the cause of "diagonal takeoff" complaint.
+# TKO_SPEED clamped to MPC_Z_VEL_MAX_UP (2026-05-27): when TKO_SPEED >
+# Z_VEL_MAX_UP the trajectory generator plans for the higher speed but the
+# velocity controller caps at the lower one. The trajectory then completes
+# (v_sp→0) before the drone reaches MIS_TAKEOFF_ALT — vehicle gets stuck
+# at an intermediate altitude (~(Z_VEL_MAX_UP/TKO_SPEED) × target).
+param set-default MPC_TKO_SPEED 3.0
+param set-default MPC_TKO_RAMP_T 0.3
+
+param set-default MPC_LAND_ALT1 10
+param set-default MPC_LAND_ALT2 5
+param set-default MPC_LAND_ALT3 1
+param set-default MPC_LAND_CRWL 0.3
+param set-default MPC_LAND_RADIUS 1000
+param set-default MPC_LAND_RC_HELP 1
+
+# Landing detector — thresholds loosened (2026-05-24).
+# Previous LNDMC_Z_VEL_MAX=0.25 was LOWER than MPC_LAND_CRWL=0.3, so vehicle's
+# own commanded descent speed at touchdown was above the "landed" threshold.
+# Combined with X-Plane landing-gear bounce, the detector never fired —
+# vehicle stuck at ground level, never officially landed, never disarmed.
+# 0.7 m/s now sits comfortably above MPC_LAND_CRWL (0.3) AND MPC_LAND_SPEED (0.7).
+param set-default LNDMC_ALT_GND 2
+param set-default LNDMC_XY_VEL_MAX 2.0
+param set-default LNDMC_Z_VEL_MAX 0.7
+param set-default LNDMC_ROT_MAX 30
+# LNDMC_TRIG_TIME removed — trigger time now derived internally from velocity thresholds
+
+
+################################################################################
+# ACRO MODE
+################################################################################
+
+param set-default MC_ACRO_P_MAX 100
+param set-default MC_ACRO_R_MAX 100
+param set-default MC_ACRO_Y_MAX 100
+param set-default MC_ACRO_EXPO 0
+param set-default MC_ACRO_EXPO_Y 0
+param set-default MC_ACRO_SUPEXPO 0
+param set-default MC_ACRO_SUPEXPOY 0
+
+
+################################################################################
+# NAVIGATION & MISSION
+################################################################################
+
+param set-default MIS_YAW_ERR 30
+param set-default MIS_YAW_TMT 5
+param set-default MIS_TAKEOFF_ALT 50
+
+# Waypoint acceptance — 25m matches planner stop distance at 22 m/s cruise
+# with MPC_ACC_HOR=10: stop_dist = v²/(2a) = 484/20 ≈ 24m, leaving 1m
+# margin. Was 20m but planner uses ACC_HOR (not ACC_HOR_MAX) for normal
+# braking, so the math has to be against ACC_HOR.
+param set-default NAV_ACC_RAD 25
+param set-default NAV_MC_ALT_RAD 3
+
+param set-default RTL_RETURN_ALT 30
+param set-default RTL_DESCEND_ALT 30
+param set-default RTL_LAND_DELAY 0
+
+
+################################################################################
+# ADVANCED FEATURES
+################################################################################
+
+param set-default CP_DIST -1
+param set-default CP_GUIDE_ANG 30
+param set-default CP_DELAY 0.4
+
+param set-default HTE_ACC_GATE 3
+# HTE_HT_ERR_INIT restored to default 1.0 (2026-05-27): 0.1 was 10× tighter
+# than default, so a biased initial estimate (from the bridge's pre-arm IMU
+# gate) stayed locked-in for the whole climb — contributed to "stuck at
+# certain altitude during takeoff".
+param set-default HTE_HT_ERR_INIT 1.0
+param set-default HTE_HT_NOISE 0.0036
+param set-default HTE_THR_RANGE 0.2
+param set-default HTE_VXY_THR 10
+param set-default HTE_VZ_THR 2
+
+param set-default GPS_UBX_DYNMODEL 6
+
+param set-default SYS_VEHICLE_RESP -0.4
+param set-default MC_BAT_SCALE_EN 0
+
+
+################################################################################
+# END OF CONFIGURATION
+################################################################################
+# Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
+################################################################################

@@ -888,6 +888,7 @@
       - [jMAVSim Simulation](sim_jmavsim/index.md)
         - [Multi-Vehicle Sim with JMAVSim](sim_jmavsim/multi_vehicle.md)
       - [JSBSim Simulation](sim_jsbsim/index.md)
+      - [X-Plane Simulation](sim_xplane/index.md)
       - [AirSim Simulation](sim_airsim/index.md)
       - [Hardware Simulation](simulation/hardware.md)
         - [HITL Simulation](simulation/hitl.md)

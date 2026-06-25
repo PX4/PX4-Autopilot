@@ -19,6 +19,10 @@ elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)"
     # Run jMAVSim
     . px4-rc.jmavsim
 
+elif [ "$PX4_SIMULATOR" = "xplane" ]; then
+    # Native X-Plane UDP backend (no plugin required)
+    . px4-rc.xplanesim
+
 else
     # Run simulator_mavlink module for interface with gazebo-classic
     . px4-rc.mavlinksim

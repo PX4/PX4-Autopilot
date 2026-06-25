@@ -1,0 +1,74 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+# Native X-Plane UDP simulator backend (no plugin required).
+#
+# X-Plane must be configured to send UDP data to 127.0.0.1:49005 OR
+# the bridge will auto-configure via DSEL/RREF requests sent to port 49000.
+#
+# Environment variables (all optional):
+#   PX4_SIM_HOST_ADDR  - X-Plane IP   (default: 127.0.0.1)
+#   XPLANE_PORT        - X-Plane port (default: 49000)
+#   XPLANE_BIND_PORT   - Local port   (default: 49005)
+
+xplane_ip="127.0.0.1"
+xplane_port=49000
+bind_port=49005
+
+if [ -n "${PX4_SIM_HOST_ADDR}" ]; then
+	xplane_ip="${PX4_SIM_HOST_ADDR}"
+fi
+
+if [ -n "${XPLANE_PORT}" ]; then
+	xplane_port="${XPLANE_PORT}"
+fi
+
+if [ -n "${XPLANE_BIND_PORT}" ]; then
+	bind_port="${XPLANE_BIND_PORT}"
+fi
+
+# Loosen EKF2 GPS-accuracy preflight check for X-Plane SITL.
+# rcS sets the SITL default to 0.5 m, but our simulator_xplane bridge
+# publishes sensor_gps.eph at the boundary (0.5), so the EKF refuses to fuse
+# GPS at startup and stays in const_pos_mode → QGC reports "No valid global
+# position estimate" until eventually settling. 1.5 m gives the EKF
+# acceptance headroom without compromising flight quality.
+param set-default EKF2_REQ_GPS_H 1.5
+
+# Accept either RC_CHANNELS_OVERRIDE (real radio via QGC pass-through) or
+# MANUAL_CONTROL (QGC virtual joystick). SITL default is mode 1 (joystick
+# only) which silently ignores radio input — surprising behavior when a
+# physical radio is connected through QGC.
+param set-default COM_RC_IN_MODE 2
+
+# Derive model name from SYS_AUTOSTART for JSON map selection.
+# PX4_SIM_MODEL can also be set explicitly (e.g. "xplane_quad").
+if [ -z "${PX4_SIM_MODEL}" ]; then
+	autostart="$(param show -q SYS_AUTOSTART)"
+	case "$autostart" in
+		5001) PX4_SIM_MODEL="xplane_cessna172" ;;
+		5002) PX4_SIM_MODEL="xplane_tb2" ;;
+		5003) PX4_SIM_MODEL="xplane_vtail" ;;
+		5010) PX4_SIM_MODEL="xplane_ehang184" ;;
+		5011) PX4_SIM_MODEL="xplane_quad" ;;
+		5020) PX4_SIM_MODEL="xplane_alia250" ;;
+		5021) PX4_SIM_MODEL="xplane_qtailsitter" ;;
+		*)    PX4_SIM_MODEL="xplane_quad" ;;
+	esac
+fi
+
+# Load model-specific default params if available.
+# The params file is a small shell script of 'param set-default' commands.
+_params_file="etc/init.d-posix/models/${PX4_SIM_MODEL}.params"
+if [ -f "${_params_file}" ]; then
+	echo "INFO  [init] Loading X-Plane model params: ${_params_file}"
+	. "${_params_file}"
+else
+	echo "WARN  [init] No params file found for model ${PX4_SIM_MODEL}, using built-in defaults"
+	param set-default EKF2_GPS_DELAY 10
+	param set-default EKF2_MULTI_IMU 1
+	param set-default SENS_IMU_MODE  1
+fi
+
+echo "INFO  [init] X-Plane native: ${xplane_ip}:${xplane_port}, bind=${bind_port}, model=${PX4_SIM_MODEL}"
+simulator_xplane start -i "${xplane_ip}" -p "${xplane_port}" -b "${bind_port}" -m "${PX4_SIM_MODEL}"

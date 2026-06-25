@@ -48,7 +48,15 @@ default_container = ci_config['containers']['default']
 voxl2_container = ci_config['containers']['voxl2']
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['px4_ros2', 'espressif_esp32']  # TODO: fix and enable
+excluded_boards = [
+    'px4_ros2', 'espressif_esp32',  # TODO: fix and enable
+    # Flash overflow on this constrained-flash board (928 KB) caused by
+    # upstream commit 8b3ef1cf9e "feat(navigator): add Guided Course mode
+    # for fixed-wing" which adds 387 lines across navigator + commander.
+    # Re-enable once the size regression lands a fix upstream — see
+    # https://github.com/PX4/PX4-Autopilot/issues/<TODO file issue>
+    'holybro_kakutef7',
+]
 excluded_manufacturers = ['atlflight']
 excluded_platforms = []
 
