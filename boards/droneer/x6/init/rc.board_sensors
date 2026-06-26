@@ -71,9 +71,9 @@ else
 	fi
 fi
 
-icm45686 -s -b 1 -R 8 start
 icm45686 -s -b 2 -R 2 start
 icm45686 -s -b 3 -R 2 start
+icm45686 -s -b 1 -R 8 start
 
 rm3100 -I -b 4 start
 
