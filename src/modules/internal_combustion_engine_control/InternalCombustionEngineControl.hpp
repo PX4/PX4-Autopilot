@@ -128,7 +128,8 @@ private:
 	float _starter_engine_control{0.f};
 	float _throttle_control{0.f};
 	float _idle_throttle{0.f};
-	float _rpm{0.f};
+	float _rpm_estimate{0.f};
+	hrt_abstime _timestamp_last_idle_throttle_update{0};
 
 	SlewRate<float> _throttle_control_slew_rate;
 	SubState _sub_state{SubState::Run};
@@ -136,7 +137,7 @@ private:
 
 	void rpmSubUpdate(const hrt_abstime now);
 	void controlEngineRunning(float throttle_in);
-	void controlEngineIdle();
+	void controlEngineIdle(const hrt_abstime now);
 	void controlEngineStop();
 	void controlEngineStartup(const hrt_abstime now);
 	void controlEngineFault();

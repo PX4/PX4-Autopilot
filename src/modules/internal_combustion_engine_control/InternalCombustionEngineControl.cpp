@@ -215,8 +215,11 @@ void InternalCombustionEngineControl::Run()
 		break;
 
 	case State::Running: {
-			if (_sub_state != SubState::Idle && (_rpm <= _param_ice_idle_rpm.get())) {
+			if (_sub_state != SubState::Idle && (_rpm_estimate <= _param_ice_idle_rpm.get())) {
 				_sub_state = SubState::Idle;
+				// Seed the PID timestamp so the first idle step gets a near-zero dt instead
+				// of a stale-timestamp spike in the integrator
+				_timestamp_last_idle_throttle_update = now;
 			}
 
 			if (_sub_state == SubState::Idle && throttle_in > _idle_throttle) {
@@ -224,7 +227,7 @@ void InternalCombustionEngineControl::Run()
 			}
 
 			if (_sub_state == SubState::Idle) {
-				controlEngineIdle();
+				controlEngineIdle(now);
 
 			} else {
 				controlEngineRunning(throttle_in);
@@ -311,26 +314,25 @@ void InternalCombustionEngineControl::rpmSubUpdate(const hrt_abstime now)
 	rpm_s rpm;
 
 	if (_rpm_sub.update(&rpm)) {
-		const float dt = math::min((now - _rpm_timestamp) * 1e-6f, 1.f);
 		_rpm_timestamp = rpm.timestamp;
-		_rpm = rpm.rpm_estimate;
+		_rpm_estimate = rpm.rpm_estimate;
 
 		_is_engine_stalling =
 			(_param_ice_stall_wrn.get() > FLT_EPSILON &&
-			 (now < _rpm_timestamp + 2_s) && _rpm < _param_ice_stall_wrn.get());
+			 (now < _rpm_timestamp + 2_s) && _rpm_estimate < _param_ice_stall_wrn.get());
 
 		_is_engine_running =
 			(_param_ice_min_run_rpm.get() > FLT_EPSILON &&
-			 (now < _rpm_timestamp + 2_s) && _rpm > _param_ice_min_run_rpm.get());
-
-		if (_state == State::Running && _sub_state == SubState::Idle) {
-			_idle_throttle = _rpm_idle_pid.update(rpm.rpm_estimate, dt, true);
-		}
+			 (now < _rpm_timestamp + 2_s) && _rpm_estimate > _param_ice_min_run_rpm.get());
 	}
 }
 
-void InternalCombustionEngineControl::controlEngineIdle()
+void InternalCombustionEngineControl::controlEngineIdle(const hrt_abstime now)
 {
+	const float dt = math::min((now - _timestamp_last_idle_throttle_update) * 1e-6f, 1.f);
+	_idle_throttle = _rpm_idle_pid.update(_rpm_estimate, dt, true);
+	_timestamp_last_idle_throttle_update = now;
+
 	_ignition_on = true;
 	_choke_control = 0.f;
 	_starter_engine_control = 0.f;
