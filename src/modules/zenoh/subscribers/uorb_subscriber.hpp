@@ -75,7 +75,7 @@ public:
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
 	void data_handler(const z_loaned_sample_t *sample)
 	{
-		char data[_uorb_meta->o_size];
+		char data[_uorb_meta->o_size + CDR_SAFETY_MARGIN];
 
 		// TODO process rmw_zenoh attachment
 		const z_loaned_bytes_t *payload = z_sample_payload(sample);
