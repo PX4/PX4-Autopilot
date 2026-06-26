@@ -32176,6 +32176,38 @@ Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 12       | 0.1       | 4.0     |      | &nbsp;    |
 
+### MC_REF_FF (`FLOAT`) {#MC_REF_FF}
+
+Attitude reference-model feed-forward gain.
+
+Scale on the reference-model rate feed-forward. 0 disables it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 1.0      | 0.01      | 0.0     |      | &nbsp;    |
+
+### MC_REF_FF_MAX (`FLOAT`) {#MC_REF_FF_MAX}
+
+Feed-forward angular-rate cap; 0 = disabled.
+
+Per-axis cap on the rate feed-forward.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s | &nbsp;    |
+
+### MC_REF_W_N (`FLOAT`) {#MC_REF_W_N}
+
+Attitude reference-model natural frequency.
+
+Bandwidth of the reference model that smooths the attitude setpoint
+and generates the rate feed-forward. Higher = less lag, more peak
+rate demand.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 1.0      | 200.0    | 1         | 50.0    | rad/s | &nbsp;    |
+
 ### MC_ROLLRATE_MAX (`FLOAT`) {#MC_ROLLRATE_MAX}
 
 Max roll rate.
