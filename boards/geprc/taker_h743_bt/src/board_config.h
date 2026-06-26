@@ -79,7 +79,7 @@
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 #define PX4_ADC_GPIO  \
-	/* PC3  */  GPIO_ADC123_INP13, \
+	/* PC3  */  GPIO_ADC12_INP13, \
 	/* PC2  */  GPIO_ADC123_INP12
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
