@@ -120,15 +120,23 @@ fi
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
+# Compatible with BMP388/BMP581 barometers.
 # Possible internal Baro
 
 # Disable startup of internal baros if param is set to false
 if param compare SENS_INT_BARO_EN 1
 then
-	bmp388 -I -b 3 -a 0x77 start
+	if ! bmp388 -I -b 3 -a 0x77 -q start
+	then
+		bmp581 -I -b 3 -a 0x47 start
+	fi
 fi
 
-bmp388 -X -b 2 start
+# External baro
+if ! bmp388 -X -b 2 -q start
+then
+	bmp581 -X -b 2 -a 0x46 start
+fi
 
 unset INA_CONFIGURED
 unset HAVE_PM2
