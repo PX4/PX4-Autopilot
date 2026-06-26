@@ -29809,6 +29809,46 @@ Enable internal combustion engine.
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### ICE_IDLE_RPM (`FLOAT`) {#ICE_IDLE_RPM}
+
+Idle RPM setpoint for the engine.
+
+Applies a controller to prevent the RPM do drop below this value.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10000    | 1         | 0.0     | rpm  | &nbsp;    |
+
+### ICE_IDLE_RPM_I (`FLOAT`) {#ICE_IDLE_RPM_I}
+
+Integral gain for idle RPM control.
+
+Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_RPM_P (`FLOAT`) {#ICE_IDLE_RPM_P}
+
+Proportional gain for idle RPM control.
+
+Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_THR_FF (`FLOAT`) {#ICE_IDLE_THR_FF}
+
+Idle RPM throttle for feed-forward.
+
+Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        | 0.01      | 0.0     |      | &nbsp;    |
+
 ### ICE_IGN_DELAY (`FLOAT`) {#ICE_IGN_DELAY}
 
 Cold-start delay after ignition before engaging starter.
