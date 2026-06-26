@@ -156,6 +156,7 @@ private:
 	static constexpr size_t ASDT1_BINZ_FRAME_SIZE{1440};
 	static constexpr size_t ASDT1_BINZ_SHORT_FRAME_SIZE{720};
 	static constexpr size_t ASDT1_FRAME_BUFFER_SIZE{ASDT1_BINZ_FRAME_SIZE};
+	static constexpr uint16_t MIN_VALID_DISTANCE_CM{30};
 	static constexpr int ASDT1_COLS{24};
 	static constexpr int MIN_USED_ROW{8};
 	static constexpr int MAX_USED_ROW{15};
@@ -214,6 +215,7 @@ private:
 	uint64_t _frames_pub{0};
 	uint64_t _parser_resets{0};
 	uint64_t _end_marker_failures{0};
+	uint64_t _below_min_distance_samples{0};
 	size_t _last_frame_processed_len{0};
 	size_t _last_sample_count{0};
 	uint8_t _last_valid_bins{0};

@@ -164,7 +164,7 @@ TEST_F(ASDT1Test, ProcessFrameFillsColumnBin)
 	EXPECT_EQ(driver._obstacle_distance.distances[bin], 100);
 }
 
-TEST_F(ASDT1Test, PreservesBelowMinimumDistance)
+TEST_F(ASDT1Test, FiltersBelowMinimumDistance)
 {
 	AS_DT1 driver("/dev/ttyS0");
 	FullFrame frame{};
@@ -178,7 +178,24 @@ TEST_F(ASDT1Test, PreservesBelowMinimumDistance)
 	packZ(frame, sampleForLayout(row + 3, col), 100.0f);
 
 	ASSERT_EQ(driver.process_frame(frame.data(), frame.size()), PX4_OK);
-	EXPECT_EQ(driver._obstacle_distance.distances[bin], 10);
+	EXPECT_EQ(driver._obstacle_distance.distances[bin], UINT16_MAX);
+	EXPECT_EQ(driver._below_min_distance_samples, 4);
+}
+
+TEST_F(ASDT1Test, BelowMinimumDistanceDoesNotWinBin)
+{
+	AS_DT1 driver("/dev/ttyS0");
+	FullFrame frame{};
+	const int row = (AS_DT1::MIN_USED_ROW + AS_DT1::MAX_USED_ROW) / 2;
+	const int col = AS_DT1::ASDT1_COLS / 2;
+	const int bin = AS_DT1::col_to_obstacle_bin(col);
+
+	packZ(frame, sampleForLayout(row, col), 100.0f);
+	packZ(frame, sampleForLayout(row + 1, col), 1000.0f);
+
+	ASSERT_EQ(driver.process_frame(frame.data(), frame.size()), PX4_OK);
+	EXPECT_EQ(driver._obstacle_distance.distances[bin], 100);
+	EXPECT_EQ(driver._below_min_distance_samples, 1);
 }
 
 TEST_F(ASDT1Test, BeyondMaximumDistanceUsesMaxPlusOne)

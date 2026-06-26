@@ -64,7 +64,7 @@ AS_DT1::AS_DT1(const char *device, bool one_shot, bool flshow_only) :
 	_obstacle_distance.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_distance.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
 	_obstacle_distance.increment = static_cast<uint8_t>(OBSTACLE_INCREMENT_DEG);
-	_obstacle_distance.min_distance = 30;
+	_obstacle_distance.min_distance = MIN_VALID_DISTANCE_CM;
 
 	(void)param_get(param_find("SENS_ASDT1_MODE"), &_mode);
 	_obstacle_distance.max_distance = max_distance_for_mode(_mode);
@@ -193,6 +193,9 @@ void AS_DT1::print_info()
 		 static_cast<unsigned long long>(_frames_pub),
 		 static_cast<unsigned long long>(_parser_resets),
 		 static_cast<unsigned long long>(_end_marker_failures));
+	PX4_INFO("filter: below %u cm samples %llu",
+		 static_cast<unsigned>(MIN_VALID_DISTANCE_CM),
+		 static_cast<unsigned long long>(_below_min_distance_samples));
 	PX4_INFO("last processed: frame %u bytes, samples %u, valid bins %u, closest %u cm",
 		 static_cast<unsigned>(_last_frame_processed_len),
 		 static_cast<unsigned>(_last_sample_count),
@@ -1379,6 +1382,12 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 		}
 
 		const uint16_t distance_cm = z_raw_to_distance_cm(z_raw);
+
+		if (distance_cm < MIN_VALID_DISTANCE_CM) {
+			_below_min_distance_samples++;
+			continue;
+		}
+
 		const uint16_t obstacle_distance_cm = (distance_cm > _obstacle_distance.max_distance) ?
 						     _obstacle_distance.max_distance + 1 : distance_cm;
 
