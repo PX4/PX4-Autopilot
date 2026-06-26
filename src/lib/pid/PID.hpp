@@ -46,6 +46,7 @@ public:
 	void setIntegralLimit(const float lower_limit, const float upper_limit);
 	void setGains(const float P, const float I, const float D);
 	void setSetpoint(const float setpoint) { _setpoint = setpoint; }
+	void setFeedForwardGain(const float feedforward_gain) { _gain_feedforward = feedforward_gain; }
 	float update(const float feedback, const float dt, const bool update_integral = true);
 	float getIntegral() { return _integral; }
 	void resetIntegral() { _integral = 0.f; }
@@ -59,6 +60,7 @@ private:
 	float _last_feedback{NAN};
 
 	// Gains, Limits
+	float _gain_feedforward{0.f};
 	float _gain_proportional{0.f};
 	float _gain_integral{0.f};
 	float _gain_derivative{0.f};

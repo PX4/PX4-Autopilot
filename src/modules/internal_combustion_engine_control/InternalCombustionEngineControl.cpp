@@ -98,8 +98,9 @@ void InternalCombustionEngineControl::Run()
 		// Set up idle PID controller
 		_rpm_idle_pid.setSetpoint(_param_ice_idle_rpm.get());
 		_rpm_idle_pid.setGains(_param_ice_idle_rpm_p.get() * 1e-3f, _param_ice_ign_rpm_i.get() * 1e-3f, 0.f);
-		_rpm_idle_pid.setIntegralLimit(-_param_ice_idle_thr.get(), 1.f - _param_ice_idle_thr.get());
-		_rpm_idle_pid.setOutputLimit(-_param_ice_idle_thr.get(), 1.f - _param_ice_idle_thr.get());
+		_rpm_idle_pid.setFeedForwardGain(1.f);
+		_rpm_idle_pid.setIntegralLimit(-1.f, 1.f);
+		_rpm_idle_pid.setOutputLimit(0.f, 1.f);
 	}
 
 
@@ -323,8 +324,7 @@ void InternalCombustionEngineControl::rpmSubUpdate(const hrt_abstime now)
 			 (now < _rpm_timestamp + 2_s) && _rpm > _param_ice_min_run_rpm.get());
 
 		if (_state == State::Running && _sub_state == SubState::Idle) {
-			_idle_throttle = _param_ice_idle_thr.get() +
-					 _rpm_idle_pid.update(rpm.rpm_estimate, dt, true);
+			_idle_throttle = _rpm_idle_pid.update(rpm.rpm_estimate, dt, true);
 		}
 	}
 }

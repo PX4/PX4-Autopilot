@@ -56,7 +56,9 @@ void PID::setGains(const float P, const float I, const float D)
 float PID::update(const float feedback, const float dt, const bool update_integral)
 {
 	const float error = _setpoint - feedback;
-	const float output = (_gain_proportional * error) + _integral - (_gain_derivative * updateDerivative(feedback, dt));
+	const float derivative = updateDerivative(feedback, dt);
+	const float output = (_gain_feedforward * _setpoint) + (_gain_proportional * error) + _integral -
+			     (_gain_derivative * derivative);
 
 	if (update_integral) {
 		updateIntegral(error, dt);
