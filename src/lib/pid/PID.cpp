@@ -59,17 +59,24 @@ float PID::update(const float feedback, const float dt, const bool update_integr
 	const float derivative = updateDerivative(feedback, dt);
 	const float output = (_gain_feedforward * _setpoint) + (_gain_proportional * error) + _integral -
 			     (_gain_derivative * derivative);
+	const float output_constrained = math::constrain(output, _lower_limit_output, _upper_limit_output);
 
 	if (update_integral) {
-		updateIntegral(error, dt);
+		updateIntegral(error, output - output_constrained, dt);
 	}
 
 	_last_feedback = feedback;
-	return math::constrain(output, _lower_limit_output, _upper_limit_output);
+	return output_constrained;
 }
 
-void PID::updateIntegral(float error, const float dt)
+void PID::updateIntegral(float error, const float saturation, const float dt)
 {
+	// Anti-windup: stop integrating in the direction that drives the output
+	// further into saturation (conditional integration)
+	if ((saturation > FLT_EPSILON && error > 0.f) || (saturation < -FLT_EPSILON && error < 0.f)) {
+		error = 0.f;
+	}
+
 	const float integral_new = _integral + _gain_integral * error * dt;
 
 	if (std::isfinite(integral_new)) {
