@@ -135,9 +135,7 @@ parameters:
         description:
           short: Idle RPM setpoint for the engine.
           long: |
-              Idle RPM setpoint for the engine. Applies a PI-Controller to calculate the appropriate throttle input to maintain the idle rpm.
-
-              throttle = max(throttle_cmd, idle_throttle)
+              Idle RPM setpoint for the engine. Applies a controller to prevent the RPM do drop below this value.
         type: float
         unit: rpm
         min: 0
@@ -148,11 +146,9 @@ parameters:
 
       ICE_IDLE_RPM_P:
         description:
-          short: Proportional gain for idle rpm control
+          short: Proportional gain for idle RPM control
           long: |
-            Ratio between rpm error devided by 1000 to how much normalized output gets added to correct for it.
-
-            idle_throttle = ICE_IDLE_THR + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
+            Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
         type: float
         decimal: 3
         increment: 0.1
@@ -160,12 +156,11 @@ parameters:
         max: 10
         default: 0.0
 
-
       ICE_IDLE_RPM_I:
         description:
-          short: Integral gain for idle rpm control
+          short: Integral gain for idle RPM control
           long: |
-            idle_throttle = ICE_IDLE_THR + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
+            Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
         type: float
         decimal: 3
         increment: 0.1
@@ -177,11 +172,9 @@ parameters:
         description:
           short: Idle RPM throttle
           long: |
-            Should match approximately the throttle required to maintain the ICE_IDLE_RPM. The idle control throttle output is computed as follows:
-
-            idle_throttle = ICE_IDLE_THR + ICE_IDLE_RPM_P * (rpm_setpoint - rpm_measurement) / 1000 + ICE_IDLE_RPM_I * (rpm_error integrated) / 1000
+            Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
         type: float
-        decimal: 3
+        decimal: 2
         increment: 0.01
         min: 0
         max: 1
