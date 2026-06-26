@@ -176,7 +176,7 @@ private:
 
 	volatile bool _should_exit{false};
 	struct {
-		param_t imu_id;
+		param_t sens_id;
 		param_t temp;
 		param_t temp_p;
 		param_t temp_i;
@@ -187,7 +187,7 @@ private:
 	} _param_handles;
 
 	struct {
-		int32_t imu_id;   // HEATER<i>_IMU_ID: <0 disable, 0 auto, >0 match device_id
+		int32_t sens_id;  // HEATER<i>_SENS_ID: <0 disable, 0 auto, >0 match device_id
 		float   temp;     // target temperature
 		float   temp_p;
 		float   temp_i;
