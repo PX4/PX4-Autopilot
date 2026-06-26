@@ -101,7 +101,7 @@ void InternalCombustionEngineControl::Run()
 		_rpm_idle_pid.setGains(_param_ice_idle_rpm_p.get() * 1e-3f, _param_ice_idle_rpm_i.get() * 1e-3f, 0.f);
 		// Feed-forward maps the RPM setpoint to the base idle throttle, so FF = idle_thr at the setpoint
 		_rpm_idle_pid.setFeedForwardGain(idle_rpm > FLT_EPSILON ? _param_ice_idle_thr_ff.get() / idle_rpm : 0.f);
-		_rpm_idle_pid.setIntegralLimit(-1.f, 1.f);
+		_rpm_idle_pid.setIntegralLimit(1.f);
 		_rpm_idle_pid.setOutputLimit(0.f, 1.f);
 	}
 
@@ -217,7 +217,13 @@ void InternalCombustionEngineControl::Run()
 		break;
 
 	case State::Running: {
-			if (_sub_state != SubState::Idle && (_rpm_estimate <= _param_ice_idle_rpm.get())) {
+
+			// enter idle state if the RPM governor is enabled and either the throttle is zero or the RPM is below the idle setpoint
+			const bool rpm_governor_enabled = _param_ice_idle_rpm.get() > FLT_EPSILON;
+			const bool zero_throttle = throttle_in < .02f || !PX4_ISFINITE(throttle_in);
+			const bool rpm_below_min = _rpm_estimate < _param_ice_idle_rpm.get();
+
+			if (_sub_state != SubState::Idle && rpm_governor_enabled && (zero_throttle || rpm_below_min)) {
 				_sub_state = SubState::Idle;
 				// Seed the PID timestamp so the first idle step gets a near-zero dt instead
 				// of a stale-timestamp spike in the integrator
