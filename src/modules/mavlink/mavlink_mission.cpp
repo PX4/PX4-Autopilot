@@ -42,7 +42,7 @@
 
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
-#include "mavlink_command_params.h"
+#include "mavlink_command_params.hpp"
 
 #include <lib/geo/geo.h>
 #include <systemlib/err.h>
@@ -1466,7 +1466,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
 
-			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)mavlink_mission_item->command); }
+			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)mavlink_mission_item->command); }
 
 			if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)mavlink_mission_item->command, zero_mask); }
 		}
@@ -1627,7 +1627,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
 
-			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)mavlink_mission_item->command); }
+			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)mavlink_mission_item->command); }
 
 			if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)mavlink_mission_item->command, zero_mask); }
 		}

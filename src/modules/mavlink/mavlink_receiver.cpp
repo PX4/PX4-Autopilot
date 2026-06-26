@@ -58,7 +58,7 @@
 #endif
 
 #include "mavlink_command_sender.h"
-#include "mavlink_command_params.h"
+#include "mavlink_command_params.hpp"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
@@ -685,7 +685,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		return;
 	}
 
-	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.h", (unsigned)cmd_mavlink.command); }
+	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)cmd_mavlink.command); }
 
 	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)cmd_mavlink.command, zero_mask); }
 

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_command_params.h
+ * @file mavlink_command_params.hpp
  *
  * Per-MAV_CMD bitmask table declaring which params (1–7) PX4 supports.
  * Params not in the mask must be NaN (or 0.0, the conventional GCS default)
