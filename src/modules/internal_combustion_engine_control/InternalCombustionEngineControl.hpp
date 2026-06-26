@@ -169,10 +169,10 @@ private:
 		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,
 		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew,
 		(ParamFloat<px4::params::ICE_IGN_DELAY>) _param_ice_ign_delay,
-		(ParamFloat<px4::params::ICE_IDLE_THR>) _param_ice_idle_thr,
+		(ParamFloat<px4::params::ICE_IDLE_THR_FF>) _param_ice_idle_thr_ff,
 		(ParamFloat<px4::params::ICE_IDLE_RPM>) _param_ice_idle_rpm,
 		(ParamFloat<px4::params::ICE_IDLE_RPM_P>) _param_ice_idle_rpm_p,
-		(ParamFloat<px4::params::ICE_IDLE_RPM_I>) _param_ice_ign_rpm_i
+		(ParamFloat<px4::params::ICE_IDLE_RPM_I>) _param_ice_idle_rpm_i
 	)
 };
 

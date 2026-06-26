@@ -168,9 +168,9 @@ parameters:
         max: 10
         default: 0.0
 
-      ICE_IDLE_THR:
+      ICE_IDLE_THR_FF:
         description:
-          short: Idle RPM throttle
+          short: Idle RPM throttle for feed-forward
           long: |
             Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
         type: float

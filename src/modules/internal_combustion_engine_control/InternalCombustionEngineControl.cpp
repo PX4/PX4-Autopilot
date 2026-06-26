@@ -96,9 +96,11 @@ void InternalCombustionEngineControl::Run()
 		// Set up slew rate
 		_throttle_control_slew_rate.setSlewRate(_param_ice_thr_slew.get());
 		// Set up idle PID controller
-		_rpm_idle_pid.setSetpoint(_param_ice_idle_rpm.get());
-		_rpm_idle_pid.setGains(_param_ice_idle_rpm_p.get() * 1e-3f, _param_ice_ign_rpm_i.get() * 1e-3f, 0.f);
-		_rpm_idle_pid.setFeedForwardGain(1.f);
+		const float idle_rpm = _param_ice_idle_rpm.get();
+		_rpm_idle_pid.setSetpoint(idle_rpm);
+		_rpm_idle_pid.setGains(_param_ice_idle_rpm_p.get() * 1e-3f, _param_ice_idle_rpm_i.get() * 1e-3f, 0.f);
+		// Feed-forward maps the RPM setpoint to the base idle throttle, so FF = idle_thr at the setpoint
+		_rpm_idle_pid.setFeedForwardGain(idle_rpm > FLT_EPSILON ? _param_ice_idle_thr_ff.get() / idle_rpm : 0.f);
 		_rpm_idle_pid.setIntegralLimit(-1.f, 1.f);
 		_rpm_idle_pid.setOutputLimit(0.f, 1.f);
 	}
