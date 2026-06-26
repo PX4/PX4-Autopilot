@@ -311,7 +311,7 @@ bool HomePosition::isGpsPositionFusionEnabled()
 	// Raw GNSS home position uses both horizontal position and altitude.
 	int32_t ekf2_gps_ctrl = 0;
 	param_get(_param_ekf2_gps_ctrl_handle, &ekf2_gps_ctrl);
-	return (ekf2_gps_ctrl & 0x3) == 0x3;
+	return (ekf2_gps_ctrl & kGpsCtrlHorizontalAndAltitude) == kGpsCtrlHorizontalAndAltitude;
 }
 
 void HomePosition::updateHomePositionYaw(float yaw)
