@@ -56,17 +56,6 @@ parameters:
         increment: 1
         default: 2000
 
-      ICE_STALL_WRN:
-        description:
-          short: RPM threshold to warn the operator about engine stalling
-        type: float
-        unit: rpm
-        min: 0
-        max: 10000
-        decimal: 0
-        increment: 1
-        default: 0
-
       ICE_STRT_ATTEMPT:
         description:
           short: Number attempts for starting the engine

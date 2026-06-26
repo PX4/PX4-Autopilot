@@ -121,8 +121,6 @@ private:
 
 	bool _ignition_on{false};
 	bool _is_engine_running{false};
-	bool _is_engine_stalling{false};
-	bool _was_engine_stalling{false};
 	bool _idle_control_active{false};
 	float _choke_control{1.f};
 	float _starter_engine_control{0.f};
@@ -162,7 +160,6 @@ private:
 		(ParamFloat<px4::params::ICE_CHOKE_ST_DUR>) _param_ice_choke_st_dur,
 		(ParamFloat<px4::params::ICE_STRT_DUR>) _param_ice_strt_dur,
 		(ParamFloat<px4::params::ICE_MIN_RUN_RPM>) _param_ice_min_run_rpm,
-		(ParamFloat<px4::params::ICE_STALL_WRN>) _param_ice_stall_wrn,
 		(ParamInt<px4::params::ICE_STRT_ATTEMPT>) _param_ice_strt_attempts,
 		(ParamInt<px4::params::ICE_RUN_FAULT_D>) _param_ice_running_fault_detection,
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
