@@ -21,30 +21,50 @@ set -e
 
 target="${1:-}"
 
-is_nuttx_target() {
-	local t="$1"
+# Resolve a make target to its .px4board file the way the build itself does
+# (cmake/px4_config.cmake): every boards/<vendor>/<model>/<label>.px4board
+# maps to the target name <vendor>_<model>_<label> with path separators
+# replaced by '_', and the '_default' label may be omitted on the command
+# line. We enumerate the board files and match the generated name instead of
+# splitting the target on '_', because vendor and model names themselves
+# contain underscores (e.g. boards/saam/saampixv1_1).
+px4board_for_target() {
+	local t="$1" f name
 	[[ -z "$t" ]] && return 1
+	while IFS= read -r f; do
+		name="${f#boards/}"
+		name="${name%.px4board}"
+		name="${name//\//_}"
+		if [[ "$name" == "$t" || "$name" == "${t}_default" ]]; then
+			printf '%s\n' "$f"
+			return 0
+		fi
+	done < <(find boards -mindepth 3 -maxdepth 3 -name '*.px4board')
+	return 1
+}
 
-	# PX4 accepts two target forms:
-	#   <vendor>_<board>           → boards/<vendor>/<board>/
-	#   <vendor>_<board>_<label>   → boards/<vendor>/<board>/  (with <label>.px4board)
-	# Board names may contain '_' (e.g. saam/saampixv1_1), so try the
-	# 3-segment form first and fall back to the 2-segment shorthand.
-	# Toolchain is only declared in default.px4board; variant labels
-	# (rover, mavlink-dev, ...) inherit it, so we always read default.
-	local vendor="${t%%_*}"
-	local rest="${t#*_}"
-	local board_dir=""
+read_toolchain() {
+	sed -n 's/^CONFIG_BOARD_TOOLCHAIN="\(.*\)"/\1/p' "$1"
+}
 
-	if [[ "$rest" == *_* ]]; then
-		local board="${rest%_*}"
-		[[ -d "boards/${vendor}/${board}" ]] && board_dir="boards/${vendor}/${board}"
+# A target needs the ARM cross compiler if its resolved .px4board selects the
+# arm-none-eabi toolchain. This mirrors how cmake/kconfig.cmake derives the
+# toolchain: it merges default.px4board + <label>.px4board and reads
+# CONFIG_BOARD_TOOLCHAIN (-> CMAKE_TOOLCHAIN_FILE Toolchain-<name>). Some
+# variant labels (rover, mavlink-dev, ...) don't declare a toolchain and
+# inherit it from default.px4board, so fall back to that when the variant
+# file is silent.
+is_nuttx_target() {
+	local file toolchain default_file
+	file="$(px4board_for_target "$1")" || return 1
+
+	toolchain="$(read_toolchain "$file")"
+	if [[ -z "$toolchain" ]]; then
+		default_file="${file%/*}/default.px4board"
+		[[ -f "$default_file" ]] && toolchain="$(read_toolchain "$default_file")"
 	fi
-	[[ -z "$board_dir" && -d "boards/${vendor}/${rest}" ]] && board_dir="boards/${vendor}/${rest}"
-	[[ -z "$board_dir" ]] && return 1
 
-	local file="${board_dir}/default.px4board"
-	[[ -f "$file" ]] && grep -q 'CONFIG_BOARD_TOOLCHAIN="arm-none-eabi"' "$file"
+	[[ "$toolchain" == "arm-none-eabi" ]]
 }
 
 if is_nuttx_target "$target"; then

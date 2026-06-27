@@ -16,6 +16,7 @@ make = ">=4.4.1,<5"
 ninja = ">=1.13.2,<2"
 pkg-config = ">=0.29.2,<0.30"
 pkgconfig = ">=1.6.0,<2"
+pyserial = ">=3.5,<4"
 
 # VCS available on every supported host
 curl = ">=8.20.0,<9"
@@ -63,6 +64,7 @@ wheel = ">=0.47.0,<0.48"
 [pypi-dependencies]
 kconfiglib = ">=14.1.0, <15"
 nunavut = ">=2.3.1, <3"
+pymavlink = ">=2.4.49, <3"
 pyros-genmsg = ">=0.5.8, <0.6"
 
 # ============================================================================
@@ -126,7 +128,7 @@ platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64"]
 scripts = ["Tools/setup/nuttx-activate.sh"]
 
 [feature.nuttx.tasks]
-install-arm-gcc = "Tools/setup/install-arm-gcc.sh 13.3.rel1"
+install-arm-gcc = "Tools/setup/install-arm-gcc.sh"
 
 # jMAVSim (Java-based simulator)
 [feature.jmavsim]
@@ -136,12 +138,9 @@ platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64"]
 ant = ">=1.10.16,<2"
 
 # ROS 2 Kilted integration. Pulled from the RoboStack channel.
-# Restricted to linux-aarch64 and osx-arm64: RoboStack's current linux-64
-# packages reference ros2-distro-mutex 0.10.* (not yet published), which
-# breaks the rmw-zenoh + gz-sim-vendor combination we depend on.
 [feature.ros2]
 channels = ["https://prefix.dev/robostack-kilted"]
-platforms = ["linux-aarch64", "osx-arm64"]
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64"]
 
 [feature.ros2.dependencies]
 colcon-common-extensions = ">=0.3.0,<0.4"

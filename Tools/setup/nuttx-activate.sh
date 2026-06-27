@@ -4,14 +4,14 @@
 ## embedded toolchain is installed in `.toolchains/` and prepends it to
 ## PATH. Sourced (not executed) by `pixi shell` / `pixi run`.
 
-NUTTX_ARM_GCC_VERSION="13.3.rel1"
-
 if [[ -z "${PIXI_PROJECT_ROOT:-}" ]]; then
 	return 0 2>/dev/null || exit 0
 fi
 
+# The toolchain version is defined once, in install-arm-gcc.sh, so the
+# activation hook and the `install-arm-gcc` pixi task can't drift apart.
 if [[ ! -x "$PIXI_PROJECT_ROOT/.toolchains/arm-gnu-toolchain/bin/arm-none-eabi-gcc" ]]; then
-	"$PIXI_PROJECT_ROOT/Tools/setup/install-arm-gcc.sh" "$NUTTX_ARM_GCC_VERSION"
+	"$PIXI_PROJECT_ROOT/Tools/setup/install-arm-gcc.sh"
 fi
 
 export PATH="$PIXI_PROJECT_ROOT/.toolchains/arm-gnu-toolchain/bin:$PATH"

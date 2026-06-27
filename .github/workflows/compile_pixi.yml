@@ -31,14 +31,22 @@ jobs:
       uses: ./.github/actions/setup-ccache
       id: ccache
       with:
-        cache-key-prefix: ccache-pixi
+        cache-key-prefix: ccache-pixi-${{ matrix.os }}
         max-size: 200M
 
     - name: Install Pixi
       uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
       with:
         pixi-version: v0.67.2
-        cache: false
+        # Only the `default` environment is exercised by this workflow; don't
+        # solve/cache the much larger ros2/full environments.
+        environments: default
+        cache: true
+        # The cache key already includes the runner OS/arch and the pixi.lock
+        # hash. Restore on every run, but only write from main pushes so PRs
+        # don't each evict other workflows' caches against the 10 GiB/repo
+        # budget.
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
     - name: Cache - Stats before build and reset
       run: |

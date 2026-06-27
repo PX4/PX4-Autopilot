@@ -84,7 +84,7 @@ fi
 
 if [[ "$need_download" == "true" ]]; then
 	echo "[install-arm-gcc] Downloading ARM GNU toolchain ${VERSION} for ${variant}..." >&2
-	curl -fL --progress-bar -o "$tarball" "$url"
+	curl -fL --retry 3 --retry-delay 5 --retry-connrefused --progress-bar -o "$tarball" "$url"
 fi
 
 actual="$(verify_sha256 "$tarball")"
