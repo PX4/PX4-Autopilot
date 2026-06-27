@@ -235,6 +235,23 @@ static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
 	return -1;
 }
 
+// Shared by check_params_for_vehicle and check_params_int_for_vehicle so the scan
+// logic exists once instead of being duplicated per param-count variant.
+static int _scan_params(uint8_t mask, const float *ps, int count, uint8_t *zero_sentinel_mask)
+{
+	for (int i = 0; i < count; ++i) {
+		if (!((mask >> i) & 1u)) {
+			if (!param_is_unset(ps[i])) { return i + 1; }
+
+			if (zero_sentinel_mask && param_is_zero(ps[i])) {
+				*zero_sentinel_mask |= (uint8_t)(1u << i);
+			}
+		}
+	}
+
+	return 0;
+}
+
 /**
  * Check params 1–7 of an incoming mission item or command against the base table,
  * then OR-extend the allowed mask with any matching VehicleParamOverrides entry.
@@ -253,20 +270,8 @@ static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
 
 	if (mask_result < 0) { return -1; }
 
-	const uint8_t mask = (uint8_t)mask_result;
 	const float ps[7] = {p1, p2, p3, p4, p5, p6, p7};
-
-	for (int i = 0; i < 7; ++i) {
-		if (!((mask >> i) & 1u)) {
-			if (!param_is_unset(ps[i])) { return i + 1; }
-
-			if (zero_sentinel_mask && param_is_zero(ps[i])) {
-				*zero_sentinel_mask |= (uint8_t)(1u << i);
-			}
-		}
-	}
-
-	return 0;
+	return _scan_params((uint8_t)mask_result, ps, 7, zero_sentinel_mask);
 }
 
 /**
@@ -285,15 +290,9 @@ static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
 	const uint8_t mask = (uint8_t)mask_result;
 	const float ps14[4] = {p1, p2, p3, p4};
 
-	for (int i = 0; i < 4; ++i) {
-		if (!((mask >> i) & 1u)) {
-			if (!param_is_unset(ps14[i])) { return i + 1; }
+	const int bad = _scan_params(mask, ps14, 4, zero_sentinel_mask);
 
-			if (zero_sentinel_mask && param_is_zero(ps14[i])) {
-				*zero_sentinel_mask |= (uint8_t)(1u << i);
-			}
-		}
-	}
+	if (bad != 0) { return bad; }
 
 	if (!((mask >> 4) & 1u) && !int_param_is_unset(p5_int)) { return 5; }
 
