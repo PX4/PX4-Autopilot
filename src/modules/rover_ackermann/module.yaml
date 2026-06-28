@@ -41,11 +41,9 @@ parameters:
       RA_ACC_RAD_MAX:
         description:
           short: Maximum acceptance radius for the waypoints
-          long: |
-            The controller scales the acceptance radius based on the angle between
-            the previous, current and next waypoint.
-            Higher value -> smoother trajectory at the cost of how close the rover gets
-            to the waypoint (Set to -1 to disable corner cutting).
+          long: |-
+            Radius scaled by angle between prev/current/next waypoints for corner cutting.
+            Higher = smoother trajectory but farther from waypoint. -1 disables.
         type: float
         unit: m
         min: -1
@@ -57,10 +55,7 @@ parameters:
       RA_ACC_RAD_GAIN:
         description:
           short: Tuning parameter for corner cutting
-          long: |
-            The geometric ideal acceptance radius is multiplied by this factor
-            to account for kinematic and dynamic effects.
-            Higher value -> The rover starts to cut the corner earlier.
+          long: Multiplies the ideal acceptance radius for kinematic/dynamic effects. Higher = rover cuts corners earlier.
         type: float
         min: 1
         max: 100

@@ -6,10 +6,9 @@ parameters:
       description:
         short: Vertical thrust required to hover
         long: |-
-          Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
-          Used for initialization of the hover thrust estimator.
-          The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
-          The hover thrust is important for land detection to work correctly.
+          Maps to center stick in Stabilized mode (see MPC_THR_CURVE).
+          Initializes hover thrust estimator; estimated value sets zero-accel baseline in altitude control.
+          Important for land detection.
       type: float
       default: 0.5
       unit: norm
@@ -20,9 +19,7 @@ parameters:
     MPC_THR_XY_MARG:
       description:
         short: Horizontal thrust margin
-        long: |-
-          Margin that is kept for horizontal control when higher priority vertical thrust is saturated.
-          To avoid completely starving horizontal control with high vertical error.
+        long: Reserve for horizontal control when vertical thrust is saturated, preventing total horizontal authority loss.
       type: float
       default: 0.3
       unit: norm
@@ -44,9 +41,7 @@ parameters:
     MPC_VEL_NF_FRQ:
       description:
         short: Velocity notch filter frequency
-        long: |-
-          The center frequency for the 2nd order notch filter on the velocity.
-          A value of 0 disables the filter.
+        long: "Center frequency of 2nd-order velocity notch filter. 0: disable."
       type: float
       default: 0.0
       unit: Hz

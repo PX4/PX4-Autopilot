@@ -11,7 +11,7 @@ parameters:
     SENS_MB12_0_ROT:
       description:
         short: MaxBotix MB12XX Sensor 0 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -29,7 +29,7 @@ parameters:
     SENS_MB12_1_ROT:
       description:
         short: MaxBotix MB12XX Sensor 1 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -47,7 +47,7 @@ parameters:
     SENS_MB12_2_ROT:
       description:
         short: MaxBotix MB12XX Sensor 2 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -65,7 +65,7 @@ parameters:
     SENS_MB12_3_ROT:
       description:
         short: MaxBotix MB12XX Sensor 3 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -83,7 +83,7 @@ parameters:
     SENS_MB12_4_ROT:
       description:
         short: MaxBotix MB12XX Sensor 4 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -101,7 +101,7 @@ parameters:
     SENS_MB12_5_ROT:
       description:
         short: MaxBotix MB12XX Sensor 5 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -119,7 +119,7 @@ parameters:
     SENS_MB12_6_ROT:
       description:
         short: MaxBotix MB12XX Sensor 6 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -137,7 +137,7 @@ parameters:
     SENS_MB12_7_ROT:
       description:
         short: MaxBotix MB12XX Sensor 7 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -155,7 +155,7 @@ parameters:
     SENS_MB12_8_ROT:
       description:
         short: MaxBotix MB12XX Sensor 8 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -173,7 +173,7 @@ parameters:
     SENS_MB12_9_ROT:
       description:
         short: MaxBotix MB12XX Sensor 9 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -191,7 +191,7 @@ parameters:
     SENS_MB12_10_ROT:
       description:
         short: MaxBotix MB12XX Sensor 10 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -209,7 +209,7 @@ parameters:
     SENS_MB12_11_ROT:
       description:
         short: MaxBotix MB12XX Sensor 12 Rotation
-        long: This parameter defines the rotation of the sensor relative to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation

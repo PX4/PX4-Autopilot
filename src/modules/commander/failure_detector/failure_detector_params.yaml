@@ -6,13 +6,10 @@ parameters:
       description:
         short: FailureDetector Max Roll
         long: |-
-          Maximum roll angle before FailureDetector triggers the attitude_failure flag.
-          The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-          which sets outputs to their failsafe values.
-          On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-          which disarms motors but does not set outputs to failsafe values.
-
-          Setting this parameter to 0 disables the check
+          Triggers attitude_failure flag when exceeded.
+          Flag: flight termination (CBRK_FLIGHTTERM=0), setting outputs to failsafe values.
+          On takeoff: lockdown (ignores CBRK_FLIGHTTERM), disarms motors without failsafe outputs.
+          0 disables.
       type: int32
       default: 60
       min: 0
@@ -22,13 +19,10 @@ parameters:
       description:
         short: FailureDetector Max Pitch
         long: |-
-          Maximum pitch angle before FailureDetector triggers the attitude_failure flag.
-          The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-          which sets outputs to their failsafe values.
-          On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-          which disarms motors but does not set outputs to failsafe values.
-
-          Setting this parameter to 0 disables the check
+          Triggers attitude_failure flag when exceeded.
+          Flag: flight termination (CBRK_FLIGHTTERM=0), setting outputs to failsafe values.
+          On takeoff: lockdown (ignores CBRK_FLIGHTTERM), disarms motors without failsafe outputs.
+          0 disables.
       type: int32
       default: 60
       min: 0
@@ -37,8 +31,7 @@ parameters:
     FD_FAIL_R_TTRI:
       description:
         short: Roll failure trigger time
-        long: Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered
-          as a failure.
+        long: Seconds roll must exceed FD_FAIL_R to be considered a failure.
       type: float
       default: 0.3
       unit: s
@@ -48,8 +41,7 @@ parameters:
     FD_FAIL_P_TTRI:
       description:
         short: Pitch failure trigger time
-        long: Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered
-          as a failure.
+        long: Seconds pitch must exceed FD_FAIL_P to be considered a failure.
       type: float
       default: 0.3
       unit: s
@@ -60,20 +52,15 @@ parameters:
       description:
         short: Enable PWM input from external ATS for failsafe
         long: |-
-          Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS)
-
-          Enabled on either AUX5 or MAIN5 depending on board.
-          External ATS is required by ASTM F3322-18.
+          Active on AUX5 or MAIN5 (board-dependent).
+          Required by ASTM F3322-18.
       type: boolean
       default: 0
       reboot_required: true
     FD_EXT_ATS_TRIG:
       description:
         short: External ATS PWM threshold for failsafe
-        long: |-
-          The PWM threshold from external automatic trigger system for engaging failsafe
-
-          External ATS is required by ASTM F3322-18.
+        long: Required by ASTM F3322-18.
       type: int32
       default: 1900
       unit: us
@@ -81,11 +68,7 @@ parameters:
     FD_IMB_PROP_THR:
       description:
         short: Imbalanced propeller check threshold
-        long: |-
-          Value at which the imbalanced propeller metric (based on horizontal and
-          vertical acceleration variance) triggers a failure
-
-          Setting this value to 0 disables the feature.
+        long: Imbalanced propeller metric (horiz + vert acceleration variance) threshold. 0 disables.
       type: int32
       default: 30
       min: 0
@@ -94,8 +77,7 @@ parameters:
     FD_ALT_LOSS:
       description:
         short: Altitude loss threshold for termination and parachute deployment
-        long: |-
-          Maximum altitude loss below the setpoint allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+        long: "0 disables."
       type: float
       default: 0.0
       min: 0.0
@@ -106,8 +88,7 @@ parameters:
     FD_ALT_LOSS_T:
       description:
         short: Altitude loss failure trigger time
-        long: |-
-          Seconds that the altitude loss threshold must be exceeded before the failure is declared.
+        long: Seconds threshold must be exceeded before failure is declared.
       type: float
       default: 1.0
       min: 0.02

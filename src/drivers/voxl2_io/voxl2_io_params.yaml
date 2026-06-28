@@ -5,15 +5,14 @@ parameters:
     VOXL2_IO_BAUD:
       description:
         short: VOXL2_IO UART baud rate
-        long: Default rate is 921600, which is used for communicating with VOXL2_IO
-          board
+        long: UART link to VOXL2_IO board.
       type: int32
       default: 921600
       unit: bit/s
     VOXL2_IO_DIS:
       description:
         short: VOXL2_IO Disabled PWM
-        long: Pulse duration in disabled state (microseconds) for VOXL2_IO board
+        long: PWM pulse width for disabled state.
       type: int32
       default: 1000
       min: 0
@@ -22,7 +21,7 @@ parameters:
     VOXL2_IO_MIN:
       description:
         short: VOXL2_IO Min PWM
-        long: Minimum duration (microseconds) for VOXL2_IO board
+        long: Minimum PWM pulse width.
       type: int32
       default: 1100
       min: 0
@@ -31,7 +30,7 @@ parameters:
     VOXL2_IO_MAX:
       description:
         short: VOXL2_IO Max PWM
-        long: Maximum duration (microseconds) for VOXL2_IO board
+        long: Maximum PWM pulse width.
       type: int32
       default: 2000
       min: 0
@@ -40,7 +39,7 @@ parameters:
     VOXL2_IO_CMIN:
       description:
         short: VOXL2_IO Calibration Min PWM
-        long: Minimum duration (microseconds) for VOXL2_IO board
+        long: Minimum PWM pulse width for calibration.
       type: int32
       default: 1050
       min: 0
@@ -49,7 +48,7 @@ parameters:
     VOXL2_IO_CMAX:
       description:
         short: VOXL2_IO Calibration Max PWM
-        long: Maximum duration (microseconds) for VOXL2_IO board
+        long: Maximum PWM pulse width for calibration.
       type: int32
       default: 2000
       min: 0

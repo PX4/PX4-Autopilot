@@ -20,10 +20,7 @@ parameters:
         DSHOT_MIN:
             description:
                 short: Minimum DShot Motor Output
-                long: |
-                    Minimum Output Value for DShot in percent. The value depends on the ESC. Make
-                    sure to set this high enough so that the motors are always spinning while
-                    armed.
+                long: ESC-dependent. Set high enough that motors spin while armed.
             type: float
             unit: norm
             min: 0
@@ -34,31 +31,26 @@ parameters:
         DSHOT_3D_ENABLE:
             description:
                 short: Allows for 3d mode when using DShot and suitable mixer
-                long: |
-                    WARNING: ESC must be configured for 3D mode, and DSHOT_MIN set to 0.
-                    This splits the throttle ranges in two.
-                    Direction 1) 48 is the slowest, 1047 is the fastest.
-                    Direction 2) 1049 is the slowest, 2047 is the fastest.
-                    When mixer outputs 1000 or value inside DSHOT 3D deadband, DShot 0 is sent.
+                long: |-
+                    WARNING: requires ESC in 3D mode and DSHOT_MIN=0.
+                    Splits throttle: dir1 48-1047, dir2 1049-2047.
+                    DShot 0 when mixer outputs 1000 or within the 3D deadband.
             type: boolean
             default: 0
         DSHOT_BIDIR_EDT:
             description:
                 short: Enable Extended DShot Telemetry
-                long: |
-                    This parameter enables Extended DShot Telemetry which allows transmission of
-                    additional telemetry within the eRPM frame. The EDT data is interleaved with
-                    the eRPM frames at a low rate.
+                long: Additional telemetry interleaved with eRPM frames at low rate.
             type: boolean
             default: 0
             reboot_required: true
         DSHOT_3D_DEAD_H:
             description:
                 short: DSHOT 3D deadband high
-                long: |
-                    When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
-                    Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
-                    This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
+                long: |-
+                    Motor stops when actuator_output in [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H].
+                    Equal values (default 1000) give a single-point deadband.
+                    In mixer_module range (0-1999), not DShot values.
             type: int32
             min: 1000
             max: 1999
@@ -66,10 +58,10 @@ parameters:
         DSHOT_3D_DEAD_L:
             description:
                 short: DSHOT 3D deadband low
-                long: |
-                    When the actuator_output is in the inclusive range [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H], the motor will not spin.
-                    Setting DSHOT_3D_DEAD_L equal to DSHOT_3D_DEAD_H (e.g. the default 1000) produces a single-point deadband at that value.
-                    This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
+                long: |-
+                    Motor stops when actuator_output in [DSHOT_3D_DEAD_L, DSHOT_3D_DEAD_H].
+                    Equal values (default 1000) give a single-point deadband.
+                    In mixer_module range (0-1999), not DShot values.
             type: int32
             min: 0
             max: 1000
@@ -77,12 +69,10 @@ parameters:
         DSHOT_MOT_POL${i}:
             description:
                 short: Number of magnetic poles of motor ${i}
-                long: |
-                    Number of magnetic poles for motor ${i}.
-                    Required to compute RPM from the eRPM returned by ESC telemetry.
-                    Either get the number from the motor spec sheet or count the magnets
-                    on the bell of the motor (not the stator magnets).
-                    Typical motors for 5 inch props have 14 poles.
+                long: |-
+                    Needed to compute RPM from eRPM telemetry.
+                    Get from spec sheet or count bell magnets (not stator).
+                    Typical 5-inch-prop motors: 14 poles.
             type: int32
             default: 14
             min: 2

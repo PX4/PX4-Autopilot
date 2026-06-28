@@ -8,8 +8,6 @@ parameters:
       SENS_EN_TMP102:
         description:
             short: Enable TMP102
-            long: |
-                Enable the driver for the TMP102 temperature sensor
         type: boolean
         reboot_required: true
         default: 0

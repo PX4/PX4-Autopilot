@@ -5,10 +5,8 @@ parameters:
     EKF2_ARSP_THR:
       description:
         short: Airspeed fusion threshold
-        long: Airspeed data is fused for wind estimation if above this threshold.
-          Set to 0 to disable airspeed fusion. For reliable wind estimation both sideslip
-          (see EKF2_FUSE_BETA) and airspeed fusion should be enabled. Only applies
-          to fixed-wing vehicles (or VTOLs in fixed-wing mode).
+        long: Fuses airspeed for wind estimation above this threshold; 0 disables.
+          For reliable wind, also enable EKF2_FUSE_BETA. Fixed-wing/VTOL in FW mode only.
       type: float
       default: 0.0
       min: 0.0
@@ -27,8 +25,6 @@ parameters:
     EKF2_TAS_GATE:
       description:
         short: Gate size for TAS fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 5.0
       min: 1.0

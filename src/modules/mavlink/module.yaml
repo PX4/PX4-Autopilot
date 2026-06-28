@@ -54,9 +54,7 @@ parameters:
         MAV_${i}_MODE:
             description:
                 short: MAVLink Mode for instance ${i}
-                long: |
-                    The MAVLink Mode defines the set of streamed messages (for example the
-                    vehicle's attitude) and their sending rates.
+                long: Defines the set and rate of MAVLink streams.
 
             type: enum
             values:
@@ -81,14 +79,9 @@ parameters:
         MAV_${i}_RATE:
             description:
                 short: Maximum MAVLink sending rate for instance ${i}
-                long: |
-                    Configure the maximum sending rate for the MAVLink streams in Bytes/sec.
-                    If the configured streams exceed the maximum rate, the sending rate of
-                    each stream is automatically decreased.
-
-                    If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
-                    This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
-                    8N1-configured links).
+                long: |-
+                    Max rate for all MAVLink streams; throttled proportionally if exceeded.
+                    0: baudrate/20 (half max on 8N1 links where max = baudrate/10).
 
             type: int32
             min: 0
@@ -100,12 +93,8 @@ parameters:
         MAV_${i}_FORWARD:
             description:
                 short: Enable MAVLink Message forwarding for instance ${i}
-                long: |
-                    If enabled, forward incoming MAVLink messages to other MAVLink ports if the
-                    message is either broadcast or the target is not the autopilot.
-
-                    This allows for example a GCS to talk to a camera that is connected to the
-                    autopilot via MAVLink (on a different link than the GCS).
+                long: Forwards broadcast messages and messages not addressed to the autopilot
+                    to other ports (e.g., enables GCS-to-camera through the autopilot).
 
             type: boolean
             reboot_required: true
@@ -115,11 +104,8 @@ parameters:
         MAV_${i}_RADIO_CTL:
             description:
                 short: Enable software throttling of mavlink on instance ${i}
-                long: |
-                    If enabled, MAVLink messages will be throttled according to
-                    `txbuf` field reported by radio_status.
-
-                    Requires a radio to send the mavlink message RADIO_STATUS.
+                long: Throttles MAVLink by `txbuf` in radio's RADIO_STATUS; requires
+                    radio to send RADIO_STATUS.
 
             type: boolean
             reboot_required: true
@@ -129,9 +115,7 @@ parameters:
         MAV_${i}_UDP_PRT:
             description:
                 short: MAVLink Network Port for instance ${i}
-                long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected udp port will be set and used in MAVLink instance ${i}.
+                long: UDP port for this MAVLink instance (ethernet only).
 
             type: int32
             reboot_required: true
@@ -142,9 +126,7 @@ parameters:
         MAV_${i}_REMOTE_PRT:
             description:
                 short: MAVLink Remote Port for instance ${i}
-                long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
-                    selected remote port will be set and used in MAVLink instance ${i}.
+                long: Remote UDP port for this MAVLink instance (ethernet only).
 
             type: int32
             reboot_required: true
@@ -155,9 +137,7 @@ parameters:
         MAV_${i}_BROADCAST:
             description:
                 short: Broadcast heartbeats on local network for MAVLink instance ${i}
-                long: |
-                    This allows a ground control station to automatically find the drone
-                    on the local network.
+                long: Allows GCS to auto-discover drone on local network.
 
             type: enum
             values:
@@ -171,9 +151,7 @@ parameters:
         MAV_${i}_FLOW_CTRL:
             description:
                 short: Enable serial flow control for instance ${i}
-                long: |
-                    This is used to force flow control on or off for the the mavlink
-                    instance. By default it is auto detected. Use when auto detection fails.
+                long: Force serial flow control on/off; use when auto-detect fails.
 
             type: enum
             values:
@@ -187,10 +165,7 @@ parameters:
         MAV_${i}_HL_FREQ:
             description:
                 short: Configures the frequency of HIGH_LATENCY2 stream for instance ${i}
-                long: |
-                    Positive real value that configures the transmission frequency of the
-                    HIGH_LATENCY2 stream for instance ${i}, configured in iridium mode.
-                    This parameter has no effect if the instance mode is different from iridium.
+                long: HIGH_LATENCY2 stream frequency in Iridium mode; no effect in other modes.
 
             type: float
             decimal: 3
@@ -205,9 +180,7 @@ parameters:
         MAV_S_MODE:
             description:
                 short: MAVLink Mode for SOM to FMU communication channel
-                long: |
-                    The MAVLink Mode defines the set of streamed messages (for example the
-                    vehicle's attitude) and their sending rates.
+                long: Defines the set and rate of MAVLink streams.
 
             type: enum
             values:

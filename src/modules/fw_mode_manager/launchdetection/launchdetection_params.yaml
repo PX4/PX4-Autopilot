@@ -5,8 +5,7 @@ parameters:
     FW_LAUN_AC_THLD:
       description:
         short: Trigger acceleration threshold
-        long: Launch is detected when the norm of body acceleration
-          is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+        long: Launch detected when body accel norm > FW_LAUN_AC_THLD for FW_LAUN_AC_T s.
       type: float
       default: 30.0
       unit: m/s^2
@@ -16,8 +15,7 @@ parameters:
     FW_LAUN_AC_T:
       description:
         short: Trigger time
-        long: Launch is detected when the norm of body acceleration
-          is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
+        long: Launch detected when body accel norm > FW_LAUN_AC_THLD for FW_LAUN_AC_T s.
       type: float
       default: 0.05
       unit: s
@@ -28,7 +26,7 @@ parameters:
     FW_LAUN_MOT_DEL:
       description:
         short: Motor delay
-        long: Start the motor(s) this amount of seconds after launch is detected.
+        long: Motors start this many seconds after launch detection.
       type: float
       default: 0.0
       unit: s

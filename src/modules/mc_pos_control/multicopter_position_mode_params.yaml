@@ -5,27 +5,15 @@ parameters:
     MPC_POS_MODE:
       description:
         short: Position/Altitude mode variant
-        long: |-
-          The supported sub-modes are:
-          Direct velocity:
-          Sticks directly map to velocity setpoints without smoothing.
-          Also applies to vertical direction and Altitude mode.
-          Useful for velocity control tuning.
-          Acceleration based:
-          Sticks map to acceleration and there's a virtual brake drag
       type: enum
       values:
-        0: Direct velocity
-        4: Acceleration based
+        0: Direct velocity (sticks map to velocity; no smoothing; applies to vertical/Altitude; useful for tuning)
+        4: Acceleration based (sticks map to accel, virtual drag braking)
       default: 4
     MPC_VEL_MANUAL:
       description:
         short: Maximum horizontal velocity setpoint in Position mode
-        long: |-
-          Must be smaller than MPC_XY_VEL_MAX.
-
-          The maximum sideways and backward speed can be set differently
-          using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
+        long: Must be < MPC_XY_VEL_MAX. Set sideways/backward separately with MPC_VEL_MAN_SIDE/MPC_VEL_MAN_BACK.
       type: float
       default: 10.0
       unit: m/s
@@ -36,9 +24,7 @@ parameters:
     MPC_VEL_MAN_SIDE:
       description:
         short: Maximum sideways velocity in Position mode
-        long: |-
-          If set to a negative value or larger than
-          MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+        long: Negative or > MPC_VEL_MANUAL uses MPC_VEL_MANUAL.
       type: float
       default: -1.0
       unit: m/s
@@ -49,9 +35,7 @@ parameters:
     MPC_VEL_MAN_BACK:
       description:
         short: Maximum backward velocity in Position mode
-        long: |-
-          If set to a negative value or larger than
-          MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+        long: Negative or > MPC_VEL_MANUAL uses MPC_VEL_MANUAL.
       type: float
       default: -1.0
       unit: m/s
@@ -77,12 +61,8 @@ parameters:
       description:
         short: Maximum horizontal and vertical jerk in Position/Altitude mode
         long: |-
-          Limit the maximum jerk (acceleration change) of the vehicle.
-          A lower value leads to smoother motions but limits agility.
-
-          Setting this to the maximum value essentially disables the limit.
-
-          Only used with MPC_POS_MODE Acceleration based.
+          Max jerk (accel change rate). Lower = smoother, less agile.
+          Max value disables. Only with MPC_POS_MODE 4 (Acceleration based).
       type: float
       default: 8.0
       unit: m/s^3

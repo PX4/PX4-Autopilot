@@ -6,18 +6,16 @@ parameters:
       description:
         short: Enable Actuator Failure check
         long: |-
-          If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
-          level is being consumed.
-          Otherwise this indicates an motor failure.
-          This check only works for ESCs that report current consumption.
+          Verifies minimum ESC current per throttle level for each motor; shortfall indicates motor failure.
+          Only works for ESCs that report current consumption.
       type: boolean
       default: 0
     MOTFAIL_C2T:
       description:
         short: Motor Failure Current/Throttle Scale
         long: |-
-          Determines the slope between expected steady state current and linearized, normalized thrust command.
-          E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+          Slope between expected steady-state current and linearized normalized thrust.
+          MOTFAIL_C2T is the expected current at 100% thrust.
           FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
       type: float
       default: 35.0

@@ -5,7 +5,6 @@ parameters:
     EKF2_RNGBC_CTRL:
       description:
         short: Ranging beacon fusion control
-        long: Enable/disable ranging beacon fusion.
       type: enum
       values:
         0: Disable ranging beacon fusion
@@ -24,7 +23,6 @@ parameters:
     EKF2_RNGBC_GATE:
       description:
         short: Gate size for ranging beacon fusion
-        long: Sets the number of standard deviations used by the innovation consistency test.
       type: float
       default: 5.0
       min: 1.0
@@ -33,7 +31,7 @@ parameters:
     EKF2_RNGBC_NOISE:
       description:
         short: Measurement noise for ranging beacon fusion
-        long: Used to lower bound or replace the uncertainty included in the message
+        long: Lower bound or replacement for message uncertainty.
       type: float
       default: 30.0
       min: 0.1

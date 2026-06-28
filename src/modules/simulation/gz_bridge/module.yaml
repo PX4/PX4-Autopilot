@@ -45,9 +45,9 @@ parameters:
         SIM_GZ_SV_MAXA${i}:
             description:
                 short: Servo ${i} Angle at Maximum
-                long: |
-                  Defines the angle when the servo is at the maximum.
-                  Currently only supported in gz simulation and must be coherent with .sdf file and CA_SV_TL{n}_MAXA.
+                long: |-
+                  Angle when servo is at maximum.
+                  gz simulation only; must match .sdf and CA_SV_TL{n}_MAXA.
             type: float
             decimal: 0
             unit: 'deg'
@@ -59,9 +59,9 @@ parameters:
         SIM_GZ_SV_MINA${i}:
             description:
                 short: Servo ${i} Angle at Minimum
-                long: |
-                  Defines the angle when the servo is at the minimum.
-                  Currently only supported in gz simulation and must be coherent with .sdf file and CA_SV_TL{n}_MINA.
+                long: |-
+                  Angle when servo is at minimum.
+                  gz simulation only; must match .sdf and CA_SV_TL{n}_MINA.
             type: float
             decimal: 0
             unit: 'deg'

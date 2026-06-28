@@ -5,9 +5,7 @@ parameters:
     FW_LND_ANG:
       description:
         short: Maximum landing slope angle
-        long: |-
-          Typically the desired landing slope angle when landing configuration (flaps, airspeed) is enabled.
-          Set this value within the vehicle's performance limits.
+        long: Desired slope angle when landing config (flaps, airspeed) is active. Set within vehicle performance limits.
       type: float
       default: 5.0
       unit: deg
@@ -30,12 +28,9 @@ parameters:
       description:
         short: Use terrain estimation during landing
         long: |-
-          This is critical for detecting when to flare, and should be enabled if possible.
-
-          If enabled and no measurement is found within a given timeout, the landing waypoint altitude will be used OR the landing
-          will be aborted, depending on the criteria set in FW_LND_ABORT.
-
-          If disabled, FW_LND_ABORT terrain based criteria are ignored.
+          Critical for detecting when to flare; enable if possible.
+          No terrain measurement within timeout: use waypoint altitude or abort per FW_LND_ABORT.
+          Disabled: FW_LND_ABORT terrain criteria are ignored.
       type: enum
       values:
         0: Disable the terrain estimate
@@ -47,16 +42,12 @@ parameters:
     FW_LND_EARLYCFG:
       description:
         short: Early landing configuration deployment
-        long: |-
-          Allows to deploy the landing configuration (flaps, landing airspeed, etc.) already in
-          the loiter-down waypoint before the final approach.
-          Otherwise is enabled only in the final approach.
+        long: Deploy landing config (flaps, airspeed, etc.) from the loiter-down waypoint; otherwise only at final approach.
       type: boolean
       default: 0
     FW_LND_FL_PMIN:
       description:
         short: Flare, minimum pitch
-        long: Minimum pitch during landing flare.
       type: float
       default: 2.5
       unit: deg
@@ -67,7 +58,6 @@ parameters:
     FW_LND_FL_PMAX:
       description:
         short: Flare, maximum pitch
-        long: Maximum pitch during landing flare.
       type: float
       default: 15.0
       unit: deg
@@ -78,10 +68,7 @@ parameters:
     FW_LND_AIRSPD:
       description:
         short: Landing airspeed
-        long: |-
-          The calibrated airspeed setpoint during landing.
-
-          If set <= 0, landing airspeed = FW_AIRSPD_MIN by default.
+        long: Calibrated airspeed setpoint during landing. <=0 uses FW_AIRSPD_MIN.
       type: float
       default: -1.0
       unit: m/s
@@ -91,8 +78,7 @@ parameters:
     FW_LND_THRTC_SC:
       description:
         short: Altitude time constant factor for landing and low-height flight
-        long: The TECS altitude time constant (FW_T_ALT_TC) is multiplied by this
-          value.
+        long: Scales FW_T_ALT_TC (TECS altitude time constant).
       type: float
       default: 1.0
       min: 0.2
@@ -102,11 +88,7 @@ parameters:
     FW_LND_FL_TIME:
       description:
         short: Landing flare time
-        long: |-
-          Multiplied by the descent rate to calculate a dynamic altitude at which
-          to trigger the flare.
-
-          NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
+        long: Flare alt = max(FW_LND_FLALT, FW_LND_FL_TIME * descent_rate).
       type: float
       default: 1.0
       unit: s
@@ -118,13 +100,9 @@ parameters:
       description:
         short: Landing touchdown time (since flare start)
         long: |-
-          This is the time after the start of flaring that we expect the vehicle to touch the runway.
-          At this time, a 0.5s clamp down ramp will engage, constraining the pitch setpoint to RWTO_PSP.
-          If enabled, ensure that RWTO_PSP is configured appropriately for full gear contact on ground roll.
-
-          Set to -1.0 to disable touchdown clamping. E.g. it may not be desirable to clamp on belly landings.
-
-          The touchdown time will be constrained to be greater than or equal to the flare time (FW_LND_FL_TIME).
+          Time from flare start to expected touchdown. Triggers a 0.5s pitch clamp ramp to RWTO_PSP;
+          configure RWTO_PSP for full gear contact. -1.0: disable (e.g. belly landings).
+          Constrained to >= FW_LND_FL_TIME.
       type: float
       default: -1.0
       unit: s
@@ -135,8 +113,7 @@ parameters:
     FW_LND_FL_SINK:
       description:
         short: Landing flare sink rate
-        long: TECS will attempt to control the aircraft to this sink rate via pitch
-          angle (throttle killed during flare)
+        long: TECS controls to this sink rate via pitch during flare (throttle killed).
       type: float
       default: 0.25
       unit: m/s
@@ -157,34 +134,19 @@ parameters:
     FW_LND_NUDGE:
       description:
         short: Landing touchdown nudging option
-        long: |-
-          Approach angle nudging: shifts the touchdown point laterally while keeping the approach entrance point constant
-          Approach path nudging: shifts the touchdown point laterally along with the entire approach path
-
-          This is useful for manually adjusting the landing point in real time when map or GNSS errors cause an offset from the
-          desired landing vector. Nudging is done with yaw stick, constrained to FW_LND_TD_OFF (in meters) and the direction is
-          relative to the vehicle heading (stick deflection to the right = land point moves to the right as seen by the vehicle).
+        long: Corrects map/GNSS landing offset with yaw stick, constrained to FW_LND_TD_OFF. Stick right = land point right (vehicle-relative).
       type: enum
       values:
         0: Disable nudging
-        1: Nudge approach angle
-        2: Nudge approach path
+        1: Nudge approach angle (touchdown shifts, entrance fixed)
+        2: Nudge approach path (touchdown + full path shift)
       default: 2
       min: 0
       max: 2
     FW_LND_ABORT:
       description:
         short: Bit mask to set the automatic landing abort conditions
-        long: |-
-          Terrain estimation:
-          bit 0: Abort if terrain is not found
-          bit 1: Abort if terrain times out (after a first successful measurement)
-
-          The last estimate is always used as ground, whether the last valid measurement or the land waypoint, depending on the
-          selected abort criteria, until an abort condition is entered. If FW_LND_USETER == 0, these bits are ignored.
-
-          TODO: Extend automatic abort conditions
-          e.g. glide slope tracking error (horizontal and vertical)
+        long: Last terrain estimate (last valid or land waypoint) is used as ground until abort. Bits ignored if FW_LND_USETER == 0.
       type: bitmask
       bit:
         0: Abort if terrain is not found (only applies to mission landings)
@@ -195,9 +157,7 @@ parameters:
     FW_FLAPS_LND_SCL:
       description:
         short: Flaps setting during landing
-        long: |-
-          Sets a fraction of full flaps during landing.
-          Also applies to flaperons if enabled in the mixer/allocation.
+        long: Fraction of full flaps during landing; also applies to flaperons if enabled.
       type: float
       default: 1.0
       unit: norm
@@ -230,10 +190,7 @@ parameters:
     FW_TKO_AIRSPD:
       description:
         short: Takeoff Airspeed
-        long: |-
-          The calibrated airspeed setpoint during the takeoff climbout.
-
-          If set <= 0, FW_AIRSPD_MIN will be set by default.
+        long: Calibrated airspeed setpoint during takeoff climbout. <=0 uses FW_AIRSPD_MIN.
       type: float
       default: -1.0
       unit: m/s
@@ -243,18 +200,13 @@ parameters:
     FW_LAUN_DETCN_ON:
       description:
         short: Fixed-wing launch detection
-        long: |-
-          Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
-          Not compatible with runway takeoff.
+        long: Automatic launch detection via measured acceleration; for hand/catapult launches. Not compatible with runway takeoff.
       type: boolean
       default: 0
     FW_LAUN_CS_LK_DY:
       description:
         short: Control surface launch delay
-        long: |-
-          Locks control surfaces during pre-launch (armed) and until this time since launch has passed.
-          Only affects control surfaces that have corresponding flag set, and not active for runway takeoff.
-          Set to 0 to disable any surface locking after arming.
+        long: "Locks flagged control surfaces while armed and for this many seconds after launch. 0: disable. Not active for runway takeoff."
       type: float
       default: 0.0
       unit: s
@@ -264,9 +216,7 @@ parameters:
     FW_FLAPS_TO_SCL:
       description:
         short: Flaps setting during take-off
-        long: |-
-          Sets a fraction of full flaps during take-off.
-          Also applies to flaperons if enabled in the mixer/allocation.
+        long: Fraction of full flaps during takeoff; also applies to flaperons if enabled.
       type: float
       default: 0.0
       unit: norm
@@ -312,9 +262,7 @@ parameters:
     FW_THR_MAX:
       description:
         short: Throttle limit max
-        long: |-
-          Applies in any altitude controlled flight mode.
-          Should be set accordingly to achieve FW_T_CLMB_MAX.
+        long: Applies in altitude-controlled modes; set to achieve FW_T_CLMB_MAX.
       type: float
       default: 1.0
       unit: norm
@@ -325,10 +273,7 @@ parameters:
     FW_THR_MIN:
       description:
         short: Throttle limit min
-        long: |-
-          Applies in any altitude controlled flight mode.
-          Usually set to 0 but can be increased to prevent the motor from stopping when
-          descending, which can increase achievable descent rates.
+        long: Applies in altitude-controlled modes. Raise above 0 to prevent motor cutoff during descent and improve descent rates.
       type: float
       default: 0.0
       unit: norm
@@ -339,8 +284,7 @@ parameters:
     FW_THR_IDLE:
       description:
         short: Idle throttle
-        long: This is the minimum throttle while on the ground ("landed") in auto
-          modes.
+        long: Minimum throttle while landed in auto modes.
       type: float
       default: 0.0
       unit: norm
@@ -352,10 +296,8 @@ parameters:
       description:
         short: Speed <--> Altitude weight
         long: |-
-          Adjusts the amount of weighting that the pitch control
-          applies to speed vs height errors.
-          0 -> control height only
-          2 -> control speed only (gliders)
+          Pitch control weighting between speed and height error.
+          0: height only. 2: speed only (gliders).
       type: float
       default: 1.0
       min: 0.0
@@ -402,9 +344,8 @@ parameters:
       description:
         short: GPS failure loiter time
         long: |-
-          The time the system should do open loop loiter and wait for GPS recovery
-          before it starts descending. Set to 0 to disable. Roll angle is set to FW_GPSF_R.
-          Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+          Open-loop loiter before descending on GPS failure. 0: disable.
+          Roll angle = FW_GPSF_R. Fixed-wing and VTOL (NAV_FORCE_VT=0) only.
       type: int32
       default: 30
       unit: s
@@ -412,7 +353,6 @@ parameters:
     FW_GPSF_R:
       description:
         short: GPS failure fixed roll angle
-        long: Roll angle in GPS failure loiter mode.
       type: float
       default: 15.0
       unit: deg
@@ -423,8 +363,7 @@ parameters:
     FW_WING_SPAN:
       description:
         short: The aircraft's wing span (length from tip to tip)
-        long: This is used for limiting the roll setpoint near the ground. (if multiple
-          wings, take the longest span)
+        long: Used to limit roll setpoint near the ground. For multiple wings, use the longest span.
       type: float
       default: 3.0
       unit: m
@@ -434,9 +373,7 @@ parameters:
     FW_WING_HEIGHT:
       description:
         short: Height (AGL) of the wings when the aircraft is on the ground
-        long: |-
-          This is used to constrain a minimum altitude below which we keep wings level to avoid wing tip strike. It's safer
-          to give a slight margin here (> 0m)
+        long: Min AGL to keep wings level and avoid tip strike. Give a small margin (>0 m).
       type: float
       default: 0.5
       unit: m
@@ -448,7 +385,6 @@ parameters:
     NPFG_PERIOD:
       description:
         short: NPFG period
-        long: Period of NPFG control law.
       type: float
       default: 10.0
       unit: s
@@ -459,7 +395,6 @@ parameters:
     NPFG_DAMPING:
       description:
         short: NPFG damping ratio
-        long: Damping ratio of NPFG control law.
       type: float
       default: 0.7
       min: 0.1
@@ -469,23 +404,19 @@ parameters:
     NPFG_LB_PERIOD:
       description:
         short: Enable automatic lower bound on the NPFG period
-        long: |-
-          Avoids limit cycling from a too aggressively tuned period/damping combination.
-          If false, also disables upper bound NPFG_PERIOD_UB.
+        long: Prevents limit cycling from overly aggressive period/damping. If false, also disables NPFG_PERIOD_UB.
       type: boolean
       default: 1
     NPFG_UB_PERIOD:
       description:
         short: Enable automatic upper bound on the NPFG period
-        long: Adapts period to maintain track keeping in variable winds and path curvature.
+        long: Adapts period for track keeping in variable winds and path curvature.
       type: boolean
       default: 1
     NPFG_ROLL_TC:
       description:
         short: Roll time constant
-        long: |-
-          Time constant of roll controller command / response, modeled as first order delay.
-          Used to determine lower period bound. Setting zero disables automatic period bounding.
+        long: "First-order roll command/response time constant; sets lower period bound. 0: disable period bounding."
       type: float
       default: 0.5
       unit: s
@@ -496,9 +427,7 @@ parameters:
     NPFG_SW_DST_MLT:
       description:
         short: NPFG switch distance multiplier
-        long: |-
-          Multiplied by the track error boundary to determine when the aircraft switches
-          to the next waypoint and/or path segment. Should be less than 1.
+        long: Track error boundary multiplier for waypoint/segment switching. Should be < 1.
       type: float
       default: 0.32
       min: 0.1
@@ -508,9 +437,7 @@ parameters:
     NPFG_PERIOD_SF:
       description:
         short: Period safety factor
-        long: |-
-          Multiplied by period for conservative minimum period bounding (when period lower
-          bounding is enabled). 1.0 bounds at marginal stability.
+        long: Multiplier for conservative period lower bound (when lower bounding is enabled). 1.0 = marginal stability.
       type: float
       default: 1.5
       min: 1.0
@@ -521,9 +448,8 @@ parameters:
       description:
         short: Max position reset distance
         long: |-
-          If a horizontal position reset larger than this occurs while flying between two
-          waypoints, fly directly to the current waypoint instead of rejoining the line.
-          -1 to disable.
+          If a position reset > this occurs mid-segment, fly direct to current waypoint instead of rejoining.
+          -1: disable.
       type: float
       default: -1.0
       unit: m

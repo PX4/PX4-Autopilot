@@ -25,9 +25,7 @@ parameters:
     MPC_MAN_Y_TAU:
       description:
         short: Manual yaw rate input filter time constant
-        long: |-
-          Not used in Stabilized mode
-          Setting this parameter to 0 disables the filter
+        long: 0 disables. Not used in Stabilized mode.
       type: float
       default: 0.08
       unit: s
@@ -38,29 +36,18 @@ parameters:
     MPC_ALT_MODE:
       description:
         short: Altitude reference mode
-        long: |-
-          Control height
-          0: relative earth frame origin which may drift due to sensors
-          1: relative to ground (requires distance sensor) which changes with terrain variation.
-          It will revert to relative earth frame if the distance to ground estimate becomes invalid.
-          2: relative to ground (requires distance sensor) when stationary
-          and relative to earth frame when moving horizontally.
-          The speed threshold is MPC_HOLD_MAX_XY
       type: enum
       values:
-        0: Altitude following
-        1: Terrain following
-        2: Terrain hold
+        0: Altitude following (earth-frame; may drift)
+        1: Terrain following (distance sensor; reverts to earth-frame if invalid)
+        2: Terrain hold (distance sensor when stationary, earth-frame when moving; threshold MPC_HOLD_MAX_XY)
       default: 2
       min: 0
       max: 2
     MPC_HOLD_MAX_XY:
       description:
         short: Max horizontal velocity for position hold
-        long: |-
-          Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
-
-          Only used with MPC_POS_MODE Direct velocity or MPC_ALT_MODE 2
+        long: Max horiz velocity for position hold; 0 disables. Only with MPC_POS_MODE 0 or MPC_ALT_MODE 2.
       type: float
       default: 0.8
       unit: m/s
@@ -70,10 +57,7 @@ parameters:
     MPC_HOLD_MAX_Z:
       description:
         short: Max vertical velocity for position hold
-        long: |-
-          Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
-
-          Only used with MPC_ALT_MODE 1
+        long: Max vert velocity for position hold; 0 disables. Only with MPC_ALT_MODE 1.
       type: float
       default: 0.6
       unit: m/s

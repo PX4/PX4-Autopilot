@@ -13,9 +13,7 @@ parameters:
         ILABS_MODE:
             description:
                 short: InertialLabs INS sensor mode configuration
-                long: |
-                  Configures whether the driver outputs only raw sensor output (the default),
-                  or additionally supplies INS data such as position and velocity estimates.
+                long: "Sensors Only: raw sensor data. INS: also publishes position and velocity estimates."
             category: System
             type: enum
             values:

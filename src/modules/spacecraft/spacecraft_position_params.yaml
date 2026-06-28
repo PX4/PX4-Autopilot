@@ -5,7 +5,7 @@ parameters:
     SPC_POS_P:
       description:
         short: Proportional gain for position error
-        long: Defined as corrective velocity in m/s per m position error
+        long: Corrective velocity in m/s per m position error.
       type: float
       default: 0.2
       min: 0
@@ -15,7 +15,7 @@ parameters:
     SPC_POS_I:
       description:
         short: Integral gain for position error
-        long: Defined as corrective velocity in m/s per m velocity error
+        long: Corrective velocity in m/s per m velocity error.
       type: float
       default: 0.0
       min: 0
@@ -25,7 +25,7 @@ parameters:
     SPC_POS_I_LIM:
       description:
         short: Integral limit for position error
-        long: Defined as corrective velocity in m/s per m velocity error
+        long: Corrective velocity in m/s per m velocity error.
       type: float
       default: 1.0
       min: 0
@@ -35,7 +35,7 @@ parameters:
     SPC_VEL_P:
       description:
         short: Proportional gain for velocity error
-        long: Defined as corrective acceleration in m/s^2 per m/s velocity error
+        long: Corrective acceleration in m/s^2 per m/s velocity error.
       type: float
       default: 6.55
       min: 0
@@ -45,7 +45,7 @@ parameters:
     SPC_VEL_I:
       description:
         short: Integral gain for velocity error
-        long: Defined as corrective acceleration in m/s^2 per m/s velocity error
+        long: Corrective acceleration in m/s^2 per m/s velocity error.
       type: float
       default: 0.0
       min: 0
@@ -55,7 +55,7 @@ parameters:
     SPC_VEL_I_LIM:
       description:
         short: Integral limit for velocity error
-        long: Defined as corrective acceleration in m/s^2 per m/s velocity error
+        long: Corrective acceleration in m/s^2 per m/s velocity error.
       type: float
       default: 1.0
       min: 0
@@ -65,7 +65,7 @@ parameters:
     SPC_VEL_D:
       description:
         short: Derivative gain for velocity error
-        long: Defined as corrective acceleration in m/s^2 per m/s velocity error
+        long: Corrective acceleration in m/s^2 per m/s velocity error.
       type: float
       default: 0.0
       min: 0.0
@@ -75,9 +75,7 @@ parameters:
     SPC_VEL_MAX:
       description:
         short: Maximum velocity
-        long: |-
-          Absolute maximum for all velocity controlled modes.
-          Any higher value is truncated.
+        long: Caps velocity in all velocity-controlled modes; higher values are truncated.
       type: float
       default: 12.0
       unit: m/s
@@ -88,10 +86,7 @@ parameters:
     SPC_VEL_ALL:
       description:
         short: Overall Velocity Limit
-        long: |-
-          If set to a value greater than zero, other parameters are automatically set (such as
-          MPC_VEL_MAX or MPC_VEL_MANUAL).
-          If set to a negative value, the existing individual parameters are used.
+        long: "Positive: overrides MPC_VEL_MAX and MPC_VEL_MANUAL. Negative: uses individual params."
       type: float
       default: -10.0
       min: -20
@@ -121,7 +116,6 @@ parameters:
     SPC_THR_MAX:
       description:
         short: Maximum collective thrust
-        long: Limit allowed thrust
       type: float
       default: 1.0
       unit: norm
@@ -132,8 +126,7 @@ parameters:
     SPC_ACC:
       description:
         short: Acceleration for autonomous and for manual modes
-        long: When piloting manually, this parameter is only used in MPC_POS_MODE
-          4.
+        long: "Manual: only used in MPC_POS_MODE 4."
       type: float
       default: 3.0
       unit: m/s^2
@@ -154,9 +147,7 @@ parameters:
     SPC_JERK_AUTO:
       description:
         short: Jerk limit in autonomous modes
-        long: |-
-          Limit the maximum jerk of the vehicle (how fast the acceleration can change).
-          A lower value leads to smoother vehicle motions but also limited agility.
+        long: "Lower: smoother motion, less agility."
       type: float
       default: 4.0
       unit: m/s^3
@@ -167,14 +158,7 @@ parameters:
     SPC_JERK_MAX:
       description:
         short: Maximum jerk in Position/Altitude mode
-        long: |-
-          Limit the maximum jerk of the vehicle (how fast the acceleration can change).
-          A lower value leads to smoother motions but limits agility
-          (how fast it can change directions or break).
-
-          Setting this to the maximum value essentially disables the limit.
-
-          Only used with smooth MPC_POS_MODE 3 and 4.
+        long: "Lower: smoother, less agile. Max value (500) essentially disables. Only with MPC_POS_MODE 3 and 4."
       type: float
       default: 8.0
       unit: m/s^3
@@ -195,9 +179,7 @@ parameters:
     SPC_MAN_Y_TAU:
       description:
         short: Manual yaw rate input filter time constant
-        long: |-
-          Not used in Stabilized mode
-          Setting this parameter to 0 disables the filter
+        long: "0 disables filter; not used in Stabilized mode."
       type: float
       default: 0.08
       unit: s

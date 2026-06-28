@@ -5,9 +5,6 @@ parameters:
     EKF2_GPS_CTRL:
       description:
         short: GNSS sensor aiding
-        long: 'Set bits in the following positions to enable: 0 : Longitude and latitude
-          fusion 1 : Altitude fusion 2 : 3D velocity fusion 3 : Dual antenna heading
-          fusion'
       type: bitmask
       bit:
         0: Lon/lat
@@ -20,12 +17,10 @@ parameters:
     EKF2_GPS_MODE:
       description:
         short: Fusion reset mode
-        long: 'Automatic: reset on fusion timeout if no other source of position is available.
-          Dead-reckoning: reset on fusion timeout if no source of velocity is available.'
       type: enum
       values:
-        0: Automatic
-        1: Dead-reckoning
+        0: Automatic (reset on timeout if no other position source)
+        1: Dead-reckoning (reset on timeout if no velocity source)
       default: 0
     EKF2_GPS_P_NOISE:
       description:
@@ -39,8 +34,6 @@ parameters:
     EKF2_GPS_P_GATE:
       description:
         short: Gate size for GNSS position fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 5.0
       min: 1.0
@@ -58,8 +51,6 @@ parameters:
     EKF2_GPS_V_GATE:
       description:
         short: Gate size for GNSS velocity fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 5.0
       min: 1.0
@@ -77,8 +68,7 @@ parameters:
     EKF2_GPS_CHECK:
       description:
         short: Integer bitmask controlling GPS checks
-        long: 'Each threshold value is defined by the parameter indicated next to the check.
-          Drift and offset checks only run when the vehicle is on ground and stationary.'
+        long: Drift and offset checks (bits 5-8) only run when on ground and stationary.
       type: bitmask
       bit:
         0: Sat count (EKF2_REQ_NSATS)
@@ -159,7 +149,6 @@ parameters:
     EKF2_REQ_FIX:
       description:
         short: Required GPS fix
-        long: Minimum GPS fix type required for GPS usage.
       type: enum
       values:
         0: No fix required
@@ -173,9 +162,8 @@ parameters:
     EKF2_REQ_GPS_H:
       description:
         short: Required GPS health time on startup
-        long: Minimum continuous period without GPS failure required to mark a healthy
-          GPS status. It can be reduced to speed up initialization, but it's recommended
-          to keep this unchanged for a vehicle.
+        long: Min continuous fault-free period to mark GPS healthy. Can reduce to speed
+          up init, but not recommended to change.
       type: float
       default: 10.0
       min: 0.1
@@ -185,10 +173,8 @@ parameters:
     EKF2_GSF_TAS:
       description:
         short: Default value of true airspeed used in EKF-GSF AHRS calculation
-        long: If no airspeed measurements are available, the EKF-GSF AHRS calculation
-          will assume this value of true airspeed when compensating for centripetal
-          acceleration during turns. Set to zero to disable centripetal acceleration
-          compensation during fixed wing flight modes.
+        long: Assumed TAS for EKF-GSF centripetal compensation during turns when no
+          airspeed available. 0 disables compensation in fixed-wing modes.
       type: float
       default: 15.0
       min: 0.0

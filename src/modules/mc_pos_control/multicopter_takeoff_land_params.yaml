@@ -5,10 +5,7 @@ parameters:
     MPC_TKO_RAMP_T:
       description:
         short: Smooth takeoff ramp time constant
-        long: |-
-          Increasing this value will make climb rate controlled takeoff slower.
-          If it's too slow the drone might scratch the ground and tip over.
-          A time constant of 0 disables the ramp
+        long: "Larger = slower climb-rate takeoff. Too slow risks ground contact and tip-over. 0: disable ramp."
       type: float
       default: 3.0
       unit: s
@@ -26,10 +23,7 @@ parameters:
     MPC_LAND_ALT1:
       description:
         short: Altitude for 1. step of slow landing (descend)
-        long: |-
-          Below this altitude descending velocity gets limited to a value
-          between "MPC_Z_VEL_MAX_DN" (or "MPC_Z_V_AUTO_DN") and "MPC_LAND_SPEED"
-          Value needs to be higher than "MPC_LAND_ALT2"
+        long: Below this, descent rate limited between MPC_Z_VEL_MAX_DN (or MPC_Z_V_AUTO_DN) and MPC_LAND_SPEED. Must be > MPC_LAND_ALT2.
       type: float
       default: 10.0
       unit: m
@@ -39,10 +33,7 @@ parameters:
     MPC_LAND_ALT2:
       description:
         short: Altitude for 2. step of slow landing (landing)
-        long: |-
-          Below this altitude descending velocity gets
-          limited to "MPC_LAND_SPEED"
-          Value needs to be lower than "MPC_LAND_ALT1"
+        long: Below this, descent limited to MPC_LAND_SPEED. Must be < MPC_LAND_ALT1.
       type: float
       default: 5.0
       unit: m
@@ -52,9 +43,7 @@ parameters:
     MPC_LAND_ALT3:
       description:
         short: Altitude for 3. step of slow landing
-        long: |-
-          If a valid distance sensor measurement to the ground is available,
-          limit descending velocity to "MPC_LAND_CRWL" below this altitude.
+        long: If a valid distance sensor reading is available, descent limited to MPC_LAND_CRWL below this altitude.
       type: float
       default: 1.0
       unit: m
@@ -72,7 +61,7 @@ parameters:
     MPC_LAND_CRWL:
       description:
         short: Land crawl descend rate
-        long: Used below MPC_LAND_ALT3 if distance sensor data is availabe.
+        long: Used below MPC_LAND_ALT3 if distance sensor data is available.
       type: float
       default: 0.3
       unit: m/s

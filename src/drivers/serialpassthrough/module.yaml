@@ -6,10 +6,7 @@ parameters:
         PASSTHRU_EN:
             description:
                 short: Serial passthrough enable
-                long: |
-                    When enabled, the serial passthrough mode is active and the
-                    normal motor output drivers (dshot, pwm_out) are not started
-                    at boot.
+                long: Enables serial passthrough; dshot and pwm_out are not started at boot.
             type: boolean
             default: 0
             reboot_required: true

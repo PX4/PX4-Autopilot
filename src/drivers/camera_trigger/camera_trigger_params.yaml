@@ -5,7 +5,6 @@ parameters:
     TRIG_INTERFACE:
       description:
         short: Camera trigger Interface
-        long: Selects the trigger interface
       type: enum
       values:
         1: GPIO
@@ -17,7 +16,6 @@ parameters:
     TRIG_INTERVAL:
       description:
         short: Camera trigger interval
-        long: This parameter sets the time between two consecutive trigger events
       type: float
       default: 40.0
       unit: ms
@@ -28,9 +26,7 @@ parameters:
     TRIG_MIN_INTERVA:
       description:
         short: Minimum camera trigger interval
-        long: |-
-          This parameter sets the minimum time between two consecutive trigger events
-          the specific camera setup is supporting.
+        long: Minimum trigger interval the camera setup supports.
       type: float
       default: 1.0
       unit: ms
@@ -41,8 +37,6 @@ parameters:
     TRIG_POLARITY:
       description:
         short: Camera trigger polarity
-        long: This parameter sets the polarity of the trigger (0 = active low, 1 =
-          active high )
       type: enum
       values:
         0: Active low
@@ -54,7 +48,7 @@ parameters:
     TRIG_ACT_TIME:
       description:
         short: Camera trigger activation time
-        long: This parameter sets the time the trigger needs to pulled high or low.
+        long: Duration the trigger pin is held active per shot.
       type: float
       default: 40.0
       unit: ms
@@ -79,7 +73,6 @@ parameters:
     TRIG_DISTANCE:
       description:
         short: Camera trigger distance
-        long: Sets the distance at which to trigger the camera.
       type: float
       default: 25.0
       unit: m

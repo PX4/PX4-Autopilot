@@ -5,8 +5,7 @@ parameters:
     ADSB_SQUAWK:
       description:
         short: ADSB-Out squawk code configuration
-        long: This parameter defines the squawk code. Value should be between 0000
-          and 7777.
+        long: Each digit must be 0-7 (no 8s or 9s).
       type: int32
       default: 1200
       reboot_required: false
@@ -40,8 +39,7 @@ parameters:
     ADSB_LEN_WIDTH:
       description:
         short: ADSB-Out Vehicle Size Configuration
-        long: Report the length and width of the vehicle in meters. In most cases,
-          use '1' for the smallest vehicle size.
+        long: 1 (Len15_Wid23) is suitable for most small vehicles.
       type: enum
       values:
         0: SizeUnknown
@@ -97,7 +95,7 @@ parameters:
     ADSB_MAX_SPEED:
       description:
         short: ADSB-Out Vehicle Max Speed
-        long: Informs ADSB vehicles of this vehicle's max speed capability
+        long: Advertised max speed for other ADSB targets.
       type: enum
       values:
         0: UnknownMaxSpeed
@@ -114,7 +112,7 @@ parameters:
     ADSB_ICAO_SPECL:
       description:
         short: ADSB-In Special ICAO configuration
-        long: This vehicle is always tracked. Use 0 to disable.
+        long: "Always tracked; 0 disables."
       type: int32
       default: 0
       reboot_required: false
@@ -140,7 +138,7 @@ parameters:
     ADSB_GPS_OFF_LAT:
       description:
         short: ADSB-Out GPS Offset lat
-        long: Sets GPS lataral offset encoding
+        long: GPS lateral offset encoding.
       type: enum
       values:
         0: NoData
@@ -158,7 +156,7 @@ parameters:
     ADSB_GPS_OFF_LON:
       description:
         short: ADSB-Out GPS Offset lon
-        long: Sets GPS longitudinal offset encoding
+        long: GPS longitudinal offset encoding.
       type: enum
       values:
         0: NoData
@@ -171,8 +169,8 @@ parameters:
       description:
         short: First 4 characters of CALLSIGN
         long: |-
-          Sets first 4 characters of a total of 8. Valid characters are A-Z, 0-9, " ". Example "PX4 " -> 1347957792
-          For CALLSIGN shorter than 8 characters use the null terminator at the end '\0'.
+          Valid chars: A-Z, 0-9, space. E.g. "PX4 " -> 1347957792.
+          Null-pad if callsign < 8 chars.
       type: int32
       default: 0
       reboot_required: true
@@ -180,8 +178,8 @@ parameters:
       description:
         short: Second 4 characters of CALLSIGN
         long: |-
-          Sets second 4 characters of a total of 8. Valid characters are A-Z, 0-9, " " only. Example "TEST" -> 1413829460
-          For CALLSIGN shorter than 8 characters use the null terminator at the end '\0'.
+          Valid chars: A-Z, 0-9, space. E.g. "TEST" -> 1413829460.
+          Null-pad if callsign < 8 chars.
       type: int32
       default: 0
       reboot_required: true

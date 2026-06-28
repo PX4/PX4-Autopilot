@@ -66,9 +66,7 @@ parameters:
       VTX_FREQUENCY:
         description:
           short: VTX frequency in MHz
-          long: |
-            If the VTX frequency is set, it will overwrite the band and channel
-            settings. Set to 0 to use band and channel settings.
+          long: "Non-zero overrides VTX_BAND/VTX_CHANNEL. 0: use band and channel."
         type: int32
         min: 0
         max: 32000
@@ -99,17 +97,13 @@ parameters:
       VTX_PIT_MODE:
         description:
           short: VTX pit mode
-          long: VTX pit mode reduces power to the minimum
+          long: Reduces TX power to minimum.
         type: boolean
         default: false
       VTX_MAP_CONFIG:
         description:
           short: VTX mapping configuration
-          long: |
-            Configure how VTX settings are controlled. Options include using
-            MSP commands, AUX channels or a combination of both. To use MSP
-            commands, you must use a CRSF receiver with MSP support enabled in
-            the PX4 build.
+          long: MSP options require a CRSF receiver with MSP support in the PX4 build.
         type: enum
         values:
           0: Disabled
@@ -121,7 +115,7 @@ parameters:
       VTX_DEVICE:
         description:
           short: VTX device
-          long: Specific VTX device useful for workarounds and optimizations
+          long: For device-specific workarounds and optimizations.
         type: enum
         # Note: keep values in sync with msg/Vtx.msg: lower 8-bit is protocol, next 8-bit is device
         values:

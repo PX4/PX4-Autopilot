@@ -9,11 +9,7 @@ parameters:
     UAVCAN_ESC_IFACE:
       description:
         short: Which CAN interfaces to output ESC messages on.
-        long: |
-          Since ESC messages are high priority and sent at a high rate, it is
-          recommended to only enable the interfaces that are actually used.
-          Otherwise, the ESC messages will arbitrate lower priority messages and
-          starve other nodes on the bus.
+        long: Enable only interfaces in use; high-rate ESC messages will starve lower-priority nodes on unused buses.
       type: bitmask
       bit:
         0: CAN1
@@ -31,10 +27,7 @@ parameters:
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure
-        long: |
-          Number of lights to control via UAVCAN LightsCommand messages.
-          Set to 0 to disable UAVCAN light control.
-          Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the function.
+        long: Set to 0 to disable. Each light uses LGT_IDx (light_id) and LGT_FNx (function).
       type: int32
       min: 0
       max: *max_num_uavcan_lights
@@ -43,9 +36,7 @@ parameters:
     UAVCAN_LGT_ID${i}:
       description:
         short: Light ${i} ID
-        long: |
-          specifies the light_id value for light ${i} in UAVCAN LightsCommand messages.
-          This determines which physical LED responds to commands for this light slot.
+        long: light_id in LightsCommand; determines which physical LED responds.
       type: int32
       num_instances: *max_num_uavcan_lights
       instance_start: 0
@@ -55,9 +46,7 @@ parameters:
     UAVCAN_LGT_FN${i}:
       description:
         short: Light ${i} function
-        long: |
-          Function for light ${i}.
-          UAVCAN_LGT_MODE determines when the first option or second option is active Off/On.
+        long: UAVCAN_LGT_MODE determines when the first/second slot value is active.
       type: enum
       num_instances: *max_num_uavcan_lights
       instance_start: 0

@@ -6,8 +6,8 @@ parameters:
       description:
         short: Low pass filter cutoff frequency for accel
         long: |-
-          The cutoff frequency for the 2nd order butterworth filter on the primary accelerometer.
-          This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+          Cutoff frequency for the 2nd-order Butterworth filter on the primary accelerometer.
+          Controllers only, not estimators. 0 disables.
       type: float
       default: 30.0
       min: 0

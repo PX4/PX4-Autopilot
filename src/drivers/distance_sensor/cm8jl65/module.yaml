@@ -11,9 +11,7 @@ parameters:
         SENS_CM8JL65_R_0:
             description:
                 short: Distance Sensor Rotation
-                long: |
-                    Distance Sensor Rotation as MAV_SENSOR_ORIENTATION enum
-
+                long: Rotation as MAV_SENSOR_ORIENTATION enum.
             type: enum
             values:
                 25: ROTATION_DOWNWARD_FACING

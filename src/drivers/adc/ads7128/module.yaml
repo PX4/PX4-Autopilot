@@ -8,8 +8,6 @@ parameters:
       ADC_ADS7128_REFV:
         description:
             short: Applied reference Voltage.
-            long: |
-                The voltage applied to the ADS7128 board as reference
         type: float
         unit: V
         min: 2.35

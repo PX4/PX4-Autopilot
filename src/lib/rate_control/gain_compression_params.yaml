@@ -10,7 +10,7 @@ parameters:
     FW_GC_GAIN_MIN:
       description:
         short: Compression gain lower limit
-        long: The range of the compression gain is between this parameter and 1.0
+        long: "Compression gain range: [this, 1.0]."
       type: float
       default: 0.3
       min: 0.0

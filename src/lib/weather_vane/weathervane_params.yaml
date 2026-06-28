@@ -10,7 +10,6 @@ parameters:
     WV_ROLL_MIN:
       description:
         short: Minimum roll angle for weathervane yaw-rate demand
-        long: Minimum roll angle setpoint for weathervane controller to demand a yaw-rate
       type: float
       default: 1.0
       min: 0
@@ -29,7 +28,7 @@ parameters:
     WV_GAIN:
       description:
         short: Weather-vane roll angle to yawrate
-        long: The desired gain to convert roll sp into yaw rate sp.
+        long: Converts roll setpoint to yaw-rate setpoint.
       type: float
       default: 1.0
       min: 0.0

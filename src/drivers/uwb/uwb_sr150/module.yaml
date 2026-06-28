@@ -11,7 +11,7 @@ parameters:
         UWB_INIT_OFF_X:
           description:
             short: UWB sensor X offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. X offset. A Positive offset results in a Position o
+            long: Sensor X position relative to drone in NED.
           type: float
           unit: m
           decimal: 2
@@ -21,7 +21,7 @@ parameters:
         UWB_INIT_OFF_Y:
           description:
             short: UWB sensor Y offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. Y offset.
+            long: Sensor Y position relative to drone in NED.
           type: float
           unit: m
           decimal: 2
@@ -31,7 +31,7 @@ parameters:
         UWB_INIT_OFF_Z:
           description:
             short: UWB sensor Z offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. Z offset.
+            long: Sensor Z position relative to drone in NED.
           type: float
           unit: m
           decimal: 2
@@ -41,8 +41,7 @@ parameters:
         UWB_SENS_ROT:
           description:
             short: UWB sensor orientation
-            long: The orientation of the sensor relative to the forward direction of the body frame. Look up table in src/lib/conversion/rotation.h
-                  Default position is the antannaes downward facing, UWB board parallel with body frame.
+            long: "See src/lib/conversion/rotation.h. Default: antennas facing down, board parallel to body frame."
           type: enum
           values:
             0: ROTATION_NONE

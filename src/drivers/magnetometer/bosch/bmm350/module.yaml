@@ -5,8 +5,6 @@ parameters:
       BMM350_ODR:
         description:
           short: BMM350 ODR rate
-          long: |
-            Defines which ODR rate to use during data polling.
         type: enum
         values:
           0:  400 Hz
@@ -23,8 +21,6 @@ parameters:
       BMM350_AVG:
         description:
           short: BMM350 data averaging
-          long: |
-            Defines which averaging mode to use during data polling.
         type: enum
         values:
           0: No averaging
@@ -36,8 +32,7 @@ parameters:
       BMM350_DRIVE:
         description:
           short: BMM350 pad drive strength setting
-          long: |
-            This setting helps avoid signal problems like overshoot or undershoot.
+          long: Avoids pad signal overshoot/undershoot.
         type: int32
         min: 0
         max: 7

@@ -4,10 +4,8 @@ parameters:
   definitions:
     SDLOG_UTC_OFFSET:
       description:
-        short: 'UTC offset (unit: min)'
-        long: the difference in hours and minutes from Coordinated Universal Time
-          (UTC) for a your place and date. for example, In case of South Korea(UTC+09:00),
-          UTC offset is 540 min (9*60) refer to https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
+        short: UTC offset
+        long: "Local time offset from UTC. Example: UTC+09:00 (South Korea) = 540 min."
       type: int32
       default: 0
       unit: min
@@ -16,10 +14,7 @@ parameters:
     SDLOG_MODE:
       description:
         short: Logging Mode
-        long: 'Determines when to start and stop logging. By default, logging is started
-          when arming the system, and stopped when disarming. Note: The logging start/end
-          points that can be configured here only apply to SD logging. The mavlink
-          backend is started/stopped independently of these points.'
+        long: SD logging only; mavlink backend is controlled independently.
       type: enum
       values:
         0: when armed until disarm (default)
@@ -31,9 +26,8 @@ parameters:
       reboot_required: true
     SDLOG_BACKEND:
       description:
-        short: Logging Backend (integer bitmask)
-        long: 'If no logging is set the logger will not be started. Set bits true
-          to enable: 0: SD card logging 1: Mavlink logging'
+        short: Logging Backend
+        long: Logger will not start if no backends are enabled.
       type: bitmask
       bit:
         0: SD card logging
@@ -45,22 +39,13 @@ parameters:
     SDLOG_BOOT_BAT:
       description:
         short: Battery-only Logging
-        long: When enabled, logging will not start from boot if battery power is not
-          detected (e.g. powered via USB on a test bench). This prevents extraneous
-          flight logs from being created during bench testing. Note that this only
-          applies to log-from-boot modes. This has no effect on arm-based modes.
+        long: Skip log-from-boot if no battery detected (e.g. bench USB power). No effect on arm-based modes.
       type: boolean
       default: 0
     SDLOG_MISSION:
       description:
         short: Mission Log
-        long: If enabled, a small additional "mission" log file will be written to
-          the SD card. The log contains just those messages that are useful for tasks
-          like generating flight statistics and geotagging. The different modes can
-          be used to further reduce the logged data (and thus the log file size).
-          For example, choose geotagging mode to only log data required for geotagging.
-          Note that the normal/full log is still created, and contains all the data
-          in the mission log (and more).
+        long: Additional small log with mission-relevant messages (stats, geotagging). Full log always written and contains all mission log data.
       type: enum
       values:
         0: Disabled
@@ -70,33 +55,21 @@ parameters:
       reboot_required: true
     SDLOG_PROFILE:
       description:
-        short: Logging topic profile (integer bitmask)
-        long: 'This integer bitmask controls the set and rates of logged topics. The
-          default allows for general log analysis while keeping the log file size
-          reasonably small. Enabling multiple sets leads to higher bandwidth requirements
-          and larger log files. Set bits true to enable: 0 : Default set (used for
-          general log analysis) 1 : Full rate estimator (EKF2) replay topics 2 : Topics
-          for thermal calibration (high rate raw IMU and Baro sensor data) 3 : Topics
-          for system identification (high rate actuator control and IMU data) 4 :
-          Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
-          5 : Debugging topics (debug_*.msg topics, for custom code) 6 : Topics for
-          sensor comparison (low rate raw IMU, Baro and magnetometer data) 7 : Topics
-          for computer vision and collision prevention 8 : Raw FIFO high-rate IMU
-          (Gyro) 9 : Raw FIFO high-rate IMU (Accel) 10: Logging of mavlink tunnel
-          message (useful for payload communication debugging)'
+        short: Logging topic profile
+        long: Multiple profiles increase bandwidth and log size.
       type: bitmask
       bit:
         0: Default set (general log analysis)
-        1: Estimator replay (EKF2)
-        2: Thermal calibration
-        3: System identification
-        4: High rate
-        5: Debug
-        6: Sensor comparison
+        1: Estimator replay, full rate (EKF2)
+        2: Thermal calibration (high-rate raw IMU, Baro)
+        3: System identification (high-rate actuator, IMU)
+        4: High rate (RC, attitude, rates, actuators)
+        5: Debug (debug_*.msg)
+        6: Sensor comparison (low-rate raw IMU, Baro, Mag)
         7: Computer Vision and Avoidance
         8: Raw FIFO high-rate IMU (Gyro)
         9: Raw FIFO high-rate IMU (Accel)
-        10: Mavlink tunnel message logging
+        10: Mavlink tunnel message (payload comms debug)
         11: High rate sensors
       default: 1
       min: 0
@@ -105,12 +78,7 @@ parameters:
     SDLOG_MAX_SIZE:
       description:
         short: Maximum log file size
-        long: 'Maximum size of a single log file in mebibytes (1 MiB = 1024 * 1024
-          bytes). When reached, the log file is closed and a new one is started.
-          This value is also added to the cleanup threshold (see SDLOG_ROTATE) to
-          reserve headroom for the next log file. A value of 0 disables both file
-          rotation and the cleanup reservation.
-          Must stay below the FAT32 file size limit of 4 GiB.'
+        long: When reached, log file rotates. Value also added to SDLOG_ROTATE cleanup threshold as headroom. 0 disables rotation and cleanup reservation. Must not exceed FAT32 4 GiB limit.
       type: int32
       default: 1024
       min: 0
@@ -120,14 +88,8 @@ parameters:
     SDLOG_ROTATE:
       description:
         short: Maximum disk usage percentage
-        long: 'Maximum percentage of disk space that logs may occupy during operation,
-          including while writing a new log file. For example, a value of 90 means
-          at least 10% of disk is always kept free, even while writing. A value of
-          100 lets logs fill the disk completely. A value of 0 disables space-based
-          cleanup entirely. At log start, oldest logs are deleted as needed to
-          maintain this guarantee, accounting for the next file write of up to
-          SDLOG_MAX_SIZE. Cleanup always happens at log start (not boot) so logs
-          can be downloaded via FTP before deletion.'
+        long: |-
+          Limit applies even during writing. 100: fill disk; 0: disable. Cleanup at log start (not boot), accounting for SDLOG_MAX_SIZE so logs can be FTP'd before deletion.
       type: int32
       default: 90
       min: 0
@@ -136,12 +98,7 @@ parameters:
     SDLOG_DIRS_MAX:
       description:
         short: Maximum number of log directories to keep
-        long: 'If greater than 0, the oldest log directories are deleted at log
-          start to keep the total directory count at or below this value. This
-          cleanup is orthogonal to the free-space cleanup driven by SDLOG_ROTATE
-          and SDLOG_MAX_SIZE, and is useful for capping log usage by count
-          independent of available disk size (e.g. in SITL). A value of 0
-          disables this count-based cleanup.'
+        long: At log start, deletes oldest directories to stay at or below this count. Independent of SDLOG_ROTATE/SDLOG_MAX_SIZE (useful in SITL). 0 disables.
       type: int32
       default: 0
       min: 0
@@ -150,6 +107,6 @@ parameters:
     SDLOG_UUID:
       description:
         short: Log UUID
-        long: If set to 1, add an ID to the log, which uniquely identifies the vehicle
+        long: Adds a unique vehicle ID to the log.
       type: boolean
       default: 1

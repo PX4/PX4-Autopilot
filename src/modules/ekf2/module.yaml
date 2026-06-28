@@ -15,9 +15,8 @@ parameters:
     EKF2_PREDICT_US:
       description:
         short: EKF prediction period
-        long: EKF prediction period in microseconds. This should ideally be an integer
-          multiple of the IMU time delta. Actual filter update will be an integer
-          multiple of IMU update.
+        long: Should be an integer multiple of the IMU time delta; actual filter update
+          is an integer multiple of IMU update.
       type: int32
       default: 10000
       min: 1000
@@ -26,8 +25,7 @@ parameters:
     EKF2_DELAY_MAX:
       description:
         short: Maximum delay of all the aiding sensors
-        long: Defines the delay between the current time and the delayed-time horizon.
-          This value should be at least as large as the largest EKF2_XXX_DELAY parameter.
+        long: Delayed-time horizon width; must be >= the largest EKF2_XXX_DELAY parameter.
       type: float
       default: 200
       min: 0
@@ -48,8 +46,6 @@ parameters:
     EKF2_HDG_GATE:
       description:
         short: Gate size for heading fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 2.6
       min: 1.0
@@ -76,9 +72,8 @@ parameters:
     EKF2_NOAID_TOUT:
       description:
         short: Maximum inertial dead-reckoning time
-        long: Maximum lapsed time from last fusion of measurements that constrain
-          velocity drift before the EKF will report the horizontal nav solution as
-          invalid
+        long: Time since last velocity-constraining measurement before horizontal
+          nav is declared invalid.
       type: int32
       default: 5000000
       min: 500000
@@ -87,15 +82,12 @@ parameters:
     EKF2_HGT_REF:
       description:
         short: Determines the reference source of height data used by the EKF
-        long: When multiple height sources are enabled at the same time, the height
-          estimate will always converge towards the reference height source selected
-          by this parameter. The range sensor and vision options should only be used
-          when for operation over a flat surface as the local NED origin will move
-          up and down with ground level.
+        long: |-
+          Height converges to this reference source. Range and Vision require flat ground
+          (local NED origin moves with terrain).
 
-          If GPS is set as reference and EKF2_GPS_CTRL is not 0, the GPS altitude is
-          still used to initiaize the bias of the other height sensors, regardless of
-          the altitude fusion bit in EKF2_GPS_CTRL.
+          If GPS is selected and EKF2_GPS_CTRL != 0, GPS altitude initializes other height
+          sensor biases regardless of the altitude bit in EKF2_GPS_CTRL.
       type: enum
       values:
         0: Barometric pressure
@@ -169,7 +161,7 @@ parameters:
     EKF2_TAU_POS:
       description:
         short: Output predictor position time constant
-        long: Controls how tightly the output track the EKF states
+        long: Controls how tightly the output tracks EKF states.
       type: float
       default: 0.25
       min: 0.1
@@ -189,18 +181,18 @@ parameters:
     EKF2_POS_LOCK:
       description:
         short: Enable constant position fusion while on ground
-        long: When enabled, constant position fusion is enabled when the vehicle is landeded if position has been initialized but has currently no vel/pos aiding.
+        long: Fuses constant position when landed with initialized position but no
+          active vel/pos aiding.
       type: boolean
       default: 0
 
     EKF2_SENS_EN:
       description:
         short: Sensor fusion enable bitmask
-        long: Bitmask to control which sensor fusion sources are enabled.
-          Sources whose bit is cleared will be disabled.
-          Only applied while disarmed. For in-flight changes use the
-          MAVLink command VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or the
-          individual CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
+        long: |-
+          Disarmed-only; cleared bits disable the source.
+          For in-flight changes use VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE or
+          per-source CTRL params (e.g. EKF2_GPS_CTRL, EKF2_BARO_CTRL).
       type: bitmask
       bit:
         0: GNSS 0

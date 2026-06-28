@@ -5,15 +5,10 @@ parameters:
     LTEST_MODE:
       description:
         short: Landing target mode
-        long: |-
-          Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
-
-          Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
-          Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
       type: enum
       values:
-        0: Moving
-        1: Stationary
+        0: Moving (measurements not used for positioning)
+        1: Stationary (velocity w.r.t. target aids velocity est.)
       default: 0
       min: 0
       max: 1
@@ -21,8 +16,8 @@ parameters:
       description:
         short: Acceleration uncertainty
         long: |-
-          Variance of acceleration measurement used for landing target position prediction.
-          Higher values results in tighter following of the measurements and more lenient outlier rejection
+          Variance of acceleration measurement for landing target position prediction.
+          Higher = tighter measurement following, more lenient outlier rejection.
       type: float
       default: 10.0
       unit: (m/s^2)^2
@@ -33,7 +28,7 @@ parameters:
         short: Landing target measurement uncertainty
         long: |-
           Variance of the landing target measurement from the driver.
-          Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
+          Higher = less aggressive following, smoother output, fewer rejected measurements.
       type: float
       default: 0.005
       unit: tan(rad)^2
@@ -41,8 +36,7 @@ parameters:
     LTEST_POS_UNC_IN:
       description:
         short: Initial landing target position uncertainty
-        long: Initial variance of the relative landing target position in x and y
-          direction
+        long: Initial variance of relative landing target position in x and y.
       type: float
       default: 0.1
       unit: m^2
@@ -51,8 +45,7 @@ parameters:
     LTEST_VEL_UNC_IN:
       description:
         short: Initial landing target velocity uncertainty
-        long: Initial variance of the relative landing target velocity in x and y
-          directions
+        long: Initial variance of relative landing target velocity in x and y.
       type: float
       default: 0.1
       unit: (m/s)^2
@@ -61,8 +54,6 @@ parameters:
     LTEST_SCALE_X:
       description:
         short: Scale factor for sensor measurements in sensor x axis
-        long: Landing target x measurements are scaled by this factor before being
-          used
       type: float
       default: 1.0
       min: 0.01
@@ -70,8 +61,6 @@ parameters:
     LTEST_SCALE_Y:
       description:
         short: Scale factor for sensor measurements in sensor y axis
-        long: Landing target y measurements are scaled by this factor before being
-          used
       type: float
       default: 1.0
       min: 0.01

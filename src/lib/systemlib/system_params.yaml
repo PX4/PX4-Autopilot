@@ -5,8 +5,6 @@ parameters:
     SYS_AUTOSTART:
       description:
         short: Auto-start script index
-        long: CHANGING THIS VALUE REQUIRES A RESTART. Defines the auto-start script
-          used to bootstrap the system.
       type: int32
       default: 0
       reboot_required: true
@@ -15,10 +13,7 @@ parameters:
     SYS_AUTOCONFIG:
       description:
         short: Automatically configure default values
-        long: |-
-          Set to 1 to reset parameters on next system startup (setting defaults).
-          Platform-specific values are used if available.
-          RC* parameters are preserved.
+        long: Platform-specific values used if available. RC* parameters preserved.
       type: enum
       values:
         0: Keep parameters
@@ -28,13 +23,9 @@ parameters:
       description:
         short: Enable HITL/SIH mode on next boot
         long: |-
-          While enabled the system will boot in Hardware-In-The-Loop (HITL)
-          or Simulation-In-Hardware (SIH) mode and not enable all sensors and checks.
-          When disabled the same vehicle can be flown normally.
+          HITL/SIH mode disables sensors and preflight checks.
 
-          Set to 'external HITL', if the system should perform as if it were a real
-          vehicle (the only difference to a real system is then only the parameter
-          value, which can be used for log analysis).
+          -1 (external HITL): behaves as a real vehicle; only the parameter value differs (useful for log analysis).
       type: enum
       values:
         -1: external HITL
@@ -46,25 +37,14 @@ parameters:
     SYS_PARAM_VER:
       description:
         short: Parameter version
-        long: |-
-          This is used internally only: an airframe configuration might set an expected
-          parameter version value via PARAM_DEFAULTS_VER. This is checked on bootup
-          against SYS_PARAM_VER, and if they do not match, parameters are reset and
-          reloaded from the airframe configuration.
+        long: Internal use. Airframe sets expected version via PARAM_DEFAULTS_VER; mismatch on boot resets and reloads parameters from airframe config.
       type: int32
       default: 1
       min: 0
     SYS_CAL_GYRO:
       description:
         short: Auto start gyro thermal calibration on next boot
-        long: |-
-          Enable auto start of rate gyro thermal calibration at the next power up
-
-          0 : Set to 0 to do nothing
-          1 : Set to 1 to start a calibration at next boot
-          This parameter is reset to zero when the temperature calibration starts.
-
-          default (0, no calibration)
+        long: Reset to 0 automatically when calibration starts.
       type: int32
       default: 0
       min: 0
@@ -72,14 +52,7 @@ parameters:
     SYS_CAL_ACCEL:
       description:
         short: Auto start accel thermal calibration on next boot
-        long: |-
-          Enable auto start of accelerometer thermal calibration at the next power up
-
-          0 : Set to 0 to do nothing
-          1 : Set to 1 to start a calibration at next boot
-          This parameter is reset to zero when the temperature calibration starts.
-
-          default (0, no calibration)
+        long: Reset to 0 automatically when calibration starts.
       type: int32
       default: 0
       min: 0
@@ -87,14 +60,7 @@ parameters:
     SYS_CAL_BARO:
       description:
         short: Auto start baro thermal calibration on next boot
-        long: |-
-          Enable auto start of barometer thermal calibration at the next power up
-
-          0 : Set to 0 to do nothing
-          1 : Set to 1 to start a calibration at next boot
-          This parameter is reset to zero when the temperature calibration starts.
-
-          default (0, no calibration)
+        long: Reset to 0 automatically when calibration starts.
       type: int32
       default: 0
       min: 0
@@ -102,10 +68,7 @@ parameters:
     SYS_CAL_TDEL:
       description:
         short: Required temperature rise during thermal calibration
-        long: |-
-          A temperature increase greater than this value is required during calibration.
-          Calibration will complete for each sensor when the temperature increase above the starting temperature exceeds the value set by SYS_CAL_TDEL.
-          If the temperature rise is insufficient, the calibration will continue indefinitely and the board will need to be repowered to exit.
+        long: Each sensor calibrates when temperature rises this much above start. Insufficient rise causes indefinite calibration; power cycle to exit.
       type: int32
       default: 24
       unit: celcius
@@ -113,26 +76,21 @@ parameters:
     SYS_CAL_TMIN:
       description:
         short: Minimum starting temperature for thermal calibration
-        long: Temperature calibration for each sensor will ignore data if the temperature
-          is lower than the value set by SYS_CAL_TMIN.
+        long: Data below this temperature is ignored during calibration.
       type: int32
       default: 5
       unit: celcius
     SYS_CAL_TMAX:
       description:
         short: Maximum starting temperature for thermal calibration
-        long: Temperature calibration will not start if the temperature of any sensor
-          is higher than the value set by SYS_CAL_TMAX.
+        long: Calibration will not start if any sensor is above this temperature.
       type: int32
       default: 10
       unit: celcius
     SYS_HAS_GPS:
       description:
         short: Control if the vehicle has a GPS
-        long: |-
-          Disable this if the system has no GPS.
-          If disabled, the sensors hub will not process sensor_gps,
-          and GPS will not be available for the rest of the system.
+        long: When 0, sensors hub skips sensor_gps and GPS is unavailable system-wide.
       type: boolean
       default: 1
       reboot_required: true
@@ -140,12 +98,9 @@ parameters:
       description:
         short: Control if and how many GNSS receivers are required
         long: |-
-          0: No minimum receiver count required. Position divergence between two receivers
-          and loss of a GNSS receiver still produce a warning but never trigger the
-          COM_GNSSLOSS_ACT failsafe action.
-          1-N: Require the presence of N GNSS receivers for arming and during flight.
-          If the active count drops below this value in flight, COM_GNSSLOSS_ACT is triggered.
-          When set to 2, position divergence between the two receivers also triggers COM_GNSSLOSS_ACT.
+          0: no minimum; divergence/loss warn but never trigger COM_GNSSLOSS_ACT.
+          1-N: N receivers required for arming; below-count in flight triggers COM_GNSSLOSS_ACT.
+          2 also triggers COM_GNSSLOSS_ACT on position divergence between receivers.
       type: int32
       default: 0
       min: 0
@@ -154,29 +109,22 @@ parameters:
       description:
         short: Control if and how many magnetometers are expected
         long: |-
-          0: System has no magnetometer, preflight checks should pass without one.
-          1-N: Require the presence of N magnetometer sensors for check to pass.
+          0: no mag expected; preflight passes without one.
+          1-N: N magnetometers required for preflight.
       type: int32
       default: 1
       reboot_required: true
     SYS_HAS_BARO:
       description:
         short: Control if the vehicle has a barometer
-        long: |-
-          Disable this if the board has no barometer, such as some of the Omnibus
-          F4 SD variants.
-          If disabled, the preflight checks will not check for the presence of a
-          barometer.
+        long: When 0, preflight skips barometer check (e.g., Omnibus F4 SD variants without baro).
       type: boolean
       default: 1
       reboot_required: true
     SYS_HAS_NUM_ASPD:
       description:
         short: Control if the vehicle has an airspeed sensor
-        long: |-
-          Set this to 0 if the board has no airspeed sensor.
-          If set to 0, the preflight checks will not check for the presence of an
-          airspeed sensor.
+        long: When 0, preflight skips airspeed sensor check.
       type: int32
       default: 0
       min: 0
@@ -184,10 +132,7 @@ parameters:
     SYS_HAS_NUM_DIST:
       description:
         short: Number of distance sensors to check being available
-        long: |-
-          The preflight check will fail if fewer than this number of distance sensors with valid data is present.
-
-          Disable the check with 0.
+        long: Preflight fails if fewer than N sensors have valid data. 0 disables.
       type: int32
       default: 0
       min: 0
@@ -195,8 +140,7 @@ parameters:
     SYS_HAS_NUM_OF:
       description:
         short: Number of optical flow sensors required to be available
-        long: The preflight check will fail if fewer than this number of optical flow
-          sensors with valid data are present.
+        long: Preflight fails if fewer than N sensors have valid data.
       type: int32
       default: 0
       min: 0
@@ -204,11 +148,7 @@ parameters:
     SYS_FAC_CAL_MODE:
       description:
         short: Enable factory calibration mode
-        long: |-
-          If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.
-
-          Note: this is only supported on boards with a separate calibration storage
-          /fs/mtd_caldata.
+        long: Stores sensor calibrations to /fs/mtd_caldata. Only on boards with separate calibration storage.
       type: enum
       values:
         0: Disabled
@@ -219,17 +159,13 @@ parameters:
       description:
         short: Bootloader update
         long: |-
-          If enabled, update the bootloader on the next boot.
+          WARNING: do not cut power during update; recovery via JTAG required if interrupted.
 
-          WARNING: do not cut the power during an update process, otherwise you will
-          have to recover using some alternative method (e.g. JTAG).
-
-          Instructions:
           - Insert an SD card
           - Enable this parameter
-          - Reboot the board (plug the power or send a reboot command)
-          - Wait until the board comes back up (or at least 2 minutes)
-          - If it does not come back, check the file bootlog.txt on the SD card
+          - Reboot the board
+          - Wait at least 2 minutes for the board to return
+          - If it does not return, check bootlog.txt on the SD card
       type: boolean
       default: 0
       reboot_required: true
@@ -237,8 +173,7 @@ parameters:
       description:
         short: Enable failure injection
         long: |-
-          If enabled allows MAVLink INJECT_FAILURE commands.
-
-          WARNING: the failures can easily cause crashes and are to be used with caution!
+          Allows MAVLink INJECT_FAILURE commands.
+          WARNING: can easily cause crashes; use with caution.
       type: boolean
       default: 0

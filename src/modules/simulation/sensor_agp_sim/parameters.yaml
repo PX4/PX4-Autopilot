@@ -18,13 +18,10 @@ parameters:
     SIM_AGP_FAIL:
       description:
         short: AGP failure mode
-        long: |-
-          Stuck: freeze the measurement to the current location
-          Drift: add a linearly growing bias to the sensor data
       type: bitmask
       bit:
-        0: Stuck
-        1: Drift
+        0: Stuck (freeze measurement at current location)
+        1: Drift (linearly growing bias)
       default: 0
       min: 0
       max: 3

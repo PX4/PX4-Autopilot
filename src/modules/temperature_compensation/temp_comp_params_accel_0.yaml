@@ -4,97 +4,97 @@ parameters:
   definitions:
     TC_A0_ID:
       description:
-        short: ID of Accelerometer that the calibration is for
+        short: Accelerometer calibration ID
       category: System
       type: int32
       default: 0
     TC_A0_X3_0:
       description:
-        short: Accelerometer offset temperature ^3 polynomial coefficient - X axis
+        short: Accel offset temp ^3 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_A0_X3_1:
       description:
-        short: Accelerometer offset temperature ^3 polynomial coefficient - Y axis
+        short: Accel offset temp ^3 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_A0_X3_2:
       description:
-        short: Accelerometer offset temperature ^3 polynomial coefficient - Z axis
+        short: Accel offset temp ^3 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_A0_X2_0:
       description:
-        short: Accelerometer offset temperature ^2 polynomial coefficient - X axis
+        short: Accel offset temp ^2 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_A0_X2_1:
       description:
-        short: Accelerometer offset temperature ^2 polynomial coefficient - Y axis
+        short: Accel offset temp ^2 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_A0_X2_2:
       description:
-        short: Accelerometer offset temperature ^2 polynomial coefficient - Z axis
+        short: Accel offset temp ^2 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_A0_X1_0:
       description:
-        short: Accelerometer offset temperature ^1 polynomial coefficient - X axis
+        short: Accel offset temp ^1 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_A0_X1_1:
       description:
-        short: Accelerometer offset temperature ^1 polynomial coefficient - Y axis
+        short: Accel offset temp ^1 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_A0_X1_2:
       description:
-        short: Accelerometer offset temperature ^1 polynomial coefficient - Z axis
+        short: Accel offset temp ^1 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_A0_X0_0:
       description:
-        short: Accelerometer offset temperature ^0 polynomial coefficient - X axis
+        short: Accel offset temp ^0 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_A0_X0_1:
       description:
-        short: Accelerometer offset temperature ^0 polynomial coefficient - Y axis
+        short: Accel offset temp ^0 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_A0_X0_2:
       description:
-        short: Accelerometer offset temperature ^0 polynomial coefficient - Z axis
+        short: Accel offset temp ^0 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_A0_TREF:
       description:
-        short: Accelerometer calibration reference temperature
+        short: Accel calibration reference temp
       category: System
       type: float
       default: 25.0
     TC_A0_TMIN:
       description:
-        short: Accelerometer calibration minimum temperature
+        short: Accel calibration minimum temp
       category: System
       type: float
       default: 0.0
     TC_A0_TMAX:
       description:
-        short: Accelerometer calibration maximum temperature
+        short: Accel calibration maximum temp
       category: System
       type: float
       default: 100.0

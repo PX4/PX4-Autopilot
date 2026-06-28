@@ -20,7 +20,6 @@ parameters:
         UXRCE_DDS_DOM_ID:
             description:
                 short: uXRCE-DDS domain ID
-                long: uXRCE-DDS domain ID
             category: System
             type: int32
             reboot_required: true
@@ -29,10 +28,7 @@ parameters:
         UXRCE_DDS_KEY:
             description:
                 short: uXRCE-DDS session key
-                long: |
-                    uXRCE-DDS key, must be different from zero.
-                    In a single agent - multi client configuration, each client
-                    must have a unique session key.
+                long: Must be non-zero. Each client must have a unique key in multi-client setups.
             category: System
             type: int32
             reboot_required: true
@@ -41,9 +37,7 @@ parameters:
         UXRCE_DDS_PRT:
             description:
                 short: uXRCE-DDS UDP port
-                long: |
-                    If ethernet is enabled and is the selected configuration for uXRCE-DDS,
-                    the selected UDP port will be set and used.
+                long: Applies when Ethernet is the selected uXRCE-DDS interface.
             type: int32
             min: 0
             max: 65535
@@ -54,12 +48,7 @@ parameters:
         UXRCE_DDS_AG_IP:
             description:
                 short: uXRCE-DDS Agent IP address
-                long: |
-                    If ethernet is enabled and is the selected configuration for uXRCE-DDS,
-                    the selected Agent IP address will be set and used.
-                    Decimal dot notation is not supported. IP address must be provided
-                    in int32 format. For example, 192.168.1.2 is mapped to -1062731518;
-                    127.0.0.1 is mapped to 2130706433.
+                long: Ethernet uXRCE-DDS only. Must be int32 (not decimal dot notation). E.g., 192.168.1.2 = -1062731518; 127.0.0.1 = 2130706433.
             type: int32
             reboot_required: true
             default: 2130706433
@@ -68,19 +57,13 @@ parameters:
         UXRCE_DDS_PTCFG:
             description:
                 short: uXRCE-DDS participant configuration
-                long: |
-                    Set the participant configuration on the Agent's system.
-                    0: Use the default configuration.
-                    1: Restrict messages to localhost
-                       (use in combination with ROS_LOCALHOST_ONLY=1).
-                    2: Use a custom participant with the profile name "px4_participant".
             category: System
             reboot_required: true
             type: enum
             values:
                 0: Default
-                1: Localhost-only
-                2: Custom participant
+                1: Localhost-only (set ROS_LOCALHOST_ONLY=1)
+                2: Custom participant (px4_participant profile)
             min: 0
             max: 2
             default: 0
@@ -88,9 +71,7 @@ parameters:
         UXRCE_DDS_SYNCT:
             description:
                 short: Enable uXRCE-DDS timestamp synchronization
-                long: When enabled, uxrce_dds_client will synchronize the timestamps
-                    of the incoming and outgoing messages measuring the offset
-                    between the Agent OS time and the PX4 time.
+                long: Syncs message timestamps by measuring the offset between Agent OS time and PX4 time.
             type: boolean
             category: System
             reboot_required: true
@@ -99,8 +80,7 @@ parameters:
         UXRCE_DDS_SYNCC:
             description:
                 short: Enable uXRCE-DDS system clock synchronization
-                long: When enabled along with UXRCE_DDS_SYNCT, uxrce_dds_client will
-                    set the system clock using the agents UTC timestamp.
+                long: Requires UXRCE_DDS_SYNCT. Sets the system clock using the agent's UTC timestamp.
             type: boolean
             category: System
             reboot_required: true
@@ -109,9 +89,7 @@ parameters:
         UXRCE_DDS_TX_TO:
             description:
                 short: TX rate timeout configuration
-                long: |
-                    Specifies after how many seconds without sending data the DDS connection is reestablished.
-                    A value less than one disables the TX rate timeout.
+                long: Seconds without TX before reconnecting. <1 disables.
             type: int32
             category: System
             reboot_required: true
@@ -121,9 +99,7 @@ parameters:
         UXRCE_DDS_RX_TO:
             description:
                 short: RX rate timeout configuration
-                long: |
-                    Specifies after how many seconds without receiving data the DDS connection is reestablished.
-                    A value less than one disables the RX rate timeout.
+                long: Seconds without RX before reconnecting. <1 disables.
             type: int32
             category: System
             reboot_required: true
@@ -133,9 +109,7 @@ parameters:
         UXRCE_DDS_NS_IDX:
             description:
                 short: Define an index-based message namespace
-                long: |
-                    Defines an index-based namespace for DDS messages, e.g, uav_0, uav_1, up to uav_9999
-                    A value less than zero leaves the namespace empty
+                long: Namespace for DDS messages, e.g. uav_0 to uav_9999. <0 leaves namespace empty.
             type: int32
             min: -1
             max: 9999
@@ -146,9 +120,7 @@ parameters:
         UXRCE_DDS_FLCTRL:
             description:
                 short: Enable serial flow control for UXRCE interface
-                long: |
-                    This is used to enable flow control for the serial uXRCE instance.
-                    Used for reliable high bandwidth communication.
+                long: For reliable high-bandwidth serial uXRCE communication.
             type: boolean
             category: System
             reboot_required: true

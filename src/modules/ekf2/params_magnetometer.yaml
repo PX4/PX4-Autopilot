@@ -5,16 +5,11 @@ parameters:
     EKF2_MAG_TYPE:
       description:
         short: Type of magnetometer fusion
-        long: Integer controlling the type of magnetometer fusion used - magnetic
-          heading or 3-component vector. The fusion of magnetometer data as a three
-          component vector enables vehicle body fixed hard iron errors to be learned,
-          but requires a stable earth field. If set to 'Automatic' magnetic heading
-          fusion is used when on-ground and 3-axis magnetic field fusion in-flight.
-          If set to 'Magnetic heading' magnetic heading fusion is used at all times.
-          If set to 'None' the magnetometer will not be used under any circumstance.
-          If no external source of yaw is available, it is possible to use post-takeoff
-          horizontal movement combined with GNSS velocity measurements to align the yaw angle.
-          If set to 'Init' the magnetometer is only used to initalize the heading.
+        long: |-
+          3-axis fusion can learn body-fixed hard iron errors but requires a stable earth field.
+          Automatic: heading on-ground, 3-axis in-flight.
+          None: mag unused; yaw can be aligned post-takeoff via horizontal movement and GNSS velocity.
+          Init: mag used only to initialize heading.
       type: enum
       values:
         0: Automatic
@@ -36,8 +31,6 @@ parameters:
     EKF2_MAG_GATE:
       description:
         short: Gate size for magnetometer XYZ component fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 3.0
       min: 1.0
@@ -73,11 +66,8 @@ parameters:
     EKF2_DECL_TYPE:
       description:
         short: Integer bitmask controlling handling of magnetic declination
-        long: 'Set bits in the following positions to enable functions. 0 : Set to
-          true to use the declination from the geo_lookup library when the GPS position
-          becomes available, set to false to always use the EKF2_MAG_DECL value. 1
-          : Set to true to save the EKF2_MAG_DECL parameter to the value returned
-          by the EKF when the vehicle disarms.'
+        long: "0: uses EKF2_MAG_DECL when GPS unavailable. 1: updates EKF2_MAG_DECL\
+          \ from EKF on disarm."
       type: bitmask
       bit:
         0: use geo_lookup declination
@@ -89,9 +79,8 @@ parameters:
     EKF2_MAG_ACCLIM:
       description:
         short: Horizontal acceleration threshold used for heading observability check
-        long: The heading is assumed to be observable when the body acceleration is
-          greater than this parameter when a global position/velocity aiding source
-          is active.
+        long: Heading considered observable when body accel exceeds this, given active
+          global position/velocity aiding.
       type: float
       default: 0.5
       min: 0.0
@@ -101,14 +90,8 @@ parameters:
     EKF2_MAG_CHECK:
       description:
         short: Magnetic field strength test selection
-        long: 'Bitmask to set which check is used to decide whether the magnetometer
-          data is valid. If GNSS data is received, the magnetic field is compared
-          to a World Magnetic Model (WMM), otherwise an average value is used. This
-          check is useful to reject occasional hard iron disturbance. Set bits to
-          1 to enable checks. Checks enabled by the following bit positions 0 : Magnetic
-          field strength. Set tolerance using EKF2_MAG_CHK_STR 1 : Magnetic field
-          inclination. Set tolerance using EKF2_MAG_CHK_INC 2 : Wait for GNSS to find
-          the theoretical strength and inclination using the WMM'
+        long: With GNSS, compares against WMM; otherwise uses an average. Useful to
+          reject hard iron disturbance.
       type: bitmask
       bit:
         0: Strength (EKF2_MAG_CHK_STR)
@@ -142,12 +125,9 @@ parameters:
     EKF2_SYNT_MAG_Z:
       description:
         short: Enable synthetic magnetometer Z component measurement
-        long: Use for vehicles where the measured body Z magnetic field is subject
-          to strong magnetic interference. For magnetic heading fusion the magnetometer
-          Z measurement will be replaced by a synthetic value calculated using the
-          knowledge of the 3D magnetic field vector at the location of the drone.
-          Therefore, this parameter will only have an effect if the global position
-          of the drone is known. For 3D mag fusion the magnetometer Z measurement
-          will simply be ignored instead of fusing the synthetic value.
+        long: |-
+          For Z-axis magnetic interference. In heading fusion: replaces measured Z with a synthetic
+          value from the 3D field vector at the drone's location (requires known global position).
+          In 3D fusion: Z measurement is ignored rather than replaced.
       type: boolean
       default: 0

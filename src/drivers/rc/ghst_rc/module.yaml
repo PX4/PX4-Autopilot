@@ -15,8 +15,5 @@ parameters:
         RC_GHST_TEL_EN:
             description:
                 short: Ghost RC telemetry enable
-                long: |
-                    Ghost telemetry enable
-
             type: boolean
             default: [0]

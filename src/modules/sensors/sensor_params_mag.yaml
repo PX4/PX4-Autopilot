@@ -19,17 +19,8 @@ parameters:
       description:
         short: Bitfield selecting mag sides for calibration
         long: |-
-          If set to two side calibration, only the offsets are estimated, the scale
-          calibration is left unchanged. Thus an initial six side calibration is
-          recommended.
-
-          Bits:
-          ORIENTATION_TAIL_DOWN = 1
-          ORIENTATION_NOSE_DOWN = 2
-          ORIENTATION_LEFT = 4
-          ORIENTATION_RIGHT = 8
-          ORIENTATION_UPSIDE_DOWN = 16
-          ORIENTATION_RIGHTSIDE_UP = 32
+          Two-side calibration estimates offsets only (scale unchanged); initial six-side calibration recommended.
+          Bit values: tail_down=1, nose_down=2, left=4, right=8, upside_down=16, rightside_up=32.
       type: enum
       values:
         34: Two side calibration
@@ -48,16 +39,13 @@ parameters:
     SENS_MAG_AUTOROT:
       description:
         short: Automatically set external rotations
-        long: During calibration attempt to automatically determine the rotation of
-          external magnetometers.
+        long: Auto-detects external magnetometer rotation during calibration.
       type: boolean
       default: 1
     SENS_MAG_RATE:
       description:
         short: Magnetometer max rate
-        long: |-
-          Magnetometer data maximum publication rate. This is an upper bound,
-          actual magnetometer data rate is still dependent on the sensor.
+        long: Upper bound; actual rate depends on the sensor.
       type: float
       default: 15.0
       min: 1
@@ -77,10 +65,9 @@ parameters:
     SENS_MAG_AUTOCAL:
       description:
         short: Magnetometer auto calibration
-        long: Automatically initialize magnetometer calibration from bias estimate
-          if available. The estimate only captures hard-iron offsets, so a full
-          calibration is still recommended. Mainly intended for remote nodes
-          (e.g. CAN GPS units) that cannot be calibrated from a ground station.
+        long: |-
+          Auto-init calibration from bias estimate if available. Captures hard-iron offsets only;
+          full calibration still recommended. Mainly for remote nodes (e.g. CAN GPS) unreachable from a GCS.
       category: System
       type: boolean
       default: 0

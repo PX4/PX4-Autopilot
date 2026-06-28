@@ -13,8 +13,7 @@ parameters:
           GRF_RATE_CFG:
               description:
                   short: Lightware GRF lidar update rate.
-                  long: |
-                      The Lightware GRF distance sensor can increase the update rate to enable greater resolution.
+                  long: Higher rates yield greater resolution.
               type: enum
               values:
                   1: 1 Hz
@@ -32,8 +31,7 @@ parameters:
           GRF_SENS_MODEL:
               description:
                   short: GRF Sensor model
-                  long: |
-                      GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have different max distance range.
+                  long: Distinguishes GRF250 from GRF500; they have different max ranges.
               type: enum
               values:
                   0: disable

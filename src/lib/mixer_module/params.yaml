@@ -6,13 +6,11 @@ parameters:
       description:
         short: Multicopter air-mode
         long: |-
-          The air-mode enables the mixer to increase the total thrust of the multirotor
-          in order to keep attitude and rate control even at low and high throttle.
+          Increases total thrust to maintain attitude/rate control at low and high throttle.
 
-          This function should be disabled during tuning as it will help the controller
-          to diverge if the closed-loop is unstable (i.e. the vehicle is not tuned yet).
+          Disable during tuning: amplifies divergence on an unstable vehicle.
 
-          Enabling air-mode for yaw requires the use of an arming switch.
+          Yaw air-mode requires an arming switch.
       type: enum
       values:
         0: Disabled

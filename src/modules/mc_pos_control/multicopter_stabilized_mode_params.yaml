@@ -26,10 +26,8 @@ parameters:
       description:
         short: Minimum collective thrust in Stabilized mode
         long: |-
-          The value is mapped to the lowest throttle stick position in Stabilized mode.
-
-          Too low collective thrust leads to loss of roll/pitch/yaw torque control authority.
-          Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
+          Maps to lowest throttle stick in Stabilized mode.
+          Too low loses torque authority. With airmode (see MC_AIRMODE) can be 0.
       type: float
       default: 0.08
       unit: norm
@@ -40,22 +38,9 @@ parameters:
     MPC_THR_CURVE:
       description:
         short: Thrust curve mapping in Stabilized Mode
-        long: |-
-          Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
-
-          Rescale to hover thrust estimate:
-          Stick input is linearly rescaled, such that a centered throttle stick corresponds to the hover thrust estimator's output.
-
-          No rescale:
-          Directly map the stick 1:1 to the output.
-          Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
-
-          Rescale to hover thrust parameter:
-          Similar to rescaling to the hover thrust estimate, but it uses the hover thrust parameter value (see MPC_THR_HOVER) instead of estimated value.
-          With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
       type: enum
       values:
-        0: Rescale to estimate
-        1: No rescale
-        2: Rescale to parameter
+        0: Rescale to estimate (center stick = hover thrust estimate output)
+        1: No rescale (direct 1:1; useful at very low hover thrust)
+        2: Rescale to MPC_THR_HOVER (equivalent to No rescale when MPC_THR_HOVER=0.5)
       default: 0

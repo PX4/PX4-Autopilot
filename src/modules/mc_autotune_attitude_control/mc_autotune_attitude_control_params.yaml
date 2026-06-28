@@ -19,13 +19,9 @@ parameters:
       description:
         short: Controls when to apply the new gains
         long: |-
-          After the auto-tuning sequence is completed,
-          a new set of gains is available and can be applied
-          immediately or after landing.
+          New gains available after auto-tuning; apply after landing or immediately in air.
 
-          WARNING Applying the gains in air is dangerous as there is no
-          guarantee that those new gains will be able to stabilize
-          the drone properly.
+          WARNING: Gains applied in air may not stabilize the vehicle.
       type: enum
       values:
         0: Do not apply the new gains (logging only)

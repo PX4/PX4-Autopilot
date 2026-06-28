@@ -5,9 +5,7 @@ parameters:
     MIS_TAKEOFF_ALT:
       description:
         short: Default take-off altitude
-        long: |-
-          This is the relative altitude the system will take off to
-          if not otherwise specified.
+        long: Relative takeoff altitude when not specified by mission.
       type: float
       default: 2.5
       unit: m
@@ -18,8 +16,8 @@ parameters:
       description:
         short: Mission takeoff/landing required
         long: |-
-          Specifies if a mission has to contain a takeoff and/or mission landing.
-          Validity of configured takeoffs/landings is checked independently of the setting here.
+          Whether a mission must contain a takeoff and/or landing.
+          Validity of takeoffs/landings is checked independently.
       type: enum
       values:
         0: No requirements
@@ -34,9 +32,8 @@ parameters:
       description:
         short: Maximal horizontal distance from Home to first waypoint
         long: |-
-          There will be a warning message if the current waypoint is more distant than MIS_DIST_1WP from Home.
-          Has no effect on mission validity.
-          Set a value of zero or less to disable.
+          Warning if first waypoint exceeds this distance from Home.
+          No effect on mission validity. <=0 disables.
       type: float
       default: 10000
       unit: m
@@ -48,10 +45,9 @@ parameters:
       description:
         short: Enable gimbal yaw control in missions
         long: |-
-          Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
-
-          If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
-          If disabled, the vehicle will yaw towards the ROI.
+          Mount yaw control (MC and ROI items only).
+          Enabled: vehicle follows flight direction heading.
+          Disabled: vehicle yaws toward the ROI.
       type: enum
       values:
         0: Disable
@@ -63,12 +59,9 @@ parameters:
       description:
         short: Waypoint heading timeout
         long: |-
-          Time in seconds we wait on reaching target heading at a waypoint if it is forced
-
-          If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
-          waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
-          Mainly useful for VTOLs that have less yaw authority and might not reach target
-          yaw in wind. Disabled by default.
+          Time to wait for target heading at a waypoint that forces heading (e.g. VTOL forward transition).
+          >0 also skips heading check for normal waypoints.
+          Useful for VTOLs with limited yaw authority in wind. -1: disabled.
       type: float
       default: -1.0
       unit: s
@@ -90,11 +83,8 @@ parameters:
       description:
         short: Landing abort min altitude
         long: |-
-          Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
-          Then vehicle will loiter in this altitude until further command is received.
-          Used as the default when the landing mission item does not specify its own abort altitude
-          (MAV_CMD_NAV_LAND param1).
-          Only applies to fixed-wing vehicles.
+          Altitude above landing point to climb to after aborted landing; vehicle loiters there until commanded.
+          Default when MAV_CMD_NAV_LAND param1 is unset. FW only.
       type: int32
       default: 30
       unit: m
@@ -103,13 +93,9 @@ parameters:
       description:
         short: Timeout to allow the payload to execute the mission command
         long: |-
-          Ensure:
-          gripper: NAV_CMD_DO_GRIPPER
-          has released before continuing mission.
-          winch: CMD_DO_WINCH
-          has delivered before continuing mission.
-          gimbal: CMD_DO_GIMBAL_MANAGER_PITCHYAW
-          has reached the commanded orientation before beginning to take pictures.
+          Ensures payload commands complete before continuing:
+          gripper (NAV_CMD_DO_GRIPPER) releases, winch (CMD_DO_WINCH) delivers,
+          gimbal (CMD_DO_GIMBAL_MANAGER_PITCHYAW) reaches orientation.
       type: float
       default: 0.0
       unit: s

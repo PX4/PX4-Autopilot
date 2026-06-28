@@ -32,7 +32,7 @@ parameters:
     VT_TRANS_P2_DUR:
       description:
         short: Duration of front transition phase 2
-        long: Time in seconds it takes to tilt form VT_TILT_TRANS to VT_TILT_FW.
+        long: Time to tilt from VT_TILT_TRANS to VT_TILT_FW.
       type: float
       default: 0.5
       unit: s
@@ -43,7 +43,7 @@ parameters:
     VT_BT_TILT_DUR:
       description:
         short: Duration motor tilt up in backtransition
-        long: Time in seconds it takes to tilt form VT_TILT_FW to VT_TILT_MC.
+        long: Time to tilt from VT_TILT_FW to VT_TILT_MC.
       type: float
       default: 1.0
       unit: s

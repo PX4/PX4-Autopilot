@@ -5,9 +5,7 @@ parameters:
     BAT_V_OFFS_CURR:
       description:
         short: Offset in volt as seen by the ADC input of the current sensor
-        long: |-
-          This offset will be subtracted before calculating the battery
-          current based on the voltage.
+        long: Subtracted before computing battery current from voltage.
       type: float
       default: 0.0
       decimal: 8

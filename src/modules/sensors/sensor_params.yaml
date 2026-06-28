@@ -5,7 +5,7 @@ parameters:
     SENS_DPRES_OFF:
       description:
         short: Differential pressure sensor offset
-        long: The offset (zero-reading) in Pascal
+        long: Zero-reading offset in Pascal.
       category: System
       type: float
       default: 0.0
@@ -13,9 +13,7 @@ parameters:
     SENS_DPRES_REV:
       description:
         short: Reverse differential pressure sensor readings
-        long: |-
-          Reverse the raw measurements of all differential pressure sensors.
-          This can be enabled if the sensors have static and dynamic ports swapped.
+        long: Enable if static and dynamic ports are swapped.
       category: System
       type: boolean
       default: 0
@@ -23,12 +21,8 @@ parameters:
       description:
         short: Differential pressure sensor analog scaling
         long: |-
-          Pick the appropriate scaling from the datasheet.
-          this number defines the (linear) conversion from voltage
-          to Pascal (pa). For the MPXV7002DP this is 1000.
-
-          NOTE: If the sensor always registers zero, try switching
-          the static and dynamic tubes.
+          Linear voltage-to-Pascal conversion factor; see datasheet (MPXV7002DP: 1000).
+          If sensor always reads zero, swap static and dynamic tubes.
       type: float
       default: 0
 - group: Sensors
@@ -37,15 +31,8 @@ parameters:
       description:
         short: Airspeed sensor compensation model for the SDP3x
         long: |-
-          Model with Pitot
-          CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
-          CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
-          Model without Pitot (1.5 mm tubes)
-          CAL_AIR_TUBED_MM: Not used, 1.5 mm tubes assumed.
-          CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor.
-          Tube Pressure Drop
-          CAL_AIR_TUBED_MM: Diameter in mm of the pitot and tubes, must have the same diameter.
-          CAL_AIR_TUBELEN: Length of the tubes connecting the pitot to the sensor and the static + dynamic port length of the pitot.
+          Models 0,1: CAL_AIR_TUBED_MM unused (1.5 mm assumed); CAL_AIR_TUBELEN = pitot-to-sensor tube length.
+          Model 2: CAL_AIR_TUBED_MM = tube/pitot diameter (must match); CAL_AIR_TUBELEN = tube + pitot port length.
       type: enum
       values:
         0: Model with Pitot
@@ -55,7 +42,7 @@ parameters:
     CAL_AIR_TUBELEN:
       description:
         short: Airspeed sensor tube length
-        long: See the CAL_AIR_CMODEL explanation on how this parameter should be set.
+        long: See CAL_AIR_CMODEL for usage.
       type: float
       default: 0.2
       min: 0.01
@@ -64,8 +51,7 @@ parameters:
     CAL_AIR_TUBED_MM:
       description:
         short: Airspeed sensor tube diameter
-        long: Airspeed sensor tube diameter. Only used for the Tube Pressure Drop
-          Compensation
+        long: Only used for the Tube Pressure Drop model.
       type: float
       default: 1.5
       min: 1.5
@@ -74,8 +60,7 @@ parameters:
     SENS_BOARD_ROT:
       description:
         short: Board rotation
-        long: This parameter defines the rotation of the FMU board relative to the
-          platform.
+        long: Rotation of the FMU board relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -126,10 +111,7 @@ parameters:
     SENS_BOARD_Y_OFF:
       description:
         short: Board rotation Y (pitch) offset
-        long: |-
-          Rotation from flight controller board to vehicle body frame.
-          This parameter gets set during the "level horizon" calibration or can be
-          set manually.
+        long: Board-to-body rotation offset. Set during level horizon calibration or manually.
       type: float
       default: 0.0
       min: -45.0
@@ -139,10 +121,7 @@ parameters:
     SENS_BOARD_X_OFF:
       description:
         short: Board rotation X (roll) offset
-        long: |-
-          Rotation from flight controller board to vehicle body frame.
-          This parameter gets set during the "level horizon" calibration or can be
-          set manually.
+        long: Board-to-body rotation offset. Set during level horizon calibration or manually.
       type: float
       default: 0.0
       unit: deg
@@ -152,9 +131,7 @@ parameters:
     SENS_BOARD_Z_OFF:
       description:
         short: Board rotation Z (yaw) offset
-        long: |-
-          Rotation from flight controller board to vehicle body frame.
-          Has to be set manually (not set by any calibration).
+        long: Board-to-body rotation offset. Must be set manually (no calibration sets this).
       type: float
       default: 0.0
       min: -45.0
@@ -191,8 +168,7 @@ parameters:
     SENS_INT_BARO_EN:
       description:
         short: Enable internal barometers
-        long: For systems with an external barometer, this should be set to false
-          to make sure that the external is used.
+        long: Set to false when an external barometer is present.
       category: System
       type: boolean
       default: 1

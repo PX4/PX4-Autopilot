@@ -17,8 +17,7 @@ parameters:
     SC_ROLL_P:
       description:
         short: Roll P gain
-        long: Roll proportional gain, i.e. desired angular speed in rad/s for error
-          1 rad.
+        long: Desired angular speed in rad/s per 1 rad error.
       type: float
       default: 6.5
       min: 0.0
@@ -28,8 +27,7 @@ parameters:
     SC_PITCH_P:
       description:
         short: Pitch P gain
-        long: Pitch proportional gain, i.e. desired angular speed in rad/s for error
-          1 rad.
+        long: Desired angular speed in rad/s per 1 rad error.
       type: float
       default: 6.5
       min: 0.0
@@ -39,8 +37,7 @@ parameters:
     SC_YAW_P:
       description:
         short: Yaw P gain
-        long: Yaw proportional gain, i.e. desired angular speed in rad/s for error
-          1 rad.
+        long: Desired angular speed in rad/s per 1 rad error.
       type: float
       default: 2.8
       min: 0.0
@@ -50,13 +47,9 @@ parameters:
     SC_YAW_WEIGHT:
       description:
         short: Yaw weight
-        long: |-
-          A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
-          Deprioritizing yaw is necessary because multicopters have much less control authority
-          in yaw compared to the other axes and it makes sense because yaw is not critical for
-          stable hovering or 3D navigation.
-
-          For yaw control tuning use SC_YAW_P. This ratio has no impact on the yaw gain.
+        long: Fraction [0,1] deprioritizing yaw vs. roll/pitch in non-linear attitude
+          control. Yaw has less authority and is non-critical for hover/navigation.
+          No impact on SC_YAW_P gain.
       type: float
       default: 0.4
       min: 0.0
@@ -66,13 +59,8 @@ parameters:
     SC_ROLLRATE_MAX:
       description:
         short: Max roll rate
-        long: |-
-          Limit for roll rate in manual and auto modes (except acro).
-          Has effect for large rotations in autonomous mode, to avoid large control
-          output and mixer saturation.
-
-          This is not only limited by the vehicle's properties, but also by the maximum
-          measurement rate of the gyro.
+        long: Applies in manual and auto modes (except acro). Limits large autonomous
+          rotations to avoid mixer saturation. Also constrained by max gyro measurement rate.
       type: float
       default: 220.0
       unit: deg/s
@@ -83,13 +71,8 @@ parameters:
     SC_PITCHRATE_MAX:
       description:
         short: Max pitch rate
-        long: |-
-          Limit for pitch rate in manual and auto modes (except acro).
-          Has effect for large rotations in autonomous mode, to avoid large control
-          output and mixer saturation.
-
-          This is not only limited by the vehicle's properties, but also by the maximum
-          measurement rate of the gyro.
+        long: Applies in manual and auto modes (except acro). Limits large autonomous
+          rotations to avoid mixer saturation. Also constrained by max gyro measurement rate.
       type: float
       default: 220.0
       unit: deg/s
@@ -112,7 +95,7 @@ parameters:
     SC_MAN_TILT_TAU:
       description:
         short: Manual tilt input filter time constant
-        long: Setting this parameter to 0 disables the filter
+        long: "0 disables filter."
       type: float
       default: 0.0
       unit: s

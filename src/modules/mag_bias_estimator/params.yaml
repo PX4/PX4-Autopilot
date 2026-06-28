@@ -5,18 +5,14 @@ parameters:
     MBE_ENABLE:
       description:
         short: Enable online mag bias calibration
-        long: |-
-          This enables continuous calibration of the magnetometers
-          before takeoff using gyro data.
+        long: Continuous magnetometer calibration before takeoff using gyro data.
       type: boolean
       default: 1
       reboot_required: true
     MBE_LEARN_GAIN:
       description:
         short: Mag bias estimator learning gain
-        long: |-
-          Increase to make the estimator more responsive
-          Decrease to make the estimator more robust to noise
+        long: Increase for more responsiveness; decrease for more noise robustness.
       type: float
       default: 18.0
       min: 0.1

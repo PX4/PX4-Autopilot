@@ -5,17 +5,13 @@ parameters:
     EKF2_FUSE_BETA:
       description:
         short: Enable synthetic sideslip fusion
-        long: 'For reliable wind estimation both sideslip and airspeed fusion (see
-          EKF2_ARSP_THR) should be enabled. Only applies to vehicles in fixed-wing mode
-          or with airspeed fusion active. Note: side slip fusion is currently not supported
-          for tailsitters.'
+        long: For reliable wind, also enable EKF2_ARSP_THR. Fixed-wing or active airspeed
+          fusion only. Not supported for tailsitters.
       type: boolean
       default: 0
     EKF2_BETA_GATE:
       description:
         short: Gate size for synthetic sideslip fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 5.0
       min: 1.0

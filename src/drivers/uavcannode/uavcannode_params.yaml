@@ -50,9 +50,7 @@ parameters:
     CANNODE_PUB_BAR:
       description:
         short: Enable barometer publication
-        long: |-
-          Enables publication of static pressure and static temperature
-          from the barometer sensor over UAVCAN.
+        long: Publishes static pressure and temperature over UAVCAN.
       type: boolean
       default: 1
       max: 1
@@ -60,9 +58,7 @@ parameters:
     CANNODE_PUB_MAG:
       description:
         short: Enable magnetometer publication
-        long: |-
-          Enables publication of magnetic field strength
-          from the magnetometer sensor over UAVCAN.
+        long: Publishes magnetic field strength over UAVCAN.
       type: boolean
       default: 1
       max: 1
@@ -72,9 +68,8 @@ parameters:
       description:
         short: Temperature sensor device ID for pitot temperature
         long: |-
-          Device ID of the temperature sensor (HEATER*_SENS_ID) whose value
-          is published as pitot_temperature in uavcan::equipment::air_data::RawAirData.
-          Set to 0 to disable (RawAirData.pitot_temperature set to NaN).
+          Device ID (see HEATER*_SENS_ID) published as pitot_temperature in RawAirData.
+          0: disabled (NaN).
       type: int32
       default: 0
       reboot_required: true
