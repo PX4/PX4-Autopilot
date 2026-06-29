@@ -129,10 +129,8 @@ private:
 
 	///////add by naor ////////////////
 	param_t _param_pos_wait_limit{PARAM_INVALID}; ///< handle for COM_POS_WAIT_LIM parameter (seconds)
-	param_t _param_ekf_ctrl{PARAM_INVALID}; ///< handle for EKF2_IMU_CTRL parameter, used to check if EKF2 is enabled before subscribing to EV yaw
 	uint8_t _pending_nav_state{UINT8_MAX};        ///< mode waiting for position lock (UINT8_MAX = none)
 	hrt_abstime _pos_wait_start_us{0};            ///< hrt timestamp when the pending request was parked (0 = not active)
 	uORB::Publication<formic_pos_req_s> _formic_pos_req_pub{ORB_ID(formic_pos_req)}; ///< Formic position request publisher
 	uORB::Subscription _formic_ev_state_machine_sub{ORB_ID(formic_ev_state_machine)}; ///< Sub to check if EV yaw is fused (used when EKF2_IMU_CTRL has EV yaw enabled)
-	///////add by naor ////////////////
 };

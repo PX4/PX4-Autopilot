@@ -80,7 +80,7 @@ private:
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _estimator_aid_src_heading_sub{ORB_ID(estimator_aid_src_ev_yaw)};
 	uORB::Subscription _estimator_aid_src_pos_sub{ORB_ID(estimator_aid_src_ev_pos)};
-	uORB::Subscription _estimtor_odometry_sub{ORB_ID(estimator_odometry)};
+	uORB::Subscription _estimtor_odometry_sub{ORB_ID(vehicle_odometry)};
 	uORB::Subscription _formic_pos_req{ORB_ID(formic_pos_req)};  // pos req at the tick time 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 

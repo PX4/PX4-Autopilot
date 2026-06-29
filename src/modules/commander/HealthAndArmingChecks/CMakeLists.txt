@@ -68,6 +68,7 @@ px4_add_library(health_and_arming_checks
 	checks/systemCheck.cpp
 	checks/vtolCheck.cpp
 	checks/windCheck.cpp
+	checks/vioCheck.cpp
 
 	checks/externalChecks.cpp
 )

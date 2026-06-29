@@ -214,7 +214,7 @@ subscriptions:
   type: px4_msgs::msg::ActuatorMotors
 
 - topic: /fmu/in/formic_vio_features
-  type: px4_msgs:msg::FormicVioFeatures
+  type: px4_msgs::msg::FormicVioFeatures
 
 # - topic: /fmu/in/aux_global_position
 #   type: px4_msgs::msg::VehicleGlobalPosition

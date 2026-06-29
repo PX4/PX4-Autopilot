@@ -34,6 +34,22 @@ bool FormicWatchdogEv::init()
 	ScheduleOnInterval(16_ms); // Run at ~30 Hz
 	parameters_update();
 	_ev_pos_deriv_filter.setCutoffFreq(30.0f, 1.0f);
+
+	// EKF2 publishes its fused estimate to estimator_odometry only in multi-EKF mode
+	// (SENS_IMU_MODE == 0); in single-EKF mode it publishes to vehicle_odometry. Subscribe
+	// to whichever topic actually carries data so resetcounter() can read the EKF estimate.
+	int32_t sens_imu_mode = 1;
+	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
+
+	if (sens_imu_mode == 0) {
+		_estimtor_odometry_sub = uORB::Subscription{ORB_ID(estimator_odometry)};
+		PX4_INFO("multi-EKF mode: using estimator_odometry");
+
+	} else {
+		_estimtor_odometry_sub = uORB::Subscription{ORB_ID(vehicle_odometry)};
+		PX4_INFO("single-EKF mode: using vehicle_odometry");
+	}
+
 	return true;
 
 }
@@ -79,7 +95,6 @@ void FormicWatchdogEv::Run()
 	}
 
 	no_EvData(); // updates _formic_state.ev_data_arrived every cycle
-
 	update_pipeline_status(); // decide _formic_state.status from the flags set above
 
 	_formic_state.timestamp = hrt_absolute_time();
@@ -267,11 +282,6 @@ bool FormicWatchdogEv::check_EV_aid_src_heading(float vio_yaw, float estimator_y
 	const float dyaw_thr = _param_formic_wdev_dyaw.get();
 	const bool aligned = fabsf(d_yaw) <= dyaw_thr;
 	_formic_state.heading_alligned_with_ev = aligned;
-
-	// if (!at_reset_counter && fabsf(d_yaw) > dyaw_thr * 2.f) {
-	// 		PX4_INFO("Large heading difference detected (%.2f deg). Please check the EV yaw configuration and the local heading estimate.", (double)math::degrees(d_yaw));
-	// 		_formic_state.error_find = true;
-	// }
 
 	return true; // had fused EV yaw aid data this cycle
 }

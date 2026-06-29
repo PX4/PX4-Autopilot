@@ -43,7 +43,6 @@ UserModeIntention::UserModeIntention(const vehicle_status_s &vehicle_status,
 {
 	///////add by naor ////////////////
 	_param_pos_wait_limit = param_find("COM_POS_WAIT_LIM");
-	_param_ekf_ctrl = param_find("EKF2_IMU_CTRL");
 	///////add by naor ////////////////
 }
 
@@ -138,9 +137,6 @@ bool UserModeIntention::modeRequiresPosition(uint8_t nav_state) const
 void UserModeIntention::tick()
 {
 	///////add by naor ////////////////
-	int32_t ekf_ctrl = 0;
-	param_get(_param_ekf_ctrl, &ekf_ctrl);
-
 
 	if (_pending_nav_state == UINT8_MAX) {
 		return;

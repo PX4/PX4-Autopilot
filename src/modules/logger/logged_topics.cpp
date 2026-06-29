@@ -73,6 +73,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("formic_state_machine");	
 	add_topic("formic_odom");
 	add_topic("formic_vio_features");
+	add_topic("formic_pos_req");
 
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
