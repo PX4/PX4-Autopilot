@@ -2,7 +2,7 @@
 #
 # This is currently used only for logging cell status from MAVLink.
 
-uint64 timestamp  # [us] Time since system start
+uint64 timestamp	# [us] Time since system start
 
 uint16 status                            # [@enum STATUS_FLAG] Status bitmap
 uint16 STATUS_FLAG_UNKNOWN = 1           # State unknown or not reportable
@@ -32,7 +32,19 @@ uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2   # CDMA
 uint8 CELLULAR_NETWORK_RADIO_TYPE_WCDMA = 3  # WCDMA
 uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4    # LTE
 
-uint8 quality  # [dBm] Cellular network RSSI/RSRP, absolute value
+uint8 quality  # [%] [@invalid UINT8_MAX] Cellular network signal quality in percent. May be used for RSSI
 uint16 mcc     # [@invalid UINT16_MAX] Mobile country code
 uint16 mnc     # [@invalid UINT16_MAX] Mobile network code
 uint16 lac     # [@invalid 0] Location area code
+
+uint8 band_number       # [-] [@invalid 0] LTE frequency band number
+float32 band_frequency  # [MHz] [@invalid 0] LTE radio frequency
+uint32 channel_number   # [@invalid 0] Channel Number (CN), Absolute radio-frequency (ARFCN) / E-UTRA (EARFCN) / UTRA (UARFCN) / New radio (NR_CH)
+float32 rx_level        # [dBm] [@invalid 0] Receiver signal level. On 3G is Received Signal Code Power (RSCP). On LTE Reference Signal Received Power (RSRP). On 5G is New Radio Reference Signal Received Power (NR_RSRP)
+float32 tx_level        # [dBm] [@invalid 0] Transmitter signal absolute level
+float32 rx_quality      # [dBm] [@invalid 0] Received signal quality. On 3G is Receiver Quality (RxQual). On LTE is Reference Signal Received Quality (RSRQ). On 5G is New Radio Reference Signal Received Quality (NR_RSRQ)
+uint32 link_tx_rate     # [KiB/s] [@invalid 0] Download rate
+uint32 link_rx_rate     # [KiB/s] [@invalid 0] Upload rate
+uint8 id                # [-] Cellular instance number. Indexed from 1. A value of 0 indicates the sender does not support reporting of multiple modems
+char[9] cell_tower_id   # [@invalid 0] ID of the currently connected cell tower. Must be NULL terminated if the length is less than 9 human-readable characters, and without NULL termination character if the length is exactly 9 characters
+float32 sinr            # [dB] [@invalid 0] Signal to Interference plus Noise Ratio

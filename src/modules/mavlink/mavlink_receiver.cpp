@@ -2800,6 +2800,19 @@ MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
 	cellular_status.mnc = status.mnc;
 	cellular_status.lac = status.lac;
 
+	// Extension fields
+	cellular_status.id = status.id;
+	cellular_status.link_tx_rate = status.link_tx_rate;
+	cellular_status.link_rx_rate = status.link_rx_rate;
+	memcpy(&cellular_status.cell_tower_id[0], &status.cell_tower_id[0], sizeof(cellular_status.cell_tower_id));
+	cellular_status.band_number = status.band_number;
+	cellular_status.band_frequency = status.band_frequency;
+	cellular_status.channel_number = status.channel_number;
+	cellular_status.rx_level = status.rx_level;
+	cellular_status.tx_level = status.tx_level;
+	cellular_status.rx_quality = status.rx_quality;
+	cellular_status.sinr = status.sinr;
+
 	_cellular_status_pub.publish(cellular_status);
 }
 
