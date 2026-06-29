@@ -5,12 +5,12 @@
 
 choice
 	prompt "Boot Flash"
-	default PX4_FMU_V6XRT_V3_QSPI_FLASH
+	default ARKV6XRT_QSPI_FLASH
 
-config PX4_FMU_V6XRT_V3_HYPER_FLASH
+config ARKV6XRT_HYPER_FLASH
 	bool "HYPER Flash"
 
-config PX4_FMU_V6XRT_V3_QSPI_FLASH
+config ARKV6XRT_QSPI_FLASH
 	bool "QSPI Flash"
 
 endchoice # Boot Flash

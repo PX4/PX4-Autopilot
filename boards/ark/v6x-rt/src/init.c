@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * PX4 fmu-v6xrt specific early startup code.  This file implements the
+ * ARK V6X-RT specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -260,7 +260,7 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	imxrt_usb_initialize();
 
-	fmuv6xrt_timer_initialize();
+	arkv6xrt_timer_initialize();
 	VDD_3V3_ETH_POWER_EN(true);
 }
 
@@ -417,7 +417,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 #if defined(CONFIG_IMXRT_USDHC)
-	ret = fmuv6xrt_usdhc_initialize();
+	ret = arkv6xrt_usdhc_initialize();
 
 	if (ret != OK) {
 		led_on(LED_RED);
