@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/px4/fmu-v6xrt/src/imxrt_flexspi_nor_flash.c
+ * boards/ark/v6x-rt/src/imxrt_flexspi_nor_flash.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
