@@ -391,6 +391,7 @@ void AS_DT1::Run()
 			return;
 
 		case StartupState::ModeSendStop:
+
 			// Stop an old stream before changing persistent mode or baud settings.
 			if (write_command_padded(CMD_FSYNC_STOP) != PX4_OK) {
 				close_port();
