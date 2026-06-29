@@ -165,7 +165,7 @@ void SensorBaroSim::Run()
 
 			// publish
 			_px4_baro.set_temperature(temperature);
-			_px4_baro.update(hrt_absolute_time(), pressure);
+			_px4_baro.update(gpos.timestamp, pressure);
 
 			_last_update_time = gpos.timestamp;
 		}
