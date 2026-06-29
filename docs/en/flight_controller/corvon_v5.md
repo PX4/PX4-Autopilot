@@ -114,7 +114,7 @@ This flight controller supports up to 8 FMU PWM outputs (`MAIN`).
 
 The 8 outputs are in 3 groups:
 
-- Outputs 1-4 in group1 (Timer1) 
+- Outputs 1-4 in group1 (Timer1)
 - Outputs 5-6 in group2 (Timer4)
 - Outputs 7-8 in group3 (Timer12)
 

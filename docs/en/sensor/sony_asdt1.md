@@ -36,12 +36,12 @@ Connect the sensor TX/RX pins to the flight controller UART and share ground bet
 
 ![Sony AS-DT1 UART wiring](../../assets/hardware/sensors/sony_asdt1/asdt1_uart_wiring.svg)
 
-| AS-DT1 8-pin Connector | Function             | Connect To                         |
-| ---------------------- | -------------------- | ---------------------------------- |
-| Pin 1                  | GND                  | External power ground and flight controller serial GND |
-| Pin 2                  | VCC                  | External 12 V to 24 V power supply |
-| Pin 5                  | UART TX              | Flight controller serial RX        |
-| Pin 6                  | UART RX              | Flight controller serial TX        |
+| AS-DT1 8-pin Connector | Function | Connect To                                             |
+| ---------------------- | -------- | ------------------------------------------------------ |
+| Pin 1                  | GND      | External power ground and flight controller serial GND |
+| Pin 2                  | VCC      | External 12 V to 24 V power supply                     |
+| Pin 5                  | UART TX  | Flight controller serial RX                            |
+| Pin 6                  | UART RX  | Flight controller serial TX                            |
 
 The ground from AS-DT1 pin 1 must be common to both the external power supply and the flight controller serial port.
 For example, splice or split the AS-DT1 ground wire so it connects to the power supply negative terminal and to the flight controller UART `GND` pin.
@@ -66,11 +66,11 @@ Use the Sony application to set the sensor to **Measurement (UART)** mode before
 
 The driver uses the following parameters:
 
-| Parameter | Description |
-| --------- | ----------- |
-| [SENS_ASDT1_CFG](../advanced_config/parameter_reference.md#SENS_ASDT1_CFG) | Selects the serial port and enables driver autostart on boot. |
-| [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE) | Selects the AS-DT1 measurement range mode. The driver configures the sensor mode and publishes matching `obstacle_distance` metadata. |
-| [SENS_ASDT1_ROT](../advanced_config/parameter_reference.md#SENS_ASDT1_ROT) | Sets the sensor yaw offset, in degrees, relative to vehicle forward. This is published as `obstacle_distance.angle_offset`; positive values are clockwise. |
+| Parameter                                                                    | Description                                                                                                                                                |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SENS_ASDT1_CFG](../advanced_config/parameter_reference.md#SENS_ASDT1_CFG)   | Selects the serial port and enables driver autostart on boot.                                                                                              |
+| [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE) | Selects the AS-DT1 measurement range mode. The driver configures the sensor mode and publishes matching `obstacle_distance` metadata.                      |
+| [SENS_ASDT1_ROT](../advanced_config/parameter_reference.md#SENS_ASDT1_ROT)   | Sets the sensor yaw offset, in degrees, relative to vehicle forward. This is published as `obstacle_distance.angle_offset`; positive values are clockwise. |
 
 `SENS_ASDT1_MODE` and `SENS_ASDT1_ROT` may not appear until `SENS_ASDT1_CFG` is enabled and the flight controller has rebooted once.
 
