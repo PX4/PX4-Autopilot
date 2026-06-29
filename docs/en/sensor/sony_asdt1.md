@@ -18,6 +18,15 @@ The driver supports the AS-DT1 distance measurement range modes listed below.
 
 The mode is selected using [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE).
 
+## Collision Prevention Output
+
+The driver publishes the AS-DT1 data to the [`obstacle_distance`](../msg_docs/ObstacleDistance.md) uORB topic used by [Collision Prevention](../computer_vision/collision_prevention.md).
+The message uses 72 bins at 5 degree increments around the vehicle.
+
+The AS-DT1 horizontal field of view is about 35 degrees.
+The driver maps the sensor's horizontal band into the matching `obstacle_distance` bins and leaves uncovered directions as no-data.
+[SENS_ASDT1_ROT](../advanced_config/parameter_reference.md#SENS_ASDT1_ROT) sets the yaw offset of this field of view relative to vehicle forward.
+
 ## Hardware Setup
 
 The sensor can be connected to any unused _serial port_ (UART), such as `TELEM2`, `TELEM3`, or `GPS2`.

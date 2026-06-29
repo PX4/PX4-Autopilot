@@ -33,7 +33,7 @@
 
 #include "sony_asdt1.hpp"
 
-#include <px4_platform_common/cli.h>
+#include <parameters/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
@@ -108,7 +108,6 @@ the sensor for binary streaming, and publishes multipoint distance measurements.
 ### Examples
 
 $ sony_asdt1 start -d /dev/ttyS4
-$ sony_asdt1 start -d /dev/ttyS4 -R 90
 $ sony_asdt1 start -d /dev/ttyS4 -s
 $ sony_asdt1 status
 $ sony_asdt1 stop
@@ -118,7 +117,6 @@ $ sony_asdt1 stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_FLOAT('R', 0.0f, -360.0f, 360.0f, "Yaw offset in degrees, positive clockwise", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Send flshow and print response instead of starting measurements", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
@@ -136,20 +134,11 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:R:s", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:s", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
 			break;
-
-		case 'R': {
-			if (px4_get_parameter_value(myoptarg, yaw_offset_deg) != 0) {
-				PX4_ERR("yaw offset parsing failed");
-				return -1;
-			}
-
-			break;
-		}
 
 		case 's':
 			flshow_only = true;
@@ -167,6 +156,12 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
+		const param_t handle = param_find("SENS_ASDT1_ROT");
+
+		if (handle != PARAM_INVALID) {
+			(void)param_get(handle, &yaw_offset_deg);
+		}
+
 		return sony_as_dt1::start(device_path, flshow_only, yaw_offset_deg);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {

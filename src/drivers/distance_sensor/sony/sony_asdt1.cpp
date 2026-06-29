@@ -798,7 +798,7 @@ int AS_DT1::open_port()
 
 	speed_t speed = B115200;
 
-	if (_baud == 921600) {
+	if (_baud == ASDT1_DESIRED_BAUD) {
 		speed = B921600;
 	}
 
@@ -1564,11 +1564,17 @@ int AS_DT1::col_to_obstacle_bin(int col)
 	const float col_fraction = static_cast<float>(col) / static_cast<float>(ASDT1_COLS - 1);
 	const float angle_deg = LEFT_EDGE_DEG + col_fraction * HORIZONTAL_FOV_DEG;
 	// obstacle_distance is a 72-bin circle at 5 degrees per bin.
-	int bin = static_cast<int>(roundf(angle_deg / OBSTACLE_INCREMENT_DEG));
+	const float full_circle_deg = static_cast<float>(BIN_COUNT) * OBSTACLE_INCREMENT_DEG;
+	float wrapped_angle_deg = angle_deg;
 
-	while (bin < 0) {
-		bin += BIN_COUNT;
+	while (wrapped_angle_deg < 0.f) {
+		wrapped_angle_deg += full_circle_deg;
 	}
 
+	while (wrapped_angle_deg >= full_circle_deg) {
+		wrapped_angle_deg -= full_circle_deg;
+	}
+
+	const int bin = static_cast<int>(roundf(wrapped_angle_deg / OBSTACLE_INCREMENT_DEG));
 	return bin % BIN_COUNT;
 }

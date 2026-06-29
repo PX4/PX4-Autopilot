@@ -401,12 +401,6 @@ Attempt to start driver on a specified serial device.
 sony_asdt1 start -d /dev/ttyS4
 ```
 
-Start driver with the sensor mounted 90 degrees clockwise from vehicle forward.
-
-```
-sony_asdt1 start -d /dev/ttyS4 -R 90
-```
-
 Print the sensor's saved configuration without starting measurements.
 
 ```
@@ -426,8 +420,6 @@ sony_asdt1 <command> [arguments...]
  Commands:
    start         Start driver
      -d <val>    Serial device
-     [-R <val>]  Yaw offset in degrees, positive clockwise
-                 default: 0.0
      [-s]        Send flshow and print response instead of starting
                  measurements
 

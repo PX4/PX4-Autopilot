@@ -155,7 +155,7 @@ private:
 	static constexpr size_t ASDT1_BINZ_FRAME_SIZE{1440};
 	static constexpr size_t ASDT1_BINZ_SHORT_FRAME_SIZE{720};
 	static constexpr size_t ASDT1_FRAME_BUFFER_SIZE{ASDT1_BINZ_FRAME_SIZE};
-	static constexpr uint16_t MIN_VALID_DISTANCE_CM{30};
+	static constexpr uint16_t MIN_VALID_DISTANCE_CM{20};
 	static constexpr int ASDT1_COLS{24};
 	static constexpr int MIN_USED_ROW{8};
 	static constexpr int MAX_USED_ROW{15};
