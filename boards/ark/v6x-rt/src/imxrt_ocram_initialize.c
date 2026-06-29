@@ -34,7 +34,7 @@
 /**
  * @file imxrt_ocram_initialize.c
  *
- * PX4 fmu-v6xrt RAM startup early startup code.
+ * ARK V6X-RT RAM startup early startup code.
  */
 
 /****************************************************************************
