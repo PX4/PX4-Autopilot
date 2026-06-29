@@ -59,12 +59,7 @@ public:
 
 	int init();
 	void print_info();
-
-#ifdef UNIT_TEST
-public:
-#else
 private:
-#endif
 	enum class ParserState {
 		FindBegin,
 		ReadPayload,

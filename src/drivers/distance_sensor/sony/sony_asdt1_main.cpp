@@ -33,10 +33,10 @@
 
 #include "sony_asdt1.hpp"
 
+#include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-#include <cstdlib>
 #include <cstring>
 
 namespace sony_as_dt1
@@ -143,11 +143,8 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 			break;
 
 		case 'R': {
-			char *end = nullptr;
-			yaw_offset_deg = strtof(myoptarg, &end);
-
-			if (end == myoptarg || *end != '\0') {
-				PX4_ERR("invalid yaw offset: %s", myoptarg);
+			if (px4_get_parameter_value(myoptarg, yaw_offset_deg) != 0) {
+				PX4_ERR("yaw offset parsing failed");
 				return -1;
 			}
 
