@@ -1,14 +1,39 @@
 # SIH on Flight Controller Hardware
 
-SIH can run directly on flight controller hardware with `SYS_HITL=2`.
-This replaces real sensors with simulated data while running on the actual autopilot, useful for testing without propellers.
+[SIH](../sim_sih/index.md) can run directly on flight controller hardware with `SYS_AUTOSTART` set to the desired value for the frame.
+This replaces real sensors with simulated data while running on the actual autopilot.
 
 For a comparison of SIH and HITL on hardware, see [Hardware Simulation](../simulation/hardware.md).
+
+## Starting SIH
+
+1. Connect the flight controller to QGroundControl via USB.
+2. Set `SYS_AUTOSTART` parameter to the desired airframe.
+3. Reboot the flight controller.
+4. The SIH module starts automatically and provides simulated sensor data.
+
+:::tip
+To ensure there is no leftover parameter from previous setup, it is recommended to reset all the parameters to firmware's default before modifying `SYS_AUTOSTART`.
+:::
+
+The following airframes are supported.
+
+| SIH Airframe    | SYS_AUTOSTART | Status       |
+| --------------- | ---------------------------------- | ------------ |
+| Quadrotor X     | 1100                               | Stable       |
+| Airplane        | 1101                               | Experimental |
+| Tailsitter Duo  | 1102                               | Experimental |
+| 标准垂起固定翼         | 1103                               | Experimental |
+| Ackermann Rover | 1104                               | Experimental |
+| Hexacopter X    | 1105                               | Experimental |
+
+Once running, the vehicle can be controlled from QGroundControl or an RC controller.
 
 ## Firmware Builds with SIH
 
 The SIH module is included in many, but not all, default firmware builds.
-This list can change between PX4 releases. Always verify using the method in [Check if SIH is in Firmware](#check-if-sih-is-in-firmware).
+This list can change between PX4 releases.
+Always verify using the method in [Check if SIH is in Firmware](#check-if-sih-is-in-firmware).
 
 The table below lists build targets that include SIH at the time of writing:
 
@@ -73,27 +98,14 @@ You can add SIH to any board -- see [Check if SIH is in Firmware](#check-if-sih-
 
 ## Check if SIH is in Firmware
 
-SIH is included in most default firmware builds. To verify, search for `sih` in the parameter list in QGroundControl. If `SIH_*` parameters are available, the module is included.
+SIH is included in [most default firmware builds](#check-if-sih-is-in-firmware).
+To verify, search for `sih` in the parameter list in QGroundControl. If `SIH_*` parameters are available, the module is included.
 
 To add SIH to a custom build, enable it in the board configuration:
 
 ```txt
 CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
 ```
-
-## Starting SIH
-
-1. Connect the flight controller to QGroundControl via USB.
-2. Set `SYS_HITL` parameter to `2`.
-3. Reboot the flight controller.
-4. The SIH module starts automatically and provides simulated sensor data.
-
-Once running, the vehicle can be controlled from QGroundControl or an RC controller.
-
-:::warning
-To save flash memory on boards with limited storage, SIH can be built with only quadrotor support.
-Set `SIH_VEHICLE_TYPE` before building to limit included vehicle models.
-:::
 
 ## Visualization (Optional) {#hardware-visualization}
 
@@ -117,7 +129,7 @@ On macOS, this is typically `/dev/tty.usbmodem*`.
 ## Controlling Actuators
 
 :::warning
-If you want to control throttling actuators in SIH, make sure to remove propellers for safety.
+If you want to control throttle actuators in SIH, make sure to remove propellers for safety.
 :::
 
 In some scenarios, it may be useful to control an actuator while running SIH on hardware. For example, you might want to verify that winches or grippers are functioning correctly by checking the servo responses.

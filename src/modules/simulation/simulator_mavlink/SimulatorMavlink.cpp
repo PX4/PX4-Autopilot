@@ -97,6 +97,12 @@ SimulatorMavlink::SimulatorMavlink() :
 	}
 
 	_esc_status_pub.advertise();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_fiducial_marker_pos_report_pub.advertise();
+	_fiducial_marker_yaw_report_pub.advertise();
+	_target_gnss_pub.advertise();
+	_param_vte_en = param_find("VTE_EN");
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void SimulatorMavlink::parameters_update(bool force)
@@ -300,28 +306,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// baro
-	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
-
-		if (!_baro_stuck) {
-			_last_baro_pressure = sensors.abs_pressure * 100.f; // hPa to Pa
-			_last_baro_temperature = sensors.temperature;
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
+		if (sensors.id >= BARO_COUNT_MAX) {
+			PX4_ERR("Number of simulated barometer %d out of range. Max: %d", sensors.id, BARO_COUNT_MAX);
+			return;
 		}
 
-		// publish
-		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = time;
-		sensor_baro.pressure = _last_baro_pressure;
-		sensor_baro.temperature = _last_baro_temperature;
+		if (_baro_stuck[sensors.id]) {
+			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
+			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
 
-		// publish 1st baro
-		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pubs[0].publish(sensor_baro);
-
-		// publish 2nd baro
-		sensor_baro.device_id = 6620428; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pubs[1].publish(sensor_baro);
+		} else if (!_baro_blocked[sensors.id]) {
+			_last_baro_pressure[sensors.id] = sensors.abs_pressure * 100.f; // hPa to Pa
+			_last_baro_temperature[sensors.id] = sensors.temperature;
+			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
+			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
+		}
 	}
 
 	// differential pressure
@@ -342,6 +342,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		report.differential_pressure_pa = sensors.diff_pressure * 100.f * airspeed_blockage_scale; // hPa to Pa;
 		report.temperature = _sensors_temperature;
+		report.pitot_temperature = NAN;
 		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
@@ -381,6 +382,22 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_LANDING_TARGET:
 		handle_message_landing_target(msg);
 		break;
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+
+	case MAVLINK_MSG_ID_TARGET_RELATIVE:
+		handle_message_target_relative(msg);
+		break;
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+
+#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+
+	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
+		handle_message_target_absolute(msg);
+		break;
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
@@ -483,6 +500,11 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 
 			if (_sensor_gps_pubs[i] == nullptr) {
 				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
+
+				if (_sensor_gps_pubs[i] == nullptr) {
+					break;
+				}
+
 				_gps_ids[i] = hil_gps.id;
 
 				device::Device::DeviceId device_id;
@@ -658,6 +680,231 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 		_irlock_report_pub.publish(report);
 	}
 }
+
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+void
+SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
+{
+	mavlink_target_absolute_t target_absolute;
+	mavlink_msg_target_absolute_decode(msg, &target_absolute);
+
+	target_gnss_s target_GNSS_report{};
+	target_GNSS_report.timestamp = hrt_absolute_time();
+	target_GNSS_report.timestamp_sample = target_absolute.timestamp;
+
+	bool updated = false;
+
+	// Position: bit 0
+	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kPosition))) {
+		target_GNSS_report.abs_pos_updated = false;
+
+	} else {
+		target_GNSS_report.abs_pos_updated = true;
+		target_GNSS_report.latitude_deg = target_absolute.lat * 1e-7;
+		target_GNSS_report.longitude_deg = target_absolute.lon * 1e-7;
+		target_GNSS_report.altitude_msl_m = target_absolute.alt;
+		target_GNSS_report.eph = target_absolute.position_std[0];
+		target_GNSS_report.epv = target_absolute.position_std[1];
+		updated = true;
+	}
+
+	// Velocity: bit 1
+	if (!(target_absolute.sensor_capabilities & static_cast<uint8_t>(TargetAbsoluteSensorCapability::kVelocity))) {
+		target_GNSS_report.vel_ned_updated = false;
+
+	} else {
+		const matrix::Quatf q_target(target_absolute.q_target);
+		const bool target_attitude_available = (fabsf(q_target(0)) + fabsf(q_target(1)) + fabsf(q_target(2)) +
+							fabsf(q_target(3))) > FLT_EPSILON;
+
+		if (target_attitude_available) {
+			const matrix::Vector3f vel_target_body(target_absolute.vel[0], target_absolute.vel[1], target_absolute.vel[2]);
+			const matrix::Vector3f vel_target_ned = q_target.rotateVector(vel_target_body);
+
+			target_GNSS_report.vel_ned_updated = true;
+			target_GNSS_report.vel_n_m_s = vel_target_ned(0);
+			target_GNSS_report.vel_e_m_s = vel_target_ned(1);
+			target_GNSS_report.vel_d_m_s = vel_target_ned(2);
+			target_GNSS_report.s_acc_m_s = fmaxf(fabsf(target_absolute.vel_std[0]),
+							     fmaxf(fabsf(target_absolute.vel_std[1]),
+									     fabsf(target_absolute.vel_std[2])));
+			updated = true;
+
+		} else {
+			target_GNSS_report.vel_ned_updated = false;
+		}
+	}
+
+	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
+}
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+
+
+#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *msg)
+{
+	mavlink_target_relative_t target_relative;
+	mavlink_msg_target_relative_decode(msg, &target_relative);
+
+	vehicle_attitude_s	vehicle_attitude;
+	vehicle_local_position_s vehicle_local_position;
+
+	// Unsupported sensor frame
+	if (target_relative.frame != TARGET_OBS_FRAME_LOCAL_OFFSET_NED && target_relative.frame != TARGET_OBS_FRAME_LOCAL_NED &&
+	    target_relative.frame != TARGET_OBS_FRAME_BODY_FRD && target_relative.frame != TARGET_OBS_FRAME_OTHER) {
+		PX4_WARN("target relative: coordinate frame %d unsupported", (int)target_relative.frame);
+		return;
+	}
+
+	// Unsupported measurement type
+	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
+		PX4_WARN("target relative: unsupported type %d", (int)target_relative.type);
+		return;
+	}
+
+	matrix::Quatf q_sensor(target_relative.q_sensor);
+	bool attitude_available = (fabsf(q_sensor(0)) + fabsf(q_sensor(1)) + fabsf(q_sensor(2)) +
+				   fabsf(q_sensor(3))) > FLT_EPSILON;
+
+	// Check if attitude can be infered based on the frame
+	if (!attitude_available) {
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_OFFSET_NED || target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+			// Observation already in NED, set quaternion to identity (1,0,0,0)
+			q_sensor.setIdentity();
+			attitude_available = true;
+
+		} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			// Set the quaternion to the current attitude
+			const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			q_sensor = quat_att;
+			attitude_available = true;
+
+		} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
+			// Target sensor frame: OTHER and no quaternion is provided
+			PX4_WARN("target relative: coordinate frame %d unsupported when the q_sensor is not filled",
+				 (int)target_relative.frame);
+		}
+	}
+
+	// Target cannot be sent without valid attitude
+	if (!attitude_available) {
+		return;
+	}
+
+	// Forward target to the vision target estimator (VTE) or precland based VTE_EN
+	int32_t vte_enabled = 0;
+
+	if (_param_vte_en == PARAM_INVALID) {
+		if (hrt_elapsed_time(&_vte_en_invalid_warn_last) > 20_s) {
+			PX4_WARN(" Could not find VTE_EN, target_relative msg ignored.");
+			_vte_en_invalid_warn_last = hrt_absolute_time();
+		}
+
+		return;
+
+	} else {
+		param_get(_param_vte_en, &vte_enabled);
+	}
+
+	if (!vte_enabled) {
+
+		// Send the target directly to the precision landing algorithm in local NED frame
+		landing_target_pose_s landing_target_pose{};
+		landing_target_pose.timestamp = target_relative.timestamp;
+
+		// Measurement already in local NED
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+
+			landing_target_pose.x_abs = target_relative.x;
+			landing_target_pose.y_abs = target_relative.y;
+			landing_target_pose.z_abs = target_relative.z;
+			landing_target_pose.abs_pos_valid = true;
+
+			_landing_target_pose_pub.publish(landing_target_pose);
+
+		} else if (_vehicle_local_position_sub.copy(&vehicle_local_position)
+			   && vehicle_local_position.xy_valid && vehicle_local_position.z_valid) {
+
+			// If the local position is available, convert from sensor frame to local NED
+			matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
+
+			if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD || target_relative.frame == TARGET_OBS_FRAME_OTHER) {
+				// Rotate measurement into vehicle-carried NED
+				target_relative_frame = q_sensor.rotateVector(target_relative_frame);
+			}
+
+			// Convert from vehicle-carried NED to local NED
+			landing_target_pose.x_abs = target_relative_frame(0) + vehicle_local_position.x;
+			landing_target_pose.y_abs = target_relative_frame(1) + vehicle_local_position.y;
+			landing_target_pose.z_abs = target_relative_frame(2) + vehicle_local_position.z;
+			landing_target_pose.abs_pos_valid = true;
+
+			_landing_target_pose_pub.publish(landing_target_pose);
+		}
+
+	} else {
+
+		// Only supported type: LANDING_TARGET_TYPE_VISION_FIDUCIAL
+
+		// Position report
+		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
+
+		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime timestamp_sample = target_relative.timestamp;
+
+		fiducial_marker_pos_report.timestamp = now;
+		fiducial_marker_pos_report.timestamp_sample = timestamp_sample;
+		matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
+
+		// TARGET_OBS_FRAME_LOCAL_NED is absolute in local frame: convert to vehicle-relative.
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+			if (!_vehicle_local_position_sub.copy(&vehicle_local_position)
+			    || !vehicle_local_position.xy_valid || !vehicle_local_position.z_valid) {
+				return;
+			}
+
+			target_relative_frame(0) -= vehicle_local_position.x;
+			target_relative_frame(1) -= vehicle_local_position.y;
+			target_relative_frame(2) -= vehicle_local_position.z;
+		}
+
+		fiducial_marker_pos_report.rel_pos[0] = target_relative_frame(0);
+		fiducial_marker_pos_report.rel_pos[1] = target_relative_frame(1);
+		fiducial_marker_pos_report.rel_pos[2] = target_relative_frame(2);
+
+		fiducial_marker_pos_report.cov_rel_pos[0] = target_relative.pos_std[0] * target_relative.pos_std[0];
+		fiducial_marker_pos_report.cov_rel_pos[1] = target_relative.pos_std[1] * target_relative.pos_std[1];
+		fiducial_marker_pos_report.cov_rel_pos[2] = target_relative.pos_std[2] * target_relative.pos_std[2];
+
+		q_sensor.copyTo(fiducial_marker_pos_report.q);
+		_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
+
+		const matrix::Quatf q_target(target_relative.q_target);
+		const bool target_attitude_available = (fabsf(q_target(0)) + fabsf(q_target(1)) + fabsf(q_target(2)) +
+							fabsf(q_target(3))) > FLT_EPSILON;
+
+		if (target_attitude_available) {
+			// Yaw report
+			fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
+			fiducial_marker_yaw_report.timestamp = now;
+			fiducial_marker_yaw_report.timestamp_sample = timestamp_sample;
+
+			// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
+			const matrix::Quatf q_in_ned = q_sensor * q_target;
+			const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
+
+			fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
+			fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
+			_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
+		}
+	}
+
+}
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 {
@@ -1456,20 +1703,55 @@ void SimulatorMavlink::check_failure_injections()
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, baro off");
 				supported = true;
-				_baro_blocked = true;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < BARO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, baro %d off", i);
+						_baro_blocked[i] = true;
+						_baro_stuck[i] = false;
+					}
+
+				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, baro %d off", instance - 1);
+					_baro_blocked[instance - 1] = true;
+					_baro_stuck[instance - 1] = false;
+				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				PX4_WARN("CMD_INJECT_FAILURE, baro stuck");
 				supported = true;
-				_baro_stuck = true;
-				_baro_blocked = false;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < BARO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, baro %d stuck", i);
+						_baro_blocked[i] = false;
+						_baro_stuck[i] = true;
+					}
+
+				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, baro %d stuck", instance - 1);
+					_baro_blocked[instance - 1] = false;
+					_baro_stuck[instance - 1] = true;
+				}
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, baro ok");
 				supported = true;
-				_baro_blocked = false;
+
+				// 0 to signal all
+				if (instance == 0) {
+					for (int i = 0; i < BARO_COUNT_MAX; i++) {
+						PX4_WARN("CMD_INJECT_FAILURE, baro %d ok", i);
+						_baro_blocked[i] = false;
+						_baro_stuck[i] = false;
+					}
+
+				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
+					PX4_WARN("CMD_INJECT_FAILURE, baro %d ok", instance - 1);
+					_baro_blocked[instance - 1] = false;
+					_baro_stuck[instance - 1] = false;
+				}
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
@@ -1588,6 +1870,11 @@ int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *di
 
 		if (_dist_pubs[i] == nullptr) {
 			_dist_pubs[i] = new uORB::PublicationMulti<distance_sensor_s> {ORB_ID(distance_sensor)};
+
+			if (_dist_pubs[i] == nullptr) {
+				break;
+			}
+
 			_dist_sensor_ids[i] = dist.device_id;
 			_dist_pubs[i]->publish(dist);
 			break;

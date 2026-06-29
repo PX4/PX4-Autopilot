@@ -80,7 +80,6 @@ def main():
     parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
     parser.add_argument('--port', action="store", required=True, help="Comma-separated list of serial port(s) to which the FMU may be attached")
     parser.add_argument('--force', action='store_true', default=False, help='Override board type check, or silicon errata checks and continue loading')
-    parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
     parser.add_argument('--vendor-id', type=lambda x: int(x,0), default=None, help='PX4 USB vendorid')
     parser.add_argument('--product-id', type=lambda x: int(x,0), default=None, help='PX4 USB productid')
     parser.add_argument('firmware', action="store", nargs='+', help="Firmware file(s)")

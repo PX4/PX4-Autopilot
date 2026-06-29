@@ -10,10 +10,10 @@ power button state notification message.
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum | Description                            |
-| --------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64` |              |            | time since system start (microseconds) |
-| event     | `uint8`  |              |            | one of PWR*BUTTON_STATE*\*             |
+| Name                                | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_event"></a>event         | `uint8`  |              |            | one of PWR*BUTTON_STATE*\*             |
 
 ## Constants
 

@@ -119,6 +119,7 @@ FixedwingRateControl::vehicle_manual_poll()
 				_rates_sp.timestamp = hrt_absolute_time();
 				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
 				_rates_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+				_rates_sp.reset_integral = false;
 
 				_rate_sp_pub.publish(_rates_sp);
 

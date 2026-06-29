@@ -20,7 +20,7 @@ We pledge to adhere to the [PX4 code of conduct](https://github.com/PX4/PX4-Auto
 This section contains information about how you can meet with the community and contribute to PX4:
 
 - [Dev Call](../contribute/dev_call.md) - Discuss architecture, pull requests, impacting issues with the dev team
-- [Maintainers](./maintainers.md) - Maintainers of PX4 Subsystems and Ecosystem
+- [Maintainers](./maintainers.md) - Maintainer roles, types, and how to become one
 - [Support](../contribute/support.md) - Get help and raise issues
 - [Source Code Management](../contribute/code.md) - Work with PX4 code
 - [Documentation](../contribute/docs.md) - Improve the docs

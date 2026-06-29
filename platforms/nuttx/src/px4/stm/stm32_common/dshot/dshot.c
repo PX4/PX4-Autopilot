@@ -191,12 +191,10 @@ static void init_timer_config(uint32_t channel_mask)
 
 			uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
 
-			if ((timer_channel <= 0) || (timer_channel >= 5)) {
-				// invalid channel, only 1 - 4
+			if (timer_channel >= 4) {
+				// invalid channel, only 0 - 3
 				continue;
 			}
-
-			uint8_t timer_channel_index = timer_channel - 1;
 
 			if (io_timers[timer_index].dshot.dma_base == 0) {
 				// board does not configure dshot on this timer
@@ -205,7 +203,7 @@ static void init_timer_config(uint32_t channel_mask)
 
 			timer_configs[timer_index].timer_index = timer_index;
 			timer_configs[timer_index].enabled = true;
-			timer_configs[timer_index].enabled_channels[timer_channel_index] = true;
+			timer_configs[timer_index].enabled_channels[timer_channel] = true;
 
 			// TODO: bdshot per timer not on all timers
 			// Mark timer as bidirectional
@@ -275,14 +273,13 @@ static int32_t init_timer_channels(uint8_t timer_index)
 
 		uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
 
-		if ((timer_channel <= 0) || (timer_channel >= 5)) {
-			// invalid channel, only 1 - 4
+		if (timer_channel >= 4) {
+			// invalid channel, only 0 - 3
 			continue;
 		}
 
-		uint8_t timer_channel_index = timer_channel - 1;
 		bool this_timer = timer_index == timer_io_channels[output_channel].timer_index;
-		bool channel_enabled = timer_configs[timer_index].enabled_channels[timer_channel_index];
+		bool channel_enabled = timer_configs[timer_index].enabled_channels[timer_channel];
 
 		if (this_timer && channel_enabled) {
 			int ret = io_timer_channel_init(output_channel, mode, NULL, NULL);
@@ -292,7 +289,7 @@ static int32_t init_timer_channels(uint8_t timer_index)
 				continue;
 			}
 
-			timer_configs[timer_index].initialized_channels[timer_channel_index] = true;
+			timer_configs[timer_index].initialized_channels[timer_channel] = true;
 			channels_init_mask |= (1 << output_channel);
 
 			PX4_DEBUG("%sDShot initialized OutputChannel %u", timer_configs[timer_index].bidirectional ? "B" : "", output_channel);
@@ -366,10 +363,8 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 			uint8_t timer_index = timer_io_channels[output_channel].timer_index;
 			uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
 
-			if (timer_channel >= 1 && timer_channel <= 4) {
-				uint8_t timer_channel_index = timer_channel - 1;
-
-				if (io_timers[timer_index].dshot.dma_map_ch[timer_channel_index] != 0) {
+			if (timer_channel < 4) {
+				if (io_timers[timer_index].dshot.dma_map_ch[timer_channel] != 0) {
 					_bdshot_capture_supported[output_channel] = true;
 
 				} else {
@@ -509,7 +504,7 @@ static uint8_t output_channel_from_timer_channel(uint8_t timer_index, uint8_t ti
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
 
 		bool is_this_timer = timer_index == timer_io_channels[output_channel].timer_index;
-		uint8_t channel_index = timer_io_channels[output_channel].timer_channel - 1;
+		uint8_t channel_index = timer_io_channels[output_channel].timer_channel;
 
 		if (is_this_timer && (channel_index == timer_channel_index)) {
 			// We found the output channel associated with this timer channel
@@ -632,7 +627,7 @@ static void capture_complete_callback(void *arg)
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
 
 		bool is_this_timer = timer_index == timer_io_channels[output_channel].timer_index;
-		uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel - 1;
+		uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel;
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 		if (is_this_timer && channel_initialized) {
@@ -923,7 +918,7 @@ void dshot_motor_data_set(uint8_t channel, uint16_t data, bool telemetry)
 	}
 
 	uint8_t timer_index = timer_io_channels[channel].timer_index;
-	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
+	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel;
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 	if (!channel_initialized) {
@@ -999,7 +994,7 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	}
 
 	uint8_t timer_index = timer_io_channels[channel].timer_index;
-	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
+	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel;
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 	if (channel_initialized && _erpms[channel].ready) {

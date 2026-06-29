@@ -43,6 +43,7 @@
 #include <float.h>
 
 #include "rtl_direct.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 #include <px4_platform_common/events.h>
 
@@ -373,7 +374,7 @@ void RtlDirect::set_rtl_item()
 	reset_mission_item_reached();
 
 	// Execute command if set. This is required for commands like VTOL transition.
-	if (!MissionBlock::item_contains_position(_mission_item)) {
+	if (!mission_item_contains_position(_mission_item)) {
 		issue_command(_mission_item);
 
 	} else {
@@ -592,7 +593,7 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 	navigator_mission_item.yaw = _mission_item.yaw;
 
 	navigator_mission_item.frame = _mission_item.frame;
-	navigator_mission_item.frame = _mission_item.origin;
+	navigator_mission_item.origin = _mission_item.origin;
 
 	navigator_mission_item.loiter_exit_xtrack = _mission_item.loiter_exit_xtrack;
 	navigator_mission_item.force_heading = _mission_item.force_heading;

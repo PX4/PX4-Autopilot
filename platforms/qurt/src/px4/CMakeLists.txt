@@ -40,6 +40,7 @@ set(QURT_LAYER_SRCS
 	main.cpp
 	qurt_log.cpp
 	SerialImpl.cpp
+	px4_i2c.cpp
 	)
 
 add_library(px4_layer
@@ -48,3 +49,4 @@ add_library(px4_layer
 
 target_link_libraries(px4_layer PRIVATE work_queue)
 target_link_libraries(px4_layer PRIVATE drivers_board)
+target_link_libraries(px4_layer PRIVATE drivers__device)

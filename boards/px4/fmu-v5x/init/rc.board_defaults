@@ -12,6 +12,10 @@ then
 
 	# The buzzer draws too much power (0.2A) on the GPS power rail (limit 0.45A).
 	param set-default CBRK_BUZZER 782097
+
+	# Single EKF: Skynode too loaded for the F7-default 3x Multi-EKF
+	param set-default -s EKF2_MULTI_IMU 0
+	param set-default SENS_IMU_MODE 1
 else
 	# Mavlink ethernet (CFG 1000)
 	param set-default MAV_2_CONFIG 1000

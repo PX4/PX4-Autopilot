@@ -8,22 +8,22 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name               | Type         | Unit [Frame] | Range/Enum | Description                                   |
-| ------------------ | ------------ | ------------ | ---------- | --------------------------------------------- |
-| timestamp          | `uint64`     |              |            | time since system start (microseconds)        |
-| voltage5v_v        | `float32`    |              |            | peripheral 5V rail voltage                    |
-| voltage_payload_v  | `float32`    |              |            | payload rail voltage                          |
-| sensors3v3         | `float32[4]` |              |            | Sensors 3V3 rail voltage                      |
-| sensors3v3_valid   | `uint8`      |              |            | Sensors 3V3 rail voltage was read (bitfield). |
-| usb_connected      | `uint8`      |              |            | USB is connected when 1                       |
-| brick_valid        | `uint8`      |              |            | brick bits power is good when bit 1           |
-| usb_valid          | `uint8`      |              |            | USB is valid when 1                           |
-| servo_valid        | `uint8`      |              |            | servo power is good when 1                    |
-| periph_5v_oc       | `uint8`      |              |            | peripheral overcurrent when 1                 |
-| hipower_5v_oc      | `uint8`      |              |            | high power peripheral overcurrent when 1      |
-| comp_5v_valid      | `uint8`      |              |            | 5V to companion valid                         |
-| can1_gps1_5v_valid | `uint8`      |              |            | 5V for CAN1/GPS1 valid                        |
-| payload_v_valid    | `uint8`      |              |            | payload rail voltage is valid                 |
+| Name                                                  | Type         | Unit [Frame] | Range/Enum | Description                                   |
+| ----------------------------------------------------- | ------------ | ------------ | ---------- | --------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                   | `uint64`     |              |            | time since system start (microseconds)        |
+| <a id="fld_voltage5v_v"></a>voltage5v_v               | `float32`    |              |            | peripheral 5V rail voltage                    |
+| <a id="fld_voltage_payload_v"></a>voltage_payload_v   | `float32`    |              |            | payload rail voltage                          |
+| <a id="fld_sensors3v3"></a>sensors3v3                 | `float32[4]` |              |            | Sensors 3V3 rail voltage                      |
+| <a id="fld_sensors3v3_valid"></a>sensors3v3_valid     | `uint8`      |              |            | Sensors 3V3 rail voltage was read (bitfield). |
+| <a id="fld_usb_connected"></a>usb_connected           | `uint8`      |              |            | USB is connected when 1                       |
+| <a id="fld_brick_valid"></a>brick_valid               | `uint8`      |              |            | brick bits power is good when bit 1           |
+| <a id="fld_usb_valid"></a>usb_valid                   | `uint8`      |              |            | USB is valid when 1                           |
+| <a id="fld_servo_valid"></a>servo_valid               | `uint8`      |              |            | servo power is good when 1                    |
+| <a id="fld_periph_5v_oc"></a>periph_5v_oc             | `uint8`      |              |            | peripheral overcurrent when 1                 |
+| <a id="fld_hipower_5v_oc"></a>hipower_5v_oc           | `uint8`      |              |            | high power peripheral overcurrent when 1      |
+| <a id="fld_comp_5v_valid"></a>comp_5v_valid           | `uint8`      |              |            | 5V to companion valid                         |
+| <a id="fld_can1_gps1_5v_valid"></a>can1_gps1_5v_valid | `uint8`      |              |            | 5V for CAN1/GPS1 valid                        |
+| <a id="fld_payload_v_valid"></a>payload_v_valid       | `uint8`      |              |            | payload rail voltage is valid                 |
 
 ## Constants
 

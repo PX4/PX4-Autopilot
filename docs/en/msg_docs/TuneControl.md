@@ -10,15 +10,15 @@ This message is used to control the tunes, when the tune_id is set to CUSTOM. th
 
 ## Fields
 
-| Name          | Type     | Unit [Frame] | Range/Enum | Description                                                                       |
-| ------------- | -------- | ------------ | ---------- | --------------------------------------------------------------------------------- |
-| timestamp     | `uint64` |              |            | time since system start (microseconds)                                            |
-| tune_id       | `uint8`  |              |            | tune_id corresponding to TuneID::\* from the tune_defaults.h in the tunes library |
-| tune_override | `bool`   |              |            | if true the tune which is playing will be stopped and the new started             |
-| frequency     | `uint16` |              |            | in Hz                                                                             |
-| duration      | `uint32` |              |            | in us                                                                             |
-| silence       | `uint32` |              |            | in us                                                                             |
-| volume        | `uint8`  |              |            | value between 0-100 if supported by backend                                       |
+| Name                                        | Type     | Unit [Frame] | Range/Enum | Description                                                                       |
+| ------------------------------------------- | -------- | ------------ | ---------- | --------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp         | `uint64` |              |            | time since system start (microseconds)                                            |
+| <a id="fld_tune_id"></a>tune_id             | `uint8`  |              |            | tune_id corresponding to TuneID::\* from the tune_defaults.h in the tunes library |
+| <a id="fld_tune_override"></a>tune_override | `bool`   |              |            | if true the tune which is playing will be stopped and the new started             |
+| <a id="fld_frequency"></a>frequency         | `uint16` |              |            | in Hz                                                                             |
+| <a id="fld_duration"></a>duration           | `uint32` |              |            | in us                                                                             |
+| <a id="fld_silence"></a>silence             | `uint32` |              |            | in us                                                                             |
+| <a id="fld_volume"></a>volume               | `uint8`  |              |            | value between 0-100 if supported by backend                                       |
 
 ## Constants
 

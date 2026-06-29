@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@
 #include "checks/airspeedCheck.hpp"
 #include "checks/armPermissionCheck.hpp"
 #include "checks/baroCheck.hpp"
+#include "checks/companionComputerCheck.hpp"
 #include "checks/cpuResourceCheck.hpp"
 #include "checks/distanceSensorChecks.hpp"
 #include "checks/opticalFlowCheck.hpp"
@@ -75,6 +76,7 @@
 #include "checks/openDroneIDCheck.hpp"
 #include "checks/trafficAvoidanceCheck.hpp"
 #include "checks/externalChecks.hpp"
+#include "checks/gnssRedundancyCheck.hpp"
 
 class HealthAndArmingChecks : public ModuleParams
 {
@@ -134,6 +136,7 @@ private:
 	AirspeedChecks _airspeed_checks;
 	ArmPermissionChecks _arm_permission_checks;
 	BaroChecks _baro_checks;
+	CompanionComputerChecks _companion_computer_checks;
 	CpuResourceChecks _cpu_resource_checks;
 	DistanceSensorChecks _distance_sensor_checks;
 	OpticalFlowCheck _optical_flow_check;
@@ -164,11 +167,12 @@ private:
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
 	TrafficAvoidanceChecks _traffic_avoidance_checks;
+	GnssRedundancyChecks _gnss_redundancy_checks;
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks _external_checks;
 #endif
 
-	HealthAndArmingCheckBase *_checks[41] = {
+	HealthAndArmingCheckBase *_checks[42] = {
 #ifndef CONSTRAINED_FLASH
 		&_external_checks,
 #endif
@@ -176,6 +180,7 @@ private:
 		&_airspeed_checks,
 		&_arm_permission_checks,
 		&_baro_checks,
+		&_companion_computer_checks,
 		&_cpu_resource_checks,
 		&_distance_sensor_checks,
 		&_optical_flow_check,
@@ -206,5 +211,6 @@ private:
 		&_rc_and_data_link_checks,
 		&_vtol_checks,
 		&_traffic_avoidance_checks,
+		&_gnss_redundancy_checks,
 	};
 };

@@ -82,6 +82,8 @@ class JsonOutput():
 
                     if param.GetVolatile():
                         curr_param['volatile'] = True
+                    if param.GetReadonly():
+                        curr_param['readOnly'] = True
 
                     last_param_name = param.GetName()
                     for code in param.GetFieldCodes():

@@ -202,6 +202,15 @@ extern void stm32_spiinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
+/* Sets EEPROM manifest based on chip size. */
+extern void board_set_eeprom_manifest(bool small_eeprom);
+
+/* Initialise the FRAM MTD and update the manifest. Returns OK on success. */
+extern int board_configure_fram(void);
+
+/* Initialise the NOR flash MTD and update the manifest. Returns OK on success. */
+extern int board_configure_nor(void);
+
 #include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */

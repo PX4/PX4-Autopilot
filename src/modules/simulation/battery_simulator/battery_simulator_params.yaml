@@ -2,22 +2,14 @@ module_name: battery_simulator
 parameters:
 - group: SITL
   definitions:
-    SIM_BAT_ENABLE:
-      description:
-        short: Simulator Battery enabled
-        long: |-
-          Enable or disable the internal battery simulation. This is useful
-          when the battery is simulated externally and interfaced with PX4
-          through MAVLink for example.
-      type: boolean
-      default: 1
     SIM_BAT_DRAIN:
       description:
-        short: Simulator Battery drain interval
+        short: Simulated battery full-discharge time
+        long: |-
+          Time in seconds for the simulated battery to drain from 100% to 0% while armed. Set to 0 to disable the battery simulator entirely (useful when battery state is provided externally, e.g. via MAVLink).
       type: float
       default: 60
-      min: 1
-      max: 86400
+      min: 0
       increment: 1
       unit: s
     SIM_BAT_MIN_PCT:

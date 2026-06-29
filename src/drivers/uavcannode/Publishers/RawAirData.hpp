@@ -33,13 +33,18 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "UavcanPublisherBase.hpp"
 
 #include <uavcan/equipment/air_data/RawAirData.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/heater_status.h>
 #include <lib/atmosphere/atmosphere.h>
+#include <lib/parameters/param.h>
 
 namespace uavcannode
 {
@@ -56,6 +61,11 @@ public:
 		uavcan::Publisher<uavcan::equipment::air_data::RawAirData>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
+		param_t h = param_find("CANNODE_PT_SENS");
+
+		if (h != PARAM_INVALID) {
+			param_get(h, &_heater_sensor_id);
+		}
 	}
 
 	void PrintInfo() override
@@ -70,18 +80,39 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
+		_heater_sensor_temp_current_k = NAN;
+
+		if (_heater_sensor_id > 0) {
+			for (auto &heater_sub : _heater_subs) {
+				heater_status_s heater_status{};
+
+				if (heater_sub.update(&heater_status) && (heater_status.device_id == (uint32_t)_heater_sensor_id)) {
+					_heater_sensor_temp_current_k = heater_status.temperature_sensor - atmosphere::kAbsoluteNullCelsius;
+					break;
+				}
+			}
+		}
+
+		if (PX4_ISFINITE(_heater_sensor_temp_current_k)) {
+			_heater_sensor_temp_last_k = _heater_sensor_temp_current_k;
+			_heater_sensor_temp_last_update_time = hrt_absolute_time();
+
+		} else if (hrt_elapsed_time(&_heater_sensor_temp_last_update_time) < 500_ms) {
+			_heater_sensor_temp_current_k = _heater_sensor_temp_last_k;
+		}
+
 		// differential_pressure -> uavcan::equipment::air_data::RawAirData
 		differential_pressure_s diff_press;
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&diff_press)) {
 			uavcan::equipment::air_data::RawAirData raw_air_data{};
 
-			// raw_air_data.static_pressure =
+			raw_air_data.static_pressure = NAN;
+			raw_air_data.static_pressure_sensor_temperature = NAN;
 			raw_air_data.differential_pressure = diff_press.differential_pressure_pa;
-			// raw_air_data.static_pressure_sensor_temperature =
 			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - atmosphere::kAbsoluteNullCelsius;
 			raw_air_data.static_air_temperature = diff_press.temperature - atmosphere::kAbsoluteNullCelsius;
-			// raw_air_data.pitot_temperature
+			raw_air_data.pitot_temperature = _heater_sensor_temp_current_k;
 			// raw_air_data.covariance
 			uavcan::Publisher<uavcan::equipment::air_data::RawAirData>::broadcast(raw_air_data);
 
@@ -89,5 +120,13 @@ public:
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
 	}
+
+private:
+
+	uORB::SubscriptionMultiArray<heater_status_s> _heater_subs{ORB_ID::heater_status};
+	int32_t _heater_sensor_id{0};
+	float _heater_sensor_temp_current_k{NAN};
+	float _heater_sensor_temp_last_k{NAN};
+	hrt_abstime _heater_sensor_temp_last_update_time{0};
 };
 } // namespace uavcannode

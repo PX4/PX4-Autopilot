@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name        | Type     | Unit [Frame] | Range/Enum | Description                            |
-| ----------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp   | `uint64` |              |            | time since system start (microseconds) |
-| geofence_id | `uint32` |              |            | loaded geofence id                     |
-| status      | `uint8`  |              |            | Current geofence status                |
+| Name                                    | Type     | Unit [Frame] | Range/Enum | Description                            |
+| --------------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp     | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_geofence_id"></a>geofence_id | `uint32` |              |            | loaded geofence id                     |
+| <a id="fld_status"></a>status           | `uint8`  |              |            | Current geofence status                |
 
 ## Constants
 

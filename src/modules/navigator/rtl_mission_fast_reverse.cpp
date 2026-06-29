@@ -40,6 +40,7 @@
  */
 
 #include "rtl_mission_fast_reverse.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_hrt.h>
@@ -87,7 +88,7 @@ void RtlMissionFastReverse::on_activation()
 
 		} else {
 			// No prior position items, so try to go to the first one.
-			_is_current_planned_mission_item_valid = (goToNextPositionItem(false) == PX4_OK);
+			_is_current_planned_mission_item_valid = (goToNextPositionItem() == PX4_OK);
 		}
 	}
 
@@ -107,7 +108,7 @@ void RtlMissionFastReverse::on_active()
 
 bool RtlMissionFastReverse::setNextMissionItem()
 {
-	return (goToPreviousPositionItem(true) == PX4_OK);
+	return (goToPreviousPositionItem() == PX4_OK);
 }
 
 void RtlMissionFastReverse::setActiveMissionItems()
@@ -127,7 +128,7 @@ void RtlMissionFastReverse::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
-	} else if (item_contains_position(_mission_item)) {
+	} else if (mission_item_contains_position(_mission_item)) {
 		int32_t next_mission_item_index;
 		size_t num_found_items = 0;
 		getPreviousPositionItems(_mission.current_seq, &next_mission_item_index, num_found_items, 1u);

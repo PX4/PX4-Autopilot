@@ -374,11 +374,22 @@ extern int neopixel_write(neopixel::NeoLEDData *led_data, int number_of_packages
 
 	// Set up the DMA Operations
 
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+	struct stm32_dma_config_s dma_cfg;
+	dma_cfg.paddr = _TIM_REG(STM32_GTIM_DMAR_OFFSET);
+	dma_cfg.maddr = (uint32_t) bits;
+	dma_cfg.cfg1 = SLED_DMA_SCR;
+	dma_cfg.cfg2 = 0;
+	dma_cfg.ndata = arraySize(bits);
+	stm32_dmasetup(dma_handle, &dma_cfg);
+#else
 	stm32_dmasetup(dma_handle,
 		       _TIM_REG(STM32_GTIM_DMAR_OFFSET),
 		       (uint32_t) bits,
 		       arraySize(bits),
 		       SLED_DMA_SCR);
+#endif
+
 
 	// atomic operations
 	irqstate_t flags = px4_enter_critical_section();

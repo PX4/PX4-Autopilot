@@ -3,7 +3,14 @@
 # Please only modify if you know what you are doing
 set -e
 
-echo "### :clock1: Build Times" >> $GITHUB_STEP_SUMMARY
+# NuttX .o/.a live in the shared submodule trees, not per-board build dirs.
+# Wipe them between boards so stale objects from a prior board's defconfig
+# don't get linked into the next board's elf.
+clean_nuttx_state() {
+    git -C platforms/nuttx/NuttX/nuttx clean -dXf -q
+    git -C platforms/nuttx/NuttX/apps  clean -dXf -q
+}
+
 targets=$1
 for target in ${targets//,/ }
 do
@@ -14,6 +21,6 @@ do
     diff=$(($stop-$start))
     build_time="$(($diff /60/60))h $(($diff /60))m $(($diff % 60))s elapsed"
     echo -e "\033[0;32mBuild Time: [$build_time]"
-    echo "* **$target** - $build_time" >> $GITHUB_STEP_SUMMARY
     echo "::endgroup::"
+    clean_nuttx_state
 done

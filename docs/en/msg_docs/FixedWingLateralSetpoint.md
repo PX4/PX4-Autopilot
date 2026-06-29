@@ -13,12 +13,12 @@ At least one of course, airspeed_direction, or lateral_acceleration must be fini
 
 ## Fields
 
-| Name                 | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                                                                     |
-| -------------------- | --------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp            | `uint64`  | us           |            | Time since system start                                                                                                                                                                         |
-| course               | `float32` | rad          | [-pi : pi] | Desired direction of travel over ground w.r.t (true) North. NAN if not controlled directly.                                                                                                     |
-| airspeed_direction   | `float32` | rad          | [-pi : pi] | Desired horizontal angle of airspeed vector w.r.t. (true) North. Same as vehicle heading if in the absence of sideslip. NAN if not controlled directly, takes precedence over course if finite. |
-| lateral_acceleration | `float32` | m/s^2 [FRD]  |            | Lateral acceleration setpoint. NAN if not controlled directly, used as feedforward if either course setpoint or airspeed_direction is finite.                                                   |
+| Name                                                      | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                                                                     |
+| --------------------------------------------------------- | --------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                       | `uint64`  | us           |            | Time since system start                                                                                                                                                                         |
+| <a id="fld_course"></a>course                             | `float32` | rad          | [-pi : pi] | Desired direction of travel over ground w.r.t (true) North. NAN if not controlled directly.                                                                                                     |
+| <a id="fld_airspeed_direction"></a>airspeed_direction     | `float32` | rad          | [-pi : pi] | Desired horizontal angle of airspeed vector w.r.t. (true) North. Same as vehicle heading if in the absence of sideslip. NAN if not controlled directly, takes precedence over course if finite. |
+| <a id="fld_lateral_acceleration"></a>lateral_acceleration | `float32` | m/s^2 [FRD]  |            | Lateral acceleration setpoint. NAN if not controlled directly, used as feedforward if either course setpoint or airspeed_direction is finite.                                                   |
 
 ## Constants
 

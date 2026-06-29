@@ -65,7 +65,7 @@ The derivative term (**D**) is on the feedback path in order to avoid an effect 
 더 자세한 정보는 다음을 참고하십시오.
 
 - [Not all PID controllers are the same](https://www.controleng.com/not-all-pid-controllers-are-the-same/) (www.controleng.com)
-- [PID controller > Standard versus parallel (ideal) PID form](https://en.wikipedia.org/wiki/PID_controller#Standard_versus_parallel_\(ideal\)_form) (Wikipedia)
+- [PID controller > Standard versus parallel (ideal) PID form](https://en.wikipedia.org/wiki/PID_controller#Standard_versus_parallel_(ideal)_form) (Wikipedia)
 
 :::
 
@@ -240,7 +240,7 @@ _normalized_value = ( raw_value - min (raw_value) ) / ( max ( raw_value ) - min 
 
 정규화된 값의 산점도를 얻은 후 방정식을 플로팅하여 곡선을 일치시킬 수 있습니다.
 
-_rel_thrust = ( `THR_MDL_FAC` ) _ rel_signal^2 + ( 1 - `THR_MDL_FAC` ) \* rel_signal\*
+_rel_thrust = ( `THR_MDL_FAC` ) _ re&#x6C;_&#x73;ignal^2 + ( 1 - `THR_MDL_FAC` ) \* re&#x6C;_&#x73;ignal\*
 
 0과 1 사이의 정규화된 모터 명령 값의 선형 범위.
 Note that this is the equation that is used in the firmware to map thrust and motor command, as shown in the [THR_MDL_FAC](../advanced_config/parameter_reference.md#THR_MDL_FAC) parameter reference.

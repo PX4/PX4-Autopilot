@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                            | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| -------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                        | `uint64` |                                                                  |            | time since system start (microseconds) |
-| geofence_id | `uint32` |                                                                  |            | loaded geofence id                                        |
-| status                           | `uint8`  |                                                                  |            | Current geofence status                                   |
+| Назва                                                        | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                          | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_geofence_id"></a>geofence_id | `uint32` |                                                                  |            | loaded geofence id                                        |
+| <a id="fld_status"></a>status                                | `uint8`  |                                                                  |            | Current geofence status                                   |
 
 ## Constants
 

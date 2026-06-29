@@ -10,10 +10,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭        | 형식       | Unit [Frame] | Range/Enum | 설명                              |
-| --------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------- |
-| timestamp | `uint64` |                                                                  |            |                                 |
-| command   | `int8`   |                                                                  |            | Commanded state for the gripper |
+| 명칭                                  | 형식       | Unit [Frame] | Range/Enum | 설명                              |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            |                                 |
+| <a id="fld_command"></a>command     | `int8`   |                                                                  |            | Commanded state for the gripper |
 
 ## Constants
 

@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                                | 类型           | Unit [Frame] | Range/Enum | 描述                                                        |
-| ---------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                          | `uint64`     |                                                                  |            | time since system start (microseconds) |
-| control_power | `float32[3]` |                                                                  |            |                                                           |
+| 参数名                                                              | 类型           | Unit [Frame] | Range/Enum | 描述                                                        |
+| ---------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                              | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_control_power"></a>control_power | `float32[3]` |                                                                  |            |                                                           |
 
 ## Source Message
 

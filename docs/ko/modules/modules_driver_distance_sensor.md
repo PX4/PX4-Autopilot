@@ -29,8 +29,6 @@ afbrs50 <command> [arguments...]
  Commands:
    start         Start driver
      -d <val>    Serial device
-     [-r <val>]  Sensor rotation - downward facing by default
-                 default: 25
 
    stop          Stop driver
 ```

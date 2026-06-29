@@ -45,8 +45,8 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 {
 	if (PX4_ISFINITE(tas_meas) && PX4_ISFINITE(tas_variance)) {
 
-		constexpr float initial_heading_var = sq(math::radians(INITIAL_HEADING_ERROR_DEG));
-		constexpr float initial_sideslip_var = sq(math::radians(INITIAL_BETA_ERROR_DEG));
+		constexpr float initial_heading_var = sq(math::radians(kInitialHeadingErrorDeg));
+		constexpr float initial_sideslip_var = sq(math::radians(kInitialBetaErrorDeg));
 
 		matrix::SquareMatrix<float, 2> P_wind_init;
 		matrix::Vector2f wind_init;
@@ -64,7 +64,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 		_state.setZero();
 		_state(INDEX_TAS_SCALE) = 1.0f;
 		_P.setZero();
-		_P(INDEX_W_N, INDEX_W_N) = _P(INDEX_W_E, INDEX_W_E) = sq(INITIAL_WIND_ERROR);
+		_P(INDEX_W_N, INDEX_W_N) = _P(INDEX_W_E, INDEX_W_E) = sq(kInitialWindError);
 	}
 
 	_wind_estimator_reset = true;
@@ -95,14 +95,14 @@ WindEstimator::update(uint64_t time_now)
 	const float dt = (float)(time_now - _time_last_update) * 1e-6f;
 	_time_last_update = time_now;
 
-	// if airspeed scale is at default (1.0) and we are in the first 5 minutes of flight time, multiply _tas_scale_psd by 100 for faster learning
+	// if airspeed scale is at default (1.0) and we are in the first 5 minutes of flight time, multiply kTasScalePsd by 100 for faster learning
 	const float tas_psd_multiplier = (fabsf(_scale_init - 1.0f) < FLT_EPSILON && (time_now - _time_initialised < kTASScaleFastLearnTime)) ?
 					 kTASScalePSDMultiplier : 1.f;
 
 	matrix::Matrix3f Qk;
 	Qk(INDEX_W_N, INDEX_W_N) = _wind_psd * dt;
 	Qk(INDEX_W_E, INDEX_W_E) = Qk(INDEX_W_N, INDEX_W_N);
-	Qk(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = _tas_scale_psd * tas_psd_multiplier * dt;
+	Qk(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = kTasScalePsd * tas_psd_multiplier * dt;
 	_P += Qk;
 }
 
@@ -130,7 +130,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	sym::FuseAirspeed(velI, _state, _P, true_airspeed, _tas_var, FLT_EPSILON,
 			  &H_tas, &K, &_tas_innov_var, &_tas_innov);
 
-	const bool meas_is_rejected = check_if_meas_is_rejected(_tas_innov, _tas_innov_var, _tas_gate);
+	const bool meas_is_rejected = check_if_meas_is_rejected(_tas_innov, _tas_innov_var, kTasGate);
 
 	if (_tas_innov_var < FLT_EPSILON) {
 		// re init filter in case of a negative variance, and trigger early return to not fuse measurement
@@ -172,10 +172,10 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	matrix::Matrix<float, 1, 3> H_beta;
 	matrix::Matrix<float, 3, 1> K;
 
-	sym::FuseBeta(velI, _state, _P, q_att, _beta_var, FLT_EPSILON,
+	sym::FuseBeta(velI, _state, _P, q_att, kBetaVar, FLT_EPSILON,
 		      &H_beta, &K, &_beta_innov_var, &_beta_innov);
 
-	const bool meas_is_rejected = check_if_meas_is_rejected(_beta_innov, _beta_innov_var, _beta_gate);
+	const bool meas_is_rejected = check_if_meas_is_rejected(_beta_innov, _beta_innov_var, kBetaGate);
 
 	if (_beta_innov_var < FLT_EPSILON) {
 		// re init filter in case of a negative variance, and trigger early return to not fuse measurement

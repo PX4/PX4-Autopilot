@@ -81,7 +81,7 @@ make px4_sitl gz_rc_cessna
 
 Hold mode behaviour can be configured using the parameters below.
 
-| 参数                                                                                                                                                                      | 描述                                                                                                                                               |
+| Parameter                                                                                                                                                               | 描述                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)                         | The radius of the loiter circle.                                                                                                 |
 | <a id="NAV_MIN_LTR_ALT"></a>[NAV_MIN_LTR_ALT](../advanced_config/parameter_reference.md#NAV_MIN_LTR_ALT) | Minimum height for loiter mode (vehicle will ascend to this altitude if mode is engaged at a lower altitude). |

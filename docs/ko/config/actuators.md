@@ -201,7 +201,7 @@ In the following example, the vehicle has two ailerons, one elevator, one rudder
 
 #### Flaps and Spoiler Control with Manual Control
 
-The preferred method to manually actuate spoilers and flaps is to map a manual control switch to an `AUX` output (see [Generic Actuator Control with RC](#generic-actuator-control-with-rc)), and then map that AUX output to the flap or spoiler function using [FW_FLAPS_MAN](../advanced_config/parameter_reference.md#FW_FLAPS_MAN) or [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN).
+The preferred method to manually actuate spoilers and flaps is to map a manual control switch to an `AUX` output (see [Generic Actuator Control with RC](../payloads/generic_actuator_control.md#generic-actuator-control-with-rc)), and then map that AUX output to the flap or spoiler function using [FW_FLAPS_MAN](../advanced_config/parameter_reference.md#FW_FLAPS_MAN) or [FW_SPOILERS_MAN](../advanced_config/parameter_reference.md#FW_SPOILERS_MAN).
 The source for the manual control can be RC or MAVLink.
 
 :::warning

@@ -71,7 +71,7 @@ static int	cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
  * Note that we use the GNU extension syntax here because we don't get designated
  * initialisers in gcc 4.6.
  */
-const struct file_operations cdev::CDev::fops = {
+static const struct file_operations g_fops = {
 open	: cdev_open,
 close	: cdev_close,
 read	: cdev_read,
@@ -83,6 +83,8 @@ poll	: cdev_poll,
 unlink	: nullptr
 #endif
 };
+
+const cdev::px4_file_operations_t &cdev::CDev::fops_ref() { return g_fops; }
 
 static int
 cdev_open(file_t *filp)

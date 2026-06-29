@@ -39,7 +39,10 @@
 
 #include <uavcan/equipment/gnss/Fix2.hpp>
 
+#include <drivers/drv_hrt.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/pps_capture.h>
 #include <uORB/topics/sensor_gps.h>
 
 namespace uavcannode
@@ -73,6 +76,18 @@ public:
 	{
 		using uavcan::equipment::gnss::Fix2;
 
+		// Track PPS-anchored offset (GPS UTC - local HRT) so the broadcast can
+		// stamp fix2.timestamp with a UTC value coherent with fix2.gnss_timestamp.
+		// FC-side decoders (UavcanGnssBridge) use (timestamp - gnss_timestamp) as
+		// the receiver processing delay; that subtraction is only meaningful when
+		// both endpoints are on the same clock, which is what PPS provides here.
+		pps_capture_s pps;
+
+		if (_pps_capture_sub.update(&pps) && pps.timestamp != 0 && pps.rtc_timestamp != 0) {
+			_pps_offset_us = static_cast<int64_t>(pps.rtc_timestamp) - static_cast<int64_t>(pps.timestamp);
+			_pps_last_update = pps.timestamp;
+		}
+
 		// sensor_gps -> uavcan::equipment::gnss::Fix2
 		sensor_gps_s gps;
 
@@ -81,6 +96,13 @@ public:
 
 			fix2.gnss_time_standard = fix2.GNSS_TIME_STANDARD_UTC;
 			fix2.gnss_timestamp.usec = gps.time_utc_usec;
+
+			const hrt_abstime now = hrt_absolute_time();
+
+			if (_pps_last_update != 0 && (now - _pps_last_update) < kPpsStaleTimeoutUs) {
+				fix2.timestamp.usec = static_cast<uint64_t>(static_cast<int64_t>(now) + _pps_offset_us);
+			}
+
 			fix2.latitude_deg_1e8 = (int64_t)(gps.latitude_deg * 1e8);
 			fix2.longitude_deg_1e8 = (int64_t)(gps.longitude_deg * 1e8);
 			fix2.height_msl_mm = (int32_t)(gps.altitude_msl_m * 1e3);
@@ -153,5 +175,12 @@ public:
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
 	}
+
+private:
+	static constexpr hrt_abstime kPpsStaleTimeoutUs{5'000'000};
+
+	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	int64_t _pps_offset_us{0};
+	hrt_abstime _pps_last_update{0};
 };
 } // namespace uavcannode

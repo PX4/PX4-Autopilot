@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                          | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
-| -------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                      | `uint64`     |                                                                  |            | time since system start (microseconds) |
-| attitude_euler_angle | `float32[3]` |                                                                  |            | Attitude/direction of the mount as euler angles in rad    |
+| Назва                                                                                               | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| --------------------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                 | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_attitude_euler_angle"></a>attitude_euler_angle | `float32[3]` |                                                                  |            | Attitude/direction of the mount as euler angles in rad    |
 
 ## Source Message
 

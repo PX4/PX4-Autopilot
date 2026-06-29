@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                            | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
-| -------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                        | `uint64`     |                                                                  |            | time since system start (microseconds) |
-| wheel_speed | `float32[2]` | rad/s                                                            |            |                                                           |
-| wheel_angle | `float32[2]` | rad                                                              |            |                                                           |
+| Назва                                                        | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------------------------------------------------------ | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                          | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_wheel_speed"></a>wheel_speed | `float32[2]` | rad/s                                                            |            |                                                           |
+| <a id="fld_wheel_angle"></a>wheel_angle | `float32[2]` | rad                                                              |            |                                                           |
 
 ## Source Message
 

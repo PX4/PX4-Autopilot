@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# SaamPixV1_1 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# external I2C compasses, if present
+hmc5883 -X start
+qmc5883l -X start
+
+# internal SPI sensors
+ms5611 -s start
+icm20602 -s start
+mpu9250 -s start
+lis3mdl -s start

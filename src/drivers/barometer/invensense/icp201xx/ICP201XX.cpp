@@ -38,7 +38,8 @@ using namespace time_literals;
 
 ICP201XX::ICP201XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config)
+	I2CSPIDriver(config),
+	_px4_baro{get_device_id()}
 {
 }
 
@@ -304,14 +305,9 @@ ICP201XX::RunImpl()
 				perf_end(_sample_perf);
 				perf_begin(_sample_perf);
 
-				sensor_baro_s sensor_baro{};
-				sensor_baro.timestamp_sample = now;
-				sensor_baro.device_id = get_device_id();
-				sensor_baro.pressure = pressure;
-				sensor_baro.temperature = temperature;
-				sensor_baro.error_count = perf_event_count(_bad_transfer_perf);
-				sensor_baro.timestamp = hrt_absolute_time();
-				_sensor_baro_pub.publish(sensor_baro);
+				_px4_baro.set_error_count(perf_event_count(_bad_transfer_perf));
+				_px4_baro.set_temperature(temperature);
+				_px4_baro.update(now, pressure);
 
 				success = true;
 

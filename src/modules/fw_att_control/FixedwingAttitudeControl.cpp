@@ -105,7 +105,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 				pitch_body = constrain(pitch_body,
 						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				const Quatf q_sp_rp = AxisAnglef(roll_body, pitch_body, 0.f);
+				const Quatf q_sp_rp = Eulerf(roll_body, pitch_body, 0.f);
 				const Quatf q_sp_yaw(cosf(yaw_body / 2.f), 0.f, 0.f, sinf(yaw_body / 2.f));
 				Quatf q = q_sp_yaw * q_sp_rp;
 
@@ -124,10 +124,15 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 void
 FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 {
-	if (_att_sp_sub.update(&_att_sp)) {
-		_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
-		_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
-		_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
+	vehicle_attitude_setpoint_s att_sp{};
+
+	if (_att_sp_sub.update(&att_sp)) {
+		const Quatf q_d(att_sp.q_d);
+		q_d.copyTo(_att_sp.q_d);
+
+		_rates_sp.thrust_body[0] = att_sp.thrust_body[0];
+		_rates_sp.thrust_body[1] = att_sp.thrust_body[1];
+		_rates_sp.thrust_body[2] = att_sp.thrust_body[2];
 	}
 }
 

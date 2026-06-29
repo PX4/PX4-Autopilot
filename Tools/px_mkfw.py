@@ -77,6 +77,7 @@ parser.add_argument("--git_identity",	action="store", help="the working director
 parser.add_argument("--parameter_xml",	action="store", help="the parameters.xml file")
 parser.add_argument("--airframe_xml",	action="store", help="the airframes.xml file")
 parser.add_argument("--image",		action="store", help="the firmware image")
+parser.add_argument("--image_signed",	action="store_true", help="mark the image as signed for secure-boot verification by the uploader")
 args = parser.parse_args()
 
 # Fetch the firmware descriptor prototype if specified
@@ -123,5 +124,7 @@ if args.image != None:
 	bytes = f.read()
 	desc['image_size'] = len(bytes)
 	desc['image'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+if args.image_signed:
+	desc['image_signed'] = True
 
 print(json.dumps(desc, indent=4))

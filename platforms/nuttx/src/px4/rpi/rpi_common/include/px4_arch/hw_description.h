@@ -57,7 +57,7 @@ enum Timer {
 	Timer7,
 };
 enum Channel {
-	ChannelA = 1,
+	ChannelA = 0,
 	ChannelB,
 };
 struct TimerChannel {

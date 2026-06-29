@@ -59,7 +59,8 @@ int Zenoh_Publisher::undeclare_publisher()
 	return 0;
 }
 
-int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid)
+int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid,
+				       z_publisher_options_t *opts)
 {
 	z_view_keyexpr_t ke;
 
@@ -68,7 +69,7 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 		return -1;
 	}
 
-	if (z_declare_publisher(z_loan(s), &_pub, z_loan(ke), NULL) < 0) {
+	if (z_declare_publisher(z_loan(s), &_pub, z_loan(ke), opts) < 0) {
 		printf("Unable to declare publisher for key expression!\n");
 		return -1;
 	}
@@ -109,7 +110,14 @@ z_result_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 
 void Zenoh_Publisher::print()
 {
+	const z_loaned_keyexpr_t *ke = z_publisher_keyexpr(z_loan(_pub));
+
+	if (ke == NULL) {
+		printf("Topic: (unavailable)\n");
+		return;
+	}
+
 	z_view_string_t keystr;
-	z_keyexpr_as_view_string(z_publisher_keyexpr(z_loan(_pub)), &keystr);
+	z_keyexpr_as_view_string(ke, &keystr);
 	printf("Topic: %.*s\n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)));
 }

@@ -102,6 +102,17 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+    # Optional per-publisher QoS options from YAML 'options:' field.
+    # Converts e.g. {cc: block, express: true} -> "cc=block,express=true"
+    opts = msg_type.get('options', None)
+    if opts and isinstance(opts, dict):
+        # Normalize booleans to lowercase strings expected by the parser.
+        msg_type['pub_options_str'] = ','.join(
+            f"{k}={str(v).lower() if isinstance(v, bool) else v}" for k, v in opts.items()
+        )
+    else:
+        msg_type['pub_options_str'] = ''
+
 def process_message_instance(msg_type):
     if 'instance' in msg_type:
         # if instance is given, check if it is a non negative integer

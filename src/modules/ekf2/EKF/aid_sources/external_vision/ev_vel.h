@@ -166,7 +166,11 @@ public:
 			_measurement = rotation_ev_to_ekf * _sample.vel - velocity_offset_earth;
 			_measurement_var = matrix::SquareMatrix3f(rotation_ev_to_ekf * matrix::diag(
 						   _sample.velocity_var) * rotation_ev_to_ekf.transpose()).diag();
-			_min_variance = math::max(_min_variance, _sample.orientation_var.max());
+			// Velocity variance contribution from orientation uncertainty: δv = δθ × v
+			const float vx = _sample.vel(0), vy = _sample.vel(1), vz = _sample.vel(2);
+			_measurement_var(0) += sq(vz) * _sample.orientation_var(1) + sq(vy) * _sample.orientation_var(2);
+			_measurement_var(1) += sq(vx) * _sample.orientation_var(2) + sq(vz) * _sample.orientation_var(0);
+			_measurement_var(2) += sq(vy) * _sample.orientation_var(0) + sq(vx) * _sample.orientation_var(1);
 		}
 
 		enforceMinimumVariance();

@@ -119,3 +119,52 @@ parameters:
         decimal: 1
         increment: 0.1
         default: 0
+
+      ICE_IDLE_RPM:
+        description:
+          short: Idle RPM setpoint for the engine.
+          long: |
+              Idle RPM setpoint for the engine. Applies a controller to prevent the RPM do drop below this value.
+        type: float
+        unit: rpm
+        min: 0
+        max: 10000
+        decimal: 0
+        increment: 1
+        default: 0.0
+
+      ICE_IDLE_RPM_P:
+        description:
+          short: Proportional gain for idle RPM control
+          long: |
+            Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
+        type: float
+        decimal: 3
+        increment: 0.1
+        min: 0
+        max: 10
+        default: 0.0
+
+      ICE_IDLE_RPM_I:
+        description:
+          short: Integral gain for idle RPM control
+          long: |
+            Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
+        type: float
+        decimal: 3
+        increment: 0.1
+        min: 0
+        max: 10
+        default: 0.0
+
+      ICE_IDLE_THR_FF:
+        description:
+          short: Idle RPM throttle for feed-forward
+          long: |
+            Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
+        type: float
+        decimal: 2
+        increment: 0.01
+        min: 0
+        max: 1
+        default: 0.0

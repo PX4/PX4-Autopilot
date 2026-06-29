@@ -9,9 +9,6 @@ param set-default BAT1_A_PER_V 17
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
 
-# Select the Generic 250 Racer by default
-param set-default SYS_AUTOSTART 4050
-
 param set-default SYS_HAS_MAG 0
 
 # enable gravity fusion

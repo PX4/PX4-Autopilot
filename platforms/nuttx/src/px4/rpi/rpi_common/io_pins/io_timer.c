@@ -266,7 +266,7 @@ int io_timer_validate_channel_index(unsigned channel)
 {
 	int rv = -EINVAL;
 
-	if (channel < MAX_TIMER_IO_CHANNELS && timer_io_channels[channel].timer_channel != 0) {
+	if (channel < MAX_TIMER_IO_CHANNELS) {
 
 		unsigned timer = timer_io_channels[channel].timer_index;
 
@@ -602,7 +602,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 		/* configure the channel */ // Nothing to configure here really.
 
-		// uint32_t chan = timer_io_channels[channel].timer_channel - 1;
+		// uint32_t chan = timer_io_channels[channel].timer_channel;
 
 		channel_handlers[channel].callback = channel_handler;
 		channel_handlers[channel].context = context;
@@ -664,7 +664,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			masks &= ~(1 << chan_index);
 
 			if (io_timer_validate_channel_index(chan_index) == 0) {
-				// uint32_t chan = timer_io_channels[chan_index].timer_channel - 1;
+				// uint32_t chan = timer_io_channels[chan_index].timer_channel;
 				uint32_t timer = channels_timer(chan_index);
 				action_cache[timer].base  = io_timers[timer].base;
 				// action_cache[timer].cnsc[action_cache[timer].index].cnsc_offset = io_timers[timer].base + KINETIS_FTM_CSC_OFFSET(chan);
@@ -739,8 +739,8 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 
 			/* configure the channel */
 			int regVal = rCCR(channels_timer(channel));
-			regVal &= ~(0xffff << (timer_io_channels[channel].timer_channel - 1) * 16);
-			regVal |= value << (timer_io_channels[channel].timer_channel - 1) * 16;
+			regVal &= ~(0xffff << (timer_io_channels[channel].timer_channel) * 16);
+			regVal |= value << (timer_io_channels[channel].timer_channel) * 16;
 			rCCR(channels_timer(channel)) = regVal;
 		}
 	}
@@ -758,7 +758,7 @@ uint16_t io_channel_get_ccr(unsigned channel)
 		if ((mode == IOTimerChanMode_PWMOut) ||
 		    (mode == IOTimerChanMode_OneShot) ||
 		    (mode == IOTimerChanMode_Trigger)) {
-			value = rCCR(channels_timer(channel)) >> (timer_io_channels[channel].timer_channel - 1) * 16;
+			value = rCCR(channels_timer(channel)) >> (timer_io_channels[channel].timer_channel) * 16;
 		}
 	}
 
