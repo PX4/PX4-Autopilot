@@ -4,7 +4,7 @@ parameters:
   definitions:
     MPC_AUTO_NUDGING:
       description:
-        short: Enable RC stick nudging in autonomous modes
+        short: Enable stick nudging in autonomous modes
         long: |-
           Bitmask to enable pilot override of heading and position during auto modes.
 
@@ -12,11 +12,12 @@ parameters:
           (takeoff, mission, RTL, hold, landing). The new heading is held until a
           mode switch resets it.
 
-          Bit 1 - Landing nudging: pitch/roll sticks move the vehicle horizontally
-          and the throttle stick amends the descent speed during autonomous landing
-          (stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 * MPC_LAND_SPEED).
+          Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
+          the vehicle horizontally, the throttle stick amends the descent speed
+          (stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 * MPC_LAND_SPEED),
+          and the yaw stick rotates the heading.
 
-          Stick override must be disabled MAN_OVERRIDE_SPD = -1.
+          Stick override must be disabled (set MAN_OVERRIDE_SPD = -1).
       type: bitmask
       bit:
         0: Yaw nudging
