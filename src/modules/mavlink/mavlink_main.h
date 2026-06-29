@@ -470,7 +470,9 @@ public:
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
 	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	bool failure_injection_enabled() const { return _param_sys_failure_injection_enabled.get(); }
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
@@ -643,8 +645,10 @@ private:
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
-		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
-		(ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 	)
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */

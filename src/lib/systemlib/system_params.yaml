@@ -233,16 +233,3 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
-    SYS_FAILURE_EN:
-      description:
-        short: Enable failure injection
-        long: |-
-          If enabled allows Injection of Failures.
-
-          The failure_injection_manager module is only started at boot when this is
-          set, so enabling it requires a reboot to take effect.
-
-          WARNING: the failures can easily cause crashes and are to be used with caution!
-      type: boolean
-      default: 0
-      reboot_required: true

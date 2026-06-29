@@ -704,6 +704,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			}
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
 		if (_mavlink.failure_injection_enabled()) {
 			_cmd_pub.publish(vehicle_command);
 			send_ack = false;
@@ -712,6 +714,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			send_ack = true;
 		}
+
+#else
+		result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+		send_ack = true;
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);

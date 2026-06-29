@@ -39,6 +39,8 @@ px4_add_module(
 		FailureInjectionManager.hpp
 		FailureTable.cpp
 		FailureTable.hpp
+	MODULE_CONFIG
+		failure_injection_manager_params.yaml
 	DEPENDS
 		px4_work_queue
 	)
