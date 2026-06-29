@@ -40,9 +40,32 @@ For example, splice or split the AS-DT1 ground wire so it connects to the power 
 Do not connect the AS-DT1 UART pins directly to RS-232 or RS-422 interfaces.
 The AS-DT1 UART RX input is 5 V tolerant, and the sensor should be powered from the external 12 V to 24 V supply described in the Sony hardware documentation.
 
+## Firmware Setup
+
+The `sony_asdt1` driver must be included in the PX4 firmware for the target board.
+If the Sony AS-DT1 parameters are not available, add the following line to the target board's `default.px4board` configuration, or enable the driver using [`boardconfig`](../hardware/porting_guide_config.md#px4-menuconfig-setup):
+
+```plain
+CONFIG_DRIVERS_DISTANCE_SENSOR_SONY_ASDT1=y
+```
+
+Then rebuild and flash the firmware.
+
 ## Parameter Setup
 
-Use the Sony application to set the sensor to **Measurement (UART)** mode before connecting it to PX4
+Use the Sony application to set the sensor to **Measurement (UART)** mode before connecting it to PX4.
+
+The driver uses the following parameters:
+
+| Parameter | Description |
+| --------- | ----------- |
+| [SENS_ASDT1_CFG](../advanced_config/parameter_reference.md#SENS_ASDT1_CFG) | Selects the serial port and enables driver autostart on boot. |
+| [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE) | Selects the AS-DT1 measurement range mode. The driver configures the sensor mode and publishes matching `obstacle_distance` metadata. |
+| [SENS_ASDT1_ROT](../advanced_config/parameter_reference.md#SENS_ASDT1_ROT) | Sets the sensor yaw offset, in degrees, relative to vehicle forward. This is published as `obstacle_distance.angle_offset`; positive values are clockwise. |
+
+`SENS_ASDT1_MODE` and `SENS_ASDT1_ROT` may not appear until `SENS_ASDT1_CFG` is enabled and the flight controller has rebooted once.
+
+Reboot the flight controller, or restart the driver manually, after changing these parameters.
 
 [Configure the serial port](../peripherals/serial_configuration.md) on which the sensor will run using [SENS_ASDT1_CFG](../advanced_config/parameter_reference.md#SENS_ASDT1_CFG).
 There is no need to set the baud rate for the port, as this is configured by the driver.
@@ -51,15 +74,6 @@ Set [SENS_ASDT1_MODE](../advanced_config/parameter_reference.md#SENS_ASDT1_MODE)
 
 If the sensor is mounted with a yaw offset from vehicle forward, set [SENS_ASDT1_ROT](../advanced_config/parameter_reference.md#SENS_ASDT1_ROT) to the offset in degrees.
 Positive values are clockwise.
-
-::: info
-If the configuration parameter is not available, then you may need to [add the driver to the firmware](../peripherals/serial_configuration.md#parameter_not_in_firmware):
-
-```plain
-CONFIG_DRIVERS_DISTANCE_SENSOR_SONY_ASDT1=y
-```
-
-:::
 
 ## Testing
 
