@@ -149,7 +149,7 @@ private:
 	static constexpr uint8_t STARTUP_DRAIN_READ_LIMIT{8};
 	static constexpr uint8_t FLSHOW_RETRY_LIMIT{5};
 	static constexpr uint8_t BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
-				obstacle_distance_s::distances[0]);
+			obstacle_distance_s::distances[0]);
 	static constexpr size_t ASDT1_MAX_SAMPLE_COUNT{576};
 	static constexpr size_t ASDT1_SHORT_SAMPLE_COUNT{288};
 	static constexpr size_t ASDT1_BINZ_FRAME_SIZE{1440};
@@ -170,11 +170,11 @@ private:
 
 	int _fd{-1};
 	int _interval{2000};
-	char _device[20]{};
+	char _device[20] {};
 	bool _flshow_only{false};
 	int32_t _mode{0};
 	unsigned int _baud{ASDT1_DESIRED_BAUD};
-	char _last_command[COMMAND_BUFFER_SIZE]{};
+	char _last_command[COMMAND_BUFFER_SIZE] {};
 	size_t _last_command_len{0};
 	ssize_t _last_write{-1};
 	uint64_t _read_attempts{0};
@@ -183,9 +183,9 @@ private:
 	uint64_t _read_errors{0};
 	hrt_abstime _last_read{0};
 	ssize_t _last_read_size{0};
-	uint8_t _last_read_bytes[LAST_READ_CAPTURE_SIZE]{};
+	uint8_t _last_read_bytes[LAST_READ_CAPTURE_SIZE] {};
 	size_t _last_read_bytes_len{0};
-	uint8_t _frame_buffer[ASDT1_FRAME_BUFFER_SIZE]{};
+	uint8_t _frame_buffer[ASDT1_FRAME_BUFFER_SIZE] {};
 	size_t _frame_buffer_len{0};
 	ParserState _parser_state{ParserState::FindBegin};
 	StartupState _startup_state{StartupState::SyncDrain};

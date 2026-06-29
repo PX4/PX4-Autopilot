@@ -52,12 +52,13 @@
 
 namespace
 {
-constexpr const char *CMD_FSYNC_STOP = "fsync 0";
-constexpr const char *CMD_FORMAT_BINZ = "format binz";
-constexpr const char *CMD_FSYNC_START = "fsync 30";
-constexpr const char *CMD_FLUART_921600 = "fluart 921600";
-constexpr const char *CMD_REBOOT = "reboot";
-constexpr const char *CMD_FLSHOW = "flshow";
+// Sony shell commands used during setup. They are padded before write.
+constexpr const char *CMD_FSYNC_STOP = "fsync 0";          // Stop periodic frames.
+constexpr const char *CMD_FORMAT_BINZ = "format binz";     // Select binary MP output.
+constexpr const char *CMD_FSYNC_START = "fsync 30";        // Stream at the minimum interval.
+constexpr const char *CMD_FLUART_921600 = "fluart 921600"; // Saved and applied after reboot.
+constexpr const char *CMD_REBOOT = "reboot";               // Apply saved mode and UART settings.
+constexpr const char *CMD_FLSHOW = "flshow";               // Print saved sensor configuration.
 }
 
 AS_DT1::AS_DT1(const char *device, bool flshow_only, float yaw_offset_deg) :
@@ -205,8 +206,8 @@ void AS_DT1::print_info()
 	} else {
 		for (size_t offset = 0; offset < _last_read_bytes_len; offset += 16) {
 			const size_t chunk_len = math::min(static_cast<size_t>(16), _last_read_bytes_len - offset);
-			char hex[16 * 3]{};
-			char ascii[17]{};
+			char hex[16 * 3] {};
+			char ascii[17] {};
 			size_t hex_pos = 0;
 
 			for (size_t i = 0; i < chunk_len; i++) {
@@ -259,8 +260,10 @@ void AS_DT1::Run()
 	}
 
 	if (_startup_state != StartupState::Streaming) {
-		// Startup is staged so stale stream bytes and command echoes are drained
-		// before measurement frames are parsed.
+		// The sensor may boot in command mode or already streaming. Bring it
+		// to a known state before accepting measurement frames.
+		// Command echoes/prompts can be missed, so retries keep startup moving
+		// and the final check is a valid frame.
 		switch (_startup_state) {
 		case StartupState::BaudProbeDrain:
 			if (drain_input() < 0) {
@@ -296,27 +299,27 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::BaudProbeWaitResponse: {
-			const ssize_t bytes_read = read_baud_probe_response();
+				const ssize_t bytes_read = read_baud_probe_response();
 
-			if (bytes_read < 0) {
-				close_port();
-				return;
-			}
+				if (bytes_read < 0) {
+					close_port();
+					return;
+				}
 
-			if (_startup_prompt_seen || _startup_begin_seen) {
-				_startup_baud_probe_done = true;
-				reset_startup_prompt();
-				_startup_state = StartupState::ModeSyncDrain;
-				ScheduleNow();
-				return;
-			}
+				if (_startup_prompt_seen || _startup_begin_seen) {
+					_startup_baud_probe_done = true;
+					reset_startup_prompt();
+					_startup_state = StartupState::ModeSyncDrain;
+					ScheduleNow();
+					return;
+				}
 
-			if (startup_deadline_elapsed()) {
-				_startup_state = StartupState::BaudProbeSendPromptSync;
-				ScheduleNow();
-				return;
+				if (startup_deadline_elapsed()) {
+					_startup_state = StartupState::BaudProbeSendPromptSync;
+					ScheduleNow();
+					return;
+				}
 			}
-		}
 
 			break;
 
@@ -351,27 +354,27 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::ModeWaitPromptSync: {
-			const ssize_t bytes_read = read_startup_response();
+				const ssize_t bytes_read = read_startup_response();
 
-			if (bytes_read < 0) {
-				close_port();
-				return;
-			}
+				if (bytes_read < 0) {
+					close_port();
+					return;
+				}
 
-			if (_startup_prompt_seen || bytes_read > 0) {
-				reset_startup_prompt();
-				_startup_state = StartupState::ModeDrainAfterSync;
-				ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
-				return;
-			}
+				if (_startup_prompt_seen || bytes_read > 0) {
+					reset_startup_prompt();
+					_startup_state = StartupState::ModeDrainAfterSync;
+					ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
+					return;
+				}
 
-			if (startup_deadline_elapsed()) {
-				_startup_prompt_timeouts++;
-				_startup_state = StartupState::ModeSendPromptSync;
-				ScheduleNow();
-				return;
+				if (startup_deadline_elapsed()) {
+					_startup_prompt_timeouts++;
+					_startup_state = StartupState::ModeSendPromptSync;
+					ScheduleNow();
+					return;
+				}
 			}
-		}
 
 			break;
 
@@ -388,6 +391,7 @@ void AS_DT1::Run()
 			return;
 
 		case StartupState::ModeSendStop:
+			// Stop an old stream before changing persistent mode or baud settings.
 			if (write_command_padded(CMD_FSYNC_STOP) != PX4_OK) {
 				close_port();
 				return;
@@ -439,6 +443,7 @@ void AS_DT1::Run()
 				return;
 			}
 
+			// flmode selects the range and point-count layout used below.
 			if (write_command_padded(mode_command_for_param(_mode)) != PX4_OK) {
 				close_port();
 				return;
@@ -488,6 +493,7 @@ void AS_DT1::Run()
 				return;
 			}
 
+			// fluart is stored by the sensor; reopen at the new rate after reboot.
 			if (write_command_padded(CMD_FLUART_921600) != PX4_OK) {
 				close_port();
 				return;
@@ -578,27 +584,27 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::WaitPromptSync: {
-			const ssize_t bytes_read = read_startup_response();
+				const ssize_t bytes_read = read_startup_response();
 
-			if (bytes_read < 0) {
-				close_port();
-				return;
-			}
+				if (bytes_read < 0) {
+					close_port();
+					return;
+				}
 
-			if (_startup_prompt_seen || bytes_read > 0) {
-				reset_startup_prompt();
-				_startup_state = StartupState::DrainAfterSync;
-				ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
-				return;
-			}
+				if (_startup_prompt_seen || bytes_read > 0) {
+					reset_startup_prompt();
+					_startup_state = StartupState::DrainAfterSync;
+					ScheduleDelayed(PROMPT_SYNC_SETTLE_INTERVAL);
+					return;
+				}
 
-			if (startup_deadline_elapsed()) {
-				_startup_prompt_timeouts++;
-				_startup_state = StartupState::SendPromptSync;
-				ScheduleNow();
-				return;
+				if (startup_deadline_elapsed()) {
+					_startup_prompt_timeouts++;
+					_startup_state = StartupState::SendPromptSync;
+					ScheduleNow();
+					return;
+				}
 			}
-		}
 
 			break;
 
@@ -666,6 +672,7 @@ void AS_DT1::Run()
 				return;
 			}
 
+			// binz is the binary MP format parsed by parse_byte().
 			if (write_command_padded(CMD_FORMAT_BINZ) != PX4_OK) {
 				close_port();
 				return;
@@ -715,6 +722,7 @@ void AS_DT1::Run()
 				return;
 			}
 
+			// If no frame follows, resend fsync rather than trusting the echo.
 			if (write_command_padded(CMD_FSYNC_START) != PX4_OK) {
 				close_port();
 				return;
@@ -824,7 +832,7 @@ int AS_DT1::write_command_padded(const char *command)
 		return PX4_ERROR;
 	}
 
-	char buffer[COMMAND_BUFFER_SIZE]{};
+	char buffer[COMMAND_BUFFER_SIZE] {};
 	const size_t command_len = strnlen(command, sizeof(buffer) - 1);
 
 	if (command_len == 0 || command_len >= sizeof(buffer) - 1) {
@@ -887,7 +895,7 @@ int AS_DT1::write_prompt_sync()
 ssize_t AS_DT1::drain_input()
 {
 	ssize_t total_read = 0;
-	uint8_t buffer[READ_BUFFER_SIZE]{};
+	uint8_t buffer[READ_BUFFER_SIZE] {};
 
 	for (uint8_t i = 0; i < STARTUP_DRAIN_READ_LIMIT; i++) {
 		_read_attempts++;
@@ -915,7 +923,7 @@ ssize_t AS_DT1::read_startup_response()
 {
 	_read_attempts++;
 
-	uint8_t buffer[READ_BUFFER_SIZE]{};
+	uint8_t buffer[READ_BUFFER_SIZE] {};
 	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
 
 	if (bytes_read <= 0) {
@@ -956,7 +964,7 @@ ssize_t AS_DT1::read_baud_probe_response()
 {
 	_read_attempts++;
 
-	uint8_t buffer[READ_BUFFER_SIZE]{};
+	uint8_t buffer[READ_BUFFER_SIZE] {};
 	const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
 
 	if (bytes_read <= 0) {
@@ -1130,7 +1138,7 @@ const char *AS_DT1::startup_state_name() const
 
 int AS_DT1::read_and_print_response(const char *label)
 {
-	char line[97]{};
+	char line[97] {};
 	size_t line_len = 0;
 	bool got_response = false;
 	bool got_real_response = false;
@@ -1151,7 +1159,7 @@ int AS_DT1::read_and_print_response(const char *label)
 	while (true) {
 		_read_attempts++;
 
-		uint8_t buffer[READ_BUFFER_SIZE]{};
+		uint8_t buffer[READ_BUFFER_SIZE] {};
 		const ssize_t bytes_read = ::read(_fd, buffer, sizeof(buffer));
 
 		if (bytes_read <= 0) {
@@ -1198,7 +1206,7 @@ int AS_DT1::read_and_parse_available()
 {
 	_read_attempts++;
 
-	uint8_t buffer[READ_BUFFER_SIZE]{};
+	uint8_t buffer[READ_BUFFER_SIZE] {};
 	bool got_data = false;
 
 	for (uint8_t read_count = 0; read_count < READ_DRAIN_LIMIT; read_count++) {
@@ -1239,6 +1247,7 @@ bool AS_DT1::parse_byte(uint8_t byte)
 	constexpr char end_marker[] = "END";
 	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
 
+	// AS-DT1 binz frames are still bookended by ASCII markers.
 	switch (_parser_state) {
 	case ParserState::FindBegin:
 		if (byte == static_cast<uint8_t>(begin_marker[_begin_match_index])) {
@@ -1257,24 +1266,24 @@ bool AS_DT1::parse_byte(uint8_t byte)
 		break;
 
 	case ParserState::ReadPayload: {
-		const size_t expected_frame_size = frame_size_for_mode(_mode);
+			const size_t expected_frame_size = frame_size_for_mode(_mode);
 
-		if (_frame_buffer_len >= expected_frame_size || _frame_buffer_len >= ASDT1_FRAME_BUFFER_SIZE) {
-			_parser_resets++;
-			reset_parser();
-			_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
+			if (_frame_buffer_len >= expected_frame_size || _frame_buffer_len >= ASDT1_FRAME_BUFFER_SIZE) {
+				_parser_resets++;
+				reset_parser();
+				_begin_match_index = (byte == static_cast<uint8_t>(begin_marker[0])) ? 1 : 0;
+				break;
+			}
+
+			_frame_buffer[_frame_buffer_len++] = byte;
+
+			if (_frame_buffer_len == expected_frame_size) {
+				_parser_state = ParserState::ReadEnd;
+				_end_match_index = 0;
+			}
+
 			break;
 		}
-
-		_frame_buffer[_frame_buffer_len++] = byte;
-
-		if (_frame_buffer_len == expected_frame_size) {
-			_parser_state = ParserState::ReadEnd;
-			_end_match_index = 0;
-		}
-
-		break;
-	}
 
 	case ParserState::ReadEnd:
 		if (byte == static_cast<uint8_t>(end_marker[_end_match_index])) {
@@ -1322,6 +1331,7 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 		_obstacle_distance.distances[i] = UINT16_MAX;
 	}
 
+	// Only publish the rows that cover the horizontal band used by obstacle_distance.
 	for (size_t sample = 0; sample < sample_count; sample++) {
 		const int layout_index = sample_to_layout_index(sample, _mode);
 		int row = 0;
@@ -1349,13 +1359,14 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 
 		const uint16_t distance_cm = z_raw_to_distance_cm(z_raw);
 
+		// Very close returns are below the sensor's usable range and can flicker.
 		if (distance_cm < MIN_VALID_DISTANCE_CM) {
 			_below_min_distance_samples++;
 			continue;
 		}
 
 		const uint16_t obstacle_distance_cm = (distance_cm > _obstacle_distance.max_distance) ?
-						     _obstacle_distance.max_distance + 1 : distance_cm;
+						      _obstacle_distance.max_distance + 1 : distance_cm;
 
 		if (obstacle_distance_cm < _obstacle_distance.distances[bin]) {
 			if (_obstacle_distance.distances[bin] == UINT16_MAX) {
@@ -1376,6 +1387,7 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 
 uint32_t AS_DT1::decode_20bit_raw(const uint8_t *data, size_t sample_index)
 {
+	// Two 20-bit Z samples are packed into each 5-byte group.
 	const size_t offset = (sample_index / 2) * 5;
 
 	if ((sample_index % 2) == 0) {
@@ -1473,6 +1485,7 @@ int AS_DT1::sample_to_layout_index(size_t sample_index)
 
 int AS_DT1::sample_to_layout_index(size_t sample_index, int32_t mode)
 {
+	// The MP stream is not row-major; these tables restore the 24x24 grid order.
 	static constexpr int MPDATATBL_FULL[ASDT1_MAX_SAMPLE_COUNT] = {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
 		48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
@@ -1549,6 +1562,7 @@ int AS_DT1::col_to_obstacle_bin(int col)
 
 	const float col_fraction = static_cast<float>(col) / static_cast<float>(ASDT1_COLS - 1);
 	const float angle_deg = LEFT_EDGE_DEG + col_fraction * HORIZONTAL_FOV_DEG;
+	// obstacle_distance is a 72-bin circle at 5 degrees per bin.
 	int bin = static_cast<int>(roundf(angle_deg / OBSTACLE_INCREMENT_DEG));
 
 	while (bin < 0) {
