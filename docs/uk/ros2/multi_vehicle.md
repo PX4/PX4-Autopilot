@@ -40,7 +40,7 @@ This mismatch can be fixed by manually using `PX4_UXRCE_DDS_NS` on the first ins
 
 | `PX4_UXRCE_DDS_NS` | `px4_instance` | `UXRCE_DDS_KEY`  | client namespace      |
 | ------------------ | -------------- | ---------------- | --------------------- |
-| not provided       | 0              | `px4_instance+1` | нічого                |
+| not provided       | 0              | `px4_instance+1` | none                  |
 | provided           | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 | not provided       | > 0            | `px4_instance+1` | `px4_${px4_instance}` |
 | provided           | > 0            | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |

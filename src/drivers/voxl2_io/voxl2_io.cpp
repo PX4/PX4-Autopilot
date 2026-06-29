@@ -158,7 +158,7 @@ int Voxl2IO::load_params(voxl2_io_params_t *params)
 
 	// PWM output functions
 	//0: disabled, 1: constant min, 2: constant max
-	//101-112: motors, 201-208: servos, 402: RC Roll, 403: RC Pitch, 404: RC Throttle,
+	//101-112: motors, 201-215: servos, 402: RC Roll, 403: RC Pitch, 404: RC Throttle,
 	//405: RC Yaw, 406: RC Flaps, 407-412: RC AUX 1-6, 420-422: Gimbal RPY
 	param_get(param_find("VOXL2_IO_FUNC1"),  &params->function_map[0]);
 	param_get(param_find("VOXL2_IO_FUNC2"),  &params->function_map[1]);

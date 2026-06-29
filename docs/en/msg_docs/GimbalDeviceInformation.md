@@ -8,24 +8,24 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type        | Unit [Frame] | Range/Enum | Description                            |
-| ---------------- | ----------- | ------------ | ---------- | -------------------------------------- |
-| timestamp        | `uint64`    |              |            | time since system start (microseconds) |
-| vendor_name      | `uint8[32]` |              |            |
-| model_name       | `uint8[32]` |              |            |
-| custom_name      | `uint8[32]` |              |            |
-| firmware_version | `uint32`    |              |            |
-| hardware_version | `uint32`    |              |            |
-| uid              | `uint64`    |              |            |
-| cap_flags        | `uint16`    |              |            |
-| custom_cap_flags | `uint16`    |              |            |
-| roll_min         | `float32`   | rad          |            |
-| roll_max         | `float32`   | rad          |            |
-| pitch_min        | `float32`   | rad          |            |
-| pitch_max        | `float32`   | rad          |            |
-| yaw_min          | `float32`   | rad          |            |
-| yaw_max          | `float32`   | rad          |            |
-| gimbal_device_id | `uint8`     |              |            |
+| Name                                              | Type        | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------------- | ----------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`    |              |            | time since system start (microseconds) |
+| <a id="fld_vendor_name"></a>vendor_name           | `uint8[32]` |              |            |
+| <a id="fld_model_name"></a>model_name             | `uint8[32]` |              |            |
+| <a id="fld_custom_name"></a>custom_name           | `uint8[32]` |              |            |
+| <a id="fld_firmware_version"></a>firmware_version | `uint32`    |              |            |
+| <a id="fld_hardware_version"></a>hardware_version | `uint32`    |              |            |
+| <a id="fld_uid"></a>uid                           | `uint64`    |              |            |
+| <a id="fld_cap_flags"></a>cap_flags               | `uint16`    |              |            |
+| <a id="fld_custom_cap_flags"></a>custom_cap_flags | `uint16`    |              |            |
+| <a id="fld_roll_min"></a>roll_min                 | `float32`   | rad          |            |
+| <a id="fld_roll_max"></a>roll_max                 | `float32`   | rad          |            |
+| <a id="fld_pitch_min"></a>pitch_min               | `float32`   | rad          |            |
+| <a id="fld_pitch_max"></a>pitch_max               | `float32`   | rad          |            |
+| <a id="fld_yaw_min"></a>yaw_min                   | `float32`   | rad          |            |
+| <a id="fld_yaw_max"></a>yaw_max                   | `float32`   | rad          |            |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id | `uint8`     |              |            |
 
 ## Constants
 

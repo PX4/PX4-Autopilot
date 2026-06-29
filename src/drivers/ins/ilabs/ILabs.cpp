@@ -51,7 +51,8 @@ constexpr uint64_t GPS_EPOCH_SECS = 315964800ULL;
 
 constexpr uint8_t DECIMATION_VALUE = 20;
 
-uint64_t ToUtcMicroseconds(uint16_t gpsWeek, uint32_t msTow) {
+uint64_t ToUtcMicroseconds(uint16_t gpsWeek, uint32_t msTow)
+{
 	const uint64_t gpsTimeSec = gpsWeek * 7ULL * 86400ULL + msTow / 1000ULL;
 	// 18 is a leap seconds correction
 	const uint64_t utcTimeSec = gpsTimeSec + GPS_EPOCH_SECS - 18;
@@ -59,7 +60,7 @@ uint64_t ToUtcMicroseconds(uint16_t gpsWeek, uint32_t msTow) {
 	return timeUtcUsec;
 }
 
-enum ILabsMode {
+enum ILabsMode : uint8_t {
 	RAW_SENSORS_DATA = 0,
 	FULL_INS         = 1,
 };
@@ -68,14 +69,23 @@ ILabs::ILabs(const char *serialDeviceName)
 	: ModuleParams(nullptr),
 	  ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serialDeviceName)),
 	  _attitude_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-			    ? ORB_ID(external_ins_attitude)
-			    : ORB_ID(vehicle_attitude)),
+			? ORB_ID(external_ins_attitude)
+			: ORB_ID(vehicle_attitude)),
 	  _local_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-				  ? ORB_ID(external_ins_local_position)
-				  : ORB_ID(vehicle_local_position)),
+			      ? ORB_ID(external_ins_local_position)
+			      : ORB_ID(vehicle_local_position)),
 	  _global_position_pub((_param_ilabs_mode.get() == ILabsMode::RAW_SENSORS_DATA)
-				   ? ORB_ID(external_ins_global_position)
-				   : ORB_ID(vehicle_global_position)) {
+			       ? ORB_ID(external_ins_global_position)
+			       : ORB_ID(vehicle_global_position)),
+	  _accel_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Accel publish interval")),
+	  _gyro_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Gyro publish interval")),
+	  _mag_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Mag publish interval")),
+	  _gnss_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": GNSS publish interval")),
+	  _baro_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Baro publish interval")),
+	  _attitude_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Attitude publish interval")),
+	  _local_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Local position publish interval")),
+	  _global_position_pub_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME ": Global position publish interval"))
+{
 	// store port name
 	strncpy(_serialDeviceName, serialDeviceName, sizeof(_serialDeviceName) - 1);
 
@@ -84,6 +94,7 @@ ILabs::ILabs(const char *serialDeviceName)
 
 	if (_param_ilabs_mode.get() == ILabsMode::FULL_INS) {
 		int32_t value = 0;
+		param_set(param_find("EKF2_EN"), &value);
 		param_set(param_find("SENS_IMU_MODE"), &value);
 		param_set(param_find("SENS_MAG_MODE"), &value);
 	}
@@ -102,24 +113,22 @@ ILabs::ILabs(const char *serialDeviceName)
 	_sensor_gps_pub.advertise();
 }
 
-ILabs::~ILabs() {
+ILabs::~ILabs()
+{
 	_sensor.deinit();
-
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
 
 	perf_free(_accel_pub_interval_perf);
 	perf_free(_gyro_pub_interval_perf);
 	perf_free(_mag_pub_interval_perf);
 	perf_free(_gnss_pub_interval_perf);
 	perf_free(_baro_pub_interval_perf);
-
 	perf_free(_attitude_pub_interval_perf);
 	perf_free(_local_position_pub_interval_perf);
 	perf_free(_global_position_pub_interval_perf);
 }
 
-int ILabs::task_spawn(int argc, char *argv[]) {
+int ILabs::task_spawn(int argc, char *argv[])
+{
 	bool error_flag = false;
 
 	int         opt_index   = 1;
@@ -129,18 +138,18 @@ int ILabs::task_spawn(int argc, char *argv[]) {
 
 	while ((opt_val = px4_getopt(argc, argv, "d:", &opt_index, &opt_arg)) != EOF) {
 		switch (opt_val) {
-			case 'd':
-				device_name = opt_arg;
-				break;
+		case 'd':
+			device_name = opt_arg;
+			break;
 
-			case '?':
-				error_flag = true;
-				break;
+		case '?':
+			error_flag = true;
+			break;
 
-			default:
-				PX4_WARN("Unrecognized flag");
-				error_flag = true;
-				break;
+		default:
+			PX4_WARN("Unrecognized flag");
+			error_flag = true;
+			break;
 		}
 	}
 
@@ -174,11 +183,13 @@ int ILabs::task_spawn(int argc, char *argv[]) {
 	return PX4_ERROR;
 }
 
-int ILabs::custom_command(int argc, char *argv[]) {
+int ILabs::custom_command(int argc, char *argv[])
+{
 	return print_usage("unknown command");
 }
 
-int ILabs::print_usage(const char *reason) {
+int ILabs::print_usage(const char *reason)
+{
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
@@ -222,8 +233,16 @@ int ILabs::print_status() {
 		PX4_INFO("UART device: %s", _serialDeviceName);
 	}
 
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
+	_sensor.printStatus();
+
+	perf_print_counter(_accel_pub_interval_perf);
+	perf_print_counter(_gyro_pub_interval_perf);
+	perf_print_counter(_mag_pub_interval_perf);
+	perf_print_counter(_gnss_pub_interval_perf);
+	perf_print_counter(_baro_pub_interval_perf);
+	perf_print_counter(_attitude_pub_interval_perf);
+	perf_print_counter(_local_position_pub_interval_perf);
+	perf_print_counter(_global_position_pub_interval_perf);
 
 	return 0;
 }
@@ -235,6 +254,9 @@ void ILabs::Run() {
 		return;
 	}
 
+	const hrt_abstime no_data_timeout = 3_s;
+	const hrt_abstime after_error_timeout = 3_s;
+
 	if (!_sensor.isInitialized()) {
 		const bool result = _sensor.init(_serialDeviceName, this, &ILabs::processDataProxy);
 
@@ -243,7 +265,7 @@ void ILabs::Run() {
 			_sensor.deinit();
 			_time_initialized.store(0);
 			_time_last_valid_imu_data.store(0);
-			ScheduleDelayed(3_s);
+			ScheduleDelayed(after_error_timeout);
 			return;
 		}
 		_time_initialized.store(hrt_absolute_time());
@@ -254,13 +276,13 @@ void ILabs::Run() {
 
 	// Update sensor_selection for FULL_INS mode
 	if (_param_ilabs_mode.get() == ILabsMode::FULL_INS && time_initialized != 0 && time_last_valid_imu_data != 0 &&
-	    hrt_elapsed_time(&time_last_valid_imu_data) < 3_s) {
+	    hrt_elapsed_time(&time_last_valid_imu_data) < no_data_timeout) {
 
 		if ((_px4_accel.get_device_id() != 0) && (_px4_gyro.get_device_id() != 0)) {
 			sensor_selection_s sensor_selection{};
 			sensor_selection.accel_device_id = _px4_accel.get_device_id();
 			sensor_selection.gyro_device_id  = _px4_gyro.get_device_id();
-			sensor_selection.timestamp       = time_initialized;
+			sensor_selection.timestamp       = hrt_absolute_time();
 			_sensor_selection_pub.publish(sensor_selection);
 		} else {
 			PX4_ERR("Sensor not initialized");
@@ -269,12 +291,12 @@ void ILabs::Run() {
 
 	// Missing data handling
 	if (time_initialized != 0 && time_last_valid_imu_data != 0 &&
-	    hrt_elapsed_time(&time_last_valid_imu_data) > 3_s) {
+	    hrt_elapsed_time(&time_last_valid_imu_data) > no_data_timeout) {
 		PX4_ERR("Timeout: no new data from sensor. Reinitializing");
 		_sensor.deinit();
 		_time_initialized.store(0);
 		_time_last_valid_imu_data.store(0);
-		ScheduleDelayed(3_s);
+		ScheduleDelayed(after_error_timeout);
 		return;
 	}
 
@@ -299,11 +321,27 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	// true if received new GNSS position or velocity
 	const bool hasNewGpsData = (data->gps.newData & (InertialLabs::NewGpsData::NEW_GNSS_POSITION | InertialLabs::NewGpsData::NEW_GNSS_VELOCITY));
 	const bool hasEnoughSatellites = data->gps.usedSatCount > 3;
+	const bool isPosOk   = (std::abs(data->ins.latitude) > 1e-7) &&
+			       (std::abs(data->ins.longitude) > 1e-7);
 
 	const bool isBaroOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_BARO_FAIL) == 0;
 
-	// TODO wind data:
-	// const bool isDiffPressureOk = (data->ins.unitStatus2 & InertialLabs::USW2::ADU_DIFF_PRESS_FAIL) == 0;
+	const bool isSpoofed = (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::UNKNOWN_OR_DEACTIVATED) &&
+			       (data->gps.spoofingStatus != InertialLabs::SpoofingStatus::NO);
+	const bool isJammed = (data->gps.jamStatus != InertialLabs::JammingStatus::UNKNOWN_OR_DISABLED) &&
+			      (data->gps.jamStatus != InertialLabs::JammingStatus::NO_SIGNIFICANT);
+	const bool isGnssValid = hasEnoughSatellites &&
+				(data->gps.fixType >= InertialLabs::GnssFixType::FIX_3D) &&
+				!isSpoofed &&
+				!isJammed;
+	const bool isDeadReckoning = (data->ins.solutionStatus == InertialLabs::InsSolution::AUTONOMOUS_MODE) ||
+				     (data->ins.solutionStatus == InertialLabs::InsSolution::NO_GNSS_AIDING_DATA) ||
+				     (data->ins.solutionStatus == InertialLabs::InsSolution::ZUPT_MODE);
+
+	const float latErr = static_cast<float>(data->ins.accuracy.lat) * 0.001f;
+	const float lonErr = static_cast<float>(data->ins.accuracy.lon) * 0.001f;
+	const float eph = sqrtf(latErr * latErr + lonErr * lonErr);
+	const float epv = static_cast<float>(data->ins.accuracy.alt) * 0.001f;
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	_time_last_valid_imu_data.store(time_now_us);
@@ -359,7 +397,6 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 	// publish attitude
 	if (isFilterOk) {
-		// TODO: Use quaternion message in UDD?
 		const matrix::Quatf quat{matrix::Eulerf(math::radians(data->ins.roll),
 							math::radians(data->ins.pitch),
 							math::radians(data->ins.yaw))};
@@ -377,70 +414,75 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 	}
 
 	// publish local position
-	if (isFilterOk) {
-		vehicle_local_position_s local_position{};
-		local_position.timestamp        = time_now_us;
-		local_position.timestamp_sample = time_now_us;
-
-		local_position.xy_valid   = true;
-		local_position.z_valid    = true;
-		local_position.v_xy_valid = true;
-		local_position.v_z_valid  = true;
-
-		if (!_pos_ref.isInitialized()) {
-			_pos_ref.initReference(data->ins.latitude, data->ins.longitude, time_now_us);
+	if (isFilterOk && isPosOk) {
+		if (!_ref_pos.isInitialized()) {
+			_ref_pos.initReference(data->ins.latitude, data->ins.longitude, time_now_us);
+			_ref_pos_data.alt = data->ins.altitude;
+			_ref_pos_data.lat = data->ins.latitude;
+			_ref_pos_data.lon = data->ins.longitude;
+			_ref_timestamp = time_now_us;
 		}
-		const matrix::Vector2f pos_ned = _pos_ref.project(data->ins.latitude, data->ins.longitude);
-		local_position.x               = pos_ned(0);
-		local_position.y               = pos_ned(1);
-		local_position.z               = data->ins.altitude;
+		if (_ref_pos.isInitialized()) {
+			vehicle_local_position_s local_position{};
+			local_position.timestamp        = time_now_us;
+			local_position.timestamp_sample = time_now_us;
 
-		local_position.vx = data->ins.velocity(0);
-		local_position.vy = data->ins.velocity(1);
-		local_position.vz = data->ins.velocity(2);
+			local_position.xy_valid   = true;
+			local_position.z_valid    = true;
+			local_position.v_xy_valid = true;
+			local_position.v_z_valid  = true;
 
-		local_position.ax = data->accel(0);
-		local_position.ay = data->accel(1);
-		local_position.az = data->accel(2);
+			const matrix::Vector2f pos_ned = _ref_pos.project(data->ins.latitude, data->ins.longitude);
+			local_position.x               = pos_ned(0);
+			local_position.y               = pos_ned(1);
+			local_position.z               = -(data->ins.altitude - _ref_pos_data.alt);
 
-		local_position.heading = static_cast<float>(data->ext.headingData.heading) *
-								 static_cast<float>(M_DEG_TO_RAD) * 0.01f;  // rad
-		local_position.unaided_heading          = NAN;
-		local_position.heading_good_for_control = true;
+			local_position.eph             = eph;
+			local_position.epv             = epv;
 
-		local_position.xy_global     = true;
-		local_position.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
-		local_position.ref_lat       = _pos_ref.getProjectionReferenceLat();
-		local_position.ref_lon       = _pos_ref.getProjectionReferenceLon();
-		local_position.z_global      = true;
+			local_position.ref_timestamp   = _ref_timestamp;
+			local_position.ref_lat         = _ref_pos_data.lat;
+			local_position.ref_lon         = _ref_pos_data.lon;
+			local_position.ref_alt         = _ref_pos_data.alt;
 
-		local_position.dist_bottom_valid = false;
+			local_position.vx = data->ins.velocity(0);
+			local_position.vy = data->ins.velocity(1);
+			local_position.vz = data->ins.velocity(2);
 
-		const float lat_err = static_cast<float>(data->ins.accuracy.lat) * 0.001f;
-		const float lon_err = static_cast<float>(data->ins.accuracy.lon) * 0.001f;
-		local_position.eph = sqrtf(lat_err * lat_err + lon_err * lon_err);
-		local_position.epv = static_cast<float>(data->ins.accuracy.alt) * 0.001f;
+			local_position.ax = data->accel(0);
+			local_position.ay = data->accel(1);
+			local_position.az = data->accel(2);
 
-		const float northVel_err = static_cast<float>(data->ins.accuracy.northVel) * 0.001f;
-		const float eastVel_err = static_cast<float>(data->ins.accuracy.eastVel) * 0.001f;
-		local_position.evh = sqrtf(northVel_err * northVel_err + eastVel_err * eastVel_err);
+			local_position.heading = static_cast<float>(data->ext.headingData.heading) *
+									 static_cast<float>(M_DEG_TO_RAD) * 0.01f;  // rad
+			local_position.unaided_heading          = NAN;
+			local_position.heading_good_for_control = true;
 
-		local_position.evv = static_cast<float>(data->ins.accuracy.verVel) * 0.001f;
+			local_position.xy_global = true;
+			local_position.z_global  = true;
 
-		local_position.dead_reckoning = false;
+			local_position.dist_bottom_valid = false;
 
-		local_position.vxy_max     = INFINITY;
-		local_position.vz_max      = INFINITY;
-		local_position.hagl_min    = INFINITY;
-		local_position.hagl_max_z  = INFINITY;
-		local_position.hagl_max_xy = INFINITY;
+			const float northVel_err = static_cast<float>(data->ins.accuracy.northVel) * 0.001f;
+			const float eastVel_err = static_cast<float>(data->ins.accuracy.eastVel) * 0.001f;
+			local_position.evh = sqrtf(northVel_err * northVel_err + eastVel_err * eastVel_err);
+			local_position.evv = static_cast<float>(data->ins.accuracy.verVel) * 0.001f;
 
-		_local_position_pub.publish(local_position);
-		perf_count(_local_position_pub_interval_perf);
+			local_position.dead_reckoning = isDeadReckoning;
+
+			local_position.vxy_max     = INFINITY;
+			local_position.vz_max      = INFINITY;
+			local_position.hagl_min    = INFINITY;
+			local_position.hagl_max_z  = INFINITY;
+			local_position.hagl_max_xy = INFINITY;
+
+			_local_position_pub.publish(local_position);
+			perf_count(_local_position_pub_interval_perf);
+		}
 	}
 
 	// publish global_position
-	if (isFilterOk) {
+	if (isFilterOk && isPosOk &&  _ref_pos.isInitialized()) {
 		vehicle_global_position_s global_position{};
 		global_position.timestamp        = time_now_us;
 		global_position.timestamp_sample = time_now_us;
@@ -450,20 +492,17 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		global_position.lat           = data->ins.latitude;
 		global_position.lon           = data->ins.longitude;
 		global_position.alt           = data->ins.altitude;
+		global_position.eph           = eph;
+		global_position.epv           = epv;
 
-		const float lat_err = static_cast<float>(data->ins.accuracy.lat) * 0.001f;
-		const float lon_err = static_cast<float>(data->ins.accuracy.lon) * 0.001f;
-		global_position.eph           = sqrtf(lat_err * lat_err + lon_err * lon_err);
-		global_position.epv           = static_cast<float>(data->ins.accuracy.alt) * 0.001f;
-
-		global_position.dead_reckoning = false;
+		global_position.dead_reckoning = isDeadReckoning;
 
 		_global_position_pub.publish(global_position);
 		perf_count(_global_position_pub_interval_perf);
 	}
 
 	// publish GPS data
-	if (hasEnoughSatellites && isFilterOk && hasNewGpsData) {
+	if (isFilterOk && hasNewGpsData && isGnssValid) {
 		sensor_gps_s sensor_gps{};
 		sensor_gps.timestamp        = time_now_us;
 		sensor_gps.timestamp_sample = time_now_us;
@@ -477,17 +516,14 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 
 		sensor_gps.fix_type = data->gps.fixType + 1;
 
-		const float lat_err = static_cast<float>(data->ins.accuracy.lat) * 0.001f;
-		const float lon_err = static_cast<float>(data->ins.accuracy.lon) * 0.001f;
-		sensor_gps.eph = sqrtf(lat_err * lat_err + lon_err * lon_err);
-		sensor_gps.epv = static_cast<float>(data->ins.accuracy.alt) * 0.001f;
+		sensor_gps.eph = eph;
+		sensor_gps.epv = epv;
 
 		sensor_gps.hdop = static_cast<float>(data->gps.dop.hdop) * 0.001f;
 		sensor_gps.vdop = static_cast<float>(data->gps.dop.vdop) * 0.001f;
 
 		sensor_gps.jamming_state = data->gps.jamStatus;
-		sensor_gps.jamming_indicator = (sensor_gps.jamming_state != InertialLabs::JammingStatus::UNKOWN_OR_DISABLED) &&
-					       (sensor_gps.jamming_state != InertialLabs::JammingStatus::NO_SIGNIFICANT);
+		sensor_gps.jamming_indicator = isJammed ? 1 : 0;
 		sensor_gps.spoofing_state = data->gps.spoofingStatus;
 
 		sensor_gps.vel_m_s =
@@ -498,7 +534,7 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		sensor_gps.vel_ned_valid = true;
 
 		sensor_gps.time_utc_usec = ToUtcMicroseconds(data->gps.gpsWeek, data->gps.msTow);
-		sensor_gps.timestamp_time_relative = static_cast<int32_t>(sensor_gps.time_utc_usec - time_now_us);
+		sensor_gps.timestamp_time_relative = 0;
 
 		sensor_gps.satellites_used = data->gps.usedSatCount;
 
@@ -506,12 +542,11 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = NAN;
 
-		// sensor_gps.s_variance_m_s = ...; // TODO: need 0x43 UDD Package?
-
 		_sensor_gps_pub.publish(sensor_gps);
 		perf_count(_gnss_pub_interval_perf);
 	}
 
+	// publish estimator status and flags
 	if (_param_ilabs_mode.get() == ILabsMode::FULL_INS) {
 		estimator_status_s estimator_status{};
 		estimator_status.timestamp        = time_now_us;
@@ -530,6 +565,29 @@ void ILabs::processData(InertialLabs::SensorsData *data) {
 		estimator_status.baro_device_id  = _device_id.devid;
 
 		_estimator_status_pub.publish(estimator_status);
+
+		const bool isPosValid = isFilterOk && isPosOk && _ref_pos.isInitialized();
+		estimator_status_flags_s estimator_flags{};
+
+		estimator_flags.timestamp = time_now_us;
+		estimator_flags.timestamp_sample = time_now_us;
+
+		estimator_flags.cs_tilt_align = isFilterOk;
+		estimator_flags.cs_yaw_align = isFilterOk;
+
+		estimator_flags.cs_gnss_pos = isGnssValid && isPosValid;
+		estimator_flags.cs_gnss_vel = isGnssValid && isPosValid;
+		estimator_flags.cs_gps_hgt = isGnssValid && isPosValid;
+
+		estimator_flags.cs_baro_hgt = isBaroOk;
+
+		estimator_flags.cs_inertial_dead_reckoning = isPosValid && !isGnssValid;
+		estimator_flags.cs_wind_dead_reckoning = false;
+
+		estimator_flags.cs_gnss_fault = !isGnssValid;
+		estimator_flags.cs_baro_fault = !isBaroOk;
+
+		_estimator_status_flags_pub.publish(estimator_flags);
 	}
 }
 

@@ -10,26 +10,28 @@ Ranging beacon measurement data (e.g. LoRa, UWB).
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum            | Description                                 |
-| ---------------- | --------- | ------------ | --------------------- | ------------------------------------------- |
-| timestamp        | `uint64`  | us           |                       | time since system start                     |
-| timestamp_sample | `uint64`  | us           |                       | the timestamp of the raw data               |
-| beacon_id        | `uint8`   |              |                       |
-| range            | `float32` | m            |                       | Range measurement                           |
-| lat              | `float64` | deg          |                       | Latitude                                    |
-| lon              | `float64` | deg          |                       | Longitude                                   |
-| alt              | `float32` | m            |                       | Beacon altitude (frame defined in alt_type) |
-| alt_type         | `uint8`   |              | [ALT_TYPE](#ALT_TYPE) | Altitude frame for alt field                |
-| hacc             | `float32` | m            |                       | Groundbeacon horizontal accuracy            |
-| vacc             | `float32` | m            |                       | Groundbeacon vertical accuracy              |
-| sequence_nr      | `uint8`   |              |                       |
-| status           | `uint8`   |              |                       |
-| carrier_freq     | `uint16`  | MHz          |                       | Carrier frequency                           |
-| range_accuracy   | `float32` | m            |                       | Range accuracy estimate                     |
+| Name                                              | Type      | Unit [Frame] | Range/Enum            | Description                                 |
+| ------------------------------------------------- | --------- | ------------ | --------------------- | ------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  | us           |                       | time since system start                     |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`  | us           |                       | the timestamp of the raw data               |
+| <a id="fld_beacon_id"></a>beacon_id               | `uint8`   |              |                       |
+| <a id="fld_range"></a>range                       | `float32` | m            |                       | Range measurement                           |
+| <a id="fld_lat"></a>lat                           | `float64` | deg          |                       | Latitude                                    |
+| <a id="fld_lon"></a>lon                           | `float64` | deg          |                       | Longitude                                   |
+| <a id="fld_alt"></a>alt                           | `float32` | m            |                       | Beacon altitude (frame defined in alt_type) |
+| <a id="fld_alt_type"></a>alt_type                 | `uint8`   |              | [ALT_TYPE](#ALT_TYPE) | Altitude frame for alt field                |
+| <a id="fld_hacc"></a>hacc                         | `float32` | m            |                       | Groundbeacon horizontal accuracy            |
+| <a id="fld_vacc"></a>vacc                         | `float32` | m            |                       | Groundbeacon vertical accuracy              |
+| <a id="fld_sequence_nr"></a>sequence_nr           | `uint8`   |              |                       |
+| <a id="fld_status"></a>status                     | `uint8`   |              |                       |
+| <a id="fld_carrier_freq"></a>carrier_freq         | `uint16`  | MHz          |                       | Carrier frequency                           |
+| <a id="fld_range_accuracy"></a>range_accuracy     | `float32` | m            |                       | Range accuracy estimate                     |
 
 ## Enums
 
 ### ALT_TYPE {#ALT_TYPE}
+
+Used in field(s): [alt_type](#fld_alt_type)
 
 | Name                                        | Type    | Value | Description                          |
 | ------------------------------------------- | ------- | ----- | ------------------------------------ |

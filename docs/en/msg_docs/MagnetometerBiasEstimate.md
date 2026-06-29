@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type         | Unit [Frame] | Range/Enum | Description                            |
-| --------- | ------------ | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64`     |              |            | time since system start (microseconds) |
-| bias_x    | `float32[4]` |              |            | estimated X-bias of all the sensors    |
-| bias_y    | `float32[4]` |              |            | estimated Y-bias of all the sensors    |
-| bias_z    | `float32[4]` |              |            | estimated Z-bias of all the sensors    |
-| valid     | `bool[4]`    |              |            | true if the estimator has converged    |
-| stable    | `bool[4]`    |              |            |
+| Name                                | Type         | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | ------------ | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`     |              |            | time since system start (microseconds) |
+| <a id="fld_bias_x"></a>bias_x       | `float32[4]` |              |            | estimated X-bias of all the sensors    |
+| <a id="fld_bias_y"></a>bias_y       | `float32[4]` |              |            | estimated Y-bias of all the sensors    |
+| <a id="fld_bias_z"></a>bias_z       | `float32[4]` |              |            | estimated Z-bias of all the sensors    |
+| <a id="fld_valid"></a>valid         | `bool[4]`    |              |            | true if the estimator has converged    |
+| <a id="fld_stable"></a>stable       | `bool[4]`    |              |            |
 
 ## Source Message
 

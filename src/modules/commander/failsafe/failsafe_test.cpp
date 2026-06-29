@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 
+#include "failsafe.h"
 #include "framework.h"
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
@@ -63,7 +64,8 @@ protected:
 		CHECK_FAILSAFE(status_flags, offboard_control_signal_lost, ActionOptions(Action::Hold));
 
 		CHECK_FAILSAFE(status_flags, navigator_failure, ActionOptions(Action::Warn));
-		CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, ActionOptions(Action::None));
+		CHECK_FAILSAFE(status_flags, fd_imbalanced_prop,
+			       ActionOptions(Action::None).allowUserTakeover(UserTakeoverAllowed::AlwaysModeSwitchOnly));
 
 		_last_state_test = checkFailsafe(_caller_id_test, _last_state_test, status_flags.fd_motor_failure
 						 && status_flags.fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
@@ -338,6 +340,45 @@ TEST_F(FailsafeTest, no_delay_for_warn)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
 }
 
+TEST_F(FailsafeTest, none_action_does_not_restrict_user_takeover)
+{
+	FailsafeTester failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	failsafe_flags_s failsafe_flags{};
+	bool user_intended_mode_updated = false;
+
+	// Add an active Action::None entry with a restrictive takeover setting.
+	failsafe_flags.fd_imbalanced_prop = true;
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Battery time low -> Hold for the delay
+	time += 10_ms;
+	failsafe_flags.battery_low_remaining_time = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Delay over -> RTL
+	time += 5_s;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// User wants takeover via sticks. The active Action::None must not downgrade this to mode-switch-only.
+	time += 10_ms;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, true, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, vehicle_status_s::NAVIGATION_STATE_POSCTL);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+	ASSERT_TRUE(failsafe.userTakeoverActive());
+}
+
 TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)
 {
 	FailsafeTester failsafe(nullptr);
@@ -561,4 +602,99 @@ TEST_F(FailsafeTest, user_termination)
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+}
+
+TEST_F(FailsafeTest, fallback_altitude_requires_manual_control)
+{
+	int nav_rcl_act = 2;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+	failsafe_flags.manual_control_signal_lost = true;
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	// If arming was allowed without manual control, RC loss is ignored until manual control returns.
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Losing position in PosCtl would normally fall back to AltCtl, but AltCtl needs manual control.
+	failsafe_flags.local_position_invalid_relaxed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+TEST_F(FailsafeTest, fallback_altitude_uses_nav_rcl_act_param)
+{
+	int nav_rcl_act = 5;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+	failsafe_flags.manual_control_signal_lost = true;
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	// If arming was allowed without manual control, RC loss is ignored until manual control returns.
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Losing position in PosCtl triggers the manual-control fallback, which should use NAV_RCL_ACT.
+	failsafe_flags.local_position_invalid_relaxed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+}
+
+TEST_F(FailsafeTest, fallback_stabilized_requires_manual_control)
+{
+	int nav_rcl_act = 2;
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+	failsafe_flags.manual_control_signal_lost = true;
+
+	FailsafeBase::State state{};
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	// If arming was allowed without manual control, RC loss is ignored until manual control returns.
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	state.armed = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Losing altitude in AltCtl would normally fall back to Stabilized, but Stabilized needs manual control.
+	failsafe_flags.local_altitude_invalid = true;
+	time += 10_ms;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	// checkModeFallback returns RTL from NAV_RCL_ACT. The framework then cascades RTL -> Land -> Descend
+	// because local altitude loss blocks both AUTO_RTL and AUTO_LAND.
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 }

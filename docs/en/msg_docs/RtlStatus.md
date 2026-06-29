@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                  | Type     | Unit [Frame] | Range/Enum | Description                                                                                  |
-| --------------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------------------------- |
-| timestamp             | `uint64` |              |            | time since system start (microseconds)                                                       |
-| safe_points_id        | `uint32` |              |            | unique ID of active set of safe_point_items                                                  |
-| is_evaluation_pending | `bool`   |              |            | flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading). |
-| has_vtol_approach     | `bool`   |              |            | flag if approaches are defined for current RTL_TYPE parameter setting                        |
-| rtl_type              | `uint8`  |              |            | Type of RTL chosen                                                                           |
-| safe_point_index      | `uint8`  |              |            | index of the chosen safe point, UINT8_MAX if no rally point was chosen                       |
+| Name                                                        | Type     | Unit [Frame] | Range/Enum | Description                                                                                  |
+| ----------------------------------------------------------- | -------- | ------------ | ---------- | -------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64` |              |            | time since system start (microseconds)                                                       |
+| <a id="fld_safe_points_id"></a>safe_points_id               | `uint32` |              |            | unique ID of active set of safe_point_items                                                  |
+| <a id="fld_is_evaluation_pending"></a>is_evaluation_pending | `bool`   |              |            | flag if the RTL point needs reevaluation (e.g. new safe points available, but need loading). |
+| <a id="fld_has_vtol_approach"></a>has_vtol_approach         | `bool`   |              |            | flag if approaches are defined for current RTL_TYPE parameter setting                        |
+| <a id="fld_rtl_type"></a>rtl_type                           | `uint8`  |              |            | Type of RTL chosen                                                                           |
+| <a id="fld_safe_point_index"></a>safe_point_index           | `uint8`  |              |            | index of the chosen safe point, UINT8_MAX if no rally point was chosen                       |
 
 ## Constants
 

@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭        | 형식          | Unit [Frame] | Range/Enum | 설명                                                        |
-| --------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64`    |                                                                  |            | time since system start (microseconds) |
-| val       | `int32`     |                                                                  |            |                                                           |
-| junk      | `uint8[64]` |                                                                  |            |                                                           |
+| 명칭                                  | 형식          | Unit [Frame] | Range/Enum | 설명                                                        |
+| ----------------------------------- | ----------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`    |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_val"></a>val             | `int32`     |                                                                  |            |                                                           |
+| <a id="fld_junk"></a>junk           | `uint8[64]` |                                                                  |            |                                                           |
 
 ## Constants
 

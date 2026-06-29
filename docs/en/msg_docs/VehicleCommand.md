@@ -10,23 +10,23 @@ Vehicle Command uORB message. Used for commanding a mission / action / etc. Foll
 
 ## Fields
 
-| Name             | Type      | Unit [Frame] | Range/Enum | Description                                                                                       |
-| ---------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`  | us           |            | Time since system start.                                                                          |
-| param1           | `float32` |              |            | Parameter 1, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| param2           | `float32` |              |            | Parameter 2, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| param3           | `float32` |              |            | Parameter 3, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| param4           | `float32` |              |            | Parameter 4, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| param5           | `float64` |              |            | Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| param6           | `float64` |              |            | Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| param7           | `float32` |              |            | Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
-| command          | `uint32`  |              |            | Command ID.                                                                                       |
-| target_system    | `uint8`   |              |            | System which should execute the command.                                                          |
-| target_component | `uint8`   |              |            | Component which should execute the command, 0 for all components.                                 |
-| source_system    | `uint8`   |              |            | System sending the command.                                                                       |
-| source_component | `uint16`  |              |            | Component / mode executor sending the command.                                                    |
-| confirmation     | `uint8`   |              |            | 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command). |
-| from_external    | `bool`    |              |            |
+| Name                                              | Type      | Unit [Frame] | Range/Enum | Description                                                                                       |
+| ------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`  | us           |            | Time since system start.                                                                          |
+| <a id="fld_param1"></a>param1                     | `float32` |              |            | Parameter 1, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_param2"></a>param2                     | `float32` |              |            | Parameter 2, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_param3"></a>param3                     | `float32` |              |            | Parameter 3, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_param4"></a>param4                     | `float32` |              |            | Parameter 4, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_param5"></a>param5                     | `float64` |              |            | Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_param6"></a>param6                     | `float64` |              |            | Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_param7"></a>param7                     | `float32` |              |            | Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.                                       |
+| <a id="fld_command"></a>command                   | `uint32`  |              |            | Command ID.                                                                                       |
+| <a id="fld_target_system"></a>target_system       | `uint8`   |              |            | System which should execute the command.                                                          |
+| <a id="fld_target_component"></a>target_component | `uint8`   |              |            | Component which should execute the command, 0 for all components.                                 |
+| <a id="fld_source_system"></a>source_system       | `uint8`   |              |            | System sending the command.                                                                       |
+| <a id="fld_source_component"></a>source_component | `uint16`  |              |            | Component / mode executor sending the command.                                                    |
+| <a id="fld_confirmation"></a>confirmation         | `uint8`   |              |            | 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command). |
+| <a id="fld_from_external"></a>from_external       | `bool`    |              |            |
 
 ## Commands
 
@@ -1528,6 +1528,20 @@ Change mode by specifying nav_state directly.
 | 6     |       |            | Unused      |
 | 7     |       |            | Unused      |
 
+### VEHICLE_CMD_GUIDED_CHANGE_HEADING (43002)
+
+Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s].
+
+| Param | Units | Range/Enum | Description                      |
+| ----- | ----- | ---------- | -------------------------------- |
+| 1     |       |            | Heading type (HEADING_TYPE enum) |
+| 2     | deg   |            | Target bearing [0..360]          |
+| 3     | deg/s |            | Max rate of change               |
+| 4     |       |            | Unused                           |
+| 5     |       |            | Unused                           |
+| 6     |       |            | Unused                           |
+| 7     |       |            | Unused                           |
+
 ## Enums
 
 ### ORBIT_YAW_BEHAVIOUR {#ORBIT_YAW_BEHAVIOUR}
@@ -1781,6 +1795,8 @@ uint8 FUSION_SOURCE_RNGBCN = 8 # Ranging Beacon
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
+
+uint16 VEHICLE_CMD_GUIDED_CHANGE_HEADING = 43002 # Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s]. |Heading type (HEADING_TYPE enum)|[deg] Target bearing [0..360]|[deg/s] Max rate of change|Unused|Unused|Unused|Unused|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
 uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1 # Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.

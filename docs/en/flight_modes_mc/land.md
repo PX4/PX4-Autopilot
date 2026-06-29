@@ -11,9 +11,9 @@ The vehicle will disarm shortly after landing (by default).
 - Mode requires at least a valid local position estimate (does not require a global position).
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - RC control switches can be used to change flight modes on any vehicle.
-- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->

@@ -47,6 +47,8 @@
 #include <math.h>
 #include <fcntl.h>
 
+#include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
 
@@ -68,6 +70,12 @@ PrecLand::PrecLand(Navigator *navigator) :
 	_handle_param_acceleration_hor = param_find("MPC_ACC_HOR");
 	_handle_param_xy_vel_cruise = param_find("MPC_XY_CRUISE");
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+# if defined(CONFIG_VTEST_MOVING)
+	_handle_param_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
+# endif // CONFIG_VTEST_MOVING
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	updateParams();
 }
 
@@ -77,6 +85,10 @@ PrecLand::on_activation()
 	_state = PrecLandState::Start;
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	reset_target_yaw_state();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
@@ -122,8 +134,35 @@ PrecLand::on_active()
 		_target_pose_valid = false;
 	}
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+	// get orientation measurement
+	if (_param_pld_yaw_en.get()) {
+		vte_orientation_s target_orientation;
+
+		if (_target_orientation_sub.update(&target_orientation)) {
+			if (target_orientation.orientation_valid) {
+				_target_yaw_valid = true;
+				_last_target_yaw_update = target_orientation.timestamp;
+				_target_yaw = target_orientation.yaw;
+
+			} else {
+				reset_target_yaw_state();
+			}
+		}
+
+		if (_target_yaw_valid && ((hrt_elapsed_time(&_last_target_yaw_update) / 1e6f) > _param_pld_btout.get())) {
+			reset_target_yaw_state();
+		}
+
+	} else {
+		reset_target_yaw_state();
+	}
+
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	// stop if we are landed
-	if (_navigator->get_land_detected()->landed) {
+	if (_navigator->get_land_detected()->landed && _state != PrecLandState::Done) {
 		switch_to_state_done();
 	}
 
@@ -161,11 +200,21 @@ PrecLand::on_active()
 		break;
 	}
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	publish_prec_land_status(map_prec_land_state(_state));
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void
 PrecLand::on_inactivation()
 {
+	clear_current_yaw_setpoint();
+	_navigator->set_position_setpoint_triplet_updated();
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	reset_target_yaw_state();
+	publish_prec_land_status(prec_land_status_s::PREC_LAND_STATE_STOPPED);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_is_activated = false;
 }
 
@@ -181,6 +230,16 @@ PrecLand::updateParams()
 	if (_handle_param_xy_vel_cruise != PARAM_INVALID) {
 		param_get(_handle_param_xy_vel_cruise, &_param_xy_vel_cruise);
 	}
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+# if defined(CONFIG_VTEST_MOVING)
+
+	if (_handle_param_z_v_auto_dn != PARAM_INVALID) {
+		param_get(_handle_param_z_v_auto_dn, &_param_z_v_auto_dn);
+	}
+
+# endif // CONFIG_VTEST_MOVING
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void
@@ -257,8 +316,9 @@ PrecLand::run_state_horizontal_approach()
 
 	}
 
-	float x = _target_pose.x_abs;
-	float y = _target_pose.y_abs;
+	matrix::Vector2f target_position_sp = get_target_position_setpoint();
+	float x = target_position_sp(0);
+	float y = target_position_sp(1);
 
 	slewrate(x, y);
 
@@ -267,6 +327,10 @@ PrecLand::run_state_horizontal_approach()
 
 	pos_sp_triplet->current.alt = _approach_alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	update_current_yaw_setpoint();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
@@ -294,10 +358,16 @@ PrecLand::run_state_descend_above_target()
 		return;
 	}
 
+	const matrix::Vector2f target_position_sp = get_target_position_setpoint();
+
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
-	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
+	_map_ref.reproject(target_position_sp(0), target_position_sp(1), pos_sp_triplet->current.lat,
+			   pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	update_current_yaw_setpoint();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
@@ -352,6 +422,7 @@ PrecLand::switch_to_state_start()
 	if (check_state_conditions(PrecLandState::Start)) {
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		clear_current_yaw_setpoint();
 		_navigator->set_position_setpoint_triplet_updated();
 		_search_cnt++;
 
@@ -400,6 +471,8 @@ PrecLand::switch_to_state_final_approach()
 {
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
 		print_state_switch_message("final approach");
+		clear_current_yaw_setpoint();
+		_navigator->set_position_setpoint_triplet_updated();
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -415,6 +488,7 @@ PrecLand::switch_to_state_search()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.alt = _navigator->get_home_position()->alt + _param_pld_srch_alt.get();
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	clear_current_yaw_setpoint();
 	_navigator->set_position_setpoint_triplet_updated();
 
 	_target_acquired_time = 0;
@@ -433,6 +507,7 @@ PrecLand::switch_to_state_fallback()
 	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
 	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+	clear_current_yaw_setpoint();
 	_navigator->set_position_setpoint_triplet_updated();
 
 	_state = PrecLandState::Fallback;
@@ -443,6 +518,8 @@ PrecLand::switch_to_state_fallback()
 bool
 PrecLand::switch_to_state_done()
 {
+	clear_current_yaw_setpoint();
+	_navigator->set_position_setpoint_triplet_updated();
 	_state = PrecLandState::Done;
 	_state_start_time = hrt_absolute_time();
 	return true;
@@ -451,6 +528,47 @@ PrecLand::switch_to_state_done()
 void PrecLand::print_state_switch_message(const char *state_name)
 {
 	PX4_INFO("Precland: switching to %s", state_name);
+}
+
+matrix::Vector2f PrecLand::get_target_position_setpoint()
+{
+	matrix::Vector2f target_position_sp(_target_pose.x_abs, _target_pose.y_abs);
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+# if defined(CONFIG_VTEST_MOVING)
+	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+	if (_target_pose.is_static || !_target_pose.rel_vel_valid || !vehicle_local_position->v_xy_valid) {
+		return target_position_sp;
+	}
+
+	const matrix::Vector2f target_rel_velocity(_target_pose.vx_rel, _target_pose.vy_rel);
+	const matrix::Vector2f vehicle_velocity(vehicle_local_position->vx, vehicle_local_position->vy);
+
+	if (!PX4_ISFINITE(_target_pose.z_rel) || !target_rel_velocity.isAllFinite() || !vehicle_velocity.isAllFinite()) {
+		return target_position_sp;
+	}
+
+	float mpc_z_v_auto_dn = _param_z_v_auto_dn;
+	static constexpr float kMinAbsMpcZVAutoDnMps = 1e-3f;
+
+	if (fabsf(mpc_z_v_auto_dn) < kMinAbsMpcZVAutoDnMps) {
+		mpc_z_v_auto_dn = (mpc_z_v_auto_dn >= 0.f) ? kMinAbsMpcZVAutoDnMps : -kMinAbsMpcZVAutoDnMps;
+	}
+
+	// Reconstruct the absolute target velocity in the local NED frame from the relative
+	// velocity published by the VTE and the EKF2 vehicle velocity.
+	const matrix::Vector2f target_velocity = target_rel_velocity + vehicle_velocity;
+	const float min_prediction_time = math::min(_param_pld_moving_t_min.get(), _param_pld_moving_t_max.get());
+	const float max_prediction_time = math::max(_param_pld_moving_t_min.get(), _param_pld_moving_t_max.get());
+	float intersection_time_s = fabsf(_target_pose.z_rel / mpc_z_v_auto_dn);
+	intersection_time_s = math::constrain(intersection_time_s, min_prediction_time, max_prediction_time);
+
+	target_position_sp += target_velocity * intersection_time_s;
+# endif // CONFIG_VTEST_MOVING
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+	return target_position_sp;
 }
 
 bool PrecLand::check_state_conditions(PrecLandState state)
@@ -465,8 +583,10 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::HorizontalApproach) {
-			if (fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_pld_hacc_rad.get()
-			    && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_pld_hacc_rad.get()) {
+			const matrix::Vector2f target_position_sp = get_target_position_setpoint();
+
+			if (fabsf(target_position_sp(0) - vehicle_local_position->x) < _param_pld_hacc_rad.get()
+			    && fabsf(target_position_sp(1) - vehicle_local_position->y) < _param_pld_hacc_rad.get()) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _target_pose_valid && _target_pose.abs_pos_valid;
 
@@ -494,9 +614,10 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		} else {
 			// if not already in this state, need to be above target to enter it
+			const matrix::Vector2f target_position_sp = get_target_position_setpoint();
 			return _target_pose_updated && _target_pose.abs_pos_valid
-			       && fabsf(_target_pose.x_abs - vehicle_local_position->x) < _param_pld_hacc_rad.get()
-			       && fabsf(_target_pose.y_abs - vehicle_local_position->y) < _param_pld_hacc_rad.get();
+			       && fabsf(target_position_sp(0) - vehicle_local_position->x) < _param_pld_hacc_rad.get()
+			       && fabsf(target_position_sp(1) - vehicle_local_position->y) < _param_pld_hacc_rad.get();
 		}
 
 	case PrecLandState::FinalApproach:
@@ -575,3 +696,54 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 	sp_x = sp_curr(0);
 	sp_y = sp_curr(1);
 }
+
+void PrecLand::clear_current_yaw_setpoint()
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->current.yaw = NAN;
+}
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+void PrecLand::update_current_yaw_setpoint()
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->current.yaw = (_param_pld_yaw_en.get() && _target_yaw_valid) ? _target_yaw : NAN;
+}
+
+void PrecLand::reset_target_yaw_state()
+{
+	_target_yaw = 0.f;
+	_target_yaw_valid = false;
+	_last_target_yaw_update = 0;
+}
+
+uint8_t PrecLand::map_prec_land_state(PrecLandState state)
+{
+	switch (state) {
+	case PrecLandState::Start: return prec_land_status_s::PREC_LAND_STATE_START;
+
+	case PrecLandState::HorizontalApproach: return prec_land_status_s::PREC_LAND_STATE_HORIZONTAL;
+
+	case PrecLandState::DescendAboveTarget: return prec_land_status_s::PREC_LAND_STATE_DESCEND;
+
+	case PrecLandState::FinalApproach: return prec_land_status_s::PREC_LAND_STATE_FINAL;
+
+	case PrecLandState::Search: return prec_land_status_s::PREC_LAND_STATE_SEARCH;
+
+	case PrecLandState::Fallback: return prec_land_status_s::PREC_LAND_STATE_FALLBACK;
+
+	case PrecLandState::Done: return prec_land_status_s::PREC_LAND_STATE_DONE;
+	}
+
+	return prec_land_status_s::PREC_LAND_STATE_STOPPED;
+}
+
+void PrecLand::publish_prec_land_status(uint8_t state)
+{
+	prec_land_status_s prec_land_status{};
+	prec_land_status.timestamp = hrt_absolute_time();
+	prec_land_status.state = state;
+	_prec_land_status_pub.publish(prec_land_status);
+}
+
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR

@@ -10,11 +10,11 @@ Mode completion result, published by an active mode. The possible values of nav_
 
 ## Fields
 
-| 명칭                             | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
-| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
-| result                         | `uint8`  |                                                                  |            | One of RESULT\_\*                   |
-| nav_state | `uint8`  |                                                                  |            | Source mode (values in VehicleStatus)  |
+| 명칭                                                       | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
+| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_result"></a>result                            | `uint8`  |                                                                  |            | One of RESULT\_\*                   |
+| <a id="fld_nav_state"></a>nav_state | `uint8`  |                                                                  |            | Source mode (values in VehicleStatus)  |
 
 ## Constants
 

@@ -12,20 +12,22 @@ This is currently used only for logging cell status from MAVLink.
 
 ## Fields
 
-| Name           | Type     | Unit [Frame] | Range/Enum                                                  | Description                                |
-| -------------- | -------- | ------------ | ----------------------------------------------------------- | ------------------------------------------ |
-| timestamp      | `uint64` | us           |                                                             | Time since system start                    |
-| status         | `uint16` |              | [STATUS_FLAG](#STATUS_FLAG)                                 | Status bitmap                              |
-| failure_reason | `uint8`  |              | [FAILURE_REASON](#FAILURE_REASON)                           | Failure reason                             |
-| type           | `uint8`  |              | [CELLULAR_NETWORK_RADIO_TYPE](#CELLULAR_NETWORK_RADIO_TYPE) | Cellular network radio type                |
-| quality        | `uint8`  | dBm          |                                                             | Cellular network RSSI/RSRP, absolute value |
-| mcc            | `uint16` |              |                                                             | Mobile country code (Invalid: UINT16_MAX)  |
-| mnc            | `uint16` |              |                                                             | Mobile network code (Invalid: UINT16_MAX)  |
-| lac            | `uint16` |              |                                                             | Location area code (Invalid: 0)            |
+| Name                                          | Type     | Unit [Frame] | Range/Enum                                                  | Description                                |
+| --------------------------------------------- | -------- | ------------ | ----------------------------------------------------------- | ------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp           | `uint64` | us           |                                                             | Time since system start                    |
+| <a id="fld_status"></a>status                 | `uint16` |              | [STATUS_FLAG](#STATUS_FLAG)                                 | Status bitmap                              |
+| <a id="fld_failure_reason"></a>failure_reason | `uint8`  |              | [FAILURE_REASON](#FAILURE_REASON)                           | Failure reason                             |
+| <a id="fld_type"></a>type                     | `uint8`  |              | [CELLULAR_NETWORK_RADIO_TYPE](#CELLULAR_NETWORK_RADIO_TYPE) | Cellular network radio type                |
+| <a id="fld_quality"></a>quality               | `uint8`  | dBm          |                                                             | Cellular network RSSI/RSRP, absolute value |
+| <a id="fld_mcc"></a>mcc                       | `uint16` |              |                                                             | Mobile country code (Invalid: UINT16_MAX)  |
+| <a id="fld_mnc"></a>mnc                       | `uint16` |              |                                                             | Mobile network code (Invalid: UINT16_MAX)  |
+| <a id="fld_lac"></a>lac                       | `uint16` |              |                                                             | Location area code (Invalid: 0)            |
 
 ## Enums
 
 ### STATUS_FLAG {#STATUS_FLAG}
+
+Used in field(s): [status](#fld_status)
 
 | Name                                                              | Type     | Value | Description                                                                                                                                                                                           |
 | ----------------------------------------------------------------- | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,6 +47,8 @@ This is currently used only for logging cell status from MAVLink.
 
 ### FAILURE_REASON {#FAILURE_REASON}
 
+Used in field(s): [failure_reason](#fld_failure_reason)
+
 | Name                                                                | Type    | Value | Description                                     |
 | ------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------- |
 | <a id="#FAILURE_REASON_NONE"></a> FAILURE_REASON_NONE               | `uint8` | 0     | No error                                        |
@@ -53,6 +57,8 @@ This is currently used only for logging cell status from MAVLink.
 | <a id="#FAILURE_REASON_SIM_ERROR"></a> FAILURE_REASON_SIM_ERROR     | `uint8` | 3     | SIM is available, but not usable for connection |
 
 ### CELLULAR_NETWORK_RADIO_TYPE {#CELLULAR_NETWORK_RADIO_TYPE}
+
+Used in field(s): [type](#fld_type)
 
 | Name                                                                              | Type    | Value | Description |
 | --------------------------------------------------------------------------------- | ------- | ----- | ----------- |

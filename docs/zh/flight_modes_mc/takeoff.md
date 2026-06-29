@@ -12,7 +12,7 @@ The _Takeoff_ flight mode causes the vehicle to take off to a specified height a
   - Flying vehicles will failsafe if they lose the position estimate.
   - Disarmed vehicles can switch to mode without valid position estimate but can't arm.
 - RC control switches can be used to change flight modes.
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
@@ -29,7 +29,7 @@ RC stick movement will change the vehicle to [Position mode](../flight_modes_mc/
 
 Takeoff is affected by the following parameters:
 
-| 参数                                                                                                                                                                      | 描述                                                                                                                                                                                                                              |
+| Parameter                                                                                                                                                               | 描述                                                                                                                                                                                                                              |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT)                      | Target altitude during takeoff (default: 2.5m)                                                                                                                               |
 | <a id="MPC_TKO_SPEED"></a>[MPC_TKO_SPEED](../advanced_config/parameter_reference.md#MPC_TKO_SPEED)                            | Speed of ascent (default: 1.5m/s)                                                                                                                                            |

@@ -688,11 +688,10 @@ parameters:
       max: 1
     RC_CHAN_CNT:
       description:
-        short: RC channel count
+        short: Calibrated RC channel count
         long: |-
-          This parameter is used by Ground Station software to save the number
-          of channels which were used during RC calibration. It is only meant
-          for ground station use.
+          Number of channels detected during RC calibration. Must be non-zero
+          for RC manual control input to be accepted.
       type: int32
       default: 0
       min: 0

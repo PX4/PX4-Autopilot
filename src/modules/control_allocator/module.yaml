@@ -1,5 +1,6 @@
 __max_num_mc_motors: &max_num_mc_motors 12
-__max_num_servos: &max_num_servos 8
+__max_num_servos: &max_num_servos 15
+__max_num_control_surfaces: &max_num_control_surfaces 8
 __max_num_tilts: &max_num_tilts 4
 
 module_name: Control Allocation
@@ -278,7 +279,7 @@ parameters:
                 16: Steering Wheel
                 17: Left Spoiler
                 18: Right Spoiler
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0
 
@@ -287,7 +288,7 @@ parameters:
                 short: Control Surface ${i} roll torque scaling
             type: float
             decimal: 2
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0.0
 
@@ -296,7 +297,7 @@ parameters:
                 short: Control Surface ${i} pitch torque scaling
             type: float
             decimal: 2
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0.0
 
@@ -305,7 +306,7 @@ parameters:
                 short: Control Surface ${i} yaw torque scaling
             type: float
             decimal: 2
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0.0
 
@@ -321,7 +322,7 @@ parameters:
             decimal: 2
             min: -1.0
             max: 1.0
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0.0
 
@@ -332,7 +333,7 @@ parameters:
             decimal: 2
             min: -1.0
             max: 1.0
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0
 
@@ -352,7 +353,7 @@ parameters:
             decimal: 2
             min: -1.0
             max: 1.0
-            num_instances: *max_num_servos
+            num_instances: *max_num_control_surfaces
             instance_start: 0
             default: 0
 

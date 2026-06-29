@@ -12,7 +12,7 @@ functions:
       count: 12
     Servo:
       start: 201
-      count: 8
+      count: 15
     Peripheral_via_Actuator_Set:
       start: 301
       count: 6

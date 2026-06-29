@@ -26,6 +26,7 @@ It may also be supported on other boards.
 Supported flight controllers include:
 
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
+- [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
@@ -164,7 +165,7 @@ You must separately configure the PX4 IP address and other _network settings_ ([
 
 PX4 configures the serial port to connect to a GCS via MAVLink, using the parameters shown below:
 
-| 매개변수                                                                                                                                          | Value  | 설명                                                                                                              |
+| Parameter                                                                                                                                     | Value  | 설명                                                                                                              |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
 | [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                              | 1000   | Configure Ethernet port                                                                                         |
 | [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                        | 1      | Broadcast `HEARTBEAT` messages                                                                                  |

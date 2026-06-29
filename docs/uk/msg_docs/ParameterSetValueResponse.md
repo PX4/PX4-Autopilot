@@ -10,11 +10,11 @@ ParameterSetValueResponse : Response to a set value request by either primary or
 
 ## Fields
 
-| Назва                                  | Тип      | Unit [Frame] | Range/Enum | Опис |
-| -------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ---- |
-| timestamp                              | `uint64` |                                                                  |            |      |
-| request_timestamp | `uint64` |                                                                  |            |      |
-| parameter_index   | `uint16` |                                                                  |            |      |
+| Назва                                                                    | Тип      | Unit [Frame] | Range/Enum | Опис |
+| ------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | ---- |
+| <a id="fld_timestamp"></a>timestamp                                      | `uint64` |                                                                  |            |      |
+| <a id="fld_request_timestamp"></a>request_timestamp | `uint64` |                                                                  |            |      |
+| <a id="fld_parameter_index"></a>parameter_index     | `uint16` |                                                                  |            |      |
 
 ## Constants
 

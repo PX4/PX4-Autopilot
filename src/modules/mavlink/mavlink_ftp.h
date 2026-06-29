@@ -96,6 +96,7 @@ public:
 		kCmdRename,		///< Rename <path1> to <path2>
 		kCmdCalcFileCRC32,	///< Calculate CRC32 for file at <path>
 		kCmdBurstReadFile,	///< Burst download session file
+		kCmdListDirectoryWithTime,	///< List files in <path> from <offset>, including last-modification time
 
 		kRspAck = 128,		///< Ack response
 		kRspNak			///< Nak response
@@ -125,7 +126,7 @@ private:
 	void		_reply(mavlink_file_transfer_protocol_t *ftp_req);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
-	ErrorCode	_workList(PayloadHeader *payload);
+	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
 	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id);
@@ -193,6 +194,13 @@ private:
 	// Path traversal via ".." is rejected by _validatePath().
 	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
 	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
+
+	// Virtual directory prefix for log files as defined by the MAVLink FTP spec.
+	// Paths that start with this prefix are mapped to the flight-stack log root.
+	static constexpr const char _mav_log_prefix[] = "@MAV_LOG";
+	static constexpr const int _mav_log_prefix_len = sizeof(_mav_log_prefix) - 1;
+	static constexpr const char _mav_log_dir[] = CONFIG_BOARD_ROOT_PATH "/log";
+	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
 	bool _last_reply_valid = false;
 	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN

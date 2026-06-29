@@ -173,19 +173,19 @@ int AuterionAutostarter::ina226_probe(const uint32_t instance) const
 		msgv[1].buffer = rxdata;
 		msgv[1].length = sizeof(rxdata);
 
-		txdata[0] = {INA226_MFG_ID};
+		txdata[0] = static_cast<uint8_t>(ina226::Register::MFG_ID);
 		ret = I2C_TRANSFER(i2c.get(), msgv, 2);
 		uint16_t value = static_cast<uint16_t>(rxdata[1] | rxdata[0] << 8);
 
-		if (ret != PX4_OK || value != INA226_MFG_ID_TI) {
+		if (ret != PX4_OK || value != ina226::MANFID) {
 			ret = PX4_ERROR;
 
 		} else {
-			txdata[0] = {INA226_MFG_DIEID};
+			txdata[0] = static_cast<uint8_t>(ina226::Register::DIE_ID);
 			ret = I2C_TRANSFER(i2c.get(), msgv, 2);
 			value = static_cast<uint16_t>(rxdata[1] | rxdata[0] << 8);
 
-			if (ret != PX4_OK || value != INA226_MFG_DIE) {
+			if (ret != PX4_OK || value != ina226::DIEID) {
 				ret = PX4_ERROR;
 			}
 		}

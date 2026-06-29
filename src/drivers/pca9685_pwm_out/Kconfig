@@ -15,7 +15,7 @@ if DRIVERS_PCA9685_PWM_OUT
         default 25000000
 
     config PCA9685_INTERNAL_CRYSTAL_FREQ
-        int "Corrected frequency of internal oscillator"
+        int "Internal oscillator frequency"
         depends on !PCA9685_USE_EXTERNAL_CRYSTAL
-        default 26075000
+        default 25000000
 endif

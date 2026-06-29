@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# AEDROX AEDROXH7 board specific defaults
+#------------------------------------------------------------------------------
+
+# Battery voltage divider and current scale (calibrate per build)
+param set-default BAT1_V_DIV 11.0
+param set-default BAT1_A_PER_V 40.0
+
+# system_power unavailable
+param set-default CBRK_SUPPLY_CHK 894281
+
+# No built-in magnetometer; run EKF2 without mag and enable gravity fusion
+param set-default SYS_HAS_MAG 0
+param set-default EKF2_IMU_CTRL 7
+
+# The startup tune is not great on a binary output buzzer, so disable it
+param set-default CBRK_BUZZER 782090
+
+param set-default IMU_GYRO_RATEMAX 2000
+
+# Store missions in RAM (no SD card on this board)
+param set-default SYS_DM_BACKEND 1
+
+# Ignore that there is no SD card
+param set-default COM_ARM_SDCARD 0
+
+# W25N NAND flash with littlefs (128 MB): small log file size so we can keep
+# a few recent logs, and fill up to 95%.
+param set-default SDLOG_ROTATE 95
+param set-default SDLOG_MAX_SIZE 40

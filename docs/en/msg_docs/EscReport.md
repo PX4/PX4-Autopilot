@@ -8,23 +8,25 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name              | Type      | Unit [Frame] | Range/Enum          | Description                                             |
-| ----------------- | --------- | ------------ | ------------------- | ------------------------------------------------------- |
-| timestamp         | `uint64`  | us           |                     | Time since system start                                 |
-| esc_errorcount    | `uint32`  |              |                     | Number of reported errors by ESC - if supported         |
-| esc_rpm           | `int32`   | rpm          |                     | Motor RPM, negative for reverse rotation - if supported |
-| esc_voltage       | `float32` | V            |                     | Voltage measured from current ESC - if supported        |
-| esc_current       | `float32` | A            |                     | Current measured from current ESC - if supported        |
-| esc_temperature   | `float32` | degC         |                     | Temperature measured from current ESC - if supported    |
-| motor_temperature | `int16`   | degC         |                     | Temperature measured from current motor - if supported  |
-| esc_state         | `uint8`   |              |                     | State of ESC - depend on Vendor                         |
-| actuator_function | `uint8`   |              |                     | Actuator output function (one of Motor1...MotorN)       |
-| failures          | `uint16`  |              | [FAILURE](#FAILURE) | Bitmask to indicate the internal ESC faults             |
-| esc_power         | `int8`    | %            | [0 : 100]           | Applied power (negative values reserved)                |
+| Name                                                | Type      | Unit [Frame] | Range/Enum          | Description                                             |
+| --------------------------------------------------- | --------- | ------------ | ------------------- | ------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                 | `uint64`  | us           |                     | Time since system start                                 |
+| <a id="fld_esc_errorcount"></a>esc_errorcount       | `uint32`  |              |                     | Number of reported errors by ESC - if supported         |
+| <a id="fld_esc_rpm"></a>esc_rpm                     | `int32`   | rpm          |                     | Motor RPM, negative for reverse rotation - if supported |
+| <a id="fld_esc_voltage"></a>esc_voltage             | `float32` | V            |                     | Voltage measured from current ESC - if supported        |
+| <a id="fld_esc_current"></a>esc_current             | `float32` | A            |                     | Current measured from current ESC - if supported        |
+| <a id="fld_esc_temperature"></a>esc_temperature     | `float32` | degC         |                     | Temperature measured from current ESC - if supported    |
+| <a id="fld_motor_temperature"></a>motor_temperature | `int16`   | degC         |                     | Temperature measured from current motor - if supported  |
+| <a id="fld_esc_state"></a>esc_state                 | `uint8`   |              |                     | State of ESC - depend on Vendor                         |
+| <a id="fld_actuator_function"></a>actuator_function | `uint8`   |              |                     | Actuator output function (one of Motor1...MotorN)       |
+| <a id="fld_failures"></a>failures                   | `uint16`  |              | [FAILURE](#FAILURE) | Bitmask to indicate the internal ESC faults             |
+| <a id="fld_esc_power"></a>esc_power                 | `int8`    | %            | [0 : 100]           | Applied power (negative values reserved)                |
 
 ## Enums
 
 ### FAILURE {#FAILURE}
+
+Used in field(s): [failures](#fld_failures)
 
 | Name                                                                        | Type    | Value | Description                                                                  |
 | --------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------------------------------- |

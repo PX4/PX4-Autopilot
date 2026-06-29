@@ -54,17 +54,25 @@ The simulated battery can be completely disabled by setting [SIM_BAT_DRAIN](../a
 [Failure injection](../debug/failure_injection.md) can be used to simulate different types of failures in many sensors and systems.
 Наприклад, це може бути використано для імітації відсутнього або переривчастого сигналу GPS, сигналу РК який перервався або застиг на певному значенні, збої в системі уникнення, і багато іншого.
 
-Наприклад, для імітації відмови сигналу GPS:
+Failure injection is gated by the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
-2. Enter the following commands on the SITL instance _pxh shell_:
+For example, to simulate GPS failure, enter the following commands on the SITL instance _pxh shell_:
 
-   ```sh
-   # Turn (all) GPS off
-   failure gps off
+```sh
+# Turn (all) GPS off (no position reported, as for a dead receiver)
+failure gps off
 
-   # Turn (all) GPS on
-   failure gps ok
-   ```
+# Freeze (all) GPS on the last reported position (a "stuck" fix)
+failure gps stuck
 
-See [System Failure Injection](../debug/failure_injection.md) for a list of supported target sensors and failure modes.
+# Report a diverging position (offset by ~111 km, trips the GNSS redundancy checks)
+failure gps wrong
+
+# Restore normal GPS output
+failure gps ok
+```
+
+:::tip
+To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GPS1_OFFX](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX) or [SENS_GPS1_OFFY](../advanced_config/parameter_reference.md#SENS_GPS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gps` instance offset by that distance (in metres).
+You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
+:::

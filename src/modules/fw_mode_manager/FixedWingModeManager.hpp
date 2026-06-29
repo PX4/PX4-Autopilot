@@ -75,7 +75,6 @@
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
-#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -386,6 +385,7 @@ private:
 	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
+	bool _go_direct_to_destination{false};
 
 	// CLosest point on path to track
 	matrix::Vector2f _closest_point_on_path;
@@ -846,6 +846,8 @@ private:
 		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
 		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
 		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
+
+		(ParamFloat<px4::params::FW_WP_RST_DIST>) _param_fw_wp_rst_dist,
 
 		(ParamFloat<px4::params::FW_LND_AIRSPD>) _param_fw_lnd_airspd,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,

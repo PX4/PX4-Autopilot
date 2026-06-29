@@ -173,6 +173,7 @@ The [supported worlds](../sim_gazebo_gz/worlds.md) are listed below.
 | `baylands`        | `make px4_sitl *_baylands`        | Світ Baylands оточений водою                                |
 | `lawn`            | `make px4_sitl *_lawn`            | Lawn world for testing rovers                               |
 | `rover`           | `make px4_sitl *_rover`           | Rover world (optimised/preferred)        |
+| `ridge`           | `make px4_sitl *_ridge`           | World with a sloped ridge for testing terrain following     |
 | `walls`           | `make px4_sitl *_walls`           | Wall world for testing collision prevention                 |
 | `windy`           | `make px4_sitl *_windy`           | Порожній світ з увімкненим вітром                           |
 | `moving_platform` | `make px4_sitl *_moving_platform` | World with moving takeoff / landing platform                |
@@ -227,6 +228,49 @@ The simulators are run in _lockstep_, which means that Gazebo runs the simulator
 In addition to being a precondition for running the simulation faster/slower than real-time, this also allows you to pause the simulation in order to step through code.
 Lockstep cannot be disabled on Gazebo.
 :::
+
+### Video Streaming
+
+Some models (e.g. `gz_x500_mono_cam`, `gz_x500_gimbal`) include a camera and support video streaming. By default, the stream is published over UDP on port 5600 using the RTP protocol.
+
+#### Вимоги
+
+GStreamer 1.0 is required. The necessary dependencies are included in the standard PX4 installation scripts for Ubuntu Linux and macOS.
+
+:::info
+Required packages: `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad`, `gstreamer1.0-plugins-ugly`, `libgstreamer-plugins-base1.0-dev`. If missing, install them via `apt` or your system package manager.
+:::
+
+#### Viewing the Video Stream
+
+**QGroundControl (recommended)**
+
+Open **Application Settings > General**, set **Video Source** to _UDP h.264 Video Stream_, and set **UDP Port** to `5600`.
+
+![QGC Video Streaming Settings for Gazebo](../../assets/simulation/gazebo_classic/qgc_gazebo_video_stream_udp.png)
+
+The Gazebo video feed will then appear in QGroundControl exactly as it would from a real camera.
+
+![QGC Video Streaming Gazebo Example](../../assets/simulation/gazebo_classic/qgc_gazebo_video_stream_typhoon.jpg)
+
+**GStreamer pipeline**
+
+To view the stream directly from a terminal:
+
+```sh
+gst-launch-1.0 -v udpsrc port=5600 \
+  caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' \
+  ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
+```
+
+#### Симуляція кількох рухомих засобів
+
+In a multi-vehicle simulation, each vehicle instance streams to a separate port starting from `5600` — i.e. `5600`, `5601`, `5602`, and so on. If an instance (other than the first, which acts as the Gazebo world host) is restarted, it resumes streaming on its originally assigned port.
+
+#### Розширене використання
+
+The default port and protocol (RTP) can be changed by modifying the world's SDF file.
+See the [GStreamer plugin README](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_plugins/gstreamer/README.md) for details.
 
 ## Використання/Налаштування
 

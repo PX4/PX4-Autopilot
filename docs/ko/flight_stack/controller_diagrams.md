@@ -30,7 +30,7 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 
   ::: info
   The IMU pipeline is:
-  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (\_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (\_filtered angular acceleration used by the D controller_)
+  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicl&#x65;_&#x61;ngular_velocity (\_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicl&#x65;_&#x61;ngular_acceleration (\_filtered angular acceleration used by the D controller_)
 
   ![IMU pipeline](../../assets/diagrams/px4_imu_pipeline.png)
 
@@ -44,7 +44,9 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 
 - The attitude controller makes use of [quaternions](https://en.wikipedia.org/wiki/Quaternion).
 - The controller is implemented from this [article](https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf).
-- 이 컨트롤러를 조정시 고려할 유일한 매개변수는 P 게인입니다.
+- The attitude setpoint is first smoothed by a 2nd-order critically-damped reference model ([MC_REF_W_N](../advanced_config/parameter_reference#MC_REF_W_N)); the P-law tracks its reference attitude, and the model's reference body rate is fed forward to the rate setpoint, removing the pure-P law's steady-state tracking lag.
+- The feedforward is scaled by `MC_REF_FF` (`0` disables it), clipped per axis by `MC_REF_FF_MAX`, and suppressed during autotuning.
+- Higher `MC_REF_W_N` or `MC_REF_FF` tracks more aggressively but demands more peak rate; the P gain remains the main tuning parameter.
 - rate 명령은 포화됩니다.
 
 ### Multicopter Acceleration to Thrust and Attitude Setpoint Conversion

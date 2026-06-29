@@ -164,14 +164,8 @@ void SensorBaroSim::Run()
 			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
 
 			// publish
-			sensor_baro_s sensor_baro{};
-			sensor_baro.timestamp_sample = gpos.timestamp;
-			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-			sensor_baro.pressure = pressure;
-			sensor_baro.temperature = temperature;
-			sensor_baro.timestamp = hrt_absolute_time();
-			_sensor_baro_pub.publish(sensor_baro);
-
+			_px4_baro.set_temperature(temperature);
+			_px4_baro.update(hrt_absolute_time(), pressure);
 
 			_last_update_time = gpos.timestamp;
 		}

@@ -10,17 +10,17 @@ Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module t
 
 ## Fields
 
-| Name                    | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                           |
-| ----------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp               | `uint64`  |              |            | time since system start (microseconds)                                                                                                |
-| course_setpoint         | `float32` | rad          | [-pi : pi] | Desired direction of travel over ground w.r.t (true) North. Set by guidance law                                                       |
-| lateral_acceleration_ff | `float32` | FRD          |            | lateral acceleration demand only for maintaining curvature                                                                            |
-| bearing_feas            | `float32` |              | [0 : 1]    | bearing feasibility                                                                                                                   |
-| bearing_feas_on_track   | `float32` |              | [0 : 1]    | on-track bearing feasibility                                                                                                          |
-| signed_track_error      | `float32` | m            |            | signed track error                                                                                                                    |
-| track_error_bound       | `float32` | m            |            | track error bound                                                                                                                     |
-| adapted_period          | `float32` | s            |            | adapted period (if auto-tuning enabled)                                                                                               |
-| wind_est_valid          | `uint8`   | boolean      |            | true = wind estimate is valid and/or being used by controller (also indicates if wind estimate usage is disabled despite being valid) |
+| Name                                                            | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                           |
+| --------------------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                             | `uint64`  |              |            | time since system start (microseconds)                                                                                                |
+| <a id="fld_course_setpoint"></a>course_setpoint                 | `float32` | rad          | [-pi : pi] | Desired direction of travel over ground w.r.t (true) North. Set by guidance law                                                       |
+| <a id="fld_lateral_acceleration_ff"></a>lateral_acceleration_ff | `float32` | FRD          |            | lateral acceleration demand only for maintaining curvature                                                                            |
+| <a id="fld_bearing_feas"></a>bearing_feas                       | `float32` |              | [0 : 1]    | bearing feasibility                                                                                                                   |
+| <a id="fld_bearing_feas_on_track"></a>bearing_feas_on_track     | `float32` |              | [0 : 1]    | on-track bearing feasibility                                                                                                          |
+| <a id="fld_signed_track_error"></a>signed_track_error           | `float32` | m            |            | signed track error                                                                                                                    |
+| <a id="fld_track_error_bound"></a>track_error_bound             | `float32` | m            |            | track error bound                                                                                                                     |
+| <a id="fld_adapted_period"></a>adapted_period                   | `float32` | s            |            | adapted period (if auto-tuning enabled)                                                                                               |
+| <a id="fld_wind_est_valid"></a>wind_est_valid                   | `uint8`   | boolean      |            | true = wind estimate is valid and/or being used by controller (also indicates if wind estimate usage is disabled despite being valid) |
 
 ## Source Message
 

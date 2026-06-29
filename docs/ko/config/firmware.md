@@ -30,7 +30,7 @@ PX4 설치
 
 :::
 
-4. Select the **PX4 Pro Stable Release vX.x.x** option to install the latest stable version of PX4 _for your flight controller_ (autodetected).
+4. Select the **PX4 Stable Release vX.x.x** option to install the latest stable version of PX4 _for your flight controller_ (autodetected).
 
    ![Install PX4 default](../../assets/qgc/setup/firmware/firmware_connected_default_px4.png)
 
@@ -56,7 +56,7 @@ Next you will need to specify the [vehicle airframe](../config/airframe.md) (and
 
 다른 버전의 PX4 설치
 
-1. Connect the vehicle as above, and select **PX4 Pro Stable Release vX.x.x**.
+1. Connect the vehicle as above, and select **PX4 Stable Release vX.x.x**.
    ![Install PX4 version](../../assets/qgc/setup/firmware/qgc_choose_firmware.png)
 2. Check **Advanced settings** and select the version from the dropdown list:
    - **Standard Version (stable):** The default version (i.e. no need to use advanced settings to install this!)

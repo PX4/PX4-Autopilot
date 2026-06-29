@@ -152,6 +152,7 @@ set(msg_files
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
 	OpenDroneIdArmStatus.msg
+	OpenDroneIdBasicId.msg
 	OpenDroneIdOperatorId.msg
 	OpenDroneIdSelfId.msg
 	OpenDroneIdSystem.msg
@@ -285,6 +286,20 @@ set(msg_files
 	versioned/Wind.msg
 )
 list(SORT msg_files)
+
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND msg_files
+		TargetGnss.msg
+		VteInput.msg
+		VtePosition.msg
+		VteOrientation.msg
+		VteAidSource1d.msg
+		VteAidSource3d.msg
+		VteBiasInitStatus.msg
+		FiducialMarkerPosReport.msg
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
+endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 

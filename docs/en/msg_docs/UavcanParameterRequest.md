@@ -10,16 +10,16 @@ UAVCAN-MAVLink parameter bridge request type.
 
 ## Fields
 
-| Name         | Type       | Unit [Frame] | Range/Enum | Description                                                             |
-| ------------ | ---------- | ------------ | ---------- | ----------------------------------------------------------------------- |
-| timestamp    | `uint64`   |              |            | time since system start (microseconds)                                  |
-| message_type | `uint8`    |              |            | MAVLink message type: PARAM_REQUEST_READ, PARAM_REQUEST_LIST, PARAM_SET |
-| node_id      | `uint8`    |              |            | UAVCAN node ID mapped from MAVLink component ID                         |
-| param_id     | `char[17]` |              |            | MAVLink/UAVCAN parameter name                                           |
-| param_index  | `int16`    |              |            | -1 if the param_id field should be used as identifier                   |
-| param_type   | `uint8`    |              |            | MAVLink parameter type                                                  |
-| int_value    | `int64`    |              |            | current value if param_type is int-like                                 |
-| real_value   | `float32`  |              |            | current value if param_type is float-like                               |
+| Name                                      | Type       | Unit [Frame] | Range/Enum | Description                                                             |
+| ----------------------------------------- | ---------- | ------------ | ---------- | ----------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64`   |              |            | time since system start (microseconds)                                  |
+| <a id="fld_message_type"></a>message_type | `uint8`    |              |            | MAVLink message type: PARAM_REQUEST_READ, PARAM_REQUEST_LIST, PARAM_SET |
+| <a id="fld_node_id"></a>node_id           | `uint8`    |              |            | UAVCAN node ID mapped from MAVLink component ID                         |
+| <a id="fld_param_id"></a>param_id         | `char[17]` |              |            | MAVLink/UAVCAN parameter name                                           |
+| <a id="fld_param_index"></a>param_index   | `int16`    |              |            | -1 if the param_id field should be used as identifier                   |
+| <a id="fld_param_type"></a>param_type     | `uint8`    |              |            | MAVLink parameter type                                                  |
+| <a id="fld_int_value"></a>int_value       | `int64`    |              |            | current value if param_type is int-like                                 |
+| <a id="fld_real_value"></a>real_value     | `float32`  |              |            | current value if param_type is float-like                               |
 
 ## Constants
 

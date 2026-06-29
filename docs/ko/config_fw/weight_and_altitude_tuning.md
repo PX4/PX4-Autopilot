@@ -39,7 +39,7 @@ The minimum sink rate is set in [FW_T_SINK_MIN](../advanced_config/parameter_ref
 
 If the [Basic TECS tuning](../config_fw/position_tuning_guide_fixedwing.md#tecs-tuning-altitude-and-airspeed) was not done in standard sea level conditions then the [FW_T_SINK_MIN](../advanced_config/parameter_reference.md#FW_T_SINK_MIN) parameter must be modified by multiplying with correction factor $P$ (where $\rho$ is the air density during tuning):
 
-$$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
+$$P = \sqrt{\frac{\rho}{\rho_{\text{sealevel}}}}$$
 
 For more information see [Effect of Density on minimum sink rate](#effect-of-density-on-minimum-sink-rate).
 
@@ -49,7 +49,7 @@ The trim throttle is set using [FW_THR_TRIM](../advanced_config/parameter_refere
 
 If basic tuning was not done in standard sealevel conditions then the value for [FW_THR_TRIM](../advanced_config/parameter_reference.md#FW_THR_TRIM) must be modified by multiplying with correction factor $P$:
 
-$$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
+$$P = \sqrt{\frac{\rho}{\rho_{\text{sealevel}}}}$$
 
 For more information see [Effect of Density on Trim Throttle](#effect-of-density-on-trim-throttle)
 
@@ -63,7 +63,7 @@ This is provided for interest only, and may be of interest to developers who wan
 In the following sections we will use the notation $\hat X$ to specify that this value is a calibrated value of the variable $X$.
 By calibrated we mean the value of that variable measured at sea level in standard atmospheric conditions, and when vehicle weight was equal to [WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE).
 
-예: by $\hat{\dot{h}}_{max}$ we specify the maximum climb rate the vehicle can achieve at [WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE) at sea level in standard atmospheric conditions.
+예: by $\hat{\dot{h}}_{\text{max}}$ we specify the maximum climb rate the vehicle can achieve at [WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE) at sea level in standard atmospheric conditions.
 
 ### Effect of Weight on Maximum Climb Rate
 
@@ -71,7 +71,7 @@ The maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.m
 
 From the steady state equations of motions of an airplane we find that the maximum climb rate can be written as:
 
-$$\dot{h}_{max} = { V * ( Thrust - Drag ) \over{m*g}}$$
+$$\dot{h}_{\text{max}} = \frac{V \cdot (\text{Thrust} - \text{Drag})}{m \cdot g}$$
 
 where `V` is the true airspeed and `m` is the vehicle mass.
 From this equation we see that the maximum climb rates scales with vehicle mass.
@@ -82,7 +82,7 @@ The minimum sink rate ([FW_T_SINK_MIN](../advanced_config/parameter_reference.md
 
 The minimum sink rate can be written as:
 
-$$\dot{h}_{min} = \sqrt{2mg\over{\rho S}} f(C_L, C_D)$$
+$$\dot{h}_{\text{min}} = \sqrt{\frac{2mg}{\rho S}}\, f(C_L, C_D)$$
 
 where $\rho$ is the air density, S is the wing surface reference area and $f(C_L, C_D)$ is a function of the polars, lift and drag.
 
@@ -94,14 +94,22 @@ The minimum airspeed ([FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#
 
 In steady state flight we can demand that lift should equal weight of the vehicle:
 
-$$Lift = mg = {1\over{2}} \rho V^2 S C_L$$
+$$\text{Lift} = mg = \frac{1}{2} \rho V^2 S C_L$$
 
 rearranging this equation for airspeed gives:
 
-$$V = \\sqrt{\\frac{2mg}{\\rho S C_D }}$$
+$$V = \sqrt{\frac{2mg}{\rho S C_L}}$$
 
 From this equation we see that if we assume a constant angle of attack (which we generally desire), the vehicle weight affects airspeed with a square root relation.
 Therefore, the airspeed limits mentioned above are all scaled using the square root of the weight ratio.
+
+### Effect of Bank Angle on Airspeed Limits
+
+Flying a coordinated, level turn at bank angle $\phi$ increases the load factor by $\frac{1}{\cos{\phi}}$. This is similar to the added load factor due to weight (section above), and thus the stall and minimum airspeeds are increased by an additional factor of $\sqrt{\frac{1}{\cos{\phi}}}$.
+
+The maximum airspeed ([FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)) is _not_ compensated in this way, as it can represent structural limits of the airframe.
+
+It can be that at maximum bank angle [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM), the maximum airspeed is _lower_ than the minimum airspeed (compensated for weight ratio and bank angle). This means the allowed airspeed range is empty at that bank angle. If a system is configured like this, a warning on the ground station is shown.
 
 ### Effect of Density on Maximum Climb Rate
 
@@ -109,15 +117,15 @@ The maximum climb rate is set using [FW_T_CLMB_MAX](../advanced_config/parameter
 
 As we have seen previously, the maximum climb rate can be formulated as:
 
-$$\dot{h}_{max} = { V * ( Thrust - Drag ) \over{m*g}}$$
+$$\dot{h}_{\text{max}} = \frac{V \cdot (\text{Thrust} - \text{Drag})}{m \cdot g}$$
 
 The air density affects the airspeed, the thrust and the drag and modelling this effects is not straight forward.
 However, we can refer to literature and experience, which suggest that for a propeller airplane the maximum climb rate reduces approximately linear with the air density.
 Therefore, we can write the maximum climb rate as:
 
-$$\dot{h}_{max} = \hat{\dot{h}} * {\rho_{sealevel} \over{\rho}} K$$
+$$\dot{h}_{\text{max}} = \hat{\dot{h}} \cdot \frac{\rho_{\text{sealevel}}}{\rho} K$$
 
-where $\rho_{sealevel}$ is the air density at sea level in the standard atmosphere and K is a scaling factor which determines the slope of the function.
+where $\rho_{\text{sealevel}}$ is the air density at sea level in the standard atmosphere and K is a scaling factor which determines the slope of the function.
 Rather than trying to identify this constants, the usual practice in aviation is to specify a service ceiling altitude at which the vehicle is still able to achieve a minimum specified climb rate.
 
 ### Effect of Density on Minimum Sink Rate
@@ -126,7 +134,7 @@ The minimum sink rate is set using [FW_T_SINK_MIN](../advanced_config/parameter_
 
 In previous sections we have seen the formula for the minimum sink rate:
 
-$$\dot{h}_{min} = \sqrt{2mg\over{\rho S}} f(C_L, C_D)$$
+$$\dot{h}_{\text{min}} = \sqrt{\frac{2mg}{\rho S}}\, f(C_L, C_D)$$
 
 This shows that the minimum sink rate scales with the square root of the inverse air density.
 

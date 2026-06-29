@@ -10,11 +10,11 @@ Mode completion result, published by an active mode. The possible values of nav_
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum | Description                            |
-| --------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp | `uint64` |              |            | time since system start (microseconds) |
-| result    | `uint8`  |              |            | One of RESULT\_\*                      |
-| nav_state | `uint8`  |              |            | Source mode (values in VehicleStatus)  |
+| Name                                | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_result"></a>result       | `uint8`  |              |            | One of RESULT\_\*                      |
+| <a id="fld_nav_state"></a>nav_state | `uint8`  |              |            | Source mode (values in VehicleStatus)  |
 
 ## Constants
 

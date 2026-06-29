@@ -13,12 +13,12 @@ Published by the vehicle's allocation and consumed by the ESC protocol drivers e
 
 ## Fields
 
-| Name             | Type          | Unit [Frame] | Range/Enum | Description                                                                                                                                                            |
-| ---------------- | ------------- | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`      | us           |            | Time since system start                                                                                                                                                |
-| timestamp_sample | `uint64`      | us           |            | Sampling timestamp of the data this control response is based on                                                                                                       |
-| reversible_flags | `uint16`      |              |            | Bitset indicating which motors are configured to be reversible                                                                                                         |
-| control          | `float32[12]` |              | [-1 : 1]   | Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors) |
+| Name                                              | Type          | Unit [Frame] | Range/Enum | Description                                                                                                                                                            |
+| ------------------------------------------------- | ------------- | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`      | us           |            | Time since system start                                                                                                                                                |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`      | us           |            | Sampling timestamp of the data this control response is based on                                                                                                       |
+| <a id="fld_reversible_flags"></a>reversible_flags | `uint16`      |              |            | Bitset indicating which motors are configured to be reversible                                                                                                         |
+| <a id="fld_control"></a>control                   | `float32[12]` |              | [-1 : 1]   | Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors) |
 
 ## Constants
 

@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 参数名                              | 类型       | Unit [Frame] | Range/Enum | 描述                                                              |
-| -------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
-| timestamp                        | `uint64` |                                                                  |            | Time since system start (microseconds)       |
-| error_count | `uint64` |                                                                  |            | Timer overcapture error flag (AUX5 or MAIN5) |
-| pulse_width | `uint32` |                                                                  |            | Pulse width, timer counts (microseconds)     |
-| period                           | `uint32` |                                                                  |            | Period, timer counts (microseconds)          |
+| 参数名                                                          | 类型       | Unit [Frame] | Range/Enum | 描述                                                              |
+| ------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                          | `uint64` |                                                                  |            | Time since system start (microseconds)       |
+| <a id="fld_error_count"></a>error_count | `uint64` |                                                                  |            | Timer overcapture error flag (AUX5 or MAIN5) |
+| <a id="fld_pulse_width"></a>pulse_width | `uint32` |                                                                  |            | Pulse width, timer counts (microseconds)     |
+| <a id="fld_period"></a>period                                | `uint32` |                                                                  |            | Period, timer counts (microseconds)          |
 
 ## Source Message
 

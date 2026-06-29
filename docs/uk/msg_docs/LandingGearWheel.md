@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                               | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                         |
-| ------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| timestamp                                                           | `uint64`  |                                                                  |            | time since system start (microseconds)                                                    |
-| normalized_wheel_setpoint | `float32` |                                                                  |            | negative is turning left, positive turning right [-1, 1] |
+| Назва                                                                                                         | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                                                                           | `uint64`  |                                                                  |            | time since system start (microseconds)                                                    |
+| <a id="fld_normalized_wheel_setpoint"></a>normalized_wheel_setpoint | `float32` |                                                                  |            | negative is turning left, positive turning right [-1, 1] |
 
 ## Source Message
 

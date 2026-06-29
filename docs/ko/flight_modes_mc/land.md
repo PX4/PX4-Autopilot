@@ -11,9 +11,9 @@ The vehicle will disarm shortly after landing (by default).
 - Mode requires at least a valid local position estimate (does not require a global position).
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
-- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
@@ -31,7 +31,7 @@ RC stick movement will change the vehicle to [Position mode](../flight_modes_mc/
 
 Land mode behaviour can be configured using the parameters below.
 
-| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                                                                                                         |
+| Parameter                                                                                                                                                               | 설명                                                                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MPC_LAND_SPEED"></a>[MPC_LAND_SPEED](../advanced_config/parameter_reference.md#MPC_LAND_SPEED)                         | The rate of descent during landing. This should be kept fairly low as the ground conditions are not known.                                                                                                                 |
 | <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)                      | Time-out for auto disarm after landing, in seconds. If set to -1 the vehicle will not disarm on landing.                                                                                                                   |

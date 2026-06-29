@@ -429,6 +429,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -503,6 +510,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -577,6 +591,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -651,6 +672,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1433,6 +1461,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1507,6 +1542,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1581,6 +1623,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1655,6 +1704,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1729,6 +1785,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1803,6 +1866,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1877,6 +1947,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -1951,6 +2028,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2025,6 +2109,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2099,6 +2190,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2173,6 +2271,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2247,6 +2352,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2321,6 +2433,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2395,6 +2514,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2469,6 +2595,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -2543,6 +2676,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3518,6 +3658,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3596,6 +3743,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3674,6 +3828,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3752,6 +3913,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3830,6 +3998,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3908,6 +4083,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -3986,6 +4168,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -4064,6 +4253,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -4142,6 +4338,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -4220,6 +4423,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -4298,6 +4508,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5089,6 +5306,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5163,6 +5387,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5237,6 +5468,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5311,6 +5549,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5385,6 +5630,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5459,6 +5711,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5533,6 +5792,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -5607,6 +5873,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6025,6 +6298,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6099,6 +6379,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6687,6 +6974,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6761,6 +7055,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6835,6 +7136,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6909,6 +7217,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -6983,6 +7298,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7057,6 +7379,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7131,6 +7460,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7205,6 +7541,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7279,6 +7622,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7353,6 +7703,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7427,6 +7784,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7501,6 +7865,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7575,6 +7946,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7649,6 +8027,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7723,6 +8108,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -7797,6 +8189,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8511,6 +8910,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8585,6 +8991,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8659,6 +9072,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8733,6 +9153,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8807,6 +9234,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8881,6 +9315,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -8955,6 +9396,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9029,6 +9477,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9431,6 +9886,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9505,6 +9967,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9579,6 +10048,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9653,6 +10129,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9843,6 +10326,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9917,6 +10407,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -9991,6 +10488,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10065,6 +10569,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10139,6 +10650,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10213,6 +10731,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10287,6 +10812,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10361,6 +10893,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10627,6 +11166,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10701,6 +11247,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10775,6 +11328,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10849,6 +11409,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10923,6 +11490,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -10997,6 +11571,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11071,6 +11652,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11145,6 +11733,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11219,6 +11814,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11293,6 +11895,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11367,6 +11976,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11441,6 +12057,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -11804,6 +12427,90 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
 
+### UAVCAN_SV_DIS10 (`INT32`) {#UAVCAN_SV_DIS10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
+### UAVCAN_SV_DIS11 (`INT32`) {#UAVCAN_SV_DIS11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
+### UAVCAN_SV_DIS12 (`INT32`) {#UAVCAN_SV_DIS12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
+### UAVCAN_SV_DIS13 (`INT32`) {#UAVCAN_SV_DIS13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
+### UAVCAN_SV_DIS14 (`INT32`) {#UAVCAN_SV_DIS14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
+### UAVCAN_SV_DIS15 (`INT32`) {#UAVCAN_SV_DIS15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
 ### UAVCAN_SV_DIS2 (`INT32`) {#UAVCAN_SV_DIS2}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -11902,6 +12609,20 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
 
+### UAVCAN_SV_DIS9 (`INT32`) {#UAVCAN_SV_DIS9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Disarmed Value.
+
+This is the output value that is set when not armed.
+
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 500     |      | &nbsp;    |
+
 ### UAVCAN_SV_FAIL1 (`INT32`) {#UAVCAN_SV_FAIL1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -11911,6 +12632,90 @@ UAVCAN Servo 1 Failsafe Value.
 This is the output value that is set when in failsafe mode.
 
 When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC1).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_FAIL10 (`INT32`) {#UAVCAN_SV_FAIL10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC10).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_FAIL11 (`INT32`) {#UAVCAN_SV_FAIL11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC11).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_FAIL12 (`INT32`) {#UAVCAN_SV_FAIL12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC12).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_FAIL13 (`INT32`) {#UAVCAN_SV_FAIL13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC13).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_FAIL14 (`INT32`) {#UAVCAN_SV_FAIL14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC14).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
+### UAVCAN_SV_FAIL15 (`INT32`) {#UAVCAN_SV_FAIL15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC15).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -12014,6 +12819,20 @@ When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC8
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
 
+### UAVCAN_SV_FAIL9 (`INT32`) {#UAVCAN_SV_FAIL9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+
+When set to -1 (default), the value depends on the function (see UAVCAN_SV_FUNC9).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 1000     |           | -1      |      | &nbsp;    |
+
 ### UAVCAN_SV_FUNC1 (`INT32`) {#UAVCAN_SV_FUNC1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -12055,6 +12874,499 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC10 (`INT32`) {#UAVCAN_SV_FUNC10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Output Function.
+
+Select what should be output on UAVCAN Servo 10.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC11 (`INT32`) {#UAVCAN_SV_FUNC11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Output Function.
+
+Select what should be output on UAVCAN Servo 11.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC12 (`INT32`) {#UAVCAN_SV_FUNC12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Output Function.
+
+Select what should be output on UAVCAN Servo 12.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC13 (`INT32`) {#UAVCAN_SV_FUNC13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Output Function.
+
+Select what should be output on UAVCAN Servo 13.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC14 (`INT32`) {#UAVCAN_SV_FUNC14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Output Function.
+
+Select what should be output on UAVCAN Servo 14.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC15 (`INT32`) {#UAVCAN_SV_FUNC15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Output Function.
+
+Select what should be output on UAVCAN Servo 15.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12129,6 +13441,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12203,6 +13522,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12277,6 +13603,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12351,6 +13684,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12425,6 +13765,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12499,6 +13846,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12573,6 +13927,94 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_FUNC9 (`INT32`) {#UAVCAN_SV_FUNC9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Output Function.
+
+Select what should be output on UAVCAN Servo 9.
+
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -12611,6 +14053,78 @@ The default failsafe value is set according to the selected function:
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 UAVCAN Servo 1 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
+### UAVCAN_SV_MAX10 (`INT32`) {#UAVCAN_SV_MAX10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
+### UAVCAN_SV_MAX11 (`INT32`) {#UAVCAN_SV_MAX11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
+### UAVCAN_SV_MAX12 (`INT32`) {#UAVCAN_SV_MAX12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
+### UAVCAN_SV_MAX13 (`INT32`) {#UAVCAN_SV_MAX13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
+### UAVCAN_SV_MAX14 (`INT32`) {#UAVCAN_SV_MAX14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
+### UAVCAN_SV_MAX15 (`INT32`) {#UAVCAN_SV_MAX15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Maximum Value.
 
 Maxmimum output value (when not disarmed).
 
@@ -12702,11 +14216,95 @@ Maxmimum output value (when not disarmed).
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
 
+### UAVCAN_SV_MAX9 (`INT32`) {#UAVCAN_SV_MAX9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 1000    |      | &nbsp;    |
+
 ### UAVCAN_SV_MIN1 (`INT32`) {#UAVCAN_SV_MIN1}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
 
 UAVCAN Servo 1 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_MIN10 (`INT32`) {#UAVCAN_SV_MIN10}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 10 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_MIN11 (`INT32`) {#UAVCAN_SV_MIN11}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 11 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_MIN12 (`INT32`) {#UAVCAN_SV_MIN12}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 12 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_MIN13 (`INT32`) {#UAVCAN_SV_MIN13}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 13 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_MIN14 (`INT32`) {#UAVCAN_SV_MIN14}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 14 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
+### UAVCAN_SV_MIN15 (`INT32`) {#UAVCAN_SV_MIN15}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 15 Minimum Value.
 
 Minimum output value (when not disarmed).
 
@@ -12798,6 +14396,18 @@ Minimum output value (when not disarmed).
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
 
+### UAVCAN_SV_MIN9 (`INT32`) {#UAVCAN_SV_MIN9}
+
+<Badge type="warning" text="This parameter is only present on some boards." />
+
+UAVCAN Servo 9 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1000     |           | 0       |      | &nbsp;    |
+
 ### UAVCAN_SV_REV (`INT32`) {#UAVCAN_SV_REV}
 
 <Badge type="warning" text="This parameter is only present on some boards." />
@@ -12817,10 +14427,17 @@ Note: this is only useful for servos.
 - `5`: UAVCAN Servo 6
 - `6`: UAVCAN Servo 7
 - `7`: UAVCAN Servo 8
+- `8`: UAVCAN Servo 9
+- `9`: UAVCAN Servo 10
+- `10`: UAVCAN Servo 11
+- `11`: UAVCAN Servo 12
+- `12`: UAVCAN Servo 13
+- `13`: UAVCAN Servo 14
+- `14`: UAVCAN Servo 15
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 255      |           | 0       |      | &nbsp;    |
+| &nbsp; | 0        | 32767    |           | 0       |      | &nbsp;    |
 
 ### UCAN1_ESC_FAIL1 (`INT32`) {#UCAN1_ESC_FAIL1}
 
@@ -13087,6 +14704,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13161,6 +14785,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13235,6 +14866,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13309,6 +14947,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13383,6 +15028,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13457,6 +15109,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13531,6 +15190,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13605,6 +15271,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13679,6 +15352,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13753,6 +15433,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13827,6 +15514,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13901,6 +15595,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -13975,6 +15676,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14049,6 +15757,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14123,6 +15838,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14197,6 +15919,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14687,6 +16416,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14761,6 +16497,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14835,6 +16578,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14909,6 +16659,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -14983,6 +16740,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15057,6 +16821,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15131,6 +16902,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15205,6 +16983,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15303,6 +17088,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15377,6 +17169,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15451,6 +17250,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -15525,6 +17331,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16067,6 +17880,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16141,6 +17961,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16215,6 +18042,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16289,6 +18123,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16363,6 +18204,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16437,6 +18285,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16511,6 +18366,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16585,6 +18447,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16659,6 +18528,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16733,6 +18609,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16807,6 +18690,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16881,6 +18771,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -16955,6 +18852,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -17029,6 +18933,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -17103,6 +19014,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -17177,6 +19095,13 @@ The default failsafe value is set according to the selected function:
 - `206`: Servo 6
 - `207`: Servo 7
 - `208`: Servo 8
+- `209`: Servo 9
+- `210`: Servo 10
+- `211`: Servo 11
+- `212`: Servo 12
+- `213`: Servo 13
+- `214`: Servo 14
+- `215`: Servo 15
 - `301`: Peripheral via Actuator Set 1
 - `302`: Peripheral via Actuator Set 2
 - `303`: Peripheral via Actuator Set 3
@@ -19191,6 +21116,18 @@ The settings deny arming and warn, allow arming and warn, or silently allow armi
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 1       |      | &nbsp;    |
 
+### COM_CC_TEMP_WARN (`FLOAT`) {#COM_CC_TEMP_WARN}
+
+Companion computer high-temperature warning threshold.
+
+Arming is not prevented as the temperature typically drops in flight.
+
+Set to -1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 127      | 1         | 80.0    | celcius | &nbsp;    |
+
 ### COM_CPU_MAX (`FLOAT`) {#COM_CPU_MAX}
 
 Maximum allowed CPU load to still arm.
@@ -19513,6 +21450,39 @@ selected flight mode will be applied.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | -1      |      | &nbsp;    |
+
+### COM_FLTMODE_BOOT (`INT32`) {#COM_FLTMODE_BOOT}
+
+Flight mode on boot.
+
+Flight mode set on boot and after a power cycle, before any RC input or
+mode command is received.
+
+**Values:**
+
+- `0`: Manual
+- `1`: Altitude
+- `2`: Position
+- `3`: Mission
+- `4`: Hold
+- `6`: Position Slow
+- `8`: Altitude Cruise
+- `10`: Acro
+- `14`: Offboard
+- `15`: Stabilized
+- `17`: Takeoff
+- `23`: External 1
+- `24`: External 2
+- `25`: External 3
+- `26`: External 4
+- `27`: External 5
+- `28`: External 6
+- `29`: External 7
+- `30`: External 8
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 4       |      | &nbsp;    |
 
 ### COM_FLTT_LOW_ACT (`INT32`) {#COM_FLTT_LOW_ACT}
 
@@ -21031,6 +23001,23 @@ Auxiliary Velocity Estimate delay relative to IMU measurements.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 300      |           | 5       | ms   | &nbsp;    |
 
+### EKF2_AVEL_EN (`INT32`) {#EKF2_AVEL_EN}
+
+Fuse the landing-target relative velocity as auxiliary velocity.
+
+When enabled, EKF2 fuses the relative velocity published in landing_target_pose
+(vx_rel, vy_rel) as a horizontal auxiliary velocity measurement. The data is
+only fused when landing_target_pose.rel_vel_ekf2_valid is true.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
 ### EKF2_BARO_CTRL (`INT32`) {#EKF2_BARO_CTRL}
 
 Barometric sensor height aiding.
@@ -22406,6 +24393,17 @@ Required esc hardware version.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 65535    |           | 0       |      | &nbsp;    |
 
+### ESC_TEMP_WARN_TH (`FLOAT`) {#ESC_TEMP_WARN_TH}
+
+ESC temperature warning threshold.
+
+Warning only, no failsafe or arming blocked.
+-1 disables the check.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 150      | 1         | 90.0    | celcius | &nbsp;    |
+
 ## Events
 
 ### EV_TSK_RC_LOSS (`INT32`) {#EV_TSK_RC_LOSS}
@@ -23260,6 +25258,18 @@ system more robust against disturbances (turbulence) in high wind.
 | &nbsp; | 0        |          | 0.01      | 0.0     |      | &nbsp;    |
 
 ## FW NPFG Control
+
+### FW_WP_RST_DIST (`FLOAT`) {#FW_WP_RST_DIST}
+
+Max position reset distance.
+
+If a horizontal position reset larger than this occurs while flying between two
+waypoints, fly directly to the current waypoint instead of rejoining the line.
+-1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1.0     | 10000.0  | 1         | -1.0    | m    | &nbsp;    |
 
 ### NPFG_DAMPING (`FLOAT`) {#NPFG_DAMPING}
 
@@ -24587,25 +26597,6 @@ Disabled if 0.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 10000    | 1         | 0.0     | m    | &nbsp;    |
-
-### GF_PREDICT (`INT32`) {#GF_PREDICT}
-
-[EXPERIMENTAL] Use Pre-emptive geofence triggering.
-
-WARNING: This experimental feature may cause flyaways. Use at your own risk.
-
-Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
-would result in a breach happening before the vehicle can make evasive maneuvers.
-The vehicle is then re-routed to a safe hold position (stop for multirotor, loiter for fixed wing).
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### GF_SOURCE (`INT32`) {#GF_SOURCE}
 
@@ -26414,6 +28405,71 @@ Zero means that slew rate limiting is disabled.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
 
+### CA_SV10_SLEW (`FLOAT`) {#CA_SV10_SLEW}
+
+Servo 10 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
+### CA_SV11_SLEW (`FLOAT`) {#CA_SV11_SLEW}
+
+Servo 11 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
+### CA_SV12_SLEW (`FLOAT`) {#CA_SV12_SLEW}
+
+Servo 12 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
+### CA_SV13_SLEW (`FLOAT`) {#CA_SV13_SLEW}
+
+Servo 13 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
+### CA_SV14_SLEW (`FLOAT`) {#CA_SV14_SLEW}
+
+Servo 14 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
 ### CA_SV1_SLEW (`FLOAT`) {#CA_SV1_SLEW}
 
 Servo 1 slew rate limit.
@@ -26495,6 +28551,32 @@ Zero means that slew rate limiting is disabled.
 ### CA_SV7_SLEW (`FLOAT`) {#CA_SV7_SLEW}
 
 Servo 7 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
+### CA_SV8_SLEW (`FLOAT`) {#CA_SV8_SLEW}
+
+Servo 8 slew rate limit.
+
+Forces the servo output signal to take at least the configured time (in seconds)
+to traverse its full range [-100%, 100%].
+
+Zero means that slew rate limiting is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.05      | 0.0     | s    | &nbsp;    |
+
+### CA_SV9_SLEW (`FLOAT`) {#CA_SV9_SLEW}
+
+Servo 9 slew rate limit.
 
 Forces the servo output signal to take at least the configured time (in seconds)
 to traverse its full range [-100%, 100%].
@@ -27726,6 +29808,46 @@ Enable internal combustion engine.
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### ICE_IDLE_RPM (`FLOAT`) {#ICE_IDLE_RPM}
+
+Idle RPM setpoint for the engine.
+
+Applies a controller to prevent the RPM do drop below this value.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10000    | 1         | 0.0     | rpm  | &nbsp;    |
+
+### ICE_IDLE_RPM_I (`FLOAT`) {#ICE_IDLE_RPM_I}
+
+Integral gain for idle RPM control.
+
+Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_RPM_P (`FLOAT`) {#ICE_IDLE_RPM_P}
+
+Proportional gain for idle RPM control.
+
+Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_THR_FF (`FLOAT`) {#ICE_IDLE_THR_FF}
+
+Idle RPM throttle for feed-forward.
+
+Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        | 0.01      | 0.0     |      | &nbsp;    |
 
 ### ICE_IGN_DELAY (`FLOAT`) {#ICE_IGN_DELAY}
 
@@ -29386,6 +31508,8 @@ Landing abort min altitude.
 
 Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
 Then vehicle will loiter in this altitude until further command is received.
+Used as the default when the landing mission item does not specify its own abort altitude
+(MAV_CMD_NAV_LAND param1).
 Only applies to fixed-wing vehicles.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -29486,7 +31610,7 @@ Heading behavior in autonomous modes.
 Acceptance Radius.
 
 Default acceptance radius, overridden by acceptance radius of waypoint if set.
-For fixed wing the npfg switch distance is used for horizontal acceptance.
+For fixed-wing and rovers, the high level controllers output their own acceptance radius. Those values are used instead only when above this parameter.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -29753,6 +31877,14 @@ and relies on the IMU's attitude estimation.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
+### MNT_FIXED_PITCH (`FLOAT`) {#MNT_FIXED_PITCH}
+
+Tracked pitch angle when in fixed mode (MNT_MODE_IN=5).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -90      | 90       |           | 0.0     | deg  | &nbsp;    |
+
 ### MNT_LND_P_MAX (`FLOAT`) {#MNT_LND_P_MAX}
 
 Pitch maximum when landed.
@@ -29880,10 +32012,11 @@ The rest will be deprecated.
 - `2`: MAVLINK_ROI (protocol v1, to be deprecated)
 - `3`: MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
 - `4`: MAVlink gimbal protocol v2
+- `5`: Fixed world-frame attitude, not user controllable
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | -1       | 4        |           | -1      |      | &nbsp;    |
+| &check; | -1       | 5        |           | -1      |      | &nbsp;    |
 
 ### MNT_MODE_OUT (`INT32`) {#MNT_MODE_OUT}
 
@@ -30082,6 +32215,38 @@ Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 12       | 0.1       | 4.0     |      | &nbsp;    |
+
+### MC_REF_FF (`FLOAT`) {#MC_REF_FF}
+
+Attitude reference-model feed-forward gain.
+
+Scale on the reference-model rate feed-forward. 0 disables it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 1.0      | 0.01      | 0.0     |      | &nbsp;    |
+
+### MC_REF_FF_MAX (`FLOAT`) {#MC_REF_FF_MAX}
+
+Feed-forward angular-rate cap; 0 = disabled.
+
+Per-axis cap on the rate feed-forward.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s | &nbsp;    |
+
+### MC_REF_W_N (`FLOAT`) {#MC_REF_W_N}
+
+Attitude reference-model natural frequency.
+
+Bandwidth of the reference model that smooths the attitude setpoint
+and generates the rate feed-forward. Higher = less lag, more peak
+rate demand.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 1.0      | 200.0    | 1         | 50.0    | rad/s | &nbsp;    |
 
 ### MC_ROLLRATE_MAX (`FLOAT`) {#MC_ROLLRATE_MAX}
 
@@ -31684,6 +33849,28 @@ Maximum number of times to search for the landing target if it is lost during th
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 100      |           | 3       |      | &nbsp;    |
 
+### PLD_MOVING_T_MAX (`FLOAT`) {#PLD_MOVING_T_MAX}
+
+Maximum moving-target prediction time.
+
+When the landing target is moving, precision land aims at the estimated future
+target position after a constrained prediction time. This sets the maximum time.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 60       |           | 3.0     | s    | &nbsp;    |
+
+### PLD_MOVING_T_MIN (`FLOAT`) {#PLD_MOVING_T_MIN}
+
+Minimum moving-target prediction time.
+
+When the landing target is moving, precision land aims at the estimated future
+target position after a constrained prediction time. This sets the minimum time.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 30       |           | 2.0     | s    | &nbsp;    |
+
 ### PLD_SRCH_ALT (`FLOAT`) {#PLD_SRCH_ALT}
 
 Search altitude.
@@ -31703,6 +33890,21 @@ Time allowed to search for the landing target before falling back to normal land
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 100      | 0.1       | 10.0    | s    | &nbsp;    |
+
+### PLD_YAW_EN (`INT32`) {#PLD_YAW_EN}
+
+Set to true to control yaw while landing.
+
+Control the orientation when landing. The orientation comes from the topic vte_orientation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; | 0        | 1        |           | Disabled (0) |      | &nbsp;    |
 
 ## Pure Pursuit
 
@@ -32512,11 +34714,10 @@ Mid point value
 
 ### RC_CHAN_CNT (`INT32`) {#RC_CHAN_CNT}
 
-RC channel count.
+Calibrated RC channel count.
 
-This parameter is used by Ground Station software to save the number
-of channels which were used during RC calibration. It is only meant
-for ground station use.
+Number of channels detected during RC calibration. Must be non-zero
+for RC manual control input to be accepted.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -33799,7 +36000,8 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 RTL force approach landing.
 
-Only consider RTL point, if it has an approach defined.
+Only consider home/rally RTL points that have a VTOL approach loiter.
+A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
 
 **Values:**
 
@@ -36802,14 +39004,36 @@ GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
-### HEATER1_IMU_ID (`INT32`) {#HEATER1_IMU_ID}
+### HEATER1_IMAX (`FLOAT`) {#HEATER1_IMAX}
 
-The ID of the IMU controlled by heater 1.
+Heater controller 1 integrator clamp.
 
-Specifies the sensor device ID (DEVID) that this heater instance controls.
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
+### HEATER1_NOM_V (`FLOAT`) {#HEATER1_NOM_V}
+
+Nominal supply voltage for heater 1.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
+
+### HEATER1_SENS_ID (`INT32`) {#HEATER1_SENS_ID}
+
+Device ID of the temperature sensor read by heater 1.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 1 uses for thermal control.
 -1 disables this heater instance.
 If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -36819,7 +39043,7 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 
 Target temperature for heater 1.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 1.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -36829,7 +39053,7 @@ which must be higher than the maximum ambient temperature.
 
 ### HEATER1_TEMP_FF (`FLOAT`) {#HEATER1_TEMP_FF}
 
-IMU heater controller 1 feedforward value.
+Heater 1 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -36840,7 +39064,7 @@ helping to reduce adjustment time.
 
 ### HEATER1_TEMP_I (`FLOAT`) {#HEATER1_TEMP_I}
 
-IMU heater controller 1 integrator gain value.
+Heater 1 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -36851,7 +39075,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER1_TEMP_P (`FLOAT`) {#HEATER1_TEMP_P}
 
-IMU heater controller 1 proportional gain value.
+Heater 1 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -36859,14 +39083,47 @@ The proportional gain determines how quickly the controller responds to temperat
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
-### HEATER2_IMU_ID (`INT32`) {#HEATER2_IMU_ID}
+### HEATER1_TEMP_SRC (`INT32`) {#HEATER1_TEMP_SRC}
 
-The ID of the IMU controlled by heater 2.
+Temperature source for heater 1.
 
-Specifies the sensor device ID (DEVID) that this heater instance controls.
+Selects the sensor used as the temperature input for heater control.
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER2_IMAX (`FLOAT`) {#HEATER2_IMAX}
+
+Heater controller 2 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
+### HEATER2_NOM_V (`FLOAT`) {#HEATER2_NOM_V}
+
+Nominal supply voltage for heater 2.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
+
+### HEATER2_SENS_ID (`INT32`) {#HEATER2_SENS_ID}
+
+Device ID of the temperature sensor read by heater 2.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 2 uses for thermal control.
 -1 disables this heater instance.
 If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -36876,7 +39133,7 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 
 Target temperature for heater 2.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 2.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -36886,7 +39143,7 @@ which must be higher than the maximum ambient temperature.
 
 ### HEATER2_TEMP_FF (`FLOAT`) {#HEATER2_TEMP_FF}
 
-IMU heater controller 2 feedforward value.
+Heater 2 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -36897,7 +39154,7 @@ helping to reduce adjustment time.
 
 ### HEATER2_TEMP_I (`FLOAT`) {#HEATER2_TEMP_I}
 
-IMU heater controller 2 integrator gain value.
+Heater 2 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -36908,7 +39165,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER2_TEMP_P (`FLOAT`) {#HEATER2_TEMP_P}
 
-IMU heater controller 2 proportional gain value.
+Heater 2 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -36916,14 +39173,47 @@ The proportional gain determines how quickly the controller responds to temperat
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
 
-### HEATER3_IMU_ID (`INT32`) {#HEATER3_IMU_ID}
+### HEATER2_TEMP_SRC (`INT32`) {#HEATER2_TEMP_SRC}
 
-The ID of the IMU controlled by heater 3.
+Temperature source for heater 2.
 
-Specifies the sensor device ID (DEVID) that this heater instance controls.
+Selects the sensor used as the temperature input for heater control.
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### HEATER3_IMAX (`FLOAT`) {#HEATER3_IMAX}
+
+Heater controller 3 integrator clamp.
+
+Limits the maximum (and minimum) contribution of the integrator term to the controller output.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
+
+### HEATER3_NOM_V (`FLOAT`) {#HEATER3_NOM_V}
+
+Nominal supply voltage for heater 3.
+
+Used to limit the PWM duty cycle when the actual supply voltage exceeds this value,
+to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
+
+### HEATER3_SENS_ID (`INT32`) {#HEATER3_SENS_ID}
+
+Device ID of the temperature sensor read by heater 3.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 3 uses for thermal control.
 -1 disables this heater instance.
 If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -36933,7 +39223,7 @@ a valid DEVID must be configured for each heater to ensure a 1:1 mapping between
 
 Target temperature for heater 3.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 3.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -36943,7 +39233,7 @@ which must be higher than the maximum ambient temperature.
 
 ### HEATER3_TEMP_FF (`FLOAT`) {#HEATER3_TEMP_FF}
 
-IMU heater controller 3 feedforward value.
+Heater 3 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -36954,7 +39244,7 @@ helping to reduce adjustment time.
 
 ### HEATER3_TEMP_I (`FLOAT`) {#HEATER3_TEMP_I}
 
-IMU heater controller 3 integrator gain value.
+Heater 3 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -36965,13 +39255,24 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER3_TEMP_P (`FLOAT`) {#HEATER3_TEMP_P}
 
-IMU heater controller 3 proportional gain value.
+Heater 3 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2.0      |           | 1.0     | us/C | &nbsp;    |
+
+### HEATER3_TEMP_SRC (`INT32`) {#HEATER3_TEMP_SRC}
+
+Temperature source for heater 3.
+
+Selects the sensor used as the temperature input for heater control.
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### ILABS_MODE (`INT32`) {#ILABS_MODE}
 
@@ -37277,14 +39578,6 @@ INA220 Power Monitor Regulator Shunt.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1e-09    | 0.1      | 1e-09     | 0.0005  |      | &nbsp;    |
-
-### INA226_CONFIG (`INT32`) {#INA226_CONFIG}
-
-INA226 Power Monitor Config.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 65535    | 1         | 18139   |      | &nbsp;    |
 
 ### INA226_CURRENT (`FLOAT`) {#INA226_CURRENT}
 
@@ -39118,16 +41411,16 @@ Configure on which serial port to run LeddarOne Rangefinder.
 
 Magnetometer auto calibration.
 
-Automatically initialize magnetometer calibration from bias estimate if available.
+Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended. Mainly intended for remote nodes (e.g. CAN GPS units) that cannot be calibrated from a ground station.
 
 **Values:**
 
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SENS_MAG_AUTOROT (`INT32`) {#SENS_MAG_AUTOROT}
 
@@ -40924,6 +43217,25 @@ Note: certain drivers such as the GPS can determine the Baudrate automatically.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
+## Serial Passthrough
+
+### PASSTHRU_EN (`INT32`) {#PASSTHRU_EN}
+
+Serial passthrough enable.
+
+When enabled, the serial passthrough mode is active and the
+normal motor output drivers (dshot, pwm_out) are not started
+at boot.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ## Simulation
 
 ### SIM_GZ_EN_ASPD (`INT32`) {#SIM_GZ_EN_ASPD}
@@ -40978,9 +43290,35 @@ Enable GPS/NavSat sensor in Gazebo bridge.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
+### SIM_GZ_EN_IMU (`INT32`) {#SIM_GZ_EN_IMU}
+
+Enable IMU sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### SIM_GZ_EN_LIDAR (`INT32`) {#SIM_GZ_EN_LIDAR}
 
 Enable laser/lidar sensors in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
+### SIM_GZ_EN_MAG (`INT32`) {#SIM_GZ_EN_MAG}
+
+Enable magnetometer sensor in Gazebo bridge.
 
 **Values:**
 
@@ -44004,6 +46342,18 @@ UAVCAN CAN node ID (0 for dynamic allocation).
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 127      |           | 0       |      | &nbsp;    |
 
+### CANNODE_PT_SENS (`INT32`) {#CANNODE_PT_SENS}
+
+Temperature sensor device ID for pitot temperature.
+
+Device ID of the temperature sensor (HEATER\*\_SENS_ID) whose value
+is published as pitot_temperature in uavcan::equipment::air_data::RawAirData.
+Set to 0 to disable (RawAirData.pitot_temperature set to NaN).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### CANNODE_PUB_BAR (`INT32`) {#CANNODE_PUB_BAR}
 
 Enable barometer publication.
@@ -46563,6 +48913,382 @@ The encoder angle at which theta is zero. Adjust this number to change the locat
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+## Vision Target Estimator
+
+### VTE_ACC_D_UNC (`FLOAT`) {#VTE_ACC_D_UNC}
+
+UAV acceleration white-noise power spectral density.
+
+White-noise PSD on the UAV acceleration input. The
+1-sigma vel_uav change allowed over a time t is sqrt(VTE_ACC_D_UNC \* t).
+
+This is a variance rate, not a per-step variance; the value is independent
+of the filter update rate. Higher values let the filter follow new
+measurements more tightly and reject fewer outliers.
+
+Unit: m^2/s^3.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0001   |          |           | 0.02    |      | &nbsp;    |
+
+### VTE_ACC_T_UNC (`FLOAT`) {#VTE_ACC_T_UNC}
+
+Target acceleration random-walk process noise.
+
+Process-noise spectral density of the target acceleration random walk
+(moving-target builds only). The 1-sigma target-acceleration change over a
+time t is sqrt(VTE_ACC_T_UNC \* t) (e.g. for the 0.1 default, ~0.32 m/s^2
+after 1 s, ~1.0 m/s^2 after 10 s).
+
+This is a variance rate, not a linear rate of change; the value is
+independent of the filter update rate. Higher values let the filter follow
+target manoeuvres more aggressively and accept more outliers.
+
+Unit: ((m/s^2)^2)/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     |          |           | 0.1     |      | &nbsp;    |
+
+### VTE_ACC_UNC_IN (`FLOAT`) {#VTE_ACC_UNC_IN}
+
+Initial target absolute acceleration uncertainty.
+
+Initial variance of the relative target acceleration in x, y, and z directions
+(moving-target builds only).
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+Once the filter is running, the steady-state target-acceleration variance is
+governed by VTE_ACC_T_UNC and the measurement updates, so this parameter does
+not influence runtime behaviour.
+
+| Reboot | minValue | maxValue | increment | default | unit      | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | --------- | --------- |
+| &nbsp; | 0.001    |          |           | 0.1     | (m/s^2)^2 | &nbsp;    |
+
+### VTE_AID_MASK (`INT32`) {#VTE_AID_MASK}
+
+Integer bitmask controlling data fusion and aiding methods.
+
+Set bits in the following positions to enable:
+0 : Set to true to use the target's GNSS position data if available. (+1)
+1 : Set to true to use the UAV GNSS velocity data if available. (+2)
+2 : Set to true to use the target relative position from vision-based data if available. (+4)
+3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
+4 : Set to true to use the target GNSS velocity if available. (+16)
+
+**Bitmask:**
+
+- `0`: target GNSS position
+- `1`: UAV GNSS velocity
+- `2`: vision relative position
+- `3`: mission position
+- `4`: target GNSS velocity
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 31       |           | 14      |      | &nbsp;    |
+
+### VTE_BIAS_UNC (`FLOAT`) {#VTE_BIAS_UNC}
+
+Bias random-walk process noise.
+
+Process-noise spectral density of the GPS/vision bias random walk. The
+1-sigma expected bias change over a time t is sqrt(VTE_BIAS_UNC \* t) (e.g.
+for the 0.001 default, ~3 cm after 1 s, ~10 cm after 10 s, ~32 cm after
+100 s).
+
+This is a variance rate, not a linear drift rate; the value is independent
+of the filter update rate. Higher values let the bias follow new
+observations more aggressively; lower values keep it stiff. Tune to match
+the realistic physical drift of the absolute reference (typically a few
+centimetres over tens of seconds for consumer GNSS, less for RTK).
+
+Unit: m^2/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0001   |          |           | 0.001   |      | &nbsp;    |
+
+### VTE_BIA_AVG_THR (`FLOAT`) {#VTE_BIA_AVG_THR}
+
+Initial GNSS/vision bias averaging threshold.
+
+When the GNSS/vision bias first becomes observable while the estimator is still referenced to GNSS,
+VTE low-pass filters the first GNSS/vision bias samples before activating the bias estimate.
+The LPF exit requires consecutive raw bias samples to stay within this threshold and for the LPF
+to have run for at least 2 \* tau, or until VTE_BIA_AVG_TOUT elapses.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 0.3     | m    | &nbsp;    |
+
+### VTE_BIA_AVG_TOUT (`FLOAT`) {#VTE_BIA_AVG_TOUT}
+
+Initial GNSS/vision bias averaging timeout.
+
+Maximum time spent averaging the initial GNSS bias before activating it once GNSS and vision
+are jointly observable while the estimator is still referenced to GNSS. During that phase, valid
+vision samples keep updating the LPF. While the current GNSS-relative measurement stays valid,
+it can be propagated with the UAV velocity estimate to match the vision timestamp. If that GNSS
+sample is no longer valid, averaging stops, the current vision position is used, and the current
+LPF bias is activated.
+
+Set to 0 to disable averaging and activate the bias immediately.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 1.0     | s    | &nbsp;    |
+
+### VTE_BIA_UNC_IN (`FLOAT`) {#VTE_BIA_UNC_IN}
+
+Initial GPS bias uncertainty.
+
+Initial variance of the bias between the GPS on the target and the GPS on the drone.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+Once the filter is running, the steady-state bias variance is governed by VTE_BIAS_UNC
+and the measurement updates, so this parameter does not influence runtime behaviour.
+Keep it large so initialization can absorb initial misalignments.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.001    |          |           | 1.0     | m^2  | &nbsp;    |
+
+### VTE_BTOUT (`FLOAT`) {#VTE_BTOUT}
+
+Vision target timeout.
+
+Time after which the target is considered lost without any new fused measurements. When this timeout expires, the estimator is reset and can restart immediately once an enabled fusion source is available.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 50       | 0.5       | 3.0     | s    | &nbsp;    |
+
+### VTE_EN (`INT32`) {#VTE_EN}
+
+Vision Target Estimator module enable.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### VTE_EVA_NOISE (`FLOAT`) {#VTE_EVA_NOISE}
+
+Minimum standard deviation for vision yaw observations.
+
+Lower bound on the standard deviation used when fusing the vision yaw
+observation. The estimator squares this value and clamps the per-sample
+observation variance to max(reported_variance, VTE_EVA_NOISE^2). The floor only
+takes effect when the sensor under-reports its own noise.
+The default of ~0.07 rad (4 deg) is a reasonable starting point for marker-based
+yaw detection. Lowering it makes the filter trust each yaw sample more, which
+can cause the controller to chase the resulting setpoint changes and oscillate.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.05     |          |           | 0.07    | rad  | &nbsp;    |
+
+### VTE_EVP_NOISE (`FLOAT`) {#VTE_EVP_NOISE}
+
+Minimum standard deviation for vision relative-position observations.
+
+Lower bound on the standard deviation used when fusing the vision relative
+position. The estimator squares this value and clamps the per-sample
+observation variance to max(reported_variance, VTE_EVP_NOISE^2). The floor only
+takes effect when the sensor under-reports its own noise.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     |          |           | 0.1     | m    | &nbsp;    |
+
+### VTE_GPS_P_NOISE (`FLOAT`) {#VTE_GPS_P_NOISE}
+
+Minimum standard deviation for GPS position observations.
+
+Lower bound on the standard deviation used when fusing GPS position (target or
+mission landing waypoint). The estimator squares this value and clamps the
+per-sample observation variance to max(reported_variance, VTE_GPS_P_NOISE^2).
+The floor only takes effect when the sensor under-reports its own noise.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 10.0     |           | 0.5     | m    | &nbsp;    |
+
+### VTE_GPS_V_NOISE (`FLOAT`) {#VTE_GPS_V_NOISE}
+
+Minimum standard deviation for GPS velocity observations.
+
+Lower bound on the standard deviation used when fusing GPS velocity. The
+estimator squares this value and clamps the per-sample observation variance
+to max(reported_variance, VTE_GPS_V_NOISE^2). The floor only takes effect when
+the sensor under-reports its own noise; if the reported variance is already
+above the floor, this parameter has no effect.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 5.0      |           | 0.3     | m/s  | &nbsp;    |
+
+### VTE_M_REC_TOUT (`FLOAT`) {#VTE_M_REC_TOUT}
+
+Measurement recent timeout.
+
+Time window for considering a raw measurement as recent and eligible for fusion.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 10       | 0.05      | 1.0     | s    | &nbsp;    |
+
+### VTE_M_UPD_TOUT (`FLOAT`) {#VTE_M_UPD_TOUT}
+
+Measurement updated timeout.
+
+Maximum allowed age of a retained measurement before it is discarded from the estimator's cache.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 5        | 0.01      | 0.1     | s    | &nbsp;    |
+
+### VTE_POS_EN (`INT32`) {#VTE_POS_EN}
+
+Vision Target Estimator module enable position estimation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &check; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### VTE_POS_NIS_THRE (`FLOAT`) {#VTE_POS_NIS_THRE}
+
+Normalized innovation squared threshold for the position estimator.
+
+Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
+consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
+correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
+The confidence interval is computed from the chi-squared distribution.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.46     | 10.83    |           | 3.84    |      | &nbsp;    |
+
+### VTE_POS_UNC_IN (`FLOAT`) {#VTE_POS_UNC_IN}
+
+Initial target and drone relative position uncertainty.
+
+Initial variance of the relative target position in x, y, and z direction.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.001    |          |           | 0.5     | m^2  | &nbsp;    |
+
+### VTE_TASK_MASK (`INT32`) {#VTE_TASK_MASK}
+
+Integer bitmask controlling the tasks of the target estimator.
+
+Set bits in the following positions to enable:
+0 : Set to true to use the vision target estimator for precision landing. (+1)
+1 : DEBUG, always active. (+2)
+
+**Bitmask:**
+
+- `0`: precision landing
+- `1`: DEBUG, always active
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
+
+### VTE_TGT_TOUT (`FLOAT`) {#VTE_TGT_TOUT}
+
+Target validity timeout.
+
+Maximum time without any fused measurements before the published relative pose/yaw is flagged invalid.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 50       | 0.25      | 2.0     | s    | &nbsp;    |
+
+### VTE_VEL_UNC_IN (`FLOAT`) {#VTE_VEL_UNC_IN}
+
+Initial target and drone relative velocity uncertainty.
+
+Initial variance of the relative target velocity in x, y, and z directions.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | 0.001    |          |           | 0.5     | (m/s)^2 | &nbsp;    |
+
+### VTE_YAW_ACC_UNC (`FLOAT`) {#VTE_YAW_ACC_UNC}
+
+Yaw acceleration white-noise power spectral density.
+
+White-noise PSD on the yaw acceleration driving the
+yaw-rate state. The 1-sigma yaw-rate change allowed over a time t is
+sqrt(VTE_YAW_ACC_UNC \* t) (e.g. for the 0.004 default, ~3.6 deg/s after 1 s,
+~11.5 deg/s after 10 s).
+
+This is a variance rate, not a per-step variance; the value is independent
+of the filter update rate. Higher values let the filter follow rapid
+heading changes; lower values smooth the yaw estimate aggressively.
+
+Unit: rad^2/s^3.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 0.004   |      | &nbsp;    |
+
+### VTE_YAW_EN (`INT32`) {#VTE_YAW_EN}
+
+Vision Target Estimator module enable orientation estimation.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### VTE_YAW_NIS_THRE (`FLOAT`) {#VTE_YAW_NIS_THRE}
+
+Normalized innovation squared threshold for the orientation estimator.
+
+Lower values mean that more measurements will be rejected. Null hypothesis H0: the innovation is
+consistent with the innovation covariance matrix. Values of 0.46, 1.64, 2.71, 3.84, 6.63, and 10.83
+correspond to 50%, 20%, 10%, 5%, 1%, and 0.1% probability respectively that H0 is incorrectly rejected.
+The confidence interval is computed from the chi-squared distribution.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.46     | 10.83    |           | 3.84    |      | &nbsp;    |
+
+### VTE_YAW_UNC_IN (`FLOAT`) {#VTE_YAW_UNC_IN}
+
+Initial orientation uncertainty.
+
+Initial variance of the target orientation yaw in rad^2.
+Changes while the estimator is running are picked up immediately by the module but only take effect
+the next time the estimator initializes or resets.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.001    |          |           | 1.0     |      | &nbsp;    |
 
 ## Zenoh
 

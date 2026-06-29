@@ -40,6 +40,13 @@
 
 using namespace time_literals;
 
+static bool manualControlFallbackAction(FailsafeBase::Action action)
+{
+	return action == FailsafeBase::Action::FallbackPosCtrl
+	       || action == FailsafeBase::Action::FallbackAltCtrl
+	       || action == FailsafeBase::Action::FallbackStab;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 {
 	ActionOptions options{};
@@ -509,6 +516,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
 		return exception_mask_parameter & (int)LinkLossExceptionBits::AutoModes;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -729,14 +737,6 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 			return action;
 		}
 
-		if (action == Action::FallbackPosCtrl || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
-			// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
-			if (status_flags.manual_control_signal_lost) {
-				ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
-				action = rc_loss_action.action;
-			}
-
-		}
 	}
 
 	// PosCtrl/PositionSlow -> AltCtrl
@@ -752,6 +752,10 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	    && !modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::FallbackStab;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+	}
+
+	if (status_flags.manual_control_signal_lost && manualControlFallbackAction(action)) {
+		action = manualControlLossFallbackAction();
 	}
 
 	// Last, check can_run for intended mode
