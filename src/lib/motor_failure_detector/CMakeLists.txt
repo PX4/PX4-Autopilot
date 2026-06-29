@@ -38,3 +38,9 @@ px4_add_library(MotorFailureDetector
 target_include_directories(MotorFailureDetector PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_unit_gtest(SRC MotorFailureDetectorTest.cpp LINKLIBS MotorFailureDetector mathlib hysteresis)
+
+if(${PX4_PLATFORM} MATCHES "posix")
+	# Offline log-replay tool: drives the real detector with a recorded ulog (host only, like EKF2 replay).
+	add_executable(mfd_replay tools/mfd_replay.cpp)
+	target_link_libraries(mfd_replay PRIVATE MotorFailureDetector mathlib hysteresis)
+endif()
