@@ -61,9 +61,9 @@ constexpr const char *CMD_REBOOT = "reboot";               // Apply saved mode a
 constexpr const char *CMD_FLSHOW = "flshow";               // Print saved sensor configuration.
 }
 
-AS_DT1::AS_DT1(const char *device, bool flshow_only, float yaw_offset_deg) :
+AS_DT1::AS_DT1(const char *device, bool print_config_only, float yaw_offset_degrees) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_flshow_only(flshow_only)
+	_print_config_only(print_config_only)
 {
 	if (device != nullptr) {
 		strncpy(_device, device, sizeof(_device) - 1);
@@ -76,9 +76,9 @@ AS_DT1::AS_DT1(const char *device, bool flshow_only, float yaw_offset_deg) :
 	_obstacle_distance.increment = static_cast<uint8_t>(OBSTACLE_INCREMENT_DEG);
 	_obstacle_distance.min_distance = MIN_VALID_DISTANCE_CM;
 
-	(void)param_get(param_find("SENS_ASDT1_MODE"), &_mode);
-	_obstacle_distance.max_distance = max_distance_for_mode(_mode);
-	_obstacle_distance.angle_offset = yaw_offset_deg;
+	(void)param_get(param_find("SENS_ASDT1_MODE"), &_range_mode);
+	_obstacle_distance.max_distance = max_distance_for_mode(_range_mode);
+	_obstacle_distance.angle_offset = yaw_offset_degrees;
 
 	for (uint8_t i = 0; i < BIN_COUNT; i++) {
 		_obstacle_distance.distances[i] = UINT16_MAX;
@@ -92,7 +92,7 @@ AS_DT1::~AS_DT1()
 
 int AS_DT1::init()
 {
-	if (_flshow_only) {
+	if (_print_config_only) {
 		if (open_port() != PX4_OK) {
 			return PX4_ERROR;
 		}
@@ -148,9 +148,9 @@ int AS_DT1::init()
 
 void AS_DT1::print_info()
 {
-	const char *mode = _flshow_only ? "flshow" : "scheduled";
+	const char *mode = _print_config_only ? "flshow" : "scheduled";
 	PX4_INFO("AS-DT1 on %s, baud %u, mode %s, yaw offset %.1f deg",
-		 _device, _baud, mode, static_cast<double>(_obstacle_distance.angle_offset));
+		 _device, _current_baud, mode, static_cast<double>(_obstacle_distance.angle_offset));
 	PX4_INFO("fd: %d, last command: %s, command bytes: %u, last write: %lld",
 		 _fd, _last_command, static_cast<unsigned>(_last_command_len), static_cast<long long>(_last_write));
 	PX4_INFO("read: attempts %llu, total %llu bytes, no data %llu, errors %llu, last read %lld, last read age %llu us",
@@ -172,7 +172,7 @@ void AS_DT1::print_info()
 		 static_cast<unsigned long long>(_startup_prompt_timeouts),
 		 static_cast<unsigned long long>(_startup_discarded_bytes));
 	PX4_INFO("startup: mode command %s, preamble done %u, mode tries %llu, reboot tries %llu",
-		 mode_command_for_param(_mode),
+		 mode_command_for_param(_range_mode),
 		 static_cast<unsigned>(_startup_mode_preamble_done),
 		 static_cast<unsigned long long>(_startup_mode_attempts),
 		 static_cast<unsigned long long>(_startup_reboot_attempts));
@@ -226,7 +226,7 @@ void AS_DT1::print_info()
 
 void AS_DT1::start()
 {
-	_baud = ASDT1_DESIRED_BAUD;
+	_current_baud = ASDT1_DESIRED_BAUD;
 	ScheduleNow();
 }
 
@@ -278,7 +278,7 @@ void AS_DT1::Run()
 
 		case StartupState::BaudProbeSendPromptSync:
 			if (_startup_baud_probe_attempts >= BAUD_PROBE_ATTEMPT_LIMIT) {
-				_baud = (_baud == ASDT1_DESIRED_BAUD) ? ASDT1_FALLBACK_BAUD : ASDT1_DESIRED_BAUD;
+				_current_baud = (_current_baud == ASDT1_DESIRED_BAUD) ? ASDT1_FALLBACK_BAUD : ASDT1_DESIRED_BAUD;
 				_startup_baud_probe_attempts = 0;
 				reset_startup_prompt();
 				close_port();
@@ -445,7 +445,7 @@ void AS_DT1::Run()
 			}
 
 			// flmode selects the range and point-count layout used below.
-			if (write_command_padded(mode_command_for_param(_mode)) != PX4_OK) {
+			if (write_command_padded(mode_command_for_param(_range_mode)) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -548,7 +548,7 @@ void AS_DT1::Run()
 			_startup_reboot_attempts++;
 			_startup_mode_preamble_done = true;
 			_startup_baud_probe_done = true;
-			_baud = ASDT1_DESIRED_BAUD;
+			_current_baud = ASDT1_DESIRED_BAUD;
 			reset_startup_prompt();
 			close_port();
 			ScheduleDelayed(REBOOT_SETTLE_INTERVAL);
@@ -749,7 +749,7 @@ void AS_DT1::Run()
 
 			if (_frames_rx > _startup_frame_wait_baseline) {
 				_startup_state = StartupState::Streaming;
-				ScheduleDelayed(_interval);
+				ScheduleDelayed(_read_interval_us);
 				return;
 			}
 
@@ -763,12 +763,12 @@ void AS_DT1::Run()
 
 		}
 
-		ScheduleDelayed(_interval);
+		ScheduleDelayed(_read_interval_us);
 		return;
 	}
 
 	(void)read_and_parse_available();
-	ScheduleDelayed(_interval);
+	ScheduleDelayed(_read_interval_us);
 }
 
 int AS_DT1::open_port()
@@ -798,7 +798,7 @@ int AS_DT1::open_port()
 
 	speed_t speed = B115200;
 
-	if (_baud == ASDT1_DESIRED_BAUD) {
+	if (_current_baud == ASDT1_DESIRED_BAUD) {
 		speed = B921600;
 	}
 
@@ -1267,7 +1267,7 @@ bool AS_DT1::parse_byte(uint8_t byte)
 		break;
 
 	case ParserState::ReadPayload: {
-			const size_t expected_frame_size = frame_size_for_mode(_mode);
+			const size_t expected_frame_size = frame_size_for_mode(_range_mode);
 
 			if (_frame_buffer_len >= expected_frame_size || _frame_buffer_len >= ASDT1_FRAME_BUFFER_SIZE) {
 				_parser_resets++;
@@ -1312,10 +1312,10 @@ bool AS_DT1::parse_byte(uint8_t byte)
 
 int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 {
-	const size_t expected_frame_size = frame_size_for_mode(_mode);
-	const size_t sample_count = sample_count_for_mode(_mode);
-	const int min_used_row = min_used_row_for_mode(_mode);
-	const int max_used_row = max_used_row_for_mode(_mode);
+	const size_t expected_frame_size = frame_size_for_mode(_range_mode);
+	const size_t sample_count = sample_count_for_mode(_range_mode);
+	const int min_used_row = min_used_row_for_mode(_range_mode);
+	const int max_used_row = max_used_row_for_mode(_range_mode);
 
 	if (frame == nullptr || length != expected_frame_size) {
 		PX4_ERR("invalid AS-DT1 binz frame length: %u", static_cast<unsigned>(length));
@@ -1334,7 +1334,7 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 
 	// Only publish the rows that cover the horizontal band used by obstacle_distance.
 	for (size_t sample = 0; sample < sample_count; sample++) {
-		const int layout_index = sample_to_layout_index(sample, _mode);
+		const int layout_index = sample_to_layout_index(sample, _range_mode);
 		int row = 0;
 		int col = 0;
 

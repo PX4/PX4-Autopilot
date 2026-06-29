@@ -44,19 +44,19 @@ namespace sony_as_dt1
 
 AS_DT1 *g_dev{nullptr};
 
-static int start(const char *port, bool flshow_only, float yaw_offset_deg)
+static int start(const char *serial_device_path, bool print_config_only, float yaw_offset_degrees)
 {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
 		return -1;
 	}
 
-	if (port == nullptr) {
+	if (serial_device_path == nullptr) {
 		PX4_ERR("no device specified");
 		return -1;
 	}
 
-	g_dev = new AS_DT1(port, flshow_only, yaw_offset_deg);
+	g_dev = new AS_DT1(serial_device_path, print_config_only, yaw_offset_degrees);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -128,20 +128,20 @@ $ sony_asdt1 stop
 extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
-	bool flshow_only = false;
-	float yaw_offset_deg = 0.0f;
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
+	bool print_config_only = false;
+	float yaw_offset_degrees = 0.0f;
+	int cli_option = 0;
+	int cli_option_index = 1;
+	const char *cli_option_arg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:s", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
+	while ((cli_option = px4_getopt(argc, argv, "d:s", &cli_option_index, &cli_option_arg)) != EOF) {
+		switch (cli_option) {
 		case 'd':
-			device_path = myoptarg;
+			device_path = cli_option_arg;
 			break;
 
 		case 's':
-			flshow_only = true;
+			print_config_only = true;
 			break;
 
 		default:
@@ -150,24 +150,26 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 		}
 	}
 
-	if (myoptind >= argc) {
+	if (cli_option_index >= argc) {
 		sony_as_dt1::usage();
 		return -1;
 	}
 
-	if (!strcmp(argv[myoptind], "start")) {
+	const char *command = argv[cli_option_index];
+
+	if (!strcmp(command, "start")) {
 		const param_t handle = param_find("SENS_ASDT1_ROT");
 
 		if (handle != PARAM_INVALID) {
-			(void)param_get(handle, &yaw_offset_deg);
+			(void)param_get(handle, &yaw_offset_degrees);
 		}
 
-		return sony_as_dt1::start(device_path, flshow_only, yaw_offset_deg);
+		return sony_as_dt1::start(device_path, print_config_only, yaw_offset_degrees);
 
-	} else if (!strcmp(argv[myoptind], "stop")) {
+	} else if (!strcmp(command, "stop")) {
 		return sony_as_dt1::stop();
 
-	} else if (!strcmp(argv[myoptind], "status")) {
+	} else if (!strcmp(command, "status")) {
 		return sony_as_dt1::status();
 	}
 

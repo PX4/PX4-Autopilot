@@ -54,7 +54,7 @@
 class AS_DT1 : public px4::ScheduledWorkItem
 {
 public:
-	AS_DT1(const char *device, bool flshow_only = false, float yaw_offset_deg = 0.0f);
+	AS_DT1(const char *device, bool print_config_only = false, float yaw_offset_degrees = 0.0f);
 	~AS_DT1() override;
 
 	int init();
@@ -169,11 +169,11 @@ private:
 	uORB::Publication<obstacle_distance_s> _obstacle_distance_pub{ORB_ID(obstacle_distance)};
 
 	int _fd{-1};
-	int _interval{2000};
+	int _read_interval_us{2000};
 	char _device[20] {};
-	bool _flshow_only{false};
-	int32_t _mode{0};
-	unsigned int _baud{ASDT1_DESIRED_BAUD};
+	bool _print_config_only{false};
+	int32_t _range_mode{0};
+	unsigned int _current_baud{ASDT1_DESIRED_BAUD};
 	char _last_command[COMMAND_BUFFER_SIZE] {};
 	size_t _last_command_len{0};
 	ssize_t _last_write{-1};
