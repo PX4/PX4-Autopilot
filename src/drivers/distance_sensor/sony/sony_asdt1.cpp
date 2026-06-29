@@ -34,7 +34,7 @@
 /**
  * @file sony_asdt1.cpp
  *
- * Minimal AS-DT1 serial write probe.
+ * Sony AS-DT1 serial rangefinder driver.
  */
 
 #include "sony_asdt1.hpp"
@@ -50,9 +50,18 @@
 #include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
 
-AS_DT1::AS_DT1(const char *device, bool one_shot, bool flshow_only) :
+namespace
+{
+constexpr const char *CMD_FSYNC_STOP = "fsync 0";
+constexpr const char *CMD_FORMAT_BINZ = "format binz";
+constexpr const char *CMD_FSYNC_START = "fsync 30";
+constexpr const char *CMD_FLUART_921600 = "fluart 921600";
+constexpr const char *CMD_REBOOT = "reboot";
+constexpr const char *CMD_FLSHOW = "flshow";
+}
+
+AS_DT1::AS_DT1(const char *device, bool flshow_only, float yaw_offset_deg) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_one_shot(one_shot),
 	_flshow_only(flshow_only)
 {
 	if (device != nullptr) {
@@ -68,7 +77,7 @@ AS_DT1::AS_DT1(const char *device, bool one_shot, bool flshow_only) :
 
 	(void)param_get(param_find("SENS_ASDT1_MODE"), &_mode);
 	_obstacle_distance.max_distance = max_distance_for_mode(_mode);
-	_obstacle_distance.angle_offset = 0.0f;
+	_obstacle_distance.angle_offset = yaw_offset_deg;
 
 	for (uint8_t i = 0; i < BIN_COUNT; i++) {
 		_obstacle_distance.distances[i] = UINT16_MAX;
@@ -93,7 +102,7 @@ int AS_DT1::init()
 		px4_usleep(PROMPT_SYNC_SETTLE_INTERVAL);
 		(void)drain_input();
 
-		if (write_command_padded("fsync 0") != PX4_OK) {
+		if (write_command_padded(CMD_FSYNC_STOP) != PX4_OK) {
 			close_port();
 			return PX4_ERROR;
 		}
@@ -105,14 +114,14 @@ int AS_DT1::init()
 		bool flshow_complete = false;
 
 		for (uint8_t attempt = 0; attempt < FLSHOW_RETRY_LIMIT; attempt++) {
-			if (write_command_padded("flshow") != PX4_OK) {
+			if (write_command_padded(CMD_FLSHOW) != PX4_OK) {
 				close_port();
 				return PX4_ERROR;
 			}
 
 			tcdrain(_fd);
 			px4_usleep(1000000);
-			const int response = read_and_print_response("flshow");
+			const int response = read_and_print_response(CMD_FLSHOW);
 
 			if (response < 0) {
 				close_port();
@@ -129,19 +138,6 @@ int AS_DT1::init()
 			PX4_WARN("flshow: no complete response after %u tries", static_cast<unsigned>(FLSHOW_RETRY_LIMIT));
 		}
 
-	} else if (_one_shot) {
-		if (open_port() != PX4_OK) {
-			return PX4_ERROR;
-		}
-
-		if (write_start_command() != PX4_OK) {
-			close_port();
-			return PX4_ERROR;
-		}
-
-		px4_usleep(1000000);
-		(void)read_once();
-
 	} else {
 		start();
 	}
@@ -151,8 +147,9 @@ int AS_DT1::init()
 
 void AS_DT1::print_info()
 {
-	const char *mode = _flshow_only ? "flshow" : (_one_shot ? "one-shot" : "scheduled");
-	PX4_INFO("AS-DT1 on %s, baud %u, mode %s", _device, _baud, mode);
+	const char *mode = _flshow_only ? "flshow" : "scheduled";
+	PX4_INFO("AS-DT1 on %s, baud %u, mode %s, yaw offset %.1f deg",
+		 _device, _baud, mode, static_cast<double>(_obstacle_distance.angle_offset));
 	PX4_INFO("fd: %d, last command: %s, command bytes: %u, last write: %lld",
 		 _fd, _last_command, static_cast<unsigned>(_last_command_len), static_cast<long long>(_last_write));
 	PX4_INFO("read: attempts %llu, total %llu bytes, no data %llu, errors %llu, last read %lld, last read age %llu us",
@@ -261,7 +258,9 @@ void AS_DT1::Run()
 		return;
 	}
 
-	if (!_one_shot && _startup_state != StartupState::Streaming) {
+	if (_startup_state != StartupState::Streaming) {
+		// Startup is staged so stale stream bytes and command echoes are drained
+		// before measurement frames are parsed.
 		switch (_startup_state) {
 		case StartupState::BaudProbeDrain:
 			if (drain_input() < 0) {
@@ -389,7 +388,7 @@ void AS_DT1::Run()
 			return;
 
 		case StartupState::ModeSendStop:
-			if (write_command_padded("fsync 0") != PX4_OK) {
+			if (write_command_padded(CMD_FSYNC_STOP) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -489,7 +488,7 @@ void AS_DT1::Run()
 				return;
 			}
 
-			if (write_command_padded("fluart 921600") != PX4_OK) {
+			if (write_command_padded(CMD_FLUART_921600) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -533,7 +532,7 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::SendReboot:
-			if (write_command_padded("reboot") != PX4_OK) {
+			if (write_command_padded(CMD_REBOOT) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -616,7 +615,7 @@ void AS_DT1::Run()
 			return;
 
 		case StartupState::SendStop:
-			if (write_command_padded("fsync 0") != PX4_OK) {
+			if (write_command_padded(CMD_FSYNC_STOP) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -667,7 +666,7 @@ void AS_DT1::Run()
 				return;
 			}
 
-			if (write_command_padded("format binz") != PX4_OK) {
+			if (write_command_padded(CMD_FORMAT_BINZ) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -716,7 +715,7 @@ void AS_DT1::Run()
 				return;
 			}
 
-			if (write_command_padded("fsync 30") != PX4_OK) {
+			if (write_command_padded(CMD_FSYNC_START) != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -734,7 +733,7 @@ void AS_DT1::Run()
 			break;
 
 		case StartupState::WaitFirstFrame:
-			if (read_once() != PX4_OK) {
+			if (read_and_parse_available() != PX4_OK) {
 				close_port();
 				return;
 			}
@@ -759,7 +758,7 @@ void AS_DT1::Run()
 		return;
 	}
 
-	(void)read_once();
+	(void)read_and_parse_available();
 	ScheduleDelayed(_interval);
 }
 
@@ -815,32 +814,6 @@ void AS_DT1::close_port()
 	}
 }
 
-int AS_DT1::write_start_command()
-{
-	(void)drain_input();
-
-	if (write_command_padded("fsync 0") != PX4_OK) {
-		return PX4_ERROR;
-	}
-
-	tcdrain(_fd);
-	px4_usleep(PROMPT_SYNC_SETTLE_INTERVAL);
-	(void)drain_input();
-
-	if (write_command_padded("format binz") != PX4_OK) {
-		return PX4_ERROR;
-	}
-	tcdrain(_fd);
-	px4_usleep(200000);
-
-	if (write_command_padded("fsync 30") != PX4_OK) {
-		return PX4_ERROR;
-	}
-	tcdrain(_fd);
-
-	return PX4_OK;
-}
-
 int AS_DT1::write_command_padded(const char *command)
 {
 	if (_fd < 0) {
@@ -851,7 +824,7 @@ int AS_DT1::write_command_padded(const char *command)
 		return PX4_ERROR;
 	}
 
-	char buffer[32]{};
+	char buffer[COMMAND_BUFFER_SIZE]{};
 	const size_t command_len = strnlen(command, sizeof(buffer) - 1);
 
 	if (command_len == 0 || command_len >= sizeof(buffer) - 1) {
@@ -862,10 +835,10 @@ int AS_DT1::write_command_padded(const char *command)
 	size_t length = command_len + 1; // include trailing CR
 	buffer[command_len] = '\r';
 
-	const size_t remainder = length % 16;
+	const size_t remainder = length % COMMAND_PADDING_BYTES;
 
 	if (remainder != 0) {
-		const size_t padded_length = length + (16 - remainder);
+		const size_t padded_length = length + (COMMAND_PADDING_BYTES - remainder);
 
 		if (padded_length > sizeof(buffer)) {
 			return PX4_ERROR;
@@ -1221,7 +1194,7 @@ int AS_DT1::read_and_print_response(const char *label)
 	}
 }
 
-int AS_DT1::read_once()
+int AS_DT1::read_and_parse_available()
 {
 	_read_attempts++;
 
@@ -1265,13 +1238,6 @@ bool AS_DT1::parse_byte(uint8_t byte)
 	constexpr size_t begin_marker_len = sizeof(begin_marker) - 1;
 	constexpr char end_marker[] = "END";
 	constexpr size_t end_marker_len = sizeof(end_marker) - 1;
-
-	const auto reset_parser = [this]() {
-		_parser_state = ParserState::FindBegin;
-		_frame_buffer_len = 0;
-		_begin_match_index = 0;
-		_end_match_index = 0;
-	};
 
 	switch (_parser_state) {
 	case ParserState::FindBegin:

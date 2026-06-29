@@ -384,6 +384,60 @@ pga460 <command> [arguments...]
    help
 ```
 
+## sony_asdt1
+
+Source: [drivers/distance_sensor/sony](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/sony)
+
+### Description
+
+Sony AS-DT1 serial driver. The driver probes 921600 and 115200 baud, configures
+the sensor for binary streaming, and publishes multipoint distance measurements.
+
+Setup/usage information: https://docs.px4.io/main/en/sensor/sony_asdt1.html
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+
+```
+sony_asdt1 start -d /dev/ttyS4
+```
+
+Start driver with the sensor mounted 90 degrees clockwise from vehicle forward.
+
+```
+sony_asdt1 start -d /dev/ttyS4 -R 90
+```
+
+Print the sensor's saved configuration without starting measurements.
+
+```
+sony_asdt1 start -d /dev/ttyS4 -s
+```
+
+Stop driver.
+
+```
+sony_asdt1 stop
+```
+
+### Usage {#sony_asdt1_usage}
+
+```
+sony_asdt1 <command> [arguments...]
+ Commands:
+   start         Start driver
+     -d <val>    Serial device
+     [-R <val>]  Yaw offset in degrees, positive clockwise
+                 default: 0.0
+     [-s]        Send flshow and print response instead of starting
+                 measurements
+
+   stop          Stop driver
+
+   status        Print driver status
+```
+
 ## srf02
 
 Source: [drivers/distance_sensor/srf02](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/srf02)

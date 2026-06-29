@@ -36,6 +36,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
+#include <cstdlib>
 #include <cstring>
 
 namespace sony_as_dt1
@@ -43,7 +44,7 @@ namespace sony_as_dt1
 
 AS_DT1 *g_dev{nullptr};
 
-static int start(const char *port, bool one_shot, bool flshow_only)
+static int start(const char *port, bool flshow_only, float yaw_offset_deg)
 {
 	if (g_dev != nullptr) {
 		PX4_WARN("already started");
@@ -55,12 +56,7 @@ static int start(const char *port, bool one_shot, bool flshow_only)
 		return -1;
 	}
 
-	if (one_shot && flshow_only) {
-		PX4_ERR("choose either -o or -s");
-		return -1;
-	}
-
-	g_dev = new AS_DT1(port, one_shot, flshow_only);
+	g_dev = new AS_DT1(port, flshow_only, yaw_offset_deg);
 
 	if (g_dev == nullptr) {
 		return -1;
@@ -106,13 +102,13 @@ static int usage()
 		R"DESCR_STR(
 ### Description
 
-Sony AS-DT1 serial driver. It probes 921600 and 115200 baud, configures the sensor
-for 921600 8N1, and starts `format binz` / `fsync 30` streaming.
+Sony AS-DT1 serial driver. The driver probes 921600 and 115200 baud, configures
+the sensor for binary streaming, and publishes multipoint distance measurements.
 
 ### Examples
 
 $ sony_asdt1 start -d /dev/ttyS4
-$ sony_asdt1 start -d /dev/ttyS4 -o
+$ sony_asdt1 start -d /dev/ttyS4 -R 90
 $ sony_asdt1 start -d /dev/ttyS4 -s
 $ sony_asdt1 status
 $ sony_asdt1 stop
@@ -122,7 +118,7 @@ $ sony_asdt1 stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_FLAG('o', "Read once after 1 second instead of scheduled 10 ms reads", true);
+	PRINT_MODULE_USAGE_PARAM_FLOAT('R', 0.0f, -360.0f, 360.0f, "Yaw offset in degrees, positive clockwise", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Send flshow and print response instead of starting measurements", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
@@ -134,21 +130,29 @@ $ sony_asdt1 stop
 extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
-	bool one_shot = false;
 	bool flshow_only = false;
+	float yaw_offset_deg = 0.0f;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:os", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:R:s", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
 			break;
 
-		case 'o':
-			one_shot = true;
+		case 'R': {
+			char *end = nullptr;
+			yaw_offset_deg = strtof(myoptarg, &end);
+
+			if (end == myoptarg || *end != '\0') {
+				PX4_ERR("invalid yaw offset: %s", myoptarg);
+				return -1;
+			}
+
 			break;
+		}
 
 		case 's':
 			flshow_only = true;
@@ -166,7 +170,7 @@ extern "C" __EXPORT int sony_asdt1_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return sony_as_dt1::start(device_path, one_shot, flshow_only);
+		return sony_as_dt1::start(device_path, flshow_only, yaw_offset_deg);
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		return sony_as_dt1::stop();

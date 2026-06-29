@@ -37,7 +37,6 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 
 class ASDT1Test : public ::testing::Test
 {
@@ -106,16 +105,23 @@ protected:
 		return completed;
 	}
 
-	static bool feedShortFrame(AS_DT1 &driver, const ShortFrame &frame)
+	static bool feedEndMarker(AS_DT1 &driver)
 	{
 		constexpr char end_marker[] = "END";
-		bool completed = feedFramePayload(driver, frame);
+		bool completed = false;
 
 		for (size_t i = 0; i < sizeof(end_marker) - 1; i++) {
 			completed = driver.parse_byte(static_cast<uint8_t>(end_marker[i]));
 		}
 
 		return completed;
+	}
+
+	template <typename Frame>
+	static bool feedCompleteFrame(AS_DT1 &driver, const Frame &frame)
+	{
+		(void)feedFramePayload(driver, frame);
+		return feedEndMarker(driver);
 	}
 
 	static bool allBinsUnknown(const AS_DT1 &driver)
@@ -232,26 +238,31 @@ TEST_F(ASDT1Test, ClosestPointWinsBin)
 	EXPECT_EQ(driver._obstacle_distance.distances[bin], 35);
 }
 
-TEST_F(ASDT1Test, ParserCompletesFullFrameWithoutEndMarker)
+TEST_F(ASDT1Test, ParserWaitsForEndMarkerAfterFullFramePayload)
 {
 	AS_DT1 driver("/dev/ttyS0");
 	const FullFrame frame{};
 
-	EXPECT_TRUE(feedFramePayload(driver, frame));
-	EXPECT_TRUE(driver._have_latest_frame);
-	EXPECT_EQ(driver._latest_frame_len, frame.size());
-	EXPECT_EQ(memcmp(driver._latest_frame, frame.data(), frame.size()), 0);
+	EXPECT_FALSE(feedFramePayload(driver, frame));
+	EXPECT_EQ(static_cast<int>(driver._parser_state), static_cast<int>(AS_DT1::ParserState::ReadEnd));
+	EXPECT_EQ(driver._frames_rx, 0);
+	EXPECT_TRUE(feedEndMarker(driver));
+	EXPECT_EQ(driver._frames_rx, 1);
+	EXPECT_EQ(driver._frames_pub, 1);
+	EXPECT_EQ(driver._last_frame_processed_len, frame.size());
 }
 
 TEST_F(ASDT1Test, ParserCompletesShortFrameWithEndMarker)
 {
 	AS_DT1 driver("/dev/ttyS0");
+	driver._mode = 2; // 30M30F
 	const ShortFrame frame{};
 
-	EXPECT_TRUE(feedShortFrame(driver, frame));
-	EXPECT_TRUE(driver._have_latest_frame);
-	EXPECT_EQ(driver._latest_frame_len, frame.size());
-	EXPECT_EQ(memcmp(driver._latest_frame, frame.data(), frame.size()), 0);
+	EXPECT_TRUE(feedCompleteFrame(driver, frame));
+	EXPECT_EQ(driver._frames_rx, 1);
+	EXPECT_EQ(driver._frames_pub, 1);
+	EXPECT_EQ(driver._last_frame_processed_len, frame.size());
+	EXPECT_EQ(driver._last_sample_count, AS_DT1::ASDT1_SHORT_SAMPLE_COUNT);
 }
 
 TEST_F(ASDT1Test, ParserResyncsAfterNoiseBeforeBegin)
@@ -264,8 +275,8 @@ TEST_F(ASDT1Test, ParserResyncsAfterNoiseBeforeBegin)
 		EXPECT_FALSE(driver.parse_byte(byte));
 	}
 
-	EXPECT_TRUE(feedFramePayload(driver, frame));
-	EXPECT_TRUE(driver._have_latest_frame);
+	EXPECT_TRUE(feedCompleteFrame(driver, frame));
+	EXPECT_EQ(driver._frames_rx, 1);
 }
 
 TEST_F(ASDT1Test, ParserKeepsNewestCompleteFrame)
@@ -287,10 +298,9 @@ TEST_F(ASDT1Test, ParserKeepsNewestCompleteFrame)
 	packZ(second, sampleForLayout(row + 2, col), 1000.0f);
 	packZ(second, sampleForLayout(row + 3, col), 1000.0f);
 
-	ASSERT_TRUE(feedFramePayload(driver, first));
-	ASSERT_TRUE(feedFramePayload(driver, second));
-	ASSERT_TRUE(driver._have_latest_frame);
-
-	ASSERT_EQ(driver.process_frame(driver._latest_frame, driver._latest_frame_len), PX4_OK);
+	ASSERT_TRUE(feedCompleteFrame(driver, first));
+	ASSERT_TRUE(feedCompleteFrame(driver, second));
+	EXPECT_EQ(driver._frames_rx, 2);
+	EXPECT_EQ(driver._frames_pub, 2);
 	EXPECT_EQ(driver._obstacle_distance.distances[bin], 100);
 }

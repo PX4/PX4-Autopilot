@@ -34,7 +34,7 @@
 /**
  * @file sony_asdt1.hpp
  *
- * Minimal AS-DT1 serial write probe.
+ * Sony AS-DT1 serial rangefinder driver.
  */
 
 #pragma once
@@ -54,13 +54,17 @@
 class AS_DT1 : public px4::ScheduledWorkItem
 {
 public:
-	AS_DT1(const char *device, bool one_shot, bool flshow_only);
+	AS_DT1(const char *device, bool flshow_only = false, float yaw_offset_deg = 0.0f);
 	~AS_DT1() override;
 
 	int init();
 	void print_info();
 
+#ifdef UNIT_TEST
+public:
+#else
 private:
+#endif
 	enum class ParserState {
 		FindBegin,
 		ReadPayload,
@@ -101,7 +105,6 @@ private:
 
 	int open_port();
 	void close_port();
-	int write_start_command();
 	int write_command_padded(const char *command);
 	int write_prompt_sync();
 	ssize_t drain_input();
@@ -114,7 +117,7 @@ private:
 	bool startup_deadline_elapsed() const;
 	const char *startup_state_name() const;
 	int read_and_print_response(const char *label);
-	int read_once();
+	int read_and_parse_available();
 	bool parse_byte(uint8_t byte);
 	int process_frame(const uint8_t *frame, size_t length);
 
@@ -133,6 +136,7 @@ private:
 	static const char *mode_command_for_param(int32_t mode);
 
 	static constexpr size_t COMMAND_BUFFER_SIZE{32};
+	static constexpr size_t COMMAND_PADDING_BYTES{16};
 	static constexpr size_t READ_BUFFER_SIZE{512};
 	static constexpr size_t LAST_READ_CAPTURE_SIZE{64};
 	static constexpr uint8_t READ_DRAIN_LIMIT{8};
@@ -172,7 +176,6 @@ private:
 	int _fd{-1};
 	int _interval{2000};
 	char _device[20]{};
-	bool _one_shot{false};
 	bool _flshow_only{false};
 	int32_t _mode{0};
 	unsigned int _baud{ASDT1_DESIRED_BAUD};
