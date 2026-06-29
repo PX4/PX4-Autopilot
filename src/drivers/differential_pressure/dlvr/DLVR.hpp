@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +33,18 @@
 
 #pragma once
 
-#include "AUAV.hpp"
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
-/* AUAV EEPROM addresses for differential channel */
-static constexpr uint8_t EEPROM_ABS_CAL_RNG	= 0x25;
-static constexpr uint8_t EEPROM_DIFF_AHW 	= 0x2B;
-static constexpr uint8_t EEPROM_DIFF_ALW 	= 0x2C;
-static constexpr uint8_t EEPROM_DIFF_BHW 	= 0x2D;
-static constexpr uint8_t EEPROM_DIFF_BLW 	= 0x2E;
-static constexpr uint8_t EEPROM_DIFF_CHW 	= 0x2F;
-static constexpr uint8_t EEPROM_DIFF_CLW 	= 0x30;
-static constexpr uint8_t EEPROM_DIFF_DHW 	= 0x31;
-static constexpr uint8_t EEPROM_DIFF_DLW 	= 0x32;
-static constexpr uint8_t EEPROM_DIFF_TC50 	= 0x33;
-static constexpr uint8_t EEPROM_DIFF_ES		= 0x34;
+using namespace time_literals;
 
 /* Measurement rate is 100Hz */
 static constexpr unsigned DIFF_MEAS_RATE = 100;
@@ -55,27 +52,44 @@ static constexpr int64_t DIFF_CONVERSION_INTERVAL = (1000000 / DIFF_MEAS_RATE); 
 /* reading too fast can yield all zero data -> incorrect sensor reading */
 static_assert(DIFF_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast");
 
-/* Valid AUAV types */
-static constexpr int32_t AUAV_LD_05 = 5;
-static constexpr int32_t AUAV_LD_10 = 10;
-static constexpr int32_t AUAV_LD_30 = 30;
-static constexpr int32_t AUAV_LD_60 = 60;
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x28;
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
 
-class AUAV_Differential : public AUAV
+class DLVR : public device::I2C, public I2CSPIDriver<DLVR>, public ModuleParams
 {
 public:
-	explicit AUAV_Differential(const I2CSPIDriverConfig &config);
-	~AUAV_Differential() = default;
+	explicit DLVR(const I2CSPIDriverConfig &config);
+	~DLVR();
 
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, const int runtime_instance);
+	static void print_usage();
+
+	virtual void RunImpl();
 	void print_status() override;
+	int init() override;
 
 private:
-	void publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample) override;
-	int64_t get_conversion_interval() const override;
-	calib_eeprom_addr_t get_calib_eeprom_addr() const override;
-	float process_pressure_dig(const float pressure_dig) const override;
-	int read_factory_data() override;
+	void publish_pressure(const float pressure_p, const float temperature_c,
+			      const hrt_abstime timestamp_sample);
+	constexpr int64_t get_conversion_interval() const { return DIFF_CONVERSION_INTERVAL; };
+	void gather_measurement();
+
+	float process_pressure_raw(const float pressure_dig) const;
+	float process_temperature_raw(const float temperature_raw) const;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_DPRES_REV>) _param_dpres_rev   /**< parameter */
+	)
+
+	// DLVR L10D-values as default
+	float _cal_range{20.0f};
+	float _offset_out{8192.f};
+
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
-	int32_t _cal_range{10};
+
+private:
+	int probe() override;
 };
