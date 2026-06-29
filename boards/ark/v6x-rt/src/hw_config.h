@@ -71,7 +71,7 @@
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,1500000"
 #define BOOT_DELAY_ADDRESS             0x3003b540
-#define BOARD_TYPE                     94
+#define BOARD_TYPE                     62
 // The board has a 64 Mb part with 16384, 4K secors, but we artificialy limit it to 4 Mb
 // as 1024, 4K sectors
 #define BOARD_FLASH_SECTORS            1024 // Really (16384)
@@ -120,11 +120,11 @@
 #endif
 
 #ifndef BOOT_DEVICES_SELECTION
-#  define BOOT_DEVICES_SELECTION USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#  define BOOT_DEVICES_SELECTION (USB0_DEV|SERIAL0_DEV|SERIAL1_DEV)
 #endif
 
 #ifndef BOOT_DEVICES_FILTER_ONUSB
-#  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#  define BOOT_DEVICES_FILTER_ONUSB (USB0_DEV|SERIAL0_DEV|SERIAL1_DEV)
 #endif
 
 #endif /* HW_CONFIG_H_ */

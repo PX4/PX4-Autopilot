@@ -91,14 +91,14 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: fmuv6xrt_usdhc_initialize
+ * Name: arkv6xrt_usdhc_initialize
  *
  * Description:
  *   Inititialize the SDHC SD card slot
  *
  ****************************************************************************/
 
-int fmuv6xrt_usdhc_initialize(void)
+int arkv6xrt_usdhc_initialize(void)
 {
 	int ret;
 

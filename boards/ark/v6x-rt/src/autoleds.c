@@ -46,7 +46,7 @@
  *   BLUE   CMP0_IN2/ FB_AD7 / I2S0_MCLK/ FTM3_CH4/ ADC1_SE4b/ PTC8
  *
  * If CONFIG_ARCH_LEDs is defined, then NuttX will control the LED on board
- * the PX4 fmu-v6xrt.  The following definitions describe how NuttX controls
+ * the ARK V6X-RT.  The following definitions describe how NuttX controls
  * the LEDs:
  *
  *   SYMBOL                Meaning                   LED state
@@ -60,7 +60,7 @@
  *   LED_SIGNAL           In a signal handler        (no change)
  *   LED_ASSERTION        An assertion failed        (no change)
  *   LED_PANIC            The system has crashed      FLASH OFF OFF
- *   LED_IDLE             fmu-v6xrt is in sleep mode (Optional, not used)
+ *   LED_IDLE             ARK V6X-RT is in sleep mode (Optional, not used)
  */
 
 /****************************************************************************

@@ -35,7 +35,7 @@
  * Public Data
  ****************************************************************************/
 
-/* Each FMU-V6XRT board must provide the following initialized structure.
+/* Each ARK V6X-RT board must provide the following initialized structure.
  * This is needed to establish the initial board clocking.
  */
 

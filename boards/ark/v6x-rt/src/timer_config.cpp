@@ -131,7 +131,7 @@ constexpr timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 };
 
 
-void fmuv6xrt_timer_initialize(void)
+void arkv6xrt_timer_initialize(void)
 {
 	/* We must configure Qtimer 3 as the bus_clk_root which is
 	 * BUS_CLK_ROOT_SYS_PLL3_CLK / 2 = 240 Mhz

@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/px4/fmu-v6xrt/src/imxrt_flexspi_nor_boot.h
+ * boards/ark/v6x-rt/src/imxrt_flexspi_nor_boot.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
-#define __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
+#ifndef __BOARDS_ARK_V6X_RT_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
+#define __BOARDS_ARK_V6X_RT_SRC_IMXRT_FLEXSPI_NOR_BOOT_H
 
 /****************************************************************************
  * Included Files
@@ -155,4 +155,4 @@ extern const struct boot_data_s g_boot_data;
 extern const uint8_t g_dcd_data[];
 extern const uint32_t  _vectors[];
 
-#endif /* __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */
+#endif /* __BOARDS_ARK_V6X_RT_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */
