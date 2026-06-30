@@ -12,6 +12,10 @@ on:
         description: 'Skip Discourse post and label cleanup — print rendered post body to logs only'
         type: boolean
         default: false
+      lookback_days:
+        description: 'Days back to search for merged PRs, new issues and bugs'
+        type: string
+        default: '7'
 
 jobs:
   post-dev-call:
@@ -38,3 +42,9 @@ jobs:
           DISCOURSE_URL: https://discuss.px4.io
           CATEGORY_ID: '39'
           DRY_RUN: ${{ inputs.dry_run }}
+          # Dev call policy knobs. Edit here, not in the script.
+          CALL_DAY: wednesday
+          CALL_TIME: '17:00:00'
+          CALL_TIMEZONE: Europe/Berlin
+          DEV_CALL_LABEL: Dev Call
+          LOOKBACK_DAYS: ${{ inputs.lookback_days || '7' }}

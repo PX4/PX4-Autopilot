@@ -26,6 +26,11 @@ What it does:
 DRY_RUN=1 (or 'true') runs every read/build step and prints the rendered
 body, but performs no Discourse post and no label mutation.
 
+Policy knobs come from the environment (set in the workflow, not baked
+into this script): CALL_DAY, CALL_TIME, CALL_TIMEZONE, DEV_CALL_LABEL,
+LOOKBACK_DAYS, plus CATEGORY_ID/DISCOURSE_URL. Each has a sensible
+default so the script also runs standalone.
+
 Python stdlib only, to match the other Tools/ci scripts and avoid a
 pip install step in CI.
 """
@@ -43,10 +48,11 @@ REPO = 'PX4/PX4-Autopilot'
 REPO_URL = 'https://github.com/' + REPO
 TEMPLATE = '.github/dev_call_template.md'
 
-DEV_CALL_LABEL = 'Dev Call'
-# Discourse date bbcode timezone. IANA name, not "CET", so the rendered
-# call time tracks CET/CEST daylight-saving transitions automatically.
-CALL_TIMEZONE = 'Europe/Berlin'
+# Weekday names accepted by CALL_DAY, mapped to datetime.weekday() (Mon=0).
+WEEKDAYS = {
+    'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+    'friday': 4, 'saturday': 5, 'sunday': 6,
+}
 
 
 def env(name, default=None, required=False):
@@ -56,27 +62,35 @@ def env(name, default=None, required=False):
     return value
 
 
+def env_int(name, default):
+    value = env(name, str(default)) or str(default)
+    try:
+        return int(value)
+    except ValueError:
+        fail('{} must be an integer, got: {!r}'.format(name, value))
+
+
 def is_truthy(value):
     return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
 
 
-def compute_dates(today):
-    """Return (call_date, display_date, week_ago) as strings.
+def compute_dates(today, call_weekday, lookback_days):
+    """Return (call_date, display_date, since) as strings.
 
-    call_date is the next Wednesday strictly after `today` (matches the
-    Monday-scheduled run; if dispatched on a Wednesday it rolls to the
-    following week, same as the old `date -d "next Wednesday"`).
+    call_date is the next occurrence of `call_weekday` strictly after
+    `today` (so a run on the call day itself rolls to the following week).
+    `since` is `lookback_days` before `today`, the lower bound for the
+    "this week" GitHub queries.
     """
-    # weekday(): Mon=0 .. Sun=6; Wednesday is 2.
-    days_ahead = (2 - today.weekday() + 7) % 7
+    days_ahead = (call_weekday - today.weekday() + 7) % 7
     if days_ahead == 0:
         days_ahead = 7
     call = today + datetime.timedelta(days=days_ahead)
-    week_ago = today - datetime.timedelta(days=7)
+    since = today - datetime.timedelta(days=lookback_days)
     return (
         call.strftime('%Y-%m-%d'),
         call.strftime('%b %d, %Y'),
-        week_ago.strftime('%Y-%m-%d'),
+        since.strftime('%Y-%m-%d'),
     )
 
 
@@ -168,14 +182,14 @@ class Discourse:
         return '{}/t/{}'.format(self._base, topic_id)
 
 
-def clear_dev_call_labels(client, items, topic_url):
+def clear_dev_call_labels(client, items, topic_url, label):
     """Remove the Dev Call label and leave a backlink comment on each item.
 
     Uses the issues labels/comments endpoints, which accept both issue and
     PR numbers, so PR items are handled the same as issues.
     """
     comment = 'Added to the [Dev Call agenda]({}).'.format(topic_url)
-    label_path = urllib.parse.quote(DEV_CALL_LABEL)
+    label_path = urllib.parse.quote(label)
     for it in items:
         number = it['number']
         client.request(
@@ -192,17 +206,27 @@ def main():
     token = env('GH_TOKEN', required=True)
     client = GitHubClient(token, user_agent='px4-dev-call-post')
 
-    today = datetime.date.today()
-    call_date, display_date, week_ago = compute_dates(today)
+    call_day_name = (env('CALL_DAY', 'wednesday') or '').strip().lower()
+    if call_day_name not in WEEKDAYS:
+        fail('CALL_DAY must be a weekday name, got: {!r}'.format(
+            env('CALL_DAY')))
+    lookback_days = env_int('LOOKBACK_DAYS', 7)
+    dev_call_label = env('DEV_CALL_LABEL', 'Dev Call')
+    timezone = env('CALL_TIMEZONE', 'Europe/Berlin')
+    call_time = env('CALL_TIME', '17:00:00')
 
-    merged_q = 'repo:{} is:pr is:merged merged:>={}'.format(REPO, week_ago)
+    today = datetime.date.today()
+    call_date, display_date, since = compute_dates(
+        today, WEEKDAYS[call_day_name], lookback_days)
+
+    merged_q = 'repo:{} is:pr is:merged merged:>={}'.format(REPO, since)
     # Open review backlog: every open non-draft PR with no review, not just
     # those opened this week. The old workflow filtered on created:>=, which
     # hid the older backlog that makes up most of the queue.
     review_q = 'repo:{} is:pr is:open draft:false review:none'.format(REPO)
-    bug_q = 'repo:{} is:issue created:>={} label:bug'.format(REPO, week_ago)
-    other_q = 'repo:{} is:issue created:>={} -label:bug'.format(REPO, week_ago)
-    dev_call_q = 'repo:{} is:open label:"{}"'.format(REPO, DEV_CALL_LABEL)
+    bug_q = 'repo:{} is:issue created:>={} label:bug'.format(REPO, since)
+    other_q = 'repo:{} is:issue created:>={} -label:bug'.format(REPO, since)
+    dev_call_q = 'repo:{} is:open label:"{}"'.format(REPO, dev_call_label)
 
     merged_count = search_count(client, merged_q)
     review_count = search_count(client, review_q)
@@ -212,13 +236,14 @@ def main():
 
     replacements = {
         'CALL_DATE': call_date,
-        'CALL_TIMEZONE': CALL_TIMEZONE,
+        'CALL_TIME': call_time,
+        'CALL_TIMEZONE': timezone,
         'MERGED_COUNT': str(merged_count),
         'REVIEW_COUNT': str(review_count),
         'BUG_COUNT': str(bug_count),
         'MERGED_PRS': link_or_placeholder(
             merged_count, 'PRs merged this week',
-            'pulls?q=is:pr+is:merged+merged:>={}'.format(week_ago),
+            'pulls?q=is:pr+is:merged+merged:>={}'.format(since),
             '- None this week'),
         'REVIEW_PRS': link_or_placeholder(
             review_count, 'PRs awaiting review',
@@ -226,11 +251,11 @@ def main():
             '- None pending'),
         'BUG_ISSUES': link_or_placeholder(
             bug_count, 'new bug reports',
-            'issues?q=is:issue+created:>={}+label:bug'.format(week_ago),
+            'issues?q=is:issue+created:>={}+label:bug'.format(since),
             '- No new bugs'),
         'OTHER_ISSUES': link_or_placeholder(
             other_count, 'new issues',
-            'issues?q=is:issue+created:>={}+-label:bug'.format(week_ago),
+            'issues?q=is:issue+created:>={}+-label:bug'.format(since),
             '- None'),
         'DEV_CALL_ITEMS': build_dev_call_section(dev_call_items),
     }
@@ -264,7 +289,7 @@ def main():
     topic_url = discourse.create_topic(title, body, int(env('CATEGORY_ID', '39')))
     print('Created: {}'.format(topic_url))
 
-    clear_dev_call_labels(client, dev_call_items, topic_url)
+    clear_dev_call_labels(client, dev_call_items, topic_url, dev_call_label)
     print('Cleared Dev Call label from {} item(s).'.format(
         len(dev_call_items)))
 

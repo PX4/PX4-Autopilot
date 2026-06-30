@@ -1,4 +1,4 @@
-# PX4 Sync / Q&A - [date={{CALL_DATE}} time=17:00:00 timezone="{{CALL_TIMEZONE}}"]
+# PX4 Sync / Q&A - [date={{CALL_DATE}} time={{CALL_TIME}} timezone="{{CALL_TIMEZONE}}"]
 
 **This week:** {{MERGED_COUNT}} PRs merged | {{REVIEW_COUNT}} awaiting review | {{BUG_COUNT}} new bugs
 
