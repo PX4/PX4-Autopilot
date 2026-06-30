@@ -49,6 +49,7 @@ px4_add_module(
 		conversion
 		geo
 		drivers_accelerometer
+		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
 	)

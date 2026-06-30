@@ -89,7 +89,7 @@ CDev::register_class_devname(const char *class_devname)
 	while (class_instance < 4) {
 		char name[32];
 		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
-		ret = register_driver(name, &fops, 0666, (void *)this);
+		ret = register_driver(name, &fops_ref(), 0666, (void *)this);
 
 		if (ret == OK) {
 			break;
@@ -124,7 +124,7 @@ CDev::init()
 
 	// now register the driver
 	if (_devname != nullptr) {
-		ret = register_driver(_devname, &fops, 0666, (void *)this);
+		ret = register_driver(_devname, &fops_ref(), 0666, (void *)this);
 
 		if (ret == PX4_OK) {
 			_registered = true;

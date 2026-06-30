@@ -24,4 +24,4 @@ The`PWM_limit State Machine` controls PWM outputs as a function of pre-armed and
 
 ## 상태 전환 다이어그램
 
-![PWM Limit state machine diagram](../../assets/diagrams/pwm_limit_state_diagram.svg)
+<img src="../../assets/diagrams/pwm_limit_state_diagram.svg" alt="PWM Limit state machine diagram" class="diagram-invert">

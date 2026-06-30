@@ -14,14 +14,14 @@ If both altitude and height_rate are NAN, the controller maintains the current a
 
 ## Fields
 
-| Name                | Type      | Unit [Frame] | Range/Enum | Description                                                                        |
-| ------------------- | --------- | ------------ | ---------- | ---------------------------------------------------------------------------------- |
-| timestamp           | `uint64`  | us           |            | Time since system start                                                            |
-| altitude            | `float32` | m            |            | Altitude setpoint AMSL, not controlled directly if NAN or if height_rate is finite |
-| height_rate         | `float32` | m/s [ENU]    |            | Scalar height rate setpoint. NAN if not controlled directly                        |
-| equivalent_airspeed | `float32` | m/s          | [0 : inf]  | Scalar equivalent airspeed setpoint. NAN if system default should be used          |
-| pitch_direct        | `float32` | rad [FRD]    | [-pi : pi] | NAN if not controlled, overrides total energy controller                           |
-| throttle_direct     | `float32` | norm         | [0 : 1]    | NAN if not controlled, overrides total energy controller                           |
+| Name                                                    | Type      | Unit [Frame] | Range/Enum | Description                                                                        |
+| ------------------------------------------------------- | --------- | ------------ | ---------- | ---------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`  | us           |            | Time since system start                                                            |
+| <a id="fld_altitude"></a>altitude                       | `float32` | m            |            | Altitude setpoint AMSL, not controlled directly if NAN or if height_rate is finite |
+| <a id="fld_height_rate"></a>height_rate                 | `float32` | m/s [ENU]    |            | Scalar height rate setpoint. NAN if not controlled directly                        |
+| <a id="fld_equivalent_airspeed"></a>equivalent_airspeed | `float32` | m/s          | [0 : inf]  | Scalar equivalent airspeed setpoint. NAN if system default should be used          |
+| <a id="fld_pitch_direct"></a>pitch_direct               | `float32` | rad [FRD]    | [-pi : pi] | NAN if not controlled, overrides total energy controller                           |
+| <a id="fld_throttle_direct"></a>throttle_direct         | `float32` | norm         | [0 : 1]    | NAN if not controlled, overrides total energy controller                           |
 
 ## Constants
 

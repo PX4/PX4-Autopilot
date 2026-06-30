@@ -40,6 +40,13 @@
 
 using namespace time_literals;
 
+static bool manualControlFallbackAction(FailsafeBase::Action action)
+{
+	return action == FailsafeBase::Action::FallbackPosCtrl
+	       || action == FailsafeBase::Action::FallbackAltCtrl
+	       || action == FailsafeBase::Action::FallbackStab;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 {
 	ActionOptions options{};
@@ -509,6 +516,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
 		return exception_mask_parameter & (int)LinkLossExceptionBits::AutoModes;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -532,8 +540,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 	}
 }
 
-void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
-				 const failsafe_flags_s &status_flags)
+void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state, const failsafe_flags_s &status_flags)
 {
 	updateArmingState(time_us, state.armed, status_flags);
 
@@ -715,8 +722,7 @@ void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const f
 	_was_armed = armed;
 }
 
-FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags,
-		uint8_t user_intended_mode) const
+FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const
 {
 	Action action = Action::None;
 
@@ -729,14 +735,6 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 			return action;
 		}
 
-		if (action == Action::FallbackPosCtrl || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
-			// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
-			if (status_flags.manual_control_signal_lost) {
-				ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
-				action = rc_loss_action.action;
-			}
-
-		}
 	}
 
 	// PosCtrl/PositionSlow -> AltCtrl
@@ -754,6 +752,10 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 	}
 
+	if (status_flags.manual_control_signal_lost && manualControlFallbackAction(action)) {
+		action = manualControlLossFallbackAction();
+	}
+
 	// Last, check can_run for intended mode
 	if (!modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::RTL;
@@ -763,13 +765,14 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	return action;
 }
 
-uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action,
-		uint8_t user_intended_mode) const
+uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action, uint8_t user_intended_mode) const
 {
-	// If we switch from a failsafe back into orbit, switch to loiter instead
-	if ((int)previous_action > (int)Action::Warn
-	    && modeFromAction(current_action, user_intended_mode) == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		PX4_DEBUG("Failsafe cleared, switching from ORBIT to LOITER");
+	// When a failsafe engages, immediately downgrade Orbit to Loiter so that
+	// if the failsafe later clears without a new explicit mode command the vehicle holds position.
+	if ((int)previous_action <= (int)Action::Warn
+	    && (int)current_action > (int)Action::Warn
+	    && user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		PX4_DEBUG("Failsafe engaged, downgrading ORBIT to LOITER");
 		return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	}
 

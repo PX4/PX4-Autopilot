@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name         | Type     | Unit [Frame] | Range/Enum | Description                            |
-| ------------ | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp    | `uint64` |              |            | time since system start (microseconds) |
-| flight_phase | `uint8`  |              |            | Estimate of current flight phase       |
+| Name                                      | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp       | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_flight_phase"></a>flight_phase | `uint8`  |              |            | Estimate of current flight phase       |
 
 ## Constants
 

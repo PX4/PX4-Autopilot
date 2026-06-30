@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                             |
-| ---------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`     |              |            | time since system start (microseconds)                                                  |
-| timestamp_sample | `uint64`     |              |            | the timestamp of the raw data (microseconds)                                            |
-| xyz              | `float32[3]` |              |            | Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2 |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                             |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     |              |            | time since system start (microseconds)                                                  |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`     |              |            | the timestamp of the raw data (microseconds)                                            |
+| <a id="fld_xyz"></a>xyz                           | `float32[3]` |              |            | Bias corrected acceleration (including gravity) in the FRD body frame XYZ-axis in m/s^2 |
 
 ## Source Message
 

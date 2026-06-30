@@ -10,14 +10,14 @@ IRLOCK_REPORT message data.
 
 ## Fields
 
-| Name      | Type      | Unit [Frame] | Range/Enum | Description                                                                                                  |
-| --------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| timestamp | `uint64`  |              |            | time since system start (microseconds)                                                                       |
-| signature | `uint16`  |              |            |
-| pos_x     | `float32` |              |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera x-axis |
-| pos_y     | `float32` |              |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera y-axis |
-| size_x    | `float32` |              |            | /** size of target along camera x-axis in units of tan(theta) **/                                            |
-| size_y    | `float32` |              |            | /** size of target along camera y-axis in units of tan(theta) **/                                            |
+| Name                                | Type      | Unit [Frame] | Range/Enum | Description                                                                                                  |
+| ----------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp | `uint64`  |              |            | time since system start (microseconds)                                                                       |
+| <a id="fld_signature"></a>signature | `uint16`  |              |            |
+| <a id="fld_pos_x"></a>pos_x         | `float32` |              |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera x-axis |
+| <a id="fld_pos_y"></a>pos_y         | `float32` |              |            | tan(theta), where theta is the angle between the target and the camera center of projection in camera y-axis |
+| <a id="fld_size_x"></a>size_x       | `float32` |              |            | /** size of target along camera x-axis in units of tan(theta) **/                                            |
+| <a id="fld_size_y"></a>size_y       | `float32` |              |            | /** size of target along camera y-axis in units of tan(theta) **/                                            |
 
 ## Source Message
 

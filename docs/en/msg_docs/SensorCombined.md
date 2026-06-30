@@ -10,18 +10,18 @@ Sensor readings in SI-unit form. These fields are scaled and offset-compensated 
 
 ## Fields
 
-| Name                             | Type         | Unit [Frame] | Range/Enum | Description                                                                                                             |
-| -------------------------------- | ------------ | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
-| timestamp                        | `uint64`     |              |            | time since system start (microseconds)                                                                                  |
-| gyro_rad                         | `float32[3]` |              |            | average angular rate measured in the FRD body frame XYZ-axis in rad/s over the last gyro sampling period                |
-| gyro_integral_dt                 | `uint32`     |              |            | gyro measurement sampling period in microseconds                                                                        |
-| accelerometer_timestamp_relative | `int32`      |              |            | timestamp + accelerometer_timestamp_relative = Accelerometer timestamp                                                  |
-| accelerometer_m_s2               | `float32[3]` |              |            | average value acceleration measured in the FRD body frame XYZ-axis in m/s^2 over the last accelerometer sampling period |
-| accelerometer_integral_dt        | `uint32`     |              |            | accelerometer measurement sampling period in microseconds                                                               |
-| accelerometer_clipping           | `uint8`      |              |            | bitfield indicating if there was any accelerometer clipping (per axis) during the integration time frame                |
-| gyro_clipping                    | `uint8`      |              |            | bitfield indicating if there was any gyro clipping (per axis) during the integration time frame                         |
-| accel_calibration_count          | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.                         |
-| gyro_calibration_count           | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.                            |
+| Name                                                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                                                             |
+| --------------------------------------------------------------------------------- | ------------ | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                               | `uint64`     |              |            | time since system start (microseconds)                                                                                  |
+| <a id="fld_gyro_rad"></a>gyro_rad                                                 | `float32[3]` |              |            | average angular rate measured in the FRD body frame XYZ-axis in rad/s over the last gyro sampling period                |
+| <a id="fld_gyro_integral_dt"></a>gyro_integral_dt                                 | `uint32`     |              |            | gyro measurement sampling period in microseconds                                                                        |
+| <a id="fld_accelerometer_timestamp_relative"></a>accelerometer_timestamp_relative | `int32`      |              |            | timestamp + accelerometer_timestamp_relative = Accelerometer timestamp                                                  |
+| <a id="fld_accelerometer_m_s2"></a>accelerometer_m_s2                             | `float32[3]` |              |            | average value acceleration measured in the FRD body frame XYZ-axis in m/s^2 over the last accelerometer sampling period |
+| <a id="fld_accelerometer_integral_dt"></a>accelerometer_integral_dt               | `uint32`     |              |            | accelerometer measurement sampling period in microseconds                                                               |
+| <a id="fld_accelerometer_clipping"></a>accelerometer_clipping                     | `uint8`      |              |            | bitfield indicating if there was any accelerometer clipping (per axis) during the integration time frame                |
+| <a id="fld_gyro_clipping"></a>gyro_clipping                                       | `uint8`      |              |            | bitfield indicating if there was any gyro clipping (per axis) during the integration time frame                         |
+| <a id="fld_accel_calibration_count"></a>accel_calibration_count                   | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.                         |
+| <a id="fld_gyro_calibration_count"></a>gyro_calibration_count                     | `uint8`      |              |            | Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.                            |
 
 ## Constants
 

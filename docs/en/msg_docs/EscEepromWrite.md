@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name       | Type        | Unit [Frame] | Range/Enum | Description                                                                        |
-| ---------- | ----------- | ------------ | ---------- | ---------------------------------------------------------------------------------- |
-| timestamp  | `uint64`    | us           |            | Time since system start                                                            |
-| firmware   | `uint8`     |              |            | ESC firmware type (see ESC_FIRMWARE enum in MAVLink)                               |
-| index      | `uint8`     |              |            | Index of the ESC (0 = ESC1, 1 = ESC2, etc, 255 = All)                              |
-| length     | `uint16`    |              |            | Length of valid data                                                               |
-| data       | `uint8[48]` |              |            | Raw ESC EEPROM data                                                                |
-| write_mask | `uint32[2]` |              |            | Bitmask indicating which bytes in the data array should be written (max 48 values) |
+| Name                                  | Type        | Unit [Frame] | Range/Enum | Description                                                                        |
+| ------------------------------------- | ----------- | ------------ | ---------- | ---------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp   | `uint64`    | us           |            | Time since system start                                                            |
+| <a id="fld_firmware"></a>firmware     | `uint8`     |              |            | ESC firmware type (see ESC_FIRMWARE enum in MAVLink)                               |
+| <a id="fld_index"></a>index           | `uint8`     |              |            | Index of the ESC (0 = ESC1, 1 = ESC2, etc, 255 = All)                              |
+| <a id="fld_length"></a>length         | `uint16`    |              |            | Length of valid data                                                               |
+| <a id="fld_data"></a>data             | `uint8[48]` |              |            | Raw ESC EEPROM data                                                                |
+| <a id="fld_write_mask"></a>write_mask | `uint32[2]` |              |            | Bitmask indicating which bytes in the data array should be written (max 48 values) |
 
 ## Constants
 

@@ -17,14 +17,16 @@ DONE is published once on successful completion, then STOPPED on the subsequent 
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum                          | Description                     |
-| --------- | -------- | ------------ | ----------------------------------- | ------------------------------- |
-| timestamp | `uint64` | us           |                                     | Time since system start         |
-| state     | `uint8`  |              | [PREC_LAND_STATE](#PREC_LAND_STATE) | Current precision-landing state |
+| Name                                | Type     | Unit [Frame] | Range/Enum                          | Description                     |
+| ----------------------------------- | -------- | ------------ | ----------------------------------- | ------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` | us           |                                     | Time since system start         |
+| <a id="fld_state"></a>state         | `uint8`  |              | [PREC_LAND_STATE](#PREC_LAND_STATE) | Current precision-landing state |
 
 ## Enums
 
 ### PREC_LAND_STATE {#PREC_LAND_STATE}
+
+Used in field(s): [state](#fld_state)
 
 | Name                                                                | Type    | Value | Description                                                     |
 | ------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------- |

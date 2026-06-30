@@ -12,10 +12,10 @@ Used by the fw_lateral_longitudinal_control module to constrain FixedWingLateral
 
 ## Fields
 
-| Name              | Type      | Unit [Frame] | Range/Enum | Description                                                                  |
-| ----------------- | --------- | ------------ | ---------- | ---------------------------------------------------------------------------- |
-| timestamp         | `uint64`  | us           |            | Time since system start                                                      |
-| lateral_accel_max | `float32` | m/s^2        |            | Currently maps to a maximum roll angle, accel_max = tan(roll_max) \* GRAVITY |
+| Name                                                | Type      | Unit [Frame] | Range/Enum | Description                                                                  |
+| --------------------------------------------------- | --------- | ------------ | ---------- | ---------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                 | `uint64`  | us           |            | Time since system start                                                      |
+| <a id="fld_lateral_accel_max"></a>lateral_accel_max | `float32` | m/s^2        |            | Currently maps to a maximum roll angle, accel_max = tan(roll_max) \* GRAVITY |
 
 ## Constants
 

@@ -10,54 +10,54 @@ Encodes the system state of the vehicle published by commander.
 
 ## Fields
 
-| Name                             | Type     | Unit [Frame] | Range/Enum | Description                                                                                     |
-| -------------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------- |
-| timestamp                        | `uint64` |              |            | time since system start (microseconds)                                                          |
-| armed_time                       | `uint64` |              |            | Arming timestamp (microseconds)                                                                 |
-| takeoff_time                     | `uint64` |              |            | Takeoff timestamp (microseconds)                                                                |
-| arming_state                     | `uint8`  |              |            |
-| latest_arming_reason             | `uint8`  |              |            |
-| latest_disarming_reason          | `uint8`  |              |            |
-| nav_state_timestamp              | `uint64` |              |            | time when current nav_state activated                                                           |
-| nav_state_user_intention         | `uint8`  |              |            | Mode that the user selected (might be different from nav_state in a failsafe situation)         |
-| nav_state                        | `uint8`  |              |            | Currently active mode                                                                           |
-| executor_in_charge               | `uint8`  |              |            | Current mode executor in charge (0=Autopilot)                                                   |
-| nav_state_display                | `uint8`  |              |            | User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)         |
-| accepts_offboard_setpoints       | `bool`   |              |            | True if the current mode accepts offboard trajectory setpoints via MAVLink                      |
-| valid_nav_states_mask            | `uint32` |              |            | Bitmask for all valid nav_state values                                                          |
-| can_set_nav_states_mask          | `uint32` |              |            | Bitmask for all modes that a user can select                                                    |
-| hil_state                        | `uint8`  |              |            |
-| vehicle_type                     | `uint8`  |              |            |
-| failsafe                         | `bool`   |              |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
-| failsafe_and_user_took_over      | `bool`   |              |            | true if system is in failsafe state but the user took over control                              |
-| failsafe_defer_state             | `uint8`  |              |            | one of FAILSAFE*DEFER_STATE*\*                                                                  |
-| gcs_connection_lost              | `bool`   |              |            | datalink to GCS lost                                                                            |
-| gcs_connection_lost_counter      | `uint8`  |              |            | counts unique GCS connection lost events                                                        |
-| high_latency_data_link_lost      | `bool`   |              |            | Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost |
-| is_vtol                          | `bool`   |              |            | True if the system is VTOL capable                                                              |
-| is_vtol_tailsitter               | `bool`   |              |            | True if the system performs a 90° pitch down rotation during transition from MC to FW           |
-| in_transition_mode               | `bool`   |              |            | True if VTOL is doing a transition                                                              |
-| in_transition_to_fw              | `bool`   |              |            | True if VTOL is doing a transition from MC to FW                                                |
-| system_type                      | `uint8`  |              |            | system type, contains mavlink MAV_TYPE                                                          |
-| system_id                        | `uint8`  |              |            | system id, contains MAVLink's system ID field                                                   |
-| component_id                     | `uint8`  |              |            | subsystem / component id, contains MAVLink's component ID field                                 |
-| safety_button_available          | `bool`   |              |            | Set to true if a safety button is connected                                                     |
-| safety_off                       | `bool`   |              |            | Set to true if safety is off                                                                    |
-| power_input_valid                | `bool`   |              |            | set if input power is valid                                                                     |
-| usb_connected                    | `bool`   |              |            | set to true (never cleared) once telemetry received from usb link                               |
-| open_drone_id_system_present     | `bool`   |              |            |
-| open_drone_id_system_healthy     | `bool`   |              |            |
-| parachute_system_present         | `bool`   |              |            |
-| parachute_system_healthy         | `bool`   |              |            |
-| traffic_avoidance_system_present | `bool`   |              |            |
-| rc_calibration_in_progress       | `bool`   |              |            |
-| calibration_enabled              | `bool`   |              |            |
-| pre_flight_checks_pass           | `bool`   |              |            | true if all checks necessary to arm pass                                                        |
+| Name                                                                              | Type     | Unit [Frame] | Range/Enum | Description                                                                                     |
+| --------------------------------------------------------------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                               | `uint64` |              |            | time since system start (microseconds)                                                          |
+| <a id="fld_armed_time"></a>armed_time                                             | `uint64` |              |            | Arming timestamp (microseconds)                                                                 |
+| <a id="fld_takeoff_time"></a>takeoff_time                                         | `uint64` |              |            | Takeoff timestamp (microseconds)                                                                |
+| <a id="fld_arming_state"></a>arming_state                                         | `uint8`  |              |            |
+| <a id="fld_latest_arming_reason"></a>latest_arming_reason                         | `uint8`  |              |            |
+| <a id="fld_latest_disarming_reason"></a>latest_disarming_reason                   | `uint8`  |              |            |
+| <a id="fld_nav_state_timestamp"></a>nav_state_timestamp                           | `uint64` |              |            | time when current nav_state activated                                                           |
+| <a id="fld_nav_state_user_intention"></a>nav_state_user_intention                 | `uint8`  |              |            | Mode that the user selected (might be different from nav_state in a failsafe situation)         |
+| <a id="fld_nav_state"></a>nav_state                                               | `uint8`  |              |            | Currently active mode                                                                           |
+| <a id="fld_executor_in_charge"></a>executor_in_charge                             | `uint8`  |              |            | Current mode executor in charge (0=Autopilot)                                                   |
+| <a id="fld_nav_state_display"></a>nav_state_display                               | `uint8`  |              |            | User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)         |
+| <a id="fld_accepts_offboard_setpoints"></a>accepts_offboard_setpoints             | `bool`   |              |            | True if the current mode accepts offboard trajectory setpoints via MAVLink                      |
+| <a id="fld_valid_nav_states_mask"></a>valid_nav_states_mask                       | `uint32` |              |            | Bitmask for all valid nav_state values                                                          |
+| <a id="fld_can_set_nav_states_mask"></a>can_set_nav_states_mask                   | `uint32` |              |            | Bitmask for all modes that a user can select                                                    |
+| <a id="fld_hil_state"></a>hil_state                                               | `uint8`  |              |            |
+| <a id="fld_vehicle_type"></a>vehicle_type                                         | `uint8`  |              |            |
+| <a id="fld_failsafe"></a>failsafe                                                 | `bool`   |              |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
+| <a id="fld_failsafe_and_user_took_over"></a>failsafe_and_user_took_over           | `bool`   |              |            | true if system is in failsafe state but the user took over control                              |
+| <a id="fld_failsafe_defer_state"></a>failsafe_defer_state                         | `uint8`  |              |            | one of FAILSAFE*DEFER_STATE*\*                                                                  |
+| <a id="fld_gcs_connection_lost"></a>gcs_connection_lost                           | `bool`   |              |            | datalink to GCS lost                                                                            |
+| <a id="fld_gcs_connection_lost_counter"></a>gcs_connection_lost_counter           | `uint8`  |              |            | counts unique GCS connection lost events                                                        |
+| <a id="fld_high_latency_data_link_lost"></a>high_latency_data_link_lost           | `bool`   |              |            | Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost |
+| <a id="fld_is_vtol"></a>is_vtol                                                   | `bool`   |              |            | True if the system is VTOL capable                                                              |
+| <a id="fld_is_vtol_tailsitter"></a>is_vtol_tailsitter                             | `bool`   |              |            | True if the system performs a 90° pitch down rotation during transition from MC to FW           |
+| <a id="fld_in_transition_mode"></a>in_transition_mode                             | `bool`   |              |            | True if VTOL is doing a transition                                                              |
+| <a id="fld_in_transition_to_fw"></a>in_transition_to_fw                           | `bool`   |              |            | True if VTOL is doing a transition from MC to FW                                                |
+| <a id="fld_system_type"></a>system_type                                           | `uint8`  |              |            | system type, contains mavlink MAV_TYPE                                                          |
+| <a id="fld_system_id"></a>system_id                                               | `uint8`  |              |            | system id, contains MAVLink's system ID field                                                   |
+| <a id="fld_component_id"></a>component_id                                         | `uint8`  |              |            | subsystem / component id, contains MAVLink's component ID field                                 |
+| <a id="fld_safety_button_available"></a>safety_button_available                   | `bool`   |              |            | Set to true if a safety button is connected                                                     |
+| <a id="fld_safety_off"></a>safety_off                                             | `bool`   |              |            | Set to true if safety is off                                                                    |
+| <a id="fld_power_input_valid"></a>power_input_valid                               | `bool`   |              |            | set if input power is valid                                                                     |
+| <a id="fld_usb_connected"></a>usb_connected                                       | `bool`   |              |            | set to true (never cleared) once telemetry received from usb link                               |
+| <a id="fld_open_drone_id_system_present"></a>open_drone_id_system_present         | `bool`   |              |            |
+| <a id="fld_open_drone_id_system_healthy"></a>open_drone_id_system_healthy         | `bool`   |              |            |
+| <a id="fld_parachute_system_present"></a>parachute_system_present                 | `bool`   |              |            |
+| <a id="fld_parachute_system_healthy"></a>parachute_system_healthy                 | `bool`   |              |            |
+| <a id="fld_traffic_avoidance_system_present"></a>traffic_avoidance_system_present | `bool`   |              |            |
+| <a id="fld_rc_calibration_in_progress"></a>rc_calibration_in_progress             | `bool`   |              |            |
+| <a id="fld_calibration_enabled"></a>calibration_enabled                           | `bool`   |              |            |
+| <a id="fld_pre_flight_checks_pass"></a>pre_flight_checks_pass                     | `bool`   |              |            | true if all checks necessary to arm pass                                                        |
 
 ## Constants
 
-| Name                                                                                    | Type     | Value | Description                                      |
-| --------------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------------ |
+| Name                                                                                    | Type     | Value | Description                                        |
+| --------------------------------------------------------------------------------------- | -------- | ----- | -------------------------------------------------- |
 | <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 4     |
 | <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                               | `uint8`  | 1     |
 | <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                     | `uint8`  | 2     |
@@ -71,29 +71,29 @@ Encodes the system state of the vehicle published by commander.
 | <a id="#ARM_DISARM_REASON_KILL_SWITCH"></a> ARM_DISARM_REASON_KILL_SWITCH               | `uint8`  | 8     |
 | <a id="#ARM_DISARM_REASON_RC_BUTTON"></a> ARM_DISARM_REASON_RC_BUTTON                   | `uint8`  | 13    |
 | <a id="#ARM_DISARM_REASON_FAILSAFE"></a> ARM_DISARM_REASON_FAILSAFE                     | `uint8`  | 14    |
-| <a id="#NAVIGATION_STATE_MANUAL"></a> NAVIGATION_STATE_MANUAL                           | `uint8`  | 0     | Manual mode                                      |
-| <a id="#NAVIGATION_STATE_ALTCTL"></a> NAVIGATION_STATE_ALTCTL                           | `uint8`  | 1     | Altitude control mode                            |
-| <a id="#NAVIGATION_STATE_POSCTL"></a> NAVIGATION_STATE_POSCTL                           | `uint8`  | 2     | Position control mode                            |
-| <a id="#NAVIGATION_STATE_AUTO_MISSION"></a> NAVIGATION_STATE_AUTO_MISSION               | `uint8`  | 3     | Auto mission mode                                |
-| <a id="#NAVIGATION_STATE_AUTO_LOITER"></a> NAVIGATION_STATE_AUTO_LOITER                 | `uint8`  | 4     | Auto loiter mode                                 |
-| <a id="#NAVIGATION_STATE_AUTO_RTL"></a> NAVIGATION_STATE_AUTO_RTL                       | `uint8`  | 5     | Auto return to launch mode                       |
+| <a id="#NAVIGATION_STATE_MANUAL"></a> NAVIGATION_STATE_MANUAL                           | `uint8`  | 0     | Manual mode                                        |
+| <a id="#NAVIGATION_STATE_ALTCTL"></a> NAVIGATION_STATE_ALTCTL                           | `uint8`  | 1     | Altitude control mode                              |
+| <a id="#NAVIGATION_STATE_POSCTL"></a> NAVIGATION_STATE_POSCTL                           | `uint8`  | 2     | Position control mode                              |
+| <a id="#NAVIGATION_STATE_AUTO_MISSION"></a> NAVIGATION_STATE_AUTO_MISSION               | `uint8`  | 3     | Auto mission mode                                  |
+| <a id="#NAVIGATION_STATE_AUTO_LOITER"></a> NAVIGATION_STATE_AUTO_LOITER                 | `uint8`  | 4     | Auto loiter mode                                   |
+| <a id="#NAVIGATION_STATE_AUTO_RTL"></a> NAVIGATION_STATE_AUTO_RTL                       | `uint8`  | 5     | Auto return to launch mode                         |
 | <a id="#NAVIGATION_STATE_POSITION_SLOW"></a> NAVIGATION_STATE_POSITION_SLOW             | `uint8`  | 6     |
-| <a id="#NAVIGATION_STATE_FREE5"></a> NAVIGATION_STATE_FREE5                             | `uint8`  | 7     |
-| <a id="#NAVIGATION_STATE_ALTITUDE_CRUISE"></a> NAVIGATION_STATE_ALTITUDE_CRUISE         | `uint8`  | 8     | Altitude with Cruise mode                        |
+| <a id="#NAVIGATION_STATE_GUIDED_COURSE"></a> NAVIGATION_STATE_GUIDED_COURSE             | `uint8`  | 7     | Guided Course mode (FW: maintain course/alt/speed) |
+| <a id="#NAVIGATION_STATE_ALTITUDE_CRUISE"></a> NAVIGATION_STATE_ALTITUDE_CRUISE         | `uint8`  | 8     | Altitude with Cruise mode                          |
 | <a id="#NAVIGATION_STATE_FREE3"></a> NAVIGATION_STATE_FREE3                             | `uint8`  | 9     |
-| <a id="#NAVIGATION_STATE_ACRO"></a> NAVIGATION_STATE_ACRO                               | `uint8`  | 10    | Acro mode                                        |
+| <a id="#NAVIGATION_STATE_ACRO"></a> NAVIGATION_STATE_ACRO                               | `uint8`  | 10    | Acro mode                                          |
 | <a id="#NAVIGATION_STATE_FREE2"></a> NAVIGATION_STATE_FREE2                             | `uint8`  | 11    |
-| <a id="#NAVIGATION_STATE_DESCEND"></a> NAVIGATION_STATE_DESCEND                         | `uint8`  | 12    | Descend mode (no position control)               |
-| <a id="#NAVIGATION_STATE_TERMINATION"></a> NAVIGATION_STATE_TERMINATION                 | `uint8`  | 13    | Termination mode                                 |
+| <a id="#NAVIGATION_STATE_DESCEND"></a> NAVIGATION_STATE_DESCEND                         | `uint8`  | 12    | Descend mode (no position control)                 |
+| <a id="#NAVIGATION_STATE_TERMINATION"></a> NAVIGATION_STATE_TERMINATION                 | `uint8`  | 13    | Termination mode                                   |
 | <a id="#NAVIGATION_STATE_OFFBOARD"></a> NAVIGATION_STATE_OFFBOARD                       | `uint8`  | 14    |
-| <a id="#NAVIGATION_STATE_STAB"></a> NAVIGATION_STATE_STAB                               | `uint8`  | 15    | Stabilized mode                                  |
+| <a id="#NAVIGATION_STATE_STAB"></a> NAVIGATION_STATE_STAB                               | `uint8`  | 15    | Stabilized mode                                    |
 | <a id="#NAVIGATION_STATE_FREE1"></a> NAVIGATION_STATE_FREE1                             | `uint8`  | 16    |
-| <a id="#NAVIGATION_STATE_AUTO_TAKEOFF"></a> NAVIGATION_STATE_AUTO_TAKEOFF               | `uint8`  | 17    | Takeoff                                          |
-| <a id="#NAVIGATION_STATE_AUTO_LAND"></a> NAVIGATION_STATE_AUTO_LAND                     | `uint8`  | 18    | Land                                             |
-| <a id="#NAVIGATION_STATE_AUTO_FOLLOW_TARGET"></a> NAVIGATION_STATE_AUTO_FOLLOW_TARGET   | `uint8`  | 19    | Auto Follow                                      |
-| <a id="#NAVIGATION_STATE_AUTO_PRECLAND"></a> NAVIGATION_STATE_AUTO_PRECLAND             | `uint8`  | 20    | Precision land with landing target               |
-| <a id="#NAVIGATION_STATE_ORBIT"></a> NAVIGATION_STATE_ORBIT                             | `uint8`  | 21    | Orbit in a circle                                |
-| <a id="#NAVIGATION_STATE_AUTO_VTOL_TAKEOFF"></a> NAVIGATION_STATE_AUTO_VTOL_TAKEOFF     | `uint8`  | 22    | Takeoff, transition, establish loiter            |
+| <a id="#NAVIGATION_STATE_AUTO_TAKEOFF"></a> NAVIGATION_STATE_AUTO_TAKEOFF               | `uint8`  | 17    | Takeoff                                            |
+| <a id="#NAVIGATION_STATE_AUTO_LAND"></a> NAVIGATION_STATE_AUTO_LAND                     | `uint8`  | 18    | Land                                               |
+| <a id="#NAVIGATION_STATE_AUTO_FOLLOW_TARGET"></a> NAVIGATION_STATE_AUTO_FOLLOW_TARGET   | `uint8`  | 19    | Auto Follow                                        |
+| <a id="#NAVIGATION_STATE_AUTO_PRECLAND"></a> NAVIGATION_STATE_AUTO_PRECLAND             | `uint8`  | 20    | Precision land with landing target                 |
+| <a id="#NAVIGATION_STATE_ORBIT"></a> NAVIGATION_STATE_ORBIT                             | `uint8`  | 21    | Orbit in a circle                                  |
+| <a id="#NAVIGATION_STATE_AUTO_VTOL_TAKEOFF"></a> NAVIGATION_STATE_AUTO_VTOL_TAKEOFF     | `uint8`  | 22    | Takeoff, transition, establish loiter              |
 | <a id="#NAVIGATION_STATE_EXTERNAL1"></a> NAVIGATION_STATE_EXTERNAL1                     | `uint8`  | 23    |
 | <a id="#NAVIGATION_STATE_EXTERNAL2"></a> NAVIGATION_STATE_EXTERNAL2                     | `uint8`  | 24    |
 | <a id="#NAVIGATION_STATE_EXTERNAL3"></a> NAVIGATION_STATE_EXTERNAL3                     | `uint8`  | 25    |
@@ -111,7 +111,7 @@ Encodes the system state of the vehicle published by commander.
 | <a id="#VEHICLE_TYPE_ROVER"></a> VEHICLE_TYPE_ROVER                                     | `uint8`  | 3     |
 | <a id="#FAILSAFE_DEFER_STATE_DISABLED"></a> FAILSAFE_DEFER_STATE_DISABLED               | `uint8`  | 0     |
 | <a id="#FAILSAFE_DEFER_STATE_ENABLED"></a> FAILSAFE_DEFER_STATE_ENABLED                 | `uint8`  | 1     |
-| <a id="#FAILSAFE_DEFER_STATE_WOULD_FAILSAFE"></a> FAILSAFE_DEFER_STATE_WOULD_FAILSAFE   | `uint8`  | 2     | Failsafes deferred, but would trigger a failsafe |
+| <a id="#FAILSAFE_DEFER_STATE_WOULD_FAILSAFE"></a> FAILSAFE_DEFER_STATE_WOULD_FAILSAFE   | `uint8`  | 2     | Failsafes deferred, but would trigger a failsafe   |
 
 ## Source Message
 
@@ -158,7 +158,7 @@ uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
-uint8 NAVIGATION_STATE_FREE5 = 7
+uint8 NAVIGATION_STATE_GUIDED_COURSE = 7 		# Guided Course mode (FW: maintain course/alt/speed)
 uint8 NAVIGATION_STATE_ALTITUDE_CRUISE = 8      # Altitude with Cruise mode
 uint8 NAVIGATION_STATE_FREE3 = 9
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode

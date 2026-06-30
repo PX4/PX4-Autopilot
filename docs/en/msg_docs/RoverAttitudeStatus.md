@@ -10,11 +10,11 @@ Rover Attitude Status.
 
 ## Fields
 
-| Name                  | Type      | Unit [Frame] | Range/Enum | Description                                             |
-| --------------------- | --------- | ------------ | ---------- | ------------------------------------------------------- |
-| timestamp             | `uint64`  | us           |            | Time since system start                                 |
-| measured_yaw          | `float32` | rad [NED]    | [-pi : pi] | Measured yaw                                            |
-| adjusted_yaw_setpoint | `float32` | rad [NED]    | [-pi : pi] | Yaw setpoint that is being tracked (Applied slew rates) |
+| Name                                                        | Type      | Unit [Frame] | Range/Enum | Description                                             |
+| ----------------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64`  | us           |            | Time since system start                                 |
+| <a id="fld_measured_yaw"></a>measured_yaw                   | `float32` | rad [NED]    | [-pi : pi] | Measured yaw                                            |
+| <a id="fld_adjusted_yaw_setpoint"></a>adjusted_yaw_setpoint | `float32` | rad [NED]    | [-pi : pi] | Yaw setpoint that is being tracked (Applied slew rates) |
 
 ## Source Message
 

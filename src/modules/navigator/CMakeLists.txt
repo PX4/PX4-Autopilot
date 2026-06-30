@@ -31,7 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
 add_subdirectory(MissionFeasibility)
 
 if(BUILD_TESTING)
@@ -44,6 +43,7 @@ set(NAVIGATOR_SOURCES
 	mission_base.cpp
 	mission_block.cpp
 	mission.cpp
+	course.cpp
 	loiter.cpp
 	rtl.cpp
 	rtl_direct.cpp
@@ -77,7 +77,6 @@ px4_add_module(
 		dataman_client
 		geo
 		adsb
-		geofence_breach_avoidance
 		motion_planning
 		mission_feasibility_checker
 		rtl_time_estimator

@@ -22,7 +22,7 @@ RC mode where stick input is sent directly to control allocation (for "fully" ma
 
 ## 参数
 
-| 参数                                                                                                                                                          | 描述                                                                         |
+| Parameter                                                                                                                                                   | 描述                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | <a id="FW_MAN_P_SC"></a>[FW_MAN_P_SC](../advanced_config/parameter_reference.md#FW_MAN_P_SC) | 手动俯仰控制比例。 在完全手动模式下应用于所需俯仰舵机指令的比例因子。 此参数允许调整控制舵偏的偏转。 默认：1.0 |
 | <a id="FW_MAN_R_SC"></a>[FW_MAN_R_SC](../advanced_config/parameter_reference.md#FW_MAN_R_SC) | 手动滚转控制比例。 在完全手动模式下应用于所需横滚舵机指令的比例因子。 此参数允许调整控制舵偏的偏转。 默认：1.0 |

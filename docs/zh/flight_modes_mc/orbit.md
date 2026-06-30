@@ -10,7 +10,7 @@ The _Orbit_ guided flight mode allows you to command a multicopter (or VTOL in m
 - Mode requires at least a valid local position estimate (does not require a global position).
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Mode requires wind and flight time are within allowed limits (specified via parameters).
 - This mode is currently only supported on multicopter (or VTOL in MC mode).
 - RC stick movement can control ascent/descent and orbit speed and direction.
@@ -59,7 +59,7 @@ The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](
 
 该模式受以下参数影响：
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                               |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                               |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX) | Maximum radius of orbit. Default: 1000m.                                                                         |
 | <a id="MC_ORBIT_YAW_MOD"></a>[MC_ORBIT_YAW_MOD](../advanced_config/parameter_reference.md#MC_ORBIT_YAW_MOD) | Yaw behaviour during orbit flight. Default: Front to Circle Center.                                              |

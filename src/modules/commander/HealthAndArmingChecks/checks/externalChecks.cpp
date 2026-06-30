@@ -33,6 +33,10 @@
 
 #include "externalChecks.hpp"
 
+// The reply queue must hold one reply from every registered mode within a single request cycle (https://github.com/PX4/PX4-Autopilot/issues/27271)
+static_assert(arming_check_reply_s::ORB_QUEUE_LENGTH >= ExternalChecks::MAX_NUM_REGISTRATIONS,
+	      "ArmingCheckReply ORB_QUEUE_LENGTH must be >= ExternalChecks::MAX_NUM_REGISTRATIONS");
+
 static void setOrClearRequirementBits(bool requirement_set, int8_t nav_state, int8_t replaces_nav_state, uint32_t &bits)
 {
 	if (requirement_set) {

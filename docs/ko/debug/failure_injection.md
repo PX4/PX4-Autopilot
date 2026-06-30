@@ -61,6 +61,10 @@ failure <component> <failure_type> [-i <instance_number>]
 - _instance number_ (optional): Instance number of affected sensor.
   0 (기본값) 지정된 유형의 모든 센서를 나타냅니다.
 
+:::info
+The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+:::
+
 ## MAVSDK 실패 플러그인
 
 The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.

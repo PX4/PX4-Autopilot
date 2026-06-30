@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type          | Unit [Frame] | Range/Enum | Description                                                   |
-| --------- | ------------- | ------------ | ---------- | ------------------------------------------------------------- |
-| timestamp | `uint64`      |              |            | time since system start (microseconds)                        |
-| id        | `uint16`      |              |            | unique ID of debug array, used to discriminate between arrays |
-| name      | `char[10]`    |              |            | name of the debug array (max. 10 characters)                  |
-| data      | `float32[58]` |              |            | data                                                          |
+| Name                                | Type          | Unit [Frame] | Range/Enum | Description                                                   |
+| ----------------------------------- | ------------- | ------------ | ---------- | ------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`      |              |            | time since system start (microseconds)                        |
+| <a id="fld_id"></a>id               | `uint16`      |              |            | unique ID of debug array, used to discriminate between arrays |
+| <a id="fld_name"></a>name           | `char[10]`    |              |            | name of the debug array (max. 10 characters)                  |
+| <a id="fld_data"></a>data           | `float32[58]` |              |            | data                                                          |
 
 ## Constants
 

@@ -8,14 +8,14 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                 | Type         | Unit [Frame] | Range/Enum | Description                                                           |
-| -------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------------- |
-| timestamp            | `uint64`     |              |            | time since system start (microseconds)                                |
-| yaw_sp_move_rate     | `float32`    |              |            | rad/s (commanded by user)                                             |
-| q_d                  | `float32[4]` |              |            | Desired quaternion for quaternion control                             |
-| thrust_body          | `float32[3]` |              |            | Normalized thrust command in body FRD frame [-1,1]                    |
-| reset_integral       | `bool`       |              |            | Reset roll/pitch/yaw integrals (navigation logic change)              |
-| fw_control_yaw_wheel | `bool`       |              |            | control heading with steering wheel (used for auto takeoff on runway) |
+| Name                                                      | Type         | Unit [Frame] | Range/Enum | Description                                                           |
+| --------------------------------------------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                       | `uint64`     |              |            | time since system start (microseconds)                                |
+| <a id="fld_yaw_sp_move_rate"></a>yaw_sp_move_rate         | `float32`    |              |            | rad/s (commanded by user)                                             |
+| <a id="fld_q_d"></a>q_d                                   | `float32[4]` |              |            | Desired quaternion for quaternion control                             |
+| <a id="fld_thrust_body"></a>thrust_body                   | `float32[3]` |              |            | Normalized thrust command in body FRD frame [-1,1]                    |
+| <a id="fld_reset_integral"></a>reset_integral             | `bool`       |              |            | Reset roll/pitch/yaw integrals (navigation logic change)              |
+| <a id="fld_fw_control_yaw_wheel"></a>fw_control_yaw_wheel | `bool`       |              |            | control heading with steering wheel (used for auto takeoff on runway) |
 
 ## Constants
 

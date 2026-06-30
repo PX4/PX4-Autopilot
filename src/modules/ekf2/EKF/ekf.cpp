@@ -232,6 +232,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
 		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
 		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
+		_gravity = LatLonAlt::Wgs84::gravity(_earth_rate_lat_ref_rad);
+		_output_predictor.set_gravity(_gravity);
 	}
 
 	// apply imu bias corrections
@@ -259,7 +261,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel += corrected_delta_vel_ef;
 
 	// compensate for acceleration due to gravity, Coriolis and transport rate
-	const Vector3f gravity_acceleration(0.f, 0.f, CONSTANTS_ONE_G); // simplistic model
+	const Vector3f gravity_acceleration(0.f, 0.f, _gravity);
 	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
 	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
 	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;

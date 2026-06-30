@@ -80,37 +80,22 @@ jobs:
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
-      - name: Cache Restore - ccache
-        id: cache-ccache
-        uses: actions/cache/restore@v5
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
         with:
-          path: ~/.ccache
-          key: ccache-docs-metadata-${{ github.sha }}
-          restore-keys: |
-            ccache-docs-metadata-
-
-      - name: Setup ccache
-        run: |
-          mkdir -p ~/.ccache
-          echo "max_size = 1G" > ~/.ccache/ccache.conf
+          cache-key-prefix: ccache-docs-metadata
+          max-size: 1G
 
       - name: Build px4_sitl_default
-        run: |
-          make px4_sitl_default
-        env:
-          CCACHE_DIR: ~/.ccache
+        run: make px4_sitl_default
 
-      - name: Cache Save - ccache
-        uses: actions/cache/save@v5
+      - uses: ./.github/actions/save-ccache
         if: always()
         with:
-          path: ~/.ccache
-          key: ccache-docs-metadata-${{ github.sha }}
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Generate and sync metadata
         run: Tools/ci/metadata_sync.sh --generate --sync parameters airframes modules msg_docs failsafe_web
-        env:
-          CCACHE_DIR: ~/.ccache
 
       - name: Upload metadata artifact
         uses: actions/upload-artifact@v7
@@ -143,37 +128,22 @@ jobs:
       - name: Git ownership workaround
         run: git config --system --add safe.directory '*'
 
-      - name: Cache Restore - ccache
-        id: cache-ccache
-        uses: actions/cache/restore@v5
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
         with:
-          path: ~/.ccache
-          key: ccache-docs-metadata-${{ github.sha }}
-          restore-keys: |
-            ccache-docs-metadata-
-
-      - name: Setup ccache
-        run: |
-          mkdir -p ~/.ccache
-          echo "max_size = 1G" > ~/.ccache/ccache.conf
+          cache-key-prefix: ccache-docs-metadata
+          max-size: 1G
 
       - name: Build px4_sitl_default
-        run: |
-          make px4_sitl_default
-        env:
-          CCACHE_DIR: ~/.ccache
+        run: make px4_sitl_default
 
-      - name: Cache Save - ccache
-        uses: actions/cache/save@v5
+      - uses: ./.github/actions/save-ccache
         if: always()
         with:
-          path: ~/.ccache
-          key: ccache-docs-metadata-${{ github.sha }}
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Generate and sync metadata
         run: Tools/ci/metadata_sync.sh --generate --sync parameters airframes modules msg_docs failsafe_web
-        env:
-          CCACHE_DIR: ~/.ccache
 
       - name: Install Node.js and Yarn
         run: |

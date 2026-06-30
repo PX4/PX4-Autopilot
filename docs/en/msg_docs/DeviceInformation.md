@@ -13,19 +13,21 @@ as well as tracking of the used firmware versions on the devices.
 
 ## Fields
 
-| Name             | Type       | Unit [Frame] | Range/Enum                                                                                           | Description                                                                  |
-| ---------------- | ---------- | ------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| timestamp        | `uint64`   |              |                                                                                                      | time since system start (microseconds)                                       |
-| device_type      | `uint8`    |              | [DEVICE_TYPE](#DEVICE_TYPE)                                                                          | Type of the device. Matches MAVLink DEVICE_TYPE enum                         |
-| name             | `char[80]` |              |                                                                                                      | Name of device e.g. DroneCAN node name                                       |
-| `uint32`         |            |              | Unique device ID for the sensor. Does not change between power cycles. (Invalid: 0 if not available) |
-| firmware_version | `char[24]` |              |                                                                                                      | Firmware version. (Invalid: empty if not available)                          |
-| hardware_version | `char[24]` |              |                                                                                                      | Hardware version. (Invalid: empty if not available)                          |
-| serial_number    | `char[33]` |              |                                                                                                      | Device serial number or unique identifier. (Invalid: empty if not available) |
+| Name                                              | Type       | Unit [Frame] | Range/Enum                  | Description                                                                                          |
+| ------------------------------------------------- | ---------- | ------------ | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`   |              |                             | time since system start (microseconds)                                                               |
+| <a id="fld_device_type"></a>device_type           | `uint8`    |              | [DEVICE_TYPE](#DEVICE_TYPE) | Type of the device. Matches MAVLink DEVICE_TYPE enum                                                 |
+| <a id="fld_name"></a>name                         | `char[80]` |              |                             | Name of device e.g. DroneCAN node name                                                               |
+| <a id="fld_"></a>                                 | `uint32`   |              |                             | Unique device ID for the sensor. Does not change between power cycles. (Invalid: 0 if not available) |
+| <a id="fld_firmware_version"></a>firmware_version | `char[24]` |              |                             | Firmware version. (Invalid: empty if not available)                                                  |
+| <a id="fld_hardware_version"></a>hardware_version | `char[24]` |              |                             | Hardware version. (Invalid: empty if not available)                                                  |
+| <a id="fld_serial_number"></a>serial_number       | `char[33]` |              |                             | Device serial number or unique identifier. (Invalid: empty if not available)                         |
 
 ## Enums
 
 ### DEVICE_TYPE {#DEVICE_TYPE}
+
+Used in field(s): [device_type](#fld_device_type)
 
 | Name                                                                              | Type    | Value | Description            |
 | --------------------------------------------------------------------------------- | ------- | ----- | ---------------------- |
