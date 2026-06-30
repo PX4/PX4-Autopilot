@@ -108,7 +108,9 @@ def main():
 
                     if not line.isspace() \
                             and not line.strip().startswith("#"):
-                        pruned_content += line.strip() + "\n"
+                        stripped = re.sub(r'[ \t]+#.*$', '', line.strip())
+                        if stripped:
+                            pruned_content += stripped + "\n"
             # delete the file if it doesn't contain the architecture
             # write out the pruned content else
             if not board_excluded:
