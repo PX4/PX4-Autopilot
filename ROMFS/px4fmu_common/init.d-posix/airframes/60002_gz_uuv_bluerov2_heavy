@@ -25,7 +25,7 @@ param set-default MAV_TYPE 12
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
-param set-default COM_ARM_CHK_ESCS 0  # We don't have ESCs
+param set-default COM_ARM_CHK_ESCS 0 # We don't have ESCs
 
 # Set proper failsafes
 param set-default COM_ACT_FAIL_ACT 0

@@ -31,12 +31,12 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default COM_DISARM_LAND 0.1
 param set-default COM_DISARM_PRFLT 3
 param set-default COM_DL_LOSS_T 10
-param set-default COM_FLTMODE1  2
+param set-default COM_FLTMODE1 2
 param set-default COM_FLTMODE2 -1
 param set-default COM_FLTMODE3 -1
 param set-default COM_FLTMODE4 -1
 param set-default COM_FLTMODE5 -1
-param set-default COM_FLTMODE6  1
+param set-default COM_FLTMODE6 1
 param set-default COM_RC_LOSS_T 3
 
 # ekf2
@@ -132,22 +132,22 @@ param set-default MNT_MAN_PITCH 2
 param set-default MNT_RATE_PITCH 30
 
 # RC
-param set-default RC_CHAN_CNT       12
+param set-default RC_CHAN_CNT 12
 
-param set-default RC_MAP_THROTTLE   1
-param set-default RC_MAP_YAW        2
-param set-default RC_MAP_PITCH      3
-param set-default RC_MAP_ROLL       4
-param set-default RC_MAP_AUX2       5
-param set-default RC_MAP_AUX3       10
-param set-default RC_MAP_AUX4       8
-param set-default RC_MAP_FLTMODE    6
-param set-default RC_MAP_RETURN_SW  7
+param set-default RC_MAP_THROTTLE 1
+param set-default RC_MAP_YAW 2
+param set-default RC_MAP_PITCH 3
+param set-default RC_MAP_ROLL 4
+param set-default RC_MAP_AUX2 5
+param set-default RC_MAP_AUX3 10
+param set-default RC_MAP_AUX4 8
+param set-default RC_MAP_FLTMODE 6
+param set-default RC_MAP_RETURN_SW 7
 
-param set-default RC1_TRIM          1000
+param set-default RC1_TRIM 1000
 
 # optical flow
-param set-default SENS_FLOW_MAXR   7.4
+param set-default SENS_FLOW_MAXR 7.4
 param set-default SENS_FLOW_MINHGT 0.15
 param set-default SENS_FLOW_MAXHGT 5
 
