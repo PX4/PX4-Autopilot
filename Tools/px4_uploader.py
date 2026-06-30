@@ -1512,6 +1512,14 @@ class PortDetector:
         elif self.platform == "darwin":
             patterns = self.MACOS_PATTERNS
         elif self.platform.startswith("win") or self.platform == "cygwin":
+            try:
+                detected_ports = [
+                    port_info.device for port_info in serial.tools.list_ports.comports()
+                ]
+                if detected_ports:
+                    return detected_ports
+            except Exception as e:
+                logger.debug(f"Windows COM port detection failed: {e}")
             patterns = self.WINDOWS_PATTERNS
         else:
             patterns = []
@@ -1834,7 +1842,8 @@ class Uploader:
         last_error = None
         for port in ports:
             try:
-                return self._upload_to_port(port, firmwares)
+                if self._upload_to_port(port, firmwares):
+                    return True
             except BoardMismatchError as e:
                 logger.warning(f"Board mismatch on {port}: {e}")
                 last_error = e

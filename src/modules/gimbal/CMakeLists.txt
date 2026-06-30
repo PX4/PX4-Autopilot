@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		input.cpp
+		input_fixed.cpp
 		input_mavlink.cpp
 		input_rc.cpp
 		input_test.cpp

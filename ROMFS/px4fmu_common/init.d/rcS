@@ -179,19 +179,19 @@ else
 	# Load param file location from kconfig
 	. ${R}etc/init.d/rc.filepaths
 
-	# Check if /fs/mtd_params is a valid BSON file
-	if ! bsondump docsize /fs/mtd_caldata
-	then
-		echo "New /fs/mtd_caldata size is:"
-		bsondump docsize /fs/mtd_caldata
-	fi
-
 	#
 	# Load parameters.
 	#
 	# if the board has a storage for (factory) calibration data
 	if mft query -q -k MTD -s MTD_CALDATA -v /fs/mtd_caldata
 	then
+		# repair the caldata BSON document size field if it was left zeroed
+		if ! bsondump docsize /fs/mtd_caldata
+		then
+			echo "New /fs/mtd_caldata size is:"
+			bsondump docsize /fs/mtd_caldata
+		fi
+
 		param load /fs/mtd_caldata
 	fi
 
@@ -539,8 +539,15 @@ else
 	else
 		commander start
 
-		dshot start
-		pwm_out start
+		if param greater -s PASSTHRU_EN 0
+		then
+			# serial passthrough requested: leave the ESC lines free and
+			# reset so the next boot starts the outputs normally
+			param set PASSTHRU_EN 0
+		else
+			dshot start
+			pwm_out start
+		fi
 	fi
 
 	#

@@ -585,9 +585,9 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## Ровер
+## Rover
 
-### Ровер
+### Rover
 
 <div class="frame_common">
 <img src="../../assets/airframes/types/Rover.svg"/>

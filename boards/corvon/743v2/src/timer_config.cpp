@@ -44,7 +44,7 @@
  *   M7  = PD12  TIM4_CH1   (DMA)
  *   M8  = PD13  TIM4_CH2   (DMA)
  *   M9  = PD14  TIM4_CH3   (DMA)
- *   M10 = PD15  TIM4_CH4   (DMA)
+ *   M10 = PD15  TIM4_CH4   (DMA, no BDShot - TIM4_CH4 has no capture DMA)
  *   M11 = PB14  TIM12_CH1  (no DMA, PWM only - servo / gimbal)
  *   M12 = PB15  TIM12_CH2  (no DMA, PWM only - servo / gimbal)
  *

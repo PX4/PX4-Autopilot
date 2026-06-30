@@ -1478,7 +1478,7 @@ Enable/disable estimator sensor fusion.
 
 | Param | Units | Range/Enum | Опис                                                                  |
 | ----- | ----- | ---------- | --------------------------------------------------------------------- |
-| 1     |       |            | Source (FUSION_SOURCE_\*)                          |
+| 1     |       |            | Source (FUSIO&#x4E;_&#x53;OURCE_\*)                |
 | 2     |       |            | Sensor instance (0-based)                          |
 | 3     |       |            | Enable (1) or Disable (0)       |
 | 4     |       |            | Estimator Instance (NaN: not used) |

@@ -242,7 +242,7 @@ INFO  [uxrce_dds_client] successfully created rt/fmu/out/timesync_status data wr
 [px4_ros_com](https://github.com/PX4/px4_ros_com) 和 [px4_msgs](https://github.com/PX4/px4_msgs) 这两个功能包会被克隆到工作空间文件夹中，之后使用 colcon 工具对该工作空间进行构建
 此示例使用 "ros2 launch" 运行。
 
-您应该使用一个 px4_msgs 包的版本与 \_same_ 消息定义作为您已经安装在上面步骤中的 PX4 固件。
+您应该使用一个 px&#x34;_&#x6D;sgs 包的版本与 \_same_ 消息定义作为您已经安装在上面步骤中的 PX4 固件。
 px4_msgs 代码仓库中的分支均以特定名称命名，这些名称与不同 PX4 版本的消息定义一一对应。
 如果出于任何原因，您不能确保您的 PX4 固件和 ROS 2 px4_msgs 包之间具有相同的消息定义。 您还需要 [start the message translation node](#optional-starting-the-translation-node)，作为您设置过程的一部分。
 

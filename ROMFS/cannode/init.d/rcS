@@ -107,6 +107,8 @@ then
 	# conservative mag bias estimation
 	param set-default MBE_LEARN_GAIN 5
 	param set-default IMU_GYRO_CUTOFF 20
+	# nodes have no GCS calibration flow, persist the estimated bias
+	param set-default SENS_MAG_AUTOCAL 1
 	mag_bias_estimator start
 fi
 
