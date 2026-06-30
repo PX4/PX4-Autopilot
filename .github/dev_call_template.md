@@ -22,10 +22,6 @@
 
 ## Release
 
-**Current tag:** [v1.17.0-rc2](https://github.com/PX4/PX4-Autopilot/releases/tag/v1.17.0-rc2)
-**Target date:** June 2026
-**Flight Tracker:** [v1.17 Release Testing](https://github.com/PX4/PX4-Autopilot/issues/26271)
-
 **Updates:**
 
 

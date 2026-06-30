@@ -60,8 +60,6 @@ def is_truthy(value):
     return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
 
 
-# --- dates -----------------------------------------------------------------
-
 def compute_dates(today):
     """Return (call_date, display_date, week_ago) as strings.
 
@@ -81,8 +79,6 @@ def compute_dates(today):
         week_ago.strftime('%Y-%m-%d'),
     )
 
-
-# --- GitHub search ---------------------------------------------------------
 
 def search_count(client, query):
     """Return total_count for a GitHub issues-search query."""
@@ -106,8 +102,6 @@ def link_or_placeholder(count, label, search_path, empty):
     return '[{} {} →]({}/{})'.format(count, label, REPO_URL, search_path)
 
 
-# --- template rendering ----------------------------------------------------
-
 def render(template_text, replacements):
     out = template_text
     for key, value in replacements.items():
@@ -124,8 +118,6 @@ def build_dev_call_section(items):
             it['number'], it['title'], it['html_url']))
     return '\n'.join(lines)
 
-
-# --- Discourse -------------------------------------------------------------
 
 class Discourse:
     def __init__(self, base_url, api_key, api_user):
@@ -175,8 +167,6 @@ class Discourse:
                 'Discourse did not return a topic_id: {}'.format(result))
         return '{}/t/{}'.format(self._base, topic_id)
 
-
-# --- label cleanup ---------------------------------------------------------
 
 def clear_dev_call_labels(client, items, topic_url):
     """Remove the Dev Call label and leave a backlink comment on each item.
