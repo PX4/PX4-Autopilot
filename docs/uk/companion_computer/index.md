@@ -4,7 +4,7 @@ Companion computers ("mission computers"), are separate on-vehicle computers tha
 
 На схемі нижче показана можлива архітектура безпілотного транспортного засобу, яка включає в себе контролер польоту і супутній комп'ютер.
 
-![Архітектура PX4 - система з політним контролером і супутнім комп'ютером](../../assets/diagrams/px4_companion_computer_simple.svg)
+<img src="../../assets/diagrams/px4_companion_computer_simple.svg" alt="PX4 architecture - FC + Companion Computer" class="diagram-invert">
 
 <!-- source for drawing: https://docs.google.com/drawings/d/1ZDSyj5djKCEbabgx8K4ESdTeEUizgEt8spUWrMGbHUE/edit?usp=sharing -->
 

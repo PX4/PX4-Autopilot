@@ -2580,6 +2580,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		report.timestamp_sample = timestamp;
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		report.temperature = hil_sensor.temperature;
+		report.pitot_temperature = NAN;
 		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // hPa to Pa
 		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);

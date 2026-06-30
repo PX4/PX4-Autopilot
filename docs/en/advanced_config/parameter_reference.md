@@ -25259,6 +25259,18 @@ system more robust against disturbances (turbulence) in high wind.
 
 ## FW NPFG Control
 
+### FW_WP_RST_DIST (`FLOAT`) {#FW_WP_RST_DIST}
+
+Max position reset distance.
+
+If a horizontal position reset larger than this occurs while flying between two
+waypoints, fly directly to the current waypoint instead of rejoining the line.
+-1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1.0     | 10000.0  | 1         | -1.0    | m    | &nbsp;    |
+
 ### NPFG_DAMPING (`FLOAT`) {#NPFG_DAMPING}
 
 NPFG damping ratio.
@@ -29797,6 +29809,46 @@ Enable internal combustion engine.
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### ICE_IDLE_RPM (`FLOAT`) {#ICE_IDLE_RPM}
+
+Idle RPM setpoint for the engine.
+
+Applies a controller to prevent the RPM do drop below this value.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10000    | 1         | 0.0     | rpm  | &nbsp;    |
+
+### ICE_IDLE_RPM_I (`FLOAT`) {#ICE_IDLE_RPM_I}
+
+Integral gain for idle RPM control.
+
+Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_RPM_P (`FLOAT`) {#ICE_IDLE_RPM_P}
+
+Proportional gain for idle RPM control.
+
+Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_THR_FF (`FLOAT`) {#ICE_IDLE_THR_FF}
+
+Idle RPM throttle for feed-forward.
+
+Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        | 0.01      | 0.0     |      | &nbsp;    |
+
 ### ICE_IGN_DELAY (`FLOAT`) {#ICE_IGN_DELAY}
 
 Cold-start delay after ignition before engaging starter.
@@ -32163,6 +32215,38 @@ Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 12       | 0.1       | 4.0     |      | &nbsp;    |
+
+### MC_REF_FF (`FLOAT`) {#MC_REF_FF}
+
+Attitude reference-model feed-forward gain.
+
+Scale on the reference-model rate feed-forward. 0 disables it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 1.0      | 0.01      | 0.0     |      | &nbsp;    |
+
+### MC_REF_FF_MAX (`FLOAT`) {#MC_REF_FF_MAX}
+
+Feed-forward angular-rate cap; 0 = disabled.
+
+Per-axis cap on the rate feed-forward.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s | &nbsp;    |
+
+### MC_REF_W_N (`FLOAT`) {#MC_REF_W_N}
+
+Attitude reference-model natural frequency.
+
+Bandwidth of the reference model that smooths the attitude setpoint
+and generates the rate feed-forward. Higher = less lag, more peak
+rate demand.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 1.0      | 200.0    | 1         | 50.0    | rad/s | &nbsp;    |
 
 ### MC_ROLLRATE_MAX (`FLOAT`) {#MC_ROLLRATE_MAX}
 
@@ -38930,19 +39014,6 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
-### HEATER1_IMU_ID (`INT32`) {#HEATER1_IMU_ID}
-
-The ID of the IMU controlled by heater 1.
-
-Specifies the sensor device ID (DEVID) that this heater instance controls.
--1 disables this heater instance.
-If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; |          |          |           | 0       |      | &nbsp;    |
-
 ### HEATER1_NOM_V (`FLOAT`) {#HEATER1_NOM_V}
 
 Nominal supply voltage for heater 1.
@@ -38954,11 +39025,25 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
+### HEATER1_SENS_ID (`INT32`) {#HEATER1_SENS_ID}
+
+Device ID of the temperature sensor read by heater 1.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 1 uses for thermal control.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### HEATER1_TEMP (`FLOAT`) {#HEATER1_TEMP}
 
 Target temperature for heater 1.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 1.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -38968,7 +39053,7 @@ which must be higher than the maximum ambient temperature.
 
 ### HEATER1_TEMP_FF (`FLOAT`) {#HEATER1_TEMP_FF}
 
-IMU heater controller 1 feedforward value.
+Heater 1 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -38979,7 +39064,7 @@ helping to reduce adjustment time.
 
 ### HEATER1_TEMP_I (`FLOAT`) {#HEATER1_TEMP_I}
 
-IMU heater controller 1 integrator gain value.
+Heater 1 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -38990,7 +39075,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER1_TEMP_P (`FLOAT`) {#HEATER1_TEMP_P}
 
-IMU heater controller 1 proportional gain value.
+Heater 1 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -39003,7 +39088,7 @@ The proportional gain determines how quickly the controller responds to temperat
 Temperature source for heater 1.
 
 Selects the sensor used as the temperature input for heater control.
-0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -39019,19 +39104,6 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
-### HEATER2_IMU_ID (`INT32`) {#HEATER2_IMU_ID}
-
-The ID of the IMU controlled by heater 2.
-
-Specifies the sensor device ID (DEVID) that this heater instance controls.
--1 disables this heater instance.
-If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; |          |          |           | 0       |      | &nbsp;    |
-
 ### HEATER2_NOM_V (`FLOAT`) {#HEATER2_NOM_V}
 
 Nominal supply voltage for heater 2.
@@ -39043,11 +39115,25 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
+### HEATER2_SENS_ID (`INT32`) {#HEATER2_SENS_ID}
+
+Device ID of the temperature sensor read by heater 2.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 2 uses for thermal control.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### HEATER2_TEMP (`FLOAT`) {#HEATER2_TEMP}
 
 Target temperature for heater 2.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 2.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -39057,7 +39143,7 @@ which must be higher than the maximum ambient temperature.
 
 ### HEATER2_TEMP_FF (`FLOAT`) {#HEATER2_TEMP_FF}
 
-IMU heater controller 2 feedforward value.
+Heater 2 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -39068,7 +39154,7 @@ helping to reduce adjustment time.
 
 ### HEATER2_TEMP_I (`FLOAT`) {#HEATER2_TEMP_I}
 
-IMU heater controller 2 integrator gain value.
+Heater 2 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -39079,7 +39165,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER2_TEMP_P (`FLOAT`) {#HEATER2_TEMP_P}
 
-IMU heater controller 2 proportional gain value.
+Heater 2 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -39092,7 +39178,7 @@ The proportional gain determines how quickly the controller responds to temperat
 Temperature source for heater 2.
 
 Selects the sensor used as the temperature input for heater control.
-0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -39108,19 +39194,6 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
-### HEATER3_IMU_ID (`INT32`) {#HEATER3_IMU_ID}
-
-The ID of the IMU controlled by heater 3.
-
-Specifies the sensor device ID (DEVID) that this heater instance controls.
--1 disables this heater instance.
-If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; |          |          |           | 0       |      | &nbsp;    |
-
 ### HEATER3_NOM_V (`FLOAT`) {#HEATER3_NOM_V}
 
 Nominal supply voltage for heater 3.
@@ -39132,11 +39205,25 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
+### HEATER3_SENS_ID (`INT32`) {#HEATER3_SENS_ID}
+
+Device ID of the temperature sensor read by heater 3.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 3 uses for thermal control.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### HEATER3_TEMP (`FLOAT`) {#HEATER3_TEMP}
 
 Target temperature for heater 3.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 3.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -39146,7 +39233,7 @@ which must be higher than the maximum ambient temperature.
 
 ### HEATER3_TEMP_FF (`FLOAT`) {#HEATER3_TEMP_FF}
 
-IMU heater controller 3 feedforward value.
+Heater 3 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -39157,7 +39244,7 @@ helping to reduce adjustment time.
 
 ### HEATER3_TEMP_I (`FLOAT`) {#HEATER3_TEMP_I}
 
-IMU heater controller 3 integrator gain value.
+Heater 3 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -39168,7 +39255,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER3_TEMP_P (`FLOAT`) {#HEATER3_TEMP_P}
 
-IMU heater controller 3 proportional gain value.
+Heater 3 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -39181,7 +39268,7 @@ The proportional gain determines how quickly the controller responds to temperat
 Temperature source for heater 3.
 
 Selects the sensor used as the temperature input for heater control.
-0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -40131,6 +40218,62 @@ The mode will switch from long to short range when the distance is less than the
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
+
+### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
+
+Serial Configuration for Sony AS-DT1 Rangefinder.
+
+Configure on which serial port to run Sony AS-DT1 Rangefinder.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_MODE (`INT32`) {#SENS_ASDT1_MODE}
+
+Distance measurement range.
+
+Sony AS-DT1 distance measurement range mode. The driver uses
+this mode to configure the sensor and publish matching
+obstacle_distance metadata.
+
+**Values:**
+
+- `0`: 30MSTD
+- `1`: 30M15F
+- `2`: 30M30F
+- `3`: 20M
+- `4`: 40M
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 4        |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_ROT (`FLOAT`) {#SENS_ASDT1_ROT}
+
+Sensor yaw offset.
+
+Yaw angle offset of the Sony AS-DT1 sensor relative to the
+vehicle forward direction. Positive values are clockwise.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -360     | 360      |           | 0       | deg  | &nbsp;    |
 
 ### SENS_BAHRS_CFG (`INT32`) {#SENS_BAHRS_CFG}
 
@@ -43203,9 +43346,35 @@ Enable GPS/NavSat sensor in Gazebo bridge.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
+### SIM_GZ_EN_IMU (`INT32`) {#SIM_GZ_EN_IMU}
+
+Enable IMU sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### SIM_GZ_EN_LIDAR (`INT32`) {#SIM_GZ_EN_LIDAR}
 
 Enable laser/lidar sensors in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
+### SIM_GZ_EN_MAG (`INT32`) {#SIM_GZ_EN_MAG}
+
+Enable magnetometer sensor in Gazebo bridge.
 
 **Values:**
 
@@ -46228,6 +46397,18 @@ UAVCAN CAN node ID (0 for dynamic allocation).
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 127      |           | 0       |      | &nbsp;    |
+
+### CANNODE_PT_SENS (`INT32`) {#CANNODE_PT_SENS}
+
+Temperature sensor device ID for pitot temperature.
+
+Device ID of the temperature sensor (HEATER\*\_SENS_ID) whose value
+is published as pitot_temperature in uavcan::equipment::air_data::RawAirData.
+Set to 0 to disable (RawAirData.pitot_temperature set to NaN).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### CANNODE_PUB_BAR (`INT32`) {#CANNODE_PUB_BAR}
 

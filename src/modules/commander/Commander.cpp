@@ -903,7 +903,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE: {
 			// Accept only in modes where the navigator handles altitude changes in-place.
-			// No mode switching: if the current mode doesn't support it, deny.
+			// No mode switching: if the current mode doesn't support it, temporarily reject.
 			const uint8_t nav_state = _vehicle_status.nav_state;
 
 			if (nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
@@ -911,7 +911,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
 		break;

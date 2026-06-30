@@ -386,8 +386,8 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
-		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)
-		    && PX4_ISFINITE(_pos_sp_triplet.current.vz)) {
+		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) && PX4_ISFINITE(_pos_sp_triplet.current.lon) && PX4_ISFINITE(_pos_sp_triplet.current.vx)
+		    && PX4_ISFINITE(_pos_sp_triplet.current.vy)) {
 			// Offboard position with velocity setpoints
 			_control_mode_current = FW_POSCTRL_MODE_AUTO_PATH;
 			return;
@@ -2110,6 +2110,16 @@ FixedWingModeManager::Run()
 							     _local_pos.ref_timestamp);
 		}
 
+		const float max_reset_dist = _param_fw_wp_rst_dist.get();
+
+		if (_control_mode.flag_control_auto_enabled
+		    && (_local_pos.xy_reset_counter != _xy_reset_counter)
+		    && (max_reset_dist > FLT_EPSILON)
+		    && (Vector2f(_local_pos.delta_xy).longerThan(max_reset_dist))) {
+			// Large position reset, directly go to destination to avoid strange path corrections
+			_go_direct_to_destination = true;
+		}
+
 		if (_control_mode.flag_control_offboard_enabled) {
 			trajectory_setpoint_s trajectory_setpoint;
 
@@ -2126,8 +2136,9 @@ FixedWingModeManager::Run()
 				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
+				_pos_sp_triplet.current.gliding_enabled = false;
 
-				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
+				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])) {
 					if (_global_local_proj_ref.isInitialized()) {
 						double lat;
 						double lon;
@@ -2136,17 +2147,15 @@ FixedWingModeManager::Run()
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
 					}
 
 				}
 
-				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[0]) && PX4_ISFINITE(trajectory_setpoint.velocity[1])) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
 					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
-					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
 
 					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
 						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
@@ -2161,6 +2170,20 @@ FixedWingModeManager::Run()
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
+				}
+
+				if (PX4_ISFINITE(trajectory_setpoint.position[2])) {
+					if (_global_local_proj_ref.isInitialized()) {
+						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
+					}
+				}
+
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
+				}
+
+				if (!PX4_ISFINITE(trajectory_setpoint.position[2]) && !PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+					_pos_sp_triplet.current.gliding_enabled = true;
 				}
 
 				_position_setpoint_current_valid = valid_setpoint;
@@ -2183,6 +2206,8 @@ FixedWingModeManager::Run()
 
 				// reset the altitude foh (first order hold) logic
 				_min_current_sp_distance_xy = FLT_MAX;
+
+				_go_direct_to_destination = false;
 			}
 		}
 
@@ -2630,6 +2655,10 @@ DirectionalGuidanceOutput FixedWingModeManager::navigateWaypoints(const Vector2f
 		// end waypoint. however this included here as a safety precaution if any navigator (module) switch condition
 		// is missed for any reason. in the future this logic should all be handled in one place in a dedicated
 		// flight mode state machine.
+		return navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
+	}
+
+	if (_go_direct_to_destination) {
 		return navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
 	}
 
