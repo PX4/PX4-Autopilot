@@ -34,7 +34,6 @@
 #include <gtest/gtest.h>
 
 #include "failsafe.h"
-#include "framework.h"
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -42,10 +41,10 @@
 
 using namespace time_literals;
 
-class FailsafeTester : public FailsafeBase
+class FailsafeTester : public Failsafe
 {
 public:
-	FailsafeTester(ModuleParams *parent) : FailsafeBase(parent) {}
+	FailsafeTester(ModuleParams *parent) : Failsafe(parent) {}
 
 protected:
 
@@ -98,7 +97,7 @@ public:
 };
 
 
-TEST_F(FailsafeTest, general)
+TEST_F(FailsafeTest, General)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -155,7 +154,7 @@ TEST_F(FailsafeTest, general)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 }
 
-TEST_F(FailsafeTest, takeover)
+TEST_F(FailsafeTest, Takeover)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -212,7 +211,7 @@ TEST_F(FailsafeTest, takeover)
 	ASSERT_FALSE(failsafe.userTakeoverActive());
 }
 
-TEST_F(FailsafeTest, takeover_denied)
+TEST_F(FailsafeTest, TakeoverDenied)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -264,7 +263,7 @@ TEST_F(FailsafeTest, takeover_denied)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 }
 
-TEST_F(FailsafeTest, can_takeover_degraded_failsafe)
+TEST_F(FailsafeTest, CanTakeoverDegradedFailsafe)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -310,7 +309,7 @@ TEST_F(FailsafeTest, can_takeover_degraded_failsafe)
 	ASSERT_TRUE(failsafe.userTakeoverActive());
 }
 
-TEST_F(FailsafeTest, no_delay_for_warn)
+TEST_F(FailsafeTest, NoDelayForWarn)
 {
 	// Ensure there is no Hold/delay when the current action is Warn
 	FailsafeTester failsafe(nullptr);
@@ -340,7 +339,7 @@ TEST_F(FailsafeTest, no_delay_for_warn)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
 }
 
-TEST_F(FailsafeTest, none_action_does_not_restrict_user_takeover)
+TEST_F(FailsafeTest, NoneActionDoesNotRestrictUserTakeover)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -379,7 +378,7 @@ TEST_F(FailsafeTest, none_action_does_not_restrict_user_takeover)
 	ASSERT_TRUE(failsafe.userTakeoverActive());
 }
 
-TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)
+TEST_F(FailsafeTest, NoImmediateTakeoverWhenFailsafeOnModeSwitch)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -404,7 +403,70 @@ TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)
 	ASSERT_FALSE(failsafe.userTakeoverActive());
 }
 
-TEST_F(FailsafeTest, defer)
+TEST_F(FailsafeTest, OrbitAfterFailsafeExplicitCommandAllowed)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	bool user_intended_mode_updated = false;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+
+	// Wind limit exceeded -> RTL
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	time += 5_s;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Failsafe resolved AND operator commands Orbit -> enter Orbit (not Loiter)
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	user_intended_mode_updated = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ORBIT;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intented_mode, vehicle_status_s::NAVIGATION_STATE_ORBIT);
+}
+
+TEST_F(FailsafeTest, OrbitAutoresumeAfterFailsafeDowngradedToLoiter)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ORBIT;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+
+	// Wind limit exceeded -> eventually RTL; Orbit is downgraded to Loiter at failsafe entry.
+	// Simulate Commander feeding the returned mode back as user_intended_mode each cycle.
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	time += 5_s;
+	state.user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	ASSERT_EQ(state.user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+	// Failsafe resolved, no new mode commanded -> stays Loiter
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intended_mode, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+}
+
+TEST_F(FailsafeTest, Defer)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -516,7 +578,7 @@ TEST_F(FailsafeTest, defer)
 	ASSERT_FALSE(failsafe.failsafeDeferred());
 }
 
-TEST_F(FailsafeTest, defer_and_clear)
+TEST_F(FailsafeTest, DeferAndClear)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -556,7 +618,7 @@ TEST_F(FailsafeTest, defer_and_clear)
 	ASSERT_FALSE(failsafe.failsafeDeferred());
 }
 
-TEST_F(FailsafeTest, skip_failsafe)
+TEST_F(FailsafeTest, SkipFailsafe)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -579,7 +641,7 @@ TEST_F(FailsafeTest, skip_failsafe)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
 }
 
-TEST_F(FailsafeTest, user_termination)
+TEST_F(FailsafeTest, UserTermination)
 {
 	FailsafeTester failsafe(nullptr);
 
@@ -604,7 +666,7 @@ TEST_F(FailsafeTest, user_termination)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 }
 
-TEST_F(FailsafeTest, fallback_altitude_requires_manual_control)
+TEST_F(FailsafeTest, FallbackAltitudeRequiresManualControl)
 {
 	int nav_rcl_act = 2;
 	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
@@ -635,7 +697,7 @@ TEST_F(FailsafeTest, fallback_altitude_requires_manual_control)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
 
-TEST_F(FailsafeTest, fallback_altitude_uses_nav_rcl_act_param)
+TEST_F(FailsafeTest, FallbackAltitudeUsesNavRclActParam)
 {
 	int nav_rcl_act = 5;
 	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
@@ -666,7 +728,7 @@ TEST_F(FailsafeTest, fallback_altitude_uses_nav_rcl_act_param)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 }
 
-TEST_F(FailsafeTest, fallback_stabilized_requires_manual_control)
+TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)
 {
 	int nav_rcl_act = 2;
 	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);

@@ -1302,7 +1302,7 @@ void SimulatorMavlink::send()
 		if (fds_actuator_outputs[0].revents & POLLIN) {
 			// Got new data to read, update all topics.
 			parameters_update(false);
-			check_failure_injections();
+			updateFailureConfig();
 			_vehicle_status_sub.update(&_vehicle_status);
 			_battery_status_sub.update(&_battery_status);
 
@@ -1494,312 +1494,53 @@ void SimulatorMavlink::run()
 	}
 }
 
-void SimulatorMavlink::check_failure_injections()
+void SimulatorMavlink::updateFailureConfig()
 {
-	vehicle_command_s vehicle_command;
+	_failure_config.update();
 
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
-			continue;
-		}
-
-		bool handled = false;
-		bool supported = false;
-
-		const int failure_unit = static_cast<int>(std::lround(vehicle_command.param1));
-		const int failure_type = static_cast<int>(std::lround(vehicle_command.param2));
-		const int instance = static_cast<int>(std::lround(vehicle_command.param3));
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, GPS off");
-				supported = true;
-				_gps_blocked = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, GPS ok");
-				supported = true;
-				_gps_blocked = false;
-				_gps_stuck = false;
-				_gps_wrong = false;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				supported = true;
-				_gps_stuck = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				supported = true;
-				_gps_wrong = true;
-			}
-
-		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, accel %d off", i);
-						_accel_blocked[i] = true;
-						_accel_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= ACCEL_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, accel %d off", instance - 1);
-					_accel_blocked[instance - 1] = true;
-					_accel_stuck[instance - 1] = false;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, accel %d stuck", i);
-						_accel_blocked[i] = false;
-						_accel_stuck[i] = true;
-					}
-
-				} else if (instance >= 1 && instance <= ACCEL_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, accel %d stuck", instance - 1);
-					_accel_blocked[instance - 1] = false;
-					_accel_stuck[instance - 1] = true;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, accel %d ok", i);
-						_accel_blocked[i] = false;
-						_accel_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= ACCEL_COUNT_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, accel %d ok", instance - 1);
-					_accel_blocked[instance - 1] = false;
-					_accel_stuck[instance - 1] = false;
-				}
-			}
-
-		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GYRO) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, gyro %d off", i);
-						_gyro_blocked[i] = true;
-						_gyro_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= GYRO_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, gyro %d off", instance - 1);
-					_gyro_blocked[instance - 1] = true;
-					_gyro_stuck[instance - 1] = false;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, gyro %d stuck", i);
-						_gyro_blocked[i] = false;
-						_gyro_stuck[i] = true;
-					}
-
-				} else if (instance >= 1 && instance <= GYRO_COUNT_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, gyro %d stuck", instance - 1);
-					_gyro_blocked[instance - 1] = false;
-					_gyro_stuck[instance - 1] = true;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, gyro %d ok", i);
-						_gyro_blocked[i] = false;
-						_gyro_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= GYRO_COUNT_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, gyro %d ok", instance - 1);
-					_gyro_blocked[instance - 1] = false;
-					_gyro_stuck[instance - 1] = false;
-				}
-			}
-
-		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_MAG) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < MAG_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, mag %d off", i);
-						_mag_blocked[i] = true;
-						_mag_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= MAG_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, mag %d off", instance - 1);
-					_mag_blocked[instance - 1] = true;
-					_mag_stuck[instance - 1] = false;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < MAG_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, mag %d stuck", i);
-						_mag_blocked[i] = false;
-						_mag_stuck[i] = true;
-					}
-
-				} else if (instance >= 1 && instance <= MAG_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, mag %d stuck", instance - 1);
-					_mag_blocked[instance - 1] = false;
-					_mag_stuck[instance - 1] = true;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < MAG_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, mag %d ok", i);
-						_mag_blocked[i] = false;
-						_mag_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= MAG_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, mag %d ok", instance - 1);
-					_mag_blocked[instance - 1] = false;
-					_mag_stuck[instance - 1] = false;
-				}
-			}
-
-		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_BARO) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < BARO_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, baro %d off", i);
-						_baro_blocked[i] = true;
-						_baro_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, baro %d off", instance - 1);
-					_baro_blocked[instance - 1] = true;
-					_baro_stuck[instance - 1] = false;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < BARO_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, baro %d stuck", i);
-						_baro_blocked[i] = false;
-						_baro_stuck[i] = true;
-					}
-
-				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, baro %d stuck", instance - 1);
-					_baro_blocked[instance - 1] = false;
-					_baro_stuck[instance - 1] = true;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < BARO_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILURE, baro %d ok", i);
-						_baro_blocked[i] = false;
-						_baro_stuck[i] = false;
-					}
-
-				} else if (instance >= 1 && instance <= BARO_COUNT_MAX) {
-					PX4_WARN("CMD_INJECT_FAILURE, baro %d ok", instance - 1);
-					_baro_blocked[instance - 1] = false;
-					_baro_stuck[instance - 1] = false;
-				}
-			}
-
-		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
-				supported = true;
-				_airspeed_disconnected = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate pitot blockage)");
-				supported = true;
-				_airspeed_blocked_timestamp = hrt_absolute_time();
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
-				supported = true;
-				_airspeed_disconnected = false;
-				_airspeed_blocked_timestamp = 0;
-			}
-
-		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_VIO) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, vio off");
-				supported = true;
-				_vio_blocked = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, vio ok");
-				supported = true;
-				_vio_blocked = false;
-			}
-		}
-
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
+	for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
+		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, i + 1);
+		_accel_blocked[i] = (mode == failure_injection::Mode::Off);
+		_accel_stuck[i] = (mode == failure_injection::Mode::Stuck);
 	}
+
+	for (int i = 0; i < GYRO_COUNT_MAX; i++) {
+		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, i + 1);
+		_gyro_blocked[i] = (mode == failure_injection::Mode::Off);
+		_gyro_stuck[i] = (mode == failure_injection::Mode::Stuck);
+	}
+
+	for (int i = 0; i < MAG_COUNT_MAX; i++) {
+		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_MAG, i + 1);
+		_mag_blocked[i] = (mode == failure_injection::Mode::Off);
+		_mag_stuck[i] = (mode == failure_injection::Mode::Stuck);
+	}
+
+	for (int i = 0; i < BARO_COUNT_MAX; i++) {
+		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, i + 1);
+		_baro_blocked[i] = (mode == failure_injection::Mode::Off);
+		_baro_stuck[i] = (mode == failure_injection::Mode::Stuck);
+	}
+
+	const failure_injection::Mode gps_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, 1);
+	_gps_blocked = (gps_mode == failure_injection::Mode::Off);
+	_gps_stuck = (gps_mode == failure_injection::Mode::Stuck);
+	_gps_wrong = (gps_mode == failure_injection::Mode::Wrong);
+
+	const failure_injection::Mode airspeed_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1);
+	_airspeed_disconnected = (airspeed_mode == failure_injection::Mode::Off);
+
+	if (airspeed_mode == failure_injection::Mode::Wrong) {
+		// Simulate pitot blockage: start the ramp on the rising edge and keep it running.
+		if (_airspeed_blocked_timestamp == 0) {
+			_airspeed_blocked_timestamp = hrt_absolute_time();
+		}
+
+	} else {
+		_airspeed_blocked_timestamp = 0;
+	}
+
+	_vio_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, 1) == failure_injection::Mode::Off);
 }
 
 int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)

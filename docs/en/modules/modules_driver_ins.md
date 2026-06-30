@@ -121,8 +121,6 @@ ilabs <command> [arguments...]
    status        Driver status
 
    stop          Stop driver
-
-   status        Print driver status
 ```
 
 ## sbgecom
@@ -187,6 +185,4 @@ vectornav <command> [arguments...]
    status        Driver status
 
    stop          Stop driver
-
-   status        Print driver status
 ```

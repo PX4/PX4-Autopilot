@@ -771,9 +771,11 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 
 		char* port_name_address = strstr(buf, ">");
 
-		// Check if we found a port candidate.
-		if (buffer_offset > 4 && port_name_address != nullptr) {
-			size_t port_name_offset = reinterpret_cast<size_t>(port_name_address) - reinterpret_cast<size_t>(buf) - 4;
+		// Check if we found a port candidate. The prompt must be preceded by at least
+		// four bytes of port name in the same buffer, otherwise the offset would
+		// underflow and read before buf.
+		if (port_name_address != nullptr && (port_name_address - buf) >= 4) {
+			size_t port_name_offset = static_cast<size_t>(port_name_address - buf) - 4;
 			for (size_t i = 0; i < 4; i++) {
 				port_name[i] = buf[port_name_offset + i];
 			}

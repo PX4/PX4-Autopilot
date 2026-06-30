@@ -25741,11 +25741,13 @@ Pitch rate differential gain.
 
 Pitch rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_PR_I (`FLOAT`) {#FW_PR_I}
 
@@ -25795,11 +25797,13 @@ Roll rate derivative gain.
 
 Roll rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output.
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_RR_I (`FLOAT`) {#FW_RR_I}
 
@@ -25877,11 +25881,13 @@ Yaw rate derivative gain.
 
 Yaw rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
 
 ### FW_YR_I (`FLOAT`) {#FW_YR_I}
 
@@ -26023,6 +26029,25 @@ Setting this value to 0 disables the feature.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     | 1         | 30      |      | &nbsp;    |
+
+## Failure Injection
+
+### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
+
+Enable failure injection.
+
+If enabled allows Injection of Failures.
+
+WARNING: the failures can easily cause crashes and are to be used with caution!
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ## Flight Task Orbit
 
@@ -40219,6 +40244,62 @@ The mode will switch from long to short range when the distance is less than the
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
 
+### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
+
+Serial Configuration for Sony AS-DT1 Rangefinder.
+
+Configure on which serial port to run Sony AS-DT1 Rangefinder.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_MODE (`INT32`) {#SENS_ASDT1_MODE}
+
+Distance measurement range.
+
+Sony AS-DT1 distance measurement range mode. The driver uses
+this mode to configure the sensor and publish matching
+obstacle_distance metadata.
+
+**Values:**
+
+- `0`: 30MSTD
+- `1`: 30M15F
+- `2`: 30M30F
+- `3`: 20M
+- `4`: 40M
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 4        |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_ROT (`FLOAT`) {#SENS_ASDT1_ROT}
+
+Sensor yaw offset.
+
+Yaw angle offset of the Sony AS-DT1 sensor relative to the
+vehicle forward direction. Positive values are clockwise.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -360     | 360      |           | 0       | deg  | &nbsp;    |
+
 ### SENS_BAHRS_CFG (`INT32`) {#SENS_BAHRS_CFG}
 
 Serial Configuration for EULER-NAV BAHRS.
@@ -43985,23 +44066,6 @@ Note: this is only supported on boards with a separate calibration storage
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
-
-### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
-
-Enable failure injection.
-
-If enabled allows MAVLink INJECT_FAILURE commands.
-
-WARNING: the failures can easily cause crashes and are to be used with caution!
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SYS_HAS_BARO (`INT32`) {#SYS_HAS_BARO}
 
