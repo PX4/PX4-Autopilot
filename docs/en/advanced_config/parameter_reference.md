@@ -26030,6 +26030,25 @@ Setting this value to 0 disables the feature.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     | 1         | 30      |      | &nbsp;    |
 
+## Failure Injection
+
+### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
+
+Enable failure injection.
+
+If enabled allows Injection of Failures.
+
+WARNING: the failures can easily cause crashes and are to be used with caution!
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ## Flight Task Orbit
 
 ### MC_ORBIT_RAD_MAX (`FLOAT`) {#MC_ORBIT_RAD_MAX}
@@ -44047,23 +44066,6 @@ Note: this is only supported on boards with a separate calibration storage
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
-
-### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
-
-Enable failure injection.
-
-If enabled allows MAVLink INJECT_FAILURE commands.
-
-WARNING: the failures can easily cause crashes and are to be used with caution!
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SYS_HAS_BARO (`INT32`) {#SYS_HAS_BARO}
 
