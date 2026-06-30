@@ -25741,11 +25741,13 @@ Pitch rate differential gain.
 
 Pitch rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_PR_I (`FLOAT`) {#FW_PR_I}
 
@@ -25795,11 +25797,13 @@ Roll rate derivative gain.
 
 Roll rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output.
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_RR_I (`FLOAT`) {#FW_RR_I}
 
@@ -25877,11 +25881,13 @@ Yaw rate derivative gain.
 
 Yaw rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
 
 ### FW_YR_I (`FLOAT`) {#FW_YR_I}
 
