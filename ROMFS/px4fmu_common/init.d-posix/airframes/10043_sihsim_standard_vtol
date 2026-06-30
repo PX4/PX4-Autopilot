@@ -82,13 +82,13 @@ param set-default MAV_TYPE 22
 
 param set-default SENS_DPRES_OFF 0.001
 
-param set SIH_T_MAX 2.0
+param set SIH_T_MAX 2
 param set SIH_Q_MAX 0.0165
 param set SIH_MASS 0.2
 # IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
 param set SIH_IXX 0.00354
 param set SIH_IYY 0.000625
-param set SIH_IZZ 0.00300
+param set SIH_IZZ 0.003
 param set SIH_IXZ 0
 param set SIH_KDV 0.2
 param set SIH_L_ROLL 0.2

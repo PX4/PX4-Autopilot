@@ -51,67 +51,67 @@ param set-default FD_FAIL_R 0
 
 param set-default CA_ROTOR0_PX -0.12
 param set-default CA_ROTOR0_PY -0.12
-param set-default CA_ROTOR0_PZ 0.0
+param set-default CA_ROTOR0_PZ 0
 param set-default CA_ROTOR0_CT 1.4
-param set-default CA_ROTOR0_AX 1.0
-param set-default CA_ROTOR0_AY 0.0
-param set-default CA_ROTOR0_AZ 0.0
+param set-default CA_ROTOR0_AX 1
+param set-default CA_ROTOR0_AY 0
+param set-default CA_ROTOR0_AZ 0
 
 param set-default CA_ROTOR1_PX 0.12
 param set-default CA_ROTOR1_PY -0.12
-param set-default CA_ROTOR1_PZ 0.0
+param set-default CA_ROTOR1_PZ 0
 param set-default CA_ROTOR1_CT 1.4
-param set-default CA_ROTOR1_AX -1.0
-param set-default CA_ROTOR1_AY 0.0
-param set-default CA_ROTOR1_AZ 0.0
+param set-default CA_ROTOR1_AX -1
+param set-default CA_ROTOR1_AY 0
+param set-default CA_ROTOR1_AZ 0
 
 param set-default CA_ROTOR2_PX -0.12
 param set-default CA_ROTOR2_PY 0.12
-param set-default CA_ROTOR2_PZ 0.0
+param set-default CA_ROTOR2_PZ 0
 param set-default CA_ROTOR2_CT 1.4
-param set-default CA_ROTOR2_AX 1.0
-param set-default CA_ROTOR2_AY 0.0
-param set-default CA_ROTOR2_AZ 0.0
+param set-default CA_ROTOR2_AX 1
+param set-default CA_ROTOR2_AY 0
+param set-default CA_ROTOR2_AZ 0
 
 param set-default CA_ROTOR3_PX 0.12
 param set-default CA_ROTOR3_PY 0.12
-param set-default CA_ROTOR3_PZ 0.0
+param set-default CA_ROTOR3_PZ 0
 param set-default CA_ROTOR3_CT 1.4
-param set-default CA_ROTOR3_AX -1.0
-param set-default CA_ROTOR3_AY 0.0
-param set-default CA_ROTOR3_AZ 0.0
+param set-default CA_ROTOR3_AX -1
+param set-default CA_ROTOR3_AY 0
+param set-default CA_ROTOR3_AZ 0
 
 param set-default CA_ROTOR4_PX 0.12
 param set-default CA_ROTOR4_PY -0.12
-param set-default CA_ROTOR4_PZ 0.0
+param set-default CA_ROTOR4_PZ 0
 param set-default CA_ROTOR4_CT 1.4
-param set-default CA_ROTOR4_AX 0.0
-param set-default CA_ROTOR4_AY 1.0
-param set-default CA_ROTOR4_AZ 0.0
+param set-default CA_ROTOR4_AX 0
+param set-default CA_ROTOR4_AY 1
+param set-default CA_ROTOR4_AZ 0
 
 param set-default CA_ROTOR5_PX 0.12
 param set-default CA_ROTOR5_PY 0.12
-param set-default CA_ROTOR5_PZ 0.0
+param set-default CA_ROTOR5_PZ 0
 param set-default CA_ROTOR5_CT 1.4
-param set-default CA_ROTOR5_AX 0.0
-param set-default CA_ROTOR5_AY -1.0
-param set-default CA_ROTOR5_AZ 0.0
+param set-default CA_ROTOR5_AX 0
+param set-default CA_ROTOR5_AY -1
+param set-default CA_ROTOR5_AZ 0
 
 param set-default CA_ROTOR6_PX -0.12
 param set-default CA_ROTOR6_PY -0.12
-param set-default CA_ROTOR6_PZ 0.0
+param set-default CA_ROTOR6_PZ 0
 param set-default CA_ROTOR6_CT 1.4
-param set-default CA_ROTOR6_AX 0.0
-param set-default CA_ROTOR6_AY 1.0
-param set-default CA_ROTOR6_AZ 0.0
+param set-default CA_ROTOR6_AX 0
+param set-default CA_ROTOR6_AY 1
+param set-default CA_ROTOR6_AZ 0
 
 param set-default CA_ROTOR7_PX -0.12
 param set-default CA_ROTOR7_PY 0.12
-param set-default CA_ROTOR7_PZ 0.0
+param set-default CA_ROTOR7_PZ 0
 param set-default CA_ROTOR7_CT 1.4
-param set-default CA_ROTOR7_AX 0.0
-param set-default CA_ROTOR7_AY -1.0
-param set-default CA_ROTOR7_AZ 0.0
+param set-default CA_ROTOR7_AX 0
+param set-default CA_ROTOR7_AY -1
+param set-default CA_ROTOR7_AZ 0
 
 param set-default SIM_GZ_EC_FUNC1 101
 param set-default SIM_GZ_EC_FUNC2 102
@@ -145,10 +145,10 @@ param set SC_YAWRATE_P 3.335
 param set SC_YAWRATE_I 0.87
 param set SC_YAWRATE_D 0.15
 param set SC_YR_INT_LIM 0.2
-param set SC_YAW_P 3.0
+param set SC_YAW_P 3
 
-param set SPC_POS_P 0.20
+param set SPC_POS_P 0.2
 param set SPC_VEL_P 6.55
-param set SPC_VEL_I 0.0
-param set SPC_VEL_D 0.0
-param set SPC_VEL_MAX 12.0
+param set SPC_VEL_I 0
+param set SPC_VEL_D 0
+param set SPC_VEL_MAX 12

@@ -12,12 +12,12 @@ param set-default FW_LND_FLALT 5
 
 param set-default NPFG_PERIOD 25
 
-param set-default FW_PR_FF 0.40
+param set-default FW_PR_FF 0.4
 param set-default FW_PR_I 0.05
 param set-default FW_PR_P 0.05
 
 param set-default FW_R_TC 0.45
-param set-default FW_RR_FF 0.40
+param set-default FW_RR_FF 0.4
 param set-default FW_RR_I 0.132
 param set-default FW_RR_P 0.085
 
