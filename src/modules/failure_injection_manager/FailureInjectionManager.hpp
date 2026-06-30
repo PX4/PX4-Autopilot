@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +31,57 @@
  *
  ****************************************************************************/
 
+/**
+ * @file FailureInjectionManager.hpp
+ *
+ * The failure injection manager: the single subscriber to vehicle_command for
+ * MAV_CMD_INJECT_FAILURE. It maintains the active failure table and republishes
+ * the failure_injection topic only when the configuration changes, so a burst
+ * of commands on vehicle_command cannot propagate to the consumers that apply
+ * the failures (the bulkhead). It also produces the central vehicle_command_ack.
+ */
+
 #pragma once
 
-#include <lib/failure_injection/FailureInjection.hpp>
-#include <uORB/topics/esc_status.h>
-#include <uORB/topics/failure_injection.h>
+#include "FailureTable.hpp"
 
-class FailureInjector
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/failure_injection.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
+
+class FailureInjectionManager : public ModuleBase, public px4::WorkItem
 {
 public:
-	FailureInjector() = default;
+	FailureInjectionManager();
+	~FailureInjectionManager() override = default;
 
-	void update();
+	static Descriptor desc;
 
-	void manipulateEscStatus(esc_status_s &status);
-	uint32_t getMotorStopMask() { return _motor_stop_mask; }
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	bool init();
+
 private:
-	// Rebuild the motor masks from the active failure_injection configuration.
-	void rebuildMasks();
+	void Run() override;
 
-	failure_injection::Config _failure_config;
+	void handleCommand(const vehicle_command_s &cmd);
+	void publishAck(const vehicle_command_s &cmd, uint8_t result);
 
-	uint32_t _motor_stop_mask{};
-	uint32_t _esc_telemetry_blocked_mask{};
-	uint32_t _esc_telemetry_wrong_mask{};
+	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
+
+	uORB::Publication<failure_injection_s>  _failure_injection_pub{ORB_ID(failure_injection)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	failure_injection::FailureTable _table;
 };

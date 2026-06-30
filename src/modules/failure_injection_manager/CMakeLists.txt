@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,19 @@
 #
 ############################################################################
 
-px4_add_library(failure_detector
-	FailureDetector.cpp
-	FailureInjector.cpp
-)
-target_link_libraries(failure_detector PUBLIC failure_injection)
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/failure_detector_params.yaml)
+px4_add_module(
+	MODULE modules__failure_injection_manager
+	MAIN failure_injection_manager
+	SRCS
+		FailureInjectionManager.cpp
+		FailureInjectionManager.hpp
+		FailureTable.cpp
+		FailureTable.hpp
+	MODULE_CONFIG
+		failure_injection_manager_params.yaml
+	DEPENDS
+		px4_work_queue
+	)
 
-px4_add_functional_gtest(SRC FailureDetectorAltitudeLossTest.cpp
-	LINKLIBS failure_detector hysteresis
-)
+px4_add_unit_gtest(SRC FailureInjectionManagerTest.cpp EXTRA_SRCS FailureTable.cpp LINKLIBS failure_injection)
+px4_add_functional_gtest(SRC FailureInjectionConfigTest.cpp LINKLIBS failure_injection)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,28 +31,49 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "FailureInjection.hpp"
 
-#include <lib/failure_injection/FailureInjection.hpp>
-#include <uORB/topics/esc_status.h>
-#include <uORB/topics/failure_injection.h>
-
-class FailureInjector
+namespace failure_injection
 {
-public:
-	FailureInjector() = default;
 
-	void update();
+bool Config::update()
+{
+	failure_injection_s cfg;
 
-	void manipulateEscStatus(esc_status_s &status);
-	uint32_t getMotorStopMask() { return _motor_stop_mask; }
-private:
-	// Rebuild the motor masks from the active failure_injection configuration.
-	void rebuildMasks();
+	if (_sub.update(&cfg)) {
+		set(cfg);
+		return true;
+	}
 
-	failure_injection::Config _failure_config;
+	return false;
+}
 
-	uint32_t _motor_stop_mask{};
-	uint32_t _esc_telemetry_blocked_mask{};
-	uint32_t _esc_telemetry_wrong_mask{};
-};
+void Config::set(const failure_injection_s &cfg)
+{
+	_count = (cfg.count <= failure_injection_s::MAX_FAILURES) ? cfg.count : failure_injection_s::MAX_FAILURES;
+
+	for (uint8_t i = 0; i < _count; i++) {
+		_unit[i] = cfg.unit[i];
+		_instance_mask[i] = cfg.instance_mask[i];
+		_failure_type[i] = static_cast<Mode>(cfg.failure_type[i]);
+	}
+}
+
+Mode Config::mode(uint8_t unit, uint8_t instance) const
+{
+	for (uint8_t i = 0; i < _count; i++) {
+		if (_unit[i] != unit) {
+			continue;
+		}
+
+		// instance == 0 matches any instance of the unit; otherwise match the
+		// 1-based instance against the bitmask (0xFFFF covers all instances).
+		if (instance == 0 || (_instance_mask[i] & (1u << (instance - 1)))) {
+			return _failure_type[i];
+		}
+	}
+
+	return Mode::Ok;
+}
+
+} // namespace failure_injection
