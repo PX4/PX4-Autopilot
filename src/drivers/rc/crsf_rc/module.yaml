@@ -15,8 +15,5 @@ parameters:
         RC_CRSF_TEL_EN:
             description:
                 short: Crossfire RC telemetry enable
-                long: |
-                    Crossfire telemetry enable
-
             type: boolean
             default: [0]

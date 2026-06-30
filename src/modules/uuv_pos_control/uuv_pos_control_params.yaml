@@ -35,8 +35,6 @@ parameters:
     UUV_HGT_MAX_DIFF:
       description:
         short: Max height error from manual input
-        long: maximum Height distance controlled by manual input. Diff between actual
-          and desired Height cannot be higher than that
       type: float
       default: 0.3
       decimal: 2

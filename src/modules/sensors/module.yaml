@@ -39,8 +39,7 @@ parameters:
         CAL_ACC${i}_ROT:
             description:
                 short: Accelerometer ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+                long: Internal sensors force -1; GCS should only configure if value >= 0.
             category: System
             type: enum
             values:
@@ -238,8 +237,7 @@ parameters:
         CAL_GYRO${i}_ROT:
             description:
                 short: Gyroscope ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+                long: Internal sensors force -1; GCS should only configure if value >= 0.
             category: System
             type: enum
             values:
@@ -358,9 +356,9 @@ parameters:
         CAL_MAG${i}_ROT:
             description:
                 short: Magnetometer ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-                    Set to "Custom Euler Angle" to define the rotation using CAL_MAG${i}_ROLL, CAL_MAG${i}_PITCH and CAL_MAG${i}_YAW.
+                long: |-
+                    Internal sensors force -1; GCS should only configure if value >= 0.
+                    Set to "Custom Euler Angle" to define via CAL_MAG${i}_ROLL/PITCH/YAW.
             category: System
             type: enum
             values:
@@ -416,7 +414,7 @@ parameters:
         CAL_MAG${i}_ROLL:
             description:
                 short: Magnetometer ${i} Custom Euler Roll Angle
-                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
+                long: Sets CAL_MAG${i}_ROT to "Custom Euler Angle".
             category: System
             type: float
             default: 0.0
@@ -429,7 +427,7 @@ parameters:
         CAL_MAG${i}_PITCH:
             description:
                 short: Magnetometer ${i} Custom Euler Pitch Angle
-                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
+                long: Sets CAL_MAG${i}_ROT to "Custom Euler Angle".
             category: System
             type: float
             default: 0.0
@@ -442,7 +440,7 @@ parameters:
         CAL_MAG${i}_YAW:
             description:
                 short: Magnetometer ${i} Custom Euler Yaw Angle
-                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
+                long: Sets CAL_MAG${i}_ROT to "Custom Euler Angle".
             category: System
             type: float
             default: 0.0
@@ -562,12 +560,9 @@ parameters:
         CAL_MAG${i}_XCOMP:
             description:
                 short: Magnetometer ${i} X Axis throttle compensation
-                long: |
-                    Coefficient describing linear relationship between
-                    X component of magnetometer in body frame axis
-                    and either current or throttle depending on value of CAL_MAG_COMP_TYP.
-                    Unit for throttle-based compensation is [G] and
-                    for current-based compensation [G/kA]
+                long: |-
+                    Linear coeff linking body-frame X mag to throttle or current (CAL_MAG_COMP_TYP).
+                    Throttle: [G]; current: [G/kA].
             category: System
             type: float
             default: 0.0
@@ -579,12 +574,9 @@ parameters:
         CAL_MAG${i}_YCOMP:
             description:
                 short: Magnetometer ${i} Y Axis throttle compensation
-                long: |
-                    Coefficient describing linear relationship between
-                    Y component of magnetometer in body frame axis
-                    and either current or throttle depending on value of CAL_MAG_COMP_TYP.
-                    Unit for throttle-based compensation is [G] and
-                    for current-based compensation [G/kA]
+                long: |-
+                    Linear coeff linking body-frame Y mag to throttle or current (CAL_MAG_COMP_TYP).
+                    Throttle: [G]; current: [G/kA].
             category: System
             type: float
             default: 0.0
@@ -596,12 +588,9 @@ parameters:
         CAL_MAG${i}_ZCOMP:
             description:
                 short: Magnetometer ${i} Z Axis throttle compensation
-                long: |
-                    Coefficient describing linear relationship between
-                    Z component of magnetometer in body frame axis
-                    and either current or throttle depending on value of CAL_MAG_COMP_TYP.
-                    Unit for throttle-based compensation is [G] and
-                    for current-based compensation [G/kA]
+                long: |-
+                    Linear coeff linking body-frame Z mag to throttle or current (CAL_MAG_COMP_TYP).
+                    Throttle: [G]; current: [G/kA].
             category: System
             type: float
             default: 0.0

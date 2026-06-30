@@ -8,12 +8,8 @@ parameters:
         BAT${i}_V_DIV:
             description:
                 short: Battery ${i} voltage divider (V divider)
-                long: |
-                    This is the divider from battery ${i} voltage to ADC voltage.
-                    If using e.g. Mauch power modules the value from the datasheet
-                    can be applied straight here. A value of -1 means to use
-                    the board default.
-
+                long: |-
+                    Datasheet value can be used directly (e.g. Mauch power modules). -1 uses board default.
             type: float
             decimal: 8
             reboot_required: true
@@ -24,11 +20,8 @@ parameters:
         BAT${i}_A_PER_V:
             description:
                 short: Battery ${i} current per volt (A/V)
-                long: |
-                    The voltage seen by the ADC multiplied by this factor
-                    will determine the battery current. A value of -1 means to use
-                    the board default.
-
+                long: |-
+                    ADC voltage * this factor = battery current. -1 uses board default.
             type: float
             decimal: 8
             reboot_required: true
@@ -39,12 +32,8 @@ parameters:
         BAT${i}_V_CHANNEL:
             description:
                 short: Battery ${i} Voltage ADC Channel
-                long: |
-                    This parameter specifies the ADC channel used to monitor voltage of main power battery.
-                    A value of -1 means to use the board default. A value of -2 disables analog monitoring.
-                    This is useful when the FMU supports both analog and digital voltage monitoring and you want
-                    to use digital monitoring exclusively.
-
+                long: |-
+                    -1: board default. -2: disables analog monitoring (use when preferring digital exclusively).
             type: int32
             reboot_required: true
             num_instances: *max_num_config_instances
@@ -54,11 +43,8 @@ parameters:
         BAT${i}_V_FILT:
             description:
                 short: Battery ${i} voltage filter time constant
-                long: |
-                    Low-pass filter time constant for the battery voltage ADC reading (in seconds).
-                    A higher value results in more smoothing and less noise, but slower response.
-                    A value of 0 disables the filter.
-
+                long: |-
+                    Higher = more smoothing, less noise, slower response. 0 disables.
             type: float
             decimal: 3
             min: 0.0
@@ -71,11 +57,8 @@ parameters:
         BAT${i}_I_FILT:
             description:
                 short: Battery ${i} current filter time constant
-                long: |
-                    Low-pass filter time constant for the battery current ADC reading (in seconds).
-                    A higher value results in more smoothing and less noise, but slower response.
-                    A value of 0 disables the filter.
-
+                long: |-
+                    Higher = more smoothing, less noise, slower response. 0 disables.
             type: float
             decimal: 3
             min: 0.0

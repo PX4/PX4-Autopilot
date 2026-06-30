@@ -5,8 +5,6 @@ parameters:
     EKF2_EV_CTRL:
       description:
         short: External vision (EV) sensor aiding
-        long: 'Set bits in the following positions to enable: 0 : Horizontal position
-          fusion 1 : Vertical position fusion 2 : 3D velocity fusion 3 : Yaw'
       type: bitmask
       bit:
         0: Horizontal position
@@ -29,9 +27,6 @@ parameters:
     EKF2_EV_NOISE_MD:
       description:
         short: External vision (EV) noise mode
-        long: If set to 0 (default) the measurement noise is taken from the vision
-          message and the EV noise parameters are used as a lower bound. If set to
-          1 the observation noise is set from the parameters directly,
       type: enum
       values:
         0: EV reported variance (parameter lower bound)
@@ -40,9 +35,8 @@ parameters:
     EKF2_EV_QMIN:
       description:
         short: External vision (EV) minimum quality (optional)
-        long: External vision will only be started and fused if the quality metric
-          is above this threshold. The quality metric is a completely optional field
-          provided by some VIO systems.
+        long: EV fusion starts only when quality metric exceeds this. Quality is an
+          optional field provided by some VIO systems.
       type: int32
       default: 0
       min: 0
@@ -51,7 +45,7 @@ parameters:
     EKF2_EVA_NOISE:
       description:
         short: Measurement noise for vision angle measurements
-        long:  Used to lower bound or replace the uncertainty included in the message
+        long: Lower bound or replacement for message uncertainty.
       type: float
       default: 0.1
       min: 0.05
@@ -60,8 +54,6 @@ parameters:
     EKF2_EVP_GATE:
       description:
         short: Gate size for vision position fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 5.0
       min: 1.0
@@ -70,7 +62,7 @@ parameters:
     EKF2_EVP_NOISE:
       description:
         short: Measurement noise for vision position measurements
-        long:  Used to lower bound or replace the uncertainty included in the message
+        long: Lower bound or replacement for message uncertainty.
       type: float
       default: 0.1
       min: 0.01
@@ -79,8 +71,6 @@ parameters:
     EKF2_EVV_GATE:
       description:
         short: Gate size for vision velocity estimate fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 3.0
       min: 1.0
@@ -89,7 +79,7 @@ parameters:
     EKF2_EVV_NOISE:
       description:
         short: Measurement noise for vision velocity measurements
-        long:  Used to lower bound or replace the uncertainty included in the message
+        long: Lower bound or replacement for message uncertainty.
       type: float
       default: 0.1
       min: 0.01

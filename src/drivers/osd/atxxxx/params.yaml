@@ -5,9 +5,7 @@ parameters:
     OSD_ATXXXX_CFG:
       description:
         short: Enable/Disable the ATXXX OSD Chip
-        long: |-
-          Configure the ATXXXX OSD Chip (mounted on the OmnibusF4SD board) and
-          select the transmission standard.
+        long: ATXXXX OSD chip on OmnibusF4SD board.
       type: enum
       values:
         0: Disabled

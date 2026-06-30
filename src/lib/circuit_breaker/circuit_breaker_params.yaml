@@ -57,13 +57,9 @@ parameters:
       description:
         short: Circuit breaker for USB link check
         long: |-
-          Setting this parameter to 197848 will disable the USB connected
-          checks in the commander, setting it to 0 keeps them enabled (recommended).
+          197848: disable USB-connected checks in commander; 0: keep enabled (recommended).
 
-          We are generally recommending to not fly with the USB link
-          connected and production vehicles should set this parameter to
-          zero to prevent users from flying USB powered. However, for R&D purposes
-          it has proven over the years to work just fine.
+          Production: set to 0 (USB-powered flight not recommended). R&D: 197848 is acceptable.
       category: Developer
       type: int32
       default: 197848

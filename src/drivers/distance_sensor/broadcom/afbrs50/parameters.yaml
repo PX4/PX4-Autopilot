@@ -5,7 +5,6 @@ parameters:
     SENS_AFBR_MODE:
       description:
         short: AFBR Rangefinder Mode
-        long: This parameter defines the mode of the AFBR Rangefinder.
       type: enum
       values:
         0: Short Range Mode
@@ -19,8 +18,7 @@ parameters:
     SENS_AFBR_S_RATE:
       description:
         short: AFBR Rangefinder Short Range Rate
-        long: This parameter defines measurement rate of the AFBR Rangefinder in short
-          range mode.
+        long: Measurement rate in short range mode.
       type: int32
       default: 50
       min: 1
@@ -28,8 +26,7 @@ parameters:
     SENS_AFBR_L_RATE:
       description:
         short: AFBR Rangefinder Long Range Rate
-        long: This parameter defines measurement rate of the AFBR Rangefinder in long
-          range mode.
+        long: Measurement rate in long range mode.
       type: int32
       default: 25
       min: 1
@@ -37,10 +34,7 @@ parameters:
     SENS_AFBR_THRESH:
       description:
         short: AFBR Rangefinder Short/Long Range Threshold
-        long: |-
-          This parameter defines the threshold for switching between short and long range mode.
-          The mode will switch from short to long range when the distance is greater than the threshold plus the hysteresis.
-          The mode will switch from long to short range when the distance is less than the threshold minus the hysteresis.
+        long: Short-to-long when distance > threshold + hysteresis; long-to-short when < threshold - hysteresis.
       type: int32
       default: 4
       unit: m
@@ -49,8 +43,7 @@ parameters:
     SENS_AFBR_HYSTER:
       description:
         short: AFBR Rangefinder Short/Long Range Threshold Hysteresis
-        long: This parameter defines the hysteresis for switching between short and
-          long range mode.
+        long: Hysteresis for short/long range mode switching.
       type: int32
       default: 1
       unit: m
@@ -59,7 +52,7 @@ parameters:
     SENS_AFBR_ROT:
       description:
         short: AFBR Rangefinder Orientation
-        long: Mounting orientation of the AFBR-S50 relative to the vehicle body frame.
+        long: Mounting orientation relative to the vehicle body frame.
       type: enum
       values:
         0: No rotation

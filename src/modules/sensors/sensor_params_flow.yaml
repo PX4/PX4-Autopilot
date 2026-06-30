@@ -6,8 +6,8 @@ parameters:
       description:
         short: Minimum height above ground when reliant on optical flow
         long: |-
-          This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably.
-          The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+          Min AGL height for reliable optical flow.
+          Below this, accuracy degrades to loss of focus.
       type: float
       default: 0.08
       unit: m
@@ -19,10 +19,8 @@ parameters:
       description:
         short: Maximum height above ground when reliant on optical flow
         long: |-
-          This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably.
-          The height setpoint will be limited to be no greater than this value when the navigation system
-          is completely reliant on optical flow data and the height above ground estimate is valid.
-          The sensor may be usable above this height, but accuracy will progressively degrade.
+          Max AGL height for reliable optical flow. Height setpoint capped here when
+          fully reliant on optical flow and AGL estimate is valid. Above this, accuracy degrades.
       type: float
       default: 100.0
       unit: m
@@ -34,11 +32,8 @@ parameters:
       description:
         short: Max angular flow rate measurable by sensor
         long: |-
-          Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
-
-          Optical flow data will not fused by the estimators if the magnitude of the flow rate exceeds this value and
-          control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground
-          is less than 50% of this value.
+          Max reliably measurable angular flow rate.
+          Flow exceeding this is not fused by estimators; ground speed limited to keep flow below 50% of this.
       type: float
       default: 8.0
       unit: rad/s
@@ -50,8 +45,8 @@ parameters:
       description:
         short: Optical flow rotation
         long: |-
-          This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
-          Zero rotation is defined as X on flow board pointing towards front of vehicle.
+          Yaw rotation of optical flow relative to vehicle body frame.
+          Zero = flow board X pointing forward.
       type: enum
       values:
         0: No rotation
@@ -66,9 +61,7 @@ parameters:
     SENS_FLOW_RATE:
       description:
         short: Optical flow max rate
-        long: |-
-          Optical flow data maximum publication rate. This is an upper bound,
-          actual optical flow data rate is still dependent on the sensor.
+        long: Upper bound; actual rate depends on the sensor.
       type: float
       default: 70.0
       min: 1

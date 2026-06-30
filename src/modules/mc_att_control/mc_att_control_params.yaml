@@ -5,8 +5,7 @@ parameters:
     MC_ROLL_P:
       description:
         short: Roll P gain
-        long: Roll proportional gain, i.e. desired angular speed in rad/s for error
-          1 rad.
+        long: Desired angular rate (rad/s) per 1 rad error.
       type: float
       default: 4.0
       min: 0.0
@@ -16,8 +15,7 @@ parameters:
     MC_PITCH_P:
       description:
         short: Pitch P gain
-        long: Pitch proportional gain, i.e. desired angular speed in rad/s for error
-          1 rad.
+        long: Desired angular rate (rad/s) per 1 rad error.
       type: float
       default: 4.0
       min: 0.0
@@ -27,8 +25,7 @@ parameters:
     MC_YAW_P:
       description:
         short: Yaw P gain
-        long: Yaw proportional gain, i.e. desired angular speed in rad/s for error
-          1 rad.
+        long: Desired angular rate (rad/s) per 1 rad error.
       type: float
       default: 2.8
       min: 0.0
@@ -39,12 +36,9 @@ parameters:
       description:
         short: Yaw weight
         long: |-
-          A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
-          Deprioritizing yaw is necessary because multicopters have much less control authority
-          in yaw compared to the other axes and it makes sense because yaw is not critical for
-          stable hovering or 3D navigation.
-
-          For yaw control tuning use MC_YAW_P. This ratio has no impact on the yaw gain.
+          Fraction [0,1] deprioritizing yaw vs roll/pitch in non-linear attitude control.
+          MCs have less yaw authority, and yaw is not critical for hover or 3D nav.
+          Use MC_YAW_P for yaw gain tuning — this ratio does not affect it.
       type: float
       default: 0.4
       min: 0.0
@@ -55,12 +49,9 @@ parameters:
       description:
         short: Max roll rate
         long: |-
-          Limit for roll rate in manual and auto modes (except acro).
-          Has effect for large rotations in autonomous mode, to avoid large control
-          output and mixer saturation.
-
-          This is not only limited by the vehicle's properties, but also by the maximum
-          measurement rate of the gyro.
+          Limits roll rate in manual and auto modes (not acro).
+          Prevents large control output and mixer saturation during large autonomous rotations.
+          Also bounded by gyro measurement rate.
       type: float
       default: 220.0
       unit: deg/s
@@ -72,12 +63,9 @@ parameters:
       description:
         short: Max pitch rate
         long: |-
-          Limit for pitch rate in manual and auto modes (except acro).
-          Has effect for large rotations in autonomous mode, to avoid large control
-          output and mixer saturation.
-
-          This is not only limited by the vehicle's properties, but also by the maximum
-          measurement rate of the gyro.
+          Limits pitch rate in manual and auto modes (not acro).
+          Prevents large control output and mixer saturation during large autonomous rotations.
+          Also bounded by gyro measurement rate.
       type: float
       default: 220.0
       unit: deg/s
@@ -98,10 +86,7 @@ parameters:
     MC_REF_W_N:
       description:
         short: Attitude reference-model natural frequency
-        long: |-
-          Bandwidth of the reference model that smooths the attitude setpoint
-          and generates the rate feed-forward. Higher = less lag, more peak
-          rate demand.
+        long: Reference model bandwidth; smooths attitude setpoints, generates rate FF. Higher = less lag, more peak rate demand.
       type: float
       default: 50.0
       unit: rad/s
@@ -112,8 +97,7 @@ parameters:
     MC_REF_FF:
       description:
         short: Attitude reference-model feed-forward gain
-        long: |-
-          Scale on the reference-model rate feed-forward. 0 disables it.
+        long: "Scale on reference-model rate FF. 0 disables."
       type: float
       default: 0.0
       min: 0.0
@@ -123,8 +107,7 @@ parameters:
     MC_REF_FF_MAX:
       description:
         short: Feed-forward angular-rate cap; 0 = disabled
-        long: |-
-          Per-axis cap on the rate feed-forward.
+        long: Per-axis rate FF cap.
       type: float
       default: 100.0
       unit: deg/s
@@ -137,7 +120,7 @@ parameters:
     MC_MAN_TILT_TAU:
       description:
         short: Manual tilt input filter time constant
-        long: Setting this parameter to 0 disables the filter
+        long: "0 disables the filter."
       type: float
       default: 0.0
       unit: s

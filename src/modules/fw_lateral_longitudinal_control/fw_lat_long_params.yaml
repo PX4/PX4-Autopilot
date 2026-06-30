@@ -19,9 +19,7 @@ parameters:
     FW_GND_SPD_MIN:
       description:
         short: Minimum groundspeed
-        long: |-
-          The controller will increase the commanded airspeed to maintain
-          this minimum groundspeed to the next waypoint.
+        long: Airspeed is increased to maintain this minimum groundspeed to the next waypoint.
       type: float
       default: 5.0
       unit: m/s
@@ -58,7 +56,7 @@ parameters:
     FW_T_THR_DAMPING:
       description:
         short: Throttle damping factor
-        long: This is the damping gain for the throttle demand loop.
+        long: Damping gain for the throttle demand loop.
       type: float
       default: 0.05
       min: 0.0
@@ -92,10 +90,7 @@ parameters:
     FW_T_VERT_ACC:
       description:
         short: Maximum vertical acceleration
-        long: |-
-          This is the maximum vertical acceleration
-          either up or down that the controller will use to correct speed
-          or height errors.
+        long: Max vertical acceleration (up or down) to correct speed or height errors.
       type: float
       default: 7.0
       unit: m/s^2
@@ -107,9 +102,8 @@ parameters:
       description:
         short: Roll -> Throttle feedforward
         long: |-
-          Is used to compensate for the additional drag created by turning.
-          Increase this gain if the aircraft initially loses energy in turns
-          and reduce if the aircraft initially gains energy in turns.
+          Compensates for additional drag from turning.
+          Increase if the aircraft loses energy in turns; decrease if it gains energy.
       type: float
       default: 15.0
       min: 0.0

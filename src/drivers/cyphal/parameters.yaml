@@ -5,16 +5,13 @@ parameters:
     CYPHAL_ENABLE:
       description:
         short: Cyphal
-        long: |-
-          0 - Cyphal disabled.
-          1 - Enables Cyphal
       type: boolean
       default: 1
       reboot_required: true
     CYPHAL_ID:
       description:
         short: Cyphal Node ID
-        long: Read the specs at https://opencyphal.org/ to learn more about Node ID.
+        long: See https://opencyphal.org/ for Node ID specs.
       type: int32
       default: 1
       min: -1

@@ -5,7 +5,7 @@ parameters:
     SYS_RGB_MAXBRT:
       description:
         short: RGB Led brightness limit
-        long: Set to 0 to disable, 1 for maximum brightness
+        long: "0: disabled; 1: maximum brightness."
       type: float
       default: 1.0
       unit: '%'

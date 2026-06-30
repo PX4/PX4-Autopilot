@@ -17,29 +17,25 @@ parameters:
     VOXL_ESC_BAUD:
       description:
         short: UART ESC baud rate
-        long: Default rate is 250Kbps, which is used in off-the-shelf MoadalAI ESC
-          products.
+        long: Default 250 kbps matches off-the-shelf MoadalAI ESC products.
       type: int32
       default: 250000
       unit: bit/s
     VOXL_ESC_RPM_MIN:
       description:
         short: UART ESC RPM Min
-        long: Minimum RPM for ESC
       type: int32
       default: 5500
       unit: rpm
     VOXL_ESC_RPM_MAX:
       description:
         short: UART ESC RPM Max
-        long: Maximum RPM for ESC
       type: int32
       default: 15000
       unit: rpm
     VOXL_ESC_MODE:
       description:
         short: UART ESC Mode
-        long: Selects what type of mode is enabled, if any
       type: enum
       values:
         0: '- None'
@@ -131,11 +127,8 @@ parameters:
       description:
         short: UART ESC Turtle Mode button index for MAVLink manual control
         long: |-
-          Specifies which button in the MAVLink MANUAL_CONTROL buttons field
-          activates turtle mode. Only used when data source is a MAVLink instance.
-          When data source is RC, turtle mode activation uses the AUX channel
-          selected by VOXL_ESC_MODE instead.
-          Set to -1 to disable turtle mode activation via MAVLink buttons.
+          MAVLink MANUAL_CONTROL button index for turtle mode (MAVLink input only).
+          RC input uses AUX channel from VOXL_ESC_MODE instead. -1 disables.
       type: enum
       values:
         -1: Disabled
@@ -157,7 +150,7 @@ parameters:
     VOXL_ESC_PUB_BST:
       description:
         short: UART ESC Enable publishing of battery status
-        long: Only applicable to ESCs that report total battery voltage and current
+        long: Only for ESCs that report total battery voltage and current.
       type: enum
       values:
         0: '- Disabled'
@@ -169,7 +162,7 @@ parameters:
     VOXL_ESC_T_WARN:
       description:
         short: UART ESC Temperature Warning Threshold (Degrees C)
-        long: Only applicable to ESCs that report temperature
+        long: Only for ESCs that report temperature.
       type: enum
       values:
         0: '- Disabled'
@@ -180,7 +173,7 @@ parameters:
     VOXL_ESC_T_OVER:
       description:
         short: UART ESC Over-Temperature Threshold (Degrees C)
-        long: Only applicable to ESCs that report temperature
+        long: Only for ESCs that report temperature.
       type: enum
       values:
         0: '- Disabled'
@@ -201,7 +194,6 @@ parameters:
     VOXL_ESC_CMD:
       description:
         short: UART ESC command type
-        long: Selects between RPM or PWM commands
       type: enum
       values:
         0: '- RPM'
@@ -213,10 +205,7 @@ parameters:
     VOXL_ESC_PWR_MIN:
       description:
         short: UART ESC Minimum motor power
-        long: |-
-          Minimum motor power for ESC when VOXL_ESC_CMD is set for PWM.
-          Make sure to set this high enough so that the motors are always spinning
-          while armed.
+        long: Min motor power when VOXL_ESC_CMD=PWM; set high enough for motors to spin while armed.
       type: float
       default: 0.05
       min: 0.0

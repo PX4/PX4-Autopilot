@@ -5,8 +5,7 @@ parameters:
     PLD_BTOUT:
       description:
         short: Landing Target Timeout
-        long: Time after which the landing target is considered lost without any new
-          measurements.
+        long: Time without measurements before landing target is considered lost.
       type: float
       default: 5.0
       unit: s
@@ -28,9 +27,7 @@ parameters:
     PLD_MOVING_T_MAX:
       description:
         short: Maximum moving-target prediction time
-        long: |-
-          When the landing target is moving, precision land aims at the estimated future
-          target position after a constrained prediction time. This sets the maximum time.
+        long: Max prediction time for moving-target aim in precision landing.
       type: float
       default: 3.0
       min: 0.1
@@ -40,9 +37,7 @@ parameters:
     PLD_MOVING_T_MIN:
       description:
         short: Minimum moving-target prediction time
-        long: |-
-          When the landing target is moving, precision land aims at the estimated future
-          target position after a constrained prediction time. This sets the minimum time.
+        long: Min prediction time for moving-target aim in precision landing.
       type: float
       default: 2.0
       min: 0.1
@@ -64,8 +59,7 @@ parameters:
     PLD_SRCH_ALT:
       description:
         short: Search altitude
-        long: Altitude above home to which to climb when searching for the landing
-          target.
+        long: Altitude above home for landing target search.
       type: float
       default: 10.0
       unit: m
@@ -76,8 +70,7 @@ parameters:
     PLD_SRCH_TOUT:
       description:
         short: Search timeout
-        long: Time allowed to search for the landing target before falling back to
-          normal landing.
+        long: Time to search for landing target before falling back to normal landing.
       type: float
       default: 10.0
       unit: s
@@ -88,8 +81,7 @@ parameters:
     PLD_MAX_SRCH:
       description:
         short: Maximum number of search attempts
-        long: Maximum number of times to search for the landing target if it is lost
-          during the precision landing.
+        long: Number of times to re-search if target is lost during precision landing.
       type: int32
       default: 3
       min: 0
@@ -97,7 +89,7 @@ parameters:
     PLD_YAW_EN:
       description:
         short: Set to true to control yaw while landing.
-        long: Control the orientation when landing. The orientation comes from the topic vte_orientation.
+        long: Yaw control during landing from vte_orientation topic.
       type: boolean
       default: 0
       min: 0

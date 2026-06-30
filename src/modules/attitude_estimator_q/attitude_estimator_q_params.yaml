@@ -5,7 +5,6 @@ parameters:
     ATT_EN:
       description:
         short: standalone attitude estimator enable (unsupported)
-        long: Enable standalone quaternion based attitude estimator.
       type: boolean
       default: 0
     ATT_W_ACC:
@@ -42,11 +41,8 @@ parameters:
       decimal: 2
     ATT_MAG_DECL:
       description:
-        short: Magnetic declination, in degrees
-        long: |-
-          This parameter is not used in normal operation,
-          as the declination is looked up based on the
-          GPS coordinates of the vehicle.
+        short: Magnetic declination
+        long: Not used in normal operation; declination is auto-determined from GPS coordinates.
       type: float
       default: 0.0
       unit: deg
@@ -59,9 +55,6 @@ parameters:
     ATT_EXT_HDG_M:
       description:
         short: External heading usage mode (from Motion capture/Vision)
-        long: |-
-          Set to 1 to use heading estimate from vision.
-          Set to 2 to use heading from motion capture.
       type: enum
       values:
         0: None

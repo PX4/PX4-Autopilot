@@ -19,11 +19,9 @@ parameters:
         PD_GRIPPER_TO:
             description:
                 short: Timeout for successful gripper actuation acknowledgement
-                long: |
-                  Maximum time Gripper will wait while the successful griper actuation isn't recognised.
-                  If the gripper has no feedback sensor, it will simply wait for
-                  this time before considering gripper actuation successful and publish a
-                  'VehicleCommandAck' signaling successful gripper action
+                long: |-
+                  Max wait for gripper actuation acknowledgement. Without a feedback
+                  sensor, success is assumed after this interval and VehicleCommandAck published.
             type: float
             unit: s
             min: 0

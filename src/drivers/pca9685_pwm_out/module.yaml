@@ -23,9 +23,7 @@ parameters:
       PCA9685_EN_BUS:
         description:
           short: Enable the PCA9685 output driver
-          long: |
-            Enable the PCA9685 output driver.
-            The integer refers to the I2C bus number where PCA9685 is connected.
+          long: Value is the I2C bus number.
         type: int32
         min: 0
         max: 10
@@ -33,9 +31,6 @@ parameters:
       PCA9685_I2C_ADDR:
         description:
           short: I2C address of PCA9685
-          long: |
-            I2C address of PCA9685.
-            The default address is 0x40 (64).
         type: int32
         min: 1
         max: 127
@@ -43,11 +38,7 @@ parameters:
       PCA9685_SCHD_HZ:
         description:
           short: PWM update rate
-          long: |
-            Controls the update rate of PWM output.
-            Flight Controller will inform those numbers of update events in a second, to PCA9685.
-            Higher update rate will consume more I2C bandwidth, which may even lead to worse
-            output latency, or completely block I2C bus.
+          long: Higher rates use more I2C bandwidth, increasing output latency or blocking the bus.
         type: float
         decimal: 2
         min: 50.0
@@ -56,14 +47,8 @@ parameters:
       PCA9685_PWM_FREQ:
         description:
           short: PWM cycle frequency
-          long: |
-            Controls the PWM frequency at timing perspective.
-            This is independent from PWM update frequency, as PCA9685 is capable to output
-            without being continuously commanded by FC.
-            Higher frequency leads to more accurate pulse width, but some ESCs and servos may not support it.
-            This parameter should be set to the same value as PWM update rate in most case.
-            This parameter MUST NOT exceed upper limit of 400.0, if any outputs as generic 1000~2000us
-            pulse width is desired. Frequency higher than 400 only makes sense in duty-cycle mode.
+          long: |-
+            Independent of update rate (PCA9685 outputs autonomously). Higher frequency gives more accurate pulse width, but may be unsupported by some ESCs/servos. Should match update rate in most cases. Must not exceed 400 Hz for standard 1000-2000us output; >400 Hz only useful in duty-cycle mode.
         type: float
         decimal: 2
         min: 23.8
@@ -72,13 +57,8 @@ parameters:
       PCA9685_DUTY_EN:
         description:
           short: Put the selected channels into Duty-Cycle output mode
-          long: |
-            The driver will output standard pulse-width encoded signal without this bit set.
-            To make PCA9685 output in duty-cycle fashion, please enable the corresponding
-            channel bit here and adjusting standard params to suit your need.
-            The driver will have 12bits resolution for duty-cycle output. That means to achieve 0% to 100%
-            output range on one channel, the corresponding params MIN and MAX for the channel should be set
-            to 0 and 4096. Other standard params follows the same rule.
+          long: |-
+            Without bit set: standard PWM. With bit set: duty-cycle at 12-bit resolution. For 0-100% output, set channel MIN=0, MAX=4096; same rule for other standard params.
         type: bitmask
         bit:
           0: Put CH1 to Duty-Cycle mode

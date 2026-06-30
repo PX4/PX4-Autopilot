@@ -5,9 +5,7 @@ parameters:
     ASPD_WIND_NSD:
       description:
         short: Wind estimator wind process noise spectral density
-        long: |-
-          Wind process noise of the internal wind estimator(s) of the airspeed selector.
-          When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases by this amount every second.
+        long: Unaided wind estimate uncertainty (1-sigma) grows by this value per second.
       type: float
       default: 0.1
       min: 0
@@ -17,8 +15,6 @@ parameters:
     ASPD_TAS_NOISE:
       description:
         short: Wind estimator true airspeed measurement noise
-        long: True airspeed measurement noise of the internal wind estimator(s) of
-          the airspeed selector.
       type: float
       default: 1.4
       min: 0
@@ -37,7 +33,7 @@ parameters:
     ASPD_SCALE_1:
       description:
         short: Scale of airspeed sensor 1
-        long: This is the scale IAS --> CAS of the first airspeed sensor instance
+        long: IAS->CAS scale for sensor 1.
       type: float
       default: 1.0
       min: 0.5
@@ -46,7 +42,7 @@ parameters:
     ASPD_SCALE_2:
       description:
         short: Scale of airspeed sensor 2
-        long: This is the scale IAS --> CAS of the second airspeed sensor instance
+        long: IAS->CAS scale for sensor 2.
       type: float
       default: 1.0
       min: 0.5
@@ -55,7 +51,7 @@ parameters:
     ASPD_SCALE_3:
       description:
         short: Scale of airspeed sensor 3
-        long: This is the scale IAS --> CAS of the third airspeed sensor instance
+        long: IAS->CAS scale for sensor 3.
       type: float
       default: 1.0
       min: 0.5
@@ -76,10 +72,7 @@ parameters:
     ASPD_DO_CHECKS:
       description:
         short: Enable checks on airspeed sensors
-        long: |-
-          Controls which checks are run to check airspeed data for validity. Only applied if ASPD_PRIMARY > 0.
-
-          Note: The missing data check (bit 0) is implicitly always enabled when ASPD_DO_CHECKS > 0, even if bit 0 is not explicitly set.
+        long: Only applies if ASPD_PRIMARY > 0. Bit 0 (missing data) is implicitly enabled whenever any check is active.
       type: bitmask
       bit:
         0: Only data missing check (triggers if more than 1s no data)
@@ -103,10 +96,8 @@ parameters:
       description:
         short: Airspeed failure innovation threshold
         long: |-
-          This specifies the minimum airspeed innovation required to trigger a failsafe. Larger values make the check less sensitive,
-          smaller values make it more sensitive. Large innovations indicate an inconsistency between predicted (groundspeed - windspeeed)
-          and measured airspeed.
-          The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
+          Min innovation to trigger failsafe. Larger = less sensitive. Large values indicate groundspeed-windspeed vs measured inconsistency.
+          Detection time scales with exceedance size (see ASPD_FS_INTEG).
       type: float
       default: 5.0
       unit: m/s
@@ -116,9 +107,7 @@ parameters:
     ASPD_FS_INTEG:
       description:
         short: Airspeed failure innovation integral threshold
-        long: |-
-          This sets the time integral of airspeed innovation exceedance above ASPD_FS_INNOV required to trigger a failsafe.
-          Larger values make the check less sensitive, smaller positive values make it more sensitive.
+        long: Time integral of innovation exceedance above ASPD_FS_INNOV to trigger a failsafe. Larger = less sensitive.
       type: float
       default: 10.0
       unit: m
@@ -128,8 +117,6 @@ parameters:
     ASPD_FS_T_STOP:
       description:
         short: Airspeed failsafe stop delay
-        long: Delay before stopping use of airspeed sensor if checks indicate sensor
-          is bad.
       type: float
       default: 1.0
       unit: s
@@ -138,9 +125,7 @@ parameters:
     ASPD_FS_T_START:
       description:
         short: Airspeed failsafe start delay
-        long: |-
-          Delay before switching back to using airspeed sensor if checks indicate sensor is good.
-          Set to a negative value to disable the re-enabling in flight.
+        long: Negative value disables in-flight re-enabling.
       type: float
       default: -1.0
       unit: s
@@ -149,9 +134,6 @@ parameters:
     ASPD_WERR_THR:
       description:
         short: Horizontal wind uncertainty threshold for valid ground-minus-wind
-        long: |-
-          The airspeed alternative derived from groundspeed and heading will be declared valid
-          as soon and as long the horizontal wind uncertainty is below this value.
       type: float
       default: 2.0
       unit: m/s
@@ -162,11 +144,8 @@ parameters:
       description:
         short: First principle airspeed check time window
         long: |-
-          Window for comparing airspeed change to throttle and pitch change.
-          Triggers when the airspeed change within this window is negative while throttle increases
-          and the vehicle pitches down.
-          Is meant to catch degrading airspeed blockages as can happen when flying through icing conditions.
-          Relies on  FW_THR_TRIM being set accurately.
+          Triggers when airspeed change within this window is negative while throttle increases and vehicle pitches down.
+          Catches degrading blockages (e.g. icing). Requires accurate FW_THR_TRIM.
       type: float
       default: 2.0
       unit: s

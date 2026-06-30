@@ -13,8 +13,7 @@ parameters:
           SF45_UPDATE_CFG:
               description:
                   short: Update rate in Hz
-                  long: |
-                      The SF45 sets the update rate in Hz to allow greater resolution
+                  long: Higher rates yield greater resolution.
               type: enum
               values:
                   1: 50hz
@@ -36,8 +35,6 @@ parameters:
           SF45_ORIENT_CFG:
               description:
                   short: Orientation upright or facing downward
-                  long: |
-                      The SF45 mounted facing upward or downward on the frame
               type: enum
               values:
                 24: Rotation upward
@@ -49,8 +46,7 @@ parameters:
           SF45_YAW_CFG:
               description:
                   short: Sensor facing forward or backward
-                  long: |
-                      The usb port on the sensor indicates 180deg, opposite usb is forward facing
+                  long: USB port side = 180 deg; opposite USB = forward.
               type: enum
               values:
                 0: Rotation forward

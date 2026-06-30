@@ -4,61 +4,61 @@ parameters:
   definitions:
     TC_B0_ID:
       description:
-        short: ID of Barometer that the calibration is for
+        short: Barometer calibration ID
       category: System
       type: int32
       default: 0
     TC_B0_X5:
       description:
-        short: Barometer offset temperature ^5 polynomial coefficient
+        short: Baro offset temp ^5 poly coeff
       category: System
       type: float
       default: 0.0
     TC_B0_X4:
       description:
-        short: Barometer offset temperature ^4 polynomial coefficient
+        short: Baro offset temp ^4 poly coeff
       category: System
       type: float
       default: 0.0
     TC_B0_X3:
       description:
-        short: Barometer offset temperature ^3 polynomial coefficient
+        short: Baro offset temp ^3 poly coeff
       category: System
       type: float
       default: 0.0
     TC_B0_X2:
       description:
-        short: Barometer offset temperature ^2 polynomial coefficient
+        short: Baro offset temp ^2 poly coeff
       category: System
       type: float
       default: 0.0
     TC_B0_X1:
       description:
-        short: Barometer offset temperature ^1 polynomial coefficients
+        short: Baro offset temp ^1 poly coeff
       category: System
       type: float
       default: 0.0
     TC_B0_X0:
       description:
-        short: Barometer offset temperature ^0 polynomial coefficient
+        short: Baro offset temp ^0 poly coeff
       category: System
       type: float
       default: 0.0
     TC_B0_TREF:
       description:
-        short: Barometer calibration reference temperature
+        short: Baro calibration reference temp
       category: System
       type: float
       default: 40.0
     TC_B0_TMIN:
       description:
-        short: Barometer calibration minimum temperature
+        short: Baro calibration minimum temp
       category: System
       type: float
       default: 5.0
     TC_B0_TMAX:
       description:
-        short: Barometer calibration maximum temperature
+        short: Baro calibration maximum temp
       category: System
       type: float
       default: 75.0

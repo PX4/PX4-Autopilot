@@ -8,10 +8,7 @@ parameters:
         SENS_GPS_MASK:
             description:
                 short: Multi GPS Blending Control Mask
-                long: |
-                    Set bits in the following positions to set which GPS accuracy metrics will
-                    be used to calculate the blending weight. Set to zero to disable and always
-                    used first GPS instance.
+                long: "0 disables blending and always uses the first GPS instance."
             type: bitmask
             bit:
                 0: use speed accuracy
@@ -24,10 +21,7 @@ parameters:
         SENS_GPS_TAU:
             description:
                 short: Multi GPS Blending Time Constant
-                long: |
-                    Sets the longest time constant that will be applied to the calculation of GPS
-                    position and height offsets used to correct data from multiple GPS data for
-                    steady state position differences.
+                long: Time constant for smoothing position/height offsets between multiple GPS units.
             type: float
             default: 10.0
             unit: s
@@ -38,15 +32,10 @@ parameters:
         SENS_GPS_PRIME:
             description:
                 short: Multi GPS primary instance
-                long: |
-                    When no blending is active, this defines the preferred GPS receiver instance.
-                    The GPS selection logic waits until the primary receiver is available to
-                    send data to the EKF even if a secondary instance is already available.
-                    The secondary instance is then only used if the primary one times out.
-
-                    To select a DroneCAN GPS, set this to the node ID.
-
-                    This parameter has no effect if blending is active.
+                long: |-
+                    Preferred GPS instance when blending is inactive. EKF waits for primary even if secondary is available; secondary used only on primary timeout.
+                    To select a DroneCAN GPS, set to its node ID.
+                    No effect when blending is active.
             type: int32
             default: 0
             min: -1
@@ -58,10 +47,9 @@ parameters:
         SENS_GPS${i}_ID:
             description:
                 short: GPS ${i} device ID
-                long: |
-                    Device ID of the GPS receiver for antenna offset slot ${i}.
-                    Set to 0 to disable this slot. When all slots are 0, offsets are
-                    matched by uORB instance index (only reliable for serial GPS).
+                long: |-
+                    Device ID for antenna offset slot ${i}. 0 disables slot.
+                    When all slots are 0, offsets matched by uORB instance (serial GPS only).
             category: System
             type: int32
             default: 0
@@ -71,9 +59,9 @@ parameters:
         SENS_GPS${i}_OFFX:
             description:
                 short: GPS ${i} antenna X position
-                long: |
-                    Forward axis relative to vehicle centre of gravity.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                long: |-
+                    Forward offset from CoG.
+                    Matched to receiver via SENS_GPS${i}_ID.
             type: float
             default: 0.0
             unit: m
@@ -84,9 +72,9 @@ parameters:
         SENS_GPS${i}_OFFY:
             description:
                 short: GPS ${i} antenna Y position
-                long: |
-                    Right axis relative to vehicle centre of gravity.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                long: |-
+                    Right offset from CoG.
+                    Matched to receiver via SENS_GPS${i}_ID.
             type: float
             default: 0.0
             unit: m
@@ -97,9 +85,9 @@ parameters:
         SENS_GPS${i}_OFFZ:
             description:
                 short: GPS ${i} antenna Z position
-                long: |
-                    Down axis relative to vehicle centre of gravity.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
+                long: |-
+                    Down offset from CoG.
+                    Matched to receiver via SENS_GPS${i}_ID.
             type: float
             default: 0.0
             unit: m
@@ -110,11 +98,9 @@ parameters:
         SENS_GPS${i}_DELAY:
             description:
                 short: GPS ${i} measurement delay
-                long: |
-                    GPS measurement delay relative to IMU measurements.
-                    Matched to physical GPS receiver via SENS_GPS${i}_ID.
-                    Only applied when the GPS driver does not provide its own
-                    timestamp_sample correction.
+                long: |-
+                    GPS delay relative to IMU. Matched via SENS_GPS${i}_ID.
+                    Applied only when the driver lacks its own timestamp correction.
             type: int32
             default: 110
             unit: ms

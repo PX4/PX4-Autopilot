@@ -56,8 +56,8 @@ parameters:
       description:
         short: Integral gain for horizontal velocity error
         long: |-
-          Defined as correction acceleration in m/s^2 per m velocity integral
-          Allows to eliminate steady state errors in disturbances like wind.
+          Defined as corrective acceleration in m/s^2 per m velocity integral.
+          Eliminates steady-state disturbance errors (e.g. wind).
       type: float
       default: 0.4
       min: 0

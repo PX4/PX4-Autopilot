@@ -5,10 +5,8 @@ parameters:
     EKF2_AVEL_EN:
       description:
         short: Fuse the landing-target relative velocity as auxiliary velocity
-        long: |-
-          When enabled, EKF2 fuses the relative velocity published in landing_target_pose
-          (vx_rel, vy_rel) as a horizontal auxiliary velocity measurement. The data is
-          only fused when landing_target_pose.rel_vel_ekf2_valid is true.
+        long: Fuses landing_target_pose.vx_rel/vy_rel as horizontal aux velocity when
+          rel_vel_ekf2_valid is true.
       type: boolean
       default: 1
     EKF2_AVEL_DELAY:

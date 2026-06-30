@@ -5,9 +5,6 @@ parameters:
     SYS_HF_MAV:
       description:
         short: Enable FMU SD card hardfault streaming
-        long: |-
-          When this is enabled all the hardfaults on the SD card are streamed
-          over MAVLink. This is useful for cases where the FMU does reset in-flight due
-          to a hardfault and the SD card may not survive a crash.
+        long: Streams SD card hardfaults over MAVLink; useful when FMU resets in-flight and the SD card may not survive a crash.
       type: boolean
       default: 1

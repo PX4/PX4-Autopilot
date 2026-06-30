@@ -6,13 +6,9 @@ parameters:
       description:
         short: Use fixed-wing actuation in hover to accelerate forward
         long: |-
-          Prevents downforce from pitching the body down when facing wind.
-          Uses puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL) to accelerate forward instead.
-          Only active if demanded pitch  is below VT_PITCH_MIN.
-          Use VT_FWD_THRUST_SC to tune it.
-          Descend mode is treated as Landing too.
-
-          Only active (if enabled) in height-rate controlled modes.
+          Prevents wind-induced nose-down by using puller/pusher (standard VTOL) or forward-tilt (tiltrotor) instead of pitch.
+          Active only when demanded pitch < VT_PITCH_MIN and in height-rate controlled modes.
+          Descend is treated as Landing. Tune with VT_FWD_THRUST_SC.
       type: enum
       values:
         0: Disabled
@@ -26,9 +22,7 @@ parameters:
     VT_FWD_THRUST_SC:
       description:
         short: Fixed-wing actuation thrust scale in hover
-        long: |-
-          Scale applied to the demanded pitch (below VT_PITCH_MIN) to get the fixed-wing forward actuation in hover mode.
-          Enabled via VT_FWD_THRUST_EN.
+        long: Scale from demanded pitch (below VT_PITCH_MIN) to FW forward actuation in hover. Enabled via VT_FWD_THRUST_EN.
       type: float
       default: 0.7
       min: 0.0
@@ -38,8 +32,7 @@ parameters:
     VT_B_TRANS_RAMP:
       description:
         short: Back transition MC motor ramp up time
-        long: This sets the duration during which the MC motors ramp up to the commanded
-          thrust during the back transition stage.
+        long: Duration for MC motors to ramp up to commanded thrust during back transition.
       type: float
       default: 3.0
       unit: s
@@ -51,9 +44,8 @@ parameters:
       description:
         short: Pusher throttle ramp up slew rate
         long: |-
-          Defines the slew rate of the puller/pusher throttle during transitions.
-          Zero will deactivate the slew rate limiting and thus produce an instant throttle
-          rise to the transition throttle VT_F_TRANS_THR.
+          Slew rate of puller/pusher throttle during transitions.
+          0 disables limiting, giving instant rise to VT_F_TRANS_THR.
       type: float
       default: 0.33
       unit: 1/s

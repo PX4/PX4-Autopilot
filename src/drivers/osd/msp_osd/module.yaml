@@ -13,8 +13,6 @@ parameters:
         OSD_SYMBOLS:
             description:
                 short: OSD Symbol Selection
-                long: |
-                  Configure / toggle support display options.
             type: bitmask
             bit:
                 0: CRAFT_NAME
@@ -46,10 +44,7 @@ parameters:
         OSD_CH_HEIGHT:
             description:
                 short: OSD Crosshairs Height
-                long: |
-                  Controls the vertical position of the crosshair display.
-                  Resolution is limited by OSD to 15 discrete values. Negative
-                  values will display the crosshairs below the horizon
+                long: Crosshair vertical position; OSD-limited to 15 discrete values. Negative = below horizon.
             type: int32
             default: 0
             min: -8
@@ -60,8 +55,6 @@ parameters:
         OSD_LOG_LEVEL:
             description:
                 short: OSD Warning Level
-                long: |
-                  Minimum security of log level to display on the OSD.
             type: int32
             bit:
                 0: EMERGENCY
@@ -79,9 +72,7 @@ parameters:
         OSD_SCROLL_RATE:
             description:
                 short: OSD Scroll Rate (ms)
-                long: |
-                    Scroll rate in milliseconds for OSD messages longer than available character width.
-                    This is lower-bounded by the nominal loop rate of this module.
+                long: Scroll rate for OSD messages wider than the display; lower-bounded by module loop rate.
             type: int32
             min: 100
             max: 1000
@@ -91,8 +82,7 @@ parameters:
         OSD_DWELL_TIME:
             description:
                 short: OSD Dwell Time (ms)
-                long: |
-                    Amount of time in milliseconds to dwell at the beginning of the display, when scrolling.
+                long: Dwell at the beginning of the display when scrolling.
             type: int32
             min: 100
             max: 10000

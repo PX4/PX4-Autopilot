@@ -35,8 +35,7 @@ parameters:
       ICE_STRT_DUR:
         description:
           short: Duration of single starting attempt (excl. choking)
-          long: |
-              Maximum expected time for startup before declaring timeout.
+          long: Max time per start attempt before declaring timeout.
         type: float
         unit: s
         min: 0
@@ -59,8 +58,7 @@ parameters:
       ICE_STRT_ATTEMPT:
         description:
           short: Number attempts for starting the engine
-          long: |
-              Number of accepted attempts for starting the engine before declaring a fault.
+          long: Attempts before declaring a fault.
         type: int32
         min: 0
         max: 10
@@ -69,17 +67,13 @@ parameters:
       ICE_RUN_FAULT_D:
         description:
           short: Fault detection if it stops in running state
-          long: |
-              Enables restart if a fault is detected during the running state. Otherwise
-              commands continues in running state until given an user request off.
+          long: If enabled, restarts on fault in running state; otherwise stays running until user stops it.
         type: boolean
         default: true
 
       ICE_STRT_THR:
         description:
           short: Throttle value for starting engine
-          long: |
-              During the choking and the starting phase, the throttle value is set to this value.
         type: float
         unit: norm
         min: 0
@@ -97,8 +91,6 @@ parameters:
       ICE_THR_SLEW:
         description:
           short: Throttle slew rate
-          long: |
-              Maximum rate of change of throttle value per second.
         type: float
         unit: 1/s
         min: 0
@@ -110,8 +102,7 @@ parameters:
       ICE_IGN_DELAY:
         description:
           short: Cold-start delay after ignition before engaging starter
-          long: |
-              In case that the ignition takes a moment to be up and running, this parameter can be set to account for that.
+          long: Delay after ignition before engaging starter, to let ignition stabilize.
         type: float
         unit: s
         min: 0
@@ -123,8 +114,7 @@ parameters:
       ICE_IDLE_RPM:
         description:
           short: Idle RPM setpoint for the engine.
-          long: |
-              Idle RPM setpoint for the engine. Applies a controller to prevent the RPM do drop below this value.
+          long: Controller prevents RPM from dropping below this setpoint.
         type: float
         unit: rpm
         min: 0
@@ -136,8 +126,7 @@ parameters:
       ICE_IDLE_RPM_P:
         description:
           short: Proportional gain for idle RPM control
-          long: |
-            Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
+          long: Output added per (RPM error / 1000).
         type: float
         decimal: 3
         increment: 0.1
@@ -148,8 +137,7 @@ parameters:
       ICE_IDLE_RPM_I:
         description:
           short: Integral gain for idle RPM control
-          long: |
-            Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
+          long: Output added per (integrated RPM error / 1000).
         type: float
         decimal: 3
         increment: 0.1
@@ -160,8 +148,7 @@ parameters:
       ICE_IDLE_THR_FF:
         description:
           short: Idle RPM throttle for feed-forward
-          long: |
-            Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
+          long: Feed-forward throttle; should approximate throttle needed to hold ICE_IDLE_RPM.
         type: float
         decimal: 2
         increment: 0.01

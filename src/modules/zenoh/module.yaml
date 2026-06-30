@@ -7,10 +7,7 @@ parameters:
         ZENOH_ENABLE:
             description:
                 short: Enable Zenoh
-                long: |
-                    Set true (1) to start the Zenoh driver module (a.k.a the "Zenoh-Pico Node").
-                    See https://docs.px4.io/main/en/middleware/zenoh and
-                    https://docs.px4.io/main/en/modules/modules_driver.html#zenoh
+                long: "Starts the Zenoh-Pico Node driver. See https://docs.px4.io/main/en/middleware/zenoh"
             category: System
             type: boolean
             reboot_required: true

@@ -39,10 +39,9 @@ parameters:
       description:
         short: Acro mode roll, pitch expo factor
         long: |-
-          Exponential factor for tuning the input curve shape.
-
-          0 Purely linear input curve
-          1 Purely cubic input curve
+          Input curve shape factor.
+          0: linear
+          1: cubic
       type: float
       default: 0.0
       min: 0
@@ -52,10 +51,9 @@ parameters:
       description:
         short: Acro mode yaw expo factor
         long: |-
-          Exponential factor for tuning the input curve shape.
-
-          0 Purely linear input curve
-          1 Purely cubic input curve
+          Input curve shape factor.
+          0: linear
+          1: cubic
       type: float
       default: 0.0
       min: 0
@@ -65,11 +63,10 @@ parameters:
       description:
         short: Acro mode roll, pitch super expo factor
         long: |-
-          "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO.
-
-          0 Pure Expo function
-          0.7 reasonable shape enhancement for intuitive stick feel
-          0.95 very strong bent input curve only near maxima have effect
+          Refines curve shape set by MC_ACRO_EXPO.
+          0: pure expo
+          0.7: reasonable enhancement for intuitive stick feel
+          0.95: very strong, only near maxima have effect
       type: float
       default: 0.0
       min: 0
@@ -79,11 +76,10 @@ parameters:
       description:
         short: Acro mode yaw super expo factor
         long: |-
-          "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
-
-          0 Pure Expo function
-          0.7 reasonable shape enhancement for intuitive stick feel
-          0.95 very strong bent input curve only near maxima have effect
+          Refines curve shape set by MC_ACRO_EXPO_Y.
+          0: pure expo
+          0.7: reasonable enhancement for intuitive stick feel
+          0.95: very strong, only near maxima have effect
       type: float
       default: 0.0
       min: 0

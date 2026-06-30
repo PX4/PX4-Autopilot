@@ -5,10 +5,7 @@ parameters:
     LNDFW_VEL_XY_MAX:
       description:
         short: 'Fixed-wing land detector: Max horizontal velocity threshold'
-        long: |-
-          Maximum horizontal velocity allowed in the landed state.
-          A factor of 0.7 is applied in case of airspeed-less flying
-          (either because no sensor is present or sensor data got invalid in flight).
+        long: Reduced by 0.7 when flying without airspeed (sensor absent or invalid in flight).
       type: float
       default: 5.0
       unit: m/s
@@ -18,7 +15,6 @@ parameters:
     LNDFW_VEL_Z_MAX:
       description:
         short: 'Fixed-wing land detector: Max vertiacal velocity threshold'
-        long: Maximum vertical velocity allowed in the landed state.
       type: float
       default: 1.0
       unit: m/s
@@ -28,8 +24,7 @@ parameters:
     LNDFW_XYACC_MAX:
       description:
         short: 'Fixed-wing land detector: Max horizontal acceleration'
-        long: Maximum horizontal (x,y body axes) acceleration allowed in the landed
-          state
+        long: Limit on x,y body-axis acceleration in landed state.
       type: float
       default: 8.0
       unit: m/s^2
@@ -39,7 +34,6 @@ parameters:
     LNDFW_AIRSPD_MAX:
       description:
         short: 'Fixed-wing land detector: Max airspeed'
-        long: Maximum airspeed allowed in the landed state
       type: float
       default: 6.0
       unit: m/s
@@ -49,8 +43,7 @@ parameters:
     LNDFW_TRIG_TIME:
       description:
         short: Fixed-wing land detection trigger time
-        long: Time the land conditions (speeds and acceleration) have to be satisfied
-          to detect a landing.
+        long: Duration speeds and acceleration conditions must hold to detect landing.
       type: float
       default: 2.0
       unit: s
@@ -61,8 +54,8 @@ parameters:
       description:
         short: 'Fixed-wing land detector: max rotational speed'
         long: |-
-          Maximum allowed norm of the angular velocity in the landed state.
-          Only used if neither airspeed nor groundspeed can be used for landing detection.
+          Max angular velocity norm in landed state.
+          Only used when neither airspeed nor groundspeed is available.
       type: float
       default: 0.5
       unit: deg/s

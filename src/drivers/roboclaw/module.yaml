@@ -22,14 +22,14 @@ parameters:
       RBCLW_COUNTS_REV:
         description:
           short: Number of encoder counts for one wheel revolution
-          long: The default value of 1200 corresponds to the default configuration of the Aion R1 rover.
+          long: 1200 is the Aion R1 default.
         type: int32
         default: 1200
         min: 1
       RBCLW_ADDRESS:
         description:
           short: Address of the ESC on the bus
-          long: The ESC has to be configured to have an address from 0x80 to 0x87. This parameter needs to match the configured value.
+          long: Must match the address configured on the ESC (0x80-0x87).
         type: enum
         default: 128
         min: 128

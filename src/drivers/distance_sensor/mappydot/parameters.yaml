@@ -16,8 +16,7 @@ parameters:
     SENS_MPDT0_ROT:
       description:
         short: MappyDot Sensor 0 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -35,8 +34,7 @@ parameters:
     SENS_MPDT1_ROT:
       description:
         short: MappyDot Sensor 1 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -54,8 +52,7 @@ parameters:
     SENS_MPDT2_ROT:
       description:
         short: MappyDot Sensor 2 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -73,8 +70,7 @@ parameters:
     SENS_MPDT3_ROT:
       description:
         short: MappyDot Sensor 3 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -92,8 +88,7 @@ parameters:
     SENS_MPDT4_ROT:
       description:
         short: MappyDot Sensor 4 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -111,8 +106,7 @@ parameters:
     SENS_MPDT5_ROT:
       description:
         short: MappyDot Sensor 5 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -130,8 +124,7 @@ parameters:
     SENS_MPDT6_ROT:
       description:
         short: MappyDot Sensor 6 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -149,8 +142,7 @@ parameters:
     SENS_MPDT7_ROT:
       description:
         short: MappyDot Sensor 7 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -168,8 +160,7 @@ parameters:
     SENS_MPDT8_ROT:
       description:
         short: MappyDot Sensor 8 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -187,8 +178,7 @@ parameters:
     SENS_MPDT9_ROT:
       description:
         short: MappyDot Sensor 9 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -206,8 +196,7 @@ parameters:
     SENS_MPDT10_ROT:
       description:
         short: MappyDot Sensor 10 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation
@@ -225,8 +214,7 @@ parameters:
     SENS_MPDT11_ROT:
       description:
         short: MappyDot Sensor 12 Rotation
-        long: This parameter defines the rotation of the Mappydot sensor relative
-          to the platform.
+        long: Sensor rotation relative to the platform.
       type: enum
       values:
         0: No rotation

@@ -24,9 +24,7 @@ parameters:
     SF1XX_ROT:
       description:
         short: Lightware laser rangefinder Rotation
-        long: |-
-          Distance sensor orientation as MAV_SENSOR_ORIENTATION enum.
-          Applies to all models supported by SENS_EN_SF1XX.
+        long: Orientation as MAV_SENSOR_ORIENTATION; applies to all SENS_EN_SF1XX models.
       type: enum
       values:
         0: Forward

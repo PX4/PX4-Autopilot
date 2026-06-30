@@ -5,10 +5,7 @@ parameters:
     FW_AT_APPLY:
       description:
         short: Controls when to apply the new gains
-        long: |-
-          After the auto-tuning sequence is completed,
-          a new set of gains is available and can be applied
-          immediately or after landing.
+        long: After tuning completes, apply gains immediately or after landing.
       type: enum
       values:
         0: Do not apply the new gains (logging only)
@@ -18,13 +15,6 @@ parameters:
     FW_AT_AXES:
       description:
         short: Tuning axes selection
-        long: |-
-          Defines which axes will be tuned during the auto-tuning sequence
-
-          Set bits in the following positions to enable:
-          0 : Roll
-          1 : Pitch
-          2 : Yaw
       type: bitmask
       bit:
         0: roll
@@ -36,8 +26,7 @@ parameters:
     FW_AT_MAN_AUX:
       description:
         short: Enable/disable auto tuning using a manual control AUX input
-        long: Defines which RC_MAP_AUXn parameter maps the manual control channel
-          used to enable/disable auto tuning.
+        long: Selects which RC_MAP_AUXn channel enables/disables auto-tuning.
       type: enum
       values:
         0: Disable
@@ -73,7 +62,7 @@ parameters:
     FW_AT_SYSID_TIME:
       description:
         short: Maneuver time for each axis
-        long: Duration of the input signal sent on each axis during system identification
+        long: Signal duration per axis during sysid.
       type: float
       default: 10.0
       min: 5
@@ -83,7 +72,6 @@ parameters:
     FW_AT_SYSID_TYPE:
       description:
         short: Input signal type
-        long: Type of signal used during system identification to excite the system.
       type: enum
       values:
         0: Step

@@ -18,10 +18,7 @@ parameters:
       SEP_STREAM_MAIN:
         description:
           short: Main stream used during automatic configuration
-          long: |
-            The stream the autopilot sets up on the receiver to output the main data.
-
-            Set this to another value if the default stream is already used for another purpose.
+          long: Stream for main data output. Change if the default is already in use.
         type: int32
         min: 1
         max: 10
@@ -30,10 +27,7 @@ parameters:
       SEP_STREAM_LOG:
         description:
           short: Logging stream used during automatic configuration
-          long: |
-            The stream the autopilot sets up on the receiver to output the logging data.
-
-            Set this to another value if the default stream is already used for another purpose.
+          long: Stream for logging data output. Change if the default is already in use.
         type: int32
         min: 1
         max: 10
@@ -42,8 +36,7 @@ parameters:
       SEP_OUTP_HZ:
         description:
           short: Output frequency of main SBF blocks
-          long: |
-            The output frequency of the main SBF blocks needed for PVT information.
+          long: SBF blocks required for PVT output.
         type: enum
         min: 0
         max: 3
@@ -57,16 +50,10 @@ parameters:
       SEP_YAW_OFFS:
         description:
           short: Heading/Yaw offset for dual antenna GPS
-          long: |
-            Heading offset angle for dual antenna GPS setups that support heading estimation.
-
-            Set this to 0 if the antennas are parallel to the forward-facing direction
-            of the vehicle and the rover antenna is in front.
-
-            The offset angle increases clockwise.
-
-            Set this to 90 if the rover antenna is placed on the
-            right side of the vehicle and the moving base antenna is on the left side.
+          long: |-
+            Clockwise heading offset for dual-antenna setups.
+            0: antennas forward-parallel, rover in front.
+            90: rover on right, moving base on left.
         type: float
         decimal: 3
         default: 0
@@ -77,21 +64,17 @@ parameters:
       SEP_SAT_INFO:
         description:
           short: Enable sat info
-          long: |
-            Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
+          long: Publishes the satellite_info uORB topic where supported.
         type: boolean
         default: 0
         reboot_required: true
       SEP_PITCH_OFFS:
         description:
           short: Pitch offset for dual antenna GPS
-          long: |
-            Vertical offsets can be compensated for by adjusting the Pitch offset.
-
-            Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis.
-            This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame.
-            Since pitch is defined as the right-handed rotation about the vehicle Y axis,
-            a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
+          long: |-
+            Compensates for vertical antenna misalignment. Interpreted as roll when
+            antennas are on the perpendicular axis. Positive: main antenna lower than
+            aux (right-hand rotation about Y).
         type: float
         decimal: 3
         default: 0
@@ -102,9 +85,9 @@ parameters:
       SEP_DUMP_COMM:
         description:
           short: Log GPS communication data
-          long: |
-            Log raw communication between the driver and connected receivers.
-            For example, "To receiver" will log all commands and corrections sent by the driver to the receiver.
+          long: |-
+            Raw driver-receiver communication log.
+            "To receiver" logs all commands and corrections sent to the receiver.
         type: enum
         default: 0
         min: 0
@@ -117,20 +100,14 @@ parameters:
       SEP_AUTO_CONFIG:
         description:
           short: Toggle automatic receiver configuration
-          long: |
-            By default, the receiver is automatically configured. Sometimes it may be used for multiple purposes.
-            If the offered parameters aren't sufficient, this parameter can be disabled to have full control of the receiver configuration.
-            A good way to use this is to enable automatic configuration, let the receiver be configured, and then disable it to make manual adjustments.
+          long: "Disable for full manual control. Tip: let auto-config run first, then disable to fine-tune."
         type: boolean
         default: true
         reboot_required: true
       SEP_CONST_USAGE:
         description:
           short: Usage of different constellations
-          long: |
-            Choice of which constellations the receiver should use for PVT computation.
-
-            When this is 0, the constellation usage isn't changed.
+          long: "Constellations used for PVT computation. 0: leave at receiver default."
         type: bitmask
         bit:
           0: GPS
@@ -145,8 +122,7 @@ parameters:
       SEP_LOG_HZ:
         description:
           short: Logging frequency for the receiver
-          long: |
-            Select the frequency at which the connected receiver should log data to its internal storage.
+          long: Logging rate to the receiver's internal storage.
         type: enum
         default: 0
         min: 0
@@ -167,8 +143,7 @@ parameters:
       SEP_LOG_LEVEL:
         description:
           short: Logging level for the receiver
-          long: |
-            Select the level of detail that needs to be logged by the receiver.
+          long: Detail level for receiver internal logging.
         type: enum
         default: 2
         min: 0
@@ -182,24 +157,18 @@ parameters:
       SEP_LOG_FORCE:
         description:
           short: Whether to overwrite or add to existing logging
-          long: |
-            When the receiver is already set up to log data, this decides whether extra logged data should be added or overwrite existing data.
+          long: If receiver already logs, overwrite instead of append.
         type: boolean
         default: false
         reboot_required: true
       SEP_HARDW_SETUP:
         description:
           short: Setup and expected use of the hardware
-          long: |
-            Setup and expected use of the hardware.
-
-            - Default: Use two receivers as completely separate instances.
-            - Moving base: Use two receivers in a rover & moving base setup for heading.
         type: enum
         default: 0
         min: 0
         max: 1
         values:
-          0: Default
-          1: Moving base
+          0: Default (two separate receivers)
+          1: Moving base (rover + moving base for heading)
         reboot_required: true

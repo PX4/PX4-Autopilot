@@ -5,8 +5,7 @@ parameters:
     EKF2_MULTI_IMU:
       description:
         short: Multi-EKF IMUs
-        long: Maximum number of IMUs to use for Multi-EKF. Set 0 to disable. Requires
-          SENS_IMU_MODE 0.
+        long: Max IMUs for Multi-EKF; 0 disables. Requires SENS_IMU_MODE 0.
       type: int32
       default: 0
       reboot_required: true
@@ -15,8 +14,7 @@ parameters:
     EKF2_MULTI_MAG:
       description:
         short: Multi-EKF Magnetometers
-        long: Maximum number of magnetometers to use for Multi-EKF. Set 0 to disable.
-          Requires SENS_MAG_MODE 0.
+        long: Max magnetometers for Multi-EKF; 0 disables. Requires SENS_MAG_MODE 0.
       type: int32
       default: 0
       reboot_required: true

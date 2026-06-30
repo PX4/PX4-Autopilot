@@ -4,8 +4,8 @@ parameters:
   definitions:
     PP_LOOKAHD_GAIN:
       description:
-        short: Tuning parameter for the pure pursuit controller
-        long: Lower value -> More aggressive controller (beware overshoot/oscillations)
+        short: Pure pursuit lookahead gain
+        long: Lower -> more aggressive; beware overshoot/oscillations.
       type: float
       default: 1.0
       min: 0.1

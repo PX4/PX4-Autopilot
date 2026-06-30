@@ -5,8 +5,7 @@ parameters:
     CAM_CAP_DELAY:
       description:
         short: Camera strobe delay
-        long: This parameter sets the delay between image integration start and strobe
-          firing
+        long: Delay between image integration start and strobe firing.
       type: float
       default: 0.0
       unit: ms
@@ -18,14 +17,12 @@ parameters:
     CAM_CAP_FBACK:
       description:
         short: Camera capture feedback
-        long: Enables camera capture feedback
       type: boolean
       default: 0
       reboot_required: true
     CAM_CAP_MODE:
       description:
         short: Camera capture timestamping mode
-        long: Change time measurement
       type: enum
       values:
         0: Get absolute timestamp

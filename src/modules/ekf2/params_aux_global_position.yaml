@@ -17,8 +17,6 @@ parameters:
     EKF2_AGP${i}_CTRL:
       description:
         short: Auxiliary global position sensor ${i} aiding
-        long: 'Set bits in the following positions to enable: 0 : Horizontal position
-          fusion 1 : Vertical position fusion'
       type: bitmask
       bit:
         0: Horizontal position
@@ -31,12 +29,10 @@ parameters:
     EKF2_AGP${i}_MODE:
       description:
         short: Fusion reset mode for sensor ${i}
-        long: 'Automatic: reset on fusion timeout if no other source of position is available
-          Dead-reckoning: reset on fusion timeout if no source of velocity is available'
       type: enum
       values:
-        0: Automatic
-        1: Dead-reckoning
+        0: Automatic (reset on timeout if no other position source)
+        1: Dead-reckoning (reset on timeout if no velocity source)
       default: 0
       num_instances: *max_num_agp_instances
       instance_start: 0
@@ -55,7 +51,7 @@ parameters:
     EKF2_AGP${i}_NOISE:
       description:
         short: Measurement noise for auxiliary global position sensor ${i}
-        long:  Used to lower bound or replace the uncertainty included in the message
+        long: Lower bound or replacement for message uncertainty.
       type: float
       default: 1.0
       min: 0.01
@@ -66,8 +62,6 @@ parameters:
     EKF2_AGP${i}_GATE:
       description:
         short: Gate size for auxiliary global position sensor ${i} fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
       type: float
       default: 3.0
       min: 1.0

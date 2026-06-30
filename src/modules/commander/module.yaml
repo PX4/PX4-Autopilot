@@ -5,10 +5,7 @@ parameters:
         COM_MODE${i}_HASH:
             description:
                 short: External mode identifier ${i}
-                long: |
-                    This parameter is automatically set to identify external modes. It ensures that modes
-                    get assigned to the same index independent from their startup order,
-                    which is required when mapping an external mode to an RC switch.
+                long: Auto-set to identify external modes; ensures consistent index regardless of startup order, needed for RC switch mapping.
             type: int32
             num_instances: 8 # Max 8 modes (NAVIGATION_STATE_EXTERNAL8)
             default: 0
@@ -18,9 +15,7 @@ parameters:
         COM_FLTMODE${i}:
             description:
                 short: Mode slot ${i}
-                long: |
-                    If the main switch channel is in this range the
-                    selected flight mode will be applied.
+                long: Flight mode activated when the main switch channel is in this range.
             type: enum
             values:
                 -1: Unassigned

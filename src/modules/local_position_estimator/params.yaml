@@ -255,8 +255,7 @@ parameters:
     LPE_PN_T:
       description:
         short: Terrain random walk noise density
-        long: Terrain random walk noise density, hilly/outdoor (0.1), flat/Indoor
-          (0.001)
+        long: Hilly/outdoor ~0.1, flat/indoor ~0.001.
       type: float
       default: 0.001
       unit: m/s/sqrt(Hz)
@@ -267,8 +266,7 @@ parameters:
       description:
         short: Terrain maximum percent grade
         long: |-
-          Terrain maximum percent grade, hilly/outdoor (100 = 45 deg), flat/Indoor (0 = 0 deg)
-
+          Hilly/outdoor: 100 (45 deg); flat/indoor: 0 (0 deg).
           Used to calculate increased terrain random walk noise due to movement.
       type: float
       default: 1.0
@@ -288,10 +286,7 @@ parameters:
     LPE_FAKE_ORIGIN:
       description:
         short: Enable fake global position for optical flow
-        long: |-
-          Enable publishing of a fake global position (e.g for AUTO missions using Optical Flow)
-
-          By initializing the estimator to the LPE_LAT/LON parameters when global information is unavailable
+        long: Publishes fake global position using LPE_LAT/LON when GPS unavailable; enables AUTO missions with optical flow.
       type: int32
       default: 0
       min: 0
@@ -362,8 +357,7 @@ parameters:
     LPE_LT_COV:
       description:
         short: Minimum landing target standard covariance
-        long: Minimum landing target standard covariance, uses reported covariance
-          if greater
+        long: Uses reported covariance if greater.
       type: float
       default: 0.0001
       unit: m^2
@@ -373,18 +367,7 @@ parameters:
     LPE_FUSION:
       description:
         short: Integer bitmask controlling data fusion
-        long: |-
-          Set bits in the following positions to enable:
-          0 : Set to true to fuse GPS data if available, also requires GPS for altitude init
-          1 : Set to true to fuse optical flow data if available
-          2 : Set to true to fuse vision position
-          3 : Set to true to enable landing target
-          4 : Set to true to fuse land detector
-          5 : Set to true to publish AGL as local position down component
-          6 : Set to true to enable flow gyro compensation
-          7 : Set to true to enable baro fusion
-
-          default (145 - GPS, baro, land detector)
+        long: Default 145 = GPS, baro, land detector.
       type: bitmask
       bit:
         0: fuse GPS, requires GPS for alt. init

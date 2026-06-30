@@ -5,7 +5,7 @@ parameters:
     SIH_MASS:
       description:
         short: Vehicle mass
-        long: This value can be measured by weighting the quad on a scale.
+        long: Measurable by weighing on a scale.
       type: float
       default: 1.0
       unit: kg
@@ -15,9 +15,7 @@ parameters:
     SIH_IXX:
       description:
         short: Vehicle inertia about X axis
-        long: |-
-          The inertia is a 3 by 3 symmetric matrix.
-          It represents the difficulty of the vehicle to modify its angular rate.
+        long: 3x3 inertia matrix; resists changes in angular rate.
       type: float
       default: 0.025
       unit: kg m^2
@@ -27,9 +25,7 @@ parameters:
     SIH_IYY:
       description:
         short: Vehicle inertia about Y axis
-        long: |-
-          The inertia is a 3 by 3 symmetric matrix.
-          It represents the difficulty of the vehicle to modify its angular rate.
+        long: 3x3 inertia matrix; resists changes in angular rate.
       type: float
       default: 0.025
       unit: kg m^2
@@ -39,9 +35,7 @@ parameters:
     SIH_IZZ:
       description:
         short: Vehicle inertia about Z axis
-        long: |-
-          The inertia is a 3 by 3 symmetric matrix.
-          It represents the difficulty of the vehicle to modify its angular rate.
+        long: 3x3 inertia matrix; resists changes in angular rate.
       type: float
       default: 0.03
       unit: kg m^2
@@ -51,9 +45,7 @@ parameters:
     SIH_IXY:
       description:
         short: Vehicle cross term inertia xy
-        long: |-
-          The inertia is a 3 by 3 symmetric matrix.
-          This value can be set to 0 for a quad symmetric about its center of mass.
+        long: "0 for a quad symmetric about its center of mass."
       type: float
       default: 0.0
       unit: kg m^2
@@ -62,9 +54,7 @@ parameters:
     SIH_IXZ:
       description:
         short: Vehicle cross term inertia xz
-        long: |-
-          The inertia is a 3 by 3 symmetric matrix.
-          This value can be set to 0 for a quad symmetric about its center of mass.
+        long: "0 for a quad symmetric about its center of mass."
       type: float
       default: 0.0
       unit: kg m^2
@@ -73,9 +63,7 @@ parameters:
     SIH_IYZ:
       description:
         short: Vehicle cross term inertia yz
-        long: |-
-          The inertia is a 3 by 3 symmetric matrix.
-          This value can be set to 0 for a quad symmetric about its center of mass.
+        long: "0 for a quad symmetric about its center of mass."
       type: float
       default: 0.0
       unit: kg m^2
@@ -85,12 +73,9 @@ parameters:
       description:
         short: Max multicopter propeller thrust force
         long: |-
-          This is the maximum force delivered by one propeller
-          when the motor is running at full speed.
-
-          This value is usually about 5 times the mass of the quadrotor.
-
-          Refer to SIH_F_T_MAX for the thrust for FW, Tailsitter, and VTOL pusher.
+          Max force per propeller at full speed.
+          Typically ~5x vehicle mass.
+          See SIH_F_T_MAX for FW/Tailsitter/VTOL pusher.
       type: float
       default: 5.0
       unit: N
@@ -101,12 +86,9 @@ parameters:
       description:
         short: Max multicopter propeller torque
         long: |-
-          This is the maximum torque delivered by one propeller
-          when the motor is running at full speed.
-
-          This value is usually about few percent of the maximum thrust force.
-
-          Refer to SIH_F_Q_MAX for the propeller torque for FW, Tailsitter, and VTOL pusher.
+          Max torque per propeller at full speed.
+          Typically a few percent of max thrust.
+          See SIH_F_Q_MAX for FW/Tailsitter/VTOL pusher.
       type: float
       default: 0.1
       unit: Nm
@@ -116,11 +98,7 @@ parameters:
     SIH_L_ROLL:
       description:
         short: Roll arm length
-        long: |-
-          This is the arm length generating the rolling moment
-
-          This value can be measured with a ruler.
-          This corresponds to half the distance between the left and right motors.
+        long: Half the distance between left and right motors; measurable with a ruler.
       type: float
       default: 0.2
       unit: m
@@ -130,11 +108,7 @@ parameters:
     SIH_L_PITCH:
       description:
         short: Pitch arm length
-        long: |-
-          This is the arm length generating the pitching moment
-
-          This value can be measured with a ruler.
-          This corresponds to half the distance between the front and rear motors.
+        long: Half the distance between front and rear motors; measurable with a ruler.
       type: float
       default: 0.2
       unit: m
@@ -145,11 +119,8 @@ parameters:
       description:
         short: First order drag coefficient
         long: |-
-          Physical coefficient representing the friction with air particules.
-          The greater this value, the slower the quad will move.
-
-          Drag force function of velocity: D=-KDV*V.
-          The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]
+          Air drag coefficient: D = -KDV*V.
+          Max freefall velocity = 10*MASS/KDV m/s.
       type: float
       default: 1.0
       unit: N/(m/s)
@@ -160,11 +131,8 @@ parameters:
       description:
         short: First order angular damper coefficient
         long: |-
-          Physical coefficient representing the friction with air particules during rotations.
-          The greater this value, the slower the quad will rotate.
-
-          Aerodynamic moment function of body rate: Ma=-KDW*W_B.
-          This value can be set to 0 if unknown.
+          Rotational air drag: Ma = -KDW*W_B.
+          Set to 0 if unknown.
       type: float
       default: 0.025
       unit: Nm/(rad/s)
@@ -175,10 +143,8 @@ parameters:
       description:
         short: Initial geodetic latitude
         long: |-
-          This value represents the North-South location on Earth where the simulation begins.
-
-          LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
-          to represent a physical ground location on Earth.
+          North-South starting location.
+          LAT0, LON0, H0, MU_X, MU_Y, MU_Z should be mutually consistent.
       type: float
       default: 47.397742
       unit: deg
@@ -188,10 +154,8 @@ parameters:
       description:
         short: Initial geodetic longitude
         long: |-
-          This value represents the East-West location on Earth where the simulation begins.
-
-          LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
-          to represent a physical ground location on Earth.
+          East-West starting location.
+          LAT0, LON0, H0, MU_X, MU_Y, MU_Z should be mutually consistent.
       type: float
       default: 8.545594
       unit: deg
@@ -201,13 +165,9 @@ parameters:
       description:
         short: Initial AMSL ground altitude
         long: |-
-          This value represents the Above Mean Sea Level (AMSL) altitude where the simulation begins.
-
-          If using FlightGear as a visual animation,
-          this value can be tweaked such that the vehicle lies on the ground at takeoff.
-
-          LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
-          to represent a physical ground location on Earth.
+          AMSL altitude at simulation start.
+          Adjust so the vehicle sits on the ground at takeoff when using FlightGear.
+          LAT0, LON0, H0, MU_X, MU_Y, MU_Z should be mutually consistent.
       type: float
       default: 489.4
       unit: m
@@ -238,15 +198,14 @@ parameters:
     SIH_DISTSNSR_OVR:
       description:
         short: if >= 0 the distance sensor measures will be overridden by this value
-        long: Absolute value superior to 10000 will disable distance sensor
+        long: Disables distance sensor if absolute value exceeds 10000.
       type: float
       default: -1.0
       unit: m
     SIH_T_TAU:
       description:
         short: thruster time constant tau
-        long: the time taken for the thruster to step from 0 to 100% should be about
-          4 times tau
+        long: Time for thruster to step 0 to 100% is about 4*tau.
       type: float
       default: 0.05
       unit: s
@@ -278,7 +237,7 @@ parameters:
     SIH_RNGBC_NOISE:
       description:
         short: Ranging beacon measurement noise standard deviation
-        long: Gaussian noise added to simulated ranging beacon measurements. Set to 0 to disable noise.
+        long: Gaussian noise on simulated ranging beacons. 0 = disabled.
       type: float
       default: 30.0
       unit: m
@@ -289,10 +248,8 @@ parameters:
       description:
         short: Forward thruster max thrust (N)
         long: |-
-          This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
-          if SIH_F_CT0 <= 0.
-          If SIH_F_CT0 > 0, propeller model with advance ratio J is used
-          and this parameter value is overridden at simulation startup.
+          Used for FW/Tailsitter/VTOL pusher when SIH_F_CT0 <= 0.
+          If SIH_F_CT0 > 0, propeller model (advance ratio J) is used and this is overridden at startup.
       type: float
       default: 2.0
       unit: N
@@ -302,10 +259,8 @@ parameters:
       description:
         short: Forward thruster max torque (Nm)
         long: |-
-          This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
-          if SIH_F_CP0 <= 0.
-          If SIH_F_CP0 > 0, propeller model with advance ratio J is used
-          and this parameter value is overridden at simulation startup.
+          Used for FW/Tailsitter/VTOL pusher when SIH_F_CP0 <= 0.
+          If SIH_F_CP0 > 0, propeller model (advance ratio J) is used and this is overridden at startup.
       type: float
       default: 0.0165
       unit: Nm

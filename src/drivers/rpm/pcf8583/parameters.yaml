@@ -26,17 +26,16 @@ parameters:
       description:
         short: PCF8583 rotorfreq (i2c) pulse reset value
         long: |-
-          Internal device counter is reset to 0 when overrun this value,
-          counter is able to store up to 6 digits
-          reset of counter takes some time - measurement with reset has worse accuracy.
-          0 means reset counter after every measurement.
+          Counter resets to 0 when this value is exceeded (max 6 digits).
+          Resets add latency and reduce accuracy.
+          0: reset after every measurement.
       type: int32
       default: 500000
       reboot_required: true
     PCF8583_MAGNET:
       description:
         short: PCF8583 rotorfreq (i2c) pulse count
-        long: Number of signals per rotation of actuator
+        long: Signals per actuator revolution.
       type: int32
       default: 2
       reboot_required: true

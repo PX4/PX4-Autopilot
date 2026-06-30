@@ -6,9 +6,9 @@ parameters:
       description:
         short: Return mode return altitude
         long: |-
-          Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
-          The vehicle will climb to this altitude when Return mode is engaged, unless it currently is flying higher already.
-          This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
+          Min altitude above destination (home, rally, landing pattern) for return.
+          Vehicle climbs to this unless already higher.
+          Affected by RTL_MIN_DIST and RTL_CONE_ANG.
       type: float
       default: 60.0
       unit: m
@@ -19,9 +19,8 @@ parameters:
       description:
         short: Return mode loiter altitude
         long: |-
-          Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
-          Land (i.e. slowly descend) from this altitude if autolanding allowed.
-          VTOLs do transition to hover in this altitude above the landing point.
+          Descend to this altitude above destination; wait RTL_LAND_DELAY then land if autolanding is allowed.
+          VTOLs transition to hover here.
       type: float
       default: 30.0
       unit: m
@@ -32,8 +31,8 @@ parameters:
       description:
         short: Return mode delay
         long: |-
-          Delay before landing (after initial descent) in Return mode.
-          If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
+          Delay between descent and landing in Return mode.
+          -1: loiter indefinitely at RTL_DESCEND_ALT.
       type: float
       default: 0.0
       unit: s
@@ -43,11 +42,7 @@ parameters:
     RTL_MIN_DIST:
       description:
         short: Min distance for RTL cone altitude calculation
-        long: |-
-          Horizontal radius from return point within which special rules for return mode apply
-
-          The return altitude will be calculated based on RTL_CONE_ANG parameter.
-          The yaw setpoint will switch to the one defined by corresponding waypoint.
+        long: Horizontal radius from return point where cone altitude (RTL_CONE_ANG) and waypoint yaw rules apply.
       type: float
       default: 10.0
       unit: m
@@ -83,9 +78,7 @@ parameters:
     RTL_CONE_ANG:
       description:
         short: Half-angle of the return mode altitude cone
-        long: |-
-          Defines the half-angle of a cone centered around the destination position that
-          affects the altitude at which the vehicle returns.
+        long: Half-angle of a cone centered on the destination that affects return altitude.
       type: enum
       values:
         0: No cone, always climb to RTL_RETURN_ALT above destination.
@@ -101,9 +94,7 @@ parameters:
     RTL_PLD_MD:
       description:
         short: RTL precision land mode
-        long: |-
-          Use precision landing when doing an RTL landing phase.
-          This setting does not apply for RTL destinations planned as part of a mission.
+        long: Precision landing mode for RTL. Does not apply to mission-planned RTL destinations.
       type: enum
       values:
         0: No precision landing
@@ -113,7 +104,7 @@ parameters:
     RTL_LOITER_RAD:
       description:
         short: Loiter radius for rtl descend
-        long: Set the radius for loitering to a safe altitude for VTOL transition.
+        long: Loiter radius for VTOL safe-altitude transition during RTL.
       type: float
       default: 80.0
       unit: m
@@ -126,8 +117,8 @@ parameters:
       description:
         short: RTL time estimate safety margin factor
         long: |-
-          Safety factor that is used to scale the actual RTL time estimate.
-          Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+          Scales RTL time estimate.
+          time_with_margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
       type: float
       default: 1.1
       min: 1.0
@@ -138,8 +129,8 @@ parameters:
       description:
         short: RTL time estimate safety margin offset
         long: |-
-          Margin that is added to the time estimate, after it has already been scaled
-          Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+          Fixed offset added to the scaled RTL time estimate.
+          time_with_margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
       type: int32
       default: 100
       unit: s
@@ -150,8 +141,6 @@ parameters:
     RTL_APPR_FORCE:
       description:
         short: RTL force approach landing
-        long: |-
-          Only consider home/rally RTL points that have a VTOL approach loiter.
-          A VTOL approach loiter is a MAV_CMD_NAV_LOITER_TO_ALT item with finite position and altitude.
+        long: Only use home/rally RTL points with a VTOL approach loiter (MAV_CMD_NAV_LOITER_TO_ALT with finite position/altitude).
       type: boolean
       default: 0

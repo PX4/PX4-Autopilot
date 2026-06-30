@@ -5,9 +5,7 @@ parameters:
     GF_ACTION:
       description:
         short: Geofence violation action
-        long: |-
-          Note: Setting this value to 4 enables flight termination,
-          which will kill the vehicle on violation of the fence.
+        long: Value 4 (Terminate) kills the vehicle on fence violation.
       type: enum
       values:
         0: None
@@ -22,10 +20,7 @@ parameters:
     GF_SOURCE:
       description:
         short: Geofence source
-        long: |-
-          Select which position source should be used. Selecting GPS instead of global position makes sure that there is
-          no dependence on the position estimator
-          0 = global position, 1 = GPS
+        long: GPS avoids dependence on the position estimator.
       type: enum
       values:
         0: GPOS
@@ -36,9 +31,7 @@ parameters:
     GF_MAX_HOR_DIST:
       description:
         short: Max horizontal distance from Home
-        long: |-
-          Maximum horizontal distance in meters the vehicle can be from Home before triggering a geofence action.
-          Disabled if 0.
+        long: Max distance from Home before triggering geofence action. 0 = disabled.
       type: float
       default: 0.0
       unit: m
@@ -48,9 +41,7 @@ parameters:
     GF_MAX_VER_DIST:
       description:
         short: Max vertical distance from Home
-        long: |-
-          Maximum vertical distance in meters the vehicle can be from Home before triggering a geofence action.
-          Disabled if 0.
+        long: Max vertical distance from Home before triggering geofence action. 0 = disabled.
       type: float
       default: 0.0
       unit: m

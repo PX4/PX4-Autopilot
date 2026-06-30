@@ -4,97 +4,97 @@ parameters:
   definitions:
     TC_G1_ID:
       description:
-        short: ID of Gyro that the calibration is for
+        short: Gyro calibration ID
       category: System
       type: int32
       default: 0
     TC_G1_X3_0:
       description:
-        short: Gyro rate offset temperature ^3 polynomial coefficient - X axis
+        short: Gyro rate offset temp ^3 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_G1_X3_1:
       description:
-        short: Gyro rate offset temperature ^3 polynomial coefficient - Y axis
+        short: Gyro rate offset temp ^3 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_G1_X3_2:
       description:
-        short: Gyro rate offset temperature ^3 polynomial coefficient - Z axis
+        short: Gyro rate offset temp ^3 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_G1_X2_0:
       description:
-        short: Gyro rate offset temperature ^2 polynomial coefficient - X axis
+        short: Gyro rate offset temp ^2 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_G1_X2_1:
       description:
-        short: Gyro rate offset temperature ^2 polynomial coefficient - Y axis
+        short: Gyro rate offset temp ^2 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_G1_X2_2:
       description:
-        short: Gyro rate offset temperature ^2 polynomial coefficient - Z axis
+        short: Gyro rate offset temp ^2 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_G1_X1_0:
       description:
-        short: Gyro rate offset temperature ^1 polynomial coefficient - X axis
+        short: Gyro rate offset temp ^1 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_G1_X1_1:
       description:
-        short: Gyro rate offset temperature ^1 polynomial coefficient - Y axis
+        short: Gyro rate offset temp ^1 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_G1_X1_2:
       description:
-        short: Gyro rate offset temperature ^1 polynomial coefficient - Z axis
+        short: Gyro rate offset temp ^1 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_G1_X0_0:
       description:
-        short: Gyro rate offset temperature ^0 polynomial coefficient - X axis
+        short: Gyro rate offset temp ^0 poly coeff - X
       category: System
       type: float
       default: 0.0
     TC_G1_X0_1:
       description:
-        short: Gyro rate offset temperature ^0 polynomial coefficient - Y axis
+        short: Gyro rate offset temp ^0 poly coeff - Y
       category: System
       type: float
       default: 0.0
     TC_G1_X0_2:
       description:
-        short: Gyro rate offset temperature ^0 polynomial coefficient - Z axis
+        short: Gyro rate offset temp ^0 poly coeff - Z
       category: System
       type: float
       default: 0.0
     TC_G1_TREF:
       description:
-        short: Gyro calibration reference temperature
+        short: Gyro calibration reference temp
       category: System
       type: float
       default: 25.0
     TC_G1_TMIN:
       description:
-        short: Gyro calibration minimum temperature
+        short: Gyro calibration minimum temp
       category: System
       type: float
       default: 0.0
     TC_G1_TMAX:
       description:
-        short: Gyro calibration maximum temperature
+        short: Gyro calibration maximum temp
       category: System
       type: float
       default: 100.0

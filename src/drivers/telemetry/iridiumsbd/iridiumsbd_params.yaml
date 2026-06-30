@@ -5,8 +5,7 @@ parameters:
     ISBD_READ_INT:
       description:
         short: Iridium SBD read interval
-        long: Satellite radio read interval. Only required to be nonzero if data is
-          not sent using a ring call
+        long: Nonzero only if data is not sent via ring call.
       type: int32
       default: 0
       unit: s
@@ -23,10 +22,7 @@ parameters:
     ISBD_STACK_TIME:
       description:
         short: Iridium SBD message stacking wait time
-        long: |-
-          Time the Iridium driver will wait for additional mavlink messages to combine them into one SBD message
-
-          Value 0 turns the functionality off
+        long: 0 disables stacking.
       type: int32
       default: 0
       unit: ms

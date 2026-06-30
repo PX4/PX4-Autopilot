@@ -5,9 +5,7 @@ parameters:
     PWM_LEVEL_CONT:
       description:
         short: Control PWM output voltage
-        long: |-
-          Enable:  PWM output voltage 5V
-          Disable: PWM output voltage 3.3V
+        long: "Enabled: 5V; disabled: 3.3V."
       type: boolean
       default: 0
       reboot_required: true

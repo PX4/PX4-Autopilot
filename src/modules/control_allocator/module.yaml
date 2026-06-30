@@ -11,11 +11,7 @@ parameters:
         CA_AIRFRAME:
             description:
                 short: Airframe selection
-                long: |
-                  Defines which mixer implementation to use.
-                  Some are generic, while others are specifically fit to a certain vehicle with a fixed set of actuators.
-
-                  'Custom' should only be used if noting else can be used.
+                long: "Generic or vehicle-specific mixer. Use Custom only if nothing else applies."
             type: enum
             values:
                 0: Multirotor
@@ -39,9 +35,7 @@ parameters:
         CA_METHOD:
             description:
                 short: Control allocation method
-                long: |
-                  Selects the algorithm and desaturation method.
-                  If set to Automatic, the selection is based on the airframe (CA_AIRFRAME).
+                long: If set to Automatic, selection is based on CA_AIRFRAME.
             type: enum
             values:
                 0: Pseudo-inverse with output clipping
@@ -53,8 +47,7 @@ parameters:
         CA_R_REV:
             description:
                 short: Bidirectional/Reversible motors
-                long: |
-                  Configure motors to be bidirectional/reversible. Note that the output driver needs to support this as well.
+                long: Output driver must also support bidirectional mode.
             type: bitmask
             bit:
                 0: Motor 1
@@ -73,11 +66,10 @@ parameters:
         CA_R${i}_SLEW:
             description:
                 short: Motor ${i} slew rate limit
-                long: |
-                  Forces the motor output signal to take at least the configured time (in seconds)
-                  to traverse its full range (normally [0, 1], or if reversible [-1, 1]).
+                long: |-
+                  Min time for motor output to traverse full range ([0, 1]; [-1, 1] if reversible).
 
-                  Zero means that slew rate limiting is disabled.
+                  0 disables slew rate limiting.
             type: float
             decimal: 2
             increment: 0.01
@@ -91,11 +83,10 @@ parameters:
         CA_SV${i}_SLEW:
             description:
                 short: Servo ${i} slew rate limit
-                long: |
-                  Forces the servo output signal to take at least the configured time (in seconds)
-                  to traverse its full range [-100%, 100%].
+                long: |-
+                  Min time for servo output to traverse full range [-100%, 100%].
 
-                  Zero means that slew rate limiting is disabled.
+                  0 disables slew rate limiting.
             type: float
             decimal: 2
             increment: 0.05
@@ -197,10 +188,7 @@ parameters:
         CA_ROTOR${i}_CT:
             description:
                 short: Thrust coefficient of rotor ${i}
-                long: |
-                  The thrust coefficient if defined as Thrust = CT * u^2,
-                  where u (with value between actuator minimum and maximum)
-                  is the output signal sent to the motor controller.
+                long: "Thrust = CT * u^2, where u is the normalized output signal."
             type: float
             decimal: 1
             increment: 1
@@ -212,11 +200,10 @@ parameters:
         CA_ROTOR${i}_KM:
             description:
                 short: Moment coefficient of rotor ${i}
-                long: |
-                  The moment coefficient if defined as Torque = KM * Thrust.
+                long: |-
+                  Torque = KM * Thrust.
 
-                  Use a positive value for a rotor with CCW rotation.
-                  Use a negative value for a rotor with CW rotation.
+                  Positive for CCW rotation, negative for CW.
             type: float
             decimal: 3
             increment: 0.01
@@ -313,11 +300,11 @@ parameters:
         CA_SV_CS${i}_TRIM:
             description:
                 short: Control Surface ${i} trim
-                long: |
-                  Can be used to add an offset to the servo control.
+                long: |-
+                  Offset added to servo control.
 
-                  NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
-                  This parameter can only be set if all PWM Center parameters are set to default.
+                  Not for PWM servos — use PWM CENTER params (e.g. PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+                  Only settable when all PWM Center params are at default.
             type: float
             decimal: 2
             min: -1.0
@@ -388,7 +375,6 @@ parameters:
         CA_SV_TL${i}_CT:
             description:
                 short: Tilt ${i} is used for control
-                long: Define if this servo is used for additional control.
             type: enum # This could be a bitset, but the enum shows up nicer in the UI
             values:
                 0: 'None'
@@ -401,9 +387,7 @@ parameters:
         CA_SV_TL${i}_MINA:
             description:
                 short: Tilt Servo ${i} Tilt Angle at Minimum
-                long: |
-                  Defines the tilt angle when the servo is at the minimum.
-                  An angle of zero means upwards.
+                long: "0° = upwards."
             type: float
             decimal: 0
             unit: 'deg'
@@ -415,9 +399,7 @@ parameters:
         CA_SV_TL${i}_MAXA:
             description:
                 short: Tilt Servo ${i} Tilt Angle at Maximum
-                long: |
-                  Defines the tilt angle when the servo is at the maximum.
-                  An angle of zero means upwards.
+                long: "0° = upwards."
             type: float
             decimal: 0
             unit: 'deg'
@@ -429,10 +411,9 @@ parameters:
         CA_SV_TL${i}_TD:
             description:
                 short: Tilt Servo ${i} Tilt Direction
-                long: |
-                  Defines the direction the servo tilts towards when moving towards the maximum tilt angle.
-                  For example if the minimum tilt angle is -90, the maximum 90, and the direction 'Towards Front',
-                  the motor axis aligns with the XZ-plane, points towards -X at the minimum and +X at the maximum tilt.
+                long: |-
+                  Direction the servo tilts toward at maximum angle.
+                  Example: min=-90, max=90, 'Towards Front' → motor axis in XZ-plane, -X at min, +X at max.
             type: enum
             values:
                 0: 'Towards Front'
@@ -456,8 +437,7 @@ parameters:
         CA_SP0_ANG${i}:
             description:
                 short: Angle for swash plate servo ${i}
-                long: |
-                  The angle is measured clockwise (as seen from top), with 0 pointing forwards (X axis).
+                long: Measured clockwise from top; 0 = forward (X axis).
             type: float
             decimal: 0
             increment: 10
@@ -481,8 +461,6 @@ parameters:
         CA_HELI_THR_C${i}:
             description:
                 short: Throttle curve at position ${i}
-                long: |
-                  Defines the output throttle at the interval position ${i}.
             type: float
             decimal: 3
             increment: 0.1
@@ -493,10 +471,7 @@ parameters:
         CA_HELI_PITCH_C${i}:
             description:
                 short: Collective pitch curve at position ${i}
-                long: |
-                  Defines the collective pitch at the interval position ${i} for a given thrust setpoint.
-
-                  Use negative values if the swash plate needs to move down to provide upwards thrust.
+                long: Negative values if swash plate must move down to provide upward thrust.
             type: float
             decimal: 3
             increment: 0.1
@@ -507,9 +482,8 @@ parameters:
         CA_HELI_YAW_CP_S:
           description:
             short: Scale for yaw compensation based on collective pitch
-            long: |
-              This allows to add a proportional factor of the collective pitch command to the yaw command.
-              A negative value is needed when positive thrust of the tail rotor rotates the vehicle opposite to the main rotor turn direction.
+            long: |-
+              Adds proportional factor of collective pitch to yaw. Negative when positive tail thrust rotates opposite to main rotor.
 
               tail_output += CA_HELI_YAW_CP_S * abs(collective_pitch - CA_HELI_YAW_CP_O)
           type: float
@@ -521,12 +495,9 @@ parameters:
         CA_HELI_YAW_CP_O:
           description:
             short: Offset for yaw compensation based on collective pitch
-            long: |
-              This allows to specify which collective pitch command results in the least amount of rotor drag.
-              This is used to increase the accuracy of the yaw drag torque compensation based on collective pitch
-              by aligning the lowest rotor drag with zero compensation.
-              For symmetric profile blades this is the command that results in exactly 0° collective blade angle.
-              For lift profile blades this is typically a command resulting in slightly negative collective blade angle.
+            long: |-
+              Collective pitch at which rotor drag is minimal (aligns zero compensation with drag minimum).
+              Symmetric blades: cmd at 0° collective. Lift-profile blades: typically slightly negative.
 
               tail_output += CA_HELI_YAW_CP_S * abs(collective_pitch - CA_HELI_YAW_CP_O)
           type: float
@@ -538,9 +509,8 @@ parameters:
         CA_HELI_YAW_TH_S:
           description:
             short: Scale for yaw compensation based on throttle
-            long: |
-              This allows to add a proportional factor of the throttle command to the yaw command.
-              A negative value is needed when positive thrust of the tail rotor rotates the vehicle opposite to the main rotor turn direction.
+            long: |-
+              Adds proportional factor of throttle to yaw. Negative when positive tail thrust rotates opposite to main rotor.
 
               tail_output += CA_HELI_YAW_TH_S * throttle
           type: float
@@ -552,18 +522,13 @@ parameters:
         CA_HELI_YAW_CCW:
           description:
             short: Main rotor turns counter-clockwise
-            long: |
-              Default configuration is for a clockwise turning main rotor and
-              positive thrust of the tail rotor is expected to rotate the vehicle clockwise.
-              Set this parameter to true if the tail rotor provides thrust in counter-clockwise direction
-              which is mostly the case when the main rotor turns counter-clockwise.
+            long: "Default assumes CW main rotor with tail thrust rotating vehicle CW. Set true when tail provides CCW thrust (typically for CCW main rotor)."
           type: boolean
           default: 0
         CA_HELI_RPM_SP:
           description:
             short: Setpoint for main rotor rpm
-            long: |
-              Requires rpm feedback for the controller.
+            long: Requires rpm feedback for the controller.
           type: float
           decimal: 0
           increment: 1
@@ -573,8 +538,8 @@ parameters:
         CA_HELI_RPM_P:
           description:
             short: Proportional gain for rpm control
-            long: |
-              Ratio between rpm error devided by 1000 to how much normalized output gets added to correct for it.
+            long: |-
+              Normalized output added per (rpm_error / 1000).
 
               motor_command = throttle_curve + CA_HELI_RPM_P * (rpm_setpoint - rpm_measurement) / 1000
           type: float
@@ -586,8 +551,7 @@ parameters:
         CA_HELI_RPM_I:
           description:
             short: Integral gain for rpm control
-            long: |
-              Same definition as the proportional gain but for integral.
+            long: Same definition as the proportional gain but for integral.
           type: float
           decimal: 3
           increment: 0.1
@@ -597,10 +561,9 @@ parameters:
         CA_MAX_SVO_THROW:
           description:
             short: Throw angle of swashplate servo at maximum commands for linearization
-            long: |
-              Used to linearize mechanical output of swashplate servos to avoid axis coupling and binding with 4 servo redundancy.
-              This requires a symmetric setup where the servo horn is exactly centered with a 0 command.
-              Setting to zero disables feature.
+            long: |-
+              Linearizes swashplate servo output to reduce axis coupling and binding (4-servo redundancy).
+              Requires symmetric setup with servo horn centered at 0 command. 0 disables.
           type: float
           decimal: 1
           unit: deg
@@ -613,9 +576,6 @@ parameters:
         CA_FAILURE_MODE:
             description:
                 short: Motor failure handling mode
-                long: |
-                    This is used to specify how to handle motor failures
-                    reported by failure detector.
             type: enum
             values:
                 0: Ignore
@@ -625,10 +585,9 @@ parameters:
         CA_ICE_PERIOD:
             description:
                 short: Ice shedding cycle period
-                long: |
-                    Ice shedding prevents ice buildup in VTOL aircraft motors by periodically spinning inactive rotors.
-                    When enabled (period > 0), every cycle lasts for the defined period and includes a 2-second spin at 0.01 motor output.
-                    If period <= 0, the feature is disabled.
+                long: |-
+                    Prevents ice buildup by periodically spinning inactive VTOL motors for 2 s at 0.01 output.
+                    0 or negative disables.
             type: float
             decimal: 1
             unit: s

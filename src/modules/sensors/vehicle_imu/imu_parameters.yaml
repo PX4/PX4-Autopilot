@@ -6,8 +6,8 @@ parameters:
       description:
         short: IMU integration rate
         long: |-
-          The rate at which raw IMU data is integrated to produce delta angles and delta velocities.
-          Recommended to set this to a multiple of the estimator update period (currently 10 ms for ekf2).
+          Rate for integrating raw IMU data into delta angles/velocities.
+          Should be a multiple of the estimator update period (ekf2: 10 ms).
       type: enum
       values:
         100: 100 Hz
@@ -30,7 +30,6 @@ parameters:
     SENS_IMU_CLPNOTI:
       description:
         short: IMU notify clipping
-        long: Notify the user if the IMU is clipping
       category: System
       type: boolean
       default: 1

@@ -5,20 +5,15 @@ parameters:
     MAN_ARM_GESTURE:
       description:
         short: Enable arm/disarm stick gesture
-        long: |-
-          This determines if moving the left stick to the lower right
-          arms and to the lower left disarms the vehicle.
+        long: Left stick to lower-right arms; lower-left disarms.
       type: boolean
       default: 1
     MAN_KILL_GEST_T:
       description:
         short: Trigger time for kill stick gesture
         long: |-
-          The timeout for holding the left stick to the lower left
-          and the right stick to the lower right at the same time until the gesture
-          kills the actuators one-way.
-
-          A negative value disables the feature.
+          Hold left stick lower-left and right stick lower-right simultaneously for this duration to kill actuators (one-way).
+          Negative disables.
       type: float
       default: -1.0
       unit: s
@@ -29,11 +24,8 @@ parameters:
       description:
         short: Deadzone for sticks (only specific use cases)
         long: |-
-          Range around stick center ignored to prevent
-          vehicle drift from stick hardware inaccuracy.
-
-          Does not apply to any precise constant input like
-          throttle and attitude or rate piloting.
+          Stick center deadzone to prevent drift from hardware inaccuracy.
+          Not applied to throttle, attitude, or rate piloting inputs.
       type: float
       default: 0.1
       min: 0

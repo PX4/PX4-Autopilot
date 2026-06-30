@@ -5,10 +5,7 @@ parameters:
     HTE_HT_NOISE:
       description:
         short: Hover thrust process noise
-        long: |-
-          Reduce to make the hover thrust estimate
-          more stable, increase if the real hover thrust
-          is expected to change quickly over time.
+        long: Decrease for more stable estimate; increase if hover thrust changes quickly.
       type: float
       default: 0.0036
       decimal: 4
@@ -43,10 +40,9 @@ parameters:
       description:
         short: Horizontal velocity threshold for sensitivity reduction
         long: |-
-          Above this speed, the measurement noise is linearly increased
-          to reduce the sensitivity of the estimator from biased measurement.
+          Above this speed, noise is linearly increased to reduce sensitivity to biased measurements.
 
-          Set to a low value on vehicles with large lifting surfaces.
+          Set low on vehicles with large lifting surfaces.
       type: float
       default: 10.0
       decimal: 1
@@ -57,10 +53,9 @@ parameters:
       description:
         short: Vertical velocity threshold for sensitivity reduction
         long: |-
-          Above this speed, the measurement noise is linearly increased
-          to reduce the sensitivity of the estimator from biased measurement.
+          Above this speed, noise is linearly increased to reduce sensitivity to biased measurements.
 
-          Set to a low value on vehicles affected by air drag when climbing or descending.
+          Set low on vehicles affected by drag when climbing or descending.
       type: float
       default: 2.0
       decimal: 1
@@ -71,11 +66,9 @@ parameters:
       description:
         short: Max deviation from MPC_THR_HOVER
         long: |-
-          Defines the range of the hover thrust estimate around MPC_THR_HOVER.
-          A value of 0.2 with MPC_THR_HOVER at 0.5 results in a range of [0.3, 0.7].
+          Estimate stays within [MPC_THR_HOVER ± this value]. E.g., 0.2 with hover=0.5 gives [0.3, 0.7].
 
-          Set to a large value if the vehicle operates in varying physical conditions that
-          affect the required hover thrust strongly (e.g. differently sized payloads).
+          Increase for vehicles with variable payloads or varying hover conditions.
       type: float
       default: 0.2
       decimal: 2

@@ -8,8 +8,6 @@ parameters:
       ADC_ADS7953_EN:
         description:
             short: Enable ADS7953
-            long: |
-                Enable the driver for the ADS7953 board
         type: boolean
         reboot_required: true
         default: 0
@@ -17,8 +15,6 @@ parameters:
       ADC_ADS7953_REFV:
         description:
             short: Applied reference Voltage.
-            long: |
-                The voltage applied to the ADS7953 board as reference
         type: float
         unit: V
         min: 2.0

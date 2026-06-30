@@ -5,9 +5,7 @@ parameters:
     LND_FLIGHT_T_HI:
       description:
         short: Total flight time in microseconds
-        long: |-
-          Total flight time of this autopilot. Higher 32 bits of the value.
-          Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+        long: High 32 bits. Total us = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
       category: System
       type: int32
       default: 0
@@ -16,9 +14,7 @@ parameters:
     LND_FLIGHT_T_LO:
       description:
         short: Total flight time in microseconds
-        long: |-
-          Total flight time of this autopilot. Lower 32 bits of the value.
-          Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+        long: Low 32 bits. Total us = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
       category: System
       type: int32
       default: 0

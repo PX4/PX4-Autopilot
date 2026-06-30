@@ -5,8 +5,6 @@ parameters:
         RC_INPUT_PROTO:
             description:
                 short: RC input protocol
-                long: |
-                    Select your RC input protocol or auto to scan.
             category: System
             type: enum
             values:

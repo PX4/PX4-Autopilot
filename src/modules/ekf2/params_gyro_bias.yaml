@@ -24,8 +24,7 @@ parameters:
     EKF2_GYR_B_LIM:
       description:
         short: Gyro bias learning limit
-        long: The ekf gyro bias states will be limited to within a range equivalent
-          to +- of this value.
+        long: Gyro bias states clamped to +/- this value.
       type: float
       default: 0.15
       min: 0.0
