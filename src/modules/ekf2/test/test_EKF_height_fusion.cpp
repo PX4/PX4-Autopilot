@@ -208,6 +208,34 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_NEAR(_ekf->aid_src_rng_hgt().innovation, 0.f, 0.2f);
 }
 
+TEST_F(EkfHeightFusionTest, gpsHeightFusionStopsWhenGpsNotEnabled)
+{
+	// GIVEN: GPS reference with GPS height fusion active
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableGpsHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// WHEN: GPS is no longer intended at runtime without a new GNSS sample
+	_sensor_simulator.stopGps();
+	_ekf_wrapper.setGpsEnabled(false);
+	_sensor_simulator.runSeconds(0.1);
+
+	// THEN: GPS height fusion stops and does not restart while GPS is disabled
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	_sensor_simulator.runSeconds(0.1);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+
+	// AND WHEN: GPS is intended again
+	_sensor_simulator.startGps();
+	_ekf_wrapper.setGpsEnabled(true);
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: GPS height fusion can restart
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+}
+
 TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
 {
 	// GIVEN: GNSS alt reference but not selected as an aiding source

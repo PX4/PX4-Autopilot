@@ -371,6 +371,7 @@ bootloaders_update: \
 	cuav_fmu-v6x_bootloader \
 	cuav_x25-evo_bootloader \
 	cuav_x25-super_bootloader \
+	cuav_x25-mega_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
@@ -657,6 +658,7 @@ help:
 list_config_targets:
 	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
 
+.PHONY: check_nuttx check_linux check_px4 check_nxp
 check_nuttx : $(call make_list,nuttx) \
 	sizes
 

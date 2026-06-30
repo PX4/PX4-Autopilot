@@ -77,6 +77,7 @@ public:
 
 	void enableGpsFusion();
 	void disableGpsFusion();
+	void setGpsEnabled(bool enabled);
 	bool isIntendingGpsFusion() const;
 	bool isGnssFaultDetected() const;
 	void setGnssDeadReckonMode();
