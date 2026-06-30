@@ -470,9 +470,14 @@ public:
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
 	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
 
+	bool failure_injection_enabled() const
+	{
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-	bool failure_injection_enabled() const { return _param_sys_failure_injection_enabled.get(); }
+		return _param_sys_failure_injection_enabled.get();
+#else
+		return false;
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
+	}
 
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
