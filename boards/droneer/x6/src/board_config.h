@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMU-v6x internal definitions
+ * Droneer-v6x internal definitions
  */
 
 #pragma once
