@@ -188,13 +188,10 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 	_position_smoothing.setMaxAccelerationXY(max_horizontal_accel);
 
 	// Vertical constraints
-	float vehicle_max_vertical_speed = _param_mpc_z_v_auto_dn;
-	float vehicle_max_vertical_accel = _param_mpc_acc_down_max;
+	const bool going_up = goto_setpoint.position[2] < _position_smoothing.getCurrentPositionZ(); // goto higher -> more negative
 
-	if (goto_setpoint.position[2] < _position_smoothing.getCurrentPositionZ()) { // goto higher -> more negative
-		vehicle_max_vertical_speed = _param_mpc_z_v_auto_up;
-		vehicle_max_vertical_accel = _param_mpc_acc_up_max;
-	}
+	float vehicle_max_vertical_speed = going_up ? _param_mpc_z_v_auto_up : _param_mpc_z_v_auto_dn;
+	float vehicle_max_vertical_accel = going_up ? _param_mpc_acc_up_max : _param_mpc_acc_down_max;
 
 	float max_vertical_speed = vehicle_max_vertical_speed;
 	float max_vertical_accel = vehicle_max_vertical_accel;
@@ -212,6 +209,12 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 
 	_position_smoothing.setMaxVelocityZ(max_vertical_speed);
 	_position_smoothing.setMaxAccelerationZ(max_vertical_accel);
+
+	_position_smoothing.setMaxSpeedAndAccelerationZ(
+		going_up ? max_vertical_speed : _param_mpc_z_v_auto_up,
+		going_up ? _param_mpc_z_v_auto_dn : max_vertical_speed,
+		going_up ? max_vertical_accel : _param_mpc_acc_up_max,
+		going_up ? _param_mpc_acc_down_max : max_vertical_accel);
 }
 
 void GotoControl::setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint)
