@@ -63,6 +63,8 @@
 
 #include "sensor_bridge.hpp"
 
+#include <clock_offset_estimator.hpp>
+
 class UavcanGnssBridge : public UavcanSensorBridgeBase
 {
 public:
@@ -152,6 +154,14 @@ private:
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
+
+	// Per-source-node clock-offset estimator. Slot count matches channel count.
+	struct ClockEstimatorSlot {
+		int node_id{-1};
+		ClockOffsetEstimator estimator;
+	};
+	static constexpr unsigned kMaxClockEstimatorSlots = 4;
+	ClockEstimatorSlot _clock_estimator_slots[kMaxClockEstimatorSlots];
 
 	bool _publish_rtcm_stream{false};
 	bool _publish_moving_baseline_data{false};

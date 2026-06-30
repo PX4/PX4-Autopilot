@@ -40219,6 +40219,62 @@ The mode will switch from long to short range when the distance is less than the
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
 
+### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
+
+Serial Configuration for Sony AS-DT1 Rangefinder.
+
+Configure on which serial port to run Sony AS-DT1 Rangefinder.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_MODE (`INT32`) {#SENS_ASDT1_MODE}
+
+Distance measurement range.
+
+Sony AS-DT1 distance measurement range mode. The driver uses
+this mode to configure the sensor and publish matching
+obstacle_distance metadata.
+
+**Values:**
+
+- `0`: 30MSTD
+- `1`: 30M15F
+- `2`: 30M30F
+- `3`: 20M
+- `4`: 40M
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 4        |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_ROT (`FLOAT`) {#SENS_ASDT1_ROT}
+
+Sensor yaw offset.
+
+Yaw angle offset of the Sony AS-DT1 sensor relative to the
+vehicle forward direction. Positive values are clockwise.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -360     | 360      |           | 0       | deg  | &nbsp;    |
+
 ### SENS_BAHRS_CFG (`INT32`) {#SENS_BAHRS_CFG}
 
 Serial Configuration for EULER-NAV BAHRS.
