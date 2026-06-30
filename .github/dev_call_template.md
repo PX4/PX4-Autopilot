@@ -1,6 +1,6 @@
-# PX4 Sync / Q&A - [date=__CALL_DATE__ time=17:00:00 timezone="CET"]
+# PX4 Sync / Q&A - [date={{CALL_DATE}} time=17:00:00 timezone="{{CALL_TIMEZONE}}"]
 
-**This week:** __MERGED_COUNT__ PRs merged | __REVIEW_COUNT__ awaiting review | __BUG_COUNT__ new bugs
+**This week:** {{MERGED_COUNT}} PRs merged | {{REVIEW_COUNT}} awaiting review | {{BUG_COUNT}} new bugs
 
 ---
 
@@ -16,7 +16,7 @@
 
 ## Dev Call Items
 
-__DEV_CALL_ITEMS__
+{{DEV_CALL_ITEMS}}
 
 ---
 
@@ -39,21 +39,21 @@ __DEV_CALL_ITEMS__
 
 ## PRs Merged This Week
 
-__MERGED_PRS__
+{{MERGED_PRS}}
 
 ## PRs Awaiting Review
 
-__REVIEW_PRS__
+{{REVIEW_PRS}}
 
 ---
 
 ## New Bug Reports
 
-__BUG_ISSUES__
+{{BUG_ISSUES}}
 
 ## Other New Issues
 
-__OTHER_ISSUES__
+{{OTHER_ISSUES}}
 
 ---
 
