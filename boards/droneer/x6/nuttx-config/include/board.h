@@ -1,7 +1,7 @@
 /************************************************************************************
- * nuttx-configs/px4_fmu-v6x/include/board.h
+ * nuttx-configs/droneer_fmu-v6x/include/board.h
  *
- *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2026 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_DRNR_FMU_V6X_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_DRNR_FMU_V6X_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
