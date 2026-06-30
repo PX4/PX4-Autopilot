@@ -191,12 +191,12 @@
 
 #define ADC_CHANNELS \
 	(((1 << ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL) | \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL) | \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL) | \
-	 (1 << ADC_SCALED_V5_CHANNEL)               | \
-	 (1 << ADC_ADC3_6V6_CHANNEL)                | \
-	 (1 << ADC_ADC3_3V3_CHANNEL))               | \
-	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL))
+	  (1 << ADC_SCALED_VDD_3V3_SENSORS2_CHANNEL) | \
+	  (1 << ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL) | \
+	  (1 << ADC_SCALED_V5_CHANNEL)               | \
+	  (1 << ADC_ADC3_6V6_CHANNEL)                | \
+	  (1 << ADC_ADC3_3V3_CHANNEL))               | \
+	 (1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
@@ -218,7 +218,7 @@
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 //                 Base/FMUM
 #define DroneerX6_0     HW_FMUM_ID(0x0)   // DroneerX6,
-#define DroneerX6_1     HW_FMUM_ID(0x1) 
+#define DroneerX6_1     HW_FMUM_ID(0x1)
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
