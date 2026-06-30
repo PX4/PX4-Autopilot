@@ -2,8 +2,7 @@
 
 
 The DroneerX6 is a series of flight controllers manufactured by Droneer, which is based on the open-source FMU v6X architecture and Pixhawk Autopilot Bus open source specifications.
-![DroneerX6](https://github.com/Droneer-uav/Droneerx6/blob/main/DroneerX6_V1.png "DroneerX6")
-
+![DroneerX6](../../assets/flight_controller/droneerx6/DroneerX6_V1.png)
 
 
 ## Where To Buy {#store}
@@ -42,7 +41,7 @@ The DroneerX6 is a series of flight controllers manufactured by Droneer, which i
 
 ## Pinout
 
-![DroneerX6 Pinout](https://github.com/Droneer-uav/Droneerx6/blob/main/DroneerX6_Pinout.png  "DroneerX6")
+![DroneerX6 Pinout](../../assets/flight_controller/droneerx6/DroneerX6_Pinout.png)
 
 ## Serial Port Mapping
 
