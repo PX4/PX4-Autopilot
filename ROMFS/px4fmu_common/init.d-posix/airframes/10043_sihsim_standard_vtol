@@ -56,11 +56,11 @@ param set-default CA_ROTOR4_AZ 0
 # SIH for now hardcodes this configuration which we need to match in the airframe files.
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TRQ_R 1
-param set-default CA_SV_CS0_TYPE 15  # single channel aileron
+param set-default CA_SV_CS0_TYPE 15 # single channel aileron
 param set-default CA_SV_CS1_TRQ_P 1
-param set-default CA_SV_CS1_TYPE 3  # elevator
+param set-default CA_SV_CS1_TYPE 3 # elevator
 param set-default CA_SV_CS2_TRQ_Y 1
-param set-default CA_SV_CS2_TYPE 4  # rudder
+param set-default CA_SV_CS2_TYPE 4 # rudder
 
 param set-default FW_AIRSPD_MIN 7
 param set-default FW_AIRSPD_TRIM 10
@@ -82,13 +82,13 @@ param set-default MAV_TYPE 22
 
 param set-default SENS_DPRES_OFF 0.001
 
-param set SIH_T_MAX 2.0
+param set SIH_T_MAX 2
 param set SIH_Q_MAX 0.0165
 param set SIH_MASS 0.2
 # IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
 param set SIH_IXX 0.00354
 param set SIH_IYY 0.000625
-param set SIH_IZZ 0.00300
+param set SIH_IZZ 0.003
 param set SIH_IXZ 0
 param set SIH_KDV 0.2
 param set SIH_L_ROLL 0.2
