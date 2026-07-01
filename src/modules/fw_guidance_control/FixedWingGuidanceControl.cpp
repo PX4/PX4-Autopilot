@@ -526,7 +526,7 @@ lateral-longitudinal controller and and controllers below that (attitude, rate).
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("fw_mode_manager", "controller");
+	PRINT_MODULE_USAGE_NAME("fw_guidance_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
