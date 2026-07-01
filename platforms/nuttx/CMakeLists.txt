@@ -402,6 +402,12 @@ else()
 		set(NUTTX_HEAD_OBJS ${NUTTX_DIR}/arch/risc-v/src/${CONFIG_ARCH_CHIP}_head.o)
 	endif()
 
+	# Provide the possibility to preprocess linker by providing cmake/linker_preprocess.cmake
+	set(_ld_script_flag "-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld")
+	if(EXISTS "${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake")
+		include(${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake)
+	endif()
+
 	target_link_libraries(px4 PRIVATE
 
 		-nostartfiles
@@ -411,7 +417,7 @@ else()
 
 		-fno-exceptions
 		-fno-rtti
-		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
+		${_ld_script_flag}
 		-L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--warn-common
