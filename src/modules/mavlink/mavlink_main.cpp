@@ -104,7 +104,7 @@ static mavlink_status_t mavlink_channel_statuses[MAVLINK_COMM_NUM_BUFFERS] {};
 static mavlink_message_t mavlink_channel_buffers[MAVLINK_COMM_NUM_BUFFERS] {};
 // Recursive mutex: allows callers to hold lock_send() while send_start()/send_finish()
 // re-lock internally (called from _mav_finalize_message_chan_send via MAVLINK_START_UART_SEND).
-pthread_mutex_t mavlink_channel_send_mutexes[MAVLINK_COMM_NUM_BUFFERS];
+static pthread_mutex_t mavlink_channel_send_mutexes[MAVLINK_COMM_NUM_BUFFERS];
 static pthread_once_t mavlink_channel_mutexes_once = PTHREAD_ONCE_INIT;
 
 static void init_channel_send_mutexes()
