@@ -33,24 +33,24 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
    - If flying the vehicle will hold.
    - If landed the vehicle will "wait".
 
-1. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
+2. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
    - A `TAKEOFF` item is treated as a normal waypoint.
-1. If a mission is stored and PX4 is landed:
+3. If a mission is stored and PX4 is landed:
    - PX4 will execute the [mission/flight plan](../flying/missions.md).
    - If the mission does not have a `TAKEOFF` item then PX4 will fly the vehicle to the minimum altitude before executing the remainder of the flight plan from the current step.
-1. If no mission is stored, or if PX4 has finished executing all mission commands:
+4. If no mission is stored, or if PX4 has finished executing all mission commands:
    - If flying the vehicle will hold.
    - If landed the vehicle will "wait".
-1. You can manually change the current mission command by selecting it in _QGroundControl_.
+5. You can manually change the current mission command by selecting it in _QGroundControl_.
 
    ::: info
    If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
    One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
    :::
 
-1. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
+6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
-   :::tip
+   ::: tip
    To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
    Enter the time to wait after landing before disarming the vehicle.
    :::
@@ -131,6 +131,8 @@ Mission Items:
 - [MAV_CMD_NAV_LOITER_UNLIM](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_UNLIM)
 - [MAV_CMD_NAV_LOITER_TIME](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TIME)
 - [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)
+  - Latitude (param5) and  longitude (param6) are used (the vehicle will fly to this location at the current altitude and then land).
+  - Altitude (param7) is not used.
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
