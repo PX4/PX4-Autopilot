@@ -42,6 +42,7 @@
 
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
+#include "mavlink_command_params.hpp"
 
 #include <lib/geo/geo.h>
 #include <systemlib/err.h>
@@ -1442,6 +1443,34 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->altitude_is_relative = true;
 		}
 
+		{
+			uint8_t zero_mask = 0;
+			int bad = -1;
+
+			if (_int_mode) {
+				const mavlink_mission_item_int_t *item_int =
+					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
+				bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+						mavlink_mission_item->param1, mavlink_mission_item->param2,
+						mavlink_mission_item->param3, mavlink_mission_item->param4,
+						item_int->x, item_int->y,
+						mavlink_mission_item->z, &zero_mask);
+
+			} else {
+				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+						mavlink_mission_item->param1, mavlink_mission_item->param2,
+						mavlink_mission_item->param3, mavlink_mission_item->param4,
+						mavlink_mission_item->x, mavlink_mission_item->y,
+						mavlink_mission_item->z, &zero_mask);
+			}
+
+			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
+
+			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)mavlink_mission_item->command); }
+
+			if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)mavlink_mission_item->command, zero_mask); }
+		}
+
 		// Depending on the received MAV_CMD_* (MAVLink Commands), assign the corresponding
 		// NAV_CMD value to the mission item's nav_cmd.
 		switch (mavlink_mission_item->command) {
@@ -1570,6 +1599,38 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
 
 		// This is a mission item with no coordinates
+
+		{
+			uint8_t zero_mask = 0;
+			int bad = -1;
+
+			if (_int_mode) {
+				const mavlink_mission_item_int_t *item_int =
+					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
+				// x/y are p5/p6 generic params (not lat/lon) for non-position frames.
+				// Normalize INT32_MAX (MISSION_ITEM_INT "unused" sentinel) to NaN so
+				// both the int sentinel and the NaN are treated as unset.
+				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? NAN : (float)item_int->x;
+				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? NAN : (float)item_int->y;
+				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+						mavlink_mission_item->param1, mavlink_mission_item->param2,
+						mavlink_mission_item->param3, mavlink_mission_item->param4,
+						p5, p6, mavlink_mission_item->z, &zero_mask);
+
+			} else {
+				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+						mavlink_mission_item->param1, mavlink_mission_item->param2,
+						mavlink_mission_item->param3, mavlink_mission_item->param4,
+						(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
+						mavlink_mission_item->z, &zero_mask);
+			}
+
+			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
+
+			if (bad < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)mavlink_mission_item->command); }
+
+			if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)mavlink_mission_item->command, zero_mask); }
+		}
 
 		mission_item->params[0] = mavlink_mission_item->param1;
 		mission_item->params[1] = mavlink_mission_item->param2;
@@ -1948,6 +2009,8 @@ MavlinkMissionManager::update_mission_state()
 	if (!_vehicle_status_sub.update(&vehicle_status)) {
 		return;
 	}
+
+	_vehicle_type_bitmask = mavlink_cmd_params::vehicle_type_bitmask(vehicle_status.is_vtol, vehicle_status.vehicle_type);
 
 	// Get mission result
 	const mission_result_s &mission_result = _mission_result_sub.get();

@@ -58,6 +58,7 @@
 #endif
 
 #include "mavlink_command_sender.h"
+#include "mavlink_command_params.hpp"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
@@ -676,6 +677,23 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		return;
 	}
+
+	uint8_t zero_mask = 0;
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, _vehicle_type_bitmask,
+				    vehicle_command.param1, vehicle_command.param2,
+				    vehicle_command.param3, vehicle_command.param4,
+				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
+				    &zero_mask);
+
+	if (command_invalid > 0) {
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+		return;
+	}
+
+	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)cmd_mavlink.command); }
+
+	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)cmd_mavlink.command, zero_mask); }
 
 	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
@@ -3728,6 +3746,12 @@ MavlinkReceiver::run()
 
 			// update parameters from storage
 			updateParams();
+		}
+
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vs{};
+			_vehicle_status_sub.copy(&vs);
+			_vehicle_type_bitmask = mavlink_cmd_params::vehicle_type_bitmask(vs.is_vtol, vs.vehicle_type);
 		}
 
 		// Reload signing key if another instance updated it
