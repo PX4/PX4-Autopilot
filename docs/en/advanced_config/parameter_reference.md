@@ -21202,8 +21202,8 @@ Delay between failsafe condition triggered and failsafe reaction.
 
 Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
 for the user to realize.
-During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-Afterwards the configured failsafe action is triggered and the user may use stick override.
+During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
+Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
 A zero value disables the delay.
 
@@ -21953,35 +21953,6 @@ Ensure the value is not set lower than the update interval of the RC or Joystick
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 35       | 0.1       | 0.5     | s    | &nbsp;    |
-
-### COM_RC_OVERRIDE (`INT32`) {#COM_RC_OVERRIDE}
-
-Enable manual control stick override.
-
-When enabled, moving the sticks more than COM_RC_STICK_OV
-immediately gives control back to the pilot by switching to Position mode and
-if position is unavailable Altitude mode.
-Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-
-**Bitmask:**
-
-- `0`: Enable override during auto modes (except for in critical battery reaction)
-- `1`: Enable override during offboard mode
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
-
-### COM_RC_STICK_OV (`FLOAT`) {#COM_RC_STICK_OV}
-
-Stick override threshold.
-
-If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-the pilot takes over control.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 5        | 80       | 0.05      | 30.0    | %    | &nbsp;    |
 
 ### COM_SPOOLUP_TIME (`FLOAT`) {#COM_SPOOLUP_TIME}
 
@@ -31497,6 +31468,16 @@ A negative value disables the feature.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       | 15       |           | -1.0    | s    | &nbsp;    |
 
+### MAN_OVERRIDE_SPD (`FLOAT`) {#MAN_OVERRIDE_SPD}
+
+Manual control override speed threshold.
+
+Stick velocity above which the pilot regains control by switching to Position mode (or Altitude if position is unavailable). Unit: normalized stick travel per second — at 1.0, moving a stick half its range in ~0.5s triggers it. A negative value disables the feature. Only applies to multicopters and VTOLs in MC mode.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 10.0     | 0.5       | 1       | 1/s  | &nbsp;    |
+
 ## Mission
 
 ### MIS_COMMAND_TOUT (`FLOAT`) {#MIS_COMMAND_TOUT}
@@ -32614,7 +32595,7 @@ stick full up - 0
 stick centered - MPC_LAND_SPEED
 stick full down - 2 \* MPC_LAND_SPEED
 
-Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
+Manual override has to be disabled to use this feature (MAN_OVERRIDE_SPD -1).
 
 **Values:**
 
