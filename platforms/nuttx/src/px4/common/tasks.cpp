@@ -94,7 +94,12 @@ int px4_task_delete(int pid)
 
 int px4_task_join(int pid)
 {
-	// Wait for the task to exit by polling whether it still exists
+	// LIMITATION: NuttX tasks are task_create() children, not pthreads, so there is
+	// no portable join here. This waits by repeatedly checking whether the task is
+	// still alive. It returns no exit status, and can wait on the wrong task if the
+	// PID gets reused. It is only safe because the only on-target caller is
+	// WorkQueueManager shutdown, and NuttX shutdown is a full reboot, so this
+	// effectively never runs on hardware.
 	while (kill(pid, 0) == 0) {
 		px4_usleep(10000);
 	}
