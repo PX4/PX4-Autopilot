@@ -410,17 +410,42 @@ void uORB::DeviceNode::remove_internal_subscriber()
 #ifdef CONFIG_ORB_COMMUNICATOR
 int16_t uORB::DeviceNode::process_add_subscription()
 {
-	// if there is already data in the node, send this out to
-	// the remote entity.
-	// send the data to the remote entity.
+	// If there is already data in the node, send this out to the remote entity to
+	// initialize its end.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
-		// Only send the most recent data to initialize the remote end.
-		if (_data_valid) {
-			ch->send_message(_meta->o_name, _meta->o_size, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
-		}
+	if (ch == nullptr) {
+		return PX4_OK;
 	}
+
+	// Snapshot the most recent sample under the node lock, then send it outside the
+	// critical section. Reading _data / _data_valid and the buffer contents while
+	// sending would race with a concurrent write(), which memcpy's into _data and
+	// sets _data_valid under ATOMIC_ENTER. send_message() must also not run under
+	// ATOMIC_ENTER: it can be slow and may call back into DeviceNode. This mirrors the
+	// snapshot-under-lock done in copy().
+	uint8_t *buffer = (uint8_t *)px4_cache_aligned_alloc(_meta->o_size);
+
+	if (buffer == nullptr) {
+		return PX4_ERROR;
+	}
+
+	bool have_data = false;
+
+	ATOMIC_ENTER;
+
+	if (_data != nullptr && _data_valid) { // _data will not be null if there is a publisher.
+		memcpy(buffer, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)), _meta->o_size);
+		have_data = true;
+	}
+
+	ATOMIC_LEAVE;
+
+	if (have_data) {
+		ch->send_message(_meta->o_name, _meta->o_size, buffer);
+	}
+
+	free(buffer);
 
 	return PX4_OK;
 }
