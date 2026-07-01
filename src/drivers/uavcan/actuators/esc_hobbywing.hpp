@@ -63,7 +63,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <drivers/drv_hrt.h>
-#include "../node_info.hpp"
 
 /**
  * DroneCAN ESC controller for HobbyWing ESCs.
@@ -86,7 +85,6 @@ public:
 
 	void update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size);
 	void set_rotor_count(uint8_t count);
-	void set_node_info_publisher(NodeInfoPublisher *publisher) { _node_info_publisher = publisher; }
 
 	static int max_output_value() { return 8191; }  ///< int14 max
 
@@ -148,8 +146,6 @@ private:
 
 	/// Periodic timer: broadcasts GetEscID at 1 Hz while disarmed
 	uavcan::TimerEventForwarder<TimerCbBinder> _get_esc_id_timer;
-
-	NodeInfoPublisher *_node_info_publisher{nullptr};
 };
 
 #endif // CONFIG_UAVCAN_HOBBYWING_ESC

@@ -244,7 +244,9 @@ void UavcanHobbyWingEscController::handle_StatusMsg1(
 	_esc_status.counter            += 1;
 	_esc_status.esc_connectiontype  = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 	_esc_status.esc_online_flags    = check_escs_status();
-	_esc_status.esc_armed_flags     = 0;  // Not encoded in HobbyWing protocol
+	// HobbyWing protocol does not encode arming state; assume all configured ESCs are
+	// armed so commander's EscChecks ((1<<esc_count)-1) does not false-trip a failsafe.
+	_esc_status.esc_armed_flags     = (1 << _rotor_count) - 1;
 	_esc_status.timestamp           = ref.timestamp;
 	_esc_status_pub.publish(_esc_status);
 }
@@ -264,12 +266,7 @@ void UavcanHobbyWingEscController::handle_StatusMsg2(
 	ref.esc_current     = msg.current * 0.1f;              // 0.1A units -> Amps
 	ref.esc_temperature = static_cast<float>(msg.temperature);  // degC (direct, no conversion)
 
-	_esc_status.esc_count          = _rotor_count;
-	_esc_status.counter            += 1;
-	_esc_status.esc_connectiontype  = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-	_esc_status.esc_online_flags    = check_escs_status();
-	_esc_status.timestamp           = ref.timestamp;
-	_esc_status_pub.publish(_esc_status);
+	// Update per-ESC fields only; StatusMsg1 drives the publish cycle (matches StatusMsg3).
 }
 
 void UavcanHobbyWingEscController::handle_StatusMsg3(

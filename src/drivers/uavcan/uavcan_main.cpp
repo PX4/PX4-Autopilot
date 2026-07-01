@@ -643,17 +643,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
-
-	if (_esc_hobbywing_controller.initialized()) {
-		_esc_hobbywing_controller.set_node_info_publisher(&_node_info_publisher);
-
-	} else
-#endif
-	{
-		_esc_controller.set_node_info_publisher(&_node_info_publisher);
-	}
-
+	_esc_controller.set_node_info_publisher(&_node_info_publisher);
 #endif
 
 	/* Set up shared service clients */
