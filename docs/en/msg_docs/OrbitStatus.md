@@ -16,19 +16,21 @@ Subscribed by the MAVLink module and streamed to the GCS as ORBIT_EXECUTION_STAT
 
 ## Fields
 
-| Name          | Type      | Unit [Frame] | Range/Enum                                  | Description                                                                                                                                          |
-| ------------- | --------- | ------------ | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp     | `uint64`  | us           |                                             | Time since system start                                                                                                                              |
-| radius        | `float32` | m            |                                             | Radius of the orbit circle. Positive values orbit clockwise, negative values orbit counter-clockwise.                                                |
-| frame         | `uint8`   |              | [FRAME](#FRAME)                             | The coordinate system of the fields: x, y, z                                                                                                         |
-| x             | `float64` |              |                                             | X coordinate of center point. Coordinate system depends on frame field: `local = x position in meters * 1e4`, `global = latitude in degrees * 1e7`.  |
-| y             | `float64` |              |                                             | Y coordinate of center point. Coordinate system depends on frame field: `local = y position in meters * 1e4`, `global = longitude in degrees * 1e7`. |
-| z             | `float32` |              |                                             | Altitude of center point. Coordinate system depends on frame field.                                                                                  |
-| yaw_behaviour | `uint8`   |              | [ORBIT_YAW_BEHAVIOUR](#ORBIT_YAW_BEHAVIOUR) |
+| Name                                        | Type      | Unit [Frame] | Range/Enum                                  | Description                                                                                                                                          |
+| ------------------------------------------- | --------- | ------------ | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp         | `uint64`  | us           |                                             | Time since system start                                                                                                                              |
+| <a id="fld_radius"></a>radius               | `float32` | m            |                                             | Radius of the orbit circle. Positive values orbit clockwise, negative values orbit counter-clockwise.                                                |
+| <a id="fld_frame"></a>frame                 | `uint8`   |              | [FRAME](#FRAME)                             | The coordinate system of the fields: x, y, z                                                                                                         |
+| <a id="fld_x"></a>x                         | `float64` |              |                                             | X coordinate of center point. Coordinate system depends on frame field: `local = x position in meters * 1e4`, `global = latitude in degrees * 1e7`.  |
+| <a id="fld_y"></a>y                         | `float64` |              |                                             | Y coordinate of center point. Coordinate system depends on frame field: `local = y position in meters * 1e4`, `global = longitude in degrees * 1e7`. |
+| <a id="fld_z"></a>z                         | `float32` |              |                                             | Altitude of center point. Coordinate system depends on frame field.                                                                                  |
+| <a id="fld_yaw_behaviour"></a>yaw_behaviour | `uint8`   |              | [ORBIT_YAW_BEHAVIOUR](#ORBIT_YAW_BEHAVIOUR) |
 
 ## Enums
 
 ### FRAME {#FRAME}
+
+Used in field(s): [frame](#fld_frame)
 
 | Name                                                              | Type    | Value | Description                                                                          |
 | ----------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------ |
@@ -38,6 +40,8 @@ Subscribed by the MAVLink module and streamed to the GCS as ORBIT_EXECUTION_STAT
 | <a id="#FRAME_GLOBAL_TERRAIN_ALT"></a> FRAME_GLOBAL_TERRAIN_ALT   | `uint8` | 10    | WGS84 global frame, altitude above terrain. x/y = latitude/longitude (degrees × 1e7) |
 
 ### ORBIT_YAW_BEHAVIOUR {#ORBIT_YAW_BEHAVIOUR}
+
+Used in field(s): [yaw_behaviour](#fld_yaw_behaviour)
 
 | Name                                                                                                            | Type    | Value | Description                                                                                                                                         |
 | --------------------------------------------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |

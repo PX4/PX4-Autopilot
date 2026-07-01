@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# AEDROX AEDROXH7 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# ICM-42688-P IMU on SPI2 (internal)
+icm42688p -R 2 -s start
+
+# DPS310 barometer on internal I2C2 @ 0x76 (118 decimal).
+# Vendor schematic may actually fit a DPS368; the DPS310 driver covers both parts.
+dps310 -I -a 118 start

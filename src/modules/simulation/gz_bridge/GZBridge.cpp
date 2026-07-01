@@ -83,15 +83,19 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (!subscribeImu(true)) {
-		return PX4_ERROR;
-	}
-
-	if (!subscribeMag(true)) {
-		return PX4_ERROR;
-	}
-
 	// OPTIONAL:
+	if (_sim_gz_en_imu.get()) {
+		if (!subscribeImu(false)) {
+			return PX4_ERROR;
+		}
+	}
+
+	if (_sim_gz_en_mag.get()) {
+		if (!subscribeMag(false)) {
+			return PX4_ERROR;
+		}
+	}
+
 	if (_sim_gz_en_gps.get()) {
 		if (!subscribeNavsat(false)) {
 			return PX4_ERROR;
@@ -390,48 +394,18 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
 
-	device::Device::DeviceId id{};
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_MAG_DEVTYPE_MAGSIM;
-	id.devid_s.bus = 1;
-
-	// Parameters CAL_MAGx_ID set to 0x3030C and 0x3040C in init.d-posix so only address 3 and 4 are valid for sim magnetometers (unless overwritten)
-	// See: https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS#L146-L149
-	id.devid_s.address = 3;
-
-	sensor_mag_s report{};
-	report.timestamp = timestamp;
-	report.timestamp_sample = timestamp;
-	report.device_id = id.devid;
-	report.temperature = this->_temperature;
+	_px4_mag.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
 
 	// FIXME: once we're on jetty or later
 	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
 	// https://github.com/gazebosim/gz-sim/pull/2460
-	report.x = -msg.field_tesla().y();
-	report.y = -msg.field_tesla().x();
-	report.z = msg.field_tesla().z();
-
-	_sensor_mag_pub.publish(report);
+	_px4_mag.update(timestamp, -msg.field_tesla().y(), -msg.field_tesla().x(), msg.field_tesla().z());
 }
 
 void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
-	const uint64_t timestamp = hrt_absolute_time();
-
-	device::Device::DeviceId id{};
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_BARO_DEVTYPE_BAROSIM;
-	id.devid_s.bus = 1;
-	id.devid_s.address = 1;
-
-	sensor_baro_s report{};
-	report.timestamp = timestamp;
-	report.timestamp_sample = timestamp;
-	report.device_id = id.devid;
-	report.pressure = msg.pressure();
-	report.temperature = this->_temperature;
-	_sensor_baro_pub.publish(report);
+	_px4_baro.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
+	_px4_baro.update(hrt_absolute_time(), msg.pressure());
 }
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
@@ -449,10 +423,10 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	report.timestamp_sample = timestamp;
 	report.device_id = id.devid;
 	report.differential_pressure_pa = msg.diff_pressure(); // hPa to Pa;
-	report.temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
+	_temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
+	report.temperature = _temperature;
+	report.pitot_temperature = NAN;
 	_differential_pressure_pub.publish(report);
-
-	this->_temperature = report.temperature;
 }
 
 void GZBridge::imuCallback(const gz::msgs::IMU &msg)
@@ -467,42 +441,14 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 					     msg.linear_acceleration().y(),
 					     msg.linear_acceleration().z()));
 
-	device::Device::DeviceId id{};
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_IMU_DEVTYPE_SIM;
-	id.devid_s.bus = 1;
-	id.devid_s.address = 1;
-
-	// publish accel
-	sensor_accel_s accel{};
-
-	accel.timestamp_sample = timestamp;
-	accel.timestamp = timestamp;
-	accel.device_id = id.devid;
-
-	accel.x = accel_b.X();
-	accel.y = accel_b.Y();
-	accel.z = accel_b.Z();
-	accel.temperature = NAN;
-	accel.samples = 1;
-	_sensor_accel_pub.publish(accel);
+	_px4_accel.update(timestamp, accel_b.X(), accel_b.Y(), accel_b.Z());
 
 	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
 					    msg.angular_velocity().x(),
 					    msg.angular_velocity().y(),
 					    msg.angular_velocity().z()));
 
-	// publish gyro
-	sensor_gyro_s gyro{};
-	gyro.timestamp_sample = timestamp;
-	gyro.timestamp = timestamp;
-	gyro.device_id = id.devid;
-	gyro.x = gyro_b.X();
-	gyro.y = gyro_b.Y();
-	gyro.z = gyro_b.Z();
-	gyro.temperature = NAN;
-	gyro.samples = 1;
-	_sensor_gyro_pub.publish(gyro);
+	_px4_gyro.update(timestamp, gyro_b.X(), gyro_b.Y(), gyro_b.Z());
 }
 
 void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
@@ -810,21 +756,9 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 
 void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 {
-	device::Device::DeviceId id{};
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
-	id.devid_s.bus = 1;
-	id.devid_s.address = 1;
-
-	distance_sensor_s report{};
-	report.timestamp = hrt_absolute_time();
-	report.device_id = id.devid;
-	report.min_distance = static_cast<float>(msg.range_min());
-	report.max_distance = static_cast<float>(msg.range_max());
-	report.current_distance = static_cast<float>(msg.ranges()[0]);
-	report.variance = 0.0f;
-	report.signal_quality = -1;
-	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_px4_rangefinder.set_min_distance(static_cast<float>(msg.range_min()));
+	_px4_rangefinder.set_max_distance(static_cast<float>(msg.range_max()));
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 
 	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
 	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
@@ -839,24 +773,30 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 
 	const gz::math::Quaterniond q_down(0, 1, 0, 0);
 
+	const float distance = static_cast<float>(msg.ranges()[0]);
+
 	if (q_sensor.Equal(q_front, 0.03)) {
-		report.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_FORWARD_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else if (q_sensor.Equal(q_down, 0.03)) {
-		report.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_DOWNWARD_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else if (q_sensor.Equal(q_left, 0.03)) {
-		report.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_LEFT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else {
-		report.orientation = distance_sensor_s::ROTATION_CUSTOM;
-		report.q[0] = q_sensor.W();
-		report.q[1] = q_sensor.X();
-		report.q[2] = q_sensor.Y();
-		report.q[3] = q_sensor.Z();
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_CUSTOM);
+		const float q[4] = {
+			static_cast<float>(q_sensor.W()),
+			static_cast<float>(q_sensor.X()),
+			static_cast<float>(q_sensor.Y()),
+			static_cast<float>(q_sensor.Z())
+		};
+		_px4_rangefinder.update(hrt_absolute_time(), distance, -1, q, 4);
 	}
-
-	_distance_sensor_pub.publish(report);
 }
 
 void GZBridge::laserScanCallback(const gz::msgs::LaserScan &msg)

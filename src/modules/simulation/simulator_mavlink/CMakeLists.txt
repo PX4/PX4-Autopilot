@@ -47,8 +47,10 @@ px4_add_module(
 	DEPENDS
 		mavlink_c_generate
 		conversion
+		failure_injection
 		geo
 		drivers_accelerometer
+		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
 	)

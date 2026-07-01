@@ -14,6 +14,8 @@ The vehicle will disarm shortly after landing (by default).
 - Mode prevents arming (vehicle must be armed when switching to this mode).
 - Manual control switches can be used to change flight modes on any vehicle.
 - Manual stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
+
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 

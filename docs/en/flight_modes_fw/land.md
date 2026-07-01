@@ -21,6 +21,7 @@ Where possible, instead use [Return mode](../flight_modes_fw/return.md) with a p
 - Mode prevents arming (vehicle must be armed when switching to this mode).
 - Manual control control switches can be used to change flight modes on any vehicle.
 - Manual control stick movement is ignored.
+- The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
 

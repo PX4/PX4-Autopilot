@@ -255,9 +255,28 @@ param_import_internal()
 	bson_decoder_s decoder{};
 	int result = -1;
 
-	uint8_t *buffer = 0;
-	size_t buf_size;
-	parameter_flashfs_read(parameters_token, &buffer, &buf_size);
+	uint8_t *buffer = nullptr;
+	size_t buf_size = 0;
+	int read_result = parameter_flashfs_read(parameters_token, &buffer, &buf_size);
+
+	if (read_result == -ENOENT || (read_result >= 0 && (buffer == nullptr || buf_size == 0))) {
+		/* No valid entry found. A fully erased store is blank (first boot, or
+		 * after switching firmware): report "not yet stored" (1), matching the
+		 * convention used by param_load_default(). A store that holds data but
+		 * no valid entry (torn write, bit-rot, or foreign data) is corrupt and
+		 * must not be silently reseeded - report it so the boot recovery runs. */
+		if (parameter_flashfs_blank() == 1) {
+			return 1;
+		}
+
+		debug("flash holds data but no valid entry");
+		return -EILSEQ;
+	}
+
+	if (read_result < 0) {
+		debug("flash read failed (%d)", read_result);
+		return read_result;
+	}
 
 	if (bson_decoder_init_buf(&decoder, buffer, buf_size, param_import_callback)) {
 		debug("decoder init failed");

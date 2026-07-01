@@ -30,7 +30,7 @@ The Holybro [S500 V2 Kit](https://holybro.com/collections/s500/products/s500-v2-
 - 433 MHz / 915 MHz [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md)
 - 전원 및 무선 조종기 케이블
 - 배터리 혁지
-- Dimensions:383_385_240mm
+- Dimensions:38&#x33;_&#x33;8&#x35;_&#x32;40mm
 - 축거 : 480mm
 
 :::info
@@ -147,8 +147,8 @@ M3X8 나사 (총 8개, 각 측면에 4개)로 연결합니다.
 
    ![Figure 9](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig91.jpg)
 
-2. Assemble the 8_3 2.54mm pitch Horizontal Pin to the 10 to 10 pin cable (PWM) to the Power Management Board.
-   Connect the 10 to 10 pin cable (PWM) to the 8_3 2.54mm pitch Horizontal Pin.
+2. Assemble the &#x38;_&#x33; 2.54mm pitch Horizontal Pin to the 10 to 10 pin cable (PWM) to the Power Management Board.
+   Connect the 10 to 10 pin cable (PWM) to the &#x38;_&#x33; 2.54mm pitch Horizontal Pin.
 
    ![Figure 10](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig10.jpg)
 

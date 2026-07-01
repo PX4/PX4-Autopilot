@@ -478,6 +478,13 @@ pageClass: is-wide-page
         topicList = " ".join(self.topics)
         markdown += f"**TOPICS:** {topicList}\n\n"
 
+        # Build reverse mapping: enum name → fields that reference it
+        enum_to_fields: dict[str, list[str]] = {}
+        for field in self.fields:
+            if field.enums:
+                for enum_name in field.enums:
+                    enum_to_fields.setdefault(enum_name, []).append(field.name)
+
         # Generate field docs
         markdown += f"## Fields\n\n"
         markdown += "Name | Type | Unit [Frame] | Range/Enum | Description\n"
@@ -491,17 +498,13 @@ pageClass: is-wide-page
 
             value = " "
             if field.enums:
-                value = ""
-                for enum in field.enums:
-                    value += f"[{enum}](#{enum})"
-                value = value.strip()
-                value = f"{value}"
+                value = ", ".join(f"[{enum}](#{enum})" for enum in field.enums)
             elif field.minValue or field.maxValue:
                 value = f"[{field.minValue if field.minValue else '-'} : {field.maxValue if field.maxValue else '-' }]"
 
             description = f" {field.description}" if field.description else ""
             invalid = f" (Invalid: {field.invalidValue}) " if field.invalidValue else ""
-            markdown += f"{field.name} | `{field.type}` |{unit}|{value}|{description}{invalid}\n"
+            markdown += f'<a id="fld_{field.name}"></a>{field.name} | `{field.type}` |{unit}|{value}|{description}{invalid}\n'
 
         # Generate table for command docs
         if len(self.commandConstants) > 0:
@@ -525,6 +528,10 @@ pageClass: is-wide-page
 
             for name, enum in self.enums.items():
                 markdown += f"\n### {name} {{#{name}}}\n\n"
+
+                if name in enum_to_fields:
+                    links = ", ".join(f"[{fn}](#fld_{fn})" for fn in enum_to_fields[name])
+                    markdown += f"Used in field(s): {links}\n\n"
 
                 markdown += "Name | Type | Value | Description\n"
                 markdown += "--- | --- | --- | ---\n"
@@ -943,7 +950,11 @@ if __name__ == "__main__":
     msg_files.sort()
 
     versioned_msgs_list = ''
+    historic_msgs_list = ''
     unversioned_msgs_list = ''
+    versioned_names = []
+    historic_names = []
+    unversioned_names = []
     msgTypes = set()
 
     for msg_file in msg_files:
@@ -956,17 +967,25 @@ if __name__ == "__main__":
         # Any additional tests that can't be in UORBMessage parser go here.
         message.markdown_out()
 
-        # Categorize as versioned or unversioned
+        # Categorize as versioned, historic versioned, or unversioned
         if "versioned" in msg_file:
             versioned_msgs_list += f"- [{message.name}]({message.name}.md)"
             if message.shortDescription:
                 versioned_msgs_list += f" — {message.shortDescription}"
             versioned_msgs_list += "\n"
+            versioned_names.append(message.name)
+        elif "px4_msgs_old" in msg_file:
+            historic_msgs_list += f"- [{message.name}]({message.name}.md)"
+            if message.shortDescription:
+                historic_msgs_list += f" — {message.shortDescription}"
+            historic_msgs_list += "\n"
+            historic_names.append(message.name)
         else:
             unversioned_msgs_list += f"- [{message.name}]({message.name}.md)"
             if message.shortDescription:
                 unversioned_msgs_list += f" — {message.shortDescription}"
             unversioned_msgs_list += "\n"
+            unversioned_names.append(message.name)
     # Write out the index.md file
     index_text=f"""# uORB Message Reference
 
@@ -983,7 +1002,13 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 ## Versioned Messages
 
+### Current Versions
+
 {versioned_msgs_list}
+
+### Historic Versions
+
+{historic_msgs_list}
 
 ## Unversioned Messages
 
@@ -992,5 +1017,19 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
     index_file = os.path.join(output_dir, 'index.md')
     with open(index_file, 'w', encoding='utf-8') as content_file:
             content_file.write(index_text)
+
+    fragment_lines = ['    - [uORB Message Reference](msg_docs/index.md)']
+    fragment_lines.append('      - [Versioned](msg_docs/versioned_messages.md)')
+    for name in versioned_names:
+        fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
+    fragment_lines.append('        - [Historic (old) Versions](msg_docs/versioned_old_messages.md)')
+    for name in historic_names:
+        fragment_lines.append(f'          - [{name}](msg_docs/{name}.md)')
+    fragment_lines.append('      - [Unversioned Messages](msg_docs/unversioned_messages.md)')
+    for name in unversioned_names:
+        fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
+    fragment_file = os.path.join(output_dir, '_del_summary_fragment.txt')
+    with open(fragment_file, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(fragment_lines) + '\n')
 
     generate_dds_yaml_doc(msg_files)

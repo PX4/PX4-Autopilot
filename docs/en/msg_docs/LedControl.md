@@ -10,14 +10,14 @@ LED control: control a single or multiple LED's. These are the externally visibl
 
 ## Fields
 
-| Name       | Type     | Unit [Frame] | Range/Enum | Description                                                                                               |
-| ---------- | -------- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------- |
-| timestamp  | `uint64` |              |            | time since system start (microseconds)                                                                    |
-| led_mask   | `uint8`  |              |            | bitmask which LED(s) to control, set to 0xff for all                                                      |
-| color      | `uint8`  |              |            | see COLOR\_\*                                                                                             |
-| mode       | `uint8`  |              |            | see MODE\_\*                                                                                              |
-| num_blinks | `uint8`  |              |            | how many times to blink (number of on-off cycles if mode is one of MODE*BLINK*\*) . Set to 0 for infinite |
-| priority   | `uint8`  |              |            | priority: higher priority events will override current lower priority events (see MAX_PRIORITY)           |
+| Name                                  | Type     | Unit [Frame] | Range/Enum | Description                                                                                               |
+| ------------------------------------- | -------- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp   | `uint64` |              |            | time since system start (microseconds)                                                                    |
+| <a id="fld_led_mask"></a>led_mask     | `uint8`  |              |            | bitmask which LED(s) to control, set to 0xff for all                                                      |
+| <a id="fld_color"></a>color           | `uint8`  |              |            | see COLOR\_\*                                                                                             |
+| <a id="fld_mode"></a>mode             | `uint8`  |              |            | see MODE\_\*                                                                                              |
+| <a id="fld_num_blinks"></a>num_blinks | `uint8`  |              |            | how many times to blink (number of on-off cycles if mode is one of MODE*BLINK*\*) . Set to 0 for infinite |
+| <a id="fld_priority"></a>priority     | `uint8`  |              |            | priority: higher priority events will override current lower priority events (see MAX_PRIORITY)           |
 
 ## Constants
 

@@ -1,0 +1,50 @@
+name: PX4 Weekly Dev Call Post
+
+on:
+  schedule:
+    # Every Monday at 10:00 UTC (2 days before Wednesday call)
+    # Format: minute hour day-of-month month day-of-week
+    # day-of-week: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+    - cron: '0 10 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip Discourse post and label cleanup — print rendered post body to logs only'
+        type: boolean
+        default: false
+      lookback_days:
+        description: 'Days back to search for merged PRs, new issues and bugs'
+        type: string
+        default: '7'
+
+jobs:
+  post-dev-call:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build and post Dev Call agenda
+        run: Tools/ci/dev_call_post.py
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
+          DISCOURSE_USER: ${{ vars.DISCOURSE_USER }}
+          DISCOURSE_URL: https://discuss.px4.io
+          CATEGORY_ID: '39'
+          DRY_RUN: ${{ inputs.dry_run }}
+          # Dev call policy knobs. Edit here, not in the script.
+          CALL_DAY: wednesday
+          CALL_TIME: '17:00:00'
+          CALL_TIMEZONE: Europe/Berlin
+          DEV_CALL_LABEL: Dev Call
+          LOOKBACK_DAYS: ${{ inputs.lookback_days || '7' }}

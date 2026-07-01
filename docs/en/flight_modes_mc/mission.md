@@ -11,7 +11,7 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 - The vehicle must be armed before this mode can be engaged.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
 - RC control switches can be used to change flight modes on any vehicle.
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
   This is true for multicopters and VTOL in MC mode.
 
 :::

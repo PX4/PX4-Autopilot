@@ -17,7 +17,7 @@ The default type is recommended.
   - Flying vehicles can't switch to this mode without global position.
   - Flying vehicles will failsafe if they lose the position estimate.
 - Mode requires home position is set.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - 遥控开关可以在任何无人机上更改飞行模式。
 - RC stick movement is ignored.
 
@@ -52,7 +52,7 @@ The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced
 If using a mission landing, only the [RTL_RETURN_ALT](#RTL_RETURN_ALT) and [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) are relevant.
 The others are relevant if the destination is a rally point or the home location.
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                                                                                                                                                                                                             |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Return type.                                                                                                                                                                                                                                                                                                                                   |
 | <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)                            | Return altitude in meters (default: 60m)If already above this value the vehicle will return at its current altitude.                                                                                                                                                                                        |

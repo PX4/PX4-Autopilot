@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| ------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                            | `uint64` |                                                                  |            | time since system start (microseconds) |
-| return_value    | `int32`  |                                                                  |            |                                                           |
-| return_sequence | `uint32` |                                                                  |            |                                                           |
+| Назва                                                                | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                  | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_return_value"></a>return_value       | `int32`  |                                                                  |            |                                                           |
+| <a id="fld_return_sequence"></a>return_sequence | `uint32` |                                                                  |            |                                                           |
 
 ## Source Message
 

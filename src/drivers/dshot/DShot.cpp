@@ -368,7 +368,15 @@ void DShot::update_motor_outputs(uint16_t outputs[MAX_ACTUATORS], int num_output
 			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
 
 		} else {
-			up_dshot_motor_data_set(i, calculate_output_value(outputs[i], i), set_telemetry_bit);
+			uint16_t output = calculate_output_value(outputs[i], i);
+
+			// 3D deadzone: send motor stop to avoid MIN_throttle offset in up_dshot_motor_data_set
+			if (output == DSHOT_DISARM_VALUE) {
+				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
+
+			} else {
+				up_dshot_motor_data_set(i, output, set_telemetry_bit);
+			}
 		}
 	}
 }
@@ -749,7 +757,7 @@ uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
 	// This is in terms of DShot values, code below is in terms of actuator_output
 	// Direction 1) 48 is the slowest, 1047 is the fastest.
 	// Direction 2) 1049 is the slowest, 2047 is the fastest.
-	if (output >= _3d_dead_l && output < _3d_dead_h) {
+	if (output >= _3d_dead_l && output <= _3d_dead_h) {
 		return DSHOT_DISARM_VALUE;
 	}
 

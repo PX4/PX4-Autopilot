@@ -181,7 +181,6 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# px4 dirs
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/integrationtests
 			${PROJECT_SOURCE_DIR}/launch
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		DESTINATION

@@ -248,29 +248,46 @@
         \hspace{-0.7cm}
 
         %===============================================================================
-        \node[text centered, yshift=0.25*\blockheight] (ref) {};
+        \node[text centered] (ref) {};
+
+        % Reference model: 2nd-order critically-damped model (natural frequency MC_REF_W_N)
+        % that smooths the setpoint q_sp into the reference attitude q_ref tracked by the
+        % P law, and outputs the reference body rate omega_ref used as feedforward.
+        \path(ref)+(0.9*\nodesep,0) node (ref_model) [text_block] {Reference model};
 
         % Controller
-        \path(ref)+(0.75*\nodesep,-0.25*\blockheight) node (err_quat) [text_block] {Error quaternion};
+        \path(ref_model)+(1.5*\nodesep,0) node (err_quat) [text_block] {Error quaternion};
         \path(err_quat)+(1.5*\nodesep,0) node (select_axis) [text_block] {Extract component};
         \path(select_axis)+(0, 1.5*\blockheight) node (select_mag) [text_block] {Extract magnitude};
         \path(select_mag)+(1.1*\nodesep,0) node (sgn) [simple_block] {sgn};
         \path(select_axis)+(1.9*\nodesep, 0.25*\blockheight) node (mult) [simple_block] {$\times$};
         \path(mult)+(0.65*\nodesep, 0) node (p_gain) [gain] {\scriptsize $2 P$};
-        \path(p_gain)+(0.75*\nodesep, 0) node (sat_ctrl) [sat_block] {};
-        \path(sat_ctrl)+(0.75*\nodesep, 0) node (output) [] {};
+        % Summing junction: P-law rate + reference-model rate feedforward, BEFORE the final rate saturation
+        \path(p_gain)+(0.7*\nodesep, 0) node (sum) [draw, circle, inner sep=1.5pt] {$+$};
+        \path(sum)+(0.7*\nodesep, 0) node (sat_ctrl) [sat_block] {};
+        \path(sat_ctrl)+(0.7*\nodesep, 0) node (output) [] {};
+        % omega_ref feedforward chain: gain (MC_REF_FF) then per-axis saturation (MC_REF_FF_MAX)
+        \path(sum)+(-0.7*\nodesep, -2.7*\blockheight) node (ff_sat) [sat_block] {};
+        \path(ff_sat)+(-1.1*\nodesep, 0) node (ff_gain) [gain] {\scriptsize $k_\text{ff}$};
 
         %===============================================================================
-        \path[draw,->] (ref.east) -- node[text centered, anchor=south, pos=0.1] {$\bm{q}_\text{sp}$} ([yshift=0.25*\blockheight]err_quat.west);
-        \path[draw,->] ([yshift=-0.25*\blockheight]err_quat.west -| ref.east) -- node[text centered, anchor=north, pos=0.1] {$\bm{q}$} ([yshift=-0.25*\blockheight]err_quat.west);
+        \path[draw,->] (ref.east) -- node[text centered, anchor=south, pos=0.3] {$\bm{q}_\text{sp}$} (ref_model.west);
+        \path[draw,->] (ref_model.east) -- node[text centered, anchor=south] {$\bm{q}_\text{ref}$} (err_quat.west);
+        \path[draw,->] ([yshift=-0.75*\blockheight]err_quat.south) -- node[text centered, anchor=east, pos=0] {$\bm{q}$} (err_quat.south);
         \path[draw,->] (err_quat.east) -- node[text centered, anchor=south,pos=0.4] {$\bm{q}_\text{e}$} (select_axis.west);
         \path[draw,->]([xshift=0.3*\nodesep]err_quat.east) |- (select_mag.west);
         \path[draw,->] (select_mag.east) -- node[text centered, anchor=south] {$q_{0_\text{e}}$} (sgn.west);
         \path[draw,->] (sgn.east) -- ([xshift=0.15*\nodesep]sgn.east) |- ([yshift=0.25*\blockheight]mult.west);
         \path[draw,->] (select_axis.east) -- node[text centered, anchor=south, pos=0.45]{$q_{j_\text{e}}$} ([yshift=-0.25*\blockheight]mult.west);
         \path[draw,->] (mult.east) -- (p_gain.west);
-        \path[draw,->] (p_gain.east) -- (sat_ctrl.west);
+        \path[draw,->] (p_gain.east) -- (sum.west);
+        \path[draw,->] (sum.east) -- (sat_ctrl.west);
         \path[draw,->] (sat_ctrl.east) -- node[text centered, anchor=south] {$\Omega_\text{sp}$} (output.west);
+        % omega_ref feedforward: reference model -> gain -> saturation -> summing junction
+        \path[draw,->] (ref_model.south) |- (ff_gain.west);
+        \node[text centered, anchor=south] at (select_axis |- ff_gain) {$\bm{\omega}_\text{ref}$};
+        \path[draw,->] (ff_gain.east) -- (ff_sat.west);
+        \path[draw,->] (ff_sat.east) -| (sum.south);
       \end{tikzpicture}
 
     \end{figure}

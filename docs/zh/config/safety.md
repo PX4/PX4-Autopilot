@@ -86,7 +86,7 @@ The most common configuration is to set the values and action as above (with `Wa
 
 The settings and underlying parameters are shown below.
 
-| 设置                                                  | 参数                                                                                                                                          | 描述                                                                                        |
+| 设置                                                  | Parameter                                                                                                                                   | 描述                                                                                        |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Return, or Land based when capacity drops below the trigger levels. |
 | <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)                              | 需做出警告（或其他动作）的电量百分比。                                                                       |
@@ -104,7 +104,7 @@ There are several other "battery related" failsafe mechanisms that may be config
 
 The settings and underlying parameters are shown below.
 
-| 设置                                                                   | 参数                                                                                                                                            | 描述                                                                                                                                                                                                                                 |
+| 设置                                                                   | Parameter                                                                                                                                     | 描述                                                                                                                                                                                                                                 |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_FLTT_LOW_ACT"></a> Low flight time for safe return action | [COM_FLTT_LOW_ACT](../advanced_config/parameter_reference.md#COM_FLTT_LOW_ACT) | Action when return mode can only just reach safety with remaining battery. `0`: None (default), `1`: Warning, `3`: Return mode. |
 | <a id="COM_FLT_TIME_MAX"></a> Maximum flight time failsafe level     | [COM_FLT_TIME_MAX](../advanced_config/parameter_reference.md#COM_FLT_TIME_MAX) | Maximum allowed flight time before Return mode will be engaged, in seconds. `-1`: Disabled (default).                                                           |
@@ -124,7 +124,7 @@ PX4 and the receiver may also need to be configured in order to _detect RC loss_
 
 Additional (and underlying) parameter settings are shown below.
 
-| 参数                                                                                                                                                                   | 设置                          | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Parameter                                                                                                                                                            | 设置                          | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the last known stick position until the timeout triggers.                                                                                                                                                                                                                      |
 | <a id="COM_FAIL_ACT_T"></a>[COM_FAIL_ACT_T](../advanced_config/parameter_reference.md#COM_FAIL_ACT_T) | Failsafe Reaction Delay     | Delay in seconds between failsafe condition being triggered (`COM_RC_LOSS_T`) and failsafe action (RTL, Land, Hold). In this state the vehicle waits in hold mode for the manual control source to reconnect. This might be set longer for long-range flights so that intermittent connection loss doesn't immediately invoke the failsafe. It can be to zero so that the failsafe triggers immediately. |
@@ -140,7 +140,7 @@ Users that want to disable this failsafe in specific modes can do so using the p
 
 The settings and underlying parameters are shown below.
 
-| 设置                                                          | 参数                                                                                                                                      | 描述                                                                              |
+| 设置                                                          | Parameter                                                                                                                               | 描述                                                                              |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | 数据链路丢失超时                                                    | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 数据连接断开后到故障保护触发之前的时间。                                                            |
 | 故障保护动作                                                      | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
@@ -152,6 +152,15 @@ The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimet
 In its simplest form, the perimeter is set up as a cylinder centered around the home position.
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
+Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
+If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
+The margin should be at least:
+
+- **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
+- **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
+
+Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
 :::tip
@@ -160,7 +169,7 @@ PX4 separately supports more complicated Geofence geometries with multiple arbit
 
 The settings and underlying [geofence parameters](../advanced_config/parameter_reference.md#geofence) are shown below.
 
-| 设置         | 参数                                                                                                                                          | 描述                                                                      |
+| 设置         | Parameter                                                                                                                                   | 描述                                                                      |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | 冲出围栏时的响应动作 | [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION)                                                       | None, Warning, Hold mode, Return mode, Terminate, Land. |
 | 最大半径       | [GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST) | 地理围栏圆柱体的水平半径。 如果为 0，则禁用地理围栏。                                            |
@@ -173,11 +182,10 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 
 The following settings also apply, but are not displayed in the QGC UI.
 
-| 设置                                                                 | 参数                                                                                                | 描述                                                                                                                                                                                                        |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | 设置定位是来自全局位置估计还是直接来自 GPS 设备。                                                                                                                                                                               |
-| <a id="GF_PREDICT"></a>Preemptive geofence triggering              | [GF_PREDICT](../advanced_config/parameter_reference.md#GF_PREDICT)           | (Experimental) Trigger geofence if current motion of the vehicle is predicted to trigger the breach (rather than late triggering after the breach). |
-| <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | 启用/禁用飞行终止操作（默认禁用）。                                                                                                                                                                                        |
+| 设置                                                                 | Parameter                                                                                         | 描述                          |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------- |
+| <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | 设置定位是来自全局位置估计还是直接来自 GPS 设备。 |
+| <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | 启用/禁用飞行终止操作（默认禁用）。          |
 
 ## Position Estimation Failsafes
 
@@ -198,7 +206,7 @@ The position loss failsafe triggers if the position estimate becomes _invalid_. 
 
 The relevant parameters shown below.
 
-| 参数                                                                                                                                                                   | 描述                                                                                                                                                                                                                             |
+| Parameter                                                                                                                                                            | 描述                                                                                                                                                                                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="EKF2_NOAID_TOUT"></a>[EKF2_NOAID_TOUT](../advanced_config/parameter_reference.md#EKF2_NOAID_TOUT)                   | Maximum inertial dead-reckoning time, so the time after the last data sample was received of any sensor that constrains the velocity drift [microseconds]. |
 | <a id="COM_POS_FS_EPH"></a>[COM_POS_FS_EPH](../advanced_config/parameter_reference.md#COM_POS_FS_EPH) | Horizontal position error threshold for hovering vehicles (Multicopters and VTOLs in hover). Fixed-wing vehicles have this value set to infinity.                           |
@@ -212,7 +220,7 @@ If VTOLs have are configured to switch to hover for landing ([NAV_FORCE_VT](../a
 
 The relevant parameters are:
 
-| 参数                                                                                                                                        | 描述                                                                                                                                                                                    |
+| Parameter                                                                                                                                 | 描述                                                                                                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)       | Fixed-wing only: Loiter time (waiting at current altitude for position estimation recovery before starting to descend). 设置为 0 以禁用。 |
 | <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)          | 以一定的横滚/侧倾角盘旋。                                                                                                                                                                         |
@@ -222,24 +230,40 @@ The relevant parameters are:
 
 In Fixed-wing, the position estimate is never strictly invalidated as long as we have a horizontal aiding source, such as an airspeed sensor. In that case, a separate failsafe can be configured that triggers if the position estimate inacuraccy exceeds the threshold [COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH). The failsafe action is taken if the vehicle is in mission or hold mode, otherwise it is only a warning. The relevant parameters are:
 
-| 参数                                                                                                                                                                      | 描述                                                                                                                                                 |
+| Parameter                                                                                                                                                               | 描述                                                                                                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_POS_LOW_EPH"></a>[COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH) | Position inaccuracy threshold above which COM_POS_LOW_ACT is taken. |
 | <a id="COM_POS_LOW_ACT"></a>[COM_POS_LOW_ACT](../advanced_config/parameter_reference.md#COM_POS_LOW_ACT) | Failsafe action taken when position inaccuracy is above configured threshold.                                                      |
 
 Note that if there is no horizontal aiding source anymore, the position estimate is invalidated after `EKF2_NOAID_TOUT`, and the standard position loss failsafe applies.
 
+### GNSS Check Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+Triggers on either of:
+
+- **Count drop**: receivers with a 3D fix drop below [SYS_HAS_NUM_GNSS](#SYS_HAS_NUM_GNSS). No failsafe action when `SYS_HAS_NUM_GNSS=0` (default).
+- **Position divergence**: two receivers disagree beyond their expected separation (configured via [SENS_GPS0_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS1_OFFX/Y](../advanced_config/parameter_reference.md#SENS_GPS1_OFFX)) plus reported accuracy. Only triggers a failsafe action if `SYS_HAS_NUM_GNSS=2`.
+
+At least a warning is emitted, additional failsafe actions can be configured using [COM_GNSSLOSS_ACT](#COM_GNSSLOSS_ACT).
+Loss of a single GPS when none are required is handled by other GPS health checks.
+
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="SYS_HAS_NUM_GNSS"></a>[SYS_HAS_NUM_GNSS](../advanced_config/parameter_reference.md#SYS_HAS_NUM_GNSS) | Number of usable GNSS receivers required for arming and flight. If two are required then they also need to be consistent. |
+| <a id="COM_GNSSLOSS_ACT"></a>[COM_GNSSLOSS_ACT](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT)                      | Failsafe action when a GNSS failure is detected. Actions other than a warning also lead to arming being blocked.          |
+
 ## Offboard 中断故障保护
 
 The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while under [Offboard control](../flight_modes/offboard.md).
-Different failsafe behaviour can be specified based on whether or not there is also an RC connection available.
 
 The relevant parameters are shown below:
 
-| 参数                                                                                                                                        | 描述                                            |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| [COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)   | Offboard 连接中断后到触发故障保护前的延迟。                    |
-| [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) | 如果遥控可用，则故障保护动作：定点模式、定高模式、手动模式、返航模式、降落模式、保持模式。 |
+| Parameter                                                                                                                                 | 描述                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)   | Offboard 连接中断后到触发故障保护前的延迟。                                            |
+| [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT) | Flight mode to switch to if offboard control is lost. |
 
 ## 交通规避故障保护
 
@@ -247,7 +271,7 @@ The Traffic Avoidance Failsafe allows PX4 to respond to transponder data (e.g. f
 
 The relevant parameters are shown below:
 
-| 参数                                                                                                                     | 描述                        |
+| Parameter                                                                                                              | 描述                        |
 | ---------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID) | 设置故障保护动作：禁用、警告、返航模式、降落模式。 |
 
@@ -259,9 +283,19 @@ The Remote ID failsafe is triggered when the [Remote ID (Open Drone ID)](../peri
 
 The failsafe action and arming behaviour are both configured by the `COM_ARM_ODID` parameter:
 
-| 参数                                                                                                                                        | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Parameter                                                                                                                                 | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARM_ODID"></a>[COM_ARM_ODID](../advanced_config/parameter_reference.md#COM_ARM_ODID) | Remote ID arming check and in-flight failsafe. `0`: Disabled (default), `1`: Warning only, `2`: Error only (prevents arming), `3`: Return, `4`: Land, `5`: Terminate.<br><br>On failsafe:<br>- `Error`, `Return`, `Land` and `Terminate` prevent arming.<br>- `Return`, `Land` and `Terminate` start the associated action/mode when airborne. |
+
+## Parachute Health Failsafe
+
+<Badge type="tip" text="PX4 v1.18" />
+
+The parachute health failsafe is triggered when a [MAVLink parachute](../peripherals/parachute.md) system is missing or unhealthy while the vehicle is armed or airborne.
+
+| Parameter                                                                                                               | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="COM_PARACHUTE"></a>[COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) | Parachute system monitoring and failsafe action.<br>`0`: Disabled (default), `1`: [Warning](#act_warn), `2`: [Return](#act_return), `3`: [Land](#act_land).<br><br>- Everything but `Disabled` prevents arming with a failing check.<br>- [Return](#act_return) and [Land](#act_land) start the associated action when a failure happens in-flight. |
 
 ## Quad-chute Failsafe
 
@@ -274,7 +308,7 @@ The quad-chute can also be triggered by sending a MAVLINK [MAV_CMD_DO_VTOL_TRANS
 
 The parameters that control when the quad-chute will trigger are listed in the table below.
 
-| 参数                                                                                                                                                                                              | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Parameter                                                                                                                                                                                       | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_QC_ACT"></a>[COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT)                                                             | Quad-chute action after switching to multicopter flight. Can be set to: [Warning](#act_warn), [Return](#act_return), [Land](#act_land), [Hold](#act_hold).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | <a id="VT_FW_QC_HMAX"></a>[VT_FW_QC_HMAX](../advanced_config/parameter_reference.md#VT_FW_QC_HMAX)                               | Maximum quad-chute height, below which the quad-chute failsafe cannot trigger. This prevents high altitude quad-chute descent, which can drain the battery (and itself cause a crash). The height is relative to ground, home, or the local origin (in preference order, depending on what is available).                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -289,7 +323,7 @@ The parameters that control when the quad-chute will trigger are listed in the t
 The high wind failsafe can trigger a warning and/or other mode change when the wind speed exceeds the warning and maximum wind-speed threshold values.
 The relevant parameters are listed in the table below.
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="COM_WIND_MAX"></a>[COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX)                                  | Wind speed threshold that triggers failsafe action, in m/s ([COM_WIND_MAX_ACT](#COM_WIND_MAX_ACT)).                                                                                                                                                                                                                                                                                |
 | <a id="COM_WIND_MAX_ACT"></a>[COM_WIND_MAX_ACT](../advanced_config/parameter_reference.md#COM_WIND_MAX_ACT) | High wind failsafe action (following [COM_WIND_MAX](#COM_WIND_MAX) trigger). Can be set to: `0`: None (Default), `1`: [Warning](#act_warn), `2`: [Hold](#act_hold), `3`: [Return](#act_return), `4`: [Terminate](#act_term), `5`: [Land](#act_land). |
@@ -318,7 +352,7 @@ The failure detector can be configured to trigger if a rotary-wing vehicle loses
 
 If the vehicle descends more than [FD_ALT_LOSS](#FD_ALT_LOSS) meters below the setpoint, [flight termination](../advanced_config/flight_termination.md) is triggered, which may deploy a [parachute](../peripherals/parachute.md).
 
-| 参数                                                                                                                                                                | 描述                                                                                                                                                                             |
+| Parameter                                                                                                                                                         | 描述                                                                                                                                                                             |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="FD_ALT_LOSS"></a>[FD_ALT_LOSS](../advanced_config/parameter_reference.md#FD_ALT_LOSS)                            | Altitude loss threshold (m). Flight termination is triggered when the vehicle drops this far below the setpoint. 设置为 0 以禁用。 |
 | <a id="FD_ALT_LOSS_T"></a>[FD_ALT_LOSS_T](../advanced_config/parameter_reference.md#FD_ALT_LOSS_T) | Time (s) the vehicle must remain below the threshold before flight termination is triggered.                                                |
@@ -329,7 +363,7 @@ The failure detector can be configured to trigger if the vehicle attitude exceed
 
 The relevant parameters are shown below:
 
-| 参数                                                                                                                                                                   | 描述                                                                                                                                                                        |
+| Parameter                                                                                                                                                            | 描述                                                                                                                                                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CBRK_FLIGHTTERM"></a>[CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM)                                        | 飞行终止断路器。 从 121212（默认）取消设置，以启用由于故障检测器或 FMU 丢失而导致的飞行终止。                                                                                                                     |
 | <a id="FD_FAIL_P"></a>[FD_FAIL_P](../advanced_config/parameter_reference.md#FD_FAIL_P)                                     | 最大允许俯仰角（角度制）。                                                                                                                                                             |
@@ -339,26 +373,26 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected bounds for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
+The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
 Motor failures are non-latching: if the failure condition clears, the failure is cleared.
 
 The undercurrent and overcurrent conditions are defined by:
 
 ```text
-undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_LOW_OFF}
-overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_HIGH_OFF}
+undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_OFF}
+overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
 ```
 
-| 参数                                                                                                                                                    | 描述                                                                                                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                      | Enable/disable the motor failure trigger completely.                                                                                                                                                                                                                    |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                                     | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%). |
-| <a id="MOTFAIL_LOW_OFF"></a>[MOTFAIL_LOW_OFF](../advanced_config/parameter_reference.md#MOTFAIL_LOW_OFF)    | Undercurrent detection threshold offset (A). Subtracted from the expected current to form the lower bound.                                                                                                                           |
-| <a id="MOTFAIL_HIGH_OFF"></a>[MOTFAIL_HIGH_OFF](../advanced_config/parameter_reference.md#MOTFAIL_HIGH_OFF) | Overcurrent detection threshold offset (A). Added to the expected current to form the upper bound.                                                                                                                                   |
-| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)                                  | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                                        |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)    | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time.                               |
+| Parameter                                                                                                                                          | 描述                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                                                    |
+| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)                                  | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%). |
+| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)                                  | Under/over-current detection threshold offset (A). Added to the expected current to form the upper bound. Subtracted from the expected current to form the lower bound.                                              |
+|                                                                                                                                                    |                                                                                                                                                                                                                                                                                         |
+| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)                               | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                                        |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time.                               |
 
-### 外部自动触发系统（ATS）
+### External Automatic Trigger System (ATS)
 
 The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can also be triggered by an external ATS system.
 The external trigger system must be connected to flight controller port AUX5 (or MAIN5 on boards that do not have AUX ports), and is configured using the parameters below.
@@ -368,10 +402,10 @@ External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/standards/
 One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System (SATS-MINI)](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system).
 :::
 
-| 参数                                                                                                                                                                      | 描述                                                               |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| <a id="FD_EXT_ATS_EN"></a>[FD_EXT_ATS_EN](../advanced_config/parameter_reference.md#FD_EXT_ATS_EN)       | 启用 AUX5 或 MAIN5（取决于飞控板）上的 PWM 输入，以便从外部自动触发系统（ATS）启用故障保护。 默认值：禁用。 |
-| <a id="FD_EXT_ATS_TRIG"></a>[FD_EXT_ATS_TRIG](../advanced_config/parameter_reference.md#FD_EXT_ATS_TRIG) | 来自外部自动触发系统的用于接通故障保护的 PWM 阈值。 默认值：1900m/s。                        |
+| Parameter                                                                                                                                                               | 描述                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_EXT_ATS_EN"></a>[FD_EXT_ATS_EN](../advanced_config/parameter_reference.md#FD_EXT_ATS_EN)       | Enable PWM input on AUX5 or MAIN5 (depending on board) for engaging failsafe from an external automatic trigger system (ATS). Default: Disabled. |
+| <a id="FD_EXT_ATS_TRIG"></a>[FD_EXT_ATS_TRIG](../advanced_config/parameter_reference.md#FD_EXT_ATS_TRIG) | The PWM threshold from external automatic trigger system for engaging failsafe. Default: 1900 ms.                                                                                      |
 
 ## 任务可行性检查
 
@@ -380,13 +414,13 @@ For example, the checks ensures that the first waypoint isn't too far away, and 
 
 As these are not strictly speaking "failsafes" they are documented in [Mission Mode (FW) > Mission Feasibility Checks](../flight_modes_fw/mission.md#mission-feasibility-checks) and [Mission Mode (MC) > Mission Feasibility Checks](../flight_modes_mc/mission.md#mission-feasibility-checks).
 
-## 应急开关
+## Emergency Switches
 
 Remote control switches can be configured (as part of _QGroundControl_ [Flight Mode Setup](../config/flight_mode.md)) to allow you to take rapid corrective action in the event of a problem or emergency; for example, to stop all motors, or activate [Return mode](#return-switch).
 
 This section lists the available emergency switches.
 
-### 急停开关
+### Kill Switch
 
 A kill switch immediately stops all motor outputs — if flying, the vehicle will start to fall!
 
@@ -396,23 +430,23 @@ The motors will restart if the switch is reverted within 5 seconds, after which 
 There is also a [Kill Gesture](#kill-gesture), which cannot be reverted.
 :::
 
-### 解锁/上锁开关
+### Arm/Disarm Switch
 
 The arm/disarm switch is a _direct replacement_ for the default stick-based arming/disarming mechanism (and serves the same purpose: making sure there is an intentional step involved before the motors start/stop).
-它可能优先于默认机制使用，原因如下：
+It might be used in preference to the default mechanism because:
 
-- 这种机制偏向于切换动作而不是持续运动。
-- 这种机制可以避免因为某种意外误触而引发的飞行期间解锁/上锁。
-- 这种机制没有延迟（立即作出反应）。
+- Of a preference of a switch over a stick motion.
+- It avoids accidentally triggering arming/disarming in-air with a certain stick motion.
+- There is no delay (it reacts immediately).
 
 The arm/disarm switch immediately disarms (stop) motors for those [flight modes](../flight_modes/index.md#flight-modes) that _support disarming in flight_.
-其中包括：
+This includes:
 
 - _Manual mode_
 - _Acro mode_
 - _Stabilized_
 
-对于不支持在飞行期间上锁的模式，在飞行期间会忽略该开关信号，但在检测到着陆后可以使用该开关。
+For modes that do not support disarming in flight, the switch is ignored during flight, but may be used after landing is detected.
 This includes _Position mode_ and autonomous modes (e.g. _Mission_, _Land_ etc.).
 
 :::info
@@ -424,7 +458,7 @@ This includes _Position mode_ and autonomous modes (e.g. _Mission_, _Land_ etc.)
   If the switch positions are reversed, change the sign of the parameter [RC_ARMSWITCH_TH](../advanced_config/parameter_reference.md#RC_ARMSWITCH_TH) (or also change its value to alter the threshold value).
 -->
 
-### 返航开关
+### Return Switch
 
 A return switch can be used to immediately engage [Return mode](../flight_modes/return.md).
 
@@ -434,7 +468,7 @@ A kill gesture immediately stops all motor outputs — if flying, the vehicle wi
 
 The action cannot be reverted without a reboot (this differs from a [Kill Switch](#kill-switch), where the operation can be reverted within 5 seconds).
 
-| 参数                                                                                                                                                                      | 描述                                                                                                                                                                      |
+| Parameter                                                                                                                                                               | 描述                                                                                                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MAN_KILL_GEST_T"></a>[MAN_KILL_GEST_T](../advanced_config/parameter_reference.md#MAN_KILL_GEST_T) | Time to hold sticks in gesture position before killing the motors. Default: `-1` seconds (Disabled). |
 
@@ -449,16 +483,16 @@ You can set timeouts to automatically disarm a vehicle if it is too slow to take
 
 The [relevant parameters](../advanced_config/parameters.md) are shown below:
 
-| 参数                                                                                                                                                    | 描述                |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | 降落后自动上锁的超时时间。     |
-| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | 如果起飞速度太慢，将启动自动上锁。 |
+| Parameter                                                                                                                                             | 描述                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | Timeout for auto-disarm after landing.                     |
+| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | Timeout for auto disarm if vehicle is too slow to takeoff. |
 
 ### Arming Pre-Conditions
 
 These parameters can be used to set conditions that prevent arming.
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                                                                                                                                                                                                                    |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_ARMABLE"></a>[COM_ARMABLE](../advanced_config/parameter_reference.md#COM_ARMABLE)                                                          | Enable arming (at all). `0`: Disabled, `1`: Enabled (default).                                                                                                                                                                                                  |
 | <a id="COM_ARM_BAT_MIN"></a>[COM_ARM_BAT_MIN](../advanced_config/parameter_reference.md#COM_ARM_BAT_MIN)    | Minimum battery level for arming. `0`: Disabled (default). Values: `0`-`0.9`,                                                                                                                                                                                                      |

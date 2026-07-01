@@ -10,10 +10,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type     | Unit [Frame] | Range/Enum | Description                     |
-| --------- | -------- | ------------ | ---------- | ------------------------------- |
-| timestamp | `uint64` |              |            |
-| command   | `int8`   |              |            | Commanded state for the gripper |
+| Name                                | Type     | Unit [Frame] | Range/Enum | Description                     |
+| ----------------------------------- | -------- | ------------ | ---------- | ------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |              |            |
+| <a id="fld_command"></a>command     | `int8`   |              |            | Commanded state for the gripper |
 
 ## Constants
 

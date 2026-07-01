@@ -1,15 +1,9 @@
 # Траєкторія Jerk-limited типу для Мультикоперів
 
-Тип траєкторії з обмеженим рухом джерка забезпечує плавний рух у відповідь на введення палиці користувача або зміни місії (наприклад: для зйомки, картографування, вантажу).
+The Jerk-limited trajectory type provides smooth motion in autonomous flight e.g. for filming, mapping, cargo.
 Він генерує симетричні плавні S-криві, де обмеження різкості та прискорення завжди гарантовані.
 
-This trajectory type is always enabled in [Mission mode](../flight_modes_mc/mission.md).
-To enable it in [Position mode](../flight_modes_mc/position.md) set the parameter [MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE) to `Smoothed velocity`.
-
-:::info
-The jerk-limited type is not used _by default_ in position mode.
-Це може бути не підходить для транспортних засобів / випадків використання, які вимагають швидкої відповіді - наприклад, гонщицькі квадрокоптери.
-:::
+This trajectory type is always enabled in autonomous modes like [Mission mode](../flight_modes_mc/mission.md).
 
 ## Генератор траєкторії
 
@@ -30,16 +24,11 @@ The constraints `jMax`, `aMax` are configurable by the user via parameters and c
 
 ## Ручний режим
 
-In manual position mode, the sticks are mapped to velocity where a full XY-stick deflection corresponds to [MPC_VEL_MANUAL](../advanced_config/parameter_reference.md#MPC_VEL_MANUAL) and a full Z-stick deflection corresponds to [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) (upward motion) or [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) (downward motion).
+In manual position and altitude mode, jerk limiting is applied only to the vertical axis. Full throttle stick deflection commands the maximum vertical velocity which is [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) upwards and [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) downwards.
 
 ### Обмеження
 
-XY-plane:
-
-- `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
-- `aMax`: [MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)
-
-Z-axis:
+Z-axis
 
 - `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
 - `aMax` (upward motion): [MPC_ACC_UP_MAX](../advanced_config/parameter_reference.md#MPC_ACC_UP_MAX)

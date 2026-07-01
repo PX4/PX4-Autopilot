@@ -131,6 +131,12 @@ commander <command> [arguments...]
      on|off      [on] to activate safety, [off] to deactivate safety and allow
                  control surface movements
 
+   actuator_group_test Drive a functional actuator group (torque/thrust/tilt)
+                 for a brief preflight check
+     roll|pitch|yaw|tilt|xthrust|ythrust|zthrust Group
+     [value]     Normalized command [-1.0, +1.0]; default 1.0 for torque/tilt,
+                 0.1 for thrust
+
    arm
      [-f]        Force arming (do not run preflight checks)
 
@@ -145,8 +151,8 @@ commander <command> [arguments...]
 
    mode          Change flight mode
      manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
-                 |auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:
-                 precland|ext1 Flight mode
+                 |auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|aut
+                 o:land|auto:precland|ext1 Flight mode
 
    pair
 
@@ -321,7 +327,7 @@ Source: [drivers/heater](https://github.com/PX4/PX4-Autopilot/tree/main/src/driv
 
 ### Опис
 
-Background process running periodically on the INS{i} queue to regulate IMU temperature at a setpoint.
+Background process running periodically on the INS{i} queue to regulate temperature at a setpoint.
 
 This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
 
@@ -1096,6 +1102,28 @@ uxrce_dds_client <command> [arguments...]
      [-n <val>]  Client DDS namespace. If not provided but UXRCE_DDS_NS_IDX is
                  between 0 and 9999 inclusive, then uav_ + UXRCE_DDS_NS_IDX will
                  be used
+
+   stop
+
+   status        print status info
+```
+
+## vision_target_estimator
+
+Source: [modules/vision_target_estimator](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/vision_target_estimator)
+
+### Опис
+
+Module to estimate the position and orientation of a target using relative sensors.
+
+The module runs periodically on the px4::wq_configurations::vte queue.
+
+### Usage {#vision_target_estimator_usage}
+
+```
+vision_target_estimator <command> [arguments...]
+ Commands:
+   start         Start the background task
 
    stop
 

@@ -42,7 +42,7 @@
 
 #include "mission_feasibility_checker.h"
 
-#include "mission_block.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_pwm_output.h>
@@ -62,10 +62,9 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 	const bool home_valid = _navigator->home_global_position_valid();
 	const bool home_alt_valid = _navigator->home_alt_valid();
 
-	// trivial case: A mission with length zero cannot be valid
+	// An empty mission is the normal "no mission loaded" state, not a rejection: the commander
+	// surfaces auto_mission_missing via arming checks when mission mode is actually requested.
 	if ((int)mission.count <= 0) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: empty\t");
-		events::send(events::ID("navigator_mis_empty"), {events::Log::Error, events::LogInternal::Info}, "Mission rejected: empty");
 		return false;
 	}
 
@@ -142,7 +141,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			// Geofence function checks against home altitude amsl
 			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-			if (MissionBlock::item_contains_position(missionitem) && !_navigator->get_geofence().checkPointAgainstAllGeofences(
+			if (mission_item_contains_position(missionitem) && !_navigator->get_geofence().checkPointAgainstAllGeofences(
 				    missionitem.lat, missionitem.lon, missionitem.altitude)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", i + 1);

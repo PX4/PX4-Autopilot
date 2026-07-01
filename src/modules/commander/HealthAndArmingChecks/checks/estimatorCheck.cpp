@@ -109,14 +109,16 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (missing_data && (param_ekf2_en == 1)) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_missing_data"),
-					    events::Log::Info, "Waiting for estimator to initialize");
+		if (_estimator_status_sub.advertised()) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_missing_data"),
+						    events::Log::Info, "Waiting for estimator to initialize");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
+			}
 		}
 
 	} else {
@@ -626,9 +628,11 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 			}
 		}
 
+		// Only require a heading reference when a global origin is set (i.e. global ops are intended)
 		if (!context.isArmed()
 		    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
-		    && !estimator_status_flags.cs_yaw_align) {
+		    && !estimator_status_flags.cs_yaw_align
+		    && lpos.xy_global) {
 
 			const NavModes heading_required_groups = (NavModes)(
 						reporter.failsafeFlags().mode_req_local_position |

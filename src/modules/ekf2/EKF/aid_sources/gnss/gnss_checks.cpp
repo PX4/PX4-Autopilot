@@ -47,17 +47,16 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 		_time_last_fail_us = time_us;
 	}
 
-	bool passed = false;
-
 	// Run strict checks while not flying yet
 	if (!_control_status.flags.in_air) {
 		_initial_checks_passed = false;
 	}
 
+	_passed = false;
+
 	if (_initial_checks_passed) {
 		if (runSimplifiedChecks(gnss)) {
-			_time_last_pass_us = time_us;
-			passed = isTimedOut(_time_last_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10));
+			_passed = isTimedOut(_time_last_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10));
 
 		} else {
 			_time_last_fail_us = time_us;
@@ -65,11 +64,9 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 
 	} else {
 		if (runInitialFixChecks(gnss)) {
-			_time_last_pass_us = time_us;
-
 			if (isTimedOut(_time_last_fail_us, time_us, (uint64_t)_params.min_health_time_us)) {
 				_initial_checks_passed = true;
-				passed = true;
+				_passed = true;
 			}
 
 		} else {
@@ -80,8 +77,11 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 	lat_lon_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
 	_alt_prev = gnss.alt;
 
-	_passed = passed;
-	return passed;
+	if (_passed) {
+		_time_last_pass_us = time_us;
+	}
+
+	return _passed;
 }
 
 bool GnssChecks::runSimplifiedChecks(const gnssSample &gnss)

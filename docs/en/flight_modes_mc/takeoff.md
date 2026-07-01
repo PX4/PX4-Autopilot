@@ -12,7 +12,7 @@ The _Takeoff_ flight mode causes the vehicle to take off to a specified height a
   - Flying vehicles will failsafe if they lose the position estimate.
   - Disarmed vehicles can switch to mode without valid position estimate but can't arm.
 - RC control switches can be used to change flight modes.
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->

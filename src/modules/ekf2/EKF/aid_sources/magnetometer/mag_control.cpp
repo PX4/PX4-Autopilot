@@ -254,7 +254,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 						    && PX4_ISFINITE(_wmm_declination_rad)
 						   ) {
 							// using declination from the world magnetic model
-							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states, update_tilt);
+							fuseDeclination(_wmm_declination_rad, R_DECL, update_all_states, update_tilt);
 
 						} else if ((_params.ekf2_decl_type & GeoDeclinationMask::SAVE_GEO_DECL)
 							   && PX4_ISFINITE(_params.ekf2_mag_decl) && (fabsf(_params.ekf2_mag_decl) > 0.f)

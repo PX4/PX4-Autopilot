@@ -10,18 +10,18 @@ Request to register an external component.
 
 ## Fields
 
-| Name                         | Type       | Unit [Frame] | Range/Enum | Description                                                                                             |
-| ---------------------------- | ---------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------- |
-| timestamp                    | `uint64`   |              |            | time since system start (microseconds)                                                                  |
-| request_id                   | `uint64`   |              |            | ID, set this to a random value                                                                          |
-| name                         | `char[25]` |              |            | either the requested mode name, or component name                                                       |
-| px4_ros2_api_version         | `uint16`   |              |            | Set to LATEST_PX4_ROS2_API_VERSION                                                                      |
-| register_arming_check        | `bool`     |              |            |
-| register_mode                | `bool`     |              |            | registering a mode also requires arming_check to be set                                                 |
-| register_mode_executor       | `bool`     |              |            | registering an executor also requires a mode to be registered (which is the owned mode by the executor) |
-| enable_replace_internal_mode | `bool`     |              |            | set to true if an internal mode should be replaced                                                      |
-| replace_internal_mode        | `uint8`    |              |            | vehicle*status::NAVIGATION_STATE*\*                                                                     |
-| activate_mode_immediately    | `bool`     |              |            | switch to the registered mode (can only be set in combination with an executor)                         |
+| Name                                                                      | Type       | Unit [Frame] | Range/Enum | Description                                                                                             |
+| ------------------------------------------------------------------------- | ---------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                       | `uint64`   |              |            | time since system start (microseconds)                                                                  |
+| <a id="fld_request_id"></a>request_id                                     | `uint64`   |              |            | ID, set this to a random value                                                                          |
+| <a id="fld_name"></a>name                                                 | `char[25]` |              |            | either the requested mode name, or component name                                                       |
+| <a id="fld_px4_ros2_api_version"></a>px4_ros2_api_version                 | `uint16`   |              |            | Set to LATEST_PX4_ROS2_API_VERSION                                                                      |
+| <a id="fld_register_arming_check"></a>register_arming_check               | `bool`     |              |            |
+| <a id="fld_register_mode"></a>register_mode                               | `bool`     |              |            | registering a mode also requires arming_check to be set                                                 |
+| <a id="fld_register_mode_executor"></a>register_mode_executor             | `bool`     |              |            | registering an executor also requires a mode to be registered (which is the owned mode by the executor) |
+| <a id="fld_enable_replace_internal_mode"></a>enable_replace_internal_mode | `bool`     |              |            | set to true if an internal mode should be replaced                                                      |
+| <a id="fld_replace_internal_mode"></a>replace_internal_mode               | `uint8`    |              |            | vehicle*status::NAVIGATION_STATE*\*                                                                     |
+| <a id="fld_activate_mode_immediately"></a>activate_mode_immediately       | `bool`     |              |            | switch to the registered mode (can only be set in combination with an executor)                         |
 
 ## Constants
 

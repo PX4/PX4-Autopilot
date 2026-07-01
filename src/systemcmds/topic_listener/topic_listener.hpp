@@ -50,7 +50,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-inline int listener_print_topic(const orb_id_t &orb_id, int subscription)
+inline int listener_print_topic(const orb_id_t &orb_id, orb_sub_t subscription)
 {
 	static constexpr int max_size = 512;
 	alignas(8) char container[max_size];

@@ -1,0 +1,13 @@
+{
+    "board_id": 1186,
+    "magic": "3dr-ctrl-n1",
+    "description": "Firmware for the 3dr-ctrl-n1 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "3dr-ctrl-n1",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}
