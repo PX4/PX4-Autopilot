@@ -19,7 +19,7 @@ Where possible, instead use [Return mode](../flight_modes_fw/return.md) with a p
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
 - Mode prevents arming (vehicle must be armed when switching to this mode).
-- Manual control control switches can be used to change flight modes on any vehicle.
+- Manual control switches can be used to change flight modes on any vehicle.
 - Manual control stick movement is ignored.
 - The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
 
