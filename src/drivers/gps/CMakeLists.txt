@@ -58,3 +58,7 @@ px4_add_module(
 		git_gps_devices
 		gnss
 	)
+
+if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	target_link_libraries(drivers__gps PRIVATE failure_injection)
+endif()

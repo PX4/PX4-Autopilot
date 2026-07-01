@@ -605,6 +605,20 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 	sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_config.update();
+
+	const int node_id = msg.getSrcNodeID().get();
+	const int8_t channel = get_channel_index_for_node(node_id);
+	const int instance = get_orb_instance_for_node(node_id);
+
+	if (channel >= 0 && instance >= 0
+	    && !failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+					   instance, sensor_gps, _stuck[channel])) {
+		return;
+	}
+
+#endif
 	publish(msg.getSrcNodeID().get(), &sensor_gps);
 }
 

@@ -32,3 +32,7 @@
 ############################################################################
 
 px4_add_library(drivers_barometer PX4Barometer.cpp)
+
+if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	target_link_libraries(drivers_barometer PRIVATE failure_injection)
+endif()

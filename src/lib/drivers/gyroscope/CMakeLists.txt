@@ -37,3 +37,7 @@ px4_add_library(drivers_gyroscope
 )
 target_compile_options(drivers_gyroscope PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_link_libraries(drivers_gyroscope PRIVATE conversion)
+
+if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	target_link_libraries(drivers_gyroscope PRIVATE failure_injection)
+endif()

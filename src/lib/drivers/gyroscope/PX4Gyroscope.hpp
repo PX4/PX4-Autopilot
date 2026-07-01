@@ -39,6 +39,10 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+# include <lib/failure_injection/FailureInjection.hpp>
+#endif
+
 class PX4Gyroscope
 {
 public:
@@ -81,4 +85,10 @@ private:
 	uint32_t		_error_count{0};
 
 	int16_t			_last_sample[3] {};
+
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_gyro_s> _stuck;
+	failure_injection::Stuck<sensor_gyro_fifo_s> _stuck_fifo;
+#endif
 };

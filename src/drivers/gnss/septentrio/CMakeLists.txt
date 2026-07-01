@@ -49,6 +49,10 @@ px4_add_module(
 		module.yaml
 	)
 
+if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	target_link_libraries(driver__septentrio PRIVATE failure_injection)
+endif()
+
 if(TARGET fuzztest::fuzztest)
 	px4_add_functional_gtest(SRC septentrio_fuzz_tests.cpp
 		LINKLIBS

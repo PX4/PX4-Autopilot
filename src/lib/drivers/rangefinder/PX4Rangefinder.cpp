@@ -87,5 +87,14 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 		memcpy(report.q, q, sizeof(float) * q_len);
 	}
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR,
+					_distance_sensor_pub.get_instance(), report, _stuck)) {
+		return;
+	}
+
+#endif
 	_distance_sensor_pub.update();
 }

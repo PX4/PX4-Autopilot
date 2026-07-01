@@ -131,6 +131,15 @@ void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y,
 	report.samples = 1;
 	report.timestamp = hrt_absolute_time();
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					_sensor_pub.get_instance(), report, _stuck)) {
+		return;
+	}
+
+#endif
 	_sensor_pub.publish(report);
 }
 
@@ -146,6 +155,16 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	sample.device_id = _device_id;
 	sample.scale = _scale;
 	sample.timestamp = hrt_absolute_time();
+
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					_sensor_pub.get_instance(), sample, _stuck_fifo)) {
+		return;
+	}
+
+#endif
 	_sensor_fifo_pub.publish(sample);
 
 
@@ -172,6 +191,14 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					_sensor_pub.get_instance(), report, _stuck)) {
+		return;
+	}
+
+#endif
 	_sensor_pub.publish(report);
 }
 

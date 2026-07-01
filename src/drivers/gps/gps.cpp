@@ -68,6 +68,10 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+# include <lib/failure_injection/FailureInjection.hpp>
+#endif
+
 #include <lib/gnss/rtcm.h>
 
 #ifndef CONSTRAINED_FLASH
@@ -207,6 +211,11 @@ private:
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
 
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
+
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_gps_s> _stuck;
+#endif
 
 	float				_rate{0.0f};					///< position update rate
 	float				_rtcm_injection_rate{0.0f};			///< RTCM message injection rate
@@ -1356,6 +1365,15 @@ GPS::publish()
 		_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 		_sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+		_failure_config.update();
+
+		if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+						_sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
+			return;
+		}
+
+#endif
 		_sensor_gps_pub.publish(_sensor_gps);
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.

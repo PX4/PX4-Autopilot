@@ -204,3 +204,7 @@ px4_add_module(
 		# within libuavcan
 		uavcan
 	)
+
+if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	target_link_libraries(drivers__uavcan PRIVATE failure_injection)
+endif()

@@ -32,3 +32,7 @@
 ############################################################################
 
 px4_add_library(drivers_rangefinder PX4Rangefinder.cpp)
+
+if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	target_link_libraries(drivers_rangefinder PRIVATE failure_injection)
+endif()
