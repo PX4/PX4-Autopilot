@@ -102,7 +102,8 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	}
 
 	if (num_vertices > kMaxNodes - 1) { // -1 to reserve the destination slot
-		// Does not happen when kMaxNodes set correctly - see static_assert in geofence_utils::PlannerPolygons
+		// Fence larger than the per-board budget (kMaxNodes). On boards where
+		// kMaxNodes >= kMaxNodesForAnyStorableFence this cannot happen.
 		_polygons_healthy = false;
 		_status = Status::BudgetExceeded;
 		return;

@@ -45,6 +45,7 @@
 #include <matrix/math.hpp>
 
 #include <dataman/dataman.h>
+#include <px4_platform_common/px4_config.h> // CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES
 
 namespace geofence_utils
 {
@@ -221,30 +222,28 @@ public:
 	//
 	// * Stephen LaValle, 2006: Planning Algorithms, 6.2.4 - Shortest-Path Roadmaps
 
-	// See static_assert below for reasoning behind kMaxNodes. static_assert rather
-	// than directly defining from these params to introduce some friction when changing
-	// the dataman maximum and clearly point to the higher RTL planning cost.
-	static constexpr int kMaxNodes = 200;
+	// By default, limit to 100 nodes, which was found to limit the full update
+	// on geofence / margin change to about 20 ms. Lower for weaker or RAM-constrained boards.
+
+#ifndef CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES
+#define CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES 100
+#endif
+
+	static constexpr int kMaxNodes = CONFIG_NAVIGATOR_GEOFENCE_MAX_NODES;
 	static constexpr int kMaxPolygons = 16;
 	static constexpr int kCircleApproxVertices = 8;
 
-	static_assert(
-		kMaxPolygons <= DM_KEY_FENCE_POINTS_MAX,
-		"kMaxPolygons is larger than max number of points"
-	);
-
-	// Ensure that the geofence with the largest possible number of nodes still
-	// fits the budget.
-	static_assert(
-		// All but one zones are circles (most of nodes per dataman item)
+	// Number of nodes needed to hold the largest geofence storable in dataman.
+	// Worst case:
+	//  - kMaxPolygons-1 circles (most nodes per dataman item)
+	//  - one remaining polygon using all remaining fence points, with max amount of split vertices
+	//  - 1 destination slot
+	// If kMaxNodes > kMaxNodesForAnyStorableFence, we always have enough space.
+	// Otherwise we may fail with AddResult::BudgetExceeded.
+	static constexpr int kMaxNodesForAnyStorableFence =
 		(kMaxPolygons - 1) * kCircleApproxVertices
-		// The one remaining polygon uses the remaining fence points, AND achieves
-		// the upper bound on the number sharp and convex (thus split) vertices
 		+ maxVerticesAfterSplitting(DM_KEY_FENCE_POINTS_MAX - (kMaxPolygons - 1))
-		+ 1 // Destinations slot
-		<= kMaxNodes,
-		"kMaxNodes cannot hold the worst-case fence storable in dataman"
-	);
+		+ 1;
 
 	// Return code specifying why a polygon was not added.
 	enum class AddResult {

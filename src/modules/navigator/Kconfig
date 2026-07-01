@@ -34,3 +34,11 @@ menuconfig NAVIGATOR_GEOFENCE_AVOIDANCE
 	depends on MODULES_NAVIGATOR
 	---help---
 		Add support for RTL mode to route around geofences.
+
+config NAVIGATOR_GEOFENCE_MAX_NODES
+	int "Max graph nodes for geofence RTL planner"
+	default 100
+	depends on NAVIGATOR_GEOFENCE_AVOIDANCE
+	---help---
+		Max number of geofence vertices which the RTL planner can use.
+		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
