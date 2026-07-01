@@ -244,6 +244,17 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-06-12: merge COM_RC_OVERRIDE + COM_RC_STICK_OV into MAN_OVERRIDE_SPD
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_RC_OVERRIDE", node->name) == 0) && (node->i32 == 0)) {
+			node->d = -1.0;
+			node->type = bson_type_t::BSON_DOUBLE;
+			strcpy(node->name, "MAN_OVERRIDE_SPD");
+			PX4_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-06-22: translate HEATER*_IMU_ID to HEATER*_SENS_ID
 	//	HEATER_MAX_INSTANCES == 3 (in heater.h)
 	{

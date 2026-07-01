@@ -139,12 +139,18 @@ void ManualControl::processInput(hrt_abstime now)
 
 		// User override by stick
 		const float dt_s = (now - _timestamp_last_loop) / 1e6f;
-		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
+		const float velocity_threshold = _param_man_override_spd.get();
 
-		_selector.setpoint().sticks_moving = (fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > minimum_stick_change)
-						     || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > minimum_stick_change)
-						     || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > minimum_stick_change)
-						     || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > minimum_stick_change);
+		_selector.setpoint().sticks_moving =
+			(velocity_threshold >= 0.f) &&
+			((fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > velocity_threshold
+			  && _roll_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
+			 || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > velocity_threshold
+			     && _pitch_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
+			 || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > velocity_threshold
+			     && _yaw_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE)
+			 || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > velocity_threshold
+			     && _throttle_diff.consecutiveSameSign() >= MIN_SIGN_CONSECUTIVE));
 
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());

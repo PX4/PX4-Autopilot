@@ -3121,38 +3121,22 @@ void Commander::manualControlCheck()
 		_last_manual_throttle = manual_control_setpoint.throttle;
 
 		if (isArmed()) {
-			// Abort autonomous mode and switch to position mode if sticks are moved significantly
-			// but only if actually in air.
-			if (manual_control_setpoint.sticks_moving
-			    && !_vehicle_control_mode.flag_control_manual_enabled
-			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-			   ) {
-				bool override_enabled = false;
+			// Hand control back to the pilot when they override with the sticks (see MAN_OVERRIDE_SPD).
+			// Only applies to multicopters (incl. VTOLs in MC mode) in auto/offboard modes.
+			const bool rotary_wing = (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			const bool overridable_mode = _vehicle_control_mode.flag_control_auto_enabled || _vehicle_control_mode.flag_control_offboard_enabled;
 
-				if (_vehicle_control_mode.flag_control_auto_enabled) {
-					if (_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::AUTO_MODE_BIT)) {
-						override_enabled = true;
+			if (manual_control_setpoint.sticks_moving && rotary_wing && overridable_mode) {
+				// If no failsafe is active, directly change the mode, otherwise pass the request to the failsafe state machine
+				if (_failsafe.selectedAction() <= FailsafeBase::Action::Warn) {
+					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, true)) {
+						tune_positive(true);
+						mavlink_log_info(&_mavlink_log_pub, "Pilot took over using sticks\t");
+						events::send(events::ID("commander_rc_override"), events::Log::Info, "Pilot took over using sticks");
 					}
-				}
 
-				if (_vehicle_control_mode.flag_control_offboard_enabled) {
-					if (_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::OFFBOARD_MODE_BIT)) {
-						override_enabled = true;
-					}
-				}
-
-				if (override_enabled) {
-					// If no failsafe is active, directly change the mode, otherwise pass the request to the failsafe state machine
-					if (_failsafe.selectedAction() <= FailsafeBase::Action::Warn) {
-						if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, true)) {
-							tune_positive(true);
-							mavlink_log_info(&_mavlink_log_pub, "Pilot took over using sticks\t");
-							events::send(events::ID("commander_rc_override"), events::Log::Info, "Pilot took over using sticks");
-						}
-
-					} else {
-						_failsafe_user_override_request = true;
-					}
+				} else {
+					_failsafe_user_override_request = true;
 				}
 			}
 
