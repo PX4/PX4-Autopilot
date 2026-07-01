@@ -1,8 +1,11 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
-# Simulator IMU data provided at 250 Hz
-param set-default IMU_INTEG_RATE 250
+# Most mavlink simulator models provide IMU data at 250 Hz. X-Plane airframes
+# set their own bridge cadence in the airframe file.
+if [ "$PX4_SIMULATOR" != "xplane" ]; then
+	param set-default IMU_INTEG_RATE 250
+fi
 
 # For simulation, allow registering modes while armed for developer convenience
 param set-default COM_MODE_ARM_CHK 1
@@ -23,6 +26,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "10017" ]; then
     # Run jMAVSim
     . px4-rc.jmavsim
+
+elif [ "$PX4_SIMULATOR" = "xplane" ]; then
+    # Run X-Plane through the mavlink simulator bridge
+    . px4-rc.mavlinksim
 
 else
     # Run simulator_mavlink module for interface with gazebo-classic
