@@ -146,7 +146,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			unsigned remaining = drain_queue ? send_subscriptions[idx].orb_meta->o_queue : 1;
 			bool updated = true;
 
-			while (updated && remaining-- > 0) {
+			while (updated) {
 				// Topic updated, copy data and send
 				orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
 
@@ -179,7 +179,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 					//PX4_ERR("Error UXR_INVALID_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
 				}
 
-				if (!drain_queue) {
+				if (--remaining == 0) {
 					// Latest sample only; leave the rest of the queue for the next cycle.
 					break;
 				}
