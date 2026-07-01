@@ -275,7 +275,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 int px4_task_join(px4_task_t id)
 {
-	if (id < PX4_MAX_TASKS) {
+	if (id >= 0 && id < PX4_MAX_TASKS) {
 		pthread_mutex_lock(&task_mutex);
 		pthread_t pid = taskmap[id].pid;
 		pthread_mutex_unlock(&task_mutex);
@@ -294,7 +294,7 @@ int px4_task_delete(px4_task_t id)
 	pthread_t pid;
 	PX4_DEBUG("Called px4_task_delete");
 
-	if (id < PX4_MAX_TASKS && taskmap[id].isused) {
+	if (id >= 0 && id < PX4_MAX_TASKS && taskmap[id].isused) {
 		pid = taskmap[id].pid;
 
 	} else {
