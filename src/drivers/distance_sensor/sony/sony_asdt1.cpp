@@ -1332,6 +1332,8 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 		_obstacle_distance.distances[i] = UINT16_MAX;
 	}
 
+	const uint16_t no_obstacle_cm = _obstacle_distance.max_distance + 1;
+
 	// Only publish the rows that cover the horizontal band used by obstacle_distance.
 	for (size_t sample = 0; sample < sample_count; sample++) {
 		const int layout_index = sample_to_layout_index(sample, _range_mode);
@@ -1352,6 +1354,10 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 			continue;
 		}
 
+		if (_obstacle_distance.distances[bin] == UINT16_MAX) {
+			_obstacle_distance.distances[bin] = no_obstacle_cm;
+		}
+
 		const uint32_t z_raw = decode_20bit_raw(frame, sample);
 
 		if (z_raw == 0) {
@@ -1370,7 +1376,7 @@ int AS_DT1::process_frame(const uint8_t *frame, size_t length)
 						      _obstacle_distance.max_distance + 1 : distance_cm;
 
 		if (obstacle_distance_cm < _obstacle_distance.distances[bin]) {
-			if (_obstacle_distance.distances[bin] == UINT16_MAX) {
+			if (_obstacle_distance.distances[bin] > _obstacle_distance.max_distance) {
 				_last_valid_bins++;
 			}
 
