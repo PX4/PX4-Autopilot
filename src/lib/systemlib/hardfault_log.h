@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015-2026 PX4 Development Team. All rights reserved.
  *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#if defined(HAS_BBSRAM)
+#if HAS_BBSRAM
 
 #include <stm32_bbsram.h>
 typedef struct bbsramd_s dump_s;
@@ -198,7 +198,24 @@ typedef struct ssarc_s dump_s;
 		SSARC_DUMP_SIZE_FN4,   /* For the Panic Log use rest of space */  \
 		0                  /* End of table marker */                  \
 	}
-#else /* HAS_SSARC */
+#elif defined(BOARD_HAS_RAM_HARDFAULT_DUMP)
+
+/* .noinit RAM dump backend (no BBSRAM/progmem/SSARC).
+ * Stack capture fills the noinit region after the magic word and info_s. */
+#include <time.h>
+/* Minimal dump descriptor - only the timestamp field is used during formatting */
+typedef struct { struct timespec lastwrite; } dump_s;
+
+#define BOARD_RAM_HARDFAULT_MAGIC 0xDEADA1B2U
+
+#if CONFIG_ARCH_INTERRUPTSTACK <= 3
+#  define CONFIG_ISTACK_SIZE  0U
+#else
+#  define CONFIG_ISTACK_SIZE  (CONFIG_ARCH_INTERRUPTSTACK / sizeof(stack_word_t))
+#endif
+#define CONFIG_USTACK_SIZE  (BOARD_RAM_HARDFAULT_USTACK_BYTES / sizeof(stack_word_t))
+
+#else
 
 #define CONFIG_ISTACK_SIZE 0
 #define CONFIG_USTACK_SIZE 0
@@ -382,18 +399,30 @@ typedef struct {
 } info_s;
 
 typedef struct {
-	info_s    info;                       /* The info */
+	info_s    info;                 /* The info */
 #if CONFIG_ARCH_INTERRUPTSTACK > 3      /* The amount of stack data is compile time
-									 * sized backed on what is left after the
-									 * other BBSRAM files are defined
-									 * The order is such that only the
-									 * ustack should be truncated
-									 */
-	stack_word_t istack[CONFIG_USTACK_SIZE];
+					* sized backed on what is left after the
+					* other BBSRAM files are defined
+					* The order is such that only the
+					* ustack should be truncated
+					*/
+	stack_word_t istack[CONFIG_ISTACK_SIZE];
 #endif
-	stack_word_t ustack[CONFIG_ISTACK_SIZE];
+	stack_word_t ustack[CONFIG_USTACK_SIZE];
 } fullcontext_s;
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+/**
+ * Generic .noinit RAM hardfault dump buffer for boards with BOARD_HAS_RAM_HARDFAULT_DUMP.
+ *
+ * Boards opting into this mechanism must define BOARD_HAS_RAM_HARDFAULT_DUMP
+ */
+typedef struct {
+	uint32_t      magic;    /* BOARD_RAM_HARDFAULT_MAGIC when context is valid */
+	fullcontext_s context;
+} px4_ram_hardfault_dump_s;
 
+extern px4_ram_hardfault_dump_s g_px4_ram_hardfault;
+#endif /* BOARD_HAS_RAM_HARDFAULT_DUMP */
 __BEGIN_DECLS
 /****************************************************************************
  * Name: hardfault_check_status

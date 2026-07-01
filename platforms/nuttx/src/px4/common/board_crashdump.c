@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,7 +75,7 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 {
 
 	int hadCrash = -1;
-#if defined(HAS_BBSRAM)
+#if HAS_BBSRAM
 
 	/* NB. the use of the console requires the hrt running
 	 * to poll the DMA
@@ -256,6 +256,14 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 	}
 }
 
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+
+/* The persistent dump buffer - placed in .noinit.hardfault_dump so it is never zeroed by the
+ * C runtime on a warm reset.*/
+px4_ram_hardfault_dump_s g_px4_ram_hardfault __attribute__((section(".noinit.hardfault_dump")));
+
+
+#else /* no BOARD_HAS_RAM_HARDFAULT_DUMP */
 #ifdef BOARD_CRASHDUMP_BSS
 
 static uint32_t *__attribute__((noinline)) __ebss_addr(void)
@@ -271,6 +279,7 @@ static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 }
 
 #endif
+#endif /* BOARD_HAS_RAM_HARDFAULT_DUMP */
 
 
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char *filename, int lineno)
@@ -283,7 +292,12 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	 * Unfortunately this is hard to test. See dead below
 	 */
 
-#ifdef BOARD_CRASHDUMP_BSS
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	/* .noinit.hardfault_dump RAM dump: invalidate magic now so a concurrent reader never sees a
+	 * half-written context.  It will be restamped at the end*/
+	g_px4_ram_hardfault.magic = 0u;
+	fullcontext_s *pdump = &g_px4_ram_hardfault.context;
+#elif defined(BOARD_CRASHDUMP_BSS)
 	fullcontext_s *pdump = (fullcontext_s *)(__ebss_addr() - sizeof(fullcontext_s));
 #else
 	fullcontext_s *pdump = (fullcontext_s *)__sdata_addr();
@@ -411,6 +425,10 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 		pdump->info.flags |= eInvalidUserStackPtr;
 	}
 
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	/* Stamp magic to mark dump as valid */
+	g_px4_ram_hardfault.magic = BOARD_RAM_HARDFAULT_MAGIC;
+#else
 	int rv = px4_savepanic(HARDFAULT_FILENO, (uint8_t *)pdump, sizeof(fullcontext_s));
 
 	/* Test if memory got wiped because of using _sdata */
@@ -428,6 +446,8 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 
 		up_putc('!');
 	}
+
+#endif /* BOARD_HAS_RAM_HARDFAULT_DUMP */
 
 #endif /* BOARD_CRASHDUMP_RESET_ONLY */
 

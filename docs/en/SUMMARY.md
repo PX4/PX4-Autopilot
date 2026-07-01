@@ -845,6 +845,7 @@
       - [STLink Probe](debug/probe_stlink.md)
       - [MCU-Link Probe](debug/probe_mculink.md)
       - [Hardfault Debugging](debug/gdb_hardfault.md)
+    - [Hardfault Logging on Boards Without Non-Volatile Memory](debug/hardfault_no_nvram.md)
     - [Debugging with Eclipse](debug/eclipse_jlink.md)
     - [Failure Injection](debug/failure_injection.md)
     - [Plotting uORB Topic Data in Real Time](debug/plotting_realtime_uorb_data.md)

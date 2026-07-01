@@ -634,7 +634,8 @@ void UavcanNode::Run()
 		publisher->BroadcastAnyUpdates();
 	}
 
-	if (_log_message_sub.updated()) {
+	// Don't drain log_message until the node has a valid ID and can actually broadcast on the bus,
+	if ((_init_state == Done) && _log_message_sub.updated()) {
 		log_message_s log_message;
 
 		if (_log_message_sub.copy(&log_message)) {

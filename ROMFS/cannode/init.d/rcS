@@ -116,5 +116,10 @@ param set-default SENS_MAG_RATE 100
 
 sensors start
 
+task_watchdog start
+
 uavcannode start
+
+hardfault_stream start
+
 unset R
