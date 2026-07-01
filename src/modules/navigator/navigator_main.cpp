@@ -1006,17 +1006,17 @@ void Navigator::run()
 
 
 		using PlannerStatus = GeofenceAvoidancePlanner::Status;
-		const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
 		if (fence_updated || margin_changed) {
 			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
+			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 			_last_geofence_avoidance_margin = margin;
 
 			// Add granularity with more status values / user messages if needed.
 
 			switch (planner_status) {
 			// Failure in building fence graph / path. Collapse to one generic user message. Add granularity if needed.
-			case PlannerStatus::BudgetExceeded:
+			case PlannerStatus::BudgetExceeded: // TODO make this more specific now that it is more likely
 			case PlannerStatus::OutOfRange:
 			case PlannerStatus::Degenerate:
 			case PlannerStatus::DijkstraFailed:
@@ -1030,28 +1030,31 @@ void Navigator::run()
 				// Not an error, or reported elsewhere
 				break;
 			}
-		}
 
-		// Signal status values not related to updating geofence data. Reset status to not spam.
+		} else {
 
-		if (planner_status == PlannerStatus::DestinationInvalid) {
-			mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
-			events::send(
-				events::ID("rtl_destination_invalid"),
-				events::LogLevels(events::Log::Warning, events::LogInternal::Info),
-				"RTL destination invalid, not updating"
-			);
-			_geofence_avoidance_planner.resetStatus();
-		}
+			// Signal status values not related to updating geofence data. Reset status to not spam.
+			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
 
-		if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
-			mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
-			events::send(
-				events::ID("rtl_destination_breaches"),
-				events::LogLevels(events::Log::Warning, events::LogInternal::Info),
-				"RTL destination breaches geofence, will fly directly"
-			);
-			_geofence_avoidance_planner.resetStatus();
+			if (planner_status == PlannerStatus::DestinationInvalid) {
+				mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
+				events::send(
+					events::ID("rtl_destination_invalid"),
+					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
+					"RTL destination invalid, not updating"
+				);
+				_geofence_avoidance_planner.resetStatus();
+			}
+
+			if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
+				mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
+				events::send(
+					events::ID("rtl_destination_breaches"),
+					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
+					"RTL destination breaches geofence, will fly directly"
+				);
+				_geofence_avoidance_planner.resetStatus();
+			}
 		}
 
 
