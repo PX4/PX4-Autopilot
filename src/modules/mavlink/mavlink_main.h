@@ -547,10 +547,6 @@ private:
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
 
-	// Used before _instance_id is assigned; copied to static per-channel arrays in set_instance_id()
-	mavlink_message_t	_mavlink_buffer_early {};
-	mavlink_status_t	_mavlink_status_early {};
-
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
 	bool			_is_usb_uart{false};		/**< Port is USB */

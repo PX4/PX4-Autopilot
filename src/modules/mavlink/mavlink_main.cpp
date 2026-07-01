@@ -144,22 +144,17 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return &mavlink_channel_statuses[channel]; }
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return &mavlink_channel_buffers[channel]; }
 
+// Both must only be called once set_instance_id() has assigned a channel; the
+// MAVLink C library only ever reaches the per-channel status/buffer via the
+// mavlink_get_channel_*() bindings above, which index the arrays by channel.
 mavlink_status_t *Mavlink::get_status()
 {
-	if (_instance_id >= 0) {
-		return &mavlink_channel_statuses[_instance_id];
-	}
-
-	return &_mavlink_status_early;
+	return &mavlink_channel_statuses[_instance_id];
 }
 
 mavlink_message_t *Mavlink::get_buffer()
 {
-	if (_instance_id >= 0) {
-		return &mavlink_channel_buffers[_instance_id];
-	}
-
-	return &_mavlink_buffer_early;
+	return &mavlink_channel_buffers[_instance_id];
 }
 
 void Mavlink::lock_send() { if (_instance_id >= 0) { pthread_mutex_lock(&mavlink_channel_send_mutexes[_instance_id]); } }
@@ -371,13 +366,13 @@ Mavlink::set_instance_id()
 
 	for (int instance_id = 0; instance_id < MAVLINK_COMM_NUM_BUFFERS; instance_id++) {
 		if (mavlink_module_instances[instance_id] == nullptr) {
-			// Copy early-init status/buffer to static per-channel arrays
-			mavlink_channel_statuses[instance_id] = _mavlink_status_early;
-			mavlink_channel_buffers[instance_id] = _mavlink_buffer_early;
-
 			mavlink_module_instances[instance_id] = this;
 			_instance_id = instance_id;
 			mavlink_instance_count.fetch_add(1);
+
+			// Now that we own a channel, apply the protocol version cached during
+			// construction to this channel's (zero-initialized) status flags.
+			setProtocolVersion(_protocol_version.load());
 			return true;
 		}
 	}
@@ -387,21 +382,28 @@ Mavlink::set_instance_id()
 
 void Mavlink::setProtocolVersion(uint8_t version)
 {
+	_protocol_version.store((version == 1) ? 1 : 2);
+
+	// The version flag lives in the per-channel status, which only exists once we
+	// own a channel. During construction (before set_instance_id()) there is no
+	// channel; set_instance_id() applies the cached version to the channel then.
+	if (_instance_id < 0) {
+		return;
+	}
+
 	// Take the channel send lock for the get_status()->flags update — it
 	// touches the per-channel mavlink_channel_statuses[] global which the
 	// receiver thread also reads/writes from mavlink_frame_char_buffer.
 	// _protocol_version is atomic so its store doesn't need the lock, but
-	// keeping the store inside the lock makes the flag/version pair update
-	// atomic with respect to any caller that holds lock_send().
+	// keeping the flag update inside the lock makes the flag/version pair
+	// consistent with respect to any caller that holds lock_send().
 	lock_send();
 
 	if (version == 1) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
-		_protocol_version.store(1);
 
 	} else {
 		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
-		_protocol_version.store(2);
 	}
 
 	unlock_send();
