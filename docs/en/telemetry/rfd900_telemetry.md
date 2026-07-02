@@ -5,7 +5,7 @@ The radios provide reliable connectivity at greater than 5km ranges with normal 
 
 ![RFDesign Long Range Telemetry](../../assets/hardware/telemetry/jdrones_long_range_uav_telemetry_rf900set02_2.jpg)
 
-The raw modems expose bare pin headers, multiple vendors—along with *RFDesign* themselves—offer productized versions.
+The raw modems expose bare pin headers, multiple vendors—along with _RFDesign_ themselves—offer productized versions.
 Depending on your region and target deployment, several turn-key solutions and regional bundles are available:
 
 - **Official RFDesign Store:**

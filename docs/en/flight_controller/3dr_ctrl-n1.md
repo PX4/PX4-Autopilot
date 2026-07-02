@@ -116,8 +116,8 @@ Select and assign your preferred protocol in QGroundControl during initial setup
 The Control N1 is designed to be used with a carrier board.
 The following carrier boards are available from 3DR:
 
-| Board                                                                                               | Description                                   |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Board                                                                                                | Description                                   |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby/)                           | Compact square form factor                    |
 | [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy/)                         | Thin form factor for space-constrained builds |
 | [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv/)                             | Optimized for FPV platforms                   |
