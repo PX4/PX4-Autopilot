@@ -286,7 +286,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleOpticalFlow](VehicleOpticalFlow.md) — Optical flow in XYZ body frame in SI units.
 - [VehicleOpticalFlowVel](VehicleOpticalFlowVel.md)
 - [VehicleRoi](VehicleRoi.md) — Vehicle Region Of Interest (ROI).
-- [VehicleThrustSetpoint](VehicleThrustSetpoint.md)
+- [VehicleThrustSetpoint](VehicleThrustSetpoint.md) — Vehicle thrust setpoint.
 - [VehicleTorqueSetpoint](VehicleTorqueSetpoint.md)
 - [VelocityLimits](VelocityLimits.md) — Velocity and yaw rate limits for a multicopter position slow mode only.
 - [VteAidSource1d](VteAidSource1d.md) — Vision Target Estimator 1D fusion aid-source diagnostics (e.g. yaw).
