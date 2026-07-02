@@ -33,6 +33,10 @@ Want to modify PX4 or build from source? Start with the [Development Guide](deve
 
 Start with [Basic Concepts](getting_started/px4_basic_concepts.md) for an overview of the flight stack, flight modes, safety features, and supported hardware.
 
+## Developer Kits
+
+The fastest way to get flying hardware for PX4 development. [Official PX4 Developer Kits](dev_kits/index.md) ship with the latest stable PX4 pre-installed on current Pixhawk-standard hardware, need no build skills, and are certified by the PX4 team.
+
 ## Build a Vehicle
 
 Pick your frame type: [Multicopter](frames_multicopter/index.md), [Fixed-Wing](frames_plane/index.md), [VTOL](frames_vtol/index.md), [Helicopter](frames_helicopter/index.md), or [Rover](frames_rover/index.md). Each section covers complete vehicles, kits, and DIY builds. For assembly instructions see [Assembling a Multicopter](assembly/assembly_mc.md) or the equivalent for your frame.
