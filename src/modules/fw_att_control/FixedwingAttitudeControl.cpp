@@ -253,7 +253,8 @@ void FixedwingAttitudeControl::Run()
 			/* fill in new attitude data */
 			_R = R_adapted;
 		}
-const Quatf q_att = _vehicle_status.is_vtol_tailsitter ? Quatf(_R) : Quatf(att.q);
+
+		const Quatf q_att = _vehicle_status.is_vtol_tailsitter ? Quatf(_R) : Quatf(att.q);
 		const matrix::Eulerf euler_angles(_R);
 
 		vehicle_manual_poll(euler_angles.psi());
