@@ -469,7 +469,16 @@ private:
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
 		(ParamInt<px4::params::BAT1_N_CELLS>)       _param_bat_cells_count,
 		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
-		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
+		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty,
+		(ParamInt<px4::params::RNG_1_ID>)           _param_rng1_id,
+		(ParamInt<px4::params::RNG_1_LAT>)          _param_rng1_lat,
+		(ParamInt<px4::params::RNG_1_LON>)          _param_rng1_lon,
+		(ParamFloat<px4::params::RNG_1_AMSL>)       _param_rng1_amsl,
+		(ParamInt<px4::params::RNG_2_ID>)           _param_rng2_id,
+		(ParamInt<px4::params::RNG_2_LAT>)          _param_rng2_lat,
+		(ParamInt<px4::params::RNG_2_LON>)          _param_rng2_lon,
+		(ParamFloat<px4::params::RNG_2_AMSL>)       _param_rng2_amsl,
+		(ParamFloat<px4::params::RNG_CAL_OFF>)      _param_rng_cal_off
 	);
 
 	// Disallow copy construction and move assignment.

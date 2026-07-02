@@ -2743,10 +2743,36 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
-	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
-	ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
-	ranging_beacon.alt = beacon_pos.alt;
-	ranging_beacon.alt_type = beacon_pos.alt_type;
+
+	// Subtract the ranging calibration offset from the measured range (RNG_CAL_OFF < 0 disables it).
+	const float range_cal_off = _param_rng_cal_off.get();
+
+	if (range_cal_off >= 0.f && PX4_ISFINITE(ranging_beacon.range)) {
+		ranging_beacon.range -= range_cal_off;
+	}
+
+	// Fill lat/lon/alt from the configured ground-station anchor when beacon_id matches a slot
+	// (lat/lon in deg * 1e7, alt AMSL); other beacons keep the message position. Intended as an
+	// intermediate solution while the RANGING_BEACON message arrives with empty lat/lon/alt.
+	if (_param_rng1_id.get() >= 0 && ranging_beacon.beacon_id == _param_rng1_id.get()) {
+		ranging_beacon.lat = static_cast<double>(_param_rng1_lat.get()) * 1e-7;
+		ranging_beacon.lon = static_cast<double>(_param_rng1_lon.get()) * 1e-7;
+		ranging_beacon.alt = _param_rng1_amsl.get();
+		ranging_beacon.alt_type = ranging_beacon_s::ALT_TYPE_MSL;
+
+	} else if (_param_rng2_id.get() >= 0 && ranging_beacon.beacon_id == _param_rng2_id.get()) {
+		ranging_beacon.lat = static_cast<double>(_param_rng2_lat.get()) * 1e-7;
+		ranging_beacon.lon = static_cast<double>(_param_rng2_lon.get()) * 1e-7;
+		ranging_beacon.alt = _param_rng2_amsl.get();
+		ranging_beacon.alt_type = ranging_beacon_s::ALT_TYPE_MSL;
+
+	} else {
+		ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
+		ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
+		ranging_beacon.alt = beacon_pos.alt;
+		ranging_beacon.alt_type = beacon_pos.alt_type;
+	}
+
 	ranging_beacon.hacc = (beacon_pos.hacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.hacc_est) * 1e-3f : NAN;
 	ranging_beacon.vacc = (beacon_pos.vacc_est != UINT32_MAX) ? static_cast<float>(beacon_pos.vacc_est) * 1e-3f : NAN;
 	ranging_beacon.sequence_nr = beacon_pos.sequence;
