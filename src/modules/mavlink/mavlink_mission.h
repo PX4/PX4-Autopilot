@@ -151,6 +151,7 @@ private:
 	uORB::SubscriptionData<mission_result_s>	_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<mission_s> 	_mission_sub{ORB_ID(mission)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};	///< vehicle status subscription
+	uint8_t			_vehicle_type_bitmask{0}; ///< cached from vehicle_status; vehicle type requires reboot to change
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 

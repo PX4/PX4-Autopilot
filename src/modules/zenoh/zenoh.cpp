@@ -361,15 +361,38 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
 		int instance;
+		z_publisher_options_t global_opts;
+		z_publisher_options_default(&global_opts);
+		global_opts.congestion_control = (z_congestion_control_t)_zenoh_pub_cc.get();
+		global_opts.is_express = (bool)_zenoh_pub_expr.get();
+		global_opts.priority = (z_priority_t)_zenoh_pub_prio.get();
+#ifdef Z_FEATURE_UNSTABLE_API
+		global_opts.reliability = (z_reliability_t)_zenoh_pub_rel.get();
+#endif
 
 		for (i = 0; i < _pub_count; i++) {
+
+#ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
+			z_publisher_options_t pub_opts = global_opts;
+#endif
+
+#ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
+
+			if (_config.getPublisherMapping(topic, type, &instance, &pub_opts)) {
+#else
+
 			if (_config.getPublisherMapping(topic, type, &instance)) {
+#endif
 				_zenoh_publishers[i] = genPublisher(type, instance);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
 				if (rihs_hash && _zenoh_publishers[i] != 0 &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
-					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid);
+#ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
+					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, &pub_opts);
+#else
+					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, &global_opts);
+#endif
 					_zenoh_publishers[i]->setPollFD(&pfds[i]);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 
@@ -536,7 +559,15 @@ Zenoh demo bridge
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
 	PRINT_MODULE_USAGE_COMMAND("config");
+
+#ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
+	PX4_INFO_RAW("     add publisher  <zenoh_topic> <uorb_topic> [uorb_instance] [options]  Publish uORB topic to Zenoh\n");
+	PX4_INFO_RAW("          [options]  key=value pairs: cc=drop|block, express=true|false,\n");
+	PX4_INFO_RAW("                                      prio=real_time|interactive_high|interactive_low|data_high|data|data_low|background,\n");
+	PX4_INFO_RAW("                                      rel=reliable|best_effort (e.g. \"cc=block,express=true\")\n");
+#else
 	PX4_INFO_RAW("     add publisher  <zenoh_topic> <uorb_topic> <optional uorb_instance>  Publish uORB topic to Zenoh\n");
+#endif
 	PX4_INFO_RAW("     add subscriber <zenoh_topic> <uorb_topic> <optional uorb_instance>  Publish Zenoh topic to uORB\n");
 	PX4_INFO_RAW("     delete publisher  <zenoh_topic>\n");
 	PX4_INFO_RAW("     delete subscriber <zenoh_topic>\n");

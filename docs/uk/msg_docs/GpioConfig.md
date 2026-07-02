@@ -10,13 +10,13 @@ GPIO configuration.
 
 ## Fields
 
-| Назва                          | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
-| device_id | `uint32` |                                                                  |            | Device id                                                 |
-| mask                           | `uint32` |                                                                  |            | Pin mask                                                  |
-| state                          | `uint32` |                                                                  |            | Initial pin output state                                  |
-| config                         | `uint32` |                                                                  |            |                                                           |
+| Назва                                                    | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_device_id"></a>device_id | `uint32` |                                                                  |            | Device id                                                 |
+| <a id="fld_mask"></a>mask                                | `uint32` |                                                                  |            | Pin mask                                                  |
+| <a id="fld_state"></a>state                              | `uint32` |                                                                  |            | Initial pin output state                                  |
+| <a id="fld_config"></a>config                            | `uint32` |                                                                  |            |                                                           |
 
 ## Constants
 

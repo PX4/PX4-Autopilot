@@ -32,6 +32,7 @@ Reviewers help maintain PX4 across the project without ownership of a specific c
 | Name | GitHub | Chat | email
 |------|--------|------|----------------------
 | Onur Ozkan | [@onur-ozkan](https://github.com/onur-ozkan) | onur_ozkan0126 | <onur@orkavian.com>
+| Jonas Perolini | [@JonasPerolini](https://github.com/JonasPerolini) | jonasperolini | <jonas.perolini@rigi.tech>
 
 
 **Documentation Maintainers**

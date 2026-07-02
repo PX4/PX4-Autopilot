@@ -8,21 +8,21 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                  | Type         | Unit [Frame] | Range/Enum | Description                            |
-| --------------------- | ------------ | ------------ | ---------- | -------------------------------------- |
-| timestamp             | `uint64`     |              |            | time since system start (microseconds) |
-| target_system         | `uint8`      |              |            |
-| target_component      | `uint8`      |              |            |
-| device_flags          | `uint16`     |              |            |
-| q                     | `float32[4]` |              |            |
-| angular_velocity_x    | `float32`    |              |            |
-| angular_velocity_y    | `float32`    |              |            |
-| angular_velocity_z    | `float32`    |              |            |
-| failure_flags         | `uint32`     |              |            |
-| delta_yaw             | `float32`    |              |            |
-| delta_yaw_velocity    | `float32`    |              |            |
-| gimbal_device_id      | `uint8`      |              |            |
-| received_from_mavlink | `bool`       |              |            |
+| Name                                                        | Type         | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64`     |              |            | time since system start (microseconds) |
+| <a id="fld_target_system"></a>target_system                 | `uint8`      |              |            |
+| <a id="fld_target_component"></a>target_component           | `uint8`      |              |            |
+| <a id="fld_device_flags"></a>device_flags                   | `uint16`     |              |            |
+| <a id="fld_q"></a>q                                         | `float32[4]` |              |            |
+| <a id="fld_angular_velocity_x"></a>angular_velocity_x       | `float32`    |              |            |
+| <a id="fld_angular_velocity_y"></a>angular_velocity_y       | `float32`    |              |            |
+| <a id="fld_angular_velocity_z"></a>angular_velocity_z       | `float32`    |              |            |
+| <a id="fld_failure_flags"></a>failure_flags                 | `uint32`     |              |            |
+| <a id="fld_delta_yaw"></a>delta_yaw                         | `float32`    |              |            |
+| <a id="fld_delta_yaw_velocity"></a>delta_yaw_velocity       | `float32`    |              |            |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id           | `uint8`      |              |            |
+| <a id="fld_received_from_mavlink"></a>received_from_mavlink | `bool`       |              |            |
 
 ## Constants
 

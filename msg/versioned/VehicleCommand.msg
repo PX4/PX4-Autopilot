@@ -78,6 +78,7 @@ uint16 VEHICLE_CMD_DO_SET_STANDARD_MODE=262 # Enable the specified standard MAVL
 uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information about a low level gimbal.
 
 uint16 VEHICLE_CMD_MISSION_START = 300 # Start running a mission. |first_item: the first mission item to run|last_item: the last mission item to run (after this item is run, the mission ends)|
+uint16 VEHICLE_CMD_ACTUATOR_GROUP_TEST = 309 # Test groups of related actuators (e.g. all actuators contributing to roll torque). |[@enum ACTUATOR_TEST_GROUP] Group|[@range -1,1] Value|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310 # Actuator testing command. |[@range -1,1] value|[s] timeout|Unused|Unused|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311 # Actuator configuration command. |configuration|Unused|Unused|Unused|output function|
 uint16 VEHICLE_CMD_ESC_REQUEST_EEPROM = 312 # Request EEPROM data from an ESC. |ESC Index|Firmware Type|Unused|Unused|Unused|
@@ -126,6 +127,9 @@ uint8 FUSION_SOURCE_RNGBCN = 8 # Ranging Beacon
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
+
+uint16 VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN = 611 # Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL)|
+uint16 VEHICLE_CMD_GUIDED_CHANGE_HEADING = 43002 # Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s]. |Heading type (HEADING_TYPE enum)|[deg] Target bearing [0..360]|[deg/s] Max rate of change|Unused|Unused|Unused|Unused|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
 uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1 # Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.
@@ -191,6 +195,13 @@ uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE = 3
 uint8 ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED = 4
 uint8 ORBIT_YAW_BEHAVIOUR_UNCHANGED = 5
 
+# Used as param1&2 in CMD_START_RX_PAIR.
+uint8 RC_TYPE_SPEKTRUM = 0
+uint8 RC_TYPE_CRSF = 1
+uint8 RC_SUB_TYPE_SPEKTRUM_DSM2 = 0
+uint8 RC_SUB_TYPE_SPEKTRUM_DSMX = 1
+uint8 RC_SUB_TYPE_SPEKTRUM_DSMX8 = 2
+
 # Used as param1 in ARM_DISARM command.
 int8 ARMING_ACTION_DISARM = 0
 int8 ARMING_ACTION_ARM = 1
@@ -202,6 +213,15 @@ uint8 GRIPPER_ACTION_GRAB = 1
 # Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
 uint8 SAFETY_OFF = 0
 uint8 SAFETY_ON = 1
+
+# param1 in VEHICLE_CMD_ACTUATOR_GROUP_TEST (matches MAVLink ACTUATOR_TEST_GROUP enum)
+uint8 ACTUATOR_TEST_GROUP_ROLL_TORQUE = 0
+uint8 ACTUATOR_TEST_GROUP_PITCH_TORQUE = 1
+uint8 ACTUATOR_TEST_GROUP_YAW_TORQUE = 2
+uint8 ACTUATOR_TEST_GROUP_COLLECTIVE_TILT = 3
+uint8 ACTUATOR_TEST_GROUP_X_THRUST = 4
+uint8 ACTUATOR_TEST_GROUP_Y_THRUST = 5
+uint8 ACTUATOR_TEST_GROUP_Z_THRUST = 6
 
 uint8 ORB_QUEUE_LENGTH = 8
 

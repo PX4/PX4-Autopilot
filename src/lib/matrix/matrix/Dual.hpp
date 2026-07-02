@@ -23,7 +23,7 @@ namespace matrix
 
 template <typename Scalar, size_t N>
 struct Dual {
-	static constexpr size_t WIDTH = N;
+	enum : size_t { WIDTH = N };
 
 	Scalar value {};
 	Vector<Scalar, N> derivative;

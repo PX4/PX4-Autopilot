@@ -139,7 +139,7 @@ bool scan_log_directories(const char *log_root_dir, LogDirInfo &info)
 }
 
 int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
-		     uint32_t rotate_pct, uint32_t max_file_size_mb,
+		     uint32_t rotate_pct, uint32_t max_file_size_mib,
 		     int32_t max_dirs_to_keep)
 {
 	uint64_t avail_bytes = 0;
@@ -159,7 +159,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 
 	if (rotate_pct > 0 && rotate_pct <= 100) {
 		cleanup_threshold = (total_bytes * (100 - rotate_pct)) / 100;
-		cleanup_threshold += (uint64_t)max_file_size_mb * 1024ULL * 1024ULL;
+		cleanup_threshold += (uint64_t)max_file_size_mib * 1024ULL * 1024ULL;
 	}
 
 	bool need_space_cleanup = avail_bytes < cleanup_threshold;
@@ -324,8 +324,16 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 	return PX4_OK;
 }
 
-int remove_directory(const char *dir)
+static int remove_directory_recursive(const char *dir, unsigned depth)
 {
+	// Log structure is log/yyyy-mm-dd/file.ulg (2 levels). Cap recursion to prevent stack overflow.
+	static constexpr unsigned MAX_DEPTH = 3;
+
+	if (depth >= MAX_DEPTH) {
+		PX4_WARN("Failed to remove directory '%s': max recursion depth %u reached", dir, MAX_DEPTH);
+		return -ELOOP;
+	}
+
 	DIR *d = opendir(dir);
 	size_t dir_len = strlen(dir);
 	struct dirent *p;
@@ -352,9 +360,9 @@ int remove_directory(const char *dir)
 
 			snprintf(buf, len, "%s/%s", dir, p->d_name);
 
-			if (!stat(buf, &statbuf)) {
+			if (!lstat(buf, &statbuf)) {
 				if (S_ISDIR(statbuf.st_mode)) {
-					ret2 = remove_directory(buf);
+					ret2 = remove_directory_recursive(buf, depth + 1);
 
 				} else {
 					ret2 = unlink(buf);
@@ -374,6 +382,11 @@ int remove_directory(const char *dir)
 	}
 
 	return ret;
+}
+
+int remove_directory(const char *dir)
+{
+	return remove_directory_recursive(dir, 0);
 }
 
 } //namespace util

@@ -123,7 +123,9 @@ function(px4_add_functional_gtest)
 		                                              uorb_msgs
 		                                              fuzztest::fuzztest # Do not use link_fuzztest() here because that
 				                                      # also links to fuzztest_gtest_main
-		                                              test_stubs)  # put test_stubs last
+		                                              # whole-archive so the daemon app-map stubs link even for small
+		                                              # test libs, where link order would otherwise drop them
+		                                              -Wl,--whole-archive test_stubs -Wl,--no-whole-archive)
 
 		target_compile_definitions(${TESTNAME} PRIVATE MODULE_NAME="${TESTNAME}")
 

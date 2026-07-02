@@ -90,8 +90,13 @@ private:
 				msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
 
 				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
-				static uint64_t utc_offset_s = 1'546'300'800; // UTC seconds since 00:00:00 01/01/2019
-				msg.timestamp = vehicle_gps_position.time_utc_usec / 1e6 - utc_offset_s;
+				// Timestamp not available is indicated by 0.
+				static constexpr uint64_t utc_offset_us = 1'546'300'800ULL * 1'000'000ULL;
+
+				if (vehicle_gps_position.time_utc_usec >= utc_offset_us) {
+					const uint64_t timestamp_s = (vehicle_gps_position.time_utc_usec - utc_offset_us) / 1'000'000ULL;
+					msg.timestamp = static_cast<uint32_t>(timestamp_s);
+				}
 
 				mavlink_msg_open_drone_id_system_send_struct(_mavlink->get_channel(), &msg);
 

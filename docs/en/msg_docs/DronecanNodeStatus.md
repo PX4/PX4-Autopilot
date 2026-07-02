@@ -8,15 +8,15 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                        | Type     | Unit [Frame] | Range/Enum | Description                            |
-| --------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp                   | `uint64` |              |            | time since system start (microseconds) |
-| node_id                     | `uint16` |              |            | The node ID which this data comes from |
-| uptime_sec                  | `uint32` |              |            | Node uptime                            |
-| health                      | `uint8`  |              |            |
-| mode                        | `uint8`  |              |            |
-| sub_mode                    | `uint8`  |              |            |
-| vendor_specific_status_code | `uint16` |              |            |
+| Name                                                                    | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------------------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                     | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_node_id"></a>node_id                                         | `uint16` |              |            | The node ID which this data comes from |
+| <a id="fld_uptime_sec"></a>uptime_sec                                   | `uint32` |              |            | Node uptime                            |
+| <a id="fld_health"></a>health                                           | `uint8`  |              |            |
+| <a id="fld_mode"></a>mode                                               | `uint8`  |              |            |
+| <a id="fld_sub_mode"></a>sub_mode                                       | `uint8`  |              |            |
+| <a id="fld_vendor_specific_status_code"></a>vendor_specific_status_code | `uint16` |              |            |
 
 ## Constants
 

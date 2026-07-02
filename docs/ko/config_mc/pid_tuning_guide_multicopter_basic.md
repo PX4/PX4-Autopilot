@@ -41,7 +41,7 @@ The testing procedure for each controller (rate, attitude, velocity/position) an
 ## 전제 조건
 
 - You have selected the closest matching [default frame configuration](../config/airframe.md) for your vehicle.
-  이것은 이미 비행한 기체를 제공할 것입니다.
+  This should give you a vehicle that already flies.
 
 - You should have done an [ESC calibration](../advanced_config/esc_calibration.md).
 
@@ -50,13 +50,13 @@ The testing procedure for each controller (rate, attitude, velocity/position) an
 
   This can be tested in [Acro mode](../flight_modes_mc/acro.md) or in [Stabilized mode](../flight_modes_mc/manual_stabilized.md):
 
-  - 프로펠러 제거
-  - 기체에 시동을 걸고 스로틀을 최소로 내립니다.
-  - 차량을 모든 방향으로 60도 정도 기울입니다.
-  - 모터가 꺼져 있는 지 확인합니다.
+  - Remove propellers
+  - Arm the vehicle and lower the throttle to the minimum
+  - Tilt the vehicle to all directions, about 60 degrees
+  - Check that no motors turn off
 
-- PWM 출력을 사용하는 경우 : <a href="../advanced_config/parameter_reference.md#PWM_MIN">PWM_MIN</a>이 올바르게 설정되었습니다.
-  낮게 설정해야하지만 기체 시동시에는 <strong x-id="1">모터가 절대 멈추지 않도록</strong>합니다.
+- Use a high-rate telemetry link such as WiFi if at all possible (a typical low-range telemetry radio is not fast enough for real-time feedback and plots).
+  This is particularly important for the rate controller.
 
 - Disable [MC_AIRMODE](../advanced_config/parameter_reference.md#MC_AIRMODE) before tuning a vehicle (there is an options for this in the PID tuning screen).
 
@@ -65,9 +65,9 @@ Poorly tuned vehicles are likely to be unstable, and easy to crash.
 Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switches).
 :::
 
-## 튜닝 절차
+## Tuning Procedure
 
-튜닝 절차는 다음과 같습니다.
+The tuning procedure is:
 
 1. Arm the vehicle, takeoff, and hover (typically in [Position mode](../flight_modes_mc/position.md)).
 
@@ -82,12 +82,12 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 
    ::: info
    For PWM, power-based and (some) UAVCAN speed controllers, the control signal to thrust relationship may not be linear.
-   그 결과 호버 추력에서 최적의 튜닝은 차량이 강한 추력으로 작동시 최적이 아닐 수 있습니다.
+   As a result, the optimal tuning at hover thrust may not be ideal when the vehicle is operating at higher thrust.
 
-   추력 곡선 값을 사용하여 비선형성을 보상할 수 있습니다.
+   The thrust curve value can be used to compensate for this non-linearity:
 
    - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
-   - RPM 기반 컨트롤러의 경우 1을 사용합니다 (2 차 추력 곡선이 있으므로 추가 튜닝이 필요하지 않음).
+   - For RPM-based controllers, use 1 (no further tuning is required as these have a quadratic thrust curve).
 
    For more information see the [detailed PID tuning guide](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve).
 
@@ -105,18 +105,21 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 10. Rapidly move the _roll stick_ full range and observe the step response on the plots.
     :::tip
     Stop tracking to enable easier inspection of the plots.
-    확대/축소/이동시 자동으로 발생합니다.
+    This happens automatically when you zoom/pan.
     Use the **Start** button to restart the plots, and **Clear** to reset them.
 
 :::
 
 11. Modify the three PID values using the sliders (for roll rate-tuning these affect `MC_ROLLRATE_K`, `MC_ROLLRATE_I`, `MC_ROLLRATE_D`) and observe the step response again.
-    슬라이더를 움직이면 값이 기체에 저장됩니다.
+    The values are saved to the vehicle as soon as the sliders are moved.
+
     ::: info
     The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
 
 :::
+
     The PID values can be adjusted as follows:
+
     - P (비례) 또는 K 이득 :
       - 더 많은 응답을 위해 이것을 늘리십시오.
       - 응답이 오버 슈팅 및/또는 진동하는 경우 감소합니다 (특정 지점까지 D 게인 증가도 도움이 됨).

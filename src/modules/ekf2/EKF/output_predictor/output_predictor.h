@@ -126,6 +126,7 @@ public:
 	void set_imu_offset(const matrix::Vector3f &offset) { _imu_pos_body = offset; }
 	void set_pos_correction_tc(const float tau) { _pos_tau = tau; }
 	void set_vel_correction_tc(const float tau) { _vel_tau = tau; }
+	void set_gravity(const float gravity) { _gravity = gravity; }
 
 private:
 
@@ -201,6 +202,9 @@ private:
 	// output complementary filter tuning
 	float _vel_tau{0.25f};                   ///< velocity state correction time constant (1/sec)
 	float _pos_tau{0.25f};                   ///< position state correction time constant (1/sec)
+
+	float _gravity{CONSTANTS_ONE_G};
+
 };
 
 #endif // !EKF_OUTPUT_PREDICTOR_H

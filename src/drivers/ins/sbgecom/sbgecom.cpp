@@ -323,6 +323,7 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 	const double latitude = ref_sbg_data->ekfNavData.position[0];
 	const double longitude = ref_sbg_data->ekfNavData.position[1];
 	const double altitude = ref_sbg_data->ekfNavData.position[2];
+	const double altitude_ellipsoid = altitude + static_cast<double>(ref_sbg_data->ekfNavData.undulation);
 
 	const double north_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[0]);
 	const double east_velocity = static_cast<double>(ref_sbg_data->ekfNavData.velocity[1]);
@@ -396,7 +397,7 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 	global_position.lat = latitude;
 	global_position.lon = longitude;
 	global_position.alt = altitude;
-	global_position.alt_ellipsoid = ref_sbg_data->ekfNavData.undulation;
+	global_position.alt_ellipsoid = altitude_ellipsoid;
 
 	global_position.lat_lon_valid = math::isFinite(latitude) && math::isFinite(longitude);
 	global_position.alt_valid = math::isFinite(altitude);
@@ -409,6 +410,12 @@ void SbgEcom::handleLogEkfNav(const SbgEComLogUnion *ref_sbg_data, void *user_ar
 
 	instance->_global_position_pub.publish(global_position);
 	perf_count(instance->_global_position_pub_interval_perf);
+}
+
+hrt_abstime SbgEcom::time_diff(hrt_abstime first_timestamp, hrt_abstime second_timestamp)
+{
+	return (first_timestamp > second_timestamp) ? (first_timestamp - second_timestamp) :
+	       (second_timestamp - first_timestamp);
 }
 
 void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *ref_sbg_data, void *user_arg)
@@ -446,7 +453,28 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		break;
 	}
 
-	if (gnss_data->pos_received && gnss_data->vel_received && gnss_data->hdt_received) {
+	if (gnss_data->pos_received && gnss_data->vel_received) {
+		// Check timestamp synchronization for position and velocity first.
+		const hrt_abstime max_time_diff = 100000; // Maximum allowed time difference in microseconds
+		const hrt_abstime pos_time = gnss_data->pos_timestamp;
+		const hrt_abstime vel_time = gnss_data->vel_timestamp;
+
+		if ((time_diff(time_now_us, pos_time) >= max_time_diff) ||
+		    (time_diff(time_now_us, vel_time) >= max_time_diff) ||
+		    (time_diff(pos_time, vel_time) >= max_time_diff)) {
+			if (pos_time <= vel_time) {
+				gnss_data->pos_received = false;
+				gnss_data->pos_timestamp = 0;
+			}
+
+			if (vel_time <= pos_time) {
+				gnss_data->vel_received = false;
+				gnss_data->vel_timestamp = 0;
+			}
+
+			return;
+		}
+
 		// publish sensor_gps
 		sensor_gps_s sensor_gps{};
 
@@ -458,7 +486,8 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.latitude_deg = gnss_data->gps_pos.latitude;
 		sensor_gps.longitude_deg = gnss_data->gps_pos.longitude;
 		sensor_gps.altitude_msl_m = gnss_data->gps_pos.altitude;
-		sensor_gps.altitude_ellipsoid_m = static_cast<double>(gnss_data->gps_pos.undulation);
+		sensor_gps.altitude_ellipsoid_m = gnss_data->gps_pos.altitude +
+						  static_cast<double>(gnss_data->gps_pos.undulation);
 
 		sensor_gps.s_variance_m_s = sqrt(pow(gnss_data->gps_vel.velocityAcc[0], 2) +
 						 pow(gnss_data->gps_vel.velocityAcc[1], 2) +
@@ -485,15 +514,6 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 			sensor_gps.fix_type = 6;
 			break;
 
-		case SBG_ECOM_GNSS_POS_TYPE_FIXED:
-			sensor_gps.fix_type = 7;
-			break;
-
-		case SBG_ECOM_GNSS_POS_TYPE_PPP_FLOAT:
-		case SBG_ECOM_GNSS_POS_TYPE_PPP_INT:
-			sensor_gps.fix_type = 8;
-			break;
-
 		default:
 			sensor_gps.fix_type = 3;
 			break;
@@ -502,6 +522,9 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.eph = sqrt(pow(gnss_data->gps_pos.longitudeAccuracy, 2) +
 				      pow(gnss_data->gps_pos.latitudeAccuracy, 2));
 		sensor_gps.epv = gnss_data->gps_pos.altitudeAccuracy;
+
+		sensor_gps.hdop = sensor_gps.eph;
+		sensor_gps.vdop = sensor_gps.epv;
 
 		state = sbgEComLogGnssPosGetIfmStatus(&gnss_data->gps_pos);
 
@@ -557,35 +580,30 @@ void SbgEcom::handleLogGnssPosVelHdt(SbgEComMsgId msg, const SbgEComLogUnion *re
 		sensor_gps.time_utc_usec = 0;
 
 		sensor_gps.satellites_used = gnss_data->gps_pos.numSvUsed;
+		sensor_gps.heading = NAN;
+		sensor_gps.heading_offset = NAN;
+		sensor_gps.heading_accuracy = NAN;
 
-		sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
-		sensor_gps.heading_offset = math::radians(gnss_data->gps_hdt.pitch);
-		sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
+		if (gnss_data->hdt_received) {
+			const hrt_abstime hdt_time = gnss_data->hdt_timestamp;
 
-		// Check timestamp synchronization
-		const hrt_abstime max_time_diff = 1000000; // Maximum allowed time difference in microseconds (e.g., 1 second)
-		hrt_abstime pos_time = gnss_data->pos_timestamp;
-		hrt_abstime vel_time = gnss_data->vel_timestamp;
-		hrt_abstime hdt_time = gnss_data->hdt_timestamp;
-
-		if (((time_now_us - pos_time) < max_time_diff) &&
-		    ((time_now_us - vel_time) < max_time_diff) &&
-		    ((time_now_us - hdt_time) < max_time_diff) &&
-		    ((pos_time - vel_time) < max_time_diff) &&
-		    ((pos_time - hdt_time) < max_time_diff) &&
-		    ((vel_time - hdt_time) < max_time_diff)) {
-			instance->_sensor_gps_pub.publish(sensor_gps);
-			perf_count(instance->_gnss_pub_interval_perf);
+			if ((time_diff(time_now_us, hdt_time) < max_time_diff) &&
+			    (time_diff(pos_time, hdt_time) < max_time_diff) &&
+			    (time_diff(vel_time, hdt_time) < max_time_diff) &&
+			    sbgEComLogGnssHdtHeadingIsValid(&gnss_data->gps_hdt)) {
+				sensor_gps.heading = math::radians(gnss_data->gps_hdt.heading);
+				sensor_gps.heading_accuracy = math::radians(gnss_data->gps_hdt.headingAccuracy);
+			}
 		}
 
-		// Reset the flags and timestamps
+		instance->_sensor_gps_pub.publish(sensor_gps);
+		perf_count(instance->_gnss_pub_interval_perf);
+
+		// Reset the consumed position and velocity samples.
 		gnss_data->pos_received = false;
 		gnss_data->vel_received = false;
-		gnss_data->hdt_received = false;
-
 		gnss_data->pos_timestamp = 0;
 		gnss_data->vel_timestamp = 0;
-		gnss_data->hdt_timestamp = 0;
 	}
 }
 

@@ -548,8 +548,8 @@ Geofence::loadFromFile(const char *filename)
 
 	dm_item_t write_fence_dataman_id{static_cast<dm_item_t>(stat.dataman_id) == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0};
 
-	/* open the mixer definition file */
-	fp = fopen(GEOFENCE_FILENAME, "r");
+	/* open the geofence file */
+	fp = fopen(filename, "r");
 
 	if (fp == nullptr) {
 		return PX4_ERROR;
@@ -612,6 +612,7 @@ Geofence::loadFromFile(const char *filename)
 					sizeof(vertex));
 
 			if (!success) {
+				PX4_ERR("Failed to write geofence vertex to dataman");
 				goto error;
 			}
 
@@ -622,6 +623,7 @@ Geofence::loadFromFile(const char *filename)
 		} else {
 			/* Parse the line as the vertical limits */
 			if (sscanf(line, "%f %f", &_altitude_min, &_altitude_max) != 2) {
+				PX4_ERR("Scanf to parse geofence vertical limits failed.");
 				goto error;
 			}
 
@@ -633,8 +635,6 @@ Geofence::loadFromFile(const char *filename)
 
 	/* Check if import was successful */
 	if (gotVertical && pointCounter > 2) {
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported\t");
-		events::send(events::ID("navigator_geofence_imported"), events::Log::Info, "Geofence imported");
 		ret_val = PX4_ERROR;
 		uint32_t crc32{0U};
 
@@ -645,23 +645,37 @@ Geofence::loadFromFile(const char *filename)
 			bool success = _dataman_client.readSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 								sizeof(mission_fence_point_s));
 
-			if (success) {
-				mission_fence_point.vertex_count = pointCounter;
-				crc32 = crc32_for_fence_point(mission_fence_point, crc32);
-				_dataman_client.writeSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
-							  sizeof(mission_fence_point_s));
+			if (!success) {
+				PX4_ERR("Failed to read geofence vertex from dataman");
+				goto error;
+			}
+
+			mission_fence_point.vertex_count = pointCounter;
+			crc32 = crc32_for_fence_point(mission_fence_point, crc32);
+			success = _dataman_client.writeSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
+							    sizeof(mission_fence_point_s));
+
+			if (!success) {
+				PX4_ERR("Failed to update geofence vertex count in dataman");
+				goto error;
 			}
 		}
 
-		mission_stats_entry_s stats;
+		mission_stats_entry_s stats{};
 		stats.num_items = pointCounter;
 		stats.opaque_id = crc32;
+		stats.dataman_id = write_fence_dataman_id;
 
 		bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
 				sizeof(mission_stats_entry_s));
 
 		if (success) {
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported\t");
+			events::send(events::ID("navigator_geofence_imported"), events::Log::Info, "Geofence imported");
 			ret_val = PX4_OK;
+
+		} else {
+			PX4_ERR("Failed to write geofence dataman state");
 		}
 
 	} else {
@@ -691,15 +705,16 @@ void Geofence::printStatus()
 	int num_inclusion_circles = 0, num_exclusion_circles = 0;
 
 	for (int i = 0; i < _num_polygons; ++i) {
-		total_num_vertices += _polygons[i].vertex_count;
 
 		switch (_polygons[i].fence_type) {
 		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			++num_inclusion_polygons;
+			total_num_vertices += _polygons[i].vertex_count;
 			break;
 
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			++num_exclusion_polygons;
+			total_num_vertices += _polygons[i].vertex_count;
 			break;
 
 		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
@@ -716,7 +731,6 @@ void Geofence::printStatus()
 		}
 	}
 
-	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion circles, %i exclusion circles, %i total vertices",
-		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
-		 total_num_vertices);
+	PX4_INFO("Geofence: polygons: %i inclusion, %i exclusion, %i vertices; circles: %i inclusion, %i exclusion",
+		 num_inclusion_polygons, num_exclusion_polygons, total_num_vertices, num_inclusion_circles, num_exclusion_circles);
 }

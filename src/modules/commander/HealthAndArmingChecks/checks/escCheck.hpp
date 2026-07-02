@@ -57,8 +57,10 @@ private:
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
+	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
 
-	static constexpr hrt_abstime ESC_TIMEOUT_US = 300_ms;
+
+	static constexpr hrt_abstime ESC_TIMEOUT_US = 400_ms;
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
@@ -67,6 +69,7 @@ private:
 
 	uint16_t _motor_failure_mask = 0;
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {};
+	bool _esc_over_temp_warned{false};
 	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_arm_hysteresis;
@@ -76,6 +79,6 @@ private:
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
 					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
-					(ParamFloat<px4::params::MOTFAIL_LOW_OFF>) _param_motfail_low_off,
-					(ParamFloat<px4::params::MOTFAIL_HIGH_OFF>) _param_motfail_high_off);
+					(ParamFloat<px4::params::MOTFAIL_OFF>) _param_motfail_off,
+					(ParamFloat<px4::params::ESC_TEMP_WARN_TH>) _param_esc_temp_warn_th);
 };

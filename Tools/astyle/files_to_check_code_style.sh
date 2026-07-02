@@ -28,6 +28,7 @@ exec find boards msg src platforms test \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
     -path src/modules/mavlink/mavlink -prune -o \
     -path src/modules/mc_raptor/blob -prune -o \
+    -path src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow -prune -o \
     -path test/fuzztest -prune -o \
     -path test/mavsdk_tests/catch2 -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
@@ -35,6 +36,7 @@ exec find boards msg src platforms test \
     -path src/lib/crypto/libtommath -prune -o \
     -path src/lib/heatshrink/heatshrink -prune -o \
     -path src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client -prune -o \
+    -path src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3 -prune -o \
     -path src/lib/cdrstream/cyclonedds -prune -o \
     -path src/lib/cdrstream/rosidl -prune -o \
     -path src/modules/zenoh/zenoh-pico -prune -o \

@@ -8,17 +8,17 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name             | Type        | Unit [Frame] | Range/Enum | Description                                                               |
-| ---------------- | ----------- | ------------ | ---------- | ------------------------------------------------------------------------- |
-| timestamp        | `uint64`    |              |            | time since system start (microseconds)                                    |
-| timestamp_sample | `uint64`    |              |            |
-| device_id        | `uint32`    |              |            | unique device ID for the sensor that does not change between power cycles |
-| dt               | `float32`   |              |            | delta time between samples (microseconds)                                 |
-| scale            | `float32`   |              |            |
-| samples          | `uint8`     |              |            | number of valid samples                                                   |
-| x                | `int16[32]` |              |            | acceleration in the FRD board frame X-axis in m/s^2                       |
-| y                | `int16[32]` |              |            | acceleration in the FRD board frame Y-axis in m/s^2                       |
-| z                | `int16[32]` |              |            | acceleration in the FRD board frame Z-axis in m/s^2                       |
+| Name                                              | Type        | Unit [Frame] | Range/Enum | Description                                                               |
+| ------------------------------------------------- | ----------- | ------------ | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`    |              |            | time since system start (microseconds)                                    |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`    |              |            |
+| <a id="fld_device_id"></a>device_id               | `uint32`    |              |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_dt"></a>dt                             | `float32`   |              |            | delta time between samples (microseconds)                                 |
+| <a id="fld_scale"></a>scale                       | `float32`   |              |            |
+| <a id="fld_samples"></a>samples                   | `uint8`     |              |            | number of valid samples                                                   |
+| <a id="fld_x"></a>x                               | `int16[32]` |              |            | acceleration in the FRD board frame X-axis in m/s^2                       |
+| <a id="fld_y"></a>y                               | `int16[32]` |              |            | acceleration in the FRD board frame Y-axis in m/s^2                       |
+| <a id="fld_z"></a>z                               | `int16[32]` |              |            | acceleration in the FRD board frame Z-axis in m/s^2                       |
 
 ## Source Message
 

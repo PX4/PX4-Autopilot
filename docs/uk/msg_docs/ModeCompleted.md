@@ -10,11 +10,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                          | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
-| result                         | `uint8`  |                                                                  |            | One of RESULT\_\*                   |
-| nav_state | `uint8`  |                                                                  |            | Source mode (values in VehicleStatus)  |
+| Назва                                                    | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_result"></a>result                            | `uint8`  |                                                                  |            | One of RESULT\_\*                   |
+| <a id="fld_nav_state"></a>nav_state | `uint8`  |                                                                  |            | Source mode (values in VehicleStatus)  |
 
 ## Constants
 

@@ -14,18 +14,6 @@ parameters:
       max: 1
       unit: m/s^2/sqrt(Hz)
       decimal: 2
-    ASPD_SCALE_NSD:
-      description:
-        short: Wind estimator true airspeed scale process noise spectral density
-        long: |-
-          Airspeed scale process noise of the internal wind estimator(s) of the airspeed selector.
-          When unaided, the scale uncertainty (1-sigma, unitless) increases by this amount every second.
-      type: float
-      default: 0.0001
-      min: 0
-      max: 0.1
-      unit: 1/s/sqrt(Hz)
-      decimal: 5
     ASPD_TAS_NOISE:
       description:
         short: Wind estimator true airspeed measurement noise
@@ -37,37 +25,6 @@ parameters:
       max: 4
       unit: m/s
       decimal: 1
-    ASPD_BETA_NOISE:
-      description:
-        short: Wind estimator sideslip measurement noise
-        long: Sideslip measurement noise of the internal wind estimator(s) of the
-          airspeed selector.
-      type: float
-      default: 0.15
-      min: 0
-      max: 1
-      unit: rad
-      decimal: 3
-    ASPD_TAS_GATE:
-      description:
-        short: Gate size for true airspeed fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
-      type: int32
-      default: 4
-      min: 1
-      max: 5
-      unit: SD
-    ASPD_BETA_GATE:
-      description:
-        short: Gate size for sideslip angle fusion
-        long: Sets the number of standard deviations used by the innovation consistency
-          test.
-      type: int32
-      default: 1
-      min: 1
-      max: 5
-      unit: SD
     ASPD_SCALE_APPLY:
       description:
         short: Controls when to apply the new estimated airspeed scale(s)

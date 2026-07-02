@@ -12,20 +12,33 @@ This is currently used only for logging cell status from MAVLink.
 
 ## Fields
 
-| Name           | Type     | Unit [Frame] | Range/Enum                                                  | Description                                |
-| -------------- | -------- | ------------ | ----------------------------------------------------------- | ------------------------------------------ |
-| timestamp      | `uint64` | us           |                                                             | Time since system start                    |
-| status         | `uint16` |              | [STATUS_FLAG](#STATUS_FLAG)                                 | Status bitmap                              |
-| failure_reason | `uint8`  |              | [FAILURE_REASON](#FAILURE_REASON)                           | Failure reason                             |
-| type           | `uint8`  |              | [CELLULAR_NETWORK_RADIO_TYPE](#CELLULAR_NETWORK_RADIO_TYPE) | Cellular network radio type                |
-| quality        | `uint8`  | dBm          |                                                             | Cellular network RSSI/RSRP, absolute value |
-| mcc            | `uint16` |              |                                                             | Mobile country code (Invalid: UINT16_MAX)  |
-| mnc            | `uint16` |              |                                                             | Mobile network code (Invalid: UINT16_MAX)  |
-| lac            | `uint16` |              |                                                             | Location area code (Invalid: 0)            |
+| Name                                          | Type      | Unit [Frame] | Range/Enum                                                  | Description                                                                                                                                                                                                         |
+| --------------------------------------------- | --------- | ------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp           | `uint64`  | us           |                                                             | Time since system start                                                                                                                                                                                             |
+| <a id="fld_status"></a>status                 | `uint16`  |              | [STATUS_FLAG](#STATUS_FLAG)                                 | Status bitmap                                                                                                                                                                                                       |
+| <a id="fld_failure_reason"></a>failure_reason | `uint8`   |              | [FAILURE_REASON](#FAILURE_REASON)                           | Failure reason                                                                                                                                                                                                      |
+| <a id="fld_type"></a>type                     | `uint8`   |              | [CELLULAR_NETWORK_RADIO_TYPE](#CELLULAR_NETWORK_RADIO_TYPE) | Cellular network radio type                                                                                                                                                                                         |
+| <a id="fld_quality"></a>quality               | `uint8`   | %            |                                                             | Cellular network signal quality in percent. May be used for RSSI (Invalid: UINT8_MAX)                                                                                                                               |
+| <a id="fld_mcc"></a>mcc                       | `uint16`  |              |                                                             | Mobile country code (Invalid: UINT16_MAX)                                                                                                                                                                           |
+| <a id="fld_mnc"></a>mnc                       | `uint16`  |              |                                                             | Mobile network code (Invalid: UINT16_MAX)                                                                                                                                                                           |
+| <a id="fld_lac"></a>lac                       | `uint16`  |              |                                                             | Location area code (Invalid: 0)                                                                                                                                                                                     |
+| <a id="fld_band_number"></a>band_number       | `uint8`   |              |                                                             | LTE frequency band number (Invalid: 0)                                                                                                                                                                              |
+| <a id="fld_band_frequency"></a>band_frequency | `float32` | MHz          |                                                             | LTE radio frequency (Invalid: 0)                                                                                                                                                                                    |
+| <a id="fld_channel_number"></a>channel_number | `uint32`  |              |                                                             | Channel Number (CN), Absolute radio-frequency (ARFCN) / E-UTRA (EARFCN) / UTRA (UARFCN) / New radio (NR_CH) (Invalid: 0)                                                                                            |
+| <a id="fld_rx_level"></a>rx_level             | `float32` | dBm          |                                                             | Receiver signal level. On 3G is Received Signal Code Power (RSCP). On LTE Reference Signal Received Power (RSRP). On 5G is New Radio Reference Signal Received Power (NR_RSRP) (Invalid: 0)                         |
+| <a id="fld_tx_level"></a>tx_level             | `float32` | dBm          |                                                             | Transmitter signal absolute level (Invalid: 0)                                                                                                                                                                      |
+| <a id="fld_rx_quality"></a>rx_quality         | `float32` | dBm          |                                                             | Received signal quality. On 3G is Receiver Quality (RxQual). On LTE is Reference Signal Received Quality (RSRQ). On 5G is New Radio Reference Signal Received Quality (NR_RSRQ) (Invalid: 0)                        |
+| <a id="fld_link_tx_rate"></a>link_tx_rate     | `uint32`  | KiB/s        |                                                             | Download rate (Invalid: 0)                                                                                                                                                                                          |
+| <a id="fld_link_rx_rate"></a>link_rx_rate     | `uint32`  | KiB/s        |                                                             | Upload rate (Invalid: 0)                                                                                                                                                                                            |
+| <a id="fld_id"></a>id                         | `uint8`   |              |                                                             | Cellular instance number. Indexed from 1. A value of 0 indicates the sender does not support reporting of multiple modems                                                                                           |
+| <a id="fld_cell_tower_id"></a>cell_tower_id   | `char[9]` |              |                                                             | ID of the currently connected cell tower. Must be NULL terminated if the length is less than 9 human-readable characters, and without NULL termination character if the length is exactly 9 characters (Invalid: 0) |
+| <a id="fld_sinr"></a>sinr                     | `float32` | dB           |                                                             | Signal to Interference plus Noise Ratio (Invalid: 0)                                                                                                                                                                |
 
 ## Enums
 
 ### STATUS_FLAG {#STATUS_FLAG}
+
+Used in field(s): [status](#fld_status)
 
 | Name                                                              | Type     | Value | Description                                                                                                                                                                                           |
 | ----------------------------------------------------------------- | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,6 +58,8 @@ This is currently used only for logging cell status from MAVLink.
 
 ### FAILURE_REASON {#FAILURE_REASON}
 
+Used in field(s): [failure_reason](#fld_failure_reason)
+
 | Name                                                                | Type    | Value | Description                                     |
 | ------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------- |
 | <a id="#FAILURE_REASON_NONE"></a> FAILURE_REASON_NONE               | `uint8` | 0     | No error                                        |
@@ -53,6 +68,8 @@ This is currently used only for logging cell status from MAVLink.
 | <a id="#FAILURE_REASON_SIM_ERROR"></a> FAILURE_REASON_SIM_ERROR     | `uint8` | 3     | SIM is available, but not usable for connection |
 
 ### CELLULAR_NETWORK_RADIO_TYPE {#CELLULAR_NETWORK_RADIO_TYPE}
+
+Used in field(s): [type](#fld_type)
 
 | Name                                                                              | Type    | Value | Description |
 | --------------------------------------------------------------------------------- | ------- | ----- | ----------- |
@@ -73,40 +90,52 @@ This is currently used only for logging cell status from MAVLink.
 #
 # This is currently used only for logging cell status from MAVLink.
 
-uint64 timestamp  # [us] Time since system start
+uint64 timestamp # [us] Time since system start
 
-uint16 status                            # [@enum STATUS_FLAG] Status bitmap
-uint16 STATUS_FLAG_UNKNOWN = 1           # State unknown or not reportable
-uint16 STATUS_FLAG_FAILED = 2            # Modem is unusable
-uint16 STATUS_FLAG_INITIALIZING = 4      # Modem is being initialized
-uint16 STATUS_FLAG_LOCKED = 8            # Modem is locked
-uint16 STATUS_FLAG_DISABLED = 16         # Modem is not enabled and is powered down
-uint16 STATUS_FLAG_DISABLING = 32        # Modem is currently transitioning to the STATUS_FLAG_DISABLED state
-uint16 STATUS_FLAG_ENABLING = 64         # Modem is currently transitioning to the STATUS_FLAG_ENABLED state
-uint16 STATUS_FLAG_ENABLED = 128         # Modem is enabled and powered on but not registered with a network provider and not available for data connections
-uint16 STATUS_FLAG_SEARCHING = 256       # Modem is searching for a network provider to register
-uint16 STATUS_FLAG_REGISTERED = 512      # Modem is registered with a network provider, and data connections and messaging may be available for use
-uint16 STATUS_FLAG_DISCONNECTING = 1024  # Modem is disconnecting and deactivating the last active packet data bearer. This state will not be entered if more than one packet data bearer is active and one of the active bearers is deactivated
-uint16 STATUS_FLAG_CONNECTING = 2048     # Modem is activating and connecting the first packet data bearer. Subsequent bearer activations when another bearer is already active do not cause this state to be entered
-uint16 STATUS_FLAG_CONNECTED = 4096      # One or more packet data bearers is active and connected
+uint16 status # [@enum STATUS_FLAG] Status bitmap
+uint16 STATUS_FLAG_UNKNOWN = 1 # State unknown or not reportable
+uint16 STATUS_FLAG_FAILED = 2 # Modem is unusable
+uint16 STATUS_FLAG_INITIALIZING = 4 # Modem is being initialized
+uint16 STATUS_FLAG_LOCKED = 8 # Modem is locked
+uint16 STATUS_FLAG_DISABLED = 16 # Modem is not enabled and is powered down
+uint16 STATUS_FLAG_DISABLING = 32 # Modem is currently transitioning to the STATUS_FLAG_DISABLED state
+uint16 STATUS_FLAG_ENABLING = 64 # Modem is currently transitioning to the STATUS_FLAG_ENABLED state
+uint16 STATUS_FLAG_ENABLED = 128 # Modem is enabled and powered on but not registered with a network provider and not available for data connections
+uint16 STATUS_FLAG_SEARCHING = 256 # Modem is searching for a network provider to register
+uint16 STATUS_FLAG_REGISTERED = 512 # Modem is registered with a network provider, and data connections and messaging may be available for use
+uint16 STATUS_FLAG_DISCONNECTING = 1024 # Modem is disconnecting and deactivating the last active packet data bearer. This state will not be entered if more than one packet data bearer is active and one of the active bearers is deactivated
+uint16 STATUS_FLAG_CONNECTING = 2048 # Modem is activating and connecting the first packet data bearer. Subsequent bearer activations when another bearer is already active do not cause this state to be entered
+uint16 STATUS_FLAG_CONNECTED = 4096 # One or more packet data bearers is active and connected
 
-uint8 failure_reason                  # [@enum FAILURE_REASON] Failure reason
-uint8 FAILURE_REASON_NONE = 0         # No error
-uint8 FAILURE_REASON_UNKNOWN = 1      # Error state is unknown
-uint8 FAILURE_REASON_SIM_MISSING = 2  # SIM is required for the modem but missing
-uint8 FAILURE_REASON_SIM_ERROR = 3    # SIM is available, but not usable for connection
+uint8 failure_reason # [@enum FAILURE_REASON] Failure reason
+uint8 FAILURE_REASON_NONE = 0 # No error
+uint8 FAILURE_REASON_UNKNOWN = 1 # Error state is unknown
+uint8 FAILURE_REASON_SIM_MISSING = 2 # SIM is required for the modem but missing
+uint8 FAILURE_REASON_SIM_ERROR = 3 # SIM is available, but not usable for connection
 
-uint8 type                                   # [@enum CELLULAR_NETWORK_RADIO_TYPE] Cellular network radio type
-uint8 CELLULAR_NETWORK_RADIO_TYPE_NONE = 0   # None
-uint8 CELLULAR_NETWORK_RADIO_TYPE_GSM = 1    # GSM
-uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2   # CDMA
-uint8 CELLULAR_NETWORK_RADIO_TYPE_WCDMA = 3  # WCDMA
-uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4    # LTE
+uint8 type # [@enum CELLULAR_NETWORK_RADIO_TYPE] Cellular network radio type
+uint8 CELLULAR_NETWORK_RADIO_TYPE_NONE = 0 # None
+uint8 CELLULAR_NETWORK_RADIO_TYPE_GSM = 1 # GSM
+uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2 # CDMA
+uint8 CELLULAR_NETWORK_RADIO_TYPE_WCDMA = 3 # WCDMA
+uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4 # LTE
 
-uint8 quality  # [dBm] Cellular network RSSI/RSRP, absolute value
-uint16 mcc     # [@invalid UINT16_MAX] Mobile country code
-uint16 mnc     # [@invalid UINT16_MAX] Mobile network code
-uint16 lac     # [@invalid 0] Location area code
+uint8 quality # [%] [@invalid UINT8_MAX] Cellular network signal quality in percent. May be used for RSSI
+uint16 mcc # [@invalid UINT16_MAX] Mobile country code
+uint16 mnc # [@invalid UINT16_MAX] Mobile network code
+uint16 lac # [@invalid 0] Location area code
+
+uint8 band_number # [-] [@invalid 0] LTE frequency band number
+float32 band_frequency # [MHz] [@invalid 0] LTE radio frequency
+uint32 channel_number # [@invalid 0] Channel Number (CN), Absolute radio-frequency (ARFCN) / E-UTRA (EARFCN) / UTRA (UARFCN) / New radio (NR_CH)
+float32 rx_level # [dBm] [@invalid 0] Receiver signal level. On 3G is Received Signal Code Power (RSCP). On LTE Reference Signal Received Power (RSRP). On 5G is New Radio Reference Signal Received Power (NR_RSRP)
+float32 tx_level # [dBm] [@invalid 0] Transmitter signal absolute level
+float32 rx_quality # [dBm] [@invalid 0] Received signal quality. On 3G is Receiver Quality (RxQual). On LTE is Reference Signal Received Quality (RSRQ). On 5G is New Radio Reference Signal Received Quality (NR_RSRQ)
+uint32 link_tx_rate # [KiB/s] [@invalid 0] Download rate
+uint32 link_rx_rate # [KiB/s] [@invalid 0] Upload rate
+uint8 id # [-] Cellular instance number. Indexed from 1. A value of 0 indicates the sender does not support reporting of multiple modems
+char[9] cell_tower_id # [@invalid 0] ID of the currently connected cell tower. Must be NULL terminated if the length is less than 9 human-readable characters, and without NULL termination character if the length is exactly 9 characters
+float32 sinr # [dB] [@invalid 0] Signal to Interference plus Noise Ratio
 ```
 
 :::

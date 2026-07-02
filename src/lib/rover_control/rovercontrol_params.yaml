@@ -235,7 +235,9 @@ parameters:
       description:
         short: Tuning parameter for the speed reduction based on the course error
         long: |-
+          ```
           Reduced_speed = RO_MAX_THR_SPEED * (1 - normalized_course_error * RO_SPEED_RED)
+          ```
           The normalized course error is the angle between the current course and the bearing setpoint
           interpolated from [0, 180] -> [0, 1].
           Higher value -> More speed reduction.

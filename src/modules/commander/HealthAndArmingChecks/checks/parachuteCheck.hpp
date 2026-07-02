@@ -45,6 +45,6 @@ public:
 
 private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamBool<px4::params::COM_PARACHUTE>) _param_com_parachute
+					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute
 				       )
 };

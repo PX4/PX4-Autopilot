@@ -231,14 +231,6 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessTailsitterVTOL(this);
 			break;
 
-		case EffectivenessSource::ROVER_ACKERMANN:
-			tmp = new ActuatorEffectivenessRoverAckermann();
-			break;
-
-		case EffectivenessSource::ROVER_DIFFERENTIAL:
-			// rover_differential_control does allocation and publishes directly to actuator_motors topic
-			break;
-
 		case EffectivenessSource::FIXED_WING:
 			tmp = new ActuatorEffectivenessFixedWing(this);
 			break;
@@ -271,10 +263,9 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
-		case EffectivenessSource::SPACECRAFT_3D:
-			tmp = new ActuatorEffectivenessSpacecraft(this);
-			break;
-
+		case EffectivenessSource::ROVER_ACKERMANN: // Unreachable: Rover startup scripts don't load control_allocator. Controllers publish actuator_outputs directly.
+		case EffectivenessSource::ROVER_DIFFERENTIAL:
+		case EffectivenessSource::ROVER_MECANUM:
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
@@ -380,6 +371,9 @@ ControlAllocator::Run()
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
 
+	_actuator_group_preflight_check.handleCommand(now, _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL);
+	_actuator_group_preflight_check.updateState(now);
+
 	bool do_update = false;
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
@@ -426,6 +420,8 @@ ControlAllocator::Run()
 				c[1](5) = vehicle_thrust_setpoint.xyz[2];
 			}
 		}
+
+		_actuator_group_preflight_check.applyOverrides(c, _is_vtol, *_actuator_effectiveness);
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
@@ -633,6 +629,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 {
 	control_allocator_status_s control_allocator_status{};
 	control_allocator_status.timestamp = hrt_absolute_time();
+	control_allocator_status.actuator_group_preflight_check_active = _actuator_group_preflight_check.isActive();
 
 	// TODO: disabled motors (?)
 

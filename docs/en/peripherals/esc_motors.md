@@ -12,6 +12,7 @@ The following list is non-exhaustive.
 | ESC Device                     | Protocols                            | Firmwares                | Notes                                                 |
 | ------------------------------ | ------------------------------------ | ------------------------ | ----------------------------------------------------- |
 | [ARK 4IN1 ESC]                 | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connectors                  |
+| [Hiwonder 4Ch Encoder Motor]   | I2C                                  |                          | Brushed-DC, 4 channels with encoder feedback (rovers) |
 | [Holybro Kotleta 20]           | [DroneCAN], [PWM]                    | [PX4 Sapog ESC Firmware] |                                                       |
 | [Vertiq Motor & ESC modules]   | [Dshot], [OneShot], Multishot, [PWM] | Vertiq firmware          | Larger modules support DroneCAN, ESC and Motor in one |
 | [RaccoonLab CAN PWM ESC nodes] | [DroneCAN], Cyphal                   |                          | Cyphal and DroneCAN notes for PWM ESC                 |
@@ -21,6 +22,7 @@ The following list is non-exhaustive.
 <!-- Links for table above -->
 
 [ARK 4IN1 ESC]: ../esc/ark_4in1_esc.md
+[Hiwonder 4Ch Encoder Motor]: ../peripherals/hiwonder_emm.md
 [AM32]: https://am32.ca/
 [PX4 Sapog ESC Firmware]: ../dronecan/sapog.md
 [VESC ESCs]: ../peripherals/vesc.md

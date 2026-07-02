@@ -184,7 +184,8 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), (uint8_t)14);
 	_battery_status[instance].cycle_count = msg.cycle_count;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
-	_battery_status[instance].nominal_voltage = msg.nominal_voltage;
+	// ArduPilot BatteryInfoAux convention: nominal_voltage == 0 means "not provided"
+	_battery_status[instance].nominal_voltage = (msg.nominal_voltage > FLT_EPSILON) ? msg.nominal_voltage : NAN;
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
 	if (msg.nominal_voltage > FLT_EPSILON) {

@@ -35,7 +35,7 @@
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 #include <drivers/drv_pwm_output.h>
-#include "../mission_block.h"
+#include "../mission_item_utils.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
@@ -230,7 +230,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 {
 	/* reject relative alt without home set */
 	if (mission_item.altitude_is_relative && !PX4_ISFINITE(_home_alt_msl)
-	    && MissionBlock::item_contains_position(mission_item)) {
+	    && mission_item_contains_position(mission_item)) {
 
 
 
@@ -382,7 +382,7 @@ bool FeasibilityChecker::checkFixedWingLandApproach(mission_item_s &mission_item
 {
 	if (mission_item.nav_cmd == NAV_CMD_LAND && current_index > 0) {
 
-		if (MissionBlock::item_contains_position(_mission_item_previous)) {
+		if (mission_item_contains_position(_mission_item_previous)) {
 
 			const float land_alt_amsl = mission_item.altitude_is_relative ? mission_item.altitude +
 						    _home_alt_msl : mission_item.altitude;
@@ -624,7 +624,7 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
 	    (_home_lat_lon.isAllFinite()) &&
-	    MissionBlock::item_contains_position(mission_item)) {
+	    mission_item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
@@ -660,7 +660,7 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mission_item)
 {
 	/* check only items with valid lat/lon */
-	if (!MissionBlock::item_contains_position(mission_item)) {
+	if (!mission_item_contains_position(mission_item)) {
 		return true;
 	}
 

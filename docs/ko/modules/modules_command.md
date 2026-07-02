@@ -441,6 +441,10 @@ param <command> [arguments...]
    import        Import params from a file
      [<file>]    File name (use default if not given)
 
+   load-or-init  Load params from storage; if blank, seed from a backup file or
+                 defaults and persist
+     [<backup_file>] Backup file to seed from when storage is blank
+
    save          Save params to a file
      [<file>]    File name (use default if not given)
 
@@ -453,6 +457,7 @@ param <command> [arguments...]
    show          Show parameter values
      [-a]        Show all parameters (not just used)
      [-c]        Show only changed params (unused too)
+     [-l]        Show only locked (read-only) params
      [-q]        quiet mode, print only param value (name needs to be exact)
      [<filter>]  Filter by param name (wildcard at end allowed, eg. sys_*)
 
@@ -497,6 +502,8 @@ param <command> [arguments...]
 
    find          Show index of a param
      <param>     param name
+
+   lock          Lock read-only params (reject future set/reset)
 ```
 
 ## payload_deliverer

@@ -91,6 +91,10 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			mask |= checkMotorStatus(context, reporter, esc_status, now);
 		}
 
+		if (_param_esc_temp_warn_th.get() >= FLT_EPSILON) {
+			checkEscTemperature(reporter, esc_status);
+		}
+
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
@@ -123,11 +127,11 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const bool timeout = now > esc_status.esc[esc_index].timestamp + ESC_TIMEOUT_US;
+		const bool esc_telemetry_timeout = now > esc_status.esc[esc_index].timestamp + ESC_TIMEOUT_US;
 		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
-		if (timeout || is_offline) {
+		if (esc_telemetry_timeout || is_offline) {
 			mask |= (1u << esc_index);
 
 			uint8_t esc_nr = esc_index + 1;
@@ -214,6 +218,60 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 	return mask;
 }
 
+void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_status)
+{
+	const float warn_temp = _param_esc_temp_warn_th.get();
+
+	uint8_t hottest_esc_index = UINT8_MAX;
+	float max_temperature = -FLT_MAX;
+
+	for (uint8_t esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
+				     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
+			continue;
+		}
+
+		const float temperature = esc_status.esc[esc_index].esc_temperature;
+
+		if (!PX4_ISFINITE(temperature)) {
+			continue;
+		}
+
+		if (temperature > max_temperature) {
+			max_temperature = temperature;
+			hottest_esc_index = esc_index;
+		}
+
+		if (temperature > warn_temp) {
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* Configured by <param>ESC_TEMP_WARN_TH</param>
+			* </profile>
+			*/
+			reporter.healthFailure<uint8_t, uint8_t>(NavModes::None, health_component_t::motors_escs,
+					events::ID("check_esc_over_temperature"),
+					events::Log::Warning,
+					"ESC {1} temperature warning, {2:C}",
+					static_cast<uint8_t>(esc_index + 1), static_cast<uint8_t>(temperature));
+		}
+	}
+
+	if (hottest_esc_index == UINT8_MAX) {
+		return;
+	}
+
+	if (max_temperature >= warn_temp) {
+		if (!_esc_over_temp_warned && reporter.mavlink_log_pub()) {
+			mavlink_log_warning(reporter.mavlink_log_pub(), "High ESC temperature. Reduce throttle!");
+			_esc_over_temp_warned = true;
+		}
+
+	} else if (max_temperature < warn_temp - 5.f) {
+		_esc_over_temp_warned = false;
+	}
+}
+
 uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
 	uint16_t mask = 0;
@@ -250,8 +308,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				thrust = fabsf(actuator_motors.control[actuator_function_index]);
 			}
 
-			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_low_off.get();
-			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_high_off.get();
+			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_off.get();
+			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_off.get();
 
 			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_s);
 			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_s);

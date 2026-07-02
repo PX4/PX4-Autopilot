@@ -8,13 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                            | Type     | Unit [Frame] | Range/Enum | Description                                                            |
-| ------------------------------- | -------- | ------------ | ---------- | ---------------------------------------------------------------------- |
-| timestamp                       | `uint64` |              |            | time since system start (microseconds)                                 |
-| geofence_max_dist_triggered     | `bool`   |              |            | true the check for max distance from Home is triggered                 |
-| geofence_max_alt_triggered      | `bool`   |              |            | true the check for max altitude above Home is triggered                |
-| geofence_custom_fence_triggered | `bool`   |              |            | true the check for custom inclusion/exclusion geofence(s) is triggered |
-| geofence_action                 | `uint8`  |              |            | action to take when the geofence is breached                           |
+| Name                                                                            | Type     | Unit [Frame] | Range/Enum | Description                                                            |
+| ------------------------------------------------------------------------------- | -------- | ------------ | ---------- | ---------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                             | `uint64` |              |            | time since system start (microseconds)                                 |
+| <a id="fld_geofence_max_dist_triggered"></a>geofence_max_dist_triggered         | `bool`   |              |            | true the check for max distance from Home is triggered                 |
+| <a id="fld_geofence_max_alt_triggered"></a>geofence_max_alt_triggered           | `bool`   |              |            | true the check for max altitude above Home is triggered                |
+| <a id="fld_geofence_custom_fence_triggered"></a>geofence_custom_fence_triggered | `bool`   |              |            | true the check for custom inclusion/exclusion geofence(s) is triggered |
+| <a id="fld_geofence_action"></a>geofence_action                                 | `uint8`  |              |            | action to take when the geofence is breached                           |
 
 ## Constants
 

@@ -52,14 +52,19 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/heater_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_hygrometer.h>
 #include <parameters/param.h>
+#include <drivers/drv_hrt.h>
 
 #include <mathlib/mathlib.h>
 
 using namespace time_literals;
 
+#ifndef CONTROLLER_PERIOD_DEFAULT
 #define CONTROLLER_PERIOD_DEFAULT    10000
+#endif
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
 #define HEATER_MAX_INSTANCES 3 	// If changed, also need to change `max_num_config_instances` in module.yaml
 #if HEATER_NUM > HEATER_MAX_INSTANCES
@@ -141,6 +146,13 @@ private:
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;
 
+#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
+	hrt_abstime _temperature_last_update_time {0};
+#endif
+
+	hrt_abstime _battery_status_last_update_time{0};
+	float _nominal_multiplier = 0.0f;
+
 	int _controller_time_on_usec = 0;
 
 	float _integrator_value   = 0.0f;
@@ -151,28 +163,38 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
+	uORB::Subscription _sensor_hygrometer_sub{ORB_ID(sensor_hygrometer)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
 	uint32_t _sensor_device_id{0};
 
 	float _temperature_last{NAN};
+	float _supply_voltage{NAN};
+	float _heater_current{NAN};
 
 	const uint8_t _instance; //! 1-based
 
 	volatile bool _should_exit{false};
 	struct {
-		param_t imu_id;
+		param_t sens_id;
 		param_t temp;
 		param_t temp_p;
 		param_t temp_i;
 		param_t temp_ff;
+		param_t temp_imax;
+		param_t temp_src;
+		param_t nom_v;
 	} _param_handles;
 
 	struct {
-		int32_t imu_id;   // HEATER<i>_IMU_ID: <0 disable, 0 auto, >0 match device_id
+		int32_t sens_id;  // HEATER<i>_SENS_ID: <0 disable, 0 auto, >0 match device_id
 		float   temp;     // target temperature
 		float   temp_p;
 		float   temp_i;
 		float   temp_ff;
+		float   temp_imax;
+		int32_t temp_src; // 0 = IMU, 1 = hygrometer
+		float   nom_v;    // nominal supply voltage for power limiting (0 = disabled)
 	} _params;
 
 };

@@ -184,6 +184,8 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.warning = _warning;
 	battery_status.timestamp = hrt_absolute_time();
 	battery_status.faults = determineFaults();
+	battery_status.remaining_capacity_wh = NAN; // not measured by dumb power module; smart-battery drivers overwrite
+	battery_status.nominal_voltage = NAN;        // not measured by dumb power module; smart-battery drivers overwrite
 	battery_status.internal_resistance_estimate = _internal_resistance_estimate;
 	battery_status.ocv_estimate = _voltage_v + _internal_resistance_estimate * _params.n_cells * _current_a;
 	battery_status.ocv_estimate_filtered = _ocv_filter_v.getState();

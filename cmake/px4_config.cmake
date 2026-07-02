@@ -41,6 +41,11 @@ if(NOT CONFIG)
 	else()
 		set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 	endif()
+else()
+	# Promote CONFIG from UNINITIALIZED (set by -D on command line) to STRING
+	# so that cmake -L lists it. The Makefile's cmake-cache-check relies on
+	# finding CONFIG in cmake -L output to avoid unnecessary reconfiguration.
+	set(CONFIG "${CONFIG}" CACHE STRING "desired configuration" FORCE)
 endif()
 
 if(NOT PX4_CONFIG_FILE)
@@ -66,7 +71,7 @@ if(NOT PX4_CONFIG_FILE)
 
 			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
 			# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
-			if ((${CONFIG} MATCHES "${vendor}_${model}_${label}") OR # match full vendor, model, label
+			if ((${CONFIG} STREQUAL "${vendor}_${model}_${label}") OR # match full vendor, model, label
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
 			)
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
@@ -79,7 +84,7 @@ if(NOT PX4_CONFIG_FILE)
 
 			# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
 			# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
-			if ((${CONFIG} MATCHES "${board}_${label}") OR # match full board, label
+			if ((${CONFIG} STREQUAL "${board}_${label}") OR # match full board, label
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
 			)
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)

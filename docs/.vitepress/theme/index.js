@@ -20,18 +20,15 @@ if (inBrowser) {
 // Support redirect plugin
 import Redirect from "./components/Redirect.vue";
 
+import { createDynamicNav } from "vp-dynamic-nav";
+
 // Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
 import { Tab, Tabs } from "vue3-tabs-component";
 import "@red-asuka/vitepress-plugin-tabs/dist/style.css";
 
 /** @type {import('vitepress').Theme} */
 export default {
-  extends: DefaultTheme,
-  Layout: () => {
-    return h(DefaultTheme.Layout, null, {
-      // https://vitepress.dev/guide/extending-default-theme#layout-slots
-    });
-  },
+  extends: createDynamicNav(DefaultTheme),
   enhanceApp({ app, router, siteData }) {
     app.component("Redirect", Redirect); //Redirect plugin
     //Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
@@ -52,6 +49,27 @@ export default {
     };
     onMounted(() => {
       initZoom();
+      // Re-scroll to hash after fonts/layout settle. Firefox does not re-scroll
+      // after late layout shifts on huge pages (e.g. parameter_reference), so
+      // the initial anchor jump lands far off. Run only on initial load.
+      if (inBrowser && location.hash) {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const fontsReady = document.fonts?.ready ?? Promise.resolve();
+        const loadReady =
+          document.readyState === "complete"
+            ? Promise.resolve()
+            : new Promise((r) =>
+                window.addEventListener("load", r, { once: true })
+              );
+        Promise.all([fontsReady, loadReady]).then(() => {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView();
+            })
+          );
+        });
+      }
     });
     watch(
       () => route.path,

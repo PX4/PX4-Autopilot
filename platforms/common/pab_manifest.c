@@ -448,6 +448,52 @@ static const px4_hw_mft_item_t base_configuration_19[] = {
 	},
 };
 
+// BASE ID 21  Auterion CAN base
+static const px4_hw_mft_item_t base_configuration_21[] = {
+	{
+		.id          = PX4_MFT_PX4IO,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_USB,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_CAN2,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_CAN3,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_PM2,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_ETHERNET,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_T100_ETH,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+};
+
 // BASE ID 0x100 Holybro Pixhawk Jetson Baseboard Alaised to ID 0
 // BASE ID 0x150 ZeroOne Pixhawk Baseboard Alaised to ID 0
 // BASE ID 0x200 AmovLab Pixhawk Baseboard Alaised to ID 0
@@ -467,6 +513,9 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{HW_BASE_ID(18),     base_configuration_18, arraySize(base_configuration_18)}, // Auterion Skynode S ver 18
 	{HW_BASE_ID(19),     base_configuration_19, arraySize(base_configuration_19)}, // Auterion Skynode N rev 0
 	{HW_BASE_ID(20),     base_configuration_19, arraySize(base_configuration_19)}, // Auterion Skynode N rev 1
+	{HW_BASE_ID(21),     base_configuration_21, arraySize(base_configuration_21)}, // Auterion CAN IO
+	{HW_BASE_ID(22),     base_configuration_21, arraySize(base_configuration_21)}, // Auterion CAN Airspeed
+	{HW_BASE_ID(23),     base_configuration_21, arraySize(base_configuration_21)}, // Auterion CAN Power
 	{HW_BASE_ID(0x100),  base_configuration_0, arraySize(base_configuration_0)},   // Holybro Pixhawk Jetson Baseboard ver 0x100 Alaised to ID 0
 	{HW_BASE_ID(0x150),  base_configuration_0, arraySize(base_configuration_0)},   // ZeroOne Pixhawk Baseboard ver 0x150
 	{HW_BASE_ID(0x200),  base_configuration_0, arraySize(base_configuration_0)},   // AmovLab Pixhawk Baseboard ver 0x150

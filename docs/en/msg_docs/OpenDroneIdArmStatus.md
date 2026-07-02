@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name      | Type       | Unit [Frame] | Range/Enum | Description |
-| --------- | ---------- | ------------ | ---------- | ----------- |
-| timestamp | `uint64`   |              |            |
-| status    | `uint8`    |              |            |
-| error     | `char[50]` |              |            |
+| Name                                | Type       | Unit [Frame] | Range/Enum | Description |
+| ----------------------------------- | ---------- | ------------ | ---------- | ----------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`   |              |            |
+| <a id="fld_status"></a>status       | `uint8`    |              |            |
+| <a id="fld_error"></a>error         | `char[50]` |              |            |
 
 ## Source Message
 

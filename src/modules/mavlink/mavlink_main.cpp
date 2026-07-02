@@ -61,6 +61,10 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+#include <drivers/serialpassthrough/serialpassthrough.hpp>
+#endif
+
 #ifdef MAVLINK_UDP
 #include <sys/time.h>
 #endif
@@ -1926,10 +1930,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 	case MAVLINK_MODE_LOW_BANDWIDTH:
 		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("CAMERA_TRIGGER", 2.0f);
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 2.0f);
+		configure_stream_local("ATTITUDE_QUATERNION", 4.0f);
 		configure_stream_local("ALTITUDE", 1.0f);
 		configure_stream_local("DISTANCE_SENSOR", 1.0f);
 		configure_stream_local("MOUNT_ORIENTATION", 2.0f);
@@ -1938,23 +1941,23 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
 		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 2.0f);
+		configure_stream_local("ESC_STATUS", 1.0f);
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 		configure_stream_local("ESC_EEPROM", unlimited_rate);
 #endif
 		configure_stream_local("ADSB_VEHICLE", 1.0f);
 		configure_stream_local("ATTITUDE_TARGET", 0.5f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
+		configure_stream_local("BATTERY_STATUS", 1.0f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", 2.0f);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
 		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
 		configure_stream_local("GLOBAL_POSITION_SENSOR", 2.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS2_RAW", 2.0f);
-		configure_stream_local("GPS_RAW_INT", 2.0f);
+		configure_stream_local("GPS_GLOBAL_ORIGIN", 0.1f);
+		configure_stream_local("GPS2_RAW", 1.0f);
+		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 0.1f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 0.1f);
@@ -1962,13 +1965,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 0.5f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 0.5f);
-		configure_stream_local("RAW_RPM", 1.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("RAW_RPM", 2.0f);
+		configure_stream_local("RC_CHANNELS", 1.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 0.1f);
 		configure_stream_local("SYS_STATUS", 0.5f);
-		configure_stream_local("SYSTEM_TIME", 2.0f);
+		configure_stream_local("SYSTEM_TIME", 0.5f);
 		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.5f);
-		configure_stream_local("VFR_HUD", 1.5f);
+		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.1f);
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
@@ -2519,6 +2522,7 @@ Mavlink::task_main(int argc, char *argv[])
 		handleCommands();
 		handleAndGetCurrentCommandAck();
 		handleMavlinkShellOutput();
+		handleSerialPassthroughOutput();
 
 		check_requested_subscriptions();
 
@@ -2692,6 +2696,39 @@ void Mavlink::handleStatus()
 			}
 		}
 	}
+}
+
+void Mavlink::handleSerialPassthroughOutput()
+{
+#ifdef CONFIG_DRIVERS_SERIALPASSTHROUGH
+	// Drain all pending UART->MAVLink data from every active instance,
+	// one SERIAL_CONTROL message at a time.
+	mavlink_serial_control_t msg{};
+	msg.baudrate = 0;
+	msg.timeout  = 0;
+	msg.flags    = SERIAL_CONTROL_FLAG_REPLY;
+
+	uint8_t sysid, compid, device;
+
+	for (int i = 0; i < SP_MAX_INSTANCES; i++) {
+		SerialPassthrough *sp = SerialPassthrough::get_instance_by_index(i);
+
+		if (!sp) { continue; }
+
+		while (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+			size_t n = sp->popToMavlink(msg.data, sizeof(msg.data), &sysid, &compid, &device,
+						    (uint8_t)get_channel());
+
+			if (n == 0) { break; }
+
+			PX4_DEBUG("handleSerialPassthroughOutput: sending %zu bytes", n);
+			msg.count  = n;
+			msg.device = device;
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+		}
+	}
+
+#endif
 }
 
 void Mavlink::handleMavlinkShellOutput()

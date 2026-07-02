@@ -10,13 +10,13 @@ This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use.
 
 ## Fields
 
-| Name               | Type         | Unit [Frame] | Range/Enum | Description                                                        |
-| ------------------ | ------------ | ------------ | ---------- | ------------------------------------------------------------------ |
-| timestamp          | `uint64`     |              |            | time since system start (microseconds)                             |
-| timestamp_sample   | `uint64`     |              |            | the timestamp of the raw data (microseconds)                       |
-| q                  | `float32[4]` |              |            | Quaternion rotation from the FRD body frame to the NED earth frame |
-| delta_q_reset      | `float32[4]` |              |            | Amount by which quaternion has changed during last reset           |
-| quat_reset_counter | `uint8`      |              |            | Quaternion reset counter                                           |
+| Name                                                  | Type         | Unit [Frame] | Range/Enum | Description                                                        |
+| ----------------------------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                   | `uint64`     |              |            | time since system start (microseconds)                             |
+| <a id="fld_timestamp_sample"></a>timestamp_sample     | `uint64`     |              |            | the timestamp of the raw data (microseconds)                       |
+| <a id="fld_q"></a>q                                   | `float32[4]` |              |            | Quaternion rotation from the FRD body frame to the NED earth frame |
+| <a id="fld_delta_q_reset"></a>delta_q_reset           | `float32[4]` |              |            | Amount by which quaternion has changed during last reset           |
+| <a id="fld_quat_reset_counter"></a>quat_reset_counter | `uint8`      |              |            | Quaternion reset counter                                           |
 
 ## Constants
 

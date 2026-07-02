@@ -5,16 +5,14 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-:::warning
-Failure injection still in development.
-На момент написання (PX4 v1.14):
+Failure injection must also be be supported by the current simulator, and the set of supported failures is simulator-dependent.
 
-- Support may vary by failure type and between simulatiors and real vehicle.
-- Потребує підтримки в симуляторі.
-  Це підтримується в Gazebo Classic
-- Багато типів відмов не широко реалізовані.
-  У таких випадках команда повернеться з повідомленням "unsupported".
+:::info
+PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
 
+All [MAV_CMD_INJECT_FAILURE](https://mavlink.io/en/messages/common.html#MAV_CMD_INJECT_FAILURE) commands are handled internally by the failure-injection module, which acknowledges each command and republishes the active failures for the sensor/actuator simulators to apply.
+The failure-injection module will NACK the command with [MAV_RESULT_UNSUPPORTED](https://mavlink.io/en/messages/common.html#MAV_RESULT_UNSUPPORTED) for failure combinations that are not implemented by PX4 or any simulator.
+However it the module will accept (respond with [MAV_MISSION_ACCEPTED](https://mavlink.io/en/messages/common.html#MAV_MISSION_ACCEPTED)) for any other failure-type, even if it is not supported by your _particular_ simulator.
 :::
 
 ## Команда системи збою
@@ -61,6 +59,10 @@ failure <component> <failure_type> [-i <instance_number>]
 - _instance number_ (optional): Instance number of affected sensor.
   0 (за замовчуванням) вказує на всі сенсори вказаного типу.
 
+:::info
+The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+:::
+
 ## MAVSDK відлагоджувальний плагін
 
 The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
@@ -68,19 +70,19 @@ It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsd
 
 API плагіна - це пряме відображення команди збою, показаної вище, з деякими додатковими сигналами про помилки, пов'язані з підключенням.
 
-## Example: RC signal
+## Example: GPS
 
-Щоб симулювати втрату сигналу RC без вимкнення вашого пульта керування RC:
+To test the GPS failsafe by stopping GPS:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
-   # Fail RC (turn publishing off)
-   failure rc_signal off
+   # Stop GPS publishing
+   failure gps off
 
-   # Restart RC publishing
-   failure rc_signal ok
+   # Restart GPS publishing
+   failure gps ok
    ```
 
 ## Example: Motor

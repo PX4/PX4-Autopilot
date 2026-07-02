@@ -33,6 +33,7 @@ uint8 	loiter_pattern		# loitern pattern to follow
 float32 acceptance_radius   # horizontal acceptance_radius (meters)
 float32 alt_acceptance_radius # vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters)
 
+float32 course			# [rad] desired course (bearing) over ground, NaN = unused
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover

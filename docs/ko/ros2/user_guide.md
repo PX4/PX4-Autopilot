@@ -137,7 +137,7 @@ To install ROS 2 and its dependencies:
 2. Some Python dependencies must also be installed (using **`pip`** or **`apt`**):
 
    ```sh
-   pip install --user -U empty==3.3.4 pyros-genmsg setuptools
+   pip install --user -U empy==3.3.4 pyros-genmsg setuptools
    ```
 
 ### Setup Micro XRCE-DDS Agent & Client
@@ -244,7 +244,7 @@ This section shows how to create a ROS 2 workspace hosted in your home directory
 The [px4_ros_com](https://github.com/PX4/px4_ros_com) and [px4_msgs](https://github.com/PX4/px4_msgs) packages are cloned to a workspace folder, and then the `colcon` tool is used to build the workspace.
 The example is run using `ros2 launch`.
 
-You should use a version of the px4_msgs package with the \_same_ message definitions as the PX4 firmware you have installed in the step above.
+You should use a version of the px&#x34;_&#x6D;sgs package with the \_same_ message definitions as the PX4 firmware you have installed in the step above.
 Branches in the px4_msgs repo are named to correspond to the message definitions for different PX4 releases.
 If for any reason you cannot ensure the same message definitions between your PX4 firmware and ROS 2 px4_msgs package, you will additionally need to [start the message translation node](#optional-starting-the-translation-node) as part of your setup process.
 

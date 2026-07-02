@@ -43,5 +43,6 @@ px4_add_module(
 	MODULE_CONFIG
 		parameters.yaml
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

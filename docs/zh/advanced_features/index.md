@@ -10,3 +10,5 @@
 - [铱星 / RockBlock 卫星通信系统](../advanced_features/satcom_roadblock.md)
 - [精准着陆](../advanced_features/precland.md)
 - [RTK GNSS (GPS)](../gps_compass/rtk_gps.md)
+- [Vision Target Estimator](../advanced_features/vision_target_estimator.md)
+  - [Vision Target Estimator Deep Dive](../advanced_features/vision_target_estimator_advanced.md)

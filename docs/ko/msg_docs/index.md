@@ -13,6 +13,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 ## Versioned Messages
 
+### Current Versions
+
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message.
 - [ActuatorServos](ActuatorServos.md) — Servo control message.
 - [AirspeedValidated](AirspeedValidated.md) — Validated airspeed.
@@ -50,6 +52,28 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleStatus](VehicleStatus.md) — Encodes the system state of the vehicle published by commander.
 - [VtolVehicleStatus](VtolVehicleStatus.md) — VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE.
 - [Wind](Wind.md) — Wind estimate (from EKF2).
+
+### Historic Versions
+
+- [ActuatorServosV0](ActuatorServosV0.md) — Servo control message.
+- [AirspeedValidatedV0](AirspeedValidatedV0.md)
+- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
+- [ArmingCheckRequestV0](ArmingCheckRequestV0.md) — Arming check request.
+- [BatteryStatusV0](BatteryStatusV0.md) — Battery status.
+- [ConfigOverridesV0](ConfigOverridesV0.md) — Configurable overrides by (external) modes or mode executors.
+- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
+- [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
+- [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
+- [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
+- [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
+- [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
+- [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
+- [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
+- [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
+- [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.
 
 ## Unversioned Messages
 
@@ -105,6 +129,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
+- [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
+- [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
 - [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
 - [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
@@ -173,7 +199,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [OrbTest](OrbTest.md)
 - [OrbTestLarge](OrbTestLarge.md)
 - [OrbTestMedium](OrbTestMedium.md)
-- [OrbitStatus](OrbitStatus.md) — ORBIT_YAW_BEHAVIOUR.
+- [OrbitStatus](OrbitStatus.md) — Orbit status.
 - [ParameterResetRequest](ParameterResetRequest.md) — ParameterResetRequest : Used by the primary to reset one or all parameter value(s) on the remote.
 - [ParameterSetUsedRequest](ParameterSetUsedRequest.md) — ParameterSetUsedRequest : Used by a remote to update the used flag for a parameter on the primary.
 - [ParameterSetValueRequest](ParameterSetValueRequest.md) — ParameterSetValueRequest : Used by a remote or primary to update the value for a parameter at the other end.
@@ -187,6 +213,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerButtonState](PowerButtonState.md) — power button state notification message.
 - [PowerMonitor](PowerMonitor.md) — power monitor message.
 - [PpsCapture](PpsCapture.md)
+- [PrecLandStatus](PrecLandStatus.md) — Precision-landing runtime status: a single state captures both whether precision landing is active and which phase it is in.
 - [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status.
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
@@ -233,6 +260,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorsStatusImu](SensorsStatusImu.md) — Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
+- [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.
 - [TaskStackInfo](TaskStackInfo.md) — stack information for a single running process.
 - [TecsStatus](TecsStatus.md)
 - [TelemetryStatus](TelemetryStatus.md)
@@ -259,24 +287,12 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleThrustSetpoint](VehicleThrustSetpoint.md)
 - [VehicleTorqueSetpoint](VehicleTorqueSetpoint.md)
 - [VelocityLimits](VelocityLimits.md) — Velocity and yaw rate limits for a multicopter position slow mode only.
+- [VteAidSource1d](VteAidSource1d.md) — Vision Target Estimator 1D fusion aid-source diagnostics (e.g. yaw).
+- [VteAidSource3d](VteAidSource3d.md) — Vision Target Estimator 3D fusion aid-source diagnostics, one fusion_status per NED axis.
+- [VteBiasInitStatus](VteBiasInitStatus.md) — Diagnostics for the initial GNSS/vision bias averaging phase in the Vision Target Estimator.
+- [VteInput](VteInput.md) — Vehicle inputs fed into the Vision Target Estimator position prediction step, logged for tuning.
+- [VteOrientation](VteOrientation.md) — Vision Target Estimator orientation state, exposing the full yaw filter output with covariances for logging and tuning.
+- [VtePosition](VtePosition.md) — Vision Target Estimator position state, exposing the full per-axis Kalman filter state with covariances for logging and tuning.
 - [Vtx](Vtx.md)
 - [WheelEncoders](WheelEncoders.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
-- [AirspeedValidatedV0](AirspeedValidatedV0.md)
-- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
-- [ArmingCheckRequestV0](ArmingCheckRequestV0.md) — Arming check request.
-- [BatteryStatusV0](BatteryStatusV0.md) — Battery status.
-- [ConfigOverridesV0](ConfigOverridesV0.md) — Configurable overrides by (external) modes or mode executors.
-- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
-- [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
-- [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
-- [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
-- [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
-- [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
-- [VehicleCommandAckV0](VehicleCommandAckV0.md) — Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
-- [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
-- [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
-- [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
-- [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
-- [VehicleStatusV2](VehicleStatusV2.md) — Encodes the system state of the vehicle published by commander.
-- [VehicleStatusV3](VehicleStatusV3.md) — Encodes the system state of the vehicle published by commander.

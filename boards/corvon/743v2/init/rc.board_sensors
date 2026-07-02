@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# CORVON 743V2 sensor startup script.
+# Loaded by rcS at boot. Starts drivers for all onboard sensors.
+#
+# Notes:
+#  - The common rcS already starts tone_alarm earlier (around line 316), so do
+#    NOT start it again here. A duplicate "tone_alarm start" returns "Task
+#    already running", and combined with set -e in rcS it would abort the rest
+#    of the boot, including the USB CDC autostart block.
+#  - Both BMI088 (accel + gyro) use rotation -R 2 (YAW_90), the same value as
+#    ICM-42688P. The pin-1 of BMI088 is mounted 180 deg from ICM-42688P on this
+#    PCB, but the BMI088 internal axis convention is also rotated 180 deg vs.
+#    ICM, so the two cancel out and the rotation parameter is identical.
+#
+
+# ---- IMU on SPI3 (ICM-42688P + BMI088) ----
+icm42688p -s -R 2 start
+bmi088 -A -R 2 -s start
+bmi088 -G -R 2 -s start
+
+# ---- Onboard I2C2 (BMP581 + IST8310) ----
+# IST8310 on this PCB responds at 0x0E (not the datasheet default 0x0C).
+bmp581 -I -a 0x46 start
+ist8310 -I -b 2 -a 0x0E -R 2 start
+
+# ---- ADC (battery + airspeed + RSSI) ----
+board_adc start
