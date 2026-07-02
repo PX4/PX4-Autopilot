@@ -234,14 +234,6 @@
 
 #define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2
 
-/* SPI45 clock source */
-
-#define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2
-
-/* SPI6 clock source */
-
-#define STM32_RCC_D3CCIPR_SPI6SRC    RCC_D3CCIPR_SPI6SEL_PLL2
-
 /* USB 1 and 2 clock source */
 
 #define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
@@ -432,17 +424,17 @@
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4               /* PI3  */
 #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_6) /* PI1  */
 
-#define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2               /* PC11 */
-#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_3               /* PB2  */
-#define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
-
-#define GPIO_SPI5_MISO   GPIO_SPI5_MISO_2               /* PH7  */
-#define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1               /* PF11 */
-#define GPIO_SPI5_SCK    ADJ_SLEW_RATE(GPIO_SPI5_SCK_1) /* PF7  */
-
-#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_2               /* PA6  */
-#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14 */
-#define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_3) /* PB3  */
+// #define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2               /* PC11 */
+// #define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_3               /* PB2  */
+// #define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
+//
+// #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_2               /* PH7  */
+// #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1               /* PF11 */
+// #define GPIO_SPI5_SCK    ADJ_SLEW_RATE(GPIO_SPI5_SCK_1) /* PF7  */
+//
+// #define GPIO_SPI6_MISO   GPIO_SPI6_MISO_2               /* PA6  */
+// #define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14 */
+// #define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_3) /* PB3  */
 
 /* I2C
  *
