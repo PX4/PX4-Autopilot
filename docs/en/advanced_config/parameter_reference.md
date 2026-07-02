@@ -22086,6 +22086,12 @@ Set manual control loss failsafe mode.
 The manual control loss failsafe will only be entered after a timeout,
 set by COM_RC_LOSS_T in seconds.
 
+"Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+(e.g. without a valid position estimate), the normal failsafe takes over and escalates
+from there (Return/Land/Descend/Terminate as applicable).
+
 **Values:**
 
 - `1`: Hold mode
@@ -22093,6 +22099,7 @@ set by COM_RC_LOSS_T in seconds.
 - `3`: Land mode
 - `5`: Terminate
 - `6`: Disarm
+- `7`: Hold mode (no failsafe)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
