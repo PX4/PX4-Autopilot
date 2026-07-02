@@ -877,7 +877,7 @@ Topic | Type| Rate Limit
         for message in sorted(data["subscriptions"], key=lambda elem: elem['topic']):
             type = message['type']
             px4Type=type.split("::")[-1]
-            dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md)\n"
+            dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md)\n"
 
         dds_markdown += "\n## Subscriptions Multi\n\n"
 
