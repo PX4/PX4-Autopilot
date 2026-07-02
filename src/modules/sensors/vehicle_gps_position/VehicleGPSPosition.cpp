@@ -45,6 +45,7 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+	_vehicle_gnss_heading_pub.advertise();
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -216,9 +217,123 @@ void VehicleGPSPosition::Run()
 		}
 	}
 
+	// Publish vehicle_gnss_heading from sensor_gnss_relative (preferred) or sensor_gps heading (fallback)
+	{
+		bool heading_published = false;
+
+		// Preferred path: use sensor_gnss_relative which has independent timestamps
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			sensor_gnss_relative_s gnss_rel;
+
+			if (_sensor_gnss_relative_sub[i].update(&gnss_rel)) {
+				if (gnss_rel.heading_valid && PX4_ISFINITE(gnss_rel.heading)) {
+					// Only mark this source "active" for fallback gating when a valid heading is present —
+					// otherwise a receiver publishing sensor_gnss_relative without heading would suppress the
+					// sensor_gps.heading fallback from a different receiver.
+					_last_gnss_relative_timestamp[i] = gnss_rel.timestamp;
+
+					const hrt_abstime delay_us = resolveReceiverDelay(gnss_rel.device_id, i);
+					const uint64_t timestamp_sample = resolveSampleTimestamp(gnss_rel.timestamp_sample,
+									  gnss_rel.timestamp, delay_us);
+
+					vehicle_gnss_heading_s heading_out{};
+					heading_out.timestamp_sample = timestamp_sample;
+					heading_out.device_id = gnss_rel.device_id;
+					heading_out.heading = gnss_rel.heading;
+					heading_out.heading_accuracy = gnss_rel.heading_accuracy;
+					heading_out.heading_offset = NAN; // offset not available in sensor_gnss_relative
+					heading_out.timestamp = hrt_absolute_time();
+					_vehicle_gnss_heading_pub.publish(heading_out);
+					heading_published = true;
+				}
+			}
+		}
+
+		// Fallback: extract heading from raw sensor_gps for receivers that don't publish sensor_gnss_relative
+		// (e.g. Septentrio). Reads raw per-instance data — NOT the blended output — so heading selection is
+		// not coupled to position/velocity blending weights.
+		if (!heading_published && any_gps_updated) {
+			bool any_gnss_relative_active = false;
+
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_last_gnss_relative_timestamp[i] > 0
+				    && hrt_elapsed_time(&_last_gnss_relative_timestamp[i]) < 3_s) {
+					any_gnss_relative_active = true;
+					break;
+				}
+			}
+
+			if (!any_gnss_relative_active) {
+				// Prefer primary instance when configured, otherwise first receiver with finite heading
+				const int32_t sens_gps_prime = _param_sens_gps_prime.get();
+				uint8_t order[GPS_MAX_RECEIVERS] = {0, 1};
+
+				if (math::isInRange(sens_gps_prime, 0, static_cast<int32_t>(GPS_MAX_RECEIVERS - 1))) {
+					order[0] = static_cast<uint8_t>(sens_gps_prime);
+					order[1] = static_cast<uint8_t>(1 - sens_gps_prime);
+				}
+
+				for (uint8_t idx = 0; idx < GPS_MAX_RECEIVERS; idx++) {
+					const uint8_t i = order[idx];
+					sensor_gps_s gps_data;
+
+					if (!_sensor_gps_sub[i].copy(&gps_data)) {
+						continue;
+					}
+
+					if (!PX4_ISFINITE(gps_data.heading)) {
+						continue;
+					}
+
+					const hrt_abstime delay_us = resolveReceiverDelay(gps_data.device_id, i);
+					const uint64_t timestamp_sample = resolveSampleTimestamp(gps_data.timestamp_sample,
+									  gps_data.timestamp, delay_us);
+
+					vehicle_gnss_heading_s heading_out{};
+					heading_out.timestamp_sample = timestamp_sample;
+					heading_out.device_id = gps_data.device_id;
+					heading_out.heading = gps_data.heading;
+					heading_out.heading_accuracy = gps_data.heading_accuracy;
+					heading_out.heading_offset = gps_data.heading_offset;
+					heading_out.timestamp = hrt_absolute_time();
+					_vehicle_gnss_heading_pub.publish(heading_out);
+					break;
+				}
+			}
+		}
+	}
+
 	ScheduleDelayed(300_ms); // backup schedule
 
 	perf_end(_cycle_perf);
+}
+
+hrt_abstime VehicleGPSPosition::resolveReceiverDelay(uint32_t device_id, uint8_t instance_index) const
+{
+	for (uint8_t slot = 0; slot < GPS_MAX_RECEIVERS; slot++) {
+		if (_gps_param_slots[slot].device_id != 0 && _gps_param_slots[slot].device_id == device_id) {
+			return _gps_param_slots[slot].delay_us;
+		}
+	}
+
+	// No device IDs configured: match by instance index
+	if (_gps_param_slots[0].device_id == 0 && _gps_param_slots[1].device_id == 0
+	    && instance_index < GPS_MAX_RECEIVERS) {
+		return _gps_param_slots[instance_index].delay_us;
+	}
+
+	return 110_ms; // matches SENS_GPS*_DELAY default
+}
+
+uint64_t VehicleGPSPosition::resolveSampleTimestamp(uint64_t driver_timestamp_sample, uint64_t driver_timestamp,
+		hrt_abstime delay_us)
+{
+	// If the driver provided a distinct sample timestamp, trust it. Otherwise subtract the configured delay.
+	if (driver_timestamp_sample != 0 && driver_timestamp_sample != driver_timestamp) {
+		return driver_timestamp_sample;
+	}
+
+	return (delay_us > 0 && driver_timestamp > delay_us) ? driver_timestamp - delay_us : driver_timestamp;
 }
 
 void VehicleGPSPosition::PrintStatus()

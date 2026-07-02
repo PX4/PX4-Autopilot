@@ -93,6 +93,10 @@ public:
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void setGnssYawData(const gnssYawSample &gnss_yaw_sample);
+# endif // CONFIG_EKF2_GNSS_YAW
+
 	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.horizontal_position_drift_rate_m_s(); }
 	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.vertical_position_drift_rate_m_s(); }
 	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_velocity_m_s(); }
@@ -420,7 +424,8 @@ protected:
 			   _control_status};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	// innovation consistency check monitoring ratios
+	TimestampedRingBuffer<gnssYawSample> *_gnss_yaw_buffer {nullptr};
+	gnssYawSample _gnss_yaw_sample_delayed{};
 	uint64_t _time_last_gnss_yaw_buffer_push{0};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS

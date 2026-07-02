@@ -45,7 +45,7 @@
 
 #include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
 
-void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
+void Ekf::controlGnssYawFusion(const gnssYawSample &gnss_yaw_sample)
 {
 	if (!(_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
 	    || _control_status.flags.gnss_yaw_fault) {
@@ -54,11 +54,11 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 		return;
 	}
 
-	const bool is_new_data_available = PX4_ISFINITE(gnss_sample.yaw);
+	const bool is_new_data_available = PX4_ISFINITE(gnss_yaw_sample.yaw);
 
 	if (is_new_data_available) {
 
-		updateGnssYaw(gnss_sample);
+		updateGnssYaw(gnss_yaw_sample);
 
 		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
 
@@ -67,13 +67,12 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _gnss_checks.passed()
-				&& !is_gnss_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !is_gnss_yaw_data_intermittent;
 
 		if (_control_status.flags.gnss_yaw) {
 			if (continuing_conditions_passing) {
 
-				fuseGnssYaw(gnss_sample.yaw_offset);
+				fuseGnssYaw(gnss_yaw_sample.yaw_offset);
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
 
@@ -102,7 +101,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 				    || !isNorthEastAidingActive()) {
 
 					// Reset before starting the fusion
-					if (resetYawToGnss(gnss_sample.yaw, gnss_sample.yaw_offset)) {
+					if (resetYawToGnss(gnss_yaw_sample.yaw, gnss_yaw_sample.yaw_offset)) {
 
 						resetAidSourceStatusZeroInnovation(_aid_src_gnss_yaw);
 
@@ -113,7 +112,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 				} else if (!_aid_src_gnss_yaw.innovation_rejected) {
 					// Do not force a reset but wait for the consistency check to pass
 					_control_status.flags.gnss_yaw = true;
-					fuseGnssYaw(gnss_sample.yaw_offset);
+					fuseGnssYaw(gnss_yaw_sample.yaw_offset);
 				}
 
 				if (_control_status.flags.gnss_yaw) {
@@ -122,31 +121,26 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 			}
 		}
 
-	} else if (_control_status.flags.gnss_yaw
-		   && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_max)) {
-
-		// No yaw data in the message anymore. Stop until it comes back.
-		stopGnssYawFusion();
 	}
 }
 
-void Ekf::updateGnssYaw(const gnssSample &gnss_sample)
+void Ekf::updateGnssYaw(const gnssYawSample &gnss_yaw_sample)
 {
 	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-	const float measured_hdg = wrap_pi(gnss_sample.yaw + gnss_sample.yaw_offset);
+	const float measured_hdg = wrap_pi(gnss_yaw_sample.yaw + gnss_yaw_sample.yaw_offset);
 
-	const float yaw_acc = PX4_ISFINITE(gnss_sample.yaw_acc) ? gnss_sample.yaw_acc : 0.f;
+	const float yaw_acc = PX4_ISFINITE(gnss_yaw_sample.yaw_acc) ? gnss_yaw_sample.yaw_acc : 0.f;
 	const float R_YAW = sq(fmaxf(yaw_acc, _params.gnss_heading_noise));
 
 	float heading_pred;
 	float heading_innov_var;
 
 	VectorState H;
-	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gnss_sample.yaw_offset, R_YAW, FLT_EPSILON,
+	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gnss_yaw_sample.yaw_offset, R_YAW, FLT_EPSILON,
 					    &heading_pred, &heading_innov_var, &H);
 
 	updateAidSourceStatus(_aid_src_gnss_yaw,
-			      gnss_sample.time_us,                          // sample timestamp
+			      gnss_yaw_sample.time_us,                      // sample timestamp
 			      measured_hdg,                                // observation
 			      R_YAW,                                       // observation variance
 			      wrap_pi(heading_pred - measured_hdg),        // innovation
