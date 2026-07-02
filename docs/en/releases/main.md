@@ -22,8 +22,6 @@ Update these notes with features that are going to be in `main` (PX4 v1.18 or la
 
 ## Read Before Upgrading
 
-- The RC override parameters `COM_RC_OVERRIDE` and `COM_RC_STICK_OV` are replaced by a single [MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) (minimum stick speed to take over, default `1`; negative disables). `COM_RC_OVERRIDE=0` is migrated to `MAN_OVERRIDE_SPD=-1`. The `COM_RC_STICK_OV` value is not auto-migrated because its unit changed, so re-tune `MAN_OVERRIDE_SPD` if you had customized it.
-
 Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Major Changes
@@ -82,7 +80,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### RC
 
-- Merged the RC override parameters `COM_RC_OVERRIDE` and `COM_RC_STICK_OV` into a single [MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) and made override reject erratic signal jumps. ([PX4-Autopilot#27041](https://github.com/PX4/PX4-Autopilot/pull/27041)).
+- TBD
 
 ### Multi-Rotor
 
