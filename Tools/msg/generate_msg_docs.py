@@ -867,14 +867,14 @@ Topic | Type| Rate Limit
 --- | --- | ---
 """
 
-        for message in data["publications"]:
+        for message in sorted(data["publications"], key=lambda elem: elem['topic']):
             type = message['type']
             px4Type=type.split("::")[-1]
             dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md) | {message.get('rate_limit','')}\n"
 
         dds_markdown += "\n## Subscriptions\n\nTopic | Type\n--- | ---\n"
 
-        for message in data["subscriptions"]:
+        for message in sorted(data["subscriptions"], key=lambda elem: elem['topic']):
             type = message['type']
             px4Type=type.split("::")[-1]
             dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md)\n"
