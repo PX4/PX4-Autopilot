@@ -254,8 +254,6 @@ void FixedwingAttitudeControl::Run()
 			_R = R_adapted;
 		}
 
-		const Quatf q_current = _vehicle_status.is_vtol_tailsitter ? Quatf(_R) : Quatf(att.q);
-
 		const matrix::Eulerf euler_angles(_R);
 
 		vehicle_manual_poll(euler_angles.psi());
@@ -300,6 +298,7 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
+					const Quatf q_current = _vehicle_status.is_vtol_tailsitter ? Quatf(_R) : Quatf(att.q);
 					const Vector3f att_err = computeAttitudeError(q_current, q_sp);
 
 					Vector3f body_rates_setpoint;
