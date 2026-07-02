@@ -91,7 +91,7 @@ This section contains videos that are specific to Tailsitter VTOL (videos that a
 :::: tabs
 
 ::: tab WingtraOne
-[WingtraOne](https://wingtra.com/mapping-drone-fast-accurate-surveying/)
+[WingtraOne](https://wingtra.com/mapping-drone-wingtraone/)
 
 ![Wingtra: WingtraOne VTOL Duo Tailsitter](../../assets/airframes/vtol/wingtraone/hero.jpg)
 :::

@@ -14,7 +14,7 @@ Key information
 
 The components needed for this build are:
 
-- Flight controller: [CUAV V5+](https://store.cuav.net/uav-flight-controller/):
+- Flight controller: [CUAV V5+](../flight_controller/cuav_v5_plus.md) (Discontinued):
   - GPS: CUAV NEO V2 GPS (Discontined)
   - Power Module
 - Frame: [DJI F450](https://www.amazon.com/Flame-Wheel-Basic-Quadcopter-Drone/dp/B00HNMVQHY)

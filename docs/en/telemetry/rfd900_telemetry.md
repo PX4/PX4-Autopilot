@@ -18,6 +18,6 @@ There are a number of versions available:
 - [jD-RF900Plus Longrange (900Mhz)](http://store.jdrones.com/jD_RD900Plus_Telemetry_Bundle_p/rf900set02.htm) (USA)
 - [jD-RF868Plus Longrange (868Mhz)](http://store.jdrones.com/jD_RD868Plus_Telemetry_Bundle_p/rf868set02.htm) (Europe)
 - [store.rfdesign.com.au](https://store.rfdesign.com.au/radio-modems/):
-  - [RFD 900+ Modem](https://store.rfdesign.com.au/rfd-900p-modem/)
+  - [RFD 900+ Modem](https://store.rfdesign.com.au/radio-modems/)
   - [RFD 868x Modem (EU)](https://store.rfdesign.com.au/rfd868x-eu-hs-8517-62-00-90/)
   - [RFD900x](https://store.rfdesign.com.au/rfd-900x-modem/)

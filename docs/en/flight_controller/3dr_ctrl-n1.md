@@ -118,12 +118,12 @@ The following carrier boards are available from 3DR:
 
 | Board                                                                                               | Description                                   |
 | --------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby)                           | Compact square form factor                    |
-| [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy)                         | Thin form factor for space-constrained builds |
-| [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv)                             | Optimized for FPV platforms                   |
-| [CB4 Wing](https://docs.3dr.com/autopilots/carrier-boards/r0036-cb4-wing)                           | Fixed-wing and VTOL applications              |
-| [CN1 Prototyping Board](https://docs.3dr.com/autopilots/carrier-boards/r0037-cn1-prototyping-board) | Full signal access for development            |
-| [CN1 to CZ OEM Adapter](https://docs.3dr.com/autopilots/carrier-boards/r0034-cn1-to-czoem-adapter)  | Adapter for Control Zero OEM carrier boards   |
+| [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby/)                           | Compact square form factor                    |
+| [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy/)                         | Thin form factor for space-constrained builds |
+| [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv/)                             | Optimized for FPV platforms                   |
+| [CB4 Wing](https://docs.3dr.com/autopilots/carrier-boards/r0036-cb4-wing/)                           | Fixed-wing and VTOL applications              |
+| [CN1 Prototyping Board](https://docs.3dr.com/autopilots/carrier-boards/r0037-cn1-prototyping-board/) | Full signal access for development            |
+| [CN1 to CZ OEM Adapter](https://docs.3dr.com/autopilots/carrier-boards/r0034-cn1-to-czoem-adapter/)  | Adapter for Control Zero OEM carrier boards   |
 
 The image below shows the pinout of the CB2 Longy as a reference for connector layout and signal assignment.
 
@@ -140,4 +140,4 @@ Refer to your carrier board's documentation for the exact connector location and
 
 ## Further Information
 
-- [3DR Control N1 documentation](https://docs.3dr.com/autopilots/control-n1)
+- [3DR Control N1 documentation](https://docs.3dr.com/autopilots/control-n1/)
