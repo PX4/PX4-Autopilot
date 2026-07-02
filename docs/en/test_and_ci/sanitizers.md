@@ -15,12 +15,12 @@ Sanitizers are only available for POSIX/SITL builds, where the host compiler ins
 
 Set the matching environment variable when building SITL. It selects the corresponding `CMAKE_BUILD_TYPE`:
 
-| Variable     | Sanitizer                     |
-| ------------ | ----------------------------- |
-| `PX4_ASAN`   | AddressSanitizer              |
-| `PX4_TSAN`   | ThreadSanitizer               |
-| `PX4_MSAN`   | MemorySanitizer               |
-| `PX4_UBSAN`  | UndefinedBehaviorSanitizer    |
+| Variable    | Sanitizer                  |
+| ----------- | -------------------------- |
+| `PX4_ASAN`  | AddressSanitizer           |
+| `PX4_TSAN`  | ThreadSanitizer            |
+| `PX4_MSAN`  | MemorySanitizer            |
+| `PX4_UBSAN` | UndefinedBehaviorSanitizer |
 
 For example, to build and run SITL under ThreadSanitizer:
 
