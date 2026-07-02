@@ -6,8 +6,9 @@ The Hardfault is provided via uORB-log-msg topic after warm-reset.
 
 ## Overview
 
-Changes needed:
+Configuration needed:
 
+- `CONFIG_BOARD_CRASHDUMP=y`
 - \#DEFINES in `src/board_config.h`:
   - `BOARD_HAS_RAM_HARDFAULT_DUMP`
   - `BOARD_RAM_HARDFAULT_USTACK_BYTES`
@@ -16,19 +17,25 @@ Changes needed:
 - Setup module Hardfault_Stream:
   - `CONFIG_MODULES_HARDFAULT_STREAM=y`
   - `hardfault_stream start` in startup script
-- Optional: `CONFIG_MODULES_TASK_WATCHDOG=y` to also stream live task/CPU-load dumps through the same path on CPU starvation (unrelated feature, same mechanism).
-- Optional: `cmake/linker_preprocess.cmake` to keep the linker-script region size and `BOARD_RAM_HARDFAULT_USTACK_BYTES` in sync automatically, instead of hand-sizing the region.
+- Optional: `CONFIG_MODULES_TASK_WATCHDOG=y` to also stream live task/CPU-load dumps through the same path (unrelated feature, same mechanism).
+- Optional: `cmake/linker_preprocess.cmake` to keep the linker-script region-size and `BOARD_RAM_HARDFAULT_USTACK_BYTES` in sync automatically, instead of hand-sizing the region. (see example for reference)
 
 ## Examples Configuration
 
-#### `src/board_config.h`
+#### nuttx-config/<config>/defconfig
+
+```sh
+CONFIG_BOARD_CRASHDUMP=y
+```
+
+#### src/board_config.h
 
 ```c
 #define BOARD_HAS_RAM_HARDFAULT_DUMP
 #define BOARD_RAM_HARDFAULT_USTACK_BYTES 4096 // bytes of user stack to capture, check actual usage with `top`
 // IRAM can be taken from `CONFIG_ARCH_INTERRUPTSTACK`
 ```
-#### `nuttx-config/scripts/script.ld`
+#### nuttx-config/scripts/script.ld
 
 ```ld
 MEMORY
@@ -58,7 +65,7 @@ hardfault_stream start
 ```
 
 ### Optional:
-##### Keep the linker-script size in sync (`cmake/linker_preprocess.cmake`)
+##### keep the linker-script size in sync (`cmake/linker_preprocess.cmake`)
 
 Instead of hand-sizing the `noinit` region, a preprocessor-script `${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake` can be used compute and inject the region-size into `script.ld`:
 
@@ -73,19 +80,20 @@ Instead of hand-sizing the `noinit` region, a preprocessor-script `${PX4_BOARD_D
 #   FPU:    XCPTCONTEXT_REGS=53 → sizeof(info_s)=344 → overhead=348
 #
 
-set(BOARD_RAM_HARDFAULT_USTACK_BYTES 4096) // check for board at runtime eg. `top`
+set(BOARD_RAM_HARDFAULT_USTACK_BYTES 4096) # check for board at runtime eg. `top`
 math(EXPR _dump_size "${CONFIG_ARCH_INTERRUPTSTACK} + ${BOARD_RAM_HARDFAULT_USTACK_BYTES} + <fixed header overhead>")
 
+# _ld_script_src/_ld_script_pp: paths to your script.ld and its preprocessed output, set earlier
 # preprocess script.ld with -DPX4_NOINIT_DUMP_SIZE=${_dump_size}, use PX4_NOINIT_DUMP_SIZE for the noinit region's LENGTH in script.ld
 add_custom_command(
     OUTPUT  "${_ld_script_pp}"
     COMMAND "${CMAKE_C_COMPILER}"
         -E -P -x c
-        -DPX4_NOINIT_DUMP_SIZE=${_px4_noinit_dump_size}
+        -DPX4_NOINIT_DUMP_SIZE=${_dump_size}
         "${_ld_script_src}"
         -o "${_ld_script_pp}"
     DEPENDS "${_ld_script_src}"
-    COMMENT "Preprocessing script.ld (PX4_NOINIT_DUMP_SIZE=${_px4_noinit_dump_size})"
+    COMMENT "Preprocessing script.ld (PX4_NOINIT_DUMP_SIZE=${_dump_size})"
 )
 add_custom_target(px4_ld_script_pp DEPENDS "${_ld_script_pp}")
 add_dependencies(px4 px4_ld_script_pp)
@@ -93,7 +101,7 @@ add_dependencies(px4 px4_ld_script_pp)
 set(_ld_script_flag "-Wl,--script=${_ld_script_pp}")
 ```
 
-##### `task_watchdog`
+##### task_watchdog
 
 `task_watchdog` (`CONFIG_MODULES_TASK_WATCHDOG=y`)
 

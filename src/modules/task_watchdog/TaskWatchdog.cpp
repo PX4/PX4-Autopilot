@@ -249,6 +249,20 @@ void TaskWatchdog::run()
 	hrt_cancel(&_hrt_call);
 }
 
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+void TaskWatchdog::wait_for_transport_ready()
+{
+#ifdef CONFIG_DRIVERS_UAVCANNODE
+	dronecan_node_status_s status;
+
+	while (!(_dronecan_node_status_sub.copy(&status) && status.mode == dronecan_node_status_s::MODE_OPERATIONAL)) {
+		px4_usleep(100_ms);
+	}
+
+#endif
+}
+#endif // BOARD_HAS_RAM_HARDFAULT_DUMP
+
 void TaskWatchdog::capture_and_write_dump()
 {
 	for (int i = 0; i < MAX_DUMP_TASKS; i++) { _dumps[i] = task_dump_s{}; }
@@ -297,6 +311,8 @@ void TaskWatchdog::capture_and_write_dump()
 	char line[90];
 
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	wait_for_transport_ready();
+
 	uint32_t crc = 0xFFFFFFFFu;
 
 	auto emit = [&](const char *s) {
@@ -422,6 +438,8 @@ void TaskWatchdog::capture_and_write_dump()
 void TaskWatchdog::write_cpuload_file()
 {
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	wait_for_transport_ready();
+
 	char buf[90];
 	print_load_buffer(buf, sizeof(buf),
 	[](void *user) {
