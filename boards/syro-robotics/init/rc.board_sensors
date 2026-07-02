@@ -1,0 +1,83 @@
+#!/bin/sh
+#
+# SYRO ROBOTICS FMUv6X specific board sensors init
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if [ $INA_CONFIGURED = no ]
+then
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
+	then
+		i2c_launcher start -b 2
+	fi
+fi
+
+# Internal SPI bus ICM45686 on SPI1
+icm45686 -s -R 10 start
+# Internal barometer I2C2
+bmp581 -I -a 0x47 start
+# Sensors magnetometer on I2C4
+bmm350 -I -b 4 -a 0x15 -R 14 start 
+# Sensors IMU#1
+icm45686 -s -b 2 -R 10 start
+# Sensors IMU#2
+bmi088 -A -R 0 -s start
+# Sensors barometer on I2C4
+bmp581 -I -b 4 -a 0x47 start
+
+
+unset INA_CONFIGURED
+unset HAVE_PM2
