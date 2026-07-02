@@ -104,6 +104,7 @@ private:
 		Land_mode = 3,
 		Terminate = 5,
 		Disarm = 6,
+		Hold_mode_no_failsafe = 7, ///< No failsafe: Commander switches to Hold as a regular mode change (NAV_RCL_ACT only)
 	};
 
 	enum class command_after_quadchute : int32_t {

@@ -2027,6 +2027,8 @@ void Commander::run()
 
 		manualControlCheck();
 
+		manualControlLossModeSwitch();
+
 		offboardControlCheck();
 
 		// data link checks which update the status
@@ -3143,6 +3145,34 @@ void Commander::manualControlCheck()
 
 		}
 	}
+}
+
+void Commander::manualControlLossModeSwitch()
+{
+	// NAV_RCL_ACT value that switches to Hold as a regular mode change instead of triggering the failsafe.
+	// Kept in sync with gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe (private to the failsafe).
+	static constexpr int32_t NAV_RCL_ACT_HOLD_NO_FAILSAFE = 7;
+
+	const bool manual_control_lost = _failsafe_flags.manual_control_signal_lost;
+
+	// Only act on the moment manual control is lost while actively flying a manual mode. Using an edge avoids
+	// repeatedly overriding the pilot if they command a different mode while manual control stays lost.
+	if (manual_control_lost && !_manual_control_lost_prev
+	    && isArmed()
+	    && _param_nav_rcl_act.get() == NAV_RCL_ACT_HOLD_NO_FAILSAFE
+	    && _vehicle_control_mode.flag_control_manual_enabled) {
+
+		// Force the switch to Hold as a regular mode change (no failsafe, no alarming notification).
+		// force=true skips the mode availability check on purpose: if Hold cannot actually run (e.g. without a
+		// valid position estimate), the failsafe mode-fallback escalates from there (Hold -> RTL -> Land/Descend/Terminate).
+		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::User, false, true);
+
+		mavlink_log_info(&_mavlink_log_pub, "Manual control lost: switching to Hold\t");
+		events::send(events::ID("commander_rc_loss_hold_no_failsafe"), {events::Log::Info, events::LogInternal::Info},
+			     "Manual control lost: switching to Hold");
+	}
+
+	_manual_control_lost_prev = manual_control_lost;
 }
 
 void Commander::offboardControlCheck()
