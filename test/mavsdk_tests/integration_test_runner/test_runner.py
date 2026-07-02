@@ -348,8 +348,13 @@ class Tester:
             else:
                 # SIH (or any other non-gazebo SITL backend) runs entirely
                 # inside the PX4 instance, so no extra simulator process is
-                # launched. The PX4_SIM_MODEL defaults to the SIH quadrotor.
-                sim_model = test.get('sim_model', 'sihsim_quadx')
+                # launched. PX4_SIM_MODEL comes from the test config.
+                if 'sim_model' not in test:
+                    print("Error: 'sim_model' is required in the test config "
+                          "for simulator '{}'"
+                          .format(self.config['simulator']))
+                    sys.exit(1)
+                sim_model = test['sim_model']
 
             # We must start the PX4 instance at the end, as starting
             # it in the beginning, then connecting Gazebo server freaks

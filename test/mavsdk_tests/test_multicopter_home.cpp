@@ -38,7 +38,7 @@
 
 // Reproduces the stale home-yaw bug: when home is first set from a raw-GPS fix while the local position
 // estimate is invalid, home.yaw must still end up at the true ground heading.
-TEST_CASE("SIH: home yaw captured when local position invalid", "[sih_home_yaw]")
+TEST_CASE("SIH home yaw captured when local position invalid", "[sih_home_yaw]")
 {
 	using namespace std::chrono_literals;
 
