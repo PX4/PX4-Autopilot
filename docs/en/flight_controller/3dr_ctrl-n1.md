@@ -4,7 +4,7 @@
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
-Contact [3DR](https://3dr.com/) for hardware support or compliance issues.
+Contact [3DR](https://www.3dr.com/) for hardware support or compliance issues.
 :::
 
 The _3DR Control N1_ is a compact, high-performance, low-profile and lightweight flight controller designed and assembled in USA.
@@ -134,7 +134,7 @@ The image below shows the pinout of the CB2 Longy as a reference for connector l
 The [SWD debug port](../debug/swd_debug.md) signals (SWCLK, SWDIO) and BOOT0 are routed through connector **J200** on the Control N1 module.
 The physical debug interface (connector type, pinout, and location) depends on the carrier board.
 
-Depending on the carrier board, the debug connector may be a TC2030-compatible pad-of-nails (requires a [Tag-Connect TC2030](https://www.tag-connect.com/product/tc2030-ctx-nl-6-pin-no-legs-cable-for-use-with-cortex-processors) cable) or a 14-pin ARM Cortex JTAG/SWD header (Samtec FTSH-107, 2×7, 1.27 mm pitch).
+Depending on the carrier board, the debug connector may be a TC2030-compatible pad-of-nails (requires a [Tag-Connect TC2030](https://www.tag-connect.com/product/tc2030-ctx-nl-6-pin-no-legs-cable-with-10-pin-micro-connector-for-cortex-processors) cable) or a 14-pin ARM Cortex JTAG/SWD header (Samtec FTSH-107, 2×7, 1.27 mm pitch).
 Note that some carrier boards may not expose a debug interface.
 Refer to your carrier board's documentation for the exact connector location and pinout.
 
