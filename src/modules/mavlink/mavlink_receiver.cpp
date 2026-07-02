@@ -551,9 +551,7 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	case MAV_CMD_DO_SET_ROI:                             // 201
 	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
 	case MAV_CMD_EXTERNAL_POSITION_ESTIMATE:             // 43003
-#ifdef MAVLINK_ENABLED_DEVELOPMENT
 	case MAV_CMD_DO_SET_GLOBAL_ORIGIN:                   // 611
-#endif
 		return true;
 
 	// Not supported by PX4 as COMMAND_INT (mission items or unimplemented)
