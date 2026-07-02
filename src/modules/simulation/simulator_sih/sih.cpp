@@ -71,7 +71,7 @@ void Sih::run()
 {
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
-	_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
+
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
