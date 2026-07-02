@@ -78,6 +78,24 @@ void HardfaultStream::start()
 	ScheduleOnInterval(150_ms);
 }
 
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+bool HardfaultStream::is_transport_ready()
+{
+#ifdef CONFIG_DRIVERS_UAVCANNODE
+	dronecan_node_status_s status;
+
+	if (_dronecan_node_status_sub.copy(&status)) {
+		return status.mode == dronecan_node_status_s::MODE_OPERATIONAL;
+	}
+
+	return false;
+#else
+	// No known transport to wait for - don't block.
+	return true;
+#endif
+}
+#endif // BOARD_HAS_RAM_HARDFAULT_DUMP
+
 bool HardfaultStream::mavlink_gcs_up()
 {
 	for (auto &telemetry_status : _telemetry_status_subs) {
@@ -165,7 +183,7 @@ void HardfaultStream::Run()
 		if (g_px4_ram_hardfault.magic == BOARD_RAM_HARDFAULT_MAGIC) {
 			_ram_off = 0;
 			_ram_crc = 0xFFFFFFFFu;
-			_state = State::StreamRAM;
+			_state = State::WaitTransportReady;
 
 		} else {
 			_state = State::RequestStop;
@@ -198,6 +216,15 @@ void HardfaultStream::Run()
 		break;
 
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+
+	case State::WaitTransportReady:
+
+		// Don't stream before the log transport is ready, otherwise part of dump gets lost
+		if (is_transport_ready()) {
+			_state = State::StreamRAM;
+		}
+
+		break;
 
 	case State::StreamRAM: {
 			using LogTextField = uavcan::protocol::debug::LogMessage::FieldTypes::text;

@@ -525,7 +525,6 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 
 void UavcanNode::Run()
 {
-	static  hrt_abstime up_time{0};
 	pthread_mutex_lock(&_node_mutex);
 
 	// Bootloader started it.
@@ -593,7 +592,7 @@ void UavcanNode::Run()
 	case  Allocated:
 		if (_node.getNodeID() != 0) {
 
-			up_time = hrt_absolute_time();
+			_up_time = hrt_absolute_time();
 			get_node().setRestartRequestHandler(&restart_request_handler);
 			_param_server.start(&_param_manager);
 
@@ -692,10 +691,12 @@ void UavcanNode::Run()
 
 	_node.spinOnce();
 
+	publish_node_status();
+
 	// This is done only once to signify the node has run 30 seconds
 
-	if (up_time && hrt_elapsed_time(&up_time) > 30_s) {
-		up_time = 0;
+	if (_up_time && hrt_elapsed_time(&_up_time) > 30_s) {
+		_up_time = 0;
 		board_configure_reset(BOARD_RESET_MODE_RTC_BOOT_FWOK, 0);
 	}
 
@@ -784,6 +785,29 @@ void UavcanNode::PrintInfo()
 	perf_print_counter(_interval_perf);
 
 	pthread_mutex_unlock(&_node_mutex);
+}
+
+void UavcanNode::publish_node_status()
+{
+	constexpr hrt_abstime status_pub_interval = 1_s;
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_node_status_pub < status_pub_interval) {
+		return;
+	}
+
+	_last_node_status_pub = now;
+
+	const auto &status_provider = _node.getNodeStatusProvider();
+
+	dronecan_node_status_s status{};
+	status.timestamp = now;
+	status.node_id = _node.getNodeID().get();
+	status.uptime_sec = _up_time ? (now - _up_time) / 1_s : 0;
+	status.health = status_provider.getHealth();
+	status.mode = status_provider.getMode();
+
+	_node_status_pub.publish(status);
 }
 
 void UavcanNode::shrink()

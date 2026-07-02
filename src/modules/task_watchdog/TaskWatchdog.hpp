@@ -44,6 +44,11 @@
 #include <nuttx/sched.h>
 #include <board_config.h>
 
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+# include <uORB/Subscription.hpp>
+# include <uORB/topics/dronecan_node_status.h>
+#endif
+
 #define LOG_PATH_BASE       CONFIG_BOARD_ROOT_PATH "/task_watchdog"
 #define LOG_WDG_NAME_FMT    "wdg_%s.log"
 #define LOG_LOAD_NAME_FMT   "load_%s.log"
@@ -122,6 +127,13 @@ private:
 
 	/* HRT ISR callback which monitors whether this task is being starved. */
 	static void isr_callback(void *arg);
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	/* Block so streamed lines are not dropped in queue. */
+	void wait_for_transport_ready();
+
+	uORB::Subscription _dronecan_node_status_sub{ORB_ID(dronecan_node_status)};
+#endif
 
 	hrt_call _hrt_call{};
 	watchdog_shared_s _shared{};

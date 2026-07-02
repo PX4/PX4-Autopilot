@@ -56,6 +56,7 @@
 # include <systemlib/hardfault_log.h>
 # include <crc32.h>
 # include <uavcan/protocol/debug/LogMessage.hpp>
+# include <uORB/topics/dronecan_node_status.h>
 #endif
 
 namespace hardfault_stream
@@ -88,6 +89,7 @@ private:
 		WaitMavlink,
 		StreamFile,
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+		WaitTransportReady,
 		StreamRAM,
 #endif
 		RequestStop,
@@ -100,6 +102,9 @@ private:
 	bool mavlink_gcs_up();
 	void search_hardfault_file();
 	void stream_hardfault();
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	bool is_transport_ready();
+#endif
 
 	State _state {State::SearchHardFault};
 
@@ -115,6 +120,7 @@ private:
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
 	size_t   _ram_off {0};
 	uint32_t _ram_crc{0xFFFFFFFFu};
+	uORB::Subscription _dronecan_node_status_sub {ORB_ID(dronecan_node_status)};
 #endif
 };
 
