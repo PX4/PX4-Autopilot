@@ -47,7 +47,7 @@ Order this RTK GNSS board from:
 
 ## Hardware Setup
 
-* [User Guide: simpleRTK2B Budget](https://www.ardusimple.com/user-guide-simplertk2b-budget/ )
+* [User Guide: simpleRTK2B Budget](https://www.ardusimple.com/user-guide-simplertk2b-budget/)
 * [How to set up simpleRTK2B Budget with Pixhawk](https://www.ardusimple.com/how-to-configure-simplertk2b-basic-starter-kit-zed-f9p-module-and-connect-it-to-ardupilot-to-get-centimeter-accurate-gps-location/)
 * [ZED-F9P Configuration Files](https://www.ardusimple.com/how-to-configure-ublox-zed-f9p/)
 
