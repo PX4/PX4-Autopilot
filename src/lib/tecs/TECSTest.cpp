@@ -147,6 +147,42 @@ TEST(TECSControlTest, PitchIntegratorRejectsNonFiniteInput)
 	}
 }
 
+// Directly corrupt the integrator state and confirm the safety reset in
+// _calcPitchControlUpdate cleans it. The public update() path zeroes bad
+// integrator *input* before it can reach the state, so this branch is only
+// reachable if the state itself is already non-finite (e.g. corrupted memory
+// or an unguarded upstream write). The FRIEND_TEST seam lets us reach it.
+TEST(TECSControlTest, PitchIntegratorResetsCorruptedState)
+{
+	TECSControl control;
+	TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput();
+
+	control.initialize(makeSetpoint(), input, param, flag);
+
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 120.f;
+	const float dt = 0.02f;
+
+	// Pre-corrupt the integrator state, bypassing the input guard entirely.
+	control._pitch_integ_state = NAN;
+
+	// A single healthy update must detect and clear the corrupted state.
+	control.update(dt, setpoint, input, param, flag);
+
+	EXPECT_TRUE(PX4_ISFINITE(control._pitch_integ_state));
+	EXPECT_TRUE(PX4_ISFINITE(control.getDebugOutput().pitch_integrator));
+	EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
+
+	// And the controller keeps producing finite output afterwards.
+	for (int i = 0; i < 10; i++) {
+		control.update(dt, setpoint, input, param, flag);
+		EXPECT_TRUE(PX4_ISFINITE(control._pitch_integ_state));
+		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
+	}
+}
+
 // Repeated non-finite input across many consecutive frames must never brick the controller:
 // every cycle has to keep both the integrator state and the pitch setpoint finite.
 TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
