@@ -68,8 +68,21 @@ template<class T, uint8_t MAX_N>
 class MultiInstanceModuleBase
 {
 public:
-	MultiInstanceModuleBase() = default;
-	virtual ~MultiInstanceModuleBase() = default;
+	MultiInstanceModuleBase() = delete;
+	explicit MultiInstanceModuleBase(int instance_index) : _instance_index(instance_index) {}
+
+	virtual ~MultiInstanceModuleBase()
+	{
+		// Defensive: clear the slot if it still refers to this object. Keeps the
+		// static instance table consistent on any destruction path that bypasses
+		// cleanup_instance() (e.g. error unwinding, framework-driven shutdown).
+		// On the normal should_exit() path, cleanup_instance() has already nulled
+		// the slot, so this is a no-op.
+		if (_instance_index >= 0 && _instance_index < (int)MAX_N
+		    && _instances[_instance_index] == static_cast<T *>(this)) {
+			_instances[_instance_index] = nullptr;
+		}
+	}
 
 	/**
 	 * Main entry point — routes start / stop [-i N] / status / help.
@@ -133,6 +146,18 @@ public:
 	}
 
 	/**
+	 * Null `_instances[index]` without deleting. Safe to call from a destructor
+	 * where `delete this` is forbidden. Caller must ensure the slot still refers
+	 * to the object being destroyed (typically guarded by `_instances[i] == this`).
+	 */
+	static void clear_instance_slot(int index)
+	{
+		if (index >= 0 && index < (int)MAX_N) {
+			_instances[index] = nullptr;
+		}
+	}
+
+	/**
 	 * Called from Run() after ScheduleClear() when should_exit() is true.
 	 * Nulls the instance pointer first, then deletes the object.
 	 * Do not access 'this' after calling this method.
@@ -141,7 +166,7 @@ public:
 	{
 		if (index >= 0 && index < (int)MAX_N) {
 			T *inst = _instances[index];
-			_instances[index] = nullptr;
+			clear_instance_slot(index);
 			delete inst;
 		}
 	}
@@ -164,7 +189,7 @@ public:
 
 protected:
 	static T *_instances[MAX_N];
-	int       _instance_index{0};
+	int       _instance_index;
 
 private:
 	px4::atomic_bool _task_should_exit{false};
