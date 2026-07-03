@@ -714,16 +714,22 @@ SbgErrorCode SbgEcom::handleOneLog(SbgEComHandle *handle)
 				perf_end(_sample_perf);
 
 			} else {
+				perf_cancel(_sample_perf);
 				perf_count(_comms_errors);
 			}
 
 		} else {
+			perf_cancel(_sample_perf);
 			PX4_ERR("command received %d", error_code);
 		}
 
-	} else if (error_code != SBG_NOT_READY) {
-		PX4_WARN("Invalid frame received %d", error_code);
-		perf_count(_comms_errors);
+	} else {
+		perf_cancel(_sample_perf);
+
+		if (error_code != SBG_NOT_READY) {
+			PX4_WARN("Invalid frame received %d", error_code);
+			perf_count(_comms_errors);
+		}
 	}
 
 	sbgEComProtocolPayloadDestroy(&payload);
@@ -783,6 +789,7 @@ SbgErrorCode SbgEcom::sendAirDataLog(SbgEComHandle *handle, SbgEcom *instance)
 							 sbgStreamBufferGetLinkedBuffer(&output_stream), sbgStreamBufferGetLength(&output_stream));
 
 			if (error_code != SBG_NO_ERROR) {
+				perf_cancel(_write_perf);
 				PX4_ERR("Unable to send the AirData log %d", error_code);
 
 			} else {
@@ -790,6 +797,7 @@ SbgErrorCode SbgEcom::sendAirDataLog(SbgEComHandle *handle, SbgEcom *instance)
 			}
 
 		} else {
+			perf_cancel(_write_perf);
 			PX4_ERR("Unable to write the AirData payload. %d", error_code);
 		}
 	}
@@ -838,6 +846,7 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 							 sbgStreamBufferGetLinkedBuffer(&output_stream), sbgStreamBufferGetLength(&output_stream));
 
 			if (error_code != SBG_NO_ERROR) {
+				perf_cancel(_write_perf);
 				PX4_ERR("Unable to send the Mag log %d", error_code);
 
 			} else {
@@ -845,6 +854,7 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 			}
 
 		} else {
+			perf_cancel(_write_perf);
 			PX4_ERR("Unable to write the Mag payload. %d", error_code);
 		}
 	}
