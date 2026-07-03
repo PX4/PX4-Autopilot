@@ -13,14 +13,4 @@ config NFS_MOUNT_SERVER_PATH
 	string "NFS server export path"
 	default "/persistent/nfs/fmu"
 	---help---
-			The exported path on the NFS server to mount at NFS_MOUNT_MOUNT_POINT.config NFS_MOUNT_MOUNT_POINT
-	string "NFS local mount point"
-	default "/fs/nfs"
-	---help---
-			Local path where the NFS export will be mounted.
-
-config NFS_MOUNT_SERVER_PATH
-	string "NFS server export path"
-	default "/persistent/nfs/fmu"
-	---help---
 			The exported path on the NFS server to mount at NFS_MOUNT_MOUNT_POINT.
