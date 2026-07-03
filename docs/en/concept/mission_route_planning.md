@@ -23,7 +23,7 @@ Because the default is `0` on non-testing boards, route planning is disabled unt
 :::
 
 ::: warning
-Rally points are scored in fixed-size batches of `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` (default **1**, **64** on testing builds).
+Rally points are scored in fixed-size batches of `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` (default **1**, **32** on testing builds).
 When more rally points are configured than fit in one batch the planner re-scans the full mission route once per batch, so a mission with many rally points can be walked several times per planning pass. See [Safe-Point Batching](#safe-point-batching).
 :::
 
@@ -229,8 +229,8 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 
 ### Safe-Point Batching {#safe-point-batching}
 
-The planner scores eligible safe points using a single fixed-size projection batch buffer, sized by `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` (default **1**, **64** on testing builds).
-The batch buffer is reused for every planning pass and is allocated in static RAM, costing roughly `sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE` bytes (about 370 bytes per slot).
+The planner scores eligible safe points using a single fixed-size projection batch buffer, sized by `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` (default **1**, **32** on testing builds).
+The batch buffer is reused for every planning pass and is allocated in static RAM, costing roughly `sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE` bytes (about 380 bytes per slot).
 The default of **1** keeps that cost negligible on boards that leave route planning disabled (`CONFIG_RTL_MISSION_CACHE_SIZE=0`); boards that enable route planning should raise it.
 
 
@@ -239,10 +239,10 @@ If the number of eligible rally points exceeds `CONFIG_RTL_SAFE_POINT_BATCH_SIZE
 To keep every rally point in a single mission scan, raise `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` on boards that have the RAM budget for it.
 :::
 
-`CONFIG_RTL_SAFE_POINT_BATCH_SIZE` must stay between `1` and `255` because the batch counters and indices are stored in `uint8_t`.
+`CONFIG_RTL_SAFE_POINT_BATCH_SIZE` must stay between `1` and `32`: the upper bound matches `DM_KEY_SAFE_POINTS_MAX`, the maximum number of storable safe points, so larger batches could never be filled.
 
 ```ini
-CONFIG_RTL_SAFE_POINT_BATCH_SIZE=64
+CONFIG_RTL_SAFE_POINT_BATCH_SIZE=32
 ```
 
 ## Route Cache

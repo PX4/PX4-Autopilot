@@ -54,8 +54,6 @@ using namespace math;
 namespace mission_route
 {
 
-MissionRouteProjection::BatchSearchState MissionRouteProjection::_batch_search_state{};
-
 namespace
 {
 
@@ -373,20 +371,13 @@ void MissionRouteProjection::insertCandidateSorted(ProjectionCandidateBuffer &ca
 void MissionRouteProjection::pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffer,
 		float xtrack_limit) const
 {
-	const uint8_t buffer_size = min(candidate_buffer.count, kMaxSegmentCandidates);
+	const int buffer_size = min(candidate_buffer.count, kMaxSegmentCandidates);
 
-	if (buffer_size == 0) {
-		return;
-	}
-
-	for (uint8_t index = buffer_size - 1U; index < buffer_size; --index) {
+	// The buffer is sorted by ascending xtrack, break after first outside of limit
+	for (int index = buffer_size - 1; index >= 0; --index) {
 		if (candidate_buffer.candidates[index].dist.xtrack <= xtrack_limit) {
-			candidate_buffer.count = index + 1U;
+			candidate_buffer.count = index + 1;
 			return;
-		}
-
-		if (index < 1U) {
-			break;
 		}
 	}
 
@@ -564,11 +555,10 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 	SegmentPositions segment_positions{};
 	bool have_previous = false;
 	float total_dist = 0.f;
-	BatchSearchState &batch_state = _batch_search_state;
-	batch_state.stats = {};
+	ProjectionScanStats stats{};
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
-		batch_state.candidate_states[i].reset();
+		batch.items[i].search_state.reset();
 	}
 
 	// Scan the full mission once, evaluating segments against every batch item.
@@ -592,7 +582,7 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 			continue;
 		}
 
-		batch_state.stats.segments_processed++;
+		stats.segments_processed++;
 
 		if (isLandingCmd(segment.end.nav_cmd)) {
 			// In a nominal mission the landing waypoint's altitude is ignored while flying towards it:
@@ -640,8 +630,8 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 
 		for (uint8_t i = 0; i < batch.count; ++i) {
 			processCandidateForSegment(batch.items[i].position, segment_view, request.xtrack_margin_m,
-						   batch_state.candidate_states[i], batch.items[i].candidate_buffer,
-						   batch_state.stats);
+						   batch.items[i].search_state, batch.items[i].candidate_buffer,
+						   stats);
 		}
 
 		if (segment.is_loop) {
@@ -665,8 +655,9 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 		// minimum at the apex, see localMinimumOnSegment).
 		// A zero-length-XY segment cannot form a V apex, so it never seeds a shared-corner match.
 		for (uint8_t i = 0; i < batch.count; ++i) {
-			batch_state.candidate_states[i].prev_projection_on_end =
-				segment_view.zero_length_xy ? false : batch_state.candidate_states[i].projection_on_end_for_segment;
+			CandidateSearchState &search_state = batch.items[i].search_state;
+			search_state.prev_projection_on_end =
+				segment_view.zero_length_xy ? false : search_state.projection_on_end_for_segment;
 		}
 
 		if (segment_view.last_segment) {
@@ -688,9 +679,9 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 
 	PX4_DEBUG("RTL batch items: %u, segs: %u, mins: %u, valid: %u",
 		  static_cast<unsigned>(batch.count),
-		  static_cast<unsigned>(batch_state.stats.segments_processed),
-		  static_cast<unsigned>(batch_state.stats.local_min_found),
-		  static_cast<unsigned>(batch_state.stats.valid_candidate_found));
+		  static_cast<unsigned>(stats.segments_processed),
+		  static_cast<unsigned>(stats.local_min_found),
+		  static_cast<unsigned>(stats.valid_candidate_found));
 
 	if (any_candidate_found) {
 		result.success = true;
@@ -698,13 +689,13 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 		return result;
 	}
 
-	if (batch_state.stats.segments_processed == 0) {
+	if (stats.segments_processed == 0) {
 		result.failure_reason = FailureReason::kNoSegmentsFound;
 
-	} else if (batch_state.stats.local_min_found == 0) {
+	} else if (stats.local_min_found == 0) {
 		result.failure_reason = FailureReason::kNoLocalMinFound;
 
-	} else if (batch_state.stats.valid_candidate_found == 0) {
+	} else if (stats.valid_candidate_found == 0) {
 		result.failure_reason = FailureReason::kNoValidCandidateFound;
 
 	} else {
@@ -807,13 +798,12 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 	return result;
 }
 
-VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const RoutePlanRequest &request,
-		ProjectionReferenceBatch &batch) const
+VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const Position &vehicle_position,
+		int32_t mission_index, const PlannerConfig &config, ProjectionReferenceBatch &batch) const
 {
 	VehicleProjectionResult result{};
-	int32_t mission_index = request.mission_index;
 
-	if (!request.vehicle_position.valid()) {
+	if (!vehicle_position.valid()) {
 		result.failure_reason = FailureReason::kNoValidGlobalPos;
 		return result;
 	}
@@ -832,15 +822,15 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const R
 
 	batch.items[0] = {};
 	batch.count = 1;
-	batch.items[0].position = request.vehicle_position;
+	batch.items[0].position = vehicle_position;
 
 	ProjectionScanRequest scan_request{};
-	scan_request.home_altitude_amsl = request.config.parameters.home_altitude_amsl;
-	scan_request.xtrack_margin_m = request.config.parameters.vehicle_projection_search_dist;
+	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
+	scan_request.xtrack_margin_m = config.parameters.vehicle_projection_search_dist;
 	scan_request.compute_current_segment_bounds = true;
 	scan_request.mission_index = mission_index;
-	scan_request.is_flying_reverse = request.config.state.is_flying_reverse;
-	scan_request.last_flown_loop_segment = request.config.last_flown_loop_segment;
+	scan_request.is_flying_reverse = config.state.is_flying_reverse;
+	scan_request.last_flown_loop_segment = config.last_flown_loop_segment;
 
 	const ProjectionScanResult scan_result = findProjectionCandidates(scan_request, batch);
 
@@ -859,8 +849,8 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const R
 
 	const BranchInSelectionResult branch_in = selectBranchInCandidate(candidate_buffer,
 			scan_result.current_segment_along, mission_index,
-			request.config.state.is_flying_reverse,
-			request.config.last_flown_loop_segment);
+			config.state.is_flying_reverse,
+			config.last_flown_loop_segment);
 
 	if (!branch_in.success) {
 		result.failure_reason = branch_in.failure_reason;
@@ -868,12 +858,12 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const R
 	}
 
 	ProjectionContext projection_context{};
-	projection_context.vehicle_position = request.vehicle_position;
+	projection_context.vehicle_position = vehicle_position;
 	projection_context.mission_index = mission_index;
 	projection_context.route_projection = branch_in.candidate;
-	projection_context.is_flying_reverse = request.config.state.is_flying_reverse;
-	projection_context.vehicle_vel_ne = request.config.state.velocity_ne;
-	projection_context.velocity_valid = request.config.state.velocity_valid;
+	projection_context.is_flying_reverse = config.state.is_flying_reverse;
+	projection_context.vehicle_vel_ne = config.state.velocity_ne;
+	projection_context.velocity_valid = config.state.velocity_valid;
 	projection_context.route_length = scan_result.route_length;
 	// Use the repeat count from the selected projection loop itself. A later DO_JUMP elsewhere
 	// in the mission must not overwrite the active loop state carried by this projection.
@@ -889,7 +879,7 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const R
 
 	if (projection_context.route_projection.segment.validLoop()) {
 		projection_context.loop_context = buildLoopContext(projection_context.route_projection,
-						  request.config.parameters.home_altitude_amsl);
+						  config.parameters.home_altitude_amsl);
 	}
 
 	if (!projection_context.valid()) {
