@@ -57,54 +57,18 @@ namespace navigator_test
 class VectorMissionRouteProvider : public mission_route::Provider
 {
 public:
-	VectorMissionRouteProvider(const std::vector<mission_item_s> &mission_items,
-				   const std::vector<mission_item_s> &safe_point_items,
-				   const std::vector<int32_t> &faulty_mission_indices = {},
-				   const std::vector<int32_t> &faulty_safe_point_indices = {},
-				   int32_t land_index = -1)
+	VectorMissionRouteProvider(const std::vector<mission_item_s> &safe_point_items,
+				   const std::vector<int32_t> &faulty_safe_point_indices = {})
 	{
-		_mission_items.setItems(mission_items);
 		_safe_point_items.setItems(safe_point_items);
-		_mission_items.setLoadFailureIndices(faulty_mission_indices);
 		_safe_point_items.setLoadFailureIndices(faulty_safe_point_indices);
-		_land_index = land_index;
-	}
-
-	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
-
-	bool loadMissionItem(int index, mission_item_s &mission_item) const override
-	{
-		++_mission_load_count;
-		return _mission_items.loadItem(index, mission_item);
 	}
 
 	int safePointCount() const override { return static_cast<int>(_safe_point_items.itemCount()); }
 
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
 	{
-		++_safe_point_load_count;
 		return _safe_point_items.loadItem(index, safe_point_item);
-	}
-
-	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override
-	{
-		if (_land_index < 0 || _land_index >= missionCount()) {
-			return false;
-		}
-
-		mission_item_s item{};
-
-		if (!loadMissionItem(_land_index, item)) {
-			return false;
-		}
-
-		if (item.nav_cmd != NAV_CMD_LAND && item.nav_cmd != NAV_CMD_VTOL_LAND) {
-			return false;
-		}
-
-		index = _land_index;
-		land_item = item;
-		return true;
 	}
 
 	bool scanVtolLandApproachBlockForTest(int safe_point_index, float home_altitude_amsl,
@@ -113,21 +77,8 @@ public:
 		return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, result);
 	}
 
-	void resetCounters() const
-	{
-		_mission_load_count = 0;
-		_safe_point_load_count = 0;
-	}
-
-	int missionLoadCount() const { return _mission_load_count; }
-	int safePointLoadCount() const { return _safe_point_load_count; }
-
 private:
-	VectorMissionItemStore _mission_items{};
 	VectorMissionItemStore _safe_point_items{};
-	int32_t _land_index{-1};
-	mutable int _mission_load_count{0};
-	mutable int _safe_point_load_count{0};
 };
 
 static inline mission_item_s makePositionItem(double lat, double lon, float alt,

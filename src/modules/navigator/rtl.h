@@ -112,7 +112,7 @@ private:
 	bool reverseIsFurther() const;
 
 	/**
-	 * @brief Refresh the mission and safe-point cache used by RTL destination selection.
+	 * @brief Refresh the safe-point and land-item cache used by RTL destination selection.
 	 */
 	void updateDatamanCache();
 

@@ -51,16 +51,6 @@ class MissionRouteCacheTestPeer
 public:
 	static constexpr hrt_abstime kDefaultCacheTestTimeoutUs{5'000'000}; // 5 s
 
-	static bool missionRetryScheduled(const MissionRouteCache &cache)
-	{
-		return cache._mission.retry.retry_at != 0;
-	}
-
-	static uint8_t missionRetryCount(const MissionRouteCache &cache)
-	{
-		return cache._mission.retry.retry_count;
-	}
-
 	static bool missionLandRetryScheduled(const MissionRouteCache &cache)
 	{
 		return cache._mission_land.retry.retry_at != 0;
@@ -80,22 +70,6 @@ public:
 	{
 		return cache._safe_point.dataman_state == MissionRouteCache::SafePointDatamanState::kLoad
 		       && cache._dataman_cache_safepoint.isLoading();
-	}
-
-	static bool preparePartialMissionCache(MissionRouteCache &cache, const mission_s &mission, uint32_t cached_index)
-	{
-		cache._mission = {};
-		cache._mission.id = mission.mission_id;
-		cache._mission.count = mission.count;
-		cache._mission.dataman_id = mission.mission_dataman_id;
-		cache._mission.validation_pending = true;
-		cache._dataman_cache_mission.invalidate();
-
-		if (static_cast<int32_t>(cache._dataman_cache_mission.size()) < mission.count) {
-			return false;
-		}
-
-		return cache._dataman_cache_mission.load(static_cast<dm_item_t>(mission.mission_dataman_id), cached_index);
 	}
 
 	// Force safe-point read without changing safe_points_id, simulating a re-validation cycle.
@@ -145,10 +119,6 @@ private:
 	// Returns false when nothing can progress without waiting on a scheduled retry backoff.
 	static bool progressOneEvent(MissionRouteCache &cache, const mission_s &mission, hrt_abstime timeout)
 	{
-		if (cache._mission.validation_pending && cache._dataman_cache_mission.isLoading()) {
-			return DatamanCacheTestPeer::processNextBlocking(cache._dataman_cache_mission, timeout);
-		}
-
 		if (cache._mission_land.index >= 0 && cache._dataman_cache_land_item.isLoading()) {
 			return DatamanCacheTestPeer::processNextBlocking(cache._dataman_cache_land_item, timeout);
 		}

@@ -435,7 +435,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 	const PositionYawSetpoint land_2 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
 	const PositionYawSetpoint loiter_3 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 40.f);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(land_1.lat, land_1.lon, land_1.alt, NAV_FRAME_GLOBAL),
 		makeLandApproachItem(loiter_1.lat, loiter_1.lon, loiter_1.alt, kApproachRadius),
 		makeLandApproachItem(loiter_2.lat, loiter_2.lon, loiter_2.alt, kApproachRadius),
@@ -478,7 +478,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
 		mission_items.push_back(makeLandApproachItem(approach.lat, approach.lon, approach.alt, kApproachRadius));
 	}
 
-	VectorProvider provider({}, mission_items);
+	VectorProvider provider(mission_items);
 
 	// WHEN: The block is scanned.
 	land_approaches_s scanned_block{};
@@ -500,7 +500,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockBeforeNextRallyPoint)
 	const PositionYawSetpoint land_2 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
 	const PositionYawSetpoint loiter = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt + 20.f);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(land_1.lat, land_1.lon, land_1.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(land_2.lat, land_2.lon, land_2.alt, NAV_FRAME_GLOBAL),
 		makeLandApproachItem(loiter.lat, loiter.lon, loiter.alt, kApproachRadius),
@@ -522,7 +522,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
 	// GIVEN: A mission that ends with a rally point.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(land.lat, land.lon, land.alt, NAV_FRAME_GLOBAL),
 	});
 
@@ -560,7 +560,7 @@ TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandle
 		makeLandApproachItem(loiter_2.lat, loiter_2.lon, loiter_2.alt, kApproachRadius),
 	};
 
-	VectorProvider provider(std::vector<mission_item_s> {}, mission_items, {}, {test_case.failure_index});
+	VectorProvider provider(mission_items, {test_case.failure_index});
 
 	// WHEN: The block scan hits a read failure.
 	land_approaches_s scanned_block{};
@@ -599,7 +599,7 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexRejectsFarSafePo
 	const PositionYawSetpoint outside_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 10.25f, 0.f, kAlt);
 	const PositionYawSetpoint inside_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 9.75f, kAlt);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(outside_safe_point.lat, outside_safe_point.lon, outside_safe_point.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(inside_safe_point.lat, inside_safe_point.lon, inside_safe_point.alt, NAV_FRAME_GLOBAL),
 	});
@@ -622,7 +622,7 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexReturnsFirstMatc
 	const PositionYawSetpoint first_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 4.f, 0.f, kAlt);
 	const PositionYawSetpoint second_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 5.f, kAlt);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(first_safe_point.lat, first_safe_point.lon, first_safe_point.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(second_safe_point.lat, second_safe_point.lon, second_safe_point.alt, NAV_FRAME_GLOBAL),
 	});
@@ -649,7 +649,7 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexHandlesReadFailu
 		makeSafePointItem(skipped_safe_point.lat, skipped_safe_point.lon, skipped_safe_point.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(later_safe_point.lat, later_safe_point.lon, later_safe_point.alt, NAV_FRAME_GLOBAL),
 	};
-	VectorProvider provider(std::vector<mission_item_s> {}, safe_points, {}, {0});
+	VectorProvider provider(safe_points, {0});
 
 	// WHEN: The association lookup hits the failed read.
 	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
@@ -666,7 +666,7 @@ TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexSkipsInvalidRall
 	const PositionYawSetpoint rtl_destination = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const PositionYawSetpoint valid_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 5.f, kAlt);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(91.0, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(valid_safe_point.lat, valid_safe_point.lon, valid_safe_point.alt, NAV_FRAME_GLOBAL),
 	});
@@ -833,7 +833,7 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	const mission_item_s relative_int_item = makeLandApproachItem(relative_position.lat, relative_position.lon, 25.f,
 			kApproachRadius, NAV_FRAME_GLOBAL_RELATIVE_ALT_INT);
 
-	VectorProvider provider({}, {
+	VectorProvider provider({
 		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
 		absolute_item,
 		absolute_int_item,
