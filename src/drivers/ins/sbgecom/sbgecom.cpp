@@ -77,7 +77,11 @@ ModuleBase::Descriptor SbgEcom::desc{task_spawn, custom_command, print_usage};
 
 SbgEcom::SbgEcom(const char *device_name, uint32_t baudrate, const char *config_file, const char *config_string):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device_name)),
+	// The sbgECom library allocates SBG_ECOM_MAX_BUFFER_SIZE (4096) bytes on the
+	// stack when sending a frame, which overflows the TTY work queue stack
+	// (CONFIG_WQ_TTY_STACKSIZE, 1728 bytes by default). Run on the larger INS
+	// work queue instead (CONFIG_WQ_INS_STACKSIZE, 6000 bytes by default).
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::INS0),
 	_baudrate(baudrate),
 	_config_file(config_file),
 	_config_string(config_string)
