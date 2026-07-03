@@ -132,7 +132,7 @@ private:
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
-	uORB::PublicationData<esc_status_s>   _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -302,6 +302,8 @@ private:
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
+
+	esc_status_s _esc_status{};
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
