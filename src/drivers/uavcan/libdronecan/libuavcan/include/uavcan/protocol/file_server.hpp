@@ -74,6 +74,19 @@ public:
       }
     }
 
+    void setNfsRootPath(const char * path)
+    {
+      if (path)
+      {
+          nfs_root_path_.clear();
+          nfs_root_path_ = path;
+          if (nfs_root_path_.back() != getPathSeparator())
+          {
+              nfs_root_path_.push_back(getPathSeparator());
+          }
+      }
+    }
+
     /**
      * Get a base path to the files.
      */
@@ -88,19 +101,6 @@ public:
     Path&  getAltRootPath()
     {
       return alt_root_path_;
-    }
-
-    void setNfsRootPath(const char * path)
-    {
-      if (path)
-      {
-          nfs_root_path_.clear();
-          nfs_root_path_ = path;
-          if (nfs_root_path_.back() != getPathSeparator())
-          {
-              nfs_root_path_.push_back(getPathSeparator());
-          }
-      }
     }
 
     Path&  getNfsRootPath()
