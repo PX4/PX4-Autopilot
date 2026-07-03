@@ -13,9 +13,10 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | Topic                                    | Type                                                                                   | Rate Limit |
 | ---------------------------------------- | -------------------------------------------------------------------------------------- | ---------- |
 | `/fmu/out/airspeed_validated`            | [px4_msgs::msg::AirspeedValidated](../msg_docs/AirspeedValidated.md)                   | 50.0       |
-| `/fmu/out/arming_check_request`          | [px4_msgs::msg::ArmingCheckRequest](../msg_docs/ArmingCheckRequest.md)                 | 5.0        |
+| `/fmu/out/arming_check_request`          | [px4_msgs::msg::ArmingCheckRequest](../msg_docs/ArmingCheckRequest.md)                 |
 | `/fmu/out/battery_status`                | [px4_msgs::msg::BatteryStatus](../msg_docs/BatteryStatus.md)                           | 1.0        |
 | `/fmu/out/collision_constraints`         | [px4_msgs::msg::CollisionConstraints](../msg_docs/CollisionConstraints.md)             | 50.0       |
+| `/fmu/out/config_overrides_confirm`      | [px4_msgs::msg::ConfigOverrides](../msg_docs/ConfigOverrides.md)                       |
 | `/fmu/out/estimator_status_flags`        | [px4_msgs::msg::EstimatorStatusFlags](../msg_docs/EstimatorStatusFlags.md)             | 5.0        |
 | `/fmu/out/failsafe_flags`                | [px4_msgs::msg::FailsafeFlags](../msg_docs/FailsafeFlags.md)                           | 5.0        |
 | `/fmu/out/gimbal_device_attitude_status` | [px4_msgs::msg::GimbalDeviceAttitudeStatus](../msg_docs/GimbalDeviceAttitudeStatus.md) | 20.0       |
@@ -27,6 +28,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/out/position_setpoint_triplet`     | [px4_msgs::msg::PositionSetpointTriplet](../msg_docs/PositionSetpointTriplet.md)       | 5.0        |
 | `/fmu/out/register_ext_component_reply`  | [px4_msgs::msg::RegisterExtComponentReply](../msg_docs/RegisterExtComponentReply.md)   |
 | `/fmu/out/sensor_combined`               | [px4_msgs::msg::SensorCombined](../msg_docs/SensorCombined.md)                         |
+| `/fmu/out/setpoint_config_reply`         | [px4_msgs::msg::SetpointConfigReply](../msg_docs/SetpointConfigReply.md)               |
 | `/fmu/out/timesync_status`               | [px4_msgs::msg::TimesyncStatus](../msg_docs/TimesyncStatus.md)                         | 10.0       |
 | `/fmu/out/transponder_report`            | [px4_msgs::msg::TransponderReport](../msg_docs/TransponderReport.md)                   |
 | `/fmu/out/vehicle_attitude`              | [px4_msgs::msg::VehicleAttitude](../msg_docs/VehicleAttitude.md)                       | 50.0       |
@@ -49,7 +51,6 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/actuator_motors`                    | [px4_msgs::msg::ActuatorMotors](../msg_docs/ActuatorMotors.md)                                     |
 | `/fmu/in/actuator_servos`                    | [px4_msgs::msg::ActuatorServos](../msg_docs/ActuatorServos.md)                                     |
 | `/fmu/in/arming_check_reply`                 | [px4_msgs::msg::ArmingCheckReply](../msg_docs/ArmingCheckReply.md)                                 |
-| `/fmu/in/config_control_setpoints`           | [px4_msgs::msg::VehicleControlMode](../msg_docs/VehicleControlMode.md)                             |
 | `/fmu/in/config_overrides_request`           | [px4_msgs::msg::ConfigOverrides](../msg_docs/ConfigOverrides.md)                                   |
 | `/fmu/in/distance_sensor`                    | [px4_msgs::msg::DistanceSensor](../msg_docs/DistanceSensor.md)                                     |
 | `/fmu/in/fixed_wing_lateral_setpoint`        | [px4_msgs::msg::FixedWingLateralSetpoint](../msg_docs/FixedWingLateralSetpoint.md)                 |
@@ -72,6 +73,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/rover_steering_setpoint`            | [px4_msgs::msg::RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md)                       |
 | `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
 | `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
+| `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
 | `/fmu/in/trajectory_setpoint`                | [px4_msgs::msg::TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                             |
 | `/fmu/in/unregister_ext_component`           | [px4_msgs::msg::UnregisterExtComponent](../msg_docs/UnregisterExtComponent.md)                     |
@@ -286,7 +288,6 @@ They are not build into the module, and hence are neither published or subscribe
 - [UlogStreamAck](../msg_docs/UlogStreamAck.md)
 - [VehicleAcceleration](../msg_docs/VehicleAcceleration.md)
 - [VehicleAirData](../msg_docs/VehicleAirData.md)
-- [VehicleAngularAccelerationSetpoint](../msg_docs/VehicleAngularAccelerationSetpoint.md)
 - [VehicleAngularVelocity](../msg_docs/VehicleAngularVelocity.md)
 - [VehicleAttitudeSetpointV0](../msg_docs/VehicleAttitudeSetpointV0.md)
 - [VehicleCommandAckV0](../msg_docs/VehicleCommandAckV0.md)
