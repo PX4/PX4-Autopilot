@@ -170,12 +170,14 @@ Loiter::reposition()
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
-		pos_sp_triplet->current.course = NAN;
 		pos_sp_triplet->next.valid = false;
 
 		_navigator->set_position_setpoint_triplet_updated();
 
-		// mark this as done
-		memset(rep, 0, sizeof(*rep));
+		// mark this as done: reset instead of zeroing so unset fields (yaw, course)
+		// stay NaN when the triplet is repopulated by a partial reposition command
+		_navigator->reset_position_setpoint(rep->previous);
+		_navigator->reset_position_setpoint(rep->current);
+		_navigator->reset_position_setpoint(rep->next);
 	}
 }
