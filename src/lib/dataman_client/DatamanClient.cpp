@@ -600,13 +600,17 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 	bool item_found = false;
 
 	if (_items) {
-		for (uint32_t i = 0; i < _num_items; ++i) {
+		// Start scanning at the last hit
+		for (uint32_t n = 0; n < _num_items; ++n) {
+			const uint32_t i = (_search_hint + n) % _num_items;
+
 			if ((_items[i].response.item == item) &&
 			    (_items[i].response.index == index)) {
 				item_found = true;
 
 				if (_items[i].cache_state == State::ResponseReceived) {
 					memcpy(buffer, _items[i].response.data, length);
+					_search_hint = i;
 					success = true;
 					break;
 				}
@@ -672,17 +676,14 @@ bool DatamanCache::updateCachedItem(dm_item_t item, uint32_t index, const uint8_
 		return false;
 	}
 
+	// Only patch data that is fully received and stable. Slots in other states are skipped:
+	// an in-flight async read will fetch the new SD card data shortly anyway, and invalidated
+	// slots can still carry a stale key match for the same item/index.
 	for (uint32_t i = 0; i < _num_items; ++i) {
-		if ((_items[i].response.item == item) && (_items[i].response.index == index)) {
-
-			// Only patch data that is fully received and stable. If it is RequestPrepared,
-			// an async read is flying and will fetch the new SD card data shortly anyway.
-			if (_items[i].cache_state == State::ResponseReceived) {
-				memcpy(_items[i].response.data, buffer, length);
-				return true;
-			}
-
-			return false; // Item exists but is not in a safe state to patch
+		if ((_items[i].response.item == item) && (_items[i].response.index == index)
+		    && (_items[i].cache_state == State::ResponseReceived)) {
+			memcpy(_items[i].response.data, buffer, length);
+			return true;
 		}
 	}
 
@@ -760,6 +761,7 @@ void DatamanCache::resetCacheState()
 	_update_index = 0;
 	_item_counter = 0;
 	_load_index = 0;
+	_search_hint = 0;
 }
 
 void DatamanCache::invalidate()
