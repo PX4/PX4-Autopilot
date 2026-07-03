@@ -54,6 +54,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
 	BasePathString base_path_;
 	BasePathString alt_base_path_;
+	BasePathString nfs_base_path_;
 
 	static void addSlash(BasePathString &path)
 	{
@@ -250,6 +251,13 @@ out_close:
 	const BasePathString &getFirmwareBasePath() const { return base_path_; }
 
 	const BasePathString &getFirmwareAltBasePath() const { return alt_base_path_; }
+
+	const BasePathString &getFirmwareNfsBasePath() const { return nfs_base_path_; }
+
+	void setFirmwareNfsBasePath(const char *path)
+	{
+		nfs_base_path_ = path;
+	}
 
 	static char getPathSeparator()
 	{

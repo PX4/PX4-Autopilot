@@ -36,6 +36,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/nfs_up.h>
 
 class NfsMount : public ModuleBase, public ModuleParams
 {

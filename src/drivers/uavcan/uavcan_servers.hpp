@@ -46,6 +46,9 @@
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/nfs_up.h>
+
 #include "uavcan_module.hpp"
 
 /**
@@ -68,6 +71,8 @@ public:
 
 	int init();
 
+	void check_nfs();
+
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
 private:
@@ -85,4 +90,6 @@ private:
 	uavcan::BasicFileServer _fw_server;
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
+
+	uORB::Subscription _nfs_up_sub{ORB_ID(nfs_up)};
 };

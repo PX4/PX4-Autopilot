@@ -35,8 +35,11 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
+#include <drivers/drv_hrt.h>
+#include <cerrno>
 
 #ifdef __PX4_NUTTX
+#include <nuttx/config.h>
 #include <arpa/inet.h>
 #include <cstring>
 #include <netinet/in.h>
@@ -48,8 +51,8 @@
 
 using namespace time_literals;
 
-static constexpr const char *NFS_MOUNT_POINT = "/fs/nfs";
-static constexpr const char *NFS_SERVER_PATH = "/srv/nfs/fmu";
+static constexpr const char *NFS_MOUNT_POINT = CONFIG_NFS_MOUNT_MOUNT_POINT;
+static constexpr const char *NFS_SERVER_PATH = CONFIG_NFS_MOUNT_SERVER_PATH;
 
 ModuleBase::Descriptor NfsMount::desc{task_spawn, custom_command, print_usage};
 
@@ -127,6 +130,13 @@ void NfsMount::run()
 		if (portmapper_up(sin.sin_addr.s_addr)) {
 			if (mount(nullptr, NFS_MOUNT_POINT, "nfs", 0, &args) == 0) {
 				PX4_INFO("mounted %s:%s at %s", ip_str, NFS_SERVER_PATH, NFS_MOUNT_POINT);
+
+				nfs_up_s msg{};
+				msg.timestamp = hrt_absolute_time();
+				// Use orb_advertise directly — intentionally not unadvertised so
+				// the topic remains visible after this one-shot module exits.
+				orb_advertise(ORB_ID(nfs_up), &msg);
+
 				return;
 			}
 		}
