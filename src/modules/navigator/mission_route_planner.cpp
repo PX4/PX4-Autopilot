@@ -54,27 +54,22 @@
 using namespace mission_route;
 
 /**
- * The ProjectionReferenceBatch is reused by collectVehicleProjection and selectSafePoint.
- * Defined static so navigator task stack does not scale with the batch size (~370 bytes per kMaxSafePointBatch slot,
- * i.e. ~24 KB at a batch size of 64, tunable via CONFIG_RTL_SAFE_POINT_BATCH_SIZE).
+ * Shared scratch buffer reused by collectVehicleProjection and selectSafePoint, kept off the
+ * navigator task stack because it scales with CONFIG_RTL_SAFE_POINT_BATCH_SIZE (~380 bytes per slot).
  *
- * Because the type defaults some fields to NAN/-1/NAV_CMD_INVALID, raw storage is kept in .bss and constructed
- * at runtime. This preserves the normal default object state without storing the full initialized image
- * in flash.
+ * The buffer must not be a plain static object: ProjectionReferenceBatch has non-zero member
+ * defaults (NAN/-1/NAV_CMD_INVALID), so a static instance would be initialized into
+ * .data and store its full byte image in flash, which does not fit on some boards. Zeroed raw
+ * storage stays in .bss (RAM reserved at link time, no flash image) and the object is
+ * constructed in place on first use. Placement new on static storage cannot fail, so the
+ * returned reference is always valid.
  */
-alignas(ProjectionReferenceBatch)
-static uint8_t _projection_reference_batch_storage[sizeof(ProjectionReferenceBatch)] {};
-
-static ProjectionReferenceBatch *_projection_reference_batch{nullptr};
-
-static ProjectionReferenceBatch *projectionReferenceBatch()
+static ProjectionReferenceBatch &projectionReferenceBatch()
 {
-	if (_projection_reference_batch == nullptr) {
-		_projection_reference_batch =
-			new (_projection_reference_batch_storage) ProjectionReferenceBatch{};
-	}
+	alignas(ProjectionReferenceBatch) static uint8_t storage[sizeof(ProjectionReferenceBatch)];
+	static ProjectionReferenceBatch *batch = new (storage) ProjectionReferenceBatch{};
 
-	return _projection_reference_batch;
+	return *batch;
 }
 
 namespace
@@ -129,47 +124,40 @@ MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
 	_goal_selector(provider, _projection),
 	_reference_batch(projectionReferenceBatch())
 {
-	if (_reference_batch == nullptr) {
-		PX4_ERR("RTL route planner scratch init failed");
-	}
 }
 
-VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const RoutePlanRequest &request) const
+MissionRoutePlanner::~MissionRoutePlanner()
 {
-	if (_reference_batch == nullptr) {
-		return vehicleProjectionFailure(FailureReason::kInternalError);
-	}
+	perf_free(_collect_vehicle_projection_perf);
+	perf_free(_select_best_goal_perf);
+}
 
-	if (!request.config.parameters.validForVehicleProjection()) {
+VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_position,
+		int32_t mission_index, const PlannerConfig &config) const
+{
+	if (!config.parameters.validForVehicleProjection()) {
 		return vehicleProjectionFailure(FailureReason::kInvalidRequest);
 	}
 
-	perf_begin(_collect_vehicle_projection_perf.counter);
-	const VehicleProjectionResult result = _projection.collectVehicleProjection(request, *_reference_batch);
-	perf_end(_collect_vehicle_projection_perf.counter);
+	perf_begin(_collect_vehicle_projection_perf);
+	const VehicleProjectionResult result = _projection.collectVehicleProjection(vehicle_position, mission_index,
+					       config, _reference_batch);
+	perf_end(_collect_vehicle_projection_perf);
 	return result;
 }
 
 GoalSelection MissionRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
 		const PlannerConfig &config) const
 {
-	if (_reference_batch == nullptr) {
-		return {};
-	}
-
-	return _goal_selector.selectSafePoint(projection_context, config, *_reference_batch).selection;
+	return _goal_selector.selectSafePoint(projection_context, config, _reference_batch).selection;
 }
 
 GoalSelection MissionRoutePlanner::selectBestGoal(const ProjectionContext &projection_context,
 		const PlannerConfig &config) const
 {
-	if (_reference_batch == nullptr) {
-		return {};
-	}
-
-	perf_begin(_select_best_goal_perf.counter);
-	const GoalSelectionResult result = _goal_selector.selectBestGoal(projection_context, config, *_reference_batch);
-	perf_end(_select_best_goal_perf.counter);
+	perf_begin(_select_best_goal_perf);
+	const GoalSelectionResult result = _goal_selector.selectBestGoal(projection_context, config, _reference_batch);
+	perf_end(_select_best_goal_perf);
 	return result.selection;
 }
 
@@ -179,13 +167,14 @@ bool MissionRoutePlanner::closeToBranchOffSegment(const Position &position, cons
 	return _goal_selector.closeToBranchOffSegment(position, selection, acceptance_radius, altitude_acceptance_radius);
 }
 
-JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const RoutePlanRequest &request) const
+JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const Position &vehicle_position,
+		int32_t mission_index, const PlannerConfig &config) const
 {
-	if (!request.vehicle_position.valid()) {
+	if (!vehicle_position.valid()) {
 		return joinPlanFailure(FailureReason::kNoValidGlobalPos);
 	}
 
-	const VehicleProjectionResult projection = collectVehicleProjection(request);
+	const VehicleProjectionResult projection = collectVehicleProjection(vehicle_position, mission_index, config);
 
 	if (!projection.success) {
 		return joinPlanFailure(projection.failure_reason);
@@ -195,8 +184,8 @@ JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const RoutePlanRequest
 	plan.projection_context = projection.projection_context;
 
 	plan.path = _goal_selector.findShortestPathAlongRoute(plan.projection_context.route_length,
-			plan.projection_context, request.config, PathDirectionMode::kForceNominal);
-	plan.join_context = _goal_selector.buildJoinContext(request.vehicle_position, plan.projection_context, plan.path);
+			plan.projection_context, config, PathDirectionMode::kForceNominal);
+	plan.join_context = _goal_selector.buildJoinContext(vehicle_position, plan.projection_context, plan.path);
 
 	if (!plan.valid()) {
 		return joinPlanFailure(FailureReason::kNoValidPath);
@@ -205,13 +194,14 @@ JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const RoutePlanRequest
 	return joinPlanSuccess(plan);
 }
 
-RoutePlanResult MissionRoutePlanner::planRouteToGoal(const RoutePlanRequest &request) const
+RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position,
+		int32_t mission_index, const PlannerConfig &config) const
 {
-	if (!request.config.parameters.validForRouteToGoal()) {
+	if (!config.parameters.validForRouteToGoal()) {
 		return routePlanFailure(FailureReason::kInvalidRequest);
 	}
 
-	const VehicleProjectionResult projection = collectVehicleProjection(request);
+	const VehicleProjectionResult projection = collectVehicleProjection(vehicle_position, mission_index, config);
 
 	if (!projection.success) {
 		return routePlanFailure(projection.failure_reason);
@@ -225,10 +215,10 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const RoutePlanRequest &req
 	plan.projection_context.mission_loops_remaining = 0;
 
 	// Find closest safe point, falling back to mission end points if none found
-	perf_begin(_select_best_goal_perf.counter);
-	const GoalSelectionResult selection = _goal_selector.selectBestGoal(plan.projection_context, request.config,
-					      *_reference_batch);
-	perf_end(_select_best_goal_perf.counter);
+	perf_begin(_select_best_goal_perf);
+	const GoalSelectionResult selection = _goal_selector.selectBestGoal(plan.projection_context, config,
+					      _reference_batch);
+	perf_end(_select_best_goal_perf);
 
 	if (!selection.success) {
 		return routePlanFailure(selection.failure_reason);
@@ -236,9 +226,9 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const RoutePlanRequest &req
 
 	plan.selection = selection.selection;
 	plan.selection.skip_route_to_safe_point =
-		_goal_selector.canSkipRouteFollowToSelectedGoal(request.vehicle_position, plan.selection, request.config);
+		_goal_selector.canSkipRouteFollowToSelectedGoal(vehicle_position, plan.selection, config);
 
-	plan.join_context = _goal_selector.buildJoinContext(request.vehicle_position, plan.projection_context,
+	plan.join_context = _goal_selector.buildJoinContext(vehicle_position, plan.projection_context,
 			    plan.selection.path);
 
 	if (!plan.valid()) {

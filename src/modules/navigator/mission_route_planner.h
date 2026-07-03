@@ -56,13 +56,15 @@ class MissionRoutePlanner
 {
 public:
 	explicit MissionRoutePlanner(const mission_route::Provider &provider);
+	~MissionRoutePlanner();
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner(MissionRoutePlanner &&) = delete;
 	MissionRoutePlanner &operator=(MissionRoutePlanner &&) = delete;
 
 	/** @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate. */
-	mission_route::VehicleProjectionResult collectVehicleProjection(const mission_route::RoutePlanRequest &request) const;
+	mission_route::VehicleProjectionResult collectVehicleProjection(const mission_route::Position &vehicle_position,
+			int32_t mission_index, const mission_route::PlannerConfig &config) const;
 
 	/** @brief Evaluate all valid safe points and choose the best route-follow return target. */
 	mission_route::GoalSelection selectSafePoint(const mission_route::ProjectionContext &projection_context,
@@ -71,36 +73,19 @@ public:
 	mission_route::GoalSelection selectBestGoal(const mission_route::ProjectionContext &projection_context,
 			const mission_route::PlannerConfig &config) const;
 	/** @brief Build the Mission-mode smart-rejoin plan back to the mission end using the nominal route direction. */
-	mission_route::JoinPlanResult planMissionResumeJoin(const mission_route::RoutePlanRequest &request) const;
+	mission_route::JoinPlanResult planMissionResumeJoin(const mission_route::Position &vehicle_position,
+			int32_t mission_index, const mission_route::PlannerConfig &config) const;
 	/** @brief Build the full RTL plan: vehicle projection, join context, and selected goal. */
-	mission_route::RoutePlanResult planRouteToGoal(const mission_route::RoutePlanRequest &request) const;
+	mission_route::RoutePlanResult planRouteToGoal(const mission_route::Position &vehicle_position,
+			int32_t mission_index, const mission_route::PlannerConfig &config) const;
 	/** @brief Check whether the vehicle is still close enough to the selected branch-off leg to skip route following. */
 	bool closeToBranchOffSegment(const mission_route::Position &position, const mission_route::GoalSelection &selection,
 				     float acceptance_radius, float altitude_acceptance_radius) const;
 
 private:
-	/** @brief RAII wrapper for the planner perf counters. */
-	struct PerfCounterGuard {
-		perf_counter_t counter{nullptr};
-
-		explicit PerfCounterGuard(const char *name) : counter(perf_alloc(PC_ELAPSED, name)) {}
-		~PerfCounterGuard()
-		{
-			if (counter != nullptr) {
-				perf_free(counter);
-			}
-		}
-
-		// Non-copyable: a copy would double-free the perf counter.
-		PerfCounterGuard(const PerfCounterGuard &) = delete;
-		PerfCounterGuard &operator=(const PerfCounterGuard &) = delete;
-		PerfCounterGuard(PerfCounterGuard &&) = delete;
-		PerfCounterGuard &operator=(PerfCounterGuard &&) = delete;
-	};
-
 	mission_route::MissionRouteProjection _projection;
 	mission_route::MissionRouteGoalSelector _goal_selector;
-	mission_route::ProjectionReferenceBatch *_reference_batch{nullptr};
-	PerfCounterGuard _collect_vehicle_projection_perf{"rtl_route_collect_vehicle_proj"};
-	PerfCounterGuard _select_best_goal_perf{"rtl_route_select_best_goal"};
+	mission_route::ProjectionReferenceBatch &_reference_batch;
+	perf_counter_t _collect_vehicle_projection_perf{perf_alloc(PC_ELAPSED, "rtl_route_collect_vehicle_proj")};
+	perf_counter_t _select_best_goal_perf{perf_alloc(PC_ELAPSED, "rtl_route_select_best_goal")};
 };

@@ -58,9 +58,9 @@ config RTL_MISSION_CACHE_SIZE
 
 config RTL_SAFE_POINT_BATCH_SIZE
 	int "Maximum rally points scored per mission-route planning batch"
-	default 64 if BOARD_TESTING
+	default 32 if BOARD_TESTING
 	default 1
-	range 1 255
+	range 1 32
 	depends on MODULES_NAVIGATOR
 	---help---
 		Number of rally (safe) points held in the fixed-size projection batch buffer that the
@@ -73,11 +73,11 @@ config RTL_SAFE_POINT_BATCH_SIZE
 		boards with spare RAM can raise it so all rally points fit in a single pass.
 
 		The projection batch is allocated in static RAM and is the larger hidden cost: it reserves
-		roughly sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE bytes (about 370 bytes
-		per slot, i.e. ~24 KB at a batch size of 64).
+		roughly sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE bytes (about 380 bytes
+		per slot, i.e. ~12 KB at the maximum batch size of 32).
 
 		The default is 1 so that boards which leave route planning disabled (CONFIG_RTL_MISSION_CACHE_SIZE=0)
 		do not pay the full batch RAM cost; boards that enable route planning should raise it.
 
-		The configured batch size must stay <= 255 because the batch counters and
-		indices are stored in uint8_t.
+		The upper bound of 32 comes from DM_KEY_SAFE_POINTS_MAX, the maximum number of storable
+		safe points: batch slots beyond that count can never be filled.

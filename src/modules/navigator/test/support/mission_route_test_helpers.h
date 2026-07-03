@@ -260,16 +260,14 @@ static constexpr double kLatLonToleranceDeg = 1e-7;
 static constexpr float kAltitudeTolerance = 2.0f;
 static constexpr float kDistanceTolerance = 5.0f;
 
-// Test-only adapters that exercise the request/result planner API while keeping the
-// out-parameter ergonomics the test bodies were written against. They construct a
-// RoutePlanRequest and unpack the result struct; they are not production wrappers.
+// Test-only adapters
 static inline bool collectVehicleProjection(const MissionRoutePlanner &planner,
 		const mission_route::Position &vehicle_position, int32_t mission_index,
 		const mission_route::PlannerConfig &config, mission_route::ProjectionContext &projection_context,
 		mission_route::FailureReason &failure_reason)
 {
 	const mission_route::VehicleProjectionResult result =
-		planner.collectVehicleProjection({vehicle_position, mission_index, config});
+		planner.collectVehicleProjection(vehicle_position, mission_index, config);
 	projection_context = result.projection_context;
 	failure_reason = result.failure_reason;
 	return result.success;
@@ -281,7 +279,7 @@ static inline bool planRouteToGoal(const MissionRoutePlanner &planner,
 				   mission_route::FailureReason &failure_reason)
 {
 	const mission_route::RoutePlanResult result =
-		planner.planRouteToGoal({vehicle_position, mission_index, config});
+		planner.planRouteToGoal(vehicle_position, mission_index, config);
 	plan = result.plan;
 	failure_reason = result.failure_reason;
 	return result.success;

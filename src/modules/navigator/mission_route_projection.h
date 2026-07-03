@@ -80,10 +80,27 @@ struct ProjectionScanResult {
 	float route_length{0.f};
 };
 
+/** @brief Per-reference scan scratch maintained while walking the mission segments. */
+struct CandidateSearchState {
+	bool prev_projection_on_end{false};
+	bool projection_on_end_for_segment{false};
+	float min_xtrack{0.f};
+	float xtrack_limit{0.f};
+
+	void reset()
+	{
+		prev_projection_on_end = true;
+		projection_on_end_for_segment = false;
+		min_xtrack = FLT_MAX;
+		xtrack_limit = FLT_MAX;
+	}
+};
+
 struct ProjectionReference {
 	Position position{};
 	int32_t source_index{-1};
 	ProjectionCandidateBuffer candidate_buffer{};
+	CandidateSearchState search_state{}; /**< Scratch used by findProjectionCandidates, no meaning after the scan. */
 };
 
 /** @brief Fixed-size batch of reference points evaluated during a single scan pass. */
@@ -102,8 +119,8 @@ public:
 			ProjectionReferenceBatch &batch) const;
 
 	/** @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate. */
-	VehicleProjectionResult collectVehicleProjection(const RoutePlanRequest &request,
-			ProjectionReferenceBatch &batch) const;
+	VehicleProjectionResult collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
+			const PlannerConfig &config, ProjectionReferenceBatch &batch) const;
 
 	bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index,
 					bool is_flying_reverse) const;
@@ -118,21 +135,6 @@ private:
 	friend class ::MissionRouteProjectionCandidateBufferTestPeer;
 
 	struct BranchInSelectionResult;
-
-	struct CandidateSearchState {
-		bool prev_projection_on_end{false};
-		bool projection_on_end_for_segment{false};
-		float min_xtrack{0.f};
-		float xtrack_limit{0.f};
-
-		void reset()
-		{
-			prev_projection_on_end = true;
-			projection_on_end_for_segment = false;
-			min_xtrack = FLT_MAX;
-			xtrack_limit = FLT_MAX;
-		}
-	};
 
 	struct RouteSegmentView {
 		Segment segment{};
@@ -151,13 +153,6 @@ private:
 		uint32_t local_min_found{0};
 		uint32_t valid_candidate_found{0};
 	};
-
-	struct BatchSearchState {
-		CandidateSearchState candidate_states[kMaxSafePointBatch] {};
-		ProjectionScanStats stats{};
-	};
-
-	static BatchSearchState _batch_search_state;
 
 	PositionLookupStatus findNextValidPositionIndex(int32_t start_index, float home_altitude_amsl,
 			int32_t &next_position_index) const;

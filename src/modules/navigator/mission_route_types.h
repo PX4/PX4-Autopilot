@@ -66,11 +66,12 @@ static constexpr uint8_t kMaxSegmentCandidates{3};
  * eligible rally points are configured than fit in one batch, they are processed in successive batches:
  * the full mission route is re-scanned once per batch. A larger value trades RAM for fewer mission passes.
  *
- * Stored in uint8_t batch counters/indices, so it must stay in [1, 255].
+ * Stored in uint8_t batch counters/indices. The Kconfig range caps it at 32 to match
+ * DM_KEY_SAFE_POINTS_MAX (checked with a static_assert in mission_route_cache.cpp).
  */
 static constexpr uint8_t kMaxSafePointBatch{CONFIG_RTL_SAFE_POINT_BATCH_SIZE};
 static_assert(CONFIG_RTL_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_RTL_SAFE_POINT_BATCH_SIZE <= 255,
-	      "CONFIG_RTL_SAFE_POINT_BATCH_SIZE must be in [1, 255] to fit the uint8_t batch counters");
+	      "CONFIG_RTL_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
 
 enum class GoalType : uint8_t {
 	kNone = 0,
@@ -268,13 +269,6 @@ struct PlannerConfig {
 	PlannerParameters parameters{};
 	VehicleStateContext state{};
 	Segment last_flown_loop_segment{}; /**< Cached DO_JUMP edge anchor when preserving an active loop. */
-};
-
-/** @brief A single planning request: the vehicle state, its mission index, and the planner configuration. */
-struct RoutePlanRequest {
-	Position vehicle_position{};
-	int32_t mission_index{-1};
-	PlannerConfig config{};
 };
 
 /** @brief A mission-resume join plan composed of projection, route path, and join details. */
