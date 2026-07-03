@@ -160,6 +160,21 @@ int UavcanServers::init()
 	return 0;
 }
 
+void UavcanServers::check_nfs()
+{
+	nfs_up_s nfs_up{};
+
+	if (_nfs_up_sub.update(&nfs_up)) {
+		static constexpr const char *nfs_mount = CONFIG_NFS_MOUNT_MOUNT_POINT;
+		char nfs_fw_path[sizeof(CONFIG_NFS_MOUNT_MOUNT_POINT) + 4];
+		snprintf(nfs_fw_path, sizeof(nfs_fw_path), "%s/ufw", nfs_mount);
+
+		_fw_version_checker.setFirmwareNfsBasePath(nfs_fw_path);
+		_fileserver_backend.setNfsRootPath(nfs_fw_path);
+		_node_info_retriever.invalidateAll();
+	}
+}
+
 void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
 {
 	/*
