@@ -46,7 +46,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <termios.h>
 
 #define DEFAULT_DEVNAME "/dev/ttyS0"
 
@@ -936,8 +935,6 @@ void SbgEcom::send_config_file(SbgEComHandle *pHandle, const char *file_path)
 int SbgEcom::init()
 {
 	SbgErrorCode error_code;
-	struct termios options;
-	int *pSerialHandle;
 
 	error_code = sbgInterfaceSerialCreate(&_sbg_interface, _device_name, _baudrate);
 
@@ -945,26 +942,6 @@ int SbgEcom::init()
 		PX4_INFO("Serial interface created successfully on port: %s, baudrate: %ld",
 			 _device_name,
 			 static_cast<long int>(_baudrate));
-	}
-
-	pSerialHandle = (int *)_sbg_interface.handle;
-
-	if (tcgetattr((*pSerialHandle), &options) != -1) {
-		// add custom options
-		options.c_cflag &= CSIZE;
-		options.c_iflag &= ~(IXON | IXOFF | IXANY);
-		options.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | ICRNL | INPCK);
-		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG | ECHONL | IEXTEN);
-
-		if (tcsetattr((*pSerialHandle), TCSANOW, &options) != -1) {
-			error_code = sbgInterfaceFlush(&_sbg_interface, SBG_IF_FLUSH_ALL);
-
-		} else {
-			error_code = SBG_ERROR;
-		}
-
-	} else {
-		error_code = SBG_ERROR;
 	}
 
 	error_code = sbgEComInit(&_com_handle, &_sbg_interface);
