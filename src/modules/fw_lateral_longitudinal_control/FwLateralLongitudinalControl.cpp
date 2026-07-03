@@ -211,20 +211,25 @@ void FwLateralLongitudinalControl::Run()
 			// If the both altitude and height rate are set, set altitude setpoint to NAN
 			const float altitude_sp = PX4_ISFINITE(_long_control_sp.height_rate) ? NAN : _long_control_sp.altitude;
 
-			current_flight_phase = tecs_update_pitch_throttle(control_interval, altitude_sp,
-					       airspeed_sp_eas,
-					       _long_configuration.pitch_min,
-					       _long_configuration.pitch_max,
-					       _long_configuration.throttle_min,
-					       _long_configuration.throttle_max,
-					       _long_configuration.sink_rate_target,
-					       _long_configuration.climb_rate_target,
-					       _long_configuration.disable_underspeed_protection,
-					       _long_control_sp.height_rate,
-					       now
-									 );
+			current_flight_phase = tecs_update_pitch_throttle(
+						       control_interval, altitude_sp, airspeed_sp_eas,
+						       _long_configuration.pitch_min,
+						       _long_configuration.pitch_max,
+						       _long_configuration.throttle_min,
+						       _long_configuration.throttle_max,
+						       _long_configuration.sink_rate_target,
+						       _long_configuration.climb_rate_target,
+						       _long_configuration.disable_underspeed_protection,
+						       _long_control_sp.height_rate,
+						       now
+					       );
 
-			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct) ? _long_control_sp.pitch_direct : _tecs.get_pitch_setpoint();
+			// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
+			// so it has to be added back here.
+			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct)
+				   ?  _long_control_sp.pitch_direct
+				   : _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
 
