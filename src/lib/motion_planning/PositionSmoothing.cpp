@@ -208,9 +208,17 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 			_max_speed_previous = xy_speed;
 		}
 
-		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
-		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
-		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
+		// Compute XY and Z velocity components independently to avoid
+		// Z clamping from reducing XY speed (and vice versa)
+		const Vector3f pos_to_dest = crossing_point - pos_traj;
+		const Vector2f u_pos_to_dest_xy = Vector2f(pos_to_dest).unit_or_zero();
+		const float z_sign = matrix::sign(pos_to_dest(2));
+
+		Vector3f vel_sp_constrained{
+			u_pos_to_dest_xy(0) *xy_speed,
+			u_pos_to_dest_xy(1) *xy_speed,
+			z_sign *z_speed
+		};
 
 		for (int i = 0; i < 3; i++) {
 			// If available, use the existing velocity as a feedforward, otherwise replace it
@@ -285,28 +293,49 @@ void PositionSmoothing::_generateTrajectory(
 	}
 
 	/* Slow down the trajectory by decreasing the integration time based on the position error.
-	 * This is only performed when the drone is behind the trajectory
+	 * This is only performed when the drone is behind the trajectory.
+	 *
+	 * Horizontal and vertical lag are evaluated independently and stretched per-axis. We
+	 * deliberately do NOT fold Z lag into the XY stretch (and vice versa): a noisy altitude
+	 * reference shouldn't cap forward flight speed during a straight mission leg, and stalled
+	 * horizontal progress shouldn't freeze the climb profile. The Z check exists to keep the
+	 * commanded altitude from walking away from the drone when the alt setpoint is jittering.
 	 */
 	Vector2f position_trajectory_xy(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
 	Vector2f position_xy(position);
 	Vector2f vel_traj_xy(_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity());
 	Vector2f drone_to_trajectory_xy(position_trajectory_xy - position_xy);
-	float position_error = drone_to_trajectory_xy.length();
+	float position_error_xy = drone_to_trajectory_xy.length();
 
-	float time_stretch = 1.f;
+	float time_stretch_xy = 1.f;
 
 	// Only stretch time if there's no division by zero and the drone isn't ahead of the position setpoint
 	if ((_max_allowed_horizontal_error > FLT_EPSILON)
 	    && drone_to_trajectory_xy.dot(vel_traj_xy) >= 0) {
-		time_stretch = 1.f - math::constrain(position_error / _max_allowed_horizontal_error, 0.f, 1.f);
+		time_stretch_xy = 1.f - math::constrain(position_error_xy / _max_allowed_horizontal_error, 0.f, 1.f);
 	}
 
 	if (drone_to_trajectory_xy.dot(vel_traj_xy) < 0.f) {
-		time_stretch = 1.f;
+		time_stretch_xy = 1.f;
 	}
 
+	// Same idea for the vertical axis: only stretch when the virtual trajectory is leading the
+	// drone AND moving further away from it. Reversing trajectories (virtual coming back toward
+	// the drone) are left alone so we can recover without artificially slowing down.
+	float time_stretch_z = 1.f;
+	const float drone_to_traj_z = _trajectory[2].getCurrentPosition() - position(2);
+	const float vel_traj_z = _trajectory[2].getCurrentVelocity();
+
+	if ((_max_allowed_vertical_error > FLT_EPSILON)
+	    && drone_to_traj_z * vel_traj_z >= 0.f) {
+		time_stretch_z = 1.f - math::constrain(fabsf(drone_to_traj_z) / _max_allowed_vertical_error, 0.f, 1.f);
+	}
+
+	// Axis 0,1 (XY) get the horizontal stretch; axis 2 (Z) gets the vertical stretch.
+	const float axis_stretch[3] = { time_stretch_xy, time_stretch_xy, time_stretch_z };
+
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateTraj(delta_time, time_stretch);
+		_trajectory[i].updateTraj(delta_time, axis_stretch[i]);
 		out_setpoints.jerk(i) = _trajectory[i].getCurrentJerk();
 		out_setpoints.acceleration(i) = _trajectory[i].getCurrentAcceleration();
 		out_setpoints.velocity(i) = _trajectory[i].getCurrentVelocity();

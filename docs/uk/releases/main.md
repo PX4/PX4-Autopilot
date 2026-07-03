@@ -92,11 +92,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Уточнюється
 
-### Літак з фіксованим крилом
+### Fixed-wing
 
 - Уточнюється
 
-### Ровер
+### Rover
 
 - Уточнюється
 

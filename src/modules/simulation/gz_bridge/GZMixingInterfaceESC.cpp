@@ -117,7 +117,9 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	for (int i = 0; i < limited_escs; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
 		esc_status.esc[i].esc_rpm = actuators.velocity(i);
+		esc_status.esc[i].esc_temperature = 50.f; // arbitrary, fixed ESC temperature
 		esc_status.esc_online_flags |= 1 << i;
+		esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
 
 		// This is a race condition with the failure detector, for smaller models it always resolves before
 		// the failure detector runs, but for larger models (with more than 8 ESCs) the failure detector

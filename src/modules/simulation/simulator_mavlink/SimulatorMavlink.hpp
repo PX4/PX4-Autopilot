@@ -47,6 +47,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
@@ -60,6 +61,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
@@ -80,8 +82,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/rpm.h>
 
 #include <random>
@@ -172,7 +172,7 @@ public:
 private:
 	SimulatorMavlink();
 
-	void check_failure_injections();
+	void updateFailureConfig();
 
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
@@ -217,8 +217,6 @@ private:
 	uORB::Publication<esc_status_s>			_esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
-
-	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
 	uint32_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
@@ -292,11 +290,10 @@ private:
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub{-1};
+	orb_sub_t _actuator_outputs_sub{ORB_SUB_INVALID};
 	actuator_outputs_s _actuator_outputs{};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -307,6 +304,8 @@ private:
 
 	vehicle_status_s _vehicle_status{};
 	battery_status_s _battery_status{};
+
+	failure_injection::Config _failure_config;
 
 	bool _accel_blocked[ACCEL_COUNT_MAX] {};
 	bool _accel_stuck[ACCEL_COUNT_MAX] {};

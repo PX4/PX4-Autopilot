@@ -57,14 +57,14 @@ bool LogWriterMavlink::init()
 
 LogWriterMavlink::~LogWriterMavlink()
 {
-	if (_ulog_stream_ack_sub >= 0) {
+	if (orb_sub_valid(_ulog_stream_ack_sub)) {
 		orb_unsubscribe(_ulog_stream_ack_sub);
 	}
 }
 
 void LogWriterMavlink::start_log()
 {
-	if (_ulog_stream_ack_sub == -1) {
+	if (!orb_sub_valid(_ulog_stream_ack_sub)) {
 		_ulog_stream_ack_sub = orb_subscribe(ORB_ID(ulog_stream_ack));
 	}
 

@@ -505,6 +505,55 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		break;
 	}
 
+	// Recover the navigation epoch in HRT: map msg.timestamp (node send UTC)
+	// into HRT, then subtract (msg.timestamp - msg.gnss_timestamp), which is
+	// the node-measured receiver processing delay. Nodes that leave
+	// msg.timestamp unset or on a non-UTC timebase fail the guard and fall
+	// through to the SENS_GPS*_DELAY path in VehicleGPSPosition.
+	const uint64_t msg_ts_usec = uavcan::UtcTime(msg.timestamp).toUSec();
+
+	// Sanity-bound the node-measured processing delay before it drives the clock
+	// estimator: a remote UTC discontinuity (leap second, receiver glitch) must
+	// not pin the offset low for the rest of the flight. Implausible values fall
+	// through to the SENS_GPS*_DELAY path.
+	static constexpr uint64_t kMaxProcessingDelayUs = 500'000;
+
+	if (msg_ts_usec > gnss_ts_usec && gnss_ts_usec > 0
+	    && (msg_ts_usec - gnss_ts_usec) < kMaxProcessingDelayUs) {
+		const int node_id = msg.getSrcNodeID().get();
+		ClockOffsetEstimator *estimator = nullptr;
+
+		for (auto &slot : _clock_estimator_slots) {
+			if (slot.node_id == node_id) {
+				estimator = &slot.estimator;
+				break;
+			}
+		}
+
+		if (estimator == nullptr) {
+			for (auto &slot : _clock_estimator_slots) {
+				if (slot.node_id < 0) {
+					slot.node_id = node_id;
+					estimator = &slot.estimator;
+					break;
+				}
+			}
+		}
+
+		if (estimator != nullptr) {
+			const hrt_abstime send_hrt = estimator->toLocal(msg_ts_usec, sensor_gps.timestamp);
+
+			if (send_hrt > 0) {
+				const int64_t processing_us = static_cast<int64_t>(msg_ts_usec - gnss_ts_usec);
+				const int64_t pvt_hrt = static_cast<int64_t>(send_hrt) - processing_us;
+
+				if (pvt_hrt > 0 && pvt_hrt < static_cast<int64_t>(sensor_gps.timestamp)) {
+					sensor_gps.timestamp_sample = static_cast<hrt_abstime>(pvt_hrt);
+				}
+			}
+		}
+	}
+
 	// If we haven't already done so, set the system clock using GPS data
 	if (sensor_gps.time_utc_usec != 0 && (fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
 		timespec ts{};

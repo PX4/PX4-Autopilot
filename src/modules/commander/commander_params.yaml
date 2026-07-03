@@ -171,8 +171,8 @@ parameters:
         long: |-
           Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
           for the user to realize.
-          During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-          Afterwards the configured failsafe action is triggered and the user may use stick override.
+          During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
+          Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
           A zero value disables the delay.
       type: float
@@ -268,34 +268,6 @@ parameters:
         1: Deny arming
         2: Warning only
       default: 2
-    COM_RC_OVERRIDE:
-      description:
-        short: Enable manual control stick override
-        long: |-
-          When enabled, moving the sticks more than COM_RC_STICK_OV
-          immediately gives control back to the pilot by switching to Position mode and
-          if position is unavailable Altitude mode.
-          Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-      type: bitmask
-      bit:
-        0: Enable override during auto modes (except for in critical battery reaction)
-        1: Enable override during offboard mode
-      default: 1
-      min: 0
-      max: 3
-    COM_RC_STICK_OV:
-      description:
-        short: Stick override threshold
-        long: |-
-          If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-          the pilot takes over control.
-      type: float
-      default: 30.0
-      unit: '%'
-      min: 5
-      max: 80
-      decimal: 0
-      increment: 0.05
     COM_ARM_MIS_REQ:
       description:
         short: Require valid mission to arm
@@ -330,6 +302,34 @@ parameters:
         0: one arm
         1: two step arm
       default: 0
+    COM_FLTMODE_BOOT:
+      description:
+        short: Flight mode on boot
+        long: |-
+          Flight mode set on boot and after a power cycle, before any RC input or
+          mode command is received.
+      type: enum
+      values:
+        0: Manual
+        1: Altitude
+        2: Position
+        3: Mission
+        4: Hold
+        6: Position Slow
+        8: Altitude Cruise
+        10: Acro
+        14: Offboard
+        15: Stabilized
+        17: Takeoff
+        23: External 1
+        24: External 2
+        25: External 3
+        26: External 4
+        27: External 5
+        28: External 6
+        29: External 7
+        30: External 8
+      default: 4
     COM_ARM_ON_BOOT:
       description:
         short: Arm automatically on boot
@@ -415,6 +415,12 @@ parameters:
         long: |-
           The manual control loss failsafe will only be entered after a timeout,
           set by COM_RC_LOSS_T in seconds.
+
+          "Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+          is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+          mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+          (e.g. without a valid position estimate), the normal failsafe takes over and escalates
+          from there (Return/Land/Descend/Terminate as applicable).
       type: enum
       values:
         1: Hold mode
@@ -422,6 +428,7 @@ parameters:
         3: Land mode
         5: Terminate
         6: Disarm
+        7: Hold mode (no failsafe)
       default: 2
     COM_RCL_EXCEPT:
       description:
@@ -595,6 +602,22 @@ parameters:
       decimal: 1
       increment: 0.1
       unit: s
+    COM_CC_TEMP_WARN:
+      description:
+        short: Companion computer high-temperature warning threshold
+        long: |-
+          
+          
+          Arming is not prevented as the temperature typically drops in flight.
+
+          Set to -1 to disable.
+      type: float
+      default: 80.0
+      min: -1
+      max: 127
+      decimal: 0
+      increment: 1
+      unit: celcius
     COM_WIND_WARN:
       description:
         short: Wind speed warning threshold

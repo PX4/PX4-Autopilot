@@ -11,7 +11,7 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 - The vehicle must be armed before this mode can be engaged.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
 - RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
-- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless handling a critical battery failsafe.
+- RC stick movement will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
   This is true for multicopters and VTOL in MC mode.
 
 :::
@@ -110,7 +110,7 @@ A very small subset are listed below.
 
 General parameters:
 
-| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                                                                                                                    |
+| Parameter                                                                                                                                                               | 설명                                                                                                                                                                                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                                  | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc.                                                                    |
 | <a id="COM_RC_OVERRIDE"></a>[COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE)                      | Controls whether stick movement on a multicopter (or VTOL in MC mode) gives control back to the pilot in [Position mode](../flight_modes_mc/position.md). 자동 모드와 오프보드 모드에 대해 별도로 활성화할 수 있으며, 기본적으로 자동 모드에서 활성화됩니다. |
@@ -118,7 +118,7 @@ General parameters:
 
 Parameters related to [mission feasibility checks](#mission-feasibility-checks):
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_DIST_1WP"></a>[MIS_DIST_1WP](../advanced_config/parameter_reference.md#MIS_DIST_1WP)                                  | There is a warning message if the distance of the first waypoint to Home is more than this value. Disabled if value is 0 or less. |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Maximum landing slope angle.                                                                                                                      |

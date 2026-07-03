@@ -118,11 +118,6 @@ public:
 		}
 	}
 
-	enum class RcOverrideBits : int32_t {
-		AUTO_MODE_BIT = (1 << 0),
-		OFFBOARD_MODE_BIT = (1 << 1),
-	};
-
 	struct State {
 		bool armed{false};
 		uint8_t user_intended_mode{0};

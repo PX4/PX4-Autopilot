@@ -430,9 +430,11 @@ void Navigator::run()
 				// CMD_DO_REPOSITION is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE
-				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				// only update the setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
-				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
+				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+				   && (_navigation_mode == &_course
+				       || _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+				// Only update the setpoint if armed and already in a mode that consumes it. Otherwise a later
+				// switch into Hold could execute a stale setpoint (loiter.cpp applies it within a 500ms window).
 
 				if (_navigation_mode == &_course) {
 					// In course mode, update altitude directly (after geofence check)
@@ -1007,8 +1009,7 @@ void Navigator::geofence_breach_check()
 		_time_loitering_after_gf_breach = 0;
 	}
 
-	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
+	if (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US) {
 
 		double current_latitude = _global_pos.lat;
 		double current_longitude = _global_pos.lon;
@@ -1044,9 +1045,11 @@ void Navigator::geofence_breach_check()
 					current_longitude, current_altitude);
 		}
 
-		_last_geofence_check = hrt_absolute_time();
+		const auto now = hrt_absolute_time();
 
-		_geofence_result.timestamp = hrt_absolute_time();
+		_last_geofence_check = now;
+
+		_geofence_result.timestamp = now;
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
 		const bool breach = _geofence_result.geofence_max_dist_triggered
@@ -1059,7 +1062,7 @@ void Navigator::geofence_breach_check()
 
 				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
-				rep->current.timestamp = hrt_absolute_time();
+				rep->current.timestamp = now;
 				rep->current.yaw = NAN;
 				rep->current.lat = current_latitude;
 				rep->current.lon = current_longitude;
@@ -1072,7 +1075,7 @@ void Navigator::geofence_breach_check()
 				rep->current.cruising_speed = get_cruising_speed();
 
 				_geofence_reposition_sent = true;
-				_time_loitering_after_gf_breach = hrt_absolute_time();
+				_time_loitering_after_gf_breach = now;
 			}
 
 		} else {

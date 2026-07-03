@@ -129,6 +129,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
+- [FailureInjection](FailureInjection.md) — Failure injection configuration.
 - [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
 - [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
@@ -193,6 +194,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [OffboardControlMode](OffboardControlMode.md) — Off-board control mode.
 - [OnboardComputerStatus](OnboardComputerStatus.md) — ONBOARD_COMPUTER_STATUS message data.
 - [OpenDroneIdArmStatus](OpenDroneIdArmStatus.md)
+- [OpenDroneIdBasicId](OpenDroneIdBasicId.md)
 - [OpenDroneIdOperatorId](OpenDroneIdOperatorId.md)
 - [OpenDroneIdSelfId](OpenDroneIdSelfId.md)
 - [OpenDroneIdSystem](OpenDroneIdSystem.md)
@@ -284,7 +286,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleOpticalFlow](VehicleOpticalFlow.md) — Optical flow in XYZ body frame in SI units.
 - [VehicleOpticalFlowVel](VehicleOpticalFlowVel.md)
 - [VehicleRoi](VehicleRoi.md) — Vehicle Region Of Interest (ROI).
-- [VehicleThrustSetpoint](VehicleThrustSetpoint.md)
+- [VehicleThrustSetpoint](VehicleThrustSetpoint.md) — Vehicle thrust setpoint.
 - [VehicleTorqueSetpoint](VehicleTorqueSetpoint.md)
 - [VelocityLimits](VelocityLimits.md) — Velocity and yaw rate limits for a multicopter position slow mode only.
 - [VteAidSource1d](VteAidSource1d.md) — Vision Target Estimator 1D fusion aid-source diagnostics (e.g. yaw).

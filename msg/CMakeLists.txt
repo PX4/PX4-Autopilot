@@ -91,6 +91,7 @@ set(msg_files
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FailureInjection.msg
 	FlightPhaseEstimation.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
@@ -233,8 +234,8 @@ set(msg_files
 	UlogStreamAck.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAccelerationSetpoint.msg
 	VehicleConstraints.msg
+	VehicleControlMode.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
@@ -268,6 +269,8 @@ set(msg_files
 	versioned/RaptorStatus.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
+	versioned/SetpointConfig.msg
+	versioned/SetpointConfigReply.msg
 	versioned/TrajectorySetpoint.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
@@ -275,7 +278,6 @@ set(msg_files
 	versioned/VehicleAttitudeSetpoint.msg
 	versioned/VehicleCommandAck.msg
 	versioned/VehicleCommand.msg
-	versioned/VehicleControlMode.msg
 	versioned/VehicleGlobalPosition.msg
 	versioned/VehicleLandDetected.msg
 	versioned/VehicleLocalPosition.msg

@@ -147,6 +147,12 @@ private:
 
 	void manualControlCheck();
 
+	/**
+	 * When NAV_RCL_ACT is set to "Hold mode (no failsafe)", switch from an active manual flight mode to Hold
+	 * on manual control loss as a regular mode change, without triggering the failsafe or an alarming notification.
+	 */
+	void manualControlLossModeSwitch();
+
 	void offboardControlCheck();
 
 	/**
@@ -210,11 +216,6 @@ private:
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
 		ALWAYS = 2
-	};
-
-	enum class RcOverrideBits : int32_t {
-		AUTO_MODE_BIT = (1 << 0),
-		OFFBOARD_MODE_BIT = (1 << 1),
 	};
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
@@ -282,6 +283,7 @@ private:
 	bool _mode_switch_mapped{false};
 
 	float _last_manual_throttle{-1.f};
+	bool _manual_control_lost_prev{false}; ///< previous manual_control_signal_lost state, for edge detection
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
@@ -343,11 +345,12 @@ private:
 		(ParamBool<px4::params::COM_HOME_IN_AIR>)   _param_com_home_in_air,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
-		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
 		(ParamBool<px4::params::COM_ARM_ON_BOOT>)   _param_com_arm_on_boot,
-		(ParamInt<px4::params::COM_ARM_TRAFF>)      _param_com_arm_traff
+		(ParamInt<px4::params::COM_FLTMODE_BOOT>)   _param_com_fltmode_boot,
+		(ParamInt<px4::params::COM_ARM_TRAFF>)      _param_com_arm_traff,
+		(ParamInt<px4::params::NAV_RCL_ACT>)        _param_nav_rcl_act
 	)
 };

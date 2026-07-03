@@ -837,6 +837,9 @@ Commander::Commander() :
 
 	updateParameters();
 
+	// Apply the configured boot flight mode before the first run
+	_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
+
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
@@ -900,7 +903,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE: {
 			// Accept only in modes where the navigator handles altitude changes in-place.
-			// No mode switching: if the current mode doesn't support it, deny.
+			// No mode switching: if the current mode doesn't support it, temporarily reject.
 			const uint8_t nav_state = _vehicle_status.nav_state;
 
 			if (nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE
@@ -908,7 +911,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
 		break;
@@ -1704,6 +1707,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
@@ -2022,6 +2026,8 @@ void Commander::run()
 		checkForMissionUpdate();
 
 		manualControlCheck();
+
+		manualControlLossModeSwitch();
 
 		offboardControlCheck();
 
@@ -2587,7 +2593,7 @@ void Commander::checkAndInformReadyForTakeoff()
 void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(isArmed(), _vehicle_status.nav_state_user_intention,
+	_mode_management.update(_vehicle_status.vehicle_type, isArmed(), _vehicle_status.nav_state_user_intention,
 				mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
@@ -2756,9 +2762,9 @@ void Commander::updateControlMode()
 {
 	_vehicle_control_mode = {};
 
+	const auto external_mode_setpoint_type = _mode_management.getSetpointType(_vehicle_status.nav_state);
 	mode_util::getVehicleControlMode(_vehicle_status.nav_state,
-					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode);
-	_mode_management.updateControlMode(_vehicle_status.nav_state, _vehicle_control_mode);
+					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode, external_mode_setpoint_type);
 
 	_vehicle_control_mode.flag_armed = isArmed();
 	_vehicle_control_mode.flag_multicopter_position_control_enabled =
@@ -2766,8 +2772,7 @@ void Commander::updateControlMode()
 		&& (_vehicle_control_mode.flag_control_altitude_enabled
 		    || _vehicle_control_mode.flag_control_climb_rate_enabled
 		    || _vehicle_control_mode.flag_control_position_enabled
-		    || _vehicle_control_mode.flag_control_velocity_enabled
-		    || _vehicle_control_mode.flag_control_acceleration_enabled);
+		    || _vehicle_control_mode.flag_control_velocity_enabled);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }
@@ -3118,50 +3123,55 @@ void Commander::manualControlCheck()
 		_last_manual_throttle = manual_control_setpoint.throttle;
 
 		if (isArmed()) {
-			// Abort autonomous mode and switch to position mode if sticks are moved significantly
-			// but only if actually in air.
-			if (manual_control_setpoint.sticks_moving
-			    && !_vehicle_control_mode.flag_control_manual_enabled
-			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-			   ) {
-				bool override_enabled = false;
+			// Hand control back to the pilot when they override with the sticks (see MAN_OVERRIDE_SPD).
+			// Only applies to multicopters (incl. VTOLs in MC mode) in auto/offboard modes.
+			const bool rotary_wing = (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			const bool overridable_mode = _vehicle_control_mode.flag_control_auto_enabled || _vehicle_control_mode.flag_control_offboard_enabled;
 
-				if (_vehicle_control_mode.flag_control_auto_enabled) {
-					if (_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::AUTO_MODE_BIT)) {
-						override_enabled = true;
+			if (manual_control_setpoint.sticks_moving && rotary_wing && overridable_mode) {
+				// If no failsafe is active, directly change the mode, otherwise pass the request to the failsafe state machine
+				if (_failsafe.selectedAction() <= FailsafeBase::Action::Warn) {
+					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, true)) {
+						tune_positive(true);
+						mavlink_log_info(&_mavlink_log_pub, "Pilot took over using sticks\t");
+						events::send(events::ID("commander_rc_override"), events::Log::Info, "Pilot took over using sticks");
 					}
-				}
 
-				if (_vehicle_control_mode.flag_control_offboard_enabled) {
-					if (_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::OFFBOARD_MODE_BIT)) {
-						override_enabled = true;
-					}
-				}
-
-				if (override_enabled) {
-					// If no failsafe is active, directly change the mode, otherwise pass the request to the failsafe state machine
-					if (_failsafe.selectedAction() <= FailsafeBase::Action::Warn) {
-						if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, true)) {
-							tune_positive(true);
-							mavlink_log_info(&_mavlink_log_pub, "Pilot took over using sticks\t");
-							events::send(events::ID("commander_rc_override"), events::Log::Info, "Pilot took over using sticks");
-						}
-
-					} else {
-						_failsafe_user_override_request = true;
-					}
+				} else {
+					_failsafe_user_override_request = true;
 				}
 			}
 
-		} else {
-			const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
-
-			// if there's never been a mode change force position control as initial state
-			if (!_user_mode_intention.everHadModeChange() && (is_mavlink || !_mode_switch_mapped)) {
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, false, true);
-			}
 		}
 	}
+}
+
+void Commander::manualControlLossModeSwitch()
+{
+	// NAV_RCL_ACT value that switches to Hold as a regular mode change instead of triggering the failsafe.
+	// Kept in sync with gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe (private to the failsafe).
+	static constexpr int32_t NAV_RCL_ACT_HOLD_NO_FAILSAFE = 7;
+
+	const bool manual_control_lost = _failsafe_flags.manual_control_signal_lost;
+
+	// Only act on the moment manual control is lost while actively flying a manual mode. Using an edge avoids
+	// repeatedly overriding the pilot if they command a different mode while manual control stays lost.
+	if (manual_control_lost && !_manual_control_lost_prev
+	    && isArmed()
+	    && _param_nav_rcl_act.get() == NAV_RCL_ACT_HOLD_NO_FAILSAFE
+	    && _vehicle_control_mode.flag_control_manual_enabled) {
+
+		// Force the switch to Hold as a regular mode change (no failsafe, no alarming notification).
+		// force=true skips the mode availability check on purpose: if Hold cannot actually run (e.g. without a
+		// valid position estimate), the failsafe mode-fallback escalates from there (Hold -> RTL -> Land/Descend/Terminate).
+		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::User, false, true);
+
+		mavlink_log_info(&_mavlink_log_pub, "Manual control lost: switching to Hold\t");
+		events::send(events::ID("commander_rc_loss_hold_no_failsafe"), {events::Log::Info, events::LogInternal::Info},
+			     "Manual control lost: switching to Hold");
+	}
+
+	_manual_control_lost_prev = manual_control_lost;
 }
 
 void Commander::offboardControlCheck()
