@@ -481,8 +481,7 @@ private:
 		(ParamInt<px4::params::RNG_2_ID>)           _param_rng2_id,
 		(ParamInt<px4::params::RNG_2_LAT>)          _param_rng2_lat,
 		(ParamInt<px4::params::RNG_2_LON>)          _param_rng2_lon,
-		(ParamFloat<px4::params::RNG_2_AMSL>)       _param_rng2_amsl,
-		(ParamFloat<px4::params::RNG_CAL_OFF>)      _param_rng_cal_off
+		(ParamFloat<px4::params::RNG_2_AMSL>)       _param_rng2_amsl
 	);
 
 	// Disallow copy construction and move assignment.
