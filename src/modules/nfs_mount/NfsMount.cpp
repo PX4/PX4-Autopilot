@@ -124,17 +124,19 @@ void NfsMount::run()
 	args.path    = const_cast<char *>(NFS_SERVER_PATH);
 
 	while (!should_exit()) {
-		/* Probe portmapper via socket API — recv() waits on the socket
-		 * semaphore, not net_lock, so no priority inheritance starvation.
-		 * Only call mount() once the server is confirmed responsive. */
+		/* Probe portmapper via socket API before calling mount(): mount() acquires
+		 * net_lock internally, which can cause priority-inheritance starvation if
+		 * the server is unreachable.  recv() on a plain socket blocks on the socket
+		 * semaphore (not net_lock), so we use it to confirm the server is responsive
+		 * before handing control to mount(). */
 		if (portmapper_up(sin.sin_addr.s_addr)) {
 			if (mount(nullptr, NFS_MOUNT_POINT, "nfs", 0, &args) == 0) {
 				PX4_INFO("mounted %s:%s at %s", ip_str, NFS_SERVER_PATH, NFS_MOUNT_POINT);
 
 				nfs_up_s msg{};
 				msg.timestamp = hrt_absolute_time();
-				// Use orb_advertise directly — intentionally not unadvertised so
-				// the topic remains visible after this one-shot module exits.
+				// Use orb_advertise instead of publish to ensure the topic remains visible
+				// after this one-shot module exits.
 				orb_advertise(ORB_ID(nfs_up), &msg);
 
 				return;
