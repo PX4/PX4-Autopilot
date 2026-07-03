@@ -54,6 +54,11 @@ bool Position::valid() const
 	       && (fabs(lat) <= 90.0) && (fabs(lon) <= 180.0);
 }
 
+bool isLandingCmd(uint16_t nav_cmd)
+{
+	return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;
+}
+
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
 {
 	if (mission_item.altitude_is_relative) {

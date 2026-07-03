@@ -218,7 +218,7 @@ protected:
 		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
 						      reinterpret_cast<uint8_t *>(&empty_stats), sizeof(empty_stats)));
 
-		_navigator.get_mission_route_cache()->invalidate();
+		_navigator.get_mission_route_cache().invalidate();
 
 		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
 		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
@@ -227,7 +227,7 @@ protected:
 
 	void TearDown() override
 	{
-		_navigator.get_mission_route_cache()->invalidate();
+		_navigator.get_mission_route_cache().invalidate();
 
 		if (_home_pub != nullptr) {
 			orb_unadvertise(_home_pub);
@@ -267,10 +267,10 @@ protected:
 		mission.safe_points_id = ++_safe_points_id;
 		mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
 
-		MissionRouteCache *mission_route_cache = _navigator.get_mission_route_cache();
-		mission_route_cache->invalidate();
-		ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(*mission_route_cache, mission,
-				[&] { return mission_route_cache->safePointsReady(); }))
+		MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
+		mission_route_cache.invalidate();
+		ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
+				[&] { return mission_route_cache.safePointsReady(); }))
 				<< "test safe points did not load";
 	}
 

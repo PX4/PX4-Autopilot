@@ -94,7 +94,6 @@ public:
 		       && (_mission_land.validation_pending || _mission_land.retry.retry_at != 0);
 	}
 
-	inline bool isMissionLandCommand(uint16_t nav_cmd) const { return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;}
 	int missionCount() const override;
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override;
 	int safePointCount() const override;

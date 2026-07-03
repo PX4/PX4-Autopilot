@@ -44,6 +44,8 @@
 
 #include "mission_route_cache.h"
 
+#include "mission_route_types.h"
+
 #include <inttypes.h>
 
 #include <px4_platform_common/log.h>
@@ -74,12 +76,6 @@ bool MissionRouteCache::queueMissionCacheLoads(const mission_s &mission)
 
 	// Rebuild the mission cache from scratch, callers retry the full queue on failure.
 	_dataman_cache_mission.invalidate();
-
-	if (static_cast<int32_t>(_dataman_cache_mission.size()) < mission.count) {
-		PX4_ERR("Mission cache capacity too small! requested: %d, capacity: %d",
-			static_cast<int>(mission.count), static_cast<int>(_dataman_cache_mission.size()));
-		return false;
-	}
 
 	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(mission.mission_dataman_id);
 
@@ -134,7 +130,7 @@ bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 		return false;
 	}
 
-	return isMissionLandCommand(land_item.nav_cmd);
+	return mission_route::isLandingCmd(land_item.nav_cmd);
 }
 
 bool MissionRouteCache::safePointCacheFullyLoaded() const
@@ -242,7 +238,7 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 		return false;
 	}
 
-	if (!isMissionLandCommand(cached_land_item.nav_cmd)) {
+	if (!mission_route::isLandingCmd(cached_land_item.nav_cmd)) {
 		return false;
 	}
 
@@ -288,7 +284,7 @@ bool MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
 				return false;
 			}
 
-			if (!isMissionLandCommand(mission_item.nav_cmd)) {
+			if (!mission_route::isLandingCmd(mission_item.nav_cmd)) {
 				_dataman_cache_land_item.invalidate();
 				_mission_land.ready = false;
 				_mission_land.validation_pending = false;
@@ -300,7 +296,7 @@ bool MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
 			_mission_land.validation_pending = false;
 			_mission_land.retry.clear();
 
-			if (isMissionLandCommand(mission_item.nav_cmd)) {
+			if (mission_route::isLandingCmd(mission_item.nav_cmd)) {
 				_mission_land.validation_pending = queueMissionLandItem();
 
 				if (!_mission_land.validation_pending) {
@@ -331,6 +327,13 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission)
 		state.dataman_id = mission.mission_dataman_id;
 		state.ready = mission.count == 0;
 		state.too_large = missionExceedsCacheLimit(mission);
+
+		// If mission exceed the capacity (e.g. the boot-time cache allocation failed) no recovery is possible.
+		if (!state.too_large && static_cast<int32_t>(_dataman_cache_mission.size()) < mission.count) {
+			PX4_ERR("Mission cache capacity too small, cache disabled! requested: %d, capacity: %d",
+				static_cast<int>(mission.count), static_cast<int>(_dataman_cache_mission.size()));
+			state.too_large = true;
+		}
 
 		if (!state.too_large && mission.count > 0) {
 			state.validation_pending = queueMissionCacheLoads(mission);
