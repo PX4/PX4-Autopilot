@@ -1,8 +1,8 @@
-# Hardfault Logging on Boards Without Non-Volatile Memory
+# Hardfault Logging on Boards Without Usable Non-Volatile Memory
 
-This Section introduce how to setup a board-config to persist a hardfault over warm-reset (power-cycle not covered)
-on boards without a non-volatile storage (sd-card, BBSRAM, PROGMEM, SSARC, …).
-The Hardfault is provided via uORB-log-msg topic after warm-reset.
+This section shows how to setup a board to save a hardfault persistently over warm-reset (only), on boards without usable non-volatile storage.  
+The Hardfault is provided via the uORB-topic `log_message` on reset.  
+Some settings and instructions are already provided by px4-common-files and only mentioned for completness.
 
 ## Overview
 
@@ -12,30 +12,48 @@ Configuration needed:
 - \#DEFINES in `src/board_config.h`:
   - `BOARD_HAS_RAM_HARDFAULT_DUMP`
   - `BOARD_RAM_HARDFAULT_USTACK_BYTES`
-- Memory region in the board's linker script: That survives a warm reset (not zero-initialized) and is big enough for the dump buffer:
-  `sizeof(px4_ram_hardfault_dump_s)` (`sizeof(uint32_t)` + `sizeof(fullcontext_s)`, which depends on `BOARD_RAM_HARDFAULT_USTACK_BYTES`)
+- Memory region in the board's linker script, that survives a warm reset (not zero-initialized) and is big enough for the dump buffer:  
+  `sizeof(px4_ram_hardfault_dump_s)` = `sizeof(uint32_t)` + `sizeof(fullcontext_s)`  
+`fullcontext_s` depends on `BOARD_RAM_HARDFAULT_USTACK_BYTES`
 - Setup module Hardfault_Stream:
   - `CONFIG_MODULES_HARDFAULT_STREAM=y`
-  - `hardfault_stream start` in startup script
-- Optional: `CONFIG_MODULES_TASK_WATCHDOG=y` to also stream live task/CPU-load dumps through the same path (unrelated feature, same mechanism).
-- Optional: `cmake/linker_preprocess.cmake` to keep the linker-script region-size and `BOARD_RAM_HARDFAULT_USTACK_BYTES` in sync automatically, instead of hand-sizing the region. (see example for reference)
+  - `hardfault_stream start`
+- Optional: `CONFIG_MODULES_TASK_WATCHDOG=y`  
+To also stream live task/CPU-load dumps through the same path (unrelated feature, same mechanism).
+- Optional: `cmake/linker_preprocess.cmake`  
+To keep the linker-script region-size and `BOARD_RAM_HARDFAULT_USTACK_BYTES` in sync automatically, instead of hand-sizing the region. (see [example](#example-implementation-and-configuration) for reference).
 
-## Examples Configuration
+## Example Implementation And Configuration
 
-#### nuttx-config/<config>/defconfig
+#### defconfig
 
 ```sh
 CONFIG_BOARD_CRASHDUMP=y
 ```
 
-#### src/board_config.h
+#### board_config.h
 
 ```c
 #define BOARD_HAS_RAM_HARDFAULT_DUMP
-#define BOARD_RAM_HARDFAULT_USTACK_BYTES 4096 // bytes of user stack to capture, check actual usage with `top`
-// IRAM can be taken from `CONFIG_ARCH_INTERRUPTSTACK`
+// bytes of user stack to capture, check actual usage with `top`
+#define BOARD_RAM_HARDFAULT_USTACK_BYTES 4096
+// ISTACK is taken from `CONFIG_ARCH_INTERRUPTSTACK`
 ```
-#### nuttx-config/scripts/script.ld
+
+#### `<board>.px4board` And Startup Script
+
+```sh
+CONFIG_MODULES_HARDFAULT_STREAM=y
+```
+
+```sh
+# in the board's rcS, after the log transport is up
+hardfault_stream start
+# <optional> to also log task-starvation
+task_watchdog start
+```
+
+#### script.ld
 
 ```ld
 MEMORY
@@ -53,21 +71,11 @@ MEMORY
 _noinit_size = SIZEOF(.noinit);
 ```
 
-#### `<board>.px4board` And Startup Script
-
-```sh
-CONFIG_MODULES_HARDFAULT_STREAM=y
-```
-
-```sh
-# in the board's rcS, after the log transport is up
-hardfault_stream start
-```
-
 ### Optional:
 ##### keep the linker-script size in sync (`cmake/linker_preprocess.cmake`)
 
-Instead of hand-sizing the `noinit` region, a preprocessor-script `${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake` can be used compute and inject the region-size into `script.ld`:
+Instead of hand-sizing the `noinit` region, a preprocessor-script `${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake`  
+can be used to compute and inject the region-size into `script.ld`:
 
 ```cmake
 # >> Values can differ from board to board <<
@@ -106,4 +114,6 @@ set(_ld_script_flag "-Wl,--script=${_ld_script_pp}")
 `task_watchdog` (`CONFIG_MODULES_TASK_WATCHDOG=y`)
 
 ## What Happens
-On hardfault, `the board_crashdump()` stashes the fault-context to the `.noinit` region and resets; on the next boot the [hardfault_stream](../modules/modules_system.md#hardfault-stream) checks for valid hadfault-log and streams it out as a hex dump over `PX4_INFO`/`PX4_ERR` (picked up by `ORB_ID(log_message)`. From there by whatever transport the board forwards log messages over, e.g. DroneCAN). [Tools/hardfaults_rawhex_decode.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/hardfaults_rawhex_decode.py) turns a captured hex dump back into a CrashDebug-compatible coredump or a PX4-style fault log.
+On hardfault, the `board_crashdump()` stashes the fault-context to the `.noinit` region and resets.  
+On the next boot, the [hardfault_stream](../modules/modules_system.md#hardfault-stream) checks for valid hadfault-log and streams it out as a hex dump over `PX4_INFO`/`PX4_ERR` (picked up by `ORB_ID(log_message)`. The log_message is forwarded by the configured tool (e.g. DroneCAN).  
+The captured hex-dump can be parsed into a CrashDebug-compatible coredump or a PX4-style fault log by using [Tools/hardfaults_rawhex_decode.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/hardfaults_rawhex_decode.py).

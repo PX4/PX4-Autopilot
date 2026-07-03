@@ -200,7 +200,7 @@ typedef struct ssarc_s dump_s;
 	}
 #elif defined(BOARD_HAS_RAM_HARDFAULT_DUMP)
 
-/* .noinit RAM dump backend (no BBSRAM/progmem/SSARC).
+/* .noinit RAM dump backend
  * Stack capture fills the noinit region after the magic word and info_s. */
 #include <time.h>
 /* Minimal dump descriptor - only the timestamp field is used during formatting */
@@ -417,7 +417,7 @@ typedef struct {
  * Boards opting into this mechanism must define BOARD_HAS_RAM_HARDFAULT_DUMP
  */
 typedef struct {
-	uint32_t      magic;    /* BOARD_RAM_HARDFAULT_MAGIC when context is valid */
+	volatile uint32_t magic; /* BOARD_RAM_HARDFAULT_MAGIC when context is valid */
 	fullcontext_s context;
 } px4_ram_hardfault_dump_s;
 

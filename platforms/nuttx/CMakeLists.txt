@@ -404,7 +404,7 @@ else()
 
 	# Provide the possibility to preprocess linker by providing cmake/linker_preprocess.cmake
 	set(_ld_script_flag "-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld")
-	if(EXISTS "${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake")
+	if(NOT SCRIPT_PREFIX AND EXISTS "${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake")
 		include(${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake)
 	endif()
 
