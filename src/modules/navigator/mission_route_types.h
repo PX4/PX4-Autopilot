@@ -64,6 +64,8 @@ struct Position {
 	bool valid() const;
 };
 
+bool isLandingCmd(uint16_t nav_cmd);
+
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl);
 
 /** @brief Extract the valid position from a rally-point safe-point item. */
