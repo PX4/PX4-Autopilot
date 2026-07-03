@@ -137,6 +137,14 @@ protected:
 				found = getFileInfo(bin_file_path, descriptor) == 0;
 			}
 
+			if (!found && !nfs_base_path_.empty()) {
+				snprintf(bin_file_name, sizeof(bin_file_name), "%u.bin", board_id);
+				snprintf(bin_file_path, sizeof(bin_file_path), "%s/%s",
+					 nfs_base_path_.c_str(), bin_file_name);
+
+				found = getFileInfo(bin_file_path, descriptor) == 0;
+			}
+
 			if (found && (node_info.software_version.image_crc == 0 ||
 				      (node_info.software_version.major == 0 && node_info.software_version.minor == 0) ||
 				      descriptor.image_crc != node_info.software_version.image_crc)) {
