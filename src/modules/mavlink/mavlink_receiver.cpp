@@ -2744,13 +2744,6 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 
-	// Subtract the ranging calibration offset from the measured range (RNG_CAL_OFF < 0 disables it).
-	const float range_cal_off = _param_rng_cal_off.get();
-
-	if (range_cal_off >= 0.f && PX4_ISFINITE(ranging_beacon.range)) {
-		ranging_beacon.range -= range_cal_off;
-	}
-
 	// Fill lat/lon/alt from the configured ground-station anchor when beacon_id matches a slot
 	// (lat/lon in deg * 1e7, alt AMSL); other beacons keep the message position. Intended as an
 	// intermediate solution while the RANGING_BEACON message arrives with empty lat/lon/alt.
