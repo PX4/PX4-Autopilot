@@ -230,7 +230,7 @@ void SbgEcom::handleLogMag(const SbgEComLogUnion *ref_sbg_data, void *user_arg)
 	SbgEcom *instance = static_cast<SbgEcom *>(user_arg);
 
 	// publish sensor_mag
-	instance->_px4_mag.update(ref_sbg_data->magData.timeStamp,
+	instance->_px4_mag.update(hrt_absolute_time(),
 				  (ref_sbg_data->magData.magnetometers[0]),
 				  (ref_sbg_data->magData.magnetometers[1]),
 				  (ref_sbg_data->magData.magnetometers[2]));
