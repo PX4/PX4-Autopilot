@@ -38,12 +38,12 @@ if(CONFIG_NAVIGATOR_ADSB)
 	add_subdirectory(DetectAndAvoid)
 endif()
 
-px4_add_library(navigator_mission_route_planner
+px4_add_library(navigator_mission_route
 	mission_route_types.cpp
 	mission_route_provider.cpp
 )
 
-target_link_libraries(navigator_mission_route_planner PUBLIC geo)
+target_link_libraries(navigator_mission_route PUBLIC geo)
 
 if(BUILD_TESTING)
 	add_subdirectory(test)
@@ -74,6 +74,7 @@ set(NAVIGATOR_DEPENDS
 	geo
 	motion_planning
 	mission_feasibility_checker
+	navigator_mission_route
 	rtl_time_estimator)
 
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)

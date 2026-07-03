@@ -50,30 +50,18 @@ namespace mission_route
 {
 
 /**
- * @brief Data source used by the planner.
+ * @brief Safe-point data source for the RTL landing-approach scans.
  *
  * Navigator passes MissionRouteCache here. Tests can pass an in-memory provider,
- * which keeps the route geometry code independent from dataman and uORB.
+ * which keeps the scan logic independent from dataman and uORB.
  */
 class Provider
 {
 public:
 	virtual ~Provider() = default;
 
-	virtual int missionCount() const = 0;
-	virtual bool loadMissionItem(int index, mission_item_s &mission_item) const = 0;
 	virtual int safePointCount() const = 0;
 	virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
-
-	/** @brief Load the mission item referenced by the active mission's published land_index. */
-	virtual bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const = 0;
-	/**
-	 * @brief Find the mission takeoff item.
-	 *
-	 * The default implementation skips leading non-position setup commands but stops as soon as the
-	 * mission reaches its first other position-bearing item.
-	 */
-	virtual bool getMissionTakeoffItem(int32_t &index, mission_item_s &takeoff_item) const;
 
 	/**
 	 * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
@@ -87,7 +75,6 @@ public:
 	virtual bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
 			float home_altitude_amsl) const;
 	virtual bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
-	virtual bool anySafePointHasVtolLandApproach(float home_altitude_amsl) const;
 
 protected:
 	/**

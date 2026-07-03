@@ -34,8 +34,8 @@
 /**
  * @file mission_route_provider.cpp
  *
- * Default implementations for the mission-route Provider interface: mission takeoff
- * lookup and the VTOL landing-approach block scanning shared by RTL features.
+ * Default implementations for the mission-route Provider interface:
+ * the VTOL landing-approach block scanning shared by RTL features.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -43,35 +43,11 @@
 #include "mission_route_provider.h"
 
 #include "mission_route_types.h"
-#include "mission_item_utils.h"
 
 #include <lib/geo/geo.h>
 
 namespace mission_route
 {
-
-bool Provider::getMissionTakeoffItem(int32_t &index, mission_item_s &takeoff_item) const
-{
-	for (int i = 0; i < missionCount(); ++i) {
-		mission_item_s item{};
-
-		if (!loadMissionItem(i, item)) {
-			break;
-		}
-
-		if (item.nav_cmd == NAV_CMD_TAKEOFF || item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
-			index = i;
-			takeoff_item = item;
-			return true;
-		}
-
-		if (mission_item_contains_position(item)) {
-			break;
-		}
-	}
-
-	return false;
-}
 
 bool Provider::scanVtolLandApproachBlock(int safe_point_index, float home_altitude_amsl,
 		land_approaches_s *result) const
@@ -174,33 +150,6 @@ bool Provider::hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_
 bool Provider::hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const
 {
 	return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, nullptr);
-}
-
-bool Provider::anySafePointHasVtolLandApproach(float home_altitude_amsl) const
-{
-	const int safe_point_count = safePointCount();
-
-	for (int safe_point_index = 0; safe_point_index < safe_point_count; ++safe_point_index) {
-		mission_item_s safe_point_item{};
-
-		// Only rally points with a valid position can anchor a landing-approach block.
-		if (!loadSafePointItem(safe_point_index, safe_point_item)
-		    || safe_point_item.nav_cmd != NAV_CMD_RALLY_POINT) {
-			continue;
-		}
-
-		Position safe_point_position{};
-
-		if (!extractSafePointPosition(safe_point_item, home_altitude_amsl, safe_point_position)) {
-			continue;
-		}
-
-		if (hasVtolLandApproachesAtSafePointIndex(safe_point_index, home_altitude_amsl)) {
-			return true;
-		}
-	}
-
-	return false;
 }
 
 } // namespace mission_route

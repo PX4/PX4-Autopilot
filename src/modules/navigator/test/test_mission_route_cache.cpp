@@ -141,79 +141,6 @@ protected:
 	MissionRouteCache _cache{};
 };
 
-// Fully loaded mission cache with readable items.
-TEST_F(MissionRouteCacheTest, MissionCacheLoadsAllMissionItems)
-{
-	// Ten mission items in dataman.
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt + 10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt + 20.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f,  20.f, kAlt + 25.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f,  40.f, kAlt + 30.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f,  60.f, kAlt + 35.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f,  80.f, kAlt + 40.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 100.f, kAlt + 45.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 700.f, 120.f, kAlt + 50.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 800.f, 140.f, kAlt + 55.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 900.f, 160.f, kAlt),
-	};
-	const mission_s mission = makeMission(17, static_cast<uint16_t>(mission_items.size()), 0,
-					      static_cast<int32_t>(mission_items.size() - 1));
-	writeMissionItems(mission_items);
-
-	// Drive the async cache until ready.
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
-			<< "mission cache did not become ready";
-
-	// Every cached item matches the source.
-	ASSERT_EQ(_cache.missionCount(), static_cast<int>(mission_items.size()));
-
-	for (size_t i = 0; i < mission_items.size(); ++i) {
-		mission_item_s cached_item{};
-		ASSERT_TRUE(_cache.loadMissionItem(mission, static_cast<int32_t>(i), cached_item));
-		expectMissionItemMatches(cached_item, mission_items[i]);
-	}
-}
-
-// Incomplete mission loads stay unavailable and schedule a retry.
-TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenCacheIsIncomplete)
-{
-	// Only the first item was queued for a two-item mission.
-	const mission_s mission = makeMission(18, 2);
-	writeMissionItem(makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt), 0);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::preparePartialMissionCache(_cache, mission, 0));
-
-	// Drive validation on the incomplete cache.
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
-			[&] { return MissionRouteCacheTestPeer::missionRetryScheduled(_cache); }))
-			<< "mission cache retry was not scheduled";
-
-	// The retry counter advances without exposing partial data.
-	EXPECT_FALSE(_cache.isReady(mission));
-	EXPECT_EQ(_cache.missionCount(), 0);
-	EXPECT_GT(MissionRouteCacheTestPeer::missionRetryCount(_cache), 0U);
-
-	mission_item_s cached_item{};
-	EXPECT_FALSE(_cache.loadMissionItem(mission, 0, cached_item));
-}
-
-// Oversized missions are rejected before cache loads are queued.
-TEST_F(MissionRouteCacheTest, MissionCacheRejectsTooLargeMission)
-{
-	// One item beyond the configured cache size.
-	const mission_s mission = makeMission(19, static_cast<uint16_t>(MissionRouteCache::kMaxRouteMissionCacheSize + 1));
-
-	// Driving the cache never makes an oversized mission ready and exposes no items.
-	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
-
-	EXPECT_TRUE(_cache.missionExceedsCacheLimit(mission));
-	EXPECT_FALSE(_cache.isReady(mission));
-	EXPECT_EQ(_cache.missionCount(), 0);
-
-	mission_item_s cached_item{};
-	EXPECT_FALSE(_cache.loadMissionItem(mission, 0, cached_item));
-}
-
 // The dedicated land-item cache is not exposed until the async load has been validated.
 TEST_F(MissionRouteCacheTest, MissionLandItemIsHiddenUntilValidated)
 {
@@ -254,11 +181,11 @@ TEST_F(MissionRouteCacheTest, MissionLandItemLoadsReferencedWaypoint)
 	const mission_s mission = makeMission(20, static_cast<uint16_t>(mission_items.size()), 0, land_index_expected);
 	writeMissionItems(mission_items);
 
-	// Wait for mission and land-item caches.
+	// Wait for the land-item cache.
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		int32_t ready_index = -1;
 		mission_item_s ready_land_item{};
-		return _cache.isReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
+		return _cache.getMissionLandItem(ready_index, ready_land_item);
 	}))
 			<< "mission land item did not become ready";
 
@@ -285,9 +212,8 @@ TEST_F(MissionRouteCacheTest, MissionLandItemRejectsOutOfBoundsPublishedIndex)
 					      static_cast<int32_t>(mission_items.size()));
 	writeMissionItems(mission_items);
 
-	// The mission cache itself still becomes ready.
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
-			<< "mission cache did not become ready";
+	// An invalid index queues nothing, so a single update settles the land state.
+	_cache.update(mission);
 
 	// No land item is exposed from the invalid index.
 	EXPECT_FALSE(_cache.missionLandItemReady());
@@ -428,57 +354,6 @@ TEST_F(MissionRouteCacheTest, SafePointSourceChangeDuringLoadDoesNotExposeStaleD
 	EXPECT_EQ(_cache.safePointCount(), 1);
 }
 
-// An empty mission is immediately ready and exposes no items.
-TEST_F(MissionRouteCacheTest, EmptyMissionIsReadyAndHasNoItems)
-{
-	const mission_s mission = makeMission(30, 0);
-
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
-			<< "empty mission did not become ready";
-
-	EXPECT_TRUE(_cache.isReady(mission));
-	EXPECT_EQ(_cache.missionCount(), 0);
-
-	mission_item_s cached_item{};
-	EXPECT_FALSE(_cache.loadMissionItem(mission, 0, cached_item));
-}
-
-// A mission_dataman_id change reloads the cache from the new storage.
-TEST_F(MissionRouteCacheTest, MissionDatamanIdChangeReloadsCache)
-{
-	const std::vector<mission_item_s> mission_items_0{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-	};
-	const std::vector<mission_item_s> mission_items_1{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 20.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt),
-	};
-
-	// Load the mission from storage 0.
-	const mission_s mission_0 = makeMission(31, static_cast<uint16_t>(mission_items_0.size()), 0, -1,
-						DM_KEY_WAYPOINTS_OFFBOARD_0);
-	writeMissionItems(mission_items_0, DM_KEY_WAYPOINTS_OFFBOARD_0);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_0, [&] { return _cache.isReady(mission_0); }))
-			<< "mission cache did not become ready";
-
-	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission_0, 1, cached_item));
-	expectMissionItemMatches(cached_item, mission_items_0[1]);
-
-	// Same mission_id and count, but now stored in dataman id 1.
-	const mission_s mission_1 = makeMission(31, static_cast<uint16_t>(mission_items_1.size()), 0, -1,
-						DM_KEY_WAYPOINTS_OFFBOARD_1);
-	writeMissionItems(mission_items_1, DM_KEY_WAYPOINTS_OFFBOARD_1);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_1, [&] { return _cache.isReady(mission_1); }))
-			<< "mission cache did not reload after dataman id change";
-
-	// The stale storage-0 mission no longer matches the cache.
-	EXPECT_FALSE(_cache.isReady(mission_0));
-	ASSERT_TRUE(_cache.loadMissionItem(mission_1, 1, cached_item));
-	expectMissionItemMatches(cached_item, mission_items_1[1]);
-}
-
 // A zero-count safe-point set is a valid ready-and-empty state.
 TEST_F(MissionRouteCacheTest, SafePointZeroCountIsReadyAndEmpty)
 {
@@ -567,155 +442,4 @@ TEST_F(MissionRouteCacheTest, SafePointCacheRejectsInvalidDatamanId)
 
 	EXPECT_FALSE(_cache.safePointsReady());
 	EXPECT_EQ(_cache.safePointCount(), 0);
-}
-
-// Patching a non-land item keeps the mission cache coherent.
-TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionCache)
-{
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const mission_s mission = makeMission(40, static_cast<uint16_t>(mission_items.size()));
-	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
-			<< "mission cache did not become ready";
-
-	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
-	ASSERT_TRUE(_cache.syncMissionItem(mission, 1, updated));
-
-	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission, 1, cached_item));
-	expectMissionItemMatches(cached_item, updated);
-}
-
-// Patching the land item keeps both the mission cache and the dedicated land cache coherent.
-TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionLandCache)
-{
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const int32_t land_index = 2;
-	const mission_s mission = makeMission(41, static_cast<uint16_t>(mission_items.size()), 0, land_index);
-	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
-		int32_t ready_index = -1;
-		mission_item_s ready_land_item{};
-		return _cache.isReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
-	}))
-			<< "mission land item did not become ready";
-
-	const mission_item_s updated_land = makeLandItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
-	ASSERT_TRUE(_cache.syncMissionItem(mission, land_index, updated_land));
-
-	int32_t out_index = -1;
-	mission_item_s land_item{};
-	ASSERT_TRUE(_cache.getMissionLandItem(out_index, land_item));
-	EXPECT_EQ(out_index, land_index);
-	expectMissionItemMatches(land_item, updated_land);
-
-	// The mission cache reflects the same patch.
-	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission, land_index, cached_item));
-	expectMissionItemMatches(cached_item, updated_land);
-}
-
-// Changing the published land item to a non-land command makes the dedicated land cache unavailable.
-TEST_F(MissionRouteCacheTest, SyncMissionItemInvalidatesMissionLandCacheForNonLandCommand)
-{
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const int32_t land_index = 2;
-	const mission_s mission = makeMission(43, static_cast<uint16_t>(mission_items.size()), 0, land_index);
-	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
-		int32_t ready_index = -1;
-		mission_item_s ready_land_item{};
-		return _cache.isReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
-	}))
-			<< "mission land item did not become ready";
-
-	const mission_item_s updated_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
-	ASSERT_TRUE(_cache.syncMissionItem(mission, land_index, updated_item));
-
-	EXPECT_FALSE(_cache.missionLandItemReady());
-	EXPECT_TRUE(_cache.missionLandItemUpdatePending());
-
-	// Failed reads leave output parameters untouched.
-	int32_t out_index = 123;
-	mission_item_s land_item{};
-	EXPECT_FALSE(_cache.getMissionLandItem(out_index, land_item));
-	EXPECT_EQ(out_index, 123);
-
-	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission, land_index, cached_item));
-	expectMissionItemMatches(cached_item, updated_item);
-}
-
-// Syncing the land index while its dedicated cache is pending must discard the stale pending read.
-TEST_F(MissionRouteCacheTest, SyncMissionItemInvalidatesPendingMissionLandCacheForNonLandCommand)
-{
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	const int32_t land_index = 2;
-	const mission_s mission = makeMission(44, static_cast<uint16_t>(mission_items.size()), 0, land_index);
-	writeMissionItems(mission_items);
-
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
-		return _cache.isReady(mission) && _cache.missionLandItemUpdatePending() && !_cache.missionLandItemReady();
-	}))
-			<< "mission cache did not become ready before the land-item cache";
-
-	const mission_item_s updated_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
-	ASSERT_TRUE(_cache.syncMissionItem(mission, land_index, updated_item));
-
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
-			[&] { return MissionRouteCacheTestPeer::missionLandRetryScheduled(_cache); }))
-			<< "mission land cache retry was not scheduled";
-
-	EXPECT_FALSE(_cache.missionLandItemReady());
-	EXPECT_TRUE(_cache.missionLandItemUpdatePending());
-
-	// Failed reads leave output parameters untouched.
-	int32_t out_index = 123;
-	mission_item_s land_item{};
-	EXPECT_FALSE(_cache.getMissionLandItem(out_index, land_item));
-	EXPECT_EQ(out_index, 123);
-
-	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission, land_index, cached_item));
-	expectMissionItemMatches(cached_item, updated_item);
-}
-
-// syncMissionItem only patches the active mission it was loaded for.
-TEST_F(MissionRouteCacheTest, SyncMissionItemRejectsInactiveMission)
-{
-	const std::vector<mission_item_s> mission_items{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-	};
-	const mission_s mission = makeMission(42, static_cast<uint16_t>(mission_items.size()));
-	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
-			<< "mission cache did not become ready";
-
-	// A mission that does not match the cached one must be rejected.
-	mission_s other_mission = mission;
-	other_mission.mission_id = 999;
-	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 5.f);
-	EXPECT_FALSE(_cache.syncMissionItem(other_mission, 0, updated));
-
-	// The original cached item is untouched.
-	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission, 0, cached_item));
-	expectMissionItemMatches(cached_item, mission_items[0]);
 }
