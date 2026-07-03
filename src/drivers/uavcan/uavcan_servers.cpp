@@ -159,12 +159,8 @@ void UavcanServers::check_nfs()
 	nfs_up_s nfs_up{};
 
 	if (_nfs_up_sub.update(&nfs_up)) {
-		static constexpr const char *nfs_mount = CONFIG_NFS_MOUNT_MOUNT_POINT;
-		char nfs_fw_path[sizeof(CONFIG_NFS_MOUNT_MOUNT_POINT) + 4];
-		snprintf(nfs_fw_path, sizeof(nfs_fw_path), "%s/ufw", nfs_mount);
-
-		_fw_version_checker.setFirmwareNfsBasePath(nfs_fw_path);
-		_fileserver_backend.setNfsRootPath(nfs_fw_path);
+		_fw_version_checker.setFirmwareNfsBasePath(UAVCAN_NFS_PATH);
+		_fileserver_backend.setNfsRootPath(UAVCAN_NFS_PATH);
 		_node_info_retriever.invalidateAll();
 	}
 }
