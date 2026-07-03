@@ -368,8 +368,10 @@ uint8_t Sih::num_motors() const
 
 void Sih::publish_esc_status()
 {
-	esc_status_s esc_status{};
+	esc_status_s &esc_status = _esc_status_pub.get();
 	esc_status.timestamp = hrt_absolute_time();
+	esc_status.esc_online_flags = 0;
+	esc_status.esc_armed_flags = 0;
 	int motor_idx = 0;
 	bool any_motor_running = false;
 	float max_rpm = 10000.f;
@@ -404,7 +406,7 @@ void Sih::publish_esc_status()
 		esc_status.esc_armed_flags = (1u << motor_idx) - 1;
 	}
 
-	_esc_status_pub.publish(esc_status);
+	_esc_status_pub.update();
 }
 
 void Sih::generate_force_and_torques(const float dt)

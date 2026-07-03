@@ -132,7 +132,7 @@ private:
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
-	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
+	uORB::PublicationData<esc_status_s>   _esc_status_pub{ORB_ID(esc_status)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
