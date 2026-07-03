@@ -714,6 +714,12 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_position_smoothing.setCruiseSpeed(_mc_cruise_speed);
 	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
 	_position_smoothing.setTargetAcceptanceRadius(_target_acceptance_radius);
+	_position_smoothing.setMaxSpeedAndAccelerationZ(
+		_param_mpc_z_v_auto_up.get(),
+		_param_mpc_z_v_auto_dn.get(),
+		_param_mpc_acc_up_max.get(),
+		_param_mpc_acc_down_max.get()
+	);
 
 	// Update the constraints of the trajectories
 	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get()); // TODO : Should be computed using heading
@@ -725,6 +731,14 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// acceleration in 1s on all axes for fast braking
 		_position_smoothing.setMaxAcceleration({CONSTANTS_ONE_G, CONSTANTS_ONE_G, CONSTANTS_ONE_G});
 		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
+
+		// Sync the 3D planner's directional Z limits with the emergency braking values
+		_position_smoothing.setMaxSpeedAndAccelerationZ(
+			_param_mpc_z_v_auto_up.get(),
+			_param_mpc_z_v_auto_dn.get(),
+			CONSTANTS_ONE_G,
+			CONSTANTS_ONE_G
+		);
 
 		// If the current velocity is beyond the usual constraints, tell
 		// the controller to exceptionally increase its saturations to avoid
@@ -748,6 +762,14 @@ void FlightTaskAuto::_updateTrajConstraints()
 			// to avoid having it going down into the ground during
 			// the initial ramp as the velocity does not start at 0
 			_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
+
+			// Sync the 3D planner's directional Z limits with the takeoff-adjusted values
+			_position_smoothing.setMaxSpeedAndAccelerationZ(
+				z_vel_constraint,
+				_param_mpc_z_v_auto_dn.get(),
+				z_accel_constraint,
+				_param_mpc_acc_down_max.get()
+			);
 		}
 
 		_position_smoothing.setMaxVelocityZ(z_vel_constraint);
