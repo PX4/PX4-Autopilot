@@ -163,6 +163,12 @@ void Navigator::run()
 
 	params_update();
 
+	// the reposition triplet is only partially populated by reposition commands,
+	// reset it so unset fields (yaw, course) are NaN instead of zero
+	reset_position_setpoint(_reposition_triplet.previous);
+	reset_position_setpoint(_reposition_triplet.current);
+	reset_position_setpoint(_reposition_triplet.next);
+
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[3] {};
 
