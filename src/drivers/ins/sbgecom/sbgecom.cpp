@@ -812,7 +812,10 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 	if (instance->_mag_sub.update(&mag)) {
 		memset(&mag_log, 0x00, sizeof(mag_log));
 
-		mag_log.timeStamp = mag.timestamp_sample;
+		// PX4 time cannot be expressed in the INS timebase and, unlike
+		// SbgEComLogAirData, this log has no time-is-delay convention.
+		// Send 0 and let the INS timestamp the measurement on arrival.
+		mag_log.timeStamp = 0;
 
 		// vehicle_magnetometer is calibrated data: report the magnetometers as
 		// passing BIT, in range and calibrated. The accelerometer bits are left
