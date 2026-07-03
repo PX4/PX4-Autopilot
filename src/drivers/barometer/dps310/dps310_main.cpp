@@ -88,6 +88,9 @@ I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runt
 		return nullptr;
 	}
 
+	// device_id must reflect the requested variant, since DPS310_I2C/SPI hardcode DPS310
+	interface->set_device_type(config.devid_driver_index);
+
 	DPS310 *dev = new DPS310(config, interface);
 
 	if (dev == nullptr) {
