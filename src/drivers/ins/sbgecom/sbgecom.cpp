@@ -813,7 +813,12 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 		memset(&mag_log, 0x00, sizeof(mag_log));
 
 		mag_log.timeStamp = mag.timestamp_sample;
-		// mag_log.status = 0; // STO: don't know how to set it
+
+		// vehicle_magnetometer is calibrated data: report the magnetometers as
+		// passing BIT, in range and calibrated. The accelerometer bits are left
+		// cleared as no accelerometer data is sent with this log.
+		mag_log.status = SBG_ECOM_MAG_MAG_X_BIT | SBG_ECOM_MAG_MAG_Y_BIT | SBG_ECOM_MAG_MAG_Z_BIT |
+				 SBG_ECOM_MAG_MAGS_IN_RANGE | SBG_ECOM_MAG_CALIBRATION_OK;
 
 		mag_log.magnetometers[0] = mag.magnetometer_ga[0];
 		mag_log.magnetometers[1] = mag.magnetometer_ga[1];
