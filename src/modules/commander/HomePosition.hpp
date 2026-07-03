@@ -51,6 +51,7 @@ static constexpr int kHomePositionGPSRequiredFixType = 2;
 static constexpr float kHomePositionGPSRequiredEPH = 5.f;
 static constexpr float kHomePositionGPSRequiredEPV = 10.f;
 static constexpr float kHomePositionGPSRequiredEVH = 1.f;
+static constexpr int32_t kGpsCtrlHorizontalAndAltitude = (1 << 0) | (1 << 1);
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
 static constexpr float kLpfBaroTimeConst = 5.f;
@@ -74,7 +75,7 @@ public:
 
 private:
 	bool hasMovedFromCurrentHomeLocation();
-	bool isGpsHorizontalFusionEnabled();
+	bool isGpsPositionFusionEnabled();
 	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
