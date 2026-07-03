@@ -32892,11 +32892,12 @@ error is above this parameter, the integration of the
 trajectory is stopped to wait for the drone.
 
 This value can be adjusted depending on the tracking
-capabilities of the vehicle.
+capabilities of the vehicle. Set to 0 to disable the horizontal
+time-stretch.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 10       | 1         | 2.0     |      | &nbsp;    |
+| &nbsp; | 0        | 10       | 1         | 2.0     |      | &nbsp;    |
 
 ### MPC_XY_P (`FLOAT`) {#MPC_XY_P}
 
@@ -32969,6 +32970,22 @@ Defined as corrective acceleration in m/s^2 per m/s velocity error
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1.2      | 5        | 0.1       | 1.8     |      | &nbsp;    |
+
+### MPC_Z_ERR_MAX (`FLOAT`) {#MPC_Z_ERR_MAX}
+
+Maximum vertical error allowed by the trajectory generator.
+
+Vertical analog of MPC_XY_ERR_MAX. When the smoothed trajectory z
+leads the drone by more than this value, trajectory integration is
+slowed down so the virtual setpoint can't walk away from the drone.
+This suppresses altitude overshoots caused by a noisy altitude
+reference (e.g. mission setpoint jittering as the home altitude
+estimate is refined in flight). Set to 0 to disable the vertical
+time-stretch.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 1.0     |      | &nbsp;    |
 
 ### MPC_Z_P (`FLOAT`) {#MPC_Z_P}
 
