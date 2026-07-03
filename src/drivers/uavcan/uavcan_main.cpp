@@ -751,6 +751,10 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
+	if (_servers != nullptr) {
+		_servers->check_nfs();
+	}
+
 	_node.spinOnce(); // expected to be non-blocking
 
 	publish_can_interface_statuses();
