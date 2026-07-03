@@ -293,7 +293,7 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	 */
 
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
-	/* .noinit.hardfault_dump RAM dump: invalidate magic now so a concurrent reader never sees a
+	/* invalidate magic now, so a concurrent reader never sees a
 	 * half-written context.  It will be restamped at the end*/
 	g_px4_ram_hardfault.magic = 0u;
 	fullcontext_s *pdump = &g_px4_ram_hardfault.context;

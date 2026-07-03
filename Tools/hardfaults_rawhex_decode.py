@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import zlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -105,18 +106,10 @@ _L = _Layout(
 # ---------------------------------------------------------------------------
 # Input: hex extraction
 # ---------------------------------------------------------------------------
-
-_CHUNK_OFFSET_RE = re.compile(r"^([0-9a-fA-F]{4})\s(.*)$")
-_CRC_LINE_RE     = re.compile(r"^crc\s+([0-9a-fA-F]{8})$")
-
-
-def _crc32part(data: bytes, crc: int = 0) -> int:
-    """NuttX crc32part: reflected CRC32, no init/final XOR."""
-    for b in data:
-        crc ^= b
-        for _ in range(8):
-            crc = (crc >> 1) ^ 0xEDB88320 if crc & 1 else crc >> 1
-    return crc & 0xFFFFFFFF
+# Search for chunk-pattern "hardfault_stream<sep>xxxx <hexdata>" in different variations.
+_CHUNK_RE = re.compile(r"hardfault_stream\W*?([0-9a-fA-F]{4})\s+([0-9a-fA-F]+)\s*$")
+# Search for crc-pattern "hardfault_stream<sep>crc XXXXXXXX" in different variations.
+_CRC_RE   = re.compile(r"hardfault_stream\W*?crc\s+([0-9a-fA-F]{8})\b")
 
 
 def _load_payload(path: Path) -> tuple[bytes, list[str]]:
@@ -124,9 +117,9 @@ def _load_payload(path: Path) -> tuple[bytes, list[str]]:
     Parse *path* and return (payload_bytes, warnings).
 
     Handles 3 file-formats:
-    - hardfault_stream log  - tab-separated, column after module-name is ``XXXX <hex>``
-                              with a trailing ``crc XXXXXXXX`` line
-    - data_streamer log     - tab-separated, column after module-name is raw hex
+    - hardfault_stream log  - any line containing "hardfault_stream" with an
+                              ``XXXX <hex>`` chunk or trailing ``crc XXXXXXXX``
+    - data_streamer log     - column after module-name is raw hex, no offset
     - plain hex file        - just hex tokens, no module marker
 
     For hardfault_stream the chunks are assembled by their byte offset so gaps
@@ -135,45 +128,42 @@ def _load_payload(path: Path) -> tuple[bytes, list[str]]:
     chunks: dict[int, bytes] = {} # offset → data  (hardfault_stream)
     plain_parts: list[str]   = [] # simple token accumulation (others)
     expected_crc: int | None = None
-    crc_acc = 0xFFFFFFFF
+    crc_acc = 0
     is_chunked = False
+    module_name = "hardfault_stream"
 
     for line in path.read_text().splitlines():
-        module_name = "hardfault_stream"
-        if module_name in line:
-            seg = line.split(module_name, maxsplit=1)[1].strip()
-
-            # CRC line: "crc XXXXXXXX"
-            m_crc = _CRC_LINE_RE.match(seg)
-            if m_crc:
-                expected_crc = int(m_crc.group(1), 16)
-                break
-
-            # Chunk line: "XXXX <hexdata>"
-            m_off = _CHUNK_OFFSET_RE.match(seg)
-            if m_off:
-                is_chunked = True
-                offset   = int(m_off.group(1), 16)
-                hex_part = "".join(
-                    t.group() for t in _HEX_TOKEN.finditer(m_off.group(2))
-                    if len(t.group()) % 2 == 0
-                )
-                data = bytes.fromhex(hex_part)
-                chunks[offset] = data
-                ascii_line = f"{offset:04x} {hex_part}"
-                crc_acc = _crc32part(ascii_line.encode(), crc_acc)
-                continue
-
-            # data_streamer: raw hex after marker
-            for t in _HEX_TOKEN.finditer(seg):
-                if len(t.group()) % 2 == 0:
-                    plain_parts.append(t.group())
-
-        else:
+        if module_name not in line:
             # Plain hex file (no marker found)
             for t in _HEX_TOKEN.finditer(line):
                 if len(t.group()) % 2 == 0:
                     plain_parts.append(t.group())
+            continue
+
+        # CRC line: whatever precedes "crc XXXXXXXX" is discarded.
+        m_crc = _CRC_RE.search(line)
+        if m_crc:
+            expected_crc = int(m_crc.group(1), 16)
+            break
+
+        # Chunk line: whatever precedes "XXXX <hexdata>" is discarded.
+        m_off = _CHUNK_RE.search(line)
+        if m_off:
+            is_chunked = True
+            offset   = int(m_off.group(1), 16)
+            hex_part = m_off.group(2)
+            data = bytes.fromhex(hex_part)
+            chunks[offset] = data
+            ascii_line = f"{offset:04x} {hex_part}"
+            crc_acc = zlib.crc32(ascii_line.encode(), crc_acc)
+            continue
+
+        # data_streamer: raw hex after marker, no offset present
+        seg = line.split(module_name, maxsplit=1)[1]
+
+        for t in _HEX_TOKEN.finditer(seg):
+            if len(t.group()) % 2 == 0:
+                plain_parts.append(t.group())
 
     warnings: list[str] = []
 
@@ -200,7 +190,7 @@ def _load_payload(path: Path) -> tuple[bytes, list[str]]:
 
         # CRC verification
         if expected_crc is not None:
-            computed = crc_acc ^ 0xFFFFFFFF
+            computed = crc_acc
             if computed != expected_crc:
                 warnings.append(
                     f"WARN: CRC mismatch - expected 0x{expected_crc:08x}, "

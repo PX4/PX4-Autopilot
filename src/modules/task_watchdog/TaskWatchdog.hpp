@@ -47,6 +47,7 @@
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
 # include <uORB/Subscription.hpp>
 # include <uORB/topics/dronecan_node_status.h>
+# include <uavcan/protocol/debug/LogMessage.hpp>
 #endif
 
 #define LOG_PATH_BASE       CONFIG_BOARD_ROOT_PATH "/task_watchdog"
@@ -60,12 +61,13 @@ namespace task_watchdog
 {
 
 static constexpr unsigned STACK_DUMP_WORDS = 16;
-#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
-static constexpr int MAX_DUMP_TASKS = 24; /* RAM-constrained boards: cap to avoid heap exhaustion */
-#elif defined(CONFIG_FS_PROCFS_MAX_TASKS)
+
+#if CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS < 0
 static constexpr int MAX_DUMP_TASKS = CONFIG_FS_PROCFS_MAX_TASKS;
 #else
-static constexpr int MAX_DUMP_TASKS = 24;
+static_assert(CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS <= CONFIG_FS_PROCFS_MAX_TASKS,
+	      "CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS must be less than or equal to CONFIG_FS_PROCFS_MAX_TASKS");
+static constexpr int MAX_DUMP_TASKS = CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS;
 #endif
 
 struct task_dump_s {
@@ -128,11 +130,20 @@ private:
 	/* HRT ISR callback which monitors whether this task is being starved. */
 	static void isr_callback(void *arg);
 
+	/* Emit one line of a dump: streamed via PX4_ERR on RAM-dump boards, written to _dump_fd otherwise. */
+	void emit_line(const char *s);
+
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
 	/* Block so streamed lines are not dropped in queue. */
 	void wait_for_transport_ready();
 
+	/* print_load_buffer() callback: streams one cpuload line via PX4_ERR. */
+	static void print_load_line_callback(void *user);
+
 	uORB::Subscription _dronecan_node_status_sub{ORB_ID(dronecan_node_status)};
+	uint32_t _dump_crc{0};
+#else
+	int _dump_fd {-1};
 #endif
 
 	hrt_call _hrt_call{};
@@ -145,6 +156,11 @@ private:
 
 	static constexpr hrt_abstime TRIGGER_THRESHOLD = 2_s; ///< time in ready to run to trigger watchdog
 	static constexpr hrt_abstime CPULOAD_ACCUMULATE_TIME = 300_ms;   ///< how long to accumulate cpuload data
+	// Task_watchdog has a boosted priority (higher than uavcannode) for 1500_ms.
+	// - CPU-load is 1 line per task, + header / footer
+	// - Task_Dump is 8 lines per task
+	// to not flood the canbus, we use 200Hz (5ms) which allows up to 30 tasks to be dumped in 1500ms.
+	static constexpr hrt_abstime UAVCAN_DUMP_INTERVAL = 5_ms; ///< how long to wait between UAVCAN messages
 };
 
 } // namespace task_watchdog

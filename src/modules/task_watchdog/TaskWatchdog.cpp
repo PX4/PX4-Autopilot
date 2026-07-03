@@ -114,7 +114,7 @@ void TaskWatchdog::start()
 
 	sched_lock();
 
-	for (int i = 0; i < MAX_DUMP_TASKS; i++) {
+	for (int i = 0; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
 		if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == my_pid) {
 			_shared.monitored_task_index = i;
 			break;
@@ -255,8 +255,8 @@ void TaskWatchdog::wait_for_transport_ready()
 #ifdef CONFIG_DRIVERS_UAVCANNODE
 	dronecan_node_status_s status;
 
-	while (!(_dronecan_node_status_sub.copy(&status) && status.mode == dronecan_node_status_s::MODE_OPERATIONAL)) {
-		px4_usleep(100_ms);
+	while (!(_dronecan_node_status_sub.update(&status) && status.mode == dronecan_node_status_s::MODE_OPERATIONAL)) {
+		px4_usleep(1_s);
 	}
 
 #endif
@@ -313,13 +313,7 @@ void TaskWatchdog::capture_and_write_dump()
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
 	wait_for_transport_ready();
 
-	uint32_t crc = 0xFFFFFFFFu;
-
-	auto emit = [&](const char *s) {
-		crc = crc32part((const uint8_t *)s, strlen(s), crc);
-		PX4_ERR("%s", s);
-		px4_usleep(150_ms);
-	};
+	_dump_crc = 0xFFFFFFFFu;
 
 #else /* !BOARD_HAS_RAM_HARDFAULT_DUMP */
 	mkdir(LOG_PATH_BASE, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -332,23 +326,23 @@ void TaskWatchdog::capture_and_write_dump()
 		return;
 	}
 
-	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	_dump_fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
-	if (fd < 0) {
+	if (_dump_fd < 0) {
 		PX4_ERR("failed to create %s: %d", path, errno);
 		return;
 	}
 
-	auto emit = [&](const char *s) { dprintf(fd, "%s\n", s); };
-
 #endif /* BOARD_HAS_RAM_HARDFAULT_DUMP */
 
-	snprintf(line, sizeof(line), "WDG fw:%.60s", px4_firmware_version_string());
-	emit(line);
-	snprintf(line, sizeof(line), "build: %s %s", __DATE__, __TIME__);
-	emit(line);
-	snprintf(line, sizeof(line), "url: %.70s", px4_build_uri());
-	emit(line);
+	snprintf(line, sizeof(line), "Task Watchdog Dump");
+	emit_line(line);
+	snprintf(line, sizeof(line), "FW git-hash: %s", px4_firmware_version_string());
+	emit_line(line);
+	snprintf(line, sizeof(line), "Build datetime: %s %s", __DATE__, __TIME__);
+	emit_line(line);
+	snprintf(line, sizeof(line), "Build url: %s", px4_build_uri());
+	emit_line(line);
 
 	/* Loop 2: output - no locks held */
 	for (int i = 0; i < MAX_DUMP_TASKS; i++) {
@@ -367,32 +361,32 @@ void TaskWatchdog::capture_and_write_dump()
 #endif
 			 (int)d.pid,
 			 (int)d.state);
-		emit(line);
+		emit_line(line);
 
 		if (d.has_regs) {
 			snprintf(line, sizeof(line),
 				 " r0:%08" PRIx32 " r1:%08" PRIx32 " r2:%08" PRIx32 " r3:%08" PRIx32,
 				 d.regs[REG_R0],  d.regs[REG_R1],
 				 d.regs[REG_R2],  d.regs[REG_R3]);
-			emit(line);
+			emit_line(line);
 
 			snprintf(line, sizeof(line),
 				 " r4:%08" PRIx32 " r5:%08" PRIx32 " r6:%08" PRIx32 " r7:%08" PRIx32,
 				 d.regs[REG_R4],  d.regs[REG_R5],
 				 d.regs[REG_R6],  d.regs[REG_R7]);
-			emit(line);
+			emit_line(line);
 
 			snprintf(line, sizeof(line),
 				 " r8:%08" PRIx32 " r9:%08" PRIx32 " r10:%08" PRIx32 " r11:%08" PRIx32,
 				 d.regs[REG_R8],  d.regs[REG_R9],
 				 d.regs[REG_R10], d.regs[REG_R11]);
-			emit(line);
+			emit_line(line);
 
 			snprintf(line, sizeof(line),
 				 " r12:%08" PRIx32 " sp:%08" PRIx32 " lr:%08" PRIx32 " pc:%08" PRIx32,
 				 d.regs[REG_R12], d.regs[REG_R13],
 				 d.regs[REG_R14], d.regs[REG_R15]);
-			emit(line);
+			emit_line(line);
 
 #ifdef CONFIG_ARMV7M_USEBASEPRI
 			snprintf(line, sizeof(line), " xpsr:%08" PRIx32 " basepri:%08" PRIx32,
@@ -401,7 +395,7 @@ void TaskWatchdog::capture_and_write_dump()
 			snprintf(line, sizeof(line), " xpsr:%08" PRIx32 " primask:%08" PRIx32,
 				 d.regs[REG_XPSR], d.regs[REG_PRIMASK]);
 #endif
-			emit(line);
+			emit_line(line);
 
 			if (d.stack_words > 0) {
 				int pos = snprintf(line, sizeof(line), "STK(%u@%08" PRIx32 "):", d.stack_words,
@@ -409,44 +403,59 @@ void TaskWatchdog::capture_and_write_dump()
 
 				for (unsigned j = 0; j < d.stack_words; j++) {
 					if (j > 0 && (j % 8) == 0) {
-						emit(line);
+						emit_line(line);
 						pos = snprintf(line, sizeof(line), "STK+%u:", j);
 					}
 
 					pos += snprintf(line + pos, sizeof(line) - pos, " %08" PRIx32, d.stack[j]);
 				}
 
-				emit(line);
+				emit_line(line);
 			}
 
 		} else {
 			snprintf(line, sizeof(line), " [no saved regs]");
-			emit(line);
+			emit_line(line);
 		}
 	}
 
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
-	snprintf(line, sizeof(line), "crc %08" PRIx32, crc ^ 0xFFFFFFFFu);
+	snprintf(line, sizeof(line), "crc %08" PRIx32, _dump_crc ^ 0xFFFFFFFFu);
 	PX4_ERR("%s", line);
 #else
-	fsync(fd);
-	close(fd);
+	fsync(_dump_fd);
+	close(_dump_fd);
 	PX4_ERR("dump written to %s", path);
 #endif
 }
+
+void TaskWatchdog::emit_line(const char *s)
+{
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	_dump_crc = crc32part((const uint8_t *)s, strlen(s), _dump_crc);
+	PX4_ERR("%s", s);
+	px4_usleep(UAVCAN_DUMP_INTERVAL);
+#else
+	dprintf(_dump_fd, "%s\n", s);
+#endif
+}
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+void TaskWatchdog::print_load_line_callback(void *user)
+{
+	PX4_ERR("%s", static_cast<char *>(user));
+	px4_usleep(UAVCAN_DUMP_INTERVAL);
+}
+#endif // BOARD_HAS_RAM_HARDFAULT_DUMP
 
 void TaskWatchdog::write_cpuload_file()
 {
 #ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
 	wait_for_transport_ready();
 
-	char buf[90];
-	print_load_buffer(buf, sizeof(buf),
-	[](void *user) {
-		PX4_ERR("%s", static_cast<char *>(user));
-		px4_usleep(150_ms);
-	},
-	buf, &_load);
+	using LogTextField = uavcan::protocol::debug::LogMessage::FieldTypes::text;
+	char buf[LogTextField::MaxSize];
+	print_load_buffer(buf, sizeof(buf), print_load_line_callback, buf, &_load);
 #else
 	mkdir(LOG_PATH_BASE, S_IRWXU | S_IRWXG | S_IRWXO);
 

@@ -84,7 +84,7 @@ bool HardfaultStream::is_transport_ready()
 #ifdef CONFIG_DRIVERS_UAVCANNODE
 	dronecan_node_status_s status;
 
-	if (_dronecan_node_status_sub.copy(&status)) {
+	if (_dronecan_node_status_sub.update(&status)) {
 		return status.mode == dronecan_node_status_s::MODE_OPERATIONAL;
 	}
 
@@ -228,9 +228,9 @@ void HardfaultStream::Run()
 
 	case State::StreamRAM: {
 			using LogTextField = uavcan::protocol::debug::LogMessage::FieldTypes::text;
-			static constexpr size_t kLogTextMax    = LogTextField::MaxSize;       // uint8[<=90]
-			static constexpr size_t kHexPfxLen     = 5;                           // "%04x "
-			static constexpr size_t kBytesPerChunk = (kLogTextMax - kHexPfxLen) / 2;
+			static constexpr size_t kLogTextMax    = LogTextField::MaxSize;          // uint8[<=90]
+			static constexpr size_t kHexPfxLen     = 5;                              // "%04x "
+			static constexpr size_t kBytesPerChunk = (kLogTextMax - kHexPfxLen) / 2; // 2 hex chars per byte
 
 			const uint8_t *ptr   = reinterpret_cast<const uint8_t *>(&g_px4_ram_hardfault.context);
 			const size_t   total = sizeof(fullcontext_s);
