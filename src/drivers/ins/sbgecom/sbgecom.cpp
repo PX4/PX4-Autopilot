@@ -1029,17 +1029,9 @@ void SbgEcom::Run()
 			failure = true;
 		}
 
-		error_code = sendAirDataLog(&_com_handle, this);
-
-		if (error_code != SBG_NO_ERROR) {
-			PX4_WARN("Unable to send AirData log %d", error_code);
-		}
-
-		error_code = sendMagLog(&_com_handle, this);
-
-		if (error_code != SBG_NO_ERROR) {
-			PX4_WARN("Unable to send Mag log %d", error_code);
-		}
+		// send failures are already reported by the send functions
+		sendAirDataLog(&_com_handle, this);
+		sendMagLog(&_com_handle, this);
 	}
 }
 
