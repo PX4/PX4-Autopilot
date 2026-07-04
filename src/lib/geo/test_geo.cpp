@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
+#include <cmath>
 #include <math.h>
 #include <mathlib/mathlib.h>
 #include <memory>
@@ -117,6 +118,25 @@ TEST_F(GeoTest, mapProjectionAbsoluteValues)
 	local_proj.reproject(0.f, one_degree_m, lat, lon);
 	EXPECT_NEAR(lat, 0., 1e-6);
 	EXPECT_NEAR(lon, 1., 1e-6);
+}
+
+TEST_F(GeoTest, mapProjectionReprojectLargeOffsetIsFinite)
+{
+	MapProjection local_proj{0., 0.};
+
+	double lat = NAN;
+	double lon = NAN;
+	local_proj.reproject(CONSTANTS_RADIUS_OF_EARTH_F * M_PI_F, 0.f, lat, lon);
+
+	EXPECT_TRUE(std::isfinite(lat));
+	EXPECT_TRUE(std::isfinite(lon));
+
+	const float north_pole_offset = CONSTANTS_RADIUS_OF_EARTH_F *
+					static_cast<float>(M_PI_2 - math::radians(47.3566094));
+	proj.reproject(north_pole_offset, 0.f, lat, lon);
+
+	EXPECT_TRUE(std::isfinite(lat));
+	EXPECT_TRUE(std::isfinite(lon));
 }
 
 TEST_F(GeoTest, distanceAndBearingToNextWaypoint)
