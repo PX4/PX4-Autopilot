@@ -2152,6 +2152,11 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 	}
 
+	pthread_mutex_init(&_tstatus_mutex, nullptr);
+	pthread_mutex_init(&_radio_status_mutex, nullptr);
+	pthread_mutex_init(&_message_buffer_mutex, nullptr);
+	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
+
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
@@ -2492,11 +2497,6 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	_sign_control.start(get_instance_id(), get_status(), &accept_unsigned_callback);
-
-	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
-	pthread_mutex_init(&_message_buffer_mutex, nullptr);
-	pthread_mutex_init(&_radio_status_mutex, nullptr);
-	pthread_mutex_init(&_tstatus_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
 	if (get_forwarding_on()) {
