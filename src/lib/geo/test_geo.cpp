@@ -92,7 +92,7 @@ TEST_F(GeoTest, projectReproject)
 	EXPECT_FLOAT_EQ(lon, lon_new);
 }
 
-TEST_F(GeoTest, ReprojectNanPrevention)
+TEST_F(GeoTest, ReprojectDefensiveConstraints)
 {
 	// GIVEN: A reference point very close to the North Pole using the fixture's 'proj' object
 	proj.initReference(89.9999, 0.0, 0ULL);
@@ -134,8 +134,8 @@ TEST_F(GeoTest, DistanceToLineBeforeStart)
 	// GIVEN: A line from (0,0) to (0,10). The drone is at (0,-5), which is BEHIND the start line.
 	get_distance_to_line(ct_error, 0.0, -5.0, 0.0, 0.0, 0.0, 10.0);
 
-	// THEN: It should flag past_start as true, and past_end as false.
-	EXPECT_TRUE(ct_error.past_start);
+	// THEN: It should flag before_start as true, and past_end as false.
+	EXPECT_TRUE(ct_error.before_start);
 	EXPECT_FALSE(ct_error.past_end);
 }
 
@@ -146,9 +146,9 @@ TEST_F(GeoTest, DistanceToLinePastEnd)
 	// GIVEN: A line from (0,0) to (0,10). The drone is at (0,15), which is BEYOND the end line.
 	get_distance_to_line(ct_error, 0.0, 15.0, 0.0, 0.0, 0.0, 10.0);
 
-	// THEN: It should flag past_end as true, and past_start as false.
+	// THEN: It should flag past_end as true, and before_start as false.
 	EXPECT_TRUE(ct_error.past_end);
-	EXPECT_FALSE(ct_error.past_start);
+	EXPECT_FALSE(ct_error.before_start);
 }
 
 TEST_F(GeoTest, WaypointDistanceAndBearing)
@@ -241,7 +241,7 @@ TEST_F(GeoTest, MapProjectionAbsolute)
 	float y = 0.0f;
 	ref.project(1.0, 0.0, x, y); // Project 1 degree North
 
-	// 1 degree North on the WGS84 ellipsoid is approximately 110,574 meters.
+	// 1 degree North using a spherical Earth model is approximately 111,195 meters.
 	EXPECT_NEAR(x, 111195.0f, 2.0f); // Assert we get the correct absolute Cartesian distance
 	EXPECT_FLOAT_EQ(y, 0.0f);
 }

@@ -225,7 +225,7 @@ int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat
 
 	int return_value = -1;	// Set error flag, cleared when valid result calculated.
 	crosstrack_error.past_end = false;
-	crosstrack_error.past_start = false;
+	crosstrack_error.before_start = false;
 	crosstrack_error.distance = 0.0f;
 	crosstrack_error.bearing = 0.0f;
 
@@ -247,7 +247,7 @@ int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat
 		return return_value;
 	}
 
-	// Return past_start = true if before start point of line
+	// Return before_start = true if before start point of line
 	float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 
 	// Only run the math if we aren't sitting exactly ON the start point
@@ -257,7 +257,7 @@ int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat
 
 		// If the angle difference is less than 90 degrees, we are behind the starting line
 		if (bearing_diff_start < M_PI_2_F && bearing_diff_start > -M_PI_2_F) {
-			crosstrack_error.past_start = true;
+			crosstrack_error.before_start = true;
 		}
 	}
 

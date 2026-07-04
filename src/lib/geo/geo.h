@@ -59,10 +59,10 @@ static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/
 
 // XXX remove
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	bool past_start;	// Flag indicating we are past the start of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
+	bool past_end{false};		// Flag indicating we are past the end of the line/arc segment
+	bool before_start{false};	// Flag indicating we are before the start of the line/arc segment
+	float distance{0.0f};		// Distance in meters to closest point on line/arc
+	float bearing{0.0f};		// Bearing in radians to closest point on line/arc
 } ;
 
 
