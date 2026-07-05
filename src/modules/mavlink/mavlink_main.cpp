@@ -104,6 +104,12 @@ static mavlink_status_t mavlink_channel_statuses[MAVLINK_COMM_NUM_BUFFERS] {};
 static mavlink_message_t mavlink_channel_buffers[MAVLINK_COMM_NUM_BUFFERS] {};
 // Recursive mutex: allows callers to hold lock_send() while send_start()/send_finish()
 // re-lock internally (called from _mav_finalize_message_chan_send via MAVLINK_START_UART_SEND).
+// On NuttX a recursive mutex requires CONFIG_PTHREAD_MUTEX_TYPES; without it
+// pthread_mutexattr_settype() has no effect and the nested lock deadlocks. Fail the
+// build loudly rather than deadlock silently at runtime.
+#if defined(__PX4_NUTTX) && !defined(CONFIG_PTHREAD_MUTEX_TYPES)
+# error "mavlink's recursive per-channel send mutex requires CONFIG_PTHREAD_MUTEX_TYPES=y in the board's nuttx-config"
+#endif
 static pthread_mutex_t mavlink_channel_send_mutexes[MAVLINK_COMM_NUM_BUFFERS];
 static pthread_once_t mavlink_channel_mutexes_once = PTHREAD_ONCE_INIT;
 
@@ -111,7 +117,11 @@ static void init_channel_send_mutexes()
 {
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+	if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) != 0) {
+		// Should be unreachable given the compile-time guard above, but don't fail silently.
+		PX4_ERR("failed to set recursive mutex type; mavlink sends may deadlock");
+	}
 
 	for (int i = 0; i < MAVLINK_COMM_NUM_BUFFERS; i++) {
 		pthread_mutex_init(&mavlink_channel_send_mutexes[i], &attr);
