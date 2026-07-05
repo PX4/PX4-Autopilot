@@ -67,7 +67,9 @@ uint32_t MavlinkMissionManager::_crc32[3] = { 0, 0, 0 };
 int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 
-pthread_mutex_t MavlinkMissionManager::_shared_state_mutex;
+// Non-recursive: the count updaters that already hold it use update_active_mission_locked().
+// Statically initialized so no runtime init (and no non-portable recursive initializer) is needed.
+pthread_mutex_t MavlinkMissionManager::_shared_state_mutex = PTHREAD_MUTEX_INITIALIZER;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
@@ -75,22 +77,9 @@ constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 		 (_msg.target_component == MAV_COMP_ID_MISSIONPLANNER) || \
 		 (_msg.target_component == MAV_COMP_ID_ALL)))
 
-static pthread_once_t s_mission_mutex_once = PTHREAD_ONCE_INIT;
-
-static void init_mission_shared_mutex()
-{
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&MavlinkMissionManager::_shared_state_mutex, &attr);
-	pthread_mutexattr_destroy(&attr);
-}
-
 MavlinkMissionManager::MavlinkMissionManager(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
-	pthread_once(&s_mission_mutex_once, init_mission_shared_mutex);
-
 	if (!_dataman_init) {
 		_dataman_init = true;
 
@@ -167,12 +156,11 @@ MavlinkMissionManager::load_safepoint_stats()
 /**
  * Publish mission topic to notify navigator about changes.
  */
-void
-MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
-		bool write_to_dataman)
+mission_s
+MavlinkMissionManager::update_active_mission_locked(dm_item_t mission_dataman_id, uint16_t count, int32_t seq,
+		uint32_t crc32)
 {
-	/* update active mission state */
-	pthread_mutex_lock(&_shared_state_mutex);
+	/* update active mission state (caller holds _shared_state_mutex) */
 	_mission_dataman_id = mission_dataman_id;
 	_my_mission_dataman_id = _mission_dataman_id;
 	_count[MAV_MISSION_TYPE_MISSION] = count;
@@ -191,6 +179,15 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 	mission.safe_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
 	mission.land_start_index = _land_start_marker;
 	mission.land_index = _land_marker;
+	return mission;
+}
+
+void
+MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
+		bool write_to_dataman)
+{
+	pthread_mutex_lock(&_shared_state_mutex);
+	mission_s mission = update_active_mission_locked(mission_dataman_id, count, seq, crc32);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
 	if (write_to_dataman) {
@@ -237,11 +234,11 @@ MavlinkMissionManager::update_geofence_count(dm_item_t fence_dataman_id, unsigne
 		return PX4_ERROR;
 	}
 
-	// update_active_mission takes the same (recursive) mutex
-	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
-			      _crc32[MAV_MISSION_TYPE_MISSION],
-			      false);
+	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			    _crc32[MAV_MISSION_TYPE_MISSION]);
 	pthread_mutex_unlock(&_shared_state_mutex);
+
+	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -277,10 +274,11 @@ MavlinkMissionManager::update_safepoint_count(dm_item_t safepoint_dataman_id, un
 		return PX4_ERROR;
 	}
 
-	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
-			      _crc32[MAV_MISSION_TYPE_MISSION],
-			      false);
+	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			    _crc32[MAV_MISSION_TYPE_MISSION]);
 	pthread_mutex_unlock(&_shared_state_mutex);
+
+	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
