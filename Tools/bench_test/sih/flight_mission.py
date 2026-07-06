@@ -22,17 +22,16 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import px4bench
 from px4bench import Reporter, MavlinkShell, add_connection_args, connect
-
-from param_torture import (read_param, set_param_int32, wait_param_echo,
-                           drain_param_values)
-import mission_torture
-from mission_torture import Item, BASE_LAT, BASE_LON
-import mavftp_log
-from mavftp_log import LOG_ROOT, ULOG_MAGIC7
+from px4bench import ftp as bench_ftp
+from px4bench import missions
+from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7
+from px4bench.missions import BASE_LAT, BASE_LON, Item
+from px4bench.params import (drain_param_values, read_param, set_param_int32,
+                             wait_param_echo)
 
 from pymavlink import mavutil
 
@@ -52,7 +51,7 @@ WP_OFFSET_DEG = 0.0005          # ~55 m legs
 
 
 def build_flight_mission(alt):
-    """Takeoff, 3-waypoint square leg, RTL. Reuses mission_torture's Item."""
+    """Takeoff, 3-waypoint square leg, RTL. Reuses px4bench.missions.Item."""
     home_lat = int(BASE_LAT * 1e7)
     home_lon = int(BASE_LON * 1e7)
     off = int(WP_OFFSET_DEG * 1e7)
@@ -207,13 +206,13 @@ def fly(report, mav, shell, alt, report_dir):
     # matches the stored mission CRC and PX4 keeps the completed progress
     # (mission-resume semantics), so the vehicle arms into finished=true
     # and never takes off.
-    ok, detail = mission_torture.clear_mission(mav)
+    ok, detail = missions.clear_mission(mav)
     report.check('mission_clear', ok, detail)
     if not ok:
         return False
 
     items = build_flight_mission(alt)
-    ok, duration, detail = mission_torture.upload_mission(report, mav, items, 0)
+    ok, duration, detail = missions.upload_mission(report, mav, items, 0)
     report.check('mission_upload', ok, detail or 'uploaded in {:.1f}s'.format(duration))
     if not ok:
         return False
@@ -315,20 +314,20 @@ def download_flight_log(report, mav, report_dir):
     try:
         ftp = mavftp.MAVFTP(mav, target_system=mav.target_system,
                             target_component=1)
-        dirs = [e.name for e in mavftp_log.ftp_list(ftp, LOG_ROOT)
+        dirs = [e.name for e in bench_ftp.ftp_list(ftp, LOG_ROOT)
                 if e.is_dir and not e.name.startswith('.')]
         if not dirs:
             report.fail('flight_log', 'no log directories on SD')
             return
         log_dir = '{}/{}'.format(LOG_ROOT, sorted(dirs)[-1])
-        ulogs = sorted(e.name for e in mavftp_log.ftp_list(ftp, log_dir)
+        ulogs = sorted(e.name for e in bench_ftp.ftp_list(ftp, log_dir)
                        if e.name.endswith('.ulg'))
         if not ulogs:
             report.fail('flight_log', 'no .ulg in {}'.format(log_dir))
             return
         remote = '{}/{}'.format(log_dir, ulogs[-1])
         local = os.path.join(report_dir, ulogs[-1])
-        elapsed, err = mavftp_log.ftp_download(mav, ftp, remote, local, report)
+        elapsed, err = bench_ftp.ftp_download(mav, ftp, remote, local, report)
         if err is not None:
             report.fail('flight_log', 'download failed: {}'.format(err))
             return
@@ -363,8 +362,8 @@ def main():
     parser.add_argument('--report-dir', default='bench_reports')
     args = parser.parse_args()
 
-    report = Reporter('sih_flight')
-    report_dir = px4bench.make_report_dir(args.report_dir, 'sih_flight')
+    report = Reporter('flight_mission')
+    report_dir = px4bench.make_report_dir(args.report_dir, 'flight_mission')
     report.info('report dir: {}'.format(report_dir))
 
     try:

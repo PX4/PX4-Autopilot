@@ -22,22 +22,22 @@ import sys
 import time
 
 
-# Test order for the suite. dual_link_forwarding is inserted after
-# mission_torture only when a second connection is provided.
+# Test order for the suite. link_forwarding is inserted after
+# mission_stress only when a second connection is provided.
 BASE_SEQUENCE = [
     'boot_health',
-    'param_torture',
-    'mission_torture',
-    'mavftp_log',
+    'param_stress',
+    'mission_stress',
+    'log_transfer',
     'reboot_loop',
 ]
-DUAL_LINK_TEST = 'dual_link_forwarding'
-DUAL_LINK_AFTER = 'mission_torture'
+DUAL_LINK_TEST = 'link_forwarding'
+DUAL_LINK_AFTER = 'mission_stress'
 
 
 def script_path(name):
     here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(here, name + '.py')
+    return os.path.join(here, 'bench', name + '.py')
 
 
 def build_argv(name, args):
@@ -45,7 +45,7 @@ def build_argv(name, args):
     argv = [sys.executable, script_path(name), args.connection]
 
     # tests that take a second positional connection
-    if name in ('mission_torture', DUAL_LINK_TEST):
+    if name in ('mission_stress', DUAL_LINK_TEST):
         if args.connection2:
             argv.append(args.connection2)
 
@@ -53,10 +53,8 @@ def build_argv(name, args):
     argv += ['-b', str(args.baudrate)]
 
     # per-test extra flags
-    if name == 'boot_health':
+    if name in ('boot_health', 'log_transfer'):
         argv += ['--report-dir', args.report_dir]
-    elif name == 'mavftp_log':
-        argv += ['--outdir', args.report_dir]
 
     return argv
 
@@ -113,8 +111,8 @@ def main():
     parser.add_argument('connection',
                         help='MAVLink connection: serial device, udp:IP:PORT, or tcp:IP:PORT')
     parser.add_argument('connection2', nargs='?', default=None,
-                        help='optional second connection; enables dual_link_forwarding '
-                             'and is passed to mission_torture')
+                        help='optional second connection; enables link_forwarding '
+                             'and is passed to mission_stress')
     parser.add_argument('--baudrate', '-b', type=int, default=57600,
                         help='serial baud rate (default: %(default)s)')
     parser.add_argument('--skip', default='',
@@ -143,7 +141,9 @@ def main():
     if skip:
         print('  skipping   : {}'.format(', '.join(sorted(skip))))
     print('  NOTE: usb_replug is interactive and is not run by this suite; '
-          'run it manually.')
+          'run it manually (bench/usb_replug.py).')
+    print('  NOTE: the SIH simulated flight (sih/flight_mission.py) reconfigures '
+          'the board and is run separately.')
     print()
 
     results = []  # (name, status, duration, detail)
