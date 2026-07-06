@@ -52,6 +52,10 @@
 
 using namespace time_literals;
 
+#ifndef FRIEND_TEST // for gtest
+#define FRIEND_TEST(a, b)
+#endif
+
 class TECSAirspeedFilter
 {
 public:
@@ -349,6 +353,11 @@ public:
 	const DebugOutput &getDebugOutput() const { return _debug_output; }
 
 private:
+	// Allows the regression test to pre-corrupt _pitch_integ_state and verify the
+	// safety reset in _calcPitchControlUpdate, which the public update() path cannot
+	// reach on its own because the integrator-input guard rejects bad input first.
+	FRIEND_TEST(TECSControlTest, PitchIntegratorResetsCorruptedState);
+
 	/**
 	 * @brief Specific total energy rate limit.
 	 *

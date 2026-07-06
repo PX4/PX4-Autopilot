@@ -34,6 +34,7 @@
 #ifndef CONSTRAINED_FLASH
 
 #include "ModeManagement.hpp"
+#include "ModeUtil/setpoint_types.hpp"
 
 #include <px4_platform_common/events.h>
 
@@ -367,7 +368,7 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
+void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
 {
 	_external_checks.update();
 
@@ -411,7 +412,7 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateR
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
 
-	update_request.control_setpoint_update = checkConfigControlSetpointUpdates();
+	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type);
 	checkConfigOverrides();
 }
 
@@ -533,43 +534,25 @@ uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
 	}
 }
 
-bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode)
+mode_util::SetpointType ModeManagement::getSetpointType(uint8_t nav_state)
 {
-	bool ret = false;
+	mode_util::SetpointType ret = Modes::Mode::kDefaultSetpointType;
 
-	const bool activation = (nav_state != _last_served_nav_state);
+	const bool mode_change = (nav_state != _last_served_nav_state);
 
-	if (activation) {
+	if (mode_change) {
+		if (_modes.valid(_last_served_nav_state)) {
+			// Reset the setpoint type for the deactivated mode
+			Modes::Mode &mode = _modes.mode(_last_served_nav_state);
+			mode.current_setpoint_type = Modes::Mode::kDefaultSetpointType;
+		}
+
 		_last_served_nav_state = nav_state;
-		_last_served_change_us = hrt_absolute_time();
 	}
 
-	if (nav_state >= Modes::FIRST_EXTERNAL_NAV_STATE && nav_state <= Modes::LAST_EXTERNAL_NAV_STATE) {
-		if (_modes.valid(nav_state)) {
-			const Modes::Mode &mode = _modes.mode(nav_state);
-
-			// Refuse a cached config_control_setpoints entry that predates the current
-			// activation of this nav_state; publish safe defaults until a fresh one arrives.
-			const bool stale = (mode.config_control_setpoint.timestamp == 0)
-					   || (mode.config_control_setpoint.timestamp + 10_ms < _last_served_change_us);
-
-			if (stale) {
-				Modes::Mode::setControlModeDefaults(control_mode);
-
-				if (activation) {
-					PX4_DEBUG("External mode %i: stale config_control_setpoints on activation, using safe defaults",
-						  nav_state);
-				}
-
-			} else {
-				control_mode = mode.config_control_setpoint;
-			}
-
-			ret = true;
-
-		} else {
-			Modes::Mode::setControlModeDefaults(control_mode);
-		}
+	if (_modes.valid(nav_state)) {
+		const Modes::Mode &mode = _modes.mode(nav_state);
+		ret = mode.current_setpoint_type;
 	}
 
 	return ret;
@@ -623,25 +606,54 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 	}
 }
 
-bool ModeManagement::checkConfigControlSetpointUpdates()
+bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type)
 {
 	bool had_update = false;
-	vehicle_control_mode_s config_control_setpoint;
+	setpoint_config_s setpoint_config;
 	int max_updates = 5;
 
-	while (_config_control_setpoints_sub.update(&config_control_setpoint) && --max_updates >= 0) {
-		if (_modes.valid(config_control_setpoint.source_id)) {
-			Modes::Mode &mode = _modes.mode(config_control_setpoint.source_id);
-			mode.config_control_setpoint = config_control_setpoint;
-			mode.config_control_setpoint.timestamp = hrt_absolute_time();
-			had_update = true;
+	while (_setpoint_config_sub.update(&setpoint_config) && --max_updates >= 0) {
+		setpoint_config_reply_s reply{};
+		reply.source_id = setpoint_config.source_id;
+		reply.type = setpoint_config.type;
+
+		if (_modes.valid(setpoint_config.source_id)) {
+			Modes::Mode &mode = _modes.mode(setpoint_config.source_id);
+
+			const auto setpoint_type = static_cast<mode_util::SetpointType>(setpoint_config.type);
+			reply.result = static_cast<uint8_t>(mode_util::isSetpointTypeValid(setpoint_type, vehicle_type));
+
+			if (reply.result == setpoint_config_reply_s::RESULT_SUCCESS) {
+				// Get control mode
+				vehicle_control_mode_s config_control_setpoint{};
+				mode_util::getControlMode(setpoint_type, config_control_setpoint);
+
+				// Set mode requirement flags
+				reply.mode_req_angular_velocity = config_control_setpoint.flag_control_rates_enabled;
+				reply.mode_req_attitude = config_control_setpoint.flag_control_attitude_enabled;
+				reply.mode_req_local_alt = config_control_setpoint.flag_control_altitude_enabled
+							   || config_control_setpoint.flag_control_climb_rate_enabled;
+				reply.mode_req_local_position = config_control_setpoint.flag_control_position_enabled ||
+								config_control_setpoint.flag_control_velocity_enabled;
+
+				if (setpoint_config.should_apply) {
+					mode.current_setpoint_type = setpoint_type;
+					had_update = true;
+				}
+			}
 
 		} else {
 			if (!_invalid_mode_printed) {
-				PX4_ERR("Control sp config request for invalid mode: %i", config_control_setpoint.source_id);
+				PX4_ERR("Setpoint config request for invalid mode: %i", setpoint_config.source_id);
 				_invalid_mode_printed = true;
 			}
+
+			reply.result = setpoint_config_reply_s::RESULT_FAILURE_OTHER;
 		}
+
+		// Return reply
+		reply.timestamp = hrt_absolute_time();
+		_setpoint_config_reply_pub.publish(reply);
 	}
 
 	return had_update;
@@ -671,6 +683,10 @@ void ModeManagement::checkConfigOverrides()
 
 			break;
 		}
+
+		// Publish confirmation
+		override_request.timestamp = hrt_absolute_time();
+		_config_overrides_confirm_pub.publish(override_request);
 	}
 }
 

@@ -53,6 +53,10 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	switch (gcs_connection_loss_failsafe_mode(param_value)) {
 	case gcs_connection_loss_failsafe_mode::Disabled:
+
+	// No failsafe action: for NAV_RCL_ACT this is handled by Commander switching to Hold as a regular
+	// mode change (see Commander::manualControlLossModeSwitch()).
+	case gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe:
 	default:
 		options.action = Action::None;
 		break;
@@ -540,8 +544,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 	}
 }
 
-void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
-				 const failsafe_flags_s &status_flags)
+void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state, const failsafe_flags_s &status_flags)
 {
 	updateArmingState(time_us, state.armed, status_flags);
 
@@ -723,8 +726,7 @@ void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const f
 	_was_armed = armed;
 }
 
-FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags,
-		uint8_t user_intended_mode) const
+FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const
 {
 	Action action = Action::None;
 
@@ -767,13 +769,14 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	return action;
 }
 
-uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action,
-		uint8_t user_intended_mode) const
+uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action, uint8_t user_intended_mode) const
 {
-	// If we switch from a failsafe back into orbit, switch to loiter instead
-	if ((int)previous_action > (int)Action::Warn
-	    && modeFromAction(current_action, user_intended_mode) == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		PX4_DEBUG("Failsafe cleared, switching from ORBIT to LOITER");
+	// When a failsafe engages, immediately downgrade Orbit to Loiter so that
+	// if the failsafe later clears without a new explicit mode command the vehicle holds position.
+	if ((int)previous_action <= (int)Action::Warn
+	    && (int)current_action > (int)Action::Warn
+	    && user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		PX4_DEBUG("Failsafe engaged, downgrading ORBIT to LOITER");
 		return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	}
 

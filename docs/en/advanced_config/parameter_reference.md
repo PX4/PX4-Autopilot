@@ -21202,8 +21202,8 @@ Delay between failsafe condition triggered and failsafe reaction.
 
 Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
 for the user to realize.
-During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-Afterwards the configured failsafe action is triggered and the user may use stick override.
+During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
+Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
 A zero value disables the delay.
 
@@ -21954,35 +21954,6 @@ Ensure the value is not set lower than the update interval of the RC or Joystick
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 35       | 0.1       | 0.5     | s    | &nbsp;    |
 
-### COM_RC_OVERRIDE (`INT32`) {#COM_RC_OVERRIDE}
-
-Enable manual control stick override.
-
-When enabled, moving the sticks more than COM_RC_STICK_OV
-immediately gives control back to the pilot by switching to Position mode and
-if position is unavailable Altitude mode.
-Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-
-**Bitmask:**
-
-- `0`: Enable override during auto modes (except for in critical battery reaction)
-- `1`: Enable override during offboard mode
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
-
-### COM_RC_STICK_OV (`FLOAT`) {#COM_RC_STICK_OV}
-
-Stick override threshold.
-
-If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-the pilot takes over control.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 5        | 80       | 0.05      | 30.0    | %    | &nbsp;    |
-
 ### COM_SPOOLUP_TIME (`FLOAT`) {#COM_SPOOLUP_TIME}
 
 Enforced delay between arming and further navigation.
@@ -22115,6 +22086,12 @@ Set manual control loss failsafe mode.
 The manual control loss failsafe will only be entered after a timeout,
 set by COM_RC_LOSS_T in seconds.
 
+"Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+(e.g. without a valid position estimate), the normal failsafe takes over and escalates
+from there (Return/Land/Descend/Terminate as applicable).
+
 **Values:**
 
 - `1`: Hold mode
@@ -22122,6 +22099,7 @@ set by COM_RC_LOSS_T in seconds.
 - `3`: Land mode
 - `5`: Terminate
 - `6`: Disarm
+- `7`: Hold mode (no failsafe)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -25741,11 +25719,13 @@ Pitch rate differential gain.
 
 Pitch rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_PR_I (`FLOAT`) {#FW_PR_I}
 
@@ -25795,11 +25775,13 @@ Roll rate derivative gain.
 
 Roll rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output.
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_RR_I (`FLOAT`) {#FW_RR_I}
 
@@ -25877,11 +25859,13 @@ Yaw rate derivative gain.
 
 Yaw rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
 
 ### FW_YR_I (`FLOAT`) {#FW_YR_I}
 
@@ -26023,6 +26007,25 @@ Setting this value to 0 disables the feature.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     | 1         | 30      |      | &nbsp;    |
+
+## Failure Injection
+
+### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
+
+Enable failure injection.
+
+If enabled allows Injection of Failures.
+
+WARNING: the failures can easily cause crashes and are to be used with caution!
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ## Flight Task Orbit
 
@@ -31472,6 +31475,16 @@ A negative value disables the feature.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       | 15       |           | -1.0    | s    | &nbsp;    |
 
+### MAN_OVERRIDE_SPD (`FLOAT`) {#MAN_OVERRIDE_SPD}
+
+Manual control override speed threshold.
+
+Stick velocity above which the pilot regains control by switching to Position mode (or Altitude if position is unavailable). Unit: normalized stick travel per second — at 1.0, moving a stick half its range in ~0.5s triggers it. A negative value disables the feature. Only applies to multicopters and VTOLs in MC mode.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 10.0     | 0.5       | 1       | 1/s  | &nbsp;    |
+
 ## Mission
 
 ### MIS_COMMAND_TOUT (`FLOAT`) {#MIS_COMMAND_TOUT}
@@ -32468,6 +32481,32 @@ The speed threshold is MPC_HOLD_MAX_XY
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### MPC_AUTO_NUDGING (`INT32`) {#MPC_AUTO_NUDGING}
+
+Enable stick nudging in autonomous modes.
+
+Bitmask to enable pilot override of heading and position during auto modes.
+
+Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
+(takeoff, mission, RTL, hold, landing). The new heading is held until a
+mode switch resets it.
+
+Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
+the vehicle horizontally, the throttle stick amends the descent speed
+(stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 \* MPC_LAND_SPEED),
+and the yaw stick rotates the heading.
+
+Stick override must be disabled (set MAN_OVERRIDE_SPD = -1).
+
+**Bitmask:**
+
+- `0`: Yaw nudging
+- `1`: Landing nudging
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 0       |      | &nbsp;    |
+
 ### MPC_HOLD_MAX_XY (`FLOAT`) {#MPC_HOLD_MAX_XY}
 
 Max horizontal velocity for position hold.
@@ -32567,7 +32606,7 @@ Used below MPC_LAND_ALT3 if distance sensor data is availabe.
 
 User assisted landing radius.
 
-When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
+When landing nudging is enabled (MPC_AUTO_NUDGING bit 1), this defines the maximum
 allowed horizontal displacement from the original landing point.
 
 - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
@@ -32578,27 +32617,6 @@ Set it to -1 for infinite radius.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       |          | 1         | -1.0    | m    | &nbsp;    |
-
-### MPC_LAND_RC_HELP (`INT32`) {#MPC_LAND_RC_HELP}
-
-Enable nudging based on user input during autonomous land routine.
-
-Using stick input the vehicle can be moved horizontally and yawed.
-The descend speed is amended:
-stick full up - 0
-stick centered - MPC_LAND_SPEED
-stick full down - 2 \* MPC_LAND_SPEED
-
-Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
-
-**Values:**
-
-- `0`: Nudging disabled
-- `1`: Nudging enabled
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        |           | 0       |      | &nbsp;    |
 
 ### MPC_LAND_SPEED (`FLOAT`) {#MPC_LAND_SPEED}
 
@@ -32879,11 +32897,12 @@ error is above this parameter, the integration of the
 trajectory is stopped to wait for the drone.
 
 This value can be adjusted depending on the tracking
-capabilities of the vehicle.
+capabilities of the vehicle. Set to 0 to disable the horizontal
+time-stretch.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 10       | 1         | 2.0     |      | &nbsp;    |
+| &nbsp; | 0        | 10       | 1         | 2.0     |      | &nbsp;    |
 
 ### MPC_XY_P (`FLOAT`) {#MPC_XY_P}
 
@@ -32956,6 +32975,22 @@ Defined as corrective acceleration in m/s^2 per m/s velocity error
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1.2      | 5        | 0.1       | 1.8     |      | &nbsp;    |
+
+### MPC_Z_ERR_MAX (`FLOAT`) {#MPC_Z_ERR_MAX}
+
+Maximum vertical error allowed by the trajectory generator.
+
+Vertical analog of MPC_XY_ERR_MAX. When the smoothed trajectory z
+leads the drone by more than this value, trajectory integration is
+slowed down so the virtual setpoint can't walk away from the drone.
+This suppresses altitude overshoots caused by a noisy altitude
+reference (e.g. mission setpoint jittering as the home altitude
+estimate is refined in flight). Set to 0 to disable the vertical
+time-stretch.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 1.0     |      | &nbsp;    |
 
 ### MPC_Z_P (`FLOAT`) {#MPC_Z_P}
 
@@ -40219,6 +40254,62 @@ The mode will switch from long to short range when the distance is less than the
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
 
+### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
+
+Serial Configuration for Sony AS-DT1 Rangefinder.
+
+Configure on which serial port to run Sony AS-DT1 Rangefinder.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_MODE (`INT32`) {#SENS_ASDT1_MODE}
+
+Distance measurement range.
+
+Sony AS-DT1 distance measurement range mode. The driver uses
+this mode to configure the sensor and publish matching
+obstacle_distance metadata.
+
+**Values:**
+
+- `0`: 30MSTD
+- `1`: 30M15F
+- `2`: 30M30F
+- `3`: 20M
+- `4`: 40M
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 4        |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_ROT (`FLOAT`) {#SENS_ASDT1_ROT}
+
+Sensor yaw offset.
+
+Yaw angle offset of the Sony AS-DT1 sensor relative to the
+vehicle forward direction. Positive values are clockwise.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -360     | 360      |           | 0       | deg  | &nbsp;    |
+
 ### SENS_BAHRS_CFG (`INT32`) {#SENS_BAHRS_CFG}
 
 Serial Configuration for EULER-NAV BAHRS.
@@ -43985,23 +44076,6 @@ Note: this is only supported on boards with a separate calibration storage
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
-
-### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
-
-Enable failure injection.
-
-If enabled allows MAVLink INJECT_FAILURE commands.
-
-WARNING: the failures can easily cause crashes and are to be used with caution!
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SYS_HAS_BARO (`INT32`) {#SYS_HAS_BARO}
 

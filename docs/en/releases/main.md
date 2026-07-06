@@ -22,8 +22,6 @@ Update these notes with features that are going to be in `main` (PX4 v1.18 or la
 
 ## Read Before Upgrading
 
-- TBD
-
 Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Major Changes

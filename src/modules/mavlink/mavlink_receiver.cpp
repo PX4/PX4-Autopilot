@@ -58,6 +58,7 @@
 #endif
 
 #include "mavlink_command_sender.h"
+#include "mavlink_command_params.hpp"
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
@@ -550,6 +551,7 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	case MAV_CMD_DO_SET_ROI:                             // 201
 	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
 	case MAV_CMD_EXTERNAL_POSITION_ESTIMATE:             // 43003
+	case MAV_CMD_DO_SET_GLOBAL_ORIGIN:                   // 611
 		return true;
 
 	// Not supported by PX4 as COMMAND_INT (mission items or unimplemented)
@@ -575,7 +577,6 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	// case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:          // 5003
 	// case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:          // 5004
 	// case MAV_CMD_NAV_RALLY_POINT:                     // 5100
-	// case MAV_CMD_DO_SET_GLOBAL_ORIGIN:                // 611
 	// case MAV_CMD_WAYPOINT_USER_1:                     // 31000
 	// case MAV_CMD_WAYPOINT_USER_2:                     // 31001
 	// case MAV_CMD_WAYPOINT_USER_3:                     // 31002
@@ -674,6 +675,23 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		return;
 	}
+
+	uint8_t zero_mask = 0;
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, _vehicle_type_bitmask,
+				    vehicle_command.param1, vehicle_command.param2,
+				    vehicle_command.param3, vehicle_command.param4,
+				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
+				    &zero_mask);
+
+	if (command_invalid > 0) {
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+		return;
+	}
+
+	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)cmd_mavlink.command); }
+
+	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)cmd_mavlink.command, zero_mask); }
 
 	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
@@ -868,10 +886,18 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 	bool stream_found = false;
 	bool message_sent = false;
 
+	// request_message() invokes the stream's send() synchronously, which goes
+	// through the MAVLink helpers and touches the shared per-channel
+	// mavlink_status_t. Hold the channel send lock so we don't race with the
+	// sender thread's own stream sends. Don't hold this across
+	// configure_stream_threadsafe() — that busy-waits for the main Mavlink
+	// thread, which also wants the send lock (would deadlock).
 	for (const auto &stream : _mavlink.get_streams()) {
 		if (stream->get_id() == message_id) {
 			stream_found = true;
+			_mavlink.lock_send();
 			message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
+			_mavlink.unlock_send();
 			break;
 		}
 	}
@@ -886,7 +912,9 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 			// Now we try again to send it.
 			for (const auto &stream : _mavlink.get_streams()) {
 				if (stream->get_id() == message_id) {
+					_mavlink.lock_send();
 					message_sent = stream->request_message(param2, param3, param4, param5, param6, param7);
+					_mavlink.unlock_send();
 					break;
 				}
 			}
@@ -1891,7 +1919,9 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 
 		ping.target_system = msg->sysid;
 		ping.target_component = msg->compid;
+		_mavlink.lock_send();
 		mavlink_msg_ping_send_struct(_mavlink.get_channel(), &ping);
+		_mavlink.unlock_send();
 
 	} else if ((ping.target_system == mavlink_system.sysid) &&
 		   (ping.target_component ==
@@ -2495,7 +2525,9 @@ MavlinkReceiver::get_message_interval(int msgId)
 	}
 
 	// send back this value...
+	_mavlink.lock_send();
 	mavlink_msg_message_interval_send(_mavlink.get_channel(), msgId, interval);
+	_mavlink.unlock_send();
 }
 
 void
@@ -2799,6 +2831,19 @@ MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
 	cellular_status.mcc = status.mcc;
 	cellular_status.mnc = status.mnc;
 	cellular_status.lac = status.lac;
+
+	// Extension fields
+	cellular_status.id = status.id;
+	cellular_status.link_tx_rate = status.link_tx_rate;
+	cellular_status.link_rx_rate = status.link_rx_rate;
+	memcpy(&cellular_status.cell_tower_id[0], &status.cell_tower_id[0], sizeof(cellular_status.cell_tower_id));
+	cellular_status.band_number = status.band_number;
+	cellular_status.band_frequency = status.band_frequency;
+	cellular_status.channel_number = status.channel_number;
+	cellular_status.rx_level = status.rx_level;
+	cellular_status.tx_level = status.tx_level;
+	cellular_status.rx_quality = status.rx_quality;
+	cellular_status.sinr = status.sinr;
 
 	_cellular_status_pub.publish(cellular_status);
 }
@@ -3433,6 +3478,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 	}
 
 	if ((t >= _last_heartbeat_check + (TIMEOUT / 2)) || force) {
+		_mavlink.lock_telemetry_status();
 		telemetry_status_s &tstatus = _mavlink.telemetry_status();
 
 		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
@@ -3453,6 +3499,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
 		tstatus.heartbeat_component_uart_bridge        = (t <= TIMEOUT + _heartbeat_component_uart_bridge);
 
+		_mavlink.unlock_telemetry_status();
 		_mavlink.telemetry_status_updated();
 		_last_heartbeat_check = t;
 	}
@@ -3715,6 +3762,12 @@ MavlinkReceiver::run()
 			updateParams();
 		}
 
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vs{};
+			_vehicle_status_sub.copy(&vs);
+			_vehicle_type_bitmask = mavlink_cmd_params::vehicle_type_bitmask(vs.is_vtol, vs.vehicle_type);
+		}
+
 		// Reload signing key if another instance updated it
 		_mavlink.check_signing_key_dirty();
 
@@ -3767,10 +3820,29 @@ MavlinkReceiver::run()
 
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
-					if (mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status)) {
+					// FIXME: proper fix is to refactor the MAVLink library so per-channel
+					// status is owned by its Mavlink instance (not a shared global), and
+					// TX/RX state is split into separate structs so they don't share bytes.
+					// Until then: mavlink_parse_char() modifies the shared per-channel
+					// mavlink_status_t (status->flags, parse_state etc.) which the sender
+					// thread also reads via _mav_finalize_message_chan_send(). Take the
+					// send lock for the parse call only. We must NOT hold it across
+					// handle_message() because some handlers call configure_stream_threadsafe(),
+					// which busy-waits for the Mavlink main thread — and that thread may be
+					// waiting for lock_send(), producing a circular wait. Individual handlers
+					// that actually send take lock_send() locally.
+					_mavlink.lock_send();
+					const uint8_t parsed = mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status);
+					_mavlink.unlock_send();
 
-						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version
-						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)
+					if (parsed) {
+
+						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version.
+						// Read flags from the receiver-local _status (mavlink_parse_char copies flags from the
+						// channel-global status into it) rather than from the channel global, which would race
+						// with concurrent writers (setProtocolVersion on the main thread, parse_char on us)
+						// outside of lock_send().
+						if (!(_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)
 						    && _mavlink.getProtocolVersion() != 2) {
 							PX4_INFO("Upgrade to MAVLink v2 because of incoming packet");
 							_mavlink.setProtocolVersion(2);
@@ -3799,6 +3871,9 @@ MavlinkReceiver::run()
 				if (nread > 0) {
 					_mavlink.count_rxbytes(nread);
 
+					// _tstatus is read by the sender thread under _tstatus_mutex in
+					// publish_telemetry_status(). Take the same lock here to avoid a race.
+					_mavlink.lock_telemetry_status();
 					telemetry_status_s &tstatus = _mavlink.telemetry_status();
 					tstatus.rx_message_count = _total_received_counter;
 					tstatus.rx_message_lost_count = _total_lost_counter;
@@ -3818,6 +3893,8 @@ MavlinkReceiver::run()
 						tstatus.rx_packet_drop_count++;
 						_mavlink_status_last_packet_rx_drop_count = _status.packet_rx_drop_count;
 					}
+
+					_mavlink.unlock_telemetry_status();
 				}
 
 #if defined(MAVLINK_UDP)
@@ -3835,6 +3912,7 @@ MavlinkReceiver::run()
 
 		if (t - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();
+			_mavlink.lock_send();
 			_mission_manager.send();
 
 			if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
@@ -3847,6 +3925,7 @@ MavlinkReceiver::run()
 			}
 
 			_mavlink_log_handler.send();
+			_mavlink.unlock_send();
 			last_send_update = t;
 		}
 

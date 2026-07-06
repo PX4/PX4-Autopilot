@@ -45,5 +45,5 @@ param set-default CA_ROTOR3_PX -1
 param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_KM -0.05
 
-param set-default MPC_Z_VEL_MAX_UP 3.0
-param set-default MPC_Z_VEL_MAX_DN 3.0
+param set-default MPC_Z_VEL_MAX_UP 3
+param set-default MPC_Z_VEL_MAX_DN 3

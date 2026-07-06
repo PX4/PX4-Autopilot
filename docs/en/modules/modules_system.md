@@ -256,6 +256,33 @@ esc_battery <command> [arguments...]
    status        print status info
 ```
 
+## failure_injection_manager
+
+Source: [modules/failure_injection_manager](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/failure_injection_manager)
+
+### Description
+
+The failure injection manager is the single subscriber to `vehicle_command` for
+`MAV_CMD_INJECT_FAILURE`. It maintains the set of currently active failures and
+publishes the `failure_injection` topic, republishing only when the configuration
+changes so that command spam cannot propagate to the consumers that apply the
+failures. It also produces the central `vehicle_command_ack`.
+
+Failure injection is gated by the `SYS_FAILURE_EN` parameter, which the startup
+script checks before starting this module.
+
+### Usage {#failure_injection_manager_usage}
+
+```
+failure_injection_manager <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
 ## gyro_calibration
 
 Source: [modules/gyro_calibration](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/gyro_calibration)

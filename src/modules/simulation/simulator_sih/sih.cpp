@@ -368,8 +368,9 @@ uint8_t Sih::num_motors() const
 
 void Sih::publish_esc_status()
 {
-	esc_status_s esc_status{};
-	esc_status.timestamp = hrt_absolute_time();
+	_esc_status.timestamp = hrt_absolute_time();
+	_esc_status.esc_online_flags = 0;
+	_esc_status.esc_armed_flags = 0;
 	int motor_idx = 0;
 	bool any_motor_running = false;
 	float max_rpm = 10000.f;
@@ -385,11 +386,11 @@ void Sih::publish_esc_status()
 			continue; // control surface / steering channel, not a motor
 		}
 
-		esc_status.esc[motor_idx].timestamp = hrt_absolute_time();
-		esc_status.esc[motor_idx].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + motor_idx;
-		esc_status.esc[motor_idx].esc_temperature = 50.f;
-		esc_status.esc[motor_idx].esc_rpm = (int32_t)roundf(Thruster::throttle_to_rpm(_u[i], max_rpm));
-		esc_status.esc_online_flags |= 1u << motor_idx;
+		_esc_status.esc[motor_idx].timestamp = hrt_absolute_time();
+		_esc_status.esc[motor_idx].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + motor_idx;
+		_esc_status.esc[motor_idx].esc_temperature = 50.f;
+		_esc_status.esc[motor_idx].esc_rpm = (int32_t)roundf(Thruster::throttle_to_rpm(_u[i], max_rpm));
+		_esc_status.esc_online_flags |= 1u << motor_idx;
 
 		if (_u[i] > FLT_EPSILON) {
 			any_motor_running = true;
@@ -398,13 +399,13 @@ void Sih::publish_esc_status()
 		motor_idx++;
 	}
 
-	esc_status.esc_count = motor_idx;
+	_esc_status.esc_count = motor_idx;
 
 	if (any_motor_running) {
-		esc_status.esc_armed_flags = (1u << motor_idx) - 1;
+		_esc_status.esc_armed_flags = (1u << motor_idx) - 1;
 	}
 
-	_esc_status_pub.publish(esc_status);
+	_esc_status_pub.publish(_esc_status);
 }
 
 void Sih::generate_force_and_torques(const float dt)
