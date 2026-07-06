@@ -360,6 +360,16 @@ private:
 	bool pointInsideInteriorCone(const PolygonInfo &poly, int32_t px, int32_t py, int v) const;
 
 	/**
+	 * Return true if the edge leaving polygon vertex index `a` enters the
+	 * forbidden interior at that vertex. This case is pretty common, and
+	 * checking it first in edgeVisible allows us to skip a lot of general
+	 * edge-polygon intersection checks.
+	 */
+	bool edgePokesIntoPolygon(int a, int32_t bx, int32_t by) const;
+	bool edgePokesIntoPolygon(int a, int b) const;                        // Other endpoint is node index b.
+	bool edgePokesIntoPolygon(int a, const matrix::Vector2f &b) const;    // Other endpoint is an arbitrary position.
+
+	/**
 	 * Update {min,max}_{x,y} with the min/max coordinates of the polygon with vertices
 	 * [start_index, start_index + num_vertices).
 	 */
