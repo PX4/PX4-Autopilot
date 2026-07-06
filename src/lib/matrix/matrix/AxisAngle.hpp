@@ -17,6 +17,16 @@ class Euler;
 template<typename Type>
 class Quaternion;
 
+template<typename Type>
+class AxisAngle;
+
+namespace detail
+{
+// Shared body of the AxisAngle-from-Quaternion constructor (see
+// dcm_from_quaternion note).
+template<typename Type> void axis_angle_from_quaternion(AxisAngle<Type> &v, const Quaternion<Type> &q);
+} // namespace detail
+
 /**
  * AxisAngle class
  *
@@ -65,15 +75,7 @@ public:
 	 */
 	AxisAngle(const Quaternion<Type> &q)
 	{
-		AxisAngle &v = *this;
-		Type mag = q.imag().norm();
-
-		if (std::fabs(mag) >= Type(1e-10)) {
-			v = q.imag() * Type(Type(2) * std::atan2(mag, q(0)) / mag);
-
-		} else {
-			v = q.imag() * Type(Type(2) * Type(sign(q(0))));
-		}
+		detail::axis_angle_from_quaternion(*this, q);
 	}
 
 	/**
@@ -156,5 +158,23 @@ public:
 
 using AxisAnglef = AxisAngle<float>;
 using AxisAngled = AxisAngle<double>;
+
+namespace detail
+{
+
+template<typename Type>
+void axis_angle_from_quaternion(AxisAngle<Type> &v, const Quaternion<Type> &q)
+{
+	Type mag = q.imag().norm();
+
+	if (std::fabs(mag) >= Type(1e-10)) {
+		v = q.imag() * Type(Type(2) * std::atan2(mag, q(0)) / mag);
+
+	} else {
+		v = q.imag() * Type(Type(2) * Type(sign(q(0))));
+	}
+}
+
+} // namespace detail
 
 } // namespace matrix
