@@ -241,9 +241,13 @@ void GeofenceAvoidancePlanner::updateDestination(const matrix::Vector2d &destina
 		return;
 	}
 
-	// Destination changed -- rebuild all edge costs. Could only refresh costs involving
-	// the destination for slightly better performance at the cost of code repetition.
-	updateEdgeCosts();
+	// Destination changed -- only the destination-incident edges (node 0) need
+	// refreshing; polygon-polygon edges are independent of the destination. This is
+	// linear in the number of nodes, unlike the quadratic full rebuild, so it is not
+	// worth a perf counter.
+	for (int j = 1; j < _polygons.numNodes(); j++) {
+		_distances[dijkstra::symmetricPairIndex(0, j, _polygons.numNodes())] = _polygons.edgeCost(0, j);
+	}
 
 	planPath();
 }
