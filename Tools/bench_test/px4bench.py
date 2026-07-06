@@ -30,6 +30,23 @@ except ImportError as e:
     print(PYMAVLINK_INSTALL_HINT.format(err=e))
     sys.exit(2)
 
+# pymavlink 2.4.49: add_message() crashes with TypeError if the first message
+# of an instanced type (BATTERY_STATUS, ESC_STATUS, ...) arrives with its
+# instance field unset -- it is then stored without the _instances dict and the
+# next instanced arrival does None[key]. Timing-dependent, so it bites
+# intermittently mid-suite. Wrap it; drop once fixed upstream.
+_orig_add_message = mavutil.add_message
+
+
+def _safe_add_message(messages, mtype, msg):
+    try:
+        _orig_add_message(messages, mtype, msg)
+    except TypeError:
+        messages[mtype] = msg
+
+
+mavutil.add_message = _safe_add_message
+
 SERIAL_CONTROL_DEV_SHELL = 10  # SERIAL_CONTROL_DEV_SHELL (see Tools/mavlink_shell.py)
 DEFAULT_BAUD = 57600
 USB_DEVICE_GLOB_DARWIN = '/dev/tty.usbmodem*'
@@ -216,10 +233,15 @@ class MavlinkShell:
         return self._strip(cmd, sentinel), True
 
     def _strip(self, cmd, sentinel):
-        """Remove command echo and sentinel lines from captured output."""
+        """Remove command echo and sentinel lines from captured output.
+
+        Strips ANY BENCHDONE sentinel, not just the current one: the second
+        safety echo of the previous command often arrives after run() already
+        returned and would otherwise leak into this command's output.
+        """
         lines = []
         for line in self.buf.splitlines():
-            if sentinel in line:
+            if sentinel in line or re.match(r'BENCHDONE\d+\s*$', line.strip()):
                 continue
             if cmd in line and 'echo' in line:
                 continue
