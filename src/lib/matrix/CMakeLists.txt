@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+px4_add_library(matrix
+	matrix/helper_functions.cpp
+)
+
 if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()
