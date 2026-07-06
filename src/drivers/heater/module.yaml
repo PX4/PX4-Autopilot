@@ -121,6 +121,22 @@ parameters:
             instance_start: 1
             default: [0, 0, 0]
 
+        HEATER${i}_TEMP_TH:
+            description:
+                short: Temperature threshold for heater ${i} to start heating
+                long: |
+                    Used to prevent the heater from always heating. It only starts heating if the temperature drops below this threshold, and continues until reset.
+
+            type: float
+            unit: us/C
+            min: -1000.0
+            max: 1000.0
+            decimal: 1
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [1000.0, 1000.0, 1000.0]
+
         HEATER${i}_NOM_V:
             description:
                 short: Nominal supply voltage for heater ${i}
