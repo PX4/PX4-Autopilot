@@ -115,17 +115,36 @@ def set_param_int32(mav, name, value):
         MAV_PARAM_TYPE_INT32)
 
 
-def wait_param_echo(mav, name, timeout=SET_ECHO_TIMEOUT_S):
-    """Wait for a PARAM_VALUE echo for name. Returns int32 value or None."""
+def drain_param_values(mav):
+    """Discard any queued PARAM_VALUE messages (stale echoes/broadcasts)."""
+    while mav.recv_match(type='PARAM_VALUE', blocking=False) is not None:
+        pass
+
+
+def wait_param_echo(mav, name, expected, timeout=SET_ECHO_TIMEOUT_S):
+    """Wait for a PARAM_VALUE for name carrying the expected int32 value.
+
+    PX4 can emit more than one PARAM_VALUE per set (handler reply plus the
+    changed-param announcement, times the number of mavlink instances), so
+    consuming a single message desyncs the harness by one echo forever.
+    Returns (matched, seen) where seen is every value observed for name; a
+    genuine wrong-echo firmware bug shows up as matched=False with the wrong
+    value(s) in seen.
+    """
+    seen = []
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         m = mav.recv_match(type='PARAM_VALUE', blocking=True,
                            timeout=max(0.1, deadline - time.monotonic()))
         if m is None:
             continue
-        if param_id_str(m.param_id) == name:
-            return param_float_to_int32(m.param_value)
-    return None
+        if param_id_str(m.param_id) != name:
+            continue
+        value = param_float_to_int32(m.param_value)
+        seen.append(value)
+        if value == expected:
+            return True, seen
+    return False, seen
 
 
 # ---------------------------------------------------------------------------
@@ -228,16 +247,13 @@ def phase_set_readback(report, mav, param, iterations):
     for i in range(iterations):
         value = ((i * 37) % 1999) - 999
 
+        drain_param_values(mav)
         set_param_int32(mav, param, value)
-        echo = wait_param_echo(mav, param, SET_ECHO_TIMEOUT_S)
-        if echo is None:
+        matched, seen = wait_param_echo(mav, param, value, SET_ECHO_TIMEOUT_S)
+        if not matched:
             report.fail('param_set_echo',
-                        'set iteration {}: no PARAM_VALUE echo'.format(i))
-            echo_failures += 1
-            continue
-        if echo != value:
-            report.fail('param_set_echo',
-                        'set iteration {}: echo {} != set {}'.format(i, echo, value))
+                        'set iteration {}: no echo of {} within {}s (saw: {})'.format(
+                            i, value, SET_ECHO_TIMEOUT_S, seen or 'nothing'))
             echo_failures += 1
             # keep going: still try to read back
 
@@ -274,11 +290,12 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     """
     report.info('Phase 3: persistence across reboot')
 
+    drain_param_values(mav)
     set_param_int32(mav, param, MARKER_VALUE)
-    echo = wait_param_echo(mav, param, SET_ECHO_TIMEOUT_S)
-    if echo != MARKER_VALUE:
+    matched, seen = wait_param_echo(mav, param, MARKER_VALUE, SET_ECHO_TIMEOUT_S)
+    if not matched:
         report.fail('persistence_set',
-                    'marker set echo {} != {}'.format(echo, MARKER_VALUE))
+                    'no echo of marker {} (saw: {})'.format(MARKER_VALUE, seen or 'nothing'))
         return mav
 
     # Force an explicit flush to storage before we pull the power.
@@ -313,11 +330,12 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
                          param, survived, MARKER_VALUE))
 
     # Restore original inside this phase too, then verify.
+    drain_param_values(mav)
     set_param_int32(mav, param, original_value)
-    echo = wait_param_echo(mav, param, SET_ECHO_TIMEOUT_S)
+    matched, seen = wait_param_echo(mav, param, original_value, SET_ECHO_TIMEOUT_S)
     report.check('persistence_restore',
-                 echo == original_value,
-                 'restored {} to {} (echo {})'.format(param, original_value, echo))
+                 matched,
+                 'restored {} to {} (saw: {})'.format(param, original_value, seen))
     return mav
 
 
@@ -381,12 +399,14 @@ def main():
         # Always restore the original value while a connection is alive.
         if original_value is not None and mav is not None:
             try:
+                drain_param_values(mav)
                 set_param_int32(mav, args.param, original_value)
-                echo = wait_param_echo(mav, args.param, SET_ECHO_TIMEOUT_S)
+                matched, seen = wait_param_echo(mav, args.param, original_value,
+                                                SET_ECHO_TIMEOUT_S)
                 report.check('final_restore',
-                             echo == original_value,
-                             'restored {} to {} (echo {})'.format(
-                                 args.param, original_value, echo))
+                             matched,
+                             'restored {} to {} (saw: {})'.format(
+                                 args.param, original_value, seen))
             except Exception as e:
                 report.fail('final_restore',
                             'exception while restoring {}: {}'.format(args.param, e))
