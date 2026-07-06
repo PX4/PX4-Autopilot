@@ -695,6 +695,15 @@ public:
 	}
 };
 
+// The most common instantiations are explicitly instantiated once in the matrix library
+// (helper_functions.cpp). Without this, every translation unit calling a member the compiler
+// decides not to inline emits its own local clone of it (dozens of identical copies of e.g.
+// Matrix<float, 3, 1>::operator= firmware-wide). Inlining is unaffected.
+extern template class Matrix<float, 2, 1>;
+extern template class Matrix<float, 3, 1>;
+extern template class Matrix<float, 4, 1>;
+extern template class Matrix<float, 3, 3>;
+
 template<typename Type, size_t M, size_t N>
 Matrix<Type, M, N> zeros()
 {

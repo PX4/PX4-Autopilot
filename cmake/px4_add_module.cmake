@@ -166,7 +166,7 @@ function(px4_add_module)
 	endif()
 
 	if(NOT DYNAMIC)
-		target_link_libraries(${MODULE} PRIVATE prebuild_targets px4_platform systemlib perf)
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets px4_platform systemlib perf matrix)
 		if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT AND KERNEL)
 			target_link_libraries(${MODULE} PRIVATE
 				kernel_events_interface kernel_parameters_interface px4_kernel_layer uORB_kernel)
