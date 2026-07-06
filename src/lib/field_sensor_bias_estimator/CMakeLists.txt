@@ -33,5 +33,6 @@
 
 add_library(FieldSensorBiasEstimator INTERFACE)
 target_include_directories(FieldSensorBiasEstimator INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FieldSensorBiasEstimator INTERFACE matrix)
 
 px4_add_unit_gtest(SRC FieldSensorBiasEstimatorTest.cpp LINKLIBS FieldSensorBiasEstimator)
