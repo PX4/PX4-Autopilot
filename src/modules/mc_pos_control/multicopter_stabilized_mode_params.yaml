@@ -29,7 +29,7 @@ parameters:
           The value is mapped to the lowest throttle stick position in Stabilized mode.
 
           Too low collective thrust leads to loss of roll/pitch/yaw torque control authority.
-          Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
+          Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE_LIM).
       type: float
       default: 0.08
       unit: norm

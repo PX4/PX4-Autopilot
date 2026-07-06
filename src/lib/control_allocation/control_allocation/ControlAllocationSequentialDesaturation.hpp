@@ -76,10 +76,11 @@ private:
 	 *
 	 * @param actuator_sp Actuator setpoint, vector that is modified
 	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
-	 * @param increase_only if true, only allow to increase (add) a fraction of desaturation_vector
+	 * @param increase_limit fraction in [0,1] of the upward (thrust-raising) desaturation gain
+	 *                       allowed: 0 = no airmode, 1 = full airmode.
 	 */
 	void desaturateActuators(ActuatorVector &actuator_sp, const ActuatorVector &desaturation_vector,
-				 bool increase_only = false);
+				 float increase_limit = 1.f);
 
 	/**
 	 * Computes the gain k by which desaturation_vector has to be multiplied
@@ -90,43 +91,23 @@ private:
 	float computeDesaturationGain(const ActuatorVector &desaturation_vector, const ActuatorVector &actuator_sp);
 
 	/**
-	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
-	 *
-	 * Desaturation behavior: airmode for roll/pitch:
-	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
-	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
+	 * @return true if folding yaw into the pre-thrust mix needs a strictly smaller thrust shift to
+	 *         unsaturate than roll/pitch alone, i.e. yaw relieves the saturating actuator.
 	 */
-	void mixAirmodeRP();
+	bool yawReducesAirmodeThrust();
 
 	/**
 	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
 	 *
-	 * Desaturation behavior: full airmode for roll/pitch/yaw:
-	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
-	 * while giving priority to roll and pitch over yaw.
-	 */
-	void mixAirmodeRPY();
-
-	/**
-	 * Mix roll, pitch, yaw, thrust and set the actuator setpoint.
+	 * @param roll_pitch_limit roll/pitch airmode limit in [0,1].
+	 * @param yaw_limit        yaw airmode limit in [0,1]; 0 keeps the deferred-yaw path.
 	 *
-	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
-	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
-	 * Thrust can be reduced to unsaturate the upper side.
-	 * @see mixYaw() for the exact yaw behavior.
+	 * Endpoints: (0,0) disabled, (1,0) roll/pitch, (1,1) roll/pitch/yaw.
 	 */
-	void mixAirmodeDisabled();
-
-	/**
-	 * Mix yaw by updating the actuator setpoint (that already contains roll/pitch/thrust).
-	 *
-	 * Desaturation behavior: thrust is allowed to be decreased up to 15% in order to allow
-	 * some yaw control on the upper end. On the lower end thrust will never be increased,
-	 * but yaw is decreased as much as required.
-	 */
-	void mixYaw();
+	void mix(float roll_pitch_limit, float yaw_limit);
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+		(ParamFloat<px4::params::MC_AIRMODE_LIM>) _param_mc_airmode_lim,         ///< roll/pitch airmode authority limit
+		(ParamFloat<px4::params::MC_AIRMODE_YLIM>) _param_mc_airmode_yaw_lim  ///< yaw airmode authority limit
 	);
 };
