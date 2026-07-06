@@ -28,6 +28,23 @@ parameters:
       min: 1
       max: 255
       reboot_required: true
+    UAVCAN_QUIRKS:
+      description:
+        short: DroneCAN device quirks bitmask
+        long: |
+          Enables workarounds for non-compliant DroneCAN device firmware.
+
+          Bit 0: Hobbywing ESC status esc_index is 1-based instead of 0-based.
+          Some Hobbywing DroneCAN ESCs report uavcan.equipment.esc.Status.esc_index
+          starting at 1 for the first ESC instead of 0 as required by the DSDL
+          specification, while still expecting RawCommand.cmd[0] to command the
+          first ESC. Enabling this bit subtracts 1 from the received esc_index
+          before using it to match ESC status feedback to the correct motor.
+      type: bitmask
+      bit:
+        0: Hobbywing esc_index is 1-based
+      default: 0
+      reboot_required: true
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure

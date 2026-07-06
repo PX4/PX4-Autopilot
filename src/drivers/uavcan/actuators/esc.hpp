@@ -128,6 +128,11 @@ private:
 
 	failure_injection::Config _failure_config;
 
+	int32_t _param_uavcan_quirks{0};
+	enum class Quirk : int32_t {
+		HobbywingEscIdx1 = (1 << 0), ///< ESCs reporting a 1-based esc_index instead of 0-based
+	};
+
 	/*
 	 * libuavcan related things
 	 */
