@@ -1370,3 +1370,38 @@ TEST_F(CollisionPreventionTest, enterData)
 	EXPECT_TRUE(cp.test_enterData(16, 30.f, 1.5f)); //longer range, reading in range
 	EXPECT_TRUE(cp.test_enterData(16, 30.f, 31.f)); //longer range, reading out of range
 }
+
+TEST_F(CollisionPreventionTest, addObstacleSensorData_smallIncrementNoOverflow)
+{
+	// GIVEN: a body-frame obstacle message whose increment is smaller than BIN_SIZE (5 deg).
+	// The distances[] array is a fixed 72 elements, but the BODY_FRD ingest loop bounds its
+	// message index by 360/increment. With increment < 5 that exceeds 72 and reads past the
+	// end of distances[] (the sibling GLOBAL/LOCAL_NED branch guards this with j < BIN_COUNT).
+	TestCollisionPrevention cp;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_BODY_FRD; // vehicle front aligned
+	obstacle_msg.increment = 1.f;                         // 360 / 1 = 360 >> 72-element array
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	// fill the whole valid array: a few close bins, the rest "no obstacle"
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
+	for (int i = 2; i <= 6; i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	// WHEN: we ingest it. Before the fix this reads obstacle_msg.distances[j] for j up to 359,
+	// i.e. far past the end of the array (AddressSanitizer aborts here).
+	cp.test_addObstacleSensorData(obstacle_msg, 0.f);
+
+	// THEN: every resulting map bin holds either "no obstacle" or one of the values we supplied.
+	// A value outside {UINT16_MAX, 500} means out-of-bounds memory leaked into the obstacle map.
+	const int map_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	for (int i = 0; i < map_size; i++) {
+		const uint16_t d = cp.getObstacleMap().distances[i];
+		EXPECT_TRUE(d == UINT16_MAX || d == 500) << "bin " << i << " leaked value " << d;
+	}
+}
