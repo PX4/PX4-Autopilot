@@ -4,14 +4,22 @@ Semi-automated release qualification for PX4 on real NuttX hardware
 (Pixhawk-class boards on a bench, connected over USB and optionally a
 telemetry radio).
 
-PX4 v1.18 merged a large TSAN/concurrency series (PR #27606 plus follow-ups
-#27809 and #27813) that reworked mavlink locking, uORB callbacks, WorkQueue
-lifetime, parameters, and dataman. CI builds NuttX firmware but never boots
-it. The characteristic failure mode of this class of bug on NuttX is a
-silent hang (for example a mutex that was previously zero-initialized and
-locked from the wrong context), not a crash. This suite makes hangs visible:
-every operation has a timeout, and a timeout is reported as FAIL naming
-exactly what stalled. A hang is the finding, not a nuisance.
+CI builds every NuttX target but never boots one, and SITL runs the same
+code on a host OS whose threading, scheduling, and libc behave differently
+from the RTOS on the flight controller. That gap hides an entire class of
+defects that only exist on real hardware: boot-time initialization ordering,
+link lifecycle across USB re-enumeration, storage and filesystem behavior,
+loop-rate drift, and concurrency bugs that are invisible on glibc but fatal
+on NuttX. A board can pass every SITL test and still ship with a dead
+telemetry link.
+
+px4bench closes that gap with repeatable, scriptable verification on the
+bench: qualify a release candidate before cutting a branch, baseline a board
+before and after a firmware upgrade, or hand a beta to a test team knowing
+the basics hold. Failures on embedded targets are often silent hangs rather
+than crashes, so the suite is built around one rule: every operation has a
+timeout, and a timeout is reported as FAIL naming exactly what stalled. A
+hang is the finding, not a nuisance.
 
 The bench tests never arm the vehicle; logging is triggered with
 `logger on` / `logger off`. The one test that flies does so in simulation on
