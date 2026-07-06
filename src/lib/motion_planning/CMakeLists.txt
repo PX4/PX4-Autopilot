@@ -40,6 +40,7 @@ px4_add_library(motion_planning
 )
 
 target_include_directories(motion_planning PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(motion_planning PUBLIC matrix)
 
 px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS motion_planning)
 px4_add_unit_gtest(SRC PositionSmoothingTest.cpp LINKLIBS motion_planning)
