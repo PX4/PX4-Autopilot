@@ -1,10 +1,14 @@
-#!/usr/bin/env python3
-"""
-Shared helpers for the PX4 bench-test suite (Tools/bench_test).
+"""px4bench: shared library for the PX4 bench-test suite (Tools/bench_test).
 
-Provides MAVLink connection setup, a non-interactive nsh shell over
-SERIAL_CONTROL (reusing the pattern from Tools/mavlink_shell.py), reboot
-and USB re-detection helpers, and PASS/FAIL reporting.
+Core primitives every test builds on: MAVLink connection setup, PASS/FAIL
+reporting, a non-interactive nsh shell over SERIAL_CONTROL (pattern from
+Tools/mavlink_shell.py), reboot and USB re-detection helpers, a live viewer
+tee, and small parsers for `mavlink status` output.
+
+Protocol-area helpers live in submodules:
+    px4bench.params    parameter read/set/echo with PX4's int32 union encoding
+    px4bench.missions  mission item generation and the upload/download protocol
+    px4bench.ftp       MAVFTP listing/download and ULog constants
 
 Every operation takes a timeout: a hung board is a finding, not an excuse
 for a hung test script.
@@ -52,10 +56,6 @@ DEFAULT_BAUD = 57600
 USB_DEVICE_GLOB_DARWIN = '/dev/tty.usbmodem*'
 USB_DEVICE_GLOB_LINUX = '/dev/serial/by-id/*PX4*'
 
-
-# ---------------------------------------------------------------------------
-# Reporting
-# ---------------------------------------------------------------------------
 
 class Reporter:
     """Collects named PASS/FAIL checks and prints a summary.
@@ -117,10 +117,6 @@ def make_report_dir(base='bench_reports', test_name=''):
     return path
 
 
-# ---------------------------------------------------------------------------
-# Connection
-# ---------------------------------------------------------------------------
-
 def is_serial_device(conn_str):
     return conn_str.startswith('/dev/') or conn_str.upper().startswith('COM')
 
@@ -135,8 +131,7 @@ def connect(conn_str, baud=DEFAULT_BAUD, timeout: float = 20, source_system=254)
                                      source_component=mavutil.mavlink.MAV_COMP_ID_MISSIONPLANNER)
     assert isinstance(mav, mavutil.mavfile), 'unexpected connection type for {}'.format(conn_str)
     # announce ourselves so the autopilot streams to us
-    mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
-                           mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+    send_heartbeat(mav)
     hb = mav.wait_heartbeat(timeout=int(timeout))
     if hb is None:
         mav.close()
@@ -149,6 +144,12 @@ def wait_heartbeat(mav, timeout: float = 10):
     return mav.wait_heartbeat(timeout=int(timeout))
 
 
+def send_heartbeat(mav):
+    """Send one GCS heartbeat so the autopilot keeps streaming to us."""
+    mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                           mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+
+
 def drain(mav, duration=0.5):
     """Read and discard pending messages for a short window."""
     deadline = time.monotonic() + duration
@@ -157,9 +158,37 @@ def drain(mav, duration=0.5):
             pass
 
 
-# ---------------------------------------------------------------------------
-# nsh shell over MAVLink SERIAL_CONTROL
-# ---------------------------------------------------------------------------
+def parse_mavlink_status(text):
+    """Parse `mavlink status` shell output into per-instance dicts.
+
+    Each instance block begins with `instance #N:` and contains rate lines
+    `tx: X B/s` / `rx: X B/s` (src/modules/mavlink/mavlink_main.cpp). Returns
+    a list of {'header', 'tx', 'rx'} dicts; its length is the instance count.
+    """
+    instances = []
+    cur = None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if 'instance #' in stripped:
+            if cur is not None:
+                instances.append(cur)
+            cur = {'header': stripped, 'tx': None, 'rx': None}
+            continue
+        if cur is None:
+            continue
+        if stripped.startswith('tx:') and cur['tx'] is None:
+            cur['tx'] = stripped
+        elif stripped.startswith('rx:') and cur['rx'] is None:
+            cur['rx'] = stripped
+    if cur is not None:
+        instances.append(cur)
+    return instances
+
+
+def count_mavlink_instances(text):
+    """Count MAVLink instances in `mavlink status` output."""
+    return len(re.findall(r'instance\s*#\s*\d+', text))
+
 
 class MavlinkShell:
     """Non-interactive nsh shell over SERIAL_CONTROL (dev 10).
@@ -194,8 +223,7 @@ class MavlinkShell:
         """Read pending SERIAL_CONTROL data into self.buf, keep heartbeats going."""
         now = time.monotonic()
         if now > self._next_heartbeat:
-            self.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
-                                        mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
+            send_heartbeat(self.mav)
             self._next_heartbeat = now + 1.0
         m = self.mav.recv_match(condition='SERIAL_CONTROL.count!=0',
                                 type='SERIAL_CONTROL', blocking=True, timeout=window)
@@ -255,10 +283,6 @@ class MavlinkShell:
             pass
 
 
-# ---------------------------------------------------------------------------
-# Live viewer tee (Hawkeye)
-# ---------------------------------------------------------------------------
-
 def attach_viewer_tee(conn, host='127.0.0.1', port=19410):
     """Forward every received MAVLink frame to a UDP endpoint, one frame per
     datagram (same framing the SITL viewer channel uses), so Hawkeye can
@@ -284,10 +308,6 @@ def attach_viewer_tee(conn, host='127.0.0.1', port=19410):
     conn.recv_msg = recv_msg_tee
     return conn
 
-
-# ---------------------------------------------------------------------------
-# Reboot / device replug helpers
-# ---------------------------------------------------------------------------
 
 def send_reboot(mav):
     """Request an autopilot reboot (MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, param1=1)."""
@@ -379,11 +399,8 @@ def reboot_and_reconnect(mav, conn_str, baud=DEFAULT_BAUD, timeout=60):
         timeout, last_err))
 
 
-# ---------------------------------------------------------------------------
-# Common CLI plumbing
-# ---------------------------------------------------------------------------
-
 def add_connection_args(parser, dual_link=False):
+    """Standard CLI surface shared by every test in the suite."""
     parser.add_argument('connection',
                         help='MAVLink connection: serial device (/dev/tty.usbmodem01), '
                              'udp:IP:PORT, or tcp:IP:PORT')

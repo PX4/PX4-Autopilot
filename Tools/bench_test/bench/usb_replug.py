@@ -26,13 +26,8 @@ import os
 import re
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import px4bench
-
-
-def count_mavlink_instances(output):
-    """Count MAVLink instances from `mavlink status` (instance #N blocks)."""
-    return len(re.findall(r'instance\s*#\s*\d+', output))
 
 
 def parse_free_used(output):
@@ -89,7 +84,7 @@ def read_baseline(shell, report):
         report.fail('baseline mavlink status',
                     'shell command mavlink status stalled (no completion within 10s)')
         return None
-    instances = count_mavlink_instances(ms_out)
+    instances = px4bench.count_mavlink_instances(ms_out)
 
     free_out, timed_out = shell.run('free', timeout=10)
     if timed_out:
@@ -131,7 +126,6 @@ def main():
 
     device = args.connection
 
-    # ----- baseline -----
     try:
         mav = px4bench.connect(device, baud=args.baudrate, timeout=args.connect_timeout)
     except (TimeoutError, OSError) as e:
@@ -157,7 +151,6 @@ def main():
 
     last_used = baseline['used']
 
-    # ----- replug cycles -----
     for i in range(1, args.cycles + 1):
         print('-' * 60, flush=True)
         print('Cycle {}/{}: UNPLUG the USB cable now.'.format(i, args.cycles), flush=True)
@@ -215,7 +208,7 @@ def main():
             shell.close()
             mav.close()
             continue
-        instances = count_mavlink_instances(ms_out)
+        instances = px4bench.count_mavlink_instances(ms_out)
         report.check('cycle {} instances'.format(i),
                      instances == baseline['instances'],
                      'instances={} (baseline={})'.format(instances, baseline['instances']))
@@ -241,7 +234,6 @@ def main():
                          used - last_used))
         last_used = used
 
-    # ----- final summary -----
     print('-' * 60, flush=True)
     total_growth = last_used - baseline['used']
     report.info('free used: first={} bytes, last={} bytes, net growth={:+d} bytes '

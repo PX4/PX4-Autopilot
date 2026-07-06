@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Parameter-subsystem torture test for on-bench PX4 hardware.
+Parameter-subsystem stress test for on-bench PX4 hardware.
 
 v1.18 risk area: the parameters backend received a concurrency and locking
-rework. A regression there shows up as a SILENT HANG (a PARAM_VALUE that
-never arrives, a full download that stalls halfway) or as a dropped write
-that only surfaces after a reboot. This script hammers the parameter
-protocol over MAVLink with hard timeouts on every wait, so a stall becomes
-a named FAIL instead of a hung process.
+rework (DynamicSparseLayer races, AtomicTransaction). A regression there
+shows up as a SILENT HANG (a PARAM_VALUE that never arrives, a full download
+that stalls halfway) or as a dropped write that only surfaces after a
+reboot. Repetition is the test: single-shot operations do not hit races, so
+this script hammers the parameter protocol over MAVLink with hard timeouts
+on every wait, and a stall becomes a named FAIL instead of a hung process.
 
 Three phases:
   1. Full parameter download (PARAM_REQUEST_LIST), stall-detected.
@@ -19,20 +20,22 @@ timestamps, so it is safe to thrash on a bench. Its original value is
 always restored while a connection is alive, even on failure.
 
 Usage:
-    param_torture.py CONNECTION [-b BAUD] [--iterations N]
-                     [--param NAME] [--skip-reboot]
+    param_stress.py CONNECTION [-b BAUD] [--iterations N]
+                    [--param NAME] [--skip-reboot]
 """
 
 import argparse
 import os
-import struct
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import px4bench
-from px4bench import mavutil
+from px4bench.params import (READ_TIMEOUT_S, SET_ECHO_TIMEOUT_S,
+                             drain_param_values, param_float_to_int32,
+                             param_id_str, read_param, set_param_int32,
+                             wait_param_echo)
 
 DEFAULT_PARAM = 'SDLOG_UTC_OFFSET'
 DEFAULT_ITERATIONS = 50
@@ -40,116 +43,10 @@ DEFAULT_ITERATIONS = 50
 # Persistence-phase marker value (within SDLOG_UTC_OFFSET min/max -1000..1000).
 MARKER_VALUE = 777
 
-MAV_PARAM_TYPE_INT32 = mavutil.mavlink.MAV_PARAM_TYPE_INT32
-
 # Download stall thresholds.
 DOWNLOAD_STALL_S = 10.0      # FAIL if no new param index for this long
 DOWNLOAD_OVERALL_CAP_S = 180.0
 
-# Per-message wait timeouts.
-SET_ECHO_TIMEOUT_S = 5.0
-READ_TIMEOUT_S = 5.0
-
-
-# ---------------------------------------------------------------------------
-# INT32 <-> float union (byte-wise) encoding.
-#
-# PX4 transports an INT32 parameter as the raw bit pattern of the int placed
-# into the float param_value field. To send: pack the int as '<i', reinterpret
-# those 4 bytes as '<f'. To receive: pack the received float as '<f',
-# reinterpret as '<i'. This mirrors the union trick the firmware uses; the
-# param float is never a numeric conversion of the int.
-# ---------------------------------------------------------------------------
-
-def int32_to_param_float(value):
-    """Reinterpret an int32 bit pattern as the float carried in param_value."""
-    return struct.unpack('<f', struct.pack('<i', int(value)))[0]
-
-
-def param_float_to_int32(value):
-    """Reinterpret a param_value float's bit pattern as an int32."""
-    return struct.unpack('<i', struct.pack('<f', float(value)))[0]
-
-
-def param_id_str(raw):
-    """Normalize a PARAM_VALUE.param_id (bytes or str) to a plain string."""
-    if isinstance(raw, bytes):
-        raw = raw.decode('ascii', errors='replace')
-    return raw.rstrip('\x00')
-
-
-# ---------------------------------------------------------------------------
-# Phase helpers
-# ---------------------------------------------------------------------------
-
-def request_param_read(mav, name):
-    """Send PARAM_REQUEST_READ by name (param_index = -1)."""
-    mav.mav.param_request_read_send(
-        mav.target_system, mav.target_component,
-        name.encode('ascii'), -1)
-
-
-def read_param(mav, name, timeout=READ_TIMEOUT_S):
-    """PARAM_REQUEST_READ then wait for the matching PARAM_VALUE.
-
-    Returns (int32_value, raw_float) or (None, None) on timeout.
-    """
-    request_param_read(mav, name)
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        m = mav.recv_match(type='PARAM_VALUE', blocking=True,
-                           timeout=max(0.1, deadline - time.monotonic()))
-        if m is None:
-            continue
-        if param_id_str(m.param_id) == name:
-            return param_float_to_int32(m.param_value), m.param_value
-    return None, None
-
-
-def set_param_int32(mav, name, value):
-    """PARAM_SET an int32 using the union encoding."""
-    mav.mav.param_set_send(
-        mav.target_system, mav.target_component,
-        name.encode('ascii'),
-        int32_to_param_float(value),
-        MAV_PARAM_TYPE_INT32)
-
-
-def drain_param_values(mav):
-    """Discard any queued PARAM_VALUE messages (stale echoes/broadcasts)."""
-    while mav.recv_match(type='PARAM_VALUE', blocking=False) is not None:
-        pass
-
-
-def wait_param_echo(mav, name, expected, timeout=SET_ECHO_TIMEOUT_S):
-    """Wait for a PARAM_VALUE for name carrying the expected int32 value.
-
-    PX4 can emit more than one PARAM_VALUE per set (handler reply plus the
-    changed-param announcement, times the number of mavlink instances), so
-    consuming a single message desyncs the harness by one echo forever.
-    Returns (matched, seen) where seen is every value observed for name; a
-    genuine wrong-echo firmware bug shows up as matched=False with the wrong
-    value(s) in seen.
-    """
-    seen = []
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        m = mav.recv_match(type='PARAM_VALUE', blocking=True,
-                           timeout=max(0.1, deadline - time.monotonic()))
-        if m is None:
-            continue
-        if param_id_str(m.param_id) != name:
-            continue
-        value = param_float_to_int32(m.param_value)
-        seen.append(value)
-        if value == expected:
-            return True, seen
-    return False, seen
-
-
-# ---------------------------------------------------------------------------
-# Phase 1: full download
-# ---------------------------------------------------------------------------
 
 def phase_full_download(report, mav):
     """PARAM_REQUEST_LIST; collect until param_count reached, stall-detected.
@@ -229,10 +126,6 @@ def phase_full_download(report, mav):
     return by_name
 
 
-# ---------------------------------------------------------------------------
-# Phase 2: set / readback loop
-# ---------------------------------------------------------------------------
-
 def phase_set_readback(report, mav, param, iterations):
     """Loop set/readback with a value that changes every iteration.
 
@@ -277,10 +170,6 @@ def phase_set_readback(report, mav, param, iterations):
                  '{} iterations: {} echo, {} read, {} mismatch failures'.format(
                      iterations, echo_failures, read_failures, mismatch_failures))
 
-
-# ---------------------------------------------------------------------------
-# Phase 3: persistence across reboot
-# ---------------------------------------------------------------------------
 
 def phase_persistence(report, mav, param, conn_str, baud, original_value):
     """Write a marker, save, reboot, verify it survived, then restore.
@@ -339,10 +228,6 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     return mav
 
 
-# ---------------------------------------------------------------------------
-# main
-# ---------------------------------------------------------------------------
-
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -356,7 +241,7 @@ def main():
                         help='skip the reboot persistence phase')
     args = parser.parse_args()
 
-    report = px4bench.Reporter('param_torture')
+    report = px4bench.Reporter('param_stress')
 
     try:
         mav = px4bench.connect(args.connection, baud=args.baudrate,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Dual-link forwarding stress test for the mavlink nested-send lock path.
+Dual-link forwarding stress test for the mavlink nested-send lock path
+(link_forwarding).
 
 This is the flagship bench test for qualifying PX4 v1.18 on real NuttX
 hardware after the mavlink locking rework. The rework changed how the
@@ -26,11 +27,10 @@ import sys
 import threading
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from px4bench import Reporter, MavlinkShell, add_connection_args, connect
-
-from pymavlink import mavutil
+from px4bench import (Reporter, MavlinkShell, add_connection_args, connect,
+                      parse_mavlink_status, send_heartbeat)
 
 
 HEARTBEAT_INTERVAL = 1.0        # GCS -> autopilot heartbeat cadence, seconds
@@ -40,11 +40,6 @@ SHELL_RUN_TIMEOUT = 10.0        # per shell command timeout in phase 3
 PARAM_STALL_TIMEOUT = 10.0      # no new params for this long during download -> stalled
 PARAM_HARD_CAP = 120.0          # absolute cap on the param download, seconds
 GLOBAL_BUDGET_EXTRA = 300.0     # wall-clock budget = duration + this
-
-
-def send_heartbeat(mav):
-    mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
-                           mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
 
 
 class ParamDownloader(threading.Thread):
@@ -145,30 +140,6 @@ class LinkPump(threading.Thread):
                 self.bytes += len(m.get_msgbuf())
             except Exception:  # noqa: BLE001 - length is best-effort accounting only
                 pass
-
-
-def parse_status_instances(text):
-    """Parse `mavlink status` output into a list of per-instance dicts with
-    tx/rx B/s. Blocks start with a line containing 'instance #'.
-    """
-    instances = []
-    cur = None
-    for line in text.splitlines():
-        stripped = line.strip()
-        if 'instance #' in stripped:
-            if cur is not None:
-                instances.append(cur)
-            cur = {'header': stripped, 'tx': None, 'rx': None}
-            continue
-        if cur is None:
-            continue
-        if stripped.startswith('tx:') and cur['tx'] is None:
-            cur['tx'] = stripped
-        elif stripped.startswith('rx:') and cur['rx'] is None:
-            cur['rx'] = stripped
-    if cur is not None:
-        instances.append(cur)
-    return instances
 
 
 def phase1_liveness(report, mav1, mav2, global_deadline):
@@ -317,7 +288,7 @@ def phase4_post_liveness(report, mav1, mav2, global_deadline):
     if timed_out:
         report.fail('phase4_shell_stall', '`mavlink status` over link1 stalled after stress')
         return False
-    instances = parse_status_instances(out)
+    instances = parse_mavlink_status(out)
     if not instances:
         report.fail('phase4_status_parse', 'could not parse any instance block from mavlink status')
         return False
@@ -341,11 +312,11 @@ def main():
     args = parser.parse_args()
 
     if args.connection2 is None:
-        print('error: dual_link_forwarding requires a second connection (CONNECTION2)',
+        print('error: link_forwarding requires a second connection (CONNECTION2)',
               file=sys.stderr)
         sys.exit(2)
 
-    report = Reporter('dual_link_forwarding')
+    report = Reporter('link_forwarding')
     global_deadline = time.monotonic() + args.duration + GLOBAL_BUDGET_EXTRA
 
     mav1 = None

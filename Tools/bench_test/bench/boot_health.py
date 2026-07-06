@@ -24,7 +24,7 @@ import os
 import re
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import px4bench
 
 
@@ -57,10 +57,6 @@ def save_output(report_dir, cmd, output):
         print('[INFO] could not save {}: {}'.format(path, e), flush=True)
     return path
 
-
-# ---------------------------------------------------------------------------
-# Parsers
-# ---------------------------------------------------------------------------
 
 def top_has_error_task(output):
     """Return (has_error, list_of_offending_lines).
@@ -99,14 +95,6 @@ def parse_work_queues(output):
     return names
 
 
-def count_mavlink_instances(output):
-    """Count MAVLink instances from `mavlink status`.
-
-    Each instance block begins with `instance #N:` (mavlink_main.cpp:535).
-    """
-    return len(re.findall(r'instance\s*#\s*\d+', output))
-
-
 def parse_uorb_top(output):
     """Parse `uorb top -1` output into {topic_key: rate}.
 
@@ -140,10 +128,6 @@ def parse_uorb_top(output):
         rates['{}#{}'.format(name, inst)] = rate
     return rates
 
-
-# ---------------------------------------------------------------------------
-# Capture mode
-# ---------------------------------------------------------------------------
 
 def run_capture(args, report):
     report_dir = px4bench.make_report_dir(args.report_dir, 'boot_health')
@@ -202,17 +186,13 @@ def run_capture(args, report):
 
     # mavlink instances: informational count
     if 'mavlink status' in outputs:
-        n = count_mavlink_instances(outputs['mavlink status'])
+        n = px4bench.count_mavlink_instances(outputs['mavlink status'])
         report.info('mavlink instances: {}'.format(n))
 
     shell.close()
     mav.close()
     return report_dir
 
-
-# ---------------------------------------------------------------------------
-# Baseline mode
-# ---------------------------------------------------------------------------
 
 def read_saved(report_dir, cmd):
     """Read a previously saved command output from a report dir, or ''."""
@@ -289,10 +269,6 @@ def run_baseline(old_dir, new_dir, tolerance, report):
         if added:
             report.info('new work queues: {}'.format(', '.join(added)))
 
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
