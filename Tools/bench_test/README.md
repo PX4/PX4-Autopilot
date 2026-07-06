@@ -193,6 +193,34 @@ Default per-test watchdog is 900s; a test that exceeds it is killed and recorded
 as FAIL `<test> hung`. `usb_replug` is operator-assisted and must be run
 manually. Dual-link tests run only when a second connection is given.
 
+### sih_flight.py
+
+Scripted SIH flight on the FMU itself (SYS_HITL=2, physics on the autopilot):
+switches to a SIH airframe, clears any stored mission (an identical re-upload
+would match the stored mission CRC and keep finished=true), uploads takeoff +
+3-waypoint square + RTL, arms via the nsh commander, and asserts arming,
+takeoff, waypoint progression, landing, and auto-disarm with per-phase
+timeouts. The flight ULog is downloaded into the report directory afterwards,
+also on failure, since post-flight verification starts from the log. The
+original SYS_AUTOSTART/SYS_HITL are restored with an explicit `param save`
+(autosave races an immediate reboot) unless `--keep-config` is given.
+
+```
+./sih_flight.py CONNECTION [-b BAUD] [--airframe N] [--alt M] [--viewer] [--keep-config]
+```
+
+Requires firmware built with `CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y`.
+Real outputs are replaced by `pwm_out_sim` in HITL, so nothing is driven on
+the output rails; still, fly it on a bench board with nothing connected.
+Run standalone; it is intentionally not part of `run_bench_suite.py` because
+it reboots the board into a different airframe twice.
+
+With `--viewer`, every received MAVLink frame is teed to UDP 19410 (one frame
+per datagram, the SITL viewer framing) and the HIL_STATE_QUATERNION /
+HIL_ACTUATOR_CONTROLS streams are enabled on the board, so a locally running
+[Hawkeye](https://github.com/PX4/Hawkeye) (`hawkeye -udp 19410 -mc`) renders
+the flight live.
+
 ## Baseline workflow
 
 Use this to compare pre-upgrade and post-upgrade firmware. Each capture

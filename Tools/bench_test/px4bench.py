@@ -256,6 +256,36 @@ class MavlinkShell:
 
 
 # ---------------------------------------------------------------------------
+# Live viewer tee (Hawkeye)
+# ---------------------------------------------------------------------------
+
+def attach_viewer_tee(conn, host='127.0.0.1', port=19410):
+    """Forward every received MAVLink frame to a UDP endpoint, one frame per
+    datagram (same framing the SITL viewer channel uses), so Hawkeye can
+    watch a serial-connected board live: hawkeye -udp <port>.
+
+    Wraps conn.recv_msg rather than logfile_raw because logfile_raw gets raw
+    read() chunks, which would split frames across datagrams.
+    """
+    import socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    addr = (host, port)
+    orig_recv_msg = conn.recv_msg
+
+    def recv_msg_tee():
+        msg = orig_recv_msg()
+        if msg is not None:
+            try:
+                sock.sendto(msg.get_msgbuf(), addr)
+            except OSError:
+                pass
+        return msg
+
+    conn.recv_msg = recv_msg_tee
+    return conn
+
+
+# ---------------------------------------------------------------------------
 # Reboot / device replug helpers
 # ---------------------------------------------------------------------------
 
