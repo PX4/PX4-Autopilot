@@ -18,6 +18,15 @@
 namespace matrix
 {
 
+template<typename Type>
+class Euler;
+
+namespace detail
+{
+// Shared body of the Euler-from-Dcm constructor (see dcm_from_quaternion note).
+template<typename Type> void euler_from_dcm(Euler<Type> &euler, const Dcm<Type> &dcm);
+} // namespace detail
+
 /**
  * Euler angles class
  *
@@ -83,20 +92,7 @@ public:
 	*/
 	Euler(const Dcm<Type> &dcm)
 	{
-		theta() = std::asin(-dcm(2, 0));
-
-		if ((std::fabs(theta() - Type(M_PI / 2))) < Type(1.0e-3)) {
-			phi() = 0;
-			psi() = std::atan2(dcm(1, 2), dcm(0, 2));
-
-		} else if ((std::fabs(theta() + Type(M_PI / 2))) < Type(1.0e-3)) {
-			phi() = 0;
-			psi() = std::atan2(-dcm(1, 2), -dcm(0, 2));
-
-		} else {
-			phi() = std::atan2(dcm(2, 1), dcm(2, 2));
-			psi() = std::atan2(dcm(1, 0), dcm(0, 0));
-		}
+		detail::euler_from_dcm(*this, dcm);
 	}
 
 	/**
@@ -143,5 +139,29 @@ public:
 
 using Eulerf = Euler<float>;
 using Eulerd = Euler<double>;
+
+namespace detail
+{
+
+template<typename Type>
+void euler_from_dcm(Euler<Type> &euler, const Dcm<Type> &dcm)
+{
+	euler.theta() = std::asin(-dcm(2, 0));
+
+	if ((std::fabs(euler.theta() - Type(M_PI / 2))) < Type(1.0e-3)) {
+		euler.phi() = 0;
+		euler.psi() = std::atan2(dcm(1, 2), dcm(0, 2));
+
+	} else if ((std::fabs(euler.theta() + Type(M_PI / 2))) < Type(1.0e-3)) {
+		euler.phi() = 0;
+		euler.psi() = std::atan2(-dcm(1, 2), -dcm(0, 2));
+
+	} else {
+		euler.phi() = std::atan2(dcm(2, 1), dcm(2, 2));
+		euler.psi() = std::atan2(dcm(1, 0), dcm(0, 0));
+	}
+}
+
+} // namespace detail
 
 } // namespace matrix
