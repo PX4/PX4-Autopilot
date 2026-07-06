@@ -53,10 +53,9 @@ Floating wrap_floating(Floating x, Floating low, Floating high)
  * @param high upper limit of the allowed range
  * @return wrapped value inside the range
  */
-inline float wrap(float x, float low, float high)
-{
-	return matrix::detail::wrap_floating(x, low, high);
-}
+// defined out-of-line (helper_functions.cpp) to save flash, as it would
+// otherwise get inlined into hundreds of call sites via wrap_pi()/wrap_2pi()
+float wrap(float x, float low, float high);
 
 /**
  * Wrap double precision floating point value to stay in range [low, high)
