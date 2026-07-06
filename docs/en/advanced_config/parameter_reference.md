@@ -32481,6 +32481,32 @@ The speed threshold is MPC_HOLD_MAX_XY
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### MPC_AUTO_NUDGING (`INT32`) {#MPC_AUTO_NUDGING}
+
+Enable stick nudging in autonomous modes.
+
+Bitmask to enable pilot override of heading and position during auto modes.
+
+Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
+(takeoff, mission, RTL, hold, landing). The new heading is held until a
+mode switch resets it.
+
+Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
+the vehicle horizontally, the throttle stick amends the descent speed
+(stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 \* MPC_LAND_SPEED),
+and the yaw stick rotates the heading.
+
+Stick override must be disabled (set MAN_OVERRIDE_SPD = -1).
+
+**Bitmask:**
+
+- `0`: Yaw nudging
+- `1`: Landing nudging
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 0       |      | &nbsp;    |
+
 ### MPC_HOLD_MAX_XY (`FLOAT`) {#MPC_HOLD_MAX_XY}
 
 Max horizontal velocity for position hold.
@@ -32580,7 +32606,7 @@ Used below MPC_LAND_ALT3 if distance sensor data is availabe.
 
 User assisted landing radius.
 
-When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
+When landing nudging is enabled (MPC_AUTO_NUDGING bit 1), this defines the maximum
 allowed horizontal displacement from the original landing point.
 
 - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
@@ -32591,27 +32617,6 @@ Set it to -1 for infinite radius.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       |          | 1         | -1.0    | m    | &nbsp;    |
-
-### MPC_LAND_RC_HELP (`INT32`) {#MPC_LAND_RC_HELP}
-
-Enable nudging based on user input during autonomous land routine.
-
-Using stick input the vehicle can be moved horizontally and yawed.
-The descend speed is amended:
-stick full up - 0
-stick centered - MPC_LAND_SPEED
-stick full down - 2 \* MPC_LAND_SPEED
-
-Manual override has to be disabled to use this feature (MAN_OVERRIDE_SPD -1).
-
-**Values:**
-
-- `0`: Nudging disabled
-- `1`: Nudging enabled
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        |           | 0       |      | &nbsp;    |
 
 ### MPC_LAND_SPEED (`FLOAT`) {#MPC_LAND_SPEED}
 
