@@ -189,8 +189,30 @@ void AutopilotTesterRtl::load_qgc_mission_and_geofence_here(const std::string &p
 	const int32_t offset_x = data.mission_items[0].x - static_cast<int32_t>(1e7 * pos.latitude_deg);
 	const int32_t offset_y = data.mission_items[0].y - static_cast<int32_t>(1e7 * pos.longitude_deg);
 
+	// Only items in a global position frame carry lat/lon in x/y. For MAV_FRAME_MISSION
+	// items (e.g. RTL, DO_* commands) x/y are generic params p5/p6, so offsetting them
+	// corrupts the params and the item is rejected by the mission-param validation.
+	auto is_global_position_frame = [](uint32_t frame) {
+		switch (frame) {
+		case MAV_FRAME_GLOBAL:
+		case MAV_FRAME_GLOBAL_INT:
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		case MAV_FRAME_GLOBAL_TERRAIN_ALT:
+		case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+			return true;
+
+		default:
+			return false;
+		}
+	};
+
 	auto apply_offset = [&](std::vector<mavsdk::MissionRaw::MissionItem> &items) {
 		for (auto &item : items) {
+			if (!is_global_position_frame(item.frame)) {
+				continue;
+			}
+
 			item.x -= offset_x;
 			item.y -= offset_y;
 		}
