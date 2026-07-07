@@ -346,7 +346,10 @@ FixedWingGuidanceControl::Run()
 							     _local_pos.ref_timestamp);
 		}
 
-		if (_control_mode.flag_control_offboard_enabled) {
+		const bool is_external_nav_state = (_vehicle_status.nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+						   && (_vehicle_status.nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)
+
+		if (_control_mode.flag_control_offboard_enabled || is_external_nav_state) {
 			path_setpoint_s path_setpoint;
 
 			if (_path_setpoint_sub.update(&path_setpoint)) {
@@ -376,6 +379,7 @@ FixedWingGuidanceControl::Run()
 
 				if (PX4_ISFINITE(position(2))) {
 					_pos_sp_triplet.current.alt = _reference_altitude - position(2);
+
 				} else {
 					_pos_sp_triplet.current.alt = NAN;
 				}
@@ -388,6 +392,7 @@ FixedWingGuidanceControl::Run()
 
 					if (PX4_ISFINITE(path_setpoint.curvature)) {
 						_pos_sp_triplet.current.loiter_radius = 1.0f / path_setpoint.curvature;
+
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
@@ -395,6 +400,7 @@ FixedWingGuidanceControl::Run()
 
 				if (PX4_ISFINITE(path_setpoint.height_rate)) {
 					_pos_sp_triplet.current.vz = path_setpoint.height_rate;
+
 				} else {
 					_pos_sp_triplet.current.vz = NAN;
 				}
