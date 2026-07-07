@@ -160,6 +160,7 @@ private:
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck[DEFAULT_MAX_CHANNELS];
+	failure_injection::GnssFailureState _gnss_fail[DEFAULT_MAX_CHANNELS];
 #endif
 
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg

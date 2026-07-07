@@ -108,7 +108,9 @@ void SensorGpsSim::Run()
 		updateParams();
 	}
 
-	updateFailureConfig();
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_config.update();
+#endif
 
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
@@ -198,7 +200,17 @@ void SensorGpsSim::Run()
 		sensor_gps.vel_ned_valid = true;
 		sensor_gps.satellites_used = _sim_gps_used.get();
 
-		publishWithFailures(0, sensor_gps, _last_gps0, _sensor_gps_pub);
+		sensor_gps.timestamp = hrt_absolute_time();
+
+		bool publish_gps0 = true; // failure injection may suppress the sample (Off)
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+		publish_gps0 = failure_injection::process_gnss(_failure_config, 0, sensor_gps, _stuck[0], _gnss_fail[0],
+				sensor_gps.timestamp);
+#endif
+
+		if (publish_gps0) {
+			_sensor_gps_pub.publish(sensor_gps);
+		}
 
 		const float gps1_offx = _param_gps1_offx.get();
 		const float gps1_offy = _param_gps1_offy.get();
@@ -212,38 +224,21 @@ void SensorGpsSim::Run()
 			gps1.latitude_deg  = latitude  + (double)gps1_offx / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI);
 			gps1.longitude_deg = longitude + (double)gps1_offy / CONSTANTS_RADIUS_OF_EARTH * (180.0 / M_PI) / cos(latitude * M_PI / 180.0);
 
-			publishWithFailures(1, gps1, _last_gps1, _sensor_gps_pub2);
+			gps1.timestamp = hrt_absolute_time();
+
+			bool publish_gps1 = true; // failure injection may suppress the sample (Off)
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+			publish_gps1 = failure_injection::process_gnss(_failure_config, 1, gps1, _stuck[1], _gnss_fail[1],
+					gps1.timestamp);
+#endif
+
+			if (publish_gps1) {
+				_sensor_gps_pub2.publish(gps1);
+			}
 		}
 	}
 
 	perf_end(_loop_perf);
-}
-
-void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
-				       uORB::PublicationMulti<sensor_gps_s> &pub)
-{
-	// Precedence when multiple failure masks are set: BLOCKED > STUCK > WRONG.
-	if (!isBlocked(instance)) {
-		if (isStuck(instance)) {
-			snapshot.timestamp = hrt_absolute_time();
-			pub.publish(snapshot);
-
-		} else {
-			if (isWrong(instance)) {
-				gps.latitude_deg  += 1.0;
-				gps.longitude_deg += 1.0;
-			}
-
-			gps.timestamp = hrt_absolute_time();
-			snapshot = gps;
-			pub.publish(gps);
-		}
-	}
-}
-
-void SensorGpsSim::updateFailureConfig()
-{
-	_failure_config.update();
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

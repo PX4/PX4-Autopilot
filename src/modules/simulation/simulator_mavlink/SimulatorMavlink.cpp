@@ -390,99 +390,92 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	if (!_gps_blocked) {
-		sensor_gps_s gps{};
+	// Build the clean (truth) sample; failure injection is applied per instance below.
+	sensor_gps_s gps{};
 
-		if (!_gps_stuck) {
-			if (!_gps_wrong) {
-				gps.latitude_deg = hil_gps.lat / 1e7;
-				gps.longitude_deg = hil_gps.lon / 1e7;
-				gps.altitude_msl_m = hil_gps.alt / 1e3;
-				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
+	gps.latitude_deg = hil_gps.lat / 1e7;
+	gps.longitude_deg = hil_gps.lon / 1e7;
+	gps.altitude_msl_m = hil_gps.alt / 1e3;
+	gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
 
-			} else {
-				gps.latitude_deg = hil_gps.lat / 1e7 + 1.0;
-				gps.longitude_deg = hil_gps.lon / 1e7 + 1.0;
-				gps.altitude_msl_m = hil_gps.alt / 1e3 + 100.0;
-				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3 - 100.0;
-			}
+	gps.s_variance_m_s = 0.25f;
+	gps.c_variance_rad = 0.5f;
+	gps.fix_type = hil_gps.fix_type;
 
-			gps.s_variance_m_s = 0.25f;
-			gps.c_variance_rad = 0.5f;
-			gps.fix_type = hil_gps.fix_type;
+	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-			gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
-			gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+	gps.hdop = 0; // TODO
+	gps.vdop = 0; // TODO
 
-			gps.hdop = 0; // TODO
-			gps.vdop = 0; // TODO
+	gps.noise_per_ms = 0;
+	gps.automatic_gain_control = 0;
+	gps.jamming_indicator = 0;
+	gps.jamming_state = 0;
+	gps.spoofing_state = 0;
 
-			gps.noise_per_ms = 0;
-			gps.automatic_gain_control = 0;
-			gps.jamming_indicator = 0;
-			gps.jamming_state = 0;
-			gps.spoofing_state = 0;
+	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
 
-			if (!_gps_wrong) {
-				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gps.vel_ned_valid = true;
 
-			} else {
-				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f - 1.f; // cm/s -> m/s
-				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f + 5.f; // cm/s -> m/s
-				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f - 8.f; // cm/s -> m/s
-				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f + 2.f; // cm/s -> m/s
-			}
+	gps.timestamp_time_relative = 0;
+	gps.time_utc_usec = hil_gps.time_usec;
 
-			gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
-			gps.vel_ned_valid = true;
+	gps.satellites_used = hil_gps.satellites_visible;
 
-			gps.timestamp_time_relative = 0;
-			gps.time_utc_usec = hil_gps.time_usec;
+	gps.heading = NAN;
+	gps.heading_offset = NAN;
 
-			gps.satellites_used = hil_gps.satellites_visible;
+	gps.timestamp = hrt_absolute_time();
 
-			gps.heading = NAN;
-			gps.heading_offset = NAN;
+	// Find the publisher for this HIL_GPS id, creating one on first sight.
+	int instance = -1;
 
-			_gps_prev = gps;
-
-		} else {
-			gps = _gps_prev;
+	for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
+		if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
+			instance = i;
+			break;
 		}
 
-		gps.timestamp = hrt_absolute_time();
-
-		// New publishers will be created based on the HIL_GPS ID's being different or not
-		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
-			if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
-				_sensor_gps_pubs[i]->publish(gps);
-				break;
-			}
+		if (_sensor_gps_pubs[i] == nullptr) {
+			_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 
 			if (_sensor_gps_pubs[i] == nullptr) {
-				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
-
-				if (_sensor_gps_pubs[i] == nullptr) {
-					break;
-				}
-
-				_gps_ids[i] = hil_gps.id;
-
-				device::Device::DeviceId device_id;
-				device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-				device_id.devid_s.bus = 0;
-				device_id.devid_s.address = i;
-				device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-				gps.device_id = device_id.devid;
-
-				_sensor_gps_pubs[i]->publish(gps);
-				break;
+				return;
 			}
+
+			_gps_ids[i] = hil_gps.id;
+
+			device::Device::DeviceId device_id;
+			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+			device_id.devid_s.bus = 0;
+			device_id.devid_s.address = i;
+			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+			gps.device_id = device_id.devid;
+
+			instance = i;
+			break;
 		}
 	}
+
+	if (instance < 0) {
+		return;
+	}
+
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
+	// Off suppresses, Stuck replays, Wrong/Garbage mutate the sample before publishing.
+	if (!failure_injection::process_gnss(_failure_config, (uint8_t)instance, gps,
+					     _gps_stuck[instance], _gps_fail[instance], gps.timestamp)) {
+		return;
+	}
+
+#endif
+	_sensor_gps_pubs[instance]->publish(gps);
 }
 
 void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
@@ -1462,11 +1455,7 @@ void SimulatorMavlink::updateFailureConfig()
 {
 	_failure_config.update();
 
-	const failure_injection::Mode gps_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, 1);
-	_gps_blocked = (gps_mode == failure_injection::Mode::Off);
-	_gps_stuck = (gps_mode == failure_injection::Mode::Stuck);
-	_gps_wrong = (gps_mode == failure_injection::Mode::Wrong);
-
+	// GPS failures (Off/Stuck/Wrong/Garbage) are applied per instance in handle_message_hil_gps().
 	const failure_injection::Mode airspeed_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1);
 	_airspeed_disconnected = (airspeed_mode == failure_injection::Mode::Off);
 

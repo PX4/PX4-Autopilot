@@ -31,4 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(failure_injection FailureInjection.cpp)
+px4_add_library(failure_injection
+	FailureInjection.cpp
+	FailureInjectionGnss.cpp
+	FailureInjectionGnssParams.cpp
+)

@@ -75,20 +75,6 @@ private:
 
 	void Run() override;
 
-	void updateFailureConfig();
-
-	void publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
-				 uORB::PublicationMulti<sensor_gps_s> &pub);
-
-	// instance is 0-based here; the failure_injection topic addresses 1-based instances.
-	failure_injection::Mode failureMode(int instance) const
-	{
-		return _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, instance + 1);
-	}
-	bool isBlocked(int instance) const { return failureMode(instance) == failure_injection::Mode::Off; }
-	bool isStuck(int instance)   const { return failureMode(instance) == failure_injection::Mode::Stuck; }
-	bool isWrong(int instance)   const { return failureMode(instance) == failure_injection::Mode::Wrong; }
-
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
 
@@ -104,10 +90,11 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
-
-	sensor_gps_s _last_gps0{};
-	sensor_gps_s _last_gps1{};
+	failure_injection::Stuck<sensor_gps_s> _stuck[GPS_MAX_INSTANCES];
+	failure_injection::GnssFailureState _gnss_fail[GPS_MAX_INSTANCES];
+#endif
 
 	// GPS Markov process noise state
 	float _gps_pos_noise_n{0.0f};

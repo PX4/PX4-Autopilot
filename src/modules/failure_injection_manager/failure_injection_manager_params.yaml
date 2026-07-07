@@ -80,3 +80,30 @@ parameters:
         max: 16
         default: 1
         reboot_required: true
+      SYS_FAIL_GPS_WRG:
+        description:
+          short: GPS Wrong-failure profile
+          long: |-
+            Position-corruption profile applied when a GPS 'wrong' failure (FAILURE_TYPE_WRONG)
+            is injected. The reported position is walked away from the truth while the fix keeps
+            looking healthy. Smooth drift ramps an expanding offset that starts matched to the
+            true position, keeping reported velocity consistent so the EKF adopts it.
+        type: int32
+        default: 2
+        values:
+          0: Static jump
+          1: Constant drift
+          2: Smooth drift
+      SYS_FAIL_GPS_GRB:
+        description:
+          short: GPS Garbage-failure profile
+          long: |-
+            Signal-degradation profile applied when a GPS 'garbage' failure (FAILURE_TYPE_GARBAGE)
+            is injected. Two-phase reproduces the observed sequence of an initial 1-6s loss of fix
+            followed by a degraded, low-satellite fix.
+        type: int32
+        default: 2
+        values:
+          0: Degraded fix
+          1: Full loss (no fix)
+          2: Two-phase (loss then degraded)

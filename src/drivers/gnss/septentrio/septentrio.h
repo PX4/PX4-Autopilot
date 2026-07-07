@@ -774,6 +774,7 @@ private:
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck;
+	failure_injection::GnssFailureState _gnss_fail;
 #endif
 
 	// Data about update frequencies of various bits of information like RTCM message injection frequency, received data rate...

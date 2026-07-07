@@ -613,8 +613,8 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	const int instance = get_orb_instance_for_node(node_id);
 
 	if (channel >= 0 && instance >= 0
-	    && !failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
-					   instance, sensor_gps, _stuck[channel])) {
+	    && !failure_injection::process_gnss(_failure_config, instance, sensor_gps,
+						_stuck[channel], _gnss_fail[channel], hrt_absolute_time())) {
 		return;
 	}
 
