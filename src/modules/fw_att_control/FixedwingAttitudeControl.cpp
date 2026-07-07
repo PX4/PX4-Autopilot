@@ -211,8 +211,6 @@ void FixedwingAttitudeControl::Run()
 		if (_att_sub.copy(&att)) {
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
-
-			_R = matrix::Quatf(att.q);
 		}
 
 		if (dt < DT_MIN || dt > DT_MAX) {
@@ -221,45 +219,11 @@ void FixedwingAttitudeControl::Run()
 			_last_run = time_now_us;
 		}
 
-		if (_vehicle_status.is_vtol_tailsitter) {
-			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
-			 *
-			 * Since the VTOL airframe is initialized as a multicopter we need to
-			 * modify the estimated attitude for the fixed wing operation.
-			 * Since the neutral position of the vehicle in fixed wing mode is -90 degrees rotated around
-			 * the pitch axis compared to the neutral position of the vehicle in multicopter mode
-			 * we need to swap the roll and the yaw axis (1st and 3rd column) in the rotation matrix.
-			 * Additionally, in order to get the correct sign of the pitch, we need to multiply
-			 * the new x axis of the rotation matrix with -1
-			 *
-			 * original:			modified:
-			 *
-			 * Rxx  Ryx  Rzx		-Rzx  Ryx  Rxx
-			 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
-			 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
-			 * */
-			matrix::Dcmf R_adapted = _R;		//modified rotation matrix
+		// Tailsitter: rotate measurement from MC to FW frame (controller is in FW frame, interface in MC).
+		// The attitude is world-from-body, so it composes on the right with the body rotation FW -> MC.
+		const Quatf q_current = _vehicle_status.is_vtol_tailsitter ? Quatf(att.q) * _q_mc_to_fw.inversed() : Quatf(att.q);
 
-			/* move z to x */
-			R_adapted(0, 0) = _R(0, 2);
-			R_adapted(1, 0) = _R(1, 2);
-			R_adapted(2, 0) = _R(2, 2);
-
-			/* move x to z */
-			R_adapted(0, 2) = _R(0, 0);
-			R_adapted(1, 2) = _R(1, 0);
-			R_adapted(2, 2) = _R(2, 0);
-
-			/* change direction of pitch (convert to right handed system) */
-			R_adapted(0, 0) = -R_adapted(0, 0);
-			R_adapted(1, 0) = -R_adapted(1, 0);
-			R_adapted(2, 0) = -R_adapted(2, 0);
-
-			/* fill in new attitude data */
-			_R = R_adapted;
-		}
-
-		const matrix::Eulerf euler_angles(_R);
+		const matrix::Eulerf euler_angles(q_current);
 
 		vehicle_manual_poll(euler_angles.psi());
 
@@ -352,9 +316,9 @@ void FixedwingAttitudeControl::Run()
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
-					// Tailsitter: transform from FW to hover frame (all interfaces are in hover (body) frame)
+					// Tailsitter: rotate setpoint back from FW to MC frame (controller is in FW frame, interface in MC).
 					if (_vehicle_status.is_vtol_tailsitter) {
-						body_rates_setpoint = Vector3f(body_rates_setpoint(2), body_rates_setpoint(1), -body_rates_setpoint(0));
+						body_rates_setpoint = _q_mc_to_fw.rotateVectorInverse(body_rates_setpoint);
 					}
 
 					/* Publish the rate setpoint for analysis once available */

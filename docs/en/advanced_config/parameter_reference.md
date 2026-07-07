@@ -22086,6 +22086,12 @@ Set manual control loss failsafe mode.
 The manual control loss failsafe will only be entered after a timeout,
 set by COM_RC_LOSS_T in seconds.
 
+"Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+(e.g. without a valid position estimate), the normal failsafe takes over and escalates
+from there (Return/Land/Descend/Terminate as applicable).
+
 **Values:**
 
 - `1`: Hold mode
@@ -22093,6 +22099,7 @@ set by COM_RC_LOSS_T in seconds.
 - `3`: Land mode
 - `5`: Terminate
 - `6`: Disarm
+- `7`: Hold mode (no failsafe)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -32474,6 +32481,32 @@ The speed threshold is MPC_HOLD_MAX_XY
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
 
+### MPC_AUTO_NUDGING (`INT32`) {#MPC_AUTO_NUDGING}
+
+Enable stick nudging in autonomous modes.
+
+Bitmask to enable pilot override of heading and position during auto modes.
+
+Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
+(takeoff, mission, RTL, hold, landing). The new heading is held until a
+mode switch resets it.
+
+Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
+the vehicle horizontally, the throttle stick amends the descent speed
+(stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 \* MPC_LAND_SPEED),
+and the yaw stick rotates the heading.
+
+Stick override must be disabled (set MAN_OVERRIDE_SPD = -1).
+
+**Bitmask:**
+
+- `0`: Yaw nudging
+- `1`: Landing nudging
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 0       |      | &nbsp;    |
+
 ### MPC_HOLD_MAX_XY (`FLOAT`) {#MPC_HOLD_MAX_XY}
 
 Max horizontal velocity for position hold.
@@ -32573,7 +32606,7 @@ Used below MPC_LAND_ALT3 if distance sensor data is availabe.
 
 User assisted landing radius.
 
-When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
+When landing nudging is enabled (MPC_AUTO_NUDGING bit 1), this defines the maximum
 allowed horizontal displacement from the original landing point.
 
 - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
@@ -32584,27 +32617,6 @@ Set it to -1 for infinite radius.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       |          | 1         | -1.0    | m    | &nbsp;    |
-
-### MPC_LAND_RC_HELP (`INT32`) {#MPC_LAND_RC_HELP}
-
-Enable nudging based on user input during autonomous land routine.
-
-Using stick input the vehicle can be moved horizontally and yawed.
-The descend speed is amended:
-stick full up - 0
-stick centered - MPC_LAND_SPEED
-stick full down - 2 \* MPC_LAND_SPEED
-
-Manual override has to be disabled to use this feature (MAN_OVERRIDE_SPD -1).
-
-**Values:**
-
-- `0`: Nudging disabled
-- `1`: Nudging enabled
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        |           | 0       |      | &nbsp;    |
 
 ### MPC_LAND_SPEED (`FLOAT`) {#MPC_LAND_SPEED}
 
@@ -32885,11 +32897,12 @@ error is above this parameter, the integration of the
 trajectory is stopped to wait for the drone.
 
 This value can be adjusted depending on the tracking
-capabilities of the vehicle.
+capabilities of the vehicle. Set to 0 to disable the horizontal
+time-stretch.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 10       | 1         | 2.0     |      | &nbsp;    |
+| &nbsp; | 0        | 10       | 1         | 2.0     |      | &nbsp;    |
 
 ### MPC_XY_P (`FLOAT`) {#MPC_XY_P}
 
@@ -32962,6 +32975,22 @@ Defined as corrective acceleration in m/s^2 per m/s velocity error
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1.2      | 5        | 0.1       | 1.8     |      | &nbsp;    |
+
+### MPC_Z_ERR_MAX (`FLOAT`) {#MPC_Z_ERR_MAX}
+
+Maximum vertical error allowed by the trajectory generator.
+
+Vertical analog of MPC_XY_ERR_MAX. When the smoothed trajectory z
+leads the drone by more than this value, trajectory integration is
+slowed down so the virtual setpoint can't walk away from the drone.
+This suppresses altitude overshoots caused by a noisy altitude
+reference (e.g. mission setpoint jittering as the home altitude
+estimate is refined in flight). Set to 0 to disable the vertical
+time-stretch.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 1.0     |      | &nbsp;    |
 
 ### MPC_Z_P (`FLOAT`) {#MPC_Z_P}
 

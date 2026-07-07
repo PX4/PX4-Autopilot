@@ -303,6 +303,8 @@ private:
 
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
 
+	esc_status_s _esc_status{};
+
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,

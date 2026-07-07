@@ -154,6 +154,7 @@
 #define DRV_GYR_DEVTYPE_BMI088          0x66
 #define DRV_BARO_DEVTYPE_BMP388         0x67
 #define DRV_BARO_DEVTYPE_DPS310         0x68
+#define DRV_BARO_DEVTYPE_DPS368         0x77
 #define DRV_PWM_DEVTYPE_PCA9685         0x69
 #define DRV_ACC_DEVTYPE_BMI088          0x6a
 #define DRV_OSD_DEVTYPE_ATXXXX          0x6b

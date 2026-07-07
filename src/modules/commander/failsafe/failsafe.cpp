@@ -53,6 +53,10 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	switch (gcs_connection_loss_failsafe_mode(param_value)) {
 	case gcs_connection_loss_failsafe_mode::Disabled:
+
+	// No failsafe action: for NAV_RCL_ACT this is handled by Commander switching to Hold as a regular
+	// mode change (see Commander::manualControlLossModeSwitch()).
+	case gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe:
 	default:
 		options.action = Action::None;
 		break;
