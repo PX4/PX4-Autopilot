@@ -119,6 +119,11 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 					aid_src.time_last_fuse = _time_delayed_us;
 
 					if (_control_status.flags.in_air) {
+						// Unlike the GNSS yaw reset, this isn't gated on the correction
+						// magnitude: an EV reset only runs after fusion has timed out and
+						// consumes a limited reset budget, so it's already a failure-recovery
+						// event. A wrong gyro_bias_z can persist even with a small heading
+						// correction, so always refresh the z-bias variance here.
 						resetGyroBiasZCov();
 						_nb_ev_yaw_reset_available--;
 					}
