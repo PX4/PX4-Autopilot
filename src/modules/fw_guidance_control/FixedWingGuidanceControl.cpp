@@ -215,17 +215,12 @@ FixedWingGuidanceControl::update_in_air_states(const hrt_abstime now)
 
 void
 FixedWingGuidanceControl::control_auto_path(const float control_interval,
-		const Vector2f &ground_speed, const float cruising_speed, const Vector2f curr_wp_local, const float curr_wp_alt,
-		const Vector2f velocity_2d, bool gliding_enabled)
+		const Vector2f &ground_speed, const Vector2f curr_wp_local, const float curr_wp_alt,
+		const Vector2f velocity_2d, const float curvature, const float height_rate, const float equivalent_airspeed)
 {
-	const float target_airspeed = cruising_speed > FLT_EPSILON ? cruising_speed : NAN;
-
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 
 	// Navigate directly on position setpoint and path tangent
-	const float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 /
-				_pos_sp_triplet.current.loiter_radius :
-				0.0f;
 	const DirectionalGuidanceOutput sp = navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(),
 					     ground_speed, _wind_vel, curvature);
 
@@ -238,15 +233,15 @@ FixedWingGuidanceControl::control_auto_path(const float control_interval,
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
 		.altitude = curr_wp_alt,
-		.height_rate = NAN,
-		.equivalent_airspeed = target_airspeed,
+		.height_rate = height_rate,
+		.equivalent_airspeed = equivalent_airspeed,
 		.pitch_direct = NAN,
 		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	if (gliding_enabled) {
+	if (!PX4_ISFINITE(height_rate) && !PX4_ISFINITE(curr_wp_alt)) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
 		_ctrl_configuration_handler.setSpeedWeight(2.0f);
@@ -354,60 +349,24 @@ FixedWingGuidanceControl::Run()
 
 			if (_path_setpoint_sub.update(&path_setpoint)) {
 				bool valid_setpoint = false;
-				_pos_sp_triplet = {}; // clear any existing
-				_pos_sp_triplet.timestamp = path_setpoint.timestamp;
-				_pos_sp_triplet.current.timestamp = path_setpoint.timestamp;
-				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
-				_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
-				_pos_sp_triplet.current.vx = NAN;
-				_pos_sp_triplet.current.vy = NAN;
-				_pos_sp_triplet.current.vz = NAN;
-				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
-				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
-				_pos_sp_triplet.current.alt = NAN;
 
 				const Vector3f position(path_setpoint.position);
 
-				if (PX4_ISFINITE(position(0)) && PX4_ISFINITE(position(1)) && _global_local_proj_ref.isInitialized()) {
+				if (PX4_ISFINITE(position(0)) && PX4_ISFINITE(position(1))) {
 					valid_setpoint = true;
-					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					double lat, lon;
-					_global_local_proj_ref.reproject(position(0), position(1), lat, lon);
-					_pos_sp_triplet.current.lat = lat;
-					_pos_sp_triplet.current.lon = lon;
+					_path_wp_local = Vector2f(position(0), position(1));
 				}
 
-				if (PX4_ISFINITE(position(2))) {
-					_pos_sp_triplet.current.alt = _reference_altitude - position(2);
-
-				} else {
-					_pos_sp_triplet.current.alt = NAN;
-				}
+				_path_wp_alt = PX4_ISFINITE(position(2)) ? _reference_altitude - position(2) : NAN;
 
 				if (Vector3f(path_setpoint.tangent).isAllFinite()) {
 					valid_setpoint = true;
-					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = path_setpoint.tangent[0];
-					_pos_sp_triplet.current.vy = path_setpoint.tangent[1];
-
-					if (PX4_ISFINITE(path_setpoint.curvature)) {
-						_pos_sp_triplet.current.loiter_radius = 1.0f / path_setpoint.curvature;
-
-					} else {
-						_pos_sp_triplet.current.loiter_radius = NAN;
-					}
+					_path_tangent = Vector2f(path_setpoint.tangent[0], path_setpoint.tangent[1]);
 				}
 
-				if (PX4_ISFINITE(path_setpoint.height_rate)) {
-					_pos_sp_triplet.current.vz = path_setpoint.height_rate;
-
-				} else {
-					_pos_sp_triplet.current.vz = NAN;
-				}
-
-				if (!PX4_ISFINITE(path_setpoint.height_rate) && !PX4_ISFINITE(position(2))) {
-					_pos_sp_triplet.current.gliding_enabled = true;
-				}
+				_path_curvature = PX4_ISFINITE(path_setpoint.curvature) ? path_setpoint.curvature : 0.f;
+				_path_height_rate = path_setpoint.height_rate;
+				_path_airspeed = path_setpoint.equivalent_airspeed;
 
 				_position_setpoint_current_valid = valid_setpoint;
 			}
@@ -441,11 +400,8 @@ FixedWingGuidanceControl::Run()
 		// by default set speed weight to the param value, can be overwritten inside the methods below
 		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
 
-		Vector2f curr_wp_local = _global_local_proj_ref.project(_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
-		const matrix::Vector2f velocity_2d(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy);
-		control_auto_path(control_interval, ground_speed, _pos_sp_triplet.current.cruising_speed, curr_wp_local, _pos_sp_triplet.current.alt,
-				  velocity_2d,
-				  _pos_sp_triplet.current.gliding_enabled);
+		control_auto_path(control_interval, ground_speed, _path_wp_local, _path_wp_alt, _path_tangent, _path_curvature, _path_height_rate,
+				  _path_airspeed);
 
 		_ctrl_configuration_handler.update(now);
 

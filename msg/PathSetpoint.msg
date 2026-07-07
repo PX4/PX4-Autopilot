@@ -12,3 +12,4 @@ float32[3] position		# [m] NED local frame position setpoint
 float32[3] tangent		# Unit vector tangent to path in NED frame
 float32 height_rate		# [m/s]
 float32 curvature		# [1/m]
+float32 equivalent_airspeed	# [m/s] NaN = not controlled

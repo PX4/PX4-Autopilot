@@ -72,7 +72,6 @@
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_status.h>
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/path_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -169,7 +168,6 @@ private:
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _path_setpoint_sub{ORB_ID(path_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -184,7 +182,13 @@ private:
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
 
-	position_setpoint_triplet_s _pos_sp_triplet{};
+	Vector2f _path_wp_local{NAN, NAN};
+	float _path_wp_alt{NAN};
+	Vector2f _path_tangent{NAN, NAN};
+	float _path_curvature{0.f};
+	float _path_height_rate{NAN};
+	float _path_airspeed{NAN};
+
 	vehicle_control_mode_s _control_mode{};
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
@@ -336,7 +340,8 @@ private:
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_auto_path(const float control_interval, const Vector2f &ground_speed,
-			       const float cruising_speed, const Vector2f curr_wp_local, const float curr_wp_alt, const Vector2f velocity_2d, bool gliding_enabled);
+			       const Vector2f curr_wp_local, const float curr_wp_alt, const Vector2f velocity_2d,
+			       const float curvature, const float height_rate, const float equivalent_airspeed);
 
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 

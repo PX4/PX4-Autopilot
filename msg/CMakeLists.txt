@@ -108,7 +108,6 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
-	GlobalPathSetpoint.msg
 	GpioConfig.msg
 	GpioIn.msg
 	GpioOut.msg
@@ -162,6 +161,7 @@ set(msg_files
 	ParameterSetValueRequest.msg
 	ParameterSetValueResponse.msg
 	ParameterUpdate.msg
+	PathSetpoint.msg
 	Ping.msg
 	PositionControllerLandingStatus.msg
 	PositionControllerStatus.msg
