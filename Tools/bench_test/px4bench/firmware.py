@@ -208,19 +208,32 @@ def infer_build_target(hw_arch, root=None):
     return None, 'HW arch {!r} is ambiguous: {}'.format(hw_arch, ', '.join(matches))
 
 
+def split_target(target, root=None):
+    """Resolve a build target to (base_target, label, board_dir).
+
+    Accepts labeled build targets too (px4_fmu-v6xrt_bench resolves to the
+    px4_fmu-v6xrt board dir with label 'bench'): the label selects a
+    .px4board config within the same board. Bare targets get label
+    'default'. Returns (None, None, None) if no boards/ entry matches.
+    """
+    targets = list_board_targets(root)
+    if target in targets:
+        return target, 'default', targets[target]
+    base = [t for t in targets if target.startswith(t + '_')]
+    if base:
+        base_target = max(base, key=len)
+        label = target[len(base_target) + 1:]
+        return base_target, label, targets[base_target]
+    return None, None, None
+
+
 def board_id_for_target(target, root=None):
     """Numeric board_id from boards/<vendor>/<model>/firmware.prototype.
 
-    Accepts labeled build targets too (px4_fmu-v6xrt_bench resolves to the
-    px4_fmu-v6xrt board dir): the label selects a .px4board config within
-    the same board, so the board_id is unchanged.
+    Labeled build targets resolve to the same board dir; the board_id is
+    unchanged by the label.
     """
-    targets = list_board_targets(root)
-    mdir = targets.get(target)
-    if mdir is None:
-        base = [t for t in targets if target.startswith(t + '_')]
-        if base:
-            mdir = targets[max(base, key=len)]
+    _, _, mdir = split_target(target, root)
     if mdir is None:
         return None
     proto = os.path.join(mdir, 'firmware.prototype')
@@ -401,3 +414,87 @@ def download_release(tag, target, dest_dir, timeout=DOWNLOAD_TIMEOUT_S):
     if not os.path.exists(path):
         return None, 'gh reported success but {} is missing'.format(path)
     return path, None
+
+
+# Bench-relevant board config options and the suite tests they enable.
+# All four are 'default n' in their Kconfig, so a '=y' line in the merged
+# board config (default.px4board plus the label overlay, see
+# cmake/kconfig.cmake:47-54) decides whether the image contains them.
+BENCH_CAPABILITIES = (
+    ('CONFIG_MODULES_SIMULATION_SIMULATOR_SIH', 'simulator_sih', 'sih/flight_mission'),
+    ('CONFIG_SYSTEMCMDS_SD_BENCH', 'sd_bench', 'bench/storage_stress (bench phase)'),
+    ('CONFIG_SYSTEMCMDS_SD_STRESS', 'sd_stress', 'bench/storage_stress (stress phase)'),
+    ('CONFIG_SYSTEMCMDS_SERIAL_TEST', 'serial_test', 'bench/serial_loopback'),
+)
+
+
+def board_config_files(target, root=None):
+    """Config files the build of `target` merges, in merge order.
+
+    Non-default labels merge default.px4board plus <label>.px4board
+    (cmake/kconfig.cmake:47-54). Returns [] for unknown targets.
+    """
+    base, label, mdir = split_target(target, root)
+    if mdir is None:
+        return []
+    files = [os.path.join(mdir, 'default.px4board')]
+    if label != 'default':
+        files.append(os.path.join(mdir, label + '.px4board'))
+    return [f for f in files if os.path.exists(f)]
+
+
+def _options_in_file(path):
+    """CONFIG_* names set to y in one .px4board file."""
+    options = set()
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                m = re.match(r'^(CONFIG_[A-Za-z0-9_]+)=y$', line)
+                if m:
+                    options.add(m.group(1))
+    except OSError:
+        pass
+    return options
+
+
+def board_config_options(target, root=None):
+    """All CONFIG_* options set to y in the merged config for `target`."""
+    options = set()
+    for path in board_config_files(target, root):
+        options |= _options_in_file(path)
+    return options
+
+
+def capability_report(target, root=None):
+    """Which bench-relevant options the build of `target` will contain.
+
+    Returns a list of (option, command, test, enabled) tuples following
+    BENCH_CAPABILITIES.
+    """
+    enabled = board_config_options(target, root)
+    return [(opt, cmd, test, opt in enabled)
+            for opt, cmd, test in BENCH_CAPABILITIES]
+
+
+def variants_with_option(target, option, root=None):
+    """Sibling variants of the same board whose merged config enables option.
+
+    Scans the board dir's *.px4board files; a labeled variant inherits
+    default.px4board, so it has the option if either file sets it. Returns
+    full build targets (e.g. px4_fmu-v6xrt_bench), excluding `target` itself.
+    """
+    base, _, mdir = split_target(target, root)
+    if mdir is None:
+        return []
+    default_has = option in _options_in_file(os.path.join(mdir, 'default.px4board'))
+    variants = []
+    for fname in sorted(os.listdir(mdir)):
+        if not fname.endswith('.px4board'):
+            continue
+        label = fname[:-len('.px4board')]
+        if default_has or option in _options_in_file(os.path.join(mdir, fname)):
+            full = base if label == 'default' else '{}_{}'.format(base, label)
+            if full != target:
+                variants.append(full)
+    return variants

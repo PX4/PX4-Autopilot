@@ -40,6 +40,7 @@ BASE_SEQUENCE = [
     'boot_health',
     'param_stress',
     'mission_stress',
+    'storage_stress',
     'log_transfer',
     'reboot_loop',
     'flight_mission',
@@ -69,7 +70,7 @@ def build_argv(name, args):
     argv += ['-b', str(args.baudrate)]
 
     # per-test extra flags
-    if name in ('boot_health', 'log_transfer', 'flight_mission'):
+    if name in ('boot_health', 'log_transfer', 'storage_stress', 'flight_mission'):
         argv += ['--report-dir', args.report_dir]
     if name == 'flight_mission' and args.allow_arming:
         argv += ['--allow-arming']
@@ -176,6 +177,58 @@ def flash_and_verify(report, args, mav, ident, px4_path, source):
     return newmav, new_ident
 
 
+def report_build_capabilities(report, target, interactive):
+    """Bench capability report for a --build target: which bench-relevant
+    modules the image will contain and which suite tests will run or skip.
+
+    For anything missing: name a sibling variant that has it, show the
+    exact config line, and (interactive only) offer to append the line to
+    the local board config. Any edit is local and uncommitted.
+    """
+    rows = firmware.capability_report(target)
+    print('-' * 70)
+    print('BENCH CAPABILITIES OF BUILD {}'.format(target))
+    for opt, cmd, test, enabled in rows:
+        print('  {:<44} {:<9} {}'.format(
+            opt, 'yes' if enabled else 'MISSING',
+            '{} will run'.format(test) if enabled
+            else '{} will be skipped'.format(test)))
+    print('-' * 70, flush=True)
+
+    missing = [(opt, cmd, test) for opt, cmd, test, enabled in rows if not enabled]
+    if not missing:
+        report.ok('build_capabilities',
+                  '{}: all bench-relevant modules included'.format(target))
+        return
+
+    report.info('this build will not include: {}; the dependent tests will '
+                'be skipped'.format(', '.join(cmd for _, cmd, _ in missing)))
+    config_files = firmware.board_config_files(target)
+    edit_file = config_files[-1] if config_files else None
+    for opt, cmd, test in missing:
+        variants = firmware.variants_with_option(target, opt)
+        if variants:
+            print('  {}: use a variant that includes it, e.g. --target {}'.format(
+                cmd, variants[0]), flush=True)
+        if edit_file:
+            print('  {}: or add this line to {}:'.format(cmd, edit_file))
+            print('      {}=y'.format(opt), flush=True)
+
+    if interactive and edit_file:
+        answer = input('Append the missing line(s) to {} now? [y/N] '.format(
+            edit_file)).strip().lower()
+        if answer == 'y':
+            try:
+                with open(edit_file, 'a') as f:
+                    for opt, _, _ in missing:
+                        f.write('{}=y\n'.format(opt))
+                print('appended {} line(s) to {}.'.format(len(missing), edit_file))
+                print('NOTE: this change is LOCAL and UNCOMMITTED; commit it '
+                      'yourself for it to stick.', flush=True)
+            except OSError as e:
+                print('could not edit {}: {}'.format(edit_file, e), flush=True)
+
+
 def resolve_target(report, args, ident):
     """--target, or inferred from the board's HW arch; aborts if ambiguous."""
     if args.target:
@@ -245,6 +298,7 @@ def preflight(args, suite_dir):
 
     elif args.build:
         target = resolve_target(report, args, ident)
+        report_build_capabilities(report, target, sys.stdin.isatty())
         px4_path, err = firmware.build_firmware(target, timeout=args.build_timeout)
         if px4_path is None:
             report.fail('firmware_build', err)
@@ -323,6 +377,7 @@ def interactive_gate(report, args, mav, ident, suite_dir):
                 target = input('build target (e.g. px4_fmu-v6xrt): ').strip()
                 if not target:
                     continue
+            report_build_capabilities(report, target, True)
             px4_path, err = firmware.build_firmware(target, timeout=args.build_timeout)
             if px4_path is None:
                 report.fail('firmware_build', err)
