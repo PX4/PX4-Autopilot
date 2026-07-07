@@ -47,6 +47,7 @@ def main():
     report = Reporter('log_transfer')
 
     mav = None
+    shell = None
     try:
         report.info('Connecting: {} @ {}'.format(args.connection, args.baudrate))
         try:
@@ -55,6 +56,9 @@ def main():
             report.fail('connect', str(e))
             sys.exit(report.finish())
 
+        # One shell session for the logger commands, torn down in finally so
+        # no early exit leaks the firmware nsh task. The FTP phase below uses
+        # no shell, so the shell is closed as soon as the logging is flushed.
         shell = MavlinkShell(mav)
         if not shell.open(timeout=5):
             report.fail('shell_open', 'nsh shell did not respond within 5s')
@@ -65,21 +69,18 @@ def main():
         if timed_out:
             report.fail('logger_status', '`logger status` stalled (no output in {:.0f}s)'.format(
                 SHELL_TIMEOUT))
-            shell.close()
             sys.exit(report.finish())
         low = out.lower()
         if ('not running' in low or 'never' in low or
                 (low.strip() == '') or ('running' not in low and 'log' not in low)):
             report.fail('logger_status',
                         'logger module not running (check SDLOG_MODE): {}'.format(out.strip()[:200]))
-            shell.close()
             sys.exit(report.finish())
         report.ok('logger_status', 'logger module running')
 
         out, timed_out = shell.run('logger on', timeout=SHELL_TIMEOUT)
         if timed_out:
             report.fail('logger_on', '`logger on` stalled')
-            shell.close()
             sys.exit(report.finish())
         report.ok('logger_on', 'logging started')
 
@@ -93,10 +94,10 @@ def main():
         out, timed_out = shell.run('logger off', timeout=SHELL_TIMEOUT)
         if timed_out:
             report.fail('logger_off', '`logger off` stalled (flush not confirmed)')
-            shell.close()
             sys.exit(report.finish())
         report.ok('logger_off', 'logging stopped and flushed')
         shell.close()
+        shell = None
         # give the filesystem a moment to settle after the flush
         time.sleep(1.0)
 
@@ -173,6 +174,11 @@ def main():
                 report.fail('pyulog_parse', 'pyulog failed to parse the log: {}'.format(e))
                 sys.exit(report.finish())
     finally:
+        if shell is not None:
+            try:
+                shell.close()
+            except Exception:  # noqa: BLE001 - cleanup only
+                pass
         if mav is not None:
             try:
                 mav.close()

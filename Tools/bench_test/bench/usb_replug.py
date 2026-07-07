@@ -139,10 +139,11 @@ def main():
         shell.close()
         mav.close()
         sys.exit(report.finish())
-
-    baseline = read_baseline(shell, report)
-    shell.close()
-    mav.close()
+    try:
+        baseline = read_baseline(shell, report)
+    finally:
+        shell.close()
+        mav.close()
     if baseline is None:
         sys.exit(report.finish())
 
@@ -200,13 +201,21 @@ def main():
             mav.close()
             continue
 
-        # instance count must not grow (a leak means instances pile up on replug)
-        ms_out, timed_out = shell.run('mavlink status', timeout=10)
-        if timed_out:
-            report.fail('cycle {}'.format(i),
-                        'shell command mavlink status stalled (no completion within 10s)')
+        # One shell session per cycle, torn down in finally so the leak this
+        # test hunts is not one the test itself introduces.
+        try:
+            # instance count must not grow (a leak piles up instances on replug)
+            ms_out, ms_timed_out = shell.run('mavlink status', timeout=10)
+            free_out, free_timed_out = (None, False)
+            if not ms_timed_out:
+                free_out, free_timed_out = shell.run('free', timeout=10)
+        finally:
             shell.close()
             mav.close()
+
+        if ms_timed_out:
+            report.fail('cycle {}'.format(i),
+                        'shell command mavlink status stalled (no completion within 10s)')
             continue
         instances = px4bench.count_mavlink_instances(ms_out)
         report.check('cycle {} instances'.format(i),
@@ -214,10 +223,7 @@ def main():
                      'instances={} (baseline={})'.format(instances, baseline['instances']))
 
         # free used must not exceed baseline + tolerance * cycle_index (steady growth = leak)
-        free_out, timed_out = shell.run('free', timeout=10)
-        shell.close()
-        mav.close()
-        if timed_out:
+        if free_timed_out:
             report.fail('cycle {}'.format(i),
                         'shell command free stalled (no completion within 10s)')
             continue

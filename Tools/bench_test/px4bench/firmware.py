@@ -109,8 +109,10 @@ def board_identity(mav, timeout=15):
     shell = MavlinkShell(mav)
     if not shell.open(timeout=5):
         return None, 'nsh shell did not respond within 5s'
-    out, timed_out = shell.run('ver all', timeout=timeout)
-    shell.close()
+    try:
+        out, timed_out = shell.run('ver all', timeout=timeout)
+    finally:
+        shell.close()
     if timed_out:
         return None, "'ver all' stalled (no completion within {}s)".format(timeout)
 

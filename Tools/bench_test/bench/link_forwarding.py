@@ -216,27 +216,28 @@ def phase3_nested_hammer(report, mav1, mav2, global_deadline):
     hard_deadline = min(time.monotonic() + PARAM_HARD_CAP + 15.0, global_deadline)
     next_status = 0.0
     shell_runs = 0
-    while downloader.is_alive():
-        now = time.monotonic()
-        if now > hard_deadline:
-            break
-        # keep link1 pumping so the autopilot keeps streaming to us
-        mav1.recv_match(blocking=True, timeout=0.1)
-        if now >= next_status:
-            _, timed_out = shell.run('mavlink status', timeout=SHELL_RUN_TIMEOUT)
-            if timed_out:
-                report.fail('phase3_shell_stall',
-                            'shell over link1 stalled during param download on link2 '
-                            '(param {}/{})'.format(downloader.received, downloader.expected))
-                shell.close()
-                return False
-            shell_runs += 1
-            next_status = now + SHELL_STATUS_INTERVAL
+    try:
+        while downloader.is_alive():
+            now = time.monotonic()
+            if now > hard_deadline:
+                break
+            # keep link1 pumping so the autopilot keeps streaming to us
+            mav1.recv_match(blocking=True, timeout=0.1)
+            if now >= next_status:
+                _, timed_out = shell.run('mavlink status', timeout=SHELL_RUN_TIMEOUT)
+                if timed_out:
+                    report.fail('phase3_shell_stall',
+                                'shell over link1 stalled during param download on link2 '
+                                '(param {}/{})'.format(downloader.received, downloader.expected))
+                    return False
+                shell_runs += 1
+                next_status = now + SHELL_STATUS_INTERVAL
 
-    # Join the worker with a hard deadline. A thread stuck past the deadline is
-    # itself the finding; it is a daemon so the script can still exit.
-    downloader.join(timeout=max(0.1, hard_deadline - time.monotonic()) + 2.0)
-    shell.close()
+        # Join the worker with a hard deadline. A thread stuck past the deadline
+        # is itself the finding; it is a daemon so the script can still exit.
+        downloader.join(timeout=max(0.1, hard_deadline - time.monotonic()) + 2.0)
+    finally:
+        shell.close()
 
     if downloader.is_alive():
         report.fail('phase3_param_stall',
@@ -283,8 +284,10 @@ def phase4_post_liveness(report, mav1, mav2, global_deadline):
     if not shell.open(timeout=5):
         report.fail('phase4_shell_open', 'nsh shell over link1 did not respond after stress')
         return False
-    out, timed_out = shell.run('mavlink status', timeout=SHELL_RUN_TIMEOUT)
-    shell.close()
+    try:
+        out, timed_out = shell.run('mavlink status', timeout=SHELL_RUN_TIMEOUT)
+    finally:
+        shell.close()
     if timed_out:
         report.fail('phase4_shell_stall', '`mavlink status` over link1 stalled after stress')
         return False

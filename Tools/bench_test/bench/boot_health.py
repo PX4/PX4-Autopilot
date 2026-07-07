@@ -151,6 +151,16 @@ def run_capture(args, report):
         return report_dir
     report.ok('shell open', 'nsh responded')
 
+    try:
+        _capture(report, shell, report_dir, require_wq)
+    finally:
+        shell.close()
+        mav.close()
+    return report_dir
+
+
+def _capture(report, shell, report_dir, require_wq):
+    """Run the capture commands and evaluate them on an open shell."""
     outputs = {}
     for cmd, timeout in CAPTURE_COMMANDS:
         output, timed_out = shell.run(cmd, timeout=timeout)
@@ -188,10 +198,6 @@ def run_capture(args, report):
     if 'mavlink status' in outputs:
         n = px4bench.count_mavlink_instances(outputs['mavlink status'])
         report.info('mavlink instances: {}'.format(n))
-
-    shell.close()
-    mav.close()
-    return report_dir
 
 
 def read_saved(report_dir, cmd):

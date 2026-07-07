@@ -255,12 +255,30 @@ class MavlinkShell:
             self.buf += ''.join(chr(x) for x in m.data[:m.count])
 
     def open(self, timeout: float = 5):
-        """Wake the shell; returns True if any shell output is seen."""
+        """Wake the shell and confirm a live prompt. Returns True on success.
+
+        The firmware spawns a fresh nsh task plus two pipes on the first
+        SERIAL_CONTROL write of a session, so opening is not free; we must
+        confirm the task is actually up and reading, not just that some byte
+        arrived. Leftover bytes from a prior session would pass a naive
+        len(buf) > 0 check and report a shell that is not there.
+
+        We require either the 'nsh>' prompt token, or a completed sentinel
+        round-trip driven through the shell: sending 'echo <sentinel>' and
+        seeing that sentinel echoed back proves nsh is up and processing our
+        input. The sentinel round-trip also covers builds whose prompt token
+        differs or is suppressed.
+        """
+        self._seq += 1
+        sentinel = 'BENCHOPEN{}'.format(self._seq)
+        self.buf = ''
         self._write('\n')
+        self._write('echo {}\n'.format(sentinel))
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             self._pump()
-            if 'nsh>' in self.buf or len(self.buf) > 0:
+            if 'nsh>' in self.buf or re.search(
+                    r'^{}\s*$'.format(re.escape(sentinel)), self.buf, re.MULTILINE):
                 self.buf = ''
                 return True
         return False
@@ -274,8 +292,15 @@ class MavlinkShell:
         self._seq += 1
         sentinel = 'BENCHDONE{}'.format(self._seq)
         self.buf = ''
-        # two echos like run_nsh_cmd.py, in case the first line is garbled
-        self._write('{}; echo {}; echo {}\n'.format(cmd, sentinel, sentinel))
+        # The sentinel echoes go on their OWN line: nsh aborts the rest of a
+        # ';' chain when a command fails (including 'command not found'), so
+        # chaining them onto the command line loses the sentinel for any
+        # non-zero exit and a failing command reads as a stall. nsh consumes
+        # input lines sequentially, so the sentinel line runs after the
+        # command finishes regardless of its exit status.
+        # Two echoes like run_nsh_cmd.py, in case the first line is garbled.
+        self._write('{}\n'.format(cmd))
+        self._write('echo {0}; echo {0}\n'.format(sentinel))
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             self._pump()
@@ -297,14 +322,38 @@ class MavlinkShell:
                 continue
             if cmd in line and 'echo' in line:
                 continue
+            # the terminal echo of the command itself (possibly prefixed by
+            # the prompt and ANSI erase sequences) is not command output
+            bare = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', line).replace('nsh>', '').strip()
+            if bare == cmd:
+                continue
             lines.append(line)
         return '\n'.join(lines).strip()
 
-    def close(self):
+    def close(self, drain: float = 1.0):
+        """Tear down the firmware shell session and confirm teardown.
+
+        A SERIAL_CONTROL message with the RESPOND flag cleared (flags=0) is
+        what triggers Mavlink::close_shell() and frees the nsh task and its
+        two pipes. Sending it and returning immediately lets a caller reopen
+        before the firmware has processed the teardown, which spawns a second
+        shell before the first is freed: repeat that and the board's task/fd
+        table is exhausted (a leak we drive, not a firmware hang). So after
+        sending flags=0 we briefly drain incoming SERIAL_CONTROL traffic to
+        give the firmware time to run close_shell before the caller can
+        reopen. Bounded wait, never a hang.
+        """
         try:
             self.mav.mav.serial_control_send(SERIAL_CONTROL_DEV_SHELL, 0, 0, 0, 0, [0] * 70)
         except Exception:
-            pass
+            return
+        deadline = time.monotonic() + drain
+        while time.monotonic() < deadline:
+            m = self.mav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=0.1)
+            if m is None:
+                # a quiet window means the shell has stopped emitting; teardown
+                # has been processed
+                break
 
 
 def shell_command_exists(shell, probe_cmd, timeout=10):

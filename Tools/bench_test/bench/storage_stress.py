@@ -164,18 +164,37 @@ def main():
         except OSError:
             pass
 
-    # probe both commands; '-x' is an unknown flag, so an existing command
-    # replies with its usage text while a missing one replies not-found
-    bench_present, _ = px4bench.shell_command_exists(shell, 'sd_bench -x')
-    stress_present, _ = px4bench.shell_command_exists(shell, 'sd_stress -x')
+    # One shell session for both probes and both phases, torn down in finally
+    # so no path leaks the firmware nsh task.
     ran_any = False
     no_sd = False
+    try:
+        # probe both commands; '-x' is an unknown flag, so an existing command
+        # replies with its usage text while a missing one replies not-found
+        bench_present, _ = px4bench.shell_command_exists(shell, 'sd_bench -x')
+        stress_present, _ = px4bench.shell_command_exists(shell, 'sd_stress -x')
 
-    if bench_present is None or stress_present is None:
-        report.fail('probe', 'command probe stalled over the shell')
+        if bench_present is None or stress_present is None:
+            report.fail('probe', 'command probe stalled over the shell')
+            sys.exit(report.finish())
+
+        ran_any, no_sd = run_phases(report, shell, args, save,
+                                    bench_present, stress_present)
+    finally:
         shell.close()
         mav.close()
-        sys.exit(report.finish())
+
+    if not ran_any and report.num_failed == 0:
+        print('storage_stress: skipped (no usable storage commands or no SD '
+              'card); this is a warning, not a failure.', flush=True)
+        sys.exit(px4bench.EXIT_SKIP)
+    sys.exit(report.finish())
+
+
+def run_phases(report, shell, args, save, bench_present, stress_present):
+    """Run the sd_bench and sd_stress phases. Returns (ran_any, no_sd)."""
+    ran_any = False
+    no_sd = False
 
     if bench_present:
         cmd = 'sd_bench -r {} -d {} -b {} -v'.format(
@@ -240,14 +259,7 @@ def main():
                     'found); stress phase skipped. Enable '
                     'CONFIG_SYSTEMCMDS_SD_STRESS=y')
 
-    shell.close()
-    mav.close()
-
-    if not ran_any and report.num_failed == 0:
-        print('storage_stress: skipped (no usable storage commands or no SD '
-              'card); this is a warning, not a failure.', flush=True)
-        sys.exit(px4bench.EXIT_SKIP)
-    sys.exit(report.finish())
+    return ran_any, no_sd
 
 
 if __name__ == '__main__':

@@ -131,8 +131,10 @@ def save_params(report, mav, label):
     if not shell.open(timeout=5):
         report.fail(label, 'could not open nsh shell for param save')
         return False
-    _, timed_out = shell.run('param save', timeout=10)
-    shell.close()
+    try:
+        _, timed_out = shell.run('param save', timeout=10)
+    finally:
+        shell.close()
     if timed_out:
         report.fail(label, "'param save' stalled")
         return False
@@ -397,13 +399,18 @@ def main():
 
     # Probe the live firmware for the SIH module before touching any config.
     # nsh replies 'command not found' when the module is not in this build.
+    # One shell session for the probe, always torn down (a leaked shell leaks
+    # a firmware nsh task plus its two pipes). enter_sih() reboots the board
+    # below, so this session cannot be reused past the probe anyway.
     probe_shell = MavlinkShell(mav)
     if not probe_shell.open(timeout=5):
         report.fail('sih_probe', 'nsh shell did not respond within 5s')
         return report.finish()
-    present, probe_out = px4bench.shell_command_exists(
-        probe_shell, 'simulator_sih status')
-    probe_shell.close()
+    try:
+        present, probe_out = px4bench.shell_command_exists(
+            probe_shell, 'simulator_sih status')
+    finally:
+        probe_shell.close()
     if present is None:
         report.fail('sih_probe', "'simulator_sih status' stalled (probe hung)")
         return report.finish()
@@ -434,25 +441,28 @@ def main():
             px4bench.attach_viewer_tee(mav, port=args.viewer_port)
             report.info('viewer tee on udp:127.0.0.1:{}'.format(args.viewer_port))
 
+        # One shell session for the whole flight, torn down in finally so an
+        # error path never leaks the firmware nsh task.
         shell = MavlinkShell(mav)
         if not shell.open(timeout=5):
             report.fail('shell', 'could not open nsh shell')
             return report.finish()
+        try:
+            if args.viewer:
+                for cmd in ('mavlink stream -d {} -s HIL_STATE_QUATERNION -r 25'
+                            .format(args.board_dev),
+                            'mavlink stream -d {} -s HIL_ACTUATOR_CONTROLS -r 200'
+                            .format(args.board_dev)):
+                    shell_cmd(report, shell, cmd, 'viewer_stream')
+                report.info('viewer streams on; watch with: hawkeye -udp {} -mc'
+                            .format(args.viewer_port))
 
-        if args.viewer:
-            for cmd in ('mavlink stream -d {} -s HIL_STATE_QUATERNION -r 25'
-                        .format(args.board_dev),
-                        'mavlink stream -d {} -s HIL_ACTUATOR_CONTROLS -r 200'
-                        .format(args.board_dev)):
-                shell_cmd(report, shell, cmd, 'viewer_stream')
-            report.info('viewer streams on; watch with: hawkeye -udp {} -mc'
-                        .format(args.viewer_port))
-
-        ok = fly(report, mav, shell, args.alt, report_dir)
-        if not ok:
-            # Best effort: never leave a (simulated) vehicle armed.
-            shell.run('commander disarm -f', timeout=5)
-        shell.close()
+            ok = fly(report, mav, shell, args.alt, report_dir)
+            if not ok:
+                # Best effort: never leave a (simulated) vehicle armed.
+                shell.run('commander disarm -f', timeout=5)
+        finally:
+            shell.close()
 
         # Post-flight verification starts from the ULog; always retrieve it.
         download_flight_log(report, mav, report_dir)

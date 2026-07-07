@@ -192,8 +192,10 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     if not shell.open(timeout=5):
         report.fail('persistence_shell', 'could not open nsh shell for param save')
         return mav
-    out, timed_out = shell.run('param save', timeout=10)
-    shell.close()
+    try:
+        out, timed_out = shell.run('param save', timeout=10)
+    finally:
+        shell.close()
     if timed_out:
         report.fail('persistence_save',
                     "'param save' did not complete within 10s (stalled)")
