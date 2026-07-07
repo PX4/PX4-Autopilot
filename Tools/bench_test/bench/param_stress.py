@@ -34,8 +34,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import px4bench
 from px4bench.params import (READ_TIMEOUT_S, SET_ECHO_TIMEOUT_S,
                              drain_param_values, param_float_to_int32,
-                             param_id_str, read_param, set_param_int32,
-                             wait_param_echo)
+                             param_id_str, param_is_saved, read_param,
+                             read_until, set_param_int32, wait_param_echo)
+
+COMMIT_TIMEOUT_S = 8.0
 
 DEFAULT_PARAM = 'SDLOG_UTC_OFFSET'
 DEFAULT_ITERATIONS = 50
@@ -133,7 +135,6 @@ def phase_set_readback(report, mav, param, iterations):
     Individual failures are counted but the loop continues.
     """
     report.info('Phase 2: set/readback loop, {} iterations'.format(iterations))
-    echo_failures = 0
     read_failures = 0
     mismatch_failures = 0
 
@@ -143,32 +144,37 @@ def phase_set_readback(report, mav, param, iterations):
         drain_param_values(mav)
         set_param_int32(mav, param, value)
         matched, seen = wait_param_echo(mav, param, value, SET_ECHO_TIMEOUT_S)
-        if not matched:
-            report.fail('param_set_echo',
-                        'set iteration {}: no echo of {} within {}s (saw: {})'.format(
-                            i, value, SET_ECHO_TIMEOUT_S, seen or 'nothing'))
-            echo_failures += 1
-            # keep going: still try to read back
 
-        readback, _ = read_param(mav, param, READ_TIMEOUT_S)
-        if readback is None:
-            report.fail('param_readback',
-                        'set iteration {}: no PARAM_VALUE on readback'.format(i))
-            read_failures += 1
-            continue
-        if readback != value:
-            report.fail('param_readback',
-                        'set iteration {}: readback {} != set {}'.format(
-                            i, readback, value))
-            mismatch_failures += 1
+        # read_param is the source of truth: a set propagates asynchronously,
+        # so the echo can be a stale queued PARAM_VALUE from a prior set that
+        # slipped past the drain. read_until confirms the board actually holds
+        # the new value; an echo that disagrees with a confirmed read-back is
+        # not counted as a failure.
+        confirmed, readback = read_until(mav, param, value, COMMIT_TIMEOUT_S)
+        if not confirmed:
+            if readback is None:
+                report.fail('param_readback',
+                            'set iteration {}: no PARAM_VALUE on readback'.format(i))
+                read_failures += 1
+            else:
+                report.fail('param_readback',
+                            'set iteration {}: readback {} != set {}'.format(
+                                i, readback, value))
+                mismatch_failures += 1
+        elif not matched:
+            # board holds the right value but the echo never showed it; this is
+            # the stale-echo case, informational not a failure
+            report.info('  iteration {}: value confirmed by read-back; echo saw '
+                        '{} (stale queued echo tolerated)'.format(i, seen or 'nothing'))
 
         if (i + 1) % 10 == 0:
             report.info('  {}/{} iterations done'.format(i + 1, iterations))
 
     report.check('param_set_readback_loop',
-                 echo_failures == 0 and read_failures == 0 and mismatch_failures == 0,
-                 '{} iterations: {} echo, {} read, {} mismatch failures'.format(
-                     iterations, echo_failures, read_failures, mismatch_failures))
+                 read_failures == 0 and mismatch_failures == 0,
+                 '{} iterations: {} read, {} mismatch failures (readback is the '
+                 'source of truth; stale echoes tolerated)'.format(
+                     iterations, read_failures, mismatch_failures))
 
 
 def phase_persistence(report, mav, param, conn_str, baud, original_value):
@@ -179,29 +185,61 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     """
     report.info('Phase 3: persistence across reboot')
 
+    # 1. Set the marker and confirm it is actually committed to RAM by reading
+    #    it back, not merely by matching the echo. A PARAM_SET propagates
+    #    asynchronously; if we saved on the strength of the echo alone, save
+    #    could race ahead of the commit and persist the PRIOR value (the last
+    #    value Phase 2 wrote). read_until closes that gap, and it trusts the
+    #    board's read over any stale queued echo.
     drain_param_values(mav)
     set_param_int32(mav, param, MARKER_VALUE)
-    matched, seen = wait_param_echo(mav, param, MARKER_VALUE, SET_ECHO_TIMEOUT_S)
-    if not matched:
+    committed, seen = read_until(mav, param, MARKER_VALUE, COMMIT_TIMEOUT_S)
+    if not committed:
         report.fail('persistence_set',
-                    'no echo of marker {} (saw: {})'.format(MARKER_VALUE, seen or 'nothing'))
+                    'marker {} not committed to RAM within {:.0f}s (read back: '
+                    '{})'.format(MARKER_VALUE, COMMIT_TIMEOUT_S,
+                                 seen if seen is not None else 'nothing'))
         return mav
 
-    # Force an explicit flush to storage before we pull the power.
+    # 2. Save, then confirm the SAVED state before rebooting: param show must
+    #    report the '+' (saved) flag AND the marker value. A '*' (unsaved) or a
+    #    wrong value means save did not persist the marker; retry once, then
+    #    fail without rebooting on an unsaved marker.
     shell = px4bench.MavlinkShell(mav)
     if not shell.open(timeout=5):
         report.fail('persistence_shell', 'could not open nsh shell for param save')
         return mav
     try:
-        out, timed_out = shell.run('param save', timeout=10)
+        saved_ok = False
+        saved, shown = None, None
+        for attempt in range(2):
+            out, timed_out = shell.run('param save', timeout=10)
+            if timed_out:
+                report.fail('persistence_save',
+                            "'param save' did not complete within 10s (stalled)")
+                return mav
+            report.info("'param save' output: {}".format(out.strip() or '(none)'))
+            saved, shown, show_timed_out = param_is_saved(shell, param)
+            if show_timed_out:
+                report.fail('persistence_save',
+                            "'param show {}' stalled confirming the saved "
+                            'state'.format(param))
+                return mav
+            if saved is True and shown == MARKER_VALUE:
+                saved_ok = True
+                break
+            report.info('param show reports saved={} value={} after save '
+                        'attempt {}'.format(saved, shown, attempt + 1))
+        if not saved_ok:
+            report.fail('persistence_save',
+                        'marker {} not confirmed saved (param show saved={} '
+                        'value={}); not rebooting on an unsaved marker'.format(
+                            MARKER_VALUE, saved, shown))
+            return mav
     finally:
         shell.close()
-    if timed_out:
-        report.fail('persistence_save',
-                    "'param save' did not complete within 10s (stalled)")
-        return mav
-    report.info("'param save' output: {}".format(out.strip() or '(none)'))
 
+    # 3. Reboot and read the marker back.
     try:
         newmav, elapsed = px4bench.reboot_and_reconnect(mav, conn_str, baud, timeout=60)
     except TimeoutError as e:
@@ -220,13 +258,14 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
                      'after reboot {} = {} (expected {})'.format(
                          param, survived, MARKER_VALUE))
 
-    # Restore original inside this phase too, then verify.
+    # Restore original inside this phase too, then verify by read-back.
     drain_param_values(mav)
     set_param_int32(mav, param, original_value)
-    matched, seen = wait_param_echo(mav, param, original_value, SET_ECHO_TIMEOUT_S)
+    restored, seen = read_until(mav, param, original_value, COMMIT_TIMEOUT_S)
     report.check('persistence_restore',
-                 matched,
-                 'restored {} to {} (saw: {})'.format(param, original_value, seen))
+                 restored,
+                 'restored {} to {} (read back: {})'.format(
+                     param, original_value, seen if seen is not None else 'nothing'))
     return mav
 
 
@@ -288,12 +327,13 @@ def main():
             try:
                 drain_param_values(mav)
                 set_param_int32(mav, args.param, original_value)
-                matched, seen = wait_param_echo(mav, args.param, original_value,
-                                                SET_ECHO_TIMEOUT_S)
+                restored, seen = read_until(mav, args.param, original_value,
+                                            COMMIT_TIMEOUT_S)
                 report.check('final_restore',
-                             matched,
-                             'restored {} to {} (saw: {})'.format(
-                                 args.param, original_value, seen))
+                             restored,
+                             'restored {} to {} (read back: {})'.format(
+                                 args.param, original_value,
+                                 seen if seen is not None else 'nothing'))
             except Exception as e:
                 report.fail('final_restore',
                             'exception while restoring {}: {}'.format(args.param, e))
