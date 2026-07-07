@@ -209,8 +209,18 @@ def infer_build_target(hw_arch, root=None):
 
 
 def board_id_for_target(target, root=None):
-    """Numeric board_id from boards/<vendor>/<model>/firmware.prototype."""
-    mdir = list_board_targets(root).get(target)
+    """Numeric board_id from boards/<vendor>/<model>/firmware.prototype.
+
+    Accepts labeled build targets too (px4_fmu-v6xrt_bench resolves to the
+    px4_fmu-v6xrt board dir): the label selects a .px4board config within
+    the same board, so the board_id is unchanged.
+    """
+    targets = list_board_targets(root)
+    mdir = targets.get(target)
+    if mdir is None:
+        base = [t for t in targets if target.startswith(t + '_')]
+        if base:
+            mdir = targets[max(base, key=len)]
     if mdir is None:
         return None
     proto = os.path.join(mdir, 'firmware.prototype')
