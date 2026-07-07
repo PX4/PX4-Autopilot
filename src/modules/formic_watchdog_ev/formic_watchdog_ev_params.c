@@ -29,25 +29,6 @@ PARAM_DEFINE_INT32(FORMIC_WDEV_EN, 0);
  */
 PARAM_DEFINE_INT32(FORMIC_WDEV_INIT, 2);
 
-/**
- * User VIO activation AUX channel.
- *
- * Selects which RC AUX channel lets the user control activation of the
- * vision odometry (VIO). When set to "None", no AUX channel is used and
- * the VIO is treated as active all the time.
- *
- * @value 0 None (VIO always active)
- * @value 1 AUX1
- * @value 2 AUX2
- * @value 3 AUX3
- * @value 4 AUX4
- * @value 5 AUX5
- * @value 6 AUX6
- * @group Formic Watchdog EV
- * @category Standard
- */
-PARAM_DEFINE_INT32(FORMIC_WDEV_AUX, 0);
-
 
 /**
  * EV heading reset threshold.
@@ -118,3 +99,23 @@ PARAM_DEFINE_FLOAT(FORMIC_WDEV_VINI, 10.0f);
  * @category Standard
  */
 PARAM_DEFINE_FLOAT(FORMIC_WDEV_DATT, 25.0f);
+
+
+
+
+
+/**
+ * User VIO init quality value.
+ *
+ * This parameter defines the initial quality value for the vision odometry (VIO) system.
+ *
+ * @min 0
+ * @max 100
+ * @unit %
+ * @decimal 0
+ * @increment 1
+ * @group Formic Watchdog EV
+ * @category Standard
+ */
+PARAM_DEFINE_INT32(FORMIC_WDEV_QV, 95);
+

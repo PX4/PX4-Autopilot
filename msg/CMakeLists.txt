@@ -280,7 +280,9 @@ set(msg_files
 	FormicVioJetson.msg
 	FormicPosReq.msg
 	FormicVioFeatures.msg
+	FeaturesFilter.msg
 )
+
 list(SORT msg_files)
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})

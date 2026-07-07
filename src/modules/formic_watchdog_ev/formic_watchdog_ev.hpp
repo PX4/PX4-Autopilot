@@ -136,6 +136,7 @@ private:
 		(ParamFloat<px4::params::FORMIC_WDEV_DYAW>) _param_formic_wdev_dyaw,
 		(ParamFloat<px4::params::FORMIC_WDEV_DPOS>) _param_formic_wdev_dpos,
 		(ParamFloat<px4::params::FORMIC_WDEV_VINI>) _param_formic_wdev_vini,
-		(ParamFloat<px4::params::FORMIC_WDEV_DATT>) _param_formic_wdev_d_attitude
+		(ParamFloat<px4::params::FORMIC_WDEV_DATT>) _param_formic_wdev_d_attitude,
+		(ParamInt<px4::params::FORMIC_WDEV_QV>) _param_formic_wdev_qv
 	)
 };

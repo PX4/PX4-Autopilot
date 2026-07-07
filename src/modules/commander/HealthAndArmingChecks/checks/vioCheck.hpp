@@ -47,12 +47,14 @@
 
 #include "../Common.hpp"
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+
 #include <uORB/topics/formic_vio_features.h>
-// #include <containers/RingQueue.hpp>
-#include <containers/IntrusiveQueue.hpp>
-// TODO: include the actual VIO/EV topics this check consumes, e.g.:
-// #include <uORB/topics/vehicle_visual_odometry.h>
-// #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/features_filter.h>
+
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <px4_platform_common/module_params.h>
+#include <drivers/drv_hrt.h>
 
 class VioChecks : public HealthAndArmingCheckBase
 {
@@ -63,38 +65,41 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	// --- Sub-checks: fill in the actual logic in vio_check.cpp ---
+	// Feature-count threshold below which the VIO stream is considered degraded.
+	static constexpr int THERSHOLD = 5;
 
-	/**
-	 * Verify the VIO/EV data stream is present and recent.
-	 * Relevant both pre-arm and in flight.
-	 */
+	// Low-pass filter tuning. The VIO feature stream is not perfectly periodic, so
+	// these are nominal values: a ~20 Hz sample rate with a 1 Hz cutoff smooths
+	// per-frame spikes while still tracking sustained drops in feature count.
+	static constexpr float FILTER_SAMPLE_FREQ = 20.0f;
+	static constexpr float FILTER_CUTOFF_FREQ = 1.0f;
+
+
 	void checkDataStream(const Context &context, Report &reporter);
 	void get_vio_features();
-
-	/**
-	 * Verify the VIO estimate quality (e.g. covariance / tracking confidence).
-	 * Primarily an in-flight monitor.
-	 */
 	void checkEstimateQuality(const Context &context, Report &reporter);
 
-	uORB::Subscription _vio_features_sub{ORB_ID(formic_vio_features)}; // TODO: replace with the actual VIO/EV topic(s)
-	// static constexpr size_t MAX_VIO_FEATURES = 50;
-	// formic_vio_features_s _vio_features{};
-	IntrusiveQueue<formic_vio_features_s *> _vio_features_queue{}; // TODO: replace with a RingQueue if needed
-	// std::array<formic_vio_features_s, MAX_VIO_FEATURES> _vio_features{};
+	uORB::Subscription _vio_features_sub{ORB_ID(formic_vio_features)}; 
+	uORB::Publication<features_filter_s> _features_filter_pub{ORB_ID(features_filter)};
 
-	// --- State / subscriptions (placeholders) ---
-	// TODO: subscribe to the real topic(s), e.g.:
-	// uORB::Subscription _visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
+
+	math::LowPassFilter2p<float> _slam_features_filter{FILTER_SAMPLE_FREQ, FILTER_CUTOFF_FREQ};
+	math::LowPassFilter2p<float> _msckf_features_filter{FILTER_SAMPLE_FREQ, FILTER_CUTOFF_FREQ};
+
 	hrt_abstime _last_valid_sample{0};
+	float _slam_features_filtered = 0.0f;   // low-pass filtered feature count
+	float _msckf_features_filtered = 0.0f;
 
-	static constexpr size_t MAX_QUEUE_SIZE = 10;
+	bool on_startup{true}; // true until the first checkAndReport() call, then false
+	hrt_abstime _startup_timer_start = 0;
 
-	// TODO: once this check has parameters, declare them here so they are
-	// auto-updated, e.g.:
-	// DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-	//                 (ParamInt<px4::params::EV_CHECK_EN>)   _param_ev_check_en,
-	//                 (ParamFloat<px4::params::EV_TIMEOUT>)  _param_ev_timeout
-	//                )
+
+
+	// DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase)
+
+	/// TODO NAOR:
+	// 1) dont do this check at the start of the data or when the qaue isnt full 
+	// 2) report if the data low - later connect this to stop the copy of the data until the data good again 
+
+
 };

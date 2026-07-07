@@ -197,6 +197,7 @@ void UserModeIntention::publish_formic_pos_req(bool pos_requested)
 {
 	formic_pos_req_s pos_req{};
 	pos_req.pos_req = pos_requested;
+	pos_req.timestamp = hrt_absolute_time();
 	_formic_pos_req_pub.publish(pos_req);
 
 

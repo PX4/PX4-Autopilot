@@ -109,9 +109,9 @@ void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
 
 {
 	// RP_misalignment(odometry);
-	if (RP_misalignment(odometry)){
-		_formic_state.error_find = true;
-	}
+	// if (RP_misalignment(odometry)){
+		// _formic_state.error_find = true;
+	// }
 	odometry.reset_counter = _formic_state.reset_counter;
 	_odometry_pub.publish(odometry);
 }
@@ -208,9 +208,8 @@ void FormicWatchdogEv::init_condition_check(){
 	_quality_average_init = calc_avg(_quality_count,_quality_sum);
 	_vel_average_init     = calc_avg(_vel_count,_vel_sum);
 	_init_check_done = true;
-	_formic_state.quality_init_check_fail = (_quality_average_init < 95.0f);
+	_formic_state.quality_init_check_fail = (_quality_average_init < _param_formic_wdev_qv.get()); // if the average EV quality during the settle window is very low, it's likely that the EV data is not good (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful). In this case we set the error flag and skip forwarding the data.
 	_formic_state.vel_3d_init_check_fail = (_vel_average_init > _param_formic_wdev_vini.get()); // if the average EV all_vel during the settle window is very low, it's likely that the EV data is not good (e.g. bad EV fusion configuration, or EV not really moving which makes the quality metric less meaningful). In this case we also set the error flag and skip forwarding the data.
-
 
 	if (_formic_state.quality_init_check_fail || _formic_state.vel_3d_init_check_fail) {
 		/// call to an error if have any prblem 

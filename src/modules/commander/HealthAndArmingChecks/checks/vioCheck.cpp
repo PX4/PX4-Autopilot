@@ -37,32 +37,24 @@ using namespace time_literals;
 
 void VioChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	// TODO: gate the whole check on an enable parameter, e.g.:
-	// if (!_param_ev_check_en.get()) {
-	//     return;
-	// }
+	// TODO: gate the whole check on a dedicated enable parameter once one exists.
 
 	// Sub-checks. Each one decides for itself whether it is relevant pre-arm,
 	// in flight, or both, and reports via the `reporter`.
 	checkDataStream(context, reporter);
-	checkEstimateQuality(context, reporter);
-
-	// TODO: if the VIO source is detected/configured, advertise it as present
-	// so it shows up in the health report, e.g.:
-	// reporter.setIsPresent(health_component_t::???);
+	// checkEstimateQuality(context, reporter);
 }
 
 void VioChecks::checkDataStream(const Context &context, Report &reporter)
 {
-	// Relevant both before arming and during flight: make sure we are still
-	// receiving fresh VIO/EV samples.
-	//
-	// TODO: copy the latest sample and evaluate timeout / staleness, e.g.:
-	//   vehicle_odometry_s odom;
-	//   if (_visual_odometry_sub.update(&odom)) {
-	//       _last_valid_sample = odom.timestamp;
-	//   }
-	//   const bool data_stale = (hrt_elapsed_time(&_last_valid_sample) > _param_ev_timeout.get() * 1_s);
+    get_vio_features();
+    // It's a good PX4 practice to zero-initialize the struct to prevent garbage data
+    features_filter_s pub_data{};
+    pub_data.slam_features_filterd = _slam_features_filtered;
+    pub_data.msckf_features_filterd = _msckf_features_filtered;
+    pub_data.timestamp = hrt_absolute_time();
+    pub_data.at_problem = (pub_data.slam_features_filterd < THERSHOLD);
+    _features_filter_pub.publish(pub_data);
 
 	const bool data_stale = false; // TODO: replace with the real condition
 
@@ -83,10 +75,8 @@ void VioChecks::checkDataStream(const Context &context, Report &reporter)
 
 void VioChecks::checkEstimateQuality(const Context &context, Report &reporter)
 {
-	// Primarily an in-flight monitor: the data may be arriving but its quality
-	// (covariance, tracking confidence, ...) may have degraded.
 	if (!context.isArmed()) {
-		// TODO: decide whether quality should also be enforced pre-arm.
+		// the check runs at disarm and arm 
 		return;
 	}
 
@@ -107,20 +97,32 @@ void VioChecks::checkEstimateQuality(const Context &context, Report &reporter)
 
 
 void VioChecks::get_vio_features(){
-	// if (_vio_features_sub.updated()) {
-	// 	formic_vio_features_s vio_features{};
-	// 	_vio_features_sub.copy(&vio_features);
-	// 	_last_valid_sample = vio_features.timestamp;
-	// 	_vio_features_queue.push(new formic_vio_features_s(vio_features));
-	// 	if (_vio_features_queue.size() >= MAX_QUEUE_SIZE) {
-		
-	// 		delete _vio_features_queue.pop();
-	// 	}
-	// 	if (hrt_abstime elapsed_time(&_last_valid_sample) > 1_s){
-	// 		_vio_features_queue.empty();
-	// 	}
-	// }
-}
+	if (_vio_features_sub.updated()) {
+		formic_vio_features_s vio_features{};
+		_vio_features_sub.copy(&vio_features);
 
+		// If there was a gap (>1 s) since the previous sample, the filter state is
+		// stale — re-seed it with the fresh sample instead of ramping from the old one.
+		if (_last_valid_sample != 0 && (vio_features.timestamp - _last_valid_sample) > 1_s) {
+			_slam_features_filter.reset(vio_features.slam_features);
+			_msckf_features_filter.reset(vio_features.msckf_features);
+			on_startup = true;
+			_startup_timer_start = hrt_absolute_time();
+		}
+		_last_valid_sample = vio_features.timestamp;
+
+		// Feed the low-pass filters and keep the filtered feature counts.
+		_slam_features_filtered = _slam_features_filter.apply(vio_features.slam_features);
+		_msckf_features_filtered = _msckf_features_filter.apply(vio_features.msckf_features);
+
+	}
+
+	if (on_startup){
+		if (hrt_elapsed_time(&_startup_timer_start) > 2_s){
+			// wait some time to start check this error - at the start the slam feathers is at zero 
+			on_startup = false;
+		}
+	}
+}
 
 
