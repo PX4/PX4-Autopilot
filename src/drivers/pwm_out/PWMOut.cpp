@@ -153,9 +153,42 @@ bool PWMOut::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, u
 	return true;
 }
 
+void PWMOut::set_max_timers_rate()
+{
+	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+		uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
+
+		if (channels == 0) {
+			continue;
+		}
+
+		int ret = up_pwm_servo_set_rate_group_update(timer, PWM_RATE_TIMER_MAX);
+
+		if (ret != 0) {
+			PX4_ERR("up_pwm_servo_set_rate_group_update failed for timer %i, rate %i (%i)", timer, _timer_rates[timer], ret);
+			_timer_rates[timer] = -1;
+			_pwm_mask &= ~channels;
+		}
+	}
+}
+
 void PWMOut::Run()
 {
 	if (should_exit()) {
+		hrt_abstime now = hrt_absolute_time();
+
+		if (shutdown_request_time == 0) {
+			shutdown_request_time = now;
+
+			if (pwm_shutdown_period) {
+				set_max_timers_rate();
+			}
+		}
+
+		if (now < shutdown_request_time + pwm_shutdown_period) {
+			return;
+		}
+
 		ScheduleClear();
 		_mixing_output.unregister();
 

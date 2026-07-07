@@ -76,6 +76,13 @@ public:
 	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
+	// 20 ms is biggest allowed pwm period (50Hz) so use 2.5x20ms.
+	static constexpr hrt_abstime pwm_shutdown_period = 50_ms;
+	// Timestamp when exit request was received and PWM outputs where configurated in PWM_RATE_TIMER_MAX. Module will exit in pwm_shutdown_period since then.
+	hrt_abstime shutdown_request_time = 0;
+
+	void set_max_timers_rate();
+
 	void Run() override;
 
 	void update_params();
