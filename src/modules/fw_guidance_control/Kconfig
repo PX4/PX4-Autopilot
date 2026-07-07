@@ -4,7 +4,7 @@ menuconfig MODULES_FW_GUIDANCE_CONTROL
 	---help---
 		Enable support for fw_guidance_control
 
-menuconfig USER_FW_MODE_MANAGER
+menuconfig USER_FW_GUDIANCE_CONTROL
 	bool "fw_guidance_control running as userspace module"
 	default n
 	depends on BOARD_PROTECTED && MODULES_FW_MODE_MANAGER
