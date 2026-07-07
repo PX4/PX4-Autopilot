@@ -303,7 +303,8 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
-					const Quatf q_current(att.q);
+					// Use the transformed attitude frame to match the attitude setpoint frame.
+					const Quatf q_current(_R);
 					const Vector3f att_err = computeAttitudeError(q_current, q_sp);
 
 					Vector3f body_rates_setpoint;
