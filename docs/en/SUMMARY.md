@@ -913,6 +913,7 @@
       - [Fixed Wing](test_and_ci/test_flights.md#fixed-wing)
         - [Test FW_01 - Manual Modes](test_cards/fw_01_manual_modes.md)
         - [Test FW_02 - Full Autonomous](test_cards/fw_02_full_autonomous.md)
+    - [Hardware Bench Testing (px4bench)](test_and_ci/bench_testing.md)
     - [Unit Tests](test_and_ci/unit_tests.md)
       - [Fuzz Tests](test_and_ci/fuzz_tests.md)
     - [Sanitizers](test_and_ci/sanitizers.md)
