@@ -229,7 +229,7 @@ bool Ekf::resetYawToGnss(const float gnss_yaw, const float gnss_yaw_offset)
 	const float yaw_variance = sq(fmaxf(_params.gnss_heading_noise, 1.e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance);
 
-	if (_control_status.flags.in_air && (yaw_change > math::radians(25.f))) {
+	if (_control_status.flags.in_air && (yaw_change > kYawResetGyroBiasCovThreshold)) {
 		resetGyroBiasZCov();
 	}
 

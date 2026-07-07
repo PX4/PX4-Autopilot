@@ -527,7 +527,7 @@ bool Ekf::isYawFailure() const
 	const float euler_yaw = getEulerYaw(_R_to_earth);
 	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
 
-	return fabsf(yaw_error) > math::radians(25.f);
+	return fabsf(yaw_error) > kYawResetGyroBiasCovThreshold;
 }
 
 bool Ekf::resetYawToEKFGSF()
