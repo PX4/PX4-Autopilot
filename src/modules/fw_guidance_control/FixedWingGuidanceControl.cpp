@@ -399,6 +399,10 @@ FixedWingGuidanceControl::Run()
 					_pos_sp_triplet.current.vz = NAN;
 				}
 
+				if (!PX4_ISFINITE(path_setpoint.height_rate) && !PX4_ISFINITE(position(2))) {
+					_pos_sp_triplet.current.gliding_enabled = true;
+				}
+
 				_position_setpoint_current_valid = valid_setpoint;
 			}
 		}
