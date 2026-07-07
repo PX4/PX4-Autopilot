@@ -79,19 +79,69 @@ first; it holds the serial port.
 ## Quick start
 
 ```
-# full non-interactive bench suite, single USB link
-./run_bench_suite.py /dev/tty.usbmodem01
+# flash a known build, verify it, then run the full bench suite
+./run_bench_suite.py /dev/tty.usbmodem01 --firmware build/px4_fmu-v6xrt_default/px4_fmu-v6xrt_default.px4
 
 # with a telemetry radio as a second link (enables link_forwarding and
 # alternating mission uploads)
-./run_bench_suite.py /dev/tty.usbmodem01 /dev/tty.usbserial-RADIO
+./run_bench_suite.py /dev/tty.usbmodem01 /dev/tty.usbserial-RADIO --expect-hash 0c000d59
 
 # operator-assisted USB re-enumeration test (not part of the suite)
 ./bench/usb_replug.py /dev/tty.usbmodem01
 
 # simulated flight on the FMU (reconfigures the board, run separately)
-./sih/flight_mission.py /dev/tty.usbmodem01
+./sih/flight_mission.py /dev/tty.usbmodem01 --expect-hash 0c000d59
 ```
+
+## Firmware gate
+
+Qualification means knowing what you tested. Before any test starts the
+suite connects, reads the board identity (`ver all`: PX4 git-hash, PX4
+version, HW arch, OS version), prints it, writes it to `firmware.json` in
+the suite report dir, and stamps it into every test's report dir. What
+happens next depends on exactly one of five mutually exclusive flags,
+covering four firmware sources:
+
+```
+# 1. keep what is on the board (explicit opt-out, still stamped)
+./run_bench_suite.py /dev/tty.usbmodem01 --any-firmware
+
+# 2. flash a local .px4, verify the flashed identity, then test
+./run_bench_suite.py /dev/tty.usbmodem01 --firmware path/to/px4_fmu-v6xrt_default.px4
+
+# 3. build from this source tree, flash, verify (target inferred from the
+#    connected board via its HW arch; pass --target if ambiguous)
+./run_bench_suite.py /dev/tty.usbmodem01 --build
+
+# 4. download a GitHub release artifact (needs the gh CLI), flash, verify
+./run_bench_suite.py /dev/tty.usbmodem01 --release v1.17.0
+./run_bench_suite.py /dev/tty.usbmodem01 --release latest
+
+# verify only, no flash: assert the board already runs a given hash
+./run_bench_suite.py /dev/tty.usbmodem01 --expect-hash 0c000d59
+```
+
+All flash paths converge: parse the .px4 metadata (refusing unparseable
+files), check its `board_id` against the connected board early (wrong-board
+images fail before flashing; the uploader enforces it again against the
+bootloader), flash via `Tools/px4_uploader.py`, wait for re-enumeration and
+a heartbeat, then re-read `ver all` and compare the git hash against the
+artifact's identity (named check `firmware_identity`, prefix match). A
+mismatch after flashing aborts the suite.
+
+Interactive use: with none of the flags on a TTY, the suite shows the
+detected identity and asks: continue on the current firmware, flash a local
+.px4, build the inferred target from this tree, download a release, or
+abort. In automation (stdin not a TTY) the gate refuses to guess and exits
+with an error listing the flags; CI must always state what it is testing.
+
+Wedged-board note: a board whose mavlink is hung cannot soft-reboot into
+the bootloader, so the uploader sits in its reboot-request loop. The gate
+detects this and prints an operator instruction to unplug and replug USB;
+the uploader then catches the bootloader at power-on.
+
+`sih/flight_mission.py` accepts `--expect-hash` as a verify-only gate and
+stamps the identity into its report dir; it never flashes.
 
 ## Why pymavlink
 

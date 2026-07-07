@@ -12,14 +12,26 @@ second link is given) the dual-link nested-send lock stress.
 Each test enforces its own timeouts, and this orchestrator wraps each in a
 --per-test-timeout so even a fully wedged child is killed and recorded as a
 FAIL naming what hung. usb_replug is interactive and is never run here.
+
+Before any test starts, the firmware gate establishes exactly which build
+is on the board (and can flash one): qualification means knowing what you
+tested. The identity is printed, written to firmware.json in the suite
+report dir, and stamped into every test's report dir.
 """
 
 import argparse
+import json
 import os
 import signal
 import subprocess
 import sys
 import time
+from typing import NoReturn
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import px4bench
+from px4bench import firmware
 
 
 # Test order for the suite. link_forwarding is inserted after
@@ -105,6 +117,236 @@ def run_one(name, args):
     return 'FAIL', dur, 'exit code {}'.format(rc)
 
 
+def gate_abort(report, code=1) -> NoReturn:
+    """Print the preflight summary and abort the suite."""
+    report.finish()
+    print('firmware gate failed; no test was run.', flush=True)
+    sys.exit(code)
+
+
+def flash_and_verify(report, args, mav, ident, px4_path, source):
+    """Common tail for every firmware source: check board_id, flash, verify.
+
+    Returns (new_mav, new_identity); aborts the suite on any failure.
+    """
+    try:
+        meta = firmware.parse_px4_metadata(px4_path)
+    except ValueError as e:
+        report.fail('firmware_file', str(e))
+        gate_abort(report, 2)
+    report.ok('firmware_file', '{} ({}, board_id {})'.format(
+        px4_path, meta.get('git_identity') or 'no git identity', meta['board_id']))
+
+    # Early wrong-board check against boards/<vendor>/<model>/firmware.prototype;
+    # the uploader still enforces board_id against the bootloader at flash time.
+    target = args.target
+    if not target:
+        target, terr = firmware.infer_build_target(ident.get('hw_arch'))
+        if target is None:
+            report.info('board_id preflight check skipped: {}'.format(terr))
+    id_ok, id_detail = firmware.check_board_id(meta, target)
+    if id_ok is False:
+        report.fail('firmware_board_id', id_detail)
+        gate_abort(report)
+    elif id_ok is None:
+        report.info(id_detail)
+    else:
+        report.ok('firmware_board_id', id_detail)
+
+    newmav, err = firmware.flash_firmware(
+        px4_path, args.connection, baud=args.baudrate,
+        interactive=sys.stdin.isatty(), timeout=args.flash_timeout, mav=mav)
+    if newmav is None:
+        report.fail('firmware_flash', err)
+        gate_abort(report)
+    report.ok('firmware_flash', source)
+
+    expected = firmware.expected_hash_from_metadata(meta)
+    ok, new_ident = firmware.verify_identity(report, newmav, expected)
+    if not ok or new_ident is None:
+        gate_abort(report)
+    return newmav, new_ident
+
+
+def resolve_target(report, args, ident):
+    """--target, or inferred from the board's HW arch; aborts if ambiguous."""
+    if args.target:
+        return args.target
+    target, terr = firmware.infer_build_target(ident.get('hw_arch'))
+    if target is None:
+        report.fail('firmware_target',
+                    '{}; pass --target (e.g. --target px4_fmu-v6xrt)'.format(terr))
+        gate_abort(report, 2)
+    report.info('board target inferred from HW arch: {}'.format(target))
+    return target
+
+
+def preflight(args, suite_dir):
+    """Firmware gate: establish (and optionally control) the build under test.
+
+    Returns the final identity dict. Exits on any gate failure; no test
+    runs against an unknown or unintended build.
+    """
+    report = px4bench.Reporter('preflight')
+
+    gate_flag_given = any((args.any_firmware, args.expect_hash, args.firmware,
+                           args.build, args.release))
+    if not gate_flag_given and not sys.stdin.isatty():
+        report.fail('firmware_gate',
+                    'no firmware expectation given and stdin is not a TTY. '
+                    'Automation must state what it is testing: pass one of '
+                    '--firmware FILE, --build, --release TAG, --expect-hash PREFIX, '
+                    'or --any-firmware.')
+        gate_abort(report, 2)
+
+    try:
+        mav = px4bench.connect(args.connection, baud=args.baudrate)
+    except (TimeoutError, OSError) as e:
+        report.fail('connect', str(e))
+        gate_abort(report, 2)
+
+    ident, err = firmware.board_identity(mav)
+    if ident is None:
+        report.fail('board_identity', err)
+        gate_abort(report, 2)
+
+    print('=' * 70)
+    print('FIRMWARE ON BOARD ({})'.format(args.connection))
+    print(firmware.format_identity(ident))
+    print('=' * 70, flush=True)
+
+    source = 'kept firmware already on the board'
+
+    if args.any_firmware:
+        report.ok('firmware_identity',
+                  'any-firmware: testing {} as-is'.format(ident['git_hash']))
+
+    elif args.expect_hash:
+        ok = firmware.hashes_match(ident['git_hash'], args.expect_hash)
+        report.check('firmware_identity', ok,
+                     'board reports {} , expected {}'.format(
+                         ident['git_hash'], args.expect_hash))
+        if not ok:
+            mav.close()
+            gate_abort(report)
+
+    elif args.firmware:
+        mav, ident = flash_and_verify(report, args, mav, ident, args.firmware,
+                                      'flashed local file {}'.format(args.firmware))
+        source = 'flashed local file {}'.format(args.firmware)
+
+    elif args.build:
+        target = resolve_target(report, args, ident)
+        px4_path, err = firmware.build_firmware(target, timeout=args.build_timeout)
+        if px4_path is None:
+            report.fail('firmware_build', err)
+            gate_abort(report)
+        report.ok('firmware_build', px4_path)
+        head = firmware.source_tree_hash()
+        meta = firmware.parse_px4_metadata(px4_path)
+        if head and meta.get('git_hash') and not firmware.hashes_match(meta['git_hash'], head):
+            report.info('WARNING: artifact hash {} differs from source tree HEAD {}; '
+                        'stale build?'.format(meta['git_hash'], head))
+        mav, ident = flash_and_verify(report, args, mav, ident, px4_path,
+                                      'built and flashed {} from this tree'.format(target))
+        source = 'built {} from source tree (HEAD {})'.format(target, head or 'unknown')
+
+    elif args.release:
+        target = resolve_target(report, args, ident)
+        px4_path, err = firmware.download_release(args.release, target, suite_dir)
+        if px4_path is None:
+            report.fail('firmware_download', err)
+            gate_abort(report)
+        report.ok('firmware_download', px4_path)
+        mav, ident = flash_and_verify(report, args, mav, ident, px4_path,
+                                      'flashed release {} ({})'.format(args.release, target))
+        source = 'GitHub release {} ({})'.format(args.release, target)
+
+    else:
+        mav, ident, source = interactive_gate(report, args, mav, ident, suite_dir)
+
+    fw_info = {k: v for k, v in ident.items() if k != 'raw'}
+    fw_info['source'] = source
+    firmware.stamp_identity(suite_dir, ident, extra={'source': source})
+    os.environ[px4bench.FIRMWARE_INFO_ENV] = json.dumps(fw_info, sort_keys=True)
+
+    try:
+        mav.close()
+    except Exception:
+        pass
+
+    if report.finish() != 0:
+        print('firmware gate failed; no test was run.', flush=True)
+        sys.exit(1)
+    print()
+    return ident
+
+
+def interactive_gate(report, args, mav, ident, suite_dir):
+    """Operator menu when no firmware flag was given on a TTY."""
+    inferred, _ = firmware.infer_build_target(ident.get('hw_arch'))
+    build_label = inferred if inferred else '<target unknown, will prompt>'
+    while True:
+        print('\nNo firmware expectation given. Choose:')
+        print('  [1] continue on the current firmware ({})'.format(ident['git_hash'][:12]))
+        print('  [2] flash a local .px4 file')
+        print('  [3] build {} from this source tree and flash'.format(build_label))
+        print('  [4] download a GitHub release and flash')
+        print('  [q] abort')
+        choice = input('> ').strip().lower()
+
+        if choice == '1':
+            report.ok('firmware_identity',
+                      'operator kept current firmware {}'.format(ident['git_hash']))
+            return mav, ident, 'operator kept firmware already on the board'
+
+        if choice == '2':
+            path = input('.px4 path: ').strip()
+            if not path or not os.path.exists(path):
+                print('no such file: {!r}'.format(path))
+                continue
+            mav, ident = flash_and_verify(report, args, mav, ident, path,
+                                          'flashed local file {}'.format(path))
+            return mav, ident, 'flashed local file {}'.format(path)
+
+        if choice == '3':
+            target = args.target or inferred
+            if not target:
+                target = input('build target (e.g. px4_fmu-v6xrt): ').strip()
+                if not target:
+                    continue
+            px4_path, err = firmware.build_firmware(target, timeout=args.build_timeout)
+            if px4_path is None:
+                report.fail('firmware_build', err)
+                gate_abort(report)
+            report.ok('firmware_build', px4_path)
+            mav, ident = flash_and_verify(report, args, mav, ident, px4_path,
+                                          'built and flashed {}'.format(target))
+            return mav, ident, 'built {} from source tree'.format(target)
+
+        if choice == '4':
+            target = args.target or inferred
+            if not target:
+                target = input('board target (e.g. px4_fmu-v6xrt): ').strip()
+                if not target:
+                    continue
+            tag = input('release tag [latest]: ').strip() or 'latest'
+            px4_path, err = firmware.download_release(tag, target, suite_dir)
+            if px4_path is None:
+                report.fail('firmware_download', err)
+                gate_abort(report)
+            report.ok('firmware_download', px4_path)
+            mav, ident = flash_and_verify(report, args, mav, ident, px4_path,
+                                          'flashed release {} ({})'.format(tag, target))
+            return mav, ident, 'GitHub release {} ({})'.format(tag, target)
+
+        if choice == 'q':
+            report.fail('firmware_gate', 'aborted by operator')
+            gate_abort(report, 2)
+
+        print('unrecognized choice: {!r}'.format(choice))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Run the non-interactive PX4 v1.18 bench-test suite.')
@@ -123,9 +365,32 @@ def main():
                         help='seconds before a test is killed as hung (default: %(default)s)')
     parser.add_argument('--stop-on-fail', action='store_true', default=False,
                         help='stop the suite at the first failing test')
+
+    gate = parser.add_mutually_exclusive_group()
+    gate.add_argument('--firmware', metavar='FILE',
+                      help='flash this .px4 before testing, then verify identity')
+    gate.add_argument('--build', action='store_true',
+                      help='build the board target from this source tree, flash, verify')
+    gate.add_argument('--release', metavar='TAG',
+                      help="flash a GitHub release artifact (a tag like v1.17.0, or 'latest')")
+    gate.add_argument('--expect-hash', metavar='PREFIX',
+                      help='verify the board already runs this git hash (prefix match), no flash')
+    gate.add_argument('--any-firmware', action='store_true',
+                      help='explicitly proceed with whatever firmware is on the board')
+    parser.add_argument('--target', default=None,
+                        help='board target for --build/--release (e.g. px4_fmu-v6xrt); '
+                             'inferred from the connected board when possible')
+    parser.add_argument('--build-timeout', type=float, default=1800,
+                        help='seconds before --build is killed (default: %(default)s)')
+    parser.add_argument('--flash-timeout', type=float, default=600,
+                        help='seconds before the uploader is killed (default: %(default)s)')
     args = parser.parse_args()
 
     skip = {s.strip() for s in args.skip.split(',') if s.strip()}
+
+    suite_dir = px4bench.make_report_dir(args.report_dir, 'suite')
+    print('suite report dir: {}'.format(suite_dir))
+    preflight(args, suite_dir)
 
     # build the run sequence
     sequence = []

@@ -109,11 +109,26 @@ class Reporter:
         return 0 if failed == 0 else 1
 
 
+FIRMWARE_INFO_ENV = 'PX4BENCH_FIRMWARE_INFO'
+
+
 def make_report_dir(base='bench_reports', test_name=''):
-    """Create and return a timestamped report directory."""
+    """Create and return a timestamped report directory.
+
+    When the suite preflight has established the firmware identity it
+    exports it via PX4BENCH_FIRMWARE_INFO (a JSON string); stamp it into
+    every report dir so each test result is traceable to a build.
+    """
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     path = os.path.join(base, '{}_{}'.format(stamp, test_name) if test_name else stamp)
     os.makedirs(path, exist_ok=True)
+    info = os.environ.get(FIRMWARE_INFO_ENV)
+    if info:
+        try:
+            with open(os.path.join(path, 'firmware.json'), 'w') as f:
+                f.write(info.rstrip('\n') + '\n')
+        except OSError:
+            pass
     return path
 
 
@@ -361,16 +376,17 @@ def wait_device_back(device, timeout=45, pattern=None):
     return None, None
 
 
-def reboot_and_reconnect(mav, conn_str, baud=DEFAULT_BAUD, timeout=60):
-    """Reboot the autopilot and reconnect.
+def wait_reconnect(conn_str, baud=DEFAULT_BAUD, timeout=60, start=None):
+    """Wait for a rebooted/re-enumerated board and reconnect.
 
-    Returns (new_mav_connection, elapsed_seconds).
-    Raises TimeoutError with a description of what stalled.
+    For a serial device: waits for the node to vanish and return (the node
+    name may change across enumeration), lets the CDC ACM interface settle,
+    then retries connect() until a heartbeat arrives. Returns
+    (new_mav_connection, elapsed_seconds). Raises TimeoutError with a
+    description of what stalled.
     """
-    start = time.monotonic()
-    send_reboot(mav)
-    time.sleep(0.5)
-    mav.close()
+    if start is None:
+        start = time.monotonic()
 
     if is_serial_device(conn_str):
         gone = wait_device_gone(conn_str, timeout=15)
@@ -397,6 +413,19 @@ def reboot_and_reconnect(mav, conn_str, baud=DEFAULT_BAUD, timeout=60):
             time.sleep(1.0)
     raise TimeoutError('no heartbeat after reboot within {}s (last error: {})'.format(
         timeout, last_err))
+
+
+def reboot_and_reconnect(mav, conn_str, baud=DEFAULT_BAUD, timeout=60):
+    """Reboot the autopilot and reconnect.
+
+    Returns (new_mav_connection, elapsed_seconds).
+    Raises TimeoutError with a description of what stalled.
+    """
+    start = time.monotonic()
+    send_reboot(mav)
+    time.sleep(0.5)
+    mav.close()
+    return wait_reconnect(conn_str, baud=baud, timeout=timeout, start=start)
 
 
 def add_connection_args(parser, dual_link=False):
