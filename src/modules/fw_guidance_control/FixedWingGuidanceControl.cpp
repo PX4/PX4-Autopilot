@@ -347,13 +347,13 @@ FixedWingGuidanceControl::Run()
 		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
-			global_path_setpoint_s global_path_setpoint;
+			path_setpoint_s path_setpoint;
 
-			if (_global_path_setpoint_sub.update(&global_path_setpoint)) {
+			if (_path_setpoint_sub.update(&path_setpoint)) {
 				bool valid_setpoint = false;
 				_pos_sp_triplet = {}; // clear any existing
-				_pos_sp_triplet.timestamp = global_path_setpoint.timestamp;
-				_pos_sp_triplet.current.timestamp = global_path_setpoint.timestamp;
+				_pos_sp_triplet.timestamp = path_setpoint.timestamp;
+				_pos_sp_triplet.current.timestamp = path_setpoint.timestamp;
 				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
 				_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
 				_pos_sp_triplet.current.vx = NAN;
@@ -363,34 +363,38 @@ FixedWingGuidanceControl::Run()
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
 
-				if (PX4_ISFINITE(global_path_setpoint.lat) && PX4_ISFINITE(global_path_setpoint.lon)) {
+				const Vector3f position(path_setpoint.position);
+
+				if (PX4_ISFINITE(position(0)) && PX4_ISFINITE(position(1)) && _global_local_proj_ref.isInitialized()) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.lat = global_path_setpoint.lat;
-					_pos_sp_triplet.current.lon = global_path_setpoint.lon;
+					double lat, lon;
+					_global_local_proj_ref.reproject(position(0), position(1), lat, lon);
+					_pos_sp_triplet.current.lat = lat;
+					_pos_sp_triplet.current.lon = lon;
 				}
 
-				if (PX4_ISFINITE(global_path_setpoint.alt)) {
-					_pos_sp_triplet.current.alt = global_path_setpoint.alt;
+				if (PX4_ISFINITE(position(2))) {
+					_pos_sp_triplet.current.alt = _reference_altitude - position(2);
 				} else {
 					_pos_sp_triplet.current.alt = NAN;
 				}
 
-				if (Vector3f(global_path_setpoint.tangent).isAllFinite()) {
+				if (Vector3f(path_setpoint.tangent).isAllFinite()) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = global_path_setpoint.tangent[0];
-					_pos_sp_triplet.current.vy = global_path_setpoint.tangent[1];
+					_pos_sp_triplet.current.vx = path_setpoint.tangent[0];
+					_pos_sp_triplet.current.vy = path_setpoint.tangent[1];
 
-					if (PX4_ISFINITE(global_path_setpoint.curvature)) {
-						_pos_sp_triplet.current.loiter_radius = 1.0f/global_path_setpoint.curvature;
+					if (PX4_ISFINITE(path_setpoint.curvature)) {
+						_pos_sp_triplet.current.loiter_radius = 1.0f / path_setpoint.curvature;
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
 				}
 
-				if (PX4_ISFINITE(global_path_setpoint.height_rate)) {
-					_pos_sp_triplet.current.vz = global_path_setpoint.height_rate;
+				if (PX4_ISFINITE(path_setpoint.height_rate)) {
+					_pos_sp_triplet.current.vz = path_setpoint.height_rate;
 				} else {
 					_pos_sp_triplet.current.vz = NAN;
 				}
