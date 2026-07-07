@@ -32,6 +32,7 @@ from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7
 from px4bench.missions import BASE_LAT, BASE_LON, Item
 from px4bench.params import (drain_param_values, read_param, set_param_int32,
                              wait_param_echo)
+from px4bench import firmware as fw_gate
 
 from pymavlink import mavutil
 
@@ -359,6 +360,9 @@ def main():
     parser.add_argument('--viewer-port', type=int, default=19410)
     parser.add_argument('--keep-config', action='store_true',
                         help='stay on the SIH airframe when done')
+    parser.add_argument('--expect-hash', metavar='PREFIX', default=None,
+                        help='verify the board runs this git hash before flying '
+                             '(prefix match); mismatch aborts. No flashing here.')
     parser.add_argument('--report-dir', default='bench_reports')
     args = parser.parse_args()
 
@@ -372,6 +376,21 @@ def main():
         report.fail('connect', str(e))
         return report.finish()
     report.check('connect', True, 'heartbeat from {}'.format(args.connection))
+
+    ident, ident_err = fw_gate.board_identity(mav)
+    if ident is None:
+        report.fail('board_identity', ident_err)
+        return report.finish()
+    report.info('firmware on board:\n' + fw_gate.format_identity(ident))
+    fw_gate.stamp_identity(report_dir, ident)
+    if args.expect_hash:
+        ok = fw_gate.hashes_match(ident['git_hash'], args.expect_hash)
+        report.check('firmware_identity', ok,
+                     'board reports {} , expected {}'.format(
+                         ident['git_hash'], args.expect_hash))
+        if not ok:
+            mav.close()
+            return report.finish()
 
     original_autostart = original_hitl = None
     try:
