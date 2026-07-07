@@ -13,6 +13,7 @@ before a set and then match the echo by expected value, never consume it
 positionally.
 """
 
+import re
 import struct
 import time
 
@@ -22,6 +23,7 @@ MAV_PARAM_TYPE_INT32 = mavutil.mavlink.MAV_PARAM_TYPE_INT32
 
 SET_ECHO_TIMEOUT_S = 5.0
 READ_TIMEOUT_S = 5.0
+READ_UNTIL_TIMEOUT_S = 8.0
 
 
 def int32_to_param_float(value):
@@ -104,3 +106,78 @@ def wait_param_echo(mav, name, expected, timeout=SET_ECHO_TIMEOUT_S):
         if value == expected:
             return True, seen
     return False, seen
+
+
+def read_until(mav, name, expected, timeout=READ_UNTIL_TIMEOUT_S):
+    """Poll read_param until the board reports the expected int32 value.
+
+    A PARAM_SET propagates through the param system asynchronously, so an
+    echo (or even a single read) right after a set can still reflect the
+    prior value. Reading back in a loop until the board actually reports the
+    new value confirms it is committed to RAM, which closes the gap before a
+    save or a dependent check. This trusts the board's own read, not a queued
+    echo, so a stale PARAM_VALUE from an earlier set cannot satisfy it.
+
+    Returns (ok, last_seen): ok True once the board reports expected,
+    otherwise False with the last value read (None if nothing read back).
+    """
+    deadline = time.monotonic() + timeout
+    last_seen = None
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False, last_seen
+        value, _ = read_param(mav, name, timeout=min(READ_TIMEOUT_S, remaining))
+        if value is not None:
+            last_seen = value
+            if value == expected:
+                return True, last_seen
+        else:
+            # brief pause so a non-responding read does not busy-spin
+            time.sleep(0.2)
+
+
+# param show <name> prints one line:
+#   x + l SDLOG_UTC_OFFSET [used,idx] : 777
+# three flag columns then the name; the SECOND flag is the save state:
+#   '*' unsaved, '+' saved, ' ' unmodified from default
+# (src/systemcmds/param/param.cpp:822-823).
+_PARAM_SHOW_RE = re.compile(
+    r'^\s*(?P<used>[x ])\s?(?P<saved>[*+ ])\s?(?P<ro>[l ])\s+'
+    r'(?P<name>[A-Z0-9_]+)\s+\[[^\]]*\]\s*:\s*(?P<value>-?\d+)')
+
+
+def parse_param_show(output, name):
+    """Parse `param show <name>` output for one parameter.
+
+    Returns (saved, value) where saved is True/False/None (None when the
+    line is not found or the save state is 'default'/unknown) and value is
+    the int32 value or None. Tolerant of ANSI escapes and the prompt.
+    """
+    for raw in output.splitlines():
+        line = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', raw).replace('nsh>', '')
+        m = _PARAM_SHOW_RE.search(line)
+        if not m or m.group('name') != name:
+            continue
+        flag = m.group('saved')
+        saved = True if flag == '+' else (False if flag == '*' else None)
+        try:
+            value = int(m.group('value'))
+        except ValueError:
+            value = None
+        return saved, value
+    return None, None
+
+
+def param_is_saved(shell, name, timeout=10):
+    """Run `param show <name>` over an open MavlinkShell and report save state.
+
+    Returns (saved, value, timed_out): saved True/False/None as parsed by
+    parse_param_show, value the int32 shown, timed_out True if the shell
+    command did not complete. Caller owns the shell (open and close it).
+    """
+    out, timed_out = shell.run('param show {}'.format(name), timeout=timeout)
+    if timed_out:
+        return None, None, True
+    saved, value = parse_param_show(out, name)
+    return saved, value, False
