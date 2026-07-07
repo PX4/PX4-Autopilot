@@ -48,9 +48,14 @@ You state where the firmware under test comes from, and the suite verifies the f
 Run interactively with none of these flags, the suite shows what is on the board and asks what to do.
 Run non-interactively (CI, production scripting), it refuses to start without an explicit firmware expectation, so automation can never silently test the wrong build.
 
+With `--build`, the gate also prints a bench capability report before compiling: whether the image will contain `simulator_sih`, `sd_bench`, `sd_stress`, and `serial_test`, and which suite tests will therefore run or skip.
+For anything missing it names a sibling board variant that includes it (for example `--target px4_fmu-v6xrt_bench`) and the exact config line, and can append the line to your local board config on request (the edit stays local and uncommitted).
+
 ## The Bench Suite
 
-The bench tests run against normal firmware and never arm the vehicle.
+The tests under `bench/` run against normal firmware and never arm the vehicle.
+The default suite sequence is `boot_health`, `param_stress`, `mission_stress` (plus `link_forwarding` when a second link is given), `storage_stress`, `log_transfer`, `reboot_loop`, and finally the simulated SIH flight (see below), which does arm and therefore sits behind a confirmation.
+Tests that need a firmware feature the build does not contain probe for it over the shell and record SKIP with a warning instead of failing.
 
 | Test               | What it verifies                                                                                                        |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
@@ -60,7 +65,9 @@ The bench tests run against normal firmware and never arm the vehicle.
 | `link_forwarding`  | Simultaneous heavy traffic on two links with forwarding; catches deadlocks and stalls in the MAVLink send path. Requires a second link. |
 | `param_stress`     | Full parameter download, 50 set/readback cycles, save, reboot, persistence verification.                                  |
 | `mission_stress`   | Repeated 220-waypoint upload/download/compare/clear transactions, alternating links when two are available.               |
+| `storage_stress`   | SD card health via the firmware's own `sd_bench` and `sd_stress`: write/read throughput, fsync latency, file churn. Skips without an SD card. |
 | `log_transfer`     | Short log capture, MAVFTP download, ULog integrity verification.                                                          |
+| `flight_mission`   | Simulated SIH flight on the FMU, last in the sequence; arms behind a confirmation (`--allow-arming` for automation).      |
 
 ```sh
 cd Tools/bench_test
@@ -73,10 +80,13 @@ A per-test watchdog turns a hung board into a named failure instead of a stuck t
 ## Simulated Flight on the FMU (SIH)
 
 `sih/flight_mission.py` performs a complete hardware-in-the-loop flight without any host-side simulator: it switches the board to a [SIH airframe](../sim_sih/index.md) (`SYS_HITL=2`, physics computed on the autopilot), uploads a mission, arms through the NuttX shell, and asserts takeoff, waypoint progression, RTL, landing, and auto-disarm against per-phase timeouts.
+It runs as the last test of the default bench suite and also works standalone.
+Because it arms the flight controller, the suite asks for explicit confirmation on a terminal (type `arm`), and non-interactive runs skip it unless `--allow-arming` is passed.
+It first probes the running firmware for the SIH module and records a skip, not a failure, when the build does not include it.
 The flight log is downloaded into the report directory automatically for post-flight analysis, and the original board configuration is restored afterwards.
 
-Real outputs are replaced by `pwm_out_sim` in this mode, so nothing is driven on the output rails; still, run it only on a bench board with nothing connected.
-The firmware must be built with `CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y`.
+Real outputs are replaced by `pwm_out_sim` in this mode, so nothing is driven on the output rails; still, run it only on a bare bench board with nothing connected to the outputs.
+The firmware must be built with `CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y` (boards may provide a bench variant that adds it, such as `px4_fmu-v6xrt_bench`).
 
 To watch the flight live in 3D, install [Hawkeye](https://github.com/PX4/Hawkeye) and run the test with `--viewer`:
 
@@ -111,9 +121,11 @@ For manufacturers the suite is designed to run unattended per unit:
 ```
 
 - Exit code is the verdict: `0` all checks passed, nonzero otherwise, with the failing check named in the output.
+- A skipped test does not fail the suite (individual tests exit `75` for SKIP), but a skip is absent coverage, not a pass: production procedures should treat unexpected SKIP lines in the summary as findings. Fixture design (SD card present, `--allow-arming` set, firmware built with the needed modules per the capability report) determines which tests are expected to run.
 - `reports/<serial>/` retains the full evidence per unit: firmware identity, system snapshot, parameter and mission transaction results, downloaded logs.
 - The firmware gate guarantees each unit was tested against the intended production image, not whatever was in flash.
-- `usb_replug` (connector/enumeration exercise) is the only operator-assisted test and can be included where a physical connector check is part of the procedure.
+- Pass `--allow-arming` so the simulated flight runs unattended (the line fixture must leave the output rails unconnected).
+- `usb_replug` (connector/enumeration exercise) and `serial_loopback` (UART verification through a loopback jumper on the fixture) are operator/fixture-assisted and can be added where the procedure includes a connector or UART check.
 
 ## CI Integration
 
