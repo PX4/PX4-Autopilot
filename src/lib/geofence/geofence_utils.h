@@ -209,19 +209,6 @@ class PlannerPolygons
 {
 public:
 
-	// Note: when significantly increasing this kMaxNodes it is worth
-	// reconsidering the graph representation.
-	//
-	// Currently we store a cost matrix of size kMaxNodes^2.
-	//
-	// A list of edges (node_a, node_b, cost)_i would be more space
-	// efficient. Then it would pay to make the graph as sparse as possible,
-	// by excluding all edges that are not bitangent [*]. Currently we
-	// exclude only the nodes where no edges can possibly be bitangent (see
-	// construction of _node_not_on_optimal_path).
-	//
-	// * Stephen LaValle, 2006: Planning Algorithms, 6.2.4 - Shortest-Path Roadmaps
-
 	// By default, limit to 100 nodes, which was found to limit the full update
 	// on geofence / margin change to about 20 ms. Lower for weaker or RAM-constrained boards.
 
@@ -360,14 +347,18 @@ private:
 	bool pointInsideInteriorCone(const PolygonInfo &poly, int32_t px, int32_t py, int v) const;
 
 	/**
-	 * Return true if the edge leaving polygon vertex index `a` enters the
-	 * forbidden interior at that vertex. This case is pretty common, and
-	 * checking it first in edgeVisible allows us to skip a lot of general
-	 * edge-polygon intersection checks.
+	 * Return true if the edge ab is bitangent at a: neither the edge nor
+	 * its mirror about `a` enters the forbidden interior there.
+	 *
+	 * Only bitangent edges can be part of a shortest path [*]. Checking
+	 * this first in edgeVisible also throws out invalid (interior-entering)
+	 * edges before the general intersection checks.
+	 *
+	 * * Stephen LaValle, 2006: Planning Algorithms, 6.2.4 - Shortest-Path Roadmaps
 	 */
-	bool edgePokesIntoPolygon(int a, int32_t bx, int32_t by) const;
-	bool edgePokesIntoPolygon(int a, int b) const;                        // Other endpoint is node index b.
-	bool edgePokesIntoPolygon(int a, const matrix::Vector2f &b) const;    // Other endpoint is an arbitrary position.
+	bool edgeBitangent(int a, int32_t bx, int32_t by) const;
+	bool edgeBitangent(int a, int b) const;                        // Other endpoint is node index b.
+	bool edgeBitangent(int a, const matrix::Vector2f &b) const;    // Other endpoint is an arbitrary position.
 
 	/**
 	 * Update {min,max}_{x,y} with the min/max coordinates of the polygon with vertices

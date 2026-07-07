@@ -425,33 +425,37 @@ bool PlannerPolygons::intersectsAnyInside(int32_t s_x, int32_t s_y, int32_t e_x,
 	return false;
 }
 
-bool PlannerPolygons::edgePokesIntoPolygon(int a, int32_t bx, int32_t by) const
+bool PlannerPolygons::edgeBitangent(int a, int32_t bx, int32_t by) const
 {
 	// Find the polygon owning vertex index a. Indices not belonging to any
-	// polygon (in particular the destination at index 0) poke into nothing.
+	// polygon (in particular the destination at index 0) are trivially bitangent.
 
-	if (a == destIndex()) { return false; }
+	if (a == destIndex()) { return true; }
 
 	for (int p = 0; p < _num_polygons; p++) {
 		const PolygonInfo &poly = _polygons[p];
 
 		if (a >= poly.start_index && a < poly.start_index + poly.num_vertices) {
-			// Equivalent to: edge a-b pokes into polygon p at point a
-			return pointInsideInteriorCone(poly, bx, by, a - poly.start_index);
+			// Define point c = a + (a-b) = 2a - b, so that ac = ab mirrored about a
+			// Then: Edge is bitangent at a <=> neither ab nor ac pokes into the interior
+			int32_t cx = 2 * _x_cm[a] - bx;
+			int32_t cy = 2 * _y_cm[a] - by;
+			return !pointInsideInteriorCone(poly, bx, by, a - poly.start_index)
+			       && !pointInsideInteriorCone(poly, cx, cy, a - poly.start_index);
 		}
 	}
 
-	return false;
+	return true;
 }
 
-bool PlannerPolygons::edgePokesIntoPolygon(int a, int b) const
+bool PlannerPolygons::edgeBitangent(int a, int b) const
 {
-	return edgePokesIntoPolygon(a, _x_cm[b], _y_cm[b]);
+	return edgeBitangent(a, _x_cm[b], _y_cm[b]);
 }
 
-bool PlannerPolygons::edgePokesIntoPolygon(int a, const matrix::Vector2f &b) const
+bool PlannerPolygons::edgeBitangent(int a, const matrix::Vector2f &b) const
 {
-	return edgePokesIntoPolygon(a, metersToCm(b(0)), metersToCm(b(1)));
+	return edgeBitangent(a, metersToCm(b(0)), metersToCm(b(1)));
 }
 
 bool PlannerPolygons::setDestination(const matrix::Vector2f &p)
@@ -481,8 +485,9 @@ bool PlannerPolygons::edgeVisible(int a, int b) const
 
 	if (_node_not_on_optimal_path[a] || _node_not_on_optimal_path[b]) { return false; }
 
-	// Perf optimisation: early return if edge violates the polygon at the vertex it comes from.
-	if (edgePokesIntoPolygon(a, b) || edgePokesIntoPolygon(b, a)) { return false; }
+	// Only bitangent edges can be on a shortest path; this check also cheaply
+	// discards edges that violate the polygon at the vertex they come from.
+	if (!edgeBitangent(a, b) || !edgeBitangent(b, a)) { return false; }
 
 	return !intersectsAnyInside(_x_cm[a], _y_cm[a], _x_cm[b], _y_cm[b]);
 }
@@ -491,7 +496,7 @@ bool PlannerPolygons::edgeVisible(const matrix::Vector2f &a, int b) const
 {
 	if (_node_not_on_optimal_path[b]) { return false; }
 
-	if (edgePokesIntoPolygon(b, a)) { return false; }
+	if (!edgeBitangent(b, a)) { return false; }
 
 	return !intersectsAnyInside(metersToCm(a(0)), metersToCm(a(1)), _x_cm[b], _y_cm[b]);
 }
