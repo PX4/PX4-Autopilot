@@ -73,8 +73,10 @@ def main():
             report.info('aborting remaining {} cycle(s)'.format(args.iterations - i))
             sys.exit(report.finish())
 
-        _, timed_out = shell.run('free', timeout=10)
-        shell.close()
+        try:
+            _, timed_out = shell.run('free', timeout=10)
+        finally:
+            shell.close()
         if timed_out:
             report.fail('cycle {}'.format(i),
                         'shell command free stalled (no completion within 10s)')
