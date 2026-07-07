@@ -21,10 +21,13 @@ than crashes, so the suite is built around one rule: every operation has a
 timeout, and a timeout is reported as FAIL naming exactly what stalled. A
 hang is the finding, not a nuisance.
 
-The bench tests never arm the vehicle; logging is triggered with
-`logger on` / `logger off`. The one test that flies does so in simulation on
-the FMU (SIH, `SYS_HITL=2`) with `pwm_out_sim` in place of real outputs, and
-it lives in its own directory so there is no ambiguity about which is which.
+The tests under `bench/` never arm the vehicle; logging is triggered with
+`logger on` / `logger off`. The default suite ends with one test that flies
+in simulation on the FMU (SIH, `SYS_HITL=2`, `pwm_out_sim` in place of real
+outputs): it arms the flight controller, so it runs behind an explicit
+arming confirmation (or `--allow-arming` for automation) and the board must
+be bare, with nothing on the output rails. It lives in `sih/` so the
+simulation/no-simulation boundary stays obvious.
 
 ## Layout
 
@@ -47,7 +50,9 @@ Tools/bench_test/
     link_forwarding.py
     param_stress.py
     mission_stress.py
+    storage_stress.py
     log_transfer.py
+    serial_loopback.py
   sih/                      # simulation-in-hardware (SYS_HITL=2) tests
     flight_mission.py
 ```
@@ -86,12 +91,22 @@ first; it holds the serial port.
 # alternating mission uploads)
 ./run_bench_suite.py /dev/tty.usbmodem01 /dev/tty.usbserial-RADIO --expect-hash 0c000d59
 
-# operator-assisted USB re-enumeration test (not part of the suite)
+# operator-assisted tests (not in the suite: need an operator or a fixture)
 ./bench/usb_replug.py /dev/tty.usbmodem01
+./bench/serial_loopback.py /dev/tty.usbmodem01 --device /dev/ttyS2
 
-# simulated flight on the FMU (reconfigures the board, run separately)
+# the simulated flight can also run standalone
 ./sih/flight_mission.py /dev/tty.usbmodem01 --expect-hash 0c000d59
 ```
+
+The default suite sequence is boot_health, param_stress, mission_stress
+(link_forwarding after it when a second link is given), storage_stress,
+log_transfer, reboot_loop, and finally the simulated flight
+(flight_mission). The flight arms the flight controller: on a TTY you are
+asked to type 'arm' to confirm (declining records a skip, not a failure);
+non-interactive runs skip it unless `--allow-arming` is passed. Tests that
+probe the firmware and find a needed command missing record SKIP with a
+warning instead of failing.
 
 ## Firmware gate
 
@@ -135,6 +150,16 @@ detected identity and asks: continue on the current firmware, flash a local
 abort. In automation (stdin not a TTY) the gate refuses to guess and exits
 with an error listing the flags; CI must always state what it is testing.
 
+With `--build`, after resolving the target the gate reads the board config
+(default.px4board plus the label overlay for labeled targets) and prints a
+bench capability report: which bench-relevant modules the image will
+contain (simulator_sih, sd_bench, sd_stress, serial_test) and which suite
+tests will therefore run or skip. For anything missing it names a sibling
+variant of the same board that has it (for example
+`--target px4_fmu-v6xrt_bench`) and the exact config line to add;
+interactively it offers to append the line to the local board config,
+which stays local and uncommitted (commit it yourself for it to stick).
+
 Wedged-board note: a board whose mavlink is hung cannot soft-reboot into
 the bootloader, so the uploader sits in its reboot-request loop. The gate
 detects this and prints an operator instruction to unplug and replug USB;
@@ -169,7 +194,9 @@ why the stress tests loop.
 | bench/link_forwarding | reworked mavlink nested-send lock path (silently deadlockable on NuttX) | Silent traffic gap > 5s on either link, a stalled param download, or a dead link after heavy simultaneous two-link use |
 | bench/param_stress | parameter storage concurrency from the 2026-07-02 TSAN batch (DynamicSparseLayer races, AtomicTransaction) | Echo/readback mismatch under repetition, a download that stalls mid-list, or a save that does not survive reboot |
 | bench/mission_stress | new mission shared-state mutex (#27813) + dataman TSAN fixes | Upload/download round-trip corruption or a handshake that stalls; with two links the mutex is hit from two channels |
+| bench/storage_stress | SD card and FAT filesystem under the logger's feet | Sequential write/read below the floor, fsync latency spikes that cause log dropouts, or file churn failures |
 | bench/log_transfer | logger + MAVFTP (FILE_TRANSFER_PROTOCOL replies are nested sends) | A burst-read download that stops mid-file, or a ULog that fails integrity checks |
+| bench/serial_loopback | UART driver TX/RX path through a physical loopback jumper (fixture) | Lost or corrupted bytes through the jumper, or a port that cannot sustain the byte rate |
 | sih/flight_mission | commander/navigator/land-detector flight logic on real NuttX scheduling | Arming, takeoff, waypoint progression, RTL, land detection or auto-disarm failing per-phase timeouts |
 
 ## Bench tests (real firmware, no simulation)
@@ -241,6 +268,38 @@ Full param download, then a set/readback loop (default 50) on
 220-item mission upload/download/item-by-item compare/clear/verify-cleared,
 default 10 iterations, alternating links when two are given.
 
+### storage_stress
+
+```
+./bench/storage_stress.py CONNECTION [-b BAUD] [--report-dir DIR]
+                          [--bench-runs N] [--bench-duration-ms MS] [--bench-block B]
+                          [--min-write-kbs X] [--min-read-kbs Y] [--max-fsync-ms Z]
+                          [--stress-runs N] [--stress-bytes B]
+```
+
+Drives the firmware's own storage tools over the shell: `sd_bench` with
+data verification for sequential write/read throughput and fsync latency,
+then `sd_stress` for file create/rename/delete churn (100 files per
+iteration). Probes first: firmware without the commands, or a board
+without an SD card, records SKIP with a warning; the two phases degrade
+independently (sd_bench present but sd_stress absent runs only the bench
+phase).
+
+Threshold defaults are generous FAIL floors, chosen so a slow but working
+card warns instead of flapping:
+
+- `--min-write-kbs 100`: the default logger profile needs roughly
+  50-100 KB/s sustained; below 100 KB/s sequential write at 4 KB blocks a
+  card cannot log reliably. Healthy cards do an order of magnitude more.
+- `--min-read-kbs 200`: far below any usable card; catches only genuinely
+  broken read paths.
+- `--max-fsync-ms 500`: fsync stalls beyond a few hundred ms are what
+  cause logger dropouts; occasional 100-300 ms peaks on cheap cards are
+  normal and stay under this ceiling.
+
+Anything above a floor but within 4x of it additionally prints a WARNING
+line so marginal cards are visible without failing the suite.
+
 ### log_transfer
 
 ```
@@ -251,6 +310,24 @@ default 10 iterations, alternating links when two are given.
 .ulg via MAVFTP and verify it (pyulog when available, ULog magic bytes
 otherwise). A stalled transfer reports the byte count it reached.
 
+### serial_loopback (operator/fixture, not in the suite)
+
+```
+./bench/serial_loopback.py CONNECTION --device /dev/ttySn [-b BAUD]
+                           [--test-baud BAUD] [--seconds S] [--no-prompt]
+                           [--report-dir DIR]
+```
+
+Manufacturing/end-of-line check for the UART hardware path. The operator
+(or the test fixture) installs a loopback jumper wiring TX to RX on the
+UART under test, then `serial_test` transmits a known pattern for
+`--seconds` and verifies its own received bytes. PASS means bytes flowed
+both ways with zero pattern errors and matching rx/tx counts. The port
+must not be claimed by a running service (mavlink instance, GPS, RC);
+`--no-prompt` skips the jumper pause for fixtures that pre-install it.
+Skips with a warning when the firmware lacks `serial_test`
+(CONFIG_SYSTEMCMDS_SERIAL_TEST=y).
+
 ## SIH test (simulation on the FMU)
 
 ### flight_mission
@@ -258,6 +335,7 @@ otherwise). A stalled transfer reports the byte count it reached.
 ```
 ./sih/flight_mission.py CONNECTION [-b BAUD] [--airframe N] [--alt M]
                         [--viewer] [--viewer-port PORT] [--keep-config]
+                        [--allow-arming] [--expect-hash PREFIX]
                         [--board-dev DEV] [--report-dir DIR]
 ```
 
@@ -270,9 +348,16 @@ failure. `--viewer` tees every MAVLink frame to UDP so Hawkeye
 (`hawkeye -udp 19410 -mc`) renders the flight live from the serial-connected
 board.
 
-This is deliberately separated from `bench/`: it reconfigures the board and
-exercises simulated flight logic, while the bench tests exercise real
-firmware paths without simulation.
+Runs last in the default suite and works standalone. Before doing anything
+it probes the live firmware for the SIH module (`simulator_sih status`); if
+nsh replies command not found, it warns and records SKIP instead of
+failing. It then passes the arming gate: the flight controller WILL ARM
+(simulated flight, but the board must be bare), so on a TTY the operator
+must type 'arm' to proceed, and non-interactive runs skip unless
+`--allow-arming` is given. Reconfiguring the board (airframe, `SYS_HITL`)
+is expected and accepted; everything is restored afterwards, `--keep-config`
+opts out. The `sih/` directory split only marks the simulation/no-simulation
+boundary.
 
 ## Baseline workflow
 
@@ -299,7 +384,12 @@ Conventions the suite relies on; new tests should follow all of them:
   test hides the hang it was supposed to expose.
 - Restore any board state you change (params, airframe), in a `finally`,
   even when the test failed.
-- No arming in `bench/`. Anything that flies (simulated) goes in `sih/`.
+- No arming in `bench/`. Anything that flies (simulated) goes in `sih/`
+  and must pass `px4bench.arming_gate` first.
+- Depend on optional firmware features via probe-and-skip: check with
+  `px4bench.shell_command_exists` and exit `px4bench.EXIT_SKIP` (recorded
+  as SKIP by the orchestrator) with a warning naming the config option,
+  never FAIL for a feature the build simply does not have.
 - Reuse the library: connection and shell primitives from `px4bench`,
   protocol helpers from `px4bench.params` / `.missions` / `.ftp`. If two
   tests need the same helper, it moves into the library.
@@ -315,9 +405,11 @@ previous command can arrive late).
 ## Safety
 
 - Bench use only. Props off.
-- `bench/` never arms the vehicle. `sih/flight_mission.py` arms only in
-  simulation (`SYS_HITL=2`, `pwm_out_sim`); nothing is driven on the output
-  rails.
+- `bench/` never arms the vehicle. `sih/flight_mission.py` (last in the
+  default suite) arms only in simulation (`SYS_HITL=2`, `pwm_out_sim`);
+  nothing is driven on the output rails, but the board must be bare. It
+  asks for confirmation on a TTY and requires `--allow-arming` in
+  automation.
 - `param_stress`, `reboot_loop`, and `flight_mission` reboot the board.
   Expect the link to drop and return.
 - Scratch params and airframe configuration are restored automatically,
