@@ -40,6 +40,7 @@
  */
 
 #include "Publication.hpp"
+#include "PublicationMulti.hpp"
 
 namespace uORB
 {
@@ -60,6 +61,35 @@ bool PublicationBase::publish(const void *data)
 	}
 
 	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
+}
+
+bool PublicationMultiBase::advertise()
+{
+	if (!advertised()) {
+		int instance = 0;
+		_handle = orb_advertise_multi(get_topic(), nullptr, &instance);
+	}
+
+	return advertised();
+}
+
+bool PublicationMultiBase::publish(const void *data)
+{
+	if (!advertised()) {
+		advertise();
+	}
+
+	return (orb_publish(get_topic(), _handle, data) == PX4_OK);
+}
+
+int PublicationMultiBase::get_instance()
+{
+	// advertise if not already advertised
+	if (advertise()) {
+		return Manager::orb_get_instance(_handle);
+	}
+
+	return -1;
 }
 
 } // namespace uORB
