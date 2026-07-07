@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026-2027 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +36,14 @@
 #include <cstring>
 #include <cstdlib>
 
+#include <pthread.h>
+
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/time.h>
+
+extern pthread_mutex_t px4_modules_mutex;
 
 /**
  * @brief Base class for work-queue drivers that support multiple simultaneous instances.
@@ -61,28 +65,20 @@
  *   <driver> stop   [-i <n>]   — stop  instance n (default 0)
  *   <driver> status            — print status of all instances
  *
+ * Lifecycle contract for task_spawn():
+ *   - Called by main() while holding px4_modules_mutex; must NOT re-acquire it.
+ *   - Must write the allocated object pointer into _instances[instance].
+ *
  * @tparam T      Derived driver class (CRTP pattern)
  * @tparam MAX_N  Maximum number of simultaneous instances
  */
+
 template<class T, uint8_t MAX_N>
 class MultiInstanceModuleBase
 {
 public:
-	MultiInstanceModuleBase() = delete;
 	explicit MultiInstanceModuleBase(int instance_index) : _instance_index(instance_index) {}
-
-	virtual ~MultiInstanceModuleBase()
-	{
-		// Defensive: clear the slot if it still refers to this object. Keeps the
-		// static instance table consistent on any destruction path that bypasses
-		// cleanup_instance() (e.g. error unwinding, framework-driven shutdown).
-		// On the normal should_exit() path, cleanup_instance() has already nulled
-		// the slot, so this is a no-op.
-		if (_instance_index >= 0 && _instance_index < (int)MAX_N
-		    && _instances[_instance_index] == static_cast<T *>(this)) {
-			_instances[_instance_index] = nullptr;
-		}
-	}
+	virtual ~MultiInstanceModuleBase() = default;
 
 	/**
 	 * Main entry point — routes start / stop [-i N] / status / help.
@@ -105,12 +101,22 @@ public:
 				return PX4_ERROR;
 			}
 
+			pthread_mutex_lock(&px4_modules_mutex);
+
 			if (_instances[instance] != nullptr) {
+				pthread_mutex_unlock(&px4_modules_mutex);
 				PX4_ERR("instance %d already running", instance);
 				return PX4_ERROR;
 			}
 
-			return T::task_spawn(instance, argc - 1, argv + 1);
+			int ret = T::task_spawn(instance, argc - 1, argv + 1);
+
+			if (ret < 0) {
+				PX4_ERR("task_spawn failed (%i)", ret);
+			}
+
+			pthread_mutex_unlock(&px4_modules_mutex);
+			return ret;
 		}
 
 		if (strcmp(argv[1], "stop") == 0) {
@@ -128,7 +134,10 @@ public:
 			return _status_all();
 		}
 
-		return T::custom_command(argc - 1, argv + 1);
+		pthread_mutex_lock(&px4_modules_mutex);
+		int ret = T::custom_command(argc - 1, argv + 1);
+		pthread_mutex_unlock(&px4_modules_mutex);
+		return ret;
 	}
 
 	/** Returns true if instance index is currently running. */
@@ -146,29 +155,21 @@ public:
 	}
 
 	/**
-	 * Null `_instances[index]` without deleting. Safe to call from a destructor
-	 * where `delete this` is forbidden. Caller must ensure the slot still refers
-	 * to the object being destroyed (typically guarded by `_instances[i] == this`).
-	 */
-	static void clear_instance_slot(int index)
-	{
-		if (index >= 0 && index < (int)MAX_N) {
-			_instances[index] = nullptr;
-		}
-	}
-
-	/**
 	 * Called from Run() after ScheduleClear() when should_exit() is true.
 	 * Nulls the instance pointer first, then deletes the object.
 	 * Do not access 'this' after calling this method.
 	 */
 	static void cleanup_instance(int index)
 	{
+		pthread_mutex_lock(&px4_modules_mutex);
+
 		if (index >= 0 && index < (int)MAX_N) {
 			T *inst = _instances[index];
-			clear_instance_slot(index);
+			_instances[index] = nullptr;
 			delete inst;
 		}
+
+		pthread_mutex_unlock(&px4_modules_mutex);
 	}
 
 	/** Request this instance to stop on the next Run() cycle. */
@@ -188,6 +189,8 @@ public:
 	}
 
 protected:
+	// All reads/writes must be done while holding px4_modules_mutex,
+	// except task_spawn() which is called by main() already under the lock.
 	static T *_instances[MAX_N];
 	int       _instance_index;
 
@@ -205,31 +208,44 @@ private:
 
 	static int _stop_instance(int index)
 	{
+		int ret = PX4_OK;
+		pthread_mutex_lock(&px4_modules_mutex);
+
 		if (_instances[index] == nullptr) {
 			PX4_WARN("instance %d not running", index);
+			pthread_mutex_unlock(&px4_modules_mutex);
 			return PX4_OK;
 		}
 
 		_instances[index]->request_stop();
 
-		// Wait up to 5 s for the work item to call cleanup_instance() from Run()
-		for (int i = 0; i < 500 && _instances[index] != nullptr; i++) {
-			px4_usleep(10000);
-		}
+		unsigned int i = 0;
 
-		if (_instances[index] != nullptr) {
-			PX4_WARN("instance %d stop timed out, forcing deletion", index);
-			T *inst = _instances[index];
-			_instances[index] = nullptr;
-			delete inst;
-		}
+		do {
+			pthread_mutex_unlock(&px4_modules_mutex);
+			using namespace time_literals;
+			px4_usleep(10_ms);
+			pthread_mutex_lock(&px4_modules_mutex);
+
+			if (++i > 500 && _instances[index] != nullptr) {
+				PX4_WARN("instance %d stop timed out, forcing deletion", index);
+				T *inst = _instances[index];
+				_instances[index] = nullptr;
+				delete inst;
+				ret = PX4_ERROR;
+				break;
+			}
+		} while (_instances[index] != nullptr);
 
 		PX4_INFO("instance %d stopped", index);
-		return PX4_OK;
+		pthread_mutex_unlock(&px4_modules_mutex);
+		return ret;
 	}
 
 	static int _status_all()
 	{
+		pthread_mutex_lock(&px4_modules_mutex);
+
 		for (int i = 0; i < (int)MAX_N; i++) {
 			if (_instances[i] != nullptr) {
 				_instances[i]->print_status();
@@ -239,6 +255,7 @@ private:
 			}
 		}
 
+		pthread_mutex_unlock(&px4_modules_mutex);
 		return 0;
 	}
 };
