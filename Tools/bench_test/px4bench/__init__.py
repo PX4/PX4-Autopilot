@@ -56,6 +56,15 @@ DEFAULT_BAUD = 57600
 USB_DEVICE_GLOB_DARWIN = '/dev/tty.usbmodem*'
 USB_DEVICE_GLOB_LINUX = '/dev/serial/by-id/*PX4*'
 
+# Exit code meaning "test skipped" (EX_TEMPFAIL): the orchestrator records it
+# as SKIP, not FAIL. Used when a probe finds the firmware lacks a needed
+# command, no SD card is mounted, or the operator declines the arming gate.
+EXIT_SKIP = 75
+
+# NuttX nsh prints exactly this for an unknown command
+# (apps/nshlib/nsh_parse.c: "nsh: %s: command not found").
+NSH_NOT_FOUND = 'command not found'
+
 
 class Reporter:
     """Collects named PASS/FAIL checks and prints a summary.
@@ -296,6 +305,57 @@ class MavlinkShell:
             self.mav.mav.serial_control_send(SERIAL_CONTROL_DEV_SHELL, 0, 0, 0, 0, [0] * 70)
         except Exception:
             pass
+
+
+def shell_command_exists(shell, probe_cmd, timeout=10):
+    """Probe the live firmware for a command via an open MavlinkShell.
+
+    probe_cmd should be a harmless invocation (e.g. 'simulator_sih status',
+    'sd_bench -h'): only the not-found reply matters, not the exit status.
+    Returns (present, output):
+      (True, out)  the command exists in this firmware
+      (False, out) nsh replied 'command not found'
+      (None, out)  the probe itself stalled, which is its own finding
+    """
+    out, timed_out = shell.run(probe_cmd, timeout=timeout)
+    if timed_out:
+        return None, out
+    if NSH_NOT_FOUND in out:
+        return False, out
+    return True, out
+
+
+def arming_gate(allow_arming, action='run the SIH flight test'):
+    """Confirm that arming the (simulated) vehicle is acceptable.
+
+    The flight test arms the flight controller. Physics is simulated on the
+    FMU and pwm_out_sim replaces the real output drivers, but the board must
+    be bare: nothing may be connected to the output rails.
+
+    Returns True to proceed, False to skip:
+      --allow-arming given        -> proceed without prompting (automation)
+      interactive TTY             -> proceed only if the operator types 'arm'
+      non-TTY without the flag    -> skip, naming --allow-arming
+    """
+    if allow_arming:
+        return True
+    if not sys.stdin.isatty():
+        print('WARNING: this test arms the flight controller (simulated '
+              'flight). Non-interactive runs must pass --allow-arming to '
+              'confirm the board is bare; skipping.', flush=True)
+        return False
+    print('!' * 70)
+    print('WARNING: about to {}.'.format(action))
+    print('The flight controller WILL ARM. The flight is simulated on the')
+    print('FMU and pwm_out_sim replaces the real output drivers, but the')
+    print('board must be bare: NOTHING may be connected to the output rails')
+    print('(no ESCs, no motors, no servos).')
+    print('!' * 70)
+    answer = input("Type 'arm' to continue, anything else to skip: ").strip().lower()
+    if answer == 'arm':
+        return True
+    print('operator declined; skipping.', flush=True)
+    return False
 
 
 def attach_viewer_tee(conn, host='127.0.0.1', port=19410):

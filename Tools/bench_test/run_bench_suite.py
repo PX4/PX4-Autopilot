@@ -42,14 +42,18 @@ BASE_SEQUENCE = [
     'mission_stress',
     'log_transfer',
     'reboot_loop',
+    'flight_mission',
 ]
 DUAL_LINK_TEST = 'link_forwarding'
 DUAL_LINK_AFTER = 'mission_stress'
 
+# every test lives in bench/ except the simulated flight
+SCRIPT_SUBDIR = {'flight_mission': 'sih'}
+
 
 def script_path(name):
     here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(here, 'bench', name + '.py')
+    return os.path.join(here, SCRIPT_SUBDIR.get(name, 'bench'), name + '.py')
 
 
 def build_argv(name, args):
@@ -65,8 +69,10 @@ def build_argv(name, args):
     argv += ['-b', str(args.baudrate)]
 
     # per-test extra flags
-    if name in ('boot_health', 'log_transfer'):
+    if name in ('boot_health', 'log_transfer', 'flight_mission'):
         argv += ['--report-dir', args.report_dir]
+    if name == 'flight_mission' and args.allow_arming:
+        argv += ['--allow-arming']
 
     return argv
 
@@ -114,6 +120,8 @@ def run_one(name, args):
     dur = time.monotonic() - start
     if rc == 0:
         return 'PASS', dur, ''
+    if rc == px4bench.EXIT_SKIP:
+        return 'SKIP', dur, 'skipped by the test (see its output above)'
     return 'FAIL', dur, 'exit code {}'.format(rc)
 
 
@@ -365,6 +373,10 @@ def main():
                         help='seconds before a test is killed as hung (default: %(default)s)')
     parser.add_argument('--stop-on-fail', action='store_true', default=False,
                         help='stop the suite at the first failing test')
+    parser.add_argument('--allow-arming', action='store_true', default=False,
+                        help='skip the arming confirmation before the simulated '
+                             'flight test (automation/manufacturing; board must '
+                             'be bare, nothing on the output rails)')
 
     gate = parser.add_mutually_exclusive_group()
     gate.add_argument('--firmware', metavar='FILE',
@@ -405,10 +417,11 @@ def main():
     print('  sequence   : {}'.format(', '.join(sequence)))
     if skip:
         print('  skipping   : {}'.format(', '.join(sorted(skip))))
-    print('  NOTE: usb_replug is interactive and is not run by this suite; '
-          'run it manually (bench/usb_replug.py).')
-    print('  NOTE: the SIH simulated flight (sih/flight_mission.py) reconfigures '
-          'the board and is run separately.')
+    print('  NOTE: usb_replug (USB replug) and serial_loopback (loopback '
+          'jumper) need an operator or fixture; run them manually.')
+    if 'flight_mission' not in skip and not args.allow_arming:
+        print('  NOTE: flight_mission arms the board (simulated flight); you '
+              'will be asked to confirm, or pass --allow-arming.')
     print()
 
     results = []  # (name, status, duration, detail)

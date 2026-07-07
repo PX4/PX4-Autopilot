@@ -363,6 +363,9 @@ def main():
     parser.add_argument('--expect-hash', metavar='PREFIX', default=None,
                         help='verify the board runs this git hash before flying '
                              '(prefix match); mismatch aborts. No flashing here.')
+    parser.add_argument('--allow-arming', action='store_true', default=False,
+                        help='skip the arming confirmation prompt (automation; '
+                             'board must be bare, nothing on the output rails)')
     parser.add_argument('--report-dir', default='bench_reports')
     args = parser.parse_args()
 
@@ -391,6 +394,34 @@ def main():
         if not ok:
             mav.close()
             return report.finish()
+
+    # Probe the live firmware for the SIH module before touching any config.
+    # nsh replies 'command not found' when the module is not in this build.
+    probe_shell = MavlinkShell(mav)
+    if not probe_shell.open(timeout=5):
+        report.fail('sih_probe', 'nsh shell did not respond within 5s')
+        return report.finish()
+    present, probe_out = px4bench.shell_command_exists(
+        probe_shell, 'simulator_sih status')
+    probe_shell.close()
+    if present is None:
+        report.fail('sih_probe', "'simulator_sih status' stalled (probe hung)")
+        return report.finish()
+    if present is False:
+        report.info('WARNING: this firmware does not include the SIH module '
+                    '(simulator_sih: command not found); skipping the flight '
+                    'test. Build with CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y '
+                    'or use a bench variant target.')
+        mav.close()
+        return px4bench.EXIT_SKIP
+    report.info('SIH module present in this firmware')
+
+    # Arming gate: the vehicle arms (simulated flight, pwm_out_sim), so the
+    # board must be bare. Declining is a skip, not a failure.
+    if not px4bench.arming_gate(args.allow_arming,
+                                'fly the simulated SIH mission on this board'):
+        mav.close()
+        return px4bench.EXIT_SKIP
 
     original_autostart = original_hitl = None
     try:
