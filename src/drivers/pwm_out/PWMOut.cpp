@@ -34,8 +34,19 @@
 #include "PWMOut.hpp"
 
 #include <px4_platform_common/sem.hpp>
+#include <px4_platform_common/shutdown.h>
 
 ModuleBase::Descriptor PWMOut::desc{task_spawn, custom_command, print_usage};
+
+bool PWMOut::request_stop_static()
+{
+	if (is_running(desc)) {
+		get_instance<PWMOut>(desc)->request_stop();
+		return false;
+	}
+
+	return true;
+}
 
 PWMOut::PWMOut() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -51,6 +62,10 @@ PWMOut::~PWMOut()
 {
 	/* make sure servos are off */
 	up_pwm_servo_deinit(_pwm_mask);
+
+	if (_shutdown_hook_registered) {
+		px4_unregister_shutdown_hook(&PWMOut::request_stop_static);
+	}
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
@@ -182,6 +197,7 @@ void PWMOut::Run()
 
 			if (pwm_shutdown_period) {
 				set_max_timers_rate();
+				PX4_INFO("Gracefully stopping PWM outputs");
 			}
 		}
 
@@ -238,6 +254,11 @@ int PWMOut::task_spawn(int argc, char *argv[])
 
 	desc.object.store(instance);
 	desc.task_id = task_id_is_work_queue;
+
+	if (px4_register_shutdown_hook(&PWMOut::request_stop_static) == 0) {
+		instance->_shutdown_hook_registered = true;
+	}
+
 	instance->ScheduleNow();
 	return 0;
 }
