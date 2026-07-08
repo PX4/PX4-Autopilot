@@ -19,7 +19,7 @@ parameters:
             Defines the aux switch which injects the failure defined by SYS_FAIL_RC_UNIT,
             SYS_FAIL_RC_MODE and SYS_FAIL_RC_INST;
             Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
-        type: int32
+        type: enum
         min: 0
         max: 6
         default: 0
@@ -38,7 +38,7 @@ parameters:
           long: |-
             Which component the SYS_FAIL_RC_SRC trigger fails, with SYS_FAIL_RC_MODE on
             SYS_FAIL_RC_INST.
-        type: int32
+        type: enum
         default: 101
         reboot_required: true
         values:
@@ -57,7 +57,7 @@ parameters:
           long: |-
             How SYS_FAIL_RC_UNIT fails when the SYS_FAIL_RC_SRC trigger fires, on SYS_FAIL_RC_INST.
             unsupported (unit, type) pairs are ignored.
-        type: int32
+        type: enum
         default: 0
         reboot_required: true
         values:
