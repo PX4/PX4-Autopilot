@@ -293,12 +293,15 @@ jobs:
 
       # Create a draft GitHub Release for all version tags
       # Pre-releases are automatically marked as such
+      # preserve_order uploads assets sequentially: the default parallel
+      # upload of hundreds of assets trips GitHub's secondary rate limit
       - name: Upload Artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
           prerelease: ${{ steps.upload-location.outputs.is_prerelease == 'true' }}
+          preserve_order: true
           files: |
             artifacts/*.px4
             artifacts/*.deb
