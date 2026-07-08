@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: BSD-3-Clause
+#
 # board specific defaults
 #
 # No onboard magnetometer; yaw uses GPS when available unless the user adds

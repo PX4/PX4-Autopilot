@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: BSD-3-Clause
+#
 # AMOVLAB FLYCORE specific board sensors init
 #
 # Onboard: BMI088 + ICM42688P + MS5611 (no magnetometer).
