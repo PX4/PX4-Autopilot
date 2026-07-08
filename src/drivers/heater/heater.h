@@ -195,7 +195,7 @@ private:
 		float   temp_ff;
 		float   temp_imax;
 		int32_t temp_src; // 0 = IMU, 1 = hygrometer
-		float   temp_threshold; // temperature threshold to start heating
+		float   temp_threshold; // start heating once the temperature drops below this value
 		float   nom_v;    // nominal supply voltage for power limiting (0 = disabled)
 	} _params;
 

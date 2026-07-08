@@ -123,19 +123,25 @@ parameters:
 
         HEATER${i}_TEMP_TH:
             description:
-                short: Temperature threshold for heater ${i} to start heating
+                short: Threshold; If heater ${i} drops below this value, it starts heating
                 long: |
-                    Used to prevent the heater from always heating. It only starts heating if the temperature drops below this threshold, and continues until reset.
+                    The heater starts heating once the temperature drops below this threshold, and keeps
+                    heating until reset.
+
+                    The default (200) effectively keeps the heater always on (fmu), since ambient temperature never
+                    reaches that high.
+                    Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+                    e.g. 5 to only start heating once the temperature drops below 5°C.
 
             type: float
-            unit: us/C
-            min: -1000.0
-            max: 1000.0
+            unit: celcius
+            min: -100.0
+            max: 200.0
             decimal: 1
-            reboot_required: true
+            reboot_required: false
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [1000.0, 1000.0, 1000.0]
+            default: [200.0, 200.0, 200.0]
 
         HEATER${i}_NOM_V:
             description:

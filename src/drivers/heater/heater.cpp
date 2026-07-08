@@ -440,20 +440,20 @@ void Heater::Run()
 			}
 		}
 
+		if (PX4_ISFINITE(current_temp)) {
+			temperature_delta = _params.temp - current_temp;
+			_temperature_last = current_temp;
+			temperature_updated = true;
+#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
+			_temperature_last_update_time = hrt_absolute_time();
+#endif
+		}
+
 		// Latch heating on once the temperature threshold is crossed; stays on until reset.
 		if (_temperature_threshold_met
 		    || (PX4_ISFINITE(current_temp) && current_temp < _params.temp_threshold)) {
 
 			_temperature_threshold_met = true;
-
-			if (PX4_ISFINITE(current_temp)) {
-				temperature_delta = _params.temp - current_temp;
-				_temperature_last = current_temp;
-				temperature_updated = true;
-#ifdef CONFIG_HEATER_FAST_UPDATE_MODE
-				_temperature_last_update_time = hrt_absolute_time();
-#endif
-			}
 
 #ifdef CONFIG_HEATER_FAST_UPDATE_MODE
 
@@ -512,20 +512,21 @@ void Heater::Run()
 void Heater::publish_status()
 {
 	heater_status_s status{};
-	status.device_id               = _sensor_device_id;
-	status.heater_on               = _heater_on;
-	status.temperature_sensor      = _temperature_last;
-	status.temperature_target      = _params.temp;
-	status.temperature_target_met  = _temperature_target_met;
-	status.controller_period_usec  = CONTROLLER_PERIOD_DEFAULT;
-	status.controller_time_on_usec = _controller_time_on_usec;
-	status.proportional_value      = _proportional_value;
-	status.integrator_value        = _integrator_value;
-	status.feed_forward_value      = _params.temp_ff;
-	status.supply_voltage          = _supply_voltage;
-	status.heater_current          = _heater_current;
-	status.nominal_multiplier      = _nominal_multiplier;
-	status.temperature_source      = _params.temp_src;
+	status.device_id                 = _sensor_device_id;
+	status.heater_on                 = _heater_on;
+	status.temperature_sensor        = _temperature_last;
+	status.temperature_target        = _params.temp;
+	status.temperature_target_met    = _temperature_target_met;
+	status.controller_period_usec    = CONTROLLER_PERIOD_DEFAULT;
+	status.controller_time_on_usec   = _controller_time_on_usec;
+	status.proportional_value        = _proportional_value;
+	status.integrator_value          = _integrator_value;
+	status.feed_forward_value        = _params.temp_ff;
+	status.supply_voltage            = _supply_voltage;
+	status.heater_current            = _heater_current;
+	status.nominal_multiplier        = _nominal_multiplier;
+	status.temperature_threshold_met = _temperature_threshold_met;
+	status.temperature_source        = _params.temp_src;
 
 #ifdef HEATER_PX4IO
 	status.mode = heater_status_s::MODE_PX4IO;
