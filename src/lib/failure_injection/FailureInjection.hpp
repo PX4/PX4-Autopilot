@@ -50,6 +50,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_injection.h>
 
+struct battery_status_s;
+
 namespace failure_injection
 {
 
@@ -145,5 +147,12 @@ bool process(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &ms
 {
 	return process(config.mode(unit, uorb_instance + 1), msg, stuck);
 }
+
+/**
+ * Battery counterpart to process(): on FAILURE_UNIT_SYSTEM_BATTERY Off for the given 1-based
+ * instance, report a depleted pack (zero remaining, emergency warning) so the low-battery
+ * failsafe triggers. Mutates rather than suppresses, so the pack reads empty not disconnected.
+ */
+void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
 
 } // namespace failure_injection

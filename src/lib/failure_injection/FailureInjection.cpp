@@ -33,6 +33,8 @@
 
 #include "FailureInjection.hpp"
 
+#include <uORB/topics/battery_status.h>
+
 namespace failure_injection
 {
 
@@ -74,6 +76,17 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 	}
 
 	return Mode::Ok;
+}
+
+void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
+{
+	if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance) != Mode::Off) {
+		return;
+	}
+
+	// Report a depleted pack so the low-battery failsafe triggers.
+	battery_status.remaining = 0.f;
+	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
 }
 
 } // namespace failure_injection
