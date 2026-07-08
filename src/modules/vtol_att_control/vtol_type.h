@@ -182,14 +182,14 @@ public:
 	 *
 	 * @return     true if exeeded
 	 */
-	bool isPitchExceeded();
+	virtual bool isPitchExceeded();
 
 	/**
 	 *  @brief Indicates if the absolute value of the vehicle roll angle exceeds the threshold defined by VT_FW_QC_R
 	 *
 	 * @return     true if exeeded
 	 */
-	bool isRollExceeded();
+	virtual bool isRollExceeded();
 
 	/**
 	 *  @brief Indicates if the front transition duration has exceeded the timeout definded by VT_TRANS_TIMEOUT

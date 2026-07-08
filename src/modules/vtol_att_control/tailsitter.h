@@ -91,6 +91,10 @@ private:
 	void parameters_update() override;
 
 	bool isFrontTransitionCompletedBase() override;
+	bool isPitchExceeded() override;
+	bool isRollExceeded() override;
+
+	matrix::Eulerf getFixedWingAttitudeEuler() const;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
