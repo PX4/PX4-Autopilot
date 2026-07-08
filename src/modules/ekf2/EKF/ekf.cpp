@@ -279,6 +279,11 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt,
 				static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+	_aspd_mc_lat_accel_lpf.update(corrected_delta_vel(1) / imu_delayed.delta_vel_dt,
+				      static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
+#endif // CONFIG_EKF2_AIRSPEED
 }
 
 bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,
