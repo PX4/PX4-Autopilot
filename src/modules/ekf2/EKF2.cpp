@@ -118,6 +118,8 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_tas_gate(_params->ekf2_tas_gate),
 	_param_ekf2_eas_noise(_params->ekf2_eas_noise),
 	_param_ekf2_arsp_thr(_params->ekf2_arsp_thr),
+	_param_ekf2_aspd_mc(_params->ekf2_aspd_mc),
+	_param_ekf2_aspd_mc_lim(_params->ekf2_aspd_mc_lim),
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
 	_param_ekf2_beta_gate(_params->ekf2_beta_gate),
@@ -1759,7 +1761,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
-	lpos.dist_bottom_valid = _ekf.isHeightAboveGroundEstimateValid();
+	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid() || (_ekf.getHeightSensorRef() == HeightSensor::RANGE);
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
 	lpos.dist_bottom_var = _ekf.getHaglVariance();
 	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);

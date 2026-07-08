@@ -610,6 +610,10 @@ private:
 		// control of airspeed fusion
 		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
 		_param_ekf2_arsp_thr, ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
+		(ParamExtInt<px4::params::EKF2_ASPD_MC>)
+		_param_ekf2_aspd_mc, ///< airspeed fusion for wind estimation in rotary-wing flight
+		(ParamExtFloat<px4::params::EKF2_ASPD_MC_LIM>)
+		_param_ekf2_aspd_mc_lim, ///< lateral specific force limit for rotary-wing airspeed fusion (m/s^2)
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)

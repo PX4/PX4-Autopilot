@@ -8,12 +8,38 @@ parameters:
         long: Airspeed data is fused for wind estimation if above this threshold.
           Set to 0 to disable airspeed fusion. For reliable wind estimation both sideslip
           (see EKF2_FUSE_BETA) and airspeed fusion should be enabled. Only applies
-          to fixed-wing vehicles (or VTOLs in fixed-wing mode).
+          to fixed-wing vehicles (or VTOLs in fixed-wing mode), unless EKF2_ASPD_MC
+          is enabled.
       type: float
       default: 0.0
       min: 0.0
       unit: m/s
       decimal: 1
+    EKF2_ASPD_MC:
+      description:
+        short: Airspeed fusion for wind estimation in rotary-wing flight
+        long: When enabled, true airspeed may also be fused in rotary-wing flight
+          (e.g. a VTOL in multicopter mode with pusher-assisted forward flight) if
+          the vehicle is airborne, the airspeed is above EKF2_ARSP_THR and the
+          filtered lateral specific force is below EKF2_ASPD_MC_LIM (zero-sideslip
+          assumption). In rotary-wing flight these measurements only ever correct
+          the wind states, never the navigation states.
+      type: boolean
+      default: 0
+    EKF2_ASPD_MC_LIM:
+      description:
+        short: Lateral specific force limit for rotary-wing airspeed fusion
+        long: The airspeed and synthetic sideslip observations assume the airflow
+          is aligned with the body X axis (zero sideslip). A sustained low-passed
+          lateral specific force indicates a lateral relative airflow, i.e. misalignment,
+          and inhibits airspeed fusion in rotary-wing flight. Set to zero to disable
+          this check.
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 5.0
+      unit: m/s^2
+      decimal: 2
     EKF2_ASP_DELAY:
       description:
         short: Airspeed measurement delay relative to IMU measurements

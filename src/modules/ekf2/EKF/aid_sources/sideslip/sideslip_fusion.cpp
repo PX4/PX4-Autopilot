@@ -97,8 +97,10 @@ bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 		return false;
 	}
 
-	// determine if we need the sideslip fusion to correct states other than wind
-	bool update_wind_only = !_control_status.flags.wind_dead_reckoning;
+	// determine if we need the fusion to correct states other than wind;
+	// in rotary-wing flight only ever update the wind states
+	bool update_wind_only = !_control_status.flags.wind_dead_reckoning
+				|| !(_control_status.flags.fixed_wing || _control_status.flags.in_transition);
 
 	// Reset covariance and states if the calculation is badly conditioned
 	if ((sideslip.innovation_variance < sideslip.observation_variance)
