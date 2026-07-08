@@ -98,6 +98,10 @@ private:
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
-		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst
+		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
+		// Declared here only so they register and appear in the GCS; the values
+		// are read live by the GNSS producers via process_gnss()
+		(ParamInt<px4::params::SYS_FAIL_GPS_WRG>) _param_sys_fail_gps_wrg,
+		(ParamInt<px4::params::SYS_FAIL_GPS_GRB>) _param_sys_fail_gps_grb
 	)
 };

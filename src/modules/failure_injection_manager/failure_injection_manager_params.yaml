@@ -88,12 +88,13 @@ parameters:
             is injected. The reported position is walked away from the truth while the fix keeps
             looking healthy. Smooth drift ramps an expanding offset that starts matched to the
             true position, keeping reported velocity consistent so the EKF adopts it.
-        type: int32
+        type: enum
         default: 2
         values:
           0: Static jump
           1: Constant drift
           2: Smooth drift
+          3: Altitude drift
       SYS_FAIL_GPS_GRB:
         description:
           short: GPS Garbage-failure profile
@@ -101,7 +102,7 @@ parameters:
             Signal-degradation profile applied when a GPS 'garbage' failure (FAILURE_TYPE_GARBAGE)
             is injected. Two-phase reproduces the observed sequence of an initial 1-6s loss of fix
             followed by a degraded, low-satellite fix.
-        type: int32
+        type: enum
         default: 2
         values:
           0: Degraded fix
