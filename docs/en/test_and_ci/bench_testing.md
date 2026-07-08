@@ -57,17 +57,17 @@ The tests under `bench/` run against normal firmware and never arm the vehicle.
 The default suite sequence is `boot_health`, `param_stress`, `mission_stress` (plus `link_forwarding` when a second link is given), `storage_stress`, `log_transfer`, `reboot_loop`, and finally the simulated SIH flight (see below), which does arm and therefore sits behind a confirmation.
 Tests that need a firmware feature the build does not contain probe for it over the shell and record SKIP with a warning instead of failing.
 
-| Test               | What it verifies                                                                                                        |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `boot_health`      | System snapshot over the MAVLink shell: no task in error state, required work queues present, uORB topics publishing. Has a baseline mode (see below). |
-| `reboot_loop`      | Repeated reboot/reconnect cycles; catches boards that boot once but not every time.                                       |
-| `usb_replug`       | USB unplug/replug cycles (operator-assisted); catches link-teardown leaks in mavlink instance count or RAM.               |
-| `link_forwarding`  | Simultaneous heavy traffic on two links with forwarding; catches deadlocks and stalls in the MAVLink send path. Requires a second link. |
-| `param_stress`     | Full parameter download, 50 set/readback cycles, save, reboot, persistence verification.                                  |
-| `mission_stress`   | Repeated 220-waypoint upload/download/compare/clear transactions, alternating links when two are available.               |
-| `storage_stress`   | SD card health via the firmware's own `sd_bench` and `sd_stress`: write/read throughput, fsync latency, file churn. Skips without an SD card. |
-| `log_transfer`     | Short log capture, MAVFTP download, ULog integrity verification.                                                          |
-| `flight_mission`   | Simulated SIH flight on the FMU, last in the sequence; arms behind a confirmation (`--allow-arming` for automation).      |
+| Test              | What it verifies                                                                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `boot_health`     | System snapshot over the MAVLink shell: no task in error state, required work queues present, uORB topics publishing. Has a baseline mode (see below). |
+| `reboot_loop`     | Repeated reboot/reconnect cycles; catches boards that boot once but not every time.                                                                    |
+| `usb_replug`      | USB unplug/replug cycles (operator-assisted); catches link-teardown leaks in mavlink instance count or RAM.                                            |
+| `link_forwarding` | Simultaneous heavy traffic on two links with forwarding; catches deadlocks and stalls in the MAVLink send path. Requires a second link.                |
+| `param_stress`    | Full parameter download, 50 set/readback cycles, save, reboot, persistence verification.                                                               |
+| `mission_stress`  | Repeated 220-waypoint upload/download/compare/clear transactions, alternating links when two are available.                                            |
+| `storage_stress`  | SD card health via the firmware's own `sd_bench` and `sd_stress`: write/read throughput, fsync latency, file churn. Skips without an SD card.          |
+| `log_transfer`    | Short log capture, MAVFTP download, ULog integrity verification.                                                                                       |
+| `flight_mission`  | Simulated SIH flight on the FMU, last in the sequence; arms behind a confirmation (`--allow-arming` for automation).                                   |
 
 ```sh
 cd Tools/bench_test
