@@ -436,13 +436,34 @@ void Navigator::run()
 						// All three set to NaN - pause vehicle
 						rep->current.alt = get_global_position()->alt;
 
-						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+						// If the vehicle is already established on a circular loiter (orbit), keep that
+						// loiter's center and shape instead of re-centering the circle on the current
+						// position. This lets a Hold/pause continue the existing orbit. Non-circular
+						// patterns (e.g. figure-eight) are not continued: a Hold reverts to a plain
+						// loiter circle so we never mix patterns.
+						const bool established_on_orbit = curr->current.valid
+										  && curr->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+										  && curr->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT
+										  && get_distance_to_next_waypoint(curr->current.lat, curr->current.lon,
+												  get_global_position()->lat, get_global_position()->lon)
+										  <= (get_acceptance_radius() + fabsf(curr->current.loiter_radius));
 
+						if (established_on_orbit) {
+							rep->current.lat = curr->current.lat;
+							rep->current.lon = curr->current.lon;
+							rep->current.loiter_radius = curr->current.loiter_radius;
+							rep->current.loiter_pattern = curr->current.loiter_pattern;
+							rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
+
+						} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+							   && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+
+							rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 							preproject_stop_point(rep->current.lat, rep->current.lon);
 
 						} else {
 							// For fixedwings we can use the current vehicle's position to define the loiter point
+							rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 							rep->current.lat = get_global_position()->lat;
 							rep->current.lon = get_global_position()->lon;
 						}
@@ -990,31 +1011,6 @@ void Navigator::run()
 			navigation_mode_new = nullptr;
 		}
 
-		/* we have a new navigation mode: reset triplet */
-		if (_navigation_mode != navigation_mode_new) {
-			// We don't reset the triplet in the following two cases:
-			// 1)  if we just did an auto-takeoff and are now
-			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
-			// than where we wanted to go.
-			// 2) We switch to loiter and the current position setpoint already has a valid loiter point.
-			// In that case we can assume that the vehicle has already established a loiter and we don't need to set a new
-			// loiter position.
-			//
-			// FIXME: a better solution would be to add reset where they are needed and remove
-			//        this general reset here.
-
-			const bool current_mode_is_takeoff = _navigation_mode == &_takeoff;
-			const bool new_mode_is_loiter = navigation_mode_new == &_loiter;
-			const bool valid_loiter_setpoint = (_pos_sp_triplet.current.valid
-							    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
-
-			const bool did_not_switch_takeoff_to_loiter = !(current_mode_is_takeoff && new_mode_is_loiter);
-			const bool did_not_switch_to_loiter_with_valid_loiter_setpoint = !(new_mode_is_loiter && valid_loiter_setpoint);
-
-			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
-				reset_triplets();
-			}
-		}
 
 		// VTOL: transition to hover in Descend mode if force_vtol() is true
 		if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&

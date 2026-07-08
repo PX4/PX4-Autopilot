@@ -50,6 +50,10 @@ Takeoff::Takeoff(Navigator *navigator) :
 void
 Takeoff::on_activation()
 {
+	// Reset the triplet on activation so we do not inherit any line-following context from the
+	// previous mode
+	_navigator->reset_triplets();
+
 	set_takeoff_position();
 
 	// reset cruising speed to default
@@ -167,7 +171,7 @@ Takeoff::on_active()
 			} else {
 				if (pos_sp_triplet->current.valid
 				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 				}
 			}
 

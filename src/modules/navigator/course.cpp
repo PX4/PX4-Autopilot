@@ -49,6 +49,10 @@ Course::Course(Navigator *navigator) :
 void
 Course::on_activation()
 {
+	// Reset the triplet on activation so we do not inherit any line-following context from the
+	// previous mode
+	_navigator->reset_triplets();
+
 	const vehicle_local_position_s *lpos = _navigator->get_local_position();
 
 	_altitude = _navigator->get_global_position()->alt;

@@ -49,6 +49,10 @@ Land::Land(Navigator *navigator) :
 void
 Land::on_activation()
 {
+	// Reset the triplet on activation so we do not inherit any line-following context from the
+	// previous mode
+	_navigator->reset_triplets();
+
 	/* set current mission item to Land */
 	set_land_item(&_mission_item);
 	_navigator->get_mission_result()->finished = false;

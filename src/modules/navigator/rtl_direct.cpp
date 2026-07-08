@@ -81,6 +81,12 @@ void RtlDirect::on_activation()
 
 	_rtl_state = getActivationState();
 
+	// Snapshot the setpoint the previous mode left before resetting the triplet, so the climb can
+	// continue an already-established loiter (used in set_rtl_item(), CLIMBING). Resetting here means
+	// the first RTL leg is flown directly instead of line-following from an inherited setpoint.
+	_setpoint_on_activation = _navigator->get_position_setpoint_triplet()->current;
+	_navigator->reset_triplets();
+
 	// reset cruising speed and throttle to default for RTL
 	_navigator->reset_cruising_speed();
 	_navigator->set_cruising_throttle();
@@ -251,13 +257,38 @@ void RtlDirect::set_rtl_item()
 
 	switch (_rtl_state) {
 	case RTLState::CLIMBING: {
+			// By default climb on a loiter centered at the current position.
+			double loiter_center_lat = _global_pos_sub.get().lat;
+			double loiter_center_lon = _global_pos_sub.get().lon;
+			float loiter_radius = _navigator->get_default_loiter_rad();
+
+			// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
+			// keep that loiter's center and radius while climbing instead of re-centering the circle on
+			// the current position. The setpoint was snapshotted on activation before the triplet reset.
+			if (_setpoint_on_activation.valid
+			    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+				const float dist_to_center = get_distance_to_next_waypoint(
+								     _setpoint_on_activation.lat, _setpoint_on_activation.lon,
+								     _global_pos_sub.get().lat, _global_pos_sub.get().lon);
+				const bool established_on_loiter = dist_to_center <= (_navigator->get_acceptance_radius()
+								   + fabsf(_setpoint_on_activation.loiter_radius));
+
+				if (established_on_loiter) {
+					loiter_center_lat = _setpoint_on_activation.lat;
+					loiter_center_lon = _setpoint_on_activation.lon;
+					// loiter_radius sign encodes direction (negative == counter-clockwise).
+					loiter_radius = _setpoint_on_activation.loiter_direction_counter_clockwise ?
+							-_setpoint_on_activation.loiter_radius : _setpoint_on_activation.loiter_radius;
+				}
+			}
+
 			PositionYawSetpoint pos_yaw_sp {
-				.lat = _global_pos_sub.get().lat,
-				.lon = _global_pos_sub.get().lon,
+				.lat = loiter_center_lat,
+				.lon = loiter_center_lon,
 				.alt = _rtl_alt,
 				.yaw = _param_wv_en.get() ? NAN : _navigator->get_local_position()->heading,
 			};
-			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_default_loiter_rad());
+			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, loiter_radius);
 
 			break;
 		}
