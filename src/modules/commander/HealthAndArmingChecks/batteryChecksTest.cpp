@@ -107,7 +107,7 @@ public:
 };
 
 // Delta check disabled by default (COM_ARM_BAT_VDIF = 0): it never fails on voltage delta.
-TEST_F(BatteryChecksTest, Disabled_NoFailureEvenWhenDiverging)
+TEST_F(BatteryChecksTest, DisabledNoFailureEvenWhenDiverging)
 {
 	_bat0_pub.publish(makeBattery(16.0f));
 	_bat1_pub.publish(makeBattery(20.0f));
@@ -116,7 +116,7 @@ TEST_F(BatteryChecksTest, Disabled_NoFailureEvenWhenDiverging)
 }
 
 // A single connected battery never trips the delta check (needs >= 2).
-TEST_F(BatteryChecksTest, SingleBattery_NoFailure)
+TEST_F(BatteryChecksTest, SingleBatteryNoFailure)
 {
 	setMaxDelta(0.5f);
 	_bat0_pub.publish(makeBattery(16.0f));
@@ -125,7 +125,7 @@ TEST_F(BatteryChecksTest, SingleBattery_NoFailure)
 }
 
 // Two batteries within the allowed delta: no failure.
-TEST_F(BatteryChecksTest, TwoBatteries_WithinDelta_NoFailure)
+TEST_F(BatteryChecksTest, TwoBatteriesWithinDeltaNoFailure)
 {
 	setMaxDelta(0.5f);
 	_bat0_pub.publish(makeBattery(16.0f));
@@ -135,7 +135,7 @@ TEST_F(BatteryChecksTest, TwoBatteries_WithinDelta_NoFailure)
 }
 
 // Two batteries exceeding the allowed delta: arming failure on the battery component.
-TEST_F(BatteryChecksTest, TwoBatteries_ExceedsDelta_Failure)
+TEST_F(BatteryChecksTest, TwoBatteriesExceedsDeltaFailure)
 {
 	setMaxDelta(0.5f);
 	_bat0_pub.publish(makeBattery(16.0f));
@@ -145,7 +145,7 @@ TEST_F(BatteryChecksTest, TwoBatteries_ExceedsDelta_Failure)
 }
 
 // Three batteries all within the allowed spread: no failure.
-TEST_F(BatteryChecksTest, ThreeBatteries_WithinDelta_NoFailure)
+TEST_F(BatteryChecksTest, ThreeBatteriesWithinDeltaNoFailure)
 {
 	setMaxDelta(0.5f);
 	_bat0_pub.publish(makeBattery(16.0f));
@@ -157,7 +157,7 @@ TEST_F(BatteryChecksTest, ThreeBatteries_WithinDelta_NoFailure)
 
 // Three batteries where a single outlier pushes max-min past the limit: failure.
 // (delta is taken across all connected batteries, not just adjacent pairs.)
-TEST_F(BatteryChecksTest, ThreeBatteries_OneOutlier_Failure)
+TEST_F(BatteryChecksTest, ThreeBatteriesOneOutlierFailure)
 {
 	setMaxDelta(0.5f);
 	_bat0_pub.publish(makeBattery(16.0f));
@@ -168,7 +168,7 @@ TEST_F(BatteryChecksTest, ThreeBatteries_OneOutlier_Failure)
 }
 
 // Three batteries diverging beyond the limit, but armed: no failure (gated on disarmed).
-TEST_F(BatteryChecksTest, ThreeBatteries_ExceedsDelta_ArmedSkipped)
+TEST_F(BatteryChecksTest, ThreeBatteriesExceedsDeltaArmedSkipped)
 {
 	setMaxDelta(0.5f);
 	_bat0_pub.publish(makeBattery(16.0f));
