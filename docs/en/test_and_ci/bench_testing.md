@@ -88,13 +88,6 @@ The flight log is downloaded into the report directory automatically for post-fl
 Real outputs are replaced by `pwm_out_sim` in this mode, so nothing is driven on the output rails; still, run it only on a bare bench board with nothing connected to the outputs.
 The firmware must be built with `CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y` (boards may provide a bench variant that adds it, such as `px4_fmu-v6xrt_bench`).
 
-To watch the flight live in 3D, install [Hawkeye](https://github.com/PX4/Hawkeye) and run the test with `--viewer`:
-
-```sh
-hawkeye -udp 19410 -mc &
-./sih/flight_mission.py /dev/ttyACM0 --viewer
-```
-
 ## Baseline Comparison
 
 `boot_health` can diff two report directories, comparing uORB publication rates, work queues, and topics between runs:
