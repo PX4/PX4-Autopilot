@@ -958,7 +958,7 @@
 - [Releases](releases/index.md)
   - [Release Process](releases/release_process.md)
   - [main (alpha)](releases/main.md)
-  - [v1.18 (alpha)](releases/1.18.md)
+  - [v1.18 (beta)](releases/1.18.md)
   - [1.17 (stable)](releases/1.17.md)
   - [1.16](releases/1.16.md)
   - [1.15](releases/1.15.md)
