@@ -51,7 +51,7 @@ The ESCs should initialize and the motors turn in the correct directions.
 ## ESC Commands {#commands}
 
 Commands can be sent to the ESC via the [MAVLink shell](../debug/mavlink_shell.md).
-See [here](../modules/modules_driver.md#dshot) for a full reference of the supported commands.
+See the [`dshot` module](../modules/modules_driver.md#dshot) for a full reference of the supported commands.
 
 ## ESC Telemetry
 
@@ -144,3 +144,22 @@ PX4 can read and write AM32 ESC firmware settings (EEPROM) via a ground station,
 PX4 automatically reads the full EEPROM from each ESC on boot.
 The ground station can then display individual settings and allow the user to modify them.
 Changes are written back to the ESC one byte at a time using the DShot programming protocol.
+
+<!-- Section below commented out until serial passthrough bridge productised: https://github.com/PX4/PX4-Autopilot/pull/27654#discussion_r3434404781 -->
+<!--
+## ESC Serial Passthrough
+
+<Badge type="tip" text="PX4 v1.18" />
+
+PX4 supports direct UART communication through an ESC signal pin using a software bit-bang UART.
+This enables ESC configuration tools, such as _BLHeli Suite_ and the _AM32 configurator_, to communicate with the ESC using UART over MAVLink.
+Note that a MAVLink-to-UART bridge is required on the ground station or companion computer side (you'll need to write your own).
+
+::: warning
+The `PASSTHRU_EN` parameter must be set to `1` (and the vehicle rebooted) before using ESC bitbang passthrough.
+This **disables DShot and PWM output** at boot.
+After the next reboot, `PASSTHRU_EN` automatically resets to `0`, thereby restoring normal DShot/PWM operation.
+:::
+
+See [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md) for full configuration details.
+-->

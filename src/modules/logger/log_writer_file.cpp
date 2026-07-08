@@ -683,7 +683,7 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 	// Clear buffer and counters
 	_head = 0;
 	_count = 0;
-	_total_written = 0;
+	_total_written.store(0);
 
 	_should_run = true;
 
@@ -719,7 +719,7 @@ void LogWriterFile::LogFileBuffer::close_file()
 			PX4_WARN("closing log file failed (%i)", errno);
 
 		} else {
-			PX4_INFO("closed logfile, bytes written: %zu", _total_written);
+			PX4_INFO("closed logfile, bytes written: %zu", _total_written.load());
 		}
 	}
 }
@@ -728,7 +728,7 @@ void LogWriterFile::LogFileBuffer::reset()
 {
 	_head = 0;
 	_count = 0;
-	_total_written = 0;
+	_total_written.store(0);
 	_fd = -1;
 }
 

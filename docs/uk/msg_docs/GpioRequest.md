@@ -10,10 +10,10 @@ Request GPIO mask to be read.
 
 ## Fields
 
-| Назва                          | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| ------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
-| device_id | `uint32` |                                                                  |            | Device id                                                 |
+| Назва                                                    | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| -------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_device_id"></a>device_id | `uint32` |                                                                  |            | Device id                                                 |
 
 ## Source Message
 

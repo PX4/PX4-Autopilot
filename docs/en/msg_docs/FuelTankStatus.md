@@ -8,17 +8,17 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                  | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                     |
-| --------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp             | `uint64`  |              |            | time since system start (microseconds)                                                                                          |
-| maximum_fuel_capacity | `float32` |              |            | maximum fuel capacity. Must always be provided, either from the driver or a parameter                                           |
-| consumed_fuel         | `float32` |              |            | consumed fuel, NaN if not measured. Should not be inferred from the max fuel capacity                                           |
-| fuel_consumption_rate | `float32` |              |            | fuel consumption rate, NaN if not measured                                                                                      |
-| percent_remaining     | `uint8`   |              |            | percentage of remaining fuel, UINT8_MAX if not provided                                                                         |
-| remaining_fuel        | `float32` |              |            | remaining fuel, NaN if not measured. Should not be inferred from the max fuel capacity                                          |
-| fuel_tank_id          | `uint8`   |              |            | identifier for the fuel tank. Must match ID of other messages for same fuel system. 0 by default when only a single tank exists |
-| fuel_type             | `uint32`  |              |            | type of fuel based on MAV_FUEL_TYPE enum. Set to MAV_FUEL_TYPE_UNKNOWN if unknown or it does not fit the provided types         |
-| temperature           | `float32` |              |            | fuel temperature in Kelvin, NaN if not measured                                                                                 |
+| Name                                                        | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                     |
+| ----------------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                         | `uint64`  |              |            | time since system start (microseconds)                                                                                          |
+| <a id="fld_maximum_fuel_capacity"></a>maximum_fuel_capacity | `float32` |              |            | maximum fuel capacity. Must always be provided, either from the driver or a parameter                                           |
+| <a id="fld_consumed_fuel"></a>consumed_fuel                 | `float32` |              |            | consumed fuel, NaN if not measured. Should not be inferred from the max fuel capacity                                           |
+| <a id="fld_fuel_consumption_rate"></a>fuel_consumption_rate | `float32` |              |            | fuel consumption rate, NaN if not measured                                                                                      |
+| <a id="fld_percent_remaining"></a>percent_remaining         | `uint8`   |              |            | percentage of remaining fuel, UINT8_MAX if not provided                                                                         |
+| <a id="fld_remaining_fuel"></a>remaining_fuel               | `float32` |              |            | remaining fuel, NaN if not measured. Should not be inferred from the max fuel capacity                                          |
+| <a id="fld_fuel_tank_id"></a>fuel_tank_id                   | `uint8`   |              |            | identifier for the fuel tank. Must match ID of other messages for same fuel system. 0 by default when only a single tank exists |
+| <a id="fld_fuel_type"></a>fuel_type                         | `uint32`  |              |            | type of fuel based on MAV_FUEL_TYPE enum. Set to MAV_FUEL_TYPE_UNKNOWN if unknown or it does not fit the provided types         |
+| <a id="fld_temperature"></a>temperature                     | `float32` |              |            | fuel temperature in Kelvin, NaN if not measured                                                                                 |
 
 ## Constants
 

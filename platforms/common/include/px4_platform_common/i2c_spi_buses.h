@@ -314,7 +314,7 @@ protected:
 private:
 	static void custom_method_trampoline(void *argument);
 
-	void request_stop_and_wait();
+	bool request_stop_and_wait();
 
 	px4::atomic_bool _task_should_exit{false};
 	px4::atomic_bool _task_exited{false};

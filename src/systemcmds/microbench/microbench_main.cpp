@@ -42,10 +42,12 @@
 __BEGIN_DECLS
 
 extern int test_microbench_atomic(int argc, char *argv[]);
+extern int test_microbench_gravity(int argc, char *argv[]);
 extern int test_microbench_hrt(int argc, char *argv[]);
 extern int test_microbench_math(int argc, char *argv[]);
 extern int test_microbench_matrix(int argc, char *argv[]);
 extern int test_microbench_uorb(int argc, char *argv[]);
+extern int test_microbench_perf(int argc, char *argv[]);
 
 __END_DECLS
 
@@ -64,10 +66,12 @@ const struct {
 	{"all",		microbench_all,		OPT_NOALLTEST},
 
 	{"microbench_atomic",	test_microbench_atomic,	0},
+	{"microbench_gravity",	test_microbench_gravity,	0},
 	{"microbench_hrt",	test_microbench_hrt,	0},
 	{"microbench_math",	test_microbench_math,	0},
 	{"microbench_matrix",	test_microbench_matrix,	0},
 	{"microbench_uorb",	test_microbench_uorb,	0},
+	{"microbench_perf",	test_microbench_perf,	0},
 
 	{"null",			nullptr, 		0}
 };

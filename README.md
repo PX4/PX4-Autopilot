@@ -78,7 +78,7 @@ Run PX4 in simulation with a single command. No build tools, no dependencies bey
 docker run --rm -it -p 14550:14550/udp px4io/px4-sitl:latest
 ```
 
-Open [QGroundControl](https://qgroundcontrol.com) and fly. See [PX4 Simulation Quickstart](../dev_setup/px4_simulation_quickstart.md) for more options.
+Open [QGroundControl](https://qgroundcontrol.com) and fly. See [PX4 Simulation Quickstart](https://docs.px4.io/main/en/simulation/px4_simulation_quickstart) for more options.
 
 ## Build from Source
 

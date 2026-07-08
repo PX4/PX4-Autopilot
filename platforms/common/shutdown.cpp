@@ -37,6 +37,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
@@ -61,43 +62,104 @@
 
 #include <sys/boardctl.h>
 
+// Clang provides __has_feature; GCC does not. Define a fallback so the
+// AddressSanitizer check below is portable: GCC's preprocessor otherwise
+// chokes on __has_feature(...) even when guarded by defined(__has_feature),
+// because both operands of && are tokenized before the && is evaluated.
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 using namespace time_literals;
 
 static pthread_mutex_t shutdown_mutex =
 	PTHREAD_MUTEX_INITIALIZER; // protects access to shutdown_hooks & shutdown_lock_counter
 static uint8_t shutdown_lock_counter = 0;
+static bool shutdown_lock_watchdog_cb_triggered = false;
+
+static struct work_s shutdown_lock_watchdog_work = {};
+static constexpr hrt_abstime SHUTDOWN_LOCK_WATCHDOG_S = 60_s;
+
+/**
+ * Watchdog callback fired when a shutdown lock is held for more than 60s.
+ * Force-releases the shutdown_lock and set shutdown_lock_counter to 0.
+ * @param arg unused
+ */
+static void shutdown_lock_watchdog_cb(void *arg)
+{
+	int ret;
+
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return;
+	}
+
+	if (shutdown_lock_counter != 0) {
+		shutdown_lock_counter = 0;
+		shutdown_lock_watchdog_cb_triggered = true;
+		PX4_ERR("shutdown_lock_watchdog: lock held for more than 60s, force-releasing");
+		px4_indicate_external_reset_lockout(LockoutComponent::SystemShutdownLock, false);
+	}
+
+	ret = pthread_mutex_unlock(&shutdown_mutex);
+}
 
 int px4_shutdown_lock()
 {
-	int ret = pthread_mutex_lock(&shutdown_mutex);
+	int ret;
 
-	if (ret == 0) {
-		++shutdown_lock_counter;
-		px4_indicate_external_reset_lockout(LockoutComponent::SystemShutdownLock, true);
-		return pthread_mutex_unlock(&shutdown_mutex);
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return ret;
 	}
+
+	// schedule watchdog, if after 60s lock is still held -> unlock
+	if (shutdown_lock_counter == 0) {
+		ret = work_queue(HPWORK, &shutdown_lock_watchdog_work, shutdown_lock_watchdog_cb, nullptr,
+				 USEC2TICK(SHUTDOWN_LOCK_WATCHDOG_S));
+
+		if (ret != 0) {
+			goto out;
+		}
+	}
+
+	++shutdown_lock_counter;
+	shutdown_lock_watchdog_cb_triggered = false;
+
+	px4_indicate_external_reset_lockout(LockoutComponent::SystemShutdownLock, true);
+
+out:
+	ret |= pthread_mutex_unlock(&shutdown_mutex);
 
 	return ret;
 }
 
 int px4_shutdown_unlock()
 {
-	int ret = pthread_mutex_lock(&shutdown_mutex);
+	int ret;
 
-	if (ret == 0) {
-		if (shutdown_lock_counter > 0) {
-			--shutdown_lock_counter;
+	ret = pthread_mutex_lock(&shutdown_mutex);
 
-			if (shutdown_lock_counter == 0) {
-				px4_indicate_external_reset_lockout(LockoutComponent::SystemShutdownLock, false);
-			}
+	if (ret != 0) {
+		return ret;
+	}
 
-		} else {
-			PX4_ERR("unmatched number of px4_shutdown_unlock() calls");
+	if (shutdown_lock_counter > 0) {
+		--shutdown_lock_counter;
+
+		if (shutdown_lock_counter == 0) {
+			ret = work_cancel(HPWORK, &shutdown_lock_watchdog_work);
+
+			px4_indicate_external_reset_lockout(LockoutComponent::SystemShutdownLock, false);
 		}
 
-		return pthread_mutex_unlock(&shutdown_mutex);
+	} else if (!shutdown_lock_watchdog_cb_triggered) {
+		PX4_ERR("unmatched number of px4_shutdown_unlock() calls");
 	}
+
+	ret |= pthread_mutex_unlock(&shutdown_mutex);
 
 	return ret;
 }
@@ -122,34 +184,50 @@ static constexpr hrt_abstime shutdown_timeout_us =
 
 int px4_register_shutdown_hook(shutdown_hook_t hook)
 {
-	pthread_mutex_lock(&shutdown_mutex);
+	int ret = 0;
+	bool hooklist_full = true;
+
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return ret;
+	}
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (!shutdown_hooks[i]) {
 			shutdown_hooks[i] = hook;
-			pthread_mutex_unlock(&shutdown_mutex);
-			return 0;
+			hooklist_full = false;
+			break;
 		}
 	}
 
-	pthread_mutex_unlock(&shutdown_mutex);
-	return -ENOMEM;
+	ret = pthread_mutex_unlock(&shutdown_mutex);
+
+	return hooklist_full ? -ENOMEM : ret;
 }
 
 int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 {
-	pthread_mutex_lock(&shutdown_mutex);
+	int ret = 0;
+	bool hook_found = false;
+
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return ret;
+	}
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (shutdown_hooks[i] == hook) {
 			shutdown_hooks[i] = nullptr;
-			pthread_mutex_unlock(&shutdown_mutex);
-			return 0;
+			hook_found = true;
+			break;
 		}
 	}
 
-	pthread_mutex_unlock(&shutdown_mutex);
-	return -EINVAL;
+	ret = pthread_mutex_unlock(&shutdown_mutex);
+
+	return hook_found ? ret : -EINVAL;
 }
 
 /**
@@ -160,8 +238,13 @@ static void shutdown_worker(void *arg)
 {
 	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
 	bool done = true;
+	int ret;
 
-	pthread_mutex_lock(&shutdown_mutex);
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return;
+	}
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (shutdown_hooks[i]) {
@@ -200,78 +283,107 @@ static void shutdown_worker(void *arg)
 			PX4_INFO_RAW("Powering off NOW.");
 #if defined(CONFIG_BOARDCTL_POWEROFF)
 			boardctl(BOARDIOC_POWEROFF, 0);
+
 #else
 			board_power_off(0);
+
 #endif
 #elif defined(__PX4_POSIX)
 			// simply exit on posix if real shutdown (poweroff) not available
 			PX4_INFO_RAW("Exiting NOW.");
+#if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+			exit(0); // Use exit() instead of _exit() so ASAN can report errors
+#else
 			system_exit(0);
+#endif
 #else
 			PX4_PANIC("board shutdown not available");
 #endif
 		}
 
-		pthread_mutex_unlock(&shutdown_mutex); // must NEVER come here
+		pthread_mutex_unlock(&shutdown_mutex);
 
 	} else {
 		pthread_mutex_unlock(&shutdown_mutex);
-		work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(10000));
+
+		ret = work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(10000));
+
+		if (ret != 0) {
+			PX4_ERR("failed to queue shutdown worker: %d", ret);
+		}
 	}
 }
 
 #if defined(CONFIG_BOARDCTL_RESET)
 int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 {
-	pthread_mutex_lock(&shutdown_mutex);
+	int ret;
 
-	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
-		pthread_mutex_unlock(&shutdown_mutex);
-		return 0;
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return ret;
 	}
 
-	shutdown_args |= SHUTDOWN_ARG_REBOOT;
+	if (!(shutdown_args & SHUTDOWN_ARG_IN_PROGRESS)) {
+		shutdown_args |= SHUTDOWN_ARG_REBOOT;
 
-	if (request == REBOOT_TO_BOOTLOADER) {
-		shutdown_args |= SHUTDOWN_ARG_TO_BOOTLOADER;
+		if (request == REBOOT_TO_BOOTLOADER) {
+			shutdown_args |= SHUTDOWN_ARG_TO_BOOTLOADER;
 
-	} else if (request == REBOOT_TO_ISP) {
-		shutdown_args |= SHUTDOWN_ARG_TO_ISP;
+		} else if (request == REBOOT_TO_ISP) {
+			shutdown_args |= SHUTDOWN_ARG_TO_ISP;
+		}
+
+		shutdown_time_us = hrt_absolute_time();
+
+		if (delay_us > 0) {
+			shutdown_time_us += delay_us;
+		}
+
+		ret = work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
+
+		if (ret != 0) {
+			PX4_ERR("failed to queue shutdown worker: %d", ret);
+		}
 	}
 
-	shutdown_time_us = hrt_absolute_time();
+	ret = pthread_mutex_unlock(&shutdown_mutex);
 
-	if (delay_us > 0) {
-		shutdown_time_us += delay_us;
-	}
-
-	work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
-	pthread_mutex_unlock(&shutdown_mutex);
-	return 0;
+	return ret;
 }
 #endif // CONFIG_BOARDCTL_RESET
 
 #if defined(BOARD_HAS_POWER_CONTROL) || defined(__PX4_POSIX)
 int px4_shutdown_request(uint32_t delay_us)
 {
-	pthread_mutex_lock(&shutdown_mutex);
+	int ret;
 
-	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
-		pthread_mutex_unlock(&shutdown_mutex);
-		return 0;
+	ret = pthread_mutex_lock(&shutdown_mutex);
+
+	if (ret != 0) {
+		return ret;
 	}
 
-	shutdown_args |= SHUTDOWN_ARG_IN_PROGRESS;
+	if (!(shutdown_args & SHUTDOWN_ARG_IN_PROGRESS)) {
+		shutdown_args |= SHUTDOWN_ARG_IN_PROGRESS;
 
-	shutdown_time_us = hrt_absolute_time();
+		shutdown_time_us = hrt_absolute_time();
 
-	if (delay_us > 0) {
-		shutdown_time_us += delay_us;
+		if (delay_us > 0) {
+			shutdown_time_us += delay_us;
+		}
+
+		ret = work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
+
+		if (ret != 0) {
+			PX4_ERR("failed to queue shutdown worker: %d", ret);
+		}
 	}
 
-	work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
-	pthread_mutex_unlock(&shutdown_mutex);
-	return 0;
+	ret = pthread_mutex_unlock(&shutdown_mutex);
+
+	return ret;
 }
 #endif // BOARD_HAS_POWER_CONTROL
 

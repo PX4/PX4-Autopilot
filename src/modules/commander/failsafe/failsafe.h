@@ -104,6 +104,7 @@ private:
 		Land_mode = 3,
 		Terminate = 5,
 		Disarm = 6,
+		Hold_mode_no_failsafe = 7, ///< No failsafe: Commander switches to Hold as a regular mode change (NAV_RCL_ACT only)
 	};
 
 	enum class command_after_quadchute : int32_t {
@@ -188,6 +189,8 @@ private:
 	static ActionOptions fromGnssLossActParam(int param_value);
 
 	static bool isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter);
+
+	Action manualControlLossFallbackAction() const { return fromNavDllOrRclActParam(_param_nav_rcl_act.get()).action; }
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};

@@ -72,6 +72,10 @@
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git
 	branch = px4
+[submodule "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3"]
+	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3
+	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
+	branch = px4-release/3
 [submodule "Tools/simulation/gz"]
 	path = Tools/simulation/gz
 	url = https://github.com/PX4/PX4-gazebo-models.git

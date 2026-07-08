@@ -46,23 +46,28 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	if (!_rtl_status_sub.advertised()) {
+		return;
+	}
+
 	rtl_status_s rtl_status;
 
 	if (!_rtl_status_sub.copy(&rtl_status) || rtl_status.safe_point_index == UINT8_MAX) {
 		/* EVENT
 		 * @description
-		 * Upload at least one rally point before arming, or change <param>RTL_TYPE</param>.
+		 * No rally point is configured. Return will fall back to the current position when RTL is triggered.
+		 * Upload at least one rally point, or change <param>RTL_TYPE</param> to silence this warning.
 		 *
 		 * <profile name="dev">
-		 * This check is active when RTL_TYPE is set to 5 (safe points only).
+		 * This warning is active when RTL_TYPE is set to 5 (safe points only).
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
 					    events::ID("check_rally_point_missing"),
-					    events::Log::Error, "No rally point available");
+					    events::Log::Warning, "No rally point configured");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No rally point available\t");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "No rally point configured\t");
 		}
 	}
 }

@@ -520,7 +520,8 @@ void EKF2::Run()
 			command_ack.target_system = vehicle_command.source_system;
 			command_ack.target_component = vehicle_command.source_component;
 
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
+			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
 				double latitude = vehicle_command.param5;
 				double longitude = vehicle_command.param6;
 				float altitude = vehicle_command.param7;
@@ -1758,9 +1759,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
-	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid() || (_ekf.getHeightSensorRef() == HeightSensor::RANGE);
+	lpos.dist_bottom_valid = _ekf.isHeightAboveGroundEstimateValid();
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
-	lpos.dist_bottom_var = _ekf.getTerrainVariance();
+	lpos.dist_bottom_var = _ekf.getHaglVariance();
 	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);
 
 	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
@@ -2310,9 +2311,13 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 	//  - use the landing target pose estimate as another source of velocity data
 	landing_target_pose_s landing_target_pose;
 
+	if (!_param_ekf2_avel_en.get()) {
+		return;
+	}
+
 	if (_landing_target_pose_sub.update(&landing_target_pose)) {
-		// we can only use the landing target if it has a fixed position and  a valid velocity estimate
-		if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
+
+		if (landing_target_pose.rel_vel_ekf2_valid) {
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
 				.time_us = landing_target_pose.timestamp,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,154 +31,144 @@
  *
  ****************************************************************************/
 
-
 #pragma once
 
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
-#include <lib/perf/perf_counter.h>
-#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <lib/battery/battery.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include "ina238_registers.hpp"
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
 
 using namespace time_literals;
-using namespace ina238;
 
-/* Configuration Constants */
-#define INA238_BASEADDR 	            0x45 /* 7-bit address. 8-bit address is 0x45 */
-// If initialization is forced (with the -f flag on the command line), but it fails, the drive will try again to
-// connect to the INA238 every this many microseconds
-#define INA238_INIT_RETRY_INTERVAL_US       500000
+namespace ina238
+{
 
+static constexpr uint32_t BUS_CLOCK_HZ = 100'000;
 
-#define INA238_MFG_ID_TI                    (0x5449) // TI
-#define INA238_MFG_DIE                      (0x238) // INA237, INA238
+static constexpr uint16_t MANFID = 0x5449;
+static constexpr uint16_t DIEID = 0x238;
 
-#define INA238_ADCRANGE_SHIFTS              (4)
-#define INA238_ADCRANGE_LOW                 (1 << INA238_ADCRANGE_SHIFTS) // ± 40.96 mV
-#define INA238_ADCRANGE_HIGH                (0 << INA238_ADCRANGE_SHIFTS) // ±163.84 mV
+// Measurement scaling (from datasheet)
+static constexpr float V_LSB = 3.125e-3f; // V per LSB
+static constexpr float T_LSB = 7.8125e-3f; // °C per LSB
+static constexpr float SHUNT_CAL_K = 819.2e6f; // shunt-cal scaling constant
+static constexpr float ADCRANGE_LOW_V_SENSE = 0.04096f; // ±40.96 mV
 
-#define INA238_DEVICE_ID_SHIFTS              (4)
-#define INA238_DEVICE_ID_MASK                (0xfff << INA238_DEVICE_ID_SHIFTS)
-#define INA238_DEVICEID(v)                   (((v) & INA238_DEVICE_ID_MASK) >> INA238_DEVICE_ID_SHIFTS)
+// Sample timing
+// ADC produces one averaged sample every 540us x 3 channels x 64 avg = 103.68 ms.
+// Poll a hair slower than that so we always read a fresh sample rather than aliasing.
+static constexpr hrt_abstime SAMPLE_INTERVAL_US = 105_ms;
 
-#define INA238_SAMPLE_FREQUENCY_HZ           10
-#define INA238_SAMPLE_INTERVAL_US            (1_s / INA238_SAMPLE_FREQUENCY_HZ)
-#define INA238_CONVERSION_INTERVAL           (INA238_SAMPLE_INTERVAL_US - 7)
-#define INA238_DN_MAX                        32768.0f   /* 2^15 */
-#define INA238_CONST                         819.2e6f  /* is an internal fixed value used to ensure scaling is maintained properly  */
-#define INA238_VSCALE                        3.125e-03f  /* LSB of voltage is 3.1255 mV/LSB */
-#define INA238_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
+// Recovery / robustness timing
+static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
+static constexpr hrt_abstime RESET_DELAY_US = 1_ms; // datasheet specifies 300us. Give some margin
+static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
+static constexpr uint8_t MAX_CONSECUTIVE_FAILURES = DISCONNECT_DEBOUNCE_US / SAMPLE_INTERVAL_US;
 
-#define INA238_ADCRANGE_LOW_V_SENSE          0.04096f // ± 40.96 mV
+// Register map (subset used by this driver)
+enum class Register : uint8_t {
+	CONFIG = 0x00,
+	ADCCONFIG = 0x01,
+	SHUNT_CAL = 0x02,
+	VS_BUS = 0x05,
+	DIETEMP = 0x06,
+	CURRENT = 0x07,
+	MANUFACTURER_ID = 0x3e,
+	DEVICE_ID = 0x3f,
+};
 
-#define DEFAULT_MAX_CURRENT                  327.68f    /* Amps */
-#define DEFAULT_SHUNT                        0.0003f   /* Shunt is 300 uOhm */
+// CONFIG register bits
+enum CONFIG_BIT : uint16_t {
+	RST = (1u << 15),
+	RANGE_HIGH = (0u << 4), // ±163.84 mV — used when R_SHUNT * I_MAX > 40.96 mV
+	RANGE_LOW = (1u << 4), // ±40.96 mV
+};
 
-#define swap16(w)                            __builtin_bswap16((w))
-#define swap32(d)                            __builtin_bswap32((d))
-#define swap64(q)                            __builtin_bswap64((q))
+// DEVICE_ID register field accessor
+static constexpr uint16_t DEVICE_ID_MASK = 0xfff0u;
+static inline constexpr uint16_t deviceId(uint16_t v) { return (v & DEVICE_ID_MASK) >> 4; }
+
+// ADCCONFIG register bits
+enum ADCCONFIG_BIT : uint16_t {
+	AVERAGES_1 = (0u << 0),
+	AVERAGES_4 = (1u << 0),
+	AVERAGES_16 = (2u << 0),
+	AVERAGES_64 = (3u << 0),
+	AVERAGES_128 = (4u << 0),
+	AVERAGES_256 = (5u << 0),
+	AVERAGES_512 = (6u << 0),
+	AVERAGES_1024 = (7u << 0),
+
+	VTCT_540US = (4u << 3),
+	VSHCT_540US = (4u << 6),
+	VBUSCT_540US = (4u << 9),
+
+	MODE_TEMP_SHUNT_BUS_CONT = (15u << 12),
+};
+
+} // namespace ina238
+
 
 class INA238 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA238>
 {
 public:
 	INA238(const I2CSPIDriverConfig &config, int battery_index);
-	virtual ~INA238();
+	~INA238() override;
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
+	int init() override;
 	void RunImpl();
 
-	int init() override;
-
-	/**
-	 * Tries to call the init() function. If it fails, then it will schedule to retry again in
-	 * INA238_INIT_RETRY_INTERVAL_US microseconds. It will keep retrying at this interval until initialization succeeds.
-	 *
-	 * @return PX4_OK if initialization succeeded on the first try. Negative value otherwise.
-	 */
-	int force_init();
-
-	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
 	void print_status() override;
 
 protected:
 	int probe() override;
 
 private:
-	// Sensor Configuration
-	struct register_config_t {
-		Register reg;
-		uint16_t set_bits{0};
-		uint16_t clear_bits{0};
+	enum class State : uint8_t {
+		UNINITIALIZED, // I2C::init() not yet called successfully — retry until it does
+		RESET, // soft-reset the device, then transition to CONFIGURE
+		CONFIGURE, // write SHUNT_CAL / CONFIG / ADCCONFIG, then transition to MEASURE
+		MEASURE, // steady-state: read VS_BUS / CURRENT / DIETEMP, publish, repeat
 	};
-	bool RegisterCheck(const register_config_t &reg_cfg);
-	int RegisterWrite(Register reg, uint16_t value);
-	int RegisterRead(Register reg, uint16_t &value);
-	int Reset();
-
-	unsigned int _measure_interval{0};
-	bool _collect_phase{false};
-	bool _initialized{false};
-
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
-	perf_counter_t _collection_errors;
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-
-	// Configuration state, computed from params
-	float _max_current;
-	float _rshunt;
-	float _current_lsb;
-	int16_t _range;
-	uint16_t _shunt_calibration{0};
-
-
-	hrt_abstime _last_config_check_timestamp{0};
-	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{3};
-	register_config_t _register_cfg[size_register_cfg] {
-		// Register | Set bits, Clear bits
-		{ Register::CONFIG, 0, 0}, // will be set dynamically
-		{ Register::ADCCONFIG, MODE_TEMP_SHUNT_BUS_CONT |  VBUSCT_540US |  VSHCT_540US | VTCT_540US | AVERAGES_64},
-		{ Register::SHUNT_CAL, 0, 0}	// will be set dynamically
-	};
-
-	Battery _battery;
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uint8_t _connected{0};
-	// returns state unchanged
-	bool setConnected(bool state);
-
-	int read(uint8_t address, uint16_t &data);
-	int write(uint8_t address, uint16_t data);
-
-	int read(uint8_t address, int16_t &data)
-	{
-		return read(address, (uint16_t &)data);
-	}
-
-	int write(uint8_t address, int16_t data)
-	{
-		return write(address, (uint16_t)data);
-	}
-
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void start();
 
 	int collect();
 
+	// Rotates through the configuration registers one per call. Returns false
+	// if a read fails or the value doesn't match what we wrote.
+	bool checkConfigurationRotating();
+
+	int registerRead(ina238::Register reg, uint16_t &value);
+	int registerWrite(ina238::Register reg, uint16_t value);
+
+	// --- State -------------------------------------------------------------
+	Battery _battery;
+
+	State _state{State::UNINITIALIZED};
+	uint8_t _consecutive_failures{0};
+
+	uint8_t _next_reg_to_check{0};
+
+	// Configuration computed from params
+	float _current_lsb{0.f};
+	uint16_t _shunt_calibration{0};
+	uint16_t _config_value{0}; // CONFIG register value we wrote
+	uint16_t _adc_config_value{0}; // ADCCONFIG register value we wrote
+
+	// Perf counters
+	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors;
+	perf_counter_t _collection_errors;
+	perf_counter_t _bad_register_perf;
+	perf_counter_t _reinit_perf;
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::INA238_CURRENT>) _param_ina238_current,
+		(ParamFloat<px4::params::INA238_SHUNT>) _param_ina238_shunt
+	);
 };

@@ -1,15 +1,9 @@
 # 多旋翼的加加速度限制型轨迹
 
-加加速度有限的轨迹类型能响应用户摇杆输入或任务的变化（例如：航拍，测绘，货运）并为机体提供平滑的运动。
+The Jerk-limited trajectory type provides smooth motion in autonomous flight e.g. for filming, mapping, cargo.
 它能产生对称的平滑 S-曲线使加加速度和加速度的极限始终得到保证。
 
-This trajectory type is always enabled in [Mission mode](../flight_modes_mc/mission.md).
-To enable it in [Position mode](../flight_modes_mc/position.md) set the parameter [MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE) to `Smoothed velocity`.
-
-:::info
-The jerk-limited type is not used _by default_ in position mode.
-但它可能不适合于那些需要较快响应的机体/使用案例——例如穿越机。
-:::
+This trajectory type is always enabled in autonomous modes like [Mission mode](../flight_modes_mc/mission.md).
 
 ## 轨迹生成器
 
@@ -30,16 +24,11 @@ The constraints `jMax`, `aMax` are configurable by the user via parameters and c
 
 ## 手动模式
 
-In manual position mode, the sticks are mapped to velocity where a full XY-stick deflection corresponds to [MPC_VEL_MANUAL](../advanced_config/parameter_reference.md#MPC_VEL_MANUAL) and a full Z-stick deflection corresponds to [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) (upward motion) or [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) (downward motion).
+In manual position and altitude mode, jerk limiting is applied only to the vertical axis. Full throttle stick deflection commands the maximum vertical velocity which is [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) upwards and [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) downwards.
 
 ### 约束
 
-XY平面：
-
-- `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
-- `aMax`: [MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)
-
-Z轴：
+Z-axis
 
 - `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
 - `aMax` (upward motion): [MPC_ACC_UP_MAX](../advanced_config/parameter_reference.md#MPC_ACC_UP_MAX)

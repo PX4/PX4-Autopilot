@@ -57,7 +57,7 @@ div.frame_variant td, div.frame_variant th {
  </thead>
  <tbody>
 <tr>
- <td><ul><li><b>Motor1</b>: підрулювач правого борту</li><li><b>Motor2</b>: підрулювач порту</li><li><b>Motor3</b>: хвостовий підрулювач</li><li><b>Servo1</b>: нахил тяги</li></ul></td>
+ <td><ul><li><b>Motor1</b>: підрулювач правого борту</li><li><b>Motor2</b>: підрулювач порту</li></ul></td>
 </tr>
 </tbody></table>
 </div>
@@ -68,9 +68,13 @@ div.frame_variant td, div.frame_variant th {
    <tr><th>Назва</th><th></th></tr>
  </thead>
 <tbody>
+<tr id="airship_airship_generic_airship">
+ <td>Generic Airship</td>
+ <td>Maintainer: Hyunduk Shin &lt;hyunduk@icarus-airship.com&gt;<p><code>SYS_AUTOSTART</code> = 2500</p><br><b>Specific Outputs:</b><ul><li><b>Servo1</b>: right elevator</li><li><b>Servo2</b>: left elevator</li><li><b>Servo3</b>: upper rudder</li><li><b>Servo4</b>: lower rudder</li></ul></td>
+</tr>
 <tr id="airship_airship_cloudship">
  <td>Cloudship</td>
- <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 2507</p></td>
+ <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 2507</p><br><b>Specific Outputs:</b><ul><li><b>Motor3</b>: хвостовий підрулювач</li><li><b>Servo1</b>: нахил тяги</li></ul></td>
 </tr>
 </tbody>
 </table>
@@ -585,9 +589,9 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## Ровер
+## Rover
 
-### Ровер
+### Rover
 
 <div class="frame_common">
 <img src="../../assets/airframes/types/Rover.svg"/>
@@ -611,6 +615,10 @@ div.frame_variant td, div.frame_variant th {
  <td><a href="https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1">Aion Robotics R1 UGV</a></td>
  <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50001</p></td>
 </tr>
+<tr id="rover_rover_hiwonder_tracked">
+ <td><a href="https://www.hiwonder.com/products/suspended-shock-absorbing-tracked-chassis?variant=40378709835863">Hiwonder Tracked</a></td>
+ <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50002</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_ackermann">
  <td>Generic Rover Ackermann</td>
  <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51000</p></td>
@@ -623,9 +631,17 @@ div.frame_variant td, div.frame_variant th {
  <td>NXP B3RB Rover Ackermann</td>
  <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51002</p></td>
 </tr>
+<tr id="rover_rover_hiwonder_ackermann">
+ <td><a href="https://www.hiwonder.com/products/ackermann-steering-chassis?variant=40382428348503">Hiwonder Ackermann</a></td>
+ <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51003</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_mecanum">
  <td>Generic Rover Mecanum</td>
  <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52000</p></td>
+</tr>
+<tr id="rover_rover_hiwonder_mecanum">
+ <td><a href="https://www.hiwonder.com/products/large-metal-4wd-vehicle-chassis-green">Hiwonder Mecanum</a></td>
+ <td>Підтримувач: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52001</p></td>
 </tr>
 </tbody>
 </table>

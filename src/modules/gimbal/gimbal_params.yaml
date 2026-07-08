@@ -18,9 +18,10 @@ parameters:
         2: MAVLINK_ROI (protocol v1, to be deprecated)
         3: MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
         4: MAVlink gimbal protocol v2
+        5: Fixed world-frame attitude, not user controllable
       default: -1
       min: -1
-      max: 4
+      max: 5
       reboot_required: true
     MNT_MODE_OUT:
       description:
@@ -205,5 +206,14 @@ parameters:
       default: 90.0
       min: -90.0
       max: 90.0
+      unit: deg
+      decimal: 1
+    MNT_FIXED_PITCH:
+      description:
+        short: Tracked pitch angle when in fixed mode (MNT_MODE_IN=5)
+      type: float
+      default: 0.0
+      min: -90
+      max: 90
       unit: deg
       decimal: 1

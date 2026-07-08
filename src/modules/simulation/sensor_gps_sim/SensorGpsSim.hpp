@@ -33,14 +33,17 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -68,7 +71,23 @@ public:
 	bool init();
 
 private:
+	static constexpr int GPS_MAX_INSTANCES = 2;
+
 	void Run() override;
+
+	void updateFailureConfig();
+
+	void publishWithFailures(int instance, sensor_gps_s gps, sensor_gps_s &snapshot,
+				 uORB::PublicationMulti<sensor_gps_s> &pub);
+
+	// instance is 0-based here; the failure_injection topic addresses 1-based instances.
+	failure_injection::Mode failureMode(int instance) const
+	{
+		return _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, instance + 1);
+	}
+	bool isBlocked(int instance) const { return failureMode(instance) == failure_injection::Mode::Off; }
+	bool isStuck(int instance)   const { return failureMode(instance) == failure_injection::Mode::Stuck; }
+	bool isWrong(int instance)   const { return failureMode(instance) == failure_injection::Mode::Wrong; }
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
@@ -84,6 +103,11 @@ private:
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub2{ORB_ID(sensor_gps)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+
+	failure_injection::Config _failure_config;
+
+	sensor_gps_s _last_gps0{};
+	sensor_gps_s _last_gps1{};
 
 	// GPS Markov process noise state
 	float _gps_pos_noise_n{0.0f};

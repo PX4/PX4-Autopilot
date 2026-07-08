@@ -244,5 +244,47 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-06-12: merge COM_RC_OVERRIDE + COM_RC_STICK_OV into MAN_OVERRIDE_SPD
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_RC_OVERRIDE", node->name) == 0) && (node->i32 == 0)) {
+			node->d = -1.0;
+			node->type = bson_type_t::BSON_DOUBLE;
+			strcpy(node->name, "MAN_OVERRIDE_SPD");
+			PX4_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-06-22: translate HEATER*_IMU_ID to HEATER*_SENS_ID
+	//	HEATER_MAX_INSTANCES == 3 (in heater.h)
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strncmp("HEATER", node->name, 6) == 0)
+		    && strstr(node->name, "_IMU_ID") != nullptr) {
+			char old_name[BSON_MAXNAME];
+			strncpy(old_name, node->name, sizeof(old_name));
+			char new_name[16];
+			snprintf(new_name, sizeof(new_name), "HEATER%c_SENS_ID", node->name[6]);
+			strcpy(node->name, new_name);
+			PX4_INFO("migrating %s -> %s", old_name, new_name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
+	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MPC_LAND_RC_HELP", node->name) == 0)) {
+			if (node->i32 != 0) {
+				int32_t nudging = 0;
+				param_get(param_find("MPC_AUTO_NUDGING"), &nudging);
+				nudging |= (1 << 1);
+				param_set(param_find("MPC_AUTO_NUDGING"), &nudging);
+			}
+
+			PX4_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

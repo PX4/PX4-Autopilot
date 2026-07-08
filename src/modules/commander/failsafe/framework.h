@@ -118,11 +118,6 @@ public:
 		}
 	}
 
-	enum class RcOverrideBits : int32_t {
-		AUTO_MODE_BIT = (1 << 0),
-		OFFBOARD_MODE_BIT = (1 << 1),
-	};
-
 	struct State {
 		bool armed{false};
 		uint8_t user_intended_mode{0};
@@ -275,7 +270,7 @@ private:
 	failsafe_flags_s _last_status_flags{};
 	Action _selected_action{Action::None};
 	bool _user_takeover_active{false};
-	bool _notification_required{false};
+	Cause _pending_notification_cause{Cause::Count};
 
 	bool _defer_failsafes{false};
 	hrt_abstime _defer_timeout{0};

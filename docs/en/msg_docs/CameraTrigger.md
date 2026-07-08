@@ -8,12 +8,12 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name          | Type     | Unit [Frame] | Range/Enum | Description                            |
-| ------------- | -------- | ------------ | ---------- | -------------------------------------- |
-| timestamp     | `uint64` |              |            | time since system start (microseconds) |
-| timestamp_utc | `uint64` |              |            | UTC timestamp                          |
-| seq           | `uint32` |              |            | Image sequence number                  |
-| feedback      | `bool`   |              |            | Trigger feedback from camera           |
+| Name                                        | Type     | Unit [Frame] | Range/Enum | Description                            |
+| ------------------------------------------- | -------- | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp         | `uint64` |              |            | time since system start (microseconds) |
+| <a id="fld_timestamp_utc"></a>timestamp_utc | `uint64` |              |            | UTC timestamp                          |
+| <a id="fld_seq"></a>seq                     | `uint32` |              |            | Image sequence number                  |
+| <a id="fld_feedback"></a>feedback           | `bool`   |              |            | Trigger feedback from camera           |
 
 ## Constants
 

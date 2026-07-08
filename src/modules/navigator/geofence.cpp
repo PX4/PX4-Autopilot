@@ -548,8 +548,8 @@ Geofence::loadFromFile(const char *filename)
 
 	dm_item_t write_fence_dataman_id{static_cast<dm_item_t>(stat.dataman_id) == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0};
 
-	/* open the mixer definition file */
-	fp = fopen(GEOFENCE_FILENAME, "r");
+	/* open the geofence file */
+	fp = fopen(filename, "r");
 
 	if (fp == nullptr) {
 		return PX4_ERROR;
@@ -705,15 +705,16 @@ void Geofence::printStatus()
 	int num_inclusion_circles = 0, num_exclusion_circles = 0;
 
 	for (int i = 0; i < _num_polygons; ++i) {
-		total_num_vertices += _polygons[i].vertex_count;
 
 		switch (_polygons[i].fence_type) {
 		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			++num_inclusion_polygons;
+			total_num_vertices += _polygons[i].vertex_count;
 			break;
 
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			++num_exclusion_polygons;
+			total_num_vertices += _polygons[i].vertex_count;
 			break;
 
 		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
@@ -730,7 +731,6 @@ void Geofence::printStatus()
 		}
 	}
 
-	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion circles, %i exclusion circles, %i total vertices",
-		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
-		 total_num_vertices);
+	PX4_INFO("Geofence: polygons: %i inclusion, %i exclusion, %i vertices; circles: %i inclusion, %i exclusion",
+		 num_inclusion_polygons, num_exclusion_polygons, total_num_vertices, num_inclusion_circles, num_exclusion_circles);
 }

@@ -26,11 +26,11 @@ then
 fi
 
 # initialize script variables
-set VEHICLE_TYPE                none
-set LOGGER_ARGS                 ""
-set LOGGER_BUF                  1000
+set VEHICLE_TYPE none
+set LOGGER_ARGS ""
+set LOGGER_BUF 1000
 
-set RUN_MINIMAL_SHELL           no
+set RUN_MINIMAL_SHELL no
 
 set SYS_AUTOSTART=0
 
@@ -136,11 +136,11 @@ if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOSTART $SYS_AUTOSTART
 
-	param set CAL_ACC0_ID  1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	param set CAL_ACC0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	param set CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	param set CAL_ACC1_ID  1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+	param set CAL_ACC1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 	param set CAL_GYRO1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
-	param set CAL_ACC2_ID  1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	param set CAL_ACC2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	param set CAL_GYRO2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 
 	param set CAL_MAG0_ID 197388
@@ -182,7 +182,7 @@ param set-default SYS_FAILURE_EN 1
 param set-default COM_LOW_BAT_ACT 3
 
 # set default IP to localhost
-param set-default UXRCE_DDS_AG_IP 2130706433  # 127.0.0.1
+param set-default UXRCE_DDS_AG_IP 2130706433 # 127.0.0.1
 
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
@@ -244,6 +244,11 @@ then
 fi
 
 load_mon start
+
+if param compare SYS_FAILURE_EN 1
+then
+	failure_injection_manager start
+fi
 
 if param greater SIM_BAT_DRAIN 0
 then

@@ -16,22 +16,22 @@ subscribed to by any other modules.
 
 ## Fields
 
-| Name                | Type      | Unit [Frame] | Range/Enum | Description                                                                       |
-| ------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------- |
-| timestamp           | `uint64`  | us           |            | Time since system start                                                           |
-| timestamp_sample    | `uint64`  | us           |            | Timestamp of the raw data                                                         |
-| windspeed_north     | `float32` | m/s          |            | Wind component in north / X direction                                             |
-| windspeed_east      | `float32` | m/s          |            | Wind component in east / Y direction                                              |
-| variance_north      | `float32` | (m/s)^2      |            | Wind estimate error variance in north / X direction (Invalid: 0 if not estimated) |
-| variance_east       | `float32` | (m/s)^2      |            | Wind estimate error variance in east / Y direction (Invalid: 0 if not estimated)  |
-| tas_innov           | `float32` | m/s          |            | True airspeed innovation                                                          |
-| tas_innov_var       | `float32` | m/s          |            | True airspeed innovation variance                                                 |
-| tas_scale_raw       | `float32` |              |            | Estimated true airspeed scale factor (not validated)                              |
-| tas_scale_raw_var   | `float32` |              |            | True airspeed scale factor variance                                               |
-| tas_scale_validated | `float32` |              |            | Estimated true airspeed scale factor after validation                             |
-| beta_innov          | `float32` | rad          |            | Sideslip measurement innovation                                                   |
-| beta_innov_var      | `float32` | rad^2        |            | Sideslip measurement innovation variance                                          |
-| source              | `uint8`   |              |            | source of wind estimate                                                           |
+| Name                                                    | Type      | Unit [Frame] | Range/Enum | Description                                                                       |
+| ------------------------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                     | `uint64`  | us           |            | Time since system start                                                           |
+| <a id="fld_timestamp_sample"></a>timestamp_sample       | `uint64`  | us           |            | Timestamp of the raw data                                                         |
+| <a id="fld_windspeed_north"></a>windspeed_north         | `float32` | m/s          |            | Wind component in north / X direction                                             |
+| <a id="fld_windspeed_east"></a>windspeed_east           | `float32` | m/s          |            | Wind component in east / Y direction                                              |
+| <a id="fld_variance_north"></a>variance_north           | `float32` | (m/s)^2      |            | Wind estimate error variance in north / X direction (Invalid: 0 if not estimated) |
+| <a id="fld_variance_east"></a>variance_east             | `float32` | (m/s)^2      |            | Wind estimate error variance in east / Y direction (Invalid: 0 if not estimated)  |
+| <a id="fld_tas_innov"></a>tas_innov                     | `float32` | m/s          |            | True airspeed innovation                                                          |
+| <a id="fld_tas_innov_var"></a>tas_innov_var             | `float32` | m/s          |            | True airspeed innovation variance                                                 |
+| <a id="fld_tas_scale_raw"></a>tas_scale_raw             | `float32` |              |            | Estimated true airspeed scale factor (not validated)                              |
+| <a id="fld_tas_scale_raw_var"></a>tas_scale_raw_var     | `float32` |              |            | True airspeed scale factor variance                                               |
+| <a id="fld_tas_scale_validated"></a>tas_scale_validated | `float32` |              |            | Estimated true airspeed scale factor after validation                             |
+| <a id="fld_beta_innov"></a>beta_innov                   | `float32` | rad          |            | Sideslip measurement innovation                                                   |
+| <a id="fld_beta_innov_var"></a>beta_innov_var           | `float32` | rad^2        |            | Sideslip measurement innovation variance                                          |
+| <a id="fld_source"></a>source                           | `uint8`   |              |            | source of wind estimate                                                           |
 
 ## Constants
 

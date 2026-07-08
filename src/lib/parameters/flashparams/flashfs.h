@@ -157,6 +157,24 @@ __EXPORT int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffe
 __EXPORT int parameter_flashfs_read(flash_file_token_t ft, uint8_t **buffer, size_t *buf_size);
 
 /****************************************************************************
+ * Name: parameter_flashfs_blank
+ *
+ * Description:
+ *   Reports whether the parameter storage is fully erased. This lets callers
+ *   tell a never-written store (first boot, or after switching firmware) from
+ *   one that holds data but no valid entry (torn write, bit-rot, or foreign
+ *   data) - both of which surface as -ENOENT from parameter_flashfs_read.
+ *
+ * Returned value:
+ *   1 if every configured sector is fully erased
+ *   0 if any byte is programmed
+ *   A negative errno if the flashfs has not been initialized
+ *
+ ****************************************************************************/
+
+__EXPORT int parameter_flashfs_blank(void);
+
+/****************************************************************************
  * Name: parameter_flashfs_write
  *
  * Description:

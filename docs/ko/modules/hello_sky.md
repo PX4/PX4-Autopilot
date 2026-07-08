@@ -317,7 +317,7 @@ Individual message channels between applications are called [topics](../middlewa
 ```cpp
 #include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 ```
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
@@ -330,7 +330,7 @@ Adding `poll()` to the subscription looks like (_pseudocode, look for the full i
 #include <poll.h>
 #include <uORB/topics/vehicle_acceleration.h>
 ..
-int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 
 /* one could wait for multiple topics with this technique, just using one here */
 px4_pollfd_struct_t fds[] = {
@@ -475,7 +475,7 @@ int px4_simple_app_main(int argc, char *argv[])
 	PX4_INFO("Hello Sky!");
 
 	/* subscribe to vehicle_acceleration topic */
-	int sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
+	orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 	/* limit the update rate to 5 Hz */
 	orb_set_interval(sensor_sub_fd, 200);
 

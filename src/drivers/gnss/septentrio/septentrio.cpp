@@ -98,6 +98,7 @@ constexpr uint8_t k_max_command_size            = 140;
 constexpr uint16_t k_timeout_5hz                = 500;
 constexpr uint32_t k_read_buffer_size           = 150;
 constexpr time_t k_gps_epoch_secs               = 1234567890ULL; // TODO: This seems wrong
+constexpr hrt_abstime k_message_timeout = 6_s; /// A message is considered missing if we havent received it for this period of time
 
 // Septentrio receiver commands
 // - erst: exeResetReceiver
@@ -312,6 +313,7 @@ void SeptentrioDriver::run()
 
 					SEP_INFO("Automatic configuration finished");
 					_state = State::ReceivingData;
+					initialize_message_tracker();
 
 				} else {
 					_state = State::DetectingBaudRate;
@@ -325,7 +327,8 @@ void SeptentrioDriver::run()
 
 				receive_result = receive(k_timeout_5hz);
 
-				if (receive_result == -1) {
+				if (receive_result == -1 || receiver_configuration_healthy() == false) {
+					SEP_WARN("Receiver unhealthy, reconfiguring the receiver.");
 					_state = State::DetectingBaudRate;
 				}
 
@@ -768,9 +771,11 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 
 		char* port_name_address = strstr(buf, ">");
 
-		// Check if we found a port candidate.
-		if (buffer_offset > 4 && port_name_address != nullptr) {
-			size_t port_name_offset = reinterpret_cast<size_t>(port_name_address) - reinterpret_cast<size_t>(buf) - 4;
+		// Check if we found a port candidate. The prompt must be preceded by at least
+		// four bytes of port name in the same buffer, otherwise the offset would
+		// underflow and read before buf.
+		if (port_name_address != nullptr && (port_name_address - buf) >= 4) {
+			size_t port_name_offset = static_cast<size_t>(port_name_address - buf) - 4;
 			for (size_t i = 0; i < 4; i++) {
 				port_name[i] = buf[port_name_offset + i];
 			}
@@ -1061,7 +1066,7 @@ int SeptentrioDriver::process_message()
 		}
 		case BlockID::DOP: {
 			SEP_TRACE_PARSING("Processing DOP SBF message");
-			_current_interval_messages.dop = true;
+			_message_tracker.dop = hrt_absolute_time();
 
 			DOP dop;
 
@@ -1078,7 +1083,7 @@ int SeptentrioDriver::process_message()
 			using Error = PVTGeodetic::Error;
 
 			SEP_TRACE_PARSING("Processing PVTGeodetic SBF message");
-			_current_interval_messages.pvt_geodetic = true;
+			_message_tracker.pvt_geodetic = hrt_absolute_time();
 
 			Header header;
 			PVTGeodetic pvt_geodetic;
@@ -1343,7 +1348,7 @@ int SeptentrioDriver::process_message()
 		}
 		case BlockID::VelCovGeodetic: {
 			SEP_TRACE_PARSING("Processing VelCovGeodetic SBF message");
-			_current_interval_messages.vel_cov_geodetic = true;
+			_message_tracker.vel_cov_geodetic = hrt_absolute_time();
 
 			VelCovGeodetic vel_cov_geodetic;
 
@@ -1363,7 +1368,7 @@ int SeptentrioDriver::process_message()
 			using Error = AttEuler::Error;
 
 			SEP_TRACE_PARSING("Processing AttEuler SBF message");
-			_current_interval_messages.att_euler = true;
+			_message_tracker.att_euler = hrt_absolute_time();
 
 			AttEuler att_euler;
 
@@ -1388,7 +1393,7 @@ int SeptentrioDriver::process_message()
 			using Error = AttCovEuler::Error;
 
 			SEP_TRACE_PARSING("Processing AttCovEuler SBF message");
-			_current_interval_messages.att_cov_euler = true;
+			_message_tracker.att_cov_euler = hrt_absolute_time();
 
 			AttCovEuler att_cov_euler;
 
@@ -1780,11 +1785,9 @@ void SeptentrioDriver::start_update_monitoring_interval()
 	_last_interval_rtcm_injections = _current_interval_rtcm_injections;
 	_last_interval_bytes_written = _current_interval_bytes_written;
 	_last_interval_bytes_read = _current_interval_bytes_read;
-	_last_interval_messages = _current_interval_messages;
 	_current_interval_rtcm_injections = 0;
 	_current_interval_bytes_written = 0;
 	_current_interval_bytes_read = 0;
-	_current_interval_messages = MessageTracker {};
 	_current_interval_start_time = hrt_absolute_time();
 }
 
@@ -1815,11 +1818,19 @@ uint32_t SeptentrioDriver::input_data_rate() const
 
 bool SeptentrioDriver::receiver_configuration_healthy() const
 {
-	return _last_interval_messages.dop &&
-               _last_interval_messages.pvt_geodetic &&
-               _last_interval_messages.vel_cov_geodetic &&
-               _last_interval_messages.att_euler &&
-               _last_interval_messages.att_cov_euler;
+	return hrt_elapsed_time(&_message_tracker.dop) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.pvt_geodetic) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.vel_cov_geodetic) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.att_euler) <= k_message_timeout &&
+               hrt_elapsed_time(&_message_tracker.att_cov_euler) <= k_message_timeout;
+}
+
+void SeptentrioDriver::initialize_message_tracker(){
+	_message_tracker.dop = hrt_absolute_time();
+	_message_tracker.pvt_geodetic = hrt_absolute_time();
+	_message_tracker.vel_cov_geodetic = hrt_absolute_time();
+	_message_tracker.att_euler = hrt_absolute_time();
+	_message_tracker.att_cov_euler = hrt_absolute_time();
 }
 
 float SeptentrioDriver::us_to_s(uint64_t us)

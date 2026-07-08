@@ -43,6 +43,7 @@
 #include <float.h>
 
 #include "rtl_direct.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 #include <px4_platform_common/events.h>
 
@@ -114,6 +115,10 @@ void RtlDirect::on_active()
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+	}
+
+	if (_rtl_state == RTLState::IDLE) {
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 
@@ -362,7 +367,6 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::IDLE: {
 			set_idle_item(&_mission_item);
-			_navigator->mode_completed(getNavigatorStateId());
 			break;
 		}
 
@@ -373,7 +377,7 @@ void RtlDirect::set_rtl_item()
 	reset_mission_item_reached();
 
 	// Execute command if set. This is required for commands like VTOL transition.
-	if (!MissionBlock::item_contains_position(_mission_item)) {
+	if (!mission_item_contains_position(_mission_item)) {
 		issue_command(_mission_item);
 
 	} else {

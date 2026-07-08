@@ -10,11 +10,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Назва                                                     | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
-| --------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                 | `uint64` |                                                                  |            | time since system start (microseconds) |
-| accel_device_id | `uint32` |                                                                  |            | unique device ID for the selected accelerometers          |
-| gyro_device_id  | `uint32` |                                                                  |            | unique device ID for the selected rate gyros              |
+| Назва                                                                                     | Тип      | Unit [Frame] | Range/Enum | Опис                                                      |
+| ----------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                       | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_accel_device_id"></a>accel_device_id | `uint32` |                                                                  |            | unique device ID for the selected accelerometers          |
+| <a id="fld_gyro_device_id"></a>gyro_device_id   | `uint32` |                                                                  |            | unique device ID for the selected rate gyros              |
 
 ## Source Message
 

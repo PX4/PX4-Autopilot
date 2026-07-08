@@ -91,6 +91,7 @@
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
+#include <uORB/topics/open_drone_id_basic_id.h>
 #include <uORB/topics/open_drone_id_operator_id.h>
 #include <uORB/topics/open_drone_id_self_id.h>
 #include <uORB/topics/open_drone_id_system.h>
@@ -126,7 +127,23 @@
 # include <uORB/topics/debug_vect.h>
 #endif // !CONSTRAINED_FLASH
 
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#  include <uORB/topics/fiducial_marker_pos_report.h>
+#  include <uORB/topics/fiducial_marker_yaw_report.h>
+#  include <uORB/topics/target_gnss.h>
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 using namespace time_literals;
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+enum class TargetAbsoluteSensorCapability : uint8_t {
+	kPosition = (1 << 0),
+	kVelocity = (1 << 1),
+	kAcceleration = (1 << 2),
+	kAttitude = (1 << 3),
+	kRates = (1 << 4),
+};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 class Mavlink;
 
@@ -190,6 +207,7 @@ private:
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
 	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_onboard_computer_status(mavlink_message_t *msg);
+	void handle_message_open_drone_id_basic_id(mavlink_message_t *msg);
 	void handle_message_open_drone_id_operator_id(mavlink_message_t *msg);
 	void handle_message_open_drone_id_self_id(mavlink_message_t *msg);
 	void handle_message_open_drone_id_system(mavlink_message_t *msg);
@@ -230,6 +248,12 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
+
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	void handle_message_target_relative(mavlink_message_t *msg);
+	void handle_message_target_absolute(mavlink_message_t *msg);
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
@@ -333,6 +357,7 @@ private:
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<velocity_limits_s>			_velocity_limits_pub{ORB_ID(velocity_limits)};
+	uORB::Publication<open_drone_id_basic_id_s>		_open_drone_id_basic_id_pub{ORB_ID(open_drone_id_basic_id)};
 	uORB::Publication<open_drone_id_operator_id_s>		_open_drone_id_operator_id_pub{ORB_ID(open_drone_id_operator_id)};
 	uORB::Publication<open_drone_id_self_id_s>		_open_drone_id_self_id_pub{ORB_ID(open_drone_id_self_id)};
 	uORB::Publication<open_drone_id_system_s>		_open_drone_id_system_pub{ORB_ID(open_drone_id_system)};
@@ -360,6 +385,14 @@ private:
 	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
 #endif // !CONSTRAINED_FLASH
 
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub {ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
+	param_t _param_vte_en{PARAM_INVALID};
+	hrt_abstime _vte_en_invalid_warn_last{0};
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<aux_global_position_s>		_aux_global_position_pub{ORB_ID(aux_global_position)};
@@ -385,6 +418,7 @@ private:
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uint8_t			_vehicle_type_bitmask{0}; ///< cached from vehicle_status; vehicle type requires reboot to change
 	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

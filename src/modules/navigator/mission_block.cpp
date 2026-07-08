@@ -41,6 +41,7 @@
  */
 
 #include "mission_block.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <math.h>
@@ -50,6 +51,7 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -520,7 +522,7 @@ MissionBlock::reset_mission_item_reached()
 void
 MissionBlock::issue_command(const mission_item_s &item)
 {
-	if (item_contains_position(item)
+	if (mission_item_contains_position(item)
 	    || item_contains_gate(item)
 	    || item_contains_marker(item)) {
 		return;
@@ -590,19 +592,6 @@ MissionBlock::item_has_timeout(const mission_item_s &item)
 }
 
 bool
-MissionBlock::item_contains_position(const mission_item_s &item)
-{
-	return item.nav_cmd == NAV_CMD_WAYPOINT ||
-	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
-	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-	       item.nav_cmd == NAV_CMD_LAND ||
-	       item.nav_cmd == NAV_CMD_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
-	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_VTOL_LAND;
-}
-
-bool
 MissionBlock::item_contains_gate(const mission_item_s &item)
 {
 	return item.nav_cmd == NAV_CMD_CONDITION_GATE;
@@ -618,7 +607,7 @@ bool
 MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp)
 {
 	// Don't change the setpoint for non-position items
-	if (!item_contains_position(item)) {
+	if (!mission_item_contains_position(item)) {
 		return false;
 	}
 
@@ -655,23 +644,32 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		break;
 
 	case NAV_CMD_TAKEOFF:
-	case NAV_CMD_VTOL_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF: {
 
-		// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
-		if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
+			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
+			bool already_flying = (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+					      && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed;
 
-			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			// land_detected (above) is unreliable on a moving deck, so for multicopters additionally
+			// require the takeoff state machine to report FLIGHT (it only exists on multicopters).
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				already_flying &= (_navigator->get_takeoff_state() == takeoff_status_s::TAKEOFF_STATE_FLIGHT);
+			}
 
-		} else {
-			sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+			if (already_flying) {
 
-			// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
-			// The yaw setpoint generation is handled by FlightTaskAuto.
-			sp->yaw = NAN;
+				sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+			} else {
+				sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+				// The yaw setpoint generation is handled by FlightTaskAuto.
+				sp->yaw = NAN;
+			}
+
+			break;
 		}
-
-		break;
 
 	case NAV_CMD_LAND:
 	case NAV_CMD_VTOL_LAND:
@@ -742,7 +740,14 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 
 	_navigator->preproject_stop_point(item->lat, item->lon);
 
-	item->altitude = _navigator->get_global_position()->alt;
+	float loiter_altitude_amsl = _navigator->get_global_position()->alt;
+
+	if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
+		loiter_altitude_amsl = math::max(loiter_altitude_amsl,
+						 _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
+	}
+
+	item->altitude = loiter_altitude_amsl;
 	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
@@ -1015,7 +1020,7 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 
 	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
 	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND
-	    && item_contains_position(mission_item)
+	    && mission_item_contains_position(mission_item)
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON
