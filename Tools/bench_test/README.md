@@ -38,7 +38,7 @@ Tools/bench_test/
   run_bench_suite.py        # orchestrator for the non-interactive bench tests
   px4bench/                 # shared library package
     __init__.py             # Reporter, connect, MavlinkShell, reboot/replug,
-                            # viewer tee, mavlink-status parsers,
+                            # mavlink-status parsers,
                             # pymavlink add_message workaround
     params.py               # param read/set/drain/echo, int32 union encoding
     missions.py             # mission items, upload/download/compare/clear
@@ -178,8 +178,7 @@ over SERIAL_CONTROL. MAVSDK abstracts exactly those layers away, and adds an
 asyncio runtime plus the mavsdk_server gRPC binary as dependencies. The one
 plausible candidate was flight orchestration in `sih/flight_mission.py`, but
 that test also depends on the nsh shell (arming via `commander`, explicit
-`param save`, enabling viewer streams) and on teeing raw frames to a viewer,
-neither of which MAVSDK exposes. Verdict: pymavlink everywhere.
+`param save`), which MAVSDK does not expose. Verdict: pymavlink everywhere.
 
 ## Risk map
 
@@ -334,9 +333,8 @@ Skips with a warning when the firmware lacks `serial_test`
 
 ```
 ./sih/flight_mission.py CONNECTION [-b BAUD] [--airframe N] [--alt M]
-                        [--viewer] [--viewer-port PORT] [--keep-config]
-                        [--allow-arming] [--expect-hash PREFIX]
-                        [--board-dev DEV] [--report-dir DIR]
+                        [--keep-config] [--allow-arming]
+                        [--expect-hash PREFIX] [--report-dir DIR]
 ```
 
 Switches the board to a SIH airframe (`SYS_AUTOSTART=1100`, `SYS_HITL=2`,
@@ -344,9 +342,7 @@ physics simulated on the FMU, `pwm_out_sim` in place of real outputs), flies
 takeoff, a 3-waypoint square, and RTL as an auto mission with per-phase
 timeouts (arming, airborne, waypoint progression, touchdown, auto-disarm),
 downloads the flight ULog, and restores the original configuration even on
-failure. `--viewer` tees every MAVLink frame to UDP so Hawkeye
-(`hawkeye -udp 19410 -mc`) renders the flight live from the serial-connected
-board.
+failure.
 
 Runs last in the default suite and works standalone. Before doing anything
 it probes the live firmware for the SIH module (`simulator_sih status`); if

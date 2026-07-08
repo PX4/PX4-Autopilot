@@ -10,10 +10,6 @@ auto-disarm, all on real NuttX scheduling. The physics is simulated; real
 sensor drivers and real outputs are not exercised (pwm_out_sim replaces them,
 so nothing on the output rails is ever driven).
 
-With --viewer, every received MAVLink frame is teed to UDP (default 19410)
-and the SIH viewer streams are enabled on the board, so a locally running
-Hawkeye (`hawkeye -udp 19410 -mc`) renders the flight live.
-
 Requires firmware built with CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y.
 """
 
@@ -350,16 +346,9 @@ def main():
     add_connection_args(parser)
     parser.add_argument('--airframe', type=int, default=SIH_QUAD_AIRFRAME,
                         help='SIH airframe SYS_AUTOSTART (default: %(default)s)')
-    parser.add_argument('--board-dev', default='/dev/ttyACM0',
-                        help='mavlink device name ON the board for stream '
-                             'commands (default: %(default)s)')
     parser.add_argument('--alt', type=float, default=20.0,
                         help='takeoff/waypoint altitude AMSL-relative m '
                              '(default: %(default)s)')
-    parser.add_argument('--viewer', action='store_true',
-                        help='tee MAVLink to UDP and enable SIH viewer streams '
-                             '(watch with: hawkeye -udp 19410 -mc)')
-    parser.add_argument('--viewer-port', type=int, default=19410)
     parser.add_argument('--keep-config', action='store_true',
                         help='stay on the SIH airframe when done')
     parser.add_argument('--expect-hash', metavar='PREFIX', default=None,
@@ -437,10 +426,6 @@ def main():
         if original_autostart is None or report.num_failed > 0:
             return report.finish()
 
-        if args.viewer:
-            px4bench.attach_viewer_tee(mav, port=args.viewer_port)
-            report.info('viewer tee on udp:127.0.0.1:{}'.format(args.viewer_port))
-
         # One shell session for the whole flight, torn down in finally so an
         # error path never leaks the firmware nsh task.
         shell = MavlinkShell(mav)
@@ -448,15 +433,6 @@ def main():
             report.fail('shell', 'could not open nsh shell')
             return report.finish()
         try:
-            if args.viewer:
-                for cmd in ('mavlink stream -d {} -s HIL_STATE_QUATERNION -r 25'
-                            .format(args.board_dev),
-                            'mavlink stream -d {} -s HIL_ACTUATOR_CONTROLS -r 200'
-                            .format(args.board_dev)):
-                    shell_cmd(report, shell, cmd, 'viewer_stream')
-                report.info('viewer streams on; watch with: hawkeye -udp {} -mc'
-                            .format(args.viewer_port))
-
             ok = fly(report, mav, shell, args.alt, report_dir)
             if not ok:
                 # Best effort: never leave a (simulated) vehicle armed.

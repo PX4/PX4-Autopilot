@@ -2,8 +2,8 @@
 
 Core primitives every test builds on: MAVLink connection setup, PASS/FAIL
 reporting, a non-interactive nsh shell over SERIAL_CONTROL (pattern from
-Tools/mavlink_shell.py), reboot and USB re-detection helpers, a live viewer
-tee, and small parsers for `mavlink status` output.
+Tools/mavlink_shell.py), reboot and USB re-detection helpers, and small
+parsers for `mavlink status` output.
 
 Protocol-area helpers live in submodules:
     px4bench.params    parameter read/set/echo with PX4's int32 union encoding
@@ -405,32 +405,6 @@ def arming_gate(allow_arming, action='run the SIH flight test'):
         return True
     print('operator declined; skipping.', flush=True)
     return False
-
-
-def attach_viewer_tee(conn, host='127.0.0.1', port=19410):
-    """Forward every received MAVLink frame to a UDP endpoint, one frame per
-    datagram (same framing the SITL viewer channel uses), so Hawkeye can
-    watch a serial-connected board live: hawkeye -udp <port>.
-
-    Wraps conn.recv_msg rather than logfile_raw because logfile_raw gets raw
-    read() chunks, which would split frames across datagrams.
-    """
-    import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    addr = (host, port)
-    orig_recv_msg = conn.recv_msg
-
-    def recv_msg_tee():
-        msg = orig_recv_msg()
-        if msg is not None:
-            try:
-                sock.sendto(msg.get_msgbuf(), addr)
-            except OSError:
-                pass
-        return msg
-
-    conn.recv_msg = recv_msg_tee
-    return conn
 
 
 def send_reboot(mav):
