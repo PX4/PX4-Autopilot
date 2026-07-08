@@ -180,6 +180,10 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
+/* The onboard baro/mag share I2C1, which is broken out externally, so the
+ * board provides its own px4_i2c_device_external() (see src/i2c.cpp). */
+#define BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
+
 #define BOARD_NUM_IO_TIMERS 4
 
 

@@ -105,6 +105,10 @@ public:
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
 	bool isTerrainEstimateValid() const { return _terrain_valid; }
+	bool isHeightAboveGroundEstimateValid() const
+	{
+		return isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE);
+	}
 
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain + getEkfGlobalOriginAltitude(); };

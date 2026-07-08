@@ -8,9 +8,11 @@ board_adc start
 # Internal SPI bus IMU - ICM42688P (Invensensev3)
 icm42688p -R 2 -b 1 -s start
 
-# Internal I2C bus barometer - DPS310 @ 0x76 (118 decimal)
-dps310 -I -a 118 start
+# Onboard baro/mag are on I2C1, which is marked external because the bus is
+# also broken out. Start them explicitly by bus + address.
 
-# Internal I2C bus magnetometer - LIS2MDL @ 0x1E (30 decimal)
-# Using iis2mdc driver (functionally equivalent to LIS2MDL)
-iis2mdc -I -R 2 -a 30 start
+# Onboard I2C1 barometer - DPS310 @ 0x76 (118 decimal)
+dps310 -X -b 1 -a 118 start
+
+# Onboard I2C1 magnetometer - IIS2MDC @ 0x1E (30 decimal)
+iis2mdc -X -b 1 -R 2 -a 30 start
