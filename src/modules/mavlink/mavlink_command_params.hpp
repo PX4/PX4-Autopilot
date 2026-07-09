@@ -88,7 +88,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
 	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
 	{   84, 0x78, 0x7C }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p3:approach_hdg,p4:yaw; p5-7:lat/lon/alt
-	{   85, 0x78, 0x7F }, // NAV_VTOL_LAND:               mission:p4:yaw only (p1-3 unused by mission_block); cmd:p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
+	{   85, 0x7C, 0x7F }, // NAV_VTOL_LAND:               mission:p3:approach_alt (QGC sets it; unused by mission_block),p4:yaw; cmd:p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
 	{   93, 0x0F, 0x0F }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
 	{  112, 0x01, 0x01 }, // CONDITION_DELAY:             p1:seconds
 	{  114, 0x01, 0x01 }, // CONDITION_DISTANCE:          p1:distance
@@ -96,7 +96,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  177, 0x03, 0x03 }, // DO_JUMP:                     p1:index,p2:count
 	{  178, 0x07, 0x07 }, // DO_CHANGE_SPEED:             p1:type,p2:speed,p3:throttle
 	{  179, 0x7F, 0x7F }, // DO_SET_HOME:                 p1:use_current,p2:roll,p3:pitch,p4:yaw; p5-7:lat/lon/alt
-	{  189, 0x00, 0x00 }, // DO_LAND_START:               no params
+	{  189, 0x70, 0x70 }, // DO_LAND_START:               p5-7:lat/lon/alt (optional marker position per spec; QGC sets it)
 	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
 	{  196, 0x01, 0x01 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
 	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
