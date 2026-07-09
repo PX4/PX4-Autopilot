@@ -27,9 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from px4bench import (Reporter, MavlinkShell, SHELL_OPEN_TIMEOUT,
                       add_connection_args, connect, make_report_dir,
                       send_heartbeat)
-from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7, ftp_list, ftp_download
-
-from pymavlink import mavftp
+from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7, ftp_list, ftp_download, mavftp
 
 SHELL_TIMEOUT = 10.0
 MIN_LOG_SIZE = 1024            # a real ULog is more than 1 KB

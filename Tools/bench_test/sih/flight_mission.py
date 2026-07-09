@@ -309,7 +309,7 @@ def download_flight_log(report, mav, report_dir):
     truth for post-flight verification, so fetch it on failure too (it is
     the post-mortem). Best effort; a missing log is a FAIL, not a crash.
     """
-    from pymavlink import mavftp
+    from px4bench.ftp import mavftp
     try:
         ftp = mavftp.MAVFTP(mav, target_system=mav.target_system,
                             target_component=1)
