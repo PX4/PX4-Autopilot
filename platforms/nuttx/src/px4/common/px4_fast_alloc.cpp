@@ -37,6 +37,7 @@
 void *px4_fast_malloc(size_t size)
 {
 #ifdef HAVE_DTCM_HEAP
+
 	if (g_dtcm_heap != nullptr) {
 		void *p = dtcm_malloc(size);
 
@@ -51,8 +52,22 @@ void *px4_fast_malloc(size_t size)
 
 void *px4_fast_memalign(size_t alignment, size_t size)
 {
-	void *p = px4_fast_malloc(size);
-	return p ? p : memalign(alignment, size);
+#ifdef HAVE_DTCM_HEAP
+
+	/* Request the alignment directly from the DTCM heap; falling back to
+	 * px4_fast_malloc() here would silently drop the alignment guarantee
+	 * whenever DTCM has room, since dtcm_malloc() takes no alignment.
+	 */
+	if (g_dtcm_heap != nullptr) {
+		void *p = dtcm_memalign(alignment, size);
+
+		if (p != nullptr) {
+			return p;
+		}
+	}
+
+#endif
+	return memalign(alignment, size);
 }
 
 void px4_fast_free(void *ptr)
@@ -61,7 +76,7 @@ void px4_fast_free(void *ptr)
 
 	if (g_dtcm_heap != nullptr
 	    && ptr >= (void *)DTCM_START
-	    && ptr <  (void *)DTCM_END) {
+	    && ptr < (void *)DTCM_END) {
 		dtcm_free(ptr);
 		return;
 	}
