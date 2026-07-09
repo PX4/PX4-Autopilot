@@ -136,6 +136,7 @@ void Standard::update_vtol_state()
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
+				_front_transition_pitch = Eulerf(Quatf(_v_att_sp->q_d)).theta();
 			}
 		}
 	}
@@ -368,12 +369,25 @@ void Standard::fill_actuator_outputs()
 void
 Standard::waiting_on_tecs()
 {
-	// keep thrust from transition
-	_v_att_sp->thrust_body[0] = _pusher_throttle;
+	// keep thrust and pitch from transition
+	blendThrottleAfterFrontTransition(0.0f);
+	blendPitchAfterFrontTransition(0.0f);
 };
 
 void Standard::blendThrottleAfterFrontTransition(float scale)
 {
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
 	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
+}
+
+void Standard::blendPitchAfterFrontTransition(float scale)
+{
+	if (!PX4_ISFINITE(_front_transition_pitch)) {
+		return;
+	}
+
+	const Eulerf fw_attitude_setpoint(Quatf(_v_att_sp->q_d));
+	const float pitch_body = scale * fw_attitude_setpoint.theta() + (1.0f - scale) * _front_transition_pitch;
+	const Quatf q_sp(Eulerf(fw_attitude_setpoint.phi(), pitch_body, fw_attitude_setpoint.psi()));
+	q_sp.copyTo(_v_att_sp->q_d);
 }
