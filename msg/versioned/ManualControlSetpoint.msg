@@ -1,4 +1,4 @@
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp                        # time since system start (microseconds)
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
@@ -40,6 +40,11 @@ float32 aux6
 bool sticks_moving # manual control override request in an auto or offboard mode, only gets true if feature is enabled
 
 uint16 buttons		# From uint16 buttons field of Mavlink manual_control message
+
+# System/component ID of the system/component sending manual control messages providing this input.
+# Only valid if data_source is SOURCE_MAVLINK_0 or higher.
+uint8 sender_system_id
+uint8 sender_component_id
 
 # TOPICS manual_control_setpoint manual_control_input
 # DEPRECATED: float32 x
