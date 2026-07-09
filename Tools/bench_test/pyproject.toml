@@ -10,7 +10,9 @@ readme = "README.md"
 license = { text = "BSD-3-Clause" }
 requires-python = ">=3.8"
 dependencies = [
-    "pymavlink>=2.4.40",
+    # 2.4.42 is the first release that ships pymavlink.mavftp (log_transfer,
+    # flight_mission log download)
+    "pymavlink>=2.4.42",
     "pyserial",
 ]
 
