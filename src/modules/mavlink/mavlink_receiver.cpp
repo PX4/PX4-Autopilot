@@ -2351,6 +2351,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	    && math::isInRange((int)mavlink_manual_control.aux6, -1000, 1000)) { manual_control_setpoint.aux6 = mavlink_manual_control.aux6 / 1000.0f; }
 
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink.get_instance_id();
+	manual_control_setpoint.sender_system_id = msg->sysid;
+	manual_control_setpoint.sender_component_id = msg->compid;
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
 	manual_control_setpoint.valid = true;
 	_manual_control_input_pub.publish(manual_control_setpoint);

@@ -97,6 +97,9 @@
 #include "streams/LOCAL_POSITION_NED.hpp"
 #include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
+#if defined(MAVLINK_MSG_ID_MANUAL_CONTROL_STATUS)
+#include "streams/MANUAL_CONTROL_STATUS.hpp"
+#endif // MAVLINK_MSG_ID_MANUAL_CONTROL_STATUS
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -395,6 +398,9 @@ static const StreamListItem streams_list[] = {
 #if defined(MANUAL_CONTROL_HPP)
 	create_stream_list_item<MavlinkStreamManualControl>(),
 #endif // MANUAL_CONTROL_HPP
+#if defined(MANUAL_CONTROL_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamManualControlStatus>(),
+#endif // MANUAL_CONTROL_STATUS_HPP
 #if defined(OPTICAL_FLOW_RAD_HPP)
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 #endif // OPTICAL_FLOW_RAD_HPP
