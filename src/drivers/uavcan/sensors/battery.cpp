@@ -43,7 +43,8 @@ void UavcanBatteryBridge::publishBattery(int node_id, uint8_t instance)
 {
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	_failure_config.update();
-	failure_injection::process_battery(_failure_config, instance + 1, _battery_status[instance]);
+	const uint8_t id = _battery_status[instance].id;
+	failure_injection::process_battery(_failure_config, id > 0 ? id : instance + 1, _battery_status[instance]);
 #endif
 	publish(node_id, &_battery_status[instance]);
 }

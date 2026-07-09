@@ -54,9 +54,11 @@ bool FailureInjectionManager::init()
 		return false;
 	}
 
-	if (!_manual_control_setpoint_sub.registerCallback()) {
-		PX4_ERR("manual_control_setpoint callback registration failed");
-		return false;
+	if (_param_sys_fail_rc_src.get() != 0) {
+		if (!_manual_control_setpoint_sub.registerCallback()) {
+			PX4_ERR("manual_control_setpoint callback registration failed");
+			return false;
+		}
 	}
 
 	_failure_injection_pub.advertise();
@@ -95,6 +97,10 @@ void FailureInjectionManager::Run()
 
 void FailureInjectionManager::evaluateRcInjection()
 {
+	if (_param_sys_fail_rc_src.get() == 0) {
+		return;
+	}
+
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 

@@ -40,12 +40,14 @@
  * topic. Each producer caches it in a Config (update() per loop), looks up the
  * Mode for its (unit, instance), and applies it: process<MsgT>() covers the
  * generic Off (suppress) / Stuck (replay last sample) for single-message
- * producers; value-mutating and multi-instance cases are driver-specific.
+ * producers, the message-less process() the payload-less Off-only units;
+ * value-mutating and multi-instance cases are driver-specific.
  */
 
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_injection.h>
@@ -109,6 +111,11 @@ struct Stuck {
 	MsgT value{};
 };
 
+template<typename T, typename = void>
+struct has_timestamp_sample : std::false_type {};
+template<typename T>
+struct has_timestamp_sample<T, std::void_t<decltype(std::declval<T>().timestamp_sample)>> : std::true_type {};
+
 /**
  * Generic whole-message processor for the Ok / Off / Stuck mechanics, for consumers
  * that publish a single message and want the message-agnostic behaviour.
@@ -126,7 +133,16 @@ bool process(Mode mode, MsgT &msg, Stuck<MsgT> &stuck)
 	case Mode::Stuck:
 		if (stuck.valid) {
 			const uint64_t timestamp = msg.timestamp;
-			msg = stuck.value;
+
+			if constexpr(has_timestamp_sample<MsgT>::value) {
+				const uint64_t timestamp_sample = msg.timestamp_sample;
+				msg = stuck.value;
+				msg.timestamp_sample = timestamp_sample;
+
+			} else {
+				msg = stuck.value;
+			}
+
 			msg.timestamp = timestamp;
 		}
 
@@ -146,6 +162,22 @@ template<typename MsgT>
 bool process(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &msg, Stuck<MsgT> &stuck)
 {
 	return process(config.mode(unit, uorb_instance + 1), msg, stuck);
+}
+
+/**
+ * Message-less variant for producers with no payload to replay (e.g. a heartbeat)
+ *
+ * @return false if the signal must be treated as failed/suppressed (Off), true otherwise.
+ */
+inline bool process(Mode mode)
+{
+	return mode != Mode::Off;
+}
+
+/** Convenience overload, same 0-based to 1-based instance mapping as the generic process(). */
+inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
+{
+	return process(config.mode(unit, uorb_instance + 1));
 }
 
 /**
