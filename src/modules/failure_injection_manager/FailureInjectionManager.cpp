@@ -77,7 +77,7 @@ void FailureInjectionManager::Run()
 
 	vehicle_command_s cmd;
 
-	while (_vehicle_command_sub.update(&cmd)) {
+	for (int i = 0; i < vehicle_command_s::ORB_QUEUE_LENGTH && _vehicle_command_sub.update(&cmd); i++) {
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
 			handleCommand(cmd);
 		}
@@ -101,41 +101,42 @@ void FailureInjectionManager::evaluateRcInjection()
 		return;
 	}
 
-	manual_control_setpoint_s manual_control_setpoint{};
-	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	manual_control_setpoint_s manual_control_setpoint;
 
-	float value = NAN;
+	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		float value = NAN;
 
-	if (manual_control_setpoint.valid) {
-		switch (_param_sys_fail_rc_src.get()) {
-		case 1: value = manual_control_setpoint.aux1; break;
+		if (manual_control_setpoint.valid) {
+			switch (_param_sys_fail_rc_src.get()) {
+			case 1: value = manual_control_setpoint.aux1; break;
 
-		case 2: value = manual_control_setpoint.aux2; break;
+			case 2: value = manual_control_setpoint.aux2; break;
 
-		case 3: value = manual_control_setpoint.aux3; break;
+			case 3: value = manual_control_setpoint.aux3; break;
 
-		case 4: value = manual_control_setpoint.aux4; break;
+			case 4: value = manual_control_setpoint.aux4; break;
 
-		case 5: value = manual_control_setpoint.aux5; break;
+			case 5: value = manual_control_setpoint.aux5; break;
 
-		case 6: value = manual_control_setpoint.aux6; break;
+			case 6: value = manual_control_setpoint.aux6; break;
 
-		default: break; // 0 = disabled, or out of range
+			default: break; // 0 = disabled, or out of range
+			}
 		}
-	}
 
-	const bool triggered = value > 0.5f;
+		const bool triggered = value > 0.5f;
 
-	if (triggered && !_rc_active) {
-		_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
-		_rc_active_instance = static_cast<uint8_t>(_param_sys_fail_rc_inst.get());
-		_rc_active = true;
+		if (triggered && !_rc_active) {
+			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
+			_rc_active_instance = static_cast<uint8_t>(_param_sys_fail_rc_inst.get());
+			_rc_active = true;
 
-		_table.inject(_rc_active_unit, static_cast<uint8_t>(_param_sys_fail_rc_mode.get()), _rc_active_instance);
+			_table.inject(_rc_active_unit, static_cast<uint8_t>(_param_sys_fail_rc_mode.get()), _rc_active_instance);
 
-	} else if (!triggered && _rc_active) {
-		_table.inject(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_instance);
-		_rc_active = false;
+		} else if (!triggered && _rc_active) {
+			_table.inject(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_instance);
+			_rc_active = false;
+		}
 	}
 }
 

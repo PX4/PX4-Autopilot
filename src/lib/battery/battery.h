@@ -59,9 +59,7 @@
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/vehicle_status.h>
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-# include <lib/failure_injection/FailureInjection.hpp>
-#endif
+#include <lib/failure_injection/FailureInjection.hpp>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -182,9 +180,7 @@ private:
 	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
-#endif
 
 	bool _external_state_of_charge{false}; ///< inticates that the soc is injected and not updated by this library
 

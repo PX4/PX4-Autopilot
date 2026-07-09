@@ -33,6 +33,8 @@
 
 #include "FailureInjection.hpp"
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
 #include <uORB/topics/battery_status.h>
 
 namespace failure_injection
@@ -90,3 +92,5 @@ void process_battery(const Config &config, uint8_t instance, battery_status_s &b
 }
 
 } // namespace failure_injection
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER

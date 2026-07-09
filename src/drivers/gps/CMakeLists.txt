@@ -59,6 +59,4 @@ px4_add_module(
 		gnss
 	)
 
-if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-	target_link_libraries(drivers__gps PRIVATE failure_injection)
-endif()
+target_link_libraries(drivers__gps PRIVATE failure_injection)

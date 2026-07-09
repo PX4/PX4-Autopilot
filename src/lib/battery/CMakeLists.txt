@@ -33,9 +33,7 @@
 
 px4_add_library(battery battery.cpp)
 
-if(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-	target_link_libraries(battery PRIVATE failure_injection)
-endif()
+target_link_libraries(battery PRIVATE failure_injection)
 
 # TODO: Add an option in px4_add_library function to add module config file
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/module.yaml)

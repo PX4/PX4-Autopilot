@@ -51,9 +51,7 @@
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/gps_dump.h>
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-# include <lib/failure_injection/FailureInjection.hpp>
-#endif
+#include <lib/failure_injection/FailureInjection.hpp>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
@@ -157,10 +155,8 @@ private:
 
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck[DEFAULT_MAX_CHANNELS];
-#endif
 
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
 

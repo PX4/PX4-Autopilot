@@ -60,9 +60,7 @@
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-# include <lib/failure_injection/FailureInjection.hpp>
-#endif
+#include <lib/failure_injection/FailureInjection.hpp>
 
 #include "module.h"
 #include "sbf/decoder.h"
@@ -771,10 +769,8 @@ private:
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _gps_inject_data_sub {ORB_ID::gps_inject_data}; ///< uORB subscription about data to inject to the receiver
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck;
-#endif
 
 	// Data about update frequencies of various bits of information like RTCM message injection frequency, received data rate...
 	hrt_abstime _current_interval_start_time {0};      ///< Start time of the current update measurement interval in us

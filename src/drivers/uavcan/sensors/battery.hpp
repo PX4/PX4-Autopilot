@@ -47,9 +47,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-# include <lib/failure_injection/FailureInjection.hpp>
-#endif
+#include <lib/failure_injection/FailureInjection.hpp>
 
 using namespace time_literals;
 
@@ -111,9 +109,7 @@ private:
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
-#endif
 
 	// Separate battery info publication because UavcanSensorBridgeBase only supports publishing one topic
 	uORB::PublicationMulti<battery_info_s> _battery_info_pub[battery_status_s::MAX_INSTANCES] {ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info)};

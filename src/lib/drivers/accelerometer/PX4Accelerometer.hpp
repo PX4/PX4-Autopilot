@@ -40,9 +40,7 @@
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-# include <lib/failure_injection/FailureInjection.hpp>
-#endif
+#include <lib/failure_injection/FailureInjection.hpp>
 
 class PX4Accelerometer
 {
@@ -88,9 +86,7 @@ private:
 
 	int16_t			_last_sample[3] {};
 
-#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_accel_s> _stuck;
 	failure_injection::Stuck<sensor_accel_fifo_s> _stuck_fifo;
-#endif
 };

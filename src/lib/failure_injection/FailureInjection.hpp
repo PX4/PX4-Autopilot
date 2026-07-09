@@ -67,6 +67,8 @@ enum class Mode : uint8_t {
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
 };
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
 class Config
 {
 public:
@@ -192,5 +194,34 @@ inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
  * failsafe triggers. Mutates rather than suppresses, so the pack reads empty not disconnected.
  */
 void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
+
+#else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
+
+class Config
+{
+public:
+	bool update() { return false; }
+	void set(const failure_injection_s &) {}
+	Mode mode(uint8_t, uint8_t) const { return Mode::Ok; }
+	bool any_active() const { return false; }
+};
+
+template<typename MsgT>
+struct Stuck {
+};
+
+template<typename MsgT>
+bool process(Mode, MsgT &, Stuck<MsgT> &) { return true; }
+
+template<typename MsgT>
+bool process(const Config &, uint8_t, uint8_t, MsgT &, Stuck<MsgT> &) { return true; }
+
+inline bool process(Mode) { return true; }
+
+inline bool process(const Config &, uint8_t, uint8_t) { return true; }
+
+inline void process_battery(const Config &, uint8_t, battery_status_s &) {}
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 } // namespace failure_injection
