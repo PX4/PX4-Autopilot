@@ -302,8 +302,11 @@ def main():
         # Guard: a typo must not silently thrash the wrong (or no) param.
         if args.param not in by_name:
             report.fail('param_exists',
-                        '{} not found in downloaded set; aborting before any set'.format(
-                            args.param))
+                        '{} not in the {} downloaded params (the autopilot lists '
+                        'used params only; a booted board reports hundreds, so a '
+                        'tiny set means a degraded param session, not a missing '
+                        'param); aborting before any set'.format(
+                            args.param, len(by_name)))
             sys.exit(report.finish())
 
         original_value, _ = read_param(mav, args.param, READ_TIMEOUT_S)
