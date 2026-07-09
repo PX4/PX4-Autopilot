@@ -37,7 +37,9 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/nfs_up.h>
+#include <uORB/topics/vehicle_status.h>
 
 class NfsMount : public ModuleBase, public ModuleParams
 {
@@ -55,6 +57,9 @@ public:
 
 private:
 	static int run_trampoline(int argc, char *argv[]);
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool _armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::NFS_IP>) _param_nfs_ip
