@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,32 +31,31 @@
  *
  ****************************************************************************/
 /**
- * @file rtl_base.h
+ * @file rtl_geofence_avoidance_helper.h
  *
- * Helper class for RTL modes using the mission
- *
+ * Shared helper for accumulating the remaining horizontal legs of a
+ * geofence-avoidance path into an RtlTimeEstimator.
  */
 
 #pragma once
 
-#include "mission_base.h"
-#include <uORB/topics/rtl_time_estimate.h>
 #include <matrix/math.hpp>
+#include "RTLPlanner/geofence_avoidance_planner.h"
 
-class RtlBase : public MissionBase
-{
-public:
-	RtlBase(Navigator *navigator, int32_t dataman_cache_size_signed):
-		MissionBase(navigator, dataman_cache_size_signed, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {};
-	virtual ~RtlBase() = default;
+class RtlTimeEstimator;
 
-	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
-
-	virtual void setReturnAltMin(bool min) { (void)min;};
-
-	virtual void setRtlAlt(float alt) { (void)alt;};
-
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-};
+/**
+ * @brief Accumulate the remaining geofence-avoidance legs into the time estimator.
+ *
+ * Iterates from the planner's current cursor position to the end of the materialized path,
+ * adding each leg from current_position (or the previous waypoint) to the next waypoint.
+ *
+ * @param estimator        Time estimator to accumulate distances into.
+ * @param planner          The geofence avoidance planner (read-only).
+ * @param current_position Vehicle's current global position (lat, lon).
+ * @return Horizontal position at the end of the path, or current_position if the path is empty.
+ */
+matrix::Vector2d add_geofence_avoidance_path_distance(
+	RtlTimeEstimator &estimator,
+	const GeofenceAvoidancePlanner &planner,
+	const matrix::Vector2d &current_position);

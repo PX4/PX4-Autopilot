@@ -996,6 +996,70 @@ void Navigator::run()
 
 		_geofence.run();
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+		const bool fence_updated = _geofence.consumeFenceUpdated();
+		const float margin = geofence_avoidance_margin();
+
+		// Margin is baked into polygons, so a margin change requires rebuilding them.
+		const bool margin_changed = fabsf(margin - _last_geofence_avoidance_margin) > FLT_EPSILON;
+
+
+		using PlannerStatus = GeofenceAvoidancePlanner::Status;
+
+		if (fence_updated || margin_changed) {
+			_geofence_avoidance_planner.updateGraphFromGeofence(_geofence, margin);
+			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
+			_last_geofence_avoidance_margin = margin;
+
+			// Add granularity with more status values / user messages if needed.
+
+			switch (planner_status) {
+			// Failure in building fence graph / path. Collapse to one generic user message. Add granularity if needed.
+			case PlannerStatus::BudgetExceeded: // TODO make this more specific now that it is more likely
+			case PlannerStatus::OutOfRange:
+			case PlannerStatus::Degenerate:
+			case PlannerStatus::DijkstraFailed:
+				mavlink_log_warning(&_mavlink_log_pub, "Geofence data invalid (code %d), RTL will fly directly\t",
+						    (int) planner_status);
+				events::send<uint8_t>(events::ID("rtl_avoidance_build_failed"), {events::Log::Warning, events::LogInternal::Info},
+						      "Geofence data invalid (code {1}), RTL will fly directly", (uint8_t)planner_status);
+				break;
+
+			default:
+				// Not an error, or reported elsewhere
+				break;
+			}
+
+		} else {
+
+			// Signal status values not related to updating geofence data. Reset status to not spam.
+			const PlannerStatus planner_status = _geofence_avoidance_planner.status();
+
+			if (planner_status == PlannerStatus::DestinationInvalid) {
+				mavlink_log_warning(&_mavlink_log_pub, "RTL destination invalid, not updating\t");
+				events::send(
+					events::ID("rtl_destination_invalid"),
+					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
+					"RTL destination invalid, not updating"
+				);
+				_geofence_avoidance_planner.resetStatus();
+			}
+
+			if (planner_status == PlannerStatus::DestinationBreachesGeofence) {
+				mavlink_log_warning(&_mavlink_log_pub, "RTL destination breaches geofence, will fly directly\t");
+				events::send(
+					events::ID("rtl_destination_breaches"),
+					events::LogLevels(events::Log::Warning, events::LogInternal::Info),
+					"RTL destination breaches geofence, will fly directly"
+				);
+				_geofence_avoidance_planner.resetStatus();
+			}
+		}
+
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 		perf_end(_loop_perf);
 	}
 }
@@ -1137,7 +1201,7 @@ void Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet_updated = false;
 }
 
-float Navigator::get_default_acceptance_radius()
+float Navigator::get_default_acceptance_radius() const
 {
 	return _param_nav_acc_rad.get();
 }
@@ -1609,6 +1673,26 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 
 	return true;
 }
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+float Navigator::geofence_avoidance_margin() const
+{
+	// These margins should be above the horizontal tracking error that can be expected for each vehicle type.
+	// If re-using the enlarged polygons for a predictive geofence failsafe feature, additionally ensure
+	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
+
+	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+		// Use FW loiter radius even for VTOL in MC -- changing the
+		// margin on transition is confusing and RTLing in MC as a VTOL
+		// is a very rare edge case
+		return get_default_loiter_rad();
+	}
+
+	// MC, rover, unspecified
+	return 2.0f * get_default_acceptance_radius();
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 void Navigator::preproject_stop_point(double &lat, double &lon)
 {

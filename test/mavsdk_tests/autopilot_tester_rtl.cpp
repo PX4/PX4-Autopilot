@@ -172,6 +172,216 @@ void AutopilotTesterRtl::check_rally_point_within(float acceptance_radius_m)
 	CHECK(within_rally_point);
 }
 
+void AutopilotTesterRtl::load_qgc_mission_and_geofence_here(const std::string &plan_file)
+{
+	auto import_result = getMissionRaw()->import_qgroundcontrol_mission(plan_file);
+	REQUIRE(import_result.first == mavsdk::MissionRaw::Result::Success);
+
+	auto &data = import_result.second;
+	REQUIRE(!data.mission_items.empty());
+
+	// Same offset semantics as move_mission_raw_here, but applied to mission and geofence
+	// together so the fences keep their plan-relative positions.
+	const auto pos = getTelemetry()->position();
+	REQUIRE(std::isfinite(pos.latitude_deg));
+	REQUIRE(std::isfinite(pos.longitude_deg));
+
+	const int32_t offset_x = data.mission_items[0].x - static_cast<int32_t>(1e7 * pos.latitude_deg);
+	const int32_t offset_y = data.mission_items[0].y - static_cast<int32_t>(1e7 * pos.longitude_deg);
+
+	// Only items in a global position frame carry lat/lon in x/y. For MAV_FRAME_MISSION
+	// items (e.g. RTL, DO_* commands) x/y are generic params p5/p6, so offsetting them
+	// corrupts the params and the item is rejected by the mission-param validation.
+	auto is_global_position_frame = [](uint32_t frame) {
+		switch (frame) {
+		case MAV_FRAME_GLOBAL:
+		case MAV_FRAME_GLOBAL_INT:
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		case MAV_FRAME_GLOBAL_TERRAIN_ALT:
+		case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+			return true;
+
+		default:
+			return false;
+		}
+	};
+
+	auto apply_offset = [&](std::vector<mavsdk::MissionRaw::MissionItem> &items) {
+		for (auto &item : items) {
+			if (!is_global_position_frame(item.frame)) {
+				continue;
+			}
+
+			item.x -= offset_x;
+			item.y -= offset_y;
+		}
+	};
+
+	apply_offset(data.mission_items);
+	apply_offset(data.geofence_items);
+
+	REQUIRE(getMissionRaw()->upload_mission(data.mission_items) == mavsdk::MissionRaw::Result::Success);
+
+	_geofence_shapes.clear();
+
+	if (!data.geofence_items.empty()) {
+		REQUIRE(getMissionRaw()->upload_geofence(data.geofence_items) == mavsdk::MissionRaw::Result::Success);
+
+		// Parse MAVLink fence items into shape records in local NED.
+		// Polygon vertex items (5001/5002) are emitted as a run with param1 = vertex count;
+		// circle items (5003/5004) are one-shot with param1 = radius_m.
+		constexpr uint16_t kCmdPolygonInclusion = 5001;
+		constexpr uint16_t kCmdPolygonExclusion = 5002;
+		constexpr uint16_t kCmdCircleInclusion  = 5003;
+		constexpr uint16_t kCmdCircleExclusion  = 5004;
+
+		const auto ct = get_coordinate_transformation();
+
+		auto flush_open_polygon = [this](GeofenceShape & open) {
+			if (!open.vertices.empty()) {
+				_geofence_shapes.push_back(std::move(open));
+			}
+
+			open = GeofenceShape{};
+		};
+
+		GeofenceShape open{};
+		size_t vertex_target = 0;
+
+		for (const auto &item : data.geofence_items) {
+			const double lat = static_cast<double>(item.x) / 1e7;
+			const double lon = static_cast<double>(item.y) / 1e7;
+			const auto local = ct.local_from_global({lat, lon});
+
+			if (item.command == kCmdPolygonInclusion || item.command == kCmdPolygonExclusion) {
+				const auto kind = (item.command == kCmdPolygonInclusion)
+						  ? GeofenceShape::Kind::PolygonInclusion
+						  : GeofenceShape::Kind::PolygonExclusion;
+
+				// Start a new polygon when kind changes or the previous one is full.
+				if (open.vertices.empty() || open.kind != kind
+				    || open.vertices.size() >= vertex_target) {
+					flush_open_polygon(open);
+					open.kind = kind;
+					vertex_target = static_cast<size_t>(item.param1);
+				}
+
+				open.vertices.push_back(local);
+
+			} else if (item.command == kCmdCircleInclusion || item.command == kCmdCircleExclusion) {
+				flush_open_polygon(open);
+				GeofenceShape circle{};
+				circle.kind = (item.command == kCmdCircleInclusion)
+					      ? GeofenceShape::Kind::CircleInclusion
+					      : GeofenceShape::Kind::CircleExclusion;
+				circle.center = local;
+				circle.radius_m = static_cast<double>(item.param1);
+				_geofence_shapes.push_back(std::move(circle));
+			}
+		}
+
+		flush_open_polygon(open);
+	}
+
+	sleep_for(std::chrono::seconds(1));
+}
+
+void AutopilotTesterRtl::start_monitoring_geofence_breach()
+{
+	REQUIRE(!_geofence_shapes.empty()); // load_qgc_mission_and_geofence_here() must run first
+	REQUIRE(!_geofence_monitor_active);
+
+	auto ct = get_coordinate_transformation();
+	_geofence_breached.store(false);
+	_geofence_monitor_active.store(true);
+
+	_geofence_monitor_handle = getTelemetry()->subscribe_ground_truth(
+	[this, ct](Telemetry::GroundTruth gt) {
+		if (!_geofence_monitor_active.load()) {
+			return;
+		}
+
+		if (std::isnan(gt.latitude_deg) || std::isnan(gt.longitude_deg)) {
+			return;
+		}
+
+		const auto local = ct.local_from_global({gt.latitude_deg, gt.longitude_deg});
+
+		for (size_t i = 0; i < _geofence_shapes.size(); ++i) {
+			if (point_breaches_shape(local.north_m, local.east_m, _geofence_shapes[i])) {
+				if (!_geofence_breached.exchange(true)) {
+					std::cout << time_str() << "GEOFENCE BREACH (shape #" << i
+						  << ") at NED (" << local.north_m << ", "
+						  << local.east_m << ")\n";
+				}
+
+				break;
+			}
+		}
+	});
+}
+
+void AutopilotTesterRtl::check_no_geofence_breach()
+{
+	if (_geofence_monitor_active.exchange(false)) {
+		getTelemetry()->unsubscribe_ground_truth(_geofence_monitor_handle);
+	}
+
+	CHECK(!_geofence_breached.load());
+}
+
+bool AutopilotTesterRtl::point_in_polygon_local(
+	double north_m, double east_m,
+	const std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> &poly)
+{
+	bool inside = false;
+	const size_t n = poly.size();
+
+	for (size_t i = 0, j = n - 1; i < n; j = i++) {
+		const double ni = poly[i].north_m;
+		const double ei = poly[i].east_m;
+		const double nj = poly[j].north_m;
+		const double ej = poly[j].east_m;
+
+		const bool crosses = ((ei > east_m) != (ej > east_m))
+				     && (north_m < (nj - ni) * (east_m - ei) / (ej - ei) + ni);
+
+		if (crosses) {
+			inside = !inside;
+		}
+	}
+
+	return inside;
+}
+
+bool AutopilotTesterRtl::point_breaches_shape(double north_m, double east_m, const GeofenceShape &shape)
+{
+	switch (shape.kind) {
+	case GeofenceShape::Kind::PolygonExclusion:
+		return shape.vertices.size() >= 3
+		       && point_in_polygon_local(north_m, east_m, shape.vertices);
+
+	case GeofenceShape::Kind::PolygonInclusion:
+		return shape.vertices.size() >= 3
+		       && !point_in_polygon_local(north_m, east_m, shape.vertices);
+
+	case GeofenceShape::Kind::CircleExclusion: {
+			const double dn = north_m - shape.center.north_m;
+			const double de = east_m - shape.center.east_m;
+			return std::sqrt(dn * dn + de * de) < shape.radius_m;
+		}
+
+	case GeofenceShape::Kind::CircleInclusion: {
+			const double dn = north_m - shape.center.north_m;
+			const double de = east_m - shape.center.east_m;
+			return std::sqrt(dn * dn + de * de) > shape.radius_m;
+		}
+	}
+
+	return false;
+}
+
 void AutopilotTesterRtl::check_rtl_approaches(float acceptance_radius_m, std::chrono::seconds timeout)
 {
 	auto prom = std::promise<bool> {};

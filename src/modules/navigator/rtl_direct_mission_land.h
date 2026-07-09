@@ -44,6 +44,7 @@
 #include "rtl_base.h"
 
 #include <lib/rtl/rtl_time_estimator.h>
+#include <matrix/math.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -64,6 +65,14 @@ public:
 
 	void setReturnAltMin(bool min) override { _enforce_rtl_alt = min; };
 	void setRtlAlt(float alt) override {_rtl_alt = alt;};
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	/**
+	 * @brief Destination the geofence-avoidance planner should route to: the start of the mission
+	 * landing sequence (first position item after DO_LAND_START). (NaN, NaN) if not yet known.
+	 */
+	matrix::Vector2d getRtlPlannerDestination() override;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 private:
 	bool setNextMissionItem() override;

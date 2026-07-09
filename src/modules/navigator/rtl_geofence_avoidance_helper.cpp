@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,33 +30,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file rtl_base.h
- *
- * Helper class for RTL modes using the mission
- *
- */
 
-#pragma once
+#include "rtl_geofence_avoidance_helper.h"
 
-#include "mission_base.h"
-#include <uORB/topics/rtl_time_estimate.h>
-#include <matrix/math.hpp>
+#include <lib/geo/geo.h>
+#include <lib/rtl/rtl_time_estimator.h>
 
-class RtlBase : public MissionBase
+matrix::Vector2d add_geofence_avoidance_path_distance(
+	RtlTimeEstimator &estimator,
+	const GeofenceAvoidancePlanner &planner,
+	const matrix::Vector2d &current_position)
 {
-public:
-	RtlBase(Navigator *navigator, int32_t dataman_cache_size_signed):
-		MissionBase(navigator, dataman_cache_size_signed, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {};
-	virtual ~RtlBase() = default;
+	if (!planner.hasMore()) {
+		return current_position;
+	}
 
-	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
+	matrix::Vector2d from = current_position;
 
-	virtual void setReturnAltMin(bool min) { (void)min;};
+	for (int i = planner.getPathCursor(); i < planner.get_num_waypoints(); i++) {
+		const matrix::Vector2d to = planner.waypointAtIndex(i);
 
-	virtual void setRtlAlt(float alt) { (void)alt;};
+		matrix::Vector2f direction{};
+		get_vector_to_next_waypoint(from(0), from(1), to(0), to(1), &direction(0), &direction(1));
+		estimator.addDistance(get_distance_to_next_waypoint(from(0), from(1), to(0), to(1)), direction, 0.f);
 
-#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
-#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-};
+		from = to;
+	}
+
+	return from;
+}

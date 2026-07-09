@@ -56,6 +56,10 @@
 
 #include "navigation.h"
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+#include "RTLPlanner/geofence_avoidance_planner.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
@@ -192,13 +196,23 @@ public:
 
 	Geofence &get_geofence() { return _geofence; }
 
-	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	GeofenceAvoidancePlanner &get_geofence_avoidance_planner() { return _geofence_avoidance_planner; }
+
+	/**
+	 * Margin (m) by which the geofence avoidance planner shrinks inclusion
+	 * polygons and expands exclusion polygons.
+	 */
+	float geofence_avoidance_margin() const;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+	float get_default_loiter_rad() const { return fabsf(_param_nav_loiter_rad.get()); }
 	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
-	float get_default_acceptance_radius();
+	float get_default_acceptance_radius() const;
 
 	/**
 	 * Get the acceptance radius
@@ -371,6 +385,10 @@ private:
 	hrt_abstime _last_geofence_check{0};
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< RTL/auto path planner that routes around fences (visibility graph + Dijkstra) */
+	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes */
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	bool _navigator_status_updated{false};
 	hrt_abstime _last_navigator_status_publication{0};
