@@ -196,13 +196,15 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
 
+	/* Mark at least one data has been published */
+	_data_valid = true;
+
+	mark_as_advertised();
+
 	// callbacks
 	for (auto item : _callbacks) {
 		item->call(generation + 1);
 	}
-
-	/* Mark at least one data has been published */
-	_data_valid = true;
 
 	ATOMIC_LEAVE;
 
