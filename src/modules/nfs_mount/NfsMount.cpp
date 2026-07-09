@@ -119,17 +119,29 @@ void NfsMount::run()
 	args.addrlen = sizeof(sin);
 	args.sotype  = SOCK_DGRAM;
 	args.flags   = NFSMNT_SOFT | NFSMNT_TIMEO | NFSMNT_RETRANS;
-	args.timeo   = 10;  /* 1 s per RPC attempt (deciseconds) */
-	args.retrans = 3;
+	args.timeo   = 30;  /* 3 s per RPC attempt */
+	args.retrans = 5;   /* 5 retries = 15 s total before soft-fail */
 	args.path    = const_cast<char *>(NFS_SERVER_PATH);
 
 	while (!should_exit()) {
+		vehicle_status_s vs{};
+
+		if (_vehicle_status_sub.update(&vs)) {
+			_armed = (vs.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
+
+		if (_armed) {
+			px4_usleep(1_s);
+			continue;
+		}
+
 		/* Probe portmapper via socket API before calling mount(): mount() acquires
 		 * net_lock internally, which can cause priority-inheritance starvation if
 		 * the server is unreachable.  recv() on a plain socket blocks on the socket
 		 * semaphore (not net_lock), so we use it to confirm the server is responsive
 		 * before handing control to mount(). */
 		if (portmapper_up(sin.sin_addr.s_addr)) {
+
 			if (mount(nullptr, NFS_MOUNT_POINT, "nfs", 0, &args) == 0) {
 				PX4_INFO("mounted %s:%s at %s", ip_str, NFS_SERVER_PATH, NFS_MOUNT_POINT);
 
@@ -140,9 +152,10 @@ void NfsMount::run()
 				orb_advertise(ORB_ID(nfs_up), &msg);
 
 				return;
+			} else {
+				PX4_ERR("NfsMount %s:%s failed, errno %d", ip_str, NFS_SERVER_PATH, errno);
 			}
 		}
-
 		px4_usleep(5_s);
 	}
 
