@@ -164,6 +164,7 @@ Loiter::reposition()
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
+		pos_sp_triplet->current.course = NAN;
 		pos_sp_triplet->next.valid = false;
 
 		_navigator->set_position_setpoint_triplet_updated();

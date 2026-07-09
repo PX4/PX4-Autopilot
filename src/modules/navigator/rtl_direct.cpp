@@ -116,6 +116,10 @@ void RtlDirect::on_active()
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+
+	if (_rtl_state == RTLState::IDLE) {
+		_navigator->mode_completed(getNavigatorStateId());
+	}
 }
 
 void RtlDirect::on_inactive()
@@ -363,7 +367,6 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::IDLE: {
 			set_idle_item(&_mission_item);
-			_navigator->mode_completed(getNavigatorStateId());
 			break;
 		}
 

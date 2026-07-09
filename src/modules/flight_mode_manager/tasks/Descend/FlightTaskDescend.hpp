@@ -57,7 +57,7 @@ private:
 	StickYaw _stick_yaw{this};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
+					(ParamInt<px4::params::MPC_AUTO_NUDGING>) _param_mpc_auto_nudging,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
 					(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover ///< thrust at hover equilibrium
 				       )

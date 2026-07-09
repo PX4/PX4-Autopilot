@@ -270,5 +270,21 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
+	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MPC_LAND_RC_HELP", node->name) == 0)) {
+			if (node->i32 != 0) {
+				int32_t nudging = 0;
+				param_get(param_find("MPC_AUTO_NUDGING"), &nudging);
+				nudging |= (1 << 1);
+				param_set(param_find("MPC_AUTO_NUDGING"), &nudging);
+			}
+
+			PX4_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

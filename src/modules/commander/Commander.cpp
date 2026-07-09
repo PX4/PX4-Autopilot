@@ -2593,7 +2593,7 @@ void Commander::checkAndInformReadyForTakeoff()
 void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(isArmed(), _vehicle_status.nav_state_user_intention,
+	_mode_management.update(_vehicle_status.vehicle_type, isArmed(), _vehicle_status.nav_state_user_intention,
 				mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
@@ -2762,9 +2762,9 @@ void Commander::updateControlMode()
 {
 	_vehicle_control_mode = {};
 
+	const auto external_mode_setpoint_type = _mode_management.getSetpointType(_vehicle_status.nav_state);
 	mode_util::getVehicleControlMode(_vehicle_status.nav_state,
-					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode);
-	_mode_management.updateControlMode(_vehicle_status.nav_state, _vehicle_control_mode);
+					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode, external_mode_setpoint_type);
 
 	_vehicle_control_mode.flag_armed = isArmed();
 	_vehicle_control_mode.flag_multicopter_position_control_enabled =
@@ -2772,8 +2772,7 @@ void Commander::updateControlMode()
 		&& (_vehicle_control_mode.flag_control_altitude_enabled
 		    || _vehicle_control_mode.flag_control_climb_rate_enabled
 		    || _vehicle_control_mode.flag_control_position_enabled
-		    || _vehicle_control_mode.flag_control_velocity_enabled
-		    || _vehicle_control_mode.flag_control_acceleration_enabled);
+		    || _vehicle_control_mode.flag_control_velocity_enabled);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }

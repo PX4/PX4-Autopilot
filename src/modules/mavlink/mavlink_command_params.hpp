@@ -110,6 +110,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
 	{  532, 0x07, 0x07 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
 	{  534, 0x07, 0x07 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary
+	{  611, 0x00, 0x70 }, // DO_SET_GLOBAL_ORIGIN:        cmd:p5-7:lat/lon/alt (not a mission item)
 	{ 2000, 0x0F, 0x0F }, // IMAGE_START_CAPTURE:         p1:camera_id,p2:interval,p3:total,p4:seq
 	{ 2001, 0x01, 0x01 }, // IMAGE_STOP_CAPTURE:          p1:camera_id
 	{ 2003, 0x0F, 0x0F }, // DO_TRIGGER_CONTROL:          p1:enable,p2:reset,p3:pause,p4:camera_id
