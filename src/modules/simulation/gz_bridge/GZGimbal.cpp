@@ -1,5 +1,6 @@
 // #define DEBUG_BUILD
 #include "GZGimbal.hpp"
+#include "GZGimbalSetpoint.hpp"
 
 bool GZGimbal::init(const std::string &world_name, const std::string &model_name)
 {
@@ -140,7 +141,15 @@ bool GZGimbal::pollSetpoint()
 		gimbal_device_set_attitude_s msg;
 
 		if (_gimbal_device_set_attitude_sub.copy(&msg)) {
-			const matrix::Eulerf gimbal_att_stp(matrix::Quatf(msg.q));
+			matrix::Quatf attitude_setpoint(msg.q);
+			vehicle_attitude_s vehicle_attitude{};
+
+			if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+				attitude_setpoint = gz_gimbal::attitudeSetpointInVehicleFrame(matrix::Quatf(vehicle_attitude.q),
+						    attitude_setpoint, msg.flags);
+			}
+
+			const matrix::Eulerf gimbal_att_stp(attitude_setpoint);
 			_roll_stp = gimbal_att_stp.phi();
 			_pitch_stp = gimbal_att_stp.theta();
 			_yaw_stp = gimbal_att_stp.psi();

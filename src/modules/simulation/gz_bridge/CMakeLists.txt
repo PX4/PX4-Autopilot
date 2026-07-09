@@ -68,6 +68,7 @@ if (gz-transport_FOUND)
 			GZMixingInterfaceWheel.hpp
 			GZGimbal.cpp
 			GZGimbal.hpp
+			GZGimbalSetpoint.hpp
 		DEPENDS
 			drivers_accelerometer
 			drivers_gyroscope
@@ -89,6 +90,8 @@ if (gz-transport_FOUND)
 
 	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
+
+	px4_add_unit_gtest(SRC GZGimbalSetpointTest.cpp)
 
 	include(ExternalProject)
 	ExternalProject_Add(gz
