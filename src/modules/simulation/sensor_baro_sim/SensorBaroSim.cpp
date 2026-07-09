@@ -125,35 +125,8 @@ void SensorBaroSim::Run()
 			const float pressure_msl = 101325.0f; // pressure at MSL
 			const float absolute_pressure = pressure_msl / pressure_ratio;
 
-			// generate Gaussian noise sequence using polar form of Box-Muller transformation
-			float y1;
-			{
-				float x1;
-				float x2;
-				float w;
-
-				if (!_baro_rnd_use_last) {
-					do {
-						x1 = 2.f * generate_wgn() - 1.f;
-						x2 = 2.f * generate_wgn() - 1.f;
-						w = x1 * x1 + x2 * x2;
-					} while (w >= 1.0f);
-
-					w = sqrtf((-2.f * logf(w)) / w);
-					// calculate two values - the second value can be used next time because it is uncorrelated
-					y1 = x1 * w;
-					_baro_rnd_y2 = x2 * w;
-					_baro_rnd_use_last = true;
-
-				} else {
-					// no need to repeat the calculation - use the second value from last update
-					y1 = _baro_rnd_y2;
-					_baro_rnd_use_last = false;
-				}
-			}
-
 			// Apply noise and drift
-			const float abs_pressure_noise = 1.f * (float)y1;  // 1 Pa RMS noise
+			const float abs_pressure_noise = 1.f * generate_wgn();  // 1 Pa RMS noise
 			_baro_drift_pa += _baro_drift_pa_per_sec * dt;
 			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 

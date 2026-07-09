@@ -75,8 +75,6 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 
-	bool _baro_rnd_use_last{false};
-	double _baro_rnd_y2{0.0};
 	float _baro_drift_pa_per_sec{0.0};
 	float _baro_drift_pa{0.0};
 
