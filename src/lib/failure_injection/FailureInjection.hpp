@@ -47,7 +47,6 @@
 #pragma once
 
 #include <cstdint>
-#include <type_traits>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_injection.h>
@@ -111,10 +110,17 @@ struct Stuck {
 	MsgT value{};
 };
 
+template<typename...>
+using void_t = void;
+
 template<typename T, typename = void>
-struct has_timestamp_sample : std::false_type {};
+struct has_timestamp_sample {
+	static constexpr bool value = false;
+};
 template<typename T>
-struct has_timestamp_sample<T, std::void_t<decltype(std::declval<T>().timestamp_sample)>> : std::true_type {};
+struct has_timestamp_sample<T, void_t<decltype(T::timestamp_sample)>> {
+	static constexpr bool value = true;
+};
 
 /**
  * Generic whole-message processor for the Ok / Off / Stuck mechanics, for consumers
