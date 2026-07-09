@@ -1917,6 +1917,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
 		configure_stream_local("MAG_CAL_REPORT", 1.0f);
 		configure_stream_local("MANUAL_CONTROL", 5.0f);
+#if defined(MAVLINK_MSG_ID_MANUAL_CONTROL_STATUS)
+		configure_stream_local("MANUAL_CONTROL_STATUS", 1.0f);
+#endif // MAVLINK_MSG_ID_MANUAL_CONTROL_STATUS
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
 		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
