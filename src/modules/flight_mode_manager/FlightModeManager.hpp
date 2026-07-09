@@ -36,6 +36,8 @@
 #include "FlightTask.hpp"
 #include "FlightTasks_generated.hpp"
 
+#include <ExternalAvoidance.hpp>
+
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -150,6 +152,11 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	// Fuses externally-computed avoidance setpoints (from a companion computer,
+	// via MAVLink) into the Position/Mission trajectory setpoint. No planning logic
+	// lives here; the companion owns avoidance and PX4 only accepts and blends.
+	ExternalAvoidance _external_avoidance{this};
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
