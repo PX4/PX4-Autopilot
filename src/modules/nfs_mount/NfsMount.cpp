@@ -152,10 +152,12 @@ void NfsMount::run()
 				orb_advertise(ORB_ID(nfs_up), &msg);
 
 				return;
+
 			} else {
 				PX4_ERR("NfsMount %s:%s failed, errno %d", ip_str, NFS_SERVER_PATH, errno);
 			}
 		}
+
 		px4_usleep(5_s);
 	}
 
