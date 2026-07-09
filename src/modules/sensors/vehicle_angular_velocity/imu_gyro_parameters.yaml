@@ -138,9 +138,10 @@ parameters:
       bit:
         0: ESC RPM
         1: FFT
+        2: Rotor RPM
       default: 0
       min: 0
-      max: 3
+      max: 7
     IMU_GYRO_DNF_BW:
       description:
         short: IMU gyro ESC notch filter bandwidth
