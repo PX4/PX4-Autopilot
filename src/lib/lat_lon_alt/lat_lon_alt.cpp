@@ -72,8 +72,7 @@ Vector3d LatLonAlt::toEcef() const
 	const double cos_lon = cos(_longitude_rad);
 	const double sin_lon = sin(_longitude_rad);
 
-	const double ecc_sin_lat = Wgs84::eccentricity * sin_lat;
-	const double r_e = Wgs84::equatorial_radius / sqrt(1.0 - ecc_sin_lat * ecc_sin_lat);
+	const double r_e = Wgs84::equatorial_radius / sqrt(1.0 - std::pow(Wgs84::eccentricity * sin_lat, 2.0));
 	const double r_total = r_e + static_cast<double>(_altitude);
 
 	return Vector3d(r_total * cos_lat * cos_lon,
@@ -106,8 +105,7 @@ Vector2d LatLonAlt::deltaLatLonToDeltaXY(const double latitude, const float alti
 void LatLonAlt::computeRadiiOfCurvature(const double latitude, double &meridian_radius_of_curvature,
 					double &transverse_radius_of_curvature)
 {
-	const double ecc_sin_lat = Wgs84::eccentricity * sin(latitude);
-	const double tmp = 1.0 - ecc_sin_lat * ecc_sin_lat;
+	const double tmp = 1.0 - pow(Wgs84::eccentricity * sin(latitude), 2);
 	const double sqrt_tmp = std::sqrt(tmp);
 	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * tmp * sqrt_tmp);
 	transverse_radius_of_curvature = Wgs84::equatorial_radius / sqrt_tmp;
