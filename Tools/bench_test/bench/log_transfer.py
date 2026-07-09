@@ -24,8 +24,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from px4bench import (Reporter, MavlinkShell, add_connection_args, connect,
-                      make_report_dir, send_heartbeat)
+from px4bench import (Reporter, MavlinkShell, SHELL_OPEN_TIMEOUT,
+                      add_connection_args, connect, make_report_dir,
+                      send_heartbeat)
 from px4bench.ftp import LOG_ROOT, ULOG_MAGIC7, ftp_list, ftp_download
 
 from pymavlink import mavftp
@@ -60,8 +61,9 @@ def main():
         # no early exit leaks the firmware nsh task. The FTP phase below uses
         # no shell, so the shell is closed as soon as the logging is flushed.
         shell = MavlinkShell(mav)
-        if not shell.open(timeout=5):
-            report.fail('shell_open', 'nsh shell did not respond within 5s')
+        if not shell.open():
+            report.fail('shell_open', 'nsh shell did not respond within {:.0f}s'.format(
+                SHELL_OPEN_TIMEOUT))
             sys.exit(report.finish())
 
         # logger status: confirm the module is running before we tell it to log

@@ -206,7 +206,7 @@ def phase_persistence(report, mav, param, conn_str, baud, original_value):
     #    wrong value means save did not persist the marker; retry once, then
     #    fail without rebooting on an unsaved marker.
     shell = px4bench.MavlinkShell(mav)
-    if not shell.open(timeout=5):
+    if not shell.open():
         report.fail('persistence_shell', 'could not open nsh shell for param save')
         return mav
     try:

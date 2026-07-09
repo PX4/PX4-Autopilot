@@ -124,7 +124,7 @@ def save_params(report, mav, label):
     and the board came back on the SIH airframe).
     """
     shell = MavlinkShell(mav)
-    if not shell.open(timeout=5):
+    if not shell.open():
         report.fail(label, 'could not open nsh shell for param save')
         return False
     try:
@@ -392,8 +392,9 @@ def main():
     # a firmware nsh task plus its two pipes). enter_sih() reboots the board
     # below, so this session cannot be reused past the probe anyway.
     probe_shell = MavlinkShell(mav)
-    if not probe_shell.open(timeout=5):
-        report.fail('sih_probe', 'nsh shell did not respond within 5s')
+    if not probe_shell.open():
+        report.fail('sih_probe', 'nsh shell did not respond within {:.0f}s'.format(
+            px4bench.SHELL_OPEN_TIMEOUT))
         return report.finish()
     try:
         present, probe_out = px4bench.shell_command_exists(
@@ -429,7 +430,7 @@ def main():
         # One shell session for the whole flight, torn down in finally so an
         # error path never leaks the firmware nsh task.
         shell = MavlinkShell(mav)
-        if not shell.open(timeout=5):
+        if not shell.open():
             report.fail('shell', 'could not open nsh shell')
             return report.finish()
         try:

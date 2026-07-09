@@ -53,6 +53,11 @@ mavutil.add_message = _safe_add_message
 
 SERIAL_CONTROL_DEV_SHELL = 10  # SERIAL_CONTROL_DEV_SHELL (see Tools/mavlink_shell.py)
 DEFAULT_BAUD = 57600
+# Default budget for MavlinkShell.open(). Opening spawns the nsh task on the
+# firmware side and older releases (v1.17, #27840) failed a 5s single-write
+# open right after a previous session closed, so the budget is generous and
+# open() re-sends its wake write until the shell answers.
+SHELL_OPEN_TIMEOUT = 10.0
 USB_DEVICE_GLOB_DARWIN = '/dev/tty.usbmodem*'
 USB_DEVICE_GLOB_LINUX = '/dev/serial/by-id/*PX4*'
 
@@ -254,7 +259,7 @@ class MavlinkShell:
         if m is not None:
             self.buf += ''.join(chr(x) for x in m.data[:m.count])
 
-    def open(self, timeout: float = 5):
+    def open(self, timeout: float = SHELL_OPEN_TIMEOUT):
         """Wake the shell and confirm a live prompt. Returns True on success.
 
         The firmware spawns a fresh nsh task plus two pipes on the first
@@ -268,14 +273,22 @@ class MavlinkShell:
         seeing that sentinel echoed back proves nsh is up and processing our
         input. The sentinel round-trip also covers builds whose prompt token
         differs or is suppressed.
+
+        The wake write is re-sent every second until the deadline: the write
+        that spawns the shell task can be consumed before the nsh pipes are
+        reading (seen on v1.17 right after a prior session closed, #27840),
+        and a single write turns that dropped line into a bogus open failure.
         """
         self._seq += 1
         sentinel = 'BENCHOPEN{}'.format(self._seq)
         self.buf = ''
-        self._write('\n')
-        self._write('echo {}\n'.format(sentinel))
         deadline = time.monotonic() + timeout
+        next_wake = 0.0
         while time.monotonic() < deadline:
+            if time.monotonic() >= next_wake:
+                self._write('\n')
+                self._write('echo {}\n'.format(sentinel))
+                next_wake = time.monotonic() + 1.0
             self._pump()
             if 'nsh>' in self.buf or re.search(
                     r'^{}\s*$'.format(re.escape(sentinel)), self.buf, re.MULTILINE):
@@ -314,11 +327,16 @@ class MavlinkShell:
 
         Strips ANY BENCHDONE sentinel, not just the current one: the second
         safety echo of the previous command often arrives after run() already
-        returned and would otherwise leak into this command's output.
+        returned and would otherwise leak into this command's output. Same
+        for BENCHOPEN: open() re-sends its wake echo until the shell answers,
+        so queued wake lines can execute (echo command and its output) after
+        open() already returned.
         """
         lines = []
         for line in self.buf.splitlines():
             if sentinel in line or re.match(r'BENCHDONE\d+\s*$', line.strip()):
+                continue
+            if 'BENCHOPEN' in line:
                 continue
             if cmd in line and 'echo' in line:
                 continue
