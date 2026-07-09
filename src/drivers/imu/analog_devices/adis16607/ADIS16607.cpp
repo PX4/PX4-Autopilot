@@ -42,6 +42,15 @@ ADIS16607::ADIS16607(const I2CSPIDriverConfig &config) :
 	_px4_accel(get_device_id(), config.rotation),
 	_px4_gyro(get_device_id(), config.rotation)
 {
+	if (config.custom1 != 0) {
+		_enable_clock_input = true;
+		_input_clock_freq = config.custom1;
+		ConfigureCLKIN();
+
+	} else {
+		_enable_clock_input = false;
+	}
+
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
@@ -84,6 +93,7 @@ void ADIS16607::print_status()
 	I2CSPIDriverBase::print_status();
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
+	PX4_INFO("Clock input: %s", _enable_clock_input ? "enabled" : "disabled");
 
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_transfer_perf);
@@ -271,12 +281,23 @@ void ADIS16607::RunImpl()
 
 void ADIS16607::ConfigureSampleRate(int sample_rate)
 {
-	const float min_interval = FIFO_SAMPLE_DT;
+	float min_interval = 0.f;
+	float max_rate = 0.f;
+
+	if (_enable_clock_input) {
+		min_interval = 1e6f / _input_clock_freq;
+		max_rate = _input_clock_freq;
+
+	} else {
+		min_interval = FIFO_SAMPLE_DT;
+		max_rate = RATE;
+	}
+
 	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
 
-	_fifo_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES));
+	_fifo_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / max_rate), (float)FIFO_MAX_SAMPLES));
 
-	_fifo_empty_interval_us = _fifo_samples * (1e6f / RATE);
+	_fifo_empty_interval_us = _fifo_samples * (1e6f / max_rate);
 
 	ConfigureFIFOWatermark(_fifo_samples);
 }
@@ -289,6 +310,15 @@ void ADIS16607::ConfigureFIFOWatermark(uint8_t samples)
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::USER_FIFO_CFG) {
 			r.set_bits = r.set_bits | fifo_watermark_threshold;
+		}
+	}
+}
+
+void ADIS16607::ConfigureCLKIN()
+{
+	for (auto &r : _register_cfg) {
+		if (r.reg == Register::USER_GPIO_CFG1) {
+			r.set_bits = r.set_bits | USER_GPIO_CFG1_BIT::GOIO2_SYNC;
 		}
 	}
 }
@@ -407,7 +437,13 @@ void ADIS16607::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = samples;
-	accel.dt = FIFO_SAMPLE_DT;
+
+	if (_enable_clock_input) {
+		accel.dt = 1e6f / _input_clock_freq;
+
+	} else {
+		accel.dt = FIFO_SAMPLE_DT;
+	}
 
 	for (uint8_t i = 0; i < samples; i++) {
 		// sensor's frame is +x forward, +y left, +z up
@@ -431,7 +467,13 @@ void ADIS16607::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = samples;
-	gyro.dt = FIFO_SAMPLE_DT;
+
+	if (_enable_clock_input) {
+		gyro.dt = 1e6f / _input_clock_freq;
+
+	} else {
+		gyro.dt = FIFO_SAMPLE_DT;
+	}
 
 	for (uint8_t i = 0; i < samples; i++) {
 		// sensor's frame is +x forward, +y left, +z up

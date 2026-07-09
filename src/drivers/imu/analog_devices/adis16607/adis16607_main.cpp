@@ -53,8 +53,12 @@ extern "C" int adis16607_main(int argc, char *argv[])
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "C:R:")) != EOF) {
 		switch (ch) {
+		case 'C':
+			cli.custom1 = atoi(cli.optArg());
+			break;
+
 		case 'R':
 			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
