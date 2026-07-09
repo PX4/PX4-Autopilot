@@ -59,7 +59,7 @@ Tailsitter::parameters_update()
 Eulerf Tailsitter::getFixedWingAttitudeEuler() const
 {
 	// Tailsitter attitude is estimated in MC frame; rotate it to FW frame before checking FW limits.
-	return Eulerf(Quatf(_v_att->q) * Quatf(Eulerf(0.f, M_PI_2_F, 0.f)));
+	return Eulerf(Quatf(_v_att->q) * _q_fw_to_mc);
 }
 
 bool Tailsitter::isPitchExceeded()
