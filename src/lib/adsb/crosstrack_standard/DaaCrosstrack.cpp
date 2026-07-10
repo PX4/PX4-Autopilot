@@ -41,6 +41,11 @@
 
 #include <float.h>
 
+#include <lib/geo/geo.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
+#include <uORB/topics/detect_and_avoid.h>
+
 DaaCrosstrack::DaaCrosstrack() :
 	ModuleParams(nullptr)
 {
@@ -56,7 +61,7 @@ bool DaaCrosstrack::try_setting_params()
 
 	const bool crosstrack_ok = PX4_ISFINITE(crosstrack_sep) && crosstrack_sep > 0.f;
 	const bool vertical_ok = PX4_ISFINITE(vertical_sep) && vertical_sep > 0.f;
-	const bool collision_time_ok = collision_time >= 0;
+	const bool collision_time_ok = collision_time > 0;
 
 	if (!(crosstrack_ok && vertical_ok && collision_time_ok)) {
 		PX4_ERR("DAA: invalid crosstrack parameters");
@@ -70,7 +75,7 @@ bool DaaCrosstrack::try_setting_params()
 }
 
 uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
-		daa_stats_s &daa_stats)
+		daa_stats_s &daa_stats) const
 {
 	if (!PX4_ISFINITE(traffic_state.heading)) {
 		PX4_DEBUG("CRT lib: invalid traffic heading");
@@ -104,23 +109,24 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 			&& (fabsf(crosstrack_error.distance) < _crosstrack_separation_m);
 
 	const float vertical_separation = fabsf(uav_state.altitude - traffic_state.altitude);
-	const bool _crosstrack_separation_check = (vertical_separation < _vertical_separation_m);
+	const bool vertical_separation_conflict = vertical_separation < _vertical_separation_m;
 
 	bool collision_time_check = false;
 
 	const float d_xyz = hypotf(d_hor, d_vert);
-	float time_to_collsion = 0.f;
+	float time_to_collision = 0.f;
 
 	if (relative_uav_traffic_speed > FLT_EPSILON) {
-		time_to_collsion =  d_xyz / relative_uav_traffic_speed;
-		collision_time_check = (time_to_collsion < _collision_time_threshold_s);
+		time_to_collision = d_xyz / relative_uav_traffic_speed;
+		collision_time_check = time_to_collision < _collision_time_threshold_s;
 	}
 
+	daa_stats.aircraft_dist = d_xyz;
 	daa_stats.aircraft_dist_hor = line_distance_valid ? crosstrack_error.distance : d_hor;
 	daa_stats.aircraft_dist_vert = vertical_separation;
-	daa_stats.expected_min_dist_time_sec = time_to_collsion;
+	daa_stats.expected_min_dist_time_sec = time_to_collision;
 
-	const bool conflict_detected = (cs_distance_conflict_threshold && _crosstrack_separation_check && collision_time_check);
+	const bool conflict_detected = cs_distance_conflict_threshold && vertical_separation_conflict && collision_time_check;
 
 	if (!conflict_detected) {
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;

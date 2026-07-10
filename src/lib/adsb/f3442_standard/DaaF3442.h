@@ -42,23 +42,14 @@
 
 #include "../DaaHelper.h"
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <matrix/math.hpp>
-
-#include <lib/geo/geo.h>
-
-#include <drivers/drv_hrt.h>
-#include <uORB/topics/detect_and_avoid.h>
 #include <px4_platform_common/module_params.h>
 
 /**
  * @brief ASTM F3442 conflict evaluation.
  *
- * Uses four nested cylindrical zones around each aircraft: NMAC (CRITICAL),
- * Well-Clear (HIGH), and two augmented zones grown by relative speed and a
- * latency budget (MEDIUM and LOW). The strictest zone breached defines the
- * conflict level returned to the navigator.
+ * Evaluates NMAC (CRITICAL), Well-Clear (HIGH), and two augmented zones grown
+ * by aircraft speed and a latency budget (MEDIUM and LOW). The first breached
+ * zone in severity order defines the reported conflict level.
  */
 class DaaF3442 : public ModuleParams
 {
@@ -67,7 +58,7 @@ public:
 
 	// Distance, time-to-min-distance and the F3442 conflict level for one target.
 	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
-				    daa_stats_s &daa_stats);
+				    daa_stats_s &daa_stats) const;
 
 	// True if every component of distance is within the symmetric bounds box.
 	static bool is_in_bounds(const matrix::Vector2f &distance, const matrix::Vector2f &bounds);
@@ -86,7 +77,7 @@ public:
 
 	// Evaluate the four zones in severity order and return the first breach.
 	uint8_t calculate_conflict_level(const matrix::Vector2f &distance, const matrix::Vector2f &uav_vel_hor_vert,
-					 const matrix::Vector2f &traffic_vel);
+					 const matrix::Vector2f &traffic_vel) const;
 
 	/**
 	 * @brief Refresh F3442 zone radii and latency from parameters.

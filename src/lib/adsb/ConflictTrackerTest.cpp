@@ -39,6 +39,8 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include <lib/adsb/ConflictTracker.h>
 
 namespace
@@ -99,6 +101,22 @@ TEST(ConflictTrackerTest, IgnoresUntrackedTrafficWithoutConflict)
 	EXPECT_FALSE(tracker.apply_conflict(no_conflict, changes));
 	EXPECT_EQ(changes.size(), 0u);
 	EXPECT_TRUE(tracker.empty());
+}
+
+TEST(ConflictTrackerTest, RejectsInvalidConflictData)
+{
+	ConflictTracker tracker;
+	conflict_tracker_changes_s changes{};
+
+	EXPECT_FALSE(tracker.apply_conflict(
+			     make_conflict(0, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH, 100.f), changes));
+	EXPECT_FALSE(tracker.apply_conflict(
+			     make_conflict(1, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL + 1, 100.f), changes));
+	EXPECT_FALSE(tracker.apply_conflict(
+			     make_conflict(1, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH,
+					   std::numeric_limits<float>::quiet_NaN()), changes));
+	EXPECT_TRUE(tracker.empty());
+	EXPECT_TRUE(changes.empty());
 }
 
 // kConflictLevelChanged is emitted only when the level differs; same-level just overwrites.
@@ -308,12 +326,13 @@ TEST(ConflictTrackerTest, RemovesOnlyStaleConflicts)
 	tracker.apply_conflict(make_conflict(2, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH, 600.f, kNow - kTimeout - 1),
 			       changes);
 	tracker.apply_conflict(make_conflict(3, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM, 900.f, 0), changes);
+	tracker.apply_conflict(make_conflict(4, detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, 1200.f, kNow + 1), changes);
 
 	changes = {};
 	EXPECT_TRUE(tracker.remove_stale_conflicts(kNow, kTimeout, changes));
 
-	// timed-out and never-stamped dropped, fresh one survives
-	ASSERT_EQ(changes.size(), 2u);
+	// Timed-out, missing, and future timestamps are invalid; the fresh entry survives.
+	ASSERT_EQ(changes.size(), 3u);
 
 	for (size_t i = 0; i < changes.size(); ++i) {
 		EXPECT_EQ(changes[i].type, ConflictTrackerChangeType::kConflictRemoved);

@@ -40,12 +40,26 @@
 
 #include "ConflictNotifier.h"
 
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
 #include <lib/mathlib/mathlib.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/uORB.h>
 
 using namespace time_literals;
+
+uint32_t ConflictNotifier::distance_meters_for_log(const float distance)
+{
+	if (!PX4_ISFINITE(distance)) {
+		return UINT32_MAX;
+	}
+
+	const double absolute_distance = fabs(static_cast<double>(distance));
+	return absolute_distance >= static_cast<double>(UINT32_MAX)
+	       ? UINT32_MAX
+	       : static_cast<uint32_t>(absolute_distance);
+}
 
 void ConflictNotifier::reset()
 {
@@ -67,14 +81,19 @@ void ConflictNotifier::report_cycle(const conflict_tracker_changes_s &changes, c
 
 		switch (change.type) {
 		case ConflictTrackerChangeType::kConflictAdded:
-			if (level_requires_warning(context.warning_levels_mask, change.conflict.conflict_level)) {
-				new_conflicts_pending_notif.push_back(change.conflict.encoded_id);
+			if (level_requires_warning(context.warning_levels_mask, change.conflict.conflict_level)
+			    && !pending_new_conflict_notification_exists(change.conflict.encoded_id, new_conflicts_pending_notif)
+			    && !new_conflicts_pending_notif.push_back(change.conflict.encoded_id)) {
+				PX4_ERR("DAA: pending notifications overflow");
 			}
 
 			break;
 
 		case ConflictTrackerChangeType::kConflictLevelChanged:
-			maybe_notify_secondary_level_change(change, context.warning_levels_mask);
+			if (!pending_new_conflict_notification_exists(change.conflict.encoded_id, new_conflicts_pending_notif)) {
+				maybe_notify_secondary_level_change(change, context.warning_levels_mask);
+			}
+
 			break;
 
 		case ConflictTrackerChangeType::kConflictRemoved:
@@ -133,10 +152,11 @@ void ConflictNotifier::report_cycle(const conflict_tracker_changes_s &changes, c
 
 bool ConflictNotifier::must_notify(const uint8_t current_conflict_level, const hrt_abstime time_last_notified,
 				   const hrt_abstime interval, const uint8_t previous_conflict_level,
-				   const uint8_t warning_levels_mask) const
+				   const uint8_t warning_levels_mask)
 {
 	const bool current_lvl_requires_warning = level_requires_warning(warning_levels_mask, current_conflict_level);
-	const bool time_to_notify = (time_last_notified == 0) || ((hrt_absolute_time() - time_last_notified) > interval);
+	const bool time_to_notify = (time_last_notified == 0)
+				    || (interval > 0 && (hrt_absolute_time() - time_last_notified) > interval);
 
 	// Force notification if conflict level changed and at least one of the levels requires notifications.
 	const bool prev_action_requires_warning = previous_conflict_level != 0
@@ -189,47 +209,78 @@ void ConflictNotifier::notify_traffic_ignored(const conflict_info_s &conflict_in
 
 	_time_last_traffic_ignored = hrt_absolute_time();
 
-	mavlink_log_info(&_mavlink_log_pub, "DAA %s ignored (%d) lvl %d.\t",
-			 encoded_id_str,
-			 static_cast<uint8_t>(cause),
-			 conflict_info.conflict_level);
+	mavlink_log_warning(&_mavlink_log_pub, "DAA %s ignored (%u) lvl %u.\t",
+			    encoded_id_str,
+			    static_cast<unsigned>(cause),
+			    static_cast<unsigned>(conflict_info.conflict_level));
 	/* EVENT
-	* @description
-	* - ID: {1}
-	* - cause: {2} (0:buffer full, 1:removal failed, 2:insert failed, 3:level lookup failed, 4:invalid index)
-	* - conflict level: {3}
-	*/
-	events::send<uint64_t, uint8_t, uint8_t>(events::ID("navigator_traffic_ignore"), events::Log::Warning,
+	 * @description
+	 * - ID: {1}
+	 * - ID encoding: {2} (0:ICAO, 1:callsign, 2:UAS ID)
+	 * - cause: {3} (0:buffer full)
+	 * - conflict level: {4}
+	 */
+	events::send<uint64_t, uint8_t, uint8_t, uint8_t>(events::ID("navigator_traffic_ignore"), events::Log::Warning,
 			"DAA: ignored",
-			conflict_info.encoded_id.id, static_cast<uint8_t>(cause), conflict_info.conflict_level);
+			conflict_info.encoded_id.id, conflict_info.encoded_id.encoding,
+			static_cast<uint8_t>(cause), conflict_info.conflict_level);
 }
 
 void ConflictNotifier::notify_traffic_removed(const conflict_info_s &conflict_info, const RemoveBufferCause cause)
 {
-	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() - conflict_info.latest_update_timestamp) / 1_s);
+	const uint32_t time_since_last_comm = static_cast<uint32_t>((hrt_absolute_time() -
+					      conflict_info.latest_update_timestamp) / 1_s);
 
 	char encoded_id_str[kUtmGuidMsgLength];
 	conflict_info.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
 
-	mavlink_log_warning(&_mavlink_log_pub, "DAA %s out (%d) lvl %d (%ds).\t",
+	mavlink_log_warning(&_mavlink_log_pub, "DAA %s out (%u) lvl %u (%us).\t",
 			    encoded_id_str,
-			    static_cast<uint8_t>(cause),
-			    conflict_info.conflict_level,
-			    time_since_last_comm);
+			    static_cast<unsigned>(cause),
+			    static_cast<unsigned>(conflict_info.conflict_level),
+			    static_cast<unsigned>(time_since_last_comm));
 	/* EVENT
-	* @description
-	* - ID: {1}
-	* - cause: {2} (0:stale, 1:buffer full)
-	* - conflict level: {3}
-	* - last seen: {4} s ago
-	*/
-	events::send<uint64_t, uint8_t, uint8_t, float>(events::ID("navigator_traffic_remove"), events::Log::Warning,
+	 * @description
+	 * - ID: {1}
+	 * - ID encoding: {2} (0:ICAO, 1:callsign, 2:UAS ID)
+	 * - cause: {3} (0:stale, 1:buffer full)
+	 * - conflict level: {4}
+	 * - last seen: {5} s ago
+	 */
+	events::send<uint64_t, uint8_t, uint8_t, uint8_t, uint32_t>(events::ID("navigator_traffic_remove"),
+			events::Log::Warning,
 			"DAA: removed",
-			conflict_info.encoded_id.id, static_cast<uint8_t>(cause), conflict_info.conflict_level, time_since_last_comm);
+			conflict_info.encoded_id.id, conflict_info.encoded_id.encoding,
+			static_cast<uint8_t>(cause), conflict_info.conflict_level, time_since_last_comm);
 }
 
-bool ConflictNotifier::mavlink_log_conflict_by_level(const uint8_t conflict_level,
-		const char message_buffer[kMaxLogMsgSize], events::Log &log_level)
+void ConflictNotifier::mavlink_log_message(const char *message, const events::Log log_level)
+{
+	switch (log_level) {
+	case events::Log::Info:
+		mavlink_log_info(&_mavlink_log_pub, "%s.\t", message);
+		break;
+
+	case events::Log::Warning:
+		mavlink_log_warning(&_mavlink_log_pub, "%s.\t", message);
+		break;
+
+	case events::Log::Critical:
+		mavlink_log_critical(&_mavlink_log_pub, "%s.\t", message);
+		break;
+
+	case events::Log::Emergency:
+		mavlink_log_emergency(&_mavlink_log_pub, "%s.\t", message);
+		break;
+
+	default:
+		PX4_ERR("DAA: unsupported log level");
+		break;
+	}
+}
+
+bool ConflictNotifier::mavlink_log_conflict_by_level(const uint8_t conflict_level, const char *message,
+		events::Log &log_level)
 {
 	switch (conflict_level) {
 	case detect_and_avoid_s::DAA_CONFLICT_LVL_NONE:
@@ -252,7 +303,7 @@ bool ConflictNotifier::mavlink_log_conflict_by_level(const uint8_t conflict_leve
 		return false;
 	}
 
-	mavlink_log_warning(&_mavlink_log_pub, "%s.\t", message_buffer);
+	mavlink_log_message(message, log_level);
 	return true;
 }
 
@@ -261,13 +312,11 @@ void ConflictNotifier::notify_conflict_level(const conflict_info_s &conflict_inf
 {
 	const uint8_t conflict_level = conflict_info.conflict_level;
 
-	// Secondary conflicts are only announced on a level change; the most urgent conflict also
-	// emits a periodic status while the level is unchanged.
 	if (kind == ConflictNotifyKind::kSecondary && conflict_level == previous_conflict_level) {
 		return;
 	}
 
-	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(conflict_info.aircraft_dist));
+	const uint32_t aircraft_dist = distance_meters_for_log(conflict_info.aircraft_dist);
 
 	char encoded_id_str[kUtmGuidMsgLength];
 	conflict_info.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
@@ -275,40 +324,36 @@ void ConflictNotifier::notify_conflict_level(const conflict_info_s &conflict_inf
 	const char *const prefix = (kind == ConflictNotifyKind::kSecondary) ? "DAA SEC:"
 				   : (kind == ConflictNotifyKind::kMostUrgentNew) ? "DAA New and Main:" : "DAA Main:";
 
-	events::Log log_level = events::Log::Warning;
+	events::Log log_level = events::Log::Info;
 
 	if (conflict_level >= previous_conflict_level) {
-		// Escalation, or (most urgent only) a periodic update at the unchanged level.
 		const bool escalation = conflict_level > previous_conflict_level;
 
-		char message_buffer[kMaxLogMsgSize];
-		snprintf(message_buffer, kMaxLogMsgSize, escalation ? "%s %s lvl UP %d. %d m" : "%s %s lvl %d. %d m",
-			 prefix, encoded_id_str, conflict_level, aircraft_dist);
+		char message_buffer[kMaxLogMessageSize];
+		snprintf(message_buffer, sizeof(message_buffer), escalation ? "%s %s lvl UP %u. %u m" : "%s %s lvl %u. %u m",
+			 prefix, encoded_id_str, static_cast<unsigned>(conflict_level), static_cast<unsigned>(aircraft_dist));
 
-		// Escalations and the first "new + most urgent" report carry level-based severity;
-		// a routine most-urgent update stays informational.
 		if (escalation || kind == ConflictNotifyKind::kMostUrgentNew) {
 			if (!mavlink_log_conflict_by_level(conflict_level, message_buffer, log_level)) {
 				return;
 			}
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "%s.\t", message_buffer);
+			mavlink_log_message(message_buffer, log_level);
 		}
 
 	} else if (conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
-		// De-escalation to no conflict. For the most-urgent path this is the last tracked conflict.
 		if (kind == ConflictNotifyKind::kSecondary) {
-			mavlink_log_info(&_mavlink_log_pub, "%s %s solved. %d m.\t", prefix, encoded_id_str, aircraft_dist);
+			mavlink_log_info(&_mavlink_log_pub, "%s %s solved. %u m.\t", prefix, encoded_id_str,
+					 static_cast<unsigned>(aircraft_dist));
 
 		} else {
 			mavlink_log_info(&_mavlink_log_pub, "DAA all conflicts solved.\t");
 		}
 
 	} else {
-		// De-escalation to a lower, still-active level.
-		mavlink_log_info(&_mavlink_log_pub, "%s %s lvl DOWN %d. %d m.\t", prefix, encoded_id_str, conflict_level,
-				 aircraft_dist);
+		mavlink_log_info(&_mavlink_log_pub, "%s %s lvl DOWN %u. %u m.\t", prefix, encoded_id_str,
+				 static_cast<unsigned>(conflict_level), static_cast<unsigned>(aircraft_dist));
 	}
 
 	// A single structured event covers every transition: the current and previous levels make the
@@ -317,53 +362,54 @@ void ConflictNotifier::notify_conflict_level(const conflict_info_s &conflict_inf
 	/* EVENT
 	 * @description
 	 * - ID: {1}
-	 * - conflict level: {2}
-	 * - previous level: {3}
-	 * - distance: {4m}
-	 * - kind: {5} (0:main, 1:new+main, 2:secondary)
+	 * - ID encoding: {2} (0:ICAO, 1:callsign, 2:UAS ID)
+	 * - conflict level: {3}
+	 * - previous level: {4}
+	 * - distance: {5m}
+	 * - kind: {6} (0:main, 1:new+main, 2:secondary)
 	 */
-	events::send<uint64_t, uint8_t, uint8_t, uint32_t, uint8_t>(events::ID("navigator_traffic_conflict_update"),
+	events::send<uint64_t, uint8_t, uint8_t, uint8_t, uint32_t, uint8_t>(events::ID("navigator_traffic_conflict_update"),
 			log_level, "DAA conflict update",
-			conflict_info.encoded_id.id, conflict_level, previous_conflict_level, aircraft_dist,
+			conflict_info.encoded_id.id, conflict_info.encoded_id.encoding,
+			conflict_level, previous_conflict_level, aircraft_dist,
 			static_cast<uint8_t>(kind));
 }
 
 void ConflictNotifier::notify_new_conflict(const conflict_info_s &conflict_info)
 {
-	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(conflict_info.aircraft_dist));
+	const uint32_t aircraft_dist = distance_meters_for_log(conflict_info.aircraft_dist);
 	const uint8_t conflict_level = conflict_info.conflict_level;
 
 	char encoded_id_str[kUtmGuidMsgLength];
 	conflict_info.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
 
-	char message_buffer[kMaxLogMsgSize];
-	snprintf(message_buffer, kMaxLogMsgSize,
-		 "DAA New %s lvl %d. %d m",
-		 encoded_id_str, conflict_level, aircraft_dist);
+	char message_buffer[kMaxLogMessageSize];
+	snprintf(message_buffer, sizeof(message_buffer), "DAA New %s lvl %u. %u m",
+		 encoded_id_str, static_cast<unsigned>(conflict_level), static_cast<unsigned>(aircraft_dist));
 
 	events::Log log_level = events::Log::Warning;
 
 	if (mavlink_log_conflict_by_level(conflict_level, message_buffer, log_level)) {
 
 		/* EVENT
-		* @description
-		* - ID: {1}
-		* - conflict level: {2}
-		* - distance: {3m}
-		*/
-		events::send<uint64_t, uint8_t, uint32_t>(events::ID("navigator_new_traffic"),
+		 * @description
+		 * - ID: {1}
+		 * - ID encoding: {2} (0:ICAO, 1:callsign, 2:UAS ID)
+		 * - conflict level: {3}
+		 * - distance: {4m}
+		 */
+		events::send<uint64_t, uint8_t, uint8_t, uint32_t>(events::ID("navigator_new_traffic"),
 				log_level,
 				"New traffic",
-				conflict_info.encoded_id.id, conflict_info.conflict_level, aircraft_dist);
+				conflict_info.encoded_id.id, conflict_info.encoded_id.encoding,
+				conflict_info.conflict_level, aircraft_dist);
 	}
 }
 
 void ConflictNotifier::notify_action_on_ground(const NotifyLandedActCause cause)
 {
-	// The blocked action (takeoff/arm) is the only difference between the two cases,
-	// so a single format string and event ID are reused to save flash.
 	const char *blocked_action = nullptr;
-	events::Log log_level = events::Log::Critical;
+	events::Log log_level{events::Log::Warning};
 
 	switch (cause) {
 	case NotifyLandedActCause::kConflictAndArmed:
@@ -381,26 +427,22 @@ void ConflictNotifier::notify_action_on_ground(const NotifyLandedActCause cause)
 		return;
 	}
 
-	mavlink_log_critical(&_mavlink_log_pub, "DAA do not %s until air conflict solved!\t", blocked_action);
+	char message_buffer[kMaxLogMessageSize];
+	snprintf(message_buffer, sizeof(message_buffer), "DAA do not %s until air conflict solved!", blocked_action);
+	mavlink_log_message(message_buffer, log_level);
 	events::send(events::ID("navigator_traffic_ground_conflict"), log_level,
 		     "DAA: resolve air-traffic conflict before flight");
 }
 
 void ConflictNotifier::notify_new_action(const conflict_info_s &conflict_info, const DaaAction action)
 {
-	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(conflict_info.aircraft_dist));
+	const uint32_t aircraft_dist = distance_meters_for_log(conflict_info.aircraft_dist);
 	const uint8_t conflict_level = conflict_info.conflict_level;
 
-	// The action is carried as an event argument, so a single event ID covers
-	// every automated response instead of one ID per action.
 	const char *action_name = nullptr;
 	events::Log log_level = events::Log::Warning;
 
 	switch (action) {
-	case DaaAction::kWarnOnly:
-		action_name = "Warning";
-		break;
-
 	case DaaAction::kPositionHoldMode:
 		action_name = "Hold";
 		break;
@@ -421,33 +463,31 @@ void ConflictNotifier::notify_new_action(const conflict_info_s &conflict_info, c
 		break;
 
 	case DaaAction::kDisabled:
+	case DaaAction::kWarnOnly:
 	default:
-		// No automated response to announce.
 		return;
 	}
 
 	char encoded_id_str[kUtmGuidMsgLength];
 	conflict_info.encoded_id.to_string(encoded_id_str, sizeof(encoded_id_str));
 
-	if (action == DaaAction::kTerminate) {
-		mavlink_log_emergency(&_mavlink_log_pub, "DAA %s act: %s! lvl %d dist %dm\t",
-				      encoded_id_str, action_name, conflict_level, aircraft_dist);
-
-	} else {
-		mavlink_log_warning(&_mavlink_log_pub, "DAA %s: %s! lvl %d. %d m.\t",
-				    encoded_id_str, action_name, conflict_level, aircraft_dist);
-	}
+	char message_buffer[kMaxLogMessageSize];
+	snprintf(message_buffer, sizeof(message_buffer), "DAA %s: %s! lvl %u. %u m",
+		 encoded_id_str, action_name, static_cast<unsigned>(conflict_level), static_cast<unsigned>(aircraft_dist));
+	mavlink_log_message(message_buffer, log_level);
 
 	/* EVENT
 	 * @description
 	 * - ID: {1}
-	 * - action: {2} (1:warn, 2:return, 3:land, 4:hold, 5:terminate)
-	 * - conflict level: {3}
-	 * - distance: {4m}
+	 * - ID encoding: {2} (0:ICAO, 1:callsign, 2:UAS ID)
+	 * - action: {3} (2:return, 3:land, 4:hold, 5:terminate)
+	 * - conflict level: {4}
+	 * - distance: {5m}
 	 */
-	events::send<uint64_t, uint8_t, uint8_t, uint32_t>(events::ID("navigator_traffic_action"), log_level,
+	events::send<uint64_t, uint8_t, uint8_t, uint8_t, uint32_t>(events::ID("navigator_traffic_action"), log_level,
 			"DAA automated action",
-			conflict_info.encoded_id.id, DaaActionPolicy::daa_action_to_action_param(action), conflict_level, aircraft_dist);
+			conflict_info.encoded_id.id, conflict_info.encoded_id.encoding,
+			DaaActionPolicy::daa_action_to_action_param(action), conflict_level, aircraft_dist);
 }
 
 

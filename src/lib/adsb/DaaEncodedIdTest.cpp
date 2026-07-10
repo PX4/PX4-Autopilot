@@ -172,6 +172,31 @@ TEST(DaaEncodedIdTest, ToStringRendersEachEncoding)
 	EXPECT_STREQ(unknown_buffer, "Unknown ID.");
 }
 
+TEST(DaaEncodedIdTest, ToStringRespectsBufferSize)
+{
+	struct guarded_buffer_s {
+		char output[4];
+		char guard;
+	};
+
+	guarded_buffer_s callsign_buffer{{}, 'X'};
+	const uint64_t callsign_key = DaaEncodedId::callsign_to_uint64("ABCDEFGH");
+	DaaEncodedId{callsign_key, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN}.to_string(
+		callsign_buffer.output, sizeof(callsign_buffer.output));
+	EXPECT_STREQ(callsign_buffer.output, "ABC");
+	EXPECT_EQ(callsign_buffer.guard, 'X');
+
+	guarded_buffer_s uas_id_buffer{{}, 'X'};
+	DaaEncodedId{0x0102030405u, detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID}.to_string(
+		uas_id_buffer.output, sizeof(uas_id_buffer.output));
+	EXPECT_STREQ(uas_id_buffer.output, "050");
+	EXPECT_EQ(uas_id_buffer.guard, 'X');
+
+	char one_byte_buffer{'X'};
+	DaaEncodedId{callsign_key, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN}.to_string(&one_byte_buffer, 1);
+	EXPECT_EQ(one_byte_buffer, '\0');
+}
+
 // Equality keys on both id and encoding.
 TEST(DaaEncodedIdTest, EqualityComparesIdAndEncoding)
 {
@@ -204,6 +229,12 @@ TEST(DaaEncodedIdTest, FromReportSelectsEncodingByPriority)
 
 	// No ICAO, valid callsign flag: callsign selected.
 	report.icao_address = 0;
+	id = DaaEncodedId::from_report(report);
+	EXPECT_EQ(id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN);
+	EXPECT_EQ(id.id, DaaEncodedId::callsign_to_uint64("ABC"));
+
+	// An out-of-range ICAO address is ignored in favor of the next valid identifier.
+	report.icao_address = kMaxIcaoAddress + 1u;
 	id = DaaEncodedId::from_report(report);
 	EXPECT_EQ(id.encoding, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN);
 	EXPECT_EQ(id.id, DaaEncodedId::callsign_to_uint64("ABC"));

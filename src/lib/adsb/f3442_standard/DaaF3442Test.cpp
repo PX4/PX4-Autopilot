@@ -42,8 +42,10 @@
 #include <parameters/param.h>
 
 #include <array>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <limits>
+#include <uORB/topics/detect_and_avoid.h>
 
 #include "DaaF3442.h"
 
@@ -70,8 +72,7 @@ protected:
 	}
 };
 
-// try_setting_params() accepts a valid set and rejects negative/non-finite radii, heights, latencies.
-TEST_F(DaaF3442Test, RejectsNegativeAndNonFiniteParams)
+TEST_F(DaaF3442Test, RejectsInvalidParams)
 {
 	struct ParamCase {
 		float nmac_radius;
@@ -92,8 +93,9 @@ TEST_F(DaaF3442Test, RejectsNegativeAndNonFiniteParams)
 	const float nan = std::numeric_limits<float>::quiet_NaN();
 	const float inf = std::numeric_limits<float>::infinity();
 
-	const std::array<ParamCase, 11> cases{{
+	const std::array<ParamCase, 13> cases{{
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, true},
+			{0.f, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{-valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, -valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, valid_nmac_height_m, -valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, valid_wc_latency_s, false},
@@ -104,6 +106,7 @@ TEST_F(DaaF3442Test, RejectsNegativeAndNonFiniteParams)
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, inf, valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, -valid_nmac_latency_s, valid_wc_latency_s, false},
 			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s, -valid_wc_latency_s, false},
+			{valid_nmac_radius_m, valid_nmac_height_m, valid_wc_radius_m, valid_wc_height_m, valid_nmac_latency_s + 1, valid_wc_latency_s, false},
 		}};
 
 	for (size_t i = 0; i < cases.size(); ++i) {
@@ -297,23 +300,29 @@ TEST_F(DaaF3442Test, CalculateDaaStatsReportsExpectedGeometryAndLevel)
 	constexpr float near_horizontal_distance_m = 39.f;
 	constexpr float near_vertical_separation_m = 9.f;
 	const float near_traffic_altitude_m = uav_altitude_m + near_vertical_separation_m;
+	const float near_aircraft_distance_m = hypotf(near_horizontal_distance_m, near_vertical_separation_m);
 	place_traffic_due_east(near_horizontal_distance_m, near_traffic_altitude_m);
 
 	// near-conflict geometry
 	daa_stats_s daa_stats{};
 	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
+	EXPECT_NEAR(daa_stats.aircraft_dist, near_aircraft_distance_m, expectation_tolerance);
 	EXPECT_NEAR(daa_stats.aircraft_dist_hor, near_horizontal_distance_m, expectation_tolerance);
 	EXPECT_NEAR(daa_stats.aircraft_dist_vert, near_vertical_separation_m, expectation_tolerance);
-	EXPECT_NEAR(daa_stats.expected_min_dist_time_sec, near_horizontal_distance_m / expected_relative_speed_m_s, expectation_tolerance);
+	EXPECT_NEAR(daa_stats.expected_min_dist_time_sec, near_aircraft_distance_m / expected_relative_speed_m_s,
+		    expectation_tolerance);
 
 	// traffic well outside every protection volume
 	constexpr float far_horizontal_distance_m = 900.f;
 	constexpr float far_vertical_separation_m = 400.f;
 	const float far_traffic_altitude_m = uav_altitude_m + far_vertical_separation_m;
+	const float far_aircraft_distance_m = hypotf(far_horizontal_distance_m, far_vertical_separation_m);
 	place_traffic_due_east(far_horizontal_distance_m, far_traffic_altitude_m);
 
 	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
+	EXPECT_NEAR(daa_stats.aircraft_dist, far_aircraft_distance_m, expectation_tolerance);
 	EXPECT_NEAR(daa_stats.aircraft_dist_hor, far_horizontal_distance_m, expectation_tolerance);
 	EXPECT_NEAR(daa_stats.aircraft_dist_vert, far_vertical_separation_m, expectation_tolerance);
-	EXPECT_NEAR(daa_stats.expected_min_dist_time_sec, far_horizontal_distance_m / expected_relative_speed_m_s, expectation_tolerance);
+	EXPECT_NEAR(daa_stats.expected_min_dist_time_sec, far_aircraft_distance_m / expected_relative_speed_m_s,
+		    expectation_tolerance);
 }

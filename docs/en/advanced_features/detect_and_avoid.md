@@ -594,7 +594,7 @@ See [Automated Actions](#automated-actions) for the full action parameter conven
   - `DAA Main: <ID> lvl UP <N>. <dist> m.`: emitted immediately when the most urgent conflict level increases.
   - `DAA Main: <ID> lvl DOWN <N>. <dist> m.`: emitted immediately when the most urgent conflict level decreases but remains active.
   - `DAA Main: <ID> lvl <N>. <dist> m.`: periodic message for the current most urgent conflict when its level stays unchanged.
-    The message period is [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE).
+    The message period is [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE); setting it to `0` disables this periodic message.
 - **New and Main conflict:** `DAA New and Main: <ID> lvl <N>. <dist> m.`, `DAA New and Main: <ID> lvl UP <N>. <dist> m.`, `DAA New and Main: <ID> lvl DOWN <N>. <dist> m.`: emitted after the current `check_traffic()` queue drain completes when a new warning-level conflict is also the current most urgent conflict.
 - **Secondary conflicts:** `DAA SEC: <ID> lvl UP <N>. <dist> m.`, `DAA SEC: <ID> lvl DOWN <N>. <dist> m.`, `DAA SEC: <ID> solved. <dist> m.`: emitted immediately for non-primary traffic whose level changes while another conflict remains most urgent.
 - **Buffer handling:**
@@ -606,11 +606,7 @@ See [Automated Actions](#automated-actions) for the full action parameter conven
   - `DAA <ID> ignored (<cause>) lvl <N>.`: emitted when traffic could not be inserted or updated.
     This warning is rate-limited to once every `2 s`.
     The cause can be:
-    - BUFFER_FULL = 0,
-    - FAILED_REMOVAL = 1,
-    - FAILED_INCLUSION = 2,
-    - FAILED_TO_GET_LVL = 3,
-    - INVALID_INDEX = 4
+    - BUFFER_FULL = 0
 - **Actions:** `DAA <ID>: Hold!`, `Return!`, `Land!`, `Terminate!`, and the on-ground `DAA do not arm until air conflict solved!` / `DAA do not takeoff until air conflict solved!` warnings only appear when a conflict level is configured with an automatic action stronger than `Warn only`. The default DAA parameters are warn-only so by default these action messages are not emitted.
 - **No more conflicts:** `DAA all conflicts solved.`: emitted immediately when the most urgent conflict clears and no warning-level conflicts remain.
 
@@ -866,7 +862,7 @@ Under those assumptions, the expected operator-visible messages for each scenari
   - Land triggered on WC breach: `DAA 9F3FA3: Land! lvl 3. 527 m.`
     - `[commander] Landing at current position`
   - `DAA Main: 9F3FA3 lvl UP 4. 124 m.`
-  - Terminate triggered on NMAC breach: `DAA 9F3FA3 act: Terminate! lvl 4 dist 124m`
+  - Terminate triggered on NMAC breach: `DAA 9F3FA3: Terminate! lvl 4. 124 m.`
     - `[failsafe] Failsafe activated`
 
 :::
@@ -944,8 +940,6 @@ Notes:
   A lower-priority buffered conflict does not independently drive an action or arming block, even if its configured action is stronger.
 - DAA compares ownship altitude directly with `transponder_report.altitude` and does not use `altitude_type` to normalize pressure and geometric altitude references.
   A datum mismatch can therefore bias vertical separation.
-- Traffic age is based on the local `transponder_report.timestamp`.
-  The ADS-B `tslc` (time since last communication) field is not included in the freshness check.
 - DAA quality depends on the quality and freshness of both traffic data and vehicle state.
 
 ## Implementation Structure

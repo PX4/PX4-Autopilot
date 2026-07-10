@@ -10,7 +10,7 @@ parameters:
     DAA_NOTIF_STATE:
       description:
         short: DAA status notification period
-        long: Time between notifications for the most urgent conflict.
+        long: Time between notifications for the most urgent conflict. Set to 0 to disable the periodic status notification.
       type: int32
       default: 20
       unit: s
@@ -25,4 +25,3 @@ parameters:
       unit: s
       min: 1
       max: 120
-      reboot_required: true

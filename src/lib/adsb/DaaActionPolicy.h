@@ -75,12 +75,11 @@ struct daa_action_params_s {
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 };
 
-// Automated response for one most urgent conflict escalation. The fields are mutually
-// exclusive: a command is only requested in the air, the ground warning only when landed.
+// A command is only requested in the air; a ground warning is only requested when landed.
 struct daa_action_decision_s {
 	DaaAction action_command{DaaAction::kDisabled};
-	bool announce_action{false}; // no operator message needed when re-requesting the same action
-	bool warn_on_ground{false}; // on ground conflict warning instead of a command.
+	bool announce_action{false};
+	bool warn_on_ground{false};
 	NotifyLandedActCause ground_warning_cause{NotifyLandedActCause::kConflictAndDisarmed};
 };
 
@@ -90,13 +89,11 @@ public:
 	/**
 	 * @brief Decide the automated response to a most urgent conflict level escalation.
 	 *
-	 * No response when the level is unchanged.
+	 * When landed, action-requiring conflicts request a ground warning instead of a command.
+	 * The caller is responsible for rate-limiting repeated warnings.
 	 *
-	 * When landed, action-requiring conflicts lead to a ground warning instead of a command.
-	 *
-	 * In the air, a command is requested only on escalation and only when it is stronger than the current navigator state.
-	 *
-	 * de-escalations never trigger commands.
+	 * In the air, commands are requested only on level escalation and only when stronger
+	 * than the current navigator state. Unchanged levels and de-escalations do not act.
 	 */
 	static daa_action_decision_s decide(const uint8_t conflict_level, const uint8_t prev_conflict_level,
 					    const uint8_t nav_state, const bool landed, const bool armed,
@@ -105,8 +102,8 @@ public:
 	/**
 	 * @brief Map a conflict level to a DAA action.
 	 *
-	 * For F3442, the zones are nested, so if the configured action is DISABLED the
-	 * function falls back to the action of the next larger zone.
+	 * For F3442, a disabled level falls back only to zones guaranteed to contain
+	 * the reported zone.
 	 */
 	static DaaAction action_from_conflict_level(const uint8_t conflict_level, const daa_action_params_s &params);
 

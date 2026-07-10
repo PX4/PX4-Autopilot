@@ -209,13 +209,12 @@ TEST(DaaActionPolicyTest, NoActionForInvalidLevels)
 }
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-// F3442: a breached zone with a disabled action falls back to the next larger zone.
-TEST(DaaActionPolicyTest, F3442NestedZoneFallback)
+TEST(DaaActionPolicyTest, F3442FallbackUsesGuaranteedBreachedZones)
 {
 	daa_action_params_s params{};
 	params.lvl_low_act = 1;		// Warn only
 	params.lvl_med_act = 4;		// Hold
-	params.lvl_high_act = 0;	// Disabled -> falls back to MEDIUM's action
+	params.lvl_high_act = 0;	// Disabled
 	params.lvl_crit_act = 5;	// Terminate
 
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_LOW, params),
@@ -223,9 +222,14 @@ TEST(DaaActionPolicyTest, F3442NestedZoneFallback)
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM, params),
 		  DaaAction::kPositionHoldMode);
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH, params),
-		  DaaAction::kPositionHoldMode);
+		  DaaAction::kWarnOnly);
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, params),
 		  DaaAction::kTerminate);
+
+	// CRITICAL guarantees that HIGH, MEDIUM, and LOW are also breached.
+	params.lvl_crit_act = 0;
+	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL, params),
+		  DaaAction::kPositionHoldMode);
 
 	// all levels disabled -> fallback chain ends disabled
 	EXPECT_EQ(DaaActionPolicy::action_from_conflict_level(detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL,
@@ -255,7 +259,6 @@ TEST(DaaActionPolicyTest, DecideNoResponseWithoutLevelChange)
 	expect_no_response(decision);
 }
 
-// On the ground, an action-requiring conflict warns (arm/takeoff blocked) instead of commanding.
 TEST(DaaActionPolicyTest, DecideWarnsOnGroundInsteadOfActing)
 {
 	const uint8_t critical = detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL;
@@ -272,14 +275,17 @@ TEST(DaaActionPolicyTest, DecideWarnsOnGroundInsteadOfActing)
 					   DaaAction::kDisabled, params_for_all_levels(5));
 	expect_ground_warning(decision, NotifyLandedActCause::kConflictAndDisarmed);
 
+	// Repeated requests allow the caller to emit rate-limited ground warnings.
+	decision = DaaActionPolicy::decide(critical, critical, nav_state, true, false,
+					   DaaAction::kDisabled, params_for_all_levels(5));
+	expect_ground_warning(decision, NotifyLandedActCause::kConflictAndDisarmed);
+
 	// warn-only config -> nothing
 	decision = DaaActionPolicy::decide(critical, none, nav_state, true, true,
 					   DaaAction::kDisabled, params_for_all_levels(1));
 	expect_no_response(decision);
 }
 
-// Airborne: command once per escalation, re-requested without re-announcing, never on de-escalation
-// or below the current mode.
 TEST(DaaActionPolicyTest, DecideRequestsCommandOnAirborneEscalationOnly)
 {
 	const uint8_t critical = detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL;
@@ -292,10 +298,16 @@ TEST(DaaActionPolicyTest, DecideRequestsCommandOnAirborneEscalationOnly)
 					 DaaAction::kDisabled, land_params);
 	expect_command(decision, DaaAction::kLandMode, true);
 
-	// repeat after a failed mode change -> retried, not re-announced
+	// A later level escalation that maps to the same action is not re-announced.
 	decision = DaaActionPolicy::decide(critical, low, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION,
 					   false, true, DaaAction::kLandMode, land_params);
 	expect_command(decision, DaaAction::kLandMode, false);
+
+	// The first escalation after all conflicts cleared starts a new action episode.
+	decision = DaaActionPolicy::decide(critical, detect_and_avoid_s::DAA_CONFLICT_LVL_NONE,
+					   vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION,
+					   false, true, DaaAction::kLandMode, land_params);
+	expect_command(decision, DaaAction::kLandMode, true);
 
 	// already in a stronger mode -> nothing
 	decision = DaaActionPolicy::decide(critical, low, vehicle_status_s::NAVIGATION_STATE_TERMINATION,

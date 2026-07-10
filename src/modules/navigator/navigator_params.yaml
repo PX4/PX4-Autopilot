@@ -89,7 +89,6 @@ parameters:
       default: 500
       unit: m
       min: 500
-      reboot_required: true
     NAV_TRAFF_A_VER:
       description:
         short: Crosstrack vertical separation threshold
@@ -98,7 +97,6 @@ parameters:
       unit: m
       min: 10
       max: 500
-      reboot_required: true
     NAV_TRAFF_COLL_T:
       description:
         short: Crosstrack collision time threshold
@@ -110,7 +108,6 @@ parameters:
       unit: s
       min: 1
       max: 900000000
-      reboot_required: true
     NAV_FORCE_VT:
       description:
         short: Force VTOL mode takeoff and land

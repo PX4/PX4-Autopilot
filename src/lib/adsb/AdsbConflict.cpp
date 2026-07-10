@@ -32,34 +32,50 @@
  ****************************************************************************/
 
 #include "AdsbConflict.h"
-#include "geo/geo.h"
 
-#include <uORB/topics/transponder_report.h>
+#include <cmath>
+
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
+
+bool AdsbConflict::valid_wgs84_coordinates(const double latitude, const double longitude)
+{
+	return PX4_ISFINITE(latitude) && PX4_ISFINITE(longitude)
+	       && fabs(latitude) <= 90.0
+	       && fabs(longitude) <= 180.0;
+}
 
 bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and_avoid_s &daa_output)
 {
 	const transponder_report_s &transponder_report = daa_input.transponder_report;
 
-	if (!(PX4_ISFINITE(transponder_report.lat) && PX4_ISFINITE(transponder_report.lon)
-	      && daa_input.uav_lat_lon.isAllFinite())) {
-		PX4_DEBUG("DAA lib: Invalid lat, lon, Early return");
+	const matrix::Vector2d traffic_lat_lon{transponder_report.lat, transponder_report.lon};
+
+	if (!valid_wgs84_coordinates(daa_input.uav_lat_lon(0), daa_input.uav_lat_lon(1))
+	    || !valid_wgs84_coordinates(traffic_lat_lon(0), traffic_lat_lon(1))) {
+		PX4_DEBUG("DAA lib: invalid coordinates");
+		return false;
+	}
+
+	if (!PX4_ISFINITE(daa_input.uav_alt) || !PX4_ISFINITE(transponder_report.altitude)) {
+		PX4_DEBUG("DAA lib: invalid altitude");
 		return false;
 	}
 
 	if (!(PX4_ISFINITE(transponder_report.hor_velocity) && PX4_ISFINITE(transponder_report.ver_velocity))) {
-		PX4_DEBUG("DAA lib: Invalid traffic vel, Early return");
+		PX4_DEBUG("DAA lib: invalid traffic velocity");
 		return false;
 	}
 
 	if (!daa_input.uav_vel_ned.isAllFinite()) {
-		PX4_DEBUG("DAA lib: Invalid uav vel, Early return");
+		PX4_DEBUG("DAA lib: invalid ownship velocity");
 		return false;
 	}
 
 #if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
 
-	if (!PX4_ISFINITE(daa_input.uav_heading) || !PX4_ISFINITE(transponder_report.heading)) {
-		PX4_DEBUG("DAA lib: Invalid heading, Early return");
+	if (!PX4_ISFINITE(transponder_report.heading)) {
+		PX4_DEBUG("DAA lib: invalid traffic heading");
 		return false;
 	}
 
@@ -68,11 +84,10 @@ bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and
 	aircraft_state_s uav_state{};
 	uav_state.lat_lon = daa_input.uav_lat_lon;
 	uav_state.altitude = daa_input.uav_alt;
-	uav_state.heading = daa_input.uav_heading;
 	uav_state.velocity_ned = daa_input.uav_vel_ned;
 
 	aircraft_state_s traffic_state{};
-	traffic_state.lat_lon = matrix::Vector2d(transponder_report.lat, transponder_report.lon);
+	traffic_state.lat_lon = traffic_lat_lon;
 	traffic_state.altitude = transponder_report.altitude;
 	traffic_state.heading = transponder_report.heading;
 
@@ -88,6 +103,7 @@ bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and
 
 	daa_stats_s daa_stats{};
 	daa_output.conflict_level = _daa.calculate_daa_stats(uav_state, traffic_state, daa_stats);
+	daa_output.aircraft_dist = daa_stats.aircraft_dist;
 	daa_output.aircraft_dist_hor = daa_stats.aircraft_dist_hor;
 	daa_output.aircraft_dist_vert = daa_stats.aircraft_dist_vert;
 	daa_output.expected_min_dist_time = daa_stats.expected_min_dist_time_sec;

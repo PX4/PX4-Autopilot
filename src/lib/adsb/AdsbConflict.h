@@ -33,30 +33,23 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+// Provides CONFIG_NAVIGATOR_ADSB_F3442 for the standard selection.
+#include <px4_boardconfig.h>
 
-#include <lib/geo/geo.h>
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
 #include "f3442_standard/DaaF3442.h"
 #else
 #include "crosstrack_standard/DaaCrosstrack.h"
 #endif
-#include "DaaHelper.h"
+
 #include <matrix/math.hpp>
 
-#include <drivers/drv_hrt.h>
-#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/detect_and_avoid.h>
-
-using namespace time_literals;
-
-static constexpr uint64_t kConflictWarningTimeout{60_s};
+#include <uORB/topics/transponder_report.h>
 
 struct daa_input_s {
 	matrix::Vector2d uav_lat_lon{};
 	float uav_alt{0.f};
-	float uav_heading{0.f};
 	matrix::Vector3f uav_vel_ned{};
 	transponder_report_s transponder_report{};
 };
@@ -74,6 +67,8 @@ public:
 	bool calculate_daa_output(const daa_input_s &daa_input, detect_and_avoid_s &daa_output);
 
 	bool try_updating_params();
+
+	static bool valid_wgs84_coordinates(const double latitude, const double longitude);
 
 private:
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442

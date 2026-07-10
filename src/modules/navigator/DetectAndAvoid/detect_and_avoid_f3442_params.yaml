@@ -10,14 +10,12 @@ parameters:
       default: 10.0
       unit: m/s
       min: 0
-      reboot_required: true
     DAA_EN_DFLT_VEL:
       description:
         short: Ignore reported vertical speed of other aircraft
         long: Use DAA_DFLT_VEL instead of reported traffic vertical speed. Specific to the F3442 DAA standard.
       type: boolean
       default: 1
-      reboot_required: true
     DAA_LVL_LOW_ACT:
       description:
         short: Low conflict action
@@ -98,7 +96,6 @@ parameters:
       default: 77.0
       unit: m
       min: 10
-      reboot_required: true
     DAA_LVL_CRIT_HGT:
       description:
         short: Critical conflict zone cylinder height (NMAC)
@@ -107,7 +104,6 @@ parameters:
       default: 16.0
       unit: m
       min: 10
-      reboot_required: true
     DAA_LVL_HIGH_RAD:
       description:
         short: High conflict zone cylinder radius (WC)
@@ -116,7 +112,6 @@ parameters:
       default: 305.0
       unit: m
       min: 10
-      reboot_required: true
     DAA_LVL_HIGH_HGT:
       description:
         short: High conflict zone cylinder height (WC)
@@ -125,7 +120,6 @@ parameters:
       default: 39.0
       unit: m
       min: 10
-      reboot_required: true
     DAA_LVL_MED_TIME:
       description:
         short: Medium conflict latency time
@@ -134,7 +128,6 @@ parameters:
       default: 33
       unit: s
       min: 0
-      reboot_required: true
     DAA_LVL_LOW_TIME:
       description:
         short: Low conflict latency time
@@ -143,4 +136,3 @@ parameters:
       default: 33
       unit: s
       min: 0
-      reboot_required: true

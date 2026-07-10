@@ -49,20 +49,10 @@ daa_action_decision_s DaaActionPolicy::decide(const uint8_t conflict_level, cons
 		const DaaAction previous_action, const daa_action_params_s &params)
 {
 	daa_action_decision_s decision{};
-
-	if (conflict_level == prev_conflict_level) {
-		return decision; // No change in conflict level, no response
-	}
-
-	const bool conflict_escalated = conflict_level > prev_conflict_level;
-
 	const DaaAction requested_action = action_from_conflict_level(conflict_level, params);
-	PX4_DEBUG("DAA: Conflict %s, attempt to publish action %d",  conflict_escalated ? "escalation" : "reduction",
-		  (int)requested_action);
 
 	if (landed) {
 		if (requested_action <= DaaAction::kWarnOnly) {
-			PX4_DEBUG("DAA: drone landed and no action required. No action sent");
 			return decision;
 		}
 
@@ -72,12 +62,16 @@ daa_action_decision_s DaaActionPolicy::decide(const uint8_t conflict_level, cons
 		return decision;
 	}
 
-	if (conflict_escalated && action_escalates_above_nav_state(requested_action, nav_state)) {
-		// Request even if previous_action == requested_action: it may not match vehicle_status.
-		decision.action_command = requested_action;
+	if (conflict_level == prev_conflict_level) {
+		return decision;
+	}
 
-		// Only announce action transitions to avoid spamming if the vehicle command does not go through.
-		decision.announce_action = (previous_action != requested_action);
+	const bool conflict_escalated = conflict_level > prev_conflict_level;
+
+	if (conflict_escalated && action_escalates_above_nav_state(requested_action, nav_state)) {
+		decision.action_command = requested_action;
+		decision.announce_action = previous_action != requested_action
+					   || prev_conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 		return decision;
 	}
 
@@ -97,40 +91,43 @@ DaaAction DaaActionPolicy::action_from_conflict_level(const uint8_t conflict_lev
 	}
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-	// F3442 zones are nested from CRITICAL to LOW. If the action for the
-	// breached zone is disabled, fall back to the next larger breached zone.
-	DaaAction requested_action{DaaAction::kDisabled};
 
 	switch (conflict_level) {
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL:
-		requested_action = action_param_to_daa_action(params.lvl_crit_act);
+	case detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL: {
+			DaaAction action = action_param_to_daa_action(params.lvl_crit_act);
 
-		if (requested_action != DaaAction::kDisabled) {
-			return requested_action;
+			if (action != DaaAction::kDisabled) {
+				return action;
+			}
+
+			action = action_param_to_daa_action(params.lvl_high_act);
+
+			if (action != DaaAction::kDisabled) {
+				return action;
+			}
+
+			action = action_param_to_daa_action(params.lvl_med_act);
+
+			if (action != DaaAction::kDisabled) {
+				return action;
+			}
+
+			return action_param_to_daa_action(params.lvl_low_act);
 		}
 
-	// FALLTHROUGH
-
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH:
-		requested_action = action_param_to_daa_action(params.lvl_high_act);
-
-		if (requested_action != DaaAction::kDisabled) {
-			return requested_action;
+	case detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH: {
+			const DaaAction action = action_param_to_daa_action(params.lvl_high_act);
+			return action != DaaAction::kDisabled ? action : action_param_to_daa_action(params.lvl_low_act);
 		}
 
-	// FALLTHROUGH
-
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM:
-		requested_action = action_param_to_daa_action(params.lvl_med_act);
-
-		if (requested_action != DaaAction::kDisabled) {
-			return requested_action;
+	case detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM: {
+			const DaaAction action = action_param_to_daa_action(params.lvl_med_act);
+			return action != DaaAction::kDisabled ? action : action_param_to_daa_action(params.lvl_low_act);
 		}
 
-	// FALLTHROUGH
-
-	case detect_and_avoid_s::DAA_CONFLICT_LVL_LOW:
-		return action_param_to_daa_action(params.lvl_low_act);
+	case detect_and_avoid_s::DAA_CONFLICT_LVL_LOW: {
+			return action_param_to_daa_action(params.lvl_low_act);
+		}
 	}
 
 	return DaaAction::kDisabled;

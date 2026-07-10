@@ -41,7 +41,12 @@
 #include "DaaF3442.h"
 
 #include <float.h>
+
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
+#include <uORB/topics/detect_and_avoid.h>
 
 DaaF3442::DaaF3442() :
 	ModuleParams(nullptr)
@@ -57,10 +62,10 @@ bool DaaF3442::try_setting_params()
 	const int32_t nmac_latency = _param_daa_lvl_medium_time.get();
 	const int32_t wc_latency = _param_daa_lvl_low_time.get();
 
-	const bool nmac_ok = nmac_bounds.isAllFinite() && nmac_bounds.min() >= 0.f;
-	const bool wc_ok = wc_bounds.isAllFinite() && wc_bounds.min() >= 0.f;
+	const bool nmac_ok = nmac_bounds.isAllFinite() && nmac_bounds.min() > 0.f;
+	const bool wc_ok = wc_bounds.isAllFinite() && wc_bounds.min() > 0.f;
 	const bool ordering_ok = nmac_ok && wc_ok && (wc_bounds - nmac_bounds).min() >= 0.f;
-	const bool latencies_ok = nmac_latency >= 0 && wc_latency >= 0;
+	const bool latencies_ok = nmac_latency >= 0 && wc_latency >= nmac_latency;
 
 	if (!(nmac_ok && wc_ok && ordering_ok && latencies_ok)) {
 		PX4_ERR("DAA: invalid F3442 parameters");
@@ -112,7 +117,7 @@ void DaaF3442::calculate_augmented_boundaries(const matrix::Vector2f &base_bound
 }
 
 uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
-		const matrix::Vector2f &uav_vel_hor_vert, const matrix::Vector2f &traffic_vel)
+		const matrix::Vector2f &uav_vel_hor_vert, const matrix::Vector2f &traffic_vel) const
 {
 	// Severity is imposed by evaluation order; HIGH and MEDIUM may overlap without containment.
 
@@ -147,18 +152,21 @@ uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 	return detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 }
 
-uint8_t DaaF3442::calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state, daa_stats_s &daa_stats)
+uint8_t DaaF3442::calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
+				      daa_stats_s &daa_stats) const
 {
 	float horizontal_dist{0.f};
 	float vertical_dist{0.f};
 	get_distance_to_point_global_wgs84(uav_state.lat_lon(0), uav_state.lat_lon(1), uav_state.altitude,
 					   traffic_state.lat_lon(0), traffic_state.lat_lon(1), traffic_state.altitude, &horizontal_dist, &vertical_dist);
 
+	const float aircraft_dist = hypotf(horizontal_dist, vertical_dist);
+	daa_stats.aircraft_dist = aircraft_dist;
 	daa_stats.aircraft_dist_hor = horizontal_dist;
-	daa_stats.aircraft_dist_vert = vertical_dist;
+	daa_stats.aircraft_dist_vert = fabsf(vertical_dist);
 	const float relative_uav_traffic_speed = calculate_relative_uav_traffic_speed(uav_state, traffic_state);
 	daa_stats.expected_min_dist_time_sec = relative_uav_traffic_speed > FLT_EPSILON ?
-					       horizontal_dist / relative_uav_traffic_speed : 0.f;
+					       aircraft_dist / relative_uav_traffic_speed : 0.f;
 
 	const matrix::Vector2f distance(fabsf(horizontal_dist), fabsf(vertical_dist));
 	const matrix::Vector2f uav_vel_hor_vert = calculate_horizontal_vertical_speed_magnitudes(uav_state);

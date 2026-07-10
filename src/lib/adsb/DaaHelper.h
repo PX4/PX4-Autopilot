@@ -39,12 +39,10 @@
 
 #pragma once
 
-#include <lib/mathlib/mathlib.h>
 #include <cstdint>
-#include <sys/types.h>
+
+#include <lib/mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/log.h>
 
 struct aircraft_state_s {
 	matrix::Vector2d lat_lon{};
@@ -54,6 +52,7 @@ struct aircraft_state_s {
 };
 
 struct daa_stats_s {
+	float aircraft_dist{0.f};
 	float aircraft_dist_hor{0.f};
 	float aircraft_dist_vert{0.f};
 	float expected_min_dist_time_sec{0.f};

@@ -170,21 +170,21 @@ void DaaEncodedId::to_string(char *buffer, size_t buffer_size) const
 
 	switch (encoding) {
 	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO: {
-		convert_icao_uint32_to_hex_str(id, buffer, buffer_size);
-		break;
-	}
+			convert_icao_uint32_to_hex_str(id, buffer, buffer_size);
+			break;
+		}
 
 	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN: {
-		char callsign[kCallsignLength] {};
-		convert_uint64_callsign_to_str(id, callsign);
-		snprintf(buffer, buffer_size, "%s", callsign);
-		break;
-	}
+			char callsign[kCallsignLength] {};
+			convert_uint64_callsign_to_str(id, callsign);
+			snprintf(buffer, buffer_size, "%s", callsign);
+			break;
+		}
 
 	case detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID: {
-		char uas_id[kUtmGuidMsgLength] {};
-		convert_uas_id_uint64_to_str(id, uas_id);
-		snprintf(buffer, buffer_size, "%s", uas_id);
+			char uas_id[kUtmGuidMsgLength] {};
+			convert_uas_id_uint64_to_str(id, uas_id);
+			snprintf(buffer, buffer_size, "%s", uas_id);
 			break;
 		}
 
@@ -283,7 +283,7 @@ void DaaEncodedId::convert_uas_id_uint64_to_str(const uint64_t uas_id_int, char 
 		const int reduced_uas_id_length = (kUtmGuidMsgLength - 1) / 2;
 
 		for (int i = 0; i < reduced_uas_id_length; ++i) {
-			const uint8_t byte = static_cast<uint8_t>((uas_id_int >> (i * 8)) & 0xFF);
+			const uint8_t byte = static_cast<uint8_t>((uas_id_int >>(i * 8)) & 0xFF);
 			uas_id_char_arr[i * 2] = kHexDigits[byte >> 4];
 			uas_id_char_arr[i * 2 + 1] = kHexDigits[byte & 0x0F];
 		}

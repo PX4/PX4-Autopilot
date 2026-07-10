@@ -36,6 +36,7 @@
 
 #include <parameters/param.h>
 
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <limits>
 
@@ -53,7 +54,6 @@ class AdsbConflictTest : public ::testing::Test
 protected:
 	const matrix::Vector2d uav_lat_lon_{32.617013, -96.490564};
 	const float uav_alt_{1000.f};
-	const float uav_heading_{0.f};
 	const matrix::Vector3f stationary_uav_vel_ned_{0.f, 0.f, 0.f};
 
 	void SetUp() override
@@ -102,24 +102,22 @@ protected:
 		return report;
 	}
 
-	daa_input_s create_daa_input(const matrix::Vector2d &uav_lat_lon, const float uav_alt, const float uav_heading,
+	daa_input_s create_daa_input(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
 				     const matrix::Vector3f &uav_vel_ned, const transponder_report_s &report) const
 	{
 		daa_input_s daa_input{};
 		daa_input.uav_lat_lon = uav_lat_lon;
 		daa_input.uav_alt = uav_alt;
-		daa_input.uav_heading = uav_heading;
 		daa_input.uav_vel_ned = uav_vel_ned;
 		daa_input.transponder_report = report;
 		return daa_input;
 	}
 };
 
-// calculate_daa_output() rejects non-finite coordinates and velocities.
-TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
+TEST_F(AdsbConflictTest, RejectsInvalidAircraftState)
 {
 	AdsbConflict adsb_conflict;
-	const RelativeTrafficScenario valid_traffic{200.f, math::radians(90.f), 0.f, uav_heading_, 30.f, 0.f};
+	const RelativeTrafficScenario valid_traffic{200.f, math::radians(90.f), 0.f, 0.f, 30.f, 0.f};
 
 	detect_and_avoid_s daa_output{};
 	transponder_report_s report = create_relative_report(valid_traffic);
@@ -128,30 +126,41 @@ TEST_F(AdsbConflictTest, RejectsNonFiniteCoordinatesAndVelocities)
 
 	// non-finite ownship coordinate
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(nan, uav_lat_lon_(1)), uav_alt_,
-			uav_heading_, stationary_uav_vel_ned_, report), daa_output));
+			stationary_uav_vel_ned_, report), daa_output));
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), nan), uav_alt_,
-			uav_heading_, stationary_uav_vel_ned_, report), daa_output));
-
-	// non-finite traffic position
-	report.lat = nan;
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
+			stationary_uav_vel_ned_, report), daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(90.1, uav_lat_lon_(1)), uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), -180.1), uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 
-	// non-finite traffic velocity
+	report.lat = nan;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	report = create_relative_report(valid_traffic);
+	report.lon = 180.1;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+
+	report = create_relative_report(valid_traffic);
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, nan,
+			stationary_uav_vel_ned_, report), daa_output));
+	report.altitude = inf;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+
 	report = create_relative_report(valid_traffic);
 	report.hor_velocity = inf;
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 
-	// non-finite ownship velocity
 	report = create_relative_report(valid_traffic);
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
 			matrix::Vector3f(0.f, nan, 0.f), report), daa_output));
 }
 
 #if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
-// Crosstrack mode rejects non-finite headings (for traffic and ownship).
-TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
+TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteTrafficHeading)
 {
 	AdsbConflict adsb_conflict;
 	const RelativeTrafficScenario approaching_traffic{200.f, math::radians(90.f), 0.f, math::radians(270.f), 30.f, 0.f};
@@ -160,13 +169,8 @@ TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteHeadings)
 	transponder_report_s report = create_relative_report(approaching_traffic);
 	const float nan = std::numeric_limits<float>::quiet_NaN();
 
-	// non-finite ownship heading
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, nan,
-			stationary_uav_vel_ned_, report), daa_output));
-
-	// non-finite traffic heading
 	report.heading = nan;
-	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 }
 #endif // !CONFIG_NAVIGATOR_ADSB_F3442
@@ -198,7 +202,7 @@ TEST_F(AdsbConflictTest, DelegatesToBuiltStandardAndForwardsOutput)
 	detect_and_avoid_s daa_output{};
 
 	ASSERT_TRUE(adsb_conflict.try_updating_params());
-	ASSERT_TRUE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_, uav_heading_,
+	ASSERT_TRUE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
 
 #if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442

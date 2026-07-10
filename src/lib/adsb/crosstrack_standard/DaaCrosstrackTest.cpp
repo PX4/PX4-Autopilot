@@ -38,8 +38,10 @@
 
 #include <parameters/param.h>
 
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <limits>
+#include <uORB/topics/detect_and_avoid.h>
 
 namespace
 {
@@ -98,14 +100,12 @@ protected:
 	}
 };
 
-// try_setting_params() rejects NaN/Inf/zero separations and negative collision time.
-TEST_F(DaaCrosstrackTest, RejectsNonFiniteParams)
+TEST_F(DaaCrosstrackTest, RejectsInvalidParams)
 {
 	ASSERT_TRUE(daa.try_setting_params());
 
 	const float nan = std::numeric_limits<float>::quiet_NaN();
 	const float inf = std::numeric_limits<float>::infinity();
-	const int negative_time = -1;
 
 	for (const float bad : {nan, inf, 0.f}) {
 		set_crosstrack_params(bad, 500.f, 60);
@@ -117,8 +117,10 @@ TEST_F(DaaCrosstrackTest, RejectsNonFiniteParams)
 		EXPECT_FALSE(daa.try_setting_params()) << "vertical separation = " << bad;
 	}
 
-	set_crosstrack_params(500.f, 500.f, negative_time);
-	EXPECT_FALSE(daa.try_setting_params());
+	for (const int bad : {0, -1}) {
+		set_crosstrack_params(500.f, 500.f, bad);
+		EXPECT_FALSE(daa.try_setting_params()) << "collision time = " << bad;
+	}
 
 	// valid again
 	set_crosstrack_params(500.f, 500.f, 60);
@@ -142,6 +144,7 @@ TEST_F(DaaCrosstrackTest, InvalidTrafficHeadingReturnsNoConflict)
 	daa_stats_s daa_stats{};
 	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_NONE);
 
+	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist, 0.f);
 	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist_hor, 0.f);
 	EXPECT_FLOAT_EQ(daa_stats.aircraft_dist_vert, 0.f);
 	EXPECT_FLOAT_EQ(daa_stats.expected_min_dist_time_sec, 0.f);
@@ -164,6 +167,7 @@ TEST_F(DaaCrosstrackTest, DetectsApproachingConflictAndReportsExpectedStats)
 	daa_stats_s daa_stats{};
 	EXPECT_EQ(daa.calculate_daa_stats(uav_state, traffic_state, daa_stats), detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
 
+	EXPECT_NEAR(daa_stats.aircraft_dist, 200.f, 0.1f);
 	EXPECT_LT(fabsf(daa_stats.aircraft_dist_hor), 500.f);
 	EXPECT_NEAR(daa_stats.aircraft_dist_vert, 0.f, 0.1f);
 	EXPECT_NEAR(daa_stats.expected_min_dist_time_sec, 200.f / 30.f, 0.1f);

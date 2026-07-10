@@ -44,10 +44,8 @@
 #include <lib/adsb/ConflictTracker.h>
 #include <lib/adsb/DaaActionPolicy.h>
 #include <px4_platform_common/events.h>
-#include <systemlib/mavlink_log.h>
+#include <uORB/uORB.h>
 #include <uORB/topics/transponder_report.h>
-
-static constexpr uint8_t kMaxLogMsgSize{128};
 
 class ConflictNotifier
 {
@@ -127,14 +125,13 @@ private:
 
 	void notify_action_on_ground(const NotifyLandedActCause cause);
 
-	/**
-	 * @brief Send @p message_buffer over MAVLink with a severity derived from @p conflict_level.
-	 *
-	 * Returns false (and sends nothing) for NONE or invalid levels. Sets
-	 * @p log_level so the caller can use the same severity for a matching event.
-	 */
-	bool mavlink_log_conflict_by_level(const uint8_t conflict_level, const char message_buffer[kMaxLogMsgSize],
-					   events::Log &log_level);
+	bool mavlink_log_conflict_by_level(const uint8_t conflict_level, const char *message, events::Log &log_level);
+	void mavlink_log_message(const char *message, const events::Log log_level);
+
+	// Distance in meters for operator messages, non-finite or out-of-range maps to UINT32_MAX.
+	static uint32_t distance_meters_for_log(const float distance);
+
+	static constexpr size_t kMaxLogMessageSize{128};
 
 	static bool level_requires_warning(const uint8_t warning_levels_mask, const uint8_t conflict_level)
 	{

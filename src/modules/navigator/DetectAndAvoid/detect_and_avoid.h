@@ -43,39 +43,25 @@
 #include "../mission_block.h"
 #include "ConflictNotifier.h"
 
+#if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 #include <pthread.h>
+#endif
 
-#include <matrix/math.hpp>
-#include <lib/geo/geo.h>
-#include <px4_platform_common/module_params.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/detect_and_avoid.h>
-#include <uORB/topics/detect_and_avoid_most_urgent.h>
+#include <drivers/drv_hrt.h>
 #include <lib/adsb/AdsbConflict.h>
 #include <lib/adsb/ConflictTracker.h>
 #include <lib/adsb/DaaEncodedId.h>
-#include <uORB/topics/transponder_report.h>
-#include <uORB/topics/vehicle_command.h>
-#include <commander/px4_custom_mode.h>
-#include <uORB/topics/parameter_update.h>
-
-#include <drivers/drv_hrt.h>
-#include <uORB/Publication.hpp>
-
-#include <px4_platform_common/board_common.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/time.h>
-
-#include <containers/Array.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/detect_and_avoid.h>
+#include <uORB/topics/detect_and_avoid_most_urgent.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/transponder_report.h>
 
 using namespace time_literals;
-
-// DaaEncodedId keeps a board-agnostic copy of the GUID byte length; validate it against the
-// platform definition here, where board_common.h is available.
-static_assert(kUasIdByteLength == PX4_GUID_BYTE_LENGTH, "kUasIdByteLength must match PX4_GUID_BYTE_LENGTH");
-
-static constexpr uint64_t kRemoveStaleConflictsTime{2_s};
 
 class DetectAndAvoid : public MissionBlock, public ModuleParams
 {
@@ -147,6 +133,12 @@ public:
 	conflict_info_s get_most_urgent_conflict() const { return _conflict_tracker.most_urgent(); }
 
 private:
+	static constexpr hrt_abstime kOwnshipPositionTimeout{2_s};
+
+	// Change records collected by the conflict tracker over one detection cycle.
+	// Static so the ~1.8 KB buffer lives in .bss (AXI_SRAM on FMU targets).
+	static conflict_tracker_changes_s _cycle_changes;
+
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 	struct fake_traffic_origin_s {
 		double lat{0.0};
@@ -185,10 +177,6 @@ private:
 	ConflictTracker _conflict_tracker{};
 	ConflictNotifier _conflict_notifier{};
 
-	// Bit i set = conflict level i requires an operator warning (from the action params).
-	uint8_t warning_levels_mask() const;
-
-	// Cycle context (previous level, warning mask, notification interval) for the notifier.
 	ConflictNotifier::cycle_context_s notifier_cycle_context() const;
 	void update_most_urgent_conflict();
 
@@ -219,10 +207,6 @@ private:
 
 	bool gather_ownship_input(daa_input_s &daa_input) const;
 
-	// Fill the traffic half of the DAA input from a valid report, applying the velocity defaults.
-	void prepare_traffic_input(const transponder_report_s &transponder_report, daa_input_s &daa_input) const;
-
-	// True if the raw report has finite coords/altitude, the required validity flags, and a recent timestamp.
 	static bool transponder_data_valid(const transponder_report_s &report, hrt_abstime now, hrt_abstime timeout_us);
 
 	/**
@@ -235,13 +219,7 @@ private:
 
 	bool process_transponder_report(daa_input_s &daa_input, const transponder_report_s &transponder_report);
 
-	// Publish the traffic conflict outputs collected while draining the transponder queue.
-	void publish_daa_outputs();
-
 	hrt_abstime _time_last_buffer_clean{0};
-
-	// True (and stamps last_time to now) if interval has passed since the previous trigger.
-	bool has_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
 
 	/* Debug functions */
 #if defined(DEBUG_BUILD)

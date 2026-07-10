@@ -42,6 +42,7 @@
 
 #include <containers/LockGuard.hpp>
 #include <cstring>
+#include <lib/geo/geo.h>
 
 using namespace time_literals;
 

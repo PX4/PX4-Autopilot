@@ -41,14 +41,8 @@
 
 #include "../DaaHelper.h"
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <matrix/math.hpp>
+#include <cstdint>
 
-#include <lib/geo/geo.h>
-
-#include <drivers/drv_hrt.h>
-#include <uORB/topics/detect_and_avoid.h>
 #include <px4_platform_common/module_params.h>
 
 static constexpr float kTrafficToUavDistanceExtension{1000.0f};

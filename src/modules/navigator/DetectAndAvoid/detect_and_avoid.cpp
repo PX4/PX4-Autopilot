@@ -41,30 +41,22 @@
 #include "../navigator.h"
 
 #include <cinttypes>
+#include <commander/px4_custom_mode.h>
+#include <lib/adsb/DaaEncodedId.h>
 #include <lib/mathlib/mathlib.h>
-#include <cstdlib>
-#include <cstring>
-#include <fcntl.h>
-
-#include <parameters/param.h>
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
-
-#include <uORB/uORB.h>
+#include <px4_platform_common/board_common.h>
+#include <px4_platform_common/log.h>
 #include <uORB/topics/vehicle_command.h>
 
 using namespace time_literals;
 
-// The conflict tracker appends its change records into this buffer over one detection cycle.
-// Defined as an uninitialized static so the storage lives in .bss (AXI_SRAM on FMU targets).
-// With kMaxConflictChangesPerCycle = 37, this is roughly 1.8 KB on current targets.
-static conflict_tracker_changes_s _cycle_changes;
+static_assert(kUasIdByteLength == PX4_GUID_BYTE_LENGTH, "UAS ID size must match the platform GUID size");
 
-// Buffer containing the conflict outputs collected over one cycle.
-// Same .bss placement rationale as above.
-// Sized for one full transponder queue drain (roughly 0.8 KB on current targets).
-using daa_cycle_outputs_s = px4::Array<detect_and_avoid_s, transponder_report_s::ORB_QUEUE_LENGTH>;
-static daa_cycle_outputs_s _cycle_daa_outputs;
+static_assert(detect_and_avoid_s::ORB_QUEUE_LENGTH >= transponder_report_s::ORB_QUEUE_LENGTH,
+	      "DAA output queue must hold one full traffic-input burst");
+
+// Static so the buffer lives in .bss instead of Navigator's allocation.
+conflict_tracker_changes_s DetectAndAvoid::_cycle_changes;
 
 DetectAndAvoid::DetectAndAvoid(Navigator *navigator) :
 	MissionBlock(navigator, 0),
@@ -139,16 +131,6 @@ void DetectAndAvoid::update_activation_status()
 	}
 }
 
-bool DetectAndAvoid::has_elapsed(hrt_abstime &last_time, const hrt_abstime interval)
-{
-	if ((last_time == 0) || (hrt_elapsed_time(&last_time) > interval)) {
-		last_time = hrt_absolute_time();
-		return true;
-	}
-
-	return false;
-}
-
 void DetectAndAvoid::on_active()
 {
 	if (_parameter_update_sub.updated()) {
@@ -167,15 +149,13 @@ void DetectAndAvoid::on_active()
 
 void DetectAndAvoid::process_traffic()
 {
-	// DAA input for this cycle: gather_ownship_input() fills the ownship half once, and the
-	// traffic half is overwritten in place per report while processing the transponder queue.
 	daa_input_s daa_input{};
 
 	if (!gather_ownship_input(daa_input)) {
 		if (!_conflict_tracker.empty()
 		    || _conflict_tracker.most_urgent().conflict_level != detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
 			PX4_DEBUG("DAA: uav pose stale, clearing conflicts");
-			clear_conflicts(); // do not call reset() to stay activated once the pose recovers
+			clear_conflicts();
 		}
 
 		return;
@@ -186,10 +166,13 @@ void DetectAndAvoid::process_traffic()
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
 	_cycle_changes.clear();
-	_cycle_daa_outputs.clear();
 
-	if (has_elapsed(_time_last_buffer_clean, kRemoveStaleConflictsTime)) {
-		if (_conflict_tracker.remove_stale_conflicts(hrt_absolute_time(),
+	const hrt_abstime now = hrt_absolute_time();
+
+	if ((_time_last_buffer_clean == 0) || ((now - _time_last_buffer_clean) > kOwnshipPositionTimeout)) {
+		_time_last_buffer_clean = now;
+
+		if (_conflict_tracker.remove_stale_conflicts(now,
 				static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s, _cycle_changes)) {
 			update_most_urgent_conflict();
 		}
@@ -199,34 +182,30 @@ void DetectAndAvoid::process_traffic()
 		update_most_urgent_conflict();
 	}
 
-	publish_daa_outputs();
 	_conflict_notifier.report_cycle(_cycle_changes, _conflict_tracker, notifier_cycle_context());
 
 	if (_most_urgent_conflict_changed) {
 		evaluate_and_publish_action();
 		_prev_most_urgent_conflict_level = _conflict_tracker.most_urgent().conflict_level;
-	}
-}
 
-uint8_t DetectAndAvoid::warning_levels_mask() const
-{
-	uint8_t mask = 0;
-
-	for (uint8_t level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
-	     level <= detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL; ++level) {
-		if (get_action_from_conflict_level(level) >= DaaAction::kWarnOnly) {
-			mask |= static_cast<uint8_t>(1u << level);
+		if (_prev_most_urgent_conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
+			_previous_action = DaaAction::kDisabled;
 		}
 	}
-
-	return mask;
 }
 
 ConflictNotifier::cycle_context_s DetectAndAvoid::notifier_cycle_context() const
 {
 	ConflictNotifier::cycle_context_s context{};
 	context.prev_most_urgent_level = _prev_most_urgent_conflict_level;
-	context.warning_levels_mask = warning_levels_mask();
+
+	for (uint8_t level = detect_and_avoid_s::DAA_CONFLICT_LVL_LOW;
+	     level <= detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL; ++level) {
+		if (get_action_from_conflict_level(level) >= DaaAction::kWarnOnly) {
+			context.warning_levels_mask |= static_cast<uint8_t>(1u << level);
+		}
+	}
+
 	context.status_notif_interval = static_cast<hrt_abstime>(math::max<int32_t>(0, _param_daa_notif_state.get())) * 1_s;
 	return context;
 }
@@ -234,7 +213,7 @@ ConflictNotifier::cycle_context_s DetectAndAvoid::notifier_cycle_context() const
 bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &report, const hrt_abstime now,
 		const hrt_abstime timeout_us)
 {
-	if (!PX4_ISFINITE(report.lat) || !PX4_ISFINITE(report.lon)) {
+	if (!AdsbConflict::valid_wgs84_coordinates(report.lat, report.lon)) {
 		PX4_DEBUG("DAA: transponder data rejected, invalid lat/lon.");
 		return false;
 	}
@@ -266,7 +245,15 @@ bool DetectAndAvoid::transponder_data_valid(const transponder_report_s &report, 
 
 #endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
-	if (report.timestamp == 0 || (now - report.timestamp) > timeout_us) {
+	if (report.timestamp == 0 || report.timestamp > now) {
+		PX4_DEBUG("DAA: transponder data rejected, invalid timestamp.");
+		return false;
+	}
+
+	const hrt_abstime local_age = now - report.timestamp;
+	const hrt_abstime source_age = static_cast<hrt_abstime>(report.tslc) * 1_s;
+
+	if (local_age > timeout_us || source_age > (timeout_us - local_age)) {
 		PX4_DEBUG("DAA: transponder data rejected, too old.");
 		return false;
 	}
@@ -312,8 +299,21 @@ bool DetectAndAvoid::process_transponder_report(daa_input_s &daa_input,
 		return false;
 	}
 
-	// Fill the traffic half in place; the ownship half was set once for the whole cycle.
-	prepare_traffic_input(transponder_report, daa_input);
+	daa_input.transponder_report = transponder_report;
+
+	if (!(daa_input.transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY)) {
+		daa_input.transponder_report.ver_velocity = 0.f;
+		daa_input.transponder_report.hor_velocity = 0.f;
+	}
+
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+
+	if (_param_daa_en_dflt_vel.get()) {
+		const float velocity_sign = (daa_input.transponder_report.ver_velocity >= 0.f) ? 1.f : -1.f;
+		daa_input.transponder_report.ver_velocity = velocity_sign * _param_daa_dflt_vel.get();
+	}
+
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
 	detect_and_avoid_s daa_output{};
 
@@ -321,6 +321,11 @@ bool DetectAndAvoid::process_transponder_report(daa_input_s &daa_input,
 		PX4_DEBUG("DAA: Failed to calculate DAA output, skipping report.");
 		return false;
 	}
+
+	daa_output.unique_id = encoded_id.id;
+	daa_output.unique_id_encoding = encoded_id.encoding;
+	daa_output.timestamp = transponder_report.timestamp;
+	_detect_and_avoid_pub.publish(daa_output);
 
 	if (daa_output.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE
 	    && !_conflict_tracker.contains(encoded_id)) {
@@ -331,25 +336,14 @@ bool DetectAndAvoid::process_transponder_report(daa_input_s &daa_input,
 	current_conflict.encoded_id = encoded_id;
 	current_conflict.latest_update_timestamp = transponder_report.timestamp;
 	current_conflict.conflict_level = daa_output.conflict_level;
-	current_conflict.aircraft_dist = hypotf(daa_output.aircraft_dist_hor, daa_output.aircraft_dist_vert);
-
-	daa_output.unique_id = encoded_id.id;
-	daa_output.unique_id_encoding = encoded_id.encoding;
-	daa_output.timestamp = transponder_report.timestamp;
-
-	if (!_cycle_daa_outputs.push_back(daa_output)) {
-		// Sized for one full queue drain; push_back can only fail if that bound is wrong.
-		PX4_ERR("DAA: cycle outputs overflow");
-	}
+	current_conflict.aircraft_dist = daa_output.aircraft_dist;
 
 #if defined(DEBUG_BUILD)
 	PX4_DEBUG("DAA: transponder data processed, conflict detected.");
 	debug_print_conflict_info(current_conflict);
 #endif
 
-	const bool buffer_updated = _conflict_tracker.apply_conflict(current_conflict, _cycle_changes);
-
-	return buffer_updated;
+	return _conflict_tracker.apply_conflict(current_conflict, _cycle_changes);
 }
 
 #if !defined(CONSTRAINED_FLASH) && !defined(__PX4_NUTTX)
@@ -362,13 +356,6 @@ void DetectAndAvoid::print_status() const
 		 static_cast<double>(_conflict_tracker.most_urgent().aircraft_dist));
 }
 #endif // !CONSTRAINED_FLASH && !__PX4_NUTTX
-
-void DetectAndAvoid::publish_daa_outputs()
-{
-	for (size_t i = 0; i < _cycle_daa_outputs.size(); ++i) {
-		_detect_and_avoid_pub.publish(_cycle_daa_outputs[i]);
-	}
-}
 
 void DetectAndAvoid::publish_most_urgent_conflict_if_changed()
 {
@@ -461,19 +448,19 @@ bool DetectAndAvoid::gather_ownship_input(daa_input_s &daa_input) const
 {
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
-	if (!PX4_ISFINITE(global_position.lat) || !PX4_ISFINITE(global_position.lon) || !PX4_ISFINITE(global_position.alt)) {
+	if (!AdsbConflict::valid_wgs84_coordinates(global_position.lat, global_position.lon) || !PX4_ISFINITE(global_position.alt)) {
 		PX4_DEBUG("DAA: invalid global pose");
 		return false;
 	}
 
-	if (global_position.timestamp == 0 || hrt_elapsed_time(&global_position.timestamp) > kRemoveStaleConflictsTime) {
+	if (global_position.timestamp == 0 || hrt_elapsed_time(&global_position.timestamp) > kOwnshipPositionTimeout) {
 		PX4_DEBUG("DAA: stale global pose");
 		return false;
 	}
 
 	const vehicle_local_position_s &local_position = *_navigator->get_local_position();
 
-	if (local_position.timestamp == 0 || hrt_elapsed_time(&local_position.timestamp) > kRemoveStaleConflictsTime) {
+	if (local_position.timestamp == 0 || hrt_elapsed_time(&local_position.timestamp) > kOwnshipPositionTimeout) {
 		PX4_DEBUG("DAA: stale local position");
 		return false;
 	}
@@ -482,42 +469,14 @@ bool DetectAndAvoid::gather_ownship_input(daa_input_s &daa_input) const
 	daa_input.uav_alt = global_position.alt;
 	daa_input.uav_vel_ned = matrix::Vector3f(local_position.vx, local_position.vy, local_position.vz);
 
-	// Set infinite velocities to zero to at least detect the fixed-size boundaries in the F3442
+	// Static F3442 boundaries remain usable when an individual velocity component is unavailable.
 	for (int i = 0; i < 3; ++i) {
 		if (!PX4_ISFINITE(daa_input.uav_vel_ned(i))) {
 			daa_input.uav_vel_ned(i) = 0.f;
 		}
 	}
 
-	static constexpr float kMinGroundSpeedForCourseHeading{0.5f};
-	const float uav_horizontal_speed = daa_input.uav_vel_ned.xy().norm();
-	daa_input.uav_heading = (uav_horizontal_speed < kMinGroundSpeedForCourseHeading) ?
-				local_position.heading : atan2f(daa_input.uav_vel_ned(1), daa_input.uav_vel_ned(0));
-
 	return true;
-}
-
-void DetectAndAvoid::prepare_traffic_input(const transponder_report_s &transponder_report,
-		daa_input_s &daa_input) const
-{
-	daa_input.transponder_report = transponder_report;
-
-	// Default to zero velocity if vel not valid PX4_ADSB_FLAGS_VALID_VELOCITY
-	if (!(daa_input.transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY)) {
-		daa_input.transponder_report.ver_velocity = 0.f;
-		daa_input.transponder_report.hor_velocity = 0.f;
-	}
-
-	// Over-write transponder vertical velocity if requested
-#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
-
-	if (_param_daa_en_dflt_vel.get()) {
-		// If velocity is zero, assume positive velocity i.e. aircraft going up
-		const float velocity_sign = (daa_input.transponder_report.ver_velocity >= 0) ? 1.f : -1.f;
-		daa_input.transponder_report.ver_velocity = velocity_sign * _param_daa_dflt_vel.get();
-	}
-
-#endif // CONFIG_NAVIGATOR_ADSB_F3442
 }
 
 DaaAction DetectAndAvoid::get_action_from_conflict_level(const uint8_t conflict_level) const
