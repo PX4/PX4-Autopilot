@@ -822,7 +822,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchRotorRpm(const hrt_abstime &time_
 			    (time_now_us < rpm_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
 				// rpm_estimate of 0 means no movement measured within the driver's own timeout
-				if (rpm_status.rpm_estimate > 0.f) {
+				if (rpm_status.rpm_estimate > FLT_EPSILON) {
 					const float rotor_hz = rpm_status.rpm_estimate / 60.f;
 					const bool force_update = force || !_rotor_rpm_available[i];
 
