@@ -1,6 +1,7 @@
 # Detect and Avoid
 
-Detect and Avoid (DAA) runs inside the [`navigator`](../modules/modules_controller.md#navigator) module (`DetectAndAvoid`), on top of the `adsb` library which handles (conflict standards, traffic identification, and conflict tracking; see [Implementation Structure](#implementation-structure)).
+Detect and Avoid (DAA) runs in the [`navigator`](../modules/modules_controller.md#navigator) module.
+Its `DetectAndAvoid` component uses the `adsb` library for conflict evaluation, traffic identification, conflict tracking, and action policy (see [Implementation Structure](#implementation-structure)).
 It evaluates cooperative ("transponder-equipped") traffic, such as that from ADS-B, FLARM, or UTM integrations, that is reported through the [`transponder_report`](../msg_docs/TransponderReport.md) topic.
 DAA can warn the operator, request navigator actions, or block arming when a conflict requires an automatic response.
 
@@ -17,9 +18,7 @@ DAA is most relevant for operations in shared airspace, especially beyond visual
 PX4 currently handles only cooperative traffic: aircraft that broadcast position and related state through ADS-B, FLARM, UTM, or another compatible integration.
 If you are not using one of those traffic sources, this page is mainly relevant only if you are developing or integrating DAA itself.
 
-An _encounter_ is any detected cooperative aircraft in the operational airspace.
-When that traffic breaches a configured alert volume it becomes an _intruder_ and DAA raises a _conflict_.
-In `F3442` mode the safety objective is to alert early enough to avoid Loss of Well Clear (LoWC) and, by extension, Near Mid-Air Collision (NMAC) events.
+This page uses _encounter_ for a received cooperative-traffic report and _conflict_ when that traffic breaches a configured alert test.
 
 Use this page for understanding:
 
@@ -34,11 +33,17 @@ DAA supports two conflict models:
 
 - `Crosstrack` mode raises one conflict level when ownship (the current vehicle) is close to the traffic's predicted track, vertically close, and within a configured collision-time threshold.
   Use it when you want one threshold driven by `NAV_TRAFF_*`.
-- `F3442` mode evaluates traffic against four alert volumes designed to comply with the ASTM F3442 standard.
+- `F3442` mode evaluates four alert tests derived from concepts in [ASTM F3442/F3442M-23](https://store.astm.org/f3442_f3442m-23.html).
   Use it when you want staged alerting and per-level actions.
 
-The conflict model is selected at build time: `CONFIG_NAVIGATOR_ADSB` builds Crosstrack and `CONFIG_NAVIGATOR_ADSB_F3442` builds F3442.
-If both are enabled, F3442 is used.
+`CONFIG_NAVIGATOR_ADSB` includes DAA in the firmware.
+When it is enabled, `CONFIG_NAVIGATOR_ADSB_F3442` selects F3442 mode; otherwise Crosstrack mode is built.
+
+::: warning
+F3442 mode handles cooperative traffic only and implements selected alert concepts and thresholds.
+It does not by itself establish compliance with ASTM F3442/F3442M-23, which applies to a complete DAA system and its compliance evidence.
+The implementation references the 2023 edition and has not been evaluated against the later [ASTM F3442-25](https://store.astm.org/f3442-25.html) edition.
+:::
 
 At runtime DAA can:
 
@@ -55,8 +60,9 @@ Each navigator cycle, DAA:
 1. Reads all queued `transponder_report` messages for that cycle.
    - Rejects invalid or stale traffic reports.
    - Filters self-detections using ownship ICAO, ADS-B callsign, and UAS ID.
-2. Evaluates the conflict with the built DAA standard.
-   - Publishes the per-traffic result on [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md).
+2. Evaluates the conflict with the built DAA model.
+   - Publishes [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md) for reports that create or update a tracked conflict, including the sample that clears one.
+     First-seen traffic evaluated at conflict level `NONE` is not published.
 3. Applies the result to the active-conflict buffer (`ConflictTracker`) and selects the most urgent conflict.
    - The tracker reports buffer changes (new, level changed, removed, ignored).
    - Publishes the most urgent conflict summary on [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md).
@@ -83,8 +89,9 @@ If all three conditions are met, DAA publishes a single conflict level: `HIGH`.
 
 #### Metrics and Conflict Test
 
-The crosstrack implementation publishes three main outputs in `detect_and_avoid`:
+The crosstrack implementation publishes these geometry outputs in `detect_and_avoid`:
 
+- `aircraft_dist`: the current point-to-point 3D range.
 - `aircraft_dist_hor`: the signed crosstrack distance to the projected traffic line when that line can be constructed.
 - `aircraft_dist_vert`: the absolute vertical separation.
 - `expected_min_dist_time`: a conservative collision-time estimate.
@@ -96,7 +103,7 @@ The crosstrack implementation computes them as follows:
 - It first computes the current point-to-point separations between the ownship and the traffic: $d_{hor}$, $d_{vert}$.
 
 - It projects a traffic ground-track line starting at the reported traffic position and extending in the reported traffic heading direction.
-  Let $d_{ext}$ denote the fixed path-extension constant `TRAFFIC_TO_UAV_DISTANCE_EXTENSION`.
+  Let $d_{ext}$ denote the fixed path-extension constant `kTrafficToUavDistanceExtension`.
   Heading is required for this step.
   The line length is:
 
@@ -140,10 +147,10 @@ The crosstrack implementation computes them as follows:
   \end{cases}
   $$
 
-  The time gate is:
+  The time gate is only valid when the summed speed is greater than zero:
 
   $$
-  t_{est} < \texttt{NAV\_TRAFF\_COLL\_T}
+  v_{own} + v_{traf} > 0 \quad \text{and} \quad t_{est} < \texttt{NAV\_TRAFF\_COLL\_T}
   $$
 
 :::
@@ -158,7 +165,7 @@ If the line projection is valid, `aircraft_dist_hor` publishes $d_{xt}$; otherwi
 #### Parameters
 
 - [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID): action requested when Crosstrack raises its single `HIGH` conflict.
-- [NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR): maximum signed crosstrack distance from the projected traffic track for the horizontal gate.
+- [NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR): maximum absolute crosstrack distance from the projected traffic track for the horizontal gate.
 - [NAV_TRAFF_A_VER](../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER): maximum absolute vertical separation for the vertical gate.
 - [NAV_TRAFF_COLL_T](../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T): maximum conservative time-to-collision estimate for the time gate.
 
@@ -172,7 +179,7 @@ Action mapping is defined by `NAV_TRAFF_AVOID`:
 
 This mode is used by firmware built with `CONFIG_NAVIGATOR_ADSB_F3442`.
 
-This mode is based on the ASTM F3442/F3442M-23 standard, which defines performance targets for avoiding Near Mid-Air Collision (NMAC) events and maintaining Well Clear (WC) distances from other aircraft.
+This mode uses selected alert concepts and default separation values associated with ASTM F3442/F3442M-23.
 
 - **NMAC** is defined as coming within 100 ft (30 m) vertically and 500 ft (153 m) horizontally from other aircraft.
 - **Loss of Well Clear (LoWC)** is defined more conservatively at 250 ft (76 m) vertically and 2000 ft (610 m) horizontally from other aircraft.
@@ -192,7 +199,10 @@ F3442 is evaluated in four severity levels and returns the first breached level 
 | `MEDIUM`       | Augmented NMAC                | NMAC bounds expanded using [DAA_LVL_MED_TIME](../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME)                                                      | [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   |
 | `LOW`          | Augmented WC                  | WC bounds expanded using [DAA_LVL_LOW_TIME](../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME)                                                        | [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   |
 
-The check is symmetric and conservative: the augmented `MEDIUM` and `LOW` levels enlarge each aircraft's zone in proportion to its horizontal and vertical speed (scaled by [DAA_LVL_MED_TIME](../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME) and [DAA_LVL_LOW_TIME](../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME)), so faster traffic is flagged earlier.
+The augmented `MEDIUM` and `LOW` tests enlarge each aircraft's bounds in proportion to its horizontal and vertical speed (scaled by [DAA_LVL_MED_TIME](../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME) and [DAA_LVL_LOW_TIME](../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME)).
+The four tests are evaluated in the priority order shown above.
+Validated parameter ordering guarantees that `CRITICAL` also breaches `HIGH`, `MEDIUM`, and `LOW`; `HIGH` also breaches `LOW`; and `MEDIUM` also breaches `LOW`.
+`HIGH` and `MEDIUM` are not ordered relative to each other.
 
 ::: details Click here to view the F3442 zone computations
 
@@ -305,7 +315,7 @@ $$
 d_v \leq H_{own} + H_{traf} = 2H_{wc} + (v_{own,v} + v_{traf,v}) \cdot t_{low}
 $$
 
-PX4 validates that WC base bounds are not smaller than NMAC base bounds and that both augmentation times are non-negative.
+PX4 validates that WC base bounds are not smaller than NMAC base bounds, both augmentation times are non-negative, and the `LOW` augmentation time is not shorter than the `MEDIUM` time.
 The conflict evaluation order remains `CRITICAL`, `HIGH`, `MEDIUM`, then `LOW`.
 
 :::
@@ -321,11 +331,18 @@ The conflict evaluation order remains `CRITICAL`, `HIGH`, `MEDIUM`, then `LOW`.
 #### Actions
 
 Each level uses the action parameter listed in the table above.
-If a breached inner level is configured as `Disabled`, DAA safely falls back to the next broader breached level that has an enabled action.
+If that action is `Disabled`, the policy checks only levels whose bounds are guaranteed to have been breached:
+
+- `CRITICAL`: `CRITICAL -> HIGH -> MEDIUM -> LOW`
+- `HIGH`: `HIGH -> LOW`
+- `MEDIUM`: `MEDIUM -> LOW`
+- `LOW`: `LOW`
+
+The first action that is not `Disabled` is used.
 
 ## Automated Actions
 
-The action parameter depends on the DAA standard selected at build time: `NAV_TRAFF_AVOID` for Crosstrack builds and `DAA_LVL_*_ACT` for F3442 builds.
+The action parameter depends on the DAA model selected at build time: `NAV_TRAFF_AVOID` for Crosstrack builds and `DAA_LVL_*_ACT` for F3442 builds.
 
 The DAA action parameters use these values:
 
@@ -343,8 +360,8 @@ $$
 
 ::: info
 
-Changing the action parameter for the built standard at runtime does not re-evaluate already buffered conflicts.
-The updated setting is used on later conflict transitions, and automatic mode changes are only issued on escalation.
+Changing an action parameter does not immediately re-evaluate buffered conflicts.
+The updated setting is considered on a later change of the overall most-urgent conflict level, and automatic mode changes are only requested when that level increases.
 
 :::
 
@@ -352,7 +369,7 @@ The updated setting is used on later conflict transitions, and automatic mode ch
 
 - `Crosstrack` only publishes `HIGH` conflicts, so its requested action comes directly from [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID).
 - `F3442` maps each conflict level through its corresponding `DAA_LVL_*_ACT` parameter.
-- In `F3442`, if the most severe breached level is configured as `Disabled`, PX4 falls back to the next broader breached level with an enabled action. The fallback search is `CRITICAL -> HIGH -> MEDIUM -> LOW`.
+- In `F3442`, a disabled action falls back only to levels guaranteed to have been breached: `CRITICAL -> HIGH -> MEDIUM -> LOW`, `HIGH -> LOW`, or `MEDIUM -> LOW`.
 
 #### Navigator-State Equivalence
 
@@ -380,8 +397,8 @@ That means DAA will not automatically switch a manually flown vehicle into Hold,
 - Warnings are evaluated separately from automatic mode changes.
   A conflict configured as `Warn only` or stronger can still emit operator warnings and status messages even when DAA does not request a mode change because the current navigator state is already equivalent or more severe.
 - DAA continues to publish status updates even when no automatic action is sent.
-- Automatic actions are one-shot per conflict escalation.
-  If the same conflict stays at the same level, DAA does not retry the same mode-change command.
+- Automatic actions are evaluated from changes in the overall most-urgent conflict level.
+  DAA does not retry a command while that level remains unchanged, including when a different aircraft becomes most urgent at the same level.
 - Conflict de-escalation is conservative.
   For example, DAA does not automatically resume the mission after a hold conflict is cleared.
 - `OFFBOARD` is handled conservatively: DAA does not inject an automatic mode change there, so arming and operating procedures need to account for that.
@@ -389,7 +406,7 @@ That means DAA will not automatically switch a manually flown vehicle into Hold,
 
 ## Arming, Preflight, and Ground Behavior
 
-The commander health checks subscribe to [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md) while the vehicle is disarmed.
+The commander health check reads [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md) and applies the result only while the vehicle is disarmed.
 
 This section covers conflict-based DAA behavior when traffic is already present.
 The separate traffic-system-presence arming check is configured by [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) and described in [ADS-B/FLARM/UTM Receivers > Arming Check](../peripherals/adsb_flarm.md#arming-check).
@@ -414,12 +431,13 @@ This is especially important for:
 
 ## Traffic Inputs and Identification
 
-DAA consumes the [`transponder_report`](../msg_docs/TransponderReport.md) topic, which can be populated from ADS-B, FLARM, UTM, or other integrations that publish compatible traffic reports.
-In the standard PX4 integrations, MAVLink [`ADSB_VEHICLE`](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) and [`UTM_GLOBAL_POSITION`](https://mavlink.io/en/messages/common.html#UTM_GLOBAL_POSITION) inputs are normalized into `transponder_report` before DAA evaluation.
+DAA consumes the [`transponder_report`](../msg_docs/TransponderReport.md) topic, which can be populated by ADS-B, FLARM, UTM, or another integration.
+PX4 maps incoming MAVLink [`ADSB_VEHICLE`](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) messages to this topic.
+Other integrations must provide their own compatible `transponder_report` publisher.
 
 ::: info
-`UTM_GLOBAL_POSITION` contains additional fields that are not provided by `ADSB_VEHICLE`.
-The current implementation drops those additional UTM fields, including information about the vehicle's planned next waypoint.
+PX4 does not currently map incoming MAVLink [`UTM_GLOBAL_POSITION`](https://mavlink.io/en/messages/common.html#UTM_GLOBAL_POSITION) messages to `transponder_report`.
+The similarly named MAVLink stream in PX4 sends ownship UTM state; it is not a traffic-input adapter.
 :::
 
 Reports without a usable identifier are ignored before they enter the active-conflict buffer.
@@ -443,9 +461,9 @@ To decode a logged `unique_id` back into an ICAO address, callsign, or shortened
 
 | Identifier source | Accepted if                                                                           | Stored value                                                                                                                                                                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ICAO address      | `icao_address != 0`                                                                   | Stored directly in the low bits of `unique_id` with `UNIQUE_ID_ENCODING_ICAO`                                                                                                                                                                                                                          |
+| ICAO address      | `0 < icao_address <= 0xFFFFFF`                                                       | Stored directly in the low bits of `unique_id` with `UNIQUE_ID_ENCODING_ICAO`                                                                                                                                                                                                                          |
 | ADS-B callsign    | `PX4_ADSB_FLAGS_VALID_CALLSIGN` is set and the `callsign[9]` field is null-terminated | Packs up to 8 callsign characters into a `uint64`. Byte `0` is the first character. Bytes `0-3` correspond to [ADSB_CALLSIGN_1](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_1) and bytes `4-7` correspond to [ADSB_CALLSIGN_2](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_2). |
-| UAS ID            | Any non-zero byte is present in `uas_id[18]`                                          | Packs the last 8 bytes of the 18-byte `uas_id` into a `uint64` with `UNIQUE_ID_ENCODING_UAS_ID`                                                                                                                                                                                                        |
+| UAS ID            | At least one of the final 8 bytes in `uas_id[18]` is non-zero                         | Packs those final 8 bytes into a `uint64` with `UNIQUE_ID_ENCODING_UAS_ID`                                                                                                                                                                                                                             |
 
 :::
 
@@ -478,7 +496,8 @@ F3442-specific parameters are only present in firmware built with `CONFIG_NAVIGA
 
 The main DAA topics are:
 
-- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): the conflict assessment for each processed traffic report.
+- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): per-traffic assessments for reports that create, update, or clear a tracked conflict.
+  First-seen reports evaluated at conflict level `NONE` are omitted.
 - [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md): the current most urgent active conflict.
 - [`transponder_report`](../msg_docs/TransponderReport.md): raw traffic input to DAA.
 
@@ -500,7 +519,8 @@ DAA talks to the operator on two channels at the same time:
   The identifier is already decoded into a readable string here, so this is the easiest channel to read while flying.
 - **PX4 Events** carry the same information through the [Events Interface](../concept/events_interface.md), but as structured data: a fixed event ID plus numeric arguments (identifier, conflict level, distance, cause, notification kind).
 
-Messages are emitted immediately when a conflict level changes, and periodically for the most urgent conflict only (the period is [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE)).
+For levels configured as `Warn only` or stronger, messages are emitted after the queue-processing cycle when a conflict level changes.
+The most urgent conflict is also reported periodically (the period is [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE)).
 
 ### Reading the message fields
 
@@ -557,13 +577,12 @@ The `navigator_traffic_action` event reports which automatic response was trigge
 
 | Action code | Action      |
 | ----------- | ----------- |
-| `1`         | `Warn only` |
 | `2`         | `Return`    |
 | `3`         | `Land`      |
 | `4`         | `Hold`      |
 | `5`         | `Terminate` |
 
-`0` (`Disabled`) never appears, because no event is emitted when there is no response.
+`0` (`Disabled`) and `1` (`Warn only`) do not generate an action event because no automatic action is requested.
 See [Automated Actions](#automated-actions) for the full action parameter convention.
 
 :::
@@ -609,7 +628,7 @@ This is the recommended way to investigate a conflict, because the logged topics
 
 - [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md): the single conflict that drove the DAA status and any automatic action or prearm block.
   Start here to find the worst moment of the encounter (highest `conflict_level`, smallest `aircraft_dist`) and whether `has_action` was set.
-- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): one sample per processed traffic report, with the per-aircraft `conflict_level` and the horizontal, vertical, and time geometry.
+- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): samples for traffic that creates, updates, or clears a tracked conflict, with the per-aircraft `conflict_level` and the horizontal, vertical, and time geometry.
   Use it to follow one specific aircraft over time.
 - [`transponder_report`](../msg_docs/TransponderReport.md): the raw input.
   Match it by timestamp to see the traffic's reported position, altitude, velocity, heading, and validity flags, plus the original `icao_address`, `callsign`, and `uas_id` fields before encoding.
@@ -690,8 +709,8 @@ python3 decode_daa.py 737869762868 2
 
 ### Turning an ICAO address into a real aircraft
 
-When the encoding is `ICAO`, the decoded 6-digit hex (for example `6E9F7B`) is the aircraft's 24-bit ICAO address: the same value the aircraft broadcasts over ADS-B and Mode S.
-It is globally unique and tied to the airframe's registration, so you can look it up in an aircraft registry to find the tail number, type, and operator.
+When the encoding is `ICAO`, the decoded 6-digit hex (for example `6E9F7B`) is the 24-bit address reported over ADS-B or Mode S.
+When the address has been assigned and transmitted correctly, an aircraft registry may map it to a tail number, type, or operator.
 
 This is how you confirm whether the intruder was, for instance, a helicopter, a general-aviation aircraft, or even your own second transponder.
 If it turns out to be ownship, update the self-filtering parameters described in [Traffic Inputs and Identification](#traffic-inputs-and-identification).
@@ -704,12 +723,15 @@ A typical investigation:
 2. Decode the identifier; if it is an ICAO address, look up the aircraft.
 3. In `detect_and_avoid`, follow that identifier to see how the horizontal, vertical, and time separation evolved and how the level escalated.
 4. Cross-check `transponder_report` at the same timestamps for the raw geometry and validity flags.
-   Missing velocity or heading changes how the standard evaluates the conflict (see the data requirements for [F3442 Mode](#f3442-mode) or [Crosstrack Mode](#crosstrack-mode)).
+   Missing velocity or heading changes how the model evaluates the conflict (see the data requirements for [F3442 Mode](#f3442-mode) or [Crosstrack Mode](#crosstrack-mode)).
 5. Confirm in the navigator and commander messages whether the configured action ran and whether the resulting mode change matched expectations.
 
 ## Testing and Simulation
 
-DAA includes synthetic traffic generation through the navigator shell command:
+Synthetic traffic generation is available when the firmware is built with `CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC`.
+This option is intended for simulation and dedicated test images; it should not be enabled in production flight firmware.
+
+Use the navigator shell command:
 
 ```sh
 navigator fake_traffic
@@ -773,7 +795,20 @@ listener detect_and_avoid
 listener detect_and_avoid_most_urgent
 ```
 
-### Expected F3442 Output
+### Expected Behavior
+
+Exact distances and message text depend on the selected parameters and vehicle state. With the default warn-only F3442 actions:
+
+| Scenario | Expected behavior |
+| --- | --- |
+| `unique_ids` | Three otherwise similar encounters are tracked by ICAO address, callsign, and UAS ID respectively. |
+| `escalation` | One aircraft progresses through increasing conflict levels, then becomes stale and is removed. |
+| `spam_same` | Repeated reports refresh one tracked conflict without producing a message for every sample. |
+| `spam_new` | Multiple aircraft fill the conflict buffer; less urgent reports are evicted or ignored according to buffer priority. |
+| `flags` | F3442 accepts missing traffic velocity and applies its configured defaults; Crosstrack rejects the report. |
+| `queue_fill` | DAA drains a full queued burst and retains the highest-priority conflicts. |
+
+Use the uORB topics and operator messages above to verify the result. Automated-action testing should use a controlled simulation environment.
 
 The sequences below assume the default F3442 configuration.
 
@@ -901,19 +936,26 @@ Notes:
 
 ## Current Limitations
 
+- DAA handles cooperative traffic only.
 - DAA does not generate lateral or vertical avoidance trajectories.
 - DAA selects high-level navigator actions; it does not solve conflict geometry beyond the selected conflict model.
 - Conflict handling is bounded by a fixed-size active-conflict buffer.
+- Action selection and the commander arming check are driven by the single geometrically most urgent conflict.
+  A lower-priority buffered conflict does not independently drive an action or arming block, even if its configured action is stronger.
+- DAA compares ownship altitude directly with `transponder_report.altitude` and does not use `altitude_type` to normalize pressure and geometric altitude references.
+  A datum mismatch can therefore bias vertical separation.
+- Traffic age is based on the local `transponder_report.timestamp`.
+  The ADS-B `tslc` (time since last communication) field is not included in the freshness check.
 - DAA quality depends on the quality and freshness of both traffic data and vehicle state.
 
 ## Implementation Structure
 
-The implementation is split between a platform-independent core and the navigator integration:
+The implementation is split between a shared PX4 library and the navigator integration:
 
 - `src/lib/adsb`: the DAA core, with no navigator dependency; uORB message structs and enums are only used for data types.
   It contains the conflict standards (`DaaCrosstrack`, `DaaF3442`, wrapped by `AdsbConflict`), the traffic identifier encoding and self-detection (`DaaEncodedId`), the active-conflict buffer (`ConflictTracker`), and the action policy (`DaaActionPolicy`).
   `ConflictTracker` owns the fixed-size conflict buffer and the priority rules: it inserts, updates, and evicts conflicts, caches the most urgent one, and reports every change that may require a user-facing message as a change record (`conflict_tracker_change_s`), without sending any notification itself.
-  `DaaActionPolicy` is a stateless decision function: given the most-urgent level transition, the navigation state, the landed/armed state, and the action parameter values, it returns which vehicle command to request and which action or ground message to send. It implements the level-to-action mapping (including the F3442 nested-zone fallback described in [Automated Actions](#automated-actions)) and the navigator-state escalation gate.
+  `DaaActionPolicy` is a stateless decision function: given the most-urgent level transition, the navigation state, the landed/armed state, and the action parameter values, it returns which vehicle command to request and which action or ground message to send. It implements the level-to-action mapping (including the F3442 per-level action fallback described in [Automated Actions](#automated-actions)) and the navigator-state escalation gate.
 - `src/modules/navigator/DetectAndAvoid`: the navigator integration.
   It validates and identifies incoming `transponder_report` data, runs the built standard, feeds the result to the tracker, publishes the DAA topics, and executes the policy's action decisions (vehicle commands and action messages).
   All operator messaging is concentrated in one class, `ConflictNotifier`: it turns the change records collected over one cycle into the messages described in [Operator Messages](#operator-messages) in a single per-cycle call (`report_cycle()`), and also owns the message formatting, severity mapping, and rate-limit timers used by the action and ground warnings.
@@ -960,7 +1002,7 @@ The shared input and output are:
 To add a new standard end-to-end:
 
 1. Implement a new class with `calculate_daa_stats()` and define its runtime parameter validation.
-2. Decide which `aircraft_state_s` fields are mandatory for that standard and enforce those requirements in the wrapper path (`AdsbConflict::handle_traffic()`) and inside the standard itself if it can be called directly.
+2. Decide which `aircraft_state_s` fields are mandatory for that standard and enforce those requirements in the wrapper path (`AdsbConflict::calculate_daa_output()`) and inside the standard itself if it can be called directly.
    In particular, decide whether the due-north fallback for `velocity_ned` without traffic heading is acceptable, or whether the standard requires the true traffic track direction.
 3. Add a build-time config and CMake selection for the standard, including any standard-specific parameter metadata only when that config is enabled.
 4. Add the class to `AdsbConflict` and update the compile-time branches that validate inputs, run `calculate_daa_stats()`, and refresh parameters.
