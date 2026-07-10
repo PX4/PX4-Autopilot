@@ -95,6 +95,7 @@ TEST_F(GeofenceAvoidancePlannerTest, DirectPathNoFence)
 	const int num_waypoints = _planner.updateStartAndFillPath(start);
 
 	ASSERT_EQ(num_waypoints, 0);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
