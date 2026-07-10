@@ -46,8 +46,8 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -57,7 +57,7 @@
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/internal_combustion_engine_status.h>
+#include <uORB/topics/rpm.h>
 
 using namespace time_literals;
 
@@ -84,17 +84,16 @@ private:
 	inline float FilterAngularAcceleration(int axis, float inverse_dt_s, float data[], int N = 1);
 
 	void DisableDynamicNotchEscRpm();
-	void DisableDynamicNotchIceRpm();
 	void DisableDynamicNotchFFT();
+	void DisableDynamicNotchRotorRpm();
 	void ParametersUpdate(bool force = false);
 
 	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
 	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
-	void UpdateDynamicNotchIceRpm(const hrt_abstime &time_now_us, bool force = false);
-
 	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchRotorRpm(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current sensor
@@ -110,7 +109,7 @@ private:
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
-	uORB::SubscriptionMultiArray<internal_combustion_engine_status_s> _ice_status_sub{ORB_ID::internal_combustion_engine_status};
+	uORB::SubscriptionMultiArray<rpm_s> _rpm_sub{ORB_ID::rpm};
 #endif // !CONSTRAINED_FLASH
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -142,9 +141,10 @@ private:
 #if !defined(CONSTRAINED_FLASH)
 
 	enum DynamicNotch {
+		// Power of two for bitwise comparison
 		EscRpm = 1,
-		IceRpm = 2,
-		FFT    = 4,
+		FFT    = 2,
+		RotorRpm = 4,
 	};
 
 	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
@@ -163,20 +163,6 @@ private:
 	perf_counter_t _dynamic_notch_filter_esc_rpm_init_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
 
-	// ICE RPM
-	static constexpr int MAX_NUM_ICE_ENGINES = ORB_MULTI_MAX_INSTANCES;
-
-	using NotchFilterIceHarmonic = math::NotchFilter<float>[3][MAX_NUM_ICE_ENGINES];
-	NotchFilterIceHarmonic *_dynamic_notch_filter_ice_rpm{nullptr};
-
-	int _ice_rpm_harmonics{0};
-	px4::Bitset<MAX_NUM_ICE_ENGINES> _ice_available{};
-	hrt_abstime _last_ice_rpm_notch_update[MAX_NUM_ICE_ENGINES] {};
-
-	perf_counter_t _dynamic_notch_filter_ice_rpm_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_ice_rpm_init_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_ice_rpm_update_perf{nullptr};
-
 	// FFT
 	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x)
 			/ sizeof(sensor_gyro_fft_s::peak_frequencies_x[0]);
@@ -187,6 +173,21 @@ private:
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
 
 	bool _dynamic_notch_fft_available{false};
+
+	// Rotor RPM (dedicated tachometer, eg autorotating gyrocopter main rotor)
+	static constexpr int MAX_NUM_ROTOR_RPM_SENSORS = ORB_MULTI_MAX_INSTANCES;
+
+	using NotchFilterRotorRpmHarmonic = math::NotchFilter<float>[3][MAX_NUM_ROTOR_RPM_SENSORS];
+	NotchFilterRotorRpmHarmonic *_dynamic_notch_filter_rotor_rpm{nullptr};
+
+	int _rotor_rpm_harmonics{0};
+	px4::Bitset<MAX_NUM_ROTOR_RPM_SENSORS> _rotor_rpm_available{};
+	hrt_abstime _last_rotor_rpm_notch_update[MAX_NUM_ROTOR_RPM_SENSORS] {};
+
+	perf_counter_t _dynamic_notch_filter_rotor_rpm_disable_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_rotor_rpm_init_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_rotor_rpm_update_perf{nullptr};
+
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
