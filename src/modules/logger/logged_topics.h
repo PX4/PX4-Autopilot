@@ -112,7 +112,30 @@ public:
 
 	void set_rate_factor(float rate_factor) { _rate_factor = rate_factor; }
 
+	enum TopicFlags : uint8_t {
+		topic_optional = 1 << 0,	///< only add the topic if it exists
+		topic_all_instances = 1 << 1,	///< add up to max_num_instances instances (@see add_topic_multi())
+	};
+
+	/**
+	 * Compact table entry describing one topic to log (@see add_topics())
+	 */
+	struct TopicSpec {
+		const char *name;		///< topic name
+		uint16_t interval_ms;		///< limit in milliseconds if >0, otherwise log as fast as the topic is updated
+		uint8_t max_num_instances;	///< the max multi-instance to add (only used with topic_all_instances)
+		uint8_t flags;			///< bitmask of TopicFlags
+	};
+
 private:
+
+	/**
+	 * Add a table of topics to be logged, calling add_topic() or add_topic_multi() for each entry
+	 */
+	void add_topics(const TopicSpec *specs, unsigned count);
+
+	template<size_t N>
+	void add_topics(const TopicSpec(&specs)[N]) { add_topics(specs, N); }
 
 	/**
 	 * Add a topic to be logged.
