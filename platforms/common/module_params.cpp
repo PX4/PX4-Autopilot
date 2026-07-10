@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +31,18 @@
  *
  ****************************************************************************/
 
-/**
- * @file module_params.h
- *
- * @class ModuleParams is a C++ base class for modules/classes using configuration parameters.
- */
+#include <px4_platform_common/module_params.h>
 
-#pragma once
-
-#include <containers/List.hpp>
-
-#include "param.h"
-
-class ModuleParams : public ListNode<ModuleParams *>
+void ModuleParams::setParent(ModuleParams *parent)
 {
-public:
-
-	ModuleParams(ModuleParams *parent)
-	{
-		setParent(parent);
+	if (parent) {
+		parent->_children.add(this);
 	}
 
-	/**
-	 * @brief Sets the parent module. This is typically not required,
-	 *         only in cases where the parent cannot be set via constructor.
-	 */
-	void setParent(ModuleParams *parent);
+	_parent = parent;
+}
 
-	virtual ~ModuleParams();
-
-	// Disallow copy construction and move assignment.
-	ModuleParams(const ModuleParams &) = delete;
-	ModuleParams &operator=(const ModuleParams &) = delete;
-	ModuleParams(ModuleParams &&) = delete;
-	ModuleParams &operator=(ModuleParams &&) = delete;
-
-protected:
-	/**
-	 * @brief Call this method whenever the module gets a parameter change notification.
-	 *        It will automatically call updateParams() for all children, which then call updateParamsImpl().
-	 */
-	virtual void updateParams()
-	{
-		for (const auto &child : _children) {
-			child->updateParams();
-		}
-
-		updateParamsImpl();
-	}
-
-	/**
-	 * @brief The implementation for this is generated with the macro DEFINE_PARAMETERS()
-	 */
-	virtual void updateParamsImpl() {}
-
-private:
-	/** @list _children The module parameter list of inheriting classes. */
-	List<ModuleParams *> _children;
-	ModuleParams *_parent{nullptr};
-};
+ModuleParams::~ModuleParams()
+{
+	if (_parent) { _parent->_children.remove(this); }
+}
