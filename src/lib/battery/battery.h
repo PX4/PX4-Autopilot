@@ -198,6 +198,7 @@ private:
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::WARNING_NONE};
 	float _dt{0.f};
+	float _dt_discharge{0.f}; // unclamped dt, used for the discharged_mah coulomb count
 	float _capacity_mah{0.f};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
