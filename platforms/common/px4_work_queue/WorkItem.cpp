@@ -116,6 +116,13 @@ void WorkItem::Deinit()
 	}
 }
 
+void WorkItem::ScheduleNow()
+{
+	if (_wq != nullptr) {
+		_wq->Add(this);
+	}
+}
+
 void WorkItem::ScheduleClear()
 {
 	if (_wq != nullptr) {
