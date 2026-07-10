@@ -283,7 +283,7 @@ navigator start
 
 # Try to start the UXRCE-DDS Client with UDP transport if module exists
 uxrce_dds_ns=""
-if [ "$px4_instance" -ne "0" ]
+if [ "$px4_instance" -ne "0" ] && [ "$PX4_UXRCE_DDS_NS_DISABLE_AUTO" != "1" ]
 then
 	# for multi intances setup, add namespace prefix
 	uxrce_dds_ns="-n px4_$px4_instance"
