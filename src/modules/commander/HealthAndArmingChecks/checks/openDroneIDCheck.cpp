@@ -61,9 +61,6 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_open_drone_id_missing"),
 				       log_level, "Open Drone ID system missing");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system missing");
-		}
 
 	} else if (!context.status().open_drone_id_system_healthy) {
 		/* EVENT
@@ -78,9 +75,6 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_open_drone_id_unhealthy"),
 				       log_level, "Open Drone ID system not ready");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system not ready");
-		}
 
 	}
 }

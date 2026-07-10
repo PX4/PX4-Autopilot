@@ -53,9 +53,6 @@ void ManualControlChecks::checkAndReport(const Context &context, Report &reporte
 						    events::ID("check_man_control_rtl_engaged"),
 						    events::Log::Error, "RTL switch engaged");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RTL switch engaged");
-			}
 		}
 
 		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
@@ -65,9 +62,6 @@ void ManualControlChecks::checkAndReport(const Context &context, Report &reporte
 						    events::ID("check_man_control_kill_engaged"),
 						    events::Log::Error, "Kill switch engaged");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Kill switch engaged");
-			}
 		}
 
 		if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
@@ -77,9 +71,6 @@ void ManualControlChecks::checkAndReport(const Context &context, Report &reporte
 						    events::ID("check_man_control_landing_gear_up"),
 						    events::Log::Error, "Landing gear switch set in UP position");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Landing gear switch set in UP position");
-			}
 		}
 
 	}

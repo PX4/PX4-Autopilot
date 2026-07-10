@@ -157,8 +157,6 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.origin = ORIGIN_ONBOARD;
 		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL Mission land: climb to %d m\t",
-				 (int)ceilf(_rtl_alt));
 		events::send<int32_t>(events::ID("rtl_mission_land_climb"), events::Log::Info,
 				      "RTL Mission Land: climb to {1m_v}",
 				      (int32_t)ceilf(_rtl_alt));

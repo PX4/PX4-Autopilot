@@ -313,7 +313,6 @@ bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
 
 
 	if (!checks_pass) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain Home position\t");
 		events::send(events::ID("navigator_geofence_invalid_against_home"), {events::Log::Critical, events::LogInternal::Warning},
 			     "Geofence invalid, doesn't contain Home position");
 	}
@@ -332,7 +331,6 @@ bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &po
 	}
 
 	if (!checks_pass) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain current vehicle position\t");
 		events::send(events::ID("navigator_geofence_invalid_against_cur_pos"), {events::Log::Critical, events::LogInternal::Warning},
 			     "Geofence invalid, doesn't contain current vehicle position");
 	}
@@ -673,7 +671,6 @@ Geofence::loadFromFile(const char *filename)
 				sizeof(mission_stats_entry_s));
 
 		if (success) {
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported\t");
 			events::send(events::ID("navigator_geofence_imported"), events::Log::Info, "Geofence imported");
 			ret_val = PX4_OK;
 
@@ -682,7 +679,6 @@ Geofence::loadFromFile(const char *filename)
 		}
 
 	} else {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence: import error\t");
 		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Critical, "Geofence: import error");
 	}
 

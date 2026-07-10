@@ -555,12 +555,10 @@ void SagetechMXS::handle_ack(const sg_ack_t ack)
 
 	// System health
 	if (ack.failXpdr && !last.failXpdr) {
-		mavlink_log_info(&_mavlink_log_pub, "Transponder Failure\t");
 		events::send(events::ID("mxs_xpdr_fail"), events::Log::Critical, "Transponder Failure");
 	}
 
 	if (ack.failSystem && !last.failSystem) {
-		mavlink_log_info(&_mavlink_log_pub, "Transponder System Failure\t");
 		events::send(events::ID("mxs_system_fail"), events::Log::Critical, "Transponder System Failure");
 	}
 

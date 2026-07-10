@@ -112,9 +112,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_missing"),
 							events::Log::Error, "Battery {1} missing", index + 1);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i missing\t", index + 1);
-			}
 		}
 
 		if (!_last_armed && context.isArmed()) {
@@ -127,9 +124,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_disconnected"),
 							events::Log::Emergency, "Battery {1} disconnected", index + 1);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i disconnected\t", index + 1);
-			}
 
 			// trigger a battery failsafe action if a battery disconnects in flight
 			worst_warning = battery_status_s::WARNING_CRITICAL;
@@ -167,12 +161,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 						(NavModes::All, health_component_t::battery, events::ID("check_battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
 						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action);
 
-						if (reporter.mavlink_log_pub()) {
-							mavlink_log_emergency(reporter.mavlink_log_pub(), "Battery %d: %s. %s \t", index + 1,
-									      battery_fault_reason_str(
-										      static_cast<battery_fault_reason_t>(fault_index)),
-									      context.isArmed() ? "Land now!" : "");
-						}
 					}
 				}
 			}
@@ -221,9 +209,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"),
 						    events::Log::Critical, "Low battery");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Low battery\t");
-			}
 
 			break;
 
@@ -239,9 +224,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_critical"),
 						    events::Log::Critical, "Critical battery");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Critical battery\t");
-			}
 
 			break;
 
@@ -257,9 +239,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_emergency"),
 						    events::Log::Emergency, "Emergency battery level");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "Emergency battery level\t");
-			}
 
 			break;
 		}
@@ -286,9 +265,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_unhealthy"),
 				       events::Log::Error, "Battery unhealthy");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Battery unhealthy");
-		}
 	}
 
 	if (num_connected_batteries > 0) {

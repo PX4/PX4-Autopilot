@@ -68,9 +68,6 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 								events::ID("check_baro_missing"),
 								events::Log::Error, "Barometer {1} missing", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: barometer %u missing", instance);
-				}
 
 			} else if (!is_valid) {
 				/* EVENT
@@ -79,9 +76,6 @@ void BaroChecks::checkAndReport(const Context &context, Report &reporter)
 								events::ID("check_baro_no_data"),
 								events::Log::Error, "No valid data from barometer {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid data from Baro %u", instance);
-				}
 			}
 		}
 	}

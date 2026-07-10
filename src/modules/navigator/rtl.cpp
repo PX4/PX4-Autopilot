@@ -538,7 +538,6 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 			if (!success) {
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
 				events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
 					     "Mission land item could not be read");
 			}
