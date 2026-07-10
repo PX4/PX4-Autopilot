@@ -2807,6 +2807,11 @@ void FixedWingModeManager::publish_lateral_guidance_status(const hrt_abstime now
 	fixed_wing_lateral_guidance_status.adapted_period = _directional_guidance.getAdaptedPeriod();
 	fixed_wing_lateral_guidance_status.wind_est_valid = _wind_valid;
 
+	if (_position_setpoint_current_valid) {
+		fixed_wing_lateral_guidance_status.wp_dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude,
+				_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
+	}
+
 	_fixed_wing_lateral_guidance_status_pub.publish(fixed_wing_lateral_guidance_status);
 }
 
