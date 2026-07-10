@@ -48,6 +48,21 @@
 static List<I2CSPIInstance *> i2c_spi_module_instances; ///< list of currently running instances
 static pthread_mutex_t i2c_spi_module_instances_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+BusCLIArguments::BusCLIArguments(bool i2c_support, bool spi_support)
+#if defined(CONFIG_I2C) || defined(CONFIG_SPI)
+	:
+#endif // CONFIG_I2C || CONFIG_SPI
+#if defined(CONFIG_I2C)
+	_i2c_support(i2c_support)
+#endif // CONFIG_I2C
+#if defined(CONFIG_I2C) && defined(CONFIG_SPI)
+	,
+#endif // CONFIG_I2C && CONFIG_SPI
+#if defined(CONFIG_SPI)
+	_spi_support(spi_support)
+#endif // CONFIG_SPI
+{}
+
 
 I2CSPIDriverConfig::I2CSPIDriverConfig(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				       const px4::wq_config_t &wq_config_)
