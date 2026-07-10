@@ -1604,6 +1604,492 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 	pthread_mutex_unlock(&_radio_status_mutex);
 }
 
+namespace
+{
+struct StreamRateDefault {
+	const char *name;
+	float rate;	///< streaming rate in Hz, or unlimited_rate
+};
+
+constexpr float unlimited_rate = -1.0f;
+
+constexpr StreamRateDefault streams_mode_normal[] = {
+	{"ADSB_VEHICLE", 5.f},
+	{"ALTITUDE", 1.0f},
+	{"ATTITUDE", 15.0f},
+	{"ATTITUDE_QUATERNION", 10.0f},
+	{"ATTITUDE_TARGET", 2.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"DISTANCE_SENSOR", 0.5f},
+	{"EFI_STATUS", 2.0f},
+	{"ESC_INFO", 1.0f},
+	{"ESC_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"ESTIMATOR_STATUS", 0.5f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 0.5f},
+#endif
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GLOBAL_POSITION_SENSOR", 5.0f},
+	{"GLOBAL_POSITION_INT", 5.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", 1.0f},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", 5.0f},
+	{"GPS_STATUS", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 0.1f},
+	{"LOCAL_POSITION_NED", 1.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"NAV_CONTROLLER_OUTPUT", 1.0f},
+	{"OBSTACLE_DISTANCE", 1.0f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"ORBIT_EXECUTION_STATUS", 2.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 1.0f},
+	{"POSITION_TARGET_LOCAL_NED", 1.5f},
+	{"RAW_RPM", 2.0f},
+	{"RC_CHANNELS", 5.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 1.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.1f},
+	{"WIND_COV", 0.5f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_onboard[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"HIGHRES_IMU", 50.0f},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"ATTITUDE", 100.0f},
+	{"ALTITUDE", 10.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"ESC_INFO", 10.0f},
+	{"ESC_STATUS", 10.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"OBSTACLE_DISTANCE", 10.0f},
+	{"ODOMETRY", 30.0f},
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ATTITUDE_QUATERNION", 50.0f},
+	{"ATTITUDE_TARGET", 10.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"EFI_STATUS", 2.0f},
+	{"ESTIMATOR_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
+#endif
+	{"EXTENDED_SYS_STATE", 5.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GLOBAL_POSITION_INT", 50.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", unlimited_rate},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", unlimited_rate},
+	{"GPS_STATUS", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 1.0f},
+	{"NAV_CONTROLLER_OUTPUT", 10.0f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"OPTICAL_FLOW_RAD", 10.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 1.0f},
+	{"POSITION_TARGET_GLOBAL_INT", 10.0f},
+	{"POSITION_TARGET_LOCAL_NED", 10.0f},
+	{"RAW_RPM", 5.0f},
+	{"RC_CHANNELS", 20.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 10.0f},
+	{"SYS_STATUS", 5.0f},
+	{"SYSTEM_TIME", 1.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 10.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 10.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 10.0f},
+	{"DEBUG_FLOAT_ARRAY", 10.0f},
+	{"DEBUG_VECT", 10.0f},
+	{"NAMED_VALUE_FLOAT", 10.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_gimbal[] = {
+	// Note: streams requiring low latency come first
+	{"AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 20.0f},
+};
+
+constexpr StreamRateDefault streams_mode_extvision[] = {
+	{"HIGHRES_IMU", unlimited_rate},	// for VIO
+
+	// FALLTHROUGH
+};
+
+constexpr StreamRateDefault streams_mode_extvision_min[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"ATTITUDE", 20.0f},
+	{"ALTITUDE", 10.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"OBSTACLE_DISTANCE", 10.0f},
+	{"ODOMETRY", 30.0f},
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ATTITUDE_TARGET", 2.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GLOBAL_POSITION_INT", 5.0f},
+	{"GPS2_RAW", 1.0f},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 1.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"NAV_CONTROLLER_OUTPUT", 1.5f},
+	{"OPTICAL_FLOW_RAD", 1.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 1.5f},
+	{"POSITION_TARGET_LOCAL_NED", 1.5f},
+	{"RC_CHANNELS", 5.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 5.0f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 1.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 2.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_osd[] = {
+	{"ALTITUDE", 10.0f},
+	{"ATTITUDE", 25.0f},
+	{"ATTITUDE_TARGET", 10.0f},
+	{"BATTERY_STATUS", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GLOBAL_POSITION_INT", 10.0f},
+	{"GPS_RAW_INT", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 0.1f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"RC_CHANNELS", 5.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 5.0f},
+	{"SYSTEM_TIME", 1.0f},
+	{"VFR_HUD", 25.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 2.0f},
+};
+
+constexpr StreamRateDefault streams_mode_config[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"ODOMETRY", 30.0f},
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ALTITUDE", 10.0f},
+	{"ATTITUDE", 50.0f},
+	{"ATTITUDE_QUATERNION", 50.0f},
+	{"ATTITUDE_TARGET", 8.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"EFI_STATUS", 10.0f},
+	{"ESC_INFO", 10.0f},
+	{"ESC_STATUS", 10.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"ESTIMATOR_STATUS", 5.0f},
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
+#endif
+	{"EXTENDED_SYS_STATE", 2.0f},
+	{"GLOBAL_POSITION_INT", 10.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", unlimited_rate},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+	{"GPS_RAW_INT", unlimited_rate},
+	{"GPS_STATUS", 1.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"HIGHRES_IMU", 50.0f},
+	{"HOME_POSITION", 0.5f},
+	{"HYGROMETER_SENSOR", 1.0f},
+	{"MAG_CAL_REPORT", 1.0f},
+	{"MANUAL_CONTROL", 5.0f},
+	{"NAV_CONTROLLER_OUTPUT", 10.0f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"OPTICAL_FLOW_RAD", 10.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 1.0f},
+	{"POSITION_TARGET_GLOBAL_INT", 10.0f},
+	{"RAW_RPM", 5.0f},
+	{"RC_CHANNELS", 10.0f},
+	{"SCALED_IMU", 25.0f},
+	{"SCALED_IMU2", 25.0f},
+	{"SCALED_IMU3", 25.0f},
+	{"SCALED_PRESSURE", 1.0f},
+	{"SCALED_PRESSURE2", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 20.0f},
+	{"SERVO_OUTPUT_RAW_1", 20.0f},
+	{"SYS_STATUS", 1.0f},
+	{"SYSTEM_TIME", 1.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 20.0f},
+	{"VIBRATION", 2.5f},
+	{"WIND_COV", 10.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 50.0f},
+	{"DEBUG_FLOAT_ARRAY", 50.0f},
+	{"DEBUG_VECT", 50.0f},
+	{"NAMED_VALUE_FLOAT", 50.0f},
+	{"LINK_NODE_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 2.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_minimal[] = {
+	{"ALTITUDE", 0.5f},
+	{"ATTITUDE", 10.0f},
+	{"EXTENDED_SYS_STATE", 0.1f},
+	{"GLOBAL_POSITION_INT", 5.0f},
+	{"GPS_RAW_INT", 0.5f},
+	{"HOME_POSITION", 0.1f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+	{"RC_CHANNELS", 0.5f},
+	{"SYS_STATUS", 0.1f},
+	{"VFR_HUD", 1.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"LINK_NODE_STATUS", 1.0f},
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
+	// Note: streams requiring low latency come first
+	{"TIMESYNC", 10.0f},
+	{"CAMERA_TRIGGER", unlimited_rate},
+	{"LOCAL_POSITION_NED", 30.0f},
+	{"ATTITUDE", 20.0f},
+	{"ATTITUDE_QUATERNION", 20.0f},
+	{"ALTITUDE", 10.0f},
+	{"DISTANCE_SENSOR", 10.0f},
+	{"MOUNT_ORIENTATION", 10.0f},
+	{"OBSTACLE_DISTANCE", 10.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 5.0f},
+	{"ESC_INFO", 1.0f},
+	{"ESC_STATUS", 5.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+
+	{"ADSB_VEHICLE", 5.f},
+	{"ATTITUDE_TARGET", 2.0f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 0.5f},
+	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
+	{"CURRENT_MODE", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+	{"EXTENDED_SYS_STATE", 1.0f},
+	{"GLOBAL_POSITION_SENSOR", 10.0f},
+	{"GLOBAL_POSITION_INT", 10.0f},
+	{"GPS_GLOBAL_ORIGIN", 1.0f},
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+	{"GNSS_INTEGRITY", 1.0f},
+#endif
+	{"GPS2_RAW", unlimited_rate},
+	{"GPS_RAW_INT", unlimited_rate},
+	{"HOME_POSITION", 0.5f},
+	{"NAV_CONTROLLER_OUTPUT", 1.5f},
+	{"OPEN_DRONE_ID_LOCATION", 1.f},
+	{"OPEN_DRONE_ID_SYSTEM", 1.f},
+	{"OPEN_DRONE_ID_ARM_STATUS", 1.f},
+	{"OPTICAL_FLOW_RAD", 1.0f},
+	{"ORBIT_EXECUTION_STATUS", 5.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 1.5f},
+	{"POSITION_TARGET_LOCAL_NED", 1.5f},
+	{"RAW_RPM", 5.0f},
+	{"RC_CHANNELS", 20.0f},
+	{"SERVO_OUTPUT_RAW_0", 1.0f},
+	{"SYS_STATUS", 5.0f},
+	{"SYSTEM_TIME", 2.0f},
+	{"TIME_ESTIMATE_TO_TARGET", 1.0f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.5f},
+	{"WIND_COV", 1.0f},
+
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 5.0f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+	{"FUEL_STATUS", 1.0f},
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
+#endif // !CONSTRAINED_FLASH
+};
+
+constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
+	// Note: streams requiring low latency come first
+	{"CAMERA_TRIGGER", 2.0f},
+	{"LOCAL_POSITION_NED", 1.0f},
+	{"ATTITUDE_QUATERNION", 4.0f},
+	{"ALTITUDE", 1.0f},
+	{"DISTANCE_SENSOR", 1.0f},
+	{"MOUNT_ORIENTATION", 2.0f},
+	{"OBSTACLE_DISTANCE", 2.0f},
+	{"GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f},
+	{"GIMBAL_MANAGER_STATUS", 0.5f},
+	{"GIMBAL_DEVICE_SET_ATTITUDE", 2.0f},
+	{"ESC_INFO", 1.0f},
+	{"ESC_STATUS", 1.0f},
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+	{"ESC_EEPROM", unlimited_rate},
+#endif
+	{"ADSB_VEHICLE", 1.0f},
+	{"ATTITUDE_TARGET", 0.5f},
+	{"AVAILABLE_MODES", 0.3f},
+	{"BATTERY_STATUS", 1.0f},
+	{"CAMERA_IMAGE_CAPTURED", 2.0f},
+	{"CURRENT_MODE", 0.5f},
+	{"ESTIMATOR_STATUS", 1.0f},
+	{"EXTENDED_SYS_STATE", 0.5f},
+	{"GLOBAL_POSITION_INT", 2.0f},
+	{"GLOBAL_POSITION_SENSOR", 2.0f},
+	{"GPS_GLOBAL_ORIGIN", 0.1f},
+	{"GPS2_RAW", 1.0f},
+	{"GPS_RAW_INT", 1.0f},
+	{"HOME_POSITION", 0.5f},
+	{"NAV_CONTROLLER_OUTPUT", 0.1f},
+	{"OPTICAL_FLOW_RAD", 0.1f},
+	{"ORBIT_EXECUTION_STATUS", 1.0f},
+	{"PING", 0.1f},
+	{"POSITION_TARGET_GLOBAL_INT", 0.5f},
+	{"POSITION_TARGET_LOCAL_NED", 0.5f},
+	{"RAW_RPM", 2.0f},
+	{"RC_CHANNELS", 1.0f},
+	{"SERVO_OUTPUT_RAW_0", 0.1f},
+	{"SYS_STATUS", 0.5f},
+	{"SYSTEM_TIME", 0.5f},
+	{"TIME_ESTIMATE_TO_TARGET", 0.5f},
+	{"VFR_HUD", 4.0f},
+	{"VIBRATION", 0.1f},
+	{"WIND_COV", 0.1f},
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+	{"FIGURE_EIGHT_EXECUTION_STATUS", 0.5f},
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+};
+
+constexpr StreamRateDefault streams_mode_uavionix[] = {
+	{"UAVIONIX_ADSB_OUT_CFG", 0.1f},
+	{"UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f},
+};
+
+constexpr StreamRateDefault streams_mode_distance_sensor[] = {
+	{"DISTANCE_SENSOR", unlimited_rate},
+#if !defined(CONSTRAINED_FLASH)
+	{"DEBUG", 1.0f},
+	{"DEBUG_FLOAT_ARRAY", 1.0f},
+	{"DEBUG_VECT", 1.0f},
+	{"NAMED_VALUE_FLOAT", 1.0f},
+#endif // !CONSTRAINED_FLASH
+};
+
+} // namespace
+
 int
 Mavlink::configure_streams_to_default(const char *configure_single_stream)
 {
@@ -1623,247 +2109,35 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		}
 	};
 
-	const float unlimited_rate = -1.0f;
+	auto configure_streams_local = [&configure_stream_local](const auto & streams) {
+		for (const auto &stream : streams) {
+			configure_stream_local(stream.name, stream.rate);
+		}
+	};
 
 	switch (_mode) {
 	case MAVLINK_MODE_NORMAL:
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("ATTITUDE", 15.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 10.0f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("DISTANCE_SENSOR", 0.5f);
-		configure_stream_local("EFI_STATUS", 2.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("ESTIMATOR_STATUS", 0.5f);
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
-		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 0.5f);
-#endif
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_SENSOR", 5.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", 5.0f);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
-		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RAW_RPM", 2.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.1f);
-		configure_stream_local("WIND_COV", 0.5f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_normal);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("HIGHRES_IMU", 50.0f);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("ATTITUDE", 100.0f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("ESC_INFO", 10.0f);
-		configure_stream_local("ESC_STATUS", 10.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
-		configure_stream_local("ATTITUDE_TARGET", 10.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("EFI_STATUS", 2.0f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
-		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
-#endif
-		configure_stream_local("EXTENDED_SYS_STATE", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", unlimited_rate);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 1.0f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
-		configure_stream_local("RAW_RPM", 5.0f);
-		configure_stream_local("RC_CHANNELS", 20.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 10.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 10.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 10.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 10.0f);
-		configure_stream_local("DEBUG_VECT", 10.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_onboard);
 		break;
 
 	case MAVLINK_MODE_GIMBAL:
-		// Note: streams requiring low latency come first
-		configure_stream_local("AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
+		configure_streams_local(streams_mode_gimbal);
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
-		configure_stream_local("HIGHRES_IMU", unlimited_rate);		// for VIO
+		configure_streams_local(streams_mode_extvision);
 
 	// FALLTHROUGH
 	case MAVLINK_MODE_EXTVISIONMIN:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("ATTITUDE", 20.0f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 2.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_extvision_min);
 		break;
 
 	case MAVLINK_MODE_OSD:
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("ATTITUDE", 25.0f);
-		configure_stream_local("ATTITUDE_TARGET", 10.0f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
-		configure_stream_local("GPS_RAW_INT", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("VFR_HUD", 25.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 2.0f);
+		configure_streams_local(streams_mode_osd);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1874,87 +2148,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("ATTITUDE", 50.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 50.0f);
-		configure_stream_local("ATTITUDE_TARGET", 8.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("EFI_STATUS", 10.0f);
-		configure_stream_local("ESC_INFO", 10.0f);
-		configure_stream_local("ESC_STATUS", 10.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
-		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
-#endif
-		configure_stream_local("EXTENDED_SYS_STATE", 2.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", unlimited_rate);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("GPS_STATUS", 1.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("HIGHRES_IMU", 50.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
-		configure_stream_local("MAG_CAL_REPORT", 1.0f);
-		configure_stream_local("MANUAL_CONTROL", 5.0f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 1.0f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
-		configure_stream_local("RAW_RPM", 5.0f);
-		configure_stream_local("RC_CHANNELS", 10.0f);
-		configure_stream_local("SCALED_IMU", 25.0f);
-		configure_stream_local("SCALED_IMU2", 25.0f);
-		configure_stream_local("SCALED_IMU3", 25.0f);
-		configure_stream_local("SCALED_PRESSURE", 1.0f);
-		configure_stream_local("SCALED_PRESSURE2", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 20.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_1", 20.0f);
-		configure_stream_local("SYS_STATUS", 1.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 20.0f);
-		configure_stream_local("VIBRATION", 2.5f);
-		configure_stream_local("WIND_COV", 10.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 50.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 50.0f);
-		configure_stream_local("DEBUG_VECT", 50.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 2.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_config);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
@@ -1962,157 +2156,23 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_MINIMAL:
-		configure_stream_local("ALTITUDE", 0.5f);
-		configure_stream_local("ATTITUDE", 10.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 0.1f);
-		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
-		configure_stream_local("GPS_RAW_INT", 0.5f);
-		configure_stream_local("HOME_POSITION", 0.1f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-		configure_stream_local("RC_CHANNELS", 0.5f);
-		configure_stream_local("SYS_STATUS", 0.1f);
-		configure_stream_local("VFR_HUD", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("LINK_NODE_STATUS", 1.0f);
-#endif // !CONSTRAINED_FLASH
-
+		configure_streams_local(streams_mode_minimal);
 		break;
 
 	case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
-		// Note: streams requiring low latency come first
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
-		configure_stream_local("ATTITUDE", 20.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 20.0f);
-		configure_stream_local("ALTITUDE", 10.0f);
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 5.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-
-		configure_stream_local("ADSB_VEHICLE", 5.f);
-		configure_stream_local("ATTITUDE_TARGET", 2.0f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 0.5f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_SENSOR", 10.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
-		configure_stream_local("GNSS_INTEGRITY", 1.0f);
-#endif
-		configure_stream_local("GPS2_RAW", unlimited_rate);
-		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
-		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
-		configure_stream_local("RAW_RPM", 5.0f);
-		configure_stream_local("RC_CHANNELS", 20.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
-		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 2.0f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 1.0f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.5f);
-		configure_stream_local("WIND_COV", 1.0f);
-
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
-#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
-		configure_stream_local("FUEL_STATUS", 1.0f);
-#endif // MAVLINK_MSG_ID_FUEL_STATUS
-#endif // !CONSTRAINED_FLASH
+		configure_streams_local(streams_mode_onboard_low_bandwidth);
 		break;
 
 	case MAVLINK_MODE_LOW_BANDWIDTH:
-		// Note: streams requiring low latency come first
-		configure_stream_local("CAMERA_TRIGGER", 2.0f);
-		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("ATTITUDE_QUATERNION", 4.0f);
-		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("DISTANCE_SENSOR", 1.0f);
-		configure_stream_local("MOUNT_ORIENTATION", 2.0f);
-		configure_stream_local("OBSTACLE_DISTANCE", 2.0f);
-		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 5.0f);
-		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
-		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 1.0f);
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
-		configure_stream_local("ESC_EEPROM", unlimited_rate);
-#endif
-		configure_stream_local("ADSB_VEHICLE", 1.0f);
-		configure_stream_local("ATTITUDE_TARGET", 0.5f);
-		configure_stream_local("AVAILABLE_MODES", 0.3f);
-		configure_stream_local("BATTERY_STATUS", 1.0f);
-		configure_stream_local("CAMERA_IMAGE_CAPTURED", 2.0f);
-		configure_stream_local("CURRENT_MODE", 0.5f);
-		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
-		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
-		configure_stream_local("GLOBAL_POSITION_SENSOR", 2.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 0.1f);
-		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_RAW_INT", 1.0f);
-		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 0.1f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 0.1f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 1.0f);
-		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 0.5f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 0.5f);
-		configure_stream_local("RAW_RPM", 2.0f);
-		configure_stream_local("RC_CHANNELS", 1.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 0.1f);
-		configure_stream_local("SYS_STATUS", 0.5f);
-		configure_stream_local("SYSTEM_TIME", 0.5f);
-		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.5f);
-		configure_stream_local("VFR_HUD", 4.0f);
-		configure_stream_local("VIBRATION", 0.1f);
-		configure_stream_local("WIND_COV", 0.1f);
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 0.5f);
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+		configure_streams_local(streams_mode_low_bandwidth);
 		break;
 
 	case MAVLINK_MODE_UAVIONIX:
-		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
-		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
+		configure_streams_local(streams_mode_uavionix);
 		break;
 
 	case MAVLINK_MODE_DISTANCE_SENSOR:
-		configure_stream_local("DISTANCE_SENSOR", unlimited_rate);
-#if !defined(CONSTRAINED_FLASH)
-		configure_stream_local("DEBUG", 1.0f);
-		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
-		configure_stream_local("DEBUG_VECT", 1.0f);
-		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
-#endif // !CONSTRAINED_FLASH
+		configure_streams_local(streams_mode_distance_sensor);
 		break;
 
 	default:
