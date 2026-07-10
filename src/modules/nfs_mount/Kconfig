@@ -6,12 +6,14 @@ menuconfig MODULES_NFS_MOUNT
 
 config NFS_MOUNT_MOUNT_POINT
 	string "NFS local mount point"
+	depends on MODULES_NFS_MOUNT
 	default "/fs/nfs"
 	---help---
 		Local path where the NFS export will be mounted.
 
 config NFS_MOUNT_SERVER_PATH
 	string "NFS server export path"
+	depends on MODULES_NFS_MOUNT
 	default "/persistent/nfs/fmu"
 	---help---
 		The exported path on the NFS server to mount at NFS_MOUNT_MOUNT_POINT.
