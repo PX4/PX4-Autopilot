@@ -48,9 +48,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_flight_term_active"),
 						    events::Log::Critical, "Flight termination active");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Flight termination active");
-			}
 		}
 	}
 
@@ -67,9 +64,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_usb_connected"),
 					    events::Log::Error, "USB connected");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Flying with USB is not safe");
-		}
 	}
 
 	// Global position required
@@ -85,9 +79,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_no_global_pos"),
 						    events::Log::Error, "Global position estimate required");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Global position estimate required");
-			}
 
 		} else if (reporter.failsafeFlags().home_position_invalid) {
 			/* EVENT
@@ -99,9 +90,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_no_home_pos"),
 						    events::Log::Error, "Home position required");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Home position required");
-			}
 		}
 	}
 
@@ -116,9 +104,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_safety_button"),
 					    events::Log::Info, "Press safety button first");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Press safety button first");
-		}
 	}
 
 	// VTOL in transition
@@ -129,9 +114,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_vtol_in_transition"),
 						    events::Log::Warning, "Vehicle is in transition state");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Vehicle is in transition state");
-			}
 		}
 
 		if (!circuit_breaker_enabled_by_val(_param_cbrk_vtolarming.get(), CBRK_VTOLARMING_KEY)
@@ -145,9 +127,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_vtol_in_fw_mode"),
 						    events::Log::Warning, "Vehicle is not in multicopter mode");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Vehicle is not in multicopter mode");
-			}
 		}
 	}
 

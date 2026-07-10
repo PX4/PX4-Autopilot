@@ -206,8 +206,6 @@ public:
 
 	failsafe_flags_s &failsafeFlags() { return _failsafe_flags; }
 
-	orb_advert_t *mavlink_log_pub() { return _mavlink_log_pub; }
-
 	/**
 	 * Whether arming is possible for a given navigation mode
 	 */
@@ -375,8 +373,6 @@ private:
 	int _current_result{0};
 
 	failsafe_flags_s &_failsafe_flags;
-
-	orb_advert_t *_mavlink_log_pub{nullptr}; ///< mavlink log publication for legacy reporting
 };
 
 template<typename... Args>

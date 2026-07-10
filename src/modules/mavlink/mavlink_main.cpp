@@ -2879,14 +2879,12 @@ void Mavlink::handleStatus()
 							      !_transmitting_enabled_commanded && _first_heartbeat_sent))) {
 
 					_transmitting_enabled = false;
-					mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
 					events::send<int8_t>(events::ID("mavlink_iridium_disable"), events::Log::Info,
 							     "Disabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
 
 				} else if (!_transmitting_enabled && vehicle_status.gcs_connection_lost
 					   && !vehicle_status.high_latency_data_link_lost) {
 					_transmitting_enabled = true;
-					mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
 					events::send<int8_t>(events::ID("mavlink_iridium_enable"), events::Log::Info,
 							     "Enabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
 				}
@@ -2978,8 +2976,6 @@ void Mavlink::handleCommands()
 
 					if (vehicle_cmd.param1 > 0.5f) {
 						if (!_transmitting_enabled) {
-							mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command\t",
-									 _device_name);
 							events::send<int8_t>(events::ID("mavlink_iridium_enable_cmd"), events::Log::Info,
 									     "Enabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
 						}
@@ -2989,8 +2985,6 @@ void Mavlink::handleCommands()
 
 					} else {
 						if (_transmitting_enabled) {
-							mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command\t",
-									 _device_name);
 							events::send<int8_t>(events::ID("mavlink_iridium_disable_cmd"), events::Log::Info,
 									     "Disabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
 						}

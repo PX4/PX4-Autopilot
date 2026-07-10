@@ -74,9 +74,6 @@ void GyroChecks::checkAndReport(const Context &context, Report &reporter)
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::gyro, events::ID("check_gyro_missing"),
 								events::Log::Error, "Gyro sensor {1} missing", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Gyro Sensor %u missing", instance);
-				}
 
 			} else if (!is_valid) {
 				/* EVENT
@@ -84,9 +81,6 @@ void GyroChecks::checkAndReport(const Context &context, Report &reporter)
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::gyro, events::ID("check_gyro_no_data"),
 								events::Log::Error, "No valid data from Gyro {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid data from Gyro %u", instance);
-				}
 
 			} else if (!is_calibration_valid) {
 				/* EVENT
@@ -94,9 +88,6 @@ void GyroChecks::checkAndReport(const Context &context, Report &reporter)
 				reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::gyro, events::ID("check_gyro_not_calibrated"),
 								     events::Log::Error, "Gyro {1} uncalibrated", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Gyro %u uncalibrated", instance);
-				}
 			}
 		}
 	}

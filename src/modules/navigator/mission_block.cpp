@@ -1059,7 +1059,6 @@ void MissionBlock::updateMaxHaglFailsafe()
 
 	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");
 
 		_navigator->trigger_hagl_failsafe(getNavigatorStateId());

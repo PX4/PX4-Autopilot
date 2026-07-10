@@ -1248,8 +1248,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %" PRIu8 " unsupported\t",
-					     target_local_ned.coordinate_frame);
 			events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_unsup_coord"), events::Log::Error,
 					      "SET_POSITION_TARGET_LOCAL_NED: coordinate frame {1} unsupported", target_local_ned.coordinate_frame);
 			return;
@@ -1262,7 +1260,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
 			events::send(events::ID("mavlink_rcv_sp_target_unsup_force"), events::Log::Error,
 				     "SET_POSITION_TARGET_LOCAL_NED: FORCE is not supported");
 			return;
@@ -1283,7 +1280,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			}
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED invalid\t");
 			events::send(events::ID("mavlink_rcv_sp_target_invalid"), events::Log::Error,
 				     "SET_POSITION_TARGET_LOCAL_NED: invalid, missing position, velocity or acceleration");
 		}
@@ -1353,8 +1349,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 				}
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame %" PRIu8 "\t",
-						     target_global_int.coordinate_frame);
 				events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_gl_invalid_coord"), events::Log::Error,
 						      "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame {1}", target_global_int.coordinate_frame);
 				return;
@@ -1381,7 +1375,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
 			events::send(events::ID("mavlink_rcv_sp_target_gl_unsup_force"), events::Log::Error,
 				     "SET_POSITION_TARGET_GLOBAL_INT: FORCE is not supported");
 			return;
@@ -1728,8 +1721,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	case MAV_ESTIMATOR_TYPE_LIDAR:
 	case MAV_ESTIMATOR_TYPE_AUTOPILOT:
 	default:
-		mavlink_log_critical(&_mavlink_log_pub, "ODOMETRY: estimator_type %" PRIu8 " unsupported\t",
-				     odom_in.estimator_type);
 		events::send<uint8_t>(events::ID("mavlink_rcv_odom_unsup_estimator_type"), events::Log::Error,
 				      "ODOMETRY: unsupported estimator_type {1}", odom_in.estimator_type);
 		return;
@@ -2796,8 +2787,6 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 	} else if (landing_target.position_valid) {
 		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
-		mavlink_log_critical(&_mavlink_log_pub, "Landing target: coordinate frame %" PRIu8 " unsupported\t",
-				     landing_target.frame);
 		events::send<uint8_t>(events::ID("mavlink_rcv_lnd_target_unsup_coord"), events::Log::Error,
 				      "Landing target: unsupported coordinate frame {1}", landing_target.frame);
 
@@ -3232,8 +3221,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	// Unsupported sensor frame
 	if (target_relative.frame != TARGET_OBS_FRAME_LOCAL_OFFSET_NED && target_relative.frame != TARGET_OBS_FRAME_LOCAL_NED &&
 	    target_relative.frame != TARGET_OBS_FRAME_BODY_FRD && target_relative.frame != TARGET_OBS_FRAME_OTHER) {
-		mavlink_log_critical(&_mavlink_log_pub, "target relative: coordinate frame %" PRIu8 " unsupported.\t",
-				     target_relative.frame);
 		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_coord_frame"), events::Log::Error,
 				      "Target relative: unsupported coordinate frame {1}", target_relative.frame);
 
@@ -3242,8 +3229,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 	// Unsupported measurement type
 	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
-		mavlink_log_critical(&_mavlink_log_pub, "target relative: type %" PRIu8 " unsupported.\t",
-				     target_relative.type);
 		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_type"), events::Log::Error,
 				      "Target relative: unsupported type {1}", target_relative.type);
 		return;
@@ -3268,9 +3253,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 		} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
 			// Target sensor frame: OTHER and no quaternion is provided
-			mavlink_log_critical(&_mavlink_log_pub,
-					     "target relative: coordinate frame %" PRIu8 " unsupported when the q_sensor is not filled.\t",
-					     target_relative.frame);
 			events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_q_sensor_not_filled"), events::Log::Error,
 					      "Target relative: unsupported coordinate frame {1} when the q_sensor is not filled", target_relative.frame);
 		}

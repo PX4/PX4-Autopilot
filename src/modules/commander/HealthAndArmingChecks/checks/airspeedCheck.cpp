@@ -76,9 +76,6 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 					       events::ID("check_airspeed_invalid"),
 					       events::Log::Error, "Airspeed invalid");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed invalid");
-			}
 		}
 
 		if (!context.isArmed() && airspeed_calibrated_from_sensor > arming_max_airspeed_allowed) {
@@ -97,9 +94,6 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 					events::ID("check_airspeed_too_high"),
 					events::Log::Error, "Airspeed too high", airspeed_validated.calibrated_airspeed_m_s, arming_max_airspeed_allowed);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high");
-			}
 		}
 
 	} else {
@@ -115,9 +109,6 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_airspeed_no_data"),
 				       events::Log::Error, "No airspeed data");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed selector module down");
-		}
 	}
 
 }

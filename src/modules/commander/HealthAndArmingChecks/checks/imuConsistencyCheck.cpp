@@ -64,9 +64,6 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 						events::ID("check_imu_accel_inconsistent"),
 						events::Log::Warning, "Accel {1} inconsistent", i, accel_inconsistency_m_s_s, _param_com_arm_imu_acc.get());
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Accel %u inconsistent - check cal", i);
-				}
 
 				break;
 			}
@@ -95,9 +92,6 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 						events::ID("check_imu_gyro_inconsistent"),
 						events::Log::Warning, "Gyro {1} inconsistent", i, gyro_inconsistency_rad_s, _param_com_arm_imu_gyr.get());
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Gyro %u inconsistent - check cal", i);
-				}
 
 				break;
 			}

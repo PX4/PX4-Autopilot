@@ -309,8 +309,6 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		next_mission_items[0u] = _mission_item;
 		next_mission_items[0u].nav_cmd = NAV_CMD_WAYPOINT;
 
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Climb to %.1f meters above home\t",
-				 (double)(_mission_init_climb_altitude_amsl - _navigator->get_home_position()->alt));
 		events::send<float>(events::ID("mission_climb_before_start"), events::Log::Info,
 				    "Climb to {1:.1m_v} above home", _mission_init_climb_altitude_amsl - _navigator->get_home_position()->alt);
 
@@ -480,7 +478,6 @@ Mission::save_mission_state()
 		/* invalid data, this must not happen and indicates error in mission publisher */
 		mission_state = _mission;
 
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid mission state.\t");
 		/* EVENT
 		 * @description No mission or storage failure
 		 */

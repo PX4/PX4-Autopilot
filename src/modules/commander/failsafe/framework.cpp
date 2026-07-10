@@ -215,7 +215,6 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			(uint16_t) delay_s, failsafe_cause);
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated: entering Hold for %i seconds\t", delay_s);
 
 	} else { // no delay
 		failsafe_action_t failsafe_action = (failsafe_action_t)action;
@@ -291,10 +290,6 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				{events::Log::Critical, events::LogInternal::Warning},
 				"{3}: switching to {2}", mavlink_mode, failsafe_action, failsafe_cause);
 			}
-		}
-
-		if (action != Action::Warn) {
-			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
 		}
 	}
 
