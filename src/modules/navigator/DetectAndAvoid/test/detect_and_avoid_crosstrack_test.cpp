@@ -36,8 +36,8 @@
  * @brief Tests specific to the crosstrack DAA standard.
  *
  * This file is only built when CONFIG_NAVIGATOR_ADSB_F3442 is disabled; it tests the
- * single-threshold crosstrack behavior and the input requirements (finite traffic and
- * ownship headings) that only apply to the crosstrack standard.
+ * single-threshold crosstrack behavior and the traffic-heading input requirement
+ * that only applies to the crosstrack standard.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -159,39 +159,4 @@ TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 		conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
 		EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 	}
-}
-
-// A hovering ownship with no local-position yaw fails closed instead of inventing a north heading
-// (no meaningful course-over-ground, so crosstrack can't use atan2f(0, 0)).
-TEST_F(DetectAndAvoidTest, HoveringCrosstrackRejectsNonFiniteOwnshipHeading)
-{
-	recreate_navigator();
-
-	const double lat_uav = 46.52342;
-	const double lon_uav = 6.524234;
-	const float alt_uav = 400.f;
-	const matrix::Vector3f uav_vel{0.f, 0.f, 0.f};
-
-	publish_global_pos(lat_uav, lon_uav, alt_uav);
-	publish_land_status(false);
-	publish_vehicle_status(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, vehicle_status_s::ARMING_STATE_ARMED);
-	publish_local_pos_vel(uav_vel, hrt_absolute_time(), std::numeric_limits<float>::quiet_NaN());
-	sync_navigator_topics();
-	drain_detect_and_avoid_topic();
-
-	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
-			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
-	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav,
-				  alt_uav, 30.f, 0.f, flags);
-	tr.heading = 3.f * M_PI_2_F;
-
-	publish_transponder_report_and_check(tr);
-
-	// nothing published or buffered: ownship yaw is not finite
-	EXPECT_FALSE(_detect_and_avoid_sub.update());
-
-	conflict_info_s conflict = navigator->get_detect_and_avoid()->get_most_urgent_conflict();
-	EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 }

@@ -81,9 +81,9 @@ public:
 	void reset();
 
 private:
-	// Selects the message prefix and severity used when a tracked conflict's level changes.
+	// Selects the message prefix and structured event severity used when a tracked conflict's level changes.
 	// The most-urgent conflict drives DAA actions and is reported with
-	// level-based severity; secondary conflicts stay informational.
+	// level-based event severity; secondary conflicts stay informational.
 	enum class ConflictNotifyKind : uint8_t {
 		kMostUrgent = 0,	// already tracked most urgent conflict ("DAA Main:")
 		kMostUrgentNew = 1,	// most urgent conflict that appeared this cycle ("DAA New and Main:")
@@ -126,7 +126,6 @@ private:
 	void notify_action_on_ground(const NotifyLandedActCause cause);
 
 	bool mavlink_log_conflict_by_level(const uint8_t conflict_level, const char *message, events::Log &log_level);
-	void mavlink_log_message(const char *message, const events::Log log_level);
 
 	// Distance in meters for operator messages, non-finite or out-of-range maps to UINT32_MAX.
 	static uint32_t distance_meters_for_log(const float distance);

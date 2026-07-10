@@ -209,10 +209,10 @@ void ConflictNotifier::notify_traffic_ignored(const conflict_info_s &conflict_in
 
 	_time_last_traffic_ignored = hrt_absolute_time();
 
-	mavlink_log_warning(&_mavlink_log_pub, "DAA %s ignored (%u) lvl %u.\t",
-			    encoded_id_str,
-			    static_cast<unsigned>(cause),
-			    static_cast<unsigned>(conflict_info.conflict_level));
+	mavlink_log_info(&_mavlink_log_pub, "DAA %s ignored (%u) lvl %u.\t",
+			 encoded_id_str,
+			 static_cast<unsigned>(cause),
+			 static_cast<unsigned>(conflict_info.conflict_level));
 	/* EVENT
 	 * @description
 	 * - ID: {1}
@@ -254,31 +254,6 @@ void ConflictNotifier::notify_traffic_removed(const conflict_info_s &conflict_in
 			static_cast<uint8_t>(cause), conflict_info.conflict_level, time_since_last_comm);
 }
 
-void ConflictNotifier::mavlink_log_message(const char *message, const events::Log log_level)
-{
-	switch (log_level) {
-	case events::Log::Info:
-		mavlink_log_info(&_mavlink_log_pub, "%s.\t", message);
-		break;
-
-	case events::Log::Warning:
-		mavlink_log_warning(&_mavlink_log_pub, "%s.\t", message);
-		break;
-
-	case events::Log::Critical:
-		mavlink_log_critical(&_mavlink_log_pub, "%s.\t", message);
-		break;
-
-	case events::Log::Emergency:
-		mavlink_log_emergency(&_mavlink_log_pub, "%s.\t", message);
-		break;
-
-	default:
-		PX4_ERR("DAA: unsupported log level");
-		break;
-	}
-}
-
 bool ConflictNotifier::mavlink_log_conflict_by_level(const uint8_t conflict_level, const char *message,
 		events::Log &log_level)
 {
@@ -303,7 +278,7 @@ bool ConflictNotifier::mavlink_log_conflict_by_level(const uint8_t conflict_leve
 		return false;
 	}
 
-	mavlink_log_message(message, log_level);
+	mavlink_log_warning(&_mavlink_log_pub, "%s.\t", message);
 	return true;
 }
 
@@ -339,7 +314,7 @@ void ConflictNotifier::notify_conflict_level(const conflict_info_s &conflict_inf
 			}
 
 		} else {
-			mavlink_log_message(message_buffer, log_level);
+			mavlink_log_info(&_mavlink_log_pub, "%s.\t", message_buffer);
 		}
 
 	} else if (conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
@@ -429,7 +404,14 @@ void ConflictNotifier::notify_action_on_ground(const NotifyLandedActCause cause)
 
 	char message_buffer[kMaxLogMessageSize];
 	snprintf(message_buffer, sizeof(message_buffer), "DAA do not %s until air conflict solved!", blocked_action);
-	mavlink_log_message(message_buffer, log_level);
+
+	if (cause == NotifyLandedActCause::kConflictAndArmed) {
+		mavlink_log_critical(&_mavlink_log_pub, "%s.\t", message_buffer);
+
+	} else {
+		mavlink_log_warning(&_mavlink_log_pub, "%s.\t", message_buffer);
+	}
+
 	events::send(events::ID("navigator_traffic_ground_conflict"), log_level,
 		     "DAA: resolve air-traffic conflict before flight");
 }
@@ -474,7 +456,13 @@ void ConflictNotifier::notify_new_action(const conflict_info_s &conflict_info, c
 	char message_buffer[kMaxLogMessageSize];
 	snprintf(message_buffer, sizeof(message_buffer), "DAA %s: %s! lvl %u. %u m",
 		 encoded_id_str, action_name, static_cast<unsigned>(conflict_level), static_cast<unsigned>(aircraft_dist));
-	mavlink_log_message(message_buffer, log_level);
+
+	if (action == DaaAction::kTerminate) {
+		mavlink_log_emergency(&_mavlink_log_pub, "%s.\t", message_buffer);
+
+	} else {
+		mavlink_log_warning(&_mavlink_log_pub, "%s.\t", message_buffer);
+	}
 
 	/* EVENT
 	 * @description
