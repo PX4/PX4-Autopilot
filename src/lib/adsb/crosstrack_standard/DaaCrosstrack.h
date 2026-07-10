@@ -68,14 +68,14 @@ public:
 
 	// Crosstrack-based conflict level for one traffic target.
 	uint8_t calculate_daa_stats(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state,
-				    daa_stats_s &daa_stats);
+				    daa_stats_s &daa_stats) const;
 
 	// Refresh the crosstrack thresholds from parameters. False on invalid values.
 	bool try_setting_params();
 
 private:
-	float _crosstrack_separation_m{500};
-	float _vertical_separation_m{500};
+	float _crosstrack_separation_m{500.f};
+	float _vertical_separation_m{500.f};
 	int _collision_time_threshold_s{60};
 
 	DEFINE_PARAMETERS(

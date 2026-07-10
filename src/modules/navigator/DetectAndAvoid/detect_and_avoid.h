@@ -83,22 +83,15 @@ public:
 	DetectAndAvoid(Navigator *navigator);
 	~DetectAndAvoid() override = default;
 
-	// Start DAA: load params, pick the standard, log a critical event on failure.
 	void on_activation() override;
-
-	// One DAA tick: pull new traffic, update the buffer, send any required action.
 	void on_active() override;
-
-	// Stop DAA and publish an empty status.
 	void on_inactivation() override;
 
-	// Clear all DAA state (buffer, last action, timestamps).
 	void reset();
 
 	bool is_activated() const { return _is_activated; }
 
 #if !defined(CONSTRAINED_FLASH) && !defined(__PX4_NUTTX)
-	// Print buffer size and most-urgent conflict to the shell.
 	void print_status() const;
 #endif // !CONSTRAINED_FLASH && !__PX4_NUTTX
 
@@ -136,9 +129,6 @@ public:
 	};
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
-	/* Actions */
-
-	// Map a conflict level to a DAA action via the policy and current params.
 	DaaAction get_action_from_conflict_level(const uint8_t conflict_level) const;
 
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
@@ -149,10 +139,8 @@ public:
 	 */
 	void run_fake_traffic(FakeTraffMode mode, double lat_uav, double lon_uav, float alt_uav);
 
-	// Cancel a running fake-traffic script.
 	void stop_fake_traffic();
 
-	// Publish one synthetic transponder report at a relative bearing/distance from ownship.
 	void fake_traffic(const SyntheticTrafficReport &report);
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
@@ -167,15 +155,10 @@ private:
 	};
 
 	struct fake_traffic_state_s {
-		// True while a shell-triggered fake traffic script is still being replayed.
 		bool active{false};
-		// Which deterministic scenario is currently being replayed.
 		FakeTraffMode mode{FakeTraffMode::kUniqueIds};
-		// Index of the next scripted report to publish for the active mode.
 		uint8_t next_step_idx{0};
-		// Absolute time when the next scripted report may be published.
 		hrt_abstime next_publish_at{0};
-		// Fixed ownship origin captured when the script was armed.
 		fake_traffic_origin_s origin{};
 
 		void clear()
@@ -192,27 +175,14 @@ private:
 	uORB::Publication<detect_and_avoid_s>		_detect_and_avoid_pub{ORB_ID(detect_and_avoid)};
 	uORB::Publication<detect_and_avoid_most_urgent_s>		_detect_and_avoid_most_urgent_pub{ORB_ID(detect_and_avoid_most_urgent)};
 
-	// Publish the cached most-urgent conflict if it was reassigned since the last publication.
 	void publish_most_urgent_conflict_if_changed();
-
-	// Empty the buffer and reset all derived conflict state and timers.
 	void clear_conflicts();
-
-	// Re-read parameters and (de)activate the module accordingly.
 	void update_activation_status();
-
-	// One detection cycle: drop stale state, process new reports, notify and act.
 	void process_traffic();
 
 	bool _is_activated{false};
 
-	/* Conflict tracking */
-
-	// Conflict tracker (buffer, priority rules, most-urgent cache) lives in the
-	// adsb library; the notifier turns its change records into operator messages.
 	ConflictTracker _conflict_tracker{};
-
-	// All DAA operator messaging: formatting, severities and rate limiting.
 	ConflictNotifier _conflict_notifier{};
 
 	// Bit i set = conflict level i requires an operator warning (from the action params).
@@ -220,31 +190,17 @@ private:
 
 	// Cycle context (previous level, warning mask, notification interval) for the notifier.
 	ConflictNotifier::cycle_context_s notifier_cycle_context() const;
-
-	// Refresh the tracker's most-urgent cache and mark the status for publication.
 	void update_most_urgent_conflict();
 
 	bool _most_urgent_conflict_changed{false};
 	uint8_t _prev_most_urgent_conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 
-	/* Handle actions */
-
-	/**
-	 * @brief Run the action policy for the current most urgent conflict
-	 *
-	 * Publish the requested vehicle command and forward the action/ground messages to the notifier.
-	 */
 	void evaluate_and_publish_action();
-
-	// Convert a DAA action into the matching vehicle_command and publish it.
 	void publish_action_command(const DaaAction requested_action);
-
-	// Snapshot of the action parameters handed to the (parameter-free) action policy.
 	daa_action_params_s action_params() const;
 
 	DaaAction _previous_action = DaaAction::kDisabled;
 
-	/* Process transponder data */
 #if defined(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 	uORB::Publication<transponder_report_s> _fake_traffic_pub {ORB_ID(transponder_report)};
 	// The shell command and the navigator update loop can touch fake traffic state
@@ -252,20 +208,15 @@ private:
 	pthread_mutex_t _fake_traffic_mutex = PTHREAD_MUTEX_INITIALIZER;
 	fake_traffic_state_s _fake_traffic_state{};
 
-	// Publish whichever scripted fake-traffic reports are due this spin.
 	void process_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 	uORB::Subscription _traffic_sub {ORB_ID(transponder_report)};
 	AdsbConflict _adsb_conflict_detector;
 
-	// Ownship identifiers handed to the traffic filter in the adsb library.
 	daa_ownship_ids_s _ownship_ids{};
 
-	// Snapshot the ownship identifier params and the board GUID for the traffic filter.
 	void refresh_ownship_ids();
 
-	// Validate the ownship pose and fill the ownship half of the DAA input. False when the latest
-	// global or local position fix is non-finite or too old.
 	bool gather_ownship_input(daa_input_s &daa_input) const;
 
 	// Fill the traffic half of the DAA input from a valid report, applying the velocity defaults.
@@ -282,7 +233,6 @@ private:
 	 */
 	bool process_transponder_queue(daa_input_s &daa_input);
 
-	// Run one valid traffic report through DAA and apply the result; fills the traffic half of daa_input.
 	bool process_transponder_report(daa_input_s &daa_input, const transponder_report_s &transponder_report);
 
 	// Publish the traffic conflict outputs collected while draining the transponder queue.

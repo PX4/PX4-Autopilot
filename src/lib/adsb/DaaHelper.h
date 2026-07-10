@@ -67,8 +67,5 @@ inline matrix::Vector2f calculate_horizontal_vertical_speed_magnitudes(const air
 // Worst-case closing speed (UAV and traffic flying straight at each other).
 inline float calculate_relative_uav_traffic_speed(const aircraft_state_s &uav_state, const aircraft_state_s &traffic_state)
 {
-	const float xyz_traffic_speed = traffic_state.velocity_ned.norm();
-	const float xyz_uav_speed = uav_state.velocity_ned.norm();
-
-	return xyz_traffic_speed + xyz_uav_speed;
-};
+	return traffic_state.velocity_ned.norm() + uav_state.velocity_ned.norm();
+}

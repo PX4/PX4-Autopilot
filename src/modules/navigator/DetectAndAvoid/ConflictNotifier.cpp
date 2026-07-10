@@ -57,9 +57,8 @@ void ConflictNotifier::reset()
 void ConflictNotifier::report_cycle(const conflict_tracker_changes_s &changes, const ConflictTracker &tracker,
 				    const cycle_context_s &context)
 {
-	// Defer "new conflict" warnings until after the others, so a conflict added and removed in the
-	// same cycle is never announced. report_cycle() runs once per cycle on the single navigator
-	// thread, so this lives in .bss (static, off the stack) and is cleared at the start of each call.
+	// Defer new-conflict messages until the final tracker state for this cycle is known
+	// so a conflict added and removed in the same cycle is never announced
 	static new_conflicts_pending_notif_s new_conflicts_pending_notif{};
 	new_conflicts_pending_notif.clear();
 
@@ -94,7 +93,6 @@ void ConflictNotifier::report_cycle(const conflict_tracker_changes_s &changes, c
 		}
 	}
 
-	// Deferred new-conflict warnings and the most-urgent status.
 	const conflict_info_s &most_urgent_conflict = tracker.most_urgent();
 
 	const bool main_conflict_pending_notif =
@@ -125,8 +123,6 @@ void ConflictNotifier::report_cycle(const conflict_tracker_changes_s &changes, c
 		return;
 	}
 
-	// Always notify if the most urgent conflict level has changed.
-	// Note that the conflict level can de-escalate but the action will not change.
 	if (must_notify(most_urgent_conflict.conflict_level, _time_last_status_notif, context.status_notif_interval,
 			context.prev_most_urgent_level, context.warning_levels_mask)) {
 		notify_conflict_level(most_urgent_conflict, context.prev_most_urgent_level, ConflictNotifyKind::kMostUrgent);

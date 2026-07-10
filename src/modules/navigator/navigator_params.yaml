@@ -83,7 +83,8 @@ parameters:
       max: 5
     NAV_TRAFF_A_HOR:
       description:
-        short: Crosstrack conflict horizontal distance
+        short: Crosstrack conflict distance threshold
+        long: Maximum absolute distance from the projected traffic track.
       type: float
       default: 500
       unit: m
@@ -91,7 +92,7 @@ parameters:
       reboot_required: true
     NAV_TRAFF_A_VER:
       description:
-        short: Crosstrack conflict vertical distance
+        short: Crosstrack vertical separation threshold
       type: float
       default: 500
       unit: m
@@ -100,10 +101,10 @@ parameters:
       reboot_required: true
     NAV_TRAFF_COLL_T:
       description:
-        short: Estimated time until collision
+        short: Crosstrack collision time threshold
         long: |-
-          Minimum acceptable time until collsion.
-          Assumes constant speed over 3d distance.
+          A conflict is raised when the time estimate is below this threshold.
+          The estimate is the current 3D separation divided by the sum of the ownship and traffic speed magnitudes.
       type: int32
       default: 60
       unit: s

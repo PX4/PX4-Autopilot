@@ -560,7 +560,7 @@ void DetectAndAvoid::publish_action_command(const DaaAction requested_action)
 		}
 
 	case DaaAction::kReturnMode: {
-			_navigator->get_rtl()->set_return_alt_min(true);
+			_navigator->set_rtl_return_alt_min(true);
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
 			break;
 		}

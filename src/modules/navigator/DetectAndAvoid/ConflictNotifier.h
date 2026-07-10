@@ -35,10 +35,6 @@
  *
  * All DAA operator messaging (MAVLink STATUSTEXT and PX4 events) in one place.
  *
- * The notifier owns the message formatting, the severity, and the message period.
- * Conflict messages are decided once per cycle in report_cycle() from the tracker's change records.
- * Action messages are requested by the action evaluator but formatted and throttled here.
- *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
@@ -59,12 +55,9 @@ public:
 	ConflictNotifier() = default;
 	~ConflictNotifier() = default;
 
-	// Per-cycle constants the message policy depends on, derived by the module.
 	struct cycle_context_s {
 		uint8_t prev_most_urgent_level{0};
-		// Bit i set = conflict level i requires an operator warning (from the action params).
 		uint8_t warning_levels_mask{0};
-		// Period of the most-urgent status and of the landed warning (DAA_NOTIF_STATE).
 		hrt_abstime status_notif_interval{0};
 	};
 
@@ -82,13 +75,11 @@ public:
 	void report_cycle(const conflict_tracker_changes_s &changes, const ConflictTracker &tracker,
 			  const cycle_context_s &context);
 
-	// Message and event for a newly-published DAA action.
 	void notify_new_action(const conflict_info_s &conflict_info, const DaaAction action);
 
 	void maybe_notify_action_on_ground(const NotifyLandedActCause cause, const uint8_t conflict_level,
 					   const cycle_context_s &context);
 
-	// Restart all rate-limit timers (when the conflict state is cleared).
 	void reset();
 
 private:
@@ -103,11 +94,9 @@ private:
 
 	using new_conflicts_pending_notif_s = px4::Array<DaaEncodedId, transponder_report_s::ORB_QUEUE_LENGTH>;
 
-	// Forces a notification on level transitions when either side requires a warning,
-	// otherwise one per interval.
-	bool must_notify(const uint8_t current_conflict_level, const hrt_abstime time_last_notified,
-			 const hrt_abstime interval, const uint8_t previous_conflict_level,
-			 const uint8_t warning_levels_mask) const;
+	static bool must_notify(const uint8_t current_conflict_level, const hrt_abstime time_last_notified,
+				const hrt_abstime interval, const uint8_t previous_conflict_level,
+				const uint8_t warning_levels_mask);
 
 	// Announce a tracked conflict's level change, unless it was (about to become) the most urgent at
 	// recording time, which the DAA status reports instead.
@@ -117,13 +106,8 @@ private:
 	void maybe_notify_ignored_traffic(const conflict_info_s &conflict, const IgnoreTrafficCause cause,
 					  const uint8_t warning_levels_mask);
 
-	// Warn that a traffic report was dropped and why.
 	void notify_traffic_ignored(const conflict_info_s &conflict_info, const IgnoreTrafficCause cause);
-
-	// Warn that a tracked conflict was removed (stale or buffer full).
 	void notify_traffic_removed(const conflict_info_s &conflict_info, const RemoveBufferCause cause);
-
-	// First notification for a newly added conflict.
 	void notify_new_conflict(const conflict_info_s &conflict_info);
 
 	/**

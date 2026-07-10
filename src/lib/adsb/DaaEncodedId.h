@@ -59,6 +59,7 @@ static constexpr uint8_t kUtmGuidMsgLength{11};
 static constexpr uint8_t kCallsignLength{9};
 // ICAO address string length: 6 hex chars + null terminator.
 static constexpr uint8_t kIcaoLength{7};
+static constexpr uint32_t kMaxIcaoAddress{0xFFFFFFu};
 // Length of a UAS ID (UTM GUID) byte array.
 // Similar to PX4_GUID_BYTE_LENGTH and transponder_report_s::uas_id;
 static constexpr uint8_t kUasIdByteLength{18};
@@ -88,8 +89,8 @@ struct DaaEncodedId {
 	/**
 	 * @brief Pick the best available identifier from a transponder report.
 	 *
-	 * Priority is ICAO address > ADS-B callsign > UAS-ID. Returns id=0 (the
-	 * default-constructed value) when the report carries no usable identifier.
+	 * Priority is a valid 24-bit ICAO address, ADS-B callsign, then UAS-ID.
+	 * Returns the default value when the report has no usable identifier.
 	 */
 	static DaaEncodedId from_report(const transponder_report_s &report);
 

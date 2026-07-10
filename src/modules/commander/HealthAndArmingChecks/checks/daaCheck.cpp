@@ -33,8 +33,7 @@
 /**
  * @file daaCheck.cpp
  *
- * Prevent arming if the UAV is actively in conflict with another aircraft and
- * the conflict requires an automated DAA action. This prevents takeoff from immediately triggering an action.
+ * Prevent arming while an active traffic conflict requires an automated DAA action.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -65,7 +64,7 @@ void DaaChecks::checkAndReport(const Context &context, Report &reporter)
 	 * @description
 	 * Resolve the reported detect-and-avoid conflict before arming.
 	 */
-	reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+	reporter.armingCheckFailure(NavModes::All, health_component_t::traffic_avoidance,
 				    events::ID("check_daa_conflict"),
 				    events::Log::Error, "Air conflict detected");
 

@@ -36,10 +36,10 @@
 #include "Common.hpp"
 #if CONFIG_NAVIGATOR_ADSB
 #include "checks/daaCheck.hpp"
-#include <uORB/topics/detect_and_avoid_most_urgent.h>
-#endif // CONFIG_NAVIGATOR_ADSB
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/detect_and_avoid_most_urgent.h>
+#endif // CONFIG_NAVIGATOR_ADSB
 #include <uORB/topics/event.h>
 #include <uORB/Subscription.hpp>
 
@@ -293,7 +293,6 @@ TEST_F(ReporterTest, reporting_multiple)
 }
 
 #if CONFIG_NAVIGATOR_ADSB
-// A fresh blocking conflict blocks arming; the same sample gone stale no longer blocks or re-emits.
 TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 {
 	param_control_autosave(false);
@@ -318,12 +317,9 @@ TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 
 	while (event_sub.update(&event)) {}
 
-	// fresh conflict requiring action
 	detect_and_avoid_most_urgent_s daa_status{};
 	daa_status.timestamp = hrt_absolute_time();
 	daa_status.has_action = true;
-	daa_status.conflict_level = 3;
-	daa_status.aircraft_dist = 15.f;
 	daa_pub.publish(daa_status);
 
 	reporter.reset();
@@ -342,7 +338,6 @@ TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 
 	EXPECT_TRUE(saw_daa_conflict_event);
 
-	// same sample republished stale
 	const hrt_abstime now = hrt_absolute_time();
 	daa_status.timestamp = now > 2_s ? now - 2_s : 0;
 	daa_pub.publish(daa_status);
@@ -364,7 +359,6 @@ TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
 	EXPECT_FALSE(saw_daa_conflict_event);
 }
 
-// The DAA arming check stays silent once the vehicle is armed, even with a fresh blocking conflict.
 TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
 {
 	param_control_autosave(false);
@@ -393,8 +387,6 @@ TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
 	detect_and_avoid_most_urgent_s daa_status{};
 	daa_status.timestamp = hrt_absolute_time();
 	daa_status.has_action = true;
-	daa_status.conflict_level = 3;
-	daa_status.aircraft_dist = 15.f;
 	daa_pub.publish(daa_status);
 
 	reporter.reset();

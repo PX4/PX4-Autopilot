@@ -182,7 +182,7 @@ public:
 	uint8_t                      get_takeoff_state() { return _takeoff_status_sub.get().takeoff_state; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
-	RTL *get_rtl() { return &_rtl; }
+	void set_rtl_return_alt_min(bool enable) { _rtl.set_return_alt_min(enable); }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 	Course *get_course() { return &_course; }

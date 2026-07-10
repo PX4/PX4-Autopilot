@@ -1,6 +1,6 @@
 # Detect-and-avoid summary for the most urgent active conflict.
 #
-# This is the aggregated DAA status from navigator's `DetectAndAvoid` component.
+# Aggregated DAA status from navigator's `DetectAndAvoid` component.
 # It publishes the single active conflict that currently has the highest urgency
 # after the per-traffic conflict buffer has been updated.
 #
@@ -10,7 +10,7 @@
 # prearm checks.
 #
 # Published by: `navigator` (`DetectAndAvoid`)
-# Used by: `commander` DAA arming checks, logging, and test
+# Used by: `commander` DAA arming checks, logging, and tests
 
 uint8 UNIQUE_ID_ENCODING_ICAO = 0 # `unique_id` contains an ICAO address
 uint8 UNIQUE_ID_ENCODING_ADSB_CALLSIGN = 1 # `unique_id` contains an ADS-B callsign packed into a `uint64`

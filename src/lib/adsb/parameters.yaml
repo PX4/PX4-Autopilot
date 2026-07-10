@@ -39,8 +39,8 @@ parameters:
       max: 16777215
     ADSB_ICAO_ID_2:
       description:
-        short: ADSB-Out secondary ICAO ID
-        long: Secondary vehicle ICAO ID. Use -1 to disable.
+        short: Secondary ownship ICAO ID
+        long: Optional second ownship ICAO ID used to filter self-detections. Use -1 to disable.
       type: int32
       default: -1
       reboot_required: true

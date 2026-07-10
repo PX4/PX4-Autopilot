@@ -126,6 +126,6 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 		return detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
 	}
 
-	// This standard only has one level. Arbitrarily set to high.
+	// Crosstrack mode has one conflict level, mapped to HIGH for compatibility.
 	return detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH;
 }

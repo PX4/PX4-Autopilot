@@ -1259,9 +1259,9 @@ int Navigator::print_status()
 	PX4_INFO("Running");
 
 	_geofence.printStatus();
-#if !defined(CONSTRAINED_FLASH) && !defined(__PX4_NUTTX)
+#if CONFIG_NAVIGATOR_ADSB && !defined(CONSTRAINED_FLASH) && !defined(__PX4_NUTTX)
 	_detect_and_avoid.print_status();
-#endif // !CONSTRAINED_FLASH && !__PX4_NUTTX
+#endif // CONFIG_NAVIGATOR_ADSB && !CONSTRAINED_FLASH && !__PX4_NUTTX
 	return 0;
 }
 
@@ -1453,11 +1453,13 @@ int Navigator::custom_command(int argc, char *argv[])
 		DetectAndAvoid::FakeTraffMode mode = DetectAndAvoid::FakeTraffMode::kUniqueIds;
 
 		if (argc > 1) {
-			if (!strcmp(argv[1], "help")) {
+			const char *const argument = argv[1];
+
+			if (!strcmp(argument, "help")) {
 				return print_fake_traffic_usage();
 			}
 
-			if (!strcmp(argv[1], "stop")) {
+			if (!strcmp(argument, "stop")) {
 				if (argc > 2) {
 					return print_fake_traffic_usage("fake_traffic stop takes no extra arguments");
 				}
@@ -1467,7 +1469,7 @@ int Navigator::custom_command(int argc, char *argv[])
 				return 0;
 			}
 
-			if (!parse_fake_traffic_mode(argv[1], mode)) {
+			if (!parse_fake_traffic_mode(argument, mode)) {
 				return print_fake_traffic_usage("unknown fake_traffic mode");
 			}
 		}

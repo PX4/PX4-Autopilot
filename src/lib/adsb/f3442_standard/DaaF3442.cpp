@@ -114,7 +114,7 @@ void DaaF3442::calculate_augmented_boundaries(const matrix::Vector2f &base_bound
 uint8_t DaaF3442::calculate_conflict_level(const matrix::Vector2f &distance,
 		const matrix::Vector2f &uav_vel_hor_vert, const matrix::Vector2f &traffic_vel)
 {
-	// Hierarchy is imposed using early returns: CRITICAL <= HIGH <= MEDIUM <= LOW
+	// Severity is imposed by evaluation order; HIGH and MEDIUM may overlap without containment.
 
 	// Multiply by two because both aircraft have their respective NMAC bounds
 	if (is_in_bounds(distance, 2.f * _nmac_bounds_m)) {

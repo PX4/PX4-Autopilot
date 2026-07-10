@@ -84,15 +84,15 @@ public:
 	static void calculate_augmented_boundaries(const matrix::Vector2f &base_bounds, const matrix::Vector2f &uav_vel_hor_vert,
 			const matrix::Vector2f &traffic_vel, const float latency, matrix::Vector2f &augmented_bounds);
 
-	// Walk the four nested zones from CRITICAL outwards; return the strictest one breached.
+	// Evaluate the four zones in severity order and return the first breach.
 	uint8_t calculate_conflict_level(const matrix::Vector2f &distance, const matrix::Vector2f &uav_vel_hor_vert,
 					 const matrix::Vector2f &traffic_vel);
 
 	/**
 	 * @brief Refresh F3442 zone radii and latency from parameters.
 	 *
-	 * Rejects negative or nan values and zones that are not properly nested
-	 * (e.g. NMAC must fit inside WC).
+	 * Rejects non-positive or non-finite bounds and settings that break the
+	 * guaranteed NMAC-in-WC and augmented-MEDIUM-in-LOW containment.
 	 */
 	bool try_setting_params();
 
@@ -100,10 +100,10 @@ private:
 	// Per-aircraft half-zones (radius, height). They match the parameter defaults and the ASTM
 	// F3442 zones once doubled in calculate_conflict_level(): NMAC = 2 x (153 m, 31 m),
 	// Well-Clear = 2 x (610 m, 77 m). Overwritten by try_setting_params() on activation.
-	matrix::Vector2f _nmac_bounds_m{77, 16};
-	matrix::Vector2f _wc_bounds_m{305, 39};
-	float _aug_nmac_latency_s{33};
-	float _aug_wc_latency_s{33};
+	matrix::Vector2f _nmac_bounds_m{77.f, 16.f};
+	matrix::Vector2f _wc_bounds_m{305.f, 39.f};
+	float _aug_nmac_latency_s{33.f};
+	float _aug_wc_latency_s{33.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DAA_LVL_CRIT_RAD>) _param_daa_lvl_critical_rad,
