@@ -829,7 +829,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchRotorRpm(const hrt_abstime &time_
 
 					for (int harmonic = 0; harmonic < _rotor_rpm_harmonics; harmonic++) {
 						const float frequency_hz = math::max(rotor_hz * (harmonic + 1),
-										      freq_min + (harmonic * 0.5f * bandwidth_hz));
+										     freq_min + (harmonic * 0.5f * bandwidth_hz));
 
 						for (int axis = 0; axis < 3; axis++) {
 							auto &nf = _dynamic_notch_filter_rotor_rpm[harmonic][axis][i];
