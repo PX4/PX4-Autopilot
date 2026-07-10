@@ -43,135 +43,219 @@
 
 using namespace px4::logger;
 
-void LoggedTopics::add_default_topics()
+namespace
 {
-	add_topic("action_request");
-	add_topic("actuator_armed");
-	add_optional_topic("actuator_controls_status_0", 300);
-	add_topic("airspeed", 1000);
-	add_optional_topic("airspeed_validated", 200);
-	add_optional_topic("autotune_attitude_control_status", 100);
-	add_topic_multi("battery_info", 5000, 3);
-	add_optional_topic("camera_capture");
-	add_optional_topic("camera_trigger");
-	add_topic("cellular_status", 200);
-	add_topic("commander_state");
-	add_topic("config_overrides");
-	add_topic("cpuload");
-	add_topic("distance_sensor_mode_change_request");
-	add_topic("device_information", 900);
-	add_topic_multi("dronecan_node_status", 250);
-	add_optional_topic("external_ins_attitude");
-	add_optional_topic("external_ins_global_position");
-	add_optional_topic("external_ins_local_position");
-	add_topic("esc_status", 100);
-	add_topic("failure_detector_status", 100);
-	add_topic("failsafe_flags");
-	add_optional_topic("follow_target", 500);
-	add_optional_topic("follow_target_estimator", 200);
-	add_optional_topic("follow_target_status", 400);
-	add_optional_topic("flaps_setpoint", 1000);
-	add_optional_topic("flight_phase_estimation", 1000);
-	add_optional_topic("fuel_tank_status", 10);
-	add_optional_topic("gain_compression", 100);
-	add_topic("gimbal_manager_set_attitude", 500);
-	add_optional_topic("generator_status");
-	add_topic("gps_dump");
-	add_optional_topic("gimbal_controls", 200);
-	add_optional_topic("gripper");
-	add_optional_topic_multi("heater_status");
-	add_topic("home_position");
-	add_topic("hover_thrust_estimate", 100);
-	add_topic("input_rc", 500);
-	add_optional_topic("internal_combustion_engine_control", 10);
-	add_optional_topic("internal_combustion_engine_status", 10);
-	add_optional_topic("iridiumsbd_status", 1000);
-	add_optional_topic("irlock_report", 1000);
-	add_optional_topic("landing_gear", 200);
-	add_optional_topic("landing_gear_wheel", 100);
-	add_optional_topic("landing_target_pose", 1000);
-	add_optional_topic("launch_detection_status", 200);
-	add_topic("logger_status", 200);
-	add_optional_topic("magnetometer_bias_estimate", 200);
-	add_topic("manual_control_setpoint", 200);
-	add_topic("manual_control_switches");
-	add_topic("mission_result");
-	add_topic("navigator_mission_item");
-	add_topic("navigator_status");
-	add_topic("offboard_control_mode", 100);
-	add_topic("onboard_computer_status", 10);
-	add_topic("parameter_update");
-	add_topic("position_controller_status", 500);
-	add_topic("position_controller_landing_status", 100);
-	add_optional_topic("pure_pursuit_status", 100);
-	add_topic("goto_setpoint", 200);
-	add_topic("position_setpoint_triplet", 200);
-	add_optional_topic("px4io_status");
-	add_topic("radio_status");
-	add_optional_topic("rover_attitude_setpoint", 100);
-	add_optional_topic("rover_attitude_status", 100);
-	add_optional_topic("rover_position_setpoint", 100);
-	add_optional_topic("rover_rate_setpoint", 100);
-	add_optional_topic("rover_rate_status", 100);
-	add_optional_topic("rover_speed_setpoint", 100);
-	add_optional_topic("rover_speed_status", 100);
-	add_optional_topic("rover_steering_setpoint", 100);
-	add_optional_topic("rover_throttle_setpoint", 100);
-	add_topic("rtl_time_estimate", 1000);
-	add_topic("rtl_status", 2000);
-	add_optional_topic("sensor_airflow", 100);
-	add_topic("sensor_combined");
-	add_optional_topic("sensor_correction");
-	add_optional_topic("sensor_gyro_fft", 50);
-	add_topic("sensor_selection");
-	add_topic("sensors_status_imu", 200);
-	add_optional_topic("spoilers_setpoint", 1000);
-	add_topic("system_power", 500);
-	add_optional_topic("takeoff_status", 1000);
-	add_optional_topic("tecs_status", 200);
-	add_optional_topic("tiltrotor_extra_controls", 100);
-	add_topic("trajectory_setpoint", 200);
-	add_topic("transponder_report");
-	add_topic("vehicle_acceleration", 50);
-	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_angular_velocity", 20);
-	add_topic("vehicle_attitude", 50);
-	add_topic("vehicle_attitude_setpoint", 50);
-	add_topic("vehicle_command");
-	add_topic("vehicle_command_ack");
-	add_topic("vehicle_constraints", 1000);
-	add_topic("vehicle_control_mode");
-	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_gps_position", 100);
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 100);
-	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_rates_setpoint", 20);
-	add_topic("vehicle_roi", 1000);
-	add_topic("vehicle_status");
-	add_topic("vtx");
-	add_optional_topic("vtol_vehicle_status", 200);
-	add_topic("wind", 1000);
-	add_topic("fixed_wing_lateral_setpoint");
-	add_topic("fixed_wing_longitudinal_setpoint");
-	add_topic("longitudinal_control_configuration");
-	add_topic("lateral_control_configuration");
-	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
-	add_optional_topic("fixed_wing_lateral_status", 100);
-	add_optional_topic("fixed_wing_runway_control", 100);
-	add_optional_topic("ranging_beacon", 100);
+constexpr uint8_t kOpt = px4::logger::LoggedTopics::TopicFlags::topic_optional;
+constexpr uint8_t kMulti = px4::logger::LoggedTopics::TopicFlags::topic_all_instances;
+
+using TopicSpec = px4::logger::LoggedTopics::TopicSpec;
+
+constexpr TopicSpec default_topics_pre_estimator[] = {
+	{"action_request", 0, 0, 0},
+	{"actuator_armed", 0, 0, 0},
+	{"actuator_controls_status_0", 300, 0, kOpt},
+	{"airspeed", 1000, 0, 0},
+	{"airspeed_validated", 200, 0, kOpt},
+	{"autotune_attitude_control_status", 100, 0, kOpt},
+	{"battery_info", 5000, 3, kMulti},
+	{"camera_capture", 0, 0, kOpt},
+	{"camera_trigger", 0, 0, kOpt},
+	{"cellular_status", 200, 0, 0},
+	{"commander_state", 0, 0, 0},
+	{"config_overrides", 0, 0, 0},
+	{"cpuload", 0, 0, 0},
+	{"distance_sensor_mode_change_request", 0, 0, 0},
+	{"device_information", 900, 0, 0},
+	{"dronecan_node_status", 250, ORB_MULTI_MAX_INSTANCES, kMulti},
+	{"external_ins_attitude", 0, 0, kOpt},
+	{"external_ins_global_position", 0, 0, kOpt},
+	{"external_ins_local_position", 0, 0, kOpt},
+	{"esc_status", 100, 0, 0},
+	{"failure_detector_status", 100, 0, 0},
+	{"failsafe_flags", 0, 0, 0},
+	{"follow_target", 500, 0, kOpt},
+	{"follow_target_estimator", 200, 0, kOpt},
+	{"follow_target_status", 400, 0, kOpt},
+	{"flaps_setpoint", 1000, 0, kOpt},
+	{"flight_phase_estimation", 1000, 0, kOpt},
+	{"fuel_tank_status", 10, 0, kOpt},
+	{"gain_compression", 100, 0, kOpt},
+	{"gimbal_manager_set_attitude", 500, 0, 0},
+	{"generator_status", 0, 0, kOpt},
+	{"gps_dump", 0, 0, 0},
+	{"gimbal_controls", 200, 0, kOpt},
+	{"gripper", 0, 0, kOpt},
+	{"heater_status", 0, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"home_position", 0, 0, 0},
+	{"hover_thrust_estimate", 100, 0, 0},
+	{"input_rc", 500, 0, 0},
+	{"internal_combustion_engine_control", 10, 0, kOpt},
+	{"internal_combustion_engine_status", 10, 0, kOpt},
+	{"iridiumsbd_status", 1000, 0, kOpt},
+	{"irlock_report", 1000, 0, kOpt},
+	{"landing_gear", 200, 0, kOpt},
+	{"landing_gear_wheel", 100, 0, kOpt},
+	{"landing_target_pose", 1000, 0, kOpt},
+	{"launch_detection_status", 200, 0, kOpt},
+	{"logger_status", 200, 0, 0},
+	{"magnetometer_bias_estimate", 200, 0, kOpt},
+	{"manual_control_setpoint", 200, 0, 0},
+	{"manual_control_switches", 0, 0, 0},
+	{"mission_result", 0, 0, 0},
+	{"navigator_mission_item", 0, 0, 0},
+	{"navigator_status", 0, 0, 0},
+	{"offboard_control_mode", 100, 0, 0},
+	{"onboard_computer_status", 10, 0, 0},
+	{"parameter_update", 0, 0, 0},
+	{"position_controller_status", 500, 0, 0},
+	{"position_controller_landing_status", 100, 0, 0},
+	{"pure_pursuit_status", 100, 0, kOpt},
+	{"goto_setpoint", 200, 0, 0},
+	{"position_setpoint_triplet", 200, 0, 0},
+	{"px4io_status", 0, 0, kOpt},
+	{"radio_status", 0, 0, 0},
+	{"rover_attitude_setpoint", 100, 0, kOpt},
+	{"rover_attitude_status", 100, 0, kOpt},
+	{"rover_position_setpoint", 100, 0, kOpt},
+	{"rover_rate_setpoint", 100, 0, kOpt},
+	{"rover_rate_status", 100, 0, kOpt},
+	{"rover_speed_setpoint", 100, 0, kOpt},
+	{"rover_speed_status", 100, 0, kOpt},
+	{"rover_steering_setpoint", 100, 0, kOpt},
+	{"rover_throttle_setpoint", 100, 0, kOpt},
+	{"rtl_time_estimate", 1000, 0, 0},
+	{"rtl_status", 2000, 0, 0},
+	{"sensor_airflow", 100, 0, kOpt},
+	{"sensor_combined", 0, 0, 0},
+	{"sensor_correction", 0, 0, kOpt},
+	{"sensor_gyro_fft", 50, 0, kOpt},
+	{"sensor_selection", 0, 0, 0},
+	{"sensors_status_imu", 200, 0, 0},
+	{"spoilers_setpoint", 1000, 0, kOpt},
+	{"system_power", 500, 0, 0},
+	{"takeoff_status", 1000, 0, kOpt},
+	{"tecs_status", 200, 0, kOpt},
+	{"tiltrotor_extra_controls", 100, 0, kOpt},
+	{"trajectory_setpoint", 200, 0, 0},
+	{"transponder_report", 0, 0, 0},
+	{"vehicle_acceleration", 50, 0, 0},
+	{"vehicle_air_data", 200, 0, 0},
+	{"vehicle_angular_velocity", 20, 0, 0},
+	{"vehicle_attitude", 50, 0, 0},
+	{"vehicle_attitude_setpoint", 50, 0, 0},
+	{"vehicle_command", 0, 0, 0},
+	{"vehicle_command_ack", 0, 0, 0},
+	{"vehicle_constraints", 1000, 0, 0},
+	{"vehicle_control_mode", 0, 0, 0},
+	{"vehicle_global_position", 200, 0, 0},
+	{"vehicle_gps_position", 100, 0, 0},
+	{"vehicle_land_detected", 0, 0, 0},
+	{"vehicle_local_position", 100, 0, 0},
+	{"vehicle_local_position_setpoint", 100, 0, 0},
+	{"vehicle_magnetometer", 200, 0, 0},
+	{"vehicle_rates_setpoint", 20, 0, 0},
+	{"vehicle_roi", 1000, 0, 0},
+	{"vehicle_status", 0, 0, 0},
+	{"vtx", 0, 0, 0},
+	{"vtol_vehicle_status", 200, 0, kOpt},
+	{"wind", 1000, 0, 0},
+	{"fixed_wing_lateral_setpoint", 0, 0, 0},
+	{"fixed_wing_longitudinal_setpoint", 0, 0, 0},
+	{"longitudinal_control_configuration", 0, 0, 0},
+	{"lateral_control_configuration", 0, 0, 0},
+	{"fixed_wing_lateral_guidance_status", 100, 0, kOpt},
+	{"fixed_wing_lateral_status", 100, 0, kOpt},
+	{"fixed_wing_runway_control", 100, 0, kOpt},
+	{"ranging_beacon", 100, 0, kOpt},
 
 	// multi topics
-	add_optional_topic_multi("actuator_outputs", 100, 3);
-	add_optional_topic_multi("airspeed_wind", 1000, 4);
-	add_optional_topic_multi("control_allocator_status", 200, 2);
-	add_optional_topic_multi("rate_ctrl_status", 200, 2);
-	add_optional_topic_multi("sensor_hygrometer", 500, 4);
-	add_optional_topic_multi("sensor_temp", 100, 4);
-	add_optional_topic_multi("rpm", 200);
-	add_topic_multi("timesync_status", 1000, 3);
-	add_optional_topic_multi("telemetry_status", 1000, 4);
+	{"actuator_outputs", 100, 3, kOpt | kMulti},
+	{"airspeed_wind", 1000, 4, kOpt | kMulti},
+	{"control_allocator_status", 200, 2, kOpt | kMulti},
+	{"rate_ctrl_status", 200, 2, kOpt | kMulti},
+	{"sensor_hygrometer", 500, 4, kOpt | kMulti},
+	{"sensor_temp", 100, 4, kOpt | kMulti},
+	{"rpm", 200, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"timesync_status", 1000, 3, kMulti},
+	{"telemetry_status", 1000, 4, kOpt | kMulti},
+
+};
+
+constexpr TopicSpec default_topics_post_estimator[] = {
+
+	// important EKF topics (higher rate)
+	{"estimator_selector_status", 10, 0, kOpt},
+	{"estimator_event_flags", 10, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"estimator_optical_flow_vel", 200, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"estimator_fusion_control", 1000, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"estimator_sensor_bias", 1000, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"estimator_status", 200, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"estimator_status_flags", 10, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+	{"yaw_estimator_status", 1000, ORB_MULTI_MAX_INSTANCES, kOpt | kMulti},
+
+	// Vision target estimator topics
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	{"vte_input", 50, 0, 0},
+	{"vte_position", 100, 0, 0},
+	{"vte_orientation", 100, 0, 0},
+	{"vte_bias_init_status", 10, 0, 0},	// High rate because rarely published and only for a short period of time
+	{"vte_aid_gps_pos_target", 100, 0, 0},
+	{"vte_aid_gps_pos_mission", 100, 0, 0},
+	{"vte_aid_gps_vel_uav", 100, 0, 0},
+	{"vte_aid_gps_vel_target", 100, 0, 0},
+	{"vte_aid_fiducial_marker", 100, 0, 0},
+	{"vte_aid_ev_yaw", 100, 0, 0},
+	{"fiducial_marker_pos_report", 100, 0, 0},
+	{"fiducial_marker_yaw_report", 100, 0, 0},
+	{"target_gnss", 100, 0, 0},
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+	// log all raw sensors at minimal rate (at least 1 Hz)
+	{"battery_status", 200, 3, kMulti},
+	{"differential_pressure", 1000, 2, kMulti},
+	{"distance_sensor", 1000, 2, kMulti},
+	{"sensor_accel", 1000, 4, kOpt | kMulti},
+	{"sensor_baro", 1000, 4, kMulti},
+	{"sensor_gps", 1000, 2, kMulti},
+	{"sensor_gnss_relative", 1000, 1, kMulti},
+	{"sensor_gyro", 1000, 4, kOpt | kMulti},
+	{"sensor_mag", 1000, 4, kMulti},
+	{"sensor_optical_flow", 1000, 2, kMulti},
+
+	{"vehicle_imu", 500, 4, kMulti},
+	{"vehicle_imu_status", 1000, 4, kMulti},
+	{"vehicle_magnetometer", 500, 4, kOpt | kMulti},
+	{"vehicle_optical_flow", 500, 0, 0},
+	{"aux_global_position", 500, ORB_MULTI_MAX_INSTANCES, kMulti},
+	{"pps_capture", 0, 0, kOpt},
+
+	// additional control allocation logging
+	{"actuator_motors", 100, 0, 0},
+	{"actuator_servos", 100, 0, 0},
+	{"vehicle_thrust_setpoint", 20, 2, kMulti},
+	{"vehicle_torque_setpoint", 20, 2, kMulti},
+
+};
+
+} // namespace
+
+void LoggedTopics::add_topics(const TopicSpec *specs, unsigned count)
+{
+	for (unsigned i = 0; i < count; ++i) {
+		const TopicSpec &spec = specs[i];
+
+		if (spec.flags & TopicFlags::topic_all_instances) {
+			add_topic_multi(spec.name, spec.interval_ms, spec.max_num_instances, spec.flags & TopicFlags::topic_optional);
+
+		} else {
+			add_topic(spec.name, spec.interval_ms, 0, spec.flags & TopicFlags::topic_optional);
+		}
+	}
+}
+
+void LoggedTopics::add_default_topics()
+{
+	add_topics(default_topics_pre_estimator);
 
 	// EKF multi topics
 	{
@@ -186,57 +270,7 @@ void LoggedTopics::add_default_topics()
 		}
 	}
 
-	// important EKF topics (higher rate)
-	add_optional_topic("estimator_selector_status", 10);
-	add_optional_topic_multi("estimator_event_flags", 10);
-	add_optional_topic_multi("estimator_optical_flow_vel", 200);
-	add_optional_topic_multi("estimator_fusion_control", 1000);
-	add_optional_topic_multi("estimator_sensor_bias", 1000);
-	add_optional_topic_multi("estimator_status", 200);
-	add_optional_topic_multi("estimator_status_flags", 10);
-	add_optional_topic_multi("yaw_estimator_status", 1000);
-
-	// Vision target estimator topics
-#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-	add_topic("vte_input", 50);
-	add_topic("vte_position", 100);
-	add_topic("vte_orientation", 100);
-	add_topic("vte_bias_init_status", 10); // High rate because rarely published and only for a short period of time
-	add_topic("vte_aid_gps_pos_target", 100);
-	add_topic("vte_aid_gps_pos_mission", 100);
-	add_topic("vte_aid_gps_vel_uav", 100);
-	add_topic("vte_aid_gps_vel_target", 100);
-	add_topic("vte_aid_fiducial_marker", 100);
-	add_topic("vte_aid_ev_yaw", 100);
-	add_topic("fiducial_marker_pos_report", 100);
-	add_topic("fiducial_marker_yaw_report", 100);
-	add_topic("target_gnss", 100);
-#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-
-	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", 200, 3);
-	add_topic_multi("differential_pressure", 1000, 2);
-	add_topic_multi("distance_sensor", 1000, 2);
-	add_optional_topic_multi("sensor_accel", 1000, 4);
-	add_topic_multi("sensor_baro", 1000, 4);
-	add_topic_multi("sensor_gps", 1000, 2);
-	add_topic_multi("sensor_gnss_relative", 1000, 1);
-	add_optional_topic_multi("sensor_gyro", 1000, 4);
-	add_topic_multi("sensor_mag", 1000, 4);
-	add_topic_multi("sensor_optical_flow", 1000, 2);
-
-	add_topic_multi("vehicle_imu", 500, 4);
-	add_topic_multi("vehicle_imu_status", 1000, 4);
-	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	add_topic("vehicle_optical_flow", 500);
-	add_topic_multi("aux_global_position", 500);
-	add_optional_topic("pps_capture");
-
-	// additional control allocation logging
-	add_topic("actuator_motors", 100);
-	add_topic("actuator_servos", 100);
-	add_topic_multi("vehicle_thrust_setpoint", 20, 2);
-	add_topic_multi("vehicle_torque_setpoint", 20, 2);
+	add_topics(default_topics_post_estimator);
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
