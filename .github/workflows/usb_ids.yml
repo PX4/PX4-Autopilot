@@ -1,4 +1,4 @@
-name: USB ID Check
+name: Dronecode USB ID Registry
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   check:
-    name: Check changed board USB IDs
+    name: Board USB VID/PID must be registered
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
