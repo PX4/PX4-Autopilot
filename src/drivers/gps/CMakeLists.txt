@@ -33,24 +33,52 @@
 
 px4_add_git_submodule(TARGET git_gps_devices PATH "devices")
 
+set(SRCS
+	gps.cpp
+	devices/src/gps_helper.cpp
+)
+
+if(CONFIG_GPS_UBX)
+	list(APPEND SRCS devices/src/ubx.cpp)
+endif()
+
+if(CONFIG_GPS_MTK)
+	list(APPEND SRCS devices/src/mtk.cpp)
+endif()
+
+if(CONFIG_GPS_ASHTECH)
+	list(APPEND SRCS devices/src/ashtech.cpp)
+endif()
+
+if(CONFIG_GPS_EMLIDREACH)
+	list(APPEND SRCS devices/src/emlid_reach.cpp)
+endif()
+
+if(CONFIG_GPS_FEMTOMES)
+	list(APPEND SRCS devices/src/femtomes.cpp)
+endif()
+
+if(CONFIG_GPS_NMEA)
+	list(APPEND SRCS devices/src/nmea.cpp devices/src/unicore.cpp)
+endif()
+
+# RTCM parsing (RTK base station corrections) shared by these receivers
+if(CONFIG_GPS_UBX OR CONFIG_GPS_ASHTECH OR CONFIG_GPS_FEMTOMES OR CONFIG_GPS_NMEA)
+	list(APPEND SRCS devices/src/rtcm.cpp)
+endif()
+
+# CRC helpers shared by Femtomes and Unicore (NMEA)
+if(CONFIG_GPS_FEMTOMES OR CONFIG_GPS_NMEA)
+	list(APPEND SRCS devices/src/crc.cpp)
+endif()
+
 px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
 	COMPILE_FLAGS
 		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
 	SRCS
-		gps.cpp
-		devices/src/crc.cpp
-		devices/src/gps_helper.cpp
-		devices/src/mtk.cpp
-		devices/src/ashtech.cpp
-		devices/src/ubx.cpp
-		devices/src/rtcm.cpp
-		devices/src/emlid_reach.cpp
-		devices/src/femtomes.cpp
-		devices/src/nmea.cpp
-		devices/src/unicore.cpp
-		devices/src/crc.cpp
+		${SRCS}
 	MODULE_CONFIG
 		module.yaml
 		params.yaml
