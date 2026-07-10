@@ -66,11 +66,7 @@ enum class RemoveBufferCause : uint8_t {
 };
 
 enum class IgnoreTrafficCause : uint8_t {
-	kBufferFull = 0,
-	kFailedRemoval = 1,
-	kFailedInclusion = 2,
-	kFailedToGetLvl = 3,
-	kInvalidIndex = 4
+	kBufferFull = 0
 };
 
 enum class ConflictTrackerChangeType : uint8_t {
@@ -90,9 +86,7 @@ struct conflict_tracker_change_s {
 	bool conflict_is_most_urgent{false};
 };
 
-// Worst-case change records per cycle: a stale sweep can drop all kDaaMaxTraffic entries and each
-// queued transponder report can emit two changes (removal + insertion, or a level change). Sizing
-// it here lets the caller keep the buffer off the stack (.bss, AXI_SRAM on FMU targets).
+// A stale sweep can remove the full buffer and each queued report can replace one entry.
 static constexpr uint16_t kMaxConflictChangesPerCycle{kDaaMaxTraffic + 2 * transponder_report_s::ORB_QUEUE_LENGTH};
 
 using conflict_tracker_changes_s = px4::Array<conflict_tracker_change_s, kMaxConflictChangesPerCycle>;
@@ -153,7 +147,7 @@ private:
 		kLeastUrgent
 	};
 
-	/** @brief Insert a new conflict, removing the least urgent entry when the buffer is full. */
+	/** @brief Insert a new conflict, replacing the least urgent entry when the buffer is full. */
 	bool add_conflict(const conflict_info_s &conflict, conflict_tracker_changes_s &changes);
 
 	/**
@@ -170,8 +164,6 @@ private:
 
 	/** @brief Return the buffer index of @p encoded_id, or -1 if not tracked. */
 	int find_conflict_idx(const DaaEncodedId &encoded_id) const;
-
-	bool remove_conflict(const int conflict_idx, conflict_info_s &removed_conflict);
 
 	void reset_most_urgent();
 

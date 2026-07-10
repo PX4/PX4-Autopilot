@@ -40,6 +40,7 @@
 
 #include "ConflictTracker.h"
 
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
 
 namespace
@@ -74,6 +75,14 @@ void record_removed(conflict_tracker_changes_s &changes, const conflict_info_s &
 
 bool ConflictTracker::apply_conflict(const conflict_info_s &conflict, conflict_tracker_changes_s &changes)
 {
+	if (conflict.encoded_id.id == 0
+	    || conflict.conflict_level > detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL
+	    || !PX4_ISFINITE(conflict.aircraft_dist)
+	    || conflict.aircraft_dist < 0.f) {
+		PX4_ERR("DAA: invalid conflict");
+		return false;
+	}
+
 	const int conflict_idx = find_conflict_idx(conflict.encoded_id);
 
 	if (conflict_idx < 0) {
@@ -89,12 +98,8 @@ bool ConflictTracker::apply_conflict(const conflict_info_s &conflict, conflict_t
 
 bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tracker_changes_s &changes)
 {
-	if (static_cast<int>(_buffer.size()) < kDaaMaxTraffic) {
-		if (!_buffer.push_back(conflict)) {
-			PX4_ERR("DAA: new conflict, add to full buffer");
-			record_ignored(changes, conflict, IgnoreTrafficCause::kFailedInclusion);
-			return false;
-		}
+	if (_buffer.size() < _buffer.max_size()) {
+		_buffer.push_back(conflict);
 
 		conflict_tracker_change_s change{};
 		change.type = ConflictTrackerChangeType::kConflictAdded;
@@ -103,14 +108,7 @@ bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tra
 		return true;
 	}
 
-	// Buffer is full, remove least urgent
 	const int least_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kLeastUrgent);
-
-	if (!is_valid_idx(least_urgent_conflict_idx)) {
-		PX4_DEBUG("DAA: buf full, no least urgent");
-		record_ignored(changes, conflict, IgnoreTrafficCause::kFailedToGetLvl);
-		return false;
-	}
 
 	if (!is_conflict_more_important(conflict, _buffer[least_urgent_conflict_idx])) {
 		PX4_DEBUG("DAA: new conflict does not outrank tracked conflicts, ignoring.");
@@ -118,23 +116,9 @@ bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tra
 		return false;
 	}
 
-	conflict_info_s removed_conflict{};
-
-	if (!remove_conflict(least_urgent_conflict_idx, removed_conflict)) {
-		PX4_DEBUG("DAA: buf full, remove failed");
-		record_ignored(changes, conflict, IgnoreTrafficCause::kFailedRemoval);
-		return false;
-	}
-
+	const conflict_info_s removed_conflict = _buffer[least_urgent_conflict_idx];
+	_buffer[least_urgent_conflict_idx] = conflict;
 	record_removed(changes, removed_conflict, RemoveBufferCause::kBufferFull);
-
-	// Try adding conflict to buffer
-	if ((static_cast<int>(_buffer.size()) >= kDaaMaxTraffic)
-	    || !_buffer.push_back(conflict)) {
-		PX4_ERR("DAA: new conflict try to add to full buffer");
-		record_ignored(changes, conflict, IgnoreTrafficCause::kFailedInclusion);
-		return false;
-	}
 
 	conflict_tracker_change_s change{};
 	change.type = ConflictTrackerChangeType::kConflictAdded;
@@ -146,22 +130,11 @@ bool ConflictTracker::add_conflict(const conflict_info_s &conflict, conflict_tra
 bool ConflictTracker::update_conflict(const conflict_info_s &conflict, const int conflict_idx,
 				      conflict_tracker_changes_s &changes)
 {
-	if (!is_valid_idx(conflict_idx)) {
-		PX4_DEBUG("DAA: Existing conflict with invalid idx.");
-		record_ignored(changes, conflict, IgnoreTrafficCause::kInvalidIndex);
-		return false;
-	}
-
 	const uint8_t previous_conflict_level = _buffer[conflict_idx].conflict_level;
 
 	if (conflict.conflict_level == detect_and_avoid_s::DAA_CONFLICT_LVL_NONE) {
 		PX4_DEBUG("DAA: Conflict avoided");
-		conflict_info_s removed_conflict{};
-
-		if (!remove_conflict(conflict_idx, removed_conflict)) {
-			PX4_DEBUG("DAA: conflict avoided, failed to remove");
-			return false;
-		}
+		_buffer.remove(conflict_idx);
 
 	} else {
 		_buffer[conflict_idx] = conflict;
@@ -189,31 +162,20 @@ bool ConflictTracker::remove_stale_conflicts(const hrt_abstime now, const hrt_ab
 {
 	int nb_conflicts_removed = 0;
 
-	// Iterate from the end of the array as the remove function shifts left
+	// Iterate backwards because Array::remove() shifts later entries left.
 	for (int idx = (static_cast<int>(_buffer.size()) - 1); idx >= 0; --idx) {
-
-		if (!is_valid_idx(idx)) {
-			PX4_ERR("DAA: stale, invalid idx");
-			continue;
-		}
-
 		const hrt_abstime latest_update = _buffer[idx].latest_update_timestamp;
 
-		if (latest_update == 0 || (now - latest_update) > timeout_us) {
-			conflict_info_s removed_conflict{};
-
-			if (!remove_conflict(idx, removed_conflict)) {
-				PX4_ERR("DAA: stale remove failed");
-
-			} else {
-				record_removed(changes, removed_conflict, RemoveBufferCause::kStaleConflict);
-				nb_conflicts_removed++;
-			}
+		if (latest_update == 0 || latest_update > now || (now - latest_update) > timeout_us) {
+			const conflict_info_s removed_conflict = _buffer[idx];
+			_buffer.remove(idx);
+			record_removed(changes, removed_conflict, RemoveBufferCause::kStaleConflict);
+			nb_conflicts_removed++;
 		}
 	}
 
 	if (nb_conflicts_removed > 0) {
-		PX4_DEBUG("DAA: removed %.d stale conflicts from buffer", nb_conflicts_removed);
+		PX4_DEBUG("DAA: removed %d stale conflicts from buffer", nb_conflicts_removed);
 	}
 
 	return nb_conflicts_removed > 0;
@@ -229,10 +191,7 @@ void ConflictTracker::reset_most_urgent()
 {
 	static constexpr float kNoConflictDistance{9999.f};
 	PX4_DEBUG("DAA: reset most urgent buffer to null.");
-	_most_urgent.encoded_id.encoding = detect_and_avoid_s::UNIQUE_ID_ENCODING_ICAO;
-	_most_urgent.encoded_id.id = 0;
-	_most_urgent.latest_update_timestamp = 0;
-	_most_urgent.conflict_level = detect_and_avoid_s::DAA_CONFLICT_LVL_NONE;
+	_most_urgent = {};
 	_most_urgent.aircraft_dist = kNoConflictDistance;
 }
 
@@ -244,12 +203,7 @@ void ConflictTracker::refresh_most_urgent()
 		return;
 	}
 
-	const conflict_info_s most_urgent_conflict = find_most_urgent();
-
-	if (most_urgent_conflict.encoded_id.id != 0) {
-		PX4_DEBUG("DAA: refresh_most_urgent success.");
-		_most_urgent = most_urgent_conflict;
-	}
+	_most_urgent = find_most_urgent();
 }
 
 conflict_info_s ConflictTracker::find_most_urgent() const
@@ -257,7 +211,6 @@ conflict_info_s ConflictTracker::find_most_urgent() const
 	const int most_urgent_conflict_idx = find_conflict_idx_by_priority(ConflictPriority::kMostUrgent);
 
 	if (!is_valid_idx(most_urgent_conflict_idx)) {
-		PX4_ERR("DAA: no most urgent conflict");
 		return {};
 	}
 
@@ -307,18 +260,6 @@ int ConflictTracker::find_conflict_idx(const DaaEncodedId &encoded_id) const
 	}
 
 	return -1;
-}
-
-bool ConflictTracker::remove_conflict(const int conflict_idx, conflict_info_s &removed_conflict)
-{
-	if (_buffer.empty() || !is_valid_idx(conflict_idx)) {
-		PX4_ERR("DAA: bad remove idx");
-		return false;
-	}
-
-	removed_conflict = _buffer[conflict_idx];
-	_buffer.remove(conflict_idx);
-	return true;
 }
 
 bool ConflictTracker::is_conflict_less_important(const conflict_info_s &new_conflict,
