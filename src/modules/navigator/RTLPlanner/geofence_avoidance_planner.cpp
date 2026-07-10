@@ -295,7 +295,8 @@ int GeofenceAvoidancePlanner::updateStartAndFillPath(matrix::Vector2d start)
 	if (!_polygons_healthy || !_destination_healthy) {
 		_path_length = 0;
 		_path_cursor = 0;
-		_straight_line_fallback = true;
+		// Without any fence there is nothing to avoid, so flying directly is not a fallback.
+		_straight_line_fallback = (_status != Status::NoFence);
 		return 0;
 	}
 
