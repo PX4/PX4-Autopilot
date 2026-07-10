@@ -98,7 +98,7 @@ static bool portmapper_up(in_addr_t ip)
 	struct sockaddr_in src {};
 	socklen_t src_len = sizeof(src);
 	const ssize_t n = recvfrom(s, reply, sizeof(reply), 0,
-	                            reinterpret_cast<struct sockaddr *>(&src), &src_len);
+				   reinterpret_cast<struct sockaddr *>(&src), &src_len);
 
 	/* Verify the reply is from the expected host and is an RPC REPLY to our
 	 * request (not DDS or any other service that may use the same port):
@@ -111,8 +111,8 @@ static bool portmapper_up(in_addr_t ip)
 		0, 0, 0, 1,  /* msg_type = REPLY */
 	};
 	const bool up = (n >= 12) &&
-	                (src.sin_addr.s_addr == ip) &&
-	                (memcmp(reply, expected_hdr, sizeof(expected_hdr)) == 0);
+			(src.sin_addr.s_addr == ip) &&
+			(memcmp(reply, expected_hdr, sizeof(expected_hdr)) == 0);
 
 	close(s);
 	return up;

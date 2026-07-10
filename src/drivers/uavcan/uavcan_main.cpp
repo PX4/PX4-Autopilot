@@ -752,9 +752,11 @@ UavcanNode::Run()
 	}
 
 #ifdef CONFIG_MODULES_NFS_MOUNT
+
 	if (_servers != nullptr) {
 		_servers->check_nfs();
 	}
+
 #endif
 
 	_node.spinOnce(); // expected to be non-blocking
