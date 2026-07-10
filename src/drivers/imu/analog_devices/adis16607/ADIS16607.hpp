@@ -97,6 +97,8 @@ private:
 	void ConfigureFIFOWatermark(uint8_t samples);
 	void ConfigureCLKIN();
 
+	void DisableCLKIN();
+
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint16_t RegisterRead(Register reg);
@@ -137,6 +139,8 @@ private:
 
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	int32_t _fifo_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / RATE))};
+	float _sample_dt_us{0.f};
+	float _sample_rate_hz{0.f};
 
 	register_config_t _register_cfg[4] {
 		// Register | Set bits, Clear bits
