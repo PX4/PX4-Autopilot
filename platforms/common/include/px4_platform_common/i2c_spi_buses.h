@@ -140,20 +140,7 @@ private:
 class BusCLIArguments
 {
 public:
-	BusCLIArguments(bool i2c_support, bool spi_support)
-#if defined(CONFIG_I2C) || defined(CONFIG_SPI)
-		:
-#endif // CONFIG_I2C || CONFIG_SPI
-#if defined(CONFIG_I2C)
-		_i2c_support(i2c_support)
-#endif // CONFIG_I2C
-#if defined(CONFIG_I2C) && defined(CONFIG_SPI)
-		,
-#endif // CONFIG_I2C && CONFIG_SPI
-#if defined(CONFIG_SPI)
-		_spi_support(spi_support)
-#endif // CONFIG_SPI
-	{}
+	BusCLIArguments(bool i2c_support, bool spi_support);
 
 	/**
 	 * Parse CLI arguments (for drivers that don't need any custom arguments, otherwise getopt() should be used)
