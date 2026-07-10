@@ -8,7 +8,7 @@ parameters:
                 short: Enable NFS mount
                 long: |
                   When enabled, mounts the NFS export from NFS_IP on /fs/nfs.
-                  Retries every 2 s until the server is reachable.
+                  Retries every 2 s until the server is reachable or the system is armed.
             type: boolean
             reboot_required: true
             default: false

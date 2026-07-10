@@ -65,12 +65,19 @@ NfsMount::NfsMount() : ModuleParams(nullptr) {}
  * inheritance occurs while waiting.  Returns true when any reply arrives. */
 static bool portmapper_up(in_addr_t ip)
 {
-	/* XDR: xid=1, CALL, rpcver=2, prog=100000, ver=2, proc=0,
-	 * cred/verf = AUTH_NONE length 0 */
+	/* Minimal RPC CALL for portmapper NULL procedure (RFC 1831 / RFC 1057).
+	 * All multi-byte fields are big-endian (XDR). */
 	static const uint8_t null_call[] = {
-		0, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 2,
-		0, 1, 0x86, 0xa0,  0, 0, 0, 2,  0, 0, 0, 0,
-		0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+		0, 0, 0, 1,              /* XID = 1 (arbitrary transaction ID)   */
+		0, 0, 0, 0,              /* msg_type = CALL (0)                  */
+		0, 0, 0, 2,              /* rpcvers = 2                          */
+		0, 1, 0x86, 0xa0,        /* prog = 100000 (portmapper)           */
+		0, 0, 0, 2,              /* vers = 2                             */
+		0, 0, 0, 0,              /* proc = 0 (NULL)                      */
+		0, 0, 0, 0,              /* cred: flavor = AUTH_NONE (0)         */
+		0, 0, 0, 0,              /* cred: body length = 0                */
+		0, 0, 0, 0,              /* verf: flavor = AUTH_NONE (0)         */
+		0, 0, 0, 0,              /* verf: body length = 0                */
 	};
 	struct sockaddr_in dst {};
 	dst.sin_family = AF_INET;
@@ -88,7 +95,24 @@ static bool portmapper_up(in_addr_t ip)
 	       reinterpret_cast<const struct sockaddr *>(&dst), sizeof(dst));
 
 	uint8_t reply[32];
-	const bool up = recv(s, reply, sizeof(reply), 0) > 0;
+	struct sockaddr_in src {};
+	socklen_t src_len = sizeof(src);
+	const ssize_t n = recvfrom(s, reply, sizeof(reply), 0,
+	                            reinterpret_cast<struct sockaddr *>(&src), &src_len);
+
+	/* Verify the reply is from the expected host and is an RPC REPLY to our
+	 * request (not DDS or any other service that may use the same port):
+	 * - source address must match the server we queried
+	 * - at least 12 bytes (XID + msg_type + reply_stat)
+	 * - XID echoes back 1 (matches null_call)
+	 * - msg_type == REPLY (1), so a stray CALL on port 111 is rejected */
+	static const uint8_t expected_hdr[] = {
+		0, 0, 0, 1,  /* XID = 1 */
+		0, 0, 0, 1,  /* msg_type = REPLY */
+	};
+	const bool up = (n >= 12) &&
+	                (src.sin_addr.s_addr == ip) &&
+	                (memcmp(reply, expected_hdr, sizeof(expected_hdr)) == 0);
 
 	close(s);
 	return up;
@@ -131,8 +155,8 @@ void NfsMount::run()
 		}
 
 		if (_armed) {
-			px4_usleep(1_s);
-			continue;
+			PX4_WARN("armed before NFS mount completed, aborting");
+			return;
 		}
 
 		/* Probe portmapper via socket API before calling mount(): mount() acquires
@@ -202,9 +226,7 @@ int NfsMount::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Mounts an NFS filesystem from NFS_IP on /fs/nfs.
-Probes portmapper with a raw UDP socket (no net_lock starvation) and
-only calls mount() once the server is confirmed responsive.
+Mounts an NFS filesystem from NFS_IP on NFS_MOUNT_MOUNT_POINT.
 Started automatically by rcS when NFS_EN is set.
 
 )DESCR_STR");
