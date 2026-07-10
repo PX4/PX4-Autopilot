@@ -43,6 +43,7 @@ void ADIS16607::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_PARAM_INT('C', 0, 0, 8000, "Input clock frequency (Hz)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
