@@ -10,40 +10,39 @@ if DRIVERS_GPS
 		default y
 		---help---
 			Driver for u-blox GNSS receivers (M8, F9P, M10, X20, ...).
-			Required for auto-detection fallback and RTK moving base.
 
 	config GPS_MTK
 		bool "MediaTek protocol support (MTK)"
-		default y if !BOARD_CONSTRAINED_FLASH
+		default !BOARD_CONSTRAINED_FLASH
 		---help---
 			Driver for MediaTek GNSS receivers (custom binary protocol).
 
 	config GPS_ASHTECH
 		bool "Ashtech/Trimble protocol support"
-		default y if !BOARD_CONSTRAINED_FLASH
+		default !BOARD_CONSTRAINED_FLASH
 		---help---
 			Driver for Ashtech/Trimble GNSS receivers.
 
 	config GPS_EMLIDREACH
 		bool "Emlid Reach protocol support (ERB)"
-		default y if !BOARD_CONSTRAINED_FLASH
+		default !BOARD_CONSTRAINED_FLASH
 		---help---
 			Driver for Emlid Reach GNSS receivers (ERB protocol).
 
 	config GPS_FEMTOMES
 		bool "Femtomes protocol support"
-		default y if !BOARD_CONSTRAINED_FLASH
+		default !BOARD_CONSTRAINED_FLASH
 		---help---
 			Driver for Femtomes GNSS receivers.
 
 	config GPS_NMEA
 		bool "NMEA protocol support (incl. Unicore)"
-		default y if !BOARD_CONSTRAINED_FLASH
+		default !BOARD_CONSTRAINED_FLASH
 		---help---
 			Generic NMEA driver, including Unicore extensions.
 			Never auto-detected: it must be selected explicitly via
 			GPS_x_PROTOCOL or the -p command line option.
-endif #DRIVERS_GPS
+endif # DRIVERS_GPS
 
 menuconfig USER_GPS
 	bool "gps running as userspace module"
