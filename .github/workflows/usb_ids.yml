@@ -1,0 +1,45 @@
+name: USB ID Check
+
+on:
+  push:
+    branches: [main, 'release/**']
+    paths: ['boards/**']
+  pull_request:
+    paths: ['boards/**']
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    name: Check changed board USB IDs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find changed defconfigs
+        id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+              --paginate --jq '.[] | select(.status != "removed") | .filename' > changed.txt
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            git show --pretty=format: --name-only "${{ github.sha }}" > changed.txt
+          else
+            gh api "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}" \
+              --jq '.files[] | select(.status != "removed") | .filename' > changed.txt
+          fi
+          grep -E '^boards/[^/]+/[^/]+/nuttx-config/.+/defconfig$' changed.txt > defconfigs.txt || true
+          echo "count=$(wc -l < defconfigs.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          cat defconfigs.txt
+
+      - name: Install PyYAML
+        if: steps.changed.outputs.count != '0'
+        run: pip install --user pyyaml
+
+      - name: Check USB IDs against the Dronecode registry
+        if: steps.changed.outputs.count != '0'
+        run: xargs -a defconfigs.txt python3 Tools/check_usb_ids.py check
