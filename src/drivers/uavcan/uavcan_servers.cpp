@@ -177,8 +177,6 @@ void UavcanServers::check_nfs()
 	}
 }
 
-
-
 void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
 {
 	/*
@@ -254,10 +252,6 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 
 		snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor.board_id);
 
-		if (strcmp(srcpath, dstpath) == 0) {
-			continue;
-		}
-
 		if (copyFw(dstpath, srcpath) >= 0) {
 <<<<<<< HEAD
 =======
@@ -325,7 +319,7 @@ int UavcanServers::copyFw(const char *dst, const char *src)
 <<<<<<< HEAD
 =======
 
-void UavcanServers::updateFwDatabase(const char *sd_path, const char *fw_path, const char *original_filename)
+void UavcanServers::updateFwDatabase(const char *ufw_dir_path, const char *fw_path, const char *original_filename)
 {
 	// DB key is the filename portion of fw_path, e.g. "12345.bin"
 	const char *last_slash = strrchr(fw_path, '/');
@@ -338,8 +332,8 @@ void UavcanServers::updateFwDatabase(const char *sd_path, const char *fw_path, c
 	char db_path[UAVCAN_MAX_PATH_LENGTH + 1];
 	char tmp_db_path[UAVCAN_MAX_PATH_LENGTH + 1];
 
-	snprintf(db_path, sizeof(db_path), "%s/fw.db", sd_path);
-	snprintf(tmp_db_path, sizeof(tmp_db_path), "%s/fw.db.tmp", sd_path);
+	snprintf(db_path, sizeof(db_path), "%s/fw.db", ufw_dir_path);
+	snprintf(tmp_db_path, sizeof(tmp_db_path), "%s/fw.db.tmp", ufw_dir_path);
 
 	// Open the existing DB for reading (may not exist yet) and a temp file for writing.
 	FILE *db_in  = fopen(db_path, "r");
