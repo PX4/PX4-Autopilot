@@ -71,7 +71,9 @@ public:
 
 	int init();
 
+#ifdef CONFIG_MODULES_NFS_MOUNT
 	void check_nfs();
+#endif
 
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
