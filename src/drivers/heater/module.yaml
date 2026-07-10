@@ -121,15 +121,15 @@ parameters:
             instance_start: 1
             default: [0, 0, 0]
 
-        HEATER${i}_TEMP_TH:
+        HEATER${i}_TEMP_ACT:
             description:
-                short: Threshold; If heater ${i} drops below this value, it starts heating
+                short: If temperature drops below Activation_Threshold, it starts heating
                 long: |
-                    The heater starts heating once the temperature drops below this threshold, and keeps
+                    The heater starts heating once the temperature drops below this activation threshold, and keeps
                     heating until reset.
 
-                    The default (200) effectively keeps the heater always on (fmu), since ambient temperature never
-                    reaches that high.
+                    The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+                    is always below the activation threshold and thus turn on the heater immediately.
                     Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
                     e.g. 5 to only start heating once the temperature drops below 5°C.
 

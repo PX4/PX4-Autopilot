@@ -133,8 +133,8 @@ Heater::Heater(uint8_t instance) :
 	snprintf(name, sizeof(name), "HEATER%u_TEMP_SRC", (unsigned)_instance);
 	_param_handles.temp_src = param_find(name);
 
-	snprintf(name, sizeof(name), "HEATER%u_TEMP_TH", (unsigned)_instance);
-	_param_handles.temp_threshold = param_find(name);
+	snprintf(name, sizeof(name), "HEATER%u_TEMP_ACT", (unsigned)_instance);
+	_param_handles.temp_activation_threshold = param_find(name);
 
 	snprintf(name, sizeof(name), "HEATER%u_NOM_V", (unsigned)_instance);
 	_param_handles.nom_v = param_find(name);
@@ -450,10 +450,10 @@ void Heater::Run()
 		}
 
 		// Latch heating on once the temperature threshold is crossed; stays on until reset.
-		if (_temperature_threshold_met
-		    || (PX4_ISFINITE(current_temp) && current_temp < _params.temp_threshold)) {
+		if (_temperature_activation_threshold_met
+		    || (PX4_ISFINITE(current_temp) && current_temp < _params.temp_activation_threshold)) {
 
-			_temperature_threshold_met = true;
+			_temperature_activation_threshold_met = true;
 
 #ifdef CONFIG_HEATER_FAST_UPDATE_MODE
 
@@ -512,21 +512,21 @@ void Heater::Run()
 void Heater::publish_status()
 {
 	heater_status_s status{};
-	status.device_id                 = _sensor_device_id;
-	status.heater_on                 = _heater_on;
-	status.temperature_sensor        = _temperature_last;
-	status.temperature_target        = _params.temp;
-	status.temperature_target_met    = _temperature_target_met;
-	status.controller_period_usec    = CONTROLLER_PERIOD_DEFAULT;
-	status.controller_time_on_usec   = _controller_time_on_usec;
-	status.proportional_value        = _proportional_value;
-	status.integrator_value          = _integrator_value;
-	status.feed_forward_value        = _params.temp_ff;
-	status.supply_voltage            = _supply_voltage;
-	status.heater_current            = _heater_current;
-	status.nominal_multiplier        = _nominal_multiplier;
-	status.temperature_threshold_met = _temperature_threshold_met;
-	status.temperature_source        = _params.temp_src;
+	status.device_id                 	    = _sensor_device_id;
+	status.heater_on                 	    = _heater_on;
+	status.temperature_sensor        	    = _temperature_last;
+	status.temperature_target        	    = _params.temp;
+	status.temperature_target_met    	    = _temperature_target_met;
+	status.controller_period_usec    	    = CONTROLLER_PERIOD_DEFAULT;
+	status.controller_time_on_usec   	    = _controller_time_on_usec;
+	status.proportional_value        	    = _proportional_value;
+	status.integrator_value          	    = _integrator_value;
+	status.feed_forward_value        	    = _params.temp_ff;
+	status.supply_voltage            	    = _supply_voltage;
+	status.heater_current            	    = _heater_current;
+	status.nominal_multiplier        	    = _nominal_multiplier;
+	status.temperature_activation_threshold_met = _temperature_activation_threshold_met;
+	status.temperature_source                   = _params.temp_src;
 
 #ifdef HEATER_PX4IO
 	status.mode = heater_status_s::MODE_PX4IO;
@@ -708,8 +708,8 @@ void Heater::update_params(const bool force)
 			param_get(_param_handles.temp_src, &_params.temp_src);
 		}
 
-		if (_param_handles.temp_threshold != PARAM_INVALID) {
-			param_get(_param_handles.temp_threshold, &_params.temp_threshold);
+		if (_param_handles.temp_activation_threshold != PARAM_INVALID) {
+			param_get(_param_handles.temp_activation_threshold, &_params.temp_activation_threshold);
 		}
 
 		if (_param_handles.nom_v != PARAM_INVALID) {
