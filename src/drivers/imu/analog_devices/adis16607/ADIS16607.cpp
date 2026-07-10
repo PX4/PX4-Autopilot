@@ -318,7 +318,7 @@ void ADIS16607::ConfigureCLKIN()
 {
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::USER_GPIO_CFG1) {
-			r.set_bits = r.set_bits | USER_GPIO_CFG1_BIT::GOIO2_SYNC;
+			r.set_bits = r.set_bits | USER_GPIO_CFG1_BIT::GPIO2_SYNC;
 		}
 	}
 }
