@@ -471,7 +471,10 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.throttle_integ = debug_output.control.throttle_integrator;
 	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
-	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
+
+	// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
+	// so it has to be added back here.
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
