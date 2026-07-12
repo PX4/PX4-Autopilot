@@ -75,7 +75,7 @@ sudo apt remove px4-gazebo   # Gazebo package
 
 Container images are built using the same `.deb` packages described above, packaged into minimal Docker images.
 They are published to [Docker Hub](https://hub.docker.com/u/px4io) on every tagged release.
-You will need to [install Docker](https://docs.docker.com/get-docker/).
+You will need to [install Docker](https://docs.docker.com/get-started/get-docker/).
 
 | 이미지                           | 시뮬레이터                             |
 | ----------------------------- | --------------------------------- |

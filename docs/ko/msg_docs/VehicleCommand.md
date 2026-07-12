@@ -1528,6 +1528,20 @@ Change mode by specifying nav_state directly.
 | 6     |    |            | Unused                         |
 | 7     |    |            | Unused                         |
 
+### VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN (611)
+
+Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT.
+
+| Param | 단위 | Range/Enum | 설명                                    |
+| ----- | -- | ---------- | ------------------------------------- |
+| 1     |    |            | Unused                                |
+| 2     |    |            | Unused                                |
+| 3     |    |            | Unused                                |
+| 4     |    |            | Unused                                |
+| 5     |    |            | Latitude (WGS-84)  |
+| 6     |    |            | Longitude (WGS-84) |
+| 7     | m  |            | Altitude (AMSL)    |
+
 ### VEHICLE_CMD_GUIDED_CHANGE_HEADING (43002)
 
 Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s].
@@ -1797,6 +1811,7 @@ uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehic
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
 
+uint16 VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN = 611 # Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL)|
 uint16 VEHICLE_CMD_GUIDED_CHANGE_HEADING = 43002 # Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s]. |Heading type (HEADING_TYPE enum)|[deg] Target bearing [0..360]|[deg/s] Max rate of change|Unused|Unused|Unused|Unused|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
