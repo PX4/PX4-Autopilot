@@ -36,6 +36,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RaptorStatus](RaptorStatus.md) — Raptor Status.
 - [RegisterExtComponentReply](RegisterExtComponentReply.md)
 - [RegisterExtComponentRequest](RegisterExtComponentRequest.md) — Request to register an external component.
+- [SetpointConfig](SetpointConfig.md) — Setpoint configuration message.
+- [SetpointConfigReply](SetpointConfigReply.md) — Reply to SetpointConfig.
 - [TrajectorySetpoint](TrajectorySetpoint.md) — Trajectory setpoint in NED frame. Input to PID position controller. Потрібно мати кінематичну консистентність і бути можливим для плавного польоту. setting a value to NaN means the state should not be controlled.
 - [UnregisterExtComponent](UnregisterExtComponent.md)
 - [VehicleAngularVelocity](VehicleAngularVelocity.md)
@@ -43,7 +45,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAttitudeSetpoint](VehicleAttitudeSetpoint.md)
 - [VehicleCommand](VehicleCommand.md) — Vehicle Command uORB message. Використовується для управління місією / дією / тощо. Follows the MAVLink COMMAND_INT / COMMAND_LONG definition.
 - [VehicleCommandAck](VehicleCommandAck.md) — Vehicle Command Acknowledgement uORB message.
-- [VehicleControlMode](VehicleControlMode.md)
 - [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLandDetected](VehicleLandDetected.md)
 - [VehicleLocalPosition](VehicleLocalPosition.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
@@ -129,6 +130,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
+- [FailureInjection](FailureInjection.md) — Failure injection configuration.
 - [FiducialMarkerPosReport](FiducialMarkerPosReport.md) — Relative position of a precision-landing target detected by a vision pipeline (e.g. an ArUco marker).
 - [FiducialMarkerYawReport](FiducialMarkerYawReport.md) — Yaw of a precision-landing target relative to the NED (North, East, Down) frame, reported by a vision pipeline.
 - [FigureEightStatus](FigureEightStatus.md)
@@ -193,6 +195,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [OffboardControlMode](OffboardControlMode.md) — Off-board control mode.
 - [OnboardComputerStatus](OnboardComputerStatus.md) — ONBOARD_COMPUTER_STATUS message data.
 - [OpenDroneIdArmStatus](OpenDroneIdArmStatus.md)
+- [OpenDroneIdBasicId](OpenDroneIdBasicId.md)
 - [OpenDroneIdOperatorId](OpenDroneIdOperatorId.md)
 - [OpenDroneIdSelfId](OpenDroneIdSelfId.md)
 - [OpenDroneIdSystem](OpenDroneIdSystem.md)
@@ -275,8 +278,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [UlogStreamAck](UlogStreamAck.md) — Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 - [VehicleAcceleration](VehicleAcceleration.md)
 - [VehicleAirData](VehicleAirData.md) — Vehicle air data.
-- [VehicleAngularAccelerationSetpoint](VehicleAngularAccelerationSetpoint.md)
 - [VehicleConstraints](VehicleConstraints.md) — Local setpoint constraints in NED frame. setting something to NaN means that no limit is provided.
+- [VehicleControlMode](VehicleControlMode.md) — Defines which controllers should run.
 - [VehicleImu](VehicleImu.md) — IMU readings in SI-unit form.
 - [VehicleImuStatus](VehicleImuStatus.md)
 - [VehicleLocalPositionSetpoint](VehicleLocalPositionSetpoint.md) — Local position setpoint in NED frame. Telemetry of PID position controller to monitor tracking. NaN means the state was not controlled.
@@ -284,7 +287,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleOpticalFlow](VehicleOpticalFlow.md) — Optical flow in XYZ body frame in SI units.
 - [VehicleOpticalFlowVel](VehicleOpticalFlowVel.md)
 - [VehicleRoi](VehicleRoi.md) — Vehicle Region Of Interest (ROI).
-- [VehicleThrustSetpoint](VehicleThrustSetpoint.md)
+- [VehicleThrustSetpoint](VehicleThrustSetpoint.md) — Vehicle thrust setpoint.
 - [VehicleTorqueSetpoint](VehicleTorqueSetpoint.md)
 - [VelocityLimits](VelocityLimits.md) — Velocity and yaw rate limits for a multicopter position slow mode only.
 - [VteAidSource1d](VteAidSource1d.md) — Vision Target Estimator 1D fusion aid-source diagnostics (e.g. yaw).
