@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <cmath>
+
 namespace matrix
 {
 
@@ -83,7 +85,17 @@ public:
 	*/
 	Euler(const Dcm<Type> &dcm)
 	{
-		theta() = std::asin(-dcm(2, 0));
+		// Clamp the asin() argument to its valid [-1, 1] domain. In exact
+		// arithmetic -dcm(2, 0) is always within this range for a proper
+		// rotation matrix, but floating point rounding (e.g. from quaternion
+		// normalization) can push it a ULP or two outside, which would
+		// otherwise make asin() return NaN and silently corrupt theta() --
+		// most likely to occur near the +-90 degree pitch singularity, which
+		// e.g. tailsitter VTOL vehicles fly through during every transition.
+		// This mirrors the equivalent acos() guard already used for the same
+		// reason in MapProjection::project() (src/lib/geo/geo.cpp).
+		const Type sin_theta = std::fmin(std::fmax(-dcm(2, 0), Type(-1)), Type(1));
+		theta() = std::asin(sin_theta);
 
 		if ((std::fabs(theta() - Type(M_PI / 2))) < Type(1.0e-3)) {
 			phi() = 0;
