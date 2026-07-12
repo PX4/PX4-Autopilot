@@ -94,7 +94,7 @@ public:
 		// e.g. tailsitter VTOL vehicles fly through during every transition.
 		// This mirrors the equivalent acos() guard already used for the same
 		// reason in MapProjection::project() (src/lib/geo/geo.cpp).
-		const Type sin_theta = std::fmin(std::fmax(-dcm(2, 0), Type(-1)), Type(1));
+		const Type sin_theta = constrain(-dcm(2, 0), Type(-1), Type(1));
 		theta() = std::asin(sin_theta);
 
 		if ((std::fabs(theta() - Type(M_PI / 2))) < Type(1.0e-3)) {
