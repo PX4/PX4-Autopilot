@@ -38,6 +38,7 @@
 #include <cmath>
 #include <iostream>
 #include <future>
+#include <limits>
 #include <thread>
 #include <unistd.h>
 
@@ -57,6 +58,11 @@ void AutopilotTesterRtl::set_rtl_type(int rtl_type)
 void AutopilotTesterRtl::set_rtl_appr_force(int rtl_appr_force)
 {
 	CHECK(getParams()->set_param_int("RTL_APPR_FORCE", rtl_appr_force) == Param::Result::Success);
+}
+
+void AutopilotTesterRtl::set_rtl_return_alt(float alt_m)
+{
+	CHECK(getParams()->set_param_float("RTL_RETURN_ALT", alt_m) == Param::Result::Success);
 }
 
 void AutopilotTesterRtl::set_takeoff_land_requirements(int req)
@@ -329,6 +335,90 @@ void AutopilotTesterRtl::check_no_geofence_breach()
 	}
 
 	CHECK(!_geofence_breached.load());
+}
+
+void AutopilotTesterRtl::start_monitoring_rtl_transit_floor(float min_rel_alt_m, float stop_radius_m)
+{
+	REQUIRE(!_transit_floor_monitor_active);
+
+	// Locate the landing sequence entry: the first position item after DO_LAND_START
+	auto download_result = getMissionRaw()->download_mission();
+	REQUIRE(download_result.first == mavsdk::MissionRaw::Result::Success);
+
+	bool past_land_start = false;
+	double entry_lat_deg{std::numeric_limits<double>::quiet_NaN()};
+	double entry_lon_deg{std::numeric_limits<double>::quiet_NaN()};
+
+	for (const auto &mission_item : download_result.second) {
+		if (mission_item.command == MAV_CMD_DO_LAND_START) {
+			past_land_start = true;
+
+		} else if (past_land_start
+			   && (mission_item.command == MAV_CMD_NAV_WAYPOINT
+			       || mission_item.command == MAV_CMD_NAV_LOITER_TO_ALT
+			       || mission_item.command == MAV_CMD_NAV_LAND
+			       || mission_item.command == MAV_CMD_NAV_VTOL_LAND)) {
+			entry_lat_deg = mission_item.x * 1e-7;
+			entry_lon_deg = mission_item.y * 1e-7;
+			break;
+		}
+	}
+
+	REQUIRE(std::isfinite(entry_lat_deg));
+	REQUIRE(std::isfinite(entry_lon_deg));
+
+	auto ct = get_coordinate_transformation();
+	const auto entry_local = ct.local_from_global({entry_lat_deg, entry_lon_deg});
+
+	_transit_floor_violated.store(false);
+	_transit_floor_entry_reached.store(false);
+	_transit_floor_monitor_active.store(true);
+
+	_transit_floor_monitor_handle = getTelemetry()->subscribe_position(
+	[this, ct, entry_local, min_rel_alt_m, stop_radius_m](Telemetry::Position position) {
+		if (!_transit_floor_monitor_active.load()) {
+			return;
+		}
+
+		if (std::isnan(position.latitude_deg) || std::isnan(position.longitude_deg)) {
+			return;
+		}
+
+		const auto local = ct.local_from_global({position.latitude_deg, position.longitude_deg});
+		const double distance_to_entry = std::hypot(local.north_m - entry_local.north_m,
+						 local.east_m - entry_local.east_m);
+
+		if (distance_to_entry <= stop_radius_m) {
+			// Arrived at the landing sequence entry, from here on the planned descent may start
+			_transit_floor_entry_reached.store(true);
+			_transit_floor_monitor_active.store(false);
+			return;
+		}
+
+		if (position.relative_altitude_m < min_rel_alt_m && !_transit_floor_violated.exchange(true)) {
+			std::cout << time_str() << "RTL transit altitude floor violated: "
+				  << position.relative_altitude_m << " m relative altitude at "
+				  << distance_to_entry << " m from the landing sequence entry\n";
+		}
+	});
+}
+
+void AutopilotTesterRtl::check_rtl_transit_floor(std::chrono::seconds timeout)
+{
+	// The vehicle has to make it to the landing sequence entry ...
+	const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+	while (!_transit_floor_entry_reached.load() && std::chrono::steady_clock::now() < deadline) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+
+	CHECK(_transit_floor_entry_reached.load());
+
+	getTelemetry()->unsubscribe_position(_transit_floor_monitor_handle);
+	_transit_floor_monitor_active.store(false);
+
+	// ... without ever descending below the floor while still on the transit
+	CHECK(!_transit_floor_violated.load());
 }
 
 bool AutopilotTesterRtl::point_in_polygon_local(

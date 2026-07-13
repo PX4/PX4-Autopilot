@@ -64,6 +64,30 @@ TEST_CASE("RTL direct Mission Land", "[vtol]")
 	tester.check_mission_land_within(5.0f);
 }
 
+TEST_CASE("RTL direct Mission Land holds altitude on transit", "[vtol]")
+{
+	// The leg from the RTL trigger point to the landing sequence entry is not part of the
+	// planned mission. The vehicle must hold (at least) the RTL return altitude on that leg
+	// and only descend to the (low) planned entry altitude at the entry itself -- not ramp
+	// down toward it across the whole leg.
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.store_home();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_low_land_approach.plan");
+	tester.set_rtl_type(1);
+	tester.set_rtl_return_alt(60.f);
+	tester.arm();
+	// Trigger RTL at the first cruise waypoint, ~540 m from the 15 m landing sequence entry
+	tester.execute_rtl_when_reaching_mission_sequence(2);
+	// Cruise altitude is 50 m: allow the climb-acceptance shortfall but fail on any descent
+	// toward the entry altitude while further than 150 m from the entry
+	tester.start_monitoring_rtl_transit_floor(40.f, 150.f);
+	tester.check_rtl_transit_floor(std::chrono::seconds(180));
+	tester.wait_until_disarmed(std::chrono::seconds(180));
+	tester.check_mission_land_within(10.0f);
+}
+
 TEST_CASE("RTL with Mission Landing", "[vtol]")
 {
 	AutopilotTesterRtl tester;

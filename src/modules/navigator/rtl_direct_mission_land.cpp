@@ -98,11 +98,20 @@ void RtlDirectMissionLand::on_activation()
 	_global_pos_sub.update();
 
 	_needs_climbing = false;
+	_landing_entry_index = -1;
 
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, MissionTraversalType::IgnoreDoJump) == PX4_OK);
 
 		_needs_climbing = checkNeedsToClimb();
+
+		int32_t landing_entry_index;
+		size_t num_found_items{0U};
+		getNextPositionItems(_mission.land_start_index, &landing_entry_index, num_found_items, 1U);
+
+		if (num_found_items > 0U) {
+			_landing_entry_index = landing_entry_index;
+		}
 
 	} else {
 		_is_current_planned_mission_item_valid = false;
@@ -265,7 +274,18 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		} else {
 			// convert mission item to a simple waypoint, keep loiter to alt
 			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				// The landing sequence entry is reached over an unplanned leg (from wherever RTL
+				// was activated), so its planned altitude carries no obstacle clearance guarantee
+				// along the way. Approach it as LOITER_TO_ALT: that keeps the current altitude
+				// until inside the loiter at the entry, instead of ramping toward the (possibly
+				// much lower) entry altitude across the whole leg.
+				if ((_landing_entry_index >= 0) && (_mission.current_seq <= _landing_entry_index)) {
+					_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+					_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
+
+				} else {
+					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				}
 			}
 
 			_mission_item.autocontinue = true;
@@ -277,6 +297,14 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		if ((_landing_entry_index >= 0) && (_mission.current_seq <= _landing_entry_index)
+		    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+			// Hold at least the RTL return altitude on the transit: the loiter setpoint is
+			// initialized to the current vehicle altitude, which can be up to the altitude
+			// acceptance radius below _rtl_alt when the preceding climb terminated early.
+			pos_sp_triplet->current.alt = math::max(pos_sp_triplet->current.alt, _rtl_alt);
+		}
 
 		// Only set the previous position item if the current one really changed
 		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&

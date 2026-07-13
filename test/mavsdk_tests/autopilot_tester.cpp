@@ -997,9 +997,8 @@ void AutopilotTester::move_mission_raw_here(std::vector<MissionRaw::MissionItem>
 	for (auto &item : mission_items) {
 		if (item.frame == 3) { // MAV_FRAME_GLOBAL_RELATIVE_ALT
 			item.x -= offset_x;
+			item.y -= offset_y;
 		}
-
-		item.y -= offset_y;
 	}
 }
 

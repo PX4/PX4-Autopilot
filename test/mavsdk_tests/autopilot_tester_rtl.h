@@ -52,6 +52,7 @@ public:
 
 	void set_rtl_type(int rtl_type);
 	void set_rtl_appr_force(int rtl_appr_force);
+	void set_rtl_return_alt(float alt_m);
 	void set_takeoff_land_requirements(int req);
 	void add_home_to_rally_point();
 	void add_home_with_approaches_to_rally_point();
@@ -78,6 +79,16 @@ public:
 	// Unsubscribe and CHECK() that no breach was observed.
 	void check_no_geofence_breach();
 
+	// Monitor the RTL transit to the mission landing: downloads the uploaded mission, locates
+	// the first position item after DO_LAND_START (the landing sequence entry) and latches a
+	// violation if the relative altitude drops below min_rel_alt_m while the vehicle is still
+	// farther than stop_radius_m from the entry. Monitoring stops once within stop_radius_m.
+	// Call right after triggering RTL.
+	void start_monitoring_rtl_transit_floor(float min_rel_alt_m, float stop_radius_m);
+
+	// Unsubscribe and CHECK() that the entry was reached without an altitude floor violation.
+	void check_rtl_transit_floor(std::chrono::seconds timeout);
+
 private:
 	struct GeofenceShape {
 		enum class Kind { PolygonInclusion, PolygonExclusion, CircleInclusion, CircleExclusion };
@@ -103,4 +114,9 @@ private:
 	mavsdk::Telemetry::GroundTruthHandle _geofence_monitor_handle{};
 	std::atomic<bool> _geofence_breached{false};
 	std::atomic<bool> _geofence_monitor_active{false};
+
+	mavsdk::Telemetry::PositionHandle _transit_floor_monitor_handle{};
+	std::atomic<bool> _transit_floor_violated{false};
+	std::atomic<bool> _transit_floor_entry_reached{false};
+	std::atomic<bool> _transit_floor_monitor_active{false};
 };
