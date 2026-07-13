@@ -14,14 +14,20 @@ uint16 flags 		# Flags to indicate various statuses including valid data fields
 uint16 squawk 		# Squawk code
 uint8[18] uas_id	# Unique UAS ID
 
-# ADSB flags
+# ADSB flags, bit values match MAVLink's ADSB_FLAGS enum (common.xml)
 uint16 PX4_ADSB_FLAGS_VALID_COORDS = 1
 uint16 PX4_ADSB_FLAGS_VALID_ALTITUDE = 2
 uint16 PX4_ADSB_FLAGS_VALID_HEADING = 4
 uint16 PX4_ADSB_FLAGS_VALID_VELOCITY = 8
 uint16 PX4_ADSB_FLAGS_VALID_CALLSIGN = 16
 uint16 PX4_ADSB_FLAGS_VALID_SQUAWK = 32
-uint16 PX4_ADSB_FLAGS_RETRANSLATE = 256
+uint16 PX4_ADSB_FLAGS_SIMULATED = 64
+uint16 PX4_ADSB_FLAGS_VERTICAL_VELOCITY_VALID = 128
+uint16 PX4_ADSB_FLAGS_BARO_VALID = 256
+uint16 PX4_ADSB_FLAGS_SOURCE_UAT = 32768
+
+# PX4-internal flag, not part of the MAVLink ADSB_FLAGS bitmask: uses a bit MAVLink leaves unused
+uint16 PX4_ADSB_FLAGS_RETRANSLATE = 512
 
 #ADSB Emitter Data:
 #from mavlink/v2.0/common/common.h
