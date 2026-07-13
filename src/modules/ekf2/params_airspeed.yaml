@@ -17,23 +17,18 @@ parameters:
       decimal: 1
     EKF2_ASPD_MC:
       description:
-        short: Airspeed fusion for wind estimation in rotary-wing flight
-        long: When enabled, true airspeed may also be fused in rotary-wing flight
-          (e.g. a VTOL in multicopter mode with pusher-assisted forward flight) if
-          the vehicle is airborne, the airspeed is above EKF2_ARSP_THR and the
-          filtered lateral specific force is below EKF2_ASPD_MC_LIM (zero-sideslip
-          assumption). In rotary-wing flight these measurements only ever correct
-          the wind states, never the navigation states.
+        short: Airspeed fusion in multicopter mode
+        long: Allow true airspeed fusion for wind estimation in multicopter mode.
+          Only the wind states are corrected. Fusion stops when lateral specific force
+          exceeds EKF2_ASPD_MC_LIM.
       type: boolean
       default: 0
     EKF2_ASPD_MC_LIM:
       description:
-        short: Lateral specific force limit for rotary-wing airspeed fusion
-        long: The airspeed and synthetic sideslip observations assume the airflow
-          is aligned with the body X axis (zero sideslip). A sustained low-passed
-          lateral specific force indicates a lateral relative airflow, i.e. misalignment,
-          and inhibits airspeed fusion in rotary-wing flight. Set to zero to disable
-          this check.
+        short: Multicopter lateral specific force limit
+        long: Maximum low-pass filtered body-Y specific force for airspeed fusion in
+          multicopter mode. Fusion stops above this value because the airspeed and
+          sideslip models assume zero sideslip. Set to 0 to disable the check.
       type: float
       default: 1.0
       min: 0.0

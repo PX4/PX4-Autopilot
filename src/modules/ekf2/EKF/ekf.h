@@ -552,7 +552,7 @@ private:
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	static constexpr float _kAspdMcLatAccelLpfTimeConstant = 1.f;
-	AlphaFilter<float> _aspd_mc_lat_accel_lpf{_kAspdMcLatAccelLpfTimeConstant}; ///< Low pass filtered body Y specific force used for the rotary-wing airspeed fusion alignment check (m/sec**2)
+	AlphaFilter<float> _aspd_mc_lat_accel_lpf{_kAspdMcLatAccelLpfTimeConstant}; ///< Filtered body-Y specific force (m/sec**2)
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_WIND)

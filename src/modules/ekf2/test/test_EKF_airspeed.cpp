@@ -83,7 +83,7 @@ public:
 		_sensor_simulator._vio.setVelocityFrameToLocalNED();
 		_sensor_simulator.startExternalVision();
 
-		// Let the EV fusion start first to reset the velocity estimate
+		// Allow EV fusion to reset velocity.
 		_sensor_simulator.runSeconds(0.5);
 	}
 
@@ -99,7 +99,7 @@ public:
 		_ekf->set_vehicle_at_rest(false);
 		_ekf->set_is_fixed_wing(false);
 		_sensor_simulator.startAirspeedSensor();
-		_sensor_simulator._airspeed.setData(true_airspeed, 1.f);
+		_sensor_simulator._airspeed.setData(true_airspeed, true_airspeed);
 	}
 };
 
@@ -391,7 +391,6 @@ TEST_F(EkfAirspeedTest, testMulticopterWindVelocityEstimation)
 	startExternalVisionVelocity(simulated_velocity_earth);
 	startMulticopterAirspeedFusionScenario(true, airspeed_body(0));
 
-	// Wind estimation is rather slow
 	_sensor_simulator.runSeconds(15);
 
 	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
@@ -415,14 +414,14 @@ TEST_F(EkfAirspeedTest, testMulticopterAirspeedFusionStopsWhenMisaligned)
 	_sensor_simulator.runSeconds(2);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
 
-	// a sustained lateral specific force indicates lateral airflow: fusion has to stop
+	// Exceed the lateral specific force limit.
 	_sensor_simulator._imu.setAccelData(Vector3f(0.0f, 3.0f, -CONSTANTS_ONE_G));
 	_sensor_simulator.runSeconds(2);
 
 	EXPECT_FALSE(_ekf_wrapper.isIntendingAirspeedFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBetaFusion());
 
-	// once realigned, fusion restarts (the wind estimate is still valid and consistent)
+	// Fusion restarts once the specific force drops below the limit.
 	_sensor_simulator._imu.setAccelData(Vector3f(0.0f, 0.0f, -CONSTANTS_ONE_G));
 	_sensor_simulator.runSeconds(5);
 
@@ -439,9 +438,7 @@ TEST_F(EkfAirspeedTest, testMulticopterAirspeedNoDeadReckoning)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
 
-	// stop velocity aiding: in rotary-wing flight airspeed and sideslip only update the wind
-	// states, so they must not count as dead-reckoning aiding and the position estimate
-	// has to become invalid
+	// MC air data must not count as dead-reckoning aiding.
 	_sensor_simulator.stopExternalVision();
 	_sensor_simulator.runSeconds(3);
 

@@ -277,8 +277,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	// low-pass the body Y specific force used by the rotary-wing airspeed fusion alignment check;
-	// the signed value is filtered so that zero-mean vibration averages out instead of accumulating
 	_aspd_mc_lat_accel_lpf.update(corrected_delta_vel(1) / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
 #endif // CONFIG_EKF2_AIRSPEED
 }
