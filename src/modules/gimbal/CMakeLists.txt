@@ -48,4 +48,5 @@ px4_add_module(
 		gimbal_params.yaml
 	DEPENDS
 		geo
+		output_functions_header
 	)
