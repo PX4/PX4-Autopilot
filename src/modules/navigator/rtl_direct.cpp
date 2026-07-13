@@ -81,9 +81,8 @@ void RtlDirect::on_activation()
 
 	_rtl_state = getActivationState();
 
-	// Snapshot the setpoint the previous mode left before resetting the triplet, so the climb can
-	// continue an already-established loiter (used in set_rtl_item(), CLIMBING). Resetting here means
-	// the first RTL leg is flown directly instead of line-following from an inherited setpoint.
+	// save the setpoint the previous mode left before resetting the triplet, so the climb can
+	// continue an already-established loiter (used in set_rtl_item(), CLIMBING state)
 	_setpoint_on_activation = _navigator->get_position_setpoint_triplet()->current;
 	_navigator->reset_triplets();
 
@@ -264,9 +263,10 @@ void RtlDirect::set_rtl_item()
 
 			// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
 			// keep that loiter's center and radius while climbing instead of re-centering the circle on
-			// the current position. The setpoint was snapshotted on activation before the triplet reset.
+			// the current position.
 			if (_setpoint_on_activation.valid
-			    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+			    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+			    && _setpoint_on_activation.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
 				const float dist_to_center = get_distance_to_next_waypoint(
 								     _setpoint_on_activation.lat, _setpoint_on_activation.lon,
 								     _global_pos_sub.get().lat, _global_pos_sub.get().lon);

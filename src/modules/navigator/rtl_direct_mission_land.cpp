@@ -159,7 +159,8 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		// keep that loiter's center and radius while climbing instead of re-centering the circle on
 		// the current position. The setpoint was snapshotted on activation before the triplet reset.
 		if (_setpoint_on_activation.valid
-		    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+		    && _setpoint_on_activation.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
 			const float dist_to_center = get_distance_to_next_waypoint(
 							     _setpoint_on_activation.lat, _setpoint_on_activation.lon,
 							     _global_pos_sub.get().lat, _global_pos_sub.get().lon);
