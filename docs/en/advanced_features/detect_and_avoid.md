@@ -377,14 +377,14 @@ Before sending a vehicle command, PX4 maps the current navigator state into the 
 
 ::: details Click here to view the full navigator-state to DAA-action mapping
 
-| Current navigator state                                                                                                  | Equivalent DAA action | Practical effect                                   |
-| ------------------------------------------------------------------------------------------------------------------------ | --------------------- | -------------------------------------------------- |
-| `AUTO_MISSION`, `AUTO_TAKEOFF`, `AUTO_FOLLOW_TARGET`, `AUTO_VTOL_TAKEOFF`, `GUIDED_COURSE`                               | `DISABLED`            | Any automatic DAA action may still escalate        |
-| `ORBIT`, `AUTO_LOITER`                                                                                                   | `POSITION_HOLD_MODE`  | Only `Return`, `Land`, or `Terminate` can escalate |
-| `AUTO_RTL`                                                                                                               | `RETURN_MODE`         | Only `Land` or `Terminate` can escalate            |
+| Current navigator state                                                                                                   | Equivalent DAA action | Practical effect                                   |
+| ------------------------------------------------------------------------------------------------------------------------- | --------------------- | -------------------------------------------------- |
+| `AUTO_MISSION`, `AUTO_TAKEOFF`, `AUTO_FOLLOW_TARGET`, `AUTO_VTOL_TAKEOFF`, `GUIDED_COURSE`                                | `DISABLED`            | Any automatic DAA action may still escalate        |
+| `ORBIT`, `AUTO_LOITER`                                                                                                    | `POSITION_HOLD_MODE`  | Only `Return`, `Land`, or `Terminate` can escalate |
+| `AUTO_RTL`                                                                                                                | `RETURN_MODE`         | Only `Land` or `Terminate` can escalate            |
 | `AUTO_LAND`, `DESCEND`, `AUTO_PRECLAND`, `MANUAL`, `ALTCTL`, `ALTITUDE_CRUISE`, `POSCTL`, `POSITION_SLOW`, `ACRO`, `STAB` | `LAND_MODE`           | Only `Terminate` can escalate                      |
-| `TERMINATION`                                                                                                            | `TERMINATE`           | No stronger DAA action exists                      |
-| `OFFBOARD`, `EXTERNAL1` through `EXTERNAL8`, and unknown states                                                          | `MAX_ACTION_VALUE`    | PX4 will not inject an automatic DAA mode change   |
+| `TERMINATION`                                                                                                             | `TERMINATE`           | No stronger DAA action exists                      |
+| `OFFBOARD`, `EXTERNAL1` through `EXTERNAL8`, and unknown states                                                           | `MAX_ACTION_VALUE`    | PX4 will not inject an automatic DAA mode change   |
 
 Manual modes are intentionally treated as `LAND_MODE`.
 That means DAA will not automatically switch a manually flown vehicle into Hold, Return, or Land; only `Terminate` is considered a stronger action than those modes.
@@ -461,7 +461,7 @@ To decode a logged `unique_id` back into an ICAO address, callsign, or shortened
 
 | Identifier source | Accepted if                                                                           | Stored value                                                                                                                                                                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ICAO address      | `0 < icao_address <= 0xFFFFFF`                                                       | Stored directly in the low bits of `unique_id` with `UNIQUE_ID_ENCODING_ICAO`                                                                                                                                                                                                                          |
+| ICAO address      | `0 < icao_address <= 0xFFFFFF`                                                        | Stored directly in the low bits of `unique_id` with `UNIQUE_ID_ENCODING_ICAO`                                                                                                                                                                                                                          |
 | ADS-B callsign    | `PX4_ADSB_FLAGS_VALID_CALLSIGN` is set and the `callsign[9]` field is null-terminated | Packs up to 8 callsign characters into a `uint64`. Byte `0` is the first character. Bytes `0-3` correspond to [ADSB_CALLSIGN_1](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_1) and bytes `4-7` correspond to [ADSB_CALLSIGN_2](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_2). |
 | UAS ID            | At least one of the final 8 bytes in `uas_id[18]` is non-zero                         | Packs those final 8 bytes into a `uint64` with `UNIQUE_ID_ENCODING_UAS_ID`                                                                                                                                                                                                                             |
 
@@ -806,14 +806,14 @@ listener detect_and_avoid_most_urgent
 
 Exact distances and message text depend on the selected parameters and vehicle state. With the default warn-only F3442 actions:
 
-| Scenario | Expected behavior |
-| --- | --- |
-| `unique_ids` | Three otherwise similar encounters are tracked by ICAO address, callsign, and UAS ID respectively. |
-| `escalation` | One aircraft progresses through increasing conflict levels, then becomes stale and is removed. |
-| `spam_same` | Repeated reports refresh one tracked conflict without producing a message for every sample. |
-| `spam_new` | Multiple aircraft fill the conflict buffer; less urgent reports are evicted or ignored according to buffer priority. |
-| `flags` | F3442 accepts missing traffic velocity and applies its configured defaults; Crosstrack rejects the report. |
-| `queue_fill` | DAA drains a full queued burst and retains the highest-priority conflicts. |
+| Scenario     | Expected behavior                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `unique_ids` | Three otherwise similar encounters are tracked by ICAO address, callsign, and UAS ID respectively.                   |
+| `escalation` | One aircraft progresses through increasing conflict levels, then becomes stale and is removed.                       |
+| `spam_same`  | Repeated reports refresh one tracked conflict without producing a message for every sample.                          |
+| `spam_new`   | Multiple aircraft fill the conflict buffer; less urgent reports are evicted or ignored according to buffer priority. |
+| `flags`      | F3442 accepts missing traffic velocity and applies its configured defaults; Crosstrack rejects the report.           |
+| `queue_fill` | DAA drains a full queued burst and retains the highest-priority conflicts.                                           |
 
 Use the uORB topics and operator messages above to verify the result. Automated-action testing should use a controlled simulation environment.
 

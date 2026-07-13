@@ -150,13 +150,13 @@ PX4 evaluates four conflict levels and maps each level to an action:
 F3442 mode evaluates four cylindrical alert tests in priority order.
 A test is breached when both horizontal and vertical separation are inside its combined ownship (the current vehicle) plus traffic bounds.
 
-| Item           | Parameters                             | Meaning                                                                                                 |
-| -------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `CRITICAL`     | [DAA_LVL_CRIT_RAD], [DAA_LVL_CRIT_HGT] | Per-aircraft NMAC base radius and vertical bound.                                                       |
-| `HIGH`         | [DAA_LVL_HIGH_RAD], [DAA_LVL_HIGH_HGT] | Per-aircraft Well Clear base radius and vertical bound.                                                 |
-| `MEDIUM`       | [DAA_LVL_MED_TIME]                     | Expands the NMAC base volume using aircraft speed and the configured time margin.                       |
-| `LOW`          | [DAA_LVL_LOW_TIME]                     | Expands the Well Clear base volume using aircraft speed and the configured time margin.                 |
-| Velocity input | [DAA_EN_DFLT_VEL], [DAA_DFLT_VEL]      | Optional replacement for the reported traffic vertical speed.                                              |
+| Item           | Parameters                             | Meaning                                                                                 |
+| -------------- | -------------------------------------- | --------------------------------------------------------------------------------------- |
+| `CRITICAL`     | [DAA_LVL_CRIT_RAD], [DAA_LVL_CRIT_HGT] | Per-aircraft NMAC base radius and vertical bound.                                       |
+| `HIGH`         | [DAA_LVL_HIGH_RAD], [DAA_LVL_HIGH_HGT] | Per-aircraft Well Clear base radius and vertical bound.                                 |
+| `MEDIUM`       | [DAA_LVL_MED_TIME]                     | Expands the NMAC base volume using aircraft speed and the configured time margin.       |
+| `LOW`          | [DAA_LVL_LOW_TIME]                     | Expands the Well Clear base volume using aircraft speed and the configured time margin. |
+| Velocity input | [DAA_EN_DFLT_VEL], [DAA_DFLT_VEL]      | Optional replacement for the reported traffic vertical speed.                           |
 
 [DAA_LVL_CRIT_RAD]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_RAD
 [DAA_LVL_CRIT_HGT]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_HGT

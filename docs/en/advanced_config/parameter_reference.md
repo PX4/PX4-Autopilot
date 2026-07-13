@@ -172,13 +172,23 @@ Sets GPS longitudinal offset encoding
 
 ### ADSB_ICAO_ID (`INT32`) {#ADSB_ICAO_ID}
 
-ADSB-Out ICAO configuration.
+ADSB-Out ICAO ID.
 
-Defines the ICAO ID of the vehicle
+Vehicle ICAO ID. Use -1 to disable.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | -1       | 16777215 |           | 1194684 |      | &nbsp;    |
+| &check; | -1       | 16777215 |           | -1      |      | &nbsp;    |
+
+### ADSB_ICAO_ID_2 (`INT32`) {#ADSB_ICAO_ID_2}
+
+Secondary ownship ICAO ID.
+
+Optional second ownship ICAO ID used to filter self-detections. Use -1 to disable.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -1       | 16777215 |           | -1      |      | &nbsp;    |
 
 ### ADSB_ICAO_SPECL (`INT32`) {#ADSB_ICAO_SPECL}
 
@@ -22599,6 +22609,212 @@ Configure on which serial port to run DShot Driver.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+## Detect and Avoid
+
+### DAA_EN (`INT32`) {#DAA_EN}
+
+Enable DAA.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### DAA_NOTIF_STATE (`INT32`) {#DAA_NOTIF_STATE}
+
+DAA status notification period.
+
+Time between notifications for the most urgent conflict. Set to 0 to disable the periodic status notification.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 600      |           | 20      | s    | &nbsp;    |
+
+### DAA_TRAFF_TOUT (`INT32`) {#DAA_TRAFF_TOUT}
+
+DAA stale conflict timeout.
+
+Conflict age before removal.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1        | 120      |           | 20      | s    | &nbsp;    |
+
+## Detect and Avoid F3442 Standard
+
+### DAA_DFLT_VEL (`FLOAT`) {#DAA_DFLT_VEL}
+
+Default vertical speed of other aircraft.
+
+Used when DAA_EN_DFLT_VEL is enabled. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        |          |           | 10.0    | m/s  | &nbsp;    |
+
+### DAA_EN_DFLT_VEL (`INT32`) {#DAA_EN_DFLT_VEL}
+
+Ignore reported vertical speed of other aircraft.
+
+Use DAA_DFLT_VEL instead of reported traffic vertical speed. Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### DAA_LVL_CRIT_ACT (`INT32`) {#DAA_LVL_CRIT_ACT}
+
+Critical conflict action.
+
+Action requested when the critical conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_CRIT_HGT (`FLOAT`) {#DAA_LVL_CRIT_HGT}
+
+Critical conflict zone cylinder height (NMAC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 16.0    | m    | &nbsp;    |
+
+### DAA_LVL_CRIT_RAD (`FLOAT`) {#DAA_LVL_CRIT_RAD}
+
+Critical conflict zone cylinder radius (NMAC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 77.0    | m    | &nbsp;    |
+
+### DAA_LVL_HIGH_ACT (`INT32`) {#DAA_LVL_HIGH_ACT}
+
+High conflict action.
+
+Action requested when the high conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_HIGH_HGT (`FLOAT`) {#DAA_LVL_HIGH_HGT}
+
+High conflict zone cylinder height (WC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 39.0    | m    | &nbsp;    |
+
+### DAA_LVL_HIGH_RAD (`FLOAT`) {#DAA_LVL_HIGH_RAD}
+
+High conflict zone cylinder radius (WC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 305.0   | m    | &nbsp;    |
+
+### DAA_LVL_LOW_ACT (`INT32`) {#DAA_LVL_LOW_ACT}
+
+Low conflict action.
+
+Action requested when the low conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_LOW_TIME (`INT32`) {#DAA_LVL_LOW_TIME}
+
+Low conflict latency time.
+
+Expands well-clear bounds by aircraft speed times this value. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        |          |           | 33      | s    | &nbsp;    |
+
+### DAA_LVL_MED_ACT (`INT32`) {#DAA_LVL_MED_ACT}
+
+Medium conflict action.
+
+Action requested when the medium conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_MED_TIME (`INT32`) {#DAA_LVL_MED_TIME}
+
+Medium conflict latency time.
+
+Expands NMAC bounds by aircraft speed times this value. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        |          |           | 33      | s    | &nbsp;    |
+
 ## EKF2
 
 ### EKF2_ABIAS_INIT (`FLOAT`) {#EKF2_ABIAS_INIT}
@@ -31735,10 +31951,10 @@ Set to a negative value to disable.
 
 ### NAV_TRAFF_AVOID (`INT32`) {#NAV_TRAFF_AVOID}
 
-Set traffic avoidance mode.
+Set traffic avoidance action.
 
-Enabling this will allow the system to respond
-to transponder data from e.g. ADSB transponders
+Action requested for a crosstrack traffic conflict.
+Runtime changes apply on later conflict level transitions.
 
 **Values:**
 
@@ -31747,16 +31963,17 @@ to transponder data from e.g. ADSB transponders
 - `2`: Return mode
 - `3`: Land mode
 - `4`: Position Hold mode
+- `5`: Terminate
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          |           | 1       |      | &nbsp;    |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
 
 ### NAV_TRAFF_A_HOR (`FLOAT`) {#NAV_TRAFF_A_HOR}
 
-Set NAV TRAFFIC AVOID horizontal distance.
+Crosstrack conflict distance threshold.
 
-Defines a crosstrack horizontal distance
+Maximum absolute distance from the projected traffic track.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -31764,7 +31981,7 @@ Defines a crosstrack horizontal distance
 
 ### NAV_TRAFF_A_VER (`FLOAT`) {#NAV_TRAFF_A_VER}
 
-Set NAV TRAFFIC AVOID vertical distance.
+Crosstrack vertical separation threshold.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -31772,10 +31989,10 @@ Set NAV TRAFFIC AVOID vertical distance.
 
 ### NAV_TRAFF_COLL_T (`INT32`) {#NAV_TRAFF_COLL_T}
 
-Estimated time until collision.
+Crosstrack collision time threshold.
 
-Minimum acceptable time until collsion.
-Assumes constant speed over 3d distance.
+A conflict is raised when the time estimate is below this threshold.
+The estimate is the current 3D separation divided by the sum of the ownship and traffic speed magnitudes.
 
 | Reboot | minValue | maxValue  | increment | default | unit | Read-Only |
 | ------ | -------- | --------- | --------- | ------- | ---- | --------- |

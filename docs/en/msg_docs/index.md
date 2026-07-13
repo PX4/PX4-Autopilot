@@ -104,6 +104,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DebugKeyValue](DebugKeyValue.md)
 - [DebugValue](DebugValue.md)
 - [DebugVect](DebugVect.md)
+- [DetectAndAvoid](DetectAndAvoid.md) — Detect-and-avoid conflict assessment for one traffic aircraft.
+- [DetectAndAvoidMostUrgent](DetectAndAvoidMostUrgent.md) — Detect-and-avoid summary for the most urgent active conflict.
 - [DeviceInformation](DeviceInformation.md) — Device information.
 - [DifferentialPressure](DifferentialPressure.md) — Differential-pressure (airspeed) sensor.
 - [DistanceSensor](DistanceSensor.md) — DISTANCE_SENSOR message data.

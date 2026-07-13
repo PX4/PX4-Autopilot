@@ -130,6 +130,8 @@ They are not build into the module, and hence are neither published or subscribe
 - [DebugKeyValue](../msg_docs/DebugKeyValue.md)
 - [DebugValue](../msg_docs/DebugValue.md)
 - [DebugVect](../msg_docs/DebugVect.md)
+- [DetectAndAvoid](../msg_docs/DetectAndAvoid.md)
+- [DetectAndAvoidMostUrgent](../msg_docs/DetectAndAvoidMostUrgent.md)
 - [DeviceInformation](../msg_docs/DeviceInformation.md)
 - [DifferentialPressure](../msg_docs/DifferentialPressure.md)
 - [DistanceSensorModeChangeRequest](../msg_docs/DistanceSensorModeChangeRequest.md)

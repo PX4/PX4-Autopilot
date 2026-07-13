@@ -281,14 +281,14 @@ The action parameters depend on the conflict model selected when the firmware is
 
 The relevant parameters are shown below:
 
-| Parameter                                                                        | Description                                                                                                                              |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| [DAA_EN](../advanced_config/parameter_reference.md#DAA_EN)                       | Enables or disables Detect and Avoid.                                                                                                    |
-| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)     | Action for the Crosstrack model.                                                                                                         |
-| [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)     | F3442-mode action for a `LOW` conflict.                                                                                                  |
-| [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)     | F3442-mode action for a `MEDIUM` conflict.                                                                                               |
-| [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT)   | F3442-mode action for a `HIGH` conflict.                                                                                                 |
-| [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT)   | F3442-mode action for a `CRITICAL` conflict.                                                                                             |
+| Parameter                                                                      | Description                                  |
+| ------------------------------------------------------------------------------ | -------------------------------------------- |
+| [DAA_EN](../advanced_config/parameter_reference.md#DAA_EN)                     | Enables or disables Detect and Avoid.        |
+| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)   | Action for the Crosstrack model.             |
+| [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   | F3442-mode action for a `LOW` conflict.      |
+| [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   | F3442-mode action for a `MEDIUM` conflict.   |
+| [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) | F3442-mode action for a `HIGH` conflict.     |
+| [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT) | F3442-mode action for a `CRITICAL` conflict. |
 
 All action parameters use `Disabled`, `Warn only`, `Return mode`, `Land mode`, `Position Hold mode`, and `Terminate`.
 See [Detect and Avoid](../advanced_features/detect_and_avoid.md) for conflict-model and action-transition details.
