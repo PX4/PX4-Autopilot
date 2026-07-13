@@ -34,16 +34,7 @@
 /**
  * @file test_mission_base.cpp
  *
- * Unit tests for MissionBase position traversal helpers:
- *   - getNonJumpItem()
- *   - findNextPositionIndex()
- *   - findPreviousPositionIndex()
- *   - getNextPositionItems()
- *   - getPreviousPositionItems()
- *   - goToNextPositionItem()
- *   - goToPreviousPositionItem()
- *
- * These tests cover both traversal modes: Follow mission control flow and ignore DO_JUMP.
+ * MissionBase position traversal tests.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -52,49 +43,11 @@
 #include <gtest/gtest.h>
 
 #include "mission_base.h"
+#include "support/navigator_dataman_test.h"
 #include "support/vector_mission_item_store.h"
-
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 #include <initializer_list>
 #include <vector>
-
-extern "C" int dataman_main(int argc, char *argv[]);
-
-class NavigatorDatamanRuntime
-{
-public:
-	NavigatorDatamanRuntime()
-	{
-		param_control_autosave(false);
-		px4::WorkQueueManagerStart();
-
-		char name[] = "dataman";
-		char start[] = "start";
-		char ram[] = "-r";
-		char *argv[] = {name, start, ram};
-		dataman_main(3, argv);
-	}
-
-	~NavigatorDatamanRuntime()
-	{
-		param_control_autosave(true);
-
-		char name[] = "dataman";
-		char stop[] = "stop";
-		char *argv[] = {name, stop};
-		dataman_main(2, argv);
-
-		px4::WorkQueueManagerStop();
-	}
-};
-
-static NavigatorDatamanRuntime &navigatorDatamanRuntime()
-{
-	static NavigatorDatamanRuntime runtime{};
-	return runtime;
-}
 
 class MissionBaseTestPeer : public MissionBase
 {
@@ -190,22 +143,17 @@ static mission_item_s makeVtolTransitionItem(int transition_mode)
 	return item;
 }
 
-template<typename TestPeer>
-class MissionBaseTraversalTestBase : public ::testing::Test
+class MissionBaseTraversalTest : public NavigatorDatamanTestBase
 {
 protected:
-	static void SetUpTestSuite()
-	{
-		(void)navigatorDatamanRuntime();
-	}
-
-	static void TearDownTestSuite() {}
-
-	TestPeer mission_base{};
+	MissionBaseTestPeer mission_base{};
 };
 
-class MissionBaseTraversalTest : public MissionBaseTraversalTestBase<MissionBaseTestPeer> {};
-class IgnoreDoJumpMissionBaseTraversalTest : public MissionBaseTraversalTestBase<IgnoreDoJumpMissionBaseTestPeer> {};
+class IgnoreDoJumpMissionBaseTraversalTest : public NavigatorDatamanTestBase
+{
+protected:
+	IgnoreDoJumpMissionBaseTestPeer mission_base{};
+};
 
 // WHY: getNonJumpItem is used to find the next mission item.
 // WHAT: A non-DO_JUMP item is returned unchanged.

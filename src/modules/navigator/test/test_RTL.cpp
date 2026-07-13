@@ -54,9 +54,9 @@
 
 #include "navigator.h"
 #include "rtl.h"
-#include "support/vector_mission_item_store.h"
-
-extern "C" int dataman_main(int argc, char *argv[]);
+#include "mission_route_types.h"
+#include "support/mission_route_cache_test_peer.h"
+#include "support/mission_route_test_helpers.h"
 
 namespace
 {
@@ -65,39 +65,6 @@ constexpr double kBaseLat = 47.397742;
 constexpr double kBaseLon = 8.545594;
 constexpr float kAlt = 500.f;
 constexpr float kApproachRadius = 50.f;
-
-/**
- * @brief Starts dataman for this file.
- */
-class TestDatamanRuntime
-{
-public:
-	TestDatamanRuntime()
-	{
-		char name[] = "dataman";
-		char start[] = "start";
-		char ram[] = "-r";
-		char *argv[] = {name, start, ram};
-		dataman_main(3, argv);
-	}
-
-	~TestDatamanRuntime()
-	{
-		char name[] = "dataman";
-		char stop[] = "stop";
-		char *argv[] = {name, stop};
-		dataman_main(2, argv);
-	}
-};
-
-/**
- * @brief Returns the shared dataman runtime.
- */
-TestDatamanRuntime &testDatamanRuntime()
-{
-	static TestDatamanRuntime runtime{};
-	return runtime;
-}
 
 mission_item_s makeSafePointItem(double lat, double lon, float altitude, NAV_FRAME frame,
 				 NAV_CMD nav_cmd = NAV_CMD_RALLY_POINT)
@@ -202,46 +169,21 @@ struct ReadFailureCase {
 
 } // namespace
 
-/**
- * @brief RTL test peer with vector-backed safe points.
- */
 class RTLTestPeer : public RTL
 {
 public:
 	explicit RTLTestPeer(Navigator *navigator) : RTL(navigator) {}
 
-	void resetSafePointStatsForTest()
-	{
-		_safe_point_store.setItems({});
-		_stats = {};
-		_safe_points_updated = false;
-	}
-
-	void setSafePointsForTest(const std::vector<mission_item_s> &items)
-	{
-		_safe_point_store.setItems(items);
-		_stats = {};
-		_stats.num_items = static_cast<uint16_t>(_safe_point_store.itemCount());
-		_safe_points_updated = true;
-	}
-
-	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
-	{
-		_safe_point_store.setLoadFailureIndices(indices);
-	}
-
-protected:
-	bool loadSafePointItemWait(int seq, mission_item_s &item, hrt_abstime timeout) const override
-	{
-		(void)timeout;
-		return _safe_point_store.loadItem(seq, item);
-	}
-
-public:
 	bool extractValidSafePointPositionForTest(const mission_item_s &safe_point_item, float home_altitude_amsl,
 			PositionYawSetpoint &position) const
 	{
-		return extractValidSafePointPosition(safe_point_item, home_altitude_amsl, position);
+		mission_route::Position safe_point_position{};
+
+		if (!mission_route::extractSafePointPosition(safe_point_item, home_altitude_amsl, safe_point_position)) {
+			return false;
+		}
+
+		return mission_route::copyPositionToYawSetpoint(safe_point_position, position);
 	}
 
 	loiter_point_s chooseBestLandingApproachForTest(const land_approaches_s &vtol_land_approaches)
@@ -257,39 +199,11 @@ public:
 		_wind_sub.update();
 		return selectLandingApproach(destination);
 	}
-
-	bool scanVtolLandApproachBlockForTest(int safe_point_index, float home_altitude_amsl,
-					      land_approaches_s *result) const
-	{
-		return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, result);
-	}
-
-	bool findAssociatedSafePointIndexForTest(const PositionYawSetpoint &rtl_position, float home_altitude_amsl,
-			int &safe_point_index, mission_item_s &safe_point_item) const
-	{
-		return findAssociatedSafePointIndex(rtl_position, home_altitude_amsl, safe_point_index, safe_point_item);
-	}
-
-	loiter_point_s makeVtolLandApproachPointForTest(const mission_item_s &mission_item, float home_altitude_amsl) const
-	{
-		return makeVtolLandApproachPoint(mission_item, home_altitude_amsl);
-	}
-
-private:
-	navigator_test::VectorMissionItemStore _safe_point_store{};
 };
 
-/**
- * @brief Shared fixture for RTL helper tests.
- */
-class RTLTest : public ::testing::Test
+class RTLTest : public NavigatorDatamanTestBase
 {
 protected:
-	static void SetUpTestSuite()
-	{
-		(void)testDatamanRuntime();
-	}
-
 	Navigator _navigator{};
 	RTLTestPeer _rtl{&_navigator};
 
@@ -298,7 +212,14 @@ protected:
 		param_control_autosave(false);
 		param_reset_all();
 
-		_rtl.resetSafePointStatsForTest();
+		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_SAFE_POINTS_0));
+
+		mission_stats_entry_s empty_stats{};
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
+						      reinterpret_cast<uint8_t *>(&empty_stats), sizeof(empty_stats)));
+
+		_navigator.get_mission_route_cache().invalidate();
+
 		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
 		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		publishWind(0.f, 0.f);
@@ -306,7 +227,7 @@ protected:
 
 	void TearDown() override
 	{
-		_rtl.resetSafePointStatsForTest();
+		_navigator.get_mission_route_cache().invalidate();
 
 		if (_home_pub != nullptr) {
 			orb_unadvertise(_home_pub);
@@ -324,6 +245,33 @@ protected:
 		}
 
 		param_control_autosave(true);
+	}
+
+	void loadSafePointsIntoRouteCache(const std::vector<mission_item_s> &items)
+	{
+		for (size_t i = 0; i < items.size(); ++i) {
+			mission_item_s copy = items[i];
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_0, static_cast<uint32_t>(i),
+							      reinterpret_cast<uint8_t *>(&copy), sizeof(copy)));
+		}
+
+		mission_stats_entry_s stats{};
+		stats.num_items = static_cast<uint16_t>(items.size());
+		stats.opaque_id = ++_safe_points_opaque_id;
+		stats.dataman_id = DM_KEY_SAFE_POINTS_0;
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_SAFE_POINTS_STATE, 0,
+						      reinterpret_cast<uint8_t *>(&stats), sizeof(stats)));
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.safe_points_id = ++_safe_points_id;
+		mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+
+		MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
+		mission_route_cache.invalidate();
+		ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
+				[&] { return mission_route_cache.safePointsReady(); }))
+				<< "test safe points did not load";
 	}
 
 	void publishHomePosition(const PositionYawSetpoint &position)
@@ -386,6 +334,9 @@ protected:
 	orb_advert_t _home_pub{nullptr};
 	orb_advert_t _vehicle_status_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
+	DatamanClient _dataman_client{};
+	uint32_t _safe_points_id{0};
+	uint32_t _safe_points_opaque_id{0};
 };
 
 // WHY: No land point means no usable approach bearing.
@@ -427,9 +378,6 @@ TEST_F(RTLTest, ChooseBestLandingApproachUsesLandLocationAsBearingOrigin)
 	expectLoiterPointNear(selected_approach, geometry.north);
 }
 
-/**
- * @brief Vehicle-state cases for selectLandingApproach().
- */
 class SelectLandingApproachVehicleStateTest :
 	public RTLTest,
 	public ::testing::WithParamInterface<VehicleStateCase>
@@ -444,7 +392,7 @@ TEST_P(SelectLandingApproachVehicleStateTest, SelectLandingApproachHonorsVehicle
 
 	// GIVEN: One valid approach block, a 60 degree wind, and one vehicle state.
 	const ApproachGeometry geometry = makeApproachGeometry();
-	_rtl.setSafePointsForTest({
+	loadSafePointsIntoRouteCache({
 		makeSafePointItem(geometry.land.lat, geometry.land.lon, geometry.land.alt, NAV_FRAME_GLOBAL),
 		makeLandApproachItem(geometry.north.lat, geometry.north.lon, geometry.north.alt, kApproachRadius),
 		makeLandApproachItem(geometry.south.lat, geometry.south.lon, geometry.south.alt, kApproachRadius),
@@ -487,7 +435,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 	const PositionYawSetpoint land_2 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
 	const PositionYawSetpoint loiter_3 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt + 40.f);
 
-	_rtl.setSafePointsForTest({
+	VectorProvider provider({}, {
 		makeSafePointItem(land_1.lat, land_1.lon, land_1.alt, NAV_FRAME_GLOBAL),
 		makeLandApproachItem(loiter_1.lat, loiter_1.lon, loiter_1.alt, kApproachRadius),
 		makeLandApproachItem(loiter_2.lat, loiter_2.lon, loiter_2.alt, kApproachRadius),
@@ -495,10 +443,9 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockStopsAtNextRallyPoint)
 		makeLandApproachItem(loiter_3.lat, loiter_3.lon, loiter_3.alt, kApproachRadius),
 	});
 
-	land_approaches_s scanned_block{};
-
 	// WHEN: The first block is scanned.
-	const bool found_approach = _rtl.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	land_approaches_s scanned_block{};
+	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
 
 	// THEN: Only the first two loiters are returned.
 	ASSERT_TRUE(found_approach);
@@ -531,12 +478,11 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockCapsApproachCount)
 		mission_items.push_back(makeLandApproachItem(approach.lat, approach.lon, approach.alt, kApproachRadius));
 	}
 
-	_rtl.setSafePointsForTest(mission_items);
-
-	land_approaches_s scanned_block{};
+	VectorProvider provider({}, mission_items);
 
 	// WHEN: The block is scanned.
-	const bool found_approach = _rtl.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	land_approaches_s scanned_block{};
+	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
 
 	// THEN: The result stops at the hard limit.
 	ASSERT_TRUE(found_approach);
@@ -554,16 +500,15 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockBeforeNextRallyPoint)
 	const PositionYawSetpoint land_2 = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
 	const PositionYawSetpoint loiter = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 150.f, 0.f, kAlt + 20.f);
 
-	_rtl.setSafePointsForTest({
+	VectorProvider provider({}, {
 		makeSafePointItem(land_1.lat, land_1.lon, land_1.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(land_2.lat, land_2.lon, land_2.alt, NAV_FRAME_GLOBAL),
 		makeLandApproachItem(loiter.lat, loiter.lon, loiter.alt, kApproachRadius),
 	});
 
-	land_approaches_s scanned_block{};
-
 	// WHEN: The first block is scanned.
-	const bool found_approach = _rtl.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	land_approaches_s scanned_block{};
+	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
 
 	// THEN: It stays empty.
 	EXPECT_FALSE(found_approach);
@@ -577,14 +522,13 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
 	// GIVEN: A mission that ends with a rally point.
 	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 
-	_rtl.setSafePointsForTest({
+	VectorProvider provider({}, {
 		makeSafePointItem(land.lat, land.lon, land.alt, NAV_FRAME_GLOBAL),
 	});
 
-	land_approaches_s scanned_block{};
-
 	// WHEN: Its block is scanned.
-	const bool found_approach = _rtl.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	land_approaches_s scanned_block{};
+	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
 
 	// THEN: It is empty.
 	EXPECT_FALSE(found_approach);
@@ -592,7 +536,7 @@ TEST_F(RTLTest, ScanVtolLandApproachBlockHandlesEmptyBlockAtMissionEnd)
 }
 
 /**
- * @brief Read-failure cases for scanVtolLandApproachBlock().
+ * @brief Read-failure cases while scanning a safe-point approach block.
  */
 class ScanVtolLandApproachBlockReadFailureTest :
 	public RTLTest,
@@ -616,13 +560,11 @@ TEST_P(ScanVtolLandApproachBlockReadFailureTest, ScanVtolLandApproachBlockHandle
 		makeLandApproachItem(loiter_2.lat, loiter_2.lon, loiter_2.alt, kApproachRadius),
 	};
 
-	_rtl.setSafePointsForTest(mission_items);
-	_rtl.setLoadFailureIndices({test_case.failure_index});
-
-	land_approaches_s scanned_block{};
+	VectorProvider provider(std::vector<mission_item_s> {}, mission_items, {}, {test_case.failure_index});
 
 	// WHEN: The block scan hits a read failure.
-	const bool found_approach = _rtl.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
+	land_approaches_s scanned_block{};
+	const bool found_approach = provider.scanVtolLandApproachBlockForTest(0, kAlt, &scanned_block);
 
 	// THEN: The scan stops without inventing extra approaches.
 	EXPECT_EQ(found_approach, test_case.expected_found);
@@ -646,122 +588,98 @@ INSTANTIATE_TEST_SUITE_P(
 	return std::string(param_info.param.test_name);
 });
 
+class FindAssociatedSafePointTest : public ::testing::Test {};
+
 // WHY: Association is distance-limited.
 // WHAT: A rally point outside the 10 m window should be skipped.
-TEST_F(RTLTest, FindAssociatedSafePointIndexRejectsFarSafePoints)
+TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexRejectsFarSafePoints)
 {
 	// GIVEN: One rally point outside the threshold and one inside.
 	const PositionYawSetpoint rtl_destination = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const PositionYawSetpoint outside_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 10.25f, 0.f, kAlt);
 	const PositionYawSetpoint inside_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 9.75f, kAlt);
 
-	_rtl.setSafePointsForTest({
+	VectorProvider provider({}, {
 		makeSafePointItem(outside_safe_point.lat, outside_safe_point.lon, outside_safe_point.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(inside_safe_point.lat, inside_safe_point.lon, inside_safe_point.alt, NAV_FRAME_GLOBAL),
 	});
 
-	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
-
 	// WHEN: The association lookup runs.
-	const bool found_safe_point = _rtl.findAssociatedSafePointIndexForTest(rtl_destination, kAlt, safe_point_index,
-				      safe_point_item);
+	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
 
 	// THEN: The nearby rally point is selected.
-	ASSERT_TRUE(found_safe_point);
-	EXPECT_EQ(safe_point_index, 1);
-	EXPECT_NEAR(safe_point_item.lat, inside_safe_point.lat, 1e-9);
-	EXPECT_NEAR(safe_point_item.lon, inside_safe_point.lon, 1e-9);
-	EXPECT_NEAR(safe_point_item.altitude, inside_safe_point.alt, 0.01f);
+	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
+	EXPECT_NEAR(vtol_land_approaches.land_location_lat_lon(0), inside_safe_point.lat, 1e-9);
+	EXPECT_NEAR(vtol_land_approaches.land_location_lat_lon(1), inside_safe_point.lon, 1e-9);
 }
 
 // WHY: The first valid nearby rally point owns the block.
 // WHAT: A later match should not replace it.
-TEST_F(RTLTest, FindAssociatedSafePointIndexReturnsFirstMatch)
+TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexReturnsFirstMatch)
 {
 	// GIVEN: Two nearby valid rally points.
 	const PositionYawSetpoint rtl_destination = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const PositionYawSetpoint first_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 4.f, 0.f, kAlt);
 	const PositionYawSetpoint second_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 5.f, kAlt);
 
-	_rtl.setSafePointsForTest({
+	VectorProvider provider({}, {
 		makeSafePointItem(first_safe_point.lat, first_safe_point.lon, first_safe_point.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(second_safe_point.lat, second_safe_point.lon, second_safe_point.alt, NAV_FRAME_GLOBAL),
 	});
 
-	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
-
 	// WHEN: The association lookup runs.
-	const bool found_safe_point = _rtl.findAssociatedSafePointIndexForTest(rtl_destination, kAlt, safe_point_index,
-				      safe_point_item);
+	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
 
 	// THEN: The first match is returned.
-	ASSERT_TRUE(found_safe_point);
-	EXPECT_EQ(safe_point_index, 0);
-	EXPECT_NEAR(safe_point_item.lat, first_safe_point.lat, 1e-9);
-	EXPECT_NEAR(safe_point_item.lon, first_safe_point.lon, 1e-9);
-	EXPECT_NEAR(safe_point_item.altitude, first_safe_point.alt, 0.01f);
+	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
+	EXPECT_NEAR(vtol_land_approaches.land_location_lat_lon(0), first_safe_point.lat, 1e-9);
+	EXPECT_NEAR(vtol_land_approaches.land_location_lat_lon(1), first_safe_point.lon, 1e-9);
 }
 
 // WHY: Association reads can fail too.
 // WHAT: A failed load should stop the search and return no match.
-TEST_F(RTLTest, FindAssociatedSafePointIndexHandlesReadFailure)
+TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexHandlesReadFailure)
 {
 	// GIVEN: A matching rally point hidden behind a failed read.
 	const PositionYawSetpoint rtl_destination = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const PositionYawSetpoint skipped_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 4.f, 0.f, kAlt);
 	const PositionYawSetpoint later_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 5.f, kAlt);
 
-	_rtl.setSafePointsForTest({
+	const std::vector<mission_item_s> safe_points{
 		makeSafePointItem(skipped_safe_point.lat, skipped_safe_point.lon, skipped_safe_point.alt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(later_safe_point.lat, later_safe_point.lon, later_safe_point.alt, NAV_FRAME_GLOBAL),
-	});
-	_rtl.setLoadFailureIndices({0});
-
-	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	};
+	VectorProvider provider(std::vector<mission_item_s> {}, safe_points, {}, {0});
 
 	// WHEN: The association lookup hits the failed read.
-	const bool found_safe_point = _rtl.findAssociatedSafePointIndexForTest(rtl_destination, kAlt, safe_point_index,
-				      safe_point_item);
+	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
 
 	// THEN: The search stops and reports no match.
-	EXPECT_FALSE(found_safe_point);
-	EXPECT_EQ(safe_point_index, -1);
+	EXPECT_FALSE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
 }
 
 // WHY: An invalid rally point should not block the next one.
 // WHAT: Association should skip bad entries and keep scanning.
-TEST_F(RTLTest, FindAssociatedSafePointIndexSkipsInvalidRallyPoints)
+TEST_F(FindAssociatedSafePointTest, FindAssociatedSafePointIndexSkipsInvalidRallyPoints)
 {
 	// GIVEN: One invalid nearby rally point followed by a valid nearby rally point.
 	const PositionYawSetpoint rtl_destination = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	const PositionYawSetpoint valid_safe_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 5.f, kAlt);
 
-	_rtl.setSafePointsForTest({
+	VectorProvider provider({}, {
 		makeSafePointItem(91.0, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
 		makeSafePointItem(valid_safe_point.lat, valid_safe_point.lon, valid_safe_point.alt, NAV_FRAME_GLOBAL),
 	});
 
-	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
-
 	// WHEN: The association lookup runs.
-	const bool found_safe_point = _rtl.findAssociatedSafePointIndexForTest(rtl_destination, kAlt, safe_point_index,
-				      safe_point_item);
+	const land_approaches_s vtol_land_approaches = provider.getVtolLandApproachesNearLocation(rtl_destination, kAlt);
 
 	// THEN: The valid rally point is returned.
-	ASSERT_TRUE(found_safe_point);
-	EXPECT_EQ(safe_point_index, 1);
-	EXPECT_NEAR(safe_point_item.lat, valid_safe_point.lat, 1e-9);
-	EXPECT_NEAR(safe_point_item.lon, valid_safe_point.lon, 1e-9);
-	EXPECT_NEAR(safe_point_item.altitude, valid_safe_point.alt, 0.01f);
+	ASSERT_TRUE(vtol_land_approaches.land_location_lat_lon.isAllFinite());
+	EXPECT_NEAR(vtol_land_approaches.land_location_lat_lon(0), valid_safe_point.lat, 1e-9);
+	EXPECT_NEAR(vtol_land_approaches.land_location_lat_lon(1), valid_safe_point.lon, 1e-9);
 }
 
-/**
- * @brief Input cases for extractValidSafePointPosition().
- */
 class ExtractValidSafePointPositionTest :
 	public RTLTest,
 	public ::testing::WithParamInterface<ExtractValidSafePointPositionCase>
@@ -915,11 +833,21 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	const mission_item_s relative_int_item = makeLandApproachItem(relative_position.lat, relative_position.lon, 25.f,
 			kApproachRadius, NAV_FRAME_GLOBAL_RELATIVE_ALT_INT);
 
-	// WHEN: The mission items are converted.
-	const loiter_point_s absolute_point = _rtl.makeVtolLandApproachPointForTest(absolute_item, kAlt);
-	const loiter_point_s absolute_int_point = _rtl.makeVtolLandApproachPointForTest(absolute_int_item, kAlt);
-	const loiter_point_s relative_point = _rtl.makeVtolLandApproachPointForTest(relative_item, kAlt);
-	const loiter_point_s relative_int_point = _rtl.makeVtolLandApproachPointForTest(relative_int_item, kAlt);
+	VectorProvider provider({}, {
+		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
+		absolute_item,
+		absolute_int_item,
+		relative_item,
+		relative_int_item,
+	});
+
+	// WHEN: The mission items are converted while reading the approach block.
+	land_approaches_s vtol_land_approaches{};
+	provider.scanVtolLandApproachBlockForTest(0, kAlt, &vtol_land_approaches);
+	const loiter_point_s absolute_point = vtol_land_approaches.approaches[0];
+	const loiter_point_s absolute_int_point = vtol_land_approaches.approaches[1];
+	const loiter_point_s relative_point = vtol_land_approaches.approaches[2];
+	const loiter_point_s relative_int_point = vtol_land_approaches.approaches[3];
 
 	// THEN: The AMSL altitude is resolved correctly.
 	ASSERT_TRUE(absolute_point.isValid());

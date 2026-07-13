@@ -42,3 +42,16 @@ config NAVIGATOR_GEOFENCE_MAX_NODES
 	---help---
 		Max number of geofence vertices which the RTL planner can use.
 		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
+
+config RTL_MISSION_CACHE_SIZE
+	int "Maximum number of mission items cached for route planning"
+	default 100 if BOARD_TESTING
+	default 0
+	range 0 1000
+	depends on MODULES_NAVIGATOR
+	---help---
+		Maximum number of mission items reserved in RAM for full-route planning helpers.
+		Set this to 0 to disable the route-mission cache on boards that have not been sized for the extra RAM.
+		Each reserved cached item uses approximately 76 bytes of heap for the lifetime of Navigator,
+		so the cache costs roughly 76 * CONFIG_RTL_MISSION_CACHE_SIZE bytes. The upper bound mirrors the
+		largest supported mission (CONFIG_NUM_MISSION_ITMES_SUPPORTED).

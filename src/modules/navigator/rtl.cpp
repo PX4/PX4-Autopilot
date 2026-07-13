@@ -43,6 +43,8 @@
 #include "rtl.h"
 #include "navigator.h"
 #include "mission_block.h"
+#include "mission_route_cache.h"
+#include "mission_route_types.h"
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
@@ -51,9 +53,18 @@ using namespace time_literals;
 using namespace math;
 using matrix::wrap_pi;
 
-static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{10.0f}; // [m] We don't consider safe points valid if the distance from the current home to the safe point is smaller than this distance
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
-static constexpr double NULL_ISLAND_THRESHOLD_DEG{1e-12};
+
+// Named constants for RTL_TYPE parameter values (must match value tags in rtl_params.yaml).
+static constexpr int RTL_TYPE_MISSION_FAST = 2;
+static constexpr int RTL_TYPE_DIRECT_WITH_MISSION_LAND = 3;
+static constexpr int RTL_TYPE_MISSION_FAST_OR_REVERSE = 4;
+static constexpr int RTL_TYPE_SAFE_POINT_DIRECT = 5;
+static constexpr hrt_abstime RTL_REPLAN_INTERVAL{2_s};
+static constexpr uint8_t RTL_STATUS_NO_SAFE_POINT{UINT8_MAX};
+static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
+	      "rtl_status.safe_point_index must represent every configured safe-point slot");
+
 
 RTL::RTL(Navigator *navigator) :
 	NavigatorMode(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
@@ -65,98 +76,7 @@ RTL::RTL(Navigator *navigator) :
 
 void RTL::updateDatamanCache()
 {
-	bool success;
-
-	switch (_dataman_state) {
-
-	case DatamanState::UpdateRequestWait:
-
-		if (_initiate_safe_points_updated) {
-			_initiate_safe_points_updated = false;
-			_dataman_state	= DatamanState::Read;
-		}
-
-		break;
-
-	case DatamanState::Read:
-
-		_dataman_state	= DatamanState::ReadWait;
-		success = _dataman_client_safepoint.readAsync(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&_stats),
-				sizeof(mission_stats_entry_s));
-
-		if (!success) {
-			_error_state = DatamanState::Read;
-			_dataman_state = DatamanState::Error;
-		}
-
-		break;
-
-	case DatamanState::ReadWait:
-
-		_dataman_client_safepoint.update();
-
-		if (_dataman_client_safepoint.lastOperationCompleted(success)) {
-
-			if (!success) {
-				_error_state = DatamanState::ReadWait;
-				_dataman_state = DatamanState::Error;
-
-			} else if (_opaque_id != _stats.opaque_id) {
-
-				_opaque_id = _stats.opaque_id;
-				_safe_points_updated = false;
-
-				_dataman_cache_safepoint.invalidate();
-
-				if (_dataman_cache_safepoint.size() != _stats.num_items) {
-					_dataman_cache_safepoint.resize(_stats.num_items);
-				}
-
-				for (int index = 0; index < _dataman_cache_safepoint.size(); ++index) {
-					_dataman_cache_safepoint.load(static_cast<dm_item_t>(_stats.dataman_id), index);
-				}
-
-				_dataman_state = DatamanState::Load;
-
-			} else {
-				_dataman_state = DatamanState::UpdateRequestWait;
-			}
-		}
-
-		break;
-
-	case DatamanState::Load:
-
-		_dataman_cache_safepoint.update();
-
-		if (!_dataman_cache_safepoint.isLoading()) {
-			_dataman_state = DatamanState::UpdateRequestWait;
-			_safe_points_updated = true;
-		}
-
-		break;
-
-	case DatamanState::Error:
-		PX4_ERR("Safe points update failed! state: %" PRIu8, static_cast<uint8_t>(_error_state));
-		_dataman_state = DatamanState::UpdateRequestWait;
-		break;
-
-	default:
-		break;
-
-	}
-
-	if (_mission_id != _mission_sub.get().mission_id) {
-		_mission_id = _mission_sub.get().mission_id;
-		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
-		_dataman_cache_landItem.invalidate();
-
-		if (_mission_sub.get().land_index > 0) {
-			_dataman_cache_landItem.load(dm_item, _mission_sub.get().land_index);
-		}
-	}
-
-	_dataman_cache_landItem.update();
+	_navigator->get_mission_route_cache().update(_mission_sub.get());
 }
 
 void RTL::on_inactive()
@@ -180,7 +100,7 @@ void RTL::on_inactive()
 	// Limit inactive calculation to 0.5Hz
 	hrt_abstime now{hrt_absolute_time()};
 
-	if ((now - _destination_check_time) > 2_s) {
+	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
 		publishRemainingTimeEstimate();
@@ -227,11 +147,17 @@ void RTL::on_activation()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
+	updateDatamanCache();
+
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
-	case RtlType::RTL_DIRECT_MISSION_LAND:	// Fall through
-	case RtlType::RTL_MISSION_FAST: // Fall through
+	case RtlType::RTL_DIRECT_MISSION_LAND:
+		[[fallthrough]];
+
+	case RtlType::RTL_MISSION_FAST:
+		[[fallthrough]];
+
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
@@ -270,8 +196,12 @@ void RTL::on_active()
 	updateDatamanCache();
 
 	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST: // Fall through
-	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
+	case RtlType::RTL_MISSION_FAST:
+		[[fallthrough]];
+
+	case RtlType::RTL_MISSION_FAST_REVERSE:
+		[[fallthrough]];
+
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->run(true);
@@ -296,7 +226,7 @@ void RTL::on_active()
 	// Keep publishing remaining time estimates every 2 seconds
 	hrt_abstime now{hrt_absolute_time()};
 
-	if ((now - _destination_check_time) > 2_s) {
+	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
 		publishRemainingTimeEstimate();
 	}
@@ -329,8 +259,9 @@ bool RTL::isLanding()
 
 void RTL::setRtlTypeAndDestination()
 {
-	uint8_t safe_point_index = UINT8_MAX;
+	uint8_t safe_point_index = RTL_STATUS_NO_SAFE_POINT;
 	RtlType new_rtl_type{RtlType::RTL_DIRECT};
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	// init destination with Home (used also with Type 2 and 4 as backup)
 	DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
@@ -345,7 +276,7 @@ void RTL::setRtlTypeAndDestination()
 	landing_loiter.lon = destination.lon;
 	landing_loiter.height_m = NAN;
 
-	if (_param_rtl_type.get() == 2) {
+	if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) {
 		if (hasMissionLandStart()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;
 
@@ -357,7 +288,7 @@ void RTL::setRtlTypeAndDestination()
 			new_rtl_type = RtlType::RTL_DIRECT;
 		}
 
-	} else if (_param_rtl_type.get() == 4) {
+	} else if (_param_rtl_type.get() == RTL_TYPE_MISSION_FAST_OR_REVERSE) {
 		if (hasMissionLandStart() && reverseIsFurther()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;
 
@@ -379,13 +310,16 @@ void RTL::setRtlTypeAndDestination()
 		} else {
 
 			new_rtl_type = RtlType::RTL_DIRECT;
-			landing_loiter = selectLandingApproach(destination);
+		}
+	}
 
-			if (!landing_loiter.isValid()) {
-				landing_loiter.lat = destination.lat;
-				landing_loiter.lon = destination.lon;
-				landing_loiter.height_m = NAN;
-			}
+	if (new_rtl_type == RtlType::RTL_DIRECT) {
+		landing_loiter = selectLandingApproach(destination);
+
+		if (!landing_loiter.isValid()) {
+			landing_loiter.lat = destination.lat;
+			landing_loiter.lon = destination.lon;
+			landing_loiter.height_m = NAN;
 		}
 	}
 
@@ -434,8 +368,9 @@ void RTL::setRtlTypeAndDestination()
 
 	// Publish rtl status
 	rtl_status_s rtl_status{};
-	rtl_status.safe_points_id = _safe_points_id;
-	rtl_status.is_evaluation_pending = _dataman_state != DatamanState::UpdateRequestWait;
+	rtl_status.safe_points_id = mission_route_cache.safePointsId();
+	rtl_status.is_evaluation_pending = mission_route_cache.safePointUpdatePending()
+					   || mission_route_cache.missionLandItemUpdatePending();
 	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
 	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
 	rtl_status.safe_point_index = safe_point_index;
@@ -447,62 +382,69 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 {
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	PositionYawSetpoint safe_point{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
+	_one_rally_point_has_land_approach = false;
 
-	if (_safe_points_updated) {
-		_one_rally_point_has_land_approach = false;
+	if (!mission_route_cache.safePointsReady()) {
+		return safe_point;
+	}
 
-		for (int current_seq = 0; current_seq < _stats.num_items; ++current_seq) {
-			mission_item_s mission_safe_point;
+	for (int current_seq = 0; current_seq < mission_route_cache.safePointCount(); ++current_seq) {
+		mission_item_s mission_safe_point;
 
-			const bool success = loadSafePointItemWait(current_seq, mission_safe_point, 500_ms);
+		if (!mission_route_cache.loadSafePointItem(current_seq, mission_safe_point)) {
+			PX4_ERR("dm_read failed");
+			continue;
+		}
 
-			if (!success) {
-				PX4_ERR("dm_read failed");
-				continue;
-			}
+		// Only look at rally points
+		if (mission_safe_point.nav_cmd != NAV_CMD_RALLY_POINT) {
+			continue;
+		}
 
-			// Only look at rally points
-			if (mission_safe_point.nav_cmd != NAV_CMD_RALLY_POINT) {
-				continue;
-			}
+		mission_route::Position safe_point_position{};
 
-			PositionYawSetpoint safepoint_position{};
+		if (!mission_route::extractSafePointPosition(mission_safe_point, _home_pos_sub.get().alt, safe_point_position)) {
+			continue;
+		}
 
-			if (!extractValidSafePointPosition(mission_safe_point, _home_pos_sub.get().alt, safepoint_position)) {
-				continue;
-			}
+		PositionYawSetpoint safepoint_position{};
 
-			// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
-			const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
-						   safepoint_position.lat, safepoint_position.lon) > MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES;
+		if (!mission_route::copyPositionToYawSetpoint(safe_point_position, safepoint_position)) {
+			continue;
+		}
 
-			if (far_from_home || (_param_rtl_type.get() == 5)) {
-				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-						 safepoint_position.lat, safepoint_position.lon)};
+		// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
+		const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
+					   safepoint_position.lat, safepoint_position.lon) > mission_route::kLandApproachAssociationDistanceM;
 
-				const bool current_safe_point_has_approaches{hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)};
+		if (far_from_home || (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT)) {
+			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+					 safepoint_position.lat, safepoint_position.lon)};
 
-				_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
+			const bool current_safe_point_has_approaches{
+				mission_route_cache.hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)
+			};
 
-				if (((dist + MIN_DIST_THRESHOLD) < min_dist)
-				    && (!vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0) || current_safe_point_has_approaches)) {
-					min_dist = dist;
-					safe_point = safepoint_position;
-					safe_point_index = current_seq;
+			_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
+
+			if (((dist + MIN_DIST_THRESHOLD) < min_dist)
+			    && (!vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0) || current_safe_point_has_approaches)) {
+				if (current_seq >= static_cast<int>(RTL_STATUS_NO_SAFE_POINT)) {
+					PX4_ERR("Safe point index %d does not fit rtl_status.safe_point_index", current_seq);
+					continue;
 				}
+
+				min_dist = dist;
+				safe_point = safepoint_position;
+				safe_point_index = static_cast<uint8_t>(current_seq);
 			}
 		}
 	}
 
 	return safe_point;
-}
-
-bool RTL::loadSafePointItemWait(int seq, mission_item_s &item, hrt_abstime timeout) const
-{
-	return _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_stats.dataman_id), seq,
-			reinterpret_cast<uint8_t *>(&item), sizeof(mission_item_s), timeout);
 }
 
 void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index)
@@ -513,10 +455,11 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 	float min_dist = FLT_MAX;
 
-	if (_param_rtl_type.get() != 5) {
-		_home_has_land_approach = hasVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+	if (_param_rtl_type.get() != RTL_TYPE_SAFE_POINT_DIRECT) {
+		_home_has_land_approach = mission_route_cache.hasVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
 
 		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
 		const bool required_approach_missing_for_home = (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1) && !_home_has_land_approach);
@@ -530,32 +473,34 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		}
 
 		// Mission landing
-		if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3) || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
-			mission_item_s land_mission_item;
-			const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
-			bool success = _dataman_cache_landItem.loadWait(dm_item, _mission_sub.get().land_index,
-					reinterpret_cast<uint8_t *>(&land_mission_item), sizeof(mission_item_s), 500_ms);
+		if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == RTL_TYPE_DIRECT_WITH_MISSION_LAND)
+		     || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
+			mission_item_s land_mission_item{};
+			int32_t land_index = -1;
+			const bool success = mission_route_cache.getMissionLandItem(land_index, land_mission_item);
 
 			if (!success) {
-				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+
+				/* Not supposed to happen unless the datamanager can't access the SD card, etc. */
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
 				events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
 					     "Mission land item could not be read");
-			}
 
-			float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
+			} else {
+				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
-			if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
-				if (_param_rtl_type.get() != 0) {
-					min_dist = dist;
+				if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
+					if (_param_rtl_type.get() != 0) {
+						min_dist = dist;
 
-				} else {
-					// Mission landing is not allowed, but home has no approaches. Still use mission landing.
-					min_dist = FLT_MAX;
+					} else {
+						// Mission landing is not allowed, but home has no approaches. Still use mission landing.
+						min_dist = FLT_MAX;
+					}
+
+					setLandPosAsDestination(destination, land_mission_item);
+					destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
 				}
-
-				setLandPosAsDestination(destination, land_mission_item);
-				destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
 			}
 		}
 	}
@@ -563,11 +508,11 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 	// Safe/rally points
 	PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, safe_point_index);
 
-	if (safe_point_index != UINT8_MAX) {
+	if (safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
 		destination = safe_point;
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
-	} else if (_param_rtl_type.get() == 5) {
+	} else if (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT) {
 		// for RTL_TYPE=5: if no rally point is found fallback to current position
 		destination.alt = _global_pos_sub.get().alt;
 		destination.lat = _global_pos_sub.get().lat;
@@ -582,44 +527,6 @@ void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_ite
 			   _home_pos_sub.get().alt : land_mission_item.altitude;
 	rtl_position.lat = land_mission_item.lat;
 	rtl_position.lon = land_mission_item.lon;
-}
-
-bool RTL::extractValidSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl,
-					PositionYawSetpoint &position) const
-{
-	if (safe_point_item.nav_cmd != NAV_CMD_RALLY_POINT) {
-		return false;
-	}
-
-	// TODO: handle all possible safe_point_item.frame cases
-	switch (safe_point_item.frame) {
-	case NAV_FRAME_GLOBAL:
-	case NAV_FRAME_GLOBAL_INT:
-		position.alt = safe_point_item.altitude;
-		break;
-
-	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
-	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
-		if (!PX4_ISFINITE(home_altitude_amsl)) {
-			return false;
-		}
-
-		position.alt = safe_point_item.altitude + home_altitude_amsl; // alt of safe point is rel to home
-		break;
-
-	default:
-		return false;
-	}
-
-	position.lat = safe_point_item.lat;
-	position.lon = safe_point_item.lon;
-	position.yaw = NAN;
-
-	// basic checks protect against invalid data in case of missing init or cache read errors
-	return PX4_ISFINITE(position.lat) && PX4_ISFINITE(position.lon) && PX4_ISFINITE(position.alt)
-	       && !((fabs(position.lat) < NULL_ISLAND_THRESHOLD_DEG) &&
-		    (fabs(position.lon) < NULL_ISLAND_THRESHOLD_DEG))
-	       && (fabs(position.lat) <= 90.0) && (fabs(position.lon) <= 180.0);
 }
 
 float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
@@ -735,130 +642,6 @@ bool RTL::reverseIsFurther() const
 	return (_mission_sub.get().land_start_index - _mission_sub.get().current_seq) < _mission_sub.get().current_seq;
 }
 
-
-bool RTL::findAssociatedSafePointIndex(const PositionYawSetpoint &rtl_position, float home_altitude_amsl,
-				       int &safe_point_index, mission_item_s &safe_point_item) const
-{
-	if (!_safe_points_updated) {
-		return false;
-	}
-
-	// The first nearby valid rally point defines the block that belongs to this destination.
-	for (int current_seq = 0; current_seq < _stats.num_items; ++current_seq) {
-		mission_item_s mission_item{};
-
-		const bool success = loadSafePointItemWait(current_seq, mission_item, 500_ms);
-
-		if (!success) {
-			PX4_ERR("dm_read failed");
-			break;
-		}
-
-		if (mission_item.nav_cmd != NAV_CMD_RALLY_POINT) {
-			continue;
-		}
-
-		PositionYawSetpoint safe_point_position{};
-
-		// Skip invalid rally points so later valid rally points are considered
-		if (!extractValidSafePointPosition(mission_item, home_altitude_amsl, safe_point_position)) {
-			continue;
-		}
-
-		const float dist_to_safepoint = get_distance_to_next_waypoint(safe_point_position.lat, safe_point_position.lon,
-						rtl_position.lat, rtl_position.lon);
-
-		if (dist_to_safepoint < MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES) {
-			safe_point_index = current_seq;
-			safe_point_item = mission_item;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool RTL::scanVtolLandApproachBlock(int safe_point_index, float home_altitude_amsl,
-				    land_approaches_s *result) const
-{
-	uint8_t valid_approach_counter = 0;
-
-	for (int current_seq = safe_point_index + 1; current_seq < _stats.num_items; ++current_seq) {
-		mission_item_s mission_item{};
-
-		const bool success = loadSafePointItemWait(current_seq, mission_item, 500_ms);
-
-		if (!success) {
-			PX4_ERR("dm_read failed");
-			break;
-		}
-
-		if (mission_item.nav_cmd == NAV_CMD_RALLY_POINT) {
-			// A rally point starts the next block, break
-			break;
-		}
-
-		if (mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT
-		    || valid_approach_counter >= land_approaches_s::num_approaches_max) {
-			continue;
-		}
-
-		const loiter_point_s approach = makeVtolLandApproachPoint(mission_item, home_altitude_amsl);
-
-		if (approach.isValid()) {
-			if (result) {
-				result->approaches[valid_approach_counter] = approach;
-				valid_approach_counter++;
-
-			} else {
-				return true; // Early exit for the check-only
-			}
-		}
-	}
-
-	return result ? (valid_approach_counter > 0) : false;
-}
-
-loiter_point_s RTL::makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl) const
-{
-	loiter_point_s approach{};
-	approach.lat = mission_item.lat;
-	approach.lon = mission_item.lon;
-	approach.height_m = MissionBlock::get_absolute_altitude_for_item(mission_item, home_altitude_amsl);
-	approach.loiter_radius_m = mission_item.loiter_radius;
-	return approach;
-}
-
-land_approaches_s RTL::getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
-		float home_altitude_amsl) const
-{
-	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
-
-	if (!findAssociatedSafePointIndex(rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)) {
-		return {};
-	}
-
-	land_approaches_s vtol_land_approaches{};
-	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_item.lat, safe_point_item.lon);
-	scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, &vtol_land_approaches);
-	return vtol_land_approaches;
-}
-
-bool RTL::hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position, float home_altitude_amsl) const
-{
-	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
-
-	return findAssociatedSafePointIndex(rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)
-	       && hasVtolLandApproachesAtSafePointIndex(safe_point_index, home_altitude_amsl);
-}
-
-bool RTL::hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const
-{
-	return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, nullptr);
-}
-
 loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination) const
 {
 	loiter_point_s landing_approach{};
@@ -869,7 +652,8 @@ loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination
 		return landing_approach;
 	}
 
-	const land_approaches_s vtol_land_approaches = getVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+	const land_approaches_s vtol_land_approaches =
+		_navigator->get_mission_route_cache().getVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
 
 	if (vtol_land_approaches.isAnyApproachValid()) {
 		landing_approach = chooseBestLandingApproach(vtol_land_approaches);
