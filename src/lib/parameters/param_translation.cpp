@@ -286,5 +286,25 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-07-13: translate COM_ARM_TRAFF (arming check only) to COM_TRAFF_AVOID (arming check + failsafe action)
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_ARM_TRAFF", node->name) == 0)) {
+			// old: 0 Disabled, 1 Warning only (arming allowed), 2 Enforce all modes, 3 Enforce mission only
+			// new: 0 Disabled, 1 Warning (arming allowed), 2 Error (arming blocked)
+			// COM_ARM_TRAFF never triggered an in-flight failsafe action, so the new failsafe
+			// action defaults to Warning either way; only the arming behavior is preserved.
+			if (node->i32 == 1) {
+				node->i32 = 1;
+
+			} else if (node->i32 >= 2) {
+				node->i32 = 2;
+			}
+
+			strcpy(node->name, "COM_TRAFF_AVOID");
+			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

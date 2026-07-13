@@ -167,6 +167,14 @@ private:
 		Land = 3,
 	};
 
+	enum class traffic_avoidance_unhealthy_failsafe_mode : int32_t {
+		Disabled = 0,
+		Warning = 1,
+		Error = 2,
+		Return = 3,
+		Land = 4,
+	};
+
 	enum class gps_redundancy_failsafe_mode : int32_t {
 		Warning = 0,
 		Return_mode = 1,
@@ -186,6 +194,7 @@ private:
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 	static ActionOptions fromOdidFailActParam(int param_value);
 	static ActionOptions fromParachuteActParam(int param_value);
+	static ActionOptions fromTrafficAvoidanceActParam(int param_value);
 	static ActionOptions fromGnssLossActParam(int param_value);
 
 	static bool isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter);
@@ -231,6 +240,7 @@ private:
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
 					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,
+					(ParamInt<px4::params::COM_TRAFF_AVOID>) _param_com_traff_avoid,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act
 				       );
 

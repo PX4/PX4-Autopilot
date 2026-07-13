@@ -572,19 +572,20 @@ parameters:
         4: Land
         5: Terminate
       default: 0
-    COM_ARM_TRAFF:
+    COM_TRAFF_AVOID:
       description:
-        short: Enable Traffic Avoidance system detection check
+        short: Traffic avoidance system requirement and failsafe
         long: |-
-          This check detects if a traffic avoidance system (ADSB/FLARM transponder)
-          is missing. Depending on the value of the parameter, the check can be
-          disabled, warn only, or deny arming.
+          Warn about, and optionally require, a traffic avoidance system (ADS-B/FLARM
+          transponder, detected via MAVLink heartbeats with a 3 second timeout), and
+          trigger a failsafe action when it is missing or lost in flight.
       type: enum
       values:
         0: Disabled
-        1: Warning only
-        2: Enforce for all modes
-        3: Enforce for mission modes only
+        1: Warning
+        2: Error
+        3: Return
+        4: Land
       default: 0
     COM_SPOOLUP_TIME:
       description:
@@ -606,8 +607,8 @@ parameters:
       description:
         short: Companion computer high-temperature warning threshold
         long: |-
-          
-          
+
+
           Arming is not prevented as the temperature typically drops in flight.
 
           Set to -1 to disable.

@@ -36,36 +36,44 @@
 
 void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	NavModes affected_modes{NavModes::None}; // COM_ARM_TRAFF 1 - warning only, arming allowed, affected_modes stays None
+	const int param_value = _param_com_traff_avoid.get();
 
-	switch (_param_com_arm_traff.get()) {
-	case 0:
-		return; // Check disabled
-
-	case 2:
-		affected_modes = NavModes::All; // Disallow arming for all modes
-		break;
-
-	case 3:
-		affected_modes = NavModes::Mission; // Disallow arming for mission
-		break;
+	if (param_value < 1) { // COM_TRAFF_AVOID 0 disables the check
+		return;
 	}
 
+	reporter.failsafeFlags().traffic_avoidance_unhealthy = !context.status().traffic_avoidance_system_present;
+
 	if (!context.status().traffic_avoidance_system_present) {
+		// 2 is failsafe::traffic_avoidance_unhealthy_failsafe_mode::Error (failsafe.h)
+		// keep this threshold in sync with that enum and with COM_TRAFF_AVOID's values in commander_params.yaml.
+		const bool block_arming = param_value >= 2;
+		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
+
 		/* EVENT
 		 * @description
 		 * Traffic avoidance system (ADSB/FLARM) failed to report. Make sure it is setup and connected properly.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ARM_TRAFF</param> parameter.
+		 * Configured by <param>COM_TRAFF_AVOID</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::traffic_avoidance,
-					    events::ID("check_traffic_avoidance_missing"),
-					    events::Log::Error, "Traffic avoidance system missing");
+		reporter.healthFailure(nav_modes, health_component_t::traffic_avoidance,
+				       events::ID("check_traffic_avoidance_missing"),
+				       log_level, "Traffic avoidance system missing");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Traffic avoidance system missing");
+			if (block_arming) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Traffic avoidance system missing");
+
+			} else {
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Traffic avoidance system missing");
+			}
 		}
+	}
+
+	if (context.status().traffic_avoidance_system_present) {
+		reporter.setIsPresent(health_component_t::traffic_avoidance);
 	}
 }

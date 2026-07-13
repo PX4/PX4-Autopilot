@@ -443,6 +443,36 @@ FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromTrafficAvoidanceActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (traffic_avoidance_unhealthy_failsafe_mode(param_value)) {
+	case traffic_avoidance_unhealthy_failsafe_mode::Disabled:
+	default:
+		options.action = Action::None;
+		break;
+
+	case traffic_avoidance_unhealthy_failsafe_mode::Warning:
+	case traffic_avoidance_unhealthy_failsafe_mode::Error:
+		options.action = Action::Warn;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	case traffic_avoidance_unhealthy_failsafe_mode::Return:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case traffic_avoidance_unhealthy_failsafe_mode::Land:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+	}
+
+	return options;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int param_value)
 {
 	ActionOptions options{};
@@ -639,6 +669,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	// Parachute system health failsafe
 	CHECK_FAILSAFE(status_flags, parachute_unhealthy, ActionOptions(fromParachuteActParam(_param_com_parachute.get())));
+
+	// Traffic avoidance system health failsafe
+	CHECK_FAILSAFE(status_flags, traffic_avoidance_unhealthy, ActionOptions(fromTrafficAvoidanceActParam(_param_com_traff_avoid.get())));
 
 	// Remote ID (Open Drone ID) loss failsafe
 	if (state.armed && _param_com_arm_odid.get() >= int32_t(open_drone_id_failsafe_mode::Return_mode)) {

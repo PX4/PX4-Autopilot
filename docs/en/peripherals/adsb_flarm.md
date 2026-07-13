@@ -176,21 +176,21 @@ These parameters use the same action scale:
 Most users can start with the default F3442 volume parameters and tune them only if needed.
 See [Detect and Avoid > F3442 Mode](../advanced_features/detect_and_avoid.md#f3442-mode), which also includes the zone-computation equations.
 
-### Arming Check
+### Arming Check and Failsafe
 
-PX4 can be configured to check for the presence of a traffic avoidance system (for example an ADS-B or FLARM receiver) before arming.
-This ensures that a traffic avoidance system is connected and functioning before flight.
+PX4 can be configured to warn about, or require, a traffic avoidance system (for example an ADS-B or FLARM receiver), and to trigger a failsafe if the system stops sending MAVLink heartbeats in flight.
 
 This check only verifies that a traffic source is present. It is separate from DAA rejecting arming because active traffic already requires an automatic action; that behavior is described in [Detect and Avoid > Arming, Preflight, and Ground Behavior](../advanced_features/detect_and_avoid.md#arming-preflight-and-ground-behavior).
 
-The check is configured using the [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) parameter:
+The behavior is configured using the [COM_TRAFF_AVOID](../advanced_config/parameter_reference.md#COM_TRAFF_AVOID) parameter:
 
-| Value | Description                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| 0     | Disabled (default). No check is performed.                                                                                 |
-| 1     | Warning only. A warning is issued if no traffic avoidance system is detected, but arming is allowed.                       |
-| 2     | Enforce for all modes. Arming is denied if no traffic avoidance system is detected, regardless of flight mode.             |
-| 3     | Enforce for mission modes only. Arming is denied if no traffic avoidance system is detected and a mission mode is planned. |
+| Value | Description                                                                                                                    |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Disabled (default). No check is performed.                                                                                     |
+| 1     | Warning (allow arming). Arming is allowed even if no traffic avoidance system is detected; a warning is issued if it is missing or lost in flight. |
+| 2     | Error (block arming). Arming is denied while no traffic avoidance system is detected, and a warning is issued if it is lost in flight. |
+| 3     | Return. Arming is denied while no traffic avoidance system is detected, and the vehicle returns if it is lost in flight.       |
+| 4     | Land. Arming is denied while no traffic avoidance system is detected, and the vehicle lands if it is lost in flight.           |
 
 When a traffic avoidance system is detected, the system tracks its presence with a 3-second timeout.
 If the system is lost or regained, corresponding events are logged ("Traffic avoidance system lost" / "Traffic avoidance system regained").
