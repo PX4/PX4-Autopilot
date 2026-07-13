@@ -160,6 +160,7 @@ Mavlink::~Mavlink()
 	}
 
 	if (_instance_id >= 0) {
+		LockGuard lg{mavlink_module_mutex};
 		mavlink_module_instances[_instance_id] = nullptr;
 	}
 
