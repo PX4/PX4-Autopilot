@@ -99,6 +99,14 @@ private:
 
 			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) { msg.flags |= ADSB_FLAGS_VALID_SQUAWK; }
 
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_SIMULATED) { msg.flags |= ADSB_FLAGS_SIMULATED; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VERTICAL_VELOCITY_VALID) { msg.flags |= ADSB_FLAGS_VERTICAL_VELOCITY_VALID; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_BARO_VALID) { msg.flags |= ADSB_FLAGS_BARO_VALID; }
+
+			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_SOURCE_UAT) { msg.flags |= ADSB_FLAGS_SOURCE_UAT; }
+
 			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
 			sent = true;
 		}
