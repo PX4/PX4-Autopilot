@@ -728,6 +728,39 @@ TEST_F(FailsafeTest, FallbackAltitudeUsesNavRclActParam)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 }
 
+TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int com_traff_avoid) {
+		param_set(param_handle(px4::params::COM_TRAFF_AVOID), &com_traff_avoid);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		failsafe_flags.traffic_avoidance_unhealthy = true;
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	EXPECT_EQ(selectedActionFor(0), FailsafeBase::Action::None); // Disabled
+	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::Warn); // Warning (arming allowed)
+	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Warn); // Warning (block arming) -- same in-flight action as 1
+	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::RTL);  // Return
+	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Land); // Land
+}
+
 TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)
 {
 	int nav_rcl_act = 2;
