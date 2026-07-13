@@ -32257,6 +32257,11 @@ This is the protocol used between the autopilot and a connected gimbal.
 
 Recommended is the MAVLink gimbal protocol v2 if the gimbal supports it.
 
+In AUX mode, the gimbal (and hence the gimbal manager) is only made
+available if at least one output channel is assigned a gimbal
+roll/pitch/yaw output function (checked once at startup, so newly
+assigned output functions require a reboot).
+
 **Values:**
 
 - `0`: AUX
