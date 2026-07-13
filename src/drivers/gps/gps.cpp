@@ -53,6 +53,7 @@
 #include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
@@ -70,15 +71,26 @@
 
 #include <lib/gnss/rtcm.h>
 
-#ifndef CONSTRAINED_FLASH
-# include "devices/src/ashtech.h"
-# include "devices/src/emlid_reach.h"
-# include "devices/src/mtk.h"
-# include "devices/src/femtomes.h"
-# include "devices/src/nmea.h"
+#include "devices/src/gps_helper.h"
 
-#endif // CONSTRAINED_FLASH
-#include "devices/src/ubx.h"
+#if defined(CONFIG_GPS_UBX)
+# include "devices/src/ubx.h"
+#endif
+#if defined(CONFIG_GPS_MTK)
+# include "devices/src/mtk.h"
+#endif
+#if defined(CONFIG_GPS_ASHTECH)
+# include "devices/src/ashtech.h"
+#endif
+#if defined(CONFIG_GPS_EMLIDREACH)
+# include "devices/src/emlid_reach.h"
+#endif
+#if defined(CONFIG_GPS_FEMTOMES)
+# include "devices/src/femtomes.h"
+#endif
+#if defined(CONFIG_GPS_NMEA)
+# include "devices/src/nmea.h"
+#endif
 
 #ifdef __PX4_LINUX
 #include <linux/spi/spidev.h>
@@ -101,6 +113,27 @@ enum class gps_driver_mode_t {
 	EMLIDREACH,
 	FEMTOMES,
 	NMEA,
+};
+
+// NMEA is excluded because it can produce false-positive detections.
+// The trailing None also supports builds without an auto-detectable protocol.
+static constexpr gps_driver_mode_t kAutoDetectModes[] = {
+#if defined(CONFIG_GPS_UBX)
+	gps_driver_mode_t::UBX,
+#endif
+#if defined(CONFIG_GPS_MTK)
+	gps_driver_mode_t::MTK,
+#endif
+#if defined(CONFIG_GPS_ASHTECH)
+	gps_driver_mode_t::ASHTECH,
+#endif
+#if defined(CONFIG_GPS_EMLIDREACH)
+	gps_driver_mode_t::EMLIDREACH,
+#endif
+#if defined(CONFIG_GPS_FEMTOMES)
+	gps_driver_mode_t::FEMTOMES,
+#endif
+	gps_driver_mode_t::None,
 };
 
 enum class gps_dump_comm_mode_t : int32_t {
@@ -190,7 +223,9 @@ private:
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
-	bool				_cfg_wiped{false};				///< flag to signal if the config was already wiped
+#if defined(CONFIG_GPS_UBX)
+	bool				_cfg_wiped {false};				///< flag to signal if the config was already wiped
+#endif
 	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
 
 	gps_driver_mode_t		_mode;						///< current mode
@@ -368,19 +403,35 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		param_get(param_find(protocol_param_name), &protocol);
 
 		switch (protocol) {
+#if defined(CONFIG_GPS_UBX)
+
 		case 1: _mode = gps_driver_mode_t::UBX; break;
-#ifndef CONSTRAINED_FLASH
+#endif // CONFIG_GPS_UBX
+#if defined(CONFIG_GPS_MTK)
 
 		case 2: _mode = gps_driver_mode_t::MTK; break;
+#endif // CONFIG_GPS_MTK
+#if defined(CONFIG_GPS_ASHTECH)
 
 		case 3: _mode = gps_driver_mode_t::ASHTECH; break;
+#endif // CONFIG_GPS_ASHTECH
+#if defined(CONFIG_GPS_EMLIDREACH)
 
 		case 4: _mode = gps_driver_mode_t::EMLIDREACH; break;
+#endif // CONFIG_GPS_EMLIDREACH
+#if defined(CONFIG_GPS_FEMTOMES)
 
 		case 5: _mode = gps_driver_mode_t::FEMTOMES; break;
+#endif // CONFIG_GPS_FEMTOMES
+#if defined(CONFIG_GPS_NMEA)
 
 		case 6: _mode = gps_driver_mode_t::NMEA; break;
-#endif // CONSTRAINED_FLASH
+#endif // CONFIG_GPS_NMEA
+		}
+
+		if (protocol != 0 && _mode == gps_driver_mode_t::None) {
+			PX4_WARN("%s=%" PRId32 " unsupported by this build, using auto-detection",
+				 protocol_param_name, protocol);
 		}
 	}
 
@@ -770,6 +821,8 @@ GPS::run()
 		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
 	}
 
+#if defined(CONFIG_GPS_UBX)
+
 	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
 	handle = param_find("GPS_UBX_DYNMODEL");
 
@@ -877,6 +930,8 @@ GPS::run()
 		param_get(handle, &jam_det_sensitivity_hi);
 	}
 
+#endif // CONFIG_GPS_UBX
+
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
 
 	if (_instance == Instance::Main) {
@@ -889,6 +944,15 @@ GPS::run()
 	}
 
 	initializeCommunicationDump();
+
+	if (_mode_auto && kAutoDetectModes[0] == gps_driver_mode_t::None) {
+#if defined(CONFIG_GPS_NMEA)
+		PX4_WARN("none of the enabled GPS protocols supports auto-detection, set GPS_%i_PROTOCOL", (int)_instance + 1);
+#else
+		PX4_ERR("no GPS protocols enabled");
+		return;
+#endif
+	}
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
 	unsigned last_rate_count = 0;
@@ -953,11 +1017,13 @@ GPS::run()
 #endif /* __PX4_LINUX */
 		}
 
-		switch (_mode) {
-		case gps_driver_mode_t::None:
-			_mode = gps_driver_mode_t::UBX;
+		if (_mode == gps_driver_mode_t::None) {
+			_mode = kAutoDetectModes[0];
+		}
 
-		/* FALLTHROUGH */
+		switch (_mode) {
+#if defined(CONFIG_GPS_UBX)
+
 		case gps_driver_mode_t::UBX: {
 				GPSDriverUBX::Settings settings = {
 					.dynamic_model = (uint8_t)gps_ubx_dynmodel,
@@ -978,33 +1044,42 @@ GPS::run()
 				break;
 			}
 
-#ifndef CONSTRAINED_FLASH
+#endif // CONFIG_GPS_UBX
+#if defined(CONFIG_GPS_MTK)
 
 		case gps_driver_mode_t::MTK:
 			_helper = new GPSDriverMTK(&GPS::callback, this, &_sensor_gps);
 			set_device_type(DRV_GPS_DEVTYPE_MTK);
 			break;
+#endif // CONFIG_GPS_MTK
+#if defined(CONFIG_GPS_ASHTECH)
 
 		case gps_driver_mode_t::ASHTECH:
 			_helper = new GPSDriverAshtech(&GPS::callback, this, &_sensor_gps, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_ASHTECH);
 			break;
+#endif // CONFIG_GPS_ASHTECH
+#if defined(CONFIG_GPS_EMLIDREACH)
 
 		case gps_driver_mode_t::EMLIDREACH:
 			_helper = new GPSDriverEmlidReach(&GPS::callback, this, &_sensor_gps, _p_report_sat_info);
 			set_device_type(DRV_GPS_DEVTYPE_EMLID_REACH);
 			break;
+#endif // CONFIG_GPS_EMLIDREACH
+#if defined(CONFIG_GPS_FEMTOMES)
 
 		case gps_driver_mode_t::FEMTOMES:
 			_helper = new GPSDriverFemto(&GPS::callback, this, &_sensor_gps, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_FEMTOMES);
 			break;
+#endif // CONFIG_GPS_FEMTOMES
+#if defined(CONFIG_GPS_NMEA)
 
 		case gps_driver_mode_t::NMEA:
 			_helper = new GPSDriverNMEA(&GPS::callback, this, &_sensor_gps, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_NMEA);
 			break;
-#endif // CONSTRAINED_FLASH
+#endif // CONFIG_GPS_NMEA
 
 		default:
 			break;
@@ -1020,6 +1095,8 @@ GPS::run()
 		} else {
 			gpsConfig.output_mode = GPSHelper::OutputMode::GPS;
 		}
+
+#if defined(CONFIG_GPS_UBX)
 
 		int32_t gps_ubx_cfg_intf = static_cast<int32_t>(GPSHelper::InterfaceProtocolsMask::ALL_DISABLED);
 		handle = param_find("GPS_UBX_CFG_INTF");
@@ -1039,12 +1116,16 @@ GPS::run()
 
 		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe) && !_cfg_wiped;
 
+#endif // CONFIG_GPS_UBX
+
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
 			/* reset report */
 			memset(&_sensor_gps, 0, sizeof(_sensor_gps));
 			_sensor_gps.heading = NAN;
 			_sensor_gps.heading_offset = heading_offset;
+
+#if defined(CONFIG_GPS_UBX)
 
 			if (_mode == gps_driver_mode_t::UBX) {
 
@@ -1092,6 +1173,8 @@ GPS::run()
 				}
 			}
 
+#endif // CONFIG_GPS_UBX
+
 			int helper_ret;
 
 			/* After being configured (especially in combination with FLASH wipes) the GPS may require
@@ -1101,6 +1184,8 @@ GPS::run()
 			unsigned receive_timeout = TIMEOUT_INIT_5HZ;
 			unsigned healthy_timeout = TIMEOUT_5HZ;
 
+#if defined(CONFIG_GPS_UBX)
+
 			if ((ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase)
 			    || (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
 				/* The MB rover will wait as long as possible to compute a navigation solution,
@@ -1108,6 +1193,8 @@ GPS::run()
 				receive_timeout = TIMEOUT_INIT_1HZ;
 				healthy_timeout = TIMEOUT_1HZ;
 			}
+
+#endif // CONFIG_GPS_UBX
 
 			if (_dump_communication_mode != gps_dump_comm_mode_t::Disabled) {
 				/* Dumping the RTCM3/UBX data requires additional parsing and storing of data via uORB.
@@ -1178,9 +1265,13 @@ GPS::run()
 				}
 
 				/* Do not wipe the FLASH config multiple times. */
+#if defined(CONFIG_GPS_UBX)
+
 				if (!_cfg_wiped) {
 					_cfg_wiped = true;
 				}
+
+#endif
 			}
 
 			if (_healthy) {
@@ -1202,34 +1293,19 @@ GPS::run()
 		}
 
 		if (_mode_auto) {
-			switch (_mode) {
-			case gps_driver_mode_t::UBX:
-#ifndef CONSTRAINED_FLASH
-				_mode = gps_driver_mode_t::MTK;
-				break;
+			size_t i = 0;
 
-			case gps_driver_mode_t::MTK:
-				_mode = gps_driver_mode_t::ASHTECH;
-				break;
+			while (kAutoDetectModes[i] != _mode && kAutoDetectModes[i] != gps_driver_mode_t::None) {
+				++i;
+			}
 
-			case gps_driver_mode_t::ASHTECH:
-				_mode = gps_driver_mode_t::EMLIDREACH;
-				break;
-
-			case gps_driver_mode_t::EMLIDREACH:
-				_mode = gps_driver_mode_t::FEMTOMES;
-				break;
-
-			case gps_driver_mode_t::FEMTOMES:
-			case gps_driver_mode_t::NMEA: // skip NMEA for auto-detection to avoid false positive matching
-
-#endif // CONSTRAINED_FLASH
-				_mode = gps_driver_mode_t::UBX;
+			if (kAutoDetectModes[i] == gps_driver_mode_t::None
+			    || kAutoDetectModes[i + 1] == gps_driver_mode_t::None) {
+				_mode = kAutoDetectModes[0];
 				px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
-				break;
 
-			default:
-				break;
+			} else {
+				_mode = kAutoDetectModes[i + 1];
 			}
 
 		} else {
@@ -1259,30 +1335,41 @@ GPS::print_status()
 
 	// GPS Mode
 	switch (_mode) {
+#if defined(CONFIG_GPS_UBX)
+
 	case gps_driver_mode_t::UBX:
 		PX4_INFO("protocol: UBX");
 		break;
-#ifndef CONSTRAINED_FLASH
+#endif // CONFIG_GPS_UBX
+#if defined(CONFIG_GPS_MTK)
 
 	case gps_driver_mode_t::MTK:
 		PX4_INFO("protocol: MTK");
 		break;
+#endif // CONFIG_GPS_MTK
+#if defined(CONFIG_GPS_ASHTECH)
 
 	case gps_driver_mode_t::ASHTECH:
 		PX4_INFO("protocol: ASHTECH");
 		break;
+#endif // CONFIG_GPS_ASHTECH
+#if defined(CONFIG_GPS_EMLIDREACH)
 
 	case gps_driver_mode_t::EMLIDREACH:
 		PX4_INFO("protocol: EMLIDREACH");
 		break;
+#endif // CONFIG_GPS_EMLIDREACH
+#if defined(CONFIG_GPS_FEMTOMES)
 
 	case gps_driver_mode_t::FEMTOMES:
 		PX4_INFO("protocol: FEMTOMES");
 		break;
+#endif // CONFIG_GPS_FEMTOMES
+#if defined(CONFIG_GPS_NMEA)
 
 	case gps_driver_mode_t::NMEA:
 		PX4_INFO("protocol: NMEA");
-#endif // CONSTRAINED_FLASH
+#endif // CONFIG_GPS_NMEA
 
 	default:
 		break;
@@ -1469,7 +1556,7 @@ int GPS::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 GPS driver module that handles the communication with the device and publishes the position via uORB.
-It supports multiple protocols (device vendors) and by default automatically selects the correct one.
+The available device protocols are selected at build time.
 
 The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
 on the second uORB topic instance, but it's currently not used by the rest of the system (however the
@@ -1497,7 +1584,8 @@ $ gps reset warm
 
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "uart", "spi|uart", "GPS interface", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('j', "uart", "spi|uart", "secondary GPS interface", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem|nmea", "GPS Protocol (default=auto select)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml|fem|nmea",
+					"GPS protocol (availability depends on build; default from GPS_x_PROTOCOL)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
@@ -1628,31 +1716,49 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 			break;
 
-		case 'p':
+		case 'p': {
+			gps_driver_mode_t requested_mode = gps_driver_mode_t::None;
+#if defined(CONFIG_GPS_UBX)
 			if (!strcmp(myoptarg, "ubx")) {
-				mode = gps_driver_mode_t::UBX;
-#ifndef CONSTRAINED_FLASH
-			} else if (!strcmp(myoptarg, "mtk")) {
-				mode = gps_driver_mode_t::MTK;
+				requested_mode = gps_driver_mode_t::UBX;
+			}
+#endif // CONFIG_GPS_UBX
+#if defined(CONFIG_GPS_MTK)
+			if (!strcmp(myoptarg, "mtk")) {
+				requested_mode = gps_driver_mode_t::MTK;
+			}
+#endif // CONFIG_GPS_MTK
+#if defined(CONFIG_GPS_ASHTECH)
+			if (!strcmp(myoptarg, "ash")) {
+				requested_mode = gps_driver_mode_t::ASHTECH;
+			}
+#endif // CONFIG_GPS_ASHTECH
+#if defined(CONFIG_GPS_EMLIDREACH)
+			if (!strcmp(myoptarg, "eml")) {
+				requested_mode = gps_driver_mode_t::EMLIDREACH;
+			}
+#endif // CONFIG_GPS_EMLIDREACH
+#if defined(CONFIG_GPS_FEMTOMES)
+			if (!strcmp(myoptarg, "fem")) {
+				requested_mode = gps_driver_mode_t::FEMTOMES;
+			}
+#endif // CONFIG_GPS_FEMTOMES
+#if defined(CONFIG_GPS_NMEA)
+			if (!strcmp(myoptarg, "nmea")) {
+				requested_mode = gps_driver_mode_t::NMEA;
+			}
+#endif // CONFIG_GPS_NMEA
 
-			} else if (!strcmp(myoptarg, "ash")) {
-				mode = gps_driver_mode_t::ASHTECH;
-
-			} else if (!strcmp(myoptarg, "eml")) {
-				mode = gps_driver_mode_t::EMLIDREACH;
-
-			} else if (!strcmp(myoptarg, "fem")) {
-				mode = gps_driver_mode_t::FEMTOMES;
-
-			} else if (!strcmp(myoptarg, "nmea")) {
-				mode = gps_driver_mode_t::NMEA;
-
-#endif // CONSTRAINED_FLASH
-			} else {
+			if (requested_mode == gps_driver_mode_t::None) {
 				PX4_ERR("unknown protocol: %s", myoptarg);
 				error_flag = true;
+
+			} else {
+				mode = requested_mode;
 			}
+
 			break;
+		}
 
 		case '?':
 			error_flag = true;
