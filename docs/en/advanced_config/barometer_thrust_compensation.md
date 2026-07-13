@@ -19,9 +19,10 @@ This feature compensates for _propwash-induced_ pressure error, which depends on
 For _airspeed-induced_ static pressure error (due to vehicle forward motion), see [Static Pressure Buildup](../advanced_config/static_pressure_buildup.md).
 :::
 
-## Online Calibration (Recommended)
+## Online Calibration (Experimental)
 
-The online estimator identifies `SENS_BARO_K_T` automatically during flight and saves the result on disarm.
+The online estimator is an experimental build option and is not compiled into default firmware.
+If included in a custom build, it identifies `SENS_BARO_K_T` during flight and saves the result on disarm after convergence during an enabled calibration flight.
 
 ### How It Works
 
@@ -31,14 +32,13 @@ The CF trusts the accelerometer for fast altitude changes and the barometer for 
 A Recursive Least Squares (RLS) estimator then fits the linear model `residual = K * thrust + bias` to identify the gain K.
 Once the estimate converges (stable K, low variance, sufficient thrust excitation), K is locked and saved to `SENS_BARO_K_T` on disarm.
 
-The estimator refines the parameter over subsequent flights — each flight corrects for whatever residual error remains after the previous calibration.
-
 ### Setup
 
-1. Set [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) to **1** (enables the online thrust compensation estimator; requires reboot).
-2. Fly normally for at least 60 seconds with some altitude variation.
-3. On disarm, the estimated `SENS_BARO_K_T` is saved automatically if the estimator converged.
-4. Check convergence after flight:
+1. Build firmware with the `baro_thrust_estimator` module enabled.
+2. Set [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) to **1** (enables the online thrust compensation estimator; requires reboot).
+3. Fly normally for at least 60 seconds with some altitude variation.
+4. On disarm, the estimated `SENS_BARO_K_T` is saved automatically if the estimator converged.
+5. Check convergence after flight:
    - In the console: `baro_thrust_estimator status`
    - In a log: look at the `baro_thrust_estimate` topic — `converged` should be true.
 
@@ -63,7 +63,7 @@ Constant-thrust hover with no altitude variation will not converge.
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | [SENS_BARO_K_T](../advanced_config/parameter_reference.md#SENS_BARO_K_T) | 0.0 | Baro altitude correction per unit vertical thrust \[m\]. Identified by the estimator or set manually. |
-| [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) | 0 | Enable online thrust compensation estimator (reboot required). |
+| [BARO_COMP_EST_EN](../advanced_config/parameter_reference.md#BARO_COMP_EST_EN) | 0 | Enable online estimator when compiled in (reboot required). |
 | [SENS_BAR_CF_BW](../advanced_config/parameter_reference.md#SENS_BAR_CF_BW) | 0.05 | CF crossover frequency \[Hz\]. Lower = more conservative, higher = faster identification but noisier. |
 
 ### Soft Guards
@@ -78,10 +78,10 @@ Once converged, the RLS is frozen entirely to prevent ground-effect contaminatio
 
 ## Manual Calibration
 
-If you prefer not to use the online estimator, you can identify `SENS_BARO_K_T` from a flight log using a range sensor as ground truth.
+If you prefer not to use the online estimator, you can identify `SENS_BARO_K_T` from a flight log using a height reference such as a distance sensor or visual odometry.
 
 1. Set `SENS_BARO_K_T` to 0 (disable existing compensation).
-2. Fly a hover at 2-5 m AGL for at least 60 seconds with gentle altitude changes. A downward-facing range sensor must be installed.
+2. Fly a hover at 2-5 m AGL for at least 60 seconds with gentle altitude changes. A downward-facing range sensor or visual odometry height source should be available in the log.
 3. Run the analysis script on the log:
    ```sh
    python3 Tools/baro_compensation/baro_thrust_calibration.py <path/to/log.ulg>

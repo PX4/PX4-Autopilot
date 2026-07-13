@@ -25,19 +25,19 @@ VTOL aircraft.
 
 ## How Calibration Works
 
-### Online (Preferred)
+### Online (Experimental)
 
-The online estimator is disabled by default. Enable it by setting
+The online estimator is an experimental build option and is not compiled into
+default firmware. If included in a custom build, enable it by setting
 `BARO_COMP_EST_EN` to 1 (requires reboot).
 The `baro_thrust_estimator` module identifies `SENS_BARO_K_T` automatically
 during flight using an accel-baro complementary filter and RLS estimation.
-Parameters are saved to flash on disarm once converged, and the estimator
-continues to refine K_T over subsequent flights. No range sensor required.
+Parameters are saved to flash on disarm after convergence during an enabled
+calibration flight. No range sensor required.
 
 ### Offline (This Tool)
 
-This tool identifies K_T from a flight log using a range sensor as ground
-truth. Useful for:
+This tool identifies K_T from a flight log using a height reference. Useful for:
 - Validating online estimator results against ground truth
 - Analyzing compensation effectiveness
 - Initial calibration when the online estimator hasn't converged yet
@@ -200,5 +200,5 @@ to IMU vibration but slower to converge.
 | Parameter | Description | Range | Default |
 |-----------|-------------|-------|---------|
 | `SENS_BARO_K_T` | Baro altitude correction per unit vertical thrust [m] | -30 to 30 | 0.0 |
-| `BARO_COMP_EST_EN` | Enable online thrust compensation estimator (reboot required) | 0 or 1 | 0 |
+| `BARO_COMP_EST_EN` | Enable online estimator when compiled in (reboot required) | 0 or 1 | 0 |
 | `SENS_BAR_CF_BW` | CF crossover frequency for the online estimator [Hz] | 0.01 to 1.0 | 0.05 |

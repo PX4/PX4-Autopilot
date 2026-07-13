@@ -43,4 +43,5 @@ If the vehicle has a more complex aerodynamic model it will be less effective.
 
 ## See Also
 
+- [Barometer Thrust Compensation](../advanced_config/barometer_thrust_compensation.md)
 - [OEM/Factory Configuration](../advanced_config/oem.md)

@@ -5,7 +5,7 @@ Barometer thrust compensation analysis.
 Three-way comparison of K estimates:
   1. Online CF+RLS (from logged baro_thrust_estimate)
   2. Offline CF+RLS replay (baro + accel, mirroring the firmware algorithm)
-  3. Distance sensor ground truth (baro vs range, if available)
+  3. Height reference fit (distance sensor preferred, VIO fallback)
 
 The correction model: baro_alt += SENS_BARO_K_T * |thrust_z|
 
@@ -18,6 +18,7 @@ import argparse
 import os
 import shutil
 import sys
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -37,6 +38,11 @@ except ImportError:
     sys.exit(1)
 
 GRAVITY = 9.80665
+DEFAULT_MIN_HEIGHT_REF_M = 1.0
+DEFAULT_MAX_VERTICAL_SPEED_M_S = 2.0
+DEFAULT_MAX_HORIZONTAL_SPEED_M_S = 5.0
+DEFAULT_CF_BANDWIDTH_HZ = 0.05
+DEFAULT_RLS_LAMBDA_FACTOR = 0.998
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +76,76 @@ def safe_corrcoef(x, y):
     if len(x) < 2 or np.std(x) < 1e-10 or np.std(y) < 1e-10:
         return 0.0
     return float(np.corrcoef(x, y)[0, 1])
+
+
+POSE_FRAME_NED = 1
+POSE_FRAME_FRD = 2
+POSE_FRAME_NAMES = {
+    POSE_FRAME_NED: "NED",
+    POSE_FRAME_FRD: "FRD",
+}
+VALID_HEIGHT_POSE_FRAMES = set(POSE_FRAME_NAMES.keys())
+
+
+def pose_frame_label(pose_frame):
+    frames = sorted(set(int(f) for f in pose_frame
+                        if int(f) in POSE_FRAME_NAMES))
+    return "/".join(POSE_FRAME_NAMES[f] for f in frames)
+
+
+@dataclass
+class HeightReference:
+    """Selected independent height reference used for calibration."""
+
+    source: str
+    label: str
+    time_s: np.ndarray
+    height_m: np.ndarray
+    variance: np.ndarray = None
+    min_valid_height_m: float = DEFAULT_MIN_HEIGHT_REF_M
+
+    @classmethod
+    def from_range(cls, range_data,
+                   min_valid_height_m=DEFAULT_MIN_HEIGHT_REF_M):
+        return cls(
+            source="range",
+            label="Distance sensor",
+            time_s=range_data["time_s"],
+            height_m=range_data["distance_m"],
+            variance=range_data.get("variance"),
+            min_valid_height_m=min_valid_height_m,
+        )
+
+    @classmethod
+    def from_vis(cls, vis_data,
+                 min_valid_height_m=DEFAULT_MIN_HEIGHT_REF_M):
+        frame_label = pose_frame_label(vis_data["pose_frame"])
+        return cls(
+            source="vio",
+            label=f"VIO altitude (-Z, {frame_label})",
+            time_s=vis_data["time_s"],
+            height_m=-vis_data["z"],
+            variance=vis_data.get("z_var"),
+            min_valid_height_m=min_valid_height_m,
+        )
+
+    def height_at(self, time_s):
+        return np.interp(time_s, self.time_s, self.height_m)
+
+    def valid_at(self, time_s):
+        height = self.height_at(time_s)
+        return np.isfinite(height) & (height > self.min_valid_height_m)
+
+
+def select_height_reference(range_data, vis_data,
+                            min_valid_height_m=DEFAULT_MIN_HEIGHT_REF_M):
+    if range_data is not None:
+        return HeightReference.from_range(range_data, min_valid_height_m)
+
+    if vis_data is not None:
+        return HeightReference.from_vis(vis_data, min_valid_height_m)
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -132,10 +208,82 @@ def extract_range(ulog):
     dist = d.data["current_distance"]
     valid = np.isfinite(t) & np.isfinite(dist)
     if "signal_quality" in d.data:
-        valid &= d.data["signal_quality"] > 0
+        # TFmini publishes -1 when quality is unknown, and 0 when the range is
+        # invalid. Accept unknown quality, but reject known-invalid samples.
+        valid &= d.data["signal_quality"] != 0
     if valid.sum() < 2:
         return None
-    return {"time_s": t[valid], "distance_m": dist[valid]}
+
+    result = {
+        "time_s": t[valid],
+        "distance_m": dist[valid],
+        "raw_time_s": t,
+        "raw_distance_m": dist,
+    }
+
+    if "variance" in d.data:
+        variance = d.data["variance"]
+        result["variance"] = np.where(np.isfinite(variance) & (variance > 0),
+                                      variance, np.nan)[valid]
+
+    if "signal_quality" in d.data:
+        result["signal_quality"] = d.data["signal_quality"][valid]
+        result["raw_signal_quality"] = d.data["signal_quality"]
+
+    if "min_distance" in d.data:
+        result["raw_min_distance"] = d.data["min_distance"]
+
+    if "max_distance" in d.data:
+        result["raw_max_distance"] = d.data["max_distance"]
+
+    return result
+
+
+def extract_vis(ulog):
+    d = get_topic(ulog, "vehicle_visual_odometry")
+    if d is None:
+        return None
+    t = us_to_s(d.data["timestamp"], ulog.start_timestamp)
+
+    required = ["pose_frame", "position[0]", "position[1]", "position[2]"]
+    if not all(field in d.data for field in required):
+        return None
+
+    pose_frame = d.data["pose_frame"]
+    x = d.data["position[0]"]
+    y = d.data["position[1]"]
+    z = d.data["position[2]"]
+    valid_pose_frame = np.isin(pose_frame,
+                               list(VALID_HEIGHT_POSE_FRAMES))
+    valid = (np.isfinite(t) & np.isfinite(x) & np.isfinite(y)
+             & np.isfinite(z) & valid_pose_frame)
+
+    if valid.sum() < 2:
+        return None
+
+    result = {
+        "time_s": t[valid],
+        "pose_frame": pose_frame[valid],
+        "x": x[valid],
+        "y": y[valid],
+        "z": z[valid],
+    }
+
+    variance_fields = ["position_variance[0]", "position_variance[1]",
+                       "position_variance[2]"]
+
+    if all(field in d.data for field in variance_fields):
+        x_var = d.data["position_variance[0]"]
+        y_var = d.data["position_variance[1]"]
+        z_var = d.data["position_variance[2]"]
+        result["x_var"] = np.where(np.isfinite(x_var) & (x_var >= 0),
+                                   x_var, np.nan)[valid]
+        result["y_var"] = np.where(np.isfinite(y_var) & (y_var >= 0),
+                                   y_var, np.nan)[valid]
+        result["z_var"] = np.where(np.isfinite(z_var) & (z_var >= 0),
+                                   z_var, np.nan)[valid]
+
+    return result
 
 
 def extract_online_estimate(ulog):
@@ -232,8 +380,8 @@ class CfRls:
     """Python port of BaroThrustCfRls.  Constants match baro_thrust_cf_rls.hpp."""
 
     # Defaults (matching baro_thrust_cf_rls.hpp)
-    DEFAULT_CF_BANDWIDTH = 0.05
-    DEFAULT_RLS_LAMBDA = 0.998
+    DEFAULT_CF_BANDWIDTH = DEFAULT_CF_BANDWIDTH_HZ
+    DEFAULT_RLS_LAMBDA = DEFAULT_RLS_LAMBDA_FACTOR
     RLS_P_INIT = 100.0
     ERROR_VAR_INIT = 10.0
     ALPHA_ERR = 0.01
@@ -317,15 +465,17 @@ class CfRls:
 
 
 def build_estimation_mask(baro_t, armed_start, armed_end, landed,
-                          ekf_z=None, range_data=None):
+                          ekf_z=None, height_ref=None,
+                          max_vz=DEFAULT_MAX_VERTICAL_SPEED_M_S,
+                          max_vxy=DEFAULT_MAX_HORIZONTAL_SPEED_M_S):
     """Build sample mask matching firmware hard + soft guards.
 
     Hard gates: armed AND not landed.
     Soft gates (skip RLS but keep CF in firmware — here we skip both since
     the offline replay doesn't separate CF from RLS per-sample):
-      - |vz| > 2 m/s
-      - vxy > 5 m/s
-      - range sensor < 0.5 m (ground effect proximity)
+      - |vz| > max_vz
+      - vxy > max_vxy
+      - selected height reference < min_valid_height_m
     """
     armed = (baro_t >= armed_start) & (baro_t <= armed_end)
 
@@ -339,16 +489,14 @@ def build_estimation_mask(baro_t, armed_start, armed_end, landed,
 
     if ekf_z is not None and "vz" in ekf_z:
         vz = np.interp(baro_t, ekf_z["time_s"], ekf_z["vz"])
-        mask &= np.abs(vz) <= 2.0
+        mask &= np.abs(vz) <= max_vz
 
     if ekf_z is not None and "vxy" in ekf_z:
         vxy = np.interp(baro_t, ekf_z["time_s"], ekf_z["vxy"])
-        mask &= vxy <= 5.0
+        mask &= vxy <= max_vxy
 
-    if range_data is not None:
-        rng = np.interp(baro_t, range_data["time_s"],
-                        range_data["distance_m"])
-        mask &= rng > 0.5
+    if height_ref is not None:
+        mask &= height_ref.valid_at(baro_t)
 
     return mask
 
@@ -356,7 +504,9 @@ def build_estimation_mask(baro_t, armed_start, armed_end, landed,
 def run_offline_cf_rls(baro, accel, attitude, thrust, landed,
                        armed_start, armed_end,
                        cf_bandwidth=None, rls_lambda=None,
-                       ekf_z=None, range_data=None):
+                       ekf_z=None, height_ref=None,
+                       max_vz=DEFAULT_MAX_VERTICAL_SPEED_M_S,
+                       max_vxy=DEFAULT_MAX_HORIZONTAL_SPEED_M_S):
     """Replay CF+RLS on logged sensor data.  Returns K trace and residuals."""
     baro_t = baro["time_s"]
     baro_alt = baro["alt_m"]
@@ -373,7 +523,7 @@ def run_offline_cf_rls(baro, accel, attitude, thrust, landed,
     thrust_interp = np.interp(baro_t, thrust["time_s"], thrust["thrust"])
 
     airborne = build_estimation_mask(baro_t, armed_start, armed_end, landed,
-                                     ekf_z, range_data)
+                                     ekf_z, height_ref, max_vz, max_vxy)
 
     est = CfRls(cf_bandwidth=cf_bandwidth, rls_lambda=rls_lambda)
     n = len(baro_t)
@@ -421,43 +571,43 @@ def run_offline_cf_rls(baro, accel, attitude, thrust, landed,
 
 
 # ---------------------------------------------------------------------------
-# Range-based calibration  (distance sensor ground truth)
+# Height-reference calibration  (distance sensor preferred, VIO fallback)
 # ---------------------------------------------------------------------------
 
-def run_range_calibration(baro, range_data, thrust,
-                          armed_start, armed_end, existing_pcoef=0.0):
-    """Least-squares calibration using range sensor as ground truth.
+def run_height_reference_calibration(baro, height_ref, thrust,
+                                     armed_start, armed_end,
+                                     existing_k_t=0.0):
+    """Least-squares calibration using a selected height reference.
 
-    Undoes existing PCOEF compensation to recover raw baro, then fits:
+    Undoes existing SENS_BARO_K_T compensation to recover raw baro, then fits:
         raw_baro_error = K_total * thrust + c
 
     Returns K_total (from-scratch gain), K_residual (remaining after existing
-    PCOEF), and data arrays for plotting.
+    SENS_BARO_K_T), recommended K_T, and data arrays for plotting.
     """
     baro_t, baro_alt = baro["time_s"], baro["alt_m"]
-    rng_t, rng_dist = range_data["time_s"], range_data["distance_m"]
+    ref_t, ref_height = height_ref.time_s, height_ref.height_m
 
     # Zero baro at arm time
     baro_zeroed = baro_alt - np.interp(armed_start, baro_t, baro_alt)
 
     # Undo existing compensation at baro timestamps
     thrust_at_baro = np.interp(baro_t, thrust["time_s"], thrust["thrust"])
-    raw_baro = baro_zeroed - existing_pcoef * thrust_at_baro
+    raw_baro = baro_zeroed - existing_k_t * thrust_at_baro
 
-    # Interpolate both baro versions to range timestamps
-    raw_baro_interp = np.interp(rng_t, baro_t, raw_baro)
-    comp_baro_interp = np.interp(rng_t, baro_t, baro_zeroed)
-    raw_error = raw_baro_interp - rng_dist
-    comp_error = comp_baro_interp - rng_dist
+    # Interpolate both baro versions to reference timestamps
+    raw_baro_interp = np.interp(ref_t, baro_t, raw_baro)
+    comp_baro_interp = np.interp(ref_t, baro_t, baro_zeroed)
+    raw_error = raw_baro_interp - ref_height
+    comp_error = comp_baro_interp - ref_height
 
     # Filter: armed, above ground proximity
-    MIN_RANGE = 0.5
-    mask = ((rng_t >= armed_start) & (rng_t <= armed_end)
-            & (rng_dist > MIN_RANGE))
+    mask = ((ref_t >= armed_start) & (ref_t <= armed_end)
+            & (ref_height > height_ref.min_valid_height_m))
     if mask.sum() < 20:
         return None
 
-    t_fit = rng_t[mask]
+    t_fit = ref_t[mask]
     raw_err_fit = raw_error[mask]
     comp_err_fit = comp_error[mask]
     thrust_fit = np.interp(t_fit, thrust["time_s"], thrust["thrust"])
@@ -474,16 +624,19 @@ def run_range_calibration(baro, range_data, thrust,
     # Compensated fit for comparison
     coeffs_comp, _, _, _ = np.linalg.lstsq(A, comp_err_fit, rcond=None)
 
-    K_residual = K_total + existing_pcoef
+    K_residual = K_total + existing_k_t
+    recommended_k_t = -K_total
 
     return {
         "K_total": K_total,
         "K_residual": K_residual,
+        "recommended_k_t": recommended_k_t,
         "r2": float(r2),
         "rmse": float(np.sqrt(np.mean(resid ** 2))),
-        "pcoef_recommended": -K_total,
+        "height_ref_source": height_ref.source,
+        "height_ref_label": height_ref.label,
         # Plotting data
-        "time_s": rng_t,
+        "time_s": ref_t,
         "raw_error": raw_error,
         "comp_error": comp_error,
         "mask": mask,
@@ -501,9 +654,11 @@ def run_range_calibration(baro, range_data, thrust,
 # ---------------------------------------------------------------------------
 
 def sweep_cf_params(baro, accel, attitude, thrust, landed,
-                    armed_start, armed_end, range_cal, existing_pcoef,
-                    ekf_z=None, range_data=None):
-    """Sweep CF bandwidth at two lambda values, evaluate against range truth."""
+                    armed_start, armed_end, height_cal, existing_k_t,
+                    ekf_z=None, height_ref=None,
+                    max_vz=DEFAULT_MAX_VERTICAL_SPEED_M_S,
+                    max_vxy=DEFAULT_MAX_HORIZONTAL_SPEED_M_S):
+    """Sweep CF bandwidth at two lambda values, evaluate against height reference."""
     bandwidths = np.logspace(np.log10(0.01), np.log10(1.0), 30)
     lambdas = [("lambda_0.998", 0.998), ("lambda_1.0", 1.0)]
 
@@ -521,11 +676,11 @@ def sweep_cf_params(baro, accel, attitude, thrust, landed,
     thrust_interp = np.interp(baro_t, thrust["time_s"], thrust["thrust"])
 
     mask = build_estimation_mask(baro_t, armed_start, armed_end, landed,
-                                 ekf_z, range_data)
+                                 ekf_z, height_ref, max_vz, max_vxy)
     airborne_idx = np.where(mask)[0]
 
-    raw_err = range_cal["raw_err_fit"]
-    thr_fit = range_cal["thrust_fit"]
+    raw_err = height_cal["raw_err_fit"]
+    thr_fit = height_cal["thrust_fit"]
 
     results = {"bandwidth": bandwidths}
 
@@ -546,8 +701,8 @@ def sweep_cf_params(baro, accel, attitude, thrust, landed,
                                     float(accel_up[i]), dt)
                 est.update_rls(res, float(thrust_interp[i]), dt)
 
-            total_pcoef = existing_pcoef - est.k
-            corrected = raw_err + total_pcoef * thr_fit
+            candidate_k_t = existing_k_t - est.k
+            corrected = raw_err + candidate_k_t * thr_fit
 
             k_list.append(est.k)
             std_list.append(float(np.std(corrected)))
@@ -568,16 +723,16 @@ _SUBTITLE_Y = 0.94
 _LAYOUT_TOP = 0.93
 
 
-def plot_altitude_overview(ekf_baro_obs, ekf_z, range_data, thrust_data,
+def plot_altitude_overview(ekf_baro_obs, ekf_z, height_ref, thrust_data,
                            armed_start, armed_end):
-    """Page 1: Altitude overview — baro, range, EKF, thrust."""
+    """Page 1: Altitude overview — baro, height reference, EKF, thrust."""
     fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
     fig.suptitle("Altitude Overview", fontsize=14, fontweight="bold")
 
     ax = axes[0]
-    if range_data is not None:
-        ax.plot(range_data["time_s"], range_data["distance_m"],
-                label="Distance sensor", color="tab:blue", linewidth=1.2)
+    if height_ref is not None:
+        ax.plot(height_ref.time_s, height_ref.height_m,
+                label=height_ref.label, color="tab:blue", linewidth=1.2)
     if ekf_baro_obs is not None:
         bt = ekf_baro_obs["time_s"]
         ba = -ekf_baro_obs["observation"]
@@ -606,14 +761,72 @@ def plot_altitude_overview(ekf_baro_obs, ekf_z, range_data, thrust_data,
     return fig
 
 
-def plot_k_convergence(online, offline, range_cal,
-                       armed_start, armed_end, existing_pcoef):
+def plot_range_signal_quality(range_data):
+    """Raw distance sensor samples grouped by signal_quality."""
+    if range_data is None or "raw_signal_quality" not in range_data:
+        return None
+
+    t = range_data["raw_time_s"]
+    dist = range_data["raw_distance_m"]
+    quality = range_data["raw_signal_quality"]
+
+    fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+    fig.suptitle("Distance Sensor Signal Quality",
+                 fontsize=14, fontweight="bold")
+    fig.text(0.5, _SUBTITLE_Y,
+             "PX4 distance_sensor quality: -1 = unknown, 0 = invalid, "
+             ">0 = reported quality percentage.",
+             ha="center", va="top", fontsize=9, style="italic", color="0.4")
+
+    ax = axes[0]
+    quality_groups = [
+        (quality == -1, "unknown (-1)", "tab:blue"),
+        (quality == 0, "invalid (0)", "tab:red"),
+        (quality > 0, "reported >0", "tab:green"),
+    ]
+
+    for mask, label, color in quality_groups:
+        if np.any(mask):
+            ax.scatter(t[mask], dist[mask], s=4, alpha=0.55,
+                       color=color, label=f"{label}: {int(np.sum(mask))}")
+
+    if "raw_min_distance" in range_data:
+        ax.plot(t, range_data["raw_min_distance"], color="0.25",
+                linestyle="--", linewidth=0.8, label="min distance")
+
+    if "raw_max_distance" in range_data:
+        ax.plot(t, range_data["raw_max_distance"], color="0.45",
+                linestyle=":", linewidth=0.8, label="max distance")
+
+    ax.set_ylabel("Distance [m]")
+    ax.set_title("Raw Distance Samples by Quality Class")
+    ax.legend(fontsize=8, loc="upper right")
+    ax.grid(True, alpha=0.3)
+
+    ax = axes[1]
+    ax.step(t, quality, where="post", color="tab:purple", linewidth=0.8)
+    unique_quality = sorted(set(int(q) for q in quality))
+    if len(unique_quality) <= 8:
+        ax.set_yticks(unique_quality)
+    ax.axhline(0, color="tab:red", linestyle="--", linewidth=0.8,
+               alpha=0.7)
+    ax.set_ylabel("signal_quality")
+    ax.set_xlabel("Time [s]")
+    ax.set_title("Raw signal_quality Value")
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout(rect=[0, 0, 1, _LAYOUT_TOP])
+    return fig
+
+
+def plot_k_convergence(online, offline, height_cal,
+                       armed_start, armed_end, existing_k_t):
     """Page 2: K estimate convergence — online + offline overlaid."""
     fig, axes = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
     fig.suptitle("K Estimate Convergence", fontsize=14, fontweight="bold")
     fig.text(0.5, _SUBTITLE_Y,
              "Online (firmware) and offline (replay) CF+RLS. "
-             "Range K shown as ground-truth reference.",
+             "Height-reference K shown when available.",
              ha="center", va="top", fontsize=9, style="italic", color="0.4")
 
     # --- Panel 1: K traces with variance bands ---
@@ -635,10 +848,11 @@ def plot_k_convergence(online, offline, range_cal,
                 label="Offline K", alpha=0.8)
         ax.fill_between(t[v], k - ks, k + ks, alpha=0.1, color="tab:red")
 
-    if range_cal is not None:
-        ax.axhline(range_cal["K_residual"], color="tab:green", linestyle="--",
+    if height_cal is not None:
+        ax.axhline(height_cal["K_residual"], color="tab:green", linestyle="--",
                    linewidth=1.0,
-                   label=f"Range K\u2081 = {range_cal['K_residual']:.2f}")
+                   label=f"{height_cal['height_ref_label']} K = "
+                         f"{height_cal['K_residual']:.2f}")
 
     ax.set_ylabel("K [m / unit thrust]")
     ax.legend(fontsize=9)
@@ -752,40 +966,42 @@ def plot_residual_comparison(online, offline, thrust,
     return fig
 
 
-def plot_ground_truth(range_cal, existing_pcoef):
-    """Page 4: Range-sensor ground truth — raw and compensated error."""
+def plot_height_reference_fit(height_cal, existing_k_t):
+    """Page 4: selected height reference — raw and compensated error."""
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle("Ground Truth Validation (Distance Sensor)",
+    ref_label = height_cal["height_ref_label"]
+    fig.suptitle(f"Height Reference Validation ({ref_label})",
                  fontsize=14, fontweight="bold")
     fig.text(0.5, _SUBTITLE_Y,
              "Left: raw baro error (compensation undone). "
-             "Right: as-flown (with existing PCOEF). "
+             "Right: as-flown (with existing SENS_BARO_K_T). "
              "Slope = thrust-correlated error.",
              ha="center", va="top", fontsize=9, style="italic", color="0.4")
 
-    thrust = range_cal["thrust_fit"]
+    thrust = height_cal["thrust_fit"]
     x_fit = np.linspace(thrust.min(), thrust.max(), 50)
 
     # Top-left: Raw error vs thrust scatter
     ax = axes[0, 0]
-    ax.scatter(thrust, range_cal["raw_err_fit"], s=2, alpha=0.3,
+    ax.scatter(thrust, height_cal["raw_err_fit"], s=2, alpha=0.3,
                color="tab:orange")
-    c = range_cal["raw_coeffs"]
+    c = height_cal["raw_coeffs"]
     ax.plot(x_fit, c[0] * x_fit + c[1], "k--", linewidth=1.2)
-    r = safe_corrcoef(thrust, range_cal["raw_err_fit"])
-    ax.set_title(f"Raw: K = {c[0]:.1f}, r = {r:.3f}, R\u00b2 = {range_cal['r2']:.3f}")
+    r = safe_corrcoef(thrust, height_cal["raw_err_fit"])
+    ax.set_title(f"Raw: K = {c[0]:.1f}, r = {r:.3f}, "
+                 f"R\u00b2 = {height_cal['r2']:.3f}")
     ax.set_xlabel("Thrust [0-1]")
     ax.set_ylabel("Baro Error [m]")
     ax.grid(True, alpha=0.3)
 
     # Top-right: Compensated error vs thrust scatter
     ax = axes[0, 1]
-    ax.scatter(thrust, range_cal["comp_err_fit"], s=2, alpha=0.3,
+    ax.scatter(thrust, height_cal["comp_err_fit"], s=2, alpha=0.3,
                color="tab:blue")
-    cc = range_cal["comp_coeffs"]
+    cc = height_cal["comp_coeffs"]
     ax.plot(x_fit, cc[0] * x_fit + cc[1], "k--", linewidth=1.2)
-    r = safe_corrcoef(thrust, range_cal["comp_err_fit"])
-    ax.set_title(f"Compensated (PCOEF={existing_pcoef:+.1f}): "
+    r = safe_corrcoef(thrust, height_cal["comp_err_fit"])
+    ax.set_title(f"Compensated (K_T={existing_k_t:+.1f}): "
                  f"slope = {cc[0]:.2f}, r = {r:.3f}")
     ax.set_xlabel("Thrust [0-1]")
     ax.set_ylabel("Baro Error [m]")
@@ -799,12 +1015,11 @@ def plot_ground_truth(range_cal, existing_pcoef):
     axes[0, 1].set_ylim(ylim)
 
     # Bottom-left: Raw error time series
-    mask = range_cal["mask"]
-    t = range_cal["t_fit"]
+    t = height_cal["t_fit"]
     ax = axes[1, 0]
-    ax.plot(t, range_cal["raw_err_fit"], color="tab:orange", linewidth=0.8)
+    ax.plot(t, height_cal["raw_err_fit"], color="tab:orange", linewidth=0.8)
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-    std_raw = float(np.std(range_cal["raw_err_fit"]))
+    std_raw = float(np.std(height_cal["raw_err_fit"]))
     ax.set_title(f"Raw error: std = {std_raw:.2f} m")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Baro Error [m]")
@@ -812,9 +1027,9 @@ def plot_ground_truth(range_cal, existing_pcoef):
 
     # Bottom-right: Compensated error time series
     ax = axes[1, 1]
-    ax.plot(t, range_cal["comp_err_fit"], color="tab:blue", linewidth=0.8)
+    ax.plot(t, height_cal["comp_err_fit"], color="tab:blue", linewidth=0.8)
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-    std_comp = float(np.std(range_cal["comp_err_fit"]))
+    std_comp = float(np.std(height_cal["comp_err_fit"]))
     ax.set_title(f"Compensated error: std = {std_comp:.2f} m")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Baro Error [m]")
@@ -830,18 +1045,19 @@ def plot_ground_truth(range_cal, existing_pcoef):
     return fig
 
 
-def plot_cf_tuning(sweep, range_cal, existing_pcoef):
+def plot_cf_tuning(sweep, height_cal, existing_k_t):
     """Page: CF parameter sensitivity — K and error std vs bandwidth."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     fig.suptitle("CF+RLS Parameter Sensitivity", fontsize=14, fontweight="bold")
     fig.text(0.5, _SUBTITLE_Y,
              "Sweeping CF bandwidth: how does K and compensation quality "
-             "change? Range K is ground truth. Lower error std = better.",
+             "change? Height-reference K is the comparison. Lower error std = better.",
              ha="center", va="top", fontsize=9, style="italic", color="0.4")
 
     bw = sweep["bandwidth"]
     default_bw = CfRls.DEFAULT_CF_BANDWIDTH
-    range_k = range_cal["K_residual"]
+    ref_k = height_cal["K_residual"]
+    ref_label = height_cal["height_ref_label"]
 
     styles = [
         ("lambda_0.998", "\u03bb=0.998 (default)", "tab:red"),
@@ -853,14 +1069,14 @@ def plot_cf_tuning(sweep, range_cal, existing_pcoef):
     for key, label, color in styles:
         ax.semilogx(bw, sweep[key]["k_residual"], "o-", color=color,
                     markersize=3, linewidth=1.0, label=label)
-    ax.axhline(range_k, color="tab:green", linestyle="--", linewidth=1.0,
-               label=f"Range K = {range_k:.2f}")
+    ax.axhline(ref_k, color="tab:green", linestyle="--", linewidth=1.0,
+               label=f"{ref_label} K = {ref_k:.2f}")
     ax.axvline(default_bw, color="tab:gray", linestyle=":", linewidth=0.8,
                label=f"Default ({default_bw} Hz)")
 
     # Best K match (default lambda)
     k_def = sweep["lambda_0.998"]["k_residual"]
-    idx_best = int(np.argmin(np.abs(k_def - range_k)))
+    idx_best = int(np.argmin(np.abs(k_def - ref_k)))
     best_bw = float(bw[idx_best])
     ax.axvline(best_bw, color="tab:blue", linestyle="--", linewidth=0.8,
                label=f"Best K match ({best_bw:.3f} Hz)")
@@ -877,15 +1093,15 @@ def plot_cf_tuning(sweep, range_cal, existing_pcoef):
         ax.semilogx(bw, sweep[key]["comp_error_std"], "o-", color=color,
                     markersize=3, linewidth=1.0, label=label)
 
-    ideal_err = (range_cal["raw_err_fit"]
-                 + range_cal["pcoef_recommended"] * range_cal["thrust_fit"])
+    ideal_err = (height_cal["raw_err_fit"]
+                 + height_cal["recommended_k_t"] * height_cal["thrust_fit"])
     ideal_std = float(np.std(ideal_err))
     ax.axhline(ideal_std, color="tab:green", linestyle="--", linewidth=1.0,
-               label=f"Range optimal: {ideal_std:.2f} m")
+               label=f"{ref_label} optimal: {ideal_std:.2f} m")
 
-    current_std = float(np.std(range_cal["comp_err_fit"]))
+    current_std = float(np.std(height_cal["comp_err_fit"]))
     ax.axhline(current_std, color="tab:orange", linestyle=":", linewidth=1.0,
-               label=f"Current PCOEF: {current_std:.2f} m")
+               label=f"Current K_T: {current_std:.2f} m")
 
     ax.axvline(default_bw, color="tab:gray", linestyle=":", linewidth=0.8)
     ax.axvline(best_bw, color="tab:blue", linestyle="--", linewidth=0.8)
@@ -935,7 +1151,45 @@ def main():
     default_log_dir = os.path.join(px4_root, "logs")
     parser.add_argument("--output-dir", "-o", default=default_log_dir,
                         help="Output base directory (default: <PX4_ROOT>/logs/)")
+    parser.add_argument("--min-height-ref-m", type=float,
+                        default=DEFAULT_MIN_HEIGHT_REF_M,
+                        help=("Minimum selected height reference used for "
+                              "calibration and offline RLS updates "
+                              f"(default: {DEFAULT_MIN_HEIGHT_REF_M} m)"))
+    parser.add_argument("--max-vz", type=float,
+                        default=DEFAULT_MAX_VERTICAL_SPEED_M_S,
+                        help=("Maximum absolute vertical speed used for "
+                              "offline RLS updates "
+                              f"(default: {DEFAULT_MAX_VERTICAL_SPEED_M_S} m/s)"))
+    parser.add_argument("--max-vxy", type=float,
+                        default=DEFAULT_MAX_HORIZONTAL_SPEED_M_S,
+                        help=("Maximum horizontal speed used for offline RLS "
+                              f"updates (default: {DEFAULT_MAX_HORIZONTAL_SPEED_M_S} m/s)"))
+    parser.add_argument("--cf-bandwidth", type=float,
+                        default=DEFAULT_CF_BANDWIDTH_HZ,
+                        help=("Offline CF crossover frequency "
+                              f"(default: {DEFAULT_CF_BANDWIDTH_HZ} Hz)"))
+    parser.add_argument("--rls-lambda", type=float,
+                        default=DEFAULT_RLS_LAMBDA_FACTOR,
+                        help=("Offline RLS forgetting factor "
+                              f"(default: {DEFAULT_RLS_LAMBDA_FACTOR})"))
     args = parser.parse_args()
+
+    if args.min_height_ref_m < 0.0:
+        print("Error: --min-height-ref-m must be >= 0", file=sys.stderr)
+        sys.exit(1)
+
+    if args.max_vz <= 0.0 or args.max_vxy <= 0.0:
+        print("Error: --max-vz and --max-vxy must be > 0", file=sys.stderr)
+        sys.exit(1)
+
+    if args.cf_bandwidth <= 0.0:
+        print("Error: --cf-bandwidth must be > 0", file=sys.stderr)
+        sys.exit(1)
+
+    if not 0.0 < args.rls_lambda <= 1.0:
+        print("Error: --rls-lambda must be in (0, 1]", file=sys.stderr)
+        sys.exit(1)
 
     if not os.path.isfile(args.ulog_file):
         print(f"Error: file not found: {args.ulog_file}", file=sys.stderr)
@@ -956,7 +1210,7 @@ def main():
     print(f"Loading {args.ulog_file}")
     ulog = ULog(args.ulog_file)
     duration = (ulog.last_timestamp - ulog.start_timestamp) / 1e6
-    existing_pcoef = float(get_param(ulog, "SENS_BARO_K_T", 0.0))
+    existing_k_t = float(get_param(ulog, "SENS_BARO_K_T", 0.0))
     armed_start, armed_end = detect_armed_period(ulog)
 
     # ── Extract ──
@@ -965,6 +1219,10 @@ def main():
     attitude = extract_attitude(ulog)
     thrust = extract_thrust(ulog)
     range_data = extract_range(ulog)
+    vis_data = extract_vis(ulog)
+    height_ref = select_height_reference(
+        range_data, vis_data, args.min_height_ref_m)
+
     online = extract_online_estimate(ulog)
     ekf_z = extract_ekf_z(ulog)
     ekf_baro_obs = extract_ekf_baro_obs(ulog)
@@ -979,7 +1237,14 @@ def main():
     summary.append(f"Log: {log_name}")
     summary.append(f"Duration: {duration:.1f}s")
     summary.append(f"Armed: {armed_start:.1f}s - {armed_end:.1f}s")
-    summary.append(f"SENS_BARO_K_T: {existing_pcoef:+.2f}")
+    summary.append(f"SENS_BARO_K_T: {existing_k_t:+.2f}")
+    summary.append("")
+    summary.append("Analysis settings:")
+    summary.append(f"  Min height reference:   {args.min_height_ref_m:.2f} m")
+    summary.append(f"  Max vertical speed:     {args.max_vz:.2f} m/s")
+    summary.append(f"  Max horizontal speed:   {args.max_vxy:.2f} m/s")
+    summary.append(f"  Offline CF bandwidth:   {args.cf_bandwidth:.3f} Hz")
+    summary.append(f"  Offline RLS lambda:     {args.rls_lambda:.3f}")
     summary.append("")
 
     for pname in ["EKF2_HGT_REF", "EKF2_BARO_CTRL", "EKF2_BARO_NOISE",
@@ -1001,17 +1266,34 @@ def main():
         summary.append(f"  Attitude:{effective_rate(attitude['time_s']):5.1f} Hz  "
                        f"({len(attitude['time_s'])} samples)")
     if range_data is not None:
+        range_note = ""
+        if "raw_signal_quality" in range_data:
+            q = range_data["raw_signal_quality"]
+            range_note = (f", q=-1:{int(np.sum(q == -1))} "
+                          f"q=0:{int(np.sum(q == 0))} "
+                          f"q>0:{int(np.sum(q > 0))}")
         summary.append(f"  Range:   {effective_rate(range_data['time_s']):5.1f} Hz  "
-                       f"({len(range_data['time_s'])} samples)")
+                       f"({len(range_data['time_s'])} samples{range_note})")
+    if vis_data is not None:
+        summary.append(f"  VIO:     {effective_rate(vis_data['time_s']):5.1f} Hz  "
+                       f"({len(vis_data['time_s'])} samples, "
+                       f"{pose_frame_label(vis_data['pose_frame'])})")
     if online is not None:
         summary.append(f"  Online:  {effective_rate(online['time_s']):5.1f} Hz  "
                        f"({len(online['time_s'])} samples)")
     summary.append("")
 
+    if height_ref is not None:
+        summary.append(f"Height reference: {height_ref.label}")
+        summary.append("")
+
     # ── Analysis ──
     figures = []
     figures.append(plot_altitude_overview(
-        ekf_baro_obs, ekf_z, range_data, thrust, armed_start, armed_end))
+        ekf_baro_obs, ekf_z, height_ref, thrust, armed_start, armed_end))
+    range_quality_fig = plot_range_signal_quality(range_data)
+    if range_quality_fig is not None:
+        figures.append(range_quality_fig)
 
     # 1. Online estimator results
     online_k = None
@@ -1026,9 +1308,9 @@ def main():
             summary.append(f"Online CF+RLS:")
             summary.append(f"  Converged at {conv_time:.0f}s after arm")
             summary.append(f"  K = {online_k:.3f}")
-            summary.append(f"  Total PCOEF: {existing_pcoef:+.2f} "
+            summary.append(f"  SENS_BARO_K_T: {existing_k_t:+.2f} "
                            f"- {online_k:.2f} = "
-                           f"{existing_pcoef - online_k:+.2f}")
+                           f"{existing_k_t - online_k:+.2f}")
         else:
             last_k = online["k_estimate"][armed_mask]
             online_k = float(last_k[-1]) if len(last_k) > 0 else None
@@ -1044,59 +1326,65 @@ def main():
     if accel is not None and attitude is not None:
         offline = run_offline_cf_rls(baro, accel, attitude, thrust, landed,
                                      armed_start, armed_end,
-                                     ekf_z=ekf_z, range_data=range_data)
+                                     cf_bandwidth=args.cf_bandwidth,
+                                     rls_lambda=args.rls_lambda,
+                                     ekf_z=ekf_z,
+                                     height_ref=height_ref,
+                                     max_vz=args.max_vz,
+                                     max_vxy=args.max_vxy)
         summary.append(f"Offline CF+RLS:")
         summary.append(f"  Final K = {offline['final_k']:.3f}")
-        summary.append(f"  Total PCOEF: {existing_pcoef:+.2f} "
+        summary.append(f"  SENS_BARO_K_T: {existing_k_t:+.2f} "
                        f"- {offline['final_k']:.2f} = "
-                       f"{existing_pcoef - offline['final_k']:+.2f}")
+                       f"{existing_k_t - offline['final_k']:+.2f}")
         summary.append("")
     else:
         summary.append("Offline CF+RLS: skipped (missing accel or attitude)")
         summary.append("")
 
-    # 3. Range calibration
-    range_cal = None
-    if range_data is not None:
-        range_cal = run_range_calibration(baro, range_data, thrust,
-                                          armed_start, armed_end,
-                                          existing_pcoef)
-        if range_cal is not None:
-            summary.append(f"Range ground truth:")
-            summary.append(f"  K_total = {range_cal['K_total']:.3f}  "
-                           f"(R\u00b2 = {range_cal['r2']:.3f}, "
-                           f"RMSE = {range_cal['rmse']:.3f} m)")
-            summary.append(f"  K_residual = {range_cal['K_residual']:.3f}")
-            summary.append(f"  PCOEF recommended: "
-                           f"{range_cal['pcoef_recommended']:+.2f}")
+    # 3. Height reference calibration
+    height_cal = None
+    if height_ref is not None:
+        height_cal = run_height_reference_calibration(baro, height_ref, thrust,
+                                                     armed_start, armed_end,
+                                                     existing_k_t)
+        if height_cal is not None:
+            summary.append(f"{height_ref.label} reference:")
+            summary.append(f"  K_total = {height_cal['K_total']:.3f}  "
+                           f"(R\u00b2 = {height_cal['r2']:.3f}, "
+                           f"RMSE = {height_cal['rmse']:.3f} m)")
+            summary.append(f"  K_residual = {height_cal['K_residual']:.3f}")
+            summary.append(f"  Recommended SENS_BARO_K_T: "
+                           f"{height_cal['recommended_k_t']:+.2f}")
             summary.append("")
         else:
-            summary.append("Range calibration: insufficient data")
+            summary.append(f"{height_ref.label} calibration: insufficient data")
             summary.append("")
 
     # ── Comparison table ──
     sep = "=" * 60
     summary.append(sep)
     r2_label = "R\u00b2"
-    summary.append(f"  {'Method':<22} {'K':>8} {'Total PCOEF':>12} "
+    summary.append(f"  {'Method':<22} {'K':>8} {'Set K_T':>12} "
                    f"{r2_label:>6}")
     summary.append("-" * 60)
 
     if online_k is not None:
-        pcoef = existing_pcoef - online_k
+        k_t = existing_k_t - online_k
         summary.append(f"  {'Online CF+RLS':<22} {online_k:>8.3f} "
-                       f"{pcoef:>+12.2f}")
+                       f"{k_t:>+12.2f}")
 
     if offline is not None:
-        pcoef = existing_pcoef - offline["final_k"]
+        k_t = existing_k_t - offline["final_k"]
         summary.append(f"  {'Offline CF+RLS':<22} "
-                       f"{offline['final_k']:>8.3f} {pcoef:>+12.2f}")
+                       f"{offline['final_k']:>8.3f} {k_t:>+12.2f}")
 
-    if range_cal is not None:
-        summary.append(f"  {'Range ground truth':<22} "
-                       f"{range_cal['K_residual']:>8.3f} "
-                       f"{range_cal['pcoef_recommended']:>+12.2f} "
-                       f"{range_cal['r2']:>6.3f}")
+    if height_cal is not None:
+        label = f"{height_cal['height_ref_source'].upper()} reference"
+        summary.append(f"  {label:<22} "
+                       f"{height_cal['K_residual']:>8.3f} "
+                       f"{height_cal['recommended_k_t']:>+12.2f} "
+                       f"{height_cal['r2']:>6.3f}")
 
     summary.append(sep)
 
@@ -1104,12 +1392,12 @@ def main():
     if online_k is not None and offline is not None:
         d = abs(online_k - offline["final_k"])
         summary.append(f"  Online vs Offline:  \u0394K = {d:.3f}")
-    if online_k is not None and range_cal is not None:
-        d = abs(online_k - range_cal["K_residual"])
-        summary.append(f"  Online vs Range:    \u0394K = {d:.3f}")
-    if offline is not None and range_cal is not None:
-        d = abs(offline["final_k"] - range_cal["K_residual"])
-        summary.append(f"  Offline vs Range:   \u0394K = {d:.3f}")
+    if online_k is not None and height_cal is not None:
+        d = abs(online_k - height_cal["K_residual"])
+        summary.append(f"  Online vs Reference:  \u0394K = {d:.3f}")
+    if offline is not None and height_cal is not None:
+        d = abs(offline["final_k"] - height_cal["K_residual"])
+        summary.append(f"  Offline vs Reference: \u0394K = {d:.3f}")
 
     summary.append("")
 
@@ -1119,30 +1407,33 @@ def main():
 
     # ── Generate plots ──
     figures.append(plot_k_convergence(
-        online, offline, range_cal, armed_start, armed_end, existing_pcoef))
+        online, offline, height_cal, armed_start, armed_end, existing_k_t))
 
     if online is not None or offline is not None:
         figures.append(plot_residual_comparison(
             online, offline, thrust, armed_start, armed_end))
 
-    if range_cal is not None:
-        figures.append(plot_ground_truth(range_cal, existing_pcoef))
+    if height_cal is not None:
+        figures.append(plot_height_reference_fit(height_cal, existing_k_t))
 
-    # ── Parameter sweep (when range ground truth available) ──
-    if (range_cal is not None and accel is not None
+    # ── Parameter sweep (when height reference available) ──
+    if (height_cal is not None and accel is not None
             and attitude is not None):
         print("\nSweeping CF bandwidth...")
         sweep = sweep_cf_params(baro, accel, attitude, thrust, landed,
-                                armed_start, armed_end, range_cal,
-                                existing_pcoef,
-                                ekf_z=ekf_z, range_data=range_data)
+                                armed_start, armed_end, height_cal,
+                                existing_k_t,
+                                ekf_z=ekf_z,
+                                height_ref=height_ref,
+                                max_vz=args.max_vz,
+                                max_vxy=args.max_vxy)
         fig, best_bw, min_bw, min_std = plot_cf_tuning(
-            sweep, range_cal, existing_pcoef)
+            sweep, height_cal, existing_k_t)
         figures.append(fig)
 
-        range_k = range_cal["K_residual"]
+        ref_k = height_cal["K_residual"]
         k_def = sweep["lambda_0.998"]["k_residual"]
-        idx_best = int(np.argmin(np.abs(k_def - range_k)))
+        idx_best = int(np.argmin(np.abs(k_def - ref_k)))
         best_k = float(k_def[idx_best])
 
         summary.append("")

@@ -39,6 +39,7 @@
     - [Racer Setup](config_mc/racer_setup.md)
     - [Land Detector Configuration](advanced_config/land_detector.md)
     - [Static Pressure Buildup](advanced_config/static_pressure_buildup.md)
+    - [Barometer Thrust Compensation](advanced_config/barometer_thrust_compensation.md)
   - [Flying (Basics)](flying/basic_flying_mc.md)
   - [Complete Vehicles](complete_vehicles_mc/index.md)
     - [PX4 Vision Kit](complete_vehicles_mc/px4_vision_kit.md)

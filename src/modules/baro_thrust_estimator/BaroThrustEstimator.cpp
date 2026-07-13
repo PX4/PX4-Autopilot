@@ -41,7 +41,7 @@
  * captures propwash effects while rejecting real altitude changes and accel drift.
  * An RLS estimator identifies the gain K using the commanded collective thrust
  * magnitude from vehicle_thrust_setpoint (|xyz[2]|). Converged parameters are
- * saved on disarm.
+ * saved on disarm after convergence during an enabled calibration flight.
  */
 
 #include "BaroThrustEstimator.hpp"
@@ -273,24 +273,24 @@ void BaroThrustEstimator::saveParameters()
 	}
 
 	// K_est is the residual gain the estimator sees *after* existing compensation,
-	// so the corrected PCOEF shifts by -K_est to cancel it out.
-	const float pcoef_new = _param_sens_baro_k_t.get() - K_est;
+	// so SENS_BARO_K_T shifts by -K_est to cancel it out.
+	const float k_t_new = _param_sens_baro_k_t.get() - K_est;
 
-	if (!PX4_ISFINITE(pcoef_new)) {
+	if (!PX4_ISFINITE(k_t_new)) {
 		PX4_WARN("non-finite result, skipping save");
 		return;
 	}
 
-	if (fabsf(pcoef_new) > PCOEF_MAX) {
-		PX4_WARN("result out of range (pcoef=%.1f)", (double)pcoef_new);
+	if (fabsf(k_t_new) > K_T_MAX) {
+		PX4_WARN("result out of range (K_T=%.1f)", (double)k_t_new);
 		return;
 	}
 
-	PX4_INFO("saving SENS_BARO_K_T=%.1f (K_est=%.2f, prev_pcoef=%.1f)",
-		 (double)pcoef_new, (double)K_est,
+	PX4_INFO("saving SENS_BARO_K_T=%.1f (K_est=%.2f, prev_k_t=%.1f)",
+		 (double)k_t_new, (double)K_est,
 		 (double)_param_sens_baro_k_t.get());
 
-	_param_sens_baro_k_t.set(pcoef_new);
+	_param_sens_baro_k_t.set(k_t_new);
 	_param_sens_baro_k_t.commit_no_notification();
 }
 
@@ -371,7 +371,8 @@ Uses an accel-baro complementary filter to isolate thrust-induced baro pressure 
 The CF residual captures propwash effects while rejecting real altitude changes and
 accelerometer drift. An RLS estimator identifies the thrust-to-baro gain K using the
 commanded collective thrust magnitude from vehicle_thrust_setpoint (|xyz[2]|).
-Converged parameters are saved on disarm and refined over subsequent flights.
+Converged parameters are saved on disarm after convergence during an enabled
+calibration flight.
 
 )DESCR_STR");
 

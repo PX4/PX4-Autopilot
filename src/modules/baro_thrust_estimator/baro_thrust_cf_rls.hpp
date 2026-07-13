@@ -68,7 +68,7 @@
  * prediction error (absolute OR relative to explained variance),
  * sufficient thrust excitation, stable K estimate for 10s, and a 10s
  * hold period.  The relative error path allows first-flight calibration
- * (PCOEF=0) where absolute residual is high but the model explains
+ * (SENS_BARO_K_T=0) where absolute residual is high but the model explains
  * most of the variance.  Once locked, K is saved to SENS_BARO_K_T
  * on disarm.
  */
