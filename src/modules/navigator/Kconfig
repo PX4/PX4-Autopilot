@@ -25,8 +25,18 @@ menuconfig NAVIGATOR_ADSB
 	default y
 	depends on MODULES_NAVIGATOR
 	---help---
-		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
-		Actions are warnings, Loiter, Land and RTL without climb.
+		Evaluate cooperative traffic reports and request configured warnings or
+		navigation actions. The crosstrack conflict model is built by default;
+		enabling NAVIGATOR_ADSB_F3442 selects the F3442-derived model instead.
+
+menuconfig NAVIGATOR_ADSB_F3442
+	bool "Use F3442-derived traffic conflict evaluation"
+	default n
+	depends on NAVIGATOR_ADSB
+	---help---
+		Build the conflict model based on selected ASTM F3442 alert concepts
+		instead of the crosstrack model. This option alone does not establish
+		compliance.
 
 menuconfig NAVIGATOR_GEOFENCE_AVOIDANCE
 	bool "Include geofence avoidance path planning for RTL"
@@ -42,3 +52,11 @@ config NAVIGATOR_GEOFENCE_MAX_NODES
 	---help---
 		Max number of geofence vertices which the RTL planner can use.
 		Replanning time (on geofence / safety margin change) is cubic, RAM usage quadratic in this number.
+
+menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
+	bool "Include fake-traffic injection for DAA testing"
+	default n
+	depends on NAVIGATOR_ADSB
+	---help---
+		Adds the `navigator fake_traffic` shell command and the scripted scenarios
+		used to validate the Detect and Avoid pipeline without a real transponder.

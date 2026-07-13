@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,34 @@
 #
 ############################################################################
 
-px4_add_library(adsb AdsbConflict.cpp)
+set(adsb_srcs
+	AdsbConflict.cpp
+	ConflictTracker.cpp
+	DaaActionPolicy.cpp
+	DaaEncodedId.cpp
+)
+
+if(CONFIG_NAVIGATOR_ADSB_F3442)
+	list(APPEND adsb_srcs f3442_standard/DaaF3442.cpp)
+else()
+	list(APPEND adsb_srcs crosstrack_standard/DaaCrosstrack.cpp)
+endif()
+
+px4_add_library(adsb ${adsb_srcs})
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/parameters.yaml)
 
 target_link_libraries(adsb PUBLIC geo)
 
-px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)
+	px4_add_functional_gtest(SRC ConflictTrackerTest.cpp LINKLIBS adsb)
+	px4_add_unit_gtest(SRC DaaActionPolicyTest.cpp LINKLIBS adsb)
+	px4_add_unit_gtest(SRC DaaEncodedIdTest.cpp LINKLIBS adsb)
+
+	if(CONFIG_NAVIGATOR_ADSB_F3442)
+		px4_add_functional_gtest(SRC f3442_standard/DaaF3442Test.cpp LINKLIBS adsb)
+	else()
+		px4_add_functional_gtest(SRC crosstrack_standard/DaaCrosstrackTest.cpp LINKLIBS adsb)
+	endif()
+endif()

@@ -58,6 +58,10 @@ void LoggedTopics::add_default_topics()
 	add_topic("commander_state");
 	add_topic("config_overrides");
 	add_topic("cpuload");
+#if defined(CONFIG_NAVIGATOR_ADSB)
+	add_topic("detect_and_avoid");
+	add_topic("detect_and_avoid_most_urgent");
+#endif // CONFIG_NAVIGATOR_ADSB
 	add_topic("distance_sensor_mode_change_request");
 	add_topic("device_information", 900);
 	add_topic_multi("dronecan_node_status", 250);

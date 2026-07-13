@@ -50,6 +50,9 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if CONFIG_NAVIGATOR_ADSB
+#include "DetectAndAvoid/detect_and_avoid.h"
+#endif // CONFIG_NAVIGATOR_ADSB
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
@@ -63,9 +66,6 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/telemetry_status.h>
 
-#if CONFIG_NAVIGATOR_ADSB
-#include <lib/adsb/AdsbConflict.h>
-#endif // CONFIG_NAVIGATOR_ADSB
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -157,9 +157,11 @@ public:
 	 * Check nearby traffic for potential collisions
 	 */
 	void check_traffic();
-	void take_traffic_conflict_action();
-	void run_fake_traffic();
 #endif // CONFIG_NAVIGATOR_ADSB
+#if CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
+	void run_fake_traffic(DetectAndAvoid::FakeTraffMode mode = DetectAndAvoid::FakeTraffMode::kUniqueIds);
+	void stop_fake_traffic();
+#endif // CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC
 
 	/**
 	 * Setters
@@ -180,9 +182,13 @@ public:
 	uint8_t                      get_takeoff_state() { return _takeoff_status_sub.get().takeoff_state; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
+	void set_rtl_return_alt_min(bool enable) { _rtl.set_return_alt_min(enable); }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 	Course *get_course() { return &_course; }
+#if CONFIG_NAVIGATOR_ADSB
+	DetectAndAvoid *get_detect_and_avoid() { return &_detect_and_avoid; }
+#endif // CONFIG_NAVIGATOR_ADSB
 
 	const PositionYawSetpoint &get_last_pos_with_gcs_heartbeat() const { return _last_pos_with_gcs_heartbeat; }
 
@@ -346,7 +352,6 @@ private:
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
-	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
@@ -410,8 +415,7 @@ private:
 	RTL 		_rtl;				/**< class that handles RTL */
 	Course		_course;			/**< class that handles course */
 #if CONFIG_NAVIGATOR_ADSB
-	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
-	traffic_buffer_s _traffic_buffer{};
+	DetectAndAvoid _detect_and_avoid;
 #endif // CONFIG_NAVIGATOR_ADSB
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
@@ -466,10 +470,6 @@ private:
 		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
-		(ParamInt<px4::params::NAV_TRAFF_AVOID>)    _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-		(ParamFloat<px4::params::NAV_TRAFF_A_HOR>)  _param_nav_traff_a_hor_ct,	/**< avoidance Distance Crosstrack*/
-		(ParamFloat<px4::params::NAV_TRAFF_A_VER>)  _param_nav_traff_a_ver,	/**< avoidance Distance Vertical*/
-		(ParamInt<px4::params::NAV_TRAFF_COLL_T>)   _param_nav_traff_collision_time,
 		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
 		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and RTL)*/

@@ -451,6 +451,9 @@ class SourceParser(object):
             if command in ['start', 'stop', 'status']:
                 continue # handled in the base class
 
+            if command == 'help':
+                continue # universal meta-command, used as sub-argument
+
             if not command in doc_commands:
                 print(("Warning: undocumented command '%s' in %s" %(command, scope)))
                 self._consistency_checks_failure = True
