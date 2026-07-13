@@ -29730,8 +29730,9 @@ by the innovation consistency test.
 
 1-sigma initial hover thrust uncertainty.
 
-Sets the number of standard deviations used
-by the innovation consistency test.
+Initial standard deviation of the hover thrust state estimate.
+Larger values allow the estimate to move farther from the initial
+hover thrust before process noise takes over.
 
 | Reboot | minValue | maxValue | increment | default | unit              | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----------------- | --------- |
@@ -32443,9 +32444,8 @@ When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration
 
 Maximum horizontal acceleration.
 
-MPC_POS_MODE
-1 just deceleration
-4 not used, use MPC_ACC_HOR instead
+With MPC_POS_MODE=0 it limits deceleration.
+With MPC_POS_MODE=4 it is unused (see MPC_ACC_HOR).
 
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
