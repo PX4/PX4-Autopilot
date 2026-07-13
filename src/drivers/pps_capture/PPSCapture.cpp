@@ -160,7 +160,6 @@ void PPSCapture::Run()
 	_pps_capture_pub.publish(pps_capture);
 
 	if (_pps_rate_failure.load()) {
-		mavlink_log_warning(&_mavlink_log_pub, "Hardware fault: GPS PPS disabled\t");
 		events::send(events::ID("pps_capture_pps_rate_exceeded"),
 			     events::Log::Error, "Hardware fault: GPS PPS disabled");
 		_pps_rate_failure.store(false);

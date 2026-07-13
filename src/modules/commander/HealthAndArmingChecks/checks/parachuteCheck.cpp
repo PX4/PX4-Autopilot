@@ -53,9 +53,6 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_missing"),
 				       events::Log::Error, "Parachute system missing");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system missing");
-		}
 
 	} else if (!context.status().parachute_system_healthy) {
 
@@ -70,9 +67,6 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_unhealthy"),
 				       events::Log::Error, "Parachute system not ready");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system not ready");
-		}
 	}
 
 	if (context.status().parachute_system_present) {

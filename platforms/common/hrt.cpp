@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,47 +31,18 @@
  *
  ****************************************************************************/
 
-#include "manualControlCheck.hpp"
+#include <drivers/drv_hrt.h>
 
-using namespace time_literals;
-
-void ManualControlChecks::checkAndReport(const Context &context, Report &reporter)
+hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
 {
-	if (context.isArmed()) {
-		return;
+	hrt_abstime now = hrt_absolute_time();
+
+	// Cannot allow a negative elapsed time as this would appear
+	// to be a huge positive elapsed time when represented as an
+	// unsigned value!
+	if (*then > now) {
+		return 0;
 	}
 
-	manual_control_switches_s manual_control_switches;
-
-	if (_manual_control_switches_sub.copy(&manual_control_switches)) {
-
-		// check action switches
-		if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			/* EVENT
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_rtl_engaged"),
-						    events::Log::Error, "RTL switch engaged");
-
-		}
-
-		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			/* EVENT
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_kill_engaged"),
-						    events::Log::Error, "Kill switch engaged");
-
-		}
-
-		if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			/* EVENT
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_landing_gear_up"),
-						    events::Log::Error, "Landing gear switch set in UP position");
-
-		}
-
-	}
+	return now - *then;
 }

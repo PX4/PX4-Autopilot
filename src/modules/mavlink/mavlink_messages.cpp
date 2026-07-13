@@ -257,7 +257,8 @@ static_assert(41 == ROTATION_MAX, "Keep MAV_SENSOR_ROTATION and PX4 Rotation in 
 static_assert(MAV_SENSOR_ROTATION_CUSTOM == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_CUSTOM), "Custom Rotation");
 
 
-static const StreamListItem streams_list[] = {
+// constexpr so the table is emitted into .rodata instead of being built at runtime by static-init code
+static constexpr StreamListItem streams_list[] = {
 #if defined(HEARTBEAT_HPP)
 	create_stream_list_item<MavlinkStreamHeartbeat>(),
 #endif // HEARTBEAT_HPP

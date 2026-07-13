@@ -87,10 +87,6 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 					events::ID("check_rc_min_too_small"),
 					events::Log::Error, "RC calibration for channel {1} invalid: MIN less than {2}", i + 1, RC_INPUT_LOWEST_MIN_US);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RC ERROR: RC%d_MIN < %u", i + 1,
-						     RC_INPUT_LOWEST_MIN_US);
-			}
 		}
 
 		if (param_max > RC_INPUT_HIGHEST_MAX_US) {
@@ -102,10 +98,6 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 					events::ID("check_rc_max_too_high"),
 					events::Log::Error, "RC calibration for channel {1} invalid: MAX greater than {2}", i + 1, RC_INPUT_HIGHEST_MAX_US);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RC ERROR: RC%d_MAX > %u", i + 1,
-						     RC_INPUT_HIGHEST_MAX_US);
-			}
 		}
 
 		if (param_trim < param_min) {
@@ -118,10 +110,6 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 					events::Log::Error, "RC calibration for channel {1} invalid: TRIM less than MIN ({2} less than {3})", i + 1,
 					(int16_t)param_trim, (int16_t)param_min);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RC ERROR: RC%d_TRIM < MIN (%d/%d)", i + 1,
-						     (int)param_trim, (int)param_min);
-			}
 		}
 
 		if (param_trim > param_max) {
@@ -134,10 +122,6 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 					events::Log::Error, "RC calibration for channel {1} invalid: TRIM greater than MAX ({2} greater than {3})", i + 1,
 					(int16_t)param_trim, (int16_t)param_max);
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RC ERROR: RC%d_TRIM > MAX (%d/%d)", i + 1,
-						     (int)param_trim, (int)param_max);
-			}
 		}
 	}
 }

@@ -6,11 +6,6 @@ The _Events Interface_ provides a system-wide API for notification of events, wh
 
 The interface can be used for publishing events for state changes or any other type of occurrence, including things like arming readiness, calibration completion, and reaching the target takeoff height.
 
-::: info
-The events interface will replace the use of `mavlink_log_*` calls in PX4 code, (and `STATUS_TEXT` messages in MAVLink) for event notification in PX4 v1.13 and later.
-There will be an intermediate period where [both approaches are supported](#backward-compatibility).
-:::
-
 ## Usage
 
 ### Basic
@@ -26,20 +21,6 @@ And then define and send the event from the desired code location:
 ```cpp
 events::send(events::ID("mymodule_test"), events::Log::Info, "Test Message");
 ```
-
-#### Backward compatibility
-
-For older GCS versions without events interface support, PX4 currently sends out all events also as `mavlink_log_*` `STATUSTEXT` message.
-In addition, the message must be tagged with an appended tab (`\t`) so that newer GCS's can ignore that and only show the event.
-
-So whenever adding an event, be sure to also add a `mavlink_log_` call. For example:
-
-```cpp
-mavlink_log_info(mavlink_log_pub, "Test Message\t");
-events::send(events::ID("mymodule_test"), events::Log::Info, "Test Message");
-```
-
-All such `mavlink_log_` calls will be removed after the next release.
 
 ### Detailed
 

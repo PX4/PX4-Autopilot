@@ -176,7 +176,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_tiltmax_air.get() > MAX_SAFE_TILT_DEG) {
 			_param_mpc_tiltmax_air.set(MAX_SAFE_TILT_DEG);
 			_param_mpc_tiltmax_air.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Tilt constrained to safe value\t");
 			/* EVENT
 			 * @description <param>MPC_TILTMAX_AIR</param> is set to {1:.0}.
 			 */
@@ -187,7 +186,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_tiltmax_lnd.get() > _param_mpc_tiltmax_air.get()) {
 			_param_mpc_tiltmax_lnd.set(_param_mpc_tiltmax_air.get());
 			_param_mpc_tiltmax_lnd.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Land tilt has been constrained by max tilt\t");
 			/* EVENT
 			 * @description <param>MPC_TILTMAX_LND</param> is set to {1:.0}.
 			 */
@@ -218,7 +216,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_xy_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_XY_CRUISE</param> is set to {1:.0}.
 			 */
@@ -229,7 +226,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_VEL_MANUAL</param> is set to {1:.0}.
 			 */
@@ -240,7 +236,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_vel_man_back.get() > _param_mpc_vel_manual.get()) {
 			_param_mpc_vel_man_back.set(_param_mpc_vel_manual.get());
 			_param_mpc_vel_man_back.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual backward speed has been constrained by forward speed\t");
 			/* EVENT
 			 * @description <param>MPC_VEL_MAN_BACK</param> is set to {1:.0}.
 			 */
@@ -251,7 +246,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_vel_man_side.get() > _param_mpc_vel_manual.get()) {
 			_param_mpc_vel_man_side.set(_param_mpc_vel_manual.get());
 			_param_mpc_vel_man_side.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual sideways speed has been constrained by forward speed\t");
 			/* EVENT
 			 * @description <param>MPC_VEL_MAN_SIDE</param> is set to {1:.0}.
 			 */
@@ -262,7 +256,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_z_v_auto_up.get() > _param_mpc_z_vel_max_up.get()) {
 			_param_mpc_z_v_auto_up.set(_param_mpc_z_vel_max_up.get());
 			_param_mpc_z_v_auto_up.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
 			 */
@@ -273,7 +266,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_z_v_auto_dn.get() > _param_mpc_z_vel_max_dn.get()) {
 			_param_mpc_z_v_auto_dn.set(_param_mpc_z_vel_max_dn.get());
 			_param_mpc_z_v_auto_dn.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Descent speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
 			 */
@@ -286,7 +278,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
 						 _param_mpc_thr_max.get()));
 			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max\t");
 			/* EVENT
 			 * @description <param>MPC_THR_HOVER</param> is set to {1:.0}.
 			 */

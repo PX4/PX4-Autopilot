@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,47 +31,18 @@
  *
  ****************************************************************************/
 
-#include "manualControlCheck.hpp"
+#include <px4_platform_common/module_params.h>
 
-using namespace time_literals;
-
-void ManualControlChecks::checkAndReport(const Context &context, Report &reporter)
+void ModuleParams::setParent(ModuleParams *parent)
 {
-	if (context.isArmed()) {
-		return;
+	if (parent) {
+		parent->_children.add(this);
 	}
 
-	manual_control_switches_s manual_control_switches;
+	_parent = parent;
+}
 
-	if (_manual_control_switches_sub.copy(&manual_control_switches)) {
-
-		// check action switches
-		if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			/* EVENT
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_rtl_engaged"),
-						    events::Log::Error, "RTL switch engaged");
-
-		}
-
-		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			/* EVENT
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_kill_engaged"),
-						    events::Log::Error, "Kill switch engaged");
-
-		}
-
-		if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			/* EVENT
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_landing_gear_up"),
-						    events::Log::Error, "Landing gear switch set in UP position");
-
-		}
-
-	}
+ModuleParams::~ModuleParams()
+{
+	if (_parent) { _parent->_children.remove(this); }
 }

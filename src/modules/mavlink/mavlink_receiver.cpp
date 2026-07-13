@@ -529,7 +529,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.confirmation = cmd_mavlink.confirmation;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, vcmd);
 }
 
 bool
@@ -654,55 +654,54 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, vcmd);
 }
 
-template <class T>
-void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-		const vehicle_command_s &vehicle_command)
+void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const vehicle_command_s &vehicle_command)
 {
-	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
+	bool target_ok = evaluate_target_ok(vehicle_command.command, vehicle_command.target_system, vehicle_command.target_component);
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
 		if (!_mavlink.get_forwarding_on()
-		    || !_mavlink.component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
+		    || !_mavlink.component_was_seen(vehicle_command.target_system, vehicle_command.target_component, _mavlink)) {
 			PX4_INFO("Ignore command %d from %d/%d to %d/%d",
-				 cmd_mavlink.command, msg->sysid, msg->compid, cmd_mavlink.target_system, cmd_mavlink.target_component);
+				 (int)vehicle_command.command, msg->sysid, msg->compid, vehicle_command.target_system,
+				 vehicle_command.target_component);
 		}
 
 		return;
 	}
 
 	uint8_t zero_mask = 0;
-	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(cmd_mavlink.command, false, _vehicle_type_bitmask,
+	const int command_invalid = mavlink_cmd_params::check_params_for_vehicle(vehicle_command.command, false, _vehicle_type_bitmask,
 				    vehicle_command.param1, vehicle_command.param2,
 				    vehicle_command.param3, vehicle_command.param4,
 				    vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
 				    &zero_mask);
 
 	if (command_invalid > 0) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command,
 			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 		return;
 	}
 
-	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)cmd_mavlink.command); }
+	if (command_invalid < 0) { PX4_DEBUG("MAV_CMD %u not in param validation table; add entry to mavlink_command_params.hpp", (unsigned)vehicle_command.command); }
 
-	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)cmd_mavlink.command, zero_mask); }
+	if (zero_mask) { PX4_DEBUG("MAV_CMD %u: unsupported params with 0.0 sentinel (use NaN) mask=0x%02x", (unsigned)vehicle_command.command, zero_mask); }
 
-	if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
+	if (vehicle_command.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval(
-			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
+			    (int)(vehicle_command.param1 + 0.5f), vehicle_command.param2, vehicle_command.param3, vehicle_command.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)(cmd_mavlink.param1 + 0.5f));
+	} else if (vehicle_command.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
+		get_message_interval((int)(vehicle_command.param1 + 0.5f));
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
+	} else if (vehicle_command.command == MAV_CMD_REQUEST_MESSAGE) {
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
@@ -717,7 +716,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		} else
 #endif
 			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+				get_message_interval((int)(vehicle_command.param2 + 0.5f));
 
 			} else {
 				result = handle_request_message_command(message_id,
@@ -725,7 +724,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
 			}
 
-	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
+	} else if (vehicle_command.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
 			_cmd_pub.publish(vehicle_command);
 			send_ack = false;
@@ -735,11 +734,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = true;
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_MODE) {
+	} else if (vehicle_command.command == MAV_CMD_DO_SET_MODE) {
 		_cmd_pub.publish(vehicle_command);
 		send_ack = false;	//Acknowledgement handled by Commander
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
+	} else if (vehicle_command.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
 		bool has_module = true;
 		autotune_attitude_control_status_s status{};
@@ -850,7 +849,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			return;
 		}
 
-		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
+		if (vehicle_command.command == MAV_CMD_LOGGING_START) {
 			// check that we have enough bandwidth available: this is given by the configured logger topics
 			// and rates. The 5000 is somewhat arbitrary, but makes sure that we cannot enable log streaming
 			// on a radio link
@@ -876,7 +875,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	}
 
 	if (send_ack) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result, progress);
+		acknowledge(msg->sysid, msg->compid, vehicle_command.command, result, progress);
 	}
 }
 
@@ -1248,8 +1247,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %" PRIu8 " unsupported\t",
-					     target_local_ned.coordinate_frame);
 			events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_unsup_coord"), events::Log::Error,
 					      "SET_POSITION_TARGET_LOCAL_NED: coordinate frame {1} unsupported", target_local_ned.coordinate_frame);
 			return;
@@ -1262,7 +1259,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
 			events::send(events::ID("mavlink_rcv_sp_target_unsup_force"), events::Log::Error,
 				     "SET_POSITION_TARGET_LOCAL_NED: FORCE is not supported");
 			return;
@@ -1283,7 +1279,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			}
 
 		} else {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED invalid\t");
 			events::send(events::ID("mavlink_rcv_sp_target_invalid"), events::Log::Error,
 				     "SET_POSITION_TARGET_LOCAL_NED: invalid, missing position, velocity or acceleration");
 		}
@@ -1353,8 +1348,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 				}
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame %" PRIu8 "\t",
-						     target_global_int.coordinate_frame);
 				events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_gl_invalid_coord"), events::Log::Error,
 						      "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame {1}", target_global_int.coordinate_frame);
 				return;
@@ -1381,7 +1374,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
-			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
 			events::send(events::ID("mavlink_rcv_sp_target_gl_unsup_force"), events::Log::Error,
 				     "SET_POSITION_TARGET_GLOBAL_INT: FORCE is not supported");
 			return;
@@ -1728,8 +1720,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	case MAV_ESTIMATOR_TYPE_LIDAR:
 	case MAV_ESTIMATOR_TYPE_AUTOPILOT:
 	default:
-		mavlink_log_critical(&_mavlink_log_pub, "ODOMETRY: estimator_type %" PRIu8 " unsupported\t",
-				     odom_in.estimator_type);
 		events::send<uint8_t>(events::ID("mavlink_rcv_odom_unsup_estimator_type"), events::Log::Error,
 				      "ODOMETRY: unsupported estimator_type {1}", odom_in.estimator_type);
 		return;
@@ -2796,8 +2786,6 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 	} else if (landing_target.position_valid) {
 		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
-		mavlink_log_critical(&_mavlink_log_pub, "Landing target: coordinate frame %" PRIu8 " unsupported\t",
-				     landing_target.frame);
 		events::send<uint8_t>(events::ID("mavlink_rcv_lnd_target_unsup_coord"), events::Log::Error,
 				      "Landing target: unsupported coordinate frame {1}", landing_target.frame);
 
@@ -3232,8 +3220,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	// Unsupported sensor frame
 	if (target_relative.frame != TARGET_OBS_FRAME_LOCAL_OFFSET_NED && target_relative.frame != TARGET_OBS_FRAME_LOCAL_NED &&
 	    target_relative.frame != TARGET_OBS_FRAME_BODY_FRD && target_relative.frame != TARGET_OBS_FRAME_OTHER) {
-		mavlink_log_critical(&_mavlink_log_pub, "target relative: coordinate frame %" PRIu8 " unsupported.\t",
-				     target_relative.frame);
 		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_coord_frame"), events::Log::Error,
 				      "Target relative: unsupported coordinate frame {1}", target_relative.frame);
 
@@ -3242,8 +3228,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 	// Unsupported measurement type
 	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
-		mavlink_log_critical(&_mavlink_log_pub, "target relative: type %" PRIu8 " unsupported.\t",
-				     target_relative.type);
 		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_type"), events::Log::Error,
 				      "Target relative: unsupported type {1}", target_relative.type);
 		return;
@@ -3268,9 +3252,6 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 		} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
 			// Target sensor frame: OTHER and no quaternion is provided
-			mavlink_log_critical(&_mavlink_log_pub,
-					     "target relative: coordinate frame %" PRIu8 " unsupported when the q_sensor is not filled.\t",
-					     target_relative.frame);
 			events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_q_sensor_not_filled"), events::Log::Error,
 					      "Target relative: unsupported coordinate frame {1} when the q_sensor is not filled", target_relative.frame);
 		}

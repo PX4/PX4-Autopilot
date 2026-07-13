@@ -74,9 +74,6 @@ void AccelerometerChecks::checkAndReport(const Context &context, Report &reporte
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::accel, events::ID("check_accel_missing"),
 								events::Log::Error, "Accelerometer sensor {1} missing", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Accel Sensor %u missing", instance);
-				}
 
 			} else if (!is_valid) {
 				/* EVENT
@@ -84,9 +81,6 @@ void AccelerometerChecks::checkAndReport(const Context &context, Report &reporte
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::accel, events::ID("check_accel_no_data"),
 								events::Log::Error, "No valid data from Accelerometer {1}", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid data from Accel %u", instance);
-				}
 
 			} else if (!is_calibration_valid) {
 				/* EVENT
@@ -94,9 +88,6 @@ void AccelerometerChecks::checkAndReport(const Context &context, Report &reporte
 				reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::accel, events::ID("check_accel_not_calibrated"),
 								     events::Log::Error, "Accelerometer {1} uncalibrated", instance);
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Accel %u uncalibrated", instance);
-				}
 			}
 		}
 	}

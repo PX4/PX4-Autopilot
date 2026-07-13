@@ -50,9 +50,6 @@ void MissionChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::ID("check_mission_failure"),
 						    events::Log::Error, "Mission cannot be completed");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Mission cannot be completed\t");
-			}
 		}
 
 		// This is a mode requirement, no need to report

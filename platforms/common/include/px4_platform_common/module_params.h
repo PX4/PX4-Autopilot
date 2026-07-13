@@ -56,19 +56,9 @@ public:
 	 * @brief Sets the parent module. This is typically not required,
 	 *         only in cases where the parent cannot be set via constructor.
 	 */
-	void setParent(ModuleParams *parent)
-	{
-		if (parent) {
-			parent->_children.add(this);
-		}
+	void setParent(ModuleParams *parent);
 
-		_parent = parent;
-	}
-
-	virtual ~ModuleParams()
-	{
-		if (_parent) { _parent->_children.remove(this); }
-	}
+	virtual ~ModuleParams();
 
 	// Disallow copy construction and move assignment.
 	ModuleParams(const ModuleParams &) = delete;

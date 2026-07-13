@@ -87,8 +87,6 @@ void RtlDirect::on_activation()
 
 	set_rtl_item();
 
-	mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: start return at %d m (%d m above destination)\t",
-			 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
 	events::send<int32_t, int32_t>(events::ID("vrtl_return_at"), events::Log::Info,
 				       "RTL: start return at {1m_v} ({2m_v} above destination)",
 				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
@@ -96,11 +94,9 @@ void RtlDirect::on_activation()
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	if (geofenceAvoidanceActive()) {
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: avoiding geofence\t");
 		events::send(events::ID("rtl_avoiding_geofence"), events::Log::Info, "RTL: avoiding geofence");
 
 	} else if (_navigator->get_geofence_avoidance_planner().needsStraightLineFallback()) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: no geofence avoidance path; flying directly\t");
 		events::send(events::ID("rtl_avoidance_runtime_fallback"), {events::Log::Critical, events::LogInternal::Error},
 			     "RTL: no geofence avoidance path; flying directly");
 	}
@@ -384,7 +380,6 @@ void RtlDirect::set_rtl_item()
 			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m);
 
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
 				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "RTL: completed, loitering");
 
 			} else {
@@ -450,7 +445,6 @@ void RtlDirect::set_rtl_item()
 				startPrecLand(_mission_item.land_precision);
 			}
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
 			break;
 		}
