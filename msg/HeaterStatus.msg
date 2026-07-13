@@ -4,6 +4,7 @@ uint32 device_id
 
 bool heater_on
 bool temperature_target_met
+bool temperature_activation_threshold_met
 
 float32 temperature_sensor
 float32 temperature_target
