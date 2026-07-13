@@ -39086,6 +39086,22 @@ which must be higher than the maximum ambient temperature.
 | ------- | -------- | -------- | --------- | ------- | ------- | --------- |
 | &check; | 0        | 85.0     |           | 55.0    | celcius | &nbsp;    |
 
+### HEATER1_TEMP_ACT (`FLOAT`) {#HEATER1_TEMP_ACT}
+
+If temperature drops below Activation_Threshold, it starts heating.
+
+The heater starts heating once the temperature drops below this activation threshold, and keeps
+heating until reset.
+
+The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+is always below the activation threshold and thus turn on the heater immediately.
+Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+e.g. 5 to only start heating once the temperature drops below 5°C.
+
+| Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------- | --------- |
+| &check; | -100.0   | 200.0    |           | 200.0   | celcius | &nbsp;    |
+
 ### HEATER1_TEMP_FF (`FLOAT`) {#HEATER1_TEMP_FF}
 
 Heater 1 controller feedforward value.
@@ -39176,6 +39192,22 @@ which must be higher than the maximum ambient temperature.
 | ------- | -------- | -------- | --------- | ------- | ------- | --------- |
 | &check; | 0        | 85.0     |           | 55.0    | celcius | &nbsp;    |
 
+### HEATER2_TEMP_ACT (`FLOAT`) {#HEATER2_TEMP_ACT}
+
+If temperature drops below Activation_Threshold, it starts heating.
+
+The heater starts heating once the temperature drops below this activation threshold, and keeps
+heating until reset.
+
+The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+is always below the activation threshold and thus turn on the heater immediately.
+Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+e.g. 5 to only start heating once the temperature drops below 5°C.
+
+| Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------- | --------- |
+| &check; | -100.0   | 200.0    |           | 200.0   | celcius | &nbsp;    |
+
 ### HEATER2_TEMP_FF (`FLOAT`) {#HEATER2_TEMP_FF}
 
 Heater 2 controller feedforward value.
@@ -39265,6 +39297,22 @@ which must be higher than the maximum ambient temperature.
 | Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ------- | --------- |
 | &check; | 0        | 85.0     |           | 55.0    | celcius | &nbsp;    |
+
+### HEATER3_TEMP_ACT (`FLOAT`) {#HEATER3_TEMP_ACT}
+
+If temperature drops below Activation_Threshold, it starts heating.
+
+The heater starts heating once the temperature drops below this activation threshold, and keeps
+heating until reset.
+
+The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+is always below the activation threshold and thus turn on the heater immediately.
+Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+e.g. 5 to only start heating once the temperature drops below 5°C.
+
+| Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------- | --------- |
+| &check; | -100.0   | 200.0    |           | 200.0   | celcius | &nbsp;    |
 
 ### HEATER3_TEMP_FF (`FLOAT`) {#HEATER3_TEMP_FF}
 
