@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,7 +62,8 @@ bool AdsbConflict::calculate_daa_output(const daa_input_s &daa_input, detect_and
 		return false;
 	}
 
-	if (!(PX4_ISFINITE(transponder_report.hor_velocity) && PX4_ISFINITE(transponder_report.ver_velocity))) {
+	if (!(PX4_ISFINITE(transponder_report.hor_velocity) && transponder_report.hor_velocity >= 0.f
+	      && PX4_ISFINITE(transponder_report.ver_velocity))) {
 		PX4_DEBUG("DAA lib: invalid traffic velocity");
 		return false;
 	}

@@ -236,11 +236,13 @@ public:
 #endif // CONFIG_NAVIGATOR_ADSB_F3442
 
 	void publish_local_pos_vel(const matrix::Vector3f local_pos_vel, const hrt_abstime timestamp = hrt_absolute_time(),
-				   const float heading = 0.f)
+				   const float heading = 0.f, const bool v_xy_valid = true, const bool v_z_valid = true)
 	{
 		vehicle_local_position_s l_pos{};
 		l_pos.timestamp_sample = timestamp;
 		l_pos.timestamp = timestamp;
+		l_pos.v_xy_valid = v_xy_valid;
+		l_pos.v_z_valid = v_z_valid;
 		l_pos.vx = local_pos_vel(0);
 		l_pos.vy = local_pos_vel(1);
 		l_pos.vz = local_pos_vel(2);
@@ -248,10 +250,14 @@ public:
 		_vehicle_local_position_pub.publish(l_pos);
 	}
 
-	void publish_global_pos(const double lat, const double lon, const double alt, const hrt_abstime timestamp = hrt_absolute_time())
+	void publish_global_pos(const double lat, const double lon, const double alt,
+				const hrt_abstime timestamp = hrt_absolute_time(), const bool lat_lon_valid = true,
+				const bool alt_valid = true)
 	{
 		vehicle_global_position_s g_pos{};
 		g_pos.timestamp_sample = timestamp;
+		g_pos.lat_lon_valid = lat_lon_valid;
+		g_pos.alt_valid = alt_valid;
 		g_pos.lat = lat;
 		g_pos.lon = lon;
 		g_pos.alt = alt;

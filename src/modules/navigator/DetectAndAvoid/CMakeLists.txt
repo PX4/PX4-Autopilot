@@ -52,7 +52,7 @@ endif()
 
 target_link_libraries(detect_and_avoid PUBLIC adsb)
 
-# The functional tests drive use the fake-traffic injector
+# The functional tests use the fake-traffic injector.
 if(CONFIG_NAVIGATOR_ADSB_FAKE_TRAFFIC)
 	add_subdirectory(test)
 endif()

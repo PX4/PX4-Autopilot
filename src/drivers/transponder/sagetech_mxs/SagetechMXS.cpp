@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -303,12 +303,13 @@ void SagetechMXS::Run()
 			// Auto configuration
 			auto_config_operating();
 
-			if (auto_config_installation()) {
+			if (_adsb_icao.get() >= 0) {
+				auto_config_installation();
 				auto_config_flightid();
+				_mxs_op_mode.set(sg_op_mode_t::modeStby);
+				_mxs_op_mode.commit();
 			}
 
-			_mxs_op_mode.set(sg_op_mode_t::modeStby);
-			_mxs_op_mode.commit();
 			send_targetreq_msg();
 			mxs_state.initialized = true;
 		}
@@ -732,8 +733,10 @@ void SagetechMXS::send_flight_id_msg()
 
 void SagetechMXS::send_operating_msg()
 {
-
-	mxs_state.op.opMode = (sg_op_mode_t)_mxs_op_mode.get();
+	// In auto-conf mode ADSB_ICAO_ID=-1 disables ADS-B Out. Keep the transponder
+	// off so a retained installation from an earlier setup cannot transmit.
+	const bool adsb_out_disabled = !_mxs_ext_cfg.get() && _adsb_icao.get() < 0;
+	mxs_state.op.opMode = adsb_out_disabled ? sg_op_mode_t::modeOff : (sg_op_mode_t)_mxs_op_mode.get();
 
 	if (check_valid_squawk(_adsb_squawk.get())) {
 		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());
@@ -1324,17 +1327,12 @@ void SagetechMXS::auto_config_operating()
 	msg_write(txComBuffer, SG_MSG_LEN_OPMSG);
 }
 
-bool SagetechMXS::auto_config_installation()
+void SagetechMXS::auto_config_installation()
 {
-	if (mxs_state.ack.opMode != modeOff) {
-		PX4_ERR("MXS not put in OFF Mode before installation.");
-		return false;
-	}
-
 	const int32_t adsb_icao = _adsb_icao.get();
 
 	if (adsb_icao < 0) {
-		return false;
+		return;
 	}
 
 	mxs_state.inst.icao = static_cast<uint32_t>(adsb_icao);
@@ -1366,8 +1364,6 @@ bool SagetechMXS::auto_config_installation()
 	uint8_t txComBuffer[SG_MSG_LEN_INSTALL] {};
 	sgEncodeInstall(txComBuffer, &mxs_state.inst, ++last.msg.id);
 	msg_write(txComBuffer, SG_MSG_LEN_INSTALL);
-
-	return true;
 }
 
 void SagetechMXS::auto_config_flightid()

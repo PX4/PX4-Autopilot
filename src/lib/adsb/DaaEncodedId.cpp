@@ -177,6 +177,21 @@ void DaaEncodedId::to_string(char *buffer, size_t buffer_size) const
 	case detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN: {
 			char callsign[kCallsignLength] {};
 			convert_uint64_callsign_to_str(id, callsign);
+
+			// Keep malformed/custom publishers from injecting control
+			// characters into MAVLink status text.
+			for (char &character : callsign) {
+				const uint8_t byte = static_cast<uint8_t>(character);
+
+				if (byte == 0) {
+					break;
+				}
+
+				if (byte < 0x20 || byte > 0x7e) {
+					character = '?';
+				}
+			}
+
 			snprintf(buffer, buffer_size, "%s", callsign);
 			break;
 		}
@@ -220,6 +235,24 @@ uint64_t DaaEncodedId::callsign_to_uint64(const char callsign[kCallsignLength])
 	}
 
 	return result;
+}
+
+uint64_t DaaEncodedId::callsign_params_to_uint64(const int32_t callsign_part1, const int32_t callsign_part2)
+{
+	const uint32_t parts[] {
+		static_cast<uint32_t>(callsign_part1),
+		static_cast<uint32_t>(callsign_part2)
+	};
+	char callsign[kCallsignLength] {};
+
+	for (size_t part_idx = 0; part_idx < 2; ++part_idx) {
+		for (size_t char_idx = 0; char_idx < sizeof(uint32_t); ++char_idx) {
+			const unsigned shift = static_cast<unsigned>((sizeof(uint32_t) - char_idx - 1) * 8);
+			callsign[part_idx * sizeof(uint32_t) + char_idx] = static_cast<char>((parts[part_idx] >> shift) & 0xffu);
+		}
+	}
+
+	return callsign_to_uint64(callsign);
 }
 
 void DaaEncodedId::convert_uint64_callsign_to_str(uint64_t value, char callsign[kCallsignLength])

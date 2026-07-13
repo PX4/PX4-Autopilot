@@ -426,9 +426,8 @@ void DetectAndAvoid::refresh_ownship_ids()
 	_ownship_ids.icao = _vehicle_adsb_icao.get();
 	_ownship_ids.icao_2 = _vehicle_adsb_icao_2.get();
 
-	// The two callsign parameters hold the lower and upper 32 bits (first and last 4 characters).
-	_ownship_ids.callsign = (static_cast<uint64_t>(static_cast<uint32_t>(_vehicle_adsb_callsign_2.get())) << 32) |
-				static_cast<uint32_t>(_vehicle_adsb_callsign_1.get());
+	_ownship_ids.callsign = DaaEncodedId::callsign_params_to_uint64(_vehicle_adsb_callsign_1.get(),
+				_vehicle_adsb_callsign_2.get());
 
 #ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid {};
@@ -448,7 +447,9 @@ bool DetectAndAvoid::gather_ownship_input(daa_input_s &daa_input) const
 {
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
-	if (!AdsbConflict::valid_wgs84_coordinates(global_position.lat, global_position.lon) || !PX4_ISFINITE(global_position.alt)) {
+	if (!global_position.lat_lon_valid || !global_position.alt_valid
+	    || !AdsbConflict::valid_wgs84_coordinates(global_position.lat, global_position.lon)
+	    || !PX4_ISFINITE(global_position.alt)) {
 		PX4_DEBUG("DAA: invalid global pose");
 		return false;
 	}
@@ -467,14 +468,23 @@ bool DetectAndAvoid::gather_ownship_input(daa_input_s &daa_input) const
 
 	daa_input.uav_lat_lon = matrix::Vector2d(global_position.lat, global_position.lon);
 	daa_input.uav_alt = global_position.alt;
-	daa_input.uav_vel_ned = matrix::Vector3f(local_position.vx, local_position.vy, local_position.vz);
 
-	// Static F3442 boundaries remain usable when an individual velocity component is unavailable.
-	for (int i = 0; i < 3; ++i) {
-		if (!PX4_ISFINITE(daa_input.uav_vel_ned(i))) {
-			daa_input.uav_vel_ned(i) = 0.f;
-		}
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	// F3442's static alert volumes remain usable when a velocity group is unavailable.
+	daa_input.uav_vel_ned(0) = local_position.v_xy_valid && PX4_ISFINITE(local_position.vx) ? local_position.vx : 0.f;
+	daa_input.uav_vel_ned(1) = local_position.v_xy_valid && PX4_ISFINITE(local_position.vy) ? local_position.vy : 0.f;
+	daa_input.uav_vel_ned(2) = local_position.v_z_valid && PX4_ISFINITE(local_position.vz) ? local_position.vz : 0.f;
+#else
+
+	if (!local_position.v_xy_valid || !local_position.v_z_valid
+	    || !PX4_ISFINITE(local_position.vx) || !PX4_ISFINITE(local_position.vy)
+	    || !PX4_ISFINITE(local_position.vz)) {
+		PX4_DEBUG("DAA: invalid local velocity");
+		return false;
 	}
+
+	daa_input.uav_vel_ned = matrix::Vector3f(local_position.vx, local_position.vy, local_position.vz);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
 	return true;
 }
@@ -562,7 +572,7 @@ void DetectAndAvoid::debug_print_buffer_status()
 		  most_urgent_conflict.conflict_level,
 		  _prev_most_urgent_conflict_level);
 
-	PX4_DEBUG("Max conflict: Unique ID %lu, ID str %s, lvl %d, distance %d, last comm %d sec \n",
+	PX4_DEBUG("Max conflict: Unique ID %" PRIu64 ", ID str %s, lvl %d, distance %d, last comm %d sec \n",
 		  most_urgent_conflict.encoded_id.id,
 		  encoded_id_str,
 		  most_urgent_conflict.conflict_level,
@@ -578,7 +588,7 @@ void DetectAndAvoid::debug_print_conflict_info(const conflict_info_s &conflict)
 	const int time_since_last_comm = static_cast<int>((hrt_absolute_time() - conflict.latest_update_timestamp) / 1_s);
 	const uint16_t aircraft_dist = static_cast<uint16_t>(fabsf(conflict.aircraft_dist));
 
-	PX4_DEBUG("ID: uint %lu, ID str %s, lvl %d, distance %d, last comm %d sec \n",
+	PX4_DEBUG("ID: uint %" PRIu64 ", ID str %s, lvl %d, distance %d, last comm %d sec \n",
 		  conflict.encoded_id.id,
 		  encoded_id_str,
 		  conflict.conflict_level,
@@ -603,13 +613,13 @@ void DetectAndAvoid::debug_print_transponder_report(const transponder_report_s &
 	char icao_str[kIcaoLength];
 	DaaEncodedId::convert_icao_uint32_to_hex_str(icao_address, icao_str, sizeof(icao_str));
 
-	PX4_DEBUG("ADSB_IN: ICAO uint %lu, ICAO str %s",
+	PX4_DEBUG("ADSB_IN: ICAO uint %" PRIu64 ", ICAO str %s",
 		  icao_address,
 		  icao_str);
-	PX4_DEBUG("ADSB_IN: Callsign uint %lu, Callsign str %s",
+	PX4_DEBUG("ADSB_IN: Callsign uint %" PRIu64 ", Callsign str %s",
 		  callsign_int,
 		  callsign);
-	PX4_DEBUG("ADSB_IN: UAS_ID uint %lu, UAS_ID str %s",
+	PX4_DEBUG("ADSB_IN: UAS_ID uint %" PRIu64 ", UAS_ID str %s",
 		  uas_id_int,
 		  uas_id_char);
 

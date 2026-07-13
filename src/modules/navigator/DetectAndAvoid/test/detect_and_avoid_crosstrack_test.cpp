@@ -160,3 +160,30 @@ TEST_F(DetectAndAvoidTest, CrosstrackRejectsNonFiniteTrafficHeading)
 		EXPECT_EQ(conflict.conflict_level, kDaaConflictLvlNone);
 	}
 }
+
+// Crosstrack prediction requires every ownship velocity
+TEST_F(DetectAndAvoidTest, CrosstrackRejectsInvalidOwnshipVelocityFlags)
+{
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const matrix::Vector3f uav_vel{5.f, 10.f, 2.f};
+
+	publish_global_pos(lat_uav, lon_uav, alt_uav);
+	publish_land_status(false);
+	publish_vehicle_status(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, vehicle_status_s::ARMING_STATE_ARMED);
+	publish_local_pos_vel(uav_vel, hrt_absolute_time(), 0.f, false, true);
+	sync_navigator_topics();
+	drain_detect_and_avoid_topic();
+
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav,
+				  alt_uav, 0.f, 0.f, flags);
+	publish_transponder_report_and_check(tr);
+
+	EXPECT_FALSE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
+}

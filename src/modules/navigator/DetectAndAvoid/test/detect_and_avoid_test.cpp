@@ -145,6 +145,40 @@ TEST_F(DetectAndAvoidTest, RejectsTrafficMissingRequiredFlags)
 	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
 }
 
+// Finite coordinates are still unusable when the estimator marks either global position group invalid.
+TEST_F(DetectAndAvoidTest, RejectsInvalidOwnshipGlobalPositionFlags)
+{
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const matrix::Vector3f uav_vel{5.f, 10.f, 2.f};
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+
+	publish_land_status(false);
+	publish_vehicle_status(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, vehicle_status_s::ARMING_STATE_ARMED);
+	publish_local_pos_vel(uav_vel);
+	publish_global_pos(lat_uav, lon_uav, alt_uav, hrt_absolute_time(), false, true);
+	sync_navigator_topics();
+	drain_detect_and_avoid_topic();
+
+	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav,
+				  alt_uav, 0.f, 0.f, flags);
+	publish_transponder_report_and_check(tr);
+
+	EXPECT_FALSE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
+
+	// Drain the queued report after switching to an altitude-invalid pose as well.
+	publish_global_pos(lat_uav, lon_uav, alt_uav, hrt_absolute_time(), true, false);
+	sync_navigator_topics();
+	navigator->check_traffic();
+	EXPECT_FALSE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
+}
+
 // A report older than DAA_TRAFF_TOUT is dropped.
 TEST_F(DetectAndAvoidTest, RejectsStaleTrafficReport)
 {
@@ -180,6 +214,35 @@ TEST_F(DetectAndAvoidTest, RejectsStaleTrafficReport)
 	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
 
 	param_reset_all();
+}
+
+// Source age (tslc) participates in input freshness even when the local publication is new.
+TEST_F(DetectAndAvoidTest, RejectsSourceStaleTrafficReport)
+{
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const matrix::Vector3f uav_vel{5.f, 10.f, 2.f};
+	const int32_t traffic_timeout_s = 1;
+
+	param_set(param_handle(px4::params::DAA_TRAFF_TOUT), &traffic_timeout_s);
+	reload_daa_parameters();
+	set_default_uav_state(lat_uav, lon_uav, alt_uav, uav_vel);
+	sync_navigator_topics();
+	drain_detect_and_avoid_topic();
+
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav,
+				  alt_uav, 0.f, 0.f, flags);
+	tr.tslc = 2;
+
+	publish_transponder_report_and_check(tr);
+
+	EXPECT_FALSE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlNone);
 }
 
 // Ownship reports (ICAO, callsign or UAS ID) are filtered out; foreign traffic with the same
@@ -223,12 +286,10 @@ TEST_F(DetectAndAvoidTest, SelfDetection)
 		EXPECT_EQ(conflict.encoded_id.id, expected_id);
 	};
 
-	// callsign as ownship identity (split into the two ADSB_CALLSIGN_* params)
-	char callsign[kCallsignLength];
-	generate_random_callsign(callsign, 8);
-	const uint64_t callsign_64 = DaaEncodedId::callsign_to_uint64(callsign);
-	const uint32_t own_adsb_callsign1 = static_cast<uint32_t>(callsign_64 & 0xFFFFFFFF);
-	const uint32_t own_adsb_callsign2 = static_cast<uint32_t>((callsign_64 >> 32) & 0xFFFFFFFF);
+	// Each parameter stores four callsign characters in display order (most-significant byte first).
+	char callsign[kCallsignLength] = "PX4 TEST";
+	const int32_t own_adsb_callsign1 = 0x50583420; // "PX4 "
+	const int32_t own_adsb_callsign2 = 0x54455354; // "TEST"
 	param_set(param_handle(px4::params::ADSB_CALLSIGN_1), &own_adsb_callsign1);
 	param_set(param_handle(px4::params::ADSB_CALLSIGN_2), &own_adsb_callsign2);
 	reload_daa_parameters();

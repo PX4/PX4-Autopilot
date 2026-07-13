@@ -68,6 +68,7 @@ const uint8_t kStatesEnableHold[] {
 	vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF,
 	vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET,
 	vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF,
+	vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE,
 };
 
 const uint8_t kStatesEnableRtl[] {
@@ -85,7 +86,9 @@ const uint8_t kStatesEnableTermination[] {
 	vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND,
 	vehicle_status_s::NAVIGATION_STATE_MANUAL,
 	vehicle_status_s::NAVIGATION_STATE_ALTCTL,
+	vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE,
 	vehicle_status_s::NAVIGATION_STATE_POSCTL,
+	vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW,
 	vehicle_status_s::NAVIGATION_STATE_ACRO,
 	vehicle_status_s::NAVIGATION_STATE_STAB,
 };
@@ -93,6 +96,14 @@ const uint8_t kStatesEnableTermination[] {
 const uint8_t kStatesNeverEnable[] {
 	vehicle_status_s::NAVIGATION_STATE_TERMINATION,
 	vehicle_status_s::NAVIGATION_STATE_OFFBOARD,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL1,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL2,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL3,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL4,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL5,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL6,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL7,
+	vehicle_status_s::NAVIGATION_STATE_EXTERNAL8,
 };
 
 struct escalation_case_s {

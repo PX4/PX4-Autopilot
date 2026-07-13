@@ -215,6 +215,33 @@ TEST_F(DetectAndAvoidTest, DefaultVelocity)
 	EXPECT_EQ(conflict.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_MEDIUM);
 }
 
+// F3442 retains its static alert volumes by replacing unavailable ownship velocity groups with zero.
+TEST_F(DetectAndAvoidTest, InvalidOwnshipVelocityUsesStaticF3442Bounds)
+{
+	const double lat_uav = 46.52342;
+	const double lon_uav = 6.524234;
+	const float alt_uav = 400.f;
+	const float nan = std::numeric_limits<float>::quiet_NaN();
+	const matrix::Vector3f invalid_velocity{nan, nan, nan};
+
+	publish_global_pos(lat_uav, lon_uav, alt_uav);
+	publish_land_status(false);
+	publish_vehicle_status(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, vehicle_status_s::ARMING_STATE_ARMED);
+	publish_local_pos_vel(invalid_velocity, hrt_absolute_time(), 0.f, false, false);
+	sync_navigator_topics();
+	drain_detect_and_avoid_topic();
+
+	const uint16_t flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+			       transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+	transponder_report_s tr = create_transponder_report(14545057, "DDF0A1", lat_uav, lon_uav,
+				  alt_uav, 0.f, 0.f, flags);
+	publish_transponder_report_and_check(tr);
+
+	ASSERT_TRUE(_detect_and_avoid_sub.update());
+	EXPECT_EQ(_detect_and_avoid_sub.get().conflict_level, kDaaConflictLvlCritical);
+	EXPECT_EQ(navigator->get_detect_and_avoid()->get_most_urgent_conflict().conflict_level, kDaaConflictLvlCritical);
+}
+
 // Nominal flow: self-detection, conflict prioritization, de-escalation, and final buffer cleanup.
 TEST_F(DetectAndAvoidTest, BasicBehavior)
 {

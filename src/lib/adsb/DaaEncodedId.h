@@ -111,6 +111,16 @@ struct DaaEncodedId {
 	// Pack a callsign into a 64-bit key. Returns 0 if the input is not null-terminated.
 	static uint64_t callsign_to_uint64(const char callsign[kCallsignLength]);
 
+	/**
+	 * @brief Convert ADSB_CALLSIGN_1/2 parameter values to the packed callsign key.
+	 *
+	 * Each parameter stores four characters in display order (most-significant byte
+	 * first), while callsign_to_uint64() stores the first character in the least-significant
+	 * byte. This conversion keeps ownship parameter IDs in the same representation as
+	 * callsigns received in transponder_report.
+	 */
+	static uint64_t callsign_params_to_uint64(int32_t callsign_part1, int32_t callsign_part2);
+
 	// Inverse of callsign_to_uint64.
 	static void convert_uint64_callsign_to_str(uint64_t value, char callsign[kCallsignLength]);
 

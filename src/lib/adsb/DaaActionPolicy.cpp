@@ -162,7 +162,8 @@ DaaAction DaaActionPolicy::nav_state_to_equivalent_daa_action(const uint8_t nav_
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF: {
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE: {
 			return DaaAction::kDisabled;
 		}
 
@@ -180,7 +181,9 @@ DaaAction DaaActionPolicy::nav_state_to_equivalent_daa_action(const uint8_t nav_
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW:
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 	case vehicle_status_s::NAVIGATION_STATE_STAB: {
 			return DaaAction::kLandMode;

@@ -88,6 +88,22 @@ TEST(DaaEncodedIdTest, CallsignPackingDoesNotSignExtend)
 	EXPECT_EQ(DaaEncodedId::callsign_to_uint64(callsign), static_cast<uint64_t>(0xFF80u));
 }
 
+TEST(DaaEncodedIdTest, CallsignParamsUseDocumentedCharacterOrder)
+{
+	// Documented parameter values: "PX4 " = 0x50583420, "TEST" = 0x54455354.
+	const uint64_t encoded = DaaEncodedId::callsign_params_to_uint64(0x50583420, 0x54455354);
+	EXPECT_EQ(encoded, 0x5453455420345850ULL);
+
+	char decoded[kCallsignLength] {};
+	DaaEncodedId::convert_uint64_callsign_to_str(encoded, decoded);
+	EXPECT_STREQ(decoded, "PX4 TEST");
+
+	// An embedded terminator ends a shorter callsign just as it does in a traffic report.
+	EXPECT_EQ(DaaEncodedId::callsign_params_to_uint64(0x50583400, 0x54455354),
+		  DaaEncodedId::callsign_to_uint64("PX4"));
+	EXPECT_EQ(DaaEncodedId::callsign_params_to_uint64(0, 0), 0u);
+}
+
 // Decoding a short callsign clears every byte after the terminator (MAVLink copies the whole field).
 TEST(DaaEncodedIdTest, CallsignDecodeClearsUnusedBytes)
 {
@@ -161,6 +177,11 @@ TEST(DaaEncodedIdTest, ToStringRendersEachEncoding)
 	const uint64_t callsign_key = DaaEncodedId::callsign_to_uint64("AB");
 	DaaEncodedId{callsign_key, detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN}.to_string(buffer, sizeof(buffer));
 	EXPECT_STREQ(buffer, "AB");
+
+	const char callsign_with_controls[kCallsignLength] {'A', '\n', static_cast<char>(0x7f), 'B', '\0'};
+	DaaEncodedId{DaaEncodedId::callsign_to_uint64(callsign_with_controls),
+		     detect_and_avoid_s::UNIQUE_ID_ENCODING_ADSB_CALLSIGN}.to_string(buffer, sizeof(buffer));
+	EXPECT_STREQ(buffer, "A??B");
 
 	// UAS ID -> reduced lowercase hex of the packed tail bytes (little-endian).
 	DaaEncodedId{0x0102030405u, detect_and_avoid_s::UNIQUE_ID_ENCODING_UAS_ID}.to_string(buffer, sizeof(buffer));

@@ -160,7 +160,7 @@ If the line projection is valid, `aircraft_dist_hor` publishes $d_{xt}$; otherwi
 
 #### Data Requirements
 
-- Valid ownship and traffic coordinates, altitude, velocity, and finite headings.
+- Valid ownship and traffic coordinates, altitude, and velocity, plus a finite traffic heading.
 
 #### Parameters
 
@@ -377,14 +377,14 @@ Before sending a vehicle command, PX4 maps the current navigator state into the 
 
 ::: details Click here to view the full navigator-state to DAA-action mapping
 
-| Current navigator state                                                               | Equivalent DAA action | Practical effect                                   |
-| ------------------------------------------------------------------------------------- | --------------------- | -------------------------------------------------- |
-| `AUTO_MISSION`, `AUTO_TAKEOFF`, `AUTO_FOLLOW_TARGET`, `AUTO_VTOL_TAKEOFF`             | `DISABLED`            | Any automatic DAA action may still escalate        |
-| `ORBIT`, `AUTO_LOITER`                                                                | `POSITION_HOLD_MODE`  | Only `Return`, `Land`, or `Terminate` can escalate |
-| `AUTO_RTL`                                                                            | `RETURN_MODE`         | Only `Land` or `Terminate` can escalate            |
-| `AUTO_LAND`, `DESCEND`, `AUTO_PRECLAND`, `MANUAL`, `ALTCTL`, `POSCTL`, `ACRO`, `STAB` | `LAND_MODE`           | Only `Terminate` can escalate                      |
-| `TERMINATION`                                                                         | `TERMINATE`           | No stronger DAA action exists                      |
-| `OFFBOARD` and unknown states                                                         | `MAX_ACTION_VALUE`    | PX4 will not inject an automatic DAA mode change   |
+| Current navigator state                                                                                                  | Equivalent DAA action | Practical effect                                   |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------- | -------------------------------------------------- |
+| `AUTO_MISSION`, `AUTO_TAKEOFF`, `AUTO_FOLLOW_TARGET`, `AUTO_VTOL_TAKEOFF`, `GUIDED_COURSE`                               | `DISABLED`            | Any automatic DAA action may still escalate        |
+| `ORBIT`, `AUTO_LOITER`                                                                                                   | `POSITION_HOLD_MODE`  | Only `Return`, `Land`, or `Terminate` can escalate |
+| `AUTO_RTL`                                                                                                               | `RETURN_MODE`         | Only `Land` or `Terminate` can escalate            |
+| `AUTO_LAND`, `DESCEND`, `AUTO_PRECLAND`, `MANUAL`, `ALTCTL`, `ALTITUDE_CRUISE`, `POSCTL`, `POSITION_SLOW`, `ACRO`, `STAB` | `LAND_MODE`           | Only `Terminate` can escalate                      |
+| `TERMINATION`                                                                                                            | `TERMINATE`           | No stronger DAA action exists                      |
+| `OFFBOARD`, `EXTERNAL1` through `EXTERNAL8`, and unknown states                                                          | `MAX_ACTION_VALUE`    | PX4 will not inject an automatic DAA mode change   |
 
 Manual modes are intentionally treated as `LAND_MODE`.
 That means DAA will not automatically switch a manually flown vehicle into Hold, Return, or Land; only `Terminate` is considered a stronger action than those modes.
@@ -478,11 +478,22 @@ Important implications of that priority order:
 Self-filtering uses:
 
 - [ADSB_ICAO_ID](../advanced_config/parameter_reference.md#ADSB_ICAO_ID): primary ownship ICAO address.
-- `ADSB_ICAO_ID_2`: optional second ownship ICAO address checked independently for self-filtering.
+- [ADSB_ICAO_ID_2](../advanced_config/parameter_reference.md#ADSB_ICAO_ID_2): optional second ownship ICAO address checked independently for self-filtering.
 - [ADSB_CALLSIGN_1](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_1): first 4 characters of the ownship ADS-B callsign.
 - [ADSB_CALLSIGN_2](../advanced_config/parameter_reference.md#ADSB_CALLSIGN_2): last 4 characters of the same ownship ADS-B callsign.
 
 `ADSB_CALLSIGN_1` and `ADSB_CALLSIGN_2` together define one 8-character callsign, and both halves must match for callsign-based self-filtering. By contrast, `ADSB_ICAO_ID` and `ADSB_ICAO_ID_2` are two separate ICAO addresses that DAA checks independently.
+
+::: warning
+
+`ADSB_ICAO_ID` now defaults to `-1`, which leaves the primary self-filter unset and disables PX4-managed ADS-B Out.
+Older PX4 releases defaulted this parameter to `1194684`; a vehicle that relied on that default rather than saving an explicitly assigned ICAO address will therefore stop PX4-managed ADS-B transmission after upgrading.
+Configure the aircraft's assigned ICAO address and reboot before relying on ADS-B Out.
+
+:::
+
+The callsign parameters use the documented character order within each 32-bit word.
+For example, `ADSB_CALLSIGN_1 = 0x50583420` (`"PX4 "`) and `ADSB_CALLSIGN_2 = 0x54455354` (`"TEST"`) identify the callsign `"PX4 TEST"`; DAA converts those words to its internal packed-ID byte order before comparing reports.
 
 DAA also removes conflicts that stop receiving updates after [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT).
 
@@ -762,7 +773,7 @@ Scenario guide:
 - `unique_ids`: Publishes three isolated four-step approach sequences: about `1500 m`, `800 m`, `200 m`, then `5000 m` to clear the conflict.
   The first traffic uses a valid ICAO address, the second removes ICAO so DAA must fall back to the ADS-B callsign, and the third removes ICAO plus a valid callsign so DAA must fall back to UAS ID.
   Use this to verify identifier priority without overlap between the three identifier cases.
-- `escalation`: Publishes one aircraft roughly once per second while its range decreases from about `3000 m` to `100 m`.
+- `escalation`: Publishes one aircraft every `2 s` while its range decreases from about `3000 m` to `100 m`.
   Use this to watch conflict levels rise, confirm when the most urgent conflict level changes, and verify that the configured action thresholds trigger at the expected ranges.
 - `spam_same`: Publishes the same aircraft `40` times at `10 Hz` while keeping it at about `200 m`.
   Use this to confirm that repeated updates from one target are not generating excessive notifications (expect a period of [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE)).
@@ -780,7 +791,7 @@ Scenario guide:
 
 What to watch while running a scenario:
 
-- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): per-traffic conflict output for each traffic item that is currently relevant to DAA processing.
+- [`detect_and_avoid`](../msg_docs/DetectAndAvoid.md): per-traffic output for tracker-accepted reports that create, update, or clear a conflict.
 - [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md): the single conflict that currently drives the main DAA status and any automatic action decision.
 - [`mavlink_log`](../msg_docs/MavlinkLog.md), MAVLink `STATUSTEXT`, and PX4 Events: new conflict, escalation, reduction, ignored traffic, and stale or evicted traffic messages.
 
@@ -848,7 +859,7 @@ Under those assumptions, the expected operator-visible messages for each scenari
   - At about `1800 m`: `DAA Main: 9F3FA3 lvl UP 2. 1800 m.`
   - At about `600 m`: `DAA Main: 9F3FA3 lvl UP 3. 600 m.`
   - At about `100 m`: `DAA Main: 9F3FA3 lvl UP 4. 100 m.`
-  - After timeout: `DAA 9F3FA3 out (0) lvl 4 (21s).` followed by `DAA all conflicts solved.`
+  - After approximately [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT): `DAA 9F3FA3 out (0) lvl 4 (<age>s).` followed by `DAA all conflicts solved.`
   - No `DAA SEC` or automatic-action messages are expected with the default warn-only parameters.
 - Example with actions defined as Hold, Return, Land, and Terminate: `DAA: Actions lvl: low: 4, med: 2, high: 3, crit: 5`:
   - `DAA New and Main: 9F3FA3 lvl UP 1. 2366 m.`
@@ -872,7 +883,7 @@ Under those assumptions, the expected operator-visible messages for each scenari
 ::: details Click here to view the expected results
 
 - First sample only: `DAA New and Main: 61F77C lvl UP 3. 199 m.`
-- The remaining `39` updates refresh the same conflict entry but do not emit extra status lines because the level does not change and the whole scenario finishes before [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE) elapses. Eventually the traffic becomes stale: `DAA 61F77C out (0) lvl 3 (20s).` followed by `DAA all conflicts solved.`.
+- The remaining `39` updates refresh the same conflict entry but do not emit extra status lines because the level does not change and the whole scenario finishes before [DAA_NOTIF_STATE](../advanced_config/parameter_reference.md#DAA_NOTIF_STATE) elapses. Eventually the traffic becomes stale at approximately [DAA_TRAFF_TOUT](../advanced_config/parameter_reference.md#DAA_TRAFF_TOUT), followed by `DAA all conflicts solved.`.
 
 :::
 

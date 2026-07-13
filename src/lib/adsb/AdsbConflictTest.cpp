@@ -153,6 +153,9 @@ TEST_F(AdsbConflictTest, RejectsInvalidAircraftState)
 	report.hor_velocity = inf;
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
 			stationary_uav_vel_ned_, report), daa_output));
+	report.hor_velocity = -1.f;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
 
 	report = create_relative_report(valid_traffic);
 	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
