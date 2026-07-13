@@ -50,8 +50,7 @@ Takeoff::Takeoff(Navigator *navigator) :
 void
 Takeoff::on_activation()
 {
-	// Reset the triplet on activation so we do not inherit any line-following context from the
-	// previous mode
+	// reset triplets, modes should be explicit about which fields they want to set
 	_navigator->reset_triplets();
 
 	set_takeoff_position();

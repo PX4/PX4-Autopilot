@@ -204,8 +204,7 @@ MissionBase::on_inactivation()
 void
 MissionBase::on_activation()
 {
-	// Reset the triplet on activation so we do not inherit any line-following context from the
-	// previous mode
+	// reset triplets, modes should be explicit about which fields they want to set
 	_navigator->reset_triplets();
 
 	/* reset the current mission to the start sequence if needed.*/

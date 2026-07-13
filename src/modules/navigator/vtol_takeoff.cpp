@@ -51,8 +51,7 @@ VtolTakeoff::VtolTakeoff(Navigator *navigator) :
 void
 VtolTakeoff::on_activation()
 {
-	// Reset the triplet on activation so we do not inherit any line-following context from the
-	// previous mode
+	// reset triplets, modes should be explicit about which fields they want to set
 	_navigator->reset_triplets();
 
 	if (hrt_elapsed_time(&_navigator->get_global_position()->timestamp) < 1_s) {
