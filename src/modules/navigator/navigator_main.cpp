@@ -1143,17 +1143,23 @@ void Navigator::geofence_breach_check()
 		double current_latitude = _global_pos.lat;
 		double current_longitude = _global_pos.lon;
 		float current_altitude = _global_pos.alt;
-		bool position_valid = _global_pos.timestamp > 0;
+		bool global_position_valid = _global_pos.timestamp > 0
+					     && hrt_elapsed_time(&_global_pos.timestamp) < 1_s;
+		bool have_valid_position_for_breach_check = global_position_valid;
+
+		// relying on raw gps is questionable already, but at least check the basics
+		const bool raw_gps_valid =
+			hrt_elapsed_time(&_gps_pos.timestamp) < 2_s && _gps_pos.fix_type >= 2;
 
 		if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 			current_latitude = _gps_pos.latitude_deg;
 			current_longitude = _gps_pos.longitude_deg;
 			current_altitude = _gps_pos.altitude_msl_m;
-			position_valid = _global_pos.timestamp > 0;
+
+			have_valid_position_for_breach_check = raw_gps_valid;
 		}
 
-		if (!position_valid) {
-			// we don't have a valid position yet, so we can't check for geofence violations
+		if (!have_valid_position_for_breach_check) {
 			return;
 		}
 
@@ -1186,16 +1192,35 @@ void Navigator::geofence_breach_check()
 				    || _geofence_result.geofence_custom_fence_triggered;
 
 		if (breach) {
-			if (!_geofence_reposition_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+			if (!_geofence_reposition_sent && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 			    && _geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
+
+				const position_setpoint_s current = get_position_setpoint_triplet()->current;
+				double loiter_center_lat = _global_pos.lat;
+				double loiter_center_lon = _global_pos.lon;
+
+				if (current.valid && current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+				    && current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+					// if we are established on a loiter, continue loitering
+					const float dist_to_center = get_distance_to_next_waypoint(
+									     current.lat, current.lon,
+									     _global_pos.lat, _global_pos.lon);
+					const bool established_on_loiter = dist_to_center <= (get_acceptance_radius()
+									   + fabsf(current.loiter_radius));
+
+					if (established_on_loiter) {
+						loiter_center_lat = current.lat;
+						loiter_center_lon = current.lon;
+					}
+				}
 
 				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				rep->current.timestamp = now;
 				rep->current.yaw = NAN;
-				rep->current.lat = current_latitude;
-				rep->current.lon = current_longitude;
-				rep->current.alt = current_altitude;
+				rep->current.lat = loiter_center_lat;
+				rep->current.lon = loiter_center_lon;
+				rep->current.alt = _global_pos.alt;
 				rep->current.valid = true;
 				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
