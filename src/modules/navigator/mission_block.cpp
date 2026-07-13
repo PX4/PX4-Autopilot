@@ -175,7 +175,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
 				_navigator->get_default_loiter_rad();
 
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
+		dist = get_distance_to_point_global_spherical(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 				_navigator->get_global_position()->lat,
 				_navigator->get_global_position()->lon,
 				_navigator->get_global_position()->alt,
@@ -253,7 +253,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 				dist_xy = -1.0f;
 				dist_z = -1.0f;
 
-				dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, curr_sp->alt,
+				dist = get_distance_to_point_global_spherical(_mission_item.lat, _mission_item.lon, curr_sp->alt,
 						_navigator->get_global_position()->lat,
 						_navigator->get_global_position()->lon,
 						_navigator->get_global_position()->alt,

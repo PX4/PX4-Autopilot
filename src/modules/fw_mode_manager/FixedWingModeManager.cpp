@@ -750,7 +750,7 @@ FixedWingModeManager::handle_setpoint_type(const position_setpoint_s &pos_sp_cur
 		float dist_xy = -1.f;
 		float dist_z = -1.f;
 
-		const float dist = get_distance_to_point_global_wgs84(
+		const float dist = get_distance_to_point_global_spherical(
 					   (double)curr_wp(0), (double)curr_wp(1), pos_sp_curr.alt,
 					   _current_latitude, _current_longitude, _current_altitude,
 					   &dist_xy, &dist_z);
