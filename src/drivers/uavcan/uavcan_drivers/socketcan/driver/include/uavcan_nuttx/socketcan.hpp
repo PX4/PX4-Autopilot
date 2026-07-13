@@ -42,7 +42,6 @@
 #include <sys/socket.h>
 
 #include <nuttx/can.h>
-#include <netpacket/can.h>
 
 namespace uavcan_socketcan
 {

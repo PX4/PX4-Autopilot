@@ -52,14 +52,14 @@
  * The implementation panics rather than returning zeros: if anyone
  * ever enables bootloader-side encryption without also wiring up a
  * real RNG, silently handing out predictable bytes would be a
- * serious security bug. up_assert() makes that mistake loud.
+ * serious security bug. PANIC() makes that mistake loud.
  */
 size_t px4_get_secure_random(uint8_t *out, size_t outlen)
 {
 	(void)out;
 	(void)outlen;
 
-	up_assert(__FILE__, __LINE__);
+	PANIC();
 
 	return 0;
 }

@@ -120,10 +120,14 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #endif
+
+#ifndef CONFIG_NUTTX_USERSPACE
 /* We should include cstdlib or stdlib.h but this doesn't
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
 #pragma GCC poison getenv setenv putenv
+#endif
+
 #endif // defined(__PX4_NUTTX)
 
 #endif // PX4_DISABLE_GCC_POISON
