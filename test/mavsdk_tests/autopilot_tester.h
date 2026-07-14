@@ -140,7 +140,19 @@ public:
 	void fly_forward_in_posctl();
 	void fly_forward_in_altctl();
 	void fly_forward_in_offboard_attitude();
+	/**
+	 * @brief SIH scenario for #24299: stabilize without horizontal aiding.
+	 *
+	 * Arms, climbs to a low altitude, disables GPS aiding, switches to
+	 * Stabilized, exercises pitch/roll + throttle, then holds mid-stick while
+	 * measuring SIH ground-truth attitude (HIL_STATE_QUATERNION).
+	 *
+	 * @return max |EKF − ground-truth| tilt residual during mid-stick (deg)
+	 */
+	float fly_stabilize_without_gps_and_measure_level_error(float climb_altitude_m = 2.5f);
 	void request_ground_truth();
+	void request_hil_state_quaternion(float rate_hz = 25.f);
+	void set_stabilized_mode();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
 	void check_tracks_mission_raw(float corridor_radius_m = 1.f, bool reverse = false);
@@ -151,6 +163,9 @@ public:
 	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
+	mavsdk::MavlinkPassthrough::MessageHandle subscribe_mavlink_message(uint16_t message_id,
+			std::function<void(const mavlink_message_t &)> callback);
+	void unsubscribe_mavlink_message(uint16_t message_id, mavsdk::MavlinkPassthrough::MessageHandle handle);
 
 	void enable_fixedwing_mectrics();
 	void check_airspeed_is_valid();

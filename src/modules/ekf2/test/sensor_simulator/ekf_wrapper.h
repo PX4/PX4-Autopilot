@@ -132,6 +132,10 @@ public:
 	void enableGyroBiasEstimation();
 	void disableGyroBiasEstimation();
 
+	void enableGravityFusion();
+	void disableGravityFusion();
+	bool isIntendingGravityFusion() const;
+
 private:
 	std::shared_ptr<Ekf> _ekf;
 
