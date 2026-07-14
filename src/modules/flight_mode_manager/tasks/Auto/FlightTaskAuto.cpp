@@ -678,6 +678,10 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 void FlightTaskAuto::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+
+	if (_takeoff_locked_xy.isAllFinite()) {
+		_takeoff_locked_xy += delta_xy;
+	}
 }
 
 void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
@@ -688,6 +692,10 @@ void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vx
 void FlightTaskAuto::_ekfResetHandlerPositionZ(const float delta_z)
 {
 	_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
+
+	if (PX4_ISFINITE(_takeoff_liftoff_z)) {
+		_takeoff_liftoff_z += delta_z;
+	}
 }
 
 void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float delta_vz)
