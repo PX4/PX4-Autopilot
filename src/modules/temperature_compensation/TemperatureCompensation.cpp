@@ -322,7 +322,7 @@ bool TemperatureCompensation::calc_thermal_offsets_1D(SensorCalData1D &coef, flo
 
 	}
 
-	// calulate the offset
+	// calculate the offset
 	float temp_var = delta_temp;
 	offset = coef.x0 + coef.x1 * temp_var;
 	temp_var *= delta_temp;
@@ -358,7 +358,7 @@ bool TemperatureCompensation::calc_thermal_offsets_3D(const SensorCalData3D &coe
 
 	}
 
-	// calulate the offsets
+	// calculate the offsets
 	float delta_temp_2 = delta_temp * delta_temp;
 	float delta_temp_3 = delta_temp_2 * delta_temp;
 
