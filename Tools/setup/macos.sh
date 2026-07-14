@@ -121,6 +121,14 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	# osrf/simulation: gz-harmonic (Gazebo Harmonic meta-formula)
 	brew tap osrf/simulation
 
+	# Homebrew 6.0+ refuses to load formulae from untrusted third-party
+	# taps (see the toolchain trust block above). Without this, the
+	# gz-harmonic install aborts and the script still exits successfully,
+	# leaving the simulation stack silently missing.
+	if brew trust --help &> /dev/null; then
+		brew trust osrf/simulation
+	fi
+
 	PX4_SIM_BREW_PACKAGES=(
 		exiftool
 		glog
