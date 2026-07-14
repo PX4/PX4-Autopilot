@@ -40,9 +40,6 @@
 
 using namespace matrix;
 
-// First meter after lift-off prioritises altitude over horizontal tracking.
-static constexpr float kTakeoffClimbPriorityHeight = 1.0f; // [m]
-
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
@@ -81,6 +78,7 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
+	_lock_position_xy.setNaN();
 	_takeoff_locked_xy.setNaN();
 	_takeoff_liftoff_z = NAN;
 
@@ -167,8 +165,7 @@ bool FlightTaskAuto::update()
 			}
 
 			if (_takeoff_locked_xy.isAllFinite()) {
-				_position_setpoint(0) = _takeoff_locked_xy(0);
-				_position_setpoint(1) = _takeoff_locked_xy(1);
+				_position_setpoint.xy() = _takeoff_locked_xy;
 			}
 		}
 
@@ -195,7 +192,7 @@ bool FlightTaskAuto::update()
 		}
 
 		if (!PX4_ISFINITE(_takeoff_liftoff_z)
-		    || (_takeoff_liftoff_z - _position(2)) < kTakeoffClimbPriorityHeight) {
+		    || (_takeoff_liftoff_z - _position(2)) < 1.f) {
 			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
 		}
 	}
@@ -423,8 +420,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
 
-	if (!PX4_ISFINITE(position_setpoint_triplet.current.lat)
-	    || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
+	if (!PX4_ISFINITE(position_setpoint_triplet.current.lat) || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
 		// No position provided in xy. Lock position
 		if (!_lock_position_xy.isAllFinite()) {
 			tmp_target(0) = _lock_position_xy(0) = _position(0);
@@ -436,12 +432,11 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 		}
 
 	} else {
-		// reset locked position if current lon and lat are valid
-		_lock_position_xy.setAll(NAN);
+		// reset locked position if current coordinates are valid
+		_lock_position_xy.setNaN();
 
 		// Convert from global to local frame.
-		_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon,
-					    tmp_target(0), tmp_target(1));
+		_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon, tmp_target(0), tmp_target(1));
 	}
 
 	tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
