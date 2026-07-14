@@ -312,7 +312,7 @@ void send_actuator_data()
 
 				actuator_sent_counter++;
 
-				if (_debug) { PX4_INFO("Succesful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
+				if (_debug) { PX4_INFO("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 				first_sent = true;
 
@@ -327,7 +327,7 @@ void send_actuator_data()
 
 			actuator_sent_counter++;
 
-			if (_debug) { PX4_INFO("Succesful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
+			if (_debug) { PX4_INFO("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 			send_esc_status(hil_act_control);
 		}
@@ -532,7 +532,7 @@ handle_message_command_long_dsp(mavlink_message_t *msg)
 	acknewBufLen = mavlink_msg_to_send_buffer(acknewBuf, &ack_message);
 	int writeRetval = writeResponse(&acknewBuf, acknewBufLen);
 
-	if (_debug) { PX4_INFO("Succesful write of ACK back over UART: %d at %llu", writeRetval, hrt_absolute_time()); }
+	if (_debug) { PX4_INFO("Successful write of ACK back over UART: %d at %llu", writeRetval, hrt_absolute_time()); }
 }
 
 int	flow_debug_counter = 0;
