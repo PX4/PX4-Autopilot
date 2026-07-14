@@ -42,12 +42,8 @@
  *   bits 0–3: params 1–4  (bit 0 = param1, …, bit 3 = param4)
  *   bits 4–6: params 5–7  (bit 4 = param5, bit 5 = param6, bit 6 = param7)
  *
- * For global-frame MISSION_ITEM_INT, check_params_int_for_vehicle() is used so
- * that p5/p6 are validated as int32 (INT32_MAX = unset) and p7 as float.
- *
- * A secondary VehicleParamOverrides table holds per-airframe additions (e.g.
- * NAV_TAKEOFF pitch angle on FW); use check_params_for_vehicle() for callers
- * that know the vehicle type.
+ * For global-frame MISSION_ITEM_INT, check_params_int() is used so that p5/p6
+ * are validated as int32 (INT32_MAX = unset) and p7 as float.
  *
  * The table must remain sorted ascending by cmd for binary search.
  * The static_assert below enforces this at compile time.
@@ -59,7 +55,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstddef>
-#include <uORB/topics/vehicle_status.h>
 
 namespace mavlink_cmd_params
 {
@@ -72,7 +67,7 @@ struct Entry {
 
 // Keep sorted by cmd value. Update when adding new supported commands or params.
 // Symbolic names are listed in comments; raw integers are used so this header
-// remains self-contained (aside from vehicle_status.h for VEHICLE_TYPE_* constants).
+// remains self-contained.
 //
 // Encoding: mission/command byte = (params1_4_mask) | (params5_7_mask << 4)
 //   where params1_4_mask has bit N = param N+1 for N in 0..3,
@@ -84,7 +79,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   19, 0x7F, 0x7F }, // NAV_LOITER_TIME:             p1-p4 all used; p5-7:lat/lon/alt
 	{   20, 0x00, 0x00 }, // NAV_RETURN_TO_LAUNCH:         no params
 	{   21, 0x7B, 0x7B }, // NAV_LAND:                    p1:abort_alt,p2:precision,p4:yaw; p5-7:lat/lon/alt
-	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt (p1 accepted on all vehicle types via override, see VehicleParamOverrides)
+	{   22, 0x79, 0x79 }, // NAV_TAKEOFF:                 p1:pitch(FW/VTOL only, but QGC always sends -1 regardless of vehicle type),p4:yaw; p5-7:lat/lon/alt
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
 	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
 	{   84, 0x78, 0x7C }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p3:approach_hdg,p4:yaw; p5-7:lat/lon/alt
@@ -163,47 +158,8 @@ static inline bool int_param_is_unset(int32_t v)
 	return v == INT32_MAX;
 }
 
-// Vehicle type bitmask for per-vehicle parameter support.
-// bit 0 = fixed-wing (FW), bit 1 = multicopter (MC), bit 2 = VTOL, bit 3 = rover.
-enum VehicleType : uint8_t {
-	VEHICLE_FW    = (1u << 0),
-	VEHICLE_MC    = (1u << 1),
-	VEHICLE_VTOL  = (1u << 2),
-	VEHICLE_ROVER = (1u << 3),
-};
-
-// Maps vehicle_status_s fields to a VehicleType bitmask.
-static inline uint8_t vehicle_type_bitmask(bool is_vtol, uint8_t vehicle_type)
-{
-	if (is_vtol) { return VEHICLE_VTOL; }
-
-	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) { return VEHICLE_FW; }
-
-	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) { return VEHICLE_MC; }
-
-	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) { return VEHICLE_ROVER; }
-
-	return 0;
-}
-
-// Extends the base table for vehicle-specific params that differ across airframe types.
-// Each entry's masks are OR'd with the base Entry masks when the vehicle_mask matches.
-struct VehicleOverride {
-	uint16_t cmd;
-	uint8_t  vehicle_mask; // bitmask of VehicleType values this entry applies to
-	uint8_t  mission;      // additional allowed param bits (bits 0-3 = p1-p4, bits 4-6 = p5-p7)
-	uint8_t  command;      // additional allowed param bits (bits 0-3 = p1-p4, bits 4-6 = p5-p7)
-};
-
-// When adding vehicle-specific param differences, add entries here.
-static constexpr VehicleOverride VehicleParamOverrides[] = {
-	// NAV_TAKEOFF: p1 only matters for FW/VTOL, but QGroundControl always sends -1
-	// ("no pitch requested") here regardless of vehicle type, so accept it everywhere.
-	{ 22, VEHICLE_FW | VEHICLE_MC | VEHICLE_VTOL | VEHICLE_ROVER, 0x01, 0x01 },
-};
-
-// Binary search + vehicle override lookup. Returns the adjusted mask, or -1 if cmd not in table.
-static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
+// Binary search. Returns the mask for cmd, or -1 if cmd is not in the table.
+static int _find_mask(uint16_t cmd, bool for_mission)
 {
 	size_t lo = 0;
 	size_t hi = SupportedCommandParamsCount - 1;
@@ -212,17 +168,7 @@ static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
 		const size_t mid = lo + (hi - lo) / 2;
 
 		if (SupportedCommandParams[mid].cmd == cmd) {
-			uint8_t mask = for_mission
-				       ? SupportedCommandParams[mid].mission
-				       : SupportedCommandParams[mid].command;
-
-			for (const auto &ov : VehicleParamOverrides) {
-				if (ov.cmd == cmd && (ov.vehicle_mask & vehicle_type)) {
-					mask |= for_mission ? ov.mission : ov.command;
-				}
-			}
-
-			return mask;
+			return for_mission ? SupportedCommandParams[mid].mission : SupportedCommandParams[mid].command;
 
 		} else if (SupportedCommandParams[mid].cmd < cmd) {
 			lo = mid + 1;
@@ -237,8 +183,8 @@ static int _find_mask(uint16_t cmd, bool for_mission, uint8_t vehicle_type)
 	return -1;
 }
 
-// Shared by check_params_for_vehicle and check_params_int_for_vehicle so the scan
-// logic exists once instead of being duplicated per param-count variant.
+// Shared by check_params and check_params_int so the scan logic exists once
+// instead of being duplicated per param-count variant.
 static int _scan_params(uint8_t mask, const float *ps, int count, uint8_t *zero_sentinel_mask)
 {
 	for (int i = 0; i < count; ++i) {
@@ -255,20 +201,18 @@ static int _scan_params(uint8_t mask, const float *ps, int count, uint8_t *zero_
 }
 
 /**
- * Check params 1–7 of an incoming mission item or command against the base table,
- * then OR-extend the allowed mask with any matching VehicleParamOverrides entry.
+ * Check params 1–7 of an incoming mission item or command against the table.
  *
- * @param vehicle_type  bitmask from vehicle_type_bitmask() — VEHICLE_FW / VEHICLE_MC / VEHICLE_VTOL
  * @return  0   all unsupported params are unset
  *          1–7 1-based index of the first offending param
  *          -1  command not in table (no validation applied)
  */
-[[maybe_unused]] static int check_params_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
+[[maybe_unused]] static int check_params(uint16_t cmd, bool for_mission,
 		float p1, float p2, float p3, float p4,
 		float p5 = 0.0f, float p6 = 0.0f, float p7 = 0.0f,
 		uint8_t *zero_sentinel_mask = nullptr)
 {
-	const int mask_result = _find_mask(cmd, for_mission, vehicle_type);
+	const int mask_result = _find_mask(cmd, for_mission);
 
 	if (mask_result < 0) { return -1; }
 
@@ -277,15 +221,15 @@ static int _scan_params(uint8_t mask, const float *ps, int count, uint8_t *zero_
 }
 
 /**
- * Variant of check_params_for_vehicle for global-frame MISSION_ITEM_INT where p5/p6
- * are raw int32 lat/lon (INT32_MAX = unset) and p7 (altitude) remains a float.
+ * Variant of check_params for global-frame MISSION_ITEM_INT where p5/p6 are raw
+ * int32 lat/lon (INT32_MAX = unset) and p7 (altitude) remains a float.
  */
-[[maybe_unused]] static int check_params_int_for_vehicle(uint16_t cmd, bool for_mission, uint8_t vehicle_type,
+[[maybe_unused]] static int check_params_int(uint16_t cmd, bool for_mission,
 		float p1, float p2, float p3, float p4,
 		int32_t p5_int, int32_t p6_int, float p7 = 0.0f,
 		uint8_t *zero_sentinel_mask = nullptr)
 {
-	const int mask_result = _find_mask(cmd, for_mission, vehicle_type);
+	const int mask_result = _find_mask(cmd, for_mission);
 
 	if (mask_result < 0) { return -1; }
 

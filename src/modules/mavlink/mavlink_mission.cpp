@@ -1506,18 +1506,18 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			if (_int_mode) {
 				const mavlink_mission_item_int_t *item_int =
 					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-				bad = mavlink_cmd_params::check_params_int_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
+				bad = mavlink_cmd_params::check_params_int(mavlink_mission_item->command, true,
 						mavlink_mission_item->param1, mavlink_mission_item->param2,
 						mavlink_mission_item->param3, mavlink_mission_item->param4,
 						item_int->x, item_int->y,
 						mavlink_mission_item->z, &zero_mask);
 
 			} else {
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						mavlink_mission_item->x, mavlink_mission_item->y,
-						mavlink_mission_item->z, &zero_mask);
+				bad = mavlink_cmd_params::check_params(mavlink_mission_item->command, true,
+								       mavlink_mission_item->param1, mavlink_mission_item->param2,
+								       mavlink_mission_item->param3, mavlink_mission_item->param4,
+								       mavlink_mission_item->x, mavlink_mission_item->y,
+								       mavlink_mission_item->z, &zero_mask);
 			}
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
@@ -1668,17 +1668,17 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				// both the int sentinel and the NaN are treated as unset.
 				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? NAN : (float)item_int->x;
 				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? NAN : (float)item_int->y;
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						p5, p6, mavlink_mission_item->z, &zero_mask);
+				bad = mavlink_cmd_params::check_params(mavlink_mission_item->command, true,
+								       mavlink_mission_item->param1, mavlink_mission_item->param2,
+								       mavlink_mission_item->param3, mavlink_mission_item->param4,
+								       p5, p6, mavlink_mission_item->z, &zero_mask);
 
 			} else {
-				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
-						mavlink_mission_item->param1, mavlink_mission_item->param2,
-						mavlink_mission_item->param3, mavlink_mission_item->param4,
-						(float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
-						mavlink_mission_item->z, &zero_mask);
+				bad = mavlink_cmd_params::check_params(mavlink_mission_item->command, true,
+								       mavlink_mission_item->param1, mavlink_mission_item->param2,
+								       mavlink_mission_item->param3, mavlink_mission_item->param4,
+								       (float)mavlink_mission_item->x, (float)mavlink_mission_item->y,
+								       mavlink_mission_item->z, &zero_mask);
 			}
 
 			if (bad > 0) { return MAV_MISSION_INVALID_PARAM1 + (bad - 1); }
@@ -2072,8 +2072,6 @@ MavlinkMissionManager::update_mission_state()
 	if (!_vehicle_status_sub.update(&vehicle_status)) {
 		return;
 	}
-
-	_vehicle_type_bitmask = mavlink_cmd_params::vehicle_type_bitmask(vehicle_status.is_vtol, vehicle_status.vehicle_type);
 
 	// Get mission result
 	const mission_result_s &mission_result = _mission_result_sub.get();
