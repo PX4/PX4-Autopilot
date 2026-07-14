@@ -40,7 +40,7 @@ Also, briefly: the PR title must be `type(scope): description` (it becomes the c
 
 End with two things, then stop — do not post anything.
 
-**1. Debrief for the user.** What the PR does and why, deep enough that the user understands the problem itself: the claimed problem and whether it is real, how the fix works, scope and risk (subsystems touched, flight-critical or not), what CI and other reviewers already said, then findings ordered by severity (blocker / concern / nit) with `file:line`, and a one-or-two-sentence overall take.
+**1. Debrief for the user.** Lead with the findings — the user wants actionable information, not a play-by-play of the diff. Give only the framing they need to judge the change: whether the claimed problem is real, scope and risk (subsystems touched, flight-critical or not), and what CI and other reviewers already said. Restate what the change actually does and why only when the PR description is missing, ambiguous, or misleading. Order findings by severity (blocker / concern / nit) with `file:line`, and end with a one-or-two-sentence overall take.
 
 **2. Draft review comment**, shown verbatim in a fenced block. First line: `**Claude review on behalf of @<login>**` (login via `gh api user --jq .login`). Then terse, actionable findings only — what is wrong, why it matters, what to do, with file:line references. No praise or "verified OK" notes unless they change what the author should do, no meta sections, no conversational filler, nothing already raised by others.
 
