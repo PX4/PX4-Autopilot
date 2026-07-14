@@ -591,13 +591,9 @@ if(CONFIG_LIB_CDRSTREAM)
 endif()
 
 if(CONFIG_MODULES_ZENOH)
-	# Update kconfig file for topics
-	execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
-			--zenoh-config
-			-f ${msg_files}
-			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
-			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
-		)
+	# The Zenoh Kconfig.topics catalog is generated into the build tree in
+	# cmake/kconfig.cmake (it must exist before Kconfig is parsed). Here we only
+	# generate the per-board publisher/subscriber factory.
 	add_custom_command(
 		OUTPUT
 			${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
