@@ -84,7 +84,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   19, 0x7F, 0x7F }, // NAV_LOITER_TIME:             p1-p4 all used; p5-7:lat/lon/alt
 	{   20, 0x00, 0x00 }, // NAV_RETURN_TO_LAUNCH:         no params
 	{   21, 0x7B, 0x7B }, // NAV_LAND:                    p1:abort_alt,p2:precision,p4:yaw; p5-7:lat/lon/alt
-	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt (FW/VTOL also get p1 via override)
+	{   22, 0x78, 0x78 }, // NAV_TAKEOFF:                 p4:yaw; p5-7:lat/lon/alt (p1 accepted on all vehicle types via override, see VehicleParamOverrides)
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
 	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
 	{   84, 0x78, 0x7C }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p3:approach_hdg,p4:yaw; p5-7:lat/lon/alt
@@ -197,9 +197,9 @@ struct VehicleOverride {
 
 // When adding vehicle-specific param differences, add entries here.
 static constexpr VehicleOverride VehicleParamOverrides[] = {
-	// NAV_TAKEOFF: p1 (minimum pitch angle) is used by FW and VTOL-FW; MC ignores it, but
-	// GCS (e.g. QGC) send p1=-1 on MC takeoff, so accept p1 for MC too instead of denying.
-	{ 22, VEHICLE_FW | VEHICLE_VTOL | VEHICLE_MC, 0x01, 0x01 },
+	// NAV_TAKEOFF: p1 only matters for FW/VTOL, but QGroundControl always sends -1
+	// ("no pitch requested") here regardless of vehicle type, so accept it everywhere.
+	{ 22, VEHICLE_FW | VEHICLE_MC | VEHICLE_VTOL | VEHICLE_ROVER, 0x01, 0x01 },
 };
 
 // Binary search + vehicle override lookup. Returns the adjusted mask, or -1 if cmd not in table.
