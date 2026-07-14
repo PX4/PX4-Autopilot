@@ -36420,7 +36420,7 @@ Proportional gain for closed loop yaw controller.
 
 ### RD_TRANS_DRV_TRN (`FLOAT`) {#RD_TRANS_DRV_TRN}
 
-Yaw error threshhold to switch from driving to spot turning.
+Yaw error threshold to switch from driving to spot turning.
 
 This threshold is used for the state machine to switch from driving to turning based on the
 error between the desired and actual yaw. It is also used as the threshold whether the rover should come
@@ -36433,7 +36433,7 @@ line segments from prevWP-currWP and currWP-nextWP is smaller then 180 - RD_TRAN
 
 ### RD_TRANS_TRN_DRV (`FLOAT`) {#RD_TRANS_TRN_DRV}
 
-Yaw error threshhold to switch from spot turning to driving.
+Yaw error threshold to switch from spot turning to driving.
 
 This threshold is used for the state machine to switch from turning to driving based on the
 error between the desired and actual yaw.
