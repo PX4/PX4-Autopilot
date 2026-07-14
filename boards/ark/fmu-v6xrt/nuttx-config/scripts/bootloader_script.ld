@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/ark/v6x-rt/nuttx-config/scripts/script.ld
+ * boards/ark/fmu-v6xrt/nuttx-config/scripts/bootloader_script.ld
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -34,8 +34,8 @@
 
 MEMORY
 {
-  flash (rx)  : ORIGIN = 0x30020000, LENGTH = 4M-128K /* We have 64M but we do not want to wait to program it all */
-  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k
+  flash (rx)  : ORIGIN = 0x30000000, LENGTH = 128K
+  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k-512k
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
 }
@@ -47,7 +47,6 @@ EXTERN(g_image_vector_table)
 EXTERN(g_boot_data)
 EXTERN(board_get_manifest)
 EXTERN(_bootdelay_signature)
-EXTERN(imxrt_flexspi_initialize)
 
 ENTRY(__start)
 
@@ -83,14 +82,17 @@ SECTIONS
         _sitcmfuncs = ABSOLUTE(.);
         FILL(0xFF)
         . = 0x40 ;
-        *(.ram_vectors)
-        INCLUDE "itcm_static_functions.ld"
-        INCLUDE "itcm_functions_includes.ld"
         . = ALIGN(8);
         _eitcmfuncs = ABSOLUTE(.);
     } > itcm AT > flash
 
     _fitcmfuncs = LOADADDR(.itcmfunc);
+
+    /* The RAM vector table (if present) should lie at the beginning of SRAM */
+
+    .ram_vectors (COPY) : {
+        *(.ram_vectors)
+    } > dtcm
 
     .text : ALIGN(4)
     {
