@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(vehicle_air_data
-	VehicleAirData.cpp
-	VehicleAirData.hpp
-)
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/params.yaml)
-target_link_libraries(vehicle_air_data
-	PRIVATE
-		data_validator
-		px4_work_queue
-		sensor_calibration
-	PUBLIC
-		atmosphere
-)
-
-add_subdirectory(test)
+px4_add_functional_gtest(SRC VehicleAirDataTest.cpp LINKLIBS vehicle_air_data uORB sensor_calibration)

@@ -1,9 +1,9 @@
 menuconfig MODULES_BARO_THRUST_ESTIMATOR
 	bool "baro_thrust_estimator"
-	default y
+	default n
 	depends on SENSORS_VEHICLE_AIR_DATA
 	---help---
-		Enable support for baro_thrust_estimator
+		Enable the experimental online estimator for barometer thrust compensation.
 
 menuconfig USER_BARO_THRUST_ESTIMATOR
 	bool "baro_thrust_estimator running as userspace module"
