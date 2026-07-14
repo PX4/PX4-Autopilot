@@ -40,6 +40,9 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/esc_eeprom_write.h>
+#include <uORB/topics/rpm_controller_info.h>
+
+#include <rpm_control/RpmControl.hpp>
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
@@ -126,6 +129,10 @@ private:
 	uint16_t calculate_output_value(uint16_t raw, int index);
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
+	// Closed-loop RPM control helpers.
+	void apply_rpm_control(uint16_t *outputs, int num_outputs);
+	void publish_rpm_controller_info(int num_outputs);
+
 	void Run() override;
 	void update_params();
 
@@ -153,6 +160,13 @@ private:
 
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationMulti<rpm_controller_info_s> _rpm_info_pub{ORB_ID(rpm_controller_info)};
+
+	// Closed-loop RPM controller state.
+	RpmControl _rpm_ctrl{};
+	bool _rpm_ctrl_enabled{false};
+	hrt_abstime _rpm_last_update{0};
+	uint16_t _last_dshot_cmd[DSHOT_MAX_MOTORS] {};
 
 	esc_status_s _esc_status{};
 
@@ -259,6 +273,12 @@ private:
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
-		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt
+		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt,
+		(ParamBool<px4::params::RPMC_EN>)         _param_rpm_ctrl_enabled,
+		(ParamInt<px4::params::RPMC_MAX_THROT>)   _param_rpm_max_throttle,
+		(ParamFloat<px4::params::RPMC_P_GAIN>)    _param_rpm_kp,
+		(ParamFloat<px4::params::RPMC_I_GAIN>)    _param_rpm_ki,
+		(ParamFloat<px4::params::RPMC_D_GAIN>)    _param_rpm_kd,
+		(ParamFloat<px4::params::RPMC_I_LIM>)     _param_rpm_i_lim
 	)
 };

@@ -1,0 +1,70 @@
+module_name: RPM Controller
+
+parameters:
+    - group: DShot
+      definitions:
+        RPMC_EN:
+            description:
+                short: Enable a closed-loop RPM controller using bidirectional DShot
+                long: |
+                    This parameter enables a closed-loop RPM controller which uses the RPM feedback.
+                    Note that this requires ESCs that support bidirectional DShot, e.g. BLHeli32.
+            type: boolean
+            default: 0
+            reboot_required: true
+        RPMC_P_GAIN:
+            description:
+                short: P gain for the closed-loop RPM controller
+                long: |
+                    This is only used when RPMC_EN is active.
+            type: float
+            min: 0
+            max: 2
+            decimal: 2
+            increment: 0.05
+            default: 0.5
+        RPMC_I_GAIN:
+            description:
+                short: I gain for the closed-loop RPM controller
+                long: |
+                    This is only used when RPMC_EN is active.
+            type: float
+            min: 0
+            max: 2
+            decimal: 2
+            increment: 0.05
+            default: 1.0
+        RPMC_D_GAIN:
+            description:
+                short: D gain for the closed-loop RPM controller
+                long: |
+                    This is only used when RPMC_EN is active.
+            type: float
+            min: 0
+            max: 2
+            decimal: 2
+            increment: 0.01
+            default: 0.0
+        RPMC_I_LIM:
+            description:
+                short: Integrator limit for the RPM controller
+                long: |
+                    Limits the normalized integrator term to prevent wind-up.
+                    This is only used when RPMC_EN is active.
+            type: float
+            min: 0.01
+            max: 1.0
+            decimal: 2
+            increment: 0.05
+            default: 0.5
+        RPMC_MAX_THROT:
+            description:
+                short: RPM value at maximum throttle
+                long: |
+                    Specifies the maximum RPM of the motors at full throttle.
+                    Used by the closed-loop RPM controller to scale the throttle
+                    setpoint into the RPM domain.
+            type: int32
+            min: 1000
+            max: 100000
+            default: 12500

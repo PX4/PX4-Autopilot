@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,27 +31,13 @@
 #
 ############################################################################
 
-set(PARAM_PREFIX PWM_MAIN)
+px4_add_library(rpm_control
+	RpmControl.cpp
+	RpmControl.hpp
+)
+target_include_directories(rpm_control PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(CONFIG_BOARD_IO)
-	set(PARAM_PREFIX PWM_AUX)
-endif()
+# Parameter definitions co-located with the library.
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/module.yaml)
 
-px4_add_module(
-	MODULE drivers__dshot
-	MAIN dshot
-	COMPILE_FLAGS
-		-DPARAM_PREFIX="${PARAM_PREFIX}"
-		# -DDEBUG_BUILD
-	SRCS
-		DShot.cpp
-		DShotTelemetry.cpp
-		esc/AM32Settings.cpp
-	DEPENDS
-		arch_io_pins
-		arch_dshot
-		mixer_module
-		rpm_control
-	MODULE_CONFIG
-		module.yaml
-	)
+px4_add_unit_gtest(SRC RpmControlTest.cpp LINKLIBS rpm_control)
