@@ -91,7 +91,14 @@ static constexpr float STE_RATE_MIN_ABS = MIN_SINK_RATE  * G;
 
 // --- Testing constants --------------------------------------------------------
 
-static constexpr float MAX_V_TRACKING_ERR = 0.1; ///< [m/s]
+/// Maximum airspeed excursion while manoeuvring in altitude with zero model mismatch.
+/// The feedforward path is exact; the residual (worst case ~0.01 m/s) stems from the
+/// one-sample delay of the finite-difference rate inputs entering the feedback terms.
+static constexpr float MAX_V_TRACKING_ERR = 0.03f; ///< [m/s]
+
+/// Bound on the tail of the designed first-order airspeed recovery response after a
+/// disturbance, and on the pitch-loop-only airspeed convergence in fast descend.
+static constexpr float MAX_V_RECOVERY_ERR = 0.1f; ///< [m/s]
 
 /// Tolerance for checking equations that should hold exactly
 static constexpr float NUMERICAL_TOL = 1e-12;
@@ -595,7 +602,7 @@ TEST_F(TECSClosedLoopTest, FastDescend)
 	// Throttle is forced to minimum during fast descend
 	EXPECT_NEAR(_tecs.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
 	// Pitch loop drives airspeed toward tas_max
-	EXPECT_NEAR(_state.V, _params.tas_max, MAX_V_TRACKING_ERR);
+	EXPECT_NEAR(_state.V, _params.tas_max, MAX_V_RECOVERY_ERR);
 }
 
 TEST_F(TECSClosedLoopTest, AirspeedDip)
@@ -636,7 +643,7 @@ TEST_F(TECSClosedLoopTest, AirspeedDip)
 	// Error stays below ever after
 	resetSimStats();
 	run(100.0f);
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
 }
 
 
@@ -681,5 +688,5 @@ TEST_F(TECSClosedLoopTest, AirspeedBump)
 	// Error stays below ever after
 	resetSimStats();
 	run(100.0f);
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_TRACKING_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_V_RECOVERY_ERR);
 }
