@@ -57,6 +57,5 @@ px4_add_module(
 	DEPENDS
 		git_gps_devices
 		gnss
+		failure_injection
 	)
-
-target_link_libraries(drivers__gps PRIVATE failure_injection)

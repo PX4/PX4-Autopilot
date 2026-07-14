@@ -203,6 +203,6 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
-	)
 
-target_link_libraries(drivers__uavcan PRIVATE failure_injection)
+		failure_injection
+	)
