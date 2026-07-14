@@ -13,20 +13,20 @@ Published by the vehicle's allocation and consumed by the ESC protocol drivers e
 
 ## Fields
 
-| 명칭                                    | 형식            | Unit [Frame] | Range/Enum                                                                   | 설명                                                                                                                                                                                                                                                                    |
-| ------------------------------------- | ------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                             | `uint64`      | us                                                               |                                                                              | Time since system start                                                                                                                                                                                                                                               |
-| timestamp_sample | `uint64`      | us                                                               |                                                                              | Sampling timestamp of the data this control response is based on                                                                                                                                                                                                      |
-| reversible_flags | `uint16`      |                                                                  |                                                                              | Bitset indicating which motors are configured to be reversible                                                                                                                                                                                                        |
-| control                               | `float32[12]` |                                                                  | [-1 : 1] | Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors) |
+| 명칭                                                                     | 형식            | Unit [Frame] | Range/Enum                                                                   | 설명                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                    | `uint64`      | us                                                               |                                                                              | Time since system start                                                                                                                                                                                                                                               |
+| <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`      | us                                                               |                                                                              | Sampling timestamp of the data this control response is based on                                                                                                                                                                                                      |
+| <a id="fld_reversible_flags"></a>reversible_flags | `uint16`      |                                                                  |                                                                              | Bitset indicating which motors are configured to be reversible                                                                                                                                                                                                        |
+| <a id="fld_control"></a>control                                        | `float32[12]` |                                                                  | [-1 : 1] | Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors) |
 
 ## Constants
 
-| 명칭                                                                                                        | 형식       | Value | 설명 |
-| --------------------------------------------------------------------------------------------------------- | -------- | ----- | -- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                        | `uint32` | 0     |    |
-| <a id="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1 | `uint8`  | 101   |    |
-| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS                                              | `uint8`  | 12    |    |
+| 명칭                                                                                                        | 형식       | Value | 설명                                                                                     |
+| --------------------------------------------------------------------------------------------------------- | -------- | ----- | -------------------------------------------------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                        | `uint32` | 0     |                                                                                        |
+| <a id="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1 | `uint8`  | 101   | output_functions.yaml Motor.start |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS                                              | `uint8`  | 12    | output_functions.yaml Motor.count |
 
 ## Source Message
 
@@ -48,9 +48,9 @@ uint64 timestamp_sample # [us] Sampling timestamp of the data this control respo
 
 uint16 reversible_flags # [-] Bitset indicating which motors are configured to be reversible
 
-uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
+uint8 ACTUATOR_FUNCTION_MOTOR1 = 101 # output_functions.yaml Motor.start
 
-uint8 NUM_CONTROLS = 12
+uint8 NUM_CONTROLS = 12 # output_functions.yaml Motor.count
 float32[12] control # [@range -1, 1] Normalized thrust. Where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors)
 ```
 

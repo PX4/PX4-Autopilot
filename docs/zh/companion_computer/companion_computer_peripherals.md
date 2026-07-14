@@ -43,7 +43,7 @@ Options include:
 - [SparkFun Logic Level Converter - Bi-Directional](https://www.sparkfun.com/sparkfun-logic-level-converter-bi-directional.html)
 - [4-channel I2C-safe Bi-directional Logic Level Converter - BSS138](https://www.adafruit.com/product/757)
 
-## Cameras
+## 相机
 
 Cameras are used image and video capture, and more generally to provide data for [computer vision](../computer_vision/index.md) applications (in this case the "cameras" may only provide processed data, not raw images).
 

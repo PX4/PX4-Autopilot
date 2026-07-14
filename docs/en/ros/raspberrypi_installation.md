@@ -19,25 +19,21 @@ If so, proceed as follows:
 Go to your catkin workspace (e.g. ~/ros_catkin_ws) and change the name of the packages.
 
 ```sh
-$ cd ~/ros_catkin_ws
-
-$ rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
+cd ~/ros_catkin_ws
+rosinstall_generator ros_tutorials --rosdistro indigo --deps --wet-only --exclude roslisp --tar > indigo-custom_ros.rosinstall
 ```
 
 Next, update your workspace with wstool.
 
 ```sh
-$ wstool merge -t src indigo-custom_ros.rosinstall
-
-$ wstool update -t src
+wstool merge -t src indigo-custom_ros.rosinstall
+wstool update -t src
 ```
 
 Next (still in your workspace folder), source and make your files.
 
 ```sh
-$ source /opt/ros/indigo/setup.bash
-
-$ source devel/setup.bash
-
-$ catkin_make
+source /opt/ros/indigo/setup.bash
+source devel/setup.bash
+catkin_make
 ```

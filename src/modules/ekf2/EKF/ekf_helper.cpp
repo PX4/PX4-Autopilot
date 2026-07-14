@@ -201,7 +201,11 @@ bool Ekf::resetLatLonTo(const double latitude, const double longitude, const flo
 	const Vector2f delta_horz_pos = getLocalHorizontalPosition() - pos_prev;
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+
+	if (_control_status.flags.ev_pos) {
+		_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - delta_horz_pos);
+	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	updateHorizontalPositionResetStatus(delta_horz_pos);
@@ -707,7 +711,7 @@ uint16_t Ekf::get_ekf_soln_status() const
 
 	// 64	ESTIMATOR_POS_VERT_AGL	True if the vertical position (above ground) estimate is good
 #if defined(CONFIG_EKF2_TERRAIN)
-	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
+	soln_status.flags.pos_vert_agl = isHeightAboveGroundEstimateValid();
 #endif // CONFIG_EKF2_TERRAIN
 
 	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GNSS or optical flow)
@@ -810,7 +814,8 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	}
 
 	// position aiding active
-	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
+	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos
+	     || _control_status.flags.aux_gpos || _control_status.flags.rngbcn_fusion)
 	    && isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
@@ -825,7 +830,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		inertial_dead_reckoning = false;
 
 	} else {
-		if (!_control_status.flags.in_air && (_params.ekf2_of_ctrl == 1)
+		if (!_control_status.flags.in_air && _fc.of.intended()
 		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
@@ -852,7 +857,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 		if (!_control_status.flags.in_air && _control_status.flags.fixed_wing
 		    && (_params.ekf2_fuse_beta == 1)
-		    && (_params.ekf2_arsp_thr > 0.f) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
+		    && _fc.aspd.intended() && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but air data aiding should be possible once in air
 			aiding_expected_in_air = true;
@@ -947,8 +952,8 @@ void Ekf::updateGroundEffect()
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
 #if defined(CONFIG_EKF2_TERRAIN)
 
-		if (isTerrainEstimateValid()) {
-			// automatically set ground effect if terrain is valid
+		if (isHeightAboveGroundEstimateValid()) {
+			// automatically set ground effect if HAGL is valid
 			float height = getHagl();
 			_control_status.flags.gnd_effect = (height < _params.ekf2_gnd_max_hgt);
 
@@ -1026,7 +1031,8 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+				     bool constrain_variances)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -1080,7 +1086,9 @@ void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 
 #endif
 
-	constrainStateVariances();
+	if (constrain_variances) {
+		constrainStateVariances();
+	}
 
 	// apply the state corrections
 	fuse(K, innov);
@@ -1232,6 +1240,10 @@ void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t
 
 void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 {
+	if (!_control_status.flags.heading_observable) {
+		K(State::quat_nominal.idx + 2) = 0.f;
+	}
+
 	for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
 		if (_gyro_bias_inhibit[i]) {
 			K(State::gyro_bias.idx + i) = 0.f;

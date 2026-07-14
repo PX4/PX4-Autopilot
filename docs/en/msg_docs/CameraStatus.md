@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name           | Type     | Unit [Frame] | Range/Enum | Description                                      |
-| -------------- | -------- | ------------ | ---------- | ------------------------------------------------ |
-| timestamp      | `uint64` |              |            | time since system start (microseconds)           |
-| active_sys_id  | `uint8`  |              |            | mavlink system id of the currently active camera |
-| active_comp_id | `uint8`  |              |            | mavlink component id of currently active camera  |
+| Name                                          | Type     | Unit [Frame] | Range/Enum | Description                                      |
+| --------------------------------------------- | -------- | ------------ | ---------- | ------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp           | `uint64` |              |            | time since system start (microseconds)           |
+| <a id="fld_active_sys_id"></a>active_sys_id   | `uint8`  |              |            | mavlink system id of the currently active camera |
+| <a id="fld_active_comp_id"></a>active_comp_id | `uint8`  |              |            | mavlink component id of currently active camera  |
 
 ## Source Message
 

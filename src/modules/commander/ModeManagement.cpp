@@ -34,6 +34,7 @@
 #ifndef CONSTRAINED_FLASH
 
 #include "ModeManagement.hpp"
+#include "ModeUtil/setpoint_types.hpp"
 
 #include <px4_platform_common/events.h>
 
@@ -295,6 +296,8 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 						mode.replaces_nav_state = request.replace_internal_mode;
 					}
 
+					mode.request_offboard_setpoints = request.request_offboard_setpoints;
+
 					nav_mode_id = _modes.addExternalMode(mode);
 					reply.mode_id = nav_mode_id;
 				}
@@ -365,7 +368,7 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
+void ModeManagement::update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
 {
 	_external_checks.update();
 
@@ -409,7 +412,7 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateR
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
 
-	update_request.control_setpoint_update = checkConfigControlSetpointUpdates();
+	update_request.control_setpoint_update = checkConfigControlSetpointUpdates(vehicle_type);
 	checkConfigOverrides();
 }
 
@@ -531,18 +534,25 @@ uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
 	}
 }
 
-bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const
+mode_util::SetpointType ModeManagement::getSetpointType(uint8_t nav_state)
 {
-	bool ret = false;
+	mode_util::SetpointType ret = Modes::Mode::kDefaultSetpointType;
 
-	if (nav_state >= Modes::FIRST_EXTERNAL_NAV_STATE && nav_state <= Modes::LAST_EXTERNAL_NAV_STATE) {
-		if (_modes.valid(nav_state)) {
-			control_mode = _modes.mode(nav_state).config_control_setpoint;
-			ret = true;
+	const bool mode_change = (nav_state != _last_served_nav_state);
 
-		} else {
-			Modes::Mode::setControlModeDefaults(control_mode);
+	if (mode_change) {
+		if (_modes.valid(_last_served_nav_state)) {
+			// Reset the setpoint type for the deactivated mode
+			Modes::Mode &mode = _modes.mode(_last_served_nav_state);
+			mode.current_setpoint_type = Modes::Mode::kDefaultSetpointType;
 		}
+
+		_last_served_nav_state = nav_state;
+	}
+
+	if (_modes.valid(nav_state)) {
+		const Modes::Mode &mode = _modes.mode(nav_state);
+		ret = mode.current_setpoint_type;
 	}
 
 	return ret;
@@ -596,23 +606,54 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 	}
 }
 
-bool ModeManagement::checkConfigControlSetpointUpdates()
+bool ModeManagement::checkConfigControlSetpointUpdates(uint8_t vehicle_type)
 {
 	bool had_update = false;
-	vehicle_control_mode_s config_control_setpoint;
+	setpoint_config_s setpoint_config;
 	int max_updates = 5;
 
-	while (_config_control_setpoints_sub.update(&config_control_setpoint) && --max_updates >= 0) {
-		if (_modes.valid(config_control_setpoint.source_id)) {
-			_modes.mode(config_control_setpoint.source_id).config_control_setpoint = config_control_setpoint;
-			had_update = true;
+	while (_setpoint_config_sub.update(&setpoint_config) && --max_updates >= 0) {
+		setpoint_config_reply_s reply{};
+		reply.source_id = setpoint_config.source_id;
+		reply.type = setpoint_config.type;
+
+		if (_modes.valid(setpoint_config.source_id)) {
+			Modes::Mode &mode = _modes.mode(setpoint_config.source_id);
+
+			const auto setpoint_type = static_cast<mode_util::SetpointType>(setpoint_config.type);
+			reply.result = static_cast<uint8_t>(mode_util::isSetpointTypeValid(setpoint_type, vehicle_type));
+
+			if (reply.result == setpoint_config_reply_s::RESULT_SUCCESS) {
+				// Get control mode
+				vehicle_control_mode_s config_control_setpoint{};
+				mode_util::getControlMode(setpoint_type, config_control_setpoint);
+
+				// Set mode requirement flags
+				reply.mode_req_angular_velocity = config_control_setpoint.flag_control_rates_enabled;
+				reply.mode_req_attitude = config_control_setpoint.flag_control_attitude_enabled;
+				reply.mode_req_local_alt = config_control_setpoint.flag_control_altitude_enabled
+							   || config_control_setpoint.flag_control_climb_rate_enabled;
+				reply.mode_req_local_position = config_control_setpoint.flag_control_position_enabled ||
+								config_control_setpoint.flag_control_velocity_enabled;
+
+				if (setpoint_config.should_apply) {
+					mode.current_setpoint_type = setpoint_type;
+					had_update = true;
+				}
+			}
 
 		} else {
 			if (!_invalid_mode_printed) {
-				PX4_ERR("Control sp config request for invalid mode: %i", config_control_setpoint.source_id);
+				PX4_ERR("Setpoint config request for invalid mode: %i", setpoint_config.source_id);
 				_invalid_mode_printed = true;
 			}
+
+			reply.result = setpoint_config_reply_s::RESULT_FAILURE_OTHER;
 		}
+
+		// Return reply
+		reply.timestamp = hrt_absolute_time();
+		_setpoint_config_reply_pub.publish(reply);
 	}
 
 	return had_update;
@@ -642,6 +683,10 @@ void ModeManagement::checkConfigOverrides()
 
 			break;
 		}
+
+		// Publish confirmation
+		override_request.timestamp = hrt_absolute_time();
+		_config_overrides_confirm_pub.publish(override_request);
 	}
 }
 
@@ -669,6 +714,21 @@ void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can
 			valid_nav_state_mask |= 1u << i;
 		}
 	}
+}
+
+bool ModeManagement::currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const
+{
+	// OFFBOARD mode always accepts offboard setpoints
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+		return true;
+	}
+
+	// Check if it's an external mode that requests offboard setpoints
+	if (_modes.valid(nav_state)) {
+		return _modes.mode(nav_state).request_offboard_setpoints;
+	}
+
+	return false;
 }
 
 #endif /* CONSTRAINED_FLASH */

@@ -191,28 +191,13 @@ Source: [drivers/dshot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drive
 
 ### Опис
 
-This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement
+This is the DShot output driver. It can be used as drop-in replacement
 to use DShot as ESC communication protocol instead of PWM.
-
-On startup, the module tries to occupy all available pins for DShot output.
-It skips all pins already in use (e.g. by a camera trigger module).
 
 It supports:
 
 - DShot150, DShot300, DShot600
 - telemetry via separate UART and publishing as esc_status message
-- sending DShot commands via CLI
-
-### Приклади
-
-Permanently reverse motor 1:
-
-```
-dshot reverse -m 1
-dshot save -m 1
-```
-
-After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.
 
 ### Usage {#dshot_usage}
 
@@ -225,36 +210,6 @@ dshot <command> [arguments...]
      -d <val>    UART device
                  values: <device>
      [-x]        Swap RX/TX pins
-
-   reverse       Reverse motor direction
-     [-m <val>]  Motor index (1-based, default=all)
-
-   normal        Normal motor direction
-     [-m <val>]  Motor index (1-based, default=all)
-
-   save          Save current settings
-     [-m <val>]  Motor index (1-based, default=all)
-
-   3d_on         Enable 3D mode
-     [-m <val>]  Motor index (1-based, default=all)
-
-   3d_off        Disable 3D mode
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep1         Send Beep pattern 1
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep2         Send Beep pattern 2
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep3         Send Beep pattern 3
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep4         Send Beep pattern 4
-     [-m <val>]  Motor index (1-based, default=all)
-
-   beep5         Send Beep pattern 5
-     [-m <val>]  Motor index (1-based, default=all)
 
    stop
 
@@ -477,6 +432,35 @@ gz_bridge <command> [arguments...]
    status        print status info
 ```
 
+## hiwonder_emm
+
+Source: [drivers/hiwonder_emm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/hiwonder_emm)
+
+### Опис
+
+I2C driver for the Hiwonder 4-Channel Encoder Motor Module (EMM), a small motor controller that drives up to
+four brushed DC motors with on-board encoder feedback. Communicates with the EMM on the first external I2C
+bus at address 0x34.
+
+To use this driver, the board configuration must include `CONFIG_DRIVERS_HIWONDER_EMM=y` so the driver is
+compiled into the firmware. At runtime, the driver is enabled by setting the `HIWONDER_EMM_EN` parameter to
+`1` and reboot. It is then started automatically by the rover startup script (`rc.rover`) for ackermann, differential,
+and mecanum rover airframes.
+
+The command to start this driver manually is: `$ hiwonder_emm start`
+
+### Usage {#hiwonder_emm_usage}
+
+```
+hiwonder_emm <command> [arguments...]
+ Commands:
+   start         Start the task
+
+   stop
+
+   status        print status info
+```
+
 ## ina220
 
 Source: [drivers/power_monitor/ina220](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/ina220)
@@ -525,16 +509,12 @@ Source: [drivers/power_monitor/ina226](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Driver for the INA226 power monitor.
+Driver for the Texas Instruments INA226 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.
-
-If the INA226 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
 ### Usage {#ina226_usage}
 
@@ -551,7 +531,7 @@ ina226 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 65
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -605,16 +585,12 @@ Source: [drivers/power_monitor/ina238](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Driver for the INA238 power monitor.
+Driver for the Texas Instruments INA237 / INA238 power monitor.
 
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
+Multiple instances can run simultaneously on separate buses or different I2C addresses.
 
-For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
-
-If the INA238 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
+If the device is not powered at startup, pass `-k` (keep_running) and the driver
+will retry initialization every 500 ms so the battery can be plugged in later.
 
 ### Usage {#ina238_usage}
 
@@ -631,7 +607,7 @@ ina238 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 69
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop
@@ -827,7 +803,7 @@ msp_osd <command> [arguments...]
    channel       Change VTX channel
 ```
 
-## newpixel
+## neopixel
 
 Source: [drivers/lights/neopixel](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/neopixel)
 
@@ -845,10 +821,10 @@ neopixel -n 8
 
 To drive all available leds.
 
-### Usage {#newpixel_usage}
+### Usage {#neopixel_usage}
 
 ```
-newpixel <command> [arguments...]
+neopixel <command> [arguments...]
  Commands:
    stop
 
@@ -1109,7 +1085,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1124,9 +1100,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 
@@ -1341,6 +1315,40 @@ septentrio <command> [arguments...]
 
    reset         Reset connected receiver
      cold|warm|hot Specify reset type
+```
+
+## serialpassthrough
+
+Source: [drivers/serialpassthrough](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/serialpassthrough)
+
+### Опис
+
+Serial passthrough driver driven by MAVLink SERIAL_CONTROL messages.
+Bridges a MAVLink stream to a hardware UART or an ESC signal pin (bitbang).
+
+Only a single sender is supported at a time. Simultaneous SERIAL_CONTROL
+messages from multiple senders produce undefined behaviour.
+
+Up to 8 instances can run simultaneously, one per device.
+
+### Usage {#serialpassthrough_usage}
+
+```
+serialpassthrough <command> [arguments...]
+ Commands:
+   start
+     [-d <val>]  Serial device path
+                 values: <dev>
+     [-b <val>]  Baudrate
+                 default: 115200
+     [-x]        Swap RX/TX pins
+     [-s]        Single-wire (half-duplex) mode
+     [-e <val>]  ESC bitbang channel (0-7), instead of -d
+     [-i <val>]  Internal: instance registry key (injected by startForDevice())
+
+   stop
+
+   status
 ```
 
 ## sht3x

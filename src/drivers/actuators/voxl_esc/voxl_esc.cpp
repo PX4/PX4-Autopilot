@@ -63,10 +63,8 @@ VoxlEsc::VoxlEsc() :
 
 	for (unsigned i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		_esc_status.esc[i].timestamp       = 0;
-		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
 		_esc_status.esc[i].esc_state       = 0;
-		_esc_status.esc[i].esc_cmdcount    = 0;
 		_esc_status.esc[i].esc_voltage     = 0;
 		_esc_status.esc[i].esc_current     = 0;
 		_esc_status.esc[i].esc_temperature = 0;
@@ -521,12 +519,10 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_chans[id].feedback_time = tnow;
 
 					// also update our internal report for logging
-					_esc_status.esc[id].esc_address  = motor_idx + 1; //remapped motor ID
 					_esc_status.esc[id].timestamp    = tnow;
 					_esc_status.esc[id].esc_rpm      = fb.rpm;
 					_esc_status.esc[id].esc_power    = fb.power;
 					_esc_status.esc[id].esc_state    = fb.id_state & 0x0F;
-					_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
 					_esc_status.esc[id].esc_voltage  = _esc_chans[id].voltage;
 					_esc_status.esc[id].esc_current  = _esc_chans[id].current;
 					_esc_status.esc[id].failures     = 0; //not implemented
@@ -561,14 +557,6 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					}
 
 
-					//print ESC status just for debugging
-					/*
-					PX4_INFO("[%lld] ID=%d, ADDR %d, STATE=%d, RPM=%5d, PWR=%3d%%, V=%.2fdV, I=%.2fA, T=%+3dC, CNT %d, FAIL %d",
-						_esc_status.esc[id].timestamp, id, _esc_status.esc[id].esc_address,
-						_esc_status.esc[id].esc_state, _esc_status.esc[id].esc_rpm, _esc_status.esc[id].esc_power,
-						(double)_esc_status.esc[id].esc_voltage, (double)_esc_status.esc[id].esc_current, _esc_status.esc[id].esc_temperature,
-					  _esc_status.esc[id].esc_cmdcount, _esc_status.esc[id].failures);
-					*/
 				}
 			}
 
@@ -957,7 +945,7 @@ int VoxlEsc::update_params()
 	return ret;
 }
 
-void VoxlEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
+void VoxlEsc::update_leds(const vehicle_control_mode_s &mode, const led_control_s &control)
 {
 	int i = 0;
 	uint8_t led_mask = _led_rsc.led_mask;
@@ -1237,8 +1225,7 @@ void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			    unsigned num_outputs, unsigned num_control_groups_updated)
+bool VoxlEsc::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
@@ -1247,9 +1234,16 @@ bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		return false;
 	}
 
+	// Convert float outputs to uint16_t hardware values
+	uint16_t hw_outputs[VOXL_ESC_OUTPUT_CHANNELS] {};
+
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
+		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
+	}
+
 	// don't use mixed values... recompute now.
 	if (_turtle_mode_en) {
-		mix_turtle_mode(outputs);
+		mix_turtle_mode(hw_outputs);
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
@@ -1259,24 +1253,24 @@ bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		} else {
 			if ((_turtle_mode_en) || (_parameters.cmd_type == VOXL_ESC_RPM_CMDS)) {
 				if (_extended_rpm) {
-					if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) { outputs[i] = VOXL_ESC_RPM_MAX_EXT; }
+					if (hw_outputs[i] > VOXL_ESC_RPM_MAX_EXT) { hw_outputs[i] = VOXL_ESC_RPM_MAX_EXT; }
 
 				} else {
-					if (outputs[i] > VOXL_ESC_RPM_MAX) { outputs[i] = VOXL_ESC_RPM_MAX; }
+					if (hw_outputs[i] > VOXL_ESC_RPM_MAX) { hw_outputs[i] = VOXL_ESC_RPM_MAX; }
 				}
 
 			} else if (_parameters.cmd_type == VOXL_ESC_PWM_CMDS) {
-				if (outputs[i] > VOXL_ESC_PWM_MAX) { outputs[i] = VOXL_ESC_PWM_MAX; }
+				if (hw_outputs[i] > VOXL_ESC_PWM_MAX) { hw_outputs[i] = VOXL_ESC_PWM_MAX; }
 
-				else if (outputs[i] < _min_active_pwm) { outputs[i] = _min_active_pwm; }
+				else if (hw_outputs[i] < _min_active_pwm) { hw_outputs[i] = _min_active_pwm; }
 			}
 
 			if (!_turtle_mode_en) {
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
+				_esc_chans[i].rate_req = hw_outputs[i] * _output_map[i].direction;
 
 			} else {
 				// mapping updated in mixTurtleMode, no remap needed here, but reverse direction
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction * (-1);
+				_esc_chans[i].rate_req = hw_outputs[i] * _output_map[i].direction * (-1);
 			}
 		}
 	}

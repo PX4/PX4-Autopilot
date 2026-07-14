@@ -59,7 +59,7 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 Параметри, які впливають як на катапульту/ручний старт, так і на зліт зі злітно-посадкової смуги:
 
-| Параметр                                                             | Опис                                                                                                                                                                      |
+| Parameter                                                            | Опис                                                                                                                                                                      |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_TAKEOFF_ALT"></a>[MIS\_TAKEOFF\_ALT][MIS_TAKEOFF_ALT]     | This is the relative altitude (above launch altitude) the system will take off to if not otherwise specified. takeoff. |
 | <a id="FW_TKO_AIRSPD"></a>[FW\_TKO\_AIRSPD][FW_TKO_AIRSPD]           | Takeoff airspeed (is set to [FW\_AIRSPD\_MIN][FW_AIRSPD_MIN] if not defined by operator)                                                                                  |
@@ -100,10 +100,10 @@ It is possible to delay the activation of the motors and control surfaces separa
 
 The _launch detector_ is affected by the following parameters:
 
-| Параметр                                                                                                                                                                                        | Опис                                                                                                                  |
+| Parameter                                                                                                                                                                                       | Опис                                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)                      | Увімкнути автоматичне визначення запуску. Якщо вимкнені двигуни обертаються при підготовці до польоту |
-| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)                         | Поріг прискорення (прискорення в напрямку руху тіла повинно бути вище цієї величини)               |
+| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)                         | Acceleration threshold (norm of acceleration must be above this value)                             |
 | <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)                                  | Час спрацьовування (прискорення повинно бути вище порогу на цю кількість секунд)                   |
 | <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)                         | Затримка від виявлення запуску до відкручування мотору                                                                |
 | <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                                                         |
@@ -132,7 +132,7 @@ It consists of a rate controller (P-I-FF-controller with the parameters [FW_WR_P
 
 Зліт зі злітної смуги залежить від наступних параметрів:
 
-| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                                                |
+| Parameter                                                                                                                                          | Опис                                                                                                                                                                                                                                |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RWTO_TKOFF"></a>[RWTO_TKOFF](../advanced_config/parameter_reference.md#RWTO_TKOFF)                                     | Увімкніть зліт по взлітній смузі                                                                                                                                                                                                    |
 | <a id="FW_W_EN"></a>[FW_W_EN](../advanced_config/parameter_reference.md#FW_W_EN)                         | Увімкнути контролер колеса                                                                                                                                                                                                          |

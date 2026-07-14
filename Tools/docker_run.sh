@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	PX4_DOCKER_REPO="px4io/px4-dev:v1.17.0-beta1"

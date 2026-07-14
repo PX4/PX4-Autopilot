@@ -28,8 +28,6 @@
  * INTERFACE_USART      1                     - (Optional) Scan and use the Serial interface for bootloading
  * USBDEVICESTRING      "PX4 BL FMU v2.x"     - USB id string
  * USBPRODUCTID         0x0011                - PID Should match defconfig
- * BOOT_DELAY_ADDRESS   0x000001a0            - (Optional) From the linker script from Linker Script to get a custom
- *                                               delay provided by an APP FW
  * BOARD_TYPE           9                     - Must match .prototype boad_id
  * _FLASH_KBYTES        (*(uint16_t *)0x1fff7a22) - Run time flash size detection
  * BOARD_FLASH_SECTORS  ((_FLASH_KBYTES == 0x400) ? 11 : 23) - Run time determine the physical last sector
@@ -70,7 +68,6 @@
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,1500000"
-#define BOOT_DELAY_ADDRESS             0x000001a0
 #define BOARD_TYPE                     53
 #define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
 #define BOARD_FLASH_SECTORS            (15)
@@ -123,6 +120,19 @@
 
 #ifndef BOOT_DEVICES_FILTER_ONUSB
 #  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#endif
+
+/* Secure-boot variant: when the bootloader build pulls in crypto
+ * support (CONFIG_BOARD_CRYPTO=y -> PX4_CRYPTO), enable signature
+ * verification in the bootloader and tell it where to find the TOC
+ * the app linker reserves. The matching app variant
+ * (px4_fmu-v6x_secureboot) places the TOC at the same offset.
+ */
+#if defined(PX4_CRYPTO)
+#include <px4_platform_common/crypto_algorithms.h>
+#define BOOTLOADER_USE_SECURITY        1
+#define BOOTLOADER_SIGNING_ALGORITHM   CRYPTO_ED25519
+#define BOARD_IMAGE_TOC_OFFSET         0x800
 #endif
 
 #endif /* HW_CONFIG_H_ */

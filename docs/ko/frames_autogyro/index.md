@@ -34,5 +34,5 @@ The set of supported configurations can be seen in [Airframes Reference > Autogy
 
 This section lists vehicles that are sold fully assembled and ready to fly (RTF), with PX4 installed.
 
-- [ThunderFly TF-G2](https://docs.thunderfly.cz/instruments/TF-G2) - Unmanned Autogyro Development Kit
-- [ThunderFly TF-G250](https://docs.thunderfly.cz/instruments/TF-G250) - Atmospheric Sounding Aerological Autogyro
+- [ThunderFly TF-G2](https://docs.thunderfly.cz/instruments/TF-G2/) - Unmanned Autogyro Development Kit
+- [ThunderFly TF-G250](https://docs.thunderfly.cz/instruments/TF-G250/) - Atmospheric Sounding Aerological Autogyro

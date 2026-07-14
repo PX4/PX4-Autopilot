@@ -34,6 +34,7 @@
 #pragma once
 
 #include <drivers/device/device.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
@@ -83,6 +84,7 @@ enum MS56XX_DEVICE_TYPES {
  * conversion finished
  */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
+#define MS5611_OSR1024_CONVERSION_TIME	2280	/* max ADC conversion time at OSR 1024, microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
 class MS5611 : public I2CSPIDriver<MS5611>
@@ -114,7 +116,7 @@ public:
 protected:
 	void print_status() override;
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro;
 
 	device::Device		*_interface;
 

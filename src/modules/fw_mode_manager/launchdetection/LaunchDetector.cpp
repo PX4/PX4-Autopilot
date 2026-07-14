@@ -45,7 +45,7 @@
 namespace launchdetection
 {
 
-void LaunchDetector::update(const float dt, const float accel_x)
+void LaunchDetector::update(const float dt, const float accel_norm)
 {
 	switch (state_) {
 	case launch_detection_status_s::STATE_WAITING_FOR_LAUNCH:
@@ -58,8 +58,8 @@ void LaunchDetector::update(const float dt, const float accel_x)
 			info_delay_counter_s_ = 0.f; // reset counter
 		}
 
-		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
-		if (accel_x > param_fw_laun_ac_thld_.get()) {
+		/* Detect an acceleration that is longer and stronger than the minimum given by the params */
+		if (accel_norm > param_fw_laun_ac_thld_.get()) {
 			acceleration_detected_counter_ += dt;
 
 			if (acceleration_detected_counter_ > param_fw_laun_ac_t_.get()) {

@@ -3,9 +3,6 @@
 # Flywoo GNF405 board specific defaults
 #------------------------------------------------------------------------------
 
-# default airframe quadrotor
-param set-default SYS_AUTOSTART 4001
-
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
 

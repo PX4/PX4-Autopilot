@@ -109,14 +109,16 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (missing_data && (param_ekf2_en == 1)) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_missing_data"),
-					    events::Log::Info, "Waiting for estimator to initialize");
+		if (_estimator_status_sub.advertised()) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_missing_data"),
+						    events::Log::Info, "Waiting for estimator to initialize");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ekf2 missing data");
+			}
 		}
 
 	} else {
@@ -136,15 +138,23 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
+	// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
+	const NavModes heading_required_groups = (NavModes)(
+				reporter.failsafeFlags().mode_req_local_position |
+				reporter.failsafeFlags().mode_req_local_position_relaxed |
+				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+
 	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
+		 * @description
+		 * Recalibrate compass or perform manual heading reset.
 		 */
-		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+		reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_heading_not_stable"),
-					    events::Log::Error, "Heading estimate not stable");
+					    events::Log::Error, "Heading estimate invalid");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate invalid");
 		}
 
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
@@ -617,6 +627,30 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 				mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
 			}
 		}
+
+		// Only require a heading reference when a global origin is set (i.e. global ops are intended)
+		if (!context.isArmed()
+		    && (hrt_absolute_time() - estimator_status_flags.timestamp < 5_s)
+		    && !estimator_status_flags.cs_yaw_align
+		    && lpos.xy_global) {
+
+			const NavModes heading_required_groups = (NavModes)(
+						reporter.failsafeFlags().mode_req_local_position |
+						reporter.failsafeFlags().mode_req_local_position_relaxed |
+						(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
+
+			/* EVENT
+			 * @description
+			 * No heading source has aligned the EKF yaw
+			 */
+			reporter.armingCheckFailure(heading_required_groups, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_heading_no_source"),
+						    events::Log::Error, "No heading reference");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no heading reference");
+			}
+		}
 	}
 }
 
@@ -627,10 +661,10 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Critical, "GPS jamming detected");
+					    events::Log::Warning, "GPS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS jamming detected\t");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS jamming detected\t");
 		}
 	}
 }

@@ -56,7 +56,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] {};
 
-	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
+	orb_sub_t test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
 
 	orb_test_medium_s t{};
 
@@ -144,7 +144,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 	PX4_INFO("max:     %3i us", timing_max);
 	PX4_INFO("missed topic updates: %i", num_missed);
 
-	pubsubtest_passed = true;
+	pubsubtest_passed.store(true);
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 	// relaxed on SITL (non-realtime)
@@ -154,13 +154,13 @@ int uORBTest::UnitTest::pubsublatency_main()
 #endif
 
 	if (mean > kMaxMeanUs) {
-		pubsubtest_res = PX4_ERROR;
+		pubsubtest_res.store(PX4_ERROR);
 
 	} else {
-		pubsubtest_res = PX4_OK;
+		pubsubtest_res.store(PX4_OK);
 	}
 
-	return pubsubtest_res;
+	return pubsubtest_res.load();
 }
 
 int uORBTest::UnitTest::test()
@@ -269,9 +269,9 @@ int uORBTest::UnitTest::test_single()
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	int sfd = orb_subscribe(ORB_ID(orb_test));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -362,7 +362,7 @@ int uORBTest::UnitTest::test_multi()
 	}
 
 	/* subscribe to both topics and ensure valid data is received */
-	int sfd0 = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
+	orb_sub_t sfd0 = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd0, &u)) {
 		return test_fail("sub #0 copy failed: %d", errno);
@@ -372,7 +372,7 @@ int uORBTest::UnitTest::test_multi()
 		return test_fail("sub #0 val. mismatch: %d", u.val);
 	}
 
-	int sfd1 = orb_subscribe_multi(ORB_ID(orb_multitest), 1);
+	orb_sub_t sfd1 = orb_subscribe_multi(ORB_ID(orb_multitest), 1);
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd1, &u)) {
 		return test_fail("sub #1 copy failed: %d", errno);
@@ -412,7 +412,7 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 		pub = orb_advertise_multi(ORB_ID(orb_test_medium_multi), &data_topic, &idx);
 
 		if (idx != i) {
-			_thread_should_exit = true;
+			_thread_should_exit.store(true);
 			PX4_ERR("Got wrong instance! should be: %i, but is %i", i, idx);
 			return -1;
 		}
@@ -440,7 +440,7 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 	}
 
 	px4_usleep(100 * 1000);
-	_thread_should_exit = true;
+	_thread_should_exit.store(true);
 
 	for (int i = 0; i < num_instances; ++i) {
 		orb_unadvertise(orb_pub[i]);
@@ -454,9 +454,9 @@ int uORBTest::UnitTest::test_multi2()
 	test_note("Testing multi-topic 2 test (queue simulation)");
 	//test: first subscribe, then advertise
 
-	_thread_should_exit = false;
+	_thread_should_exit.store(false);
 	const int num_instances = 3;
-	int orb_data_fd[num_instances] {-1, -1, -1};
+	orb_sub_t orb_data_fd[num_instances] {ORB_SUB_INVALID, ORB_SUB_INVALID, ORB_SUB_INVALID};
 	int orb_data_next = 0;
 
 	for (int i = 0; i < num_instances; ++i) {
@@ -478,12 +478,12 @@ int uORBTest::UnitTest::test_multi2()
 
 	hrt_abstime last_time[num_instances] {};
 
-	while (!_thread_should_exit) {
+	while (!_thread_should_exit.load()) {
 
 		px4_usleep(1000);
 
 		bool updated = false;
-		int orb_data_cur_fd = orb_data_fd[orb_data_next];
+		orb_sub_t orb_data_cur_fd = orb_data_fd[orb_data_next];
 		orb_check(orb_data_cur_fd, &updated);
 
 		if (updated) {
@@ -501,6 +501,8 @@ int uORBTest::UnitTest::test_multi2()
 		}
 	}
 
+	px4_task_join(pubsub_task);
+
 	for (int i = 0; i < num_instances; ++i) {
 		orb_unsubscribe(orb_data_fd[i]);
 	}
@@ -515,9 +517,9 @@ int uORBTest::UnitTest::test_multi_reversed()
 	/* For these tests 0 and 1 instances are taken from before, therefore continue with 2 and 3. */
 
 	/* Subscribe first and advertise afterwards. */
-	int sfd2 = orb_subscribe_multi(ORB_ID(orb_multitest), 2);
+	orb_sub_t sfd2 = orb_subscribe_multi(ORB_ID(orb_multitest), 2);
 
-	if (sfd2 < 0) {
+	if (!orb_sub_valid(sfd2)) {
 		return test_fail("sub. id2: ret: %d", sfd2);
 	}
 
@@ -558,7 +560,7 @@ int uORBTest::UnitTest::test_multi_reversed()
 		return test_fail("sub #3 val. mismatch: %d", u.val);
 	}
 
-	int sfd3 = orb_subscribe_multi(ORB_ID(orb_multitest), 3);
+	orb_sub_t sfd3 = orb_subscribe_multi(ORB_ID(orb_multitest), 3);
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd3, &u)) {
 		return test_fail("sub #3 copy failed: %d", errno);
@@ -607,9 +609,9 @@ int uORBTest::UnitTest::test_wrap_around()
 	t.val = 0;
 	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
 
-	int sfd = orb_subscribe(ORB_ID(orb_test_medium_wrap_around));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test_medium_wrap_around));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -829,9 +831,9 @@ int uORBTest::UnitTest::test_queue()
 	orb_advert_t ptopic{nullptr};
 	bool updated{false};
 
-	int sfd = orb_subscribe(ORB_ID(orb_test_medium_queue));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test_medium_queue));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -945,7 +947,7 @@ int uORBTest::UnitTest::pub_test_queue_main()
 	const int queue_size = orb_get_queue_size(ORB_ID(orb_test_medium_queue_poll));
 
 	if (ptopic == nullptr) {
-		_thread_should_exit = true;
+		_thread_should_exit.store(true);
 		return test_fail("advertise failed: %d", errno);
 	}
 
@@ -968,9 +970,9 @@ int uORBTest::UnitTest::pub_test_queue_main()
 		px4_usleep(20 * 1000); //give subscriber a chance to catch up
 	}
 
-	_num_messages_sent = t.val;
+	_num_messages_sent.store(t.val);
 	px4_usleep(100 * 1000);
-	_thread_should_exit = true;
+	_thread_should_exit.store(true);
 	orb_unadvertise(ptopic);
 
 	return 0;
@@ -981,13 +983,13 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 	test_note("Testing orb queuing (poll & notify)");
 
 	orb_test_medium_s t{};
-	int sfd = orb_subscribe(ORB_ID(orb_test_medium_queue_poll));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test_medium_queue_poll));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
-	_thread_should_exit = false;
+	_thread_should_exit.store(false);
 
 	char *const args[1] = { nullptr };
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_queue",
@@ -1006,12 +1008,12 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 	fds[0].fd = sfd;
 	fds[0].events = POLLIN;
 
-	while (!_thread_should_exit) {
+	while (!_thread_should_exit.load()) {
 
 		int poll_ret = px4_poll(fds, 1, 500);
 
 		if (poll_ret == 0) {
-			if (_thread_should_exit) {
+			if (_thread_should_exit.load()) {
 				break;
 			}
 
@@ -1032,9 +1034,11 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 		}
 	}
 
-	if (_num_messages_sent != next_expected_val) {
+	px4_task_join(pubsub_task);
+
+	if (_num_messages_sent.load() != next_expected_val) {
 		return test_fail("number of sent and received messages mismatch (sent: %i, received: %i)",
-				 _num_messages_sent, next_expected_val);
+				 _num_messages_sent.load(), next_expected_val);
 	}
 
 	return test_note("PASS orb queuing (poll & notify), got %i messages", next_expected_val);
@@ -1056,7 +1060,7 @@ int uORBTest::UnitTest::latency_test(bool print)
 	char *const args[1] = { nullptr };
 
 	pubsubtest_print = print;
-	pubsubtest_passed = false;
+	pubsubtest_passed.store(false);
 
 	/* test pub / sub latency */
 
@@ -1071,7 +1075,7 @@ int uORBTest::UnitTest::latency_test(bool print)
 					     args);
 
 	/* give the test task some data */
-	while (!pubsubtest_passed) {
+	while (!pubsubtest_passed.load()) {
 		++t.val;
 		t.timestamp = hrt_absolute_time();
 
@@ -1087,9 +1091,10 @@ int uORBTest::UnitTest::latency_test(bool print)
 		return test_fail("failed launching task");
 	}
 
+	px4_task_join(pubsub_task);
 	orb_unadvertise(pfd0);
 
-	return pubsubtest_res;
+	return pubsubtest_res.load();
 }
 
 int uORBTest::UnitTest::test_fail(const char *fmt, ...)

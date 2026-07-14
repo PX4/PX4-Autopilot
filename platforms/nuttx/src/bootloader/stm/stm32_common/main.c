@@ -19,6 +19,10 @@
 #include "bl.h"
 #include "uart.h"
 
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+#include "ecc_scrub.h"
+#endif
+
 
 #define MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT))
 
@@ -455,11 +459,16 @@ inline void arch_setvtor(const uint32_t *address)
 	putreg32((uint32_t)address, NVIC_VECTAB);
 }
 
+/* the chip code may provide its own sector size (see stm32h7/ecc_scrub.h) */
+#if !defined(FLASH_SECTOR_SIZE)
+#define FLASH_SECTOR_SIZE   (128u * 1024u)
+#endif
+
 uint32_t
 flash_func_sector_size(unsigned sector)
 {
 	if (sector <= BOARD_FLASH_SECTORS) {
-		return 128 * 1024;
+		return FLASH_SECTOR_SIZE;
 	}
 
 	return 0;
@@ -664,6 +673,11 @@ bootloader_main(void)
 	/* configure the clock for bootloader activity */
 	clock_init();
 
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+	/* scrub any uncorrectable flash ECC errors before we try to run the app */
+	check_ecc_errors();
+#endif
+
 	/*
 	 * Check the force-bootloader register; if we find the signature there, don't
 	 * try booting.
@@ -686,33 +700,6 @@ bootloader_main(void)
 		 */
 		board_set_rtc_signature(0);
 	}
-
-#ifdef BOOT_DELAY_ADDRESS
-	{
-		/*
-		  if a boot delay signature is present then delay the boot
-		  by at least that amount of time in seconds. This allows
-		  for an opportunity for a companion computer to load a
-		  new firmware, while still booting fast by sending a BOOT
-		  command
-		 */
-		uint32_t sig1 = flash_func_read_word(BOOT_DELAY_ADDRESS);
-		uint32_t sig2 = flash_func_read_word(BOOT_DELAY_ADDRESS + 4);
-
-		if (sig2 == BOOT_DELAY_SIGNATURE2 &&
-		    (sig1 & 0xFFFFFF00) == (BOOT_DELAY_SIGNATURE1 & 0xFFFFFF00)) {
-			unsigned boot_delay = sig1 & 0xFF;
-
-			if (boot_delay <= BOOT_DELAY_MAX) {
-				try_boot = false;
-
-				if (timeout < boot_delay * 1000) {
-					timeout = boot_delay * 1000;
-				}
-			}
-		}
-	}
-#endif
 
 	/*
 	 * Check if the force-bootloader pins are strapped; if strapped,

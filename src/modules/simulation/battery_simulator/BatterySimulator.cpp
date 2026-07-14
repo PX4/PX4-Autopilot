@@ -73,7 +73,7 @@ void BatterySimulator::Run()
 		updateParams();
 	}
 
-	updateCommands();
+	updateFailureConfig();
 
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
@@ -85,7 +85,8 @@ void BatterySimulator::Run()
 
 	const hrt_abstime now_us = hrt_absolute_time();
 
-	const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
+	// Limit to +1.0 s to guard against division by 0
+	const float discharge_interval_us = math::max(_param_sim_bat_drain.get(), 1.0f) * 1000 * 1000;
 
 	if (_armed) {
 		if (_last_integration_us != 0) {
@@ -119,58 +120,14 @@ void BatterySimulator::Run()
 	perf_end(_loop_perf);
 }
 
-void BatterySimulator::updateCommands()
+void BatterySimulator::updateFailureConfig()
 {
-	vehicle_command_s vehicle_command;
+	_failure_config.update();
 
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
-			continue;
-		}
-
-		bool handled = false;
-		bool supported = false;
-
-		const int failure_unit = static_cast<int>(lroundf(vehicle_command.param1));
-		const int failure_type = static_cast<int>(lroundf(vehicle_command.param2));
-		const int instance = static_cast<int>(lroundf(vehicle_command.param3));
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SYSTEM_BATTERY) {
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				handled = true;
-				PX4_INFO("CMD_INJECT_FAILURE, battery ok");
-				supported = false;
-
-				if (instance == 0) {
-					supported = true;
-					_force_empty_battery = false;
-				}
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				// Force battery empty for FAILURE_TYPE_OFF - not perfectly accurate, but what we want to achieve
-				handled = true;
-				PX4_WARN("CMD_INJECT_FAILURE, battery empty");
-				supported = false;
-
-				if (instance == 0) {
-					supported = true;
-					_force_empty_battery = true;
-				}
-			}
-		}
-
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
-	}
+	// Force the battery empty for FAILURE_TYPE_OFF - not perfectly accurate, but
+	// achieves the intended battery failsafe.
+	_force_empty_battery = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, 1)
+				== failure_injection::Mode::Off);
 }
 
 int BatterySimulator::task_spawn(int argc, char *argv[])

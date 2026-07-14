@@ -40,3 +40,7 @@ For more information see [Using PX4's Navigation Filter (EKF2) > Correction for 
 Даний підхід працює добре, якщо зв'язок між помилкою, спричиненою статичним тиском, та швидкістю змінюється лінійно.
 Якщо у транспортного засобу є складніша аеродинамічна модель, цей метод буде менш ефективним.
 :::
+
+## Дивіться також
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

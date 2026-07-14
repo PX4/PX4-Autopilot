@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 cd Tools/simulation/gazebo-classic/sitl_gazebo-classic/src
 patch < ../../../../../boards/modalai/voxl2/gazebo-docker/patch/mavlink_interface.patch

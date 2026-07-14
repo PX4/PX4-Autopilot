@@ -1,0 +1,71 @@
+# Build All Targets CI Configuration
+#
+# Controls board grouping, cache sizes, runner specs, and seeder targets
+# for the build_all_targets workflow. Forks can customize this file to
+# adjust for their infrastructure (e.g., lower cache sizes for GitHub's
+# 10GB cache limit, fewer CPU cores for smaller runners).
+
+# Container images
+containers:
+  default: "ghcr.io/px4/px4-dev:v1.17.0-rc2"
+  voxl2: "ghcr.io/px4/px4-dev-voxl2:v1.7"
+
+# Runner specs
+runners:
+  seeder_cpu: 8
+  matrix_cpu: 4
+
+# Default ccache max-size for build groups
+cache:
+  default_size: "400M"
+  # Per-chip overrides for groups with many diverse boards
+  chip_sizes:
+    stm32h7: "800M"
+    stm32f4: "800M"
+    stm32f7: "800M"
+    imxrt: "800M"
+
+# Board grouping limits
+grouping:
+  # Max targets per group, tuned for ~10 min wall-clock with warm cache
+  chip_split_limits:
+    stm32h7: 10
+    stm32f7: 12
+    stm32f4: 20
+    stm32f1: 39
+    imxrt: 12
+    kinetis: 14
+    s32k: 17
+    rp2040: 10
+    special: 10
+    native: 17
+  default_split_limit: 12
+  # Minimum targets for a manufacturer to get a named group
+  lower_limit: 3
+  # If last chunk has fewer targets than this, merge into previous chunk
+  merge_back_threshold: 5
+
+# Labels that isolate builds into the "special" group
+special_labels:
+  - lto
+  - protected
+
+# NXP chip families are pooled under "nxp-{chip}" regardless of board directory
+nxp_chip_families:
+  - imxrt
+  - kinetis
+  - s32k
+
+# Seeder targets: one representative build per chip family
+seeders:
+  stm32h7: "px4_fmu-v6x_default"
+  stm32f7: "px4_fmu-v5_default"
+  stm32f4: "px4_fmu-v4_default"
+  stm32f1: "px4_io-v2_default"
+  imxrt: "nxp_mr-tropic_default"
+  kinetis: "nxp_fmuk66-v3_default"
+  s32k: "nxp_mr-canhubk3_default"
+  rp2040: "raspberrypi_pico_default"
+  special: "px4_fmu-v6x_default"
+  native: "px4_sitl_default"
+  voxl2: "modalai_voxl2_default"

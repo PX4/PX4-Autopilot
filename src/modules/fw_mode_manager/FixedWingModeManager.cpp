@@ -253,7 +253,7 @@ FixedWingModeManager::vehicle_attitude_poll()
 		_pitch = euler_angles(1);
 
 		const Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
-		_body_acceleration_x = body_acceleration(0);
+		_body_acceleration_norm = body_acceleration.norm();
 
 		const Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
 		_body_velocity_x = body_velocity(0);
@@ -272,20 +272,19 @@ void FixedWingModeManager::vehicle_attitude_setpoint_poll()
 float
 FixedWingModeManager::get_manual_airspeed_setpoint()
 {
-	float manual_airspeed_setpoint = NAN;
-
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
-		// neutral throttle corresponds to trim airspeed
-		manual_airspeed_setpoint = math::interpolateNXY(_manual_control_setpoint_for_airspeed,
+		// neutral throttle corresponds to last MAV_CMD_DO_CHANGE_SPEED, or trim airspeed if none received
+		const float base_airspeed = PX4_ISFINITE(_commanded_manual_airspeed_setpoint)
+					    ? math::constrain(_commanded_manual_airspeed_setpoint,
+							    _param_fw_airspd_min.get(),
+							    _param_fw_airspd_max.get())
+					    : _param_fw_airspd_trim.get();
+		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
 		{-1.f, 0.f, 1.f},
-		{_param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_airspd_max.get()});
-
-	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
-		// override stick by commanded airspeed
-		manual_airspeed_setpoint = _commanded_manual_airspeed_setpoint;
+		{_param_fw_airspd_min.get(), base_airspeed, _param_fw_airspd_max.get()});
 	}
 
-	return manual_airspeed_setpoint;
+	return _commanded_manual_airspeed_setpoint;
 }
 
 void
@@ -387,8 +386,8 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
-		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)
-		    && PX4_ISFINITE(_pos_sp_triplet.current.vz)) {
+		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) && PX4_ISFINITE(_pos_sp_triplet.current.lon) && PX4_ISFINITE(_pos_sp_triplet.current.vx)
+		    && PX4_ISFINITE(_pos_sp_triplet.current.vy)) {
 			// Offboard position with velocity setpoints
 			_control_mode_current = FW_POSCTRL_MODE_AUTO_PATH;
 			return;
@@ -518,6 +517,10 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 	}
+
+	if (_control_mode_current != previous_position_control_mode) {
+		_commanded_manual_airspeed_setpoint = NAN;
+	}
 }
 
 void
@@ -569,6 +572,13 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 {
 	position_setpoint_s current_sp = pos_sp_curr;
 	move_position_setpoint_for_vtol_transition(current_sp);
+
+	// Course setpoints are handled directly to avoid entering hold mode
+	if (PX4_ISFINITE(current_sp.course)
+	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
+		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
+		return;
+	}
 
 	const uint8_t position_sp_type = handle_setpoint_type(current_sp, pos_sp_next);
 
@@ -768,6 +778,33 @@ void
 FixedWingModeManager::control_auto_position(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
+	// Course Hold: if a course is explicitly set, navigate along that bearing (ground track)
+	if (PX4_ISFINITE(pos_sp_curr.course)
+	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
+		const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
+
+		const Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+		const DirectionalGuidanceOutput sp = navigateBearing(curr_pos_local, pos_sp_curr.course, ground_speed, _wind_vel);
+
+		fixed_wing_lateral_setpoint_s lateral_ctrl_sp{empty_lateral_control_setpoint};
+		lateral_ctrl_sp.timestamp = hrt_absolute_time();
+		lateral_ctrl_sp.course = sp.course_setpoint;
+		lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
+		_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
+
+		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
+			.timestamp = hrt_absolute_time(),
+			.altitude = pos_sp_curr.alt,
+			.height_rate = NAN,
+			.equivalent_airspeed = target_airspeed,
+			.pitch_direct = NAN,
+			.throttle_direct = NAN
+		};
+
+		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
+		return;
+	}
+
 	const float acc_rad = _directional_guidance.switchDistance(500.0f);
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
@@ -907,8 +944,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
 
-	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(
-					     500);
+	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(500);
 
 	bool enforce_low_height{false};
 
@@ -1029,7 +1065,7 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 	}
 }
 
-void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s pos_sp)
+void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s &pos_sp)
 {
 	figure_eight_status_s figure_eight_status{};
 	figure_eight_status.timestamp = hrt_absolute_time();
@@ -1196,8 +1232,8 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			if (_control_mode.flag_armed) {
 				/* Perform launch detection */
 
-				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration_x);
+				/* Detect launch using body acceleration norm */
+				_launchDetector.update(control_interval, _body_acceleration_norm);
 			}
 
 		} else	{
@@ -1372,8 +1408,8 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 
 			if (_control_mode.flag_armed) {
-				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration_x);
+				/* Detect launch using body acceleration norm */
+				_launchDetector.update(control_interval, _body_acceleration_norm);
 			}
 
 		} else	{
@@ -2074,6 +2110,16 @@ FixedWingModeManager::Run()
 							     _local_pos.ref_timestamp);
 		}
 
+		const float max_reset_dist = _param_fw_wp_rst_dist.get();
+
+		if (_control_mode.flag_control_auto_enabled
+		    && (_local_pos.xy_reset_counter != _xy_reset_counter)
+		    && (max_reset_dist > FLT_EPSILON)
+		    && (Vector2f(_local_pos.delta_xy).longerThan(max_reset_dist))) {
+			// Large position reset, directly go to destination to avoid strange path corrections
+			_go_direct_to_destination = true;
+		}
+
 		if (_control_mode.flag_control_offboard_enabled) {
 			trajectory_setpoint_s trajectory_setpoint;
 
@@ -2090,8 +2136,9 @@ FixedWingModeManager::Run()
 				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
+				_pos_sp_triplet.current.gliding_enabled = false;
 
-				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
+				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])) {
 					if (_global_local_proj_ref.isInitialized()) {
 						double lat;
 						double lon;
@@ -2100,17 +2147,15 @@ FixedWingModeManager::Run()
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
 					}
 
 				}
 
-				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[0]) && PX4_ISFINITE(trajectory_setpoint.velocity[1])) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
 					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
-					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
 
 					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
 						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
@@ -2118,13 +2163,27 @@ FixedWingModeManager::Run()
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
 						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
 									       normalized_velocity_sp_2d;
-						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
+						float direction = normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
 						_pos_sp_triplet.current.loiter_radius = direction * velocity_sp_2d.norm() * velocity_sp_2d.norm() /
 											acceleration_normal.norm();
 
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
+				}
+
+				if (PX4_ISFINITE(trajectory_setpoint.position[2])) {
+					if (_global_local_proj_ref.isInitialized()) {
+						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
+					}
+				}
+
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
+				}
+
+				if (!PX4_ISFINITE(trajectory_setpoint.position[2]) && !PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+					_pos_sp_triplet.current.gliding_enabled = true;
 				}
 
 				_position_setpoint_current_valid = valid_setpoint;
@@ -2147,6 +2206,8 @@ FixedWingModeManager::Run()
 
 				// reset the altitude foh (first order hold) logic
 				_min_current_sp_distance_xy = FLT_MAX;
+
+				_go_direct_to_destination = false;
 			}
 		}
 
@@ -2549,7 +2610,7 @@ void FixedWingModeManager::publishLocalPositionSetpoint(const position_setpoint_
 	_local_pos_sp_pub.publish(local_position_setpoint);
 }
 
-void FixedWingModeManager::publishOrbitStatus(const position_setpoint_s pos_sp)
+void FixedWingModeManager::publishOrbitStatus(const position_setpoint_s &pos_sp)
 {
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
@@ -2594,6 +2655,10 @@ DirectionalGuidanceOutput FixedWingModeManager::navigateWaypoints(const Vector2f
 		// end waypoint. however this included here as a safety precaution if any navigator (module) switch condition
 		// is missed for any reason. in the future this logic should all be handled in one place in a dedicated
 		// flight mode state machine.
+		return navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
+	}
+
+	if (_go_direct_to_destination) {
 		return navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
 	}
 
@@ -2738,6 +2803,7 @@ void FixedWingModeManager::publish_lateral_guidance_status(const hrt_abstime now
 	fixed_wing_lateral_guidance_status.bearing_feas_on_track = _directional_guidance.getBearingFeasibilityOnTrack();
 	fixed_wing_lateral_guidance_status.signed_track_error = _directional_guidance.getSignedTrackError();
 	fixed_wing_lateral_guidance_status.track_error_bound = _directional_guidance.getTrackErrorBound();
+	fixed_wing_lateral_guidance_status.switch_distance = _directional_guidance.switchDistance(500.0f);
 	fixed_wing_lateral_guidance_status.adapted_period = _directional_guidance.getAdaptedPeriod();
 	fixed_wing_lateral_guidance_status.wind_est_valid = _wind_valid;
 

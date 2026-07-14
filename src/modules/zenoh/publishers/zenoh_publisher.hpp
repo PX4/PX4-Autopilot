@@ -56,7 +56,8 @@ public:
 	Zenoh_Publisher();
 	virtual ~Zenoh_Publisher();
 
-	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid);
+	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid,
+				      z_publisher_options_t *opts);
 
 	virtual int undeclare_publisher();
 

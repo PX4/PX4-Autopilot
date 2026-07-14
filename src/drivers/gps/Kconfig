@@ -4,6 +4,46 @@ menuconfig DRIVERS_GPS
 	---help---
 		Enable support for gps
 
+if DRIVERS_GPS
+	config GPS_UBX
+		bool "u-blox protocol support (UBX)"
+		default y
+		---help---
+			Driver for u-blox GNSS receivers (M8, F9P, M10, X20, ...).
+
+	config GPS_MTK
+		bool "MediaTek protocol support (MTK)"
+		default !BOARD_CONSTRAINED_FLASH
+		---help---
+			Driver for MediaTek GNSS receivers (custom binary protocol).
+
+	config GPS_ASHTECH
+		bool "Ashtech/Trimble protocol support"
+		default !BOARD_CONSTRAINED_FLASH
+		---help---
+			Driver for Ashtech/Trimble GNSS receivers.
+
+	config GPS_EMLIDREACH
+		bool "Emlid Reach protocol support (ERB)"
+		default !BOARD_CONSTRAINED_FLASH
+		---help---
+			Driver for Emlid Reach GNSS receivers (ERB protocol).
+
+	config GPS_FEMTOMES
+		bool "Femtomes protocol support"
+		default !BOARD_CONSTRAINED_FLASH
+		---help---
+			Driver for Femtomes GNSS receivers.
+
+	config GPS_NMEA
+		bool "NMEA protocol support (incl. Unicore)"
+		default !BOARD_CONSTRAINED_FLASH
+		---help---
+			Generic NMEA driver, including Unicore extensions.
+			Never auto-detected: it must be selected explicitly via
+			GPS_x_PROTOCOL or the -p command line option.
+endif # DRIVERS_GPS
+
 menuconfig USER_GPS
 	bool "gps running as userspace module"
 	default y

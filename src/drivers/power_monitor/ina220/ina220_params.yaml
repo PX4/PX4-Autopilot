@@ -1,0 +1,56 @@
+module_name: ina220
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_INA220:
+      description:
+        short: Enable INA220 Power Monitor
+        long: For systems with an INA220 Power Monitor, this should be set to true
+      type: boolean
+      default: 0
+      reboot_required: true
+    INA220_CONFIG:
+      description:
+        short: INA220 Power Monitor Config
+      type: int32
+      default: 8607
+      min: 0
+      max: 65535
+      decimal: 1
+      increment: 1
+    INA220_CUR_BAT:
+      description:
+        short: INA220 Power Monitor Battery Max Current
+      type: float
+      default: 164.0
+      min: 0.1
+      max: 500.0
+      decimal: 2
+      increment: 0.1
+    INA220_SHUNT_BAT:
+      description:
+        short: INA220 Power Monitor Battery Shunt
+      type: float
+      default: 0.0005
+      min: 1.0e-09
+      max: 0.1
+      decimal: 10
+      increment: 1.0e-09
+    INA220_CUR_REG:
+      description:
+        short: INA220 Power Monitor Regulator Max Current
+      type: float
+      default: 164.0
+      min: 0.1
+      max: 500.0
+      decimal: 2
+      increment: 0.1
+    INA220_SHUNT_REG:
+      description:
+        short: INA220 Power Monitor Regulator Shunt
+      type: float
+      default: 0.0005
+      min: 1.0e-09
+      max: 0.1
+      decimal: 10
+      increment: 1.0e-09

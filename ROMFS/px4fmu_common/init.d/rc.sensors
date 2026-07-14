@@ -16,7 +16,7 @@ fi
 # Start batmon driver if enabled using BATMON_DRIVER_EN
 if param compare -s BATMON_DRIVER_EN 1
 then
-	batmon start -X  #start on external bus
+	batmon start -X # start on external bus
 fi
 
 # Sensors on the PWM interface bank
@@ -238,7 +238,7 @@ then
 fi
 
 # Start TMP102 temperature sensor
-if param compare SENS_EN_TMP102 1
+if param compare -s SENS_EN_TMP102 1
 then
 	tmp102 start -X
 fi

@@ -77,3 +77,7 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
    此外，还要设置好每个罗盘每个轴的补偿参数值。
 
    ![comp params](../../assets/advanced_config/comp_params.png)
+
+## 另见
+
+- [OEM/Factory Configuration](../advanced_config/oem.md)

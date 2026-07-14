@@ -42,12 +42,26 @@ using namespace time_literals;
 
 AFBRS50 *g_dev{nullptr};
 
-AFBRS50::AFBRS50(uint8_t device_orientation):
+AFBRS50::AFBRS50():
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	// ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::SPI6),
-	_px4_rangefinder(0, device_orientation)
+	_px4_rangefinder(0, distance_sensor_s::ROTATION_DOWNWARD_FACING)
 {
+	int32_t rotation = _p_sens_afbr_rot.get();
+
+	// Valid orientations from distance_sensor_s: ROTATION_YAW_* (0-7), ROTATION_UPWARD_FACING (24), ROTATION_DOWNWARD_FACING (25).
+	const bool is_yaw = (rotation >= 0 && rotation <= 7);
+	const bool is_pitch = (rotation == distance_sensor_s::ROTATION_UPWARD_FACING)
+			      || (rotation == distance_sensor_s::ROTATION_DOWNWARD_FACING);
+
+	if (!is_yaw && !is_pitch) {
+		PX4_ERR("Invalid SENS_AFBR_ROT %d, using downward facing", (int)rotation);
+		rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	}
+
+	_px4_rangefinder.set_orientation((uint8_t)rotation);
+
 	device::Device::DeviceId device_id{};
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SPI;
 	device_id.devid_s.bus = BROADCOM_AFBR_S50_S2PI_SPI_BUS;
@@ -460,14 +474,14 @@ void AFBRS50::printInfo()
 namespace afbrs50
 {
 
-static int start(const uint8_t rotation)
+static int start()
 {
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
 		return PX4_ERROR;
 	}
 
-	g_dev = new AFBRS50(rotation);
+	g_dev = new AFBRS50();
 
 	if (g_dev == nullptr) {
 		PX4_ERR("object instantiate failed");
@@ -532,7 +546,6 @@ $ afbrs50 stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 0, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	return PX4_OK;
 }
@@ -546,14 +559,8 @@ extern "C" __EXPORT int afbrs50_main(int argc, char *argv[])
 	int ch = 0;
 	int myoptind = 1;
 
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-
-	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'r':
-			rotation = (uint8_t)atoi(myoptarg);
-			break;
-
 		default:
 			PX4_WARN("Unknown option");
 			return afbrs50::usage();
@@ -565,7 +572,7 @@ extern "C" __EXPORT int afbrs50_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
-		return afbrs50::start(rotation);
+		return afbrs50::start();
 
 	} else if (!strcmp(argv[myoptind], "status")) {
 		return afbrs50::status();

@@ -53,7 +53,6 @@ list(APPEND EKF_SRCS
 	aid_sources/fake_pos_control.cpp
 	aid_sources/ZeroGyroUpdate.cpp
 	aid_sources/ZeroVelocityUpdate.cpp
-	aid_sources/zero_innovation_heading_update.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
@@ -123,6 +122,12 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		aid_sources/range_finder/range_height_control.cpp
 		aid_sources/range_finder/range_height_fusion.cpp
 		aid_sources/range_finder/sensor_range_finder.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_RANGING_BEACON)
+	list(APPEND EKF_SRCS
+		aid_sources/ranging_beacon/ranging_beacon_control.cpp
 	)
 endif()
 

@@ -126,8 +126,8 @@ px4_add_module(
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml
+		mavlink_params.yaml
 	DEPENDS
-		adsb
 		airspeed
 		component_general_json # for checksums.h
 		dataman_client
@@ -135,6 +135,7 @@ px4_add_module(
 		drivers_gyroscope
 		drivers_magnetometer
 		conversion
+		gnss
 		sensor_calibration
 		geo
 		mavlink_c
@@ -145,8 +146,8 @@ px4_add_module(
 	UNITY_BUILD
 	)
 
-if(PX4_TESTING)
-	add_subdirectory(mavlink_tests)
+if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
+	target_link_libraries(modules__mavlink PRIVATE drivers__serialpassthrough)
 endif()
 
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp

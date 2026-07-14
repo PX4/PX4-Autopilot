@@ -46,8 +46,6 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	void checkArmingRequirement(const Context &context, Report &reporter);
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_com_arm_mis_req,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode

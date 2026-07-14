@@ -152,6 +152,7 @@ void LandingTargetEstimator::update()
 
 			_target_pose.rel_pos_valid = true;
 			_target_pose.rel_vel_valid = true;
+			_target_pose.rel_vel_ekf2_valid = _target_pose.is_static && _target_pose.rel_vel_valid;
 			_target_pose.x_rel = x;
 			_target_pose.y_rel = y;
 			_target_pose.z_rel = _target_position_report.rel_pos_z ;

@@ -1,0 +1,35 @@
+module_name: cdcacm_autostart
+parameters:
+- group: CDCACM
+  definitions:
+    SYS_USB_AUTO:
+      description:
+        short: Enable USB autostart
+      type: enum
+      values:
+        0: Disabled
+        1: Auto-detect
+        2: MAVLink
+      default: 2
+      reboot_required: true
+    USB_MAV_MODE:
+      description:
+        short: Specify USB MAVLink mode
+      type: enum
+      values:
+        0: normal
+        1: custom
+        2: onboard
+        3: osd
+        4: magic
+        5: config
+        6: iridium
+        7: minimal
+        8: extvision
+        9: extvisionmin
+        10: gimbal
+        11: onboard_low_bandwidth
+        12: uavionix
+        13: Low Bandwidth
+      default: 2
+      reboot_required: true

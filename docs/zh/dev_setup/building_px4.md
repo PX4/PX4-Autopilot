@@ -122,9 +122,9 @@ From the PX4-Autopilot directory:
 
 - [Pixhawk 4 Mini (FMUv5)](../flight_controller/pixhawk4_mini.md): `make px4_fmu-v5_default`
 
-- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default`
+- [CUAV V5+ (FMUv5)](../flight_controller/cuav_v5_plus.md): `make px4_fmu-v5_default` - Discontinued
 
-- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default`
+- [CUAV V5 nano (FMUv5)](../flight_controller/cuav_v5_nano.md): `make px4_fmu-v5_default` - Discontinued
 
 - [Pixracer (FMUv4)](../flight_controller/pixracer.md): `make px4_fmu-v4_default`
 
@@ -282,7 +282,7 @@ make [VENDOR_][MODEL][_VARIANT] [VIEWER_MODEL_DEBUGGER_WORLD]
 - \*\*VENDOR：\*\*主板制造商：`px4`、`aerotenna`、`airmind`、`atlflight`、`auav`、`beaglebone`、`intel`、`nxp` 等。
   Pixhawk 系列主板的供应商名称为 `px4`。
 - \*\*MODEL：\*\*飞控板型号 “model”：`sitl`、`fmu-v2`、`fmu-v3`、`fmu-v4`、`fmu-v5`、`navio2` 等。
-- **VARIANT:** 指示特定的配置：例如`bootloader`, `cyphal`, 其中包含不存在于“默认”配置中的组件。
+- **VARIANT:** Indicates particular configurations: e.g. `bootloader`, `cyphal`, `sih`, which add or remove components to/from the `default` configuration.
   最常见的情况是 `default`, 并且可能被省略。
 
 :::tip

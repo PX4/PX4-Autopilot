@@ -37,6 +37,7 @@
 #include "rtcm.h"
 #include <vector>
 #include <cstring>
+#include <numeric>
 #include <random>
 
 using namespace gnss;
@@ -45,6 +46,15 @@ class RtcmTest : public ::testing::Test
 {
 protected:
 	Rtcm3Parser parser;
+	GpsRtcmMessageAssembler gps_rtcm_assembler;
+
+	uint8_t buildGpsRtcmFlags(bool fragmented, uint8_t fragment_id = 0, uint8_t sequence_id = 0)
+	{
+		uint8_t flags = fragmented ? GPS_RTCM_FLAG_FRAGMENTED : 0;
+		flags |= (fragment_id & GPS_RTCM_FLAG_FRAGMENT_ID_MASK) << GPS_RTCM_FLAG_FRAGMENT_ID_SHIFT;
+		flags |= (sequence_id & GPS_RTCM_FLAG_SEQUENCE_ID_MASK) << GPS_RTCM_FLAG_SEQUENCE_ID_SHIFT;
+		return flags;
+	}
 
 	// Helper to build a valid RTCM3 frame with proper CRC
 	std::vector<uint8_t> buildValidFrame(uint16_t msg_type, const std::vector<uint8_t> &payload_data)
@@ -69,7 +79,11 @@ protected:
 	}
 
 	// Helper to build a frame with raw payload bytes (no message type encoding)
-	std::vector<uint8_t> buildRawFrame(const std::vector<uint8_t> &payload)
+	//
+	// Keep this helper out-of-line to avoid a GCC false positive on the
+	// inlined std::vector::push_back.
+	// See https://github.com/PX4/PX4-Autopilot/issues/26875 for details.
+	__attribute__((noinline)) std::vector<uint8_t> buildRawFrame(const std::vector<uint8_t> &payload)
 	{
 		std::vector<uint8_t> frame;
 		size_t payload_len = payload.size();

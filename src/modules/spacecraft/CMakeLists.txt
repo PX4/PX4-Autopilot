@@ -46,6 +46,10 @@ px4_add_module(
 	SRCS
 		SpacecraftHandler.cpp
 		SpacecraftHandler.hpp
+	MODULE_CONFIG
+		spacecraft_attitude_params.yaml
+		spacecraft_position_params.yaml
+		spacecraft_rate_params.yaml
 	DEPENDS
 		mathlib
 		px4_work_queue

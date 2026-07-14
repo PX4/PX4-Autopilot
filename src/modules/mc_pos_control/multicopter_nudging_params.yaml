@@ -1,0 +1,41 @@
+module_name: mc_pos_control
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    MPC_AUTO_NUDGING:
+      description:
+        short: Enable stick nudging in autonomous modes
+        long: |-
+          Bitmask to enable pilot override of heading and position during auto modes.
+
+          Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
+          (takeoff, mission, RTL, hold, landing). The new heading is held until a
+          mode switch resets it.
+
+          Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
+          the vehicle horizontally, the throttle stick amends the descent speed
+          (stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 * MPC_LAND_SPEED),
+          and the yaw stick rotates the heading.
+
+          Stick override must be disabled (set MAN_OVERRIDE_SPD = -1).
+      type: bitmask
+      bit:
+        0: Yaw nudging
+        1: Landing nudging
+      default: 0
+    MPC_LAND_RADIUS:
+      description:
+        short: User assisted landing radius
+        long: |-
+          When landing nudging is enabled (MPC_AUTO_NUDGING bit 1), this defines the maximum
+          allowed horizontal displacement from the original landing point.
+          - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
+          - If outside of the radius, only allow nudging inputs that move the vehicle back towards it.
+
+          Set it to -1 for infinite radius.
+      type: float
+      default: -1.0
+      unit: m
+      min: -1
+      decimal: 0
+      increment: 1

@@ -1,4 +1,5 @@
 __max_num_uavcan_lights: &max_num_uavcan_lights 2 # NOTE: This value must match MAX_NUM_UAVCAN_LIGHTS in rgbled.hpp
+__max_num_uavcan_servos: &max_num_uavcan_servos 15 # NOTE: This value must match MAX_ACTUATORS in actuators/servo.hpp
 
 
 module_name: UAVCAN
@@ -88,7 +89,7 @@ actuator_output:
         min: { min: 0, max: 8191, default: 1 }
         max: { min: 0, max: 8191, default: 8191 }
         failsafe: { min: 0, max: 8191 }
-      num_channels: 8
+      num_channels: 12
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'
       channel_label: 'Servo'
@@ -97,4 +98,4 @@ actuator_output:
         min: { min: 0, max: 1000, default: 0 }
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
-      num_channels: 8
+      num_channels: *max_num_uavcan_servos

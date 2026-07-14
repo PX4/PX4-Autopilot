@@ -119,6 +119,7 @@ FixedwingRateControl::vehicle_manual_poll()
 				_rates_sp.timestamp = hrt_absolute_time();
 				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
 				_rates_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+				_rates_sp.reset_integral = false;
 
 				_rate_sp_pub.publish(_rates_sp);
 
@@ -378,7 +379,16 @@ void FixedwingRateControl::Run()
 				}
 
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f scaled_gain_ff = gain_ff / _airspeed_scaling;
+
+				// Positive feedforward compensates aerodynamic damping and is scaled linearly with airspeed.
+				// Negative feedforward instead weights down the setpoint acting on the P gain (turning the
+				// controller into a 2-DOF controller).
+				Vector3f scaled_gain_ff;
+
+				for (int i = 0; i < 3; i++) {
+					scaled_gain_ff(i) = (gain_ff(i) >= 0.f) ? gain_ff(i) / _airspeed_scaling : gain_ff(i);
+				}
+
 				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
@@ -403,22 +413,31 @@ void FixedwingRateControl::Run()
 					trim.copyTo(_vehicle_torque_setpoint.xyz);
 				}
 
-				/* throttle passed through if it is finite */
-				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
+				float thrust_setpoint = _rates_sp.thrust_body[0];
 
-				/* scale effort by battery status */
-				if (_param_fw_bat_scale_en.get() && _vehicle_thrust_setpoint.xyz[0] > 0.1f) {
+				// Stop motor if its setpoint is below 2%. This value was determined empirically (RC stick inaccuracy).
+				// Motor is stopped by setting the output to NAN (per definition).
+				if (PX4_ISFINITE(thrust_setpoint) && thrust_setpoint > 0.02f) {
+					/* scale effort by battery status */
+					if (_param_fw_bat_scale_en.get()) {
 
-					if (_battery_status_sub.updated()) {
-						battery_status_s battery_status{};
+						if (_battery_status_sub.updated()) {
+							battery_status_s battery_status{};
 
-						if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-							_battery_scale = battery_status.scale;
+							if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+								_battery_scale = battery_status.scale;
+							}
 						}
+
+						thrust_setpoint *= _battery_scale;
 					}
 
-					_vehicle_thrust_setpoint.xyz[0] *= _battery_scale;
+				} else {
+					thrust_setpoint = NAN;
 				}
+
+				_vehicle_thrust_setpoint.xyz[0] = thrust_setpoint;
+
 			}
 
 			// publish rate controller status
@@ -469,9 +488,35 @@ void FixedwingRateControl::Run()
 			// Flaps control
 			float flaps_control = 0.f; // default to no flaps
 
-			/* map flaps by default to manual if valid */
-			if (PX4_ISFINITE(_manual_control_setpoint.flaps)) {
-				flaps_control = math::max(_manual_control_setpoint.flaps, 0.f); // do not consider negative switch settings
+			switch (_param_fw_flaps_man.get()) { 		// do not consider negative switch settings
+			case 0:
+				break;
+
+			case 1:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux1) ? math::max(_manual_control_setpoint.aux1, 0.f) : 0.f;
+				break;
+
+			case 2:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux2) ? math::max(_manual_control_setpoint.aux2, 0.f) : 0.f;
+				break;
+
+			case 3:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux3) ? math::max(_manual_control_setpoint.aux3, 0.f) : 0.f;
+				break;
+
+			case 4:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
+				break;
+
+			case 5:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
+
+			case 6:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
+				break;
+
+
 			}
 
 			normalized_unsigned_setpoint_s flaps_setpoint;
@@ -482,18 +527,28 @@ void FixedwingRateControl::Run()
 			// Spoilers control
 			float spoilers_control = 0.f; // default to no spoilers
 
-			switch (_param_fw_spoilers_man.get()) {
+			switch (_param_fw_spoilers_man.get()) {		// do not consider negative switch settings
 			case 0:
 				break;
 
 			case 1:
-				// do not consider negative switch settings
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
 				break;
 
 			case 2:
-				// do not consider negative switch settings
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux1) ? math::max(_manual_control_setpoint.aux1, 0.f) : 0.f;
+				break;
+
+			case 3:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux2) ? math::max(_manual_control_setpoint.aux2, 0.f) : 0.f;
+				break;
+
+			case 4:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux3) ? math::max(_manual_control_setpoint.aux3, 0.f) : 0.f;
+				break;
+
+			case 5:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
 				break;
 			}
 

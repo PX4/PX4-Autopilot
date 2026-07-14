@@ -326,7 +326,7 @@ GSF 应用于各个 3 状态 EKF 输出的权重位于 `weight` 字段中。
 
 为了让 ECL 接受 GNSS 数据进行导航，需要在一段时间内满足某些最低要求，该时间由 [EKF2_REQ_GPS_H](../advanced_config/parameter_reference.md#EKF2_REQ_GPS_H) 定义（默认为 10 秒）。
 
-最小值在 [EKF2_REQ_\*](../advanced_config/parameter_reference.md#EKF2_REQ_EPH) 参数中定义，并且可以使用 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 参数启用/禁用每个检查。
+最小值在 [EKF&#x32;_&#x52;EQ_\*](../advanced_config/parameter_reference.md#EKF2_REQ_EPH) 参数中定义，并且可以使用 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 参数启用/禁用每个检查。
 
 下表列出了直接从 GNSS 数据中报告或计算的不同指标，以及 ECL 使用这些数据所需满足的最低要求值。
 此外，_平均值 (Average Value)_ 列显示了可能从标准 GNSS 模块（例如 u-blox M8 系列）合理获得的典型值 - 即被认为良好/可接受的值。
@@ -406,6 +406,16 @@ See also [Fault Detection](https://youtu.be/CMGQJNPiTJg?si=sFtdf4AQbcOH8-u8) in 
 - **恢复**: 只有将数据标记为无效的特定检查才能重新启用融合。
 - **替代来源**: 航位推算模式通过在允许重置之前要求没有替代导航源，提供了增强的保护。
 - **启动漏洞**: 初始错误 GNSS 数据无法自动检测；需要操作员干预和手动位置校正。
+
+#### Ground Position Lock
+
+When a vehicle equipped with dead-reckoning sensors (e.g. airspeed for fixed-wing, or optical flow) is sitting on the ground before takeoff, those sensors provide little to no aiding — airspeed and optical flow measurements are unreliable at rest. In this case, the EKF relies on _constant position fusion_ (fusing a synthetic position measurement at the last known position) to prevent the estimate from drifting. However, this is only active when the vehicle is detected as stationary, so handling the vehicle or starting the engine can interrupt it.
+
+To counter this, [EKF2_POS_LOCK](../advanced_config/parameter_reference.md#EKF2_POS_LOCK) can be enabled to force constant position fusion to run while landed and the global horizontal position has already been initialized.
+
+:::note
+`EKF2_POS_LOCK` has no effect in flight.
+:::
 
 ### 测距仪
 

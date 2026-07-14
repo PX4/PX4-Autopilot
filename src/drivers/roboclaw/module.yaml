@@ -10,9 +10,9 @@ actuator_output:
     - param_prefix: RBCLW
       channel_label: 'Channel'
       standard_params:
-        disarmed: { min: 128, max: 128, default: 128 }
-        min: { min: 1, max: 128, default: 1 }
-        max: { min: 128, max: 256, default: 256 }
+        disarmed: { min: 127, max: 127, default: 127 }
+        min: { min: 0, max: 127, default: 0 }
+        max: { min: 127, max: 254, default: 254 }
         failsafe: { min: 0, max: 257 }
       num_channels: 2
 

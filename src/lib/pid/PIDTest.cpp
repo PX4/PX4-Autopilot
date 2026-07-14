@@ -34,6 +34,11 @@
 #include <gtest/gtest.h>
 #include <PID.hpp>
 
+// Run all PID unit tests:
+//   make tests TESTFILTER=unit-PID
+// Run a subset directly (after building) by filtering gtest cases, e.g.:
+//   ./build/px4_sitl_test/unit-PID --gtest_filter=PIDTest.AntiWindup*
+
 TEST(PIDTest, AllZeroCase)
 {
 	PID pid;
@@ -127,4 +132,71 @@ TEST(PIDTest, InteralOpenLoop)
 	pid.resetIntegral();
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), 0.f);
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), -.01f);
+}
+
+TEST(PIDTest, AntiWindupHighSaturation)
+{
+	// Integrator-only controller whose output saturates before the integral limit.
+	PID pid;
+	pid.setGains(0.f, .1f, 0.f);
+	pid.setIntegralLimit(1.f); // large, so the output limit saturates first
+	pid.setOutputLimit(.05f);
+	pid.setSetpoint(1.f);
+
+	// Output uses the pre-update integral, so the first step is not yet saturated.
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), 0.f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), .1f);
+
+	// Output now saturates high; integrating further up would wind up -> frozen.
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), .05f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), .1f);
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), .05f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), .1f);
+
+	// Error reverses: still saturated high, but integrating down unwinds -> allowed.
+	pid.setSetpoint(-1.f);
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), .05f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), 0.f);
+}
+
+TEST(PIDTest, AntiWindupLowSaturation)
+{
+	PID pid;
+	pid.setGains(0.f, .1f, 0.f);
+	pid.setIntegralLimit(1.f);
+	pid.setOutputLimit(.05f);
+	pid.setSetpoint(-1.f);
+
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), 0.f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), -.1f);
+
+	// Output saturates low; integrating further down would wind up -> frozen.
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), -.05f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), -.1f);
+
+	// Error reverses: still saturated low, but integrating up unwinds -> allowed.
+	pid.setSetpoint(1.f);
+	EXPECT_FLOAT_EQ(pid.update(0.f, 1.f, true), -.05f);
+	EXPECT_FLOAT_EQ(pid.getIntegral(), 0.f);
+}
+
+TEST(PIDTest, DerivativeOnlyDampsFeedbackMotion)
+{
+	// Derivative-on-measurement: the D term must oppose feedback motion so the
+	// output damps the plant rather than reinforcing its movement.
+	PID pid;
+	pid.setOutputLimit(100.f);
+	pid.setGains(0.f, 0.f, 1.f);
+	pid.setSetpoint(0.f);
+
+	// First sample seeds _last_feedback; derivative contribution is zero.
+	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, false), 0.f);
+
+	// Feedback rises by 1.0 over dt = 0.1 -> d(feedback)/dt = +10.
+	// Expected output = -Kd * d(feedback)/dt = -10.
+	EXPECT_FLOAT_EQ(pid.update(1.f, 0.1f, false), -10.f);
+
+	// Feedback falls by 1.0 over dt = 0.1 -> d(feedback)/dt = -10.
+	// Expected output = +10 (still damping).
+	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, false), 10.f);
 }

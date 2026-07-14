@@ -78,6 +78,21 @@ except ImportError as e:
     print("\nInstall it with: python -m pip install pyserial", file=sys.stderr)
     sys.exit(1)
 
+# pyserial's POSIX backend implements flush()/reset_input_buffer()/
+# reset_output_buffer() with raw termios.tcdrain()/tcflush() and does NOT wrap
+# their failures. On a vanished device (errno 5 EIO, e.g. the USB CDC node being
+# torn down during a reboot-to-bootloader re-enumeration) those raise a raw
+# termios.error -- which derives directly from Exception, NOT from OSError. It
+# therefore slips past `except (OSError, serial.SerialException)`. Include it
+# explicitly so these surface as ConnectionError and the identify/reboot retry
+# loops can recover instead of crashing. termios is POSIX-only.
+try:
+    import termios
+
+    _PORT_ERRORS: tuple = (OSError, serial.SerialException, termios.error)
+except ImportError:
+    _PORT_ERRORS = (OSError, serial.SerialException)
+
 
 # =============================================================================
 # Logging Configuration
@@ -111,6 +126,21 @@ def setup_logging(verbose: bool = False, debug: bool = False) -> None:
     # Also check environment variable
     if os.environ.get("PX4_UPLOADER_DEBUG", "").lower() in ("1", "true", "yes"):
         logger.setLevel(logging.DEBUG)
+
+
+def _present_ports() -> Optional[set]:
+    """Return the set of serial-port device paths currently present.
+
+    Used to detect USB re-enumeration (a board leaving the bootloader makes its
+    CDC device disappear and the application device appear). Returns None if
+    enumeration itself fails, so callers can tell "no devices" (empty set) apart
+    from "couldn't enumerate" and avoid a false re-enumeration signal.
+    """
+    try:
+        return {p.device for p in serial.tools.list_ports.comports()}
+    except Exception as e:
+        logger.debug(f"Port enumeration failed: {e}")
+        return None
 
 
 # =============================================================================
@@ -198,10 +228,10 @@ class BootloaderCommand(IntEnum):
     GET_OTP = 0x2A  # rev4+, get a word from OTP area
     GET_SN = 0x2B  # rev4+, get a word from SN area
     GET_CHIP = 0x2C  # rev5+, get chip version
-    SET_BOOT_DELAY = 0x2D  # rev5+, set boot delay
     GET_CHIP_DES = 0x2E  # rev5+, get chip description in ASCII
     GET_VERSION = 0x2F  # rev5+, get bootloader version in ASCII
     REBOOT = 0x30
+    VERIFY_SIG = 0x39  # verify signature of programmed image (secure boot)
     CHIP_FULL_ERASE = 0x40  # Full erase of flash, rev6+
 
 
@@ -259,6 +289,7 @@ PX4_USB_IDS: list[tuple[int, int, str]] = [
     (0x0483, 0x5740, "STMicroelectronics Virtual COM Port"),  # Generic ST bootloader
     (0x1209, 0x5740, "Generic STM32"),
     (0x1209, 0x5741, "ArduPilot"),
+    (0x3185, 0x003C, "ARK FMU v6s"),
     (0x3185, 0x0039, "ARK FMU v6x"),
     (0x3185, 0x003A, "ARK Pi6x"),
     (0x3185, 0x003B, "ARK FPV"),
@@ -294,6 +325,7 @@ class Firmware:
     image: bytes = field(init=False)
     image_size: int = field(init=False)
     image_maxsize: int = field(init=False)
+    image_signed: bool = field(init=False)
     description: dict = field(init=False)
 
     def __post_init__(self):
@@ -331,6 +363,7 @@ class Firmware:
         self.board_revision = self.description.get("board_revision", 0)
         self.image_size = self.description["image_size"]
         self.image_maxsize = self.description["image_maxsize"]
+        self.image_signed = bool(self.description.get("image_signed", False))
 
         # Decompress image
         try:
@@ -520,14 +553,31 @@ class SerialTransport:
 
     def flush(self) -> None:
         """Flush output buffer."""
-        if self._port is not None:
+        if self._port is None:
+            return
+        # tcdrain() can raise termios.error (NOT an OSError subclass) if the
+        # device disappeared mid-flush — common right after a reboot-to-
+        # bootloader when the USB CDC node is being torn down and re-enumerated.
+        try:
             self._port.flush()
+        except _PORT_ERRORS as e:
+            raise ConnectionError(
+                f"Flush failed: {e}", port=self.port_name, operation="flush"
+            )
 
     def reset_buffers(self) -> None:
         """Reset input and output buffers."""
-        if self._port is not None:
+        if self._port is None:
+            return
+        try:
             self._port.reset_input_buffer()
             self._port.reset_output_buffer()
+        except _PORT_ERRORS as e:
+            raise ConnectionError(
+                f"Buffer reset failed: {e}",
+                port=self.port_name,
+                operation="reset_buffers",
+            )
 
     def set_baudrate(self, baudrate: int) -> None:
         """Change baud rate.
@@ -1148,37 +1198,156 @@ class BootloaderProtocol:
         else:
             self.verify_read(firmware, progress_callback)
 
-    def set_boot_delay(self, delay_ms: int) -> None:
-        """Set boot delay in flash (v5+).
+    def verify_signature(self, image_signed: bool) -> None:
+        """Ask the bootloader to verify the signature of the programmed image.
+
+        Only call this for signed firmware. VERIFY_SIG is an unknown opcode to
+        bootloaders without secure boot; sending it right before REBOOT can
+        desync the BOOT handshake and leave the board stuck in the bootloader,
+        so we skip it when there is no signature to check.
+
+        Returns if the bootloader verifies the image or lacks secure boot
+        (INVALID); raises if it reports a bad signature.
 
         Args:
-            delay_ms: Boot delay in milliseconds
-        """
-        if self.bl_rev < 5:
-            logger.warning("Boot delay requires bootloader v5+")
-            return
-
-        self._send_command(BootloaderCommand.SET_BOOT_DELAY, struct.pack("b", delay_ms))
-        self._get_sync()
-        logger.info(f"Boot delay set to {delay_ms}ms")
-
-    def reboot(self) -> None:
-        """Reboot into the application.
+            image_signed: True if the firmware metadata claimed the image
+                is signed. Used only to upgrade the "bootloader doesn't
+                support secure boot" warning into an error: a signed image
+                being uploaded to a non-secure bootloader is a config
+                mismatch worth flagging loudly.
 
         Raises:
-            ProtocolError: If reboot fails (v3+ validates first flash word)
+            ProtocolError: If the bootloader reports the signature is bad,
+                or if a signed image was sent to a non-secure bootloader.
         """
-        logger.info("Rebooting to application")
-        self._send_command(BootloaderCommand.REBOOT)
+        logger.info("Verifying image signature")
+        self._send_command(BootloaderCommand.VERIFY_SIG)
         self.transport.flush()
 
-        # v3+ can report failure if first flash word is invalid
-        if self.bl_rev >= 3:
+        # ed25519 verification over a multi-megabyte image runs a full
+        # SHA-512 over every byte in flash, which on a slow-clocked H7
+        # bootloader with monocypher can comfortably exceed the default
+        # serial timeout. Give the response a generous window.
+        try:
+            insync = self.transport.recv(1, timeout=3.0)
+        except TimeoutError:
+            # Old bootloader from before VERIFY_SIG existed: no response,
+            # just silently dropped the byte. Treat as "no secure boot
+            # support" and continue. The downside is that a signed image
+            # going to a really old bootloader won't be caught here.
+            logger.debug("VERIFY_SIG timed out; assuming pre-secureboot bootloader")
+            return
+
+        if insync[0] != BootloaderResponse.INSYNC:
+            raise ProtocolError(
+                f"Expected INSYNC (0x{BootloaderResponse.INSYNC:02X}), "
+                f"got 0x{insync[0]:02X}",
+                port=self.transport.port_name,
+                operation="verify_signature",
+            )
+
+        result = self.transport.recv(1)
+        if result[0] == BootloaderResponse.OK:
+            logger.info("Signature verification passed")
+            return
+        if result[0] == BootloaderResponse.FAILED:
+            if image_signed:
+                msg = ("Signature does not verify against any trusted key "
+                       "in the bootloader.")
+            else:
+                msg = ("Secure bootloader rejected an unsigned image. "
+                       "Build with CONFIG_BOARD_SECUREBOOT or flash a "
+                       "non-secure bootloader.")
+            raise ProtocolError(msg, port=self.transport.port_name)
+        if result[0] == BootloaderResponse.INVALID:
+            if image_signed:
+                raise ProtocolError(
+                    "Image is marked signed but the bootloader has no "
+                    "secure boot support.",
+                    port=self.transport.port_name,
+                )
+            logger.debug("Bootloader has no secure boot; skipping verification")
+            return
+
+        raise ProtocolError(
+            f"Unexpected VERIFY_SIG response: 0x{result[0]:02X}",
+            port=self.transport.port_name,
+            operation="verify_signature",
+        )
+
+    # Reboot confirmation tuning
+    REBOOT_ATTEMPTS = 3
+    REBOOT_REENUM_TIMEOUT = 5.0
+
+    def reboot(self) -> bool:
+        """Reboot into the application and confirm the board left the bootloader.
+
+        Two independent signals confirm a reboot:
+          1. ACK: the in-tree bootloader (bl.c, PROTO_BOOT) sends INSYNC+OK
+             *before* it jumps (sync_response() then delay(100) then
+             jump_to_app()), so an ack means it is booting.
+          2. USB re-enumeration: if there is no ack, the board may still have
+             rebooted silently, or it may have dropped the REBOOT byte. We watch
+             the serial-port list; if our port disappears or a new one appears
+             the board rebooted, otherwise we resend REBOOT.
+
+        Returns:
+            True if the board rebooted, False if it appears stuck in the
+            bootloader after every attempt.
+
+        Raises:
+            ProtocolError: If the bootloader reports a bad image (v3+).
+        """
+        logger.info("Rebooting to application")
+        ports_before = _present_ports() or set()
+
+        for _ in range(self.REBOOT_ATTEMPTS):
             try:
-                self._get_sync()
-            except TimeoutError:
-                # Timeout is expected - board is rebooting
-                pass
+                self._send_command(BootloaderCommand.REBOOT)
+                self.transport.flush()
+
+                # v3+ acks (INSYNC+OK) before jumping; v2 has no ack.
+                if self.bl_rev >= 3 and self._reboot_acked():
+                    logger.info("Reboot acknowledged")
+                    return True
+            except ConnectionError:
+                # Port vanished mid-command -> the board already left the BL.
+                logger.info("Rebooted (USB re-enumerated)")
+                return True
+
+            # No ack: confirm via USB re-enumeration, else resend.
+            if self._wait_for_reenumeration(ports_before):
+                logger.info("Rebooted (USB re-enumerated)")
+                return True
+            logger.debug("No reboot detected; resending REBOOT")
+
+        logger.warning("Board did not reboot; power-cycle to boot")
+        return False
+
+    def _reboot_acked(self) -> bool:
+        """Return True if the bootloader acked the REBOOT (INSYNC+OK)."""
+        try:
+            self._get_sync()
+            return True
+        except TimeoutError:
+            return False
+
+    def _wait_for_reenumeration(self, ports_before: set) -> bool:
+        """Watch for the board's serial device to go away / a new one to appear.
+
+        Returns True if the port set changes within REBOOT_REENUM_TIMEOUT (the
+        board rebooted), False if nothing changes (likely stuck in bootloader).
+        """
+        our_port = self.transport.port_name
+        deadline = time.monotonic() + self.REBOOT_REENUM_TIMEOUT
+        while time.monotonic() < deadline:
+            time.sleep(0.1)
+            now = _present_ports()
+            if now is None:
+                continue  # transient enumeration failure; try again
+            if our_port not in now or (now - ports_before):
+                return True
+        return False
 
     def send_reboot_commands(
         self, baudrates: list[int], use_protocol_splitter: bool = False
@@ -1343,6 +1512,14 @@ class PortDetector:
         elif self.platform == "darwin":
             patterns = self.MACOS_PATTERNS
         elif self.platform.startswith("win") or self.platform == "cygwin":
+            try:
+                detected_ports = [
+                    port_info.device for port_info in serial.tools.list_ports.comports()
+                ]
+                if detected_ports:
+                    return detected_ports
+            except Exception as e:
+                logger.debug(f"Windows COM port detection failed: {e}")
             patterns = self.WINDOWS_PATTERNS
         else:
             patterns = []
@@ -1569,7 +1746,6 @@ class UploaderConfig:
     baud_flightstack: list[int] = field(default_factory=lambda: [57600])
     force: bool = False
     force_erase: bool = False
-    boot_delay: Optional[int] = None
     use_protocol_splitter: bool = False
     retry_count: int = 3
     windowed: bool = False
@@ -1666,7 +1842,8 @@ class Uploader:
         last_error = None
         for port in ports:
             try:
-                return self._upload_to_port(port, firmwares)
+                if self._upload_to_port(port, firmwares):
+                    return True
             except BoardMismatchError as e:
                 logger.warning(f"Board mismatch on {port}: {e}")
                 last_error = e
@@ -1676,7 +1853,10 @@ class Uploader:
                 last_error = e
                 continue
             except UploadError as e:
-                logger.error(f"Upload failed on {port}: {e}")
+                # Don't log here: we re-raise and the top-level handler
+                # in main() will print the error message. Logging here
+                # too produces duplicate user-facing output.
+                logger.debug(f"Upload failed on {port}: {e}")
                 last_error = e
                 raise
 
@@ -1752,7 +1932,7 @@ class Uploader:
                 port=transport.port_name,
             )
             return True
-        except (ProtocolError, TimeoutError):
+        except (ProtocolError, TimeoutError, ConnectionError):
             pass
 
         # Try rebooting at each baud rate
@@ -1817,8 +1997,10 @@ class Uploader:
                         port=transport.port_name,
                     )
                     return True
-                except (ProtocolError, TimeoutError):
-                    # Board may still be rebooting, wait a bit and retry
+                except (ProtocolError, TimeoutError, ConnectionError):
+                    # Board may still be rebooting, wait a bit and retry.
+                    # ConnectionError covers the USB CDC node briefly going
+                    # away as the bootloader re-enumerates.
                     time.sleep(0.3)
 
         return False
@@ -1924,9 +2106,17 @@ class Uploader:
         # Verify
         protocol.verify(firmware, progress_callback=progress.update_verify)
 
-        # Set boot delay if requested
-        if self.config.boot_delay is not None:
-            protocol.set_boot_delay(self.config.boot_delay)
+        # Only verify signed firmware: VERIFY_SIG before REBOOT can desync the
+        # BOOT handshake and leave the board stuck in the bootloader.
+        if firmware.image_signed:
+            # Progress bar leaves the cursor mid-line; break to a fresh line so
+            # the verify output doesn't clobber it.
+            if not self.config.json_output:
+                print()
+                print("Verifying image signature...", end="", flush=True)
+            protocol.verify_signature(firmware.image_signed)
+            if not self.config.json_output:
+                print(" passed")
 
         # Reboot and show summary
         protocol.reboot()
@@ -2010,9 +2200,6 @@ Examples:
         help="Force full chip erase (v6+ bootloader)",
     )
     parser.add_argument(
-        "--boot-delay", type=int, help="Boot delay in milliseconds to store in flash"
-    )
-    parser.add_argument(
         "--use-protocol-splitter-format",
         action="store_true",
         help="Use protocol splitter framing for reboot commands",
@@ -2068,7 +2255,6 @@ Examples:
         baud_flightstack=baud_flightstack,
         force=args.force,
         force_erase=args.force_erase,
-        boot_delay=args.boot_delay,
         use_protocol_splitter=args.use_protocol_splitter_format,
         windowed=args.windowed,
         noninteractive=args.noninteractive or args.noninteractive_json,

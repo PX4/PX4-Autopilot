@@ -69,6 +69,8 @@ set(msg_files
 	DistanceSensorModeChangeRequest.msg
 	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
+	EscEepromRead.msg
+	EscEepromWrite.msg
 	EscReport.msg
 	EscStatus.msg
 	EstimatorAidSource1d.msg
@@ -77,6 +79,7 @@ set(msg_files
 	EstimatorBias.msg
 	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
+	EstimatorFusionControl.msg
 	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg
@@ -88,6 +91,7 @@ set(msg_files
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FailureInjection.msg
 	FlightPhaseEstimation.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
@@ -149,6 +153,7 @@ set(msg_files
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
 	OpenDroneIdArmStatus.msg
+	OpenDroneIdBasicId.msg
 	OpenDroneIdOperatorId.msg
 	OpenDroneIdSelfId.msg
 	OpenDroneIdSystem.msg
@@ -175,6 +180,7 @@ set(msg_files
 	QshellReq.msg
 	QshellRetval.msg
 	RadioStatus.msg
+	RangingBeacon.msg
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
@@ -228,8 +234,8 @@ set(msg_files
 	UlogStreamAck.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAccelerationSetpoint.msg
 	VehicleConstraints.msg
+	VehicleControlMode.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
@@ -263,6 +269,8 @@ set(msg_files
 	versioned/RaptorStatus.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
+	versioned/SetpointConfig.msg
+	versioned/SetpointConfigReply.msg
 	versioned/TrajectorySetpoint.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
@@ -270,7 +278,6 @@ set(msg_files
 	versioned/VehicleAttitudeSetpoint.msg
 	versioned/VehicleCommandAck.msg
 	versioned/VehicleCommand.msg
-	versioned/VehicleControlMode.msg
 	versioned/VehicleGlobalPosition.msg
 	versioned/VehicleLandDetected.msg
 	versioned/VehicleLocalPosition.msg
@@ -281,6 +288,26 @@ set(msg_files
 	versioned/Wind.msg
 )
 list(SORT msg_files)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND msg_files
+		DetectAndAvoid.msg
+		DetectAndAvoidMostUrgent.msg)
+endif()
+
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND msg_files
+		TargetGnss.msg
+		VteInput.msg
+		VtePosition.msg
+		VteOrientation.msg
+		VteAidSource1d.msg
+		VteAidSource3d.msg
+		VteBiasInitStatus.msg
+		FiducialMarkerPosReport.msg
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
+endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 
@@ -450,7 +477,21 @@ if(CONFIG_LIB_CDRSTREAM)
 	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc)
 	execute_process(COMMAND ${CMAKE_COMMAND} ${PX4_SOURCE_DIR}/src/lib/cdrstream/cyclonedds
 			-DCMAKE_C_COMPILER=/usr/bin/gcc
+			-DCMAKE_C_COMPILER_LAUNCHER=ccache
+			-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+			-DCMAKE_C_FLAGS=-Wno-maybe-uninitialized\ -Wno-unused-parameter
 			-DBUILD_EXAMPLES=OFF
+			-DENABLE_SSL=OFF
+			-DENABLE_SECURITY=OFF
+			-DBUILD_DDSPERF=OFF
+			-DENABLE_LTO=OFF
+			-DENABLE_LIFESPAN=OFF
+			-DENABLE_DEADLINE_MISSED=OFF
+			-DENABLE_NETWORK_PARTITIONS=oFF
+			-DENABLE_SOURCE_SPECIFIC_MULTICAST=oFF
+			-DENABLE_IPV6=OFF
+			-DENABLE_TYPE_DISCOVERY=OFF
+			-DENABLE_TOPIC_DISCOVERY=oFF
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc
 			RESULT_VARIABLE CMD_ERROR
 			OUTPUT_FILE CMD_OUTPUT )

@@ -33,16 +33,21 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
+#include <math.h>
+#include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/failure_injection.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -74,6 +79,8 @@ public:
 
 	bool init();
 
+	void updateFailureConfig();
+
 private:
 	void Run() override;
 
@@ -90,9 +97,12 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	failure_injection::Config _failure_config;
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_ARSPD_FAIL>) _sim_failure
-	)
+	bool _airspeed_disconnected{false};
+	bool _airspeed_stuck{false};
+	hrt_abstime _airspeed_blocked_timestamp{0};
+	float _last_differential_pressure_pa{0.f};
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };

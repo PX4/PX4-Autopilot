@@ -50,6 +50,7 @@
 #include <crc32.h>
 #include <float.h>
 #include <math.h>
+#include <sys/stat.h>
 
 #include <containers/Bitset.hpp>
 #include <drivers/drv_hrt.h>
@@ -129,6 +130,11 @@ static pthread_mutex_t file_mutex  =
 void
 param_init()
 {
+#ifdef __PX4_POSIX
+	// Set up the recursive param mutex before any thread can access parameters.
+	AtomicTransaction::initialize();
+#endif
+
 	param_export_perf = perf_alloc(PC_ELAPSED, "param: export");
 	param_find_perf = perf_alloc(PC_COUNT, "param: find");
 	param_get_perf = perf_alloc(PC_COUNT, "param: get");
@@ -376,7 +382,7 @@ bool param_value_is_default(param_t param)
 			}
 
 		case PARAM_TYPE_FLOAT: {
-				return user_config_value.f - runtime_default_value.f < FLT_EPSILON;
+				return fabsf(user_config_value.f - runtime_default_value.f) < FLT_EPSILON;
 			}
 		}
 	}
@@ -410,6 +416,11 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 	if (val == nullptr) {
 		PX4_ERR("set invalid value");
+		return PX4_ERROR;
+	}
+
+	if (param_is_readonly(param)) {
+		PX4_WARN("param %s is read-only", param_name(param));
 		return PX4_ERROR;
 	}
 
@@ -544,6 +555,11 @@ int param_set_default_value(param_t param, const void *val)
 		return PX4_ERROR;
 	}
 
+	if (param_is_readonly(param)) {
+		PX4_WARN("param %s is read-only", param_name(param));
+		return PX4_ERROR;
+	}
+
 	int result = PX4_ERROR;
 
 
@@ -614,6 +630,10 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 	// Remote doesn't support reset
 	return false;
 #endif
+
+	if (param_is_readonly(param)) {
+		return 0;  // silently skip — param_reset_all loops over all params
+	}
 
 	bool param_found = user_config.contains(param);
 
@@ -905,6 +925,11 @@ param_load_default()
 
 	int result = param_load(fd_load);
 	::close(fd_load);
+
+	if (result == 1) {
+		/* blank file: nothing stored yet */
+		return 1;
+	}
 
 	if (result != 0) {
 		PX4_ERR("error reading parameters from '%s'", filename);
@@ -1212,6 +1237,35 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 static int
 param_import_internal(int fd)
 {
+	/* blank source (nothing stored yet): an empty file, or zeroed/erased
+	 * storage where the BSON document length would be. Unlike the flash
+	 * backend, which scans the whole store, this only inspects the leading
+	 * document length - a length of 0 or -1 can never start a valid BSON
+	 * document, so nothing parseable is diverted here regardless of what
+	 * follows. */
+
+	/* A zero-length regular file is blank. NuttX FAT can't read() a 0-byte
+	 * file (no cluster chain -> error, not EOF), so the content check below
+	 * would miss it; detect it by size. Char-device backends (e.g. FRAM)
+	 * report no meaningful size and fall through to the content check. */
+	struct stat st;
+
+	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size == 0) {
+		return 1;
+	}
+
+	int32_t doc_size = 0;
+	ssize_t len = read(fd, &doc_size, sizeof(doc_size));
+
+	if (len == 0 || (len == (ssize_t)sizeof(doc_size) && (doc_size == 0 || doc_size == -1))) {
+		return 1;
+	}
+
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		PX4_ERR("import lseek failed (%d)", errno);
+		return -1;
+	}
+
 	static constexpr int MAX_ATTEMPTS = 3;
 
 	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {

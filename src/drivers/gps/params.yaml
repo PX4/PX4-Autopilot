@@ -1,0 +1,311 @@
+module_name: gps
+parameters:
+- group: GPS
+  definitions:
+    GPS_DUMP_COMM:
+      description:
+        short: Log GPS communication data
+        long: |-
+          If this is set to 1, all GPS communication data will be published via uORB,
+          and written to the log file as gps_dump message.
+
+          If this is set to 2, the main GPS is configured to output RTCM data,
+          which is then logged as gps_dump and can be used for PPK.
+      type: enum
+      values:
+        0: Disable
+        1: Full communication
+        2: RTCM output (PPK)
+      default: 0
+      min: 0
+      max: 2
+    GPS_UBX_DYNMODEL:
+      description:
+        short: u-blox GPS dynamic platform model
+        long: |-
+          u-blox receivers support different dynamic platform models to adjust the navigation engine to
+          the expected application environment.
+      type: enum
+      values:
+        2: stationary
+        4: automotive
+        6: airborne with <1g acceleration
+        7: airborne with <2g acceleration
+        8: airborne with <4g acceleration
+      default: 7
+      min: 0
+      max: 9
+      reboot_required: true
+    GPS_UBX_DGNSS_TO:
+      description:
+        short: u-blox GPS DGNSS timeout
+        long: When set to 0 (default), default DGNSS timeout set by u-blox will be
+          used.
+      type: int32
+      default: 0
+      min: 0
+      max: 255
+      unit: s
+      reboot_required: true
+    GPS_UBX_MIN_CNO:
+      description:
+        short: u-blox GPS minimum satellite signal level for navigation
+        long: When set to 0 (default), default minimum satellite signal level set
+          by u-blox wll be used.
+      type: int32
+      default: 0
+      min: 0
+      max: 255
+      unit: dBHz
+      reboot_required: true
+    GPS_UBX_MIN_ELEV:
+      description:
+        short: u-blox GPS minimum satellite elevation angle
+        long: |-
+          u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
+
+          When set to 0 (default), default minimum elevation set by u-blox will be used.
+      type: int32
+      default: 0
+      min: 0
+      max: 127
+      unit: deg
+      reboot_required: true
+    GPS_UBX_RATE:
+      description:
+        short: u-blox GPS output rate
+        long: |-
+          Configure the output rate of u-blox GPS receivers (protocol v27+).
+          When set to 0, automatic rate selection is used based on the receiver model.
+          Default rates: M9N=8Hz, F9P L1L2=5Hz, F9P L1L5=5Hz, Others=10Hz.
+
+          Note: Higher rates reduce satellite count (e.g., >8Hz limits to 16 SVs on M9N).
+          Max rates vary by model and RTK mode: F9P L1L2=5-7Hz, F9P L1L5=7-8Hz, X20=25Hz.
+          High rates at 115200 baud may cause dropouts.
+      type: int32
+      default: 0
+      min: 0
+      max: 25
+      unit: Hz
+      reboot_required: true
+    GPS_SAT_INFO:
+      description:
+        short: Enable sat info (if available)
+        long: |-
+          Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
+          Not available on MTK.
+      type: boolean
+      default: 0
+      reboot_required: true
+    GPS_UBX_MODE:
+      description:
+        short: u-blox GPS Mode
+        long: |-
+          Select the u-blox configuration setup. Most setups will use the default, including RTK and
+          dual GPS without heading.
+
+          If rover has RTCM corrections from a static base (or other static correction source) coming in on UART2, then select Mode 5.
+          The Heading mode requires 2 F9P devices to be attached. The main GPS will act as rover and output
+          heading information, whereas the secondary will act as moving base.
+          Modes 1 and 2 require each F9P UART1 to be connected to the Autopilot. In addition, UART2 on the
+          F9P units are connected to each other.
+          Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required.
+          RTK is still possible with this setup.
+          Mode 6 is intended for use with a ground control station (not necessarily an RTK correction base).
+      type: enum
+      values:
+        0: Default
+        1: Heading (Rover With Moving Base UART1 Connected To Autopilot, UART2 Connected
+          To Moving Base)
+        2: Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
+        3: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node
+          At 921600)
+        4: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+        5: Rover with Static Base on UART2 (similar to Default, except coming in on
+          UART2)
+        6: Ground Control Station (UART2 outputs NMEA)
+      default: 0
+      min: 0
+      max: 6
+      reboot_required: true
+    GPS_UBX_BAUD2:
+      description:
+        short: u-blox F9P UART2 Baudrate
+        long: |-
+          Select a baudrate for the F9P's UART2 port.
+          In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
+          Set this to 57600 if you want to attach a telemetry radio on UART2.
+      type: int32
+      default: 230400
+      min: 0
+      unit: B/s
+      reboot_required: true
+    GPS_UBX_CFG_INTF:
+      description:
+        short: u-blox protocol configuration for interfaces
+      type: bitmask
+      bit:
+        0: Enable I2C input protocol UBX
+        1: Enable I2C input protocol NMEA
+        2: Enable I2C input protocol RTCM3X
+        3: Enable I2C output protocol UBX
+        4: Enable I2C output protocol NMEA
+        5: Enable I2C output protocol RTCM3X
+      default: 0
+      min: 0
+      max: 32
+      reboot_required: true
+    GPS_UBX_PPK:
+      description:
+        short: Enable MSM7 message output for PPK workflow
+      type: boolean
+      default: 0
+      reboot_required: true
+    GPS_UBX_JAM_DET:
+      description:
+        short: u-blox GPS jamming detection high sensitivity mode
+        long: |-
+          Enables or disables the high sensitivity mode for the u-blox jamming detection
+          (CFG-SEC-JAMDET_SENSITIVITY_HI). When enabled, the receiver uses a
+          more sensitive algorithm to detect jamming. Disabling this may reduce false
+          positives in electrically noisy environments.
+      type: boolean
+      default: 1
+      reboot_required: true
+    GPS_CFG_WIPE:
+      description:
+        short: Wipes the flash config of UBX modules
+        long: |-
+          Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
+          PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
+          However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+          To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
+
+          Note: Currently only supported on UBX.
+      type: boolean
+      default: 0
+      reboot_required: true
+    GPS_YAW_OFFSET:
+      description:
+        short: Heading/Yaw offset for dual antenna GPS
+        long: |-
+          Heading offset angle for dual antenna GPS setups that support heading estimation.
+
+          Set this to 0 if the antennas are parallel to the forward-facing direction
+          of the vehicle and the rover (or Unicore primary) antenna is in front.
+
+          The offset angle increases clockwise.
+
+          Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
+          antenna is placed on the right side of the vehicle and the moving base
+          antenna is on the left side.
+
+          (Note: the Unicore primary antenna is the one connected on the right as seen
+          from the top).
+      type: float
+      default: 0.0
+      min: 0
+      max: 360
+      unit: deg
+      reboot_required: true
+      decimal: 3
+    GPS_1_PROTOCOL:
+      description:
+        short: Protocol for Main GPS
+        long: |-
+          Select the GPS protocol over serial.
+
+          Auto-detection will probe all protocols, and thus is a bit slower.
+      type: enum
+      values:
+        0: Auto detect
+        1: u-blox
+        2: MTK
+        3: Ashtech / Trimble
+        4: Emlid Reach
+        5: Femtomes
+        6: NMEA (generic)
+      default: 1
+      min: 0
+      max: 7
+      reboot_required: true
+    GPS_2_PROTOCOL:
+      description:
+        short: Protocol for Secondary GPS
+        long: |-
+          Select the GPS protocol over serial.
+
+          Auto-detection will probe all protocols, and thus is a bit slower.
+      type: enum
+      values:
+        0: Auto detect
+        1: u-blox
+        2: MTK
+        3: Ashtech / Trimble
+        4: Emlid Reach
+        5: Femtomes
+        6: NMEA (generic)
+      default: 1
+      min: 0
+      max: 6
+      reboot_required: true
+    GPS_1_GNSS:
+      description:
+        short: GNSS Systems for Primary GPS (integer bitmask)
+        long: |-
+          This integer bitmask controls the set of GNSS systems used by the receiver. Check your
+          receiver's documentation on how many systems are supported to be used in parallel.
+
+          Currently this functionality is just implemented for u-blox receivers.
+
+          When no bits are set, the receiver's default configuration should be used.
+
+          Set bits true to enable:
+          0 : Use GPS (with QZSS)
+          1 : Use SBAS (multiple GPS augmentation systems)
+          2 : Use Galileo
+          3 : Use BeiDou
+          4 : Use GLONASS
+          5 : Use NAVIC
+      type: bitmask
+      bit:
+        0: GPS (with QZSS)
+        1: SBAS
+        2: Galileo
+        3: BeiDou
+        4: GLONASS
+        5: NAVIC
+      default: 0
+      min: 0
+      max: 63
+      reboot_required: true
+    GPS_2_GNSS:
+      description:
+        short: GNSS Systems for Secondary GPS (integer bitmask)
+        long: |-
+          This integer bitmask controls the set of GNSS systems used by the receiver. Check your
+          receiver's documentation on how many systems are supported to be used in parallel.
+
+          Currently this functionality is just implemented for u-blox receivers.
+
+          When no bits are set, the receiver's default configuration should be used.
+
+          Set bits true to enable:
+          0 : Use GPS (with QZSS)
+          1 : Use SBAS (multiple GPS augmentation systems)
+          2 : Use Galileo
+          3 : Use BeiDou
+          4 : Use GLONASS
+          5 : Use NAVIC
+      type: bitmask
+      bit:
+        0: GPS (with QZSS)
+        1: SBAS
+        2: Galileo
+        3: BeiDou
+        4: GLONASS
+        5: NAVIC
+      default: 0
+      min: 0
+      max: 63
+      reboot_required: true

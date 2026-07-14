@@ -75,7 +75,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 [mosaic-G5 P3H]: https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H
 [D10P]: https://docs.datagnss.com/gnss/gnss_module/D10P_RTK
 
-참고:
+Notes:
 
 - ✓ or a specific part number indicate that a features is supported, while ✘ or empty show that the feature is not supported.
   "?"는 "알 수 없음"을 나타냅니다.
@@ -175,7 +175,7 @@ The links in the table take you to the device-specific PX4 configuration.
 
 Generally when using a GNSS as a source of yaw information you will need to configure the following parameters:
 
-| 매개변수                               | 설정                                                                                                                                                          |
+| Parameter                          | 설정                                                                                                                                                          |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [GPS\_YAW\_OFFSET][GPS_YAW_OFFSET] | The angle made by the _baseline_ (the line between the two GPS antennas) relative to the vehicle x-axis (front/back axis, as shown [here][fc_orientation]). |
 | [EKF2\_GPS\_CTRL][EKF2_GPS_CTRL]   | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).    |

@@ -57,6 +57,17 @@ param set PWM_MAIN_FUNC10 2064
 param set PPS_CAP_ENABLE 1
 ```
 
+#### Multi-GPS Setups
+
+If you have multiple GPS receivers, set `PPS_CAP_GPS_ID` to the device ID of the GPS receiver that emits the PPS signal.
+When set to `0` (default), the driver uses the first available GPS instance.
+
+You can find the device ID by running:
+
+```sh
+listener sensor_gps
+```
+
 ### Wiring
 
 The wiring configuration depends on your specific flight controller.
@@ -80,7 +91,7 @@ For FMUv6S, you need to route the PPS signal separately:
 
 For ARK FMUv6X on the Jetson carrier board:
 
-1. Connect your GNSS module using either the 10-pin or 6-pin GPS connector: [ARK PAB GPS1 Interface](../flight_controller/ark_pab#gps1)
+1. Connect your GNSS module using either the 10-pin or 6-pin GPS connector: [ARK PAB GPS1 Interface](../flight_controller/ark_pab.md#gps1)
 2. Connect the PPS signal to the **FMU_CAP** pin: [ARK PAB ADIO Interface](../flight_controller/ark_pab.md#adio)
 
 ## Verification
@@ -129,5 +140,5 @@ See also:
 The PPS signal provides much higher temporal precision than the transmitted time data, which has latency and jitter from serial communication.
 
 ::: warning
-If the PPS driver does not sending any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the `EKF2_GPS_DELAY` will be used instead for estimating the latency.
+If the PPS driver does not send any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the corresponding `SENS_GPS*_DELAY` parameter will be used instead for estimating the latency.
 :::

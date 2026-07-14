@@ -59,7 +59,7 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 Parameters that affect both catapult/hand-launch and runway takeoffs:
 
-| 参数                                                                   | 描述                                                                                                                                                                        |
+| Parameter                                                            | 描述                                                                                                                                                                        |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_TAKEOFF_ALT"></a>[MIS\_TAKEOFF\_ALT][MIS_TAKEOFF_ALT]     | This is the relative altitude (above launch altitude) the system will take off to if not otherwise specified. takeoff. |
 | <a id="FW_TKO_AIRSPD"></a>[FW\_TKO\_AIRSPD][FW_TKO_AIRSPD]           | Takeoff airspeed (is set to [FW\_AIRSPD\_MIN][FW_AIRSPD_MIN] if not defined by operator)                                                                                  |
@@ -100,14 +100,14 @@ To launch in this mode:
 
 The _launch detector_ is affected by the following parameters:
 
-| 参数                                                                                                                                                                                              | 描述                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)                      | Enable automatic launch detection. If disabled motors spin up on arming already             |
-| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)                         | Acceleration threshold (acceleration in body-forward direction must be above this value) |
-| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)                                  | Trigger time (acceleration must be above threshold for this amount of seconds)           |
-| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)                         | Delay from launch detection to motor spin up                                                                |
-| <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                                               |
-| <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)                               | Bitmask to select which control surfaces are to be locked during launch                                     |
+| Parameter                                                                                                                                                                                       | 描述                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)                      | Enable automatic launch detection. If disabled motors spin up on arming already   |
+| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)                         | Acceleration threshold (norm of acceleration must be above this value)         |
+| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)                                  | Trigger time (acceleration must be above threshold for this amount of seconds) |
+| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)                         | Delay from launch detection to motor spin up                                                      |
+| <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                                     |
+| <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)                               | Bitmask to select which control surfaces are to be locked during launch                           |
 
 ## Runway Takeoff {#runway_launch}
 
@@ -132,7 +132,7 @@ It consists of a rate controller (P-I-FF-controller with the parameters [FW_WR_P
 
 Runway takeoff is affected by the following parameters:
 
-| 参数                                                                                                                                                 | 描述                                                                                                                                                                                                                           |
+| Parameter                                                                                                                                          | 描述                                                                                                                                                                                                                           |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RWTO_TKOFF"></a>[RWTO_TKOFF](../advanced_config/parameter_reference.md#RWTO_TKOFF)                                     | Enable runway takeoff                                                                                                                                                                                                        |
 | <a id="FW_W_EN"></a>[FW_W_EN](../advanced_config/parameter_reference.md#FW_W_EN)                         | Enable wheel controller                                                                                                                                                                                                      |

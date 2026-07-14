@@ -80,10 +80,8 @@ void VertiqTelemetryManager::StartPublishing(uORB::Publication<esc_status_s> *es
 
 	for (unsigned i = 0; i < _number_of_module_ids_for_telem; i++) {
 		_esc_status.esc[i].timestamp       = 0;
-		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
 		_esc_status.esc[i].esc_state       = 0;
-		_esc_status.esc[i].esc_cmdcount    = 0;
 		_esc_status.esc[i].esc_voltage     = 0;
 		_esc_status.esc[i].esc_current     = 0;
 		_esc_status.esc[i].esc_temperature = 0;
@@ -112,7 +110,6 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		IFCITelemetryData telem_response = _telem_interface.telemetry_.get_reply();
 
 		// also update our internal report for logging
-		_esc_status.esc[_current_module_id_target_index].esc_address  = _module_ids_in_use[_number_of_module_ids_for_telem];
 		_esc_status.esc[_current_module_id_target_index].timestamp    = time_now;
 		_esc_status.esc[_current_module_id_target_index].esc_rpm      = telem_response.speed * 60.0f * M_1_PI_F *
 				0.5f; //We get back rad/s, convert to rpm
@@ -124,7 +121,6 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		_esc_status.esc[_current_module_id_target_index].esc_temperature = telem_response.mcu_temp *
 				0.01; //"If you ask other escs for their temp, they're giving you the micro temp, so go with that"
 		_esc_status.esc[_current_module_id_target_index].esc_state    = 0; //not implemented
-		_esc_status.esc[_current_module_id_target_index].esc_cmdcount = 0; //not implemented
 		_esc_status.esc[_current_module_id_target_index].failures     = 0; //not implemented
 
 		//Update the overall _esc_status timestamp and our counter

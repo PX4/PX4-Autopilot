@@ -496,7 +496,7 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  *
  *    RC_SERIAL_SWAP_USING_SINGLEWIRE   is defined
  *    RC_SERIAL_SWAP_RXTX               is defined
- *    TIOCSSWAP                         is defined and retuns !OK
+ *    TIOCSSWAP                         is defined and returns !OK
  *    TIOCSSINGLEWIRE                   is defined
  *
  * Input Parameters:

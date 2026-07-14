@@ -98,9 +98,16 @@ void TattuCan::Run()
 
 		while (receive(&received_frame) > 0) {
 
+			if (received_frame.payload_size == 0) {
+				break;
+			}
+
 			size_t payload_size = received_frame.payload_size - 1;
-			// TODO: add check to prevent buffer overflow from a corrupt 'payload_size' value
-			// TODO: AND look for TAIL_BYTE_START_OF_TRANSFER to indicate end of transfer. Untested...
+
+			if (offset + payload_size > sizeof(tattu_message)) {
+				break;
+			}
+
 			memcpy(((char *)&tattu_message) + offset, received_frame.payload, payload_size);
 			offset += payload_size;
 		}

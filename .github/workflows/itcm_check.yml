@@ -22,9 +22,9 @@ concurrency:
 jobs:
   check_itcm:
     name: Checking ${{ matrix.target }}
-    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     strategy:
       fail-fast: false
       matrix:
@@ -46,13 +46,18 @@ jobs:
               boards/nxp/mr-tropic/nuttx-config/scripts/itcm_functions_includes.ld
               boards/nxp/mr-tropic/nuttx-config/scripts/itcm_static_functions.ld
     steps:
-      - uses: actions/checkout@v4
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
         with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Git ownership workaround
+          fetch-depth: 1
+      - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-itcm-${{ matrix.target }}
+          max-size: 200M
 
       - name: Build Target
         run: make ${{ matrix.target }}
@@ -65,3 +70,8 @@ jobs:
 
       - name: Execute the itcm-check
         run: python3 Tools/itcm_check.py --elf-file built.elf --script-files ${{ matrix.scripts }}
+
+      - uses: ./.github/actions/save-ccache
+        if: always()
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}

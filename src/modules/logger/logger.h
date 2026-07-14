@@ -149,7 +149,7 @@ public:
 
 	void print_statistics(LogType type);
 
-	void set_arm_override(bool override) { _manually_logging_override = override; }
+	void set_arm_override(bool override) { _manually_logging_override.store(override); }
 
 	void trigger_watchdog_now()
 	{
@@ -350,7 +350,7 @@ private:
 	LogFileName					_file_name[(int)LogType::Count];
 
 	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
-	bool						_manually_logging_override{false};
+	px4::atomic_bool				_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
@@ -387,6 +387,8 @@ private:
 	hrt_abstime					_logger_status_last {0};
 	int						_lockstep_component{-1};
 
+	size_t						_max_log_file_size {0}; ///< max log file size in bytes (0 = unlimited)
+
 	uint32_t					_message_gaps{0};
 
 	timer_callback_data_s				_timer_callback_data{};
@@ -399,6 +401,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
+		(ParamInt<px4::params::SDLOG_MAX_SIZE>) _param_sdlog_max_size,
+		(ParamInt<px4::params::SDLOG_ROTATE>) _param_sdlog_rotate,
 		(ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
 		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
 		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,

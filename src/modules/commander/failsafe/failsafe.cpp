@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,12 +40,24 @@
 
 using namespace time_literals;
 
+static bool manualControlFallbackAction(FailsafeBase::Action action)
+{
+	return action == FailsafeBase::Action::FallbackPosCtrl
+	       || action == FailsafeBase::Action::FallbackAltCtrl
+	       || action == FailsafeBase::Action::FallbackStab;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 {
 	ActionOptions options{};
 
 	switch (gcs_connection_loss_failsafe_mode(param_value)) {
 	case gcs_connection_loss_failsafe_mode::Disabled:
+
+	// No failsafe action: for NAV_RCL_ACT this is handled by Commander switching to Hold as a regular
+	// mode change (see Commander::manualControlLossModeSwitch()).
+	case gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe:
+	default:
 		options.action = Action::None;
 		break;
 
@@ -74,10 +86,6 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Disarm;
 		break;
-
-	default:
-		options.action = Action::None;
-		break;
 	}
 
 	return options;
@@ -93,6 +101,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 		break;
 
 	case geofence_violation_action::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -117,42 +126,11 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
-
-	default:
-		options.action = Action::Warn;
-		break;
 	}
 
 	return options;
 }
 
-FailsafeBase::ActionOptions Failsafe::fromImbalancedPropActParam(int param_value)
-{
-	ActionOptions options{};
-
-	switch (imbalanced_propeller_failsafe_mode(param_value)) {
-	case imbalanced_propeller_failsafe_mode::Disabled:
-	default:
-		options.action = Action::None;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Warning:
-		options.action = Action::Warn;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Return:
-		options.action = Action::RTL;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-
-	case imbalanced_propeller_failsafe_mode::Land:
-		options.action = Action::Land;
-		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
-		break;
-	}
-
-	return options;
-}
 
 FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_value)
 {
@@ -192,8 +170,8 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 	ActionOptions options{};
 
 	switch (battery_warning) {
-	default:
 	case battery_status_s::WARNING_NONE:
+	default:
 		options.action = Action::None;
 		break;
 
@@ -336,6 +314,7 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 		break;
 
 	case command_after_high_wind_failsafe::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -360,10 +339,6 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
-
-	default:
-		options.action = Action::Warn;
-		break;
 	}
 
 	return options;
@@ -380,6 +355,7 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 		break;
 
 	case command_after_pos_low_failsafe::Warning:
+	default:
 		options.action = Action::Warn;
 		break;
 
@@ -403,9 +379,64 @@ FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::WhenConditionClears;
 		break;
+	}
 
+	return options;
+}
+
+FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (gps_redundancy_failsafe_mode(param_value)) {
+	case gps_redundancy_failsafe_mode::Warning:
 	default:
 		options.action = Action::Warn;
+		break;
+
+	case gps_redundancy_failsafe_mode::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case gps_redundancy_failsafe_mode::Land_mode:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case gps_redundancy_failsafe_mode::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+	}
+
+	return options;
+}
+
+FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (parachute_unhealthy_failsafe_mode(param_value)) {
+	case parachute_unhealthy_failsafe_mode::Disabled:
+	default:
+		options.action = Action::None;
+		break;
+
+	case parachute_unhealthy_failsafe_mode::Warning:
+		options.action = Action::Warn;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	case parachute_unhealthy_failsafe_mode::Return:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case parachute_unhealthy_failsafe_mode::Land:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 	}
 
@@ -442,6 +473,38 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromOdidFailActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (open_drone_id_failsafe_mode(param_value)) {
+	case open_drone_id_failsafe_mode::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case open_drone_id_failsafe_mode::Land_mode:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case open_drone_id_failsafe_mode::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+
+	case open_drone_id_failsafe_mode::None:
+	case open_drone_id_failsafe_mode::Warning:
+	case open_drone_id_failsafe_mode::Error:
+	default:
+		options.action = Action::None;
+		break;
+	}
+
+	return options;
+}
+
 bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter)
 {
 	switch (user_intended_mode) {
@@ -457,6 +520,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
 		return exception_mask_parameter & (int)LinkLossExceptionBits::AutoModes;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -480,8 +544,7 @@ bool Failsafe::isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_m
 	}
 }
 
-void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
-				 const failsafe_flags_s &status_flags)
+void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state, const failsafe_flags_s &status_flags)
 {
 	updateArmingState(time_us, state.armed, status_flags);
 
@@ -510,7 +573,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					   || state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 
 	const bool dll_loss_ignored = isFailsafeIgnored(state.user_intended_mode, _param_com_dll_except.get())
-				      || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land;
+				      || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land || !state.armed;
 
 	if (_param_nav_dll_act.get() != int32_t(gcs_connection_loss_failsafe_mode::Disabled) && !dll_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, gcs_connection_lost, fromNavDllOrRclActParam(_param_nav_dll_act.get()).causedBy(Cause::GCSConnectionLoss));
@@ -565,9 +628,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
 		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
 
-	if ((_armed_time != 0)
-	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
-	   ) {
+	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
+
+	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {
 		CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else {
@@ -575,7 +638,12 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// Parachute system health failsafe
-	CHECK_FAILSAFE(status_flags, parachute_unhealthy, Action::RTL);
+	CHECK_FAILSAFE(status_flags, parachute_unhealthy, ActionOptions(fromParachuteActParam(_param_com_parachute.get())));
+
+	// Remote ID (Open Drone ID) loss failsafe
+	if (state.armed && _param_com_arm_odid.get() >= int32_t(open_drone_id_failsafe_mode::Return_mode)) {
+		CHECK_FAILSAFE(status_flags, remote_id_unhealthy, fromOdidFailActParam(_param_com_arm_odid.get()));
+	}
 
 	// Battery low failsafe
 	// If battery was low and arming was allowed through COM_ARM_BAT_MIN, don't failsafe immediately for the current low battery warning state
@@ -607,9 +675,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 
 	// Handle fails during spoolup just after arming
-	if ((_armed_time != 0)
-	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
-	   ) {
+	if ((_armed_time != 0) && (time_us < _armed_time + spoolup)) {
 		_last_state_fd_esc_arming = checkFailsafe(_caller_id_fd_esc_arming, _last_state_fd_esc_arming,
 					    status_flags.fd_esc_arming_failure,
 					    ActionOptions(Action::Disarm).cannotBeDeferred());
@@ -619,21 +685,22 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// Handle fails during the early takeoff phase
-	if ((_armed_time != 0)
-	    && (time_us < _armed_time
-		+ static_cast<hrt_abstime>((_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s))
-	   ) {
+	if ((_armed_time != 0) && (time_us < _armed_time + spoolup + 3_s)) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else if (!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Terminate).cannotBeDeferred());
 
 	} else {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Warn);
+		CHECK_FAILSAFE(status_flags, fd_alt_loss, Action::Warn);
 	}
 
-	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, fromImbalancedPropActParam(_param_com_imb_prop_act.get()));
+	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
 	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
+	CHECK_FAILSAFE(status_flags, gnss_lost, fromGnssLossActParam(_param_com_gnssloss_act.get()));
 
 
 
@@ -659,8 +726,7 @@ void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const f
 	_was_armed = armed;
 }
 
-FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags,
-		uint8_t user_intended_mode) const
+FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const
 {
 	Action action = Action::None;
 
@@ -673,14 +739,6 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 			return action;
 		}
 
-		if (action == Action::FallbackPosCtrl || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
-			// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
-			if (status_flags.manual_control_signal_lost) {
-				ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
-				action = rc_loss_action.action;
-			}
-
-		}
 	}
 
 	// PosCtrl/PositionSlow -> AltCtrl
@@ -698,6 +756,10 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 	}
 
+	if (status_flags.manual_control_signal_lost && manualControlFallbackAction(action)) {
+		action = manualControlLossFallbackAction();
+	}
+
 	// Last, check can_run for intended mode
 	if (!modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::RTL;
@@ -707,13 +769,14 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	return action;
 }
 
-uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action,
-		uint8_t user_intended_mode) const
+uint8_t Failsafe::modifyUserIntendedMode(Action previous_action, Action current_action, uint8_t user_intended_mode) const
 {
-	// If we switch from a failsafe back into orbit, switch to loiter instead
-	if ((int)previous_action > (int)Action::Warn
-	    && modeFromAction(current_action, user_intended_mode) == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		PX4_DEBUG("Failsafe cleared, switching from ORBIT to LOITER");
+	// When a failsafe engages, immediately downgrade Orbit to Loiter so that
+	// if the failsafe later clears without a new explicit mode command the vehicle holds position.
+	if ((int)previous_action <= (int)Action::Warn
+	    && (int)current_action > (int)Action::Warn
+	    && user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		PX4_DEBUG("Failsafe engaged, downgrading ORBIT to LOITER");
 		return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 	}
 

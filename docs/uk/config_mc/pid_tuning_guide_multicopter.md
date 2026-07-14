@@ -65,7 +65,7 @@ The derivative term (**D**) is on the feedback path in order to avoid an effect 
 Для додаткової інформації дивіться:
 
 - [Not all PID controllers are the same](https://www.controleng.com/not-all-pid-controllers-are-the-same/) (www.controleng.com)
-- [PID controller > Standard versus parallel (ideal) PID form](https://en.wikipedia.org/wiki/PID_controller#Standard_versus_parallel_\(ideal\)_form) (Wikipedia)
+- [PID controller > Standard versus parallel (ideal) PID form](https://en.wikipedia.org/wiki/PID_controller#Standard_versus_parallel_(ideal)_form) (Wikipedia)
 
 :::
 
@@ -240,7 +240,7 @@ _normalized_value = ( raw_value - min (raw_value) ) / ( max ( raw_value ) - min 
 
 Після того, як у вас є діаграма розкиду нормалізованих значень, ви можете спробувати зробити так, щоб крива відповідала шляхом побудови рівняння
 
-_rel_thrust = ( `THR_MDL_FAC` ) _ rel_signal^2 + ( 1 - `THR_MDL_FAC` ) \* rel_signal\*
+_rel_thrust = ( `THR_MDL_FAC` ) _ re&#x6C;_&#x73;ignal^2 + ( 1 - `THR_MDL_FAC` ) \* re&#x6C;_&#x73;ignal\*
 
 на лінійному діапазоні нормалізованих значень команд двигуна від 0 до 1.
 Note that this is the equation that is used in the firmware to map thrust and motor command, as shown in the [THR_MDL_FAC](../advanced_config/parameter_reference.md#THR_MDL_FAC) parameter reference.

@@ -21,15 +21,21 @@ Documented changes since the stable release are captured in the evolving [releas
 
 </div>
 
+## Try PX4
+
+No hardware needed. Run PX4 in simulation with a single command using [Docker or a .deb package](simulation/px4_simulation_quickstart.md). Connect [QGroundControl](https://qgroundcontrol.com), [MAVSDK](https://mavsdk.mavlink.io/), or [ROS 2](ros2/index.md) and start flying immediately.
+
 ## For Developers
 
-:::tip
-Building on PX4 or extending the platform? Start here: [Development Guide](development/development.md). Set up your [dev environment](dev_setup/config_initial.md), [build from source](dev_setup/building_px4.md), run [SITL simulation](simulation/index.md), or integrate via [ROS 2](ros2/index.md) and [MAVSDK](https://mavsdk.mavlink.io/).
-:::
+Want to modify PX4 or build from source? Start with the [Development Guide](development/development.md): set up your [dev environment](dev_setup/dev_env.md), [build the code](dev_setup/building_px4.md), and run [SITL simulation](simulation/index.md).
 
 ## Початок роботи
 
 Start with [Basic Concepts](getting_started/px4_basic_concepts.md) for an overview of the flight stack, flight modes, safety features, and supported hardware.
+
+## Developer Kits
+
+The fastest way to get flying hardware for PX4 development. [Official PX4 Developer Kits](dev_kits/index.md) ship with the latest stable PX4 pre-installed on current Pixhawk-standard hardware, need no build skills, and are certified by the PX4 team.
 
 ## Build a Vehicle
 
@@ -89,7 +95,7 @@ The calendar default timezone is Central European Time (CET).
 
 <img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_ icon made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
-<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.magnific.com/" title="Magnific">Magnific (formerly Freepik)</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
 ## Управління
 

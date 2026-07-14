@@ -60,8 +60,7 @@ PWMSim::~PWMSim()
 	perf_free(_interval_perf);
 }
 
-bool PWMSim::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			   unsigned num_control_groups_updated)
+bool PWMSim::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Only publish once we receive actuator_controls (important for lock-step to work correctly)
 	if (num_control_groups_updated > 0) {
@@ -71,7 +70,7 @@ bool PWMSim::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs
 		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
 
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] != PWM_SIM_DISARMED_MAGIC) {
+			if (fabsf(outputs[i] - PWM_SIM_DISARMED_MAGIC) > FLT_EPSILON) {
 
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);

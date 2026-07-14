@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name           | Type     | Unit [Frame] | Range/Enum | Description                                   |
-| -------------- | -------- | ------------ | ---------- | --------------------------------------------- |
-| timestamp      | `uint64` |              |            | time since system start (microseconds)        |
-| request_on_off | `uint8`  |              |            | request to disable/enable the distance sensor |
+| Name                                          | Type     | Unit [Frame] | Range/Enum | Description                                   |
+| --------------------------------------------- | -------- | ------------ | ---------- | --------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp           | `uint64` |              |            | time since system start (microseconds)        |
+| <a id="fld_request_on_off"></a>request_on_off | `uint8`  |              |            | request to disable/enable the distance sensor |
 
 ## Constants
 

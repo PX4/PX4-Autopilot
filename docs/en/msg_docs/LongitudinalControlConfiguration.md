@@ -13,18 +13,18 @@ and configure the resultant setpoints.
 
 ## Fields
 
-| Name                          | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                       |
-| ----------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                     | `uint64`  | us           |            | Time since system start                                                                                                                           |
-| pitch_min                     | `float32` | rad          | [-pi : pi] | Defaults to FW_P_LIM_MIN if NAN.                                                                                                                  |
-| pitch_max                     | `float32` | rad          | [-pi : pi] | Defaults to FW_P_LIM_MAX if NAN.                                                                                                                  |
-| throttle_min                  | `float32` | norm         | [0 : 1]    | Defaults to FW_THR_MIN if NAN.                                                                                                                    |
-| throttle_max                  | `float32` | norm         | [0 : 1]    | Defaults to FW_THR_MAX if NAN.                                                                                                                    |
-| climb_rate_target             | `float32` | m/s          |            | Target climbrate to change altitude. Defaults to FW_T_CLIMB_MAX if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint. |
-| sink_rate_target              | `float32` | m/s          |            | Target sinkrate to change altitude. Defaults to FW_T_SINK_MAX if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint.   |
-| speed_weight                  | `float32` |              | [0 : 2]    | 0=pitch controls altitude only, 2=pitch controls airspeed only                                                                                    |
-| enforce_low_height_condition  | `bool`    |              |            | If true, the altitude controller is configured with an alternative timeconstant for tighter altitude tracking                                     |
-| disable_underspeed_protection | `bool`    |              |            | If true, underspeed handling is disabled in the altitude controller                                                                               |
+| Name                                                                        | Type      | Unit [Frame] | Range/Enum | Description                                                                                                                                       |
+| --------------------------------------------------------------------------- | --------- | ------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                         | `uint64`  | us           |            | Time since system start                                                                                                                           |
+| <a id="fld_pitch_min"></a>pitch_min                                         | `float32` | rad          | [-pi : pi] | Defaults to FW_P_LIM_MIN if NAN.                                                                                                                  |
+| <a id="fld_pitch_max"></a>pitch_max                                         | `float32` | rad          | [-pi : pi] | Defaults to FW_P_LIM_MAX if NAN.                                                                                                                  |
+| <a id="fld_throttle_min"></a>throttle_min                                   | `float32` | norm         | [0 : 1]    | Defaults to FW_THR_MIN if NAN.                                                                                                                    |
+| <a id="fld_throttle_max"></a>throttle_max                                   | `float32` | norm         | [0 : 1]    | Defaults to FW_THR_MAX if NAN.                                                                                                                    |
+| <a id="fld_climb_rate_target"></a>climb_rate_target                         | `float32` | m/s          |            | Target climbrate to change altitude. Defaults to FW_T_CLIMB_MAX if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint. |
+| <a id="fld_sink_rate_target"></a>sink_rate_target                           | `float32` | m/s          |            | Target sinkrate to change altitude. Defaults to FW_T_SINK_MAX if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint.   |
+| <a id="fld_speed_weight"></a>speed_weight                                   | `float32` |              | [0 : 2]    | 0=pitch controls altitude only, 2=pitch controls airspeed only                                                                                    |
+| <a id="fld_enforce_low_height_condition"></a>enforce_low_height_condition   | `bool`    |              |            | If true, the altitude controller is configured with an alternative timeconstant for tighter altitude tracking                                     |
+| <a id="fld_disable_underspeed_protection"></a>disable_underspeed_protection | `bool`    |              |            | If true, underspeed handling is disabled in the altitude controller                                                                               |
 
 ## Constants
 

@@ -75,7 +75,6 @@
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
-#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -258,7 +257,7 @@ private:
 	float _pitch{0.0f}; // [rad] current pitch angle from attitude
 	float _throttle{0.0f}; // [0-1] last set throttle
 
-	float _body_acceleration_x{0.f};
+	float _body_acceleration_norm{0.f};
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
@@ -386,6 +385,7 @@ private:
 	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
+	bool _go_direct_to_destination{false};
 
 	// CLosest point on path to track
 	matrix::Vector2f _closest_point_on_path;
@@ -418,7 +418,7 @@ private:
 	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				    const position_setpoint_s &pos_sp_curr);
 
-	void publishFigureEightStatus(const position_setpoint_s pos_sp);
+	void publishFigureEightStatus(const position_setpoint_s &pos_sp);
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 	// Update our local parameter cache.
@@ -672,7 +672,7 @@ private:
 	 */
 	void set_control_mode_current(const hrt_abstime &now);
 
-	void publishOrbitStatus(const position_setpoint_s pos_sp);
+	void publishOrbitStatus(const position_setpoint_s &pos_sp);
 
 	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
 
@@ -846,6 +846,8 @@ private:
 		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
 		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
 		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
+
+		(ParamFloat<px4::params::FW_WP_RST_DIST>) _param_fw_wp_rst_dist,
 
 		(ParamFloat<px4::params::FW_LND_AIRSPD>) _param_fw_lnd_airspd,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,

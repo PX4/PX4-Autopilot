@@ -33,7 +33,7 @@ The logging system is configured by default to collect sensible logs for [flight
 Logging may further be configured using the [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parameters.
 변경할 가능성이 높은 매개변수가 아래에 설명되어 있습니다.
 
-| 매개변수                                                                                          | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Parameter                                                                                     | 설명                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SDLOG_MODE](../advanced_config/parameter_reference.md#SDLOG_MODE)       | Logging Mode. Defines when logging starts and stops.<br />- `0`: Log when armed until disarm (default).<br />- `1`: Log from boot until disarm.<br />- `2`: Log from boot until shutdown.<br />- `3`: Log based on the [AUX1 RC channel](../advanced_config/parameter_reference.md#RC_MAP_AUX1).<br />- `4`: Log from first armed until shutdown. |
 | [SDLOG_BACKEND](../advanced_config/parameter_reference.md#SDLOG_BACKEND) | Logging Backend (bitmask). Setting a bit enables the corresponding backend. If no backend is selected, the logger is disabled.<br />- bit `0`: SD card logging.</br >- bit `1`: Mavlink logging.                                                                                                                                                                                                                                  |
@@ -52,21 +52,28 @@ This allows, for example, logging of your own uORB topics.
 
 ### 진단SD 카드 설정
 
-Separately, the list of logged topics can also be customized with a file on the SD card.
-Create a file `etc/logging/logger_topics.txt` on the card with a list of topics (For SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`):
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+
+Each topic to be logged is listed on a separate line, with the following format:
 
 ```plain
 <topic_name> <interval> <instance>
 ```
 
-The `<interval>` is optional, and if specified, defines the minimum interval in ms between two logged messages of this topic.
-지정하지 않으면, 주제가 최대 속도로 기록됩니다.
+여기서:
 
-The `<instance>` is optional, and if specified, defines the instance to log.
-지정하지 않으면, 토픽의 모든 인스턴스를 로깅합니다.
-To specify `<instance>`, `<interval>` must be specified. 0 값을 설정하면 최대 기록율로 지정할 수 있습니다.
+- `<interval>` (optional).
+  Defines the minimum interval in ms between two logged messages of this topic.
+  If not specified or `0`, the topic is logged at full rate.
+- `<instance>` (optional).
+  Defines the instance to log.
+  NOte that `<interval>` must be specified in order to set `instance`
 
-이 파일의 주제는 기본적으로 기록된 모든 주제를 대체합니다.
+  지정하지 않으면, 토픽의 모든 인스턴스를 로깅합니다.
+
+The topics in this file will be added on top of the already selected topics.
+To just log the topics defined in this file, set [SDLOG_PROFILE=0](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
+If a topic is already included, it will update it's rate.
 
 예 :
 
@@ -77,11 +84,36 @@ sensor_gyro 200
 sensor_mag 200 1
 ```
 
-이 구성은 최대 속도에서 sensor_accel 0, 10Hz에서 sensor_accel 1, 5Hz에서 모든 sensor_gyro 인스턴스 및 5Hz에서 sensor_mag 1을 기록합니다.
+This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz, all `sensor_gyro` instances at 5Hz and `sensor_mag` 1 at 5Hz.
 
 ## 스크립트
 
 There are several scripts to analyze and convert logging files in the [pyulog](https://github.com/PX4/pyulog) repository.
+
+## Log Cleanup
+
+PX4 automatically manages log storage by rotating log files during writing and cleaning up old logs when starting a new log.
+Rotation is **on by default**: when the current file reaches [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE), the logger closes it and opens a new one, and old `.ulg` files are deleted (oldest first) to keep free space above the threshold set by [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE).
+
+Three parameters control how much space logs may use:
+
+- [SDLOG_ROTATE](../advanced_config/parameter_reference.md#SDLOG_ROTATE) is the maximum disk usage percentage (default 90).
+  Cleanup prior to logging (see below) ensures at least `(100 - SDLOG_ROTATE)%` of the disk stays free at all times, **even while writing a new log file**.
+  Setting it to `0` disables space-based cleanup entirely; setting it to `100` lets logs fill the disk completely.
+- [SDLOG_MAX_SIZE](../advanced_config/parameter_reference.md#SDLOG_MAX_SIZE) is the maximum size of a single log file in MB
+  (default 1024). It also reserves headroom so that a full new file always fits after cleanup.
+- [SDLOG_DIRS_MAX](../advanced_config/parameter_reference.md#SDLOG_DIRS_MAX) optionally caps the number of log directories kept (default 0, disabled).
+  This runs on top of the space-based cleanup and is mainly useful for capping log usage by count independent of available disk size (e.g. in SITL, where it defaults to `7`).
+
+At log start, the cleanup threshold is `((100 - SDLOG_ROTATE)% of disk) + SDLOG_MAX_SIZE`.
+The oldest logs are deleted until the free space meets this threshold.
+For example, on an 8 GB card with defaults, cleanup keeps at least `820 + 1024 = ~1.8 GB` free at log start,
+so ~6 GB is usable for logs and disk usage never exceeds 90% during writing.
+Small flash targets override `SDLOG_MAX_SIZE` to a smaller value to keep more logs within the available space.
+
+PX4 stores logs in directories named with one of two formats, depending on whether the system has valid time: date directories (such as `2024-01-15` or `2024-01-16`) when it does, and session directories (`sess001`) when it doesn't.
+The cleanup algorithm prioritises deleting logs from whichever format is not currently in use.
+This ensures that stale logs from a different time mode are cleaned up before current logs.
 
 ## File size limitations
 

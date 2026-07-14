@@ -1,0 +1,10 @@
+module_name: pmw3901
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_PMW3901:
+      description:
+        short: PMW3901 Optical Flow
+      type: boolean
+      default: 0
+      reboot_required: true

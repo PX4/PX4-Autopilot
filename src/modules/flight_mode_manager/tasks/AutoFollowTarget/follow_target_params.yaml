@@ -1,0 +1,74 @@
+module_name: AutoFollowTarget
+parameters:
+- group: Follow target
+  definitions:
+    FLW_TGT_RS:
+      description:
+        short: Responsiveness to target movement in Target Estimator
+        long: lower values increase the responsiveness to changing position, but also
+          ignore less noise
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 1.0
+      decimal: 2
+    FLW_TGT_HT:
+      description:
+        short: Follow target height
+        long: Following height above the target
+      type: float
+      default: 8.0
+      unit: m
+      min: 8.0
+    FLW_TGT_DST:
+      description:
+        short: Distance to follow target from
+        long: The distance in meters to follow the target at
+      type: float
+      default: 8.0
+      unit: m
+      min: 1.0
+    FLW_TGT_FA:
+      description:
+        short: Follow Angle setting in degrees
+        long: |-
+          Angle to follow the target from. 0.0 Equals straight in front of the target's
+          course (direction of motion) and the angle increases in clockwise direction,
+          meaning Right-side would be 90.0 degrees while Left-side is -90.0 degrees
+
+          Note: When the user force sets the angle out of the min/max range, it will be
+          wrapped (e.g. 480 -> 120) in the range to gracefully handle the out of range.
+      type: float
+      default: 180.0
+      min: -180.0
+      max: 180.0
+    FLW_TGT_ALT_M:
+      description:
+        short: Altitude control mode
+        long: |-
+          Maintain altitude or track target's altitude. When maintaining the altitude,
+          the drone can crash into terrain when the target moves uphill. When tracking
+          the target's altitude, the follow altitude FLW_TGT_HT should be high enough
+          to prevent terrain collisions due to GPS inaccuracies of the target.
+      type: enum
+      values:
+        0: '2D Tracking: Maintain constant altitude relative to home and track XY
+          position only'
+        1: '2D + Terrain: Maintain constant altitude relative to terrain below and
+          track XY position'
+        2: '3D Tracking: Track target''s altitude (be aware that GPS altitude bias
+          usually makes this useless)'
+      default: 0
+    FLW_TGT_MAX_VEL:
+      description:
+        short: Max tangential velocity for follow orbit trajectory
+        long: |-
+          Maximum tangential velocity setting for generating the follow orbit trajectory
+
+          This is the maximum tangential velocity the drone will circle around the target whenever
+          an orbit angle setpoint changes. Higher value means more aggressive follow behavior.
+      type: float
+      default: 5.0
+      min: 0.0
+      max: 20.0
+      decimal: 1

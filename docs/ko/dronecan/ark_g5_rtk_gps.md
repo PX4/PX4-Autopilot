@@ -29,8 +29,8 @@ Order this module from:
     - Advanced GNSS+ algorithms
     - 20Hz update rate
   - [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
-  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
-  - [Invensense ICM-42688-P 6-Axis IMU](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
+  - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
+  - [Invensense ICM-42688-P 6-Axis IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
 - STM32F412VGH6 MCU
 - Safety Button
 - 부저
@@ -97,7 +97,7 @@ There is also CAN built-in bus termination via [CANNODE_TERM](../advanced_config
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
 
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
-- The parameters [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) can be set to account for the offset of the ARK G5 RTK GPS from the vehicle's centre of gravity.
+- The parameters [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ) can be set to account for the offset of the ARK G5 RTK GPS from the vehicle's centre of gravity.
 
 ## LED 신호의 의미
 

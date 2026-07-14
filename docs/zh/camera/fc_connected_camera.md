@@ -1,4 +1,4 @@
-# Cameras Connected to Flight Controller Outputs
+# 连接飞控输出的相机
 
 This topic explains how to use PX4 with a [camera](../camera/index.md) that is attached to flight controller outputs.
 
@@ -139,7 +139,7 @@ At time of writing triggering only works on FMU pins:
 
 ### 其他参数
 
-| 参数                                                                                                                 | 描述                                                                                                                                                                                                                                                                      |
+| Parameter                                                                                                          | 描述                                                                                                                                                                                                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [TRIG_POLARITY](../advanced_config/parameter_reference.md#TRIG_POLARITY)                      | Relevant only while using the GPIO interface. Sets the polarity of the trigger pin. Active high means that the pin is pulled low normally and pulled high on a trigger event. Active low is vice-versa. |
 | [TRIG_INTERVAL](../advanced_config/parameter_reference.md#TRIG_INTERVAL)                      | Defines the time between two consecutive trigger events in milliseconds.                                                                                                                                                                                |

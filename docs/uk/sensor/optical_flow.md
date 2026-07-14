@@ -34,6 +34,12 @@ The information is written to the corresponding uORB topics: [DistanceSensor](..
 | Справа                   | - X                |
 | Зліва                    | + X                |
 
+:::info
+The integrated flow values are **angular measurements** (radians) representing rotation of the image about the sensor's body axes using the right-hand convention.
+They are _not_ translational displacements along those axes, which is why forward vehicle movement (along X) appears in the Y flow axis, and rightward movement (along Y) appears in the X flow axis.
+Specifically, forward movement causes the ground image to rotate about the Y axis (+ Y), while rightward movement causes a negative rotation about the X axis (- X).
+:::
+
 Дані сенсора від пристрою оптичного потоку об'єднуються з іншими джерелами даних швидкості.
 The approach used for fusing sensor data and any offsets from the center of the vehicle must be configured in the [estimator](#estimators).
 
@@ -95,7 +101,7 @@ For optical flow fusion using EKF2, set [EKF2_OF_CTRL](../advanced_config/parame
 
 Якщо ваш оптичний датчик потоку зміщений від центру транспортного засобу, ви можете встановити це за допомогою наступних параметрів.
 
-| Параметр                                                                                                                                                          | Опис                                                                                                                                  |
+| Parameter                                                                                                                                                         | Опис                                                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="EKF2_OF_POS_X"></a>[EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X) | Позиція X оптичного потоку фокусної точки в системі тіла (за замовчуванням 0.0 м). |
 | <a id="EKF2_OF_POS_Y"></a>[EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) | Позиція Y оптичного потоку фокусної точки в системі тіла (за замовчуванням 0.0 м). |

@@ -72,6 +72,10 @@ MulticopterNeuralNetworkControl::MulticopterNeuralNetworkControl() :
 
 MulticopterNeuralNetworkControl::~MulticopterNeuralNetworkControl()
 {
+	delete _interpreter;
+	_interpreter = nullptr;
+	_input_tensor = nullptr;
+	_output_tensor = nullptr;
 	perf_free(_loop_perf);
 }
 
@@ -88,6 +92,14 @@ bool MulticopterNeuralNetworkControl::init()
 
 int MulticopterNeuralNetworkControl::InitializeNetwork()
 {
+	if (_interpreter != nullptr) {
+		delete _interpreter;
+		_interpreter = nullptr;
+	}
+
+	_input_tensor = nullptr;
+	_output_tensor = nullptr;
+
 	// Initialize the neural network
 	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
@@ -103,11 +115,18 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	static uint8_t tensor_arena[kTensorArenaSize];
 	_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
 
+	if (_interpreter == nullptr) {
+		PX4_ERR("interpreter alloc failed");
+		return -1;
+	}
+
 	// Allocate memory for the model's tensors
 	TfLiteStatus allocate_status = _interpreter->AllocateTensors();
 
 	if (allocate_status != kTfLiteOk) {
 		PX4_ERR("AllocateTensors() failed");
+		delete _interpreter;
+		_interpreter = nullptr;
 		return -1;
 	}
 
@@ -115,6 +134,8 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 
 	if (_input_tensor == nullptr) {
 		PX4_ERR("Input tensor is null");
+		delete _interpreter;
+		_interpreter = nullptr;
 		return -1;
 	}
 
@@ -138,7 +159,7 @@ void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode()
 	register_ext_component_request.timestamp = hrt_absolute_time();
 	strncpy(register_ext_component_request.name, "Neural Control", sizeof(register_ext_component_request.name) - 1);
 	register_ext_component_request.request_id = _mode_request_id;
-	register_ext_component_request.px4_ros2_api_version = 1;
+	register_ext_component_request.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 	register_ext_component_request.register_arming_check = true;
 	register_ext_component_request.register_mode = true;
 	_register_ext_component_request_pub.publish(register_ext_component_request);
@@ -160,17 +181,12 @@ void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_che
 void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id)
 {
 	// Configure the neural flight mode with the commander
-	vehicle_control_mode_s config_control_setpoints{};
-	config_control_setpoints.timestamp = hrt_absolute_time();
-	config_control_setpoints.source_id = mode_id;
-	config_control_setpoints.flag_multicopter_position_control_enabled = false;
-	config_control_setpoints.flag_control_manual_enabled = _param_manual_control.get();
-	config_control_setpoints.flag_control_offboard_enabled = false;
-	config_control_setpoints.flag_control_position_enabled = false;
-	config_control_setpoints.flag_control_climb_rate_enabled = true;
-	config_control_setpoints.flag_control_allocation_enabled = false;
-	config_control_setpoints.flag_control_termination_enabled = true;
-	_config_control_setpoints_pub.publish(config_control_setpoints);
+	setpoint_config_s setpoint_config{};
+	setpoint_config.timestamp = hrt_absolute_time();
+	setpoint_config.source_id = mode_id;
+	setpoint_config.type = setpoint_config_s::TYPE_DIRECT_ACTUATORS;
+	setpoint_config.should_apply = true;
+	_setpoint_config_pub.publish(setpoint_config);
 }
 
 
@@ -207,7 +223,6 @@ void MulticopterNeuralNetworkControl::CheckModeRegistration()
 			_arming_check_id = register_ext_component_reply.arming_check_id;
 			_mode_id = register_ext_component_reply.mode_id;
 			PX4_INFO("NeuralControl mode registration successful, arming_check_id: %d, mode_id: %d", _arming_check_id, _mode_id);
-			ConfigureNeuralFlightMode(_mode_id);
 			break;
 		}
 	}
@@ -475,7 +490,12 @@ void MulticopterNeuralNetworkControl::Run()
 
 	if (_vehicle_status_sub.updated()) {
 		_vehicle_status_sub.copy(&vehicle_status);
+		const bool prev_use_neural = _use_neural;
 		_use_neural = vehicle_status.nav_state == _mode_id;
+
+		if (!prev_use_neural && _use_neural) {
+			ConfigureNeuralFlightMode(_mode_id);
+		}
 	}
 
 	if (_parameter_update_sub.updated()) {

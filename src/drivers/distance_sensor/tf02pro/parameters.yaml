@@ -1,0 +1,10 @@
+module_name: tf02pro
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_TF02PRO:
+      description:
+        short: TF02 Pro Distance Sensor (i2c)
+      type: boolean
+      default: 0
+      reboot_required: true

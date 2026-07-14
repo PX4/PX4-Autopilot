@@ -10,10 +10,10 @@ Rover Steering setpoint.
 
 ## Fields
 
-| Name                         | Type      | Unit [Frame] | Range/Enum              | Description                                                                                                               |
-| ---------------------------- | --------- | ------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                    | `uint64`  | us           |                         | Time since system start                                                                                                   |
-| normalized_steering_setpoint | `float32` | [Body]       | [-1 (Left) : 1 (Right)] | Ackermann: Normalized steering angle, Differential/Mecanum: Normalized speed difference between the left and right wheels |
+| Name                                                                      | Type      | Unit [Frame] | Range/Enum              | Description                                                                                                               |
+| ------------------------------------------------------------------------- | --------- | ------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                       | `uint64`  | us           |                         | Time since system start                                                                                                   |
+| <a id="fld_normalized_steering_setpoint"></a>normalized_steering_setpoint | `float32` | [Body]       | [-1 (Left) : 1 (Right)] | Ackermann: Normalized steering angle, Differential/Mecanum: Normalized speed difference between the left and right wheels |
 
 ## Source Message
 

@@ -50,6 +50,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_selection.h>
@@ -59,7 +60,8 @@
 
 #include "sensor.h"
 
-class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem {
+class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
+{
 public:
 	static Descriptor desc;
 
@@ -81,7 +83,8 @@ public:
 private:
 	void        Run() override;
 	void        processData(InertialLabs::SensorsData *sensordata);
-	static void processDataProxy(void *context, InertialLabs::SensorsData *data) {
+	static void processDataProxy(void *context, InertialLabs::SensorsData *data)
+	{
 		if (!context || !data) {
 			return;
 		}
@@ -90,9 +93,11 @@ private:
 		self->processData(data);
 	}
 
+private:
+	DEFINE_PARAMETERS((ParamInt<px4::params::ILABS_MODE>)_param_ilabs_mode)
 	InertialLabs::Sensor _sensor{};
 
-	char _serialDeviceName[20]{};
+	char _serialDeviceName[20] {};
 	InertialLabs::AverageSensorsData _average_sensors_data{};
 	device::Device::DeviceId _device_id{};
 
@@ -103,7 +108,9 @@ private:
 	PX4Gyroscope     _px4_gyro{0};
 	PX4Magnetometer  _px4_mag{0};
 
-	MapProjection _pos_ref{};
+	MapProjection _ref_pos{};
+	InertialLabs::ReferencePositionData _ref_pos_data{};
+	hrt_abstime _ref_timestamp{0};
 
 	uORB::PublicationMulti<vehicle_attitude_s>        _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::PublicationMulti<vehicle_local_position_s>  _local_position_pub{ORB_ID(vehicle_local_position)};
@@ -112,21 +119,14 @@ private:
 	uORB::PublicationMulti<sensor_gps_s>              _sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<sensor_selection_s>             _sensor_selection_pub{ORB_ID(sensor_selection)};
 	uORB::Publication<estimator_status_s>             _estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::Publication<estimator_status_flags_s>       _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME ": com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": read")};
-
-	perf_counter_t _accel_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": accel publish interval")};
-	perf_counter_t _gyro_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": gyro publish interval")};
-	perf_counter_t _mag_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": mag publish interval")};
-	perf_counter_t _gnss_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": GNSS publish interval")};
-	perf_counter_t _baro_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": baro publish interval")};
-
-	perf_counter_t _attitude_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": attitude publish interval")};
-	perf_counter_t _local_position_pub_interval_perf{
-	    perf_alloc(PC_INTERVAL, MODULE_NAME ": local position publish interval")};
-	perf_counter_t _global_position_pub_interval_perf{
-	    perf_alloc(PC_INTERVAL, MODULE_NAME ": global position publish interval")};
-
-	DEFINE_PARAMETERS((ParamInt<px4::params::ILABS_MODE>)_param_ilabs_mode)
+	perf_counter_t _accel_pub_interval_perf;
+	perf_counter_t _gyro_pub_interval_perf;
+	perf_counter_t _mag_pub_interval_perf;
+	perf_counter_t _gnss_pub_interval_perf;
+	perf_counter_t _baro_pub_interval_perf;
+	perf_counter_t _attitude_pub_interval_perf;
+	perf_counter_t _local_position_pub_interval_perf;
+	perf_counter_t _global_position_pub_interval_perf;
 };

@@ -1,0 +1,69 @@
+module_name: land_detector
+parameters:
+- group: Land Detector
+  definitions:
+    LNDFW_VEL_XY_MAX:
+      description:
+        short: 'Fixed-wing land detector: Max horizontal velocity threshold'
+        long: |-
+          Maximum horizontal velocity allowed in the landed state.
+          A factor of 0.7 is applied in case of airspeed-less flying
+          (either because no sensor is present or sensor data got invalid in flight).
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 0.5
+      max: 20
+      decimal: 1
+    LNDFW_VEL_Z_MAX:
+      description:
+        short: 'Fixed-wing land detector: Max vertiacal velocity threshold'
+        long: Maximum vertical velocity allowed in the landed state.
+      type: float
+      default: 1.0
+      unit: m/s
+      min: 0.1
+      max: 20
+      decimal: 1
+    LNDFW_XYACC_MAX:
+      description:
+        short: 'Fixed-wing land detector: Max horizontal acceleration'
+        long: Maximum horizontal (x,y body axes) acceleration allowed in the landed
+          state
+      type: float
+      default: 8.0
+      unit: m/s^2
+      min: 2
+      max: 30
+      decimal: 1
+    LNDFW_AIRSPD_MAX:
+      description:
+        short: 'Fixed-wing land detector: Max airspeed'
+        long: Maximum airspeed allowed in the landed state
+      type: float
+      default: 6.0
+      unit: m/s
+      min: 2
+      max: 30
+      decimal: 1
+    LNDFW_TRIG_TIME:
+      description:
+        short: Fixed-wing land detection trigger time
+        long: Time the land conditions (speeds and acceleration) have to be satisfied
+          to detect a landing.
+      type: float
+      default: 2.0
+      unit: s
+      min: 0.1
+      decimal: 1
+      reboot_required: true
+    LNDFW_ROT_MAX:
+      description:
+        short: 'Fixed-wing land detector: max rotational speed'
+        long: |-
+          Maximum allowed norm of the angular velocity in the landed state.
+          Only used if neither airspeed nor groundspeed can be used for landing detection.
+      type: float
+      default: 0.5
+      unit: deg/s
+      decimal: 1

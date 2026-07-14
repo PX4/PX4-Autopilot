@@ -40,6 +40,8 @@ px4_add_module(
 		ADIS16507.hpp
 		adis16507_main.cpp
 		Analog_Devices_ADIS16507_registers.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
 		drivers_accelerometer
 		drivers_gyroscope

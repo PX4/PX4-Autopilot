@@ -50,8 +50,12 @@ public:
 	virtual ~PositionBiasEstimator() = default;
 
 	bool fusionActive() const { return _is_sensor_fusion_active; }
+	// Latched true the first time bias fusion activates (GNSS+EV co-fusing), and
+	// intentionally never cleared. Used on EV restart without GNSS to decide whether
+	// a previously-learned bias exists and can be reused, rather than cold-resetting.
+	bool wasFusionActive() const { return _was_fusion_active; }
 
-	void setFusionActive() { _is_sensor_fusion_active = true; }
+	void setFusionActive() { _is_sensor_fusion_active = _was_fusion_active = true;  }
 	void setFusionInactive() { _is_sensor_fusion_active = false; }
 
 	void predict(float dt)
@@ -62,7 +66,7 @@ public:
 		}
 	}
 
-	void fuseBias(Vector2f bias, Vector2f bias_var)
+	void fuseBias(const Vector2f &bias, const Vector2f &bias_var)
 	{
 		if ((_sensor_ref != _sensor) && _is_sensor_fusion_active) {
 			_bias[0].fuseBias(bias(0), bias_var(0));
@@ -111,6 +115,7 @@ private:
 	const PositionSensor &_sensor_ref;
 
 	bool _is_sensor_fusion_active{false}; // TODO: replace by const ref and remove setter when migrating _control_status.flags from union to bool
+	bool _was_fusion_active{false};
 };
 
 #endif // !EKF_POSITION_BIAS_ESTIMATOR_HPP

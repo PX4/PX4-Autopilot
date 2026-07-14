@@ -38,6 +38,9 @@ px4_add_module(
 	SRCS
 		SensorAirspeedSim.cpp
 		SensorAirspeedSim.hpp
+	MODULE_CONFIG
+		parameters.yaml
 	DEPENDS
+		failure_injection
 		px4_work_queue
 	)

@@ -10,16 +10,16 @@ Off-board control mode.
 
 ## Fields
 
-| 参数名                                                         | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
-| ----------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                   | `uint64` |                                                                  |            | time since system start (microseconds) |
-| 位置                                                          | `bool`   |                                                                  |            |                                                           |
-| 速度                                                          | `bool`   |                                                                  |            |                                                           |
-| acceleration                                                | `bool`   |                                                                  |            |                                                           |
-| attitude                                                    | `bool`   |                                                                  |            |                                                           |
-| body_rate                              | `bool`   |                                                                  |            |                                                           |
-| thrust_and_torque | `bool`   |                                                                  |            |                                                           |
-| direct_actuator                        | `bool`   |                                                                  |            |                                                           |
+| 参数名                                                                                           | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
+| --------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                           | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_position"></a>position                                                             | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_velocity"></a>velocity                                                             | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_acceleration"></a>acceleration                                                     | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_attitude"></a>attitude                                                             | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_body_rate"></a>body_rate                                      | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_thrust_and_torque"></a>thrust_and_torque | `bool`   |                                                                  |            |                                                           |
+| <a id="fld_direct_actuator"></a>direct_actuator                          | `bool`   |                                                                  |            |                                                           |
 
 ## Source Message
 

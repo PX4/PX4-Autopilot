@@ -62,8 +62,7 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+bool GZMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
 
@@ -78,10 +77,13 @@ bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsign
 
 	if (active_output_count > 0) {
 		gz::msgs::Actuators rotor_velocity_message;
-		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
-		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
+		auto *vel = rotor_velocity_message.mutable_velocity();
+		vel->Clear();
+		vel->Reserve(active_output_count);
+
+		for (unsigned i = 0; i < active_output_count; ++i) {
+			vel->Add(static_cast<double>(outputs[i]));
 		}
 
 		if (_actuators_pub.Valid()) {
@@ -115,7 +117,9 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	for (int i = 0; i < limited_escs; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
 		esc_status.esc[i].esc_rpm = actuators.velocity(i);
+		esc_status.esc[i].esc_temperature = 50.f; // arbitrary, fixed ESC temperature
 		esc_status.esc_online_flags |= 1 << i;
+		esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
 
 		// This is a race condition with the failure detector, for smaller models it always resolves before
 		// the failure detector runs, but for larger models (with more than 8 ESCs) the failure detector

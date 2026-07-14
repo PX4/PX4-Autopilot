@@ -69,7 +69,7 @@ These should identify the component as `MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY` (1
 
 将相机连接到机载计算机并将其安装到框架：
 
-| 参数                                                                                                                                                                                                                                                                                                                                                                                                                        | 外部位置估计的设置                                                                                                                                               |
+| Parameter                                                                                                                                                                                                                                                                                                                                                                                                                 | 外部位置估计的设置                                                                                                                                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL)                                                                                                                                                                                                                                                                                                          | Set _horizontal position fusion_, _vertical vision fusion_, _velocity fusion_, and _yaw fusion_ according to your desired fusion model. |
 | [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)                                                                                                                                                                                                                                                                                                          | Set to _Vision_ to use the vision as the reference sensor for altitude estimation.                                                      |
@@ -101,8 +101,8 @@ A plot of external data vs. onboard estimate (as above) can be generated using [
 
 ## Check/Verify VIO Estimate {#verify_estimate}
 
-:::info
-The [MAV_ODOM_LP](../advanced_config/parameter_reference.md#MAV_ODOM_LP) parameter mentioned below was removed in PX4 v1.14.
+:::warning
+The `MAV_ODOM_LP` parameter mentioned below was removed in PX4 v1.14.
 This section needs to be updated. <!-- https://github.com/PX4/PX4-Autopilot/pull/20501#issuecomment-1993788815 -->
 :::
 

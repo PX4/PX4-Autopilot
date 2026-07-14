@@ -41,7 +41,7 @@ The vehicle course and altitude are not maintained, and can drift due to wind.
 
 该模式受以下参数影响：
 
-| 参数                                                                                                                                                                | 描述                                                                                                                                    |
+| Parameter                                                                                                                                                         | 描述                                                                                                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_MAN_P_MAX"></a>[FW_MAN_P_MAX](../advanced_config/parameter_reference.md#FW_MAN_P_MAX)    | Max pitch for manual control in attitude stabilized mode. Default: 45 degrees.        |
 | <a id="FW_MAN_R_MAX"></a>[FW_MAN_R_MAX](../advanced_config/parameter_reference.md#FW_MAN_R_MAX)    | Max roll for manual control in attitude stabilized mode. Default: 45 degrees.         |

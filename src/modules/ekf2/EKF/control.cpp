@@ -116,6 +116,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlGpsFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	controlRangingBeaconFusion(imu_delayed);
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.update(*this, imu_delayed);
 	_control_status.flags.aux_gpos = _aux_global_position.anySourceFusing();
@@ -154,8 +158,6 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	updateTerrainValidity();
 #endif // CONFIG_EKF2_TERRAIN
 
-	controlZeroInnovationHeadingUpdate();
-
 	_zero_velocity_update.update(*this, imu_delayed);
 
 	if (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {
@@ -168,4 +170,8 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	updateDeadReckoningStatus();
+
+	const bool yaw_aiding = _control_status.flags.mag_hdg || _control_status.flags.mag_3D
+				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
+	_control_status.flags.heading_observable = isNorthEastAidingActive() || yaw_aiding;
 }

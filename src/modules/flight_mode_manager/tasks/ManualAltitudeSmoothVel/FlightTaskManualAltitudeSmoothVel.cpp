@@ -53,8 +53,8 @@ bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &la
 	// If the velocity setpoint is unknown, set to the current velocity
 	float vz_sp_last = PX4_ISFINITE(last_setpoint.velocity[2]) ? last_setpoint.velocity[2] : _velocity(2);
 
-	// No acceleration estimate available, set to zero if the setpoint is NAN
-	float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : 0.f;
+	// If accel setpoint unknown, set to the current accel
+	float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : _acceleration(2);
 
 	_smoothing.reset(az_sp_last, vz_sp_last, z_sp_last);
 
@@ -107,14 +107,19 @@ void FlightTaskManualAltitudeSmoothVel::_setOutputState()
 	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
 	_velocity_setpoint(2) = _smoothing.getCurrentVelocity();
 
-	if (!_terrain_hold) {
-		if (_terrain_hold_previous) {
-			// Reset position setpoint to current position when switching from terrain hold to non-terrain hold
+	if (_z_setpoint_from_terrain) {
+		// Parent class drove the position setpoint from terrain.
+		// Keep smoothing block synchronized to prevent divergence on transitions.
+		_smoothing.setCurrentPosition(_position_setpoint(2));
+
+	} else {
+		if (_z_setpoint_from_terrain_prev) {
+			// Transitioning off terrain-driven Z: reset smoothing to current position
 			_smoothing.setCurrentPosition(_position(2));
 		}
 
 		_position_setpoint(2) = _smoothing.getCurrentPosition();
 	}
 
-	_terrain_hold_previous = _terrain_hold;
+	_z_setpoint_from_terrain_prev = _z_setpoint_from_terrain;
 }

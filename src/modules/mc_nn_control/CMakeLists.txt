@@ -44,6 +44,8 @@ px4_add_module(
 		mc_nn_control.hpp
 		control_net.cpp
 		control_net.hpp
+	MODULE_CONFIG
+		mc_nn_control_params.yaml
 	DEPENDS
 		tensorflow_lite_micro
 		px4_work_queue

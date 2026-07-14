@@ -10,26 +10,27 @@ Request to register an external component.
 
 ## Fields
 
-| Назва                                                                                       | Тип        | Unit [Frame] | Range/Enum | Опис                                                                                                                       |
-| ------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| timestamp                                                                                   | `uint64`   |                                                                  |            | time since system start (microseconds)                                                                  |
-| request_id                                                             | `uint64`   |                                                                  |            | ID, set this to a random value                                                                                             |
-| name                                                                                        | `char[25]` |                                                                  |            | either the requested mode name, or component name                                                                          |
-| px4_ros2_api_version         | `uint16`   |                                                                  |            | Set to LATEST_PX4_ROS2_API_VERSION     |
-| register_arming_check                             | `bool`     |                                                                  |            |                                                                                                                            |
-| register_mode                                                          | `bool`     |                                                                  |            | registering a mode also requires arming_check to be set                                               |
-| register_mode_executor                            | `bool`     |                                                                  |            | registering an executor also requires a mode to be registered (which is the owned mode by the executor) |
-| enable_replace_internal_mode | `bool`     |                                                                  |            | set to true if an internal mode should be replaced                                                                         |
-| replace_internal_mode                             | `uint8`    |                                                                  |            | vehicle_status::NAVIGATION_STATE_\*                                   |
-| activate_mode_immediately                         | `bool`     |                                                                  |            | switch to the registered mode (can only be set in combination with an executor)                         |
-| not_user_selectable                               | `bool`     |                                                                  |            | mode cannot be selected by the user                                                                                        |
+| Назва                                                                                                                                    | Тип        | Unit [Frame] | Range/Enum | Опис                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                                      | `uint64`   |                                                                  |            | time since system start (microseconds)                                                                  |
+| <a id="fld_request_id"></a>request_id                                                                               | `uint64`   |                                                                  |            | ID, set this to a random value                                                                                             |
+| <a id="fld_name"></a>name                                                                                                                | `char[25]` |                                                                  |            | either the requested mode name, or component name                                                                          |
+| <a id="fld_px4_ros2_api_version"></a>px4_ros2_api_version                 | `uint16`   |                                                                  |            | Set to LATEST_PX4_ROS2_API_VERSION     |
+| <a id="fld_register_arming_check"></a>register_arming_check                                    | `bool`     |                                                                  |            |                                                                                                                            |
+| <a id="fld_register_mode"></a>register_mode                                                                         | `bool`     |                                                                  |            | registering a mode also requires arming_check to be set                                               |
+| <a id="fld_register_mode_executor"></a>register_mode_executor                                  | `bool`     |                                                                  |            | registering an executor also requires a mode to be registered (which is the owned mode by the executor) |
+| <a id="fld_enable_replace_internal_mode"></a>enable_replace_internal_mode | `bool`     |                                                                  |            | set to true if an internal mode should be replaced                                                                         |
+| <a id="fld_replace_internal_mode"></a>replace_internal_mode                                    | `uint8`    |                                                                  |            | vehicl&#x65;_&#x73;tatus::NAVIGATION_STATE_\*                         |
+| <a id="fld_activate_mode_immediately"></a>activate_mode_immediately                            | `bool`     |                                                                  |            | switch to the registered mode (can only be set in combination with an executor)                         |
+| <a id="fld_not_user_selectable"></a>not_user_selectable                                        | `bool`     |                                                                  |            | mode cannot be selected by the user                                                                                        |
+| <a id="fld_request_offboard_setpoints"></a>request_offboard_setpoints                          | `bool`     |                                                                  |            | set to true if the registered mode wants to receive offboard trajectory setpoints via MAVLink                              |
 
 ## Constants
 
 | Назва                                                                                                                                                     | Тип      | Значення | Опис                                                                                                                                                                                                                   |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                        | `uint32` | 1        |                                                                                                                                                                                                                        |
-| <a id="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 1        | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                        | `uint32` | 2        |                                                                                                                                                                                                                        |
+| <a id="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 2        | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
 | <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                 | `uint8`  | 2        |                                                                                                                                                                                                                        |
 
 ## Source Message
@@ -42,14 +43,14 @@ Click here to see original file
 ```c
 # Request to register an external component
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # time since system start (microseconds)
 
 uint64 request_id                  # ID, set this to a random value
 char[25] name                      # either the requested mode name, or component name
 
-uint16 LATEST_PX4_ROS2_API_VERSION = 1 # API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change.
+uint16 LATEST_PX4_ROS2_API_VERSION = 2 # API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change.
 
 uint16 px4_ros2_api_version   # Set to LATEST_PX4_ROS2_API_VERSION
 
@@ -62,6 +63,7 @@ bool enable_replace_internal_mode  # set to true if an internal mode should be r
 uint8 replace_internal_mode        # vehicle_status::NAVIGATION_STATE_*
 bool activate_mode_immediately     # switch to the registered mode (can only be set in combination with an executor)
 bool not_user_selectable           # mode cannot be selected by the user
+bool request_offboard_setpoints    # set to true if the registered mode wants to receive offboard trajectory setpoints via MAVLink
 
 uint8 ORB_QUEUE_LENGTH = 2
 ```

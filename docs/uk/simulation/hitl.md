@@ -12,9 +12,9 @@ HITL is [community supported and maintained](../simulation/community_supported_s
 
 PX4 supports HITL for multicopters (using [jMAVSim](../sim_jmavsim/index.md) or [Gazebo Classic](../sim_gazebo_classic/index.md)) and VTOL (using Gazebo Classic).
 
-<a id="compatible_airframe"></a>
+For a comparison of HITL and SIH on hardware, see [Hardware Simulation](../simulation/hardware.md).
 
-## Планери сумісні з HITL
+## HITL-Compatible Airframes {#compatible_airframe}
 
 The set of compatible airframes vs simulators is:
 
@@ -23,9 +23,7 @@ The set of compatible airframes vs simulators is:
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
 | [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |         |
 
-<a id="simulation_environment"></a>
-
-## Середовище симуляції HITL
+## HITL Simulation Environment {#simulation_environment}
 
 У симуляції з апаратним забезпеченням у контурі (HITL) звичайна прошивка PX4 виконується на реальному обладнані.
 JMAVSim або Gazebo Classic (які працюють на комп'ютері розробки) підключені до пристрою польотного контролера через USB/UART.

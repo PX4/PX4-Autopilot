@@ -12,9 +12,9 @@ See [Toolchain Installation](../dev_setup/dev_env.md) for information about the 
 
 PX4 支持多轴( [jMAVSim](../sim_jmavsim/index.md)或[Gazebo Classic](../sim_gazebo_classic/index.md))及VTOL (using Gazebo Classic)的仿真。
 
-<a id="compatible_airframe"></a>
+For a comparison of HITL and SIH on hardware, see [Hardware Simulation](../simulation/hardware.md).
 
-## HITL兼容机架
+## HITL-Compatible Airframes {#compatible_airframe}
 
 机架与模拟器兼容情况：
 
@@ -23,9 +23,7 @@ PX4 支持多轴( [jMAVSim](../sim_jmavsim/index.md)或[Gazebo Classic](../sim_g
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1002            | Y              | Y       |
 | [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 4001            | Y              |         |
 
-<a id="simulation_environment"></a>
-
-## HITL 仿真环境
+## HITL Simulation Environment {#simulation_environment}
 
 硬件在环仿真（HITL）模式下标准的 PX4 固件在真实的硬件上运行。
 JMAVSim or Gazebo Classic (running on a development computer) are connected to the flight controller hardware via USB/UART.

@@ -93,10 +93,17 @@ private:
 		do {} while (px4_sem_wait(&_lock) != 0);
 	}
 
+	static bool try_lock()
+	{
+		return px4_sem_trywait(&_lock) == 0;
+	}
+
 	static void unlock()
 	{
 		px4_sem_post(&_lock);
 	}
+
+	static void do_initialize(); ///< called exactly once via pthread_once from initialize()
 
 	static MavlinkCommandSender *_instance;
 	static px4_sem_t _lock;

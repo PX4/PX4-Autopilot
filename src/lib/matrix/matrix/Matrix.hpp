@@ -604,6 +604,20 @@ public:
 		}
 	}
 
+	inline void nanToZero()
+	{
+
+		Matrix<Type, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				if (std::isnan(self(i, j))) {
+					self(i, j) = static_cast<Type>(0.0f);
+				}
+			}
+		}
+	}
+
 	Matrix<Type, M, N> abs() const
 	{
 		Matrix<Type, M, N> r;
@@ -891,7 +905,7 @@ OStream &operator<<(OStream &os, const matrix::Matrix<Type, M, N> &matrix)
 {
 	os << "\n";
 	// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
-	static const size_t n = 15 * N * M + M + 1;
+	constexpr size_t n = 15 * N * M + M + 1;
 	char string[n];
 	matrix.write_string(string, n);
 	os << string;

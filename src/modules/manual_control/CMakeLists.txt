@@ -36,11 +36,13 @@ px4_add_module(
 	MAIN manual_control
 	COMPILE_FLAGS
 	SRCS
-	ManualControl.cpp
 		ManualControl.cpp
 		ManualControl.hpp
 		ManualControlSelector.hpp
 		ManualControlSelector.cpp
+		MovingDiff.hpp
+	MODULE_CONFIG
+		manual_control_params.yaml
 	DEPENDS
 		hysteresis
 		px4_work_queue
@@ -48,3 +50,4 @@ px4_add_module(
 
 px4_add_functional_gtest(SRC ManualControlTest.cpp LINKLIBS modules__manual_control)
 px4_add_unit_gtest(SRC ManualControlSelectorTest.cpp LINKLIBS modules__manual_control)
+px4_add_unit_gtest(SRC MovingDiffTest.cpp LINKLIBS modules__manual_control)

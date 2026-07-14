@@ -55,12 +55,12 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
   - _Arm:_ Left-stick to right, right-stick to bottom.
   - _Disarm:_ Left-stick to left, right-stick to the bottom.
 
-Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in flight using gestures/buttons: you may choose to disable this to avoid accidental disarming.
+Note that disarming in any altitude controlled mode is only possible after landing was detected.
+In manually piloted modes without altitude control, such as Stabilized, Acro, and Manual, it's always possible to disarm using gestures or buttons — even in flight.
 
-| 매개변수                                                                                                                                               | 설명                                                                                                                                                                                                      |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
-| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)    | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
+| Parameter                                                                                                                                          | 설명                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default). |
 
 ## Arming Button/Switch {#arm_disarm_switch}
 
@@ -75,7 +75,7 @@ Two-position arming switches are primarily used in/recommended for racing drones
 
 The switch or button is assigned (and enabled) using [RC_MAP_ARM_SW](#RC_MAP_ARM_SW), and the switch "type" is configured using [COM_ARM_SWISBTN](#COM_ARM_SWISBTN).
 
-| 매개변수                                                                                                                                                              | 설명                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Parameter                                                                                                                                                         | 설명                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RC_MAP_ARM_SW"></a>[RC_MAP_ARM_SW](../advanced_config/parameter_reference.md#RC_MAP_ARM_SW) | RC arm 스위치 채널 (기본값 : 0 - 할당되지 않음). 정의된 경우 지정된 RC 채널(버튼/스위치)이 스틱 제스처 대신 시동용으로 사용됩니다. <br>**Note:**<br>- This setting _disables the stick gesture_!<br>- This setting applies to RC controllers. It does not apply to Joystick controllers that are connected via _QGroundControl_. |
 | <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | 시동 스위치는 순간적으로 동작하는 버튼입니다. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a momentary button where the arm/disarm command is sent after holding down the button for one second.                                                                           |
@@ -89,10 +89,32 @@ The switch can also be set as part of _QGroundControl_ [Flight Mode](../config/f
 기본적으로, 기체는 착륙시 시동 해제 되며, 시동후 이륙 시간이 너무 오래 걸리면 자동으로 시동 해제됩니다.
 이 기능은 다음 시간 제한을 사용하여 설정됩니다.
 
-| 매개변수                                                                                                                                                  | 설명                                                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | 착륙후 자동 시동 해제 대기 시간. 기본값: 2s (-1 비활성화).                                                    |
-| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | 이륙 속도가 너무 느리면 자동 시동 해제 시간이 초과됩니다. Default: 10s (<=0 to disable). |
+| Parameter                                                                                                                                             | 설명                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_DISARM_LAND"></a>[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)    | 착륙후 자동 시동 해제 대기 시간. 기본값: 2s (-1 비활성화).                          |
+| <a id="COM_DISARM_PRFLT"></a>[COM_DISARM_PRFLT](../advanced_config/parameter_reference.md#COM_DISARM_PRFLT) | 이륙 속도가 너무 느리면 자동 시동 해제 시간이 초과됩니다. Default: 10s (-1 to disable). |
+
+## Auto-Arming on Boot
+
+The vehicle can be configured to arm automatically on boot once all preflight checks pass,
+using the `COM_ARM_ON_BOOT` parameter. For safety, PX4 enforces a minimum 5-second delay after boot before attempting to arm.
+
+Once armed this way, the vehicle will not re-arm automatically after a manual disarm.
+
+:::info
+The parameter value is read once at boot.
+Changing it while the system is running has no effect until the next reboot.
+:::
+
+:::warning
+Use with caution.
+A vehicle that arms automatically can spin up motors and actuators without any operator gesture.
+Ensure the vehicle is in a safe state before powering on.
+:::
+
+| Parameter                                                                                                                                                               | 설명                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_ARM_ON_BOOT"></a>[COM_ARM_ON_BOOT](../advanced_config/parameter_reference.md#COM_ARM_ON_BOOT) | Arm automatically once preflight checks pass after boot. Default: `0` (Disabled). |
 
 ## Pre-Arm Checks
 
@@ -224,7 +246,7 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 
 ### 매개변수
 
-| 매개변수                                                                                                                                               | 설명                                                                                                                                                                                                                                                                                                                                                                                            |
+| Parameter                                                                                                                                          | 설명                                                                                                                                                                                                                                                                                                                                                                                            |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_PREARM_MODE"></a>[COM_PREARM_MODE](../advanced_config/parameter_reference.md#COM_PREARM_MODE) | 시동전 모드로 진입하는 상태입니다. `0`: Disabled, `1`: Safety switch (prearm mode enabled by safety switch; if no switch present cannot be enabled), `2`: Always (prearm mode enabled from power up). Default: `1` (safety button). |
 | <a id="CBRK_IO_SAFETY"></a>[CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY)    | 입출력 안전을 위한 회로 차단.                                                                                                                                                                                                                                                                                                                                                             |

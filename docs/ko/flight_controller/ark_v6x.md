@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
 
-The USA-built [ARKV6X](\(https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x\)) flight controller is based on the [FMUV6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
+The USA-built [ARKV6X](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/arkv6x) flight controller is based on the [FMUV6X and Pixhawk Autopilot Bus open source standards](https://github.com/pixhawk/Pixhawk-Standards).
 
 With triple synced IMUs, data averaging, voting, and filtering is possible.
 The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any [PAB-compatible carrier board](../flight_controller/pixhawk_autopilot_bus.md), such as the [ARK Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md).
@@ -22,9 +22,9 @@ Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 
 ## 센서
 
-- [Dual Invensense ICM-42688-P IMUs](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
-- [Invensense IIM-42652 Industrial IMU](https://invensense.tdk.com/products/smartindustrial/iim-42652/)
-- [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
+- [Dual Invensense ICM-42688-P IMUs](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
+- [Invensense IIM-42652 Industrial IMU](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42652)
+- [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
 - [Bosch BMM150 Magnetometer](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf)
 
 ## Microprocessor
@@ -32,7 +32,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 - [STM32H743IIK6 MCU](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html)
   - 480MHz
   - 2MB 플래시
-  - 1MB Flash
+  - 1MB RAM
 
 ## Other Features
 
@@ -71,6 +71,10 @@ For pinout of the ARKV6X see the [DS-10 Pixhawk Autopilot Bus Standard](https://
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
 | UART7  | /dev/ttyS6 | TELEM1                          |
 | UART8  | /dev/ttyS7 | GPS2                            |
+
+:::info
+The mapping above applies to the running PX4 firmware. The ARKV6X bootloader enables only `UART7` (TELEM1), so when flashing firmware over UART with [`px4_uploader.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) you must connect to the **TELEM1** port — no other UART will respond in bootloader mode.
+:::
 
 ## 펌웨어 빌드
 

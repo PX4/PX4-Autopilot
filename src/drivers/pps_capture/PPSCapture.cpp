@@ -39,15 +39,19 @@
  */
 
 #include "PPSCapture.hpp"
-#include <px4_arch/io_timer.h>
 #include <board_config.h>
-#include <parameters/param.h>
 #include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
+
+#if !defined(PPS_CAPTURE_GPIO)
+#  include <px4_arch/io_timer.h>
+#  include <parameters/param.h>
+#endif
 
 ModuleBase::Descriptor PPSCapture::desc{task_spawn, custom_command, print_usage};
 
 PPSCapture::PPSCapture() :
+	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_pps_capture_pub.advertise();
@@ -55,15 +59,29 @@ PPSCapture::PPSCapture() :
 
 PPSCapture::~PPSCapture()
 {
-	if (_channel >= 0) {
-		io_timer_unallocate_channel(_channel);
+	if (_pps_capture_gpio != 0) {
 		px4_arch_gpiosetevent(_pps_capture_gpio, false, false, false, nullptr, nullptr);
 	}
+
+#if !defined(PPS_CAPTURE_GPIO)
+
+	if (_channel >= 0) {
+		io_timer_unallocate_channel(_channel);
+	}
+
+#endif
 }
 
 bool PPSCapture::init()
 {
-	bool success = false;
+#if defined(PPS_CAPTURE_GPIO)
+	// Boards without an io_timer (e.g. CAN nodes) point a bare GPIO at the
+	// PPS edge and rely on EXTI directly.
+	_pps_capture_gpio = PX4_MAKE_GPIO_EXTI(PPS_CAPTURE_GPIO);
+	const int ret_val = px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true,
+			    &PPSCapture::gpio_interrupt_callback, this);
+	return ret_val == PX4_OK;
+#else
 
 	for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; ++i) {
 		char param_name[17];
@@ -99,13 +117,10 @@ bool PPSCapture::init()
 	}
 
 	_pps_capture_gpio = PX4_MAKE_GPIO_EXTI(io_timer_channel_get_as_pwm_input(_channel));
-	int ret_val = px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true, &PPSCapture::gpio_interrupt_callback, this);
-
-	if (ret_val == PX4_OK) {
-		success = true;
-	}
-
-	return success;
+	const int ret_val = px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true,
+			    &PPSCapture::gpio_interrupt_callback, this);
+	return ret_val == PX4_OK;
+#endif
 }
 
 void PPSCapture::Run()
@@ -117,9 +132,16 @@ void PPSCapture::Run()
 
 	sensor_gps_s sensor_gps;
 
-	if (_sensor_gps_sub.update(&sensor_gps)) {
-		_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
-		_last_gps_timestamp = sensor_gps.timestamp;
+	const uint32_t gps_device_id = static_cast<uint32_t>(_param_pps_cap_gps_id.get());
+
+	for (auto &sub : _sensor_gps_subs) {
+		if (sub.update(&sensor_gps)) {
+			if (gps_device_id == 0 || sensor_gps.device_id == gps_device_id) {
+				_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
+				_last_gps_timestamp = sensor_gps.timestamp;
+				break;
+			}
+		}
 	}
 
 	pps_capture_s pps_capture;

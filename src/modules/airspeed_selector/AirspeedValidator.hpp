@@ -95,20 +95,12 @@ public:
 
 	// setters wind estimator parameters
 	void set_wind_estimator_wind_process_noise_spectral_density(float wind_nsd) { _wind_estimator.set_wind_process_noise_spectral_density(wind_nsd); }
-	void set_wind_estimator_tas_scale_process_noise_spectral_density(float tas_scale_nsd) { _wind_estimator.set_tas_scale_process_noise_spectral_density(tas_scale_nsd); }
+	void set_wind_estimator_tas_noise(float tas_sigma) { _wind_estimator.set_tas_noise(tas_sigma); }
+
 	void set_wind_estimator_tas_scale_init(float tas_scale_init)
 	{
 		_tas_scale_init = tas_scale_init;
 	}
-
-	void set_wind_estimator_tas_noise(float tas_sigma) { _wind_estimator.set_tas_noise(tas_sigma); }
-	void set_wind_estimator_beta_noise(float beta_var) { _wind_estimator.set_beta_noise(beta_var); }
-	void set_wind_estimator_tas_gate(uint8_t gate_size)
-	{
-		_wind_estimator.set_tas_gate(gate_size);
-	}
-
-	void set_wind_estimator_beta_gate(uint8_t gate_size) { _wind_estimator.set_beta_gate(gate_size); }
 
 	// setters for failure detection tuning parameters
 	void set_tas_innov_threshold(float tas_innov_threshold) { _tas_innov_threshold = tas_innov_threshold; }

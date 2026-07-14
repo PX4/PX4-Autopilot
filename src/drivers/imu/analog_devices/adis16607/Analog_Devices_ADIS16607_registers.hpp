@@ -66,11 +66,16 @@ static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10 MHz SPI serial int
 static constexpr uint16_t DIR_READ = 0x80;
 static constexpr uint16_t DEVICE_IDENTIFICATION = 0x6000;
 static constexpr uint16_t SPI_HALFDUPLEX_KEY_VALUE = 0xB4B4;
-static constexpr uint32_t SAMPLE_INTERVAL_US = 125; // 8000 Hz
+
+static constexpr uint16_t TEMPERATURE_WILDLY_THRESHOLD = 1000; // LSB
+static constexpr float TEMPERATURE_SCALE_FACTOR = 0.005f; // C/LSB
+static constexpr float TEMPERATURE_OFFSET = 25.f; // C
 
 enum class Register : uint16_t {
 	DEV_ID = 0x00,
 	DIAG_STAT = 0x05,
+	FIFO_DATA = 0x29,
+	FIFO_WORD_CNT = 0x2B,
 	USER_GPIO_CFG1 = 0x2F,
 	SPI_HALFDUPLEX_KEY = 0x32,
 	USER_DATA_CFG = 0x34,
@@ -133,5 +138,18 @@ enum MSC_CTRL_BIT : uint16_t {
 	FILT_BW_500Hz = Bit8, // fc= 500 Hz
 	Self_test_1 = Bit6, // enable Self-Test mode
 };
+namespace FIFO
+{
+static constexpr size_t SIZE = 2048; // bytes
+struct DATA {
+	uint16_t ACCEL_DATA_X;
+	uint16_t ACCEL_DATA_Y;
+	uint16_t ACCEL_DATA_Z;
+	uint16_t GYRO_DATA_X;
+	uint16_t GYRO_DATA_Y;
+	uint16_t GYRO_DATA_Z;
+	uint16_t TEMP;
+};
 
+};
 } // namespace Analog_Devices_ADIS16607

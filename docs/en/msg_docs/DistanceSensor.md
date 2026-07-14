@@ -10,21 +10,21 @@ DISTANCE_SENSOR message data.
 
 ## Fields
 
-| Name             | Type         | Unit [Frame] | Range/Enum | Description                                                                                                            |
-| ---------------- | ------------ | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
-| timestamp        | `uint64`     |              |            | time since system start (microseconds)                                                                                 |
-| device_id        | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles                                              |
-| min_distance     | `float32`    |              |            | Minimum distance the sensor can measure (in m)                                                                         |
-| max_distance     | `float32`    |              |            | Maximum distance the sensor can measure (in m)                                                                         |
-| current_distance | `float32`    |              |            | Current distance reading (in m)                                                                                        |
-| variance         | `float32`    |              |            | Measurement variance (in m^2), 0 for unknown / invalid readings                                                        |
-| signal_quality   | `int8`       |              |            | Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality. |
-| type             | `uint8`      |              |            | Type from MAV_DISTANCE_SENSOR enum                                                                                     |
-| h_fov            | `float32`    |              |            | Sensor horizontal field of view (rad)                                                                                  |
-| v_fov            | `float32`    |              |            | Sensor vertical field of view (rad)                                                                                    |
-| q                | `float32[4]` |              |            | Quaterion sensor orientation with respect to the vehicle body frame to specify the orientation ROTATION_CUSTOM         |
-| orientation      | `uint8`      |              |            | Direction the sensor faces from MAV_SENSOR_ORIENTATION enum                                                            |
-| mode             | `uint8`      |              |            |
+| Name                                              | Type         | Unit [Frame] | Range/Enum | Description                                                                                                            |
+| ------------------------------------------------- | ------------ | ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp               | `uint64`     |              |            | time since system start (microseconds)                                                                                 |
+| <a id="fld_device_id"></a>device_id               | `uint32`     |              |            | unique device ID for the sensor that does not change between power cycles                                              |
+| <a id="fld_min_distance"></a>min_distance         | `float32`    |              |            | Minimum distance the sensor can measure (in m)                                                                         |
+| <a id="fld_max_distance"></a>max_distance         | `float32`    |              |            | Maximum distance the sensor can measure (in m)                                                                         |
+| <a id="fld_current_distance"></a>current_distance | `float32`    |              |            | Current distance reading (in m)                                                                                        |
+| <a id="fld_variance"></a>variance                 | `float32`    |              |            | Measurement variance (in m^2), 0 for unknown / invalid readings                                                        |
+| <a id="fld_signal_quality"></a>signal_quality     | `int8`       |              |            | Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality. |
+| <a id="fld_type"></a>type                         | `uint8`      |              |            | Type from MAV_DISTANCE_SENSOR enum                                                                                     |
+| <a id="fld_h_fov"></a>h_fov                       | `float32`    |              |            | Sensor horizontal field of view (rad)                                                                                  |
+| <a id="fld_v_fov"></a>v_fov                       | `float32`    |              |            | Sensor vertical field of view (rad)                                                                                    |
+| <a id="fld_q"></a>q                               | `float32[4]` |              |            | Quaterion sensor orientation with respect to the vehicle body frame to specify the orientation ROTATION_CUSTOM         |
+| <a id="fld_orientation"></a>orientation           | `uint8`      |              |            | Direction the sensor faces from MAV_SENSOR_ORIENTATION enum                                                            |
+| <a id="fld_mode"></a>mode                         | `uint8`      |              |            |
 
 ## Constants
 

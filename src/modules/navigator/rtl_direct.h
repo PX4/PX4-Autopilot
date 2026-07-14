@@ -55,6 +55,9 @@
 #include <uORB/topics/wind.h>
 
 #include <lib/rtl/rtl_time_estimator.h>
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+#include "RTLPlanner/geofence_avoidance_planner.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 #include "mission_block.h"
 #include "navigation.h"
 #include "safe_point_land.hpp"
@@ -107,7 +110,7 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
+	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos);
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
@@ -118,6 +121,7 @@ private:
 	 */
 	enum class RTLState {
 		CLIMBING,
+		AVOID_GEOFENCE,
 		MOVE_TO_LOITER,
 		LOITER_DOWN,
 		LOITER_HOLD,
@@ -145,7 +149,7 @@ private:
 	 * @brief sanitize land_approach
 	 *
 	 */
-	loiter_point_s sanitizeLandApproach(loiter_point_s land_approach) const;
+	loiter_point_s sanitizeLandApproach(const loiter_point_s &land_approach) const;
 
 	/**
 	 * Check for parameter changes and update them if needed.
@@ -160,6 +164,12 @@ private:
 
 	RTLState getActivationState();
 
+	/**
+	 * @brief Whether the geofence-avoidance planner currently has a path to fly.
+	 * Always false for build without geofence avoidance (CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE).
+	 */
+	bool geofenceAvoidanceActive() const;
+
 	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};
@@ -168,7 +178,6 @@ private:
 
 	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
-
 	float _rtl_alt{0.0f}; ///< AMSL altitude at which the vehicle should transit to the destination
 
 	DEFINE_PARAMETERS(

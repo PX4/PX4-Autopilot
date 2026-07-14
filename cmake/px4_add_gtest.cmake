@@ -31,6 +31,39 @@
 #
 ############################################################################
 
+# Attach only matching test binaries to `test_results` when TESTFILTER is set.
+# `ctest -R` filters execution only; without this helper the build still
+# compiles every gtest target before running the filtered subset.
+function(add_filtered_test_dependencies TESTNAME)
+	if(NOT TESTFILTER OR "${TESTNAME}" MATCHES "${TESTFILTER}")
+		add_dependencies(test_results ${TESTNAME})
+	endif()
+endfunction()
+
+#=============================================================================
+#
+#	px4_setup_gtest_without_fuzztest
+#
+#	Fetches GTest standalone and stubs out fuzztest cmake functions.
+#	Used when fuzztest is not available (e.g. TSAN builds where fuzztest's
+#	coverage instrumentation is incompatible).
+#
+macro(px4_setup_gtest_without_fuzztest)
+	include(FetchContent)
+	FetchContent_Declare(
+		googletest
+		GIT_REPOSITORY https://github.com/google/googletest.git
+		GIT_TAG v1.16.0
+	)
+	FetchContent_MakeAvailable(googletest)
+
+	function(link_fuzztest name)
+		target_link_libraries(${name} PRIVATE gtest gtest_main)
+	endfunction()
+	macro(fuzztest_setup_fuzzing_flags)
+	endmacro()
+endmacro()
+
 #=============================================================================
 #
 #	px4_add_unit_gtest
@@ -74,7 +107,7 @@ function(px4_add_unit_gtest)
 		         WORKING_DIRECTORY ${PX4_BINARY_DIR})
 
 		# attach it to the unit test target
-		add_dependencies(test_results ${TESTNAME})
+		add_filtered_test_dependencies(${TESTNAME})
 	endif()
 endfunction()
 
@@ -98,23 +131,30 @@ function(px4_add_functional_gtest)
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC} ${EXTRA_SRCS})
 
 		# link the libary to test and gtest
-		target_link_libraries(${TESTNAME} PRIVATE ${LINKLIBS} gtest_functional_main
-		                                              px4_layer
-		                                              px4_platform
-		                                              uORB
-		                                              systemlib
-		                                              cdev
-		                                              px4_work_queue
-		                                              px4_daemon
-		                                              work_queue
-		                                              parameters
-		                                              events
-		                                              perf
-		                                              tinybson
-		                                              uorb_msgs
-		                                              fuzztest::fuzztest # Do not use link_fuzztest() here because that
-				                                      # also links to fuzztest_gtest_main
-		                                              test_stubs)  # put test_stubs last
+		set(_FUNCTIONAL_GTEST_LIBS ${LINKLIBS} gtest_functional_main
+		                           px4_layer
+		                           px4_platform
+		                           uORB
+		                           systemlib
+		                           cdev
+		                           px4_work_queue
+		                           px4_daemon
+		                           work_queue
+		                           parameters
+		                           events
+		                           perf
+		                           tinybson
+		                           uorb_msgs)
+		if(TARGET fuzztest::fuzztest)
+			list(APPEND _FUNCTIONAL_GTEST_LIBS fuzztest::fuzztest) # Do not use link_fuzztest() here because that
+			                                                       # also links to fuzztest_gtest_main
+		else()
+			list(APPEND _FUNCTIONAL_GTEST_LIBS gtest)
+		endif()
+		# whole-archive so the daemon app-map stubs link even for small
+		# test libs, where link order would otherwise drop them
+		list(APPEND _FUNCTIONAL_GTEST_LIBS -Wl,--whole-archive test_stubs -Wl,--no-whole-archive)
+		target_link_libraries(${TESTNAME} PRIVATE ${_FUNCTIONAL_GTEST_LIBS})
 
 		target_compile_definitions(${TESTNAME} PRIVATE MODULE_NAME="${TESTNAME}")
 
@@ -133,6 +173,6 @@ function(px4_add_functional_gtest)
 		         COMMAND ${PX4_BINARY_DIR}/${TESTNAME})
 
 		# attach it to the unit test target
-		add_dependencies(test_results ${TESTNAME})
+		add_filtered_test_dependencies(${TESTNAME})
 	endif()
 endfunction()

@@ -54,6 +54,8 @@ public:
 
 	bool advertised() const { return _handle != nullptr; }
 
+	bool advertise();
+
 	bool unadvertise() { return (Manager::orb_unadvertise(_handle) == PX4_OK); }
 
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
@@ -62,15 +64,10 @@ protected:
 
 	PublicationBase(ORB_ID id) : _orb_id(id) {}
 
-	~PublicationBase()
-	{
-		if (_handle != nullptr) {
-			// don't automatically unadvertise queued publications (eg vehicle_command)
-			if (Manager::orb_get_queue_size(_handle) == 1) {
-				unadvertise();
-			}
-		}
-	}
+	~PublicationBase();
+
+	// type-independent publish; data points to a message of the topic's type
+	bool publish(const void *data);
 
 	orb_advert_t _handle{nullptr};
 	const ORB_ID _orb_id;
@@ -92,27 +89,11 @@ public:
 	Publication(ORB_ID id) : PublicationBase(id) {}
 	Publication(const orb_metadata *meta) : PublicationBase(static_cast<ORB_ID>(meta->o_id)) {}
 
-	bool advertise()
-	{
-		if (!advertised()) {
-			_handle = orb_advertise(get_topic(), nullptr);
-		}
-
-		return advertised();
-	}
-
 	/**
 	 * Publish the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	bool publish(const T &data)
-	{
-		if (!advertised()) {
-			advertise();
-		}
-
-		return (Manager::orb_publish(get_topic(), _handle, &data) == PX4_OK);
-	}
+	bool publish(const T &data) { return PublicationBase::publish(&data); }
 };
 
 /**

@@ -8,19 +8,19 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name               | Type         | Unit [Frame] | Range/Enum | Description                            |
-| ------------------ | ------------ | ------------ | ---------- | -------------------------------------- |
-| timestamp          | `uint64`     |              |            | time since system start (microseconds) |
-| origin_sysid       | `uint8`      |              |            |
-| origin_compid      | `uint8`      |              |            |
-| target_system      | `uint8`      |              |            |
-| target_component   | `uint8`      |              |            |
-| flags              | `uint32`     |              |            |
-| gimbal_device_id   | `uint8`      |              |            |
-| q                  | `float32[4]` |              |            |
-| angular_velocity_x | `float32`    |              |            |
-| angular_velocity_y | `float32`    |              |            |
-| angular_velocity_z | `float32`    |              |            |
+| Name                                                  | Type         | Unit [Frame] | Range/Enum | Description                            |
+| ----------------------------------------------------- | ------------ | ------------ | ---------- | -------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                   | `uint64`     |              |            | time since system start (microseconds) |
+| <a id="fld_origin_sysid"></a>origin_sysid             | `uint8`      |              |            |
+| <a id="fld_origin_compid"></a>origin_compid           | `uint8`      |              |            |
+| <a id="fld_target_system"></a>target_system           | `uint8`      |              |            |
+| <a id="fld_target_component"></a>target_component     | `uint8`      |              |            |
+| <a id="fld_flags"></a>flags                           | `uint32`     |              |            |
+| <a id="fld_gimbal_device_id"></a>gimbal_device_id     | `uint8`      |              |            |
+| <a id="fld_q"></a>q                                   | `float32[4]` |              |            |
+| <a id="fld_angular_velocity_x"></a>angular_velocity_x | `float32`    |              |            |
+| <a id="fld_angular_velocity_y"></a>angular_velocity_y | `float32`    |              |            |
+| <a id="fld_angular_velocity_z"></a>angular_velocity_z | `float32`    |              |            |
 
 ## Constants
 

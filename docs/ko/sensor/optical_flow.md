@@ -34,6 +34,12 @@ The information is written to the corresponding uORB topics: [DistanceSensor](..
 | 우측    | - X   |
 | 좌측    | + X   |
 
+:::info
+The integrated flow values are **angular measurements** (radians) representing rotation of the image about the sensor's body axes using the right-hand convention.
+They are _not_ translational displacements along those axes, which is why forward vehicle movement (along X) appears in the Y flow axis, and rightward movement (along Y) appears in the X flow axis.
+Specifically, forward movement causes the ground image to rotate about the Y axis (+ Y), while rightward movement causes a negative rotation about the X axis (- X).
+:::
+
 광류 데이터는 다른 속도 데이터 소스와 융합됩니다.
 The approach used for fusing sensor data and any offsets from the center of the vehicle must be configured in the [estimator](#estimators).
 
@@ -95,7 +101,7 @@ For optical flow fusion using EKF2, set [EKF2_OF_CTRL](../advanced_config/parame
 
 광류 센서가 차량 중앙에서 오프셋된 경우 다음 매개변수를 사용하여 설정합니다.
 
-| 매개변수                                                                                                                                                              | 설명                                                                                   |
+| Parameter                                                                                                                                                         | 설명                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | <a id="EKF2_OF_POS_X"></a>[EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X) | 바디 프레임에서 광류 초점의 X 위치 (기본값은 0.0m). |
 | <a id="EKF2_OF_POS_Y"></a>[EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) | 바디 프레임에서 광류 초점의 Y 위치 (기본값은 0.0m). |
