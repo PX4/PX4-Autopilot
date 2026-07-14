@@ -71,6 +71,21 @@ parameters:
           This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
           or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
           disables trim throttle and minimum airspeed compensation based on weight.
+          If fuel-based weight compensation is enabled (WEIGHT_FUEL), set this to the takeoff weight with a full fuel load.
+      type: float
+      default: -1.0
+      unit: kg
+      decimal: 1
+      increment: 0.1
+    WEIGHT_FUEL:
+      description:
+        short: Weight of a full fuel load
+        long: |-
+          Mass of the fuel at maximum fuel tank capacity. If set, together with WEIGHT_BASE
+          and WEIGHT_GROSS, the vehicle weight used for performance scaling is reduced by the burned fuel mass derived from
+          the fuel tank status. WEIGHT_GROSS then corresponds to the takeoff weight with a full fuel load. A zero or negative
+          value disables fuel-based weight compensation.
+          Only a single fuel tank is supported: reports from additional tank ids are ignored.
       type: float
       default: -1.0
       unit: kg

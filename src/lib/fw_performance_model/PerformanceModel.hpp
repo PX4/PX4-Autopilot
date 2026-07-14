@@ -37,7 +37,9 @@
  * Performance model.
  */
 
+#include <math.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/fuel_tank_status.h>
 
 #ifndef PX4_SRC_MODULES_FW_POS_CONTROL_PERFORMANCEMODEL_H_
 #define PX4_SRC_MODULES_FW_POS_CONTROL_PERFORMANCEMODEL_H_
@@ -69,6 +71,23 @@ public:
 	 * @return weight ratio
 	 */
 	float getWeightRatio() const;
+
+	/**
+	 * Set the fraction of fuel remaining, used to reduce the vehicle weight by the burned fuel mass
+	 * if fuel-based weight compensation is enabled (WEIGHT_FUEL > 0).
+	 * Non-finite input is ignored and the last known fuel fraction is kept.
+	 * @param fuel_fraction_remaining fraction of fuel remaining in range [0,1]
+	 */
+	void setFuelFractionRemaining(float fuel_fraction_remaining);
+
+	/**
+	 * Extract the fraction of fuel remaining from a fuel tank status message, preferring the
+	 * measured remaining fuel over the remaining percentage over the consumed fuel.
+	 * The consumed fuel fallback assumes the tank was full at boot.
+	 * @param fuel_tank_status fuel tank status message
+	 * @return fraction of fuel remaining in range [0,1], NAN if not available
+	 */
+	static float getFuelFractionRemaining(const fuel_tank_status_s &fuel_tank_status);
 
 	/**
 	 * Get the trim throttle for the current airspeed setpoint as well as air density and weight.
@@ -131,6 +150,7 @@ private:
 		(ParamFloat<px4::params::FW_T_SINK_MIN>) _param_fw_t_sink_min,
 		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
 		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
+		(ParamFloat<px4::params::WEIGHT_FUEL>) _param_weight_fuel,
 		(ParamFloat<px4::params::FW_SERVICE_CEIL>) _param_service_ceiling,
 		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
@@ -150,6 +170,8 @@ private:
 
 
 	static float sanitiseAirDensity(float air_density);
+
+	float _fuel_fraction_remaining{NAN}; ///< fraction of fuel remaining in range [0,1], NAN if unknown
 };
 
 #endif //PX4_SRC_MODULES_FW_POS_CONTROL_PERFORMANCEMODEL_H_

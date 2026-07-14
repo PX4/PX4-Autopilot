@@ -58,12 +58,42 @@ PerformanceModel::PerformanceModel(): ModuleParams(nullptr)
 {
 	updateParams();
 }
+void PerformanceModel::setFuelFractionRemaining(float fuel_fraction_remaining)
+{
+	if (PX4_ISFINITE(fuel_fraction_remaining)) {
+		_fuel_fraction_remaining = fuel_fraction_remaining;
+	}
+}
+
+float PerformanceModel::getFuelFractionRemaining(const fuel_tank_status_s &fuel_tank_status)
+{
+	float fraction = NAN;
+
+	if (PX4_ISFINITE(fuel_tank_status.remaining_fuel) && fuel_tank_status.maximum_fuel_capacity > FLT_EPSILON) {
+		fraction = fuel_tank_status.remaining_fuel / fuel_tank_status.maximum_fuel_capacity;
+
+	} else if (fuel_tank_status.percent_remaining <= 100) {
+		fraction = fuel_tank_status.percent_remaining * 0.01f;
+
+	} else if (PX4_ISFINITE(fuel_tank_status.consumed_fuel) && fuel_tank_status.maximum_fuel_capacity > FLT_EPSILON) {
+		fraction = 1.f - fuel_tank_status.consumed_fuel / fuel_tank_status.maximum_fuel_capacity;
+	}
+
+	return PX4_ISFINITE(fraction) ? math::constrain(fraction, 0.f, 1.f) : NAN;
+}
+
 float PerformanceModel::getWeightRatio() const
 {
 	float weight_factor = 1.0f;
 
 	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_factor = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), kMinWeightRatio,
+		float weight = _param_weight_gross.get();
+
+		if (_param_weight_fuel.get() > FLT_EPSILON && PX4_ISFINITE(_fuel_fraction_remaining)) {
+			weight -= (1.f - math::constrain(_fuel_fraction_remaining, 0.f, 1.f)) * _param_weight_fuel.get();
+		}
+
+		weight_factor = math::constrain(weight / _param_weight_base.get(), kMinWeightRatio,
 						kMaxWeightRatio);
 	}
 
