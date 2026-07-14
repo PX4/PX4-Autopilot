@@ -613,19 +613,21 @@ TEST_F(TECSClosedLoopTest, AirspeedDip)
 	_state.V -= 4.0f;
 
 	// Capture the tracking error pretty precisely over the next 10 sec
-	// (bounds re-captured for the default-parameter tuning)
+	// (bounds re-captured for the default-parameter tuning and the
+	// energy-consistent feedforward, which recovers at the designed
+	// first-order airspeed error response)
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
 
 	// First 10 sec: back to 0.1 m/s error
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.5f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.7f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
@@ -652,24 +654,29 @@ TEST_F(TECSClosedLoopTest, AirspeedBump)
 	// wind change, aircraft pushed back)
 	_state.V += 4.0f;
 
-	// Capture the tracking error pretty precisely over the next 10 sec
-	// (bounds re-captured for the default-parameter tuning)
+	// Capture the tracking error pretty precisely over the next 12 sec
+	// (bounds re-captured for the default-parameter tuning and the
+	// energy-consistent feedforward, which recovers at the designed
+	// first-order airspeed error response; the bump recovers more slowly
+	// than the dip because the deceleration authority at high speed is
+	// limited by the total energy rate envelope)
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
 
-	// First 10 sec: back to 0.1 m/s error
+	// First 12 sec: back to 0.1 m/s error
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.5f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.8f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.6f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.4f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+	run(2.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
 
 	// Error stays below ever after
 	resetSimStats();
