@@ -197,8 +197,9 @@ struct VehicleOverride {
 
 // When adding vehicle-specific param differences, add entries here.
 static constexpr VehicleOverride VehicleParamOverrides[] = {
-	// NAV_TAKEOFF: p1 (minimum pitch angle) is used by FW and VTOL-FW; not applicable to MC.
-	{ 22, VEHICLE_FW | VEHICLE_VTOL, 0x01, 0x01 },
+	// NAV_TAKEOFF: p1 (minimum pitch angle) is used by FW and VTOL-FW; MC ignores it, but
+	// GCS (e.g. QGC) send p1=-1 on MC takeoff, so accept p1 for MC too instead of denying.
+	{ 22, VEHICLE_FW | VEHICLE_VTOL | VEHICLE_MC, 0x01, 0x01 },
 };
 
 // Binary search + vehicle override lookup. Returns the adjusted mask, or -1 if cmd not in table.
