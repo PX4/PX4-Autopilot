@@ -680,21 +680,22 @@ void UxrceddsClient::run()
 				transport_pollfd.events = POLLIN;
 				const int transport_poll = poll(&transport_pollfd, 1, 0);
 
+				if (transport_poll > 0) {
+					orb_poll_timeout_ms = 0;
+				}
+			}
+
 			// Update vehicle status to check for offboard mode
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
-			_offboard_mode_enabled = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD);
+			_offboard_mode_enabled = !(vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
+						   vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
+						   vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 
 			// Allow publish from DDS to uORB if:
 			// - _param_uxrce_dds_safe is false , regardless of offboard mode
 			// - _param_uxrce_dds_safe is true AND offboard mode is enabled
 			_pubs->allow_publishing(!_safe_dds_mode || (_safe_dds_mode && _offboard_mode_enabled));
-
-			if (ioctl(_fd, FIONREAD, (unsigned long)&bytes_available) == OK) {
-				if (bytes_available > 10) {
-					orb_poll_timeout_ms = 0;
-				}
-			}
 
 			/* Wait for topic updates */
 			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
