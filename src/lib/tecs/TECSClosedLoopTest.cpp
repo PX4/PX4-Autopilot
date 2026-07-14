@@ -73,15 +73,18 @@ namespace
 // Representative small fixed-wing UAV, consistent with the flight data used
 // during the TECS analysis that motivated this test suite.
 
+// All values below match the PX4 firmware parameter defaults (FW_AIRSPD_TRIM,
+// FW_THR_TRIM, FW_THR_MAX, FW_THR_MIN, FW_T_CLMB_MAX, FW_T_SINK_MAX,
+// FW_T_SINK_MIN, FW_T_VERT_ACC).
 static constexpr float G                = CONSTANTS_ONE_G;
-static constexpr float V_TRIM           = 16.f;   ///< TAS at trim [m/s]
-static constexpr float THROTTLE_TRIM    = 0.5f;
+static constexpr float V_TRIM           = 15.f;   ///< TAS at trim [m/s]
+static constexpr float THROTTLE_TRIM    = 0.6f;
 static constexpr float THROTTLE_MAX     = 1.0f;
-static constexpr float THROTTLE_MIN     = 0.05f;
+static constexpr float THROTTLE_MIN     = 0.0f;
 static constexpr float MAX_CLIMB_RATE   = 5.f;    ///< [m/s]
 static constexpr float MAX_SINK_RATE    = 5.f;    ///< [m/s]
 static constexpr float MIN_SINK_RATE    = 2.f;    ///< [m/s]
-static constexpr float VERT_ACCEL_LIMIT = 5.f;    ///< must match param - drives pitch rate limit
+static constexpr float VERT_ACCEL_LIMIT = 7.f;    ///< must match param - drives pitch rate limit
 static constexpr float ALT_INIT         = 300.f;  ///< initial altitude [m]
 static constexpr float STE_RATE_MAX     = MAX_CLIMB_RATE * G;
 static constexpr float STE_RATE_MIN_ABS = MIN_SINK_RATE  * G;
@@ -179,7 +182,12 @@ protected:
 
 	void initParams()
 	{
-		// TODO get the defaults here if possible?
+		// Gains and limits match the PX4 firmware parameter defaults as mapped by
+		// FwLateralLongitudinalControl: FW_AIRSPD_MIN/MAX, FW_P_LIM_MAX/MIN,
+		// FW_T_ALT_TC (altitude_error_gain = 1/5), FW_T_HRATE_FF, FW_T_TAS_TC
+		// (airspeed_error_gain = 1/5), FW_T_STE_R_TC, FW_T_SEB_R_FF,
+		// FW_T_SPDWEIGHT, FW_T_I_GAIN_PIT, FW_T_PTCH_DAMP, FW_T_THR_INTEG,
+		// FW_T_THR_DAMPING, FW_THR_SLEW_MAX, FW_T_RLL2THR.
 		_params = {
 			.max_sink_rate             = MAX_SINK_RATE,
 			.min_sink_rate             = MIN_SINK_RATE,
@@ -187,25 +195,25 @@ protected:
 			.vert_accel_limit          = VERT_ACCEL_LIMIT,
 			.equivalent_airspeed_trim  = V_TRIM,
 			.tas_min                   = 10.f,
-			.tas_max                   = 25.f,
-			.pitch_max                 = 0.5f,
-			.pitch_min                 = -0.5f,
+			.tas_max                   = 20.f,
+			.pitch_max                 = math::radians(30.f),
+			.pitch_min                 = math::radians(-30.f),
 			.throttle_trim             = THROTTLE_TRIM,
 			.throttle_max              = THROTTLE_MAX,
 			.throttle_min              = THROTTLE_MIN,
 			.altitude_error_gain       = 0.2f,
-			.altitude_setpoint_gain_ff = 1.f,
+			.altitude_setpoint_gain_ff = 0.5f,
 			.tas_error_percentage      = 0.15f,
-			.airspeed_error_gain       = 0.3f,
-			.ste_rate_time_const       = 0.1f,
+			.airspeed_error_gain       = 0.2f,
+			.ste_rate_time_const       = 0.4f,
 			.seb_rate_ff               = 1.f,
 			.pitch_speed_weight        = 1.f,
 			.integrator_gain_pitch     = 0.1f,
 			.pitch_damping_gain        = 0.1f,
-			.integrator_gain_throttle  = 0.1f,
-			.throttle_damping_gain     = 0.1f,
+			.integrator_gain_throttle  = 0.02f,
+			.throttle_damping_gain     = 0.05f,
 			.throttle_slewrate         = 0.f,
-			.load_factor_correction    = 0.f,
+			.load_factor_correction    = 15.f,
 			.load_factor               = 1.f,
 			.fast_descend              = 0.f,
 		};
@@ -604,19 +612,19 @@ TEST_F(TECSClosedLoopTest, AirspeedDip)
 	// wind change, aircraft pushed back)
 	_state.V -= 4.0f;
 
-	// Capture the tracking error pretty precisely over the next 20 sec
-	// First second: error halves
+	// Capture the tracking error pretty precisely over the next 10 sec
+	// (bounds re-captured for the default-parameter tuning)
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
-	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 2.5f);
 
 	// First 10 sec: back to 0.1 m/s error
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.5f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
@@ -644,8 +652,8 @@ TEST_F(TECSClosedLoopTest, AirspeedBump)
 	// wind change, aircraft pushed back)
 	_state.V += 4.0f;
 
-	// Capture the tracking error pretty precisely over the next 20 sec
-	// First second: error decreases slightly
+	// Capture the tracking error pretty precisely over the next 10 sec
+	// (bounds re-captured for the default-parameter tuning)
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 4.0f);
 	run(0.2f); EXPECT_NEAR(_state.V, _V_sp, 3.5f);
@@ -654,11 +662,11 @@ TEST_F(TECSClosedLoopTest, AirspeedBump)
 
 	// First 10 sec: back to 0.1 m/s error
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 2.0f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.5f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 1.0f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.5f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.6f);
+	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.4f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
-	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f);
 	run(1.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f);
