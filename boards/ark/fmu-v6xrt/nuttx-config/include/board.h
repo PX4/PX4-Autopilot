@@ -1,5 +1,5 @@
 /************************************************************************************
- * boards/ark/v6x-rt/nuttx-config/include/board.h
+ * boards/ark/fmu-v6xrt/nuttx-config/include/board.h
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
@@ -326,7 +326,7 @@
 #if defined(CONFIG_BOARD_USE_PROBES)
 #include <imxrt_gpio.h>
 #include <imxrt_iomuxc.h>
-// add     -I<full path> build/ark_v6x-rt_default/NuttX/nuttx/arch/arm/src/chip \ to NuttX Makedefs.in
+// add     -I<full path> build/ark_fmu-v6xrt_default/NuttX/nuttx/arch/arm/src/chip \ to NuttX Makedefs.in
 #define PROBE_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_SLEW_FAST)
 # define PROBE_N(n) (1<<((n)-1))
 # define PROBE_1  /* GPIO_EMC_B1_23 */  (GPIO_PORT1 | GPIO_PIN23 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)

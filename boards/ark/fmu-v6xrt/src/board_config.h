@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * ARK v6x-rt internal definitions
+ * ARK fmu-v6xrt internal definitions
  */
 
 #pragma once
