@@ -45,7 +45,7 @@ using matrix::Vector2f;
 
 ModuleBase::Descriptor FwLateralLongitudinalControl::desc{task_spawn, custom_command, print_usage};
 
-// [m/s] maximum reference altitude rate threshhold
+// [m/s] maximum reference altitude rate threshold
 static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
 // [us] time after which the wind estimate is disabled if no longer updating
 static constexpr hrt_abstime WIND_EST_TIMEOUT = 10_s;
