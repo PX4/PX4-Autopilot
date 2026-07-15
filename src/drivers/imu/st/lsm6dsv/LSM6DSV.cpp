@@ -660,8 +660,20 @@ void LSM6DSV::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 	}
 }
 
-bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
+bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 {
+	// Drain the whole FIFO in one burst. RunImpl() already bounds the word count; clamp defensively
+	// so transfer_size can never run past the buffer.
+	const uint16_t words_to_read = math::min(words, FIFO_MAX_WORDS);
+	const size_t transfer_size = words_to_read * FIFO::WORD_SIZE + 1;
+
+	FIFOTransferBuffer buffer{};
+
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
+
 	sensor_gyro_fifo_s gyro{};
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
@@ -677,33 +689,17 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 	accel_hg.samples = 0;
 	accel_hg.dt = _fifo_sample_dt;
 
-	// Read FIFO word by word: each word is 7 bytes (tag + 6 data)
-	for (uint16_t i = 0; i < samples; i++) {
-		// Read tag + data in one transfer (1 cmd byte + 7 data bytes)
-		struct FIFOWordTransfer {
-			uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA_OUT_TAG) | DIR_READ};
-			uint8_t TAG{0};
-			uint8_t DATA_X_L{0};
-			uint8_t DATA_X_H{0};
-			uint8_t DATA_Y_L{0};
-			uint8_t DATA_Y_H{0};
-			uint8_t DATA_Z_L{0};
-			uint8_t DATA_Z_H{0};
-		} buffer{};
-
-		if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
-			perf_count(_bad_transfer_perf);
-			continue;
-		}
+	for (uint16_t i = 0; i < words_to_read; i++) {
+		const FIFOWord &word = buffer.words[i];
 
 		// Decode tag from upper 5 bits
-		const uint8_t tag_id = buffer.TAG >> 3;
+		const uint8_t tag_id = word.TAG >> 3;
 
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		const int16_t data_x = combine(buffer.DATA_X_H, buffer.DATA_X_L);
-		const int16_t y = combine(buffer.DATA_Y_H, buffer.DATA_Y_L);
-		const int16_t z = combine(buffer.DATA_Z_H, buffer.DATA_Z_L);
+		const int16_t data_x = combine(word.DATA_X_H, word.DATA_X_L);
+		const int16_t y = combine(word.DATA_Y_H, word.DATA_Y_L);
+		const int16_t z = combine(word.DATA_Z_H, word.DATA_Z_L);
 		const int16_t data_y = (y == INT16_MIN) ? INT16_MAX : -y;
 		const int16_t data_z = (z == INT16_MIN) ? INT16_MAX : -z;
 
@@ -732,7 +728,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 			}
 
 		} else if (tag_id == static_cast<uint8_t>(FifoTag::TEMPERATURE)) {
-			const int16_t temp_raw = combine(buffer.DATA_X_H, buffer.DATA_X_L);
+			const int16_t temp_raw = combine(word.DATA_X_H, word.DATA_X_L);
 			const float temperature = (temp_raw / 256.0f) + 25.0f;
 
 			if (PX4_ISFINITE(temperature)) {

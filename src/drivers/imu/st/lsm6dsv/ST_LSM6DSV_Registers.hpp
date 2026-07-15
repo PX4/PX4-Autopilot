@@ -259,9 +259,11 @@ namespace FIFO
 {
 // FIFO word: 1-byte tag + 6-byte data = 7 bytes
 static constexpr size_t WORD_SIZE = 7;
-// Max samples to drain per poll (avoid blocking scheduler)
+// Words batched per sample period: gyro + low-g, plus high-g on the 80X / 320X
+static constexpr size_t MAX_WORDS_PER_PERIOD = 3;
+// Max sample periods to drain per poll (avoid blocking scheduler)
 static constexpr size_t MAX_DRAIN_SAMPLES = 32;
-// FIFO depth: 512 words max on LSM6DSV
+// Ceiling of the DIFF_FIFO word counter. The buffer itself is 1.5 KB, i.e. ~219 uncompressed words.
 static constexpr size_t DEPTH = 512;
 }
 

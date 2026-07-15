@@ -72,6 +72,31 @@ private:
 	// Sensor Configuration
 	static constexpr int32_t FIFO_MAX_SAMPLES{static_cast<int32_t>(FIFO::MAX_DRAIN_SAMPLES)};
 
+	// A FIFO word is a tag byte plus 6 data bytes. With IF_INC set the address rounds from
+	// FIFO_DATA_OUT_Z_H back to FIFO_DATA_OUT_TAG at every word boundary, so the whole FIFO drains
+	// as a single N*7 byte burst (AN5763 / AN6119 section 9.8).
+	struct FIFOWord {
+		uint8_t TAG;
+		uint8_t DATA_X_L;
+		uint8_t DATA_X_H;
+		uint8_t DATA_Y_L;
+		uint8_t DATA_Y_H;
+		uint8_t DATA_Z_L;
+		uint8_t DATA_Z_H;
+	};
+	static_assert(sizeof(FIFOWord) == FIFO::WORD_SIZE, "FIFO word must be 7 bytes");
+
+	// RunImpl() bounds a drain to FIFO_MAX_SAMPLES whole sample periods; a period only partially
+	// batched when the status was read adds up to one word short of a further period on top.
+	static constexpr uint16_t FIFO_MAX_WORDS{
+		static_cast<uint16_t>(FIFO_MAX_SAMPLES * FIFO::MAX_WORDS_PER_PERIOD + FIFO::MAX_WORDS_PER_PERIOD - 1)};
+
+	struct FIFOTransferBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA_OUT_TAG) | DIR_READ};
+		FIFOWord words[FIFO_MAX_WORDS] {};
+	};
+	static_assert(sizeof(FIFOTransferBuffer) == (1 + FIFO_MAX_WORDS * FIFO::WORD_SIZE), "Invalid transfer buffer size");
+
 	// Sensor ODR and FIFO layout are variant-dependent (set in UpdateVariantRegisterConfig()):
 	//   default (16X/32X/DSK320X): 2000 Hz, 2 FIFO words/period (gyro + low-g)
 	//   LSM6DSV80X:                7680 Hz, 3 FIFO words/period (gyro + low-g + high-g)
@@ -98,7 +123,7 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
-	bool FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples);
+	bool FIFORead(const hrt_abstime &timestamp_sample, uint16_t words);
 	void FIFOReset();
 
 	void UpdateTemperature();
