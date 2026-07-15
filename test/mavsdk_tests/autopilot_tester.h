@@ -210,6 +210,8 @@ protected:
 	}
 
 private:
+	void start_offboard_with_retry(const std::function<void()> &resend_setpoint);
+
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
