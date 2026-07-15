@@ -45,9 +45,10 @@ static constexpr bool IsSupportedWhoAmI(uint8_t whoami)
 	return (whoami == WHO_AM_I_ID) || (whoami == WHO_AM_I_DSK320X) || (whoami == WHO_AM_I_HIGHG);
 }
 
-// Returns true if any axis is at (or near) the int16 limit. Limits are pulled in by sqrt(2)
-// plus a small margin so a sample that would clip only after rotation is also caught (the same
-// approach used by the ICM45686 driver).
+// Returns true if any axis is at (or near) the int16 limit. Only meaningful for the low-g channel,
+// whose ±16 g / 0.488 mg/LSB scaling actually reaches the rail (16 g = 32787 counts). Limits are
+// pulled in by sqrt(2) plus a small margin so a sample that would clip only after rotation is also
+// caught (the same approach used by the ICM45686 driver).
 static constexpr bool SampleClips(int16_t x, int16_t y, int16_t z)
 {
 	constexpr int16_t hi = static_cast<int16_t>(INT16_MAX / 1.41421356f) - 100;
@@ -55,50 +56,26 @@ static constexpr bool SampleClips(int16_t x, int16_t y, int16_t z)
 	return (x >= hi) || (x <= lo) || (y >= hi) || (y <= lo) || (z >= hi) || (z <= lo);
 }
 
-// High-g full-scale escalation tables (ascending). Sensitivities are taken verbatim from the
-// datasheet. To add another high-g variant, add its table here and reference it in
-// UpdateVariantRegisterConfig() — no other code changes are needed.
+// High-g full-scale, pinned at each variant's top range. The high-g channel is only ever published
+// while the low-g channel clips, i.e. above 16 g, where the finer resolution of a smaller range buys
+// nothing — the fallback already steps in with the high-g channel's ±1.5 g typ zero-g offset
+// uncalibrated. The top range is instead what keeps an impact's first peak unclipped, since that
+// peak lands within a few ms of the low-g clipping and no runtime full-scale change could follow it.
+// Sensitivities are taken verbatim from the datasheet.
 //
-// LSM6DSV80X (datasheet DS14764 Table 3): ±32 g = 0.976, ±64 g = 1.952, ±80 g = 3.904 mg/LSB.
-static constexpr HighGFullScale HIGH_G_TABLE_DSV80X[] = {
-	{0x00, 32, 0.976f},
-	{0x01, 64, 1.952f},
-	{0x02, 80, 3.904f},
-};
+// LSM6DSV80X (datasheet DS14764 Table 3): FS_XL_HG=010 -> ±80 g, 3.904 mg/LSB.
+static constexpr HighGFullScale HIGH_G_FS_DSV80X{0x02, 80, 3.904f};
 
-// LSM6DSV320X (datasheet DS14623 Table 150 full-scale + Table 3 sensitivity).
-// Note: code 0x02 is ±128 g here (vs ±80 g on the 80X) — same LSB scaling, different range; the
-// two parts share WHO_AM_I 0x73 and are selected explicitly at start (see WHO_AM_I_HIGHG).
-static constexpr HighGFullScale HIGH_G_TABLE_DSV320X[] = {
-	{0x00, 32,  0.976f},
-	{0x01, 64,  1.952f},
-	{0x02, 128, 3.904f},
-	{0x03, 256, 7.808f},
-	{0x04, 320, 10.417f},
-};
+// LSM6DSV320X (datasheet DS14623 Table 150 full-scale + Table 3 sensitivity): FS_XL_HG=100 ->
+// ±320 g, 10.417 mg/LSB. The two parts share WHO_AM_I 0x73 and are selected explicitly at start
+// (see WHO_AM_I_HIGHG); codes above 010 are reserved on the 80X.
+static constexpr HighGFullScale HIGH_G_FS_DSV320X{0x04, 320, 10.417f};
 
-// Convert a high-g full-scale table entry to PX4Accelerometer scale (m/s^2 per LSB) and range (m/s^2).
+// Convert a high-g full-scale to PX4Accelerometer scale (m/s^2 per LSB) and range (m/s^2).
 static void GetHighGScaleRange(const HighGFullScale &fs, float &scale, float &range)
 {
 	scale = fs.scale_mg_per_lsb * (CONSTANTS_ONE_G / 1000.f);
 	range = static_cast<float>(fs.range_g) * CONSTANTS_ONE_G;
-}
-
-// Rescale a raw count by a sensitivity ratio, saturating to int16 (used to normalize samples
-// captured at the previous high-g full-scale to the current one).
-static int16_t RescaleCount(int16_t count, float ratio)
-{
-	const float scaled = static_cast<float>(count) * ratio;
-
-	if (scaled >= INT16_MAX) {
-		return INT16_MAX;
-	}
-
-	if (scaled <= INT16_MIN) {
-		return INT16_MIN;
-	}
-
-	return static_cast<int16_t>(scaled);
 }
 
 LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
@@ -204,9 +181,8 @@ void LSM6DSV::print_status()
 	PX4_INFO("Sensor ODR: %u Hz (HAODR), FIFO sample dt: %.1f us, %u words/period",
 		 (unsigned)_sensor_odr, (double)_fifo_sample_dt, (unsigned)_fifo_words_per_period);
 
-	if (_high_g_enabled && (_hg_table != nullptr) && (_hg_index < _hg_table_size)) {
-		PX4_INFO("High-g fallback: enabled, current full-scale +/-%u g (step %u/%u)",
-			 (unsigned)_hg_table[_hg_index].range_g, (unsigned)(_hg_index + 1), (unsigned)_hg_table_size);
+	if (_high_g_enabled) {
+		PX4_INFO("High-g fallback: enabled, full-scale +/-%u g", (unsigned)_hg_fs->range_g);
 	}
 
 	perf_print_counter(_bad_register_perf);
@@ -466,26 +442,22 @@ void LSM6DSV::ConfigureSampleRate(int sample_rate)
 
 void LSM6DSV::UpdateVariantRegisterConfig()
 {
-	// Select the high-g full-scale escalation table for this variant (nullptr = no high-g channel)
+	// Select the high-g full-scale for this variant (nullptr = no high-g channel)
 	switch (_device_variant) {
 	case DeviceVariant::LSM6DSV80X:
-		_hg_table = HIGH_G_TABLE_DSV80X;
-		_hg_table_size = sizeof(HIGH_G_TABLE_DSV80X) / sizeof(HIGH_G_TABLE_DSV80X[0]);
+		_hg_fs = &HIGH_G_FS_DSV80X;
 		break;
 
 	case DeviceVariant::LSM6DSV320X:
-		_hg_table = HIGH_G_TABLE_DSV320X;
-		_hg_table_size = sizeof(HIGH_G_TABLE_DSV320X) / sizeof(HIGH_G_TABLE_DSV320X[0]);
+		_hg_fs = &HIGH_G_FS_DSV320X;
 		break;
 
 	default:
-		_hg_table = nullptr;
-		_hg_table_size = 0;
+		_hg_fs = nullptr;
 		break;
 	}
 
-	_high_g_enabled = (_hg_table != nullptr);
-	_hg_index = 0;
+	_high_g_enabled = (_hg_fs != nullptr);
 
 	if (_high_g_enabled) {
 		// 7.68 kHz (HAODR_SEL=00), with the high-g channel co-batched into the FIFO
@@ -559,12 +531,11 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 			r.set_bits = _high_g_enabled ? static_cast<uint8_t>(COUNTER_BDR_REG1_BIT::XL_HG_BATCH_EN) : 0;
 			break;
 
-		case Register::CTRL1_XL_HG: // high-g ODR + full-scale (starts at the table's lowest range)
+		case Register::CTRL1_XL_HG: // high-g ODR + full-scale
 			if (_high_g_enabled) {
-				const uint8_t val = static_cast<uint8_t>(CTRL1_XL_HG_BIT::ODR_XL_HG_7680 | _hg_table[_hg_index].fs_code);
+				const uint8_t val = static_cast<uint8_t>(CTRL1_XL_HG_BIT::ODR_XL_HG_7680 | _hg_fs->fs_code);
 				r.set_bits = val;
-				// clear everything not in val so a stale full-scale bit is corrected on de-escalation
-				r.clear_bits = static_cast<uint8_t>(~val);
+				r.clear_bits = static_cast<uint8_t>(~val); // the whole register is ours, so check every bit
 
 			} else {
 				r.set_bits = 0;
@@ -743,43 +714,13 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
 
-	// High-g samples captured before the most recent full-scale change are still batched at the
-	// previous sensitivity. Their capture scale is known exactly, so normalize them to the current
-	// scale (counts * old/new sensitivity ratio) rather than discarding them: the data is published
-	// with the physical value it was captured at, and the clip evaluation below sees consistent
-	// counts (a stale near-full-scale word would otherwise trigger a spurious extra escalation).
-	// Samples are classified by reconstructed capture time; one period of margin biases borderline
-	// samples toward the old scale, which under- rather than over-reports during an impact.
-	if (_hg_scale_changed && (accel_hg.samples > 0)) {
-		for (uint8_t n = 0; n < accel_hg.samples; n++) {
-			const hrt_abstime t_sample = timestamp_sample
-						     - static_cast<hrt_abstime>((accel_hg.samples - 1 - n) * _fifo_sample_dt);
-
-			if (t_sample < _hg_scale_change_timestamp + static_cast<hrt_abstime>(_fifo_sample_dt)) {
-				accel_hg.x[n] = RescaleCount(accel_hg.x[n], _hg_stale_scale_ratio);
-				accel_hg.y[n] = RescaleCount(accel_hg.y[n], _hg_stale_scale_ratio);
-				accel_hg.z[n] = RescaleCount(accel_hg.z[n], _hg_stale_scale_ratio);
-			}
-		}
-
-		_hg_scale_changed = false;
-	}
-
-	// Evaluate clipping on the raw (pre-rotation) samples before any publish rotates them in place.
+	// Evaluate clipping on the raw (pre-rotation) low-g samples before any publish rotates them in place.
 	bool low_g_clipping = false;
-	bool high_g_clipping = false;
 
 	if (_high_g_enabled) {
 		for (uint8_t n = 0; n < accel.samples; n++) {
 			if (SampleClips(accel.x[n], accel.y[n], accel.z[n])) {
 				low_g_clipping = true;
-				break;
-			}
-		}
-
-		for (uint8_t n = 0; n < accel_hg.samples; n++) {
-			if (SampleClips(accel_hg.x[n], accel_hg.y[n], accel_hg.z[n])) {
-				high_g_clipping = true;
 				break;
 			}
 		}
@@ -796,7 +737,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 
 	if (_high_g_enabled && low_g_clipping && (accel_hg.samples > 0)) {
 		float scale, range;
-		GetHighGScaleRange(_hg_table[_hg_index], scale, range);
+		GetHighGScaleRange(*_hg_fs, scale, range);
 		_px4_accel.set_range(range);
 		_px4_accel.set_scale(scale);
 		_px4_accel.set_error_count(error_count);
@@ -810,11 +751,6 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 		_px4_accel.set_error_count(error_count);
 		_px4_accel.updateFIFO(accel);
 		accel_published = true;
-	}
-
-	// Adjust the high-g full-scale for the next cycle based on this cycle's high-g clipping.
-	if (_high_g_enabled) {
-		ManageHighGFullScale(high_g_clipping);
 	}
 
 	return accel_published && (gyro.samples > 0);
@@ -899,51 +835,4 @@ void LSM6DSV::ConfigureFIFOWatermark(uint8_t samples)
 			r.clear_bits = static_cast<uint8_t>(~fifo_watermark & 0xFF);
 		}
 	}
-}
-
-void LSM6DSV::ManageHighGFullScale(bool high_g_clipping)
-{
-	const hrt_abstime now = hrt_absolute_time();
-
-	if (high_g_clipping) {
-		_hg_last_clip_timestamp = now;
-
-		// escalate one step toward the largest full-scale in the variant's table
-		if (_hg_index + 1 < _hg_table_size) {
-			const float prev_scale = _hg_table[_hg_index].scale_mg_per_lsb;
-			_hg_index++;
-			ApplyHighGFullScale(prev_scale);
-		}
-
-	} else if ((_hg_index > 0) && (now - _hg_last_clip_timestamp > HG_DEESCALATE_TIMEOUT_US)) {
-		// de-escalate one step after a sustained period without clipping to recover the
-		// lower noise floor of the smaller range (reset the timer so each step waits again)
-		const float prev_scale = _hg_table[_hg_index].scale_mg_per_lsb;
-		_hg_index--;
-		_hg_last_clip_timestamp = now;
-		ApplyHighGFullScale(prev_scale);
-	}
-}
-
-void LSM6DSV::ApplyHighGFullScale(float prev_scale_mg_per_lsb)
-{
-	const uint8_t val = static_cast<uint8_t>(CTRL1_XL_HG_BIT::ODR_XL_HG_7680 | _hg_table[_hg_index].fs_code);
-
-	// keep the periodic register check in sync with the new full-scale
-	for (auto &r : _register_cfg) {
-		if (r.reg == Register::CTRL1_XL_HG) {
-			r.set_bits = val;
-			r.clear_bits = static_cast<uint8_t>(~val);
-			break;
-		}
-	}
-
-	RegisterWrite(Register::CTRL1_XL_HG, val);
-
-	// High-g samples already batched in the FIFO were captured at the previous full-scale. Rather
-	// than flushing (which would also discard gyro and low-g samples), record what FIFORead()
-	// needs to normalize them to the new scale when they drain on the next cycle.
-	_hg_scale_changed = true;
-	_hg_stale_scale_ratio = prev_scale_mg_per_lsb / _hg_table[_hg_index].scale_mg_per_lsb;
-	_hg_scale_change_timestamp = hrt_absolute_time();
 }
