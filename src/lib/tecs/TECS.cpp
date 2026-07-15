@@ -241,11 +241,13 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param, flag);
 
-	_ste_rate_estimate_filter.reset(specific_energy_rate.spe_rate.estimate + specific_energy_rate.ske_rate.estimate);
+	_ste_rate_estimate_raw = specific_energy_rate.spe_rate.estimate + specific_energy_rate.ske_rate.estimate;
+	_ste_rate_estimate_filter.reset(_ste_rate_estimate_raw);
 
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, input, param, flag)};
+	_ste_rate_setpoint_filter.reset(ste_rate.setpoint);
 
-	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
+	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, _getControlError(ste_rate), param, flag);
 
 	// Debug output
 	_debug_output.total_energy_rate_estimate = ste_rate.estimate;
@@ -554,11 +556,28 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 {
 	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
+	// The plant cannot traverse more than the total energy rate envelope within roughly one estimate filter
+	// time constant. Faster excursions of the raw estimate are measurement transients or impulsive
+	// disturbances which the throttle cannot counteract and which especially must not wind up the
+	// integrator - slew rate limit the raw estimate accordingly. A persistent offset passes unaltered.
+	const float ste_rate_estimate_slew = dt * (limit.STE_rate_max - limit.STE_rate_min) / math::max(
+			param.ste_rate_time_const, dt);
+	_ste_rate_estimate_raw = constrain(specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate,
+					   _ste_rate_estimate_raw - ste_rate_estimate_slew, _ste_rate_estimate_raw + ste_rate_estimate_slew);
+
 	// Update STE rate estimate LP filter
-	const float STE_rate_estimate_raw = specific_energy_rates.spe_rate.estimate + specific_energy_rates.ske_rate.estimate;
 	_ste_rate_estimate_filter.setParameters(dt, param.ste_rate_time_const);
-	_ste_rate_estimate_filter.update(STE_rate_estimate_raw);
+	_ste_rate_estimate_filter.update(_ste_rate_estimate_raw);
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rates, input, param, flag)};
+
+	// Pass the setpoint through the same low-pass as the estimate so that the feedback terms compare setpoint
+	// and estimate at matching lag and only react to a genuine energy rate mismatch. Otherwise every setpoint
+	// change causes a phantom error for the duration of the filter lag, which winds up the integrator.
+	// The feedforward path uses the unfiltered setpoint.
+	_ste_rate_setpoint_filter.setParameters(dt, param.ste_rate_time_const);
+	_ste_rate_setpoint_filter.update(ste_rate.setpoint);
+	const float ste_rate_error = _ste_rate_setpoint_filter.getState() - ste_rate.estimate;
+
 	float throttle_setpoint{param.throttle_min};
 
 	if (1.f - param.fast_descend < FLT_EPSILON) {
@@ -566,9 +585,9 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 		throttle_setpoint = param.throttle_min;
 
 	} else {
-		_calcThrottleControlUpdate(dt, limit, ste_rate, param, flag);
-		throttle_setpoint = (1.f - param.fast_descend) * _calcThrottleControlOutput(limit, ste_rate, param,
-				    flag) + param.fast_descend * param.throttle_min;
+		_calcThrottleControlUpdate(dt, limit, ste_rate, ste_rate_error, param, flag);
+		throttle_setpoint = (1.f - param.fast_descend) * _calcThrottleControlOutput(limit, ste_rate, ste_rate_error,
+				    param, flag) + param.fast_descend * param.throttle_min;
 	}
 
 	// Rate limit the throttle demand
@@ -624,7 +643,7 @@ TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERat
 }
 
 void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit, const ControlValues &ste_rate,
-		const Param &param, const Flag &flag)
+		const float ste_rate_error, const Param &param, const Flag &flag)
 {
 	// Calculate gain scaler from specific energy rate error to throttle
 	const float STE_rate_to_throttle = 1.0f / (limit.STE_rate_max - limit.STE_rate_min);
@@ -633,7 +652,7 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 	if (flag.airspeed_enabled) {
 		if (param.integrator_gain_throttle > FLT_EPSILON) {
 			// underspeed conditions zero out integration
-			float throttle_integ_input = (_getControlError(ste_rate) * param.integrator_gain_throttle) * dt *
+			float throttle_integ_input = (ste_rate_error * param.integrator_gain_throttle) * dt *
 						     STE_rate_to_throttle * (1.0f - _ratio_undersped);
 
 			// only allow integrator propagation into direction which unsaturates throttle
@@ -658,7 +677,7 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 }
 
 float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const ControlValues &ste_rate,
-		const Param &param,
+		const float ste_rate_error, const Param &param,
 		const Flag &flag) const
 {
 	// Calculate gain scaler from specific energy rate error to throttle
@@ -688,7 +707,7 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 	}
 
 	// Add proportional and derivative control feedback to the predicted throttle and constrain to throttle limits
-	float throttle_setpoint = (_getControlError(ste_rate) * param.throttle_damping_gain) * STE_rate_to_throttle +
+	float throttle_setpoint = (ste_rate_error * param.throttle_damping_gain) * STE_rate_to_throttle +
 				  throttle_predicted;
 
 	if (flag.airspeed_enabled) {

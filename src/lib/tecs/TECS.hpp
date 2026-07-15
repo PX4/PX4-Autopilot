@@ -561,27 +561,31 @@ private:
 	 * @param dt is the update time intervall in [s].
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
+	 * @param ste_rate_error is the lag-matched specific total energy rate error in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 */
-	void _calcThrottleControlUpdate(float dt, const STERateLimit &limit, const ControlValues &ste_rate, const Param &param,
-					const Flag &flag);
+	void _calcThrottleControlUpdate(float dt, const STERateLimit &limit, const ControlValues &ste_rate,
+					const float ste_rate_error, const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate the throttle control output function.
 	 *
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
+	 * @param ste_rate_error is the lag-matched specific total energy rate error in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 * @return throttle setpoin in [0,1].
 	 */
-	float _calcThrottleControlOutput(const STERateLimit &limit, const ControlValues &ste_rate, const Param &param,
-					 const Flag &flag) const;
+	float _calcThrottleControlOutput(const STERateLimit &limit, const ControlValues &ste_rate,
+					 const float ste_rate_error, const Param &param, const Flag &flag) const;
 
 private:
 	// State
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_setpoint_filter;		///< Setpoint filter matching the estimate filter lag for the feedback error.
+	float _ste_rate_estimate_raw{0.0f};			///< Slew rate limited raw specific total energy rate estimate [m²/s³].
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
