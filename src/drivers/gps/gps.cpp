@@ -253,6 +253,14 @@ private:
 	float				_rate{0.0f};					///< position update rate
 	float				_rtcm_injection_rate{0.0f};			///< corrections injection rate (Hz, RTCM3 and SPARTN)
 	uint64_t			_last_rtcm_corrections_injection_count{0};	///< corrections-injection perf snapshot for rate calc
+	unsigned			_rtcm_frames_in_rate_window{0};			///< corrections-stream RTCM3 frames in rate window
+#if defined(CONFIG_GPS_SPARTN)
+	unsigned			_spartn_frames_in_rate_window {0};		///< corrections-stream SPARTN frames in rate window
+#endif
+	bool				_injecting_rtcm {false};				///< latched: RTCM3 corrections injected in last rate window
+#if defined(CONFIG_GPS_SPARTN)
+	bool				_injecting_spartn {false};			///< latched: SPARTN injected in last rate window
+#endif
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last corrections injection
@@ -348,7 +356,7 @@ private:
 	 * counting each injected frame on the given perf counter.
 	 */
 	template <typename ParserT>
-	void injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf);
+	void injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf, unsigned *frames_in_window = nullptr);
 
 	/**
 	 * send data to the device, such as an RTCM stream
@@ -759,10 +767,10 @@ void GPS::handleInjectDataTopic()
 	// hardware but which still wants fixed-base corrections over its main link. Reassemble and inject
 	// them through their own parser before touching the moving-baseline stream.
 	drainRtcmCorrections();
-	injectRtcmFrames(_rtcm_corrections_parser, _rtcm_corrections_injection_perf);
+	injectRtcmFrames(_rtcm_corrections_parser, _rtcm_corrections_injection_perf, &_rtcm_frames_in_rate_window);
 #if defined(CONFIG_GPS_SPARTN)
 	// SPARTN corrections ride the same stream, reassembled by their own parser.
-	injectRtcmFrames(_spartn_parser, _rtcm_corrections_injection_perf);
+	injectRtcmFrames(_spartn_parser, _rtcm_corrections_injection_perf, &_spartn_frames_in_rate_window);
 #endif
 
 	// Moving-baseline RTCM (RTCM 4072 etc.) from a peer moving-base GPS. Only a heading rover that
@@ -777,7 +785,7 @@ void GPS::handleInjectDataTopic()
 }
 
 template <typename ParserT>
-void GPS::injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf)
+void GPS::injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf, unsigned *frames_in_window)
 {
 	// Inject all complete frames reassembled in this parser.
 	size_t frame_len = {};
@@ -798,6 +806,10 @@ void GPS::injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf)
 		injectData(frame_ptr, frame_len);
 		parser.consumeMessage(frame_len);
 		perf_count(injection_perf);
+
+		if (frames_in_window != nullptr) {
+			(*frames_in_window)++;
+		}
 	}
 }
 
@@ -1324,9 +1336,17 @@ GPS::run()
 					const uint64_t corrections_count = perf_event_count(_rtcm_corrections_injection_perf);
 					_rtcm_injection_rate = (corrections_count - _last_rtcm_corrections_injection_count) / dt;
 					_last_rtcm_corrections_injection_count = corrections_count;
+					_injecting_rtcm = _rtcm_frames_in_rate_window > 0;
+#if defined(CONFIG_GPS_SPARTN)
+					_injecting_spartn = _spartn_frames_in_rate_window > 0;
+#endif
 					_rate_reading = _num_bytes_read / dt;
 					last_rate_measurement = now;
 					last_rate_count = 0;
+					_rtcm_frames_in_rate_window = 0;
+#if defined(CONFIG_GPS_SPARTN)
+					_spartn_frames_in_rate_window = 0;
+#endif
 					_num_bytes_read = 0;
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
@@ -1376,6 +1396,10 @@ GPS::run()
 				_healthy = false;
 				_rate = 0.0f;
 				_rtcm_injection_rate = 0.0f;
+				_injecting_rtcm = false;
+#if defined(CONFIG_GPS_SPARTN)
+				_injecting_spartn = false;
+#endif
 			}
 		}
 
@@ -1475,16 +1499,34 @@ GPS::print_status()
 
 	PX4_INFO("status: %s, port: %s, baudrate: %d", _healthy ? "OK" : "NOT OK", _port, _baudrate);
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
-	PX4_INFO("rate reading: \t\t%6i B/s", _rate_reading);
+	// Fixed-width labels so values stay aligned (longest: "rate RTCM injection")
+	PX4_INFO("rate reading:        %6i B/s", _rate_reading);
 
 	if (_sensor_gps.timestamp != 0) {
 		if (_helper) {
-			PX4_INFO("rate position: \t\t%6.2f Hz", (double)_helper->getPositionUpdateRate());
-			PX4_INFO("rate velocity: \t\t%6.2f Hz", (double)_helper->getVelocityUpdateRate());
+			PX4_INFO("rate position:       %6.2f Hz", (double)_helper->getPositionUpdateRate());
+			PX4_INFO("rate velocity:       %6.2f Hz", (double)_helper->getVelocityUpdateRate());
 		}
 
-		PX4_INFO("rate publication:\t\t%6.2f Hz", (double)_rate);
-		PX4_INFO("rate RTCM/SPARTN injection:\t%6.2f Hz", (double)_rtcm_injection_rate);
+		PX4_INFO("rate publication:    %6.2f Hz", (double)_rate);
+		PX4_INFO("rate RTCM injection: %6.2f Hz", (double)_rtcm_injection_rate);
+#if defined(CONFIG_GPS_SPARTN)
+		const char *corrections = "none";
+
+		if (_injecting_rtcm && _injecting_spartn) {
+			corrections = "RTCM + SPARTN";
+
+		} else if (_injecting_rtcm) {
+			corrections = "RTCM";
+
+		} else if (_injecting_spartn) {
+			corrections = "SPARTN";
+		}
+
+		PX4_INFO("corrections:         %s", corrections);
+#else
+		PX4_INFO("corrections:         %s", _injecting_rtcm ? "RTCM" : "none");
+#endif
 
 		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
