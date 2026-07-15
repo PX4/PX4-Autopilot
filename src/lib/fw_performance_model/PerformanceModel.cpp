@@ -61,7 +61,7 @@ PerformanceModel::PerformanceModel(): ModuleParams(nullptr)
 void PerformanceModel::setFuelFractionRemaining(float fuel_fraction_remaining)
 {
 	if (PX4_ISFINITE(fuel_fraction_remaining)) {
-		_fuel_fraction_remaining = fuel_fraction_remaining;
+		_fuel_fraction_remaining = math::constrain(fuel_fraction_remaining, 0.f, 1.f);
 	}
 }
 
@@ -90,7 +90,7 @@ float PerformanceModel::getWeightRatio() const
 		float weight = _param_weight_gross.get();
 
 		if (_param_weight_fuel.get() > FLT_EPSILON && PX4_ISFINITE(_fuel_fraction_remaining)) {
-			weight -= (1.f - math::constrain(_fuel_fraction_remaining, 0.f, 1.f)) * _param_weight_fuel.get();
+			weight -= (1.f - _fuel_fraction_remaining) * _param_weight_fuel.get();
 		}
 
 		weight_factor = math::constrain(weight / _param_weight_base.get(), kMinWeightRatio,
