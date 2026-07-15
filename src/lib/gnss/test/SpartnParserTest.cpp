@@ -98,7 +98,7 @@ protected:
 		const size_t crc_bytes = static_cast<size_t>(crc_type) + 1;
 
 		for (int i = static_cast<int>(crc_bytes) - 1; i >= 0; i--) {
-			frame.push_back(static_cast<uint8_t>((c >> (8 * i)) & 0xFF));
+			frame.push_back(static_cast<uint8_t>((c >>(8 * i)) & 0xFF));
 		}
 
 		return frame;
