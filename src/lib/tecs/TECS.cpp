@@ -711,6 +711,11 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 	_control.initialize(control_setpoint, control_input, _control_param, _control_flag);
 
+	_pitch_setpoint = _control.getPitchSetpoint();
+	_throttle_setpoint = _control.getThrottleSetpoint();
+	_pitch_setpoint_filter.reset(_pitch_setpoint);
+	_throttle_setpoint_filter.reset(_throttle_setpoint);
+
 	_fast_descend = 0.f;
 	_enabled_fast_descend_timestamp = 0U;
 }
@@ -774,6 +779,8 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 							.tas_rate = eas_to_tas * _airspeed_filter.getState().speed_rate};
 
 		_control.update(dt, control_setpoint, control_input, _control_param, _control_flag);
+
+		_updateSetpointFilters(dt, _control.getPitchSetpoint(), _control.getThrottleSetpoint());
 	}
 
 	_debug_status.control = _control.getDebugOutput();
@@ -812,4 +819,41 @@ void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 		_fast_descend = 0.f;
 		_enabled_fast_descend_timestamp = 0U;
 	}
+}
+
+void TECS::_updateSetpointFilters(const float dt, const float pitch_setpoint_raw, const float throttle_setpoint_raw)
+{
+	float pitch_setpoint = pitch_setpoint_raw;
+	float throttle_setpoint = throttle_setpoint_raw;
+
+	const float offset = _pitch_thr_response_offset;
+
+	// A first order lag with a time constant at or below one sample period (or ~zero) is
+	// meaningless: bypass the filter entirely in that case.
+	const bool filter_active = PX4_ISFINITE(offset) && (fabsf(offset) > FLT_EPSILON) && (fabsf(offset) > dt);
+
+	if (filter_active) {
+		if (offset > 0.f) {
+			// The pitch loop responds faster: lag the pitch setpoint.
+			_pitch_setpoint_filter.setParameters(dt, offset);
+			pitch_setpoint = _pitch_setpoint_filter.update(pitch_setpoint_raw);
+			_throttle_setpoint_filter.reset(throttle_setpoint_raw); // keep the inactive filter primed
+
+		} else {
+			// The throttle loop responds faster: lag the throttle setpoint.
+			_throttle_setpoint_filter.setParameters(dt, -offset);
+			throttle_setpoint = _throttle_setpoint_filter.update(throttle_setpoint_raw);
+			_pitch_setpoint_filter.reset(pitch_setpoint_raw); // keep the inactive filter primed
+		}
+
+	} else {
+		// Disabled: pass through, keep both filters primed for a bumpless activation.
+		_pitch_setpoint_filter.reset(pitch_setpoint_raw);
+		_throttle_setpoint_filter.reset(throttle_setpoint_raw);
+	}
+
+	// The alpha filter output is a convex combination of already constrained values, so the
+	// filtered setpoints cannot violate the control limits and need no re-constraining.
+	_pitch_setpoint = pitch_setpoint;
+	_throttle_setpoint = throttle_setpoint;
 }

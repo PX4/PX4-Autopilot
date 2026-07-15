@@ -180,6 +180,25 @@ parameters:
       max: 3
       decimal: 2
       increment: 0.01
+    FW_T_PIT_THR_LAG:
+      description:
+        short: Pitch vs. throttle loop response time offset
+        long: |-
+          Time by which the pitch-setpoint-to-pitch response is faster than the
+          throttle-setpoint-to-longitudinal-acceleration response. The TECS output
+          setpoint of the faster loop is lagged by a first order low-pass filter
+          with this time constant to synchronize the energy distribution.
+
+          Positive: the pitch loop is faster, the pitch setpoint is filtered.
+          Negative: the throttle loop is faster, the throttle setpoint is filtered.
+          Zero (or a magnitude below the controller sample time) disables the filter.
+      type: float
+      default: 0.0
+      unit: s
+      min: -5.0
+      max: 5.0
+      decimal: 2
+      increment: 0.05
     FW_WIND_ARSP_SC:
       description:
         short: Wind-based airspeed scaling factor

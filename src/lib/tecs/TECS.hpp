@@ -656,6 +656,15 @@ public:
 	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; };
 
 	/**
+	 * Set the response time offset between the pitch and the throttle loop [s].
+	 *
+	 * Positive: the pitch loop responds faster, the pitch setpoint is lagged by this time constant.
+	 * Negative: the throttle loop responds faster, the throttle setpoint is lagged by its magnitude.
+	 * A magnitude of zero or below the controller sample time disables the filtering.
+	 */
+	void set_pitch_thr_response_offset(float time_constant) { _pitch_thr_response_offset = time_constant; };
+
+	/**
 	 * Handle the altitude reset
 	 *
 	 * If the estimation system resets the height in one discrete step this
@@ -670,8 +679,8 @@ public:
 		_altitude_reference_model.initialize(init_state);
 	}
 
-	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
-	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
+	float get_pitch_setpoint() {return _pitch_setpoint;}
+	float get_throttle_setpoint() {return _throttle_setpoint;}
 
 	/**
 	 * Returns the altitude tracking time constant
@@ -710,6 +719,24 @@ private:
 	void initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
 			float eas_to_tas);
 
+	/**
+	 * @brief Synchronize the pitch and throttle setpoints for different loop response times.
+	 *
+	 * Lags the setpoint of the faster loop by a first order low-pass (alpha) filter with the
+	 * time constant set through set_pitch_thr_response_offset(). Bypasses (pass-through) if the
+	 * time constant magnitude is not above both FLT_EPSILON and the sample time dt.
+	 *
+	 * @param dt is the update sample time [s]
+	 * @param pitch_setpoint_raw is the unfiltered pitch setpoint from the control submodule [rad]
+	 * @param throttle_setpoint_raw is the unfiltered throttle setpoint from the control submodule [norm]
+	 */
+	void _updateSetpointFilters(float dt, float pitch_setpoint_raw, float throttle_setpoint_raw);
+
+	FRIEND_TEST(TECSSetpointFilterTest, PositiveOffsetLagsPitchSetpointOnly);
+	FRIEND_TEST(TECSSetpointFilterTest, NegativeOffsetLagsThrottleSetpointOnly);
+	FRIEND_TEST(TECSSetpointFilterTest, OffsetBelowSampleTimeIsBypassed);
+	FRIEND_TEST(TECSSetpointFilterTest, EnablingFilterInFlightIsBumpless);
+
 	TECSControl 			_control;			///< Control submodule.
 	TECSAirspeedFilter 		_airspeed_filter;		///< Airspeed filter submodule.
 	TECSAltitudeReferenceModel 	_altitude_reference_model;	///< Setpoint reference model submodule.
@@ -721,6 +748,12 @@ private:
 	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
 	hrt_abstime _enabled_fast_descend_timestamp{0U};		///< timestamp at activation of fast descend mode
+
+	float _pitch_thr_response_offset{0.0f};				///< [s] response time offset between pitch and throttle loop, see set_pitch_thr_response_offset()
+	AlphaFilter<float> _pitch_setpoint_filter;			///< lag filter on the pitch setpoint (active if _pitch_thr_response_offset > 0)
+	AlphaFilter<float> _throttle_setpoint_filter;			///< lag filter on the throttle setpoint (active if _pitch_thr_response_offset < 0)
+	float _pitch_setpoint{0.0f};					///< output pitch setpoint above trim, filtered if the lag filter is active [rad]
+	float _throttle_setpoint{0.0f};					///< output throttle setpoint, filtered if the lag filter is active [norm]
 
 	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
 	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)

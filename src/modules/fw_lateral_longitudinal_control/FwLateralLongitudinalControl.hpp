@@ -159,6 +159,7 @@ private:
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
 		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
+		(ParamFloat<px4::params::FW_T_PIT_THR_LAG>) _param_fw_t_pit_thr_lag,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,

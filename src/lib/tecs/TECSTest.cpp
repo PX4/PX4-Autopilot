@@ -204,3 +204,98 @@ TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
 		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
 	}
 }
+
+// --- Pitch/throttle loop response time offset (FW_T_PIT_THR_LAG) ------------------------------
+
+// A positive offset (pitch loop faster) must lag only the pitch setpoint towards a step in the
+// raw setpoint, while the throttle setpoint passes through unfiltered.
+TEST(TECSSetpointFilterTest, PositiveOffsetLagsPitchSetpointOnly)
+{
+	TECS tecs;
+	tecs.set_pitch_thr_response_offset(1.f); // pitch loop 1s faster
+	tecs.initialize(100.f, 0.f, 15.f, 1.f);
+
+	const float pitch_initial = tecs.get_pitch_setpoint();
+	const float dt = 0.02f;
+	const float pitch_step = pitch_initial + radians(10.f);
+	const float throttle_step = 0.8f;
+
+	tecs._updateSetpointFilters(dt, pitch_step, throttle_step);
+
+	// After one sample the filtered pitch setpoint must have moved towards the step but not
+	// reached it, the throttle setpoint must have passed through unchanged.
+	EXPECT_GT(tecs.get_pitch_setpoint(), pitch_initial);
+	EXPECT_LT(tecs.get_pitch_setpoint(), pitch_step);
+	EXPECT_FLOAT_EQ(tecs.get_throttle_setpoint(), throttle_step);
+
+	// The filter must converge onto a constant setpoint.
+	for (int i = 0; i < 1000; i++) {
+		tecs._updateSetpointFilters(dt, pitch_step, throttle_step);
+	}
+
+	EXPECT_NEAR(tecs.get_pitch_setpoint(), pitch_step, 1e-3f);
+}
+
+// A negative offset (throttle loop faster) must lag only the throttle setpoint.
+TEST(TECSSetpointFilterTest, NegativeOffsetLagsThrottleSetpointOnly)
+{
+	TECS tecs;
+	tecs.set_pitch_thr_response_offset(-1.f); // throttle loop 1s faster
+	tecs.initialize(100.f, 0.f, 15.f, 1.f);
+
+	const float throttle_initial = tecs.get_throttle_setpoint();
+	const float dt = 0.02f;
+	const float pitch_step = radians(10.f);
+	const float throttle_step = throttle_initial + 0.3f;
+
+	tecs._updateSetpointFilters(dt, pitch_step, throttle_step);
+
+	EXPECT_GT(tecs.get_throttle_setpoint(), throttle_initial);
+	EXPECT_LT(tecs.get_throttle_setpoint(), throttle_step);
+	EXPECT_FLOAT_EQ(tecs.get_pitch_setpoint(), pitch_step);
+}
+
+// An offset magnitude at or below the sample time (and thus also exactly zero) is meaningless
+// for a first order lag and must result in exact pass-through on both channels.
+TEST(TECSSetpointFilterTest, OffsetBelowSampleTimeIsBypassed)
+{
+	const float dt = 0.02f;
+	const float pitch_step = radians(10.f);
+	const float throttle_step = 0.8f;
+
+	for (const float offset : {0.f, 0.5f * FLT_EPSILON, 0.01f, dt, -0.01f, NAN}) {
+		TECS tecs;
+		tecs.set_pitch_thr_response_offset(offset);
+		tecs.initialize(100.f, 0.f, 15.f, 1.f);
+
+		tecs._updateSetpointFilters(dt, pitch_step, throttle_step);
+
+		EXPECT_FLOAT_EQ(tecs.get_pitch_setpoint(), pitch_step) << "offset: " << offset;
+		EXPECT_FLOAT_EQ(tecs.get_throttle_setpoint(), throttle_step) << "offset: " << offset;
+	}
+}
+
+// Enabling the filter mid-operation must be bumpless: the inactive filter state is kept primed
+// on the pass-through value, so the first filtered sample starts from the last output.
+TEST(TECSSetpointFilterTest, EnablingFilterInFlightIsBumpless)
+{
+	TECS tecs;
+	tecs.set_pitch_thr_response_offset(0.f); // disabled
+	tecs.initialize(100.f, 0.f, 15.f, 1.f);
+
+	const float dt = 0.02f;
+	const float pitch_setpoint = radians(5.f);
+	const float throttle_setpoint = 0.6f;
+
+	// Run disabled for a while on a steady setpoint.
+	for (int i = 0; i < 10; i++) {
+		tecs._updateSetpointFilters(dt, pitch_setpoint, throttle_setpoint);
+	}
+
+	// Enable the filter in flight with an unchanged setpoint: the output must not jump.
+	tecs.set_pitch_thr_response_offset(1.f);
+	tecs._updateSetpointFilters(dt, pitch_setpoint, throttle_setpoint);
+
+	EXPECT_FLOAT_EQ(tecs.get_pitch_setpoint(), pitch_setpoint);
+	EXPECT_FLOAT_EQ(tecs.get_throttle_setpoint(), throttle_setpoint);
+}
