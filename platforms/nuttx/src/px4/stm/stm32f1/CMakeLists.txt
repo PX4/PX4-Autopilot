@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(../stm32_common/adc adc)
 add_subdirectory(../stm32_common/io_pins io_pins)
 add_subdirectory(../stm32_common/spi spi)
 add_subdirectory(../stm32_common/hrt hrt)

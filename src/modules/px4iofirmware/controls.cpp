@@ -43,6 +43,7 @@
 #include <stdbool.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_adc.h>
 #include <systemlib/ppm_decode.h>
 #include <rc/st24.h>
 #include <rc/sumd.h>
@@ -221,7 +222,7 @@ controls_tick()
 #ifdef ADC_RSSI
 
 	if (r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) {
-		unsigned counts = adc_measure(ADC_RSSI);
+		unsigned counts = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_RSSI);
 
 		if (counts != 0xffff) {
 			/* low pass*/
