@@ -465,7 +465,7 @@ private:
 	 * @param flag is the control flags.
 	 * @return Weights used for the specific energy balance.
 	 */
-	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
+	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag) const;
 	/**
 	 * @brief Calculate pitch control.
 	 *
@@ -507,6 +507,16 @@ private:
 	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
 
 	/**
+	 * @brief Get the airspeed used to convert between climb angle and specific energy balance rate.
+	 *
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return airspeed for the climb angle to specific energy balance rate conversion in [m/s].
+	 */
+	float _airspeedForSebRate(const Input &input, const Param &param, const Flag &flag) const;
+
+	/**
 	 * @brief Calculate the pitch control output function.
 	 *
 	 * @param input is the current input measurement of the UAS.
@@ -523,21 +533,26 @@ private:
 	 *
 	 * @param dt is the update time intervall in [s].
 	 * @param specific_energy_rate is the calculated specific energy.
+	 * @param input is the current input measurement of the UAS.
 	 * @param flag is the control flags.
 	 */
-	void _calcThrottleControl(float dt, const SpecificEnergyRates &specific_energy_rate, const Param &param,
-				  const Flag &flag);
+	void _calcThrottleControl(float dt, const SpecificEnergyRates &specific_energy_rate, const Input &input,
+				  const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate throttle control specific total energy
+	 * The setpoint is the potential energy rate implied by the pitch setpoint plus the kinetic energy
+	 * rate demanded for airspeed convergence, keeping the throttle consistent with the pitch loop.
 	 *
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
+	 * @param input is the current input measurement of the UAS.
 	 * @param param is the control parameters.
+	 * @param flag is the control flags.
 	 * @return specific total energy rate values in [m²/s³]
 	 */
 	ControlValues _calcThrottleControlSteRate(const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
-			const Param &param) const;
+			const Input &input, const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Calculate the throttle control update function.
