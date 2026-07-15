@@ -42,16 +42,17 @@ uint32_t SpartnParser::messageCrc(const uint8_t *data, size_t len, uint8_t crc_t
 {
 	// SPARTN TF005: 0=CRC-8 poly 0x07, 1=CRC-16 poly 0x1021,
 	// 2=CRC-24 poly 0x864CFB, 3=CRC-32 poly 0x04C11DB7 init/xor ~0
-	const unsigned n = 8u * (crc_type + 1u);
-	const uint32_t poly = (crc_type == 0) ? 0x07u :
-			      (crc_type == 1) ? 0x1021u :
-			      (crc_type == 2) ? 0x864CFBu : 0x04C11DB7u;
-	const uint32_t top = 1u << n;
-	const uint32_t g = top | poly;
-	uint32_t crc = (crc_type == 3) ? 0xFFFFFFFFu : 0u;
+	// Use uint64_t so n==32 (CRC-32) does not shift a 32-bit value by 32.
+	const unsigned n = 8u * (static_cast<unsigned>(crc_type) + 1u);
+	const uint64_t poly = (crc_type == 0) ? 0x07ull :
+			      (crc_type == 1) ? 0x1021ull :
+			      (crc_type == 2) ? 0x864CFBull : 0x04C11DB7ull;
+	const uint64_t top = 1ull << n;
+	const uint64_t g = top | poly;
+	uint64_t crc = (crc_type == 3) ? 0xFFFFFFFFull : 0ull;
 
 	for (size_t i = 0; i < len; i++) {
-		crc ^= static_cast<uint32_t>(data[i]) << (n - 8);
+		crc ^= static_cast<uint64_t>(data[i]) << (n - 8);
 
 		for (int b = 0; b < 8; b++) {
 			crc <<= 1;
@@ -63,10 +64,10 @@ uint32_t SpartnParser::messageCrc(const uint8_t *data, size_t len, uint8_t crc_t
 	}
 
 	if (crc_type == 3) {
-		crc ^= 0xFFFFFFFFu;
+		crc ^= 0xFFFFFFFFull;
 	}
 
-	return crc & (top - 1);
+	return static_cast<uint32_t>(crc & (top - 1ull));
 }
 
 size_t SpartnParser::addData(const uint8_t *data, size_t len)

@@ -70,16 +70,16 @@ protected:
 		frame.insert(frame.end(), payload.begin(), payload.end());
 
 		// Message CRC over TF002..end of payload (same poly as SpartnParser)
-		const unsigned n = 8u * (crc_type + 1u);
-		const uint32_t poly = (crc_type == 0) ? 0x07u :
-				      (crc_type == 1) ? 0x1021u :
-				      (crc_type == 2) ? 0x864CFBu : 0x04C11DB7u;
-		const uint32_t top = 1u << n;
-		const uint32_t g = top | poly;
-		uint32_t c = (crc_type == 3) ? 0xFFFFFFFFu : 0u;
+		const unsigned n = 8u * (static_cast<unsigned>(crc_type) + 1u);
+		const uint64_t poly = (crc_type == 0) ? 0x07ull :
+				      (crc_type == 1) ? 0x1021ull :
+				      (crc_type == 2) ? 0x864CFBull : 0x04C11DB7ull;
+		const uint64_t top = 1ull << n;
+		const uint64_t g = top | poly;
+		uint64_t c = (crc_type == 3) ? 0xFFFFFFFFull : 0ull;
 
 		for (size_t i = 1; i < frame.size(); i++) {
-			c ^= static_cast<uint32_t>(frame[i]) << (n - 8);
+			c ^= static_cast<uint64_t>(frame[i]) << (n - 8);
 
 			for (int b = 0; b < 8; b++) {
 				c <<= 1;
@@ -91,14 +91,14 @@ protected:
 		}
 
 		if (crc_type == 3) {
-			c ^= 0xFFFFFFFFu;
+			c ^= 0xFFFFFFFFull;
 		}
 
-		c &= (top - 1);
+		c &= (top - 1ull);
 		const size_t crc_bytes = static_cast<size_t>(crc_type) + 1;
 
 		for (int i = static_cast<int>(crc_bytes) - 1; i >= 0; i--) {
-			frame.push_back(static_cast<uint8_t>((c >>(8 * i)) & 0xFF));
+			frame.push_back(static_cast<uint8_t>((c >> (8 * i)) & 0xFF));
 		}
 
 		return frame;
