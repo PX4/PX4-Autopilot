@@ -135,10 +135,6 @@ private:
 	void ConfigureFIFOWatermark(uint8_t samples);
 	void UpdateVariantRegisterConfig();
 
-	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X)
-	void ManageHighGFullScale(bool high_g_clipping);
-	void ApplyHighGFullScale(float prev_scale_mg_per_lsb);
-
 	const spi_drdy_gpio_t _drdy_gpio;
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
@@ -180,18 +176,11 @@ private:
 	// 320 -> LSM6DSV320X, anything else (incl. 80 / unset) -> LSM6DSV80X.
 	const int _highg_variant_arg;
 
-	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X): published in place of the
-	// low-g channel whenever the low-g channel clips. Full-scale auto-escalates through the
-	// variant's _hg_table on high-g clipping and de-escalates after a sustained quiet period.
+	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X): published in place of the low-g
+	// channel whenever the low-g channel clips, pinned at the variant's top full-scale (see
+	// HIGH_G_FS_DSV80X / HIGH_G_FS_DSV320X).
 	bool _high_g_enabled{false};
-	const HighGFullScale *_hg_table{nullptr}; // ascending full-scale steps for this variant
-	uint8_t _hg_table_size{0};
-	uint8_t _hg_index{0};                     // current step within _hg_table
-	bool _hg_scale_changed{false};            // high-g samples from before a full-scale change may still be batched
-	float _hg_stale_scale_ratio{1.f};         // previous/current sensitivity ratio to normalize those samples
-	hrt_abstime _hg_scale_change_timestamp{0};
-	hrt_abstime _hg_last_clip_timestamp{0};
-	static constexpr hrt_abstime HG_DEESCALATE_TIMEOUT_US{2'000'000}; // 2 s
+	const HighGFullScale *_hg_fs{nullptr};
 
 	uint16_t _fifo_empty_interval_us{500}; // default 500 us / 2000 Hz
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_ODR))};
