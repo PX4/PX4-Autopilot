@@ -441,14 +441,7 @@ void Navigator::run()
 						// position. This lets a Hold/pause continue the existing orbit. Non-circular
 						// patterns (e.g. figure-eight) are not continued: a Hold reverts to a plain
 						// loiter circle so we never mix patterns.
-						const bool established_on_orbit = curr->current.valid
-										  && curr->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-										  && curr->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT
-										  && get_distance_to_next_waypoint(curr->current.lat, curr->current.lon,
-												  get_global_position()->lat, get_global_position()->lon)
-										  <= (get_acceptance_radius() + fabsf(curr->current.loiter_radius));
-
-						if (established_on_orbit) {
+						if (is_established_on_loiter(curr->current)) {
 							rep->current.lat = curr->current.lat;
 							rep->current.lon = curr->current.lon;
 							rep->current.loiter_radius = curr->current.loiter_radius;
@@ -1199,19 +1192,10 @@ void Navigator::geofence_breach_check()
 				double loiter_center_lat = _global_pos.lat;
 				double loiter_center_lon = _global_pos.lon;
 
-				if (current.valid && current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-				    && current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
-					// if we are established on a loiter, continue loitering
-					const float dist_to_center = get_distance_to_next_waypoint(
-									     current.lat, current.lon,
-									     _global_pos.lat, _global_pos.lon);
-					const bool established_on_loiter = dist_to_center <= (get_acceptance_radius()
-									   + fabsf(current.loiter_radius));
-
-					if (established_on_loiter) {
-						loiter_center_lat = current.lat;
-						loiter_center_lon = current.lon;
-					}
+				// if we are established on a loiter, continue loitering
+				if (is_established_on_loiter(current)) {
+					loiter_center_lat = current.lat;
+					loiter_center_lon = current.lon;
 				}
 
 				// loiter at the current position; we no longer predict ahead of the vehicle
@@ -1392,6 +1376,20 @@ float Navigator::get_acceptance_radius()
 	}
 
 	return acceptance_radius;
+}
+
+bool Navigator::is_established_on_loiter(const position_setpoint_s &sp)
+{
+	if (!sp.valid
+	    || sp.type != position_setpoint_s::SETPOINT_TYPE_LOITER
+	    || sp.loiter_pattern != position_setpoint_s::LOITER_TYPE_ORBIT) {
+		return false;
+	}
+
+	const float dist_to_center = get_distance_to_next_waypoint(sp.lat, sp.lon,
+				     get_global_position()->lat, get_global_position()->lon);
+
+	return dist_to_center <= (get_acceptance_radius() + fabsf(sp.loiter_radius));
 }
 
 bool Navigator::get_yaw_to_be_accepted(float mission_item_yaw)

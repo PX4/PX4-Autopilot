@@ -264,22 +264,12 @@ void RtlDirect::set_rtl_item()
 			// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
 			// keep that loiter's center and radius while climbing instead of re-centering the circle on
 			// the current position.
-			if (_setpoint_on_activation.valid
-			    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-			    && _setpoint_on_activation.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
-				const float dist_to_center = get_distance_to_next_waypoint(
-								     _setpoint_on_activation.lat, _setpoint_on_activation.lon,
-								     _global_pos_sub.get().lat, _global_pos_sub.get().lon);
-				const bool established_on_loiter = dist_to_center <= (_navigator->get_acceptance_radius()
-								   + fabsf(_setpoint_on_activation.loiter_radius));
-
-				if (established_on_loiter) {
-					loiter_center_lat = _setpoint_on_activation.lat;
-					loiter_center_lon = _setpoint_on_activation.lon;
-					// loiter_radius sign encodes direction (negative == counter-clockwise).
-					loiter_radius = _setpoint_on_activation.loiter_direction_counter_clockwise ?
-							-_setpoint_on_activation.loiter_radius : _setpoint_on_activation.loiter_radius;
-				}
+			if (_navigator->is_established_on_loiter(_setpoint_on_activation)) {
+				loiter_center_lat = _setpoint_on_activation.lat;
+				loiter_center_lon = _setpoint_on_activation.lon;
+				// loiter_radius sign encodes direction (negative == counter-clockwise).
+				loiter_radius = _setpoint_on_activation.loiter_direction_counter_clockwise ?
+						-_setpoint_on_activation.loiter_radius : _setpoint_on_activation.loiter_radius;
 			}
 
 			PositionYawSetpoint pos_yaw_sp {

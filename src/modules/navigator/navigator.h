@@ -228,6 +228,20 @@ public:
 	float get_acceptance_radius();
 
 	/**
+	 * Check whether the vehicle is currently established on a circular loiter (orbit)
+	 * defined by the given setpoint.
+	 *
+	 * True only if the setpoint is a valid ORBIT-pattern loiter and the vehicle is within
+	 * one acceptance radius of the loiter circle. Used to decide whether a Hold/pause,
+	 * geofence loiter or RTL climb should continue the existing orbit instead of
+	 * re-centering it on the current position.
+	 *
+	 * @param sp the loiter setpoint to test against
+	 * @return true if the vehicle is established on the orbit described by sp
+	 */
+	bool is_established_on_loiter(const position_setpoint_s &sp);
+
+	/**
 	 * Get the altitude acceptance radius
 	 *
 	 * @return the distance from the target altitude before considering the waypoint reached
