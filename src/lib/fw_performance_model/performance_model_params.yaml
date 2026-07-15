@@ -81,11 +81,9 @@ parameters:
       description:
         short: Weight of a full fuel load
         long: |-
-          Mass of the fuel at maximum fuel tank capacity. If set, together with WEIGHT_BASE
-          and WEIGHT_GROSS, the vehicle weight used for performance scaling is reduced by the burned fuel mass derived from
-          the fuel tank status. WEIGHT_GROSS then corresponds to the takeoff weight with a full fuel load. A zero or negative
-          value disables fuel-based weight compensation.
-          Only a single fuel tank is supported: reports from additional tank ids are ignored.
+          Mass of a full fuel load. If set together with WEIGHT_BASE and WEIGHT_GROSS, the weight used for
+          performance scaling is reduced by the burned fuel reported in the fuel tank status.
+          Only a single fuel tank is supported. A zero or negative value disables fuel-based weight compensation.
       type: float
       default: -1.0
       unit: kg
