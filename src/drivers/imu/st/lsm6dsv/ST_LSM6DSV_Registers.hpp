@@ -77,7 +77,6 @@ static constexpr uint8_t HAODR_MODE1_ODR_2000HZ = 0x0A;
 // High-g variants (LSM6DSV80X / LSM6DSV320X) ODR: HAODR_SEL=00, code 0x0C = 7680 Hz
 // (device max; matches the high-g channel ODR set so all channels co-batch at one rate)
 static constexpr uint32_t GYRO_ODR_HIGHG  = 7680;
-static constexpr uint32_t ACCEL_ODR_HIGHG = 7680;
 static constexpr uint8_t HAODR_SEL0_ODR_7680HZ = 0x0C;
 
 enum class Register : uint8_t {
