@@ -225,7 +225,7 @@ public:
 	 *
 	 * @return the distance at which the next waypoint should be used
 	 */
-	float get_acceptance_radius();
+	float get_acceptance_radius() const;
 
 	/**
 	 * Check whether the vehicle is currently established on a circular loiter (orbit)
@@ -239,7 +239,7 @@ public:
 	 * @param sp the loiter setpoint to test against
 	 * @return true if the vehicle is established on the orbit described by sp
 	 */
-	bool is_established_on_loiter(const position_setpoint_s &sp);
+	bool is_established_on_loiter(const position_setpoint_s &sp) const;
 
 	/**
 	 * Get the altitude acceptance radius

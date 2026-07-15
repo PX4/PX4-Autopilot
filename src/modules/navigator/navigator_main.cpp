@@ -1353,7 +1353,7 @@ float Navigator::get_cruising_throttle()
 	}
 }
 
-float Navigator::get_acceptance_radius()
+float Navigator::get_acceptance_radius() const
 {
 	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
 
@@ -1378,7 +1378,7 @@ float Navigator::get_acceptance_radius()
 	return acceptance_radius;
 }
 
-bool Navigator::is_established_on_loiter(const position_setpoint_s &sp)
+bool Navigator::is_established_on_loiter(const position_setpoint_s &sp) const
 {
 	if (!sp.valid
 	    || sp.type != position_setpoint_s::SETPOINT_TYPE_LOITER
@@ -1386,8 +1386,7 @@ bool Navigator::is_established_on_loiter(const position_setpoint_s &sp)
 		return false;
 	}
 
-	const float dist_to_center = get_distance_to_next_waypoint(sp.lat, sp.lon,
-				     get_global_position()->lat, get_global_position()->lon);
+	const float dist_to_center = get_distance_to_next_waypoint(sp.lat, sp.lon, _global_pos.lat, _global_pos.lon);
 
 	return dist_to_center <= (get_acceptance_radius() + fabsf(sp.loiter_radius));
 }
