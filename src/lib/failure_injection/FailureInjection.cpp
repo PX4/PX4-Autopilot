@@ -35,6 +35,7 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
 
 namespace failure_injection
@@ -80,15 +81,46 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 	return Mode::Ok;
 }
 
-void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
+bool process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
 {
-	if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance) != Mode::Off) {
-		return;
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance);
+
+	if (mode == Mode::Off) {
+		// Suppress the publication so the pack reads disconnected.
+		return false;
 	}
 
-	// Report a depleted pack so the low-battery failsafe triggers.
-	battery_status.remaining = 0.f;
-	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+	if (mode == Mode::Wrong) {
+		int32_t level = battery_status_s::WARNING_CRITICAL;
+		param_get(param_find("SYS_FAIL_BAT_LVL"), &level);
+
+		const char *threshold_param = "BAT_CRIT_THR";
+
+		switch (level) {
+		case battery_status_s::WARNING_LOW:
+			battery_status.warning = battery_status_s::WARNING_LOW;
+			threshold_param = "BAT_LOW_THR";
+			break;
+
+		case battery_status_s::WARNING_EMERGENCY:
+			battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+			threshold_param = "BAT_EMERGEN_THR";
+			break;
+
+		case battery_status_s::WARNING_CRITICAL:
+		default:
+			battery_status.warning = battery_status_s::WARNING_CRITICAL;
+			break;
+		}
+
+		// Report the remaining charge just below the selected threshold so the
+		// matching stage of the low-battery failsafe triggers.
+		float threshold = 0.f;
+		param_get(param_find(threshold_param), &threshold);
+		battery_status.remaining = (threshold > 0.01f) ? (threshold - 0.01f) : 0.f;
+	}
+
+	return true;
 }
 
 } // namespace failure_injection
