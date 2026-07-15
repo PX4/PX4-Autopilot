@@ -40972,7 +40972,7 @@ Eagle Tree airspeed sensor (external I2C).
 
 ### SENS_EN_GPSSIM (`INT32`) {#SENS_EN_GPSSIM}
 
-Enable simulated GPS sinstance.
+Enable simulated GPS instance.
 
 **Values:**
 
@@ -47657,7 +47657,7 @@ Yaw differential gain.
 
 ### UUV_YAW_P (`FLOAT`) {#UUV_YAW_P}
 
-Yawh proportional gain.
+Yaw proportional gain.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
