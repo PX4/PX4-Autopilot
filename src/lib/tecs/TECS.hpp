@@ -481,13 +481,19 @@ private:
 
 	/**
 	 * @brief Calculate pitch control specific energy balance rates.
+	 * The potential energy rate demand is constrained such that the total energy rate demand stays
+	 * within the envelope the throttle can deliver.
 	 *
 	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
 	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+					       const SpecificEnergyRates &specific_energy_rate, const STERateLimit &limit,
+					       const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Calculate the pitch control update function.

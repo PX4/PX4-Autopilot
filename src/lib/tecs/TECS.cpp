@@ -234,12 +234,12 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	_detectUnderspeed(input, param, flag);
 
+	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
+
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate)};
+	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate, limit, param, flag)};
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param, flag);
-
-	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
 
 	_ste_rate_estimate_filter.reset(specific_energy_rate.spe_rate.estimate + specific_energy_rate.ske_rate.estimate);
 
@@ -406,7 +406,8 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 				    const Param &param, const Flag &flag)
 {
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates)};
+	const STERateLimit limit{_calculateTotalEnergyRateLimit(param)};
+	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates, limit, param, flag)};
 
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param, flag)};
@@ -425,9 +426,32 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 }
 
 TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-		const SpecificEnergyRates &specific_energy_rates) const
+		const SpecificEnergyRates &specific_energy_rates, const STERateLimit &limit, const Param &param,
+		const Flag &flag) const
 {
 	ControlValues seb_rate;
+
+	float spe_rate_setpoint = specific_energy_rates.spe_rate.setpoint;
+
+	if (flag.airspeed_enabled && (weight.spe_weighting > FLT_EPSILON)) {
+		// Back off the potential energy rate demand such that the total energy rate demand stays within the
+		// envelope the throttle can deliver. Otherwise pitch demands a climb/sink the throttle cannot back
+		// up, and the total energy deficit/surplus is drained from/pushed into kinetic energy, i.e. becomes
+		// an airspeed error. Two conditions need to hold:
+		// a) instantaneous: the weighted feedforward (this demand weighted plus the kinetic energy rate and
+		//    turn drag terms added by the throttle loop, see _calcThrottleControlSteRate) is deliverable;
+		// b) asymptotic: the pitch integrator drives the realized potential energy rate all the way to this
+		//    demand (the energy balance error is only zero there, independent of the weighting) while the
+		//    kinetic energy rate demand decays to zero, so the demand itself must also be deliverable.
+		const float turn_drag_offset = param.load_factor_correction * (param.load_factor - 1.0f);
+		const float ske_rate_term = weight.ske_weighting * specific_energy_rates.ske_rate.setpoint + turn_drag_offset;
+		spe_rate_setpoint = constrain(spe_rate_setpoint,
+					      math::max((limit.STE_rate_min - ske_rate_term) / weight.spe_weighting,
+							limit.STE_rate_min - turn_drag_offset),
+					      math::min((limit.STE_rate_max - ske_rate_term) / weight.spe_weighting,
+							limit.STE_rate_max - turn_drag_offset));
+	}
+
 	/*
 	 * The SKE_weighting variable controls how speed and altitude control are prioritized by the pitch demand calculation.
 	 * A weighting of 1 gives equal speed and altitude priority
@@ -438,7 +462,7 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	 * rises above the demanded value, the pitch angle demand is increased by the TECS controller to prevent the vehicle overspeeding.
 	 * The weighting can be adjusted between 0 and 2 depending on speed and altitude accuracy requirements.
 	*/
-	seb_rate.setpoint = specific_energy_rates.spe_rate.setpoint * weight.spe_weighting -
+	seb_rate.setpoint = spe_rate_setpoint * weight.spe_weighting -
 			    specific_energy_rates.ske_rate.setpoint *
 			    weight.ske_weighting;
 
