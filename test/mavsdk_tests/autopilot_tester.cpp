@@ -413,11 +413,36 @@ void AutopilotTester::execute_land()
 	REQUIRE(Action::Result::Success == _action->land());
 }
 
+void AutopilotTester::start_offboard_with_retry(const std::function<void()> &resend_setpoint)
+{
+	// MAVSDK's offboard watchdog resets the setpoint state to NotActive when a
+	// heartbeat without offboard mode arrives more than 3 s after _last_started
+	// — which is only ever set by start(), so before the first start() it is
+	// epoch zero and the guard is always true. At high sim speed factors
+	// heartbeats arrive every few milliseconds of wall time, so one can slip in
+	// between set_*() and start(), making start() fail with NoSetpointSet.
+	// Re-send the setpoint and retry until the command goes out.
+	Offboard::Result result{};
+
+	for (int i = 0; i < 10; ++i) {
+		result = _offboard->start();
+
+		if (result == Offboard::Result::Success) {
+			return;
+		}
+
+		resend_setpoint();
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	}
+
+	REQUIRE(result == Offboard::Result::Success);
+}
+
 void AutopilotTester::offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m,
 				    std::chrono::seconds timeout_duration)
 {
 	_offboard->set_position_ned(target);
-	REQUIRE(_offboard->start() == Offboard::Result::Success);
+	start_offboard_with_retry([this, target]() { _offboard->set_position_ned(target); });
 	CHECK(poll_condition_with_timeout(
 	[ = ]() { return estimated_position_close_to(target, acceptance_radius_m); }, timeout_duration));
 	std::cout << time_str() << "Target position reached" << std::endl;
@@ -575,7 +600,7 @@ void AutopilotTester::fly_forward_in_offboard_attitude()
 
 	Offboard::Attitude attitude{};
 	_offboard->set_attitude(attitude);
-	REQUIRE(_offboard->start() == Offboard::Result::Success);
+	start_offboard_with_retry([this, attitude]() { _offboard->set_attitude(attitude); });
 
 	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
