@@ -1,0 +1,5 @@
+target_manager文件夹负责
+1.订阅Mavlink
+2.检查时间戳timestamp
+3.检查置信度confidence
+4.发布uORB
