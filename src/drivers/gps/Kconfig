@@ -42,6 +42,14 @@ if DRIVERS_GPS
 			Generic NMEA driver, including Unicore extensions.
 			Never auto-detected: it must be selected explicitly via
 			GPS_x_PROTOCOL or the -p command line option.
+
+	config GPS_SPARTN
+		bool "SPARTN correction framing (e.g. PointPerfect)"
+		default y
+		---help---
+			Frame and inject SPARTN corrections from gps_inject_data
+			alongside RTCM3. Disable on flash-tight FMU targets when
+			needed; leave enabled for SITL and RTK GPS nodes.
 endif # DRIVERS_GPS
 
 menuconfig USER_GPS

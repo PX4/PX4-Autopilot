@@ -71,6 +71,9 @@
 
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/gnss/rtcm.h>
+#if defined(CONFIG_GPS_SPARTN)
+# include <lib/gnss/spartn.h>
+#endif
 
 #include "devices/src/gps_helper.h"
 
@@ -248,12 +251,12 @@ private:
 	failure_injection::Stuck<sensor_gps_s> _stuck;
 
 	float				_rate{0.0f};					///< position update rate
-	float				_rtcm_injection_rate{0.0f};			///< RTCM corrections injection rate (Hz)
+	float				_rtcm_injection_rate{0.0f};			///< corrections injection rate (Hz, RTCM3 and SPARTN)
 	uint64_t			_last_rtcm_corrections_injection_count{0};	///< corrections-injection perf snapshot for rate calc
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
-	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last RTCM corrections injection
-	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for RTCM corrections
+	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last corrections injection
+	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for corrections
 
 	const Instance 			_instance;
 
@@ -271,9 +274,17 @@ private:
 	// the rover injects both streams), so each stream reassembles in its own buffer.
 	gnss::Rtcm3Parser		     _rtcm_corrections_parser{};
 	gnss::Rtcm3Parser		     _rtcm_moving_baseline_parser{};
+#if defined(CONFIG_GPS_SPARTN)
+	// SPARTN rides the corrections stream only; framed by its own parser that
+	// ignores RTCM3 preambles while reassembling CRC-validated SPARTN frames.
+	gnss::SpartnParser		     _spartn_parser {};
+#endif
 
 	perf_counter_t _uart_tx_buffer_full_perf{perf_alloc(PC_COUNT, MODULE_NAME": tx buf full")};
 	perf_counter_t _rtcm_buffer_full_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm buf full")};
+#if defined(CONFIG_GPS_SPARTN)
+	perf_counter_t _spartn_buffer_full_perf {perf_alloc(PC_COUNT, MODULE_NAME": spartn buf full")};
+#endif
 	perf_counter_t _rtcm_corrections_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm corrections injected")};
 	perf_counter_t _rtcm_moving_baseline_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm moving baseline injected")};
 
@@ -333,10 +344,11 @@ private:
 	void drainMovingBaseline();
 
 	/**
-	 * Inject all complete RTCM frames reassembled in a parser into the receiver, counting each
-	 * injected frame on the given perf counter.
+	 * Inject all complete frames reassembled in a parser (RTCM3 or SPARTN) into the receiver,
+	 * counting each injected frame on the given perf counter.
 	 */
-	void injectRtcmFrames(gnss::Rtcm3Parser &parser, perf_counter_t injection_perf);
+	template <typename ParserT>
+	void injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf);
 
 	/**
 	 * send data to the device, such as an RTCM stream
@@ -485,6 +497,9 @@ GPS::~GPS()
 
 	perf_free(_uart_tx_buffer_full_perf);
 	perf_free(_rtcm_buffer_full_perf);
+#if defined(CONFIG_GPS_SPARTN)
+	perf_free(_spartn_buffer_full_perf);
+#endif
 	perf_free(_rtcm_corrections_injection_perf);
 	perf_free(_rtcm_moving_baseline_injection_perf);
 
@@ -671,10 +686,20 @@ void GPS::drainRtcmCorrections()
 
 			// Prevent injection of data from self
 			if (msg.device_id != get_device_id()) {
+				// RTCM3 (and optional SPARTN) parsers: each ignores the other's
+				// preamble while reassembling complete CRC-validated messages.
 				if (_rtcm_corrections_parser.addData(msg.data, msg.len) < msg.len) {
 					perf_count(_rtcm_buffer_full_perf);
 				}
 
+#if defined(CONFIG_GPS_SPARTN)
+				const size_t added_spartn = _spartn_parser.addData(msg.data, msg.len);
+
+				if (added_spartn < msg.len) {
+					perf_count(_spartn_buffer_full_perf);
+				}
+
+#endif
 				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
@@ -735,6 +760,10 @@ void GPS::handleInjectDataTopic()
 	// them through their own parser before touching the moving-baseline stream.
 	drainRtcmCorrections();
 	injectRtcmFrames(_rtcm_corrections_parser, _rtcm_corrections_injection_perf);
+#if defined(CONFIG_GPS_SPARTN)
+	// SPARTN corrections ride the same stream, reassembled by their own parser.
+	injectRtcmFrames(_spartn_parser, _rtcm_corrections_injection_perf);
+#endif
 
 	// Moving-baseline RTCM (RTCM 4072 etc.) from a peer moving-base GPS. Only a heading rover that
 	// receives the baseline through the flight controller (UART1 / CAN) injects it here; a UART2
@@ -747,9 +776,10 @@ void GPS::handleInjectDataTopic()
 	}
 }
 
-void GPS::injectRtcmFrames(gnss::Rtcm3Parser &parser, perf_counter_t injection_perf)
+template <typename ParserT>
+void GPS::injectRtcmFrames(ParserT &parser, perf_counter_t injection_perf)
 {
-	// Inject all complete RTCM frames reassembled in this parser.
+	// Inject all complete frames reassembled in this parser.
 	size_t frame_len = {};
 	const uint8_t *frame_ptr = {};
 
@@ -1454,13 +1484,16 @@ GPS::print_status()
 		}
 
 		PX4_INFO("rate publication:\t\t%6.2f Hz", (double)_rate);
-		PX4_INFO("rate RTCM injection:\t%6.2f Hz", (double)_rtcm_injection_rate);
+		PX4_INFO("rate RTCM/SPARTN injection:\t%6.2f Hz", (double)_rtcm_injection_rate);
 
 		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
 
 	perf_print_counter(_uart_tx_buffer_full_perf);
 	perf_print_counter(_rtcm_buffer_full_perf);
+#if defined(CONFIG_GPS_SPARTN)
+	perf_print_counter(_spartn_buffer_full_perf);
+#endif
 	perf_print_counter(_rtcm_corrections_injection_perf);
 	perf_print_counter(_rtcm_moving_baseline_injection_perf);
 

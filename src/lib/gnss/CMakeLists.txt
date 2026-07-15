@@ -31,7 +31,13 @@
 #
 ############################################################################
 
-px4_add_library(gnss rtcm.cpp)
+set(GNSS_SRCS rtcm.cpp)
+
+if(CONFIG_GPS_SPARTN)
+	list(APPEND GNSS_SRCS spartn.cpp)
+endif()
+
+px4_add_library(gnss ${GNSS_SRCS})
 
 target_include_directories(gnss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

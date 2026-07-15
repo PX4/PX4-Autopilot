@@ -17,7 +17,7 @@ uint32 device_id # [-] Unique device ID of the publisher that produced this RTCM
 
 uint16 len # [-] Length of data
 uint8 flags # [-] LSB: 1=fragmented
-uint8[300] data # RTCM3 payload (fixed-base corrections, or moving-baseline data)
+uint8[300] data # Correction payload (fixed-base RTCM3 and/or SPARTN frames, or moving-baseline RTCM3)
 
 uint8 ORB_QUEUE_LENGTH = 16
 
