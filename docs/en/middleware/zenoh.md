@@ -260,6 +260,5 @@ The PX4 ROS 2 Interface Library is not compatible with ROS 2 Humble and earlier,
    ERROR [zenoh] Could not create a subscriber for type ***
    ```
 
-   When it happens, check if `src/modules/zenoh/Kconfig.topics` has unstaged changes.
-   If there are any it means that new uorb topics have been added and the previous build updated the `Kconfig.topics` file accordingly.
-   Please perform a clean build so that the new `Kconfig.topics` can be used.
+   This usually means the firmware was built with a different set of uORB topics than the peer expects.
+   The Zenoh topic catalog (`Kconfig.topics`) is generated automatically at configure time into the build directory, so performing a clean build picks up any newly added or changed topics.
