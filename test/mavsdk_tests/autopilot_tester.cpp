@@ -724,33 +724,62 @@ float AutopilotTester::fly_stabilize_without_gps_and_measure_level_error(float c
 	// Stress gravity-fusion enable gate (|a| must stay in ~0.9g..1.1g):
 	// repeated attitude moves + throttle blips near the ground without horizontal aiding
 	// (issue #24299). Mid-stick afterward must still return true attitude to level.
+	// While the sticks are deflected, also verify the vehicle does not go unstable:
+	// the true tilt must stay bounded (commanded tilt is well below MPC_MAN_TILT_MAX)
+	// and the estimate must keep tracking truth. Both diverge when gravity fusion
+	// drags the attitude estimate towards the thrust axis during accelerations.
 	std::cout << time_str() << "Exciting attitude/throttle without GPS (gravity fusion only)" << std::endl;
+
+	float excitation_max_gt_tilt = 0.f;
+	float excitation_max_est_error = 0.f;
+
+	auto stick_input_with_stability_check = [&](float pitch, float roll, float throttle, float yaw,
+	float duration_s) {
+		const unsigned steps = static_cast<unsigned>(duration_s * manual_control_rate_hz);
+
+		for (unsigned i = 0; i < steps; ++i) {
+			send_manual(pitch, roll, throttle, yaw);
+			sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+
+			float roll_gt = NAN;
+			float pitch_gt = NAN;
+			{
+				std::lock_guard<std::mutex> lock(gt_mutex);
+				roll_gt = gt_roll_deg;
+				pitch_gt = gt_pitch_deg;
+			}
+
+			if (std::isfinite(roll_gt) && std::isfinite(pitch_gt)) {
+				const auto ekf = _telemetry->attitude_euler();
+				excitation_max_gt_tilt = std::max(excitation_max_gt_tilt, std::hypot(roll_gt, pitch_gt));
+				excitation_max_est_error = std::max(excitation_max_est_error,
+								    std::hypot(roll_gt - ekf.roll_deg, pitch_gt - ekf.pitch_deg));
+			}
+		}
+	};
 
 	for (unsigned cycle = 0; cycle < 6; ++cycle) {
 		// Pitch forward
-		for (unsigned i = 0; i < 3 * manual_control_rate_hz; ++i) {
-			send_manual(0.45f, 0.f, hover_throttle, 0.f);
-			sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
-		}
+		stick_input_with_stability_check(0.45f, 0.f, hover_throttle, 0.f, 3.f);
 
 		// Roll right + throttle blip (pushes |a| away from 1g → gravity fusion gate)
-		for (unsigned i = 0; i < 2 * manual_control_rate_hz; ++i) {
-			send_manual(0.f, 0.45f, 0.8f, 0.f);
-			sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
-		}
+		stick_input_with_stability_check(0.f, 0.45f, 0.8f, 0.f, 2.f);
 
 		// Pitch back + lower throttle
-		for (unsigned i = 0; i < 3 * manual_control_rate_hz; ++i) {
-			send_manual(-0.45f, 0.f, 0.3f, 0.f);
-			sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
-		}
+		stick_input_with_stability_check(-0.45f, 0.f, 0.3f, 0.f, 3.f);
 
 		// Combined + hover recovery
-		for (unsigned i = 0; i < 2 * manual_control_rate_hz; ++i) {
-			send_manual(0.35f, -0.35f, hover_throttle, 0.f);
-			sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
-		}
+		stick_input_with_stability_check(0.35f, -0.35f, hover_throttle, 0.f, 2.f);
 	}
+
+	std::cout << time_str() << "Excitation done: GT max tilt=" << excitation_max_gt_tilt
+		  << " deg, max |EKF-GT| tilt error=" << excitation_max_est_error << " deg" << std::endl;
+
+	// Stability contract while sticks are deflected: ~half stick commands well under
+	// MPC_MAN_TILT_MAX (default 35 deg), so bounded true tilt and a tracking estimate
+	// mean the vehicle stayed controllable throughout the manoeuvres.
+	CHECK(excitation_max_gt_tilt < 45.f);
+	CHECK(excitation_max_est_error < 20.f);
 
 	std::cout << time_str() << "Centering sticks; expecting ground-truth level attitude" << std::endl;
 

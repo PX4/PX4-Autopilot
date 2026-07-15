@@ -1027,6 +1027,10 @@ private:
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
+
+	// re-initialise the tilt from the low-passed accelerometer, preserving heading
+	// (recovery from a prolonged gravity fusion dropout without horizontal aiding)
+	void resetTiltUsingAccelVector();
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	void resetQuatCov(const float yaw_noise = NAN);

@@ -48,69 +48,73 @@
 
 void Ekf::controlGravityFusion(const imuSample &imu)
 {
-	// Bias-corrected specific force; unit vector is gravity proxy when near 1 g
-	const Vector3f accel = imu.delta_vel / imu.delta_vel_dt - _state.accel_bias;
-	const float accel_ratio = _accel_lpf.getState().norm() / CONSTANTS_ONE_G;
-	const float excess = fabsf(accel_ratio - 1.f);
+	// get raw accelerometer reading at delayed horizon and expected measurement noise (gaussian)
+	const Vector3f measurement = Vector3f(imu.delta_vel / imu.delta_vel_dt - _state.accel_bias).unit();
+	const float measurement_var = math::max(sq(_params.ekf2_grav_noise), sq(0.01f));
 
-	// Soft enable 0.5–2 g (was hard 0.9–1.1 g). Inflate noise as |a| leaves 1 g.
-	// Cap unit-vector sigma so default EKF2_GRAV_NOISE=1 still corrects tilt (#24299).
-	const bool accel_ok = (accel_ratio > 0.5f) && (accel_ratio < 2.f);
-	float measurement_var = sq(math::min(math::max(_params.ekf2_grav_noise, 0.05f), 0.3f));
-	measurement_var *= math::max(1.f, sq(excess * 10.f));
+	// The accel magnitude gate is a proxy check only: |a| close to 1g does not imply the
+	// direction is gravity (a horizontal acceleration of 0.45g still passes it), so the
+	// fusion must stay weak (measurement noise) and tightly gated (innovation gate) to
+	// avoid pulling the attitude towards the thrust axis during manoeuvres.
+	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
+	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
+	const float accel_lpf_norm_sq = _accel_lpf.getState().norm_squared();
+	const bool accel_lpf_norm_good = (accel_lpf_norm_sq > sq(lower_accel_limit))
+					 && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
-	const Vector3f measurement = accel.unit();
-
+	// fuse gravity observation if our overall acceleration isn't too big
 	_control_status.flags.gravity_vector = (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
-					       && (accel_ok || _control_status.flags.vehicle_at_rest)
+					       && (accel_lpf_norm_good || _control_status.flags.vehicle_at_rest)
 					       && !isHorizontalAidingActive()
-					       && _control_status.flags.tilt_align;
+					       && _control_status.flags.tilt_align; // Let fake position do the initial alignment (more robust before takeoff)
 
+	// calculate kalman gains and innovation variances
 	Vector3f innovation = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f)) - measurement;
-
-	// Floor tilt variance near hover with large residual so over-confident P can re-acquire
-	if (_control_status.flags.gravity_vector && (excess < 0.15f)
-	    && (sq(innovation(0)) + sq(innovation(1)) > sq(0.15f))) {
-		const float min_var = sq(math::radians(15.f));
-		P(State::quat_nominal.idx, State::quat_nominal.idx) = math::max(P(State::quat_nominal.idx,
-				State::quat_nominal.idx), min_var);
-		P(State::quat_nominal.idx + 1, State::quat_nominal.idx + 1) = math::max(P(State::quat_nominal.idx + 1,
-				State::quat_nominal.idx + 1), min_var);
-	}
-
 	Vector3f innovation_variance;
 	const auto state_vector = _state.vector();
 	VectorState H;
 	sym::ComputeGravityXyzInnovVarAndHx(state_vector, P, measurement_var, &innovation_variance, &H);
 
-	// Gate 1.0 (was 0.25) so large residuals after dropout are not rejected
+	// fill estimator aid source status
 	updateAidSourceStatus(_aid_src_gravity,
-			      imu.time_us,
-			      measurement,
-			      Vector3f{measurement_var, measurement_var, measurement_var},
-			      innovation,
-			      innovation_variance,
-			      1.f);
+			      imu.time_us,                                                 // sample timestamp
+			      measurement,                                                 // observation
+			      Vector3f{measurement_var, measurement_var, measurement_var}, // observation variance
+			      innovation,                                                  // innovation
+			      innovation_variance,                                         // innovation variance
+			      0.25f);                                                      // innovation gate
 
+	// update the states and covariance using sequential fusion
 	bool fused[3] {};
 
 	for (uint8_t index = 0; index <= 2; index++) {
-		if (index == 1) {
+		// Calculate Kalman gains and observation jacobians
+		if (index == 0) {
+			// everything was already computed above
+
+		} else if (index == 1) {
+			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeGravityYInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
+
+			// recalculate innovation using the updated state
 			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
 							     -1.f))(index) - measurement(index);
 
 		} else if (index == 2) {
+			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeGravityZInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
+
+			// recalculate innovation using the updated state
 			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
 							     -1.f))(index) - measurement(index);
 		}
 
 		VectorState K = P * H / _aid_src_gravity.innovation_variance[index];
+
 		const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
-			K(State::quat_nominal.idx + 2) = 0.f; // no heading corrections via tilt–heading correlation
+			K(State::quat_nominal.idx + 2) = 0.f; // no heading corrections via tilt-heading correlation
 			fused[index] = measurementUpdate(K, H,
 							 _aid_src_gravity.observation_variance[index], _aid_src_gravity.innovation[index]);
 		}
@@ -123,4 +127,43 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	} else {
 		_aid_src_gravity.fused = false;
 	}
+
+	// Recovery from a fusion dropout (#24299): without horizontal aiding, tilt error built up
+	// while gravity fusion was unavailable (sustained |a| outside the enable band) can exceed
+	// the innovation gate and lock fusion out indefinitely. If the vehicle has been quasi-static
+	// with fusion intended but rejected for longer than the timeout, re-initialise the tilt from
+	// the low-passed accelerometer instead of weakening the gate or the measurement noise.
+	// The timeout must be long enough that a sustained horizontal acceleration (which biases the
+	// measured direction while keeping |a| near 1g) is unlikely to persist for the whole period.
+	static constexpr uint64_t kGravityResetTimeoutUs = 5'000'000;
+	static constexpr float kQuasiStaticGyroNormLimit = 0.25f; // rad/s
+
+	if (_control_status.flags.gravity_vector && _control_status.flags.in_air
+	    && _aid_src_gravity.innovation_rejected
+	    && isTimedOut(_aid_src_gravity.time_last_fuse, kGravityResetTimeoutUs)
+	    && (_gyro_lpf.getState().norm() < kQuasiStaticGyroNormLimit)) {
+
+		resetTiltUsingAccelVector();
+		resetAidSourceStatusZeroInnovation(_aid_src_gravity);
+	}
+}
+
+void Ekf::resetTiltUsingAccelVector()
+{
+	const Quatf quat_before_reset = _state.quat_nominal;
+
+	// minimal rotation bringing the predicted gravity direction (body frame) onto the
+	// direction measured by the low-passed accelerometer, leaving heading unchanged
+	const Vector3f measured_up = _accel_lpf.getState().unit();
+	const Vector3f predicted_up = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f));
+
+	const Quatf dq(measured_up, predicted_up);
+	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
+	_R_to_earth = Dcmf(_state.quat_nominal);
+
+	// reset the tilt variance to the alignment accuracy, keep the heading variance
+	const float tilt_var = sq(math::max(_params.ekf2_angerr_init, 0.01f));
+	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx, tilt_var);
+
+	propagateQuatReset(quat_before_reset);
 }

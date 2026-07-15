@@ -41,6 +41,11 @@
  * Tilt is then constrained only by gravity fusion; if that drops out, the EKF
  * tilt drifts and mid-stick no longer means level flight.
  *
+ * The excitation phase also acts as a stability check: while the sticks are
+ * deflected, ground-truth tilt must stay bounded and the estimate must keep
+ * tracking truth. An over-aggressive gravity fusion (dragging the attitude
+ * estimate towards the thrust axis during accelerations) fails here.
+ *
  * Note: clean SIH IMU noise may not fully reproduce the outdoor near-ground
  * dropout seen in logs, but this locks the intended contract before/after a
  * gravity-fusion fix and catches total loss of tilt aiding.
