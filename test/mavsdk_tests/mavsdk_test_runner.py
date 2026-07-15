@@ -150,11 +150,13 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
                 print("gzclient process already running\n"
                       "run `killall gzclient` and try again")
                 result = False
-            build_hint = ("DONT_RUN=1 make px4_sitl gazebo mavsdk_tests or "
-                          "DONT_RUN=1 make px4_sitl_default gazebo mavsdk_tests")
+            build_hint = (
+                "DONT_RUN=1 make px4_sitl gazebo mavsdk_tests or "
+                "DONT_RUN=1 make px4_sitl_default gazebo mavsdk_tests")
         elif config['simulator'] == 'sih':
-            build_hint = ("DONT_RUN=1 make px4_sitl_default mavsdk_tests "
-                          "(SIH needs no external simulator)")
+            build_hint = (
+                "DONT_RUN=1 make px4_sitl_default mavsdk_tests "
+                "(SIH needs no external simulator)")
 
     if not os.path.isfile(os.path.join(build_dir,
                                        'mavsdk_tests/mavsdk_tests')):
