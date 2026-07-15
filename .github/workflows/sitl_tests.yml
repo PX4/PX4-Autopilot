@@ -127,7 +127,7 @@ jobs:
             echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials # add credential
             git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
             mkdir -p coverage
-            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info --ignore-errors negative
 
       - name: Upload Coverage Information to Codecov
         if: contains(matrix.config.build_type, 'Coverage')
