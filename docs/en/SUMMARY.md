@@ -892,7 +892,7 @@
         - [HITL Simulation](simulation/hitl.md)
         - [SIH on Hardware](sim_sih/hardware.md)
       - [Multi-vehicle simulation](simulation/multi-vehicle-simulation.md)
-      - [Newton Simulation](sim_newton/index.md)
+      - [Newton Air Simulation](sim_newton_air/index.md)
   - [Platform Testing and CI](test_and_ci/index.md)
     - [Test Flights](test_and_ci/test_flights.md)
       - [Multicopter](test_and_ci/test_flights.md#multicopter)
