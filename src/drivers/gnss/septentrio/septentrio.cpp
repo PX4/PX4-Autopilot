@@ -1690,6 +1690,14 @@ void SeptentrioDriver::publish()
 	_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 	_sensor_gps.rtcm_injection_rate = rtcm_injection_frequency();
 	_sensor_gps.timestamp = hrt_absolute_time();
+
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+					_sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
+		return;
+	}
+
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 

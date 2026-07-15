@@ -47,6 +47,8 @@ px4_add_module(
 		sbf/decoder.cpp
 	MODULE_CONFIG
 		module.yaml
+	DEPENDS
+		failure_injection
 	)
 
 if(TARGET fuzztest::fuzztest)

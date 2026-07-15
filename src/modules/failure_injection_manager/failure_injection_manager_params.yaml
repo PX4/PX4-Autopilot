@@ -12,3 +12,71 @@ parameters:
         type: boolean
         default: 0
         reboot_required: true
+      SYS_FAIL_RC_SRC:
+        description:
+          short: RC aux input that triggers failure injection
+          long: |-
+            Defines the aux switch which injects the failure defined by SYS_FAIL_RC_UNIT,
+            SYS_FAIL_RC_MODE and SYS_FAIL_RC_INST;
+            Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
+        type: enum
+        min: 0
+        max: 6
+        default: 0
+        reboot_required: true
+        values:
+          0: Disabled
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+      SYS_FAIL_RC_UNIT:
+        description:
+          short: Component failed by the RC switch
+          long: |-
+            Which component the SYS_FAIL_RC_SRC trigger fails, with SYS_FAIL_RC_MODE on
+            SYS_FAIL_RC_INST.
+        type: enum
+        default: 101
+        reboot_required: true
+        values:
+          0: Gyro
+          1: Accel
+          2: Mag
+          3: Baro
+          4: GPS
+          7: Distance sensor
+          8: Airspeed
+          100: Battery
+          101: Motor
+      SYS_FAIL_RC_MODE:
+        description:
+          short: Failure type applied by the RC switch
+          long: |-
+            How SYS_FAIL_RC_UNIT fails when the SYS_FAIL_RC_SRC trigger fires, on SYS_FAIL_RC_INST.
+            unsupported (unit, type) pairs are ignored.
+        type: enum
+        default: 0
+        reboot_required: true
+        values:
+          0: Ok (no failure)
+          1: "Off"
+          2: Stuck
+          3: Garbage
+          4: Wrong
+          5: Slow
+          6: Delayed
+          7: Intermittent
+      SYS_FAIL_RC_INST:
+        description:
+          short: Instance failed by the RC switch
+          long: |-
+            Which instance of SYS_FAIL_RC_UNIT the SYS_FAIL_RC_SRC trigger affects.
+            1-based, or 0 for all instances (motor number for motors).
+        type: int32
+        min: 0
+        max: 16
+        default: 1
+        reboot_required: true

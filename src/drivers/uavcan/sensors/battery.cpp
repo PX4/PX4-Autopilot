@@ -39,6 +39,15 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
+void UavcanBatteryBridge::publishBattery(int node_id, uint8_t instance)
+{
+	_failure_config.update();
+	const uint8_t id = _battery_status[instance].id;
+	failure_injection::process_battery(_failure_config, id > 0 ? id : instance + 1, _battery_status[instance]);
+
+	publish(node_id, &_battery_status[instance]);
+}
+
 UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status), node_info_publisher),
 	ModuleParams(nullptr),
@@ -148,7 +157,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
-		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		publishBattery(msg.getSrcNodeID().get(), instance);
 
 		if (msg.model_instance_id > 0) {
 			_battery_info[instance].timestamp = _battery_status[instance].timestamp;
@@ -206,7 +215,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 
 	// Publish the message once populated with the standard BatteryInfo data
 	if (_battery_status[instance].timestamp != 0) {
-		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		publishBattery(msg.getSrcNodeID().get(), instance);
 	}
 }
 
@@ -287,7 +296,7 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 
 	_battery_status[instance].faults = faults;
 
-	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	publishBattery(msg.getSrcNodeID().get(), instance);
 
 	_battery_info[instance].timestamp = _battery_status[instance].timestamp;
 	_battery_info[instance].id = _battery_status[instance].id;
@@ -315,7 +324,7 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	_battery_status[instance].id = msg.battery_id;
 
-	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	publishBattery(msg.getSrcNodeID().get(), instance);
 
 	if (msg.model_instance_id > 0) {
 		_battery_info[instance].timestamp = _battery_status[instance].timestamp;

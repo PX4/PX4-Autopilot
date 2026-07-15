@@ -36,11 +36,13 @@
 #include <cmath>
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
 
 ModuleBase::Descriptor FailureInjectionManager::desc{task_spawn, custom_command, print_usage};
 
 FailureInjectionManager::FailureInjectionManager() :
+	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 }
@@ -48,8 +50,15 @@ FailureInjectionManager::FailureInjectionManager() :
 bool FailureInjectionManager::init()
 {
 	if (!_vehicle_command_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
+		PX4_ERR("vehicle_command callback registration failed");
 		return false;
+	}
+
+	if (_param_sys_fail_rc_src.get() != 0) {
+		if (!_manual_control_setpoint_sub.registerCallback()) {
+			PX4_ERR("manual_control_setpoint callback registration failed");
+			return false;
+		}
 	}
 
 	_failure_injection_pub.advertise();
@@ -61,17 +70,20 @@ void FailureInjectionManager::Run()
 {
 	if (should_exit()) {
 		_vehicle_command_sub.unregisterCallback();
+		_manual_control_setpoint_sub.unregisterCallback();
 		exit_and_cleanup(desc);
 		return;
 	}
 
 	vehicle_command_s cmd;
 
-	while (_vehicle_command_sub.update(&cmd)) {
+	for (int i = 0; i < vehicle_command_s::ORB_QUEUE_LENGTH && _vehicle_command_sub.update(&cmd); i++) {
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
 			handleCommand(cmd);
 		}
 	}
+
+	evaluateRcInjection();
 
 	// Republish only when the configuration actually changed
 	if (_table.changed()) {
@@ -83,15 +95,69 @@ void FailureInjectionManager::Run()
 	}
 }
 
+void FailureInjectionManager::evaluateRcInjection()
+{
+	if (_param_sys_fail_rc_src.get() == 0) {
+		return;
+	}
+
+	manual_control_setpoint_s manual_control_setpoint;
+
+	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		float value = NAN;
+
+		if (manual_control_setpoint.valid) {
+			switch (_param_sys_fail_rc_src.get()) {
+			case 1: value = manual_control_setpoint.aux1; break;
+
+			case 2: value = manual_control_setpoint.aux2; break;
+
+			case 3: value = manual_control_setpoint.aux3; break;
+
+			case 4: value = manual_control_setpoint.aux4; break;
+
+			case 5: value = manual_control_setpoint.aux5; break;
+
+			case 6: value = manual_control_setpoint.aux6; break;
+
+			default: break; // 0 = disabled, or out of range
+			}
+		}
+
+		const bool triggered = value > 0.5f;
+
+		if (triggered && !_rc_active) {
+			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
+			_rc_active_instance = static_cast<uint8_t>(_param_sys_fail_rc_inst.get());
+			_rc_active = true;
+
+			_table.inject(_rc_active_unit, static_cast<uint8_t>(_param_sys_fail_rc_mode.get()), _rc_active_instance);
+
+		} else if (!triggered && _rc_active) {
+			_table.inject(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_instance);
+			_rc_active = false;
+		}
+	}
+}
+
 void FailureInjectionManager::handleCommand(const vehicle_command_s &cmd)
 {
 	const uint8_t unit = static_cast<uint8_t>(lroundf(cmd.param1));
 	const uint8_t type = static_cast<uint8_t>(lroundf(cmd.param2));
-	const uint8_t instance = static_cast<uint8_t>(lroundf(cmd.param3));
+
+	failure_injection::FailureTable::AckResult ack;
+
+	if (PX4_ISFINITE(cmd.param3)) {
+		ack = _table.inject(unit, type, static_cast<uint8_t>(lroundf(cmd.param3)));
+
+	} else {
+		const uint16_t mask = PX4_ISFINITE(cmd.param4) ? static_cast<uint16_t>(lroundf(cmd.param4)) : 0;
+		ack = _table.injectMask(unit, type, mask);
+	}
 
 	uint8_t result;
 
-	switch (_table.inject(unit, type, instance)) {
+	switch (ack) {
 	case failure_injection::FailureTable::AckResult::Accepted:
 		result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 		break;
@@ -157,14 +223,20 @@ int FailureInjectionManager::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 
-The failure injection manager is the single subscriber to `vehicle_command` for
-`MAV_CMD_INJECT_FAILURE`. It maintains the set of currently active failures and
-publishes the `failure_injection` topic, republishing only when the configuration
-changes so that command spam cannot propagate to the consumers that apply the
-failures. It also produces the central `vehicle_command_ack`.
+Central module for handling failure injection. It collects failure requests, tracks
+the set of active failures, and publishes them on the `failure_injection` topic for
+the apply-sites to act on.
 
-Failure injection is gated by the `SYS_FAILURE_EN` parameter, which the startup
-script checks before starting this module.
+Failures can be triggered through:
+- `MAV_CMD_INJECT_FAILURE` over MAVLink (e.g. from MAVSDK)
+- the `failure` console command
+- an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
+  `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
+
+Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
+
+Failures can be applied both in simulation and on real hardware, where the apply-sites are
+compiled in alongside this module.
 
 )DESCR_STR");
 
