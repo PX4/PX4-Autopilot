@@ -177,24 +177,30 @@ private:
 	// CTRL1_XL_HG) are overwritten in UpdateVariantRegisterConfig(); initializers below are
 	// the default-variant (2000 Hz, no high-g) values. The high-g entries are no-ops
 	// (set/clear = 0) unless enabled for the LSM6DSV80X.
+	//
+	// Configure() writes these in array order, and the order is significant: FS_G (CTRL6) must be
+	// set while the gyro is in power-down, and the reset default FS_G=000 is reserved on the 80X /
+	// 320X / DSK320X. So every full-scale, filter and FIFO register comes first, and CTRL1/CTRL2 —
+	// which set the ODRs and thereby power the sensors up — come last. HAODR_CFG selects the ODR
+	// set that the CTRL1/CTRL2 codes index into, so it must also precede them.
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                | Set bits                                              | Clear bits
 		{ Register::CTRL3,          CTRL3_BIT::BDU | CTRL3_BIT::IF_INC,                     CTRL3_BIT::SW_RESET },
 		{ Register::HAODR_CFG,      HAODR_CFG_BIT::HAODR_MODE1,                             0 },
-		{ Register::CTRL1,          HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR,    0 },
-		{ Register::CTRL2,          HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR,    0 },
 		{ Register::CTRL6,          CTRL6_BIT::FS_G_2000DPS,                                 0 },
 		{ Register::CTRL8,          CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10,   0 },
 		{ Register::CTRL9,          CTRL9_BIT::LPF2_XL_EN,                                   0 },
+		{ Register::CTRL4,          CTRL4_BIT::DRDY_PULSED,                                  0 },
+		{ Register::INT1_CTRL,      INT1_CTRL_BIT::INT1_FIFO_TH,                             0 },
+		{ Register::FIFO_CTRL1,     0, 0 }, // WTM[7:0] set at runtime by ConfigureFIFOWatermark()
 		{
 			Register::FIFO_CTRL3,     static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR) |
 			static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_XL_HAODR),      0
 		},
 		{ Register::FIFO_CTRL4,     FIFO_CTRL4_BIT::FIFO_MODE_CONTINUOUS,                    0 },
-		{ Register::INT1_CTRL,      INT1_CTRL_BIT::INT1_FIFO_TH,                             0 },
-		{ Register::CTRL4,          CTRL4_BIT::DRDY_PULSED,                                  0 },
 		{ Register::COUNTER_BDR_REG1, 0, 0 }, // XL_HG_BATCH_EN set per-variant (80X high-g)
 		{ Register::CTRL1_XL_HG,    0, 0 }, // high-g ODR+FS set per-variant (80X high-g)
-		{ Register::FIFO_CTRL1,     0, 0 }, // WTM[7:0] set at runtime by ConfigureFIFOWatermark()
+		{ Register::CTRL1,          HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR,    0 },
+		{ Register::CTRL2,          HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR,    0 },
 	};
 };
