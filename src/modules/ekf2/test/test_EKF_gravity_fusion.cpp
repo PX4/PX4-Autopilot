@@ -37,10 +37,8 @@
  * Regression for https://github.com/PX4/PX4-Autopilot/issues/24299
  *
  * Without horizontal aiding, tilt is constrained only by gravity fusion. Near
- * the ground, throttle hunting often pushes |a| outside the hard 0.9–1.1 g enable
- * window so fusion drops out and gyro integration drifts the estimate. When
- * returning to hover, a tight innovation gate can then reject the large residual
- * and mid-stick no longer corresponds to true level.
+ * the ground, throttle hunting and residual rates can build tilt error; gravity
+ * fusion must re-acquire level when returning to hover (mid-stick).
  */
 
 #include <gtest/gtest.h>
@@ -79,8 +77,8 @@ public:
 	}
 };
 
-// Reproduce: fusion disabled while |a| is outside [0.9g, 1.1g] → tilt drifts from
-// residual rate → return to hover with large innovation → must recover to level.
+// Reproduce #24299: residual rate while |a| is elevated (near-ground throttle /
+// manoeuvre) builds tilt error; returning to hover (mid-stick) must recover level.
 TEST_F(EkfGravityFusionTest, recoversLevelAfterAccelGateDropout)
 {
 	// GIVEN: in air, no horizontal aiding, gravity fusion enabled
@@ -97,29 +95,27 @@ TEST_F(EkfGravityFusionTest, recoversLevelAfterAccelGateDropout)
 	EXPECT_NEAR(euler_before.phi(), 0.f, math::radians(3.f));
 	EXPECT_NEAR(euler_before.theta(), 0.f, math::radians(3.f));
 
-	// WHEN: near-ground style accel ( |a| > 1.1g ) with residual body rate.
-	// Gravity fusion enable gate is hard |a| ∈ [0.9g, 1.1g], so fusion stops and
-	// the rate integrates into tilt (pilot / gyro bias equivalent).
+	// WHEN: elevated |a| (still within soft enable band) + residual body rate so
+	// tilt error grows (weakened fusion while manoeuvring / throttle hunting).
 	const float rate_rad_s = math::radians(8.f); // ~8 deg/s
-	const float dropout_s = 4.f;                 // ~32 deg of open-loop drift
+	const float manoeuvre_s = 4.f;
 	_sensor_simulator._imu.setData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G * 1.25f),
 				       Vector3f(rate_rad_s, 0.f, 0.f));
-	_sensor_simulator.runSeconds(dropout_s);
+	_sensor_simulator.runSeconds(manoeuvre_s);
 
-	// Confirm fusion dropped out during the high-accel phase
-	EXPECT_FALSE(_ekf_wrapper.isIntendingGravityFusion());
+	// Soft enable keeps fusion intended at 1.25 g (hard window used to drop out).
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGravityFusion());
 
 	const Eulerf euler_drifted = _ekf_wrapper.getEulerAngles();
-	// Should have accumulated significant roll error
-	EXPECT_GT(fabsf(euler_drifted.phi()), math::radians(15.f));
+	// Inflated measurement noise during manoeuvre still allows some tilt build-up
+	EXPECT_GT(fabsf(euler_drifted.phi()), math::radians(10.f));
 
 	// AND WHEN: back to steady hover (|a| ≈ g, zero rate) — mid-stick / level case
 	_sensor_simulator._imu.setData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G), Vector3f());
 	_sensor_simulator.runSeconds(8.f);
 
-	// THEN: gravity fusion should re-enable and pull attitude back to level.
-	// Fails on main today: innovation gate 0.25 rejects the large residual so
-	// tilt stays wrong after the dropout (issue #24299).
+	// THEN: gravity fusion pulls attitude back to level (requires innovation gate
+	// wide enough to accept a large residual after manoeuvre).
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGravityFusion());
 
 	const Eulerf euler_after = _ekf_wrapper.getEulerAngles();
