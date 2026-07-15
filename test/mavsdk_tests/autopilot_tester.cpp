@@ -185,8 +185,12 @@ void AutopilotTester::set_param_vt_fwd_thrust_en(int value)
 
 void AutopilotTester::arm()
 {
-	const auto result = _action->arm();
-	REQUIRE(result == Action::Result::Success);
+	// Even after wait_until_ready() passes, the is_armable health flag can
+	// transiently flicker (e.g. the estimator's heading reference briefly
+	// dropping out during startup), causing the arm command to be denied.
+	// Retry until the autopilot actually accepts it.
+	REQUIRE(poll_condition_with_timeout(
+	[this]() { return _action->arm() == Action::Result::Success; }, std::chrono::seconds(30)));
 }
 
 void AutopilotTester::takeoff()
