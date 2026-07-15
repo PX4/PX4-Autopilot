@@ -608,6 +608,10 @@
                             "name": "auto_course",
                             "description": "Course"
                         },
+                        "26": {
+                            "name": "descend",
+                            "description": "Descend"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
@@ -741,6 +745,7 @@
                     "7": [319029248],
                     "8": [720896],
                     "10": [327680],
+                    "12": [335806464],
                     "14": [393216],
                     "15": [458752],
                     "17": [33816576],
