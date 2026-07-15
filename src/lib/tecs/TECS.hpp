@@ -586,6 +586,8 @@ private:
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
 	AlphaFilter<float> _ste_rate_setpoint_filter;		///< Setpoint filter matching the estimate filter lag for the feedback error.
 	float _ste_rate_estimate_raw{0.0f};			///< Slew rate limited raw specific total energy rate estimate [m²/s³].
+	bool _pitch_setpoint_clipped_up{false};			///< True if the last pitch demand was clipped in positive direction.
+	bool _pitch_setpoint_clipped_down{false};		///< True if the last pitch demand was clipped in negative direction.
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 

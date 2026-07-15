@@ -240,6 +240,8 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate, limit, param, flag)};
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param, flag);
+	_pitch_setpoint_clipped_up = false;
+	_pitch_setpoint_clipped_down = false;
 
 	_ste_rate_estimate_raw = specific_energy_rate.spe_rate.estimate + specific_energy_rate.ske_rate.estimate;
 	_ste_rate_estimate_filter.reset(_ste_rate_estimate_raw);
@@ -422,6 +424,10 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 				    _pitch_setpoint + pitch_increment);
 	_pitch_setpoint = constrain(_pitch_setpoint, param.pitch_min, param.pitch_max);
 
+	// Remember in which direction the demand got clipped, for the integrator anti-windup on the next update
+	_pitch_setpoint_clipped_up = pitch_setpoint > _pitch_setpoint;
+	_pitch_setpoint_clipped_down = pitch_setpoint < _pitch_setpoint;
+
 	//Debug Output
 	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
 	_debug_output.energy_balance_rate_sp = seb_rate.setpoint;
@@ -491,11 +497,14 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 			pitch_integ_input = 0.f;
 		}
 
-		// Prevent the integrator changing in a direction that will increase pitch demand saturation
-		if (_pitch_setpoint >= param.pitch_max) {
+		// Prevent the integrator changing in a direction that will increase pitch demand saturation,
+		// both against the pitch angle limits and against the vertical acceleration (pitch rate) limit.
+		// While the rate limiter is active the demand is unreachable by design and the resulting error
+		// must not wind up the integrator.
+		if (_pitch_setpoint >= param.pitch_max || _pitch_setpoint_clipped_up) {
 			pitch_integ_input = min(pitch_integ_input, 0.f);
 
-		} else if (_pitch_setpoint <= param.pitch_min) {
+		} else if (_pitch_setpoint <= param.pitch_min || _pitch_setpoint_clipped_down) {
 			pitch_integ_input = max(pitch_integ_input, 0.f);
 		}
 
