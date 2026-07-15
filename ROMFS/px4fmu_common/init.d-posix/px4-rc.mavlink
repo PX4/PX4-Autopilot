@@ -31,6 +31,15 @@ mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 # API/Offboard link
 mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote $mavlink_network_interface_arg
 
+# Simulation host link (optional): a simulator driving PX4 externally (lockstep HIL over the
+# simulator API) may also want to CONSUME telemetry — the estimated pose, home position,
+# statustext — e.g. to record PX4's view of the flight next to its own ground truth. Streams
+# to $PX4_SIM_HOST_MAVLINK_PORT when set; zero footprint when unset.
+if [ -n "$PX4_SIM_HOST_MAVLINK_PORT" ]; then
+	udp_sim_host_port_local=$((14680+px4_instance))
+	mavlink start -x -u $udp_sim_host_port_local -r 100000 -m onboard -o $PX4_SIM_HOST_MAVLINK_PORT
+fi
+
 # Onboard link to camera
 mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote $mavlink_network_interface_arg
 
