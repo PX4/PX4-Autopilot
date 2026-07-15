@@ -488,8 +488,6 @@ void FwLateralLongitudinalControl::updateFuelState()
 
 			_performance_model.setFuelFractionRemaining(_fuel_fraction_filter.getState());
 
-			_tecs.set_max_climb_rate(_performance_model.getMaximumClimbRate(_air_density));
-			_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 			_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
 		}
 	}
