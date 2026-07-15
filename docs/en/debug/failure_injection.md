@@ -5,7 +5,7 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe), and the `traffic` component supports `off`/`stuck` on MAVLink-based traffic avoidance (it suppresses/freezes incoming traffic reports and marks the ADS-B/FLARM traffic link unhealthy).
+Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (stop publishing the battery status) and `wrong` (report a depleted pack at the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning level, triggering the battery failsafe), and the `traffic` component supports `off`/`stuck` on MAVLink-based traffic avoidance (it suppresses/freezes incoming traffic reports and marks the ADS-B/FLARM traffic link unhealthy).
 
 ::: info
 PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
@@ -119,10 +119,14 @@ To stop a motor mid-flight without the system anticipating it or excluding it fr
 To trigger the battery failsafe by reporting a depleted pack:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
-2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+2. Optionally select the injected warning level with [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL): Warn, Critical (default) or Emergency. The reported remaining charge is set just below the matching threshold ([BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR), [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR) or [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)).
+3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
-   # Report the battery as depleted (warning EMERGENCY) -> battery failsafe
+   # Report the battery as depleted at the SYS_FAIL_BAT_LVL warning level -> battery failsafe
+   failure battery wrong
+
+   # Stop publishing the battery status entirely
    failure battery off
 
    # Stop injecting the failure
