@@ -37,6 +37,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -49,6 +50,7 @@
 #include <uORB/topics/airflow.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -65,10 +67,12 @@
 
 using namespace time_literals;
 
-class WindEstimator3D final : public ModuleBase<WindEstimator3D>, public ModuleParams,
+class WindEstimator3D final : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	WindEstimator3D();
 	~WindEstimator3D() override;
 
@@ -97,6 +101,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::SubscriptionData<vehicle_air_data_s> _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	uORB::Publication<airflow_s> _airflow_pub{ORB_ID(airflow)};
 
@@ -108,7 +113,8 @@ private:
 	hrt_abstime _last_run{0};
 
 	float _calibrated_airspeed{0.0f};
-	float _true_airspeed{15.0f};
+	float _true_airspeed{0.0f};
+	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 	matrix::Quatf _attitude{};
 	matrix::Vector3f _acceleration{0.f, 0.f, 0.f};
 	matrix::Vector3f _local_velocity{0.f, 0.f, 0.f};
@@ -133,6 +139,7 @@ private:
 
 	void airspeed_poll();
 	void vehicle_acceleration_poll();
+	void vehicle_air_data_poll();
 	void vehicle_attitude_poll();
 	void vehicle_local_position_poll();
 	matrix::Vector3f predictBodyAirVelocity();

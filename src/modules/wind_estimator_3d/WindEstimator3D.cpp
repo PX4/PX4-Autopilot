@@ -42,6 +42,8 @@ using math::constrain;
 using math::interpolate;
 using math::radians;
 
+ModuleBase::Descriptor WindEstimator3D::desc{task_spawn, custom_command, print_usage};
+
 WindEstimator3D::WindEstimator3D() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -129,6 +131,15 @@ WindEstimator3D::vehicle_acceleration_poll()
 	}
 }
 
+void
+WindEstimator3D::vehicle_air_data_poll()
+{
+	if (_vehicle_air_data_sub.update()) {
+		const float rho = _vehicle_air_data_sub.get().rho;
+		_air_density = PX4_ISFINITE(rho) ? rho : _air_density;
+	}
+}
+
 matrix::Vector3f WindEstimator3D::predictBodyAirVelocity()
 {
 	// Get Aerodynamic coefficients
@@ -142,8 +153,8 @@ matrix::Vector3f WindEstimator3D::predictBodyAirVelocity()
 	// compute expected AoA from g-forces:
 	Vector3f body_force = mass * (_acceleration + _attitude.rotateVectorInverse(Vector3f(0.f, 0.f, CONSTANTS_ONE_G)));
 
-	const float speed = fmaxf(_calibrated_airspeed, stall_airspeed);
-	const float dynamic_force = 0.5f * atmosphere::kAirDensitySeaLevelStandardAtmos * powf(speed, 2) * wing_area;
+	const float speed = fmaxf(_true_airspeed, stall_airspeed);
+	const float dynamic_force = 0.5f * _air_density * powf(speed, 2) * wing_area;
 	float u_approx = _true_airspeed;
 	float v_approx = -body_force(1) * _true_airspeed / (dynamic_force * C_Y_B);
 	float w_approx = (body_force(2) * _true_airspeed / dynamic_force  + C_L_0) / C_L_A;
@@ -155,7 +166,7 @@ void WindEstimator3D::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -201,6 +212,8 @@ void WindEstimator3D::Run()
 
 		vehicle_land_detected_poll();
 		airspeed_poll();
+		vehicle_acceleration_poll();
+		vehicle_air_data_poll();
 		vehicle_attitude_poll();
 		vehicle_local_position_poll();
 
@@ -243,8 +256,8 @@ int WindEstimator3D::task_spawn(int argc, char *argv[])
 	WindEstimator3D *instance = new WindEstimator3D();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -255,8 +268,8 @@ int WindEstimator3D::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -291,5 +304,5 @@ externally (e.g. wind-tunnel testing, CFD, or manual system identification) and 
 
 extern "C" __EXPORT int wind_estimator_3d_main(int argc, char *argv[])
 {
-	return WindEstimator3D::main(argc, argv);
+	return ModuleBase::main(WindEstimator3D::desc, argc, argv);
 }
