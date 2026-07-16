@@ -57,6 +57,7 @@
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/rtcm_data.h>
+#include <lib/gnss/rtcm.h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
@@ -529,15 +530,23 @@ private:
 	void handle_inject_data_topic();
 
 	/**
-	 * @brief Drain the multi-instance rtcm_corrections subscription and write to the receiver,
+	 * @brief Drain the multi-instance rtcm_corrections subscription into its RTCM parser,
 	 * selecting an active instance if the current one goes stale.
 	 */
 	void drain_rtcm_corrections();
 
 	/**
-	 * @brief Drain the single-publisher rtcm_moving_baseline subscription and write to the receiver.
+	 * @brief Drain the single-publisher rtcm_moving_baseline subscription into its RTCM parser.
 	 */
 	void drain_moving_baseline();
+
+	/**
+	 * @brief Write all complete RTCM frames reassembled in a parser to the receiver.
+	 *
+	 * The two inject streams are written frame-atomically so chunks of a fragmented frame on
+	 * one stream can never interleave with the other stream's bytes mid-frame.
+	 */
+	void inject_rtcm_frames(gnss::Rtcm3Parser &parser);
 
 	/**
 	 * @brief Send data to the receiver, such as RTCM injections.
@@ -738,6 +747,10 @@ private:
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
 	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM corrections injection
 	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
+	// Separate parser per inject stream: frames are only written to the receiver once complete,
+	// so fixed-base corrections and moving-baseline bytes cannot interleave mid-frame.
+	gnss::Rtcm3Parser                      _rtcm_corrections_parser {};                                  ///< Frame reassembly for rtcm_corrections
+	gnss::Rtcm3Parser                      _rtcm_moving_baseline_parser {};                              ///< Frame reassembly for rtcm_moving_baseline
 	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
 	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time

@@ -1656,8 +1656,7 @@ void SeptentrioDriver::drain_rtcm_corrections()
 
 			// Prevent injection of data from self
 			if (msg.device_id != get_device_id()) {
-				write(msg.data, msg.len);
-				++_current_interval_rtcm_injections;
+				_rtcm_corrections_parser.addData(msg.data, msg.len);
 				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
@@ -1696,9 +1695,20 @@ void SeptentrioDriver::drain_moving_baseline()
 
 		// Prevent injection of data from self
 		if (msg.device_id != get_device_id()) {
-			write(msg.data, msg.len);
-			++_current_interval_rtcm_injections;
+			_rtcm_moving_baseline_parser.addData(msg.data, msg.len);
 		}
+	}
+}
+
+void SeptentrioDriver::inject_rtcm_frames(gnss::Rtcm3Parser &parser)
+{
+	size_t frame_len = {};
+	const uint8_t *frame_ptr = {};
+
+	while ((frame_ptr = parser.getNextMessage(&frame_len)) != nullptr) {
+		write(frame_ptr, frame_len);
+		parser.consumeMessage(frame_len);
+		++_current_interval_rtcm_injections;
 	}
 }
 
@@ -1707,11 +1717,13 @@ void SeptentrioDriver::handle_inject_data_topic()
 	// Fixed-base RTCM corrections (from MAVLink GPS_RTCM_DATA, UAVCAN RTCMStream).
 	// Both the moving-base (Secondary) and the rover (Main) can benefit from external RTCM.
 	drain_rtcm_corrections();
+	inject_rtcm_frames(_rtcm_corrections_parser);
 
 	// Moving-baseline RTCM is only consumed by the rover (Main instance) in a moving-base setup.
 	// Single publisher, so no instance selection - just drain it into the receiver.
 	if (_receiver_setup == ReceiverSetup::MovingBase && _instance == Instance::Main) {
 		drain_moving_baseline();
+		inject_rtcm_frames(_rtcm_moving_baseline_parser);
 	}
 }
 

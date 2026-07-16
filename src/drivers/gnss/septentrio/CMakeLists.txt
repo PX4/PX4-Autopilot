@@ -49,6 +49,7 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		failure_injection
+		gnss
 	)
 
 if(TARGET fuzztest::fuzztest)
