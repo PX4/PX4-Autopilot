@@ -22,7 +22,7 @@ Some settings and instructions are already provided by px4-common-files and are 
 
 ### Hardfault Dumps
 
-The following configuration changes are required to enable crash dumps.
+The following configuration changes are required to enable crash dumps and streaming.
 
 #### KConfig
 
@@ -30,6 +30,13 @@ The [KConfig board configuration](../hardware/porting_guide_config.md) must incl
 
 ```txt
 CONFIG_BOARD_CRASHDUMP=y
+CONFIG_MODULES_HARDFAULT_STREAM=y
+```
+
+The board's `rcS` needs to start the [hardfault-stream](../modules/modules_system.md#hardfault-stream) module.
+
+```sh
+hardfault_stream start
 ```
 
 #### board_config.h
@@ -100,21 +107,6 @@ add_custom_target(px4_ld_script_pp DEPENDS "${_ld_script_pp}")
 add_dependencies(px4 px4_ld_script_pp)
 
 set(_ld_script_flag "-Wl,--script=${_ld_script_pp}")
-```
-
-### Setup the hardfault_stream Module
-
-The [KConfig board configuration](../hardware/porting_guide_config.md) must include the [hardfault-stream](../modules/modules_system.md#hardfault-stream) module:
-
-```txt
-CONFIG_MODULES_HARDFAULT_STREAM=y
-```
-
-The board's `rcS` must also include the following line to start the module.
-This should be placed after the log transport is started.
-
-```sh
-hardfault_stream start
 ```
 
 ### Task/CPU-load streaming (Optional)
