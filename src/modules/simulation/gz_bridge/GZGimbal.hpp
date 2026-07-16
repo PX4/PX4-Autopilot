@@ -80,6 +80,11 @@ private:
 	matrix::Quatf _q_gimbal = matrix::Quatf(1.0f, 0.0f, 0.0f, 0.0f);
 	float _gimbal_rate[3] = {NAN};
 
+	// Set once we receive gimbal IMU data from Gazebo, i.e. the model actually has a
+	// gimbal. Until then we don't present a MAVLink gimbal device, so that a model
+	// without a gimbal lets PX4 act as a manager for an external MAVLink gimbal instead.
+	bool _gimbal_present = false;
+
 	// Device information attributes
 	const char _vendor_name[32] = "PX4";
 	const char _model_name[32] = "Gazebo Gimbal";
