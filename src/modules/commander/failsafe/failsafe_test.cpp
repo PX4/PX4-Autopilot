@@ -34,6 +34,7 @@
 #include <gtest/gtest.h>
 
 #include "failsafe.h"
+#include "failsafe_mode_params.h"
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -732,7 +733,8 @@ TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
 {
 	// Each param value is exercised on its own fresh Failsafe instance, to avoid
 	// action hysteresis/clear-conditions from one value leaking into the next.
-	auto selectedActionFor = [](int com_traff_avoid) {
+	auto selectedActionFor = [](traffic_avoidance::FailsafeMode mode) {
+		int32_t com_traff_avoid = static_cast<int32_t>(mode);
 		param_set(param_handle(px4::params::COM_TRAFF_AVOID), &com_traff_avoid);
 
 		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
@@ -754,11 +756,11 @@ TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
 		return failsafe.selectedAction();
 	};
 
-	EXPECT_EQ(selectedActionFor(0), FailsafeBase::Action::None); // Disabled
-	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::Warn); // Warning (arming allowed)
-	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Warn); // Warning (block arming) -- same in-flight action as 1
-	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::RTL);  // Return
-	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Land); // Land
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Disabled), FailsafeBase::Action::None);
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Warning), FailsafeBase::Action::Warn);
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Error), FailsafeBase::Action::Warn); // same as Warning in-flight
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Return), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Land), FailsafeBase::Action::Land);
 }
 
 TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)

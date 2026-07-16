@@ -35,6 +35,8 @@
 
 #include "checks/trafficAvoidanceCheck.hpp"
 
+#include "../failsafe/failsafe_mode_params.h"
+
 #include <px4_platform_common/param.h>
 
 // to run: make tests TESTFILTER=trafficAvoidanceCheck
@@ -69,8 +71,9 @@ public:
 		_can_arm_all_modes = reporter.armingCheckResults().can_arm == NavModes::All;
 	}
 
-	void setParam(int com_traff_avoid)
+	void setParam(traffic_avoidance::FailsafeMode mode)
 	{
+		int32_t com_traff_avoid = static_cast<int32_t>(mode);
 		param_set(param_find("COM_TRAFF_AVOID"), &com_traff_avoid);
 	}
 
@@ -85,7 +88,7 @@ public:
 // COM_TRAFF_AVOID = 0 (Disabled): missing system is ignored entirely, arming unaffected.
 TEST_F(TrafficAvoidanceChecksTest, DisabledIgnoresMissingSystem)
 {
-	setParam(0);
+	setParam(traffic_avoidance::FailsafeMode::Disabled);
 
 	runCheck(false);
 	EXPECT_FALSE(_failsafe_flags.traffic_avoidance_unhealthy);
@@ -97,7 +100,7 @@ TEST_F(TrafficAvoidanceChecksTest, DisabledIgnoresMissingSystem)
 // COM_TRAFF_AVOID = 1 (Warning): missing system sets unhealthy + a warning, but does NOT block arming.
 TEST_F(TrafficAvoidanceChecksTest, WarningMissingSystemDoesNotBlockArming)
 {
-	setParam(1);
+	setParam(traffic_avoidance::FailsafeMode::Warning);
 
 	runCheck(false);
 	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
@@ -106,10 +109,10 @@ TEST_F(TrafficAvoidanceChecksTest, WarningMissingSystemDoesNotBlockArming)
 	EXPECT_TRUE(_can_arm_all_modes);
 }
 
-// COM_TRAFF_AVOID = 2 (WarningBlockArming): missing system sets unhealthy + an error, and blocks arming.
-TEST_F(TrafficAvoidanceChecksTest, WarningBlockArmingMissingSystemBlocksArming)
+// COM_TRAFF_AVOID = 2 (Error): missing system sets unhealthy + an error, and blocks arming.
+TEST_F(TrafficAvoidanceChecksTest, ErrorMissingSystemBlocksArming)
 {
-	setParam(2);
+	setParam(traffic_avoidance::FailsafeMode::Error);
 
 	runCheck(false);
 	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
@@ -120,7 +123,7 @@ TEST_F(TrafficAvoidanceChecksTest, WarningBlockArmingMissingSystemBlocksArming)
 // COM_TRAFF_AVOID >= 1 and system present -> healthy, present, arming unaffected.
 TEST_F(TrafficAvoidanceChecksTest, PresentSystemIsHealthy)
 {
-	setParam(2);
+	setParam(traffic_avoidance::FailsafeMode::Error);
 
 	runCheck(true);
 	EXPECT_FALSE(_failsafe_flags.traffic_avoidance_unhealthy);

@@ -31,48 +31,29 @@
  *
  ****************************************************************************/
 
-#include "trafficAvoidanceCheck.hpp"
+#pragma once
 
-#include "../../failsafe/failsafe_mode_params.h"
+#include <stdint.h>
 
-void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &reporter)
+// Mode enums for failsafe action parameters (values must match the
+// parameter metadata in commander_params.yaml), one namespace per
+// failsafe. Shared between the failsafe state machine and the
+// HealthAndArmingChecks.
+
+namespace traffic_avoidance
 {
-	const auto mode = static_cast<traffic_avoidance::FailsafeMode>(_param_com_traff_avoid.get());
 
-	if (!traffic_avoidance::isEnabled(mode)) {
-		return;
-	}
+// COM_TRAFF_AVOID parameter values.
+enum class FailsafeMode : int32_t {
+	Disabled = 0,
+	Warning = 1, // arming allowed, in-flight warning
+	Error = 2, // arming blocked, in-flight warning
+	Return = 3, // arming blocked, in-flight RTL
+	Land = 4, // arming blocked, in-flight Land
+};
 
-	reporter.failsafeFlags().traffic_avoidance_unhealthy = !context.status().traffic_avoidance_system_present;
+// Increasing order of severity in enum is assumed.
+constexpr bool isEnabled(FailsafeMode mode) { return mode >= FailsafeMode::Warning; }
+constexpr bool blocksArming(FailsafeMode mode) { return mode >= FailsafeMode::Error; }
 
-	if (!context.status().traffic_avoidance_system_present) {
-		const bool block_arming = traffic_avoidance::blocksArming(mode);
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-
-		/* EVENT
-		 * @description
-		 * Traffic avoidance system (ADSB/FLARM) failed to report. Make sure it is setup and connected properly.
-		 *
-		 * <profile name="dev">
-		 * Configured by <param>COM_TRAFF_AVOID</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure(nav_modes, health_component_t::traffic_avoidance,
-				       events::ID("check_traffic_avoidance_missing"),
-				       log_level, "Traffic avoidance system missing");
-
-		if (reporter.mavlink_log_pub()) {
-			if (block_arming) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Traffic avoidance system missing");
-
-			} else {
-				mavlink_log_warning(reporter.mavlink_log_pub(), "Traffic avoidance system missing");
-			}
-		}
-	}
-
-	if (context.status().traffic_avoidance_system_present) {
-		reporter.setIsPresent(health_component_t::traffic_avoidance);
-	}
-}
+} // namespace traffic_avoidance

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "failsafe.h"
+#include "failsafe_mode_params.h"
 
 #include <px4_platform_common/log.h>
 #include <uORB/topics/vehicle_status.h>
@@ -447,24 +448,24 @@ FailsafeBase::ActionOptions Failsafe::fromTrafficAvoidanceActParam(int param_val
 {
 	ActionOptions options{};
 
-	switch (traffic_avoidance_unhealthy_failsafe_mode(param_value)) {
-	case traffic_avoidance_unhealthy_failsafe_mode::Disabled:
+	switch (static_cast<traffic_avoidance::FailsafeMode>(param_value)) {
+	case traffic_avoidance::FailsafeMode::Disabled:
 	default:
 		options.action = Action::None;
 		break;
 
-	case traffic_avoidance_unhealthy_failsafe_mode::Warning:
-	case traffic_avoidance_unhealthy_failsafe_mode::Error:
+	case traffic_avoidance::FailsafeMode::Warning:
+	case traffic_avoidance::FailsafeMode::Error:
 		options.action = Action::Warn;
 		options.clear_condition = ClearCondition::WhenConditionClears;
 		break;
 
-	case traffic_avoidance_unhealthy_failsafe_mode::Return:
+	case traffic_avoidance::FailsafeMode::Return:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case traffic_avoidance_unhealthy_failsafe_mode::Land:
+	case traffic_avoidance::FailsafeMode::Land:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;

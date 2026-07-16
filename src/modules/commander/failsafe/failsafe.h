@@ -167,14 +167,6 @@ private:
 		Land = 3,
 	};
 
-	enum class traffic_avoidance_unhealthy_failsafe_mode : int32_t {
-		Disabled = 0,
-		Warning = 1,
-		Error = 2,
-		Return = 3,
-		Land = 4,
-	};
-
 	enum class gps_redundancy_failsafe_mode : int32_t {
 		Warning = 0,
 		Return_mode = 1,
