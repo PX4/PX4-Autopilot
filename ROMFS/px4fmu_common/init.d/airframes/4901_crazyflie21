@@ -74,14 +74,17 @@ param set-default PWM_MAIN_DIS0 0
 param set-default PWM_MAIN_DIS1 0
 param set-default PWM_MAIN_DIS2 0
 param set-default PWM_MAIN_DIS3 0
+param set-default PWM_MAIN_DIS4 0
 param set-default PWM_MAIN_MIN0 20
 param set-default PWM_MAIN_MIN1 20
 param set-default PWM_MAIN_MIN2 20
 param set-default PWM_MAIN_MIN3 20
+param set-default PWM_MAIN_MIN4 20
 param set-default PWM_MAIN_MAX0 255
 param set-default PWM_MAIN_MAX1 255
 param set-default PWM_MAIN_MAX2 255
 param set-default PWM_MAIN_MAX3 255
+param set-default PWM_MAIN_MAX4 255
 
 param set-default SENS_FLOW_MINRNG 0.05
 
