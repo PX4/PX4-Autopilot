@@ -86,7 +86,7 @@ MavlinkReceiver::~MavlinkReceiver()
 #endif // !CONSTRAINED_FLASH
 
 	_distance_sensor_pub.unadvertise();
-	_gps_inject_data_pub.unadvertise();
+	_rtcm_corrections_pub.unadvertise();
 	_rc_pub.unadvertise();
 	_manual_control_input_pub.unadvertise();
 	_ping_pub.unadvertise();
@@ -2009,6 +2009,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
 				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
+	battery_status.time_remaining_s = (battery_mavlink.time_remaining > 0) ? static_cast<float>(battery_mavlink.time_remaining) : NAN;
 
 	// Set the battery warning based on remaining charge, if available.
 	//  Note: Smallest values must come first in evaluation.
@@ -2909,38 +2910,38 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 				 packet_len, now, message_len);
 
 	if (message != nullptr) {
-		publish_gps_inject_data(message, message_len);
+		publish_rtcm_corrections(message, message_len);
 
 		// addPacket() can queue at most one deferred message.
 		const uint8_t *deferred_message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
 
 		if (deferred_message != nullptr) {
-			publish_gps_inject_data(deferred_message, message_len);
+			publish_rtcm_corrections(deferred_message, message_len);
 		}
 	}
 }
 
 void
-MavlinkReceiver::publish_gps_inject_data(const uint8_t *data, size_t len)
+MavlinkReceiver::publish_rtcm_corrections(const uint8_t *data, size_t len)
 {
-	gps_inject_data_s gps_inject_data_topic{};
-	constexpr uint8_t gps_inject_data_flag_fragmented = 1;
+	rtcm_data_s rtcm_corrections_topic{};
+	constexpr uint8_t rtcm_corrections_flag_fragmented = 1;
 
-	const size_t capacity = sizeof(gps_inject_data_topic.data);
-	// gps_inject_data only carries the transport-level fragmented bit. The
+	const size_t capacity = sizeof(rtcm_corrections_topic.data);
+	// rtcm_corrections only carries the transport-level fragmented bit. The
 	// MAVLink fragment/sequence bits are consumed by the assembler above.
-	gps_inject_data_topic.flags = (len > capacity) ? gps_inject_data_flag_fragmented : 0;
+	rtcm_corrections_topic.flags = (len > capacity) ? rtcm_corrections_flag_fragmented : 0;
 
 	size_t written = 0;
 
-	// gps_inject_data transports RTCM in 300-byte uORB chunks, so a fully
+	// rtcm_corrections transports RTCM in 300-byte uORB chunks, so a fully
 	// reassembled RTCM frame may still require multiple publications.
 	while (written < len) {
 		const size_t chunk_len = math::min(len - written, capacity);
-		gps_inject_data_topic.timestamp = hrt_absolute_time();
-		gps_inject_data_topic.len = static_cast<decltype(gps_inject_data_topic.len)>(chunk_len);
-		memcpy(gps_inject_data_topic.data, &data[written], chunk_len);
-		_gps_inject_data_pub.publish(gps_inject_data_topic);
+		rtcm_corrections_topic.timestamp = hrt_absolute_time();
+		rtcm_corrections_topic.len = static_cast<decltype(rtcm_corrections_topic.len)>(chunk_len);
+		memcpy(rtcm_corrections_topic.data, &data[written], chunk_len);
+		_rtcm_corrections_pub.publish(rtcm_corrections_topic);
 		written += chunk_len;
 	}
 }

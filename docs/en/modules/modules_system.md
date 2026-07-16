@@ -262,14 +262,21 @@ Source: [modules/failure_injection_manager](https://github.com/PX4/PX4-Autopilot
 
 ### Description
 
-The failure injection manager is the single subscriber to `vehicle_command` for
-`MAV_CMD_INJECT_FAILURE`. It maintains the set of currently active failures and
-publishes the `failure_injection` topic, republishing only when the configuration
-changes so that command spam cannot propagate to the consumers that apply the
-failures. It also produces the central `vehicle_command_ack`.
+Central module for handling failure injection. It collects failure requests, tracks
+the set of active failures, and publishes them on the `failure_injection` topic for
+the apply-sites to act on.
 
-Failure injection is gated by the `SYS_FAILURE_EN` parameter, which the startup
-script checks before starting this module.
+Failures can be triggered through:
+
+- `MAV_CMD_INJECT_FAILURE` over MAVLink (e.g. from MAVSDK)
+- the `failure` console command
+- an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
+  `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
+
+Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
+
+Failures can be applied both in simulation and on real hardware, where the apply-sites are
+compiled in alongside this module.
 
 ### Usage {#failure_injection_manager_usage}
 

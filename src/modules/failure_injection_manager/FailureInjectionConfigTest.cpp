@@ -51,8 +51,17 @@ using namespace failure_injection;
 namespace
 {
 
-// Minimal uORB-like message: every uORB message starts with a uint64 timestamp.
+// Minimal uORB-like message with the timestamp/timestamp_sample pair the
+// generic process<>() maintains.
 struct FakeMsg {
+	uint64_t timestamp;
+	uint64_t timestamp_sample;
+	float value;
+};
+
+// Some messages carry no timestamp_sample (e.g. distance_sensor_s); process<>()
+// detects that at compile time and only keeps the timestamp live.
+struct FakeMsgNoSample {
 	uint64_t timestamp;
 	float value;
 };
@@ -185,43 +194,76 @@ TEST(FailureInjectionConfig, UpdatePicksUpPublishedSample)
 
 TEST(FailureInjectionConfig, ProcessOffSuppresses)
 {
-	FakeMsg msg{100, 1.0f};
+	FakeMsg msg{100, 90, 1.0f};
 	Stuck<FakeMsg> stuck;
 	EXPECT_FALSE(process(Mode::Off, msg, stuck));
 }
 
-TEST(FailureInjectionConfig, ProcessStuckReplaysValueButAdvancesTimestamp)
+TEST(FailureInjectionConfig, ProcessStuckReplaysValueButKeepsLiveTimestamps)
 {
 	Stuck<FakeMsg> stuck;
 
 	// A good sample is recorded while no failure is active.
-	FakeMsg good{100, 1.0f};
+	FakeMsg good{100, 90, 1.0f};
 	EXPECT_TRUE(process(Mode::Ok, good, stuck));
 	ASSERT_TRUE(stuck.valid);
 
-	// A later sample arrives while Stuck: the value is frozen, the timestamp advances.
-	FakeMsg later{200, 2.0f};
+	// A later sample arrives while Stuck: the payload is frozen, but both time
+	// fields stay live so consumers that require monotonic timestamps
+	// (VehicleIMU, EKF2 buffers) keep consuming.
+	FakeMsg later{200, 190, 2.0f};
 	EXPECT_TRUE(process(Mode::Stuck, later, stuck));
 	EXPECT_FLOAT_EQ(later.value, 1.0f);
 	EXPECT_EQ(later.timestamp, 200u);
+	EXPECT_EQ(later.timestamp_sample, 190u);
 }
 
 TEST(FailureInjectionConfig, ProcessStuckWithoutSnapshotLeavesMessageUnchanged)
 {
 	Stuck<FakeMsg> stuck; // never recorded a good sample
-	FakeMsg msg{200, 2.0f};
+	FakeMsg msg{200, 190, 2.0f};
 	EXPECT_TRUE(process(Mode::Stuck, msg, stuck));
 	EXPECT_FLOAT_EQ(msg.value, 2.0f);
 	EXPECT_EQ(msg.timestamp, 200u);
+	EXPECT_EQ(msg.timestamp_sample, 190u);
 }
 
 TEST(FailureInjectionConfig, ProcessOkRecordsLastGood)
 {
 	Stuck<FakeMsg> stuck;
-	FakeMsg msg{100, 5.0f};
+	FakeMsg msg{100, 90, 5.0f};
 	EXPECT_TRUE(process(Mode::Ok, msg, stuck));
 	EXPECT_TRUE(stuck.valid);
 	EXPECT_FLOAT_EQ(stuck.value.value, 5.0f);
 	// Message itself is untouched.
 	EXPECT_FLOAT_EQ(msg.value, 5.0f);
+}
+
+TEST(FailureInjectionConfig, ProcessStuckWithoutTimestampSampleKeepsLiveTimestamp)
+{
+	Stuck<FakeMsgNoSample> stuck;
+
+	FakeMsgNoSample good{100, 1.0f};
+	EXPECT_TRUE(process(Mode::Ok, good, stuck));
+	ASSERT_TRUE(stuck.valid);
+
+	// Same replay mechanics for messages without a timestamp_sample field.
+	FakeMsgNoSample later{200, 2.0f};
+	EXPECT_TRUE(process(Mode::Stuck, later, stuck));
+	EXPECT_FLOAT_EQ(later.value, 1.0f);
+	EXPECT_EQ(later.timestamp, 200u);
+}
+
+TEST(FailureInjectionConfig, ProcessMessageLessSuppressesOnlyOff)
+{
+	// Message-less overload for payload-less producers (e.g. a heartbeat flag).
+	EXPECT_FALSE(process(Mode::Off));
+	EXPECT_TRUE(process(Mode::Ok));
+	EXPECT_TRUE(process(Mode::Stuck));
+
+	Config config;
+	config.set(make_config(GYRO, 0x2, OFF));
+	// Convenience overload maps the 0-based uORB instance to the 1-based failure instance.
+	EXPECT_FALSE(process(config, GYRO, 1));
+	EXPECT_TRUE(process(config, GYRO, 0));
 }

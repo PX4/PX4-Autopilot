@@ -5,7 +5,7 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failure injection must also be be supported by the current simulator, and the set of supported failures is simulator-dependent.
+Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe).
 
 ::: info
 PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
@@ -24,7 +24,7 @@ Failures can be injected using the [failure system command](../modules/modules_c
 The full syntax of the [failure](../modules/modules_command.md#failure) command is:
 
 ```sh
-failure <component> <failure_type> [-i <instance_number>]
+failure <component> <failure_type> [-i <instance_number>] [-m <instance_bitmask>]
 ```
 
 where:
@@ -58,10 +58,22 @@ where:
   - `intermittent`: Publish intermittently
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
+- _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted. Example: `-m 0x5` targets instances 1 and 3.
 
 ::: info
 The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
 :::
+
+## RC Switch Trigger
+
+A failure can also be injected from an RC switch, without a console or telemetry link. This is useful for in-flight hardware testing. It is configured with the following parameters:
+
+- [SYS_FAIL_RC_SRC](../advanced_config/parameter_reference.md#SYS_FAIL_RC_SRC): the auxiliary RC input that triggers the failure — `0` disables it, `1`–`6` select AUX1–AUX6 (mapped via `RC_MAP_AUXn`).
+- [SYS_FAIL_RC_UNIT](../advanced_config/parameter_reference.md#SYS_FAIL_RC_UNIT): the affected component (the `FAILURE_UNIT` value; e.g. `101` = motor).
+- [SYS_FAIL_RC_MODE](../advanced_config/parameter_reference.md#SYS_FAIL_RC_MODE): the failure type (the `FAILURE_TYPE` value; e.g. `1` = off).
+- [SYS_FAIL_RC_INST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_INST): the affected instance (1-based; `0` = all instances).
+
+While the selected aux switch is on the configured failure is injected; switching it back off clears the failure. The injection goes through the same path as the console/MAVLink commands, so for a motor it stops the motor exactly as `failure motor off` does (which also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)).
 
 ## MAVSDK Failure Plugin
 
@@ -99,4 +111,19 @@ To stop a motor mid-flight without the system anticipating it or excluding it fr
 
    # Turn it back on
    failure motor ok -i 1
+   ```
+
+## Example: Battery
+
+To trigger the battery failsafe by reporting a depleted pack:
+
+1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
+2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+
+   ```sh
+   # Report the battery as depleted (warning EMERGENCY) -> battery failsafe
+   failure battery off
+
+   # Stop injecting the failure
+   failure battery ok
    ```
