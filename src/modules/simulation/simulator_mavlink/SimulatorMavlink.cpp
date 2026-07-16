@@ -220,9 +220,10 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			accel_fifo.samples = 1;
 			accel_fifo.dt = time - _last_accel_fifo_timestamp;
 			accel_fifo.timestamp_sample = time;
-			accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
-			accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
-			accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+			// Constrain to FIFO int16 range: beyond full-scale saturates (clip) instead of wrapping.
+			accel_fifo.x[0] = math::constrainFloatToInt16(sensors.xacc / ACCEL_FIFO_SCALE);
+			accel_fifo.y[0] = math::constrainFloatToInt16(sensors.yacc / ACCEL_FIFO_SCALE);
+			accel_fifo.z[0] = math::constrainFloatToInt16(sensors.zacc / ACCEL_FIFO_SCALE);
 			_last_accel_fifo_timestamp = time;
 
 			_px4_accel[sensors.id].updateFIFO(accel_fifo);
@@ -253,9 +254,10 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			gyro_fifo.samples = 1;
 			gyro_fifo.dt = time - _last_gyro_fifo_timestamp;
 			gyro_fifo.timestamp_sample = time;
-			gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
-			gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
-			gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+			// Constrain to FIFO int16 range: rates beyond full-scale saturates instead of wrapping.
+			gyro_fifo.x[0] = math::constrainFloatToInt16(sensors.xgyro / GYRO_FIFO_SCALE);
+			gyro_fifo.y[0] = math::constrainFloatToInt16(sensors.ygyro / GYRO_FIFO_SCALE);
+			gyro_fifo.z[0] = math::constrainFloatToInt16(sensors.zgyro / GYRO_FIFO_SCALE);
 			_last_gyro_fifo_timestamp = time;
 
 			_px4_gyro[sensors.id].updateFIFO(gyro_fifo);
