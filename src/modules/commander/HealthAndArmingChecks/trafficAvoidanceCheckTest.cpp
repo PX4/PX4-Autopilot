@@ -62,7 +62,7 @@ public:
 
 		_check.updateParams();
 		Context context{status};
-		_failsafe_flags = {};
+		// _failsafe_flags deliberately persists across calls, like commander's failsafe_flags in production
 		Report reporter{_failsafe_flags, 0};
 		_check.checkAndReport(context, reporter);
 		_health_error_traffic_avoidance = (bool)(reporter.healthResults().error & health_component_t::traffic_avoidance);
@@ -118,6 +118,19 @@ TEST_F(TrafficAvoidanceChecksTest, ErrorMissingSystemBlocksArming)
 	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
 	EXPECT_TRUE(_health_error_traffic_avoidance);
 	EXPECT_FALSE(_can_arm_all_modes);
+}
+
+// Disabling the check (e.g. in flight, to allow arming) clears a previously-set unhealthy flag.
+TEST_F(TrafficAvoidanceChecksTest, DisablingClearsStaleUnhealthyFlag)
+{
+	setParam(traffic_avoidance::FailsafeMode::Warning);
+	runCheck(false);
+	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
+
+	setParam(traffic_avoidance::FailsafeMode::Disabled);
+	runCheck(false);
+	EXPECT_FALSE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_TRUE(_can_arm_all_modes);
 }
 
 // COM_TRAFF_AVOID >= 1 and system present -> healthy, present, arming unaffected.

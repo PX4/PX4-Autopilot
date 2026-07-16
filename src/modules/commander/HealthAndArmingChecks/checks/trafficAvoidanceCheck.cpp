@@ -38,12 +38,15 @@
 void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const auto mode = static_cast<traffic_avoidance::FailsafeMode>(_param_com_traff_avoid.get());
+	const bool enabled = traffic_avoidance::isEnabled(mode);
 
-	if (!traffic_avoidance::isEnabled(mode)) {
+	// Always update the flag, so that disabling the check also clears a previously-set flag
+	reporter.failsafeFlags().traffic_avoidance_unhealthy = enabled
+			&& !context.status().traffic_avoidance_system_present;
+
+	if (!enabled) {
 		return;
 	}
-
-	reporter.failsafeFlags().traffic_avoidance_unhealthy = !context.status().traffic_avoidance_system_present;
 
 	if (!context.status().traffic_avoidance_system_present) {
 		const bool block_arming = traffic_avoidance::blocksArming(mode);
