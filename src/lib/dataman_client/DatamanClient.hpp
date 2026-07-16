@@ -308,7 +308,6 @@ private:
 	uint32_t _update_index{0};	///< index for tracking last index used by update function
 	uint32_t _item_counter{0};	///< number of items to process with update function
 	uint32_t _num_items{0};		///< number of items that cache can store
-	uint32_t _search_hint{0};	///< slot of the last loadWait hit, speeds up sequential lookups
 
 	DatamanClient _client{};
 
