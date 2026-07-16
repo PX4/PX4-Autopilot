@@ -292,7 +292,6 @@ system identification) and entered by hand.
 
 	PRINT_MODULE_USAGE_NAME("wind_estimator_3d", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

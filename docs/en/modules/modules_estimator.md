@@ -140,7 +140,6 @@ system identification) and entered by hand.
 wind_estimator_3d <command> [arguments...]
  Commands:
    start
-     [vtol]      VTOL mode
 
    stop
 
