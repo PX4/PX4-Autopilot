@@ -161,7 +161,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [GpioOut](GpioOut.md) — GPIO mask and state.
 - [GpioRequest](GpioRequest.md) — Request GPIO mask to be read.
 - [GpsDump](GpsDump.md) — This message is used to dump the raw gps communication to the log.
-- [GpsInjectData](GpsInjectData.md)
 - [Gripper](Gripper.md) — # Used to command an actuation in the gripper, which is mapped to a specific output in the control allocation module.
 - [HealthReport](HealthReport.md)
 - [HeaterStatus](HeaterStatus.md)
@@ -239,6 +238,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint.
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
+- [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
 - [RtlStatus](RtlStatus.md)
 - [RtlTimeEstimate](RtlTimeEstimate.md)
 - [SatelliteInfo](SatelliteInfo.md)
