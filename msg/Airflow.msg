@@ -1,6 +1,6 @@
 # Estimated airflow around the vehicle
 #
-# This is published by the fw_wind_estimator module.
+# This is published by the wind_estimator_3d module.
 
 uint64 timestamp                 # [us] Time since system start
 uint64 timestamp_sample          # [us] Timestamp of the raw data

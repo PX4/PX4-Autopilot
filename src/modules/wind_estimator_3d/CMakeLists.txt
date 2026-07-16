@@ -32,11 +32,11 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__fw_wind_estimator
-	MAIN fw_wind_estimator
+	MODULE modules__wind_estimator_3d
+	MAIN wind_estimator_3d
 	SRCS
-		FixedwingWindEstimator.cpp
-		FixedwingWindEstimator.hpp
+		WindEstimator3D.cpp
+		WindEstimator3D.hpp
 	DEPENDS
 		px4_work_queue
 	MODULE_CONFIG

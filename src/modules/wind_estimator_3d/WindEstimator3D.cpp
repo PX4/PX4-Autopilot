@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "FixedwingWindEstimator.hpp"
+#include "WindEstimator3D.hpp"
 
 #include <lib/atmosphere/atmosphere.h>
 
@@ -42,7 +42,7 @@ using math::constrain;
 using math::interpolate;
 using math::radians;
 
-FixedwingWindEstimator::FixedwingWindEstimator() :
+WindEstimator3D::WindEstimator3D() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
@@ -52,13 +52,13 @@ FixedwingWindEstimator::FixedwingWindEstimator() :
 
 }
 
-FixedwingWindEstimator::~FixedwingWindEstimator()
+WindEstimator3D::~WindEstimator3D()
 {
 	perf_free(_loop_perf);
 }
 
 bool
-FixedwingWindEstimator::init()
+WindEstimator3D::init()
 {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
@@ -69,13 +69,13 @@ FixedwingWindEstimator::init()
 }
 
 int
-FixedwingWindEstimator::parameters_update()
+WindEstimator3D::parameters_update()
 {
 	return PX4_OK;
 }
 
 void
-FixedwingWindEstimator::vehicle_land_detected_poll()
+WindEstimator3D::vehicle_land_detected_poll()
 {
 	if (_vehicle_land_detected_sub.updated()) {
 		vehicle_land_detected_s vehicle_land_detected {};
@@ -86,7 +86,7 @@ FixedwingWindEstimator::vehicle_land_detected_poll()
 	}
 }
 
-void FixedwingWindEstimator::airspeed_poll()
+void WindEstimator3D::airspeed_poll()
 {
 	airspeed_validated_s airspeed_validated;
 
@@ -98,7 +98,7 @@ void FixedwingWindEstimator::airspeed_poll()
 
 
 void
-FixedwingWindEstimator::vehicle_attitude_poll()
+WindEstimator3D::vehicle_attitude_poll()
 {
 	vehicle_attitude_s vehicle_attitude{};
 
@@ -109,7 +109,7 @@ FixedwingWindEstimator::vehicle_attitude_poll()
 }
 
 void
-FixedwingWindEstimator::vehicle_local_position_poll()
+WindEstimator3D::vehicle_local_position_poll()
 {
 	vehicle_local_position_s vehicle_local_position;
 
@@ -120,7 +120,7 @@ FixedwingWindEstimator::vehicle_local_position_poll()
 }
 
 void
-FixedwingWindEstimator::vehicle_acceleration_poll()
+WindEstimator3D::vehicle_acceleration_poll()
 {
 	vehicle_acceleration_s vehicle_acceleration;
 
@@ -129,7 +129,7 @@ FixedwingWindEstimator::vehicle_acceleration_poll()
 	}
 }
 
-matrix::Vector3f FixedwingWindEstimator::predictBodyAirVelocity()
+matrix::Vector3f WindEstimator3D::predictBodyAirVelocity()
 {
 	// Get Aerodynamic coefficients
 	const float wing_area = _param_fw_w_area.get();
@@ -151,7 +151,7 @@ matrix::Vector3f FixedwingWindEstimator::predictBodyAirVelocity()
 	return vel_air;
 }
 
-void FixedwingWindEstimator::Run()
+void WindEstimator3D::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
@@ -237,9 +237,9 @@ void FixedwingWindEstimator::Run()
 	perf_end(_loop_perf);
 }
 
-int FixedwingWindEstimator::task_spawn(int argc, char *argv[])
+int WindEstimator3D::task_spawn(int argc, char *argv[])
 {
-	FixedwingWindEstimator *instance = new FixedwingWindEstimator();
+	WindEstimator3D *instance = new WindEstimator3D();
 
 	if (instance) {
 		_object.store(instance);
@@ -260,12 +260,12 @@ int FixedwingWindEstimator::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int FixedwingWindEstimator::custom_command(int argc, char *argv[])
+int WindEstimator3D::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int FixedwingWindEstimator::print_usage(const char *reason)
+int WindEstimator3D::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -274,11 +274,11 @@ int FixedwingWindEstimator::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-fw_wind_estimator is a 3D wind estimator for fixed-wing vehicles.
+wind_estimator_3d is a 3D wind estimator for fixed-wing vehicles.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("fw_rate_control", "controller");
+	PRINT_MODULE_USAGE_NAME("wind_estimator_3d", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -286,7 +286,7 @@ fw_wind_estimator is a 3D wind estimator for fixed-wing vehicles.
 	return 0;
 }
 
-extern "C" __EXPORT int fw_wind_estimator_main(int argc, char *argv[])
+extern "C" __EXPORT int wind_estimator_3d_main(int argc, char *argv[])
 {
-	return FixedwingWindEstimator::main(argc, argv);
+	return WindEstimator3D::main(argc, argv);
 }

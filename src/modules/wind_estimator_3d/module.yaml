@@ -1,4 +1,4 @@
-module_name: fw_wind_estimator
+module_name: wind_estimator_3d
 parameters:
 - group: 3D Wind Estimator
   definitions:

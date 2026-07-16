@@ -72,12 +72,12 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class FixedwingWindEstimator final : public ModuleBase<FixedwingWindEstimator>, public ModuleParams,
+class WindEstimator3D final : public ModuleBase<WindEstimator3D>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	FixedwingWindEstimator();
-	~FixedwingWindEstimator() override;
+	WindEstimator3D();
+	~WindEstimator3D() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
