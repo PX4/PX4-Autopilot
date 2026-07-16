@@ -133,9 +133,9 @@ matrix::Vector3f WindEstimator3D::predictBodyAirVelocity()
 {
 	// Get Aerodynamic coefficients
 	const float wing_area = _param_fw_w_area.get();
-	const float C_B1 = _param_fw_w_c_b1.get();
-	const float C_A0 = _param_fw_w_c_a0.get();
-	const float C_A1 = _param_fw_w_c_a1.get();
+	const float C_Y_B = _param_fw_w_cy_b.get();
+	const float C_L_0 = _param_fw_w_cl_0.get();
+	const float C_L_A = _param_fw_w_cl_a.get();
 	const float mass = _param_fw_w_mass.get();
 	const float stall_airspeed = _param_fw_airspd_stall.get();
 
@@ -145,8 +145,8 @@ matrix::Vector3f WindEstimator3D::predictBodyAirVelocity()
 	const float speed = fmaxf(_calibrated_airspeed, stall_airspeed);
 	const float dynamic_force = 0.5f * atmosphere::kAirDensitySeaLevelStandardAtmos * powf(speed, 2) * wing_area;
 	float u_approx = _true_airspeed;
-	float v_approx = -body_force(1) * _true_airspeed / (dynamic_force * C_B1);
-	float w_approx = (body_force(2) * _true_airspeed / dynamic_force  + C_A0) / C_A1;
+	float v_approx = -body_force(1) * _true_airspeed / (dynamic_force * C_Y_B);
+	float w_approx = (body_force(2) * _true_airspeed / dynamic_force  + C_L_0) / C_L_A;
 	Vector3f vel_air(u_approx, v_approx, w_approx);
 	return vel_air;
 }
@@ -274,7 +274,19 @@ int WindEstimator3D::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-wind_estimator_3d is a 3D wind estimator for fixed-wing vehicles.
+wind_estimator_3d is a 3D wind estimator for fixed-wing vehicles, based on a simple aerodynamic model of the
+airframe. Unlike the existing 2D wind estimators (which only estimate horizontal wind), this model requires the
+following airframe-specific parameters:
+
+- `FW_W_MASS`: Vehicle mass
+- `FW_W_AREA`: Vehicle reference (wing) area
+- `FW_W_CY_B`: Sideslip force coefficient (side slip)
+- `FW_W_CL_0`: Lift coefficient (zero angle of attack)
+- `FW_W_CL_A`: Lift coefficient (angle of attack)
+
+There is currently no automated identification/calibration pipeline in PX4 to derive these coefficients for a
+given airframe. They must currently be obtained externally (for example from wind-tunnel testing, CFD, or manual
+system identification) and entered by hand.
 
 )DESCR_STR");
 

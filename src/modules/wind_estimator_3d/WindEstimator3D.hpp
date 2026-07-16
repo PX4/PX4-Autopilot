@@ -127,9 +127,9 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_W_MASS>) _param_fw_w_mass,
 		(ParamFloat<px4::params::FW_W_AREA>) _param_fw_w_area,
-		(ParamFloat<px4::params::FW_W_C_B1>) _param_fw_w_c_b1,
-		(ParamFloat<px4::params::FW_W_C_A0>) _param_fw_w_c_a0,
-		(ParamFloat<px4::params::FW_W_C_A1>) _param_fw_w_c_a1,
+		(ParamFloat<px4::params::FW_W_CY_B>) _param_fw_w_cy_b,
+		(ParamFloat<px4::params::FW_W_CL_0>) _param_fw_w_cl_0,
+		(ParamFloat<px4::params::FW_W_CL_A>) _param_fw_w_cl_a,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall
 	)
 

@@ -21,27 +21,27 @@ parameters:
       max: 25
       decimal: 3
       increment: 0.01
-    FW_W_C_B1:
+    FW_W_CY_B:
       description:
-        short: Vehicle Aerodynamic coefficient (side slip)
+        short: Sideslip force coefficient (side slip)
       type: float
       default: 1.0
       min: 0.0
       max: 4
       decimal: 3
       increment: 0.01
-    FW_W_C_A0:
+    FW_W_CL_0:
       description:
-        short: Vehicle Aerodynamic coefficient (zero angle of attack)
+        short: Lift coefficient (zero angle of attack)
       type: float
       default: 0.15188
       min: 0.0
       max: 4
       decimal: 3
       increment: 0.01
-    FW_W_C_A1:
+    FW_W_CL_A:
       description:
-        short: Vehicle Aerodynamic coefficient (angle of attack)
+        short: Lift coefficient (angle of attack)
       type: float
       default: 5.015
       min: 0.0
