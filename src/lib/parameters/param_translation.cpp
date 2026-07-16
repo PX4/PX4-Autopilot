@@ -291,6 +291,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_ARM_TRAFF", node->name) == 0)) {
 			// old: 0 Disabled, 1 Warning only (arming allowed), 2 Enforce all modes, 3 Enforce mission only
 			// new: 0 Disabled, 1 Warning (arming allowed), 2 Error (arming blocked)
+			// Old value 3 (mission-only enforcement) is intentionally mapped to 2 (all modes): mode-scoped
+			// arming enforcement is no longer supported, so we err on the restrictive side.
 			// COM_ARM_TRAFF never triggered an in-flight failsafe action, so the new failsafe
 			// action defaults to Warning either way; only the arming behavior is preserved.
 			if (node->i32 == 1) {
