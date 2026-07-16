@@ -2009,6 +2009,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
 				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
+	battery_status.time_remaining_s = (battery_mavlink.time_remaining > 0) ? static_cast<float>(battery_mavlink.time_remaining) : NAN;
 
 	// Set the battery warning based on remaining charge, if available.
 	//  Note: Smallest values must come first in evaluation.
