@@ -52,16 +52,8 @@ namespace
 // stores the selected mode and an ownship position snapshot; `process_fake_traffic()`
 // later publishes the scripted reports that are due from the navigator update loop.
 static constexpr uint16_t kDefaultFakeTrafficFlags = DetectAndAvoid::kFakeTrafficDefaultFlags;
-
-static constexpr uint16_t kCallsignNotValidFlags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-
-static constexpr uint16_t kVelocityNotValidFlags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
-		transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+static constexpr uint16_t kCallsignNotValidFlags = kDefaultFakeTrafficFlags & ~transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+static constexpr uint16_t kVelocityNotValidFlags = kDefaultFakeTrafficFlags & ~transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 
 // Publish one final far-away sample to clear the same traffic entry cleanly.
 static constexpr float kFakeTrafficResolveDistance = 5000.f;
@@ -184,8 +176,7 @@ static constexpr fake_traffic_script_step_s kFlagsScript[] {
 };
 
 template <size_t N>
-bool get_script_step(const fake_traffic_script_step_s(&script)[N], const uint8_t step_idx,
-		     fake_traffic_script_step_s &step)
+bool get_script_step(const fake_traffic_script_step_s(&script)[N], const uint8_t step_idx, fake_traffic_script_step_s &step)
 {
 	if (step_idx >= N) {
 		return false;
@@ -282,8 +273,7 @@ const char *fake_traffic_mode_to_string(const DetectAndAvoid::FakeTraffMode mode
 	}
 }
 
-bool get_fake_traffic_step(const DetectAndAvoid::FakeTraffMode mode, const uint8_t step_idx,
-			   fake_traffic_script_step_s &step)
+bool get_fake_traffic_step(const DetectAndAvoid::FakeTraffMode mode, const uint8_t step_idx, fake_traffic_script_step_s &step)
 {
 	switch (mode) {
 	case DetectAndAvoid::FakeTraffMode::kUniqueIds:

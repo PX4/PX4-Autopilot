@@ -588,7 +588,6 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 
 	t.timestamp = hrt_absolute_time();
 	t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK;
-	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
 
 	//Set data from svr message
 	if (svr.validity.position) {
@@ -649,7 +648,6 @@ void SagetechMXS::handle_msr(sg_msr_t msr)
 	}
 
 	t.timestamp = hrt_absolute_time();
-	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
 
 	if (strlen(msr.callsign)) {
 		snprintf(t.callsign, sizeof(t.callsign), "%-8s", msr.callsign);
