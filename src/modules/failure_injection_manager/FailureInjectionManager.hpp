@@ -46,14 +46,16 @@
 #include "FailureTable.hpp"
 
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/failure_injection.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-class FailureInjectionManager : public ModuleBase, public px4::WorkItem
+class FailureInjectionManager : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
 	FailureInjectionManager();
@@ -78,10 +80,24 @@ private:
 	void handleCommand(const vehicle_command_s &cmd);
 	void publishAck(const vehicle_command_s &cmd, uint8_t result);
 
+	void evaluateRcInjection();
+
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
+	uORB::SubscriptionCallbackWorkItem _manual_control_setpoint_sub{this, ORB_ID(manual_control_setpoint)};
 
 	uORB::Publication<failure_injection_s>  _failure_injection_pub{ORB_ID(failure_injection)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	failure_injection::FailureTable _table;
+
+	bool    _rc_active{false};
+	uint8_t _rc_active_unit{0};
+	uint8_t _rc_active_instance{0};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
+		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
+		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
+		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst
+	)
 };

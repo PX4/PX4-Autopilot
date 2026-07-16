@@ -174,6 +174,7 @@ private:
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 
 	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the RTL position to fly to

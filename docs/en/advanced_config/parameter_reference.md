@@ -26243,6 +26243,84 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
+
+Instance failed by the RC switch.
+
+Which instance of SYS_FAIL_RC_UNIT the SYS_FAIL_RC_SRC trigger affects.
+1-based, or 0 for all instances (motor number for motors).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 16       |           | 1       |      | &nbsp;    |
+
+### SYS_FAIL_RC_MODE (`INT32`) {#SYS_FAIL_RC_MODE}
+
+Failure type applied by the RC switch.
+
+How SYS_FAIL_RC_UNIT fails when the SYS_FAIL_RC_SRC trigger fires, on SYS_FAIL_RC_INST.
+unsupported (unit, type) pairs are ignored.
+
+**Values:**
+
+- `0`: Ok (no failure)
+- `1`: Off
+- `2`: Stuck
+- `3`: Garbage
+- `4`: Wrong
+- `5`: Slow
+- `6`: Delayed
+- `7`: Intermittent
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SYS_FAIL_RC_SRC (`INT32`) {#SYS_FAIL_RC_SRC}
+
+RC aux input that triggers failure injection.
+
+Defines the aux switch which injects the failure defined by SYS_FAIL_RC_UNIT,
+SYS_FAIL_RC_MODE and SYS_FAIL_RC_INST;
+Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: AUX1
+- `2`: AUX2
+- `3`: AUX3
+- `4`: AUX4
+- `5`: AUX5
+- `6`: AUX6
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 6        |           | 0       |      | &nbsp;    |
+
+### SYS_FAIL_RC_UNIT (`INT32`) {#SYS_FAIL_RC_UNIT}
+
+Component failed by the RC switch.
+
+Which component the SYS_FAIL_RC_SRC trigger fails, with SYS_FAIL_RC_MODE on
+SYS_FAIL_RC_INST.
+
+**Values:**
+
+- `0`: Gyro
+- `1`: Accel
+- `2`: Mag
+- `3`: Baro
+- `4`: GPS
+- `7`: Distance sensor
+- `8`: Airspeed
+- `100`: Battery
+- `101`: Motor
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 101     |      | &nbsp;    |
+
 ## Flight Task Orbit
 
 ### MC_ORBIT_RAD_MAX (`FLOAT`) {#MC_ORBIT_RAD_MAX}
@@ -40894,7 +40972,7 @@ Eagle Tree airspeed sensor (external I2C).
 
 ### SENS_EN_GPSSIM (`INT32`) {#SENS_EN_GPSSIM}
 
-Enable simulated GPS sinstance.
+Enable simulated GPS instance.
 
 **Values:**
 
@@ -47579,7 +47657,7 @@ Yaw differential gain.
 
 ### UUV_YAW_P (`FLOAT`) {#UUV_YAW_P}
 
-Yawh proportional gain.
+Yaw proportional gain.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |

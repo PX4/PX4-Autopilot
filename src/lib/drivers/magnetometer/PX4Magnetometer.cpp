@@ -76,5 +76,13 @@ void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float
 	report.z = z * _scale;
 
 	report.timestamp = hrt_absolute_time();
+
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_MAG,
+					_sensor_pub.get_instance(), report, _stuck)) {
+		return;
+	}
+
 	_sensor_pub.publish(report);
 }

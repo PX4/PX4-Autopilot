@@ -239,6 +239,7 @@ void EKF2::AdvertiseTopics()
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
+	_estimator_fc_pub.advertise();
 
 	if (_multi_mode) {
 		// only force advertise these in multi mode to ensure consistent uORB instance numbering

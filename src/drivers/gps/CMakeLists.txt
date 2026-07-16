@@ -85,4 +85,5 @@ px4_add_module(
 	DEPENDS
 		git_gps_devices
 		gnss
+		failure_injection
 	)

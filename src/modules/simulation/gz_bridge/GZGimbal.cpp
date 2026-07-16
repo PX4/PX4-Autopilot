@@ -84,8 +84,10 @@ void GZGimbal::Run()
 		publishJointCommand(_gimbal_yaw_cmd_publisher, _yaw_stp, _yaw_rate_stp, _last_yaw_stp, _yaw_min, _yaw_max, dt);
 	}
 
-	if (_mnt_mode_out == 2) {
-		// We have a Mavlink gimbal capable of sending messages
+	if (_mnt_mode_out == 2 && _gimbal_present) {
+		// We have a Mavlink gimbal capable of sending messages. Only present it if the
+		// model actually has a gimbal (_gimbal_present), otherwise PX4 would advertise a
+		// phantom gimbal device and could not manage an external MAVLink gimbal.
 		publishDeviceInfo();
 		publishDeviceAttitude();
 	}
@@ -101,6 +103,9 @@ void GZGimbal::stop()
 void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 {
 	pthread_mutex_lock(&_node_mutex);
+
+	// Receiving gimbal IMU data means the model actually has a gimbal.
+	_gimbal_present = true;
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
 	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, cosf(M_PI_4_F), cosf(M_PI_4_F), 0.0f);

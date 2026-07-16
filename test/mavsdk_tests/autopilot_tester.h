@@ -190,6 +190,7 @@ public:
 	}
 
 protected:
+	mavsdk::Action *getAction() const { return _action.get();}
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
 	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
