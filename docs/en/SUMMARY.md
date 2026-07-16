@@ -57,6 +57,7 @@
 - [Planes (Fixed-Wing)](frames_plane/index.md)
   - [Features](features_fw/index.md)
     - [Gain compression](features_fw/gain_compression.md)
+    - [3D Wind Estimator](features_fw/wind_estimator_3d.md)
   - [Assembly](assembly/assembly_fw.md)
   - [Config/Tuning](config_fw/index.md)
     - [Auto-tune](config/autotune_fw.md)
