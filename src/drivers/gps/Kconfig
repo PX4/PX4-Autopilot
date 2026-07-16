@@ -45,11 +45,13 @@ if DRIVERS_GPS
 
 	config GPS_SPARTN
 		bool "SPARTN correction framing (e.g. PointPerfect)"
-		default y
+		default n
 		---help---
-			Frame and inject SPARTN corrections from gps_inject_data
-			alongside RTCM3. Disable on flash-tight FMU targets when
-			needed; leave enabled for SITL and RTK GPS nodes.
+			Frame and inject SPARTN corrections (e.g. u-blox PointPerfect)
+			from gps_inject_data alongside RTCM3.
+			Enable on targets that receive a SPARTN correction service.
+			Left off, the SPARTN framer is not built and the receiver only
+			ever sees RTCM3, which is the common RTK setup.
 endif # DRIVERS_GPS
 
 menuconfig USER_GPS

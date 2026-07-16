@@ -185,10 +185,10 @@ TEST_F(RtcmTest, ValidFrameBadFrameValid)
 
 TEST_F(RtcmTest, BufferOverflowProtection)
 {
-	std::vector<uint8_t> large_data(Rtcm3Parser::BUFFER_SIZE + 1000, 0xAA);
+	std::vector<uint8_t> large_data(CorrectionFramer::BUFFER_SIZE + 1000, 0xAA);
 	size_t added = parser.addData(large_data.data(), large_data.size());
 
-	EXPECT_EQ(added, Rtcm3Parser::BUFFER_SIZE);
+	EXPECT_EQ(added, CorrectionFramer::BUFFER_SIZE);
 }
 
 TEST_F(RtcmTest, EmptyPayloadFrame)

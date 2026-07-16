@@ -31,7 +31,10 @@
 #
 ############################################################################
 
-set(GNSS_SRCS rtcm.cpp)
+set(GNSS_SRCS
+	rtcm.cpp
+	correction_framer.cpp
+)
 
 if(CONFIG_GPS_SPARTN)
 	list(APPEND GNSS_SRCS spartn.cpp)

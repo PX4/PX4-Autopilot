@@ -37,5 +37,5 @@ px4_add_unit_gtest(SRC RtcmBustedSenderTest.cpp LINKLIBS gnss)
 px4_add_unit_gtest(SRC RtcmStressTest.cpp LINKLIBS gnss)
 
 if(CONFIG_GPS_SPARTN)
-	px4_add_unit_gtest(SRC SpartnParserTest.cpp LINKLIBS gnss)
+	px4_add_unit_gtest(SRC SpartnFramerTest.cpp LINKLIBS gnss)
 endif()
