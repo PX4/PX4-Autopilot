@@ -47,6 +47,7 @@ Airspeed is actively controlled if an airspeed sensor is installed in any autono
 - [Mission](../flight_modes_fw/mission.md) — Vehicle executes a [predefined mission/flight plan](../flying/missions.md) that has been uploaded to the flight controller.
 - [Takeoff](../flight_modes_fw/takeoff.md) — Vehicle initiates the takeoff sequence using either _catapult/hand-launch mode_ or _runway takeoff mode_ (in the current direction).
 - [Land](../flight_modes_fw/land.md) — Vehicle initiates the [fixed-wing landing sequence](../flight_modes_fw/mission.md#mission-landing).
+- [Descend](../flight_modes_fw/descend.md) — Failsafe fallback: the vehicle circles down at a fixed bank angle without position control (used when the position estimate is lost). Not pilot-selectable.
 - [Offboard](../flight_modes_fw/offboard.md) — Vehicle obeys attitude setpoints provided via MAVLink or ROS 2.
 
 Pilots transition between flight modes using switches on the remote control or with a ground control station (see [Flight Mode Configuration](../config/flight_mode.md)).
