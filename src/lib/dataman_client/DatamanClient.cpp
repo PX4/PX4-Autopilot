@@ -600,17 +600,13 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 	bool item_found = false;
 
 	if (_items) {
-		// Start scanning at the last hit
-		for (uint32_t n = 0; n < _num_items; ++n) {
-			const uint32_t i = (_search_hint + n) % _num_items;
-
+		for (uint32_t i = 0; i < _num_items; ++i) {
 			if ((_items[i].response.item == item) &&
 			    (_items[i].response.index == index)) {
 				item_found = true;
 
 				if (_items[i].cache_state == State::ResponseReceived) {
 					memcpy(buffer, _items[i].response.data, length);
-					_search_hint = i;
 					success = true;
 					break;
 				}
@@ -663,6 +659,7 @@ bool DatamanCache::writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 
 	return success;
 }
+
 void DatamanCache::update()
 {
 	if (_item_counter > 0) {
@@ -734,7 +731,6 @@ void DatamanCache::resetCacheState()
 	_update_index = 0;
 	_item_counter = 0;
 	_load_index = 0;
-	_search_hint = 0;
 }
 
 void DatamanCache::invalidate()
