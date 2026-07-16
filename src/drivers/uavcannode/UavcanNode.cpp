@@ -837,13 +837,18 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		valid = bootloader_app_shared_read(&shared, BootLoader);
 	}
 
-	if (valid == 0 && shared.bus_speed > 0) {
+	// Consume the region even when the handoff is rejected below: on boards
+	// booted by a non-PX4 bootloader nothing else ever invalidates it
+	if (valid == 0) {
+		bootloader_app_shared_invalidate();
+	}
+
+	// Trust the handoff only if it carries a plausible bitrate (CANNODE_BITRATE
+	// minimum), healing regions poisoned by firmware running previous code
+	if (valid == 0 && shared.bus_speed >= 20000) {
 
 		bitrate = shared.bus_speed;
 		node_id = shared.node_id;
-
-		// Invalidate to prevent deja vu
-		bootloader_app_shared_invalidate();
 
 	} else {
 		// Node ID
@@ -867,7 +872,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
 
 	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::MaxRecommendedForRegularNodes) {
-		PX4_ERR("Invalid CANNODE_NODE_ID %" PRId32 ", using dynamic node ID allocation", cannode_node_id);
+		PX4_ERR("Invalid CANNODE_NODE_ID %" PRId32 ", ignoring", cannode_node_id);
 
 	} else if (cannode_node_id > 0) {
 		node_id = cannode_node_id;
