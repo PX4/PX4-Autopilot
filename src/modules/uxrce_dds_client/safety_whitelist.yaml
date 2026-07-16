@@ -1,5 +1,5 @@
 module_name: uxrce_dds_client
 
-# whitelsited uORB topics will be published regardless of UXRCE_DDS_SF_MAN and UXRCE_DDS_SF_OFB settings
+# whitelisted uORB topics will be published regardless of UXRCE_DDS_SF_MAN and UXRCE_DDS_SF_OFB settings
 __whitelist:
   - offboard_control_mode
