@@ -1,37 +1,40 @@
-# Hardfault Logging on Boards Without Usable Non-Volatile Memory
+# Hardfault Logging on Boards without Usable Non-Volatile Memory
 
-This section shows how to setup a board to save a hardfault persistently over warm-reset (only), on boards without usable non-volatile storage.  
-The Hardfault is provided via the uORB-topic `log_message` on reset.  
-Some settings and instructions are already provided by px4-common-files and only mentioned for completness.
+<Badge type="tip" text="PX4 main (v1.19)" />
+
+This topic shows how to setup a flight controller board to persist hardfaults over warm-reset (only) on boards without usable non-volatile storage.
+The same mechanism can optionally be used to provide CPU starvation information.
 
 ## Overview
 
-Configuration needed:
+Flight controller boards typically log hardfaults to persistent memory, such as Battery-Backed SRAM (BBSRAM), Program memory/on-chip flash (PROGMEM), or Standby SRAM Controller (SSARC).
 
-- `CONFIG_BOARD_CRASHDUMP=y`
-- \#DEFINES in `src/board_config.h`:
-  - `BOARD_HAS_RAM_HARDFAULT_DUMP`
-  - `BOARD_RAM_HARDFAULT_USTACK_BYTES`
-- Memory region in the board's linker script, that survives a warm reset (not zero-initialized) and is big enough for the dump buffer:  
-  `sizeof(px4_ram_hardfault_dump_s)` = `sizeof(uint32_t)` + `sizeof(fullcontext_s)`  
-`fullcontext_s` depends on `BOARD_RAM_HARDFAULT_USTACK_BYTES`
-- Setup module Hardfault_Stream:
-  - `CONFIG_MODULES_HARDFAULT_STREAM=y`
-  - `hardfault_stream start`
-- Optional: `CONFIG_MODULES_TASK_WATCHDOG=y`  
-To also stream live task/CPU-load dumps through the same path (unrelated feature, same mechanism).
-- Optional: `cmake/linker_preprocess.cmake`  
-To keep the linker-script region-size and `BOARD_RAM_HARDFAULT_USTACK_BYTES` in sync automatically, instead of hand-sizing the region. (see [example](#example-implementation-and-configuration) for reference).
+Boards that don't have this memory can still be configured to persist the fault to a `.noinit` SRAM region that survives warm resets.
+On hardfault, `board_crashdump()` then stashes the fault-context to the `.noinit` region and resets.
+On the next boot, the [hardfault_stream](../modules/modules_system.md#hardfault-stream) checks for a valid hardfault log and streams it out as a hex dump with a CRC32 over `PX4_INFO`/`PX4_ERR` (picked up by `ORB_ID(log_message)`).
+The [`log_message`](../msg_docs/LogMessage.md) is forwarded by the configured logging tool (e.g. DroneCAN).
+The captured hex-dump can be parsed into a CrashDebug-compatible coredump or a PX4-style fault log using [Tools/hardfaults_rawhex_decode.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/hardfaults_rawhex_decode.py).
 
-## Example Implementation And Configuration
+The following sections show how to configure the board.
+Some settings and instructions are already provided by px4-common-files and are mentioned here only for completeness.
 
-#### defconfig
+## Configuration
 
-```sh
+### Hardfault Dumps
+
+The following configuration changes are required to enable crash dumps.
+
+#### KConfig
+
+The [KConfig board configuration](../hardware/porting_guide_config.md) must include:
+
+```txt
 CONFIG_BOARD_CRASHDUMP=y
 ```
 
 #### board_config.h
+
+Set these `#DEFINES` in `src/board_config.h`:
 
 ```c
 #define BOARD_HAS_RAM_HARDFAULT_DUMP
@@ -40,22 +43,13 @@ CONFIG_BOARD_CRASHDUMP=y
 // ISTACK is taken from `CONFIG_ARCH_INTERRUPTSTACK`
 ```
 
-#### `<board>.px4board` And Startup Script
+#### Linker script
 
-```sh
-CONFIG_MODULES_HARDFAULT_STREAM=y
-```
+Define a memory region in the board's linker script, that survives a warm reset (not zero-initialized) and is big enough for the dump buffer:
+`sizeof(px4_ram_hardfault_dump_s)` = `sizeof(uint32_t)` + `sizeof(fullcontext_s)`  
+(`fullcontext_s` depends on `BOARD_RAM_HARDFAULT_USTACK_BYTES`), e.g. in `script.ld`:
 
-```sh
-# in the board's rcS, after the log transport is up
-hardfault_stream start
-# <optional> to also log task-starvation
-task_watchdog start
-```
-
-#### script.ld
-
-```ld
+```txt
 MEMORY
 {
     ...
@@ -71,8 +65,7 @@ MEMORY
 _noinit_size = SIZEOF(.noinit);
 ```
 
-### Optional:
-##### keep the linker-script size in sync (`cmake/linker_preprocess.cmake`)
+#### Optional: keep the linker-script size in sync (`cmake/linker_preprocess.cmake`)
 
 Instead of hand-sizing the `noinit` region, a preprocessor-script `${PX4_BOARD_DIR}/cmake/linker_preprocess.cmake`  
 can be used to compute and inject the region-size into `script.ld`:
@@ -109,11 +102,33 @@ add_dependencies(px4 px4_ld_script_pp)
 set(_ld_script_flag "-Wl,--script=${_ld_script_pp}")
 ```
 
-##### task_watchdog
+### Setup the hardfault_stream Module
 
-`task_watchdog` (`CONFIG_MODULES_TASK_WATCHDOG=y`)
+The [KConfig board configuration](../hardware/porting_guide_config.md) must include the [hardfault-stream](../modules/modules_system.md#hardfault-stream) module:
 
-## What Happens
-On hardfault, the `board_crashdump()` stashes the fault-context to the `.noinit` region and resets.  
-On the next boot, the [hardfault_stream](../modules/modules_system.md#hardfault-stream) checks for valid hadfault-log and streams it out as a hex dump over `PX4_INFO`/`PX4_ERR` (picked up by `ORB_ID(log_message)`. The log_message is forwarded by the configured tool (e.g. DroneCAN).  
-The captured hex-dump can be parsed into a CrashDebug-compatible coredump or a PX4-style fault log by using [Tools/hardfaults_rawhex_decode.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/hardfaults_rawhex_decode.py).
+```txt
+CONFIG_MODULES_HARDFAULT_STREAM=y
+```
+
+The board's `rcS` must also include the following line to start the module.
+This should be placed after the log transport is started.
+
+```sh
+hardfault_stream start
+```
+
+### Task/CPU-load streaming (Optional)
+
+Live task/CPU-load dumps can also be published through the same path (unrelated feature, same mechanism) using the [task-watchdog](http://localhost:5173/px4_user_guide/en/modules/modules_system#task-watchdog) module:
+
+The [KConfig board configuration](../hardware/porting_guide_config.md) must include the module:
+
+```txt
+CONFIG_MODULES_TASK_WATCHDOG=y
+```
+
+The board's `rcS` must include the following line to start the module.
+
+```sh
+task_watchdog start
+```
