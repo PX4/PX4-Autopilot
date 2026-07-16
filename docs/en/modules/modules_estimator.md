@@ -121,18 +121,9 @@ Source: [modules/wind_estimator_3d](https://github.com/PX4/PX4-Autopilot/tree/ma
 ### Description
 
 wind_estimator_3d is a 3D wind estimator for fixed-wing vehicles, based on a simple aerodynamic model of the
-airframe. Unlike the existing 2D wind estimators (which only estimate horizontal wind), this model requires the
-following airframe-specific parameters:
-
-- `FW_W_MASS`: Vehicle mass
-- `FW_W_AREA`: Vehicle reference (wing) area
-- `FW_W_CY_B`: Sideslip force coefficient (side slip)
-- `FW_W_CL_0`: Lift coefficient (zero angle of attack)
-- `FW_W_CL_A`: Lift coefficient (angle of attack)
-
-There is currently no automated identification/calibration pipeline in PX4 to derive these coefficients for a
-given airframe. They must currently be obtained externally (for example from wind-tunnel testing, CFD, or manual
-system identification) and entered by hand.
+airframe. It requires the airframe-specific parameters `FW_W_MASS`, `FW_W_AREA`, `FW_W_CY_B`, `FW_W_CL_0` and
+`FW_W_CL_A`, for which PX4 does not currently provide an automated identification pipeline: they must be obtained
+externally (e.g. wind-tunnel testing, CFD, or manual system identification) and entered by hand.
 
 ### Usage {#wind_estimator_3d_usage}
 

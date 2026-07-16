@@ -546,7 +546,6 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			airflow_groundtruth.u = body_velocity(0);
 			airflow_groundtruth.v = body_velocity(1);
 			airflow_groundtruth.w = body_velocity(2);
-			///TODO: Include wind
 			airflow_groundtruth.windspeed_north = 0.0;
 			airflow_groundtruth.windspeed_east = 0.0;
 			airflow_groundtruth.windspeed_down = 0.0;

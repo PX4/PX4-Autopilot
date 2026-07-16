@@ -33,8 +33,6 @@
 
 #pragma once
 
-#include <lib/rate_control/rate_control.hpp>
-
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -44,13 +42,9 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airflow.h>
 #include <uORB/topics/airspeed_validated.h>
@@ -68,7 +62,6 @@
 
 - Harms, M., Lim, J., Rohr, D., Rockenbauer, F., Lawrance, N. and Siegwart, R., 2025. Robust Optimization-based Autonomous Dynamic Soaring with a Fixed-Wing UAV. arXiv preprint arXiv:2512.06610.
 */
-using uORB::SubscriptionData;
 
 using namespace time_literals;
 
@@ -101,7 +94,6 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
