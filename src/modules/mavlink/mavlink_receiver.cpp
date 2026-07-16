@@ -2872,27 +2872,17 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.tslc = adsb.tslc;
 	t.squawk = adsb.squawk;
 
-	t.flags = transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;  //Unset in receiver already broadcast its messages
-
-	if (adsb.flags & ADSB_FLAGS_VALID_COORDS) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_ALTITUDE) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_HEADING) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_VELOCITY) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_CALLSIGN) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_SQUAWK) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK; }
-
-	if (adsb.flags & ADSB_FLAGS_SIMULATED) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_SIMULATED; }
-
-	if (adsb.flags & ADSB_FLAGS_VERTICAL_VELOCITY_VALID) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VERTICAL_VELOCITY_VALID; }
-
-	if (adsb.flags & ADSB_FLAGS_BARO_VALID) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_BARO_VALID; }
-
-	if (adsb.flags & ADSB_FLAGS_SOURCE_UAT) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_SOURCE_UAT; }
+	t.flags = adsb.flags; // The PX4_ADSB_FLAGS_* bit values are defined to be identical to MAVLink's ADSB_FLAGS bitmask (see TransponderReport.msg),
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS == ADSB_FLAGS_VALID_COORDS);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE == ADSB_FLAGS_VALID_ALTITUDE);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING == ADSB_FLAGS_VALID_HEADING);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY == ADSB_FLAGS_VALID_VELOCITY);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN == ADSB_FLAGS_VALID_CALLSIGN);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK == ADSB_FLAGS_VALID_SQUAWK);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_SIMULATED == ADSB_FLAGS_SIMULATED);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VERTICAL_VELOCITY_VALID == ADSB_FLAGS_VERTICAL_VELOCITY_VALID);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_BARO_VALID == ADSB_FLAGS_BARO_VALID);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_SOURCE_UAT == ADSB_FLAGS_SOURCE_UAT);
 
 	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
 

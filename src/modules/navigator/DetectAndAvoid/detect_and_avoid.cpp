@@ -624,14 +624,13 @@ void DetectAndAvoid::debug_print_transponder_report(const transponder_report_s &
 		  uas_id_char);
 
 	// Log which flags are enabled in one line using printf
-	PX4_DEBUG("ADSB_IN: Flags missing: %s%s%s%s%s%s%s",
+	PX4_DEBUG("ADSB_IN: Flags missing: %s%s%s%s%s%s",
 		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS) ? "" : "coord ",
 		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE) ? "" : "alt ",
 		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING) ? "" : "hdg ",
 		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY) ? "" : "vel ",
 		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) ? "" : "callsign ",
-		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) ? "" : "squawk ",
-		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE) ? "" : "Retranslate ");
+		  (transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) ? "" : "squawk ");
 
 	PX4_DEBUG("ADSB_IN: lat %.2f, lon %.2f, alt %.2f, hdg %.d, vel hor %.1f, vel vert %.1f \n",
 		  (double)transponder_report.lat,
