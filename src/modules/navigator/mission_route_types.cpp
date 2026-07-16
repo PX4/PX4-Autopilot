@@ -115,10 +115,17 @@ bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &se
 
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)
 {
+	const Position position{mission_item.lat, mission_item.lon,
+				getAbsoluteAltitudeForMissionItem(mission_item, home_altitude_amsl)};
 	loiter_point_s approach{};
-	approach.lat = mission_item.lat;
-	approach.lon = mission_item.lon;
-	approach.height_m = getAbsoluteAltitudeForMissionItem(mission_item, home_altitude_amsl);
+
+	if (!position.valid() || !PX4_ISFINITE(mission_item.loiter_radius)) {
+		return approach;
+	}
+
+	approach.lat = position.lat;
+	approach.lon = position.lon;
+	approach.height_m = position.alt;
 	approach.loiter_radius_m = mission_item.loiter_radius;
 	return approach;
 }

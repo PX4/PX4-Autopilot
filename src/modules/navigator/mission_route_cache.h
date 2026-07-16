@@ -91,6 +91,8 @@ public:
 		       && !_mission_land.ready
 		       && (_mission_land.validation_pending || _mission_land.retry.retry_at != 0);
 	}
+	/** True after queuing, reading, or validating the current mission land item failed. */
+	bool missionLandItemAttemptFailed() const { return _mission_land.retry.retry_count > 0; }
 
 	int safePointCount() const override;
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override;
@@ -148,6 +150,7 @@ private:
 		mission_stats_entry_s read_stats{};   ///< Async DM_KEY_SAFE_POINTS_STATE read buffer.
 		mission_stats_entry_s cached_stats{}; ///< Identity of the safe-point set currently in the RAM cache.
 		uint32_t source_id{0};                ///< Active mission.safe_points_id being tracked.
+		uint8_t source_dataman_id{DM_KEY_SAFE_POINTS_0}; ///< Active mission.safepoint_dataman_id being tracked.
 		uint32_t cached_source_id{0};         ///< mission.safe_points_id the RAM cache was built for.
 		bool ready{false};
 		bool update_requested{true};

@@ -50,10 +50,10 @@
 
 static constexpr int32_t DEFAULT_DIRECT_MISSION_LAND_CACHE_SIZE = 5;
 
-RtlDirectMissionLand::RtlDirectMissionLand(Navigator *navigator) :
+RtlDirectMissionLand::RtlDirectMissionLand(Navigator *navigator, const mission_s &mission) :
 	RtlBase(navigator, DEFAULT_DIRECT_MISSION_LAND_CACHE_SIZE)
 {
-
+	_mission = mission;
 }
 
 void

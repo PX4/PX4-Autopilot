@@ -48,12 +48,14 @@
 #include <lib/geo/geo.h>
 #include <parameters/param.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/wind.h>
 
 #include "navigator.h"
 #include "rtl.h"
+#include "rtl_direct_mission_land.h"
 #include "mission_route_types.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
@@ -199,6 +201,22 @@ public:
 		_wind_sub.update();
 		return selectLandingApproach(destination);
 	}
+
+	bool hasValidMissionForTest()
+	{
+		_mission_sub.update();
+		_home_pos_sub.update();
+		return hasValidMission();
+	}
+};
+
+class RtlDirectMissionLandTestPeer : public RtlDirectMissionLand
+{
+public:
+	RtlDirectMissionLandTestPeer(Navigator *navigator, const mission_s &mission) :
+		RtlDirectMissionLand(navigator, mission) {}
+
+	const mission_s &mission() const { return _mission; }
 };
 
 class RTLTest : public NavigatorDatamanTestBase
@@ -244,6 +262,11 @@ protected:
 			_wind_pub = nullptr;
 		}
 
+		if (_mission_pub != nullptr) {
+			orb_unadvertise(_mission_pub);
+			_mission_pub = nullptr;
+		}
+
 		param_control_autosave(true);
 	}
 
@@ -274,7 +297,7 @@ protected:
 				<< "test safe points did not load";
 	}
 
-	void publishHomePosition(const PositionYawSetpoint &position)
+	void publishHomePosition(const PositionYawSetpoint &position, uint32_t update_count = 0)
 	{
 		home_position_s home{};
 		home.timestamp = hrt_absolute_time();
@@ -283,12 +306,23 @@ protected:
 		home.alt = position.alt;
 		home.valid_hpos = true;
 		home.valid_alt = true;
+		home.update_count = update_count;
 
 		if (_home_pub == nullptr) {
 			_home_pub = orb_advertise(ORB_ID(home_position), &home);
 
 		} else {
 			orb_publish(ORB_ID(home_position), _home_pub, &home);
+		}
+	}
+
+	void publishMission(const mission_s &mission)
+	{
+		if (_mission_pub == nullptr) {
+			_mission_pub = orb_advertise(ORB_ID(mission), &mission);
+
+		} else {
+			orb_publish(ORB_ID(mission), _mission_pub, &mission);
 		}
 	}
 
@@ -334,10 +368,55 @@ protected:
 	orb_advert_t _home_pub{nullptr};
 	orb_advert_t _vehicle_status_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
+	orb_advert_t _mission_pub{nullptr};
 	DatamanClient _dataman_client{};
 	uint32_t _safe_points_id{0};
 	uint32_t _safe_points_opaque_id{0};
 };
+
+TEST_F(RTLTest, MissionValidityMatchesMissionAndFeasibilityInputs)
+{
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = 42;
+	mission.geofence_id = 7;
+	const uint32_t home_update_count = 3;
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), home_update_count);
+	publishMission(mission);
+
+	mission_result_s *mission_result = _navigator.get_mission_result();
+	mission_result->valid = true;
+	mission_result->mission_id = mission.mission_id - 1;
+	EXPECT_FALSE(_rtl.hasValidMissionForTest());
+
+	mission_result->mission_id = mission.mission_id;
+	mission_result->geofence_id = mission.geofence_id - 1;
+	EXPECT_FALSE(_rtl.hasValidMissionForTest());
+
+	mission_result->geofence_id = mission.geofence_id;
+	mission_result->home_position_counter = home_update_count - 1;
+	EXPECT_FALSE(_rtl.hasValidMissionForTest());
+
+	mission_result->home_position_counter = home_update_count;
+	EXPECT_TRUE(_rtl.hasValidMissionForTest());
+}
+
+TEST_F(RTLTest, DirectMissionLandStartsWithCurrentMission)
+{
+	mission_s mission{};
+	mission.mission_id = 43;
+	mission.count = 4;
+	mission.land_start_index = 2;
+	mission.land_index = 3;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_1;
+
+	RtlDirectMissionLandTestPeer direct_mission_land{&_navigator, mission};
+	EXPECT_EQ(direct_mission_land.mission().mission_id, mission.mission_id);
+	EXPECT_EQ(direct_mission_land.mission().count, mission.count);
+	EXPECT_EQ(direct_mission_land.mission().land_start_index, mission.land_start_index);
+	EXPECT_EQ(direct_mission_land.mission().land_index, mission.land_index);
+	EXPECT_EQ(direct_mission_land.mission().mission_dataman_id, mission.mission_dataman_id);
+}
 
 // WHY: No land point means no usable approach bearing.
 // WHAT: The chooser should return an invalid loiter.
@@ -862,4 +941,17 @@ TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 	EXPECT_NEAR(absolute_int_point.loiter_radius_m, kApproachRadius, 0.01f);
 	EXPECT_NEAR(relative_point.loiter_radius_m, kApproachRadius, 0.01f);
 	EXPECT_NEAR(relative_int_point.loiter_radius_m, kApproachRadius, 0.01f);
+}
+
+TEST_F(RTLTest, MakeVtolLandApproachPointRejectsInvalidInput)
+{
+	const mission_item_s invalid_latitude = makeLandApproachItem(91.0, kBaseLon, kAlt, kApproachRadius);
+	const mission_item_s invalid_longitude = makeLandApproachItem(kBaseLat, 181.0, kAlt, kApproachRadius);
+	const mission_item_s invalid_altitude = makeLandApproachItem(kBaseLat, kBaseLon, NAN, kApproachRadius);
+	const mission_item_s invalid_radius = makeLandApproachItem(kBaseLat, kBaseLon, kAlt, NAN);
+
+	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_latitude, kAlt).isValid());
+	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_longitude, kAlt).isValid());
+	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_altitude, kAlt).isValid());
+	EXPECT_FALSE(mission_route::makeVtolLandApproachPoint(invalid_radius, kAlt).isValid());
 }

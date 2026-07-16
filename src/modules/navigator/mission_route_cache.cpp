@@ -129,8 +129,11 @@ void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
 	_dataman_cache_safepoint.invalidate();
 
 	const uint32_t source_id = clear_source_identity ? 0 : _safe_point.source_id;
+	const uint8_t source_dataman_id = clear_source_identity ? static_cast<uint8_t>(DM_KEY_SAFE_POINTS_0) :
+					  _safe_point.source_dataman_id;
 	_safe_point = {};
 	_safe_point.source_id = source_id;
+	_safe_point.source_dataman_id = source_dataman_id;
 }
 
 int MissionRouteCache::safePointCount() const
@@ -175,7 +178,10 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 	MissionLandState &state = _mission_land;
 	const hrt_abstime now = hrt_absolute_time();
 	// Trust the published land_index, no mission rescanning.
-	const int32_t land_index = (mission.land_index >= 0 && mission.land_index < mission.count) ? mission.land_index : -1;
+	const bool valid_dataman_id = mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0
+				      || mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
+	const bool valid_land_index = mission.land_index >= 0 && mission.land_index < mission.count;
+	const int32_t land_index = (valid_dataman_id && valid_land_index) ? mission.land_index : -1;
 	const bool mission_land_changed = mission.mission_id != state.mission_id
 					  || mission.count != state.count
 					  || mission.mission_dataman_id != state.dataman_id
@@ -188,6 +194,10 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 		state.index = land_index;
 		state.count = mission.count;
 		_dataman_cache_land_item.invalidate();
+
+		if (valid_land_index && !valid_dataman_id) {
+			PX4_ERR("Mission land cache rejected invalid dataman id: %" PRIu8, mission.mission_dataman_id);
+		}
 
 		if (state.index >= 0) {
 			state.validation_pending = queueMissionLandItem();
@@ -257,9 +267,10 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 	SafePointState &state = _safe_point;
 	bool success = false;
 
-	if (mission.safe_points_id != state.source_id) {
-		// A new safe_points_id makes any in-flight read and cached items stale.
+	if (mission.safe_points_id != state.source_id || mission.safepoint_dataman_id != state.source_dataman_id) {
+		// A new safe-point source makes any in-flight read and cached items stale.
 		state.source_id = mission.safe_points_id;
+		state.source_dataman_id = mission.safepoint_dataman_id;
 		resetSafePointCacheState(false);
 	}
 
@@ -305,7 +316,24 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			break;
 		}
 
-		if (state.read_stats.dataman_id != DM_KEY_SAFE_POINTS_0 && state.read_stats.dataman_id != DM_KEY_SAFE_POINTS_1) {
+		if (state.read_stats.opaque_id != state.source_id) {
+			PX4_WARN("Safe point state id mismatch, expected %" PRIu32 ", got %" PRIu32,
+				 state.source_id, state.read_stats.opaque_id);
+			state.error_state = SafePointDatamanState::kReadWait;
+			state.dataman_state = SafePointDatamanState::kError;
+			break;
+		}
+
+		if (state.read_stats.num_items > 0 && state.read_stats.dataman_id != state.source_dataman_id) {
+			PX4_WARN("Safe point dataman id mismatch, expected %" PRIu8 ", got %" PRIu8,
+				 state.source_dataman_id, state.read_stats.dataman_id);
+			state.error_state = SafePointDatamanState::kReadWait;
+			state.dataman_state = SafePointDatamanState::kError;
+			break;
+		}
+
+		if (state.read_stats.num_items > 0 && state.read_stats.dataman_id != DM_KEY_SAFE_POINTS_0
+		    && state.read_stats.dataman_id != DM_KEY_SAFE_POINTS_1) {
 			PX4_ERR("Safe points update failed! invalid dataman id: %" PRIu8, state.read_stats.dataman_id);
 			state.error_state = SafePointDatamanState::kReadWait;
 			state.dataman_state = SafePointDatamanState::kError;
