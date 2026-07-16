@@ -445,7 +445,7 @@ void DetectAndAvoid::fake_traffic(const SyntheticTrafficReport &report)
 	tr.callsign[sizeof(tr.callsign) - 1] = 0;
 	tr.emitter_type = report.emitter_type;
 	tr.tslc = 2; // seconds since last communication
-	tr.flags = report.flags;
+	tr.flags = report.flags | transponder_report_s::PX4_ADSB_FLAGS_SIMULATED;
 	tr.squawk = 6667;
 
 #ifndef BOARD_HAS_NO_UUID
