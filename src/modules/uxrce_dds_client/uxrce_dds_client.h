@@ -205,7 +205,9 @@ private:
 	bool _session_created{false};
 	bool _timesync_converged{false};
 	bool _offboard_mode_enabled{false};
-	bool _safe_dds_mode{true};
+	bool _manual_modes_enabled{false};
+	bool _safe_dds_offboard_mode{false};
+	bool _safe_dds_manual_mode{false};
 
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 
@@ -221,6 +223,7 @@ private:
 		(ParamInt<px4::params::UXRCE_DDS_TX_TO>) _param_uxrce_dds_tx_to,
 		(ParamInt<px4::params::UXRCE_DDS_RX_TO>) _param_uxrce_dds_rx_to,
 		(ParamInt<px4::params::UXRCE_DDS_FLCTRL>) _param_uxrce_dds_flctrl,
-		(ParamInt<px4::params::UXRCE_DDS_SAFE>) _param_uxrce_dds_safe
+		(ParamInt<px4::params::UXRCE_DDS_SF_OFB>) _param_uxrce_dds_safe_offboard,
+		(ParamInt<px4::params::UXRCE_DDS_SF_MAN>) _param_uxrce_dds_safe_manual
 	)
 };
