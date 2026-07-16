@@ -21,13 +21,13 @@ forwarding MovingBaselineData); consumers only read instance 0.
 
 ## Fields
 
-| Name                                | Type         | Unit [Frame] | Range/Enum | Description                                                     |
-| ----------------------------------- | ------------ | ------------ | ---------- | --------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp | `uint64`     | us           |            | Time since system start                                         |
-| <a id="fld_device_id"></a>device_id | `uint32`     |              |            | Unique device ID of the publisher that produced this RTCM       |
-| <a id="fld_len"></a>len             | `uint16`     |              |            | Length of data                                                  |
-| <a id="fld_flags"></a>flags         | `uint8`      |              |            | LSB: 1=fragmented                                               |
-| <a id="fld_data"></a>data           | `uint8[300]` |              |            | RTCM3 payload (fixed-base corrections, or moving-baseline data) |
+| Name                                | Type         | Unit [Frame] | Range/Enum | Description                                                                          |
+| ----------------------------------- | ------------ | ------------ | ---------- | ------------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp | `uint64`     | us           |            | Time since system start                                                              |
+| <a id="fld_device_id"></a>device_id | `uint32`     |              |            | Unique device ID of the publisher that produced this RTCM                            |
+| <a id="fld_len"></a>len             | `uint16`     |              |            | Length of data                                                                       |
+| <a id="fld_flags"></a>flags         | `uint8`      |              |            | LSB: 1=fragmented                                                                    |
+| <a id="fld_data"></a>data           | `uint8[300]` |              |            | Correction payload (fixed-base RTCM3 and/or SPARTN frames, or moving-baseline RTCM3) |
 
 ## Constants
 
@@ -62,7 +62,7 @@ uint32 device_id # [-] Unique device ID of the publisher that produced this RTCM
 
 uint16 len # [-] Length of data
 uint8 flags # [-] LSB: 1=fragmented
-uint8[300] data # RTCM3 payload (fixed-base corrections, or moving-baseline data)
+uint8[300] data # Correction payload (fixed-base RTCM3 and/or SPARTN frames, or moving-baseline RTCM3)
 
 uint8 ORB_QUEUE_LENGTH = 16
 
