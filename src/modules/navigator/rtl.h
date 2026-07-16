@@ -103,6 +103,7 @@ private:
 	 * @return true if mission has a land start, a land and is valid
 	 */
 	bool hasMissionLandStart() const;
+	bool hasValidMission() const;
 
 	/**
 	 * @brief Check whether there are more waypoints between current waypoint
@@ -179,6 +180,11 @@ private:
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
+	uint32_t _mission_land_failure_mission_id{0};
+	uint16_t _mission_land_failure_count{0};
+	int32_t _mission_land_failure_index{-1};
+	uint8_t _mission_land_failure_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
+	bool _mission_land_failure_reported{false};
 
 	bool _home_has_land_approach{false};           ///< Flag if the home position has a land approach defined
 	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined

@@ -280,7 +280,7 @@ void RTL::setRtlTypeAndDestination()
 		if (hasMissionLandStart()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;
 
-		} else if (_navigator->get_mission_result()->valid) {
+		} else if (hasValidMission()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
 
 		} else {
@@ -292,7 +292,7 @@ void RTL::setRtlTypeAndDestination()
 		if (hasMissionLandStart() && reverseIsFurther()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST;
 
-		} else if (_navigator->get_mission_result()->valid) {
+		} else if (hasValidMission()) {
 			new_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
 
 		} else {
@@ -480,13 +480,31 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 			const bool success = mission_route_cache.getMissionLandItem(land_index, land_mission_item);
 
 			if (!success) {
+				const mission_s &mission = _mission_sub.get();
+				const bool same_reported_source = _mission_land_failure_reported
+								  && _mission_land_failure_mission_id == mission.mission_id
+								  && _mission_land_failure_count == mission.count
+								  && _mission_land_failure_index == mission.land_index
+								  && _mission_land_failure_dataman_id == mission.mission_dataman_id;
 
-				/* Not supposed to happen unless the datamanager can't access the SD card, etc. */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
-				events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
-					     "Mission land item could not be read");
+				if (!same_reported_source) {
+					_mission_land_failure_reported = false;
+				}
+
+				if ((!mission_route_cache.missionLandItemUpdatePending()
+				     || mission_route_cache.missionLandItemAttemptFailed()) && !_mission_land_failure_reported) {
+					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
+					events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
+						     "Mission land item could not be read");
+					_mission_land_failure_mission_id = mission.mission_id;
+					_mission_land_failure_count = mission.count;
+					_mission_land_failure_index = mission.land_index;
+					_mission_land_failure_dataman_id = mission.mission_dataman_id;
+					_mission_land_failure_reported = true;
+				}
 
 			} else {
+				_mission_land_failure_reported = false;
 				const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
 				if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
@@ -582,7 +600,7 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 
 	switch (new_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator);
+		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator, new_mission);
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
@@ -634,7 +652,16 @@ void RTL::parameters_update()
 bool RTL::hasMissionLandStart() const
 {
 	return _mission_sub.get().land_start_index >= 0 && _mission_sub.get().land_index >= 0
-	       && _navigator->get_mission_result()->valid;
+	       && hasValidMission();
+}
+
+bool RTL::hasValidMission() const
+{
+	const mission_result_s &mission_result = *_navigator->get_mission_result();
+	return mission_result.valid
+	       && mission_result.mission_id == _mission_sub.get().mission_id
+	       && mission_result.geofence_id == _mission_sub.get().geofence_id
+	       && mission_result.home_position_counter == _home_pos_sub.get().update_count;
 }
 
 bool RTL::reverseIsFurther() const

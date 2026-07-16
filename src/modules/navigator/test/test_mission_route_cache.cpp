@@ -75,7 +75,8 @@ protected:
 	}
 
 	mission_s makeMission(uint32_t mission_id, uint16_t count, uint32_t safe_points_id = 0,
-			      int32_t land_index = -1, dm_item_t mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0) const
+			      int32_t land_index = -1, dm_item_t mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0,
+			      dm_item_t safepoint_dataman_id = DM_KEY_SAFE_POINTS_0) const
 	{
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
@@ -84,7 +85,7 @@ protected:
 		mission.land_index = land_index;
 		mission.mission_dataman_id = static_cast<uint8_t>(mission_dataman_id);
 		mission.safe_points_id = safe_points_id;
-		mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+		mission.safepoint_dataman_id = static_cast<uint8_t>(safepoint_dataman_id);
 		return mission;
 	}
 
@@ -242,6 +243,7 @@ TEST_F(MissionRouteCacheTest, MissionLandItemRejectsNonLandPublishedIndex)
 	EXPECT_FALSE(_cache.missionLandItemReady());
 	EXPECT_TRUE(_cache.missionLandItemUpdatePending());
 	EXPECT_GT(MissionRouteCacheTestPeer::missionLandRetryCount(_cache), 0U);
+	EXPECT_TRUE(_cache.missionLandItemAttemptFailed());
 
 	// Failed reads leave output parameters untouched.
 	int32_t land_index = 123;
@@ -250,12 +252,21 @@ TEST_F(MissionRouteCacheTest, MissionLandItemRejectsNonLandPublishedIndex)
 	EXPECT_EQ(land_index, 123);
 }
 
+TEST_F(MissionRouteCacheTest, MissionLandItemRejectsInvalidDatamanId)
+{
+	const mission_s mission = makeMission(24, 1, 0, 0, static_cast<dm_item_t>(DM_KEY_NUM_KEYS));
+	_cache.update(mission);
+
+	EXPECT_FALSE(_cache.missionLandItemReady());
+	EXPECT_FALSE(_cache.missionLandItemUpdatePending());
+}
+
 // Transient safe-point state errors retry without changing safe_points_id.
 TEST_F(MissionRouteCacheTest, SafePointCacheRetriesAfterInvalidStateWithoutIdChange)
 {
 	// Start with an invalid state entry for the current safe_points_id.
 	const mission_s mission = makeMission(0, 0, 41);
-	writeSafePointState(DM_KEY_SAFE_POINTS_MAX + 1, 0);
+	writeSafePointState(DM_KEY_SAFE_POINTS_MAX + 1, 41);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
 			[&] { return MissionRouteCacheTestPeer::safePointRetryScheduled(_cache); }))
 			<< "safe-point retry was not scheduled";
@@ -264,7 +275,7 @@ TEST_F(MissionRouteCacheTest, SafePointCacheRetriesAfterInvalidStateWithoutIdCha
 	const std::vector<mission_item_s> safe_points{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 20.f, 5.f, kAlt),
 	};
-	writeSafePointItems(safe_points, static_cast<uint16_t>(safe_points.size()), 0);
+	writeSafePointItems(safe_points, static_cast<uint16_t>(safe_points.size()), 41);
 
 	// Skip the retry backoff wait and keep driving the cache on the now-valid state.
 	MissionRouteCacheTestPeer::expireSafePointRetryBackoff(_cache);
@@ -278,10 +289,19 @@ TEST_F(MissionRouteCacheTest, SafePointCacheRetriesAfterInvalidStateWithoutIdCha
 	expectMissionItemMatches(safe_point, safe_points[0]);
 }
 
-// safe_points_id participates in cache identity even when opaque_id is reused.
-TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsWhenOpaqueIdStaysTheSame)
+TEST_F(MissionRouteCacheTest, SafePointCacheRejectsMismatchedSourceId)
 {
-	// Two safe-point sets reuse the same opaque_id.
+	const mission_s mission = makeMission(0, 0, 90);
+	writeSafePointState(1, 91);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
+			[&] { return MissionRouteCacheTestPeer::safePointRetryScheduled(_cache); }));
+	EXPECT_FALSE(_cache.safePointsReady());
+}
+
+// safe_points_id participates in cache identity.
+TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
+{
 	const std::vector<mission_item_s> safe_points_a{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt),
 	};
@@ -291,7 +311,7 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsWhenOpaqueIdStaysTheSame)
 	};
 
 	mission_s mission = makeMission(0, 0, 100);
-	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 77);
+	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 100);
 
 	// Load the first set before changing safe_points_id.
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
@@ -301,8 +321,7 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsWhenOpaqueIdStaysTheSame)
 	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));
 	expectMissionItemMatches(safe_point, safe_points_a[0]);
 
-	// Reuse opaque_id to verify safe_points_id identity.
-	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 77);
+	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 101);
 	mission.safe_points_id = 101;
 	mission.timestamp = hrt_absolute_time();
 
@@ -332,7 +351,7 @@ TEST_F(MissionRouteCacheTest, SafePointSourceChangeDuringLoadDoesNotExposeStaleD
 	};
 
 	const mission_s mission_a = makeMission(0, 0, 200);
-	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 11);
+	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 200);
 
 	// Stop once the first set is in flight.
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_a,
@@ -342,7 +361,7 @@ TEST_F(MissionRouteCacheTest, SafePointSourceChangeDuringLoadDoesNotExposeStaleD
 
 	// Change the source while the first set is still loading.
 	mission_s mission_b = makeMission(0, 0, 201);
-	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 12);
+	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 201);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_b, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not become ready";
@@ -358,7 +377,7 @@ TEST_F(MissionRouteCacheTest, SafePointSourceChangeDuringLoadDoesNotExposeStaleD
 TEST_F(MissionRouteCacheTest, SafePointZeroCountIsReadyAndEmpty)
 {
 	const mission_s mission = makeMission(0, 0, 50);
-	writeSafePointState(0, 7);
+	writeSafePointState(0, 50);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "zero-count safe-point set did not become ready";
@@ -367,6 +386,15 @@ TEST_F(MissionRouteCacheTest, SafePointZeroCountIsReadyAndEmpty)
 
 	mission_item_s safe_point{};
 	EXPECT_FALSE(_cache.loadSafePointItem(0, safe_point));
+}
+
+TEST_F(MissionRouteCacheTest, SafePointZeroCountIgnoresUnusedDatamanId)
+{
+	const mission_s mission = makeMission(0, 0, 51);
+	writeSafePointState(0, 51, DM_KEY_WAYPOINTS_OFFBOARD_0);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }));
+	EXPECT_EQ(_cache.safePointCount(), 0);
 }
 
 // Changed safe-point stats with a reused opaque_id and unchanged safe_points_id still reload.
@@ -381,13 +409,13 @@ TEST_F(MissionRouteCacheTest, SafePointStatsChangeWithSameOpaqueIdReloads)
 	};
 
 	const mission_s mission = makeMission(0, 0, 60);
-	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 88);
+	writeSafePointItems(safe_points_a, static_cast<uint16_t>(safe_points_a.size()), 60);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not become ready";
 	ASSERT_EQ(_cache.safePointCount(), 1);
 
 	// Grow the stored set while reusing both the opaque id and safe_points_id.
-	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 88);
+	writeSafePointItems(safe_points_b, static_cast<uint16_t>(safe_points_b.size()), 60);
 	MissionRouteCacheTestPeer::requestSafePointRecheck(_cache);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointCount() == 2; }))
@@ -398,8 +426,8 @@ TEST_F(MissionRouteCacheTest, SafePointStatsChangeWithSameOpaqueIdReloads)
 	expectMissionItemMatches(safe_point, safe_points_b[1]);
 }
 
-// A safe-point dataman_id change with a reused opaque_id reloads from the new storage.
-TEST_F(MissionRouteCacheTest, SafePointDatamanIdChangeWithSameOpaqueIdReloads)
+// A safe-point source-bank change reloads from the new storage.
+TEST_F(MissionRouteCacheTest, SafePointDatamanIdChangeReloadsFromNewStorage)
 {
 	const std::vector<mission_item_s> safe_points_0{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 15.f, 0.f, kAlt),
@@ -408,8 +436,8 @@ TEST_F(MissionRouteCacheTest, SafePointDatamanIdChangeWithSameOpaqueIdReloads)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 45.f, 0.f, kAlt),
 	};
 
-	const mission_s mission = makeMission(0, 0, 70);
-	writeSafePointItems(safe_points_0, static_cast<uint16_t>(safe_points_0.size()), 99, DM_KEY_SAFE_POINTS_0);
+	mission_s mission = makeMission(0, 0, 70);
+	writeSafePointItems(safe_points_0, static_cast<uint16_t>(safe_points_0.size()), 70, DM_KEY_SAFE_POINTS_0);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not become ready";
 
@@ -417,9 +445,9 @@ TEST_F(MissionRouteCacheTest, SafePointDatamanIdChangeWithSameOpaqueIdReloads)
 	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));
 	expectMissionItemMatches(safe_point, safe_points_0[0]);
 
-	// Same opaque id and safe_points_id, but the set now lives in safe-point storage 1.
-	writeSafePointItems(safe_points_1, static_cast<uint16_t>(safe_points_1.size()), 99, DM_KEY_SAFE_POINTS_1);
-	MissionRouteCacheTestPeer::requestSafePointRecheck(_cache);
+	writeSafePointItems(safe_points_1, static_cast<uint16_t>(safe_points_1.size()), 70, DM_KEY_SAFE_POINTS_1);
+	mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_1;
+	mission.timestamp = hrt_absolute_time();
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not reload after dataman id change";
@@ -431,10 +459,11 @@ TEST_F(MissionRouteCacheTest, SafePointDatamanIdChangeWithSameOpaqueIdReloads)
 // Safe-point states pointing at a non safe-point dataman key are rejected and retried.
 TEST_F(MissionRouteCacheTest, SafePointCacheRejectsInvalidDatamanId)
 {
-	const mission_s mission = makeMission(0, 0, 80);
+	const mission_s mission = makeMission(0, 0, 80, -1, DM_KEY_WAYPOINTS_OFFBOARD_0,
+					      DM_KEY_WAYPOINTS_OFFBOARD_0);
 
 	// A plausible count but an unsupported storage key must be rejected before any load.
-	writeSafePointState(1, 5, DM_KEY_WAYPOINTS_OFFBOARD_0);
+	writeSafePointState(1, 80, DM_KEY_WAYPOINTS_OFFBOARD_0);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
 			[&] { return MissionRouteCacheTestPeer::safePointRetryScheduled(_cache); }))
