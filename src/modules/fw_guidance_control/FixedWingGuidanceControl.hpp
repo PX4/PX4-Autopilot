@@ -90,6 +90,7 @@ using namespace time_literals;
 
 using matrix::Vector2d;
 using matrix::Vector2f;
+using matrix::Vector3f;
 
 // [m] initial distance of waypoint in front of plane in heading hold mode
 static constexpr float HDG_HOLD_DIST_NEXT = 3000.0f;
@@ -184,9 +185,8 @@ private:
 
 	Vector2f _path_wp_local{NAN, NAN};
 	float _path_wp_alt{NAN};
-	Vector2f _path_tangent{NAN, NAN};
+	Vector3f _path_tangent{NAN, NAN, NAN};
 	float _path_curvature{0.f};
-	float _path_height_rate{NAN};
 	float _path_airspeed{NAN};
 
 	vehicle_control_mode_s _control_mode{};
@@ -340,8 +340,8 @@ private:
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_auto_path(const float control_interval, const Vector2f &ground_speed,
-			       const Vector2f curr_wp_local, const float curr_wp_alt, const Vector2f velocity_2d,
-			       const float curvature, const float height_rate, const float equivalent_airspeed);
+			       const Vector2f curr_wp_local, const float curr_wp_alt, const Vector3f tangent,
+			       const float curvature, const float equivalent_airspeed);
 
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 

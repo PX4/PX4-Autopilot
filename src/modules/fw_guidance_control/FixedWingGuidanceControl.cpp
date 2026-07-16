@@ -216,12 +216,14 @@ FixedWingGuidanceControl::update_in_air_states(const hrt_abstime now)
 void
 FixedWingGuidanceControl::control_auto_path(const float control_interval,
 		const Vector2f &ground_speed, const Vector2f curr_wp_local, const float curr_wp_alt,
-		const Vector2f velocity_2d, const float curvature, const float height_rate, const float equivalent_airspeed)
+		const Vector3f tangent, const float curvature, const float equivalent_airspeed)
 {
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 
+	const Vector2f tangent_2d{tangent(0), tangent(1)};
+
 	// Navigate directly on position setpoint and path tangent
-	const DirectionalGuidanceOutput sp = navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(),
+	const DirectionalGuidanceOutput sp = navigatePathTangent(curr_pos_local, curr_wp_local, tangent_2d.normalized(),
 					     ground_speed, _wind_vel, curvature);
 
 	fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
@@ -229,6 +231,12 @@ FixedWingGuidanceControl::control_auto_path(const float control_interval,
 	fw_lateral_ctrl_sp.course = sp.course_setpoint;
 	fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
+
+	// Derive height_rate from tangent Down component and airspeed
+	const float airspeed_for_height_rate = PX4_ISFINITE(equivalent_airspeed) ? equivalent_airspeed
+					       : (_airspeed_valid ? _airspeed_eas : NAN);
+	const float height_rate = (PX4_ISFINITE(tangent(2)) && PX4_ISFINITE(airspeed_for_height_rate))
+				  ? -tangent(2) * airspeed_for_height_rate : NAN;
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
@@ -359,13 +367,14 @@ FixedWingGuidanceControl::Run()
 
 				_path_wp_alt = PX4_ISFINITE(position(2)) ? _reference_altitude - position(2) : NAN;
 
-				if (Vector3f(path_setpoint.tangent).isAllFinite()) {
+				const Vector3f tangent(path_setpoint.tangent);
+
+				if (tangent.isAllFinite()) {
 					valid_setpoint = true;
-					_path_tangent = Vector2f(path_setpoint.tangent[0], path_setpoint.tangent[1]);
+					_path_tangent = tangent;
 				}
 
 				_path_curvature = PX4_ISFINITE(path_setpoint.curvature) ? path_setpoint.curvature : 0.f;
-				_path_height_rate = path_setpoint.height_rate;
 				_path_airspeed = path_setpoint.equivalent_airspeed;
 
 				_position_setpoint_current_valid = valid_setpoint;
@@ -400,8 +409,7 @@ FixedWingGuidanceControl::Run()
 		// by default set speed weight to the param value, can be overwritten inside the methods below
 		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
 
-		control_auto_path(control_interval, ground_speed, _path_wp_local, _path_wp_alt, _path_tangent, _path_curvature, _path_height_rate,
-				  _path_airspeed);
+		control_auto_path(control_interval, ground_speed, _path_wp_local, _path_wp_alt, _path_tangent, _path_curvature, _path_airspeed);
 
 		_ctrl_configuration_handler.update(now);
 
