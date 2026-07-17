@@ -620,7 +620,7 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 		} else
 #endif // CONFIG_FIGURE_OF_EIGHT
 		{
-			control_auto_loiter(control_interval, curr_pos, ground_speed, current_sp, pos_sp_next);
+			control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 
 		}
 
@@ -896,7 +896,7 @@ FixedWingModeManager::control_auto_velocity(const float control_interval, const 
 
 void
 FixedWingModeManager::control_auto_loiter(const float control_interval, const Vector2d &curr_pos,
-		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr,
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
 		const position_setpoint_s &pos_sp_next)
 {
 	// current waypoint (the one currently heading for)
@@ -910,9 +910,12 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
-	// Loiter directly commands the loiter altitude (no altitude first order hold, which is only applied for
-	// position waypoints).
-	const float position_sp_alt = pos_sp_curr.alt;
+	// Smoothly ramp the altitude setpoint from the previous setpoint such that the loiter altitude is reached
+	// by the time the vehicle arrives at the loiter circle.
+	const float acc_rad = math::max(_directional_guidance.switchDistance(500.0f), loiter_radius);
+	_foh_altitude_active = true;
+	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr, _current_latitude, _current_longitude,
+				      _current_altitude, acc_rad, _foh_altitude_state);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
