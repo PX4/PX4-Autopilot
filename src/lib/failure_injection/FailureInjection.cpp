@@ -91,20 +91,25 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 	}
 
 	if (mode == Mode::Wrong) {
-		int32_t level = battery_status_s::WARNING_CRITICAL;
-		param_get(param_find("SYS_FAIL_BAT_LVL"), &level);
+		static const param_t level_handle = param_find("SYS_FAIL_BAT_LVL");
+		static const param_t low_thr_handle = param_find("BAT_LOW_THR");
+		static const param_t crit_thr_handle = param_find("BAT_CRIT_THR");
+		static const param_t emergen_thr_handle = param_find("BAT_EMERGEN_THR");
 
-		const char *threshold_param = "BAT_CRIT_THR";
+		int32_t level = battery_status_s::WARNING_CRITICAL;
+		param_get(level_handle, &level);
+
+		param_t threshold_handle = crit_thr_handle;
 
 		switch (level) {
 		case battery_status_s::WARNING_LOW:
 			battery_status.warning = battery_status_s::WARNING_LOW;
-			threshold_param = "BAT_LOW_THR";
+			threshold_handle = low_thr_handle;
 			break;
 
 		case battery_status_s::WARNING_EMERGENCY:
 			battery_status.warning = battery_status_s::WARNING_EMERGENCY;
-			threshold_param = "BAT_EMERGEN_THR";
+			threshold_handle = emergen_thr_handle;
 			break;
 
 		case battery_status_s::WARNING_CRITICAL:
@@ -116,7 +121,7 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
 		// Report the remaining charge just below the selected threshold so the
 		// matching stage of the low-battery failsafe triggers.
 		float threshold = 0.f;
-		param_get(param_find(threshold_param), &threshold);
+		param_get(threshold_handle, &threshold);
 		battery_status.remaining = (threshold > 0.01f) ? (threshold - 0.01f) : 0.f;
 	}
 
