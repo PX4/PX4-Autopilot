@@ -58,6 +58,11 @@ jobs:
         with:
           ubuntu-version: '24.04'
 
+      # "make px4_sitl_default mavsdk_tests" only builds the test harness
+      # target, not the firmware, so the SITL build needs its own step.
+      - name: Build PX4 SITL
+        run: make px4_sitl_default
+
       - name: Build PX4 / MAVSDK tests
         env:
           DONT_RUN: 1
