@@ -65,6 +65,10 @@ bool CRSFTelemetry::update(const hrt_abstime &now)
 	case 3:
 		sent = send_flight_mode();
 		break;
+
+	case 4:
+		sent = send_baro_altitude();
+		break;
 	}
 
 	_last_update = now;
@@ -105,6 +109,49 @@ bool CRSFTelemetry::send_gps()
 
 	return crsf_send_telemetry_gps(_uart_fd, latitude, longitude, groundspeed,
 				       gps_heading, altitude, num_satellites);
+}
+
+/**
+ * pack an altitude for the barometric altitude frame: decimeters + 10000 offset,
+ * or meters with the MSB set when above the decimeter range
+ */
+static uint16_t pack_baro_altitude(const float altitude_m)
+{
+	int32_t altitude_dm = lroundf(altitude_m * 10.f) + 10000;
+
+	if (altitude_dm < 0) {
+		return 0;
+	}
+
+	if (altitude_dm < 0x8000) {
+		return (uint16_t)altitude_dm;
+	}
+
+	int32_t altitude_full_m = lroundf(altitude_m);
+
+	if (altitude_full_m > 0x7FFF) {
+		altitude_full_m = 0x7FFF;
+	}
+
+	return (uint16_t)altitude_full_m | 0x8000;
+}
+
+bool CRSFTelemetry::send_baro_altitude()
+{
+	vehicle_local_position_s local_position;
+
+	if (!_vehicle_local_position_sub.update(&local_position) || !local_position.z_valid) {
+		return false;
+	}
+
+	uint16_t altitude = pack_baro_altitude(-local_position.z);
+	int16_t vertical_speed = 0;
+
+	if (local_position.v_z_valid) {
+		vertical_speed = lroundf(math::constrain(-local_position.vz * 100.f, (float)INT16_MIN, (float)INT16_MAX));
+	}
+
+	return crsf_send_telemetry_baro_altitude(_uart_fd, altitude, vertical_speed);
 }
 
 bool CRSFTelemetry::send_attitude()
