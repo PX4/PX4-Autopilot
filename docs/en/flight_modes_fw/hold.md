@@ -77,6 +77,23 @@ You can test it in [Gazebo](../sim_gazebo_gz/index.md) using a fixed wing frame:
 make px4_sitl gz_rc_cessna
 ```
 
+## Altitude Ramp on Reposition (Go-to)
+
+When you command the vehicle to a new loiter location at a different altitude — for example a QGroundControl _Go to location_ / [reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION) while in Hold mode — PX4 does not change the altitude setpoint in a single step.
+Instead it ramps the altitude setpoint linearly (a first order hold, FOH) from the vehicle's **current altitude** to the new target altitude, reaching the target by the time the vehicle arrives at the loiter circle around the new location.
+The result is a smooth diagonal climb or descent along the transit to the new location, rather than an immediate climb/descent followed by level flight.
+
+![Fixed-wing altitude profile for a climbing go-to in Hold mode](../../assets/flight_modes/fw_goto_altitude_foh.png)
+
+The ramp is anchored at the altitude the vehicle is at when the new target is received, and its progress is measured by the vehicle's horizontal approach to the target (not by time).
+
+If the vehicle cannot follow the ramp (for example when the required climb or sink rate exceeds what the aircraft can achieve), the altitude setpoint still reaches the full target altitude at the loiter circle.
+Any remaining altitude error is then removed by climbing or sinking once the vehicle reaches the horizontal position of the new location.
+
+::: info
+The ramp is (re)started whenever the target altitude changes; a reposition that keeps the same altitude does not change the vehicle's altitude.
+:::
+
 ## Parameters
 
 Hold mode behaviour can be configured using the parameters below.
