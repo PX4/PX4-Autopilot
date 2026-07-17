@@ -702,6 +702,17 @@ else
 	unset RC_LOGGING
 
 	#
+	# Optional external module auto-start: rc.ext_modules
+	#
+	set EXT_MODULE_RC ${R}etc/init.d/rc.ext_modules
+	if [ -f $EXT_MODULE_RC ]
+	then
+		echo "External modules: ${EXT_MODULE_RC}"
+		. $EXT_MODULE_RC
+	fi
+	unset EXT_MODULE_RC
+
+	#
 	# Start the VTX services.
 	#
 	if ! param compare -s VTX_SER_CFG 0
