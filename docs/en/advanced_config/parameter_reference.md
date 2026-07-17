@@ -23873,7 +23873,7 @@ Measurement noise for magnetometer 3-axis fusion.
 
 Type of magnetometer fusion.
 
-Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field. If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight. If set to 'Magnetic heading' magnetic heading fusion is used at all times. If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GNSS velocity measurements to align the yaw angle. If set to 'Init' the magnetometer is only used to initalize the heading.
+Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field. If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight. If set to 'Magnetic heading' magnetic heading fusion is used at all times. If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GNSS velocity measurements to align the yaw angle. If set to 'Init' the magnetometer is only used to initialize the heading.
 
 **Values:**
 
@@ -43977,7 +43977,7 @@ It represents the difficulty of the vehicle to modify its angular rate.
 
 First order drag coefficient.
 
-Physical coefficient representing the friction with air particules.
+Physical coefficient representing the friction with air particles.
 The greater this value, the slower the quad will move.
 
 Drag force function of velocity: D=-KDV*V.
@@ -43991,7 +43991,7 @@ The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]
 
 First order angular damper coefficient.
 
-Physical coefficient representing the friction with air particules during rotations.
+Physical coefficient representing the friction with air particles during rotations.
 The greater this value, the slower the quad will rotate.
 
 Aerodynamic moment function of body rate: Ma=-KDW\*W_B.
