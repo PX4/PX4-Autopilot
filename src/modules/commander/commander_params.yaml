@@ -617,7 +617,7 @@ parameters:
       max: 127
       decimal: 0
       increment: 1
-      unit: celcius
+      unit: celsius
     COM_WIND_WARN:
       description:
         short: Wind speed warning threshold

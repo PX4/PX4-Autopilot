@@ -35,7 +35,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            unit: celcius
+            unit: celsius
             min: 0
             max: 85.0
             default: [55.0, 55.0, 55.0]
@@ -134,7 +134,7 @@ parameters:
                     e.g. 5 to only start heating once the temperature drops below 5°C.
 
             type: float
-            unit: celcius
+            unit: celsius
             min: -100.0
             max: 200.0
             decimal: 1

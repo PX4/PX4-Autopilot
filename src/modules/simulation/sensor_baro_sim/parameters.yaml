@@ -25,4 +25,4 @@ parameters:
         short: simulated barometer temperature offset
       type: float
       default: 0.0
-      unit: celcius
+      unit: celsius
