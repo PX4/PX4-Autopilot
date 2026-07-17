@@ -37,7 +37,6 @@ jobs:
           - {model: "quadx",         latitude:  "59.617693", longitude: "-151.145316", altitude:  "48" } # Alaska
           - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488" } # Zurich
     env:
-      PX4_CMAKE_BUILD_TYPE: RelWithDebInfo
       PX4_SBOM_DISABLE: 1
 
     steps:
