@@ -46760,9 +46760,12 @@ UAVCAN CAN bus bitrate.
 
 UAVCAN CAN node ID (0 for dynamic allocation).
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 127      |           | 0       |      | &nbsp;    |
+Set to 0 (default) to use dynamic node ID allocation (DNA).
+Set to 1-125 to use a static node ID, which must be unique on the bus.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 125      |           | 0       |      | &nbsp;    |
 
 ### CANNODE_PT_SENS (`INT32`) {#CANNODE_PT_SENS}
 
