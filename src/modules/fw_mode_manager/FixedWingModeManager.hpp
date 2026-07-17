@@ -72,6 +72,7 @@
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/fixed_wing_runway_control.h>
 #include <uORB/topics/landing_gear.h>
+#include <uORB/topics/parachute.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -179,6 +180,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _parachute_sub{ORB_ID(parachute)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
@@ -231,6 +233,7 @@ private:
 		FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV,
 		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
 		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
+		FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE,
 		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
@@ -266,6 +269,9 @@ private:
 	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
+
+	// [.] true if a parachute release was detected while in air. Never reset in flight.
+	bool _parachute_released{false};
 
 	// MANUAL MODES
 
@@ -432,6 +438,8 @@ private:
 	void manual_control_setpoint_poll();
 	void vehicle_attitude_poll();
 	void vehicle_attitude_setpoint_poll();
+	void parachute_poll();
+
 	void vehicle_command_poll();
 	void vehicle_control_mode_poll();
 
@@ -623,6 +631,16 @@ private:
 	 */
 	void control_auto_landing_circular(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
 					   const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Controls the descent under a deployed parachute.
+	 *
+	 * Keeps the throttle at zero (motor off) and holds a level attitude open-loop. Entered
+	 * once a parachute release is detected in air, and never left until landed and disarmed.
+	 *
+	 * @param now Current system time [us]
+	 */
+	void control_auto_landing_parachute(const hrt_abstime &now);
 
 	/* manual control methods */
 

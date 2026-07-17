@@ -158,6 +158,18 @@ FixedWingModeManager::vehicle_command_poll()
 }
 
 void
+FixedWingModeManager::parachute_poll()
+{
+	parachute_s parachute;
+
+	while (_parachute_sub.update(&parachute)) {
+		if (parachute.command == parachute_s::COMMAND_RELEASE && !_landed) {
+			_parachute_released = true;
+		}
+	}
+}
+
+void
 FixedWingModeManager::airspeed_poll()
 {
 	airspeed_validated_s airspeed_validated;
@@ -380,6 +392,19 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 	}
 
 	const FW_POSCTRL_MODE previous_position_control_mode = _control_mode_current;
+
+	if (_parachute_released && _control_mode.flag_armed) {
+		// A parachute release was detected in air. Regardless of the commanded mode, keep the motor
+		// off and hold attitude: there is no meaningful control authority under canopy, and any
+		// spooled-up motor risks entangling the parachute lines.
+		if (previous_position_control_mode != FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE) {
+			events::send(events::ID("fw_mode_manager_parachute_descent"), events::Log::Warning,
+				     "Descending under parachute, motor off");
+		}
+
+		_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE;
+		return;
+	}
 
 	_skipping_takeoff_detection = false;
 	const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
@@ -1815,6 +1840,28 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 }
 
 void
+FixedWingModeManager::control_auto_landing_parachute(const hrt_abstime &now)
+{
+	// The aerodynamic controllers have no authority under canopy. Command the attitude
+	// open-loop: level pitch directly, wings level via zero lateral acceleration.
+	fixed_wing_longitudinal_setpoint_s longitudinal_ctrl_sp{empty_longitudinal_control_setpoint};
+	longitudinal_ctrl_sp.timestamp = now;
+	longitudinal_ctrl_sp.pitch_direct = 0.f;
+	longitudinal_ctrl_sp.throttle_direct = 0.f;
+	_longitudinal_ctrl_sp_pub.publish(longitudinal_ctrl_sp);
+
+	fixed_wing_lateral_setpoint_s lateral_ctrl_sp{empty_lateral_control_setpoint};
+	lateral_ctrl_sp.timestamp = now;
+	lateral_ctrl_sp.lateral_acceleration = 0.f;
+	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
+
+	// Keep the motor off, and keep TECS underspeed protection from spooling it back up
+	_ctrl_configuration_handler.setThrottleMin(0.f);
+	_ctrl_configuration_handler.setThrottleMax(0.f);
+	_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
+}
+
+void
 FixedWingModeManager::control_manual_altitude(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
@@ -2207,6 +2254,8 @@ FixedWingModeManager::Run()
 			}
 		}
 
+		parachute_poll();
+
 		if (!_vehicle_status.in_transition_mode) {
 			// reset position of backtransition start if not in transition
 			_lpos_where_backtrans_started = Vector2f(NAN, NAN);
@@ -2282,6 +2331,11 @@ FixedWingModeManager::Run()
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
 				control_auto_landing_circular(now, control_interval, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE: {
+				control_auto_landing_parachute(now);
 				break;
 			}
 
