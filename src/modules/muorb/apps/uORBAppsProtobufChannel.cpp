@@ -269,10 +269,10 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 				  };
 
 		if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initialize method failed"); }
 
 		} else {
-			PX4_INFO("muorb protobuf initalize method succeeded");
+			PX4_INFO("muorb protobuf initialize method succeeded");
 
 			_task_handle = px4_task_spawn_cmd("muorb_keepalive",
 							  SCHED_DEFAULT,
