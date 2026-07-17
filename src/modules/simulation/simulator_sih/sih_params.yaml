@@ -145,7 +145,7 @@ parameters:
       description:
         short: First order drag coefficient
         long: |-
-          Physical coefficient representing the friction with air particules.
+          Physical coefficient representing the friction with air particles.
           The greater this value, the slower the quad will move.
 
           Drag force function of velocity: D=-KDV*V.
@@ -160,7 +160,7 @@ parameters:
       description:
         short: First order angular damper coefficient
         long: |-
-          Physical coefficient representing the friction with air particules during rotations.
+          Physical coefficient representing the friction with air particles during rotations.
           The greater this value, the slower the quad will rotate.
 
           Aerodynamic moment function of body rate: Ma=-KDW*W_B.
