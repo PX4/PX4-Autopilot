@@ -56,9 +56,8 @@ float calculateFirstOrderHoldAltitude(const position_setpoint_s &pos_sp_curr, co
 
 	if (new_target) {
 		state.target_altitude = target_altitude;
-		// Ramp from the last commanded altitude setpoint, or the current altitude if nothing was commanded yet.
-		state.ramp_start_altitude = PX4_ISFINITE(state.last_altitude_setpoint) ? state.last_altitude_setpoint :
-					    current_altitude;
+		// Always start the ramp from the current (measured) altitude.
+		state.ramp_start_altitude = current_altitude;
 		state.ramp_start_distance = d_curr;
 		state.min_distance = d_curr;
 	}
@@ -77,8 +76,6 @@ float calculateFirstOrderHoldAltitude(const position_setpoint_s &pos_sp_curr, co
 		const float progress_distance = math::constrain(state.min_distance, completion_radius, state.ramp_start_distance);
 		position_sp_alt = target_altitude + grad * (progress_distance - completion_radius);
 	}
-
-	state.last_altitude_setpoint = position_sp_alt;
 
 	return position_sp_alt;
 }

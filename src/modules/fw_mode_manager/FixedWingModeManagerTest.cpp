@@ -68,15 +68,14 @@ TEST(FirstOrderHoldAltitudeTest, FirstCallWithoutHistoryRampsFromCurrentAltitude
 	EXPECT_NEAR(alt, kStartAlt, 1e-2f);
 }
 
-TEST(FirstOrderHoldAltitudeTest, RampStartsFromLastCommandedSetpointNotVehicleAltitude)
+TEST(FirstOrderHoldAltitudeTest, RampAlwaysStartsFromCurrentAltitude)
 {
-	// Seed the state with a previously commanded altitude setpoint, then present a new target. The ramp must
-	// start from the last commanded setpoint (150 m), not from the (differing) current vehicle altitude.
+	// The ramp always starts from the current (measured) altitude, regardless of any prior ramp state.
 	FirstOrderHoldAltitudeState state{};
-	state.last_altitude_setpoint = 150.0f;
-	const float alt = calculateFirstOrderHoldAltitude(makeCurr(), kVehicleLat, kVehicleLon, /*current_altitude*/ 90.0f,
-			  0.0f, state);
-	EXPECT_NEAR(alt, 150.0f, 1e-2f);
+	const float current_altitude = 90.0f;
+	const float alt = calculateFirstOrderHoldAltitude(makeCurr(), kVehicleLat, kVehicleLon, current_altitude, 0.0f,
+			  state);
+	EXPECT_NEAR(alt, current_altitude, 1e-2f);
 }
 
 TEST(FirstOrderHoldAltitudeTest, MidpointReturnsInterpolatedAltitude)
@@ -145,18 +144,19 @@ TEST(FirstOrderHoldAltitudeTest, SameTargetAltitudeDoesNotRestartRamp)
 
 TEST(FirstOrderHoldAltitudeTest, ChangedTargetAltitudeRestartsRamp)
 {
-	// A new target altitude restarts the ramp from the last commanded setpoint at the current distance.
+	// A new target altitude restarts the ramp from the current altitude at the current distance.
 	FirstOrderHoldAltitudeState state{};
 
-	// First target: ramp toward kCurrAlt and drive it to completion so the last commanded setpoint is kCurrAlt.
+	// First target: ramp toward kCurrAlt and drive it to completion.
 	calculateFirstOrderHoldAltitude(makeCurr(), kVehicleLat, kVehicleLon, kStartAlt, 0.0f, state);
 	const float alt_reached = calculateFirstOrderHoldAltitude(makeCurr(), kCurrLat, kCurrLon, kStartAlt, 0.0f, state);
 	ASSERT_FLOAT_EQ(alt_reached, kCurrAlt);
 
-	// New target altitude while far from the target again: the ramp restarts from the last commanded setpoint.
+	// New target altitude while far from the target again: the ramp restarts from the current altitude, which
+	// here equals the previous target altitude (the vehicle reached it).
 	const float new_target = 260.0f;
 	const float alt = calculateFirstOrderHoldAltitude(makeCurr(position_setpoint_s::SETPOINT_TYPE_POSITION, 0.0f,
-			  new_target), kVehicleLat, kVehicleLon, kStartAlt, 0.0f, state);
+			  new_target), kVehicleLat, kVehicleLon, /*current_altitude*/ kCurrAlt, 0.0f, state);
 	EXPECT_NEAR(alt, kCurrAlt, 1e-2f);
 	EXPECT_FLOAT_EQ(state.target_altitude, new_target);
 }

@@ -42,26 +42,24 @@
  * @brief State of the altitude first order hold (FOH), persisted across calls.
  *
  * A ramp is (re)started whenever the target (current waypoint) altitude changes. It always starts from the
- * last commanded altitude setpoint at the vehicle's current horizontal distance to the target, hence the
- * previous fields have to survive between calls.
+ * current (measured) altitude at the vehicle's current horizontal distance to the target, hence the ramp
+ * anchor fields have to survive between calls.
  */
 struct FirstOrderHoldAltitudeState {
 	float target_altitude{NAN};        ///< altitude setpoint currently ramped toward [m AMSL]
 	float ramp_start_altitude{NAN};    ///< altitude the current ramp started from [m AMSL]
 	float ramp_start_distance{NAN};    ///< horizontal distance to the target when the ramp started [m]
 	float min_distance{FLT_MAX};       ///< closest horizontal approach to the target during this ramp [m]
-	float last_altitude_setpoint{NAN}; ///< altitude setpoint commanded on the previous call [m AMSL]
 };
 
 /**
  * @brief Calculate the altitude setpoint using an altitude first order hold (FOH).
  *
- * Whenever the target (current waypoint) altitude changes, a new ramp is started from the last commanded
- * altitude setpoint (or, if none has been commanded yet, the current vehicle altitude) at the vehicle's
- * present horizontal distance to the target. The setpoint is then linearly interpolated along the remaining
- * distance such that the new target altitude is reached at the acceptance radius around the target. While
- * the target altitude stays the same the ramp keeps progressing and is never restarted, even if the
- * position setpoint is otherwise updated.
+ * Whenever the target (current waypoint) altitude changes, a new ramp is started from the current (measured)
+ * vehicle altitude at the vehicle's present horizontal distance to the target. The setpoint is then linearly
+ * interpolated along the remaining distance such that the new target altitude is reached at the acceptance
+ * radius around the target. While the target altitude stays the same the ramp keeps progressing and is never
+ * restarted, even if the position setpoint is otherwise updated.
  *
  * @param pos_sp_curr current position setpoint (target)
  * @param current_lat current vehicle latitude [deg]
