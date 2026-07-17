@@ -59,6 +59,9 @@ def main() -> NoReturn:
                         help="how often to run all tests")
     parser.add_argument("--abort-early", action='store_true',
                         help="abort on first unsuccessful test")
+    parser.add_argument("--case-retries", type=int, default=0,
+                        help="how often to retry a failed test case "
+                             "with fresh processes")
     parser.add_argument("--gui", default=False, action='store_true',
                         help="display the visualization for a simulation")
     parser.add_argument("--model", type=str, default='all',
@@ -112,7 +115,8 @@ def main() -> NoReturn:
         args.verbose,
         args.upload,
         args.build_dir,
-        tester_interface
+        tester_interface,
+        case_retries=args.case_retries
     )
     signal.signal(signal.SIGINT, tester.sigint_handler)
 

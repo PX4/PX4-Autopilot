@@ -59,8 +59,8 @@ To see all possible command line arguments use the `-h` argument:
 test/mavsdk_tests/mavsdk_test_runner.py -h
 
 usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early]
-                             [--gui] [--model MODEL] [--case CASE] [--debugger DEBUGGER] [--upload] [--force-color]
-                             [--verbose] [--build-dir BUILD_DIR]
+                             [--case-retries CASE_RETRIES] [--gui] [--model MODEL] [--case CASE] [--debugger DEBUGGER]
+                             [--upload] [--force-color] [--verbose] [--build-dir BUILD_DIR]
 
 positional arguments:
   config_file           JSON config file to use
@@ -73,6 +73,8 @@ options:
   --iterations ITERATIONS
                         how often to run all tests
   --abort-early         abort on first unsuccessful test
+  --case-retries CASE_RETRIES
+                        how often to retry a failed test case with fresh processes
   --gui                 display the visualization for a simulation
   --model MODEL         only run tests for one model
   --case CASE           only run tests for one case (or multiple cases with wildcard '*')
