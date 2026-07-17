@@ -117,6 +117,8 @@ private:
 
 	bool _initialized = false;
 
+	int32_t		_esc_index_offset{0};
+
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};

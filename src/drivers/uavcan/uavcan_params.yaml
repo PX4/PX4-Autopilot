@@ -46,6 +46,17 @@ parameters:
       min: 20000
       max: 1000000
       reboot_required: true
+    UAVCAN_FIRST_EC:
+      description:
+        short: UAVCAN ESC index offset
+        long: Offset applied to the esc_index reported by ESCs on the CAN bus before
+          mapping to PX4 actuator outputs. Set to 1 for ESCs that use a one-indexed
+          throttle ID (e.g. Hobbywing).
+      type: int32
+      default: 0
+      min: 0
+      max: 8
+      reboot_required: true
     UAVCAN_RNG_MIN:
       description:
         short: UAVCAN rangefinder minimum range

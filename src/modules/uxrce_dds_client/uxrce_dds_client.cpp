@@ -702,9 +702,10 @@ void UxrceddsClient::run()
 				}
 			}
 
-			// Run session with 0 timeout (non-blocking). Under high inbound traffic the socket RX buffer can
-			// overflow and starve the system; drain a small burst per loop to keep up.
-			for (int i = 0; i < 10; i++) {
+			// Drain RX buffer up to a time budget to handle high inbound topic rates.
+			const hrt_abstime drain_deadline = hrt_absolute_time() + 3_ms;
+
+			do {
 				uxr_run_session_timeout(&session, 0);
 
 				int fd_bytes_available = 0;
@@ -714,7 +715,7 @@ void UxrceddsClient::run()
 				    || (fd_bytes_available <= 0)) {
 					break;
 				}
-			}
+			} while (hrt_absolute_time() < drain_deadline);
 
 			// check if there are available replies
 			process_replies();

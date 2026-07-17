@@ -80,6 +80,8 @@ int UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
+	param_get(param_find("UAVCAN_FIRST_EC"), &_esc_index_offset);
+
 	_initialized = true;
 
 	return res;
@@ -112,8 +114,10 @@ void UavcanEscController::set_rotor_count(uint8_t count)
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
-	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		esc_report_s &esc_report = _esc_status.esc[msg.esc_index];
+	const int index = (int)msg.esc_index - _esc_index_offset;
+
+	if (index >= 0 && index < esc_status_s::CONNECTED_ESC_MAX) {
+		esc_report_s &esc_report = _esc_status.esc[index];
 		esc_report.timestamp = hrt_absolute_time();
 		esc_report.esc_voltage = msg.voltage;
 		esc_report.esc_current = msg.current;
@@ -121,7 +125,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		// esc_report.motor_temperature is filled in the extended status callback
 		esc_report.esc_rpm = msg.rpm;
 		esc_report.esc_errorcount = msg.error_count;
-		esc_report.failures = get_failures(msg.esc_index, msg.getSrcNodeID().get());
+		esc_report.failures = get_failures(index, msg.getSrcNodeID().get());
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
@@ -142,9 +146,9 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 
 void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
 {
-	uint8_t index = msg.esc_index;
+	const int index = (int)msg.esc_index - _esc_index_offset;
 
-	if (index < esc_status_s::CONNECTED_ESC_MAX) {
+	if (index >= 0 && index < esc_status_s::CONNECTED_ESC_MAX) {
 		esc_report_s &esc_report = _esc_status.esc[index];
 		// published with the non-extended esc::Status
 		esc_report.motor_temperature = msg.motor_temperature_degC;
