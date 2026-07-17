@@ -1,0 +1,20 @@
+name: Setup MAVSDK
+description: Download and install the MAVSDK library at the version pinned in test/mavsdk_tests/MAVSDK_VERSION
+
+inputs:
+  ubuntu-version:
+    description: Ubuntu version of the .deb package to install (e.g. 24.04)
+    required: false
+    default: '24.04'
+
+runs:
+  using: composite
+  steps:
+    - name: Download and install MAVSDK
+      shell: bash
+      run: |
+        MAVSDK_VERSION=$(cat test/mavsdk_tests/MAVSDK_VERSION)
+        DEB="libmavsdk-dev_${MAVSDK_VERSION}_ubuntu${{ inputs.ubuntu-version }}_amd64.deb"
+        wget -q "https://github.com/mavlink/MAVSDK/releases/download/v${MAVSDK_VERSION}/${DEB}"
+        dpkg -i "${DEB}"
+        rm -f "${DEB}"
