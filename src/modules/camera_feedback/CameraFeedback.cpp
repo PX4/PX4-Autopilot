@@ -168,8 +168,9 @@ CameraFeedback::Run()
 
 		capture.result = 1;
 
-		// Cameras that report captures themselves (e.g. MAVLink Camera Protocol v1)
-		// set CAM_CAP_REPORT to 0 so we don't emit a duplicate CAMERA_IMAGE_CAPTURED.
+		// Cameras that report captures themselves (e.g. implementing the MAVLink
+		// Camera Protocol) set CAM_CAP_REPORT to 0 so we don't emit a duplicate
+		// CAMERA_IMAGE_CAPTURED.
 		// The capture is still published and logged for geotagging regardless.
 		capture.report = (_cam_cap_report != 0);
 
@@ -225,8 +226,9 @@ otherwise trigger information at the point the camera was commanded to trigger i
 (from the `camera_trigger` module).
 
 The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
-unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. MAVLink Camera
-Protocol v1). `CameraCapture` topics are always logged and can be used for geotagging regardless.
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### Implementation
 
