@@ -36,9 +36,12 @@
 #include <atomic>
 #include <iostream>
 #include <future>
+#include <mutex>
 #include <thread>
 #include <unistd.h>
 #include <cmath>
+
+#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 
 std::string connection_url {"udp://"};
 std::optional<float> speed_factor {std::nullopt};
@@ -576,6 +579,279 @@ void AutopilotTester::fly_forward_in_altctl()
 		}
 	}
 }
+void AutopilotTester::request_hil_state_quaternion(float rate_hz)
+{
+	// Ask the autopilot to stream SIH ground-truth attitude on this link.
+	// Interval is in microseconds; 0 would mean default rate.
+	const float interval_us = (rate_hz > 0.f) ? (1.e6f / rate_hz) : 0.f;
+
+	MavlinkPassthrough::CommandLong cmd{};
+	cmd.target_sysid = _mavlink_passthrough->get_target_sysid();
+	cmd.target_compid = _mavlink_passthrough->get_target_compid();
+	cmd.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+	cmd.param1 = static_cast<float>(MAVLINK_MSG_ID_HIL_STATE_QUATERNION);
+	cmd.param2 = interval_us;
+
+	CHECK(_mavlink_passthrough->send_command_long(cmd) == MavlinkPassthrough::Result::Success);
+}
+
+void AutopilotTester::set_stabilized_mode()
+{
+	// PX4: DO_SET_MODE param1=custom, param2=main mode, param3=sub mode
+	MavlinkPassthrough::CommandLong cmd{};
+	cmd.target_sysid = _mavlink_passthrough->get_target_sysid();
+	cmd.target_compid = _mavlink_passthrough->get_target_compid();
+	cmd.command = MAV_CMD_DO_SET_MODE;
+	cmd.param1 = 1.f; // MAV_MODE_FLAG_CUSTOM_MODE_ENABLED semantics used by PX4
+	cmd.param2 = 7.f; // PX4_CUSTOM_MAIN_MODE_STABILIZED
+	cmd.param3 = 0.f;
+
+	CHECK(_mavlink_passthrough->send_command_long(cmd) == MavlinkPassthrough::Result::Success);
+
+	CHECK(poll_condition_with_timeout(
+	[this]() {
+		return _telemetry->flight_mode() == Telemetry::FlightMode::Stabilized;
+	}, std::chrono::seconds(5)));
+}
+
+float AutopilotTester::fly_stabilize_without_gps_and_measure_level_error(float climb_altitude_m)
+{
+	const unsigned manual_control_rate_hz = 50;
+
+	// Track SIH ground-truth attitude (not EKF estimate).
+	std::mutex gt_mutex;
+	float gt_roll_deg = NAN;
+	float gt_pitch_deg = NAN;
+	std::atomic<bool> got_gt{false};
+
+	request_hil_state_quaternion(25.f);
+	const auto hil_handle = subscribe_mavlink_message(MAVLINK_MSG_ID_HIL_STATE_QUATERNION,
+	[&gt_mutex, &gt_roll_deg, &gt_pitch_deg, &got_gt](const mavlink_message_t &message) {
+		mavlink_hil_state_quaternion_t hil{};
+		mavlink_msg_hil_state_quaternion_decode(&message, &hil);
+
+		// Quaternion convention matches vehicle_attitude (w,x,y,z)
+		const float w = hil.attitude_quaternion[0];
+		const float x = hil.attitude_quaternion[1];
+		const float y = hil.attitude_quaternion[2];
+		const float z = hil.attitude_quaternion[3];
+
+		// roll (x), pitch (y) from quaternion
+		const float sinr_cosp = 2.f * (w * x + y * z);
+		const float cosr_cosp = 1.f - 2.f * (x * x + y * y);
+		const float roll = std::atan2(sinr_cosp, cosr_cosp);
+
+		float sinp = 2.f * (w * y - z * x);
+		sinp = std::max(-1.f, std::min(1.f, sinp));
+		const float pitch = std::asin(sinp);
+
+		static constexpr float rad2deg = 57.2957795f;
+
+		{
+			std::lock_guard<std::mutex> lock(gt_mutex);
+			gt_roll_deg = roll * rad2deg;
+			gt_pitch_deg = pitch * rad2deg;
+		}
+		got_gt = true;
+	});
+
+	auto send_manual = [this](float pitch, float roll, float throttle, float yaw) {
+		CHECK(_manual_control->set_manual_control_input(pitch, roll, throttle, yaw) ==
+		      ManualControl::Result::Success);
+	};
+
+	// Keep RC alive and enter altitude control for a clean takeoff without needing position.
+	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
+		send_manual(0.f, 0.f, 0.5f, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+	}
+
+	CHECK(_manual_control->start_altitude_control() == ManualControl::Result::Success);
+
+	for (unsigned i = 0; i < 1 * manual_control_rate_hz; ++i) {
+		send_manual(0.f, 0.f, 0.5f, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+	}
+
+	// Arm once the vehicle is ready (GPS still available for takeoff if configured).
+	CHECK(poll_condition_with_timeout(
+	[this]() { return _telemetry->health().is_armable; }, std::chrono::seconds(45)));
+	arm();
+
+	// Climb near the ground (issue is most visible at low altitude).
+	const auto climb_start = std::chrono::steady_clock::now();
+
+	while (true) {
+		send_manual(0.f, 0.f, 0.8f, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+
+		const float rel_alt = _telemetry->position().relative_altitude_m;
+
+		if (std::isfinite(rel_alt) && rel_alt >= climb_altitude_m) {
+			break;
+		}
+
+		// Host-time safety bound (works with sim speed factor via sleep_for on PX4 time when available)
+		if (std::chrono::steady_clock::now() - climb_start > std::chrono::seconds(60)) {
+			FAIL("Timed out climbing to " << climb_altitude_m << " m (alt=" << rel_alt << ")");
+		}
+	}
+
+	std::cout << time_str() << "Reached climb altitude, disabling GPS + mag aiding" << std::endl;
+
+	// Remove horizontal aiding and mag so tilt depends only on gravity fusion (#24299).
+	CHECK(_param->set_param_int("EKF2_GPS_CTRL", 0) == Param::Result::Success);
+	CHECK(_param->set_param_int("EKF2_MAG_TYPE", 5) == Param::Result::Success); // MagFuseType::NONE
+	// Also force GPS sensor off if failure injection is available.
+	(void)_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off, 0);
+	(void)_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Off, 0);
+
+	// Hold altitude briefly while EKF switches aiding sources.
+	for (unsigned i = 0; i < 3 * manual_control_rate_hz; ++i) {
+		send_manual(0.f, 0.f, 0.5f, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+	}
+
+	std::cout << time_str() << "Switching to Stabilized" << std::endl;
+	set_stabilized_mode();
+
+	// Near-hover throttle. Real flights near ground pump throttle more than pure hover.
+	const float hover_throttle = 0.55f;
+
+	CHECK(poll_condition_with_timeout(
+	[&got_gt]() { return got_gt.load(); }, std::chrono::seconds(5)));
+
+	// Stress gravity-fusion enable gate (|a| must stay in ~0.9g..1.1g):
+	// repeated attitude moves + throttle blips near the ground without horizontal aiding
+	// (issue #24299). Mid-stick afterward must still return true attitude to level.
+	// While the sticks are deflected, also verify the vehicle does not go unstable:
+	// the true tilt must stay bounded (commanded tilt is well below MPC_MAN_TILT_MAX)
+	// and the estimate must keep tracking truth. Both diverge when gravity fusion
+	// drags the attitude estimate towards the thrust axis during accelerations.
+	std::cout << time_str() << "Exciting attitude/throttle without GPS (gravity fusion only)" << std::endl;
+
+	float excitation_max_gt_tilt = 0.f;
+	float excitation_max_est_error = 0.f;
+
+	auto stick_input_with_stability_check = [&](float pitch, float roll, float throttle, float yaw,
+	float duration_s) {
+		const unsigned steps = static_cast<unsigned>(duration_s * manual_control_rate_hz);
+
+		for (unsigned i = 0; i < steps; ++i) {
+			send_manual(pitch, roll, throttle, yaw);
+			sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+
+			float roll_gt = NAN;
+			float pitch_gt = NAN;
+			{
+				std::lock_guard<std::mutex> lock(gt_mutex);
+				roll_gt = gt_roll_deg;
+				pitch_gt = gt_pitch_deg;
+			}
+
+			if (std::isfinite(roll_gt) && std::isfinite(pitch_gt)) {
+				const auto ekf = _telemetry->attitude_euler();
+				excitation_max_gt_tilt = std::max(excitation_max_gt_tilt, std::hypot(roll_gt, pitch_gt));
+				excitation_max_est_error = std::max(excitation_max_est_error,
+								    std::hypot(roll_gt - ekf.roll_deg, pitch_gt - ekf.pitch_deg));
+			}
+		}
+	};
+
+	for (unsigned cycle = 0; cycle < 6; ++cycle) {
+		// Pitch forward
+		stick_input_with_stability_check(0.45f, 0.f, hover_throttle, 0.f, 3.f);
+
+		// Roll right + throttle blip (pushes |a| away from 1g → gravity fusion gate)
+		stick_input_with_stability_check(0.f, 0.45f, 0.8f, 0.f, 2.f);
+
+		// Pitch back + lower throttle
+		stick_input_with_stability_check(-0.45f, 0.f, 0.3f, 0.f, 3.f);
+
+		// Combined + hover recovery
+		stick_input_with_stability_check(0.35f, -0.35f, hover_throttle, 0.f, 2.f);
+	}
+
+	std::cout << time_str() << "Excitation done: GT max tilt=" << excitation_max_gt_tilt
+		  << " deg, max |EKF-GT| tilt error=" << excitation_max_est_error << " deg" << std::endl;
+
+	// Stability contract while sticks are deflected: ~half stick commands well under
+	// MPC_MAN_TILT_MAX (default 35 deg), so bounded true tilt and a tracking estimate
+	// mean the vehicle stayed controllable throughout the manoeuvres.
+	CHECK(excitation_max_gt_tilt < 45.f);
+	CHECK(excitation_max_est_error < 20.f);
+
+	std::cout << time_str() << "Centering sticks; expecting ground-truth level attitude" << std::endl;
+
+	// Mid-stick: attitude setpoint is level. After settling, true attitude must be near level.
+	// If gravity fusion drops out, EKF tilt drifts and mid-stick no longer yields level flight.
+	float max_abs_roll = 0.f;
+	float max_abs_pitch = 0.f;
+	float max_abs_ekf_roll = 0.f;
+	float max_abs_ekf_pitch = 0.f;
+	float max_abs_tilt_error = 0.f;
+	unsigned sample_count = 0;
+
+	// Settle for 3s, then sample for 8s of continuous mid-stick.
+	for (unsigned i = 0; i < 3 * manual_control_rate_hz; ++i) {
+		send_manual(0.f, 0.f, hover_throttle, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+	}
+
+	for (unsigned i = 0; i < 8 * manual_control_rate_hz; ++i) {
+		send_manual(0.f, 0.f, hover_throttle, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+
+		float roll_gt = NAN;
+		float pitch_gt = NAN;
+		{
+			std::lock_guard<std::mutex> lock(gt_mutex);
+			roll_gt = gt_roll_deg;
+			pitch_gt = gt_pitch_deg;
+		}
+
+		const auto ekf = _telemetry->attitude_euler();
+
+		if (std::isfinite(roll_gt) && std::isfinite(pitch_gt)) {
+			max_abs_roll = std::max(max_abs_roll, std::fabs(roll_gt));
+			max_abs_pitch = std::max(max_abs_pitch, std::fabs(pitch_gt));
+			// Difference between estimate (level setpoint tracking) and truth.
+			const float tilt_err = std::hypot(roll_gt - ekf.roll_deg, pitch_gt - ekf.pitch_deg);
+			max_abs_tilt_error = std::max(max_abs_tilt_error, tilt_err);
+			++sample_count;
+		}
+
+		max_abs_ekf_roll = std::max(max_abs_ekf_roll, std::fabs(ekf.roll_deg));
+		max_abs_ekf_pitch = std::max(max_abs_ekf_pitch, std::fabs(ekf.pitch_deg));
+	}
+
+	std::cout << time_str()
+		  << "GT max |roll|=" << max_abs_roll << " deg, |pitch|=" << max_abs_pitch
+		  << " deg; EKF max |roll|=" << max_abs_ekf_roll << " deg, |pitch|=" << max_abs_ekf_pitch
+		  << " deg; max |EKF-GT| tilt=" << max_abs_tilt_error
+		  << " deg (samples=" << sample_count << ")" << std::endl;
+
+	REQUIRE(sample_count > 0);
+
+	// Land / disarm
+	for (unsigned i = 0; i < 30 * manual_control_rate_hz; ++i) {
+		send_manual(0.f, 0.f, 0.0f, 0.f);
+		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
+
+		if (!_telemetry->in_air()) {
+			break;
+		}
+	}
+
+	unsubscribe_mavlink_message(MAVLINK_MSG_ID_HIL_STATE_QUATERNION, hil_handle);
+
+	// EKF should still be near the level setpoint even when truth is wrong.
+	CHECK(max_abs_ekf_roll < 10.f);
+	CHECK(max_abs_ekf_pitch < 10.f);
+
+	return max_abs_tilt_error;
+}
+
 void AutopilotTester::fly_forward_in_offboard_attitude()
 {
 	// This test does not depend on valid position estimate.
@@ -761,6 +1037,17 @@ void AutopilotTester::add_mavlink_message_callback(uint16_t message_id,
 		std::function< void(const mavlink_message_t &)> callback)
 {
 	_mavlink_passthrough->subscribe_message(message_id, std::move(callback));
+}
+
+mavsdk::MavlinkPassthrough::MessageHandle AutopilotTester::subscribe_mavlink_message(uint16_t message_id,
+		std::function<void(const mavlink_message_t &)> callback)
+{
+	return _mavlink_passthrough->subscribe_message(message_id, std::move(callback));
+}
+
+void AutopilotTester::unsubscribe_mavlink_message(uint16_t message_id, mavsdk::MavlinkPassthrough::MessageHandle handle)
+{
+	_mavlink_passthrough->unsubscribe_message(message_id, handle);
 }
 
 std::array<float, 3> AutopilotTester::get_current_position_ned()

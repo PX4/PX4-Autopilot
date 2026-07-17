@@ -1,0 +1,19 @@
+{
+    "mode": "sitl",
+    "simulator": "sih",
+    "mavlink_connection": "udpin://0.0.0.0:14540",
+    "tests":
+    [
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "sim_model": "sihsim_quadx",
+            "test_filter": "[sih][gravity]",
+            "timeout_min": 15,
+            "env": {
+                "PX4_PARAM_EKF2_IMU_CTRL": 7,
+                "PX4_PARAM_COM_ARM_WO_GPS": 1
+            }
+        }
+    ]
+}

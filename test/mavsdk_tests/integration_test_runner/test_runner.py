@@ -362,6 +362,29 @@ class Tester:
                     px4_runner.env[env_key] = str(test['env'][env_key])
                 self.active_runners.append(px4_runner)
 
+            elif self.config['simulator'] == 'sih':
+                # SIH physics runs inside PX4 (no external simulator process).
+                sim_model = test.get('sim_model', 'sihsim_' + test['model'])
+                px4_runner = ph.Px4Runner(
+                    os.getcwd(),
+                    log_dir,
+                    test['model'],
+                    case,
+                    self.get_max_speed_factor(test),
+                    self.debugger,
+                    self.verbose,
+                    self.build_dir,
+                    self.tester_interface.rootfs_base_dirname(),
+                    sim_model=sim_model,
+                    simulator='sihsim')
+                for env_key in test.get('env', []):
+                    px4_runner.env[env_key] = str(test['env'][env_key])
+                self.active_runners.append(px4_runner)
+
+            else:
+                raise ValueError("Unknown simulator '{}'".format(
+                    self.config['simulator']))
+
         self.active_runners.append(self.tester_interface.create_test_runner(
             os.getcwd(),
             log_dir,

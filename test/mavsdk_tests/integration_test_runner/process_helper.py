@@ -152,7 +152,9 @@ class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
                  model: str, case: str, speed_factor: float,
                  debugger: str, verbose: bool, build_dir: str,
-                 rootfs_base_dirname: str):
+                 rootfs_base_dirname: str,
+                 sim_model: Optional[str] = None,
+                 simulator: Optional[str] = None):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
         self.cwd = os.path.join(workspace_dir, build_dir,
@@ -168,7 +170,10 @@ class Px4Runner(Runner):
                 os.path.join(workspace_dir, "test_data"),
                 "-d"
             ]
-        self.env["PX4_SIM_MODEL"] = "gazebo-classic_" + self.model
+        # Default remains Gazebo Classic for existing sitl.json configs.
+        self.env["PX4_SIM_MODEL"] = sim_model if sim_model else ("gazebo-classic_" + self.model)
+        if simulator:
+            self.env["PX4_SIMULATOR"] = simulator
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
         self.clear_rootfs()

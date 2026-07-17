@@ -481,7 +481,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity fusion
-	float ekf2_grav_noise{1.0f};            ///< accelerometer measurement gaussian noise (m/s**2)
+	float ekf2_grav_noise{0.3f};            ///< gravity direction measurement gaussian noise, fraction of unit vector (g0)
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)

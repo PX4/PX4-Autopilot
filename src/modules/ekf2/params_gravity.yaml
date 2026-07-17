@@ -5,8 +5,13 @@ parameters:
     EKF2_GRAV_NOISE:
       description:
         short: Accelerometer measurement noise for gravity based observations
+        long: |
+          Noise on the accelerometer-derived gravity direction unit vector. Lower values
+          give gravity fusion more authority to correct roll/pitch without horizontal
+          aiding; higher values reduce the attitude error induced by unmodelled
+          accelerations.
       type: float
-      default: 1.0
+      default: 0.3
       min: 0.1
       max: 10.0
       unit: g0

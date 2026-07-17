@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,10 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	const Vector3f measurement = Vector3f(imu.delta_vel / imu.delta_vel_dt - _state.accel_bias).unit();
 	const float measurement_var = math::max(sq(_params.ekf2_grav_noise), sq(0.01f));
 
+	// The accel magnitude gate is a proxy check only: |a| close to 1g does not imply the
+	// direction is gravity (a horizontal acceleration of 0.45g still passes it), so the
+	// fusion must stay weak (measurement noise) and tightly gated (innovation gate) to
+	// avoid pulling the attitude towards the thrust axis during manoeuvres.
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
 	const float accel_lpf_norm_sq = _accel_lpf.getState().norm_squared();
@@ -110,7 +114,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 		const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
-
+			K(State::quat_nominal.idx + 2) = 0.f; // no heading corrections via tilt-heading correlation
 			fused[index] = measurementUpdate(K, H,
 							 _aid_src_gravity.observation_variance[index], _aid_src_gravity.innovation[index]);
 		}
@@ -123,4 +127,43 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	} else {
 		_aid_src_gravity.fused = false;
 	}
+
+	// Recovery from a fusion dropout (#24299): without horizontal aiding, tilt error built up
+	// while gravity fusion was unavailable (sustained |a| outside the enable band) can exceed
+	// the innovation gate and lock fusion out indefinitely. If the vehicle has been quasi-static
+	// with fusion intended but rejected for longer than the timeout, re-initialise the tilt from
+	// the low-passed accelerometer instead of weakening the gate or the measurement noise.
+	// The timeout must be long enough that a sustained horizontal acceleration (which biases the
+	// measured direction while keeping |a| near 1g) is unlikely to persist for the whole period.
+	static constexpr uint64_t kGravityResetTimeoutUs = 5'000'000;
+	static constexpr float kQuasiStaticGyroNormLimit = 0.25f; // rad/s
+
+	if (_control_status.flags.gravity_vector && _control_status.flags.in_air
+	    && _aid_src_gravity.innovation_rejected
+	    && isTimedOut(_aid_src_gravity.time_last_fuse, kGravityResetTimeoutUs)
+	    && (_gyro_lpf.getState().norm() < kQuasiStaticGyroNormLimit)) {
+
+		resetTiltUsingAccelVector();
+		resetAidSourceStatusZeroInnovation(_aid_src_gravity);
+	}
+}
+
+void Ekf::resetTiltUsingAccelVector()
+{
+	const Quatf quat_before_reset = _state.quat_nominal;
+
+	// minimal rotation bringing the predicted gravity direction (body frame) onto the
+	// direction measured by the low-passed accelerometer, leaving heading unchanged
+	const Vector3f measured_up = _accel_lpf.getState().unit();
+	const Vector3f predicted_up = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f));
+
+	const Quatf dq(measured_up, predicted_up);
+	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
+	_R_to_earth = Dcmf(_state.quat_nominal);
+
+	// reset the tilt variance to the alignment accuracy, keep the heading variance
+	const float tilt_var = sq(math::max(_params.ekf2_angerr_init, 0.01f));
+	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx, tilt_var);
+
+	propagateQuatReset(quat_before_reset);
 }

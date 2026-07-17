@@ -343,3 +343,18 @@ void EkfWrapper::disableGyroBiasEstimation()
 {
 	_ekf_params->ekf2_imu_ctrl &= ~static_cast<int32_t>(ImuCtrl::GyroBias);
 }
+
+void EkfWrapper::enableGravityFusion()
+{
+	_ekf_params->ekf2_imu_ctrl |= static_cast<int32_t>(ImuCtrl::GravityVector);
+}
+
+void EkfWrapper::disableGravityFusion()
+{
+	_ekf_params->ekf2_imu_ctrl &= ~static_cast<int32_t>(ImuCtrl::GravityVector);
+}
+
+bool EkfWrapper::isIntendingGravityFusion() const
+{
+	return _ekf->control_status_flags().gravity_vector;
+}
