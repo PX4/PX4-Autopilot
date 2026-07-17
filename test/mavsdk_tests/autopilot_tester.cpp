@@ -655,7 +655,7 @@ void AutopilotTester::start_checking_altitude(const float max_deviation_m)
 	float target_altitude = initial_position[2];
 
 	_check_altitude_handle = _telemetry->subscribe_position_velocity_ned([target_altitude,
-			 max_deviation_m](Telemetry::PositionVelocityNed new_position) {
+	max_deviation_m](Telemetry::PositionVelocityNed new_position) {
 		const float current_deviation = fabs(target_altitude - new_position.position.down_m);
 		CHECK(current_deviation <= max_deviation_m);
 	});
