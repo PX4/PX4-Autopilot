@@ -328,9 +328,9 @@ void CrsfRc::Run()
 				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
 					int32_t latitude = static_cast<int32_t>(round(sensor_gps.latitude_deg * 1e7));
 					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
-					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 10.f;
+					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 10.f;   // 0.1 km/h
 					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(sensor_gps.cog_rad)) * 100.f;
-					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;
+					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;   // meters + 1000 offset
 					uint8_t num_satellites = sensor_gps.satellites_used;
 					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}
@@ -420,6 +420,8 @@ void CrsfRc::Run()
 				break;
 
 			case 4:
+				// Reuse the CRSF baro-altitude frame to carry the fused local altitude
+				// (above the EKF origin), not a raw barometer reading. EdgeTX shows it as "Alt".
 				vehicle_local_position_s local_position;
 
 				if (_vehicle_local_position_sub.update(&local_position) && local_position.z_valid) {
