@@ -583,6 +583,7 @@
         - [ActuatorServosTrim](msg_docs/ActuatorServosTrim.md)
         - [ActuatorTest](msg_docs/ActuatorTest.md)
         - [AdcReport](msg_docs/AdcReport.md)
+        - [Airflow](msg_docs/Airflow.md)
         - [Airspeed](msg_docs/Airspeed.md)
         - [AirspeedWind](msg_docs/AirspeedWind.md)
         - [AutotuneAttitudeControlStatus](msg_docs/AutotuneAttitudeControlStatus.md)
