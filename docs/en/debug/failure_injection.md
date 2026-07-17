@@ -156,21 +156,3 @@ To trigger the battery failsafe by reporting a depleted pack:
    # Stop injecting the failure
    failure battery ok
    ```
-
-## Example: Traffic avoidance
-
-To test the traffic-avoidance failsafe path, simulate the avoidance system failing while traffic is present. This targets MAVLink-based traffic avoidance and works both for real ADS-B received over MAVLink and for simulated traffic (ADS-B injected over MAVLink, or the `navigator fake_traffic` command).
-
-1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter and configure a traffic-avoidance action with [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID).
-2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
-
-   ```sh
-   # Drone goes blind to traffic (no avoidance action) and the ADS-B/FLARM link is marked unhealthy
-   failure traffic off
-
-   # Freeze the traffic picture at the last received report
-   failure traffic stuck
-
-   # Stop injecting the failure
-   failure traffic ok
-   ```
