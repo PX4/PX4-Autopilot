@@ -77,6 +77,7 @@
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
 #include "checks/openDroneIDCheck.hpp"
+#include "checks/ridIdentityCheck.hpp"
 #include "checks/trafficAvoidanceCheck.hpp"
 #include "checks/externalChecks.hpp"
 #include "checks/gnssRedundancyCheck.hpp"
@@ -173,6 +174,7 @@ private:
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
 	TrafficAvoidanceChecks _traffic_avoidance_checks;
+	RidIdentityChecks _rid_identity_checks;
 	GnssRedundancyChecks _gnss_redundancy_checks;
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks _external_checks;
@@ -208,6 +210,7 @@ private:
 		&_offboard_checks, // must be after _estimator_checks
 		&_mode_checks, // must be after _estimator_checks, _home_position_checks, _mission_checks, _offboard_checks, _external_checks
 		&_open_drone_id_checks,
+		&_rid_identity_checks,
 		&_parachute_checks,
 		&_power_checks,
 		&_rc_calibration_checks,
