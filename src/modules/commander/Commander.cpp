@@ -1707,6 +1707,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
@@ -2025,6 +2026,8 @@ void Commander::run()
 		checkForMissionUpdate();
 
 		manualControlCheck();
+
+		manualControlLossModeSwitch();
 
 		offboardControlCheck();
 
@@ -2590,7 +2593,7 @@ void Commander::checkAndInformReadyForTakeoff()
 void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(isArmed(), _vehicle_status.nav_state_user_intention,
+	_mode_management.update(_vehicle_status.vehicle_type, isArmed(), _vehicle_status.nav_state_user_intention,
 				mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
@@ -2759,9 +2762,9 @@ void Commander::updateControlMode()
 {
 	_vehicle_control_mode = {};
 
+	const auto external_mode_setpoint_type = _mode_management.getSetpointType(_vehicle_status.nav_state);
 	mode_util::getVehicleControlMode(_vehicle_status.nav_state,
-					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode);
-	_mode_management.updateControlMode(_vehicle_status.nav_state, _vehicle_control_mode);
+					 _vehicle_status.vehicle_type, _offboard_control_mode_sub.get(), _vehicle_control_mode, external_mode_setpoint_type);
 
 	_vehicle_control_mode.flag_armed = isArmed();
 	_vehicle_control_mode.flag_multicopter_position_control_enabled =
@@ -2769,8 +2772,7 @@ void Commander::updateControlMode()
 		&& (_vehicle_control_mode.flag_control_altitude_enabled
 		    || _vehicle_control_mode.flag_control_climb_rate_enabled
 		    || _vehicle_control_mode.flag_control_position_enabled
-		    || _vehicle_control_mode.flag_control_velocity_enabled
-		    || _vehicle_control_mode.flag_control_acceleration_enabled);
+		    || _vehicle_control_mode.flag_control_velocity_enabled);
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }
@@ -3142,6 +3144,34 @@ void Commander::manualControlCheck()
 
 		}
 	}
+}
+
+void Commander::manualControlLossModeSwitch()
+{
+	// NAV_RCL_ACT value that switches to Hold as a regular mode change instead of triggering the failsafe.
+	// Kept in sync with gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe (private to the failsafe).
+	static constexpr int32_t NAV_RCL_ACT_HOLD_NO_FAILSAFE = 7;
+
+	const bool manual_control_lost = _failsafe_flags.manual_control_signal_lost;
+
+	// Only act on the moment manual control is lost while actively flying a manual mode. Using an edge avoids
+	// repeatedly overriding the pilot if they command a different mode while manual control stays lost.
+	if (manual_control_lost && !_manual_control_lost_prev
+	    && isArmed()
+	    && _param_nav_rcl_act.get() == NAV_RCL_ACT_HOLD_NO_FAILSAFE
+	    && _vehicle_control_mode.flag_control_manual_enabled) {
+
+		// Force the switch to Hold as a regular mode change (no failsafe, no alarming notification).
+		// force=true skips the mode availability check on purpose: if Hold cannot actually run (e.g. without a
+		// valid position estimate), the failsafe mode-fallback escalates from there (Hold -> RTL -> Land/Descend/Terminate).
+		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::User, false, true);
+
+		mavlink_log_info(&_mavlink_log_pub, "Manual control lost: switching to Hold\t");
+		events::send(events::ID("commander_rc_loss_hold_no_failsafe"), {events::Log::Info, events::LogInternal::Info},
+			     "Manual control lost: switching to Hold");
+	}
+
+	_manual_control_lost_prev = manual_control_lost;
 }
 
 void Commander::offboardControlCheck()

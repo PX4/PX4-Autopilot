@@ -43,6 +43,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <string.h>
+#include <cmath>
 
 using namespace time_literals;
 
@@ -106,6 +107,7 @@ failure gps off
 	PRINT_MODULE_USAGE_COMMAND_DESCR("gps|...", "Specify component");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("ok|off|...", "Specify failure type");
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 4, "sensor instance (0=all)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 65535, "instance bitmask (bit i = instance i+1); overridden by -i", true);
 
 	PX4_INFO_RAW("\nComponents:\n");
 	for (const auto &failure_unit : failure_units) {
@@ -118,10 +120,8 @@ failure gps off
 	}
 }
 
-int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t instance)
+int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t instance, int32_t mask)
 {
-	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key, type.value, instance);
-
 	uORB::Subscription command_ack_sub{ORB_ID(vehicle_command_ack)};
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
@@ -130,7 +130,19 @@ int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t ins
 	command.command = vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE;
 	command.param1 = static_cast<float>(unit.value);
 	command.param2 = static_cast<float>(type.value);
-	command.param3 = static_cast<float>(instance);
+
+	if (mask >= 0) {
+		// Instance bitmask (param4); param3 = NaN selects the bitmask (bit i = instance i+1).
+		PX4_WARN("inject failure unit: %s (%d), type: %s (%d), mask: 0x%x", unit.key, unit.value, type.key, type.value,
+			 static_cast<unsigned>(mask));
+		command.param3 = NAN;
+		command.param4 = static_cast<float>(mask);
+
+	} else {
+		PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key, type.value, instance);
+		command.param3 = static_cast<float>(instance);
+	}
+
 	command.timestamp = hrt_absolute_time();
 	command_pub.publish(command);
 
@@ -180,11 +192,18 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 	int myoptind = 1;
 
 	uint8_t instance = 0;
+	int32_t mask = -1;             // -1 = address by instance; >= 0 = address by bitmask
+	bool instance_set = false;
 
-	while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "i:m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'i':
 			instance = (uint8_t)atoi(myoptarg);
+			instance_set = true;
+			break;
+
+		case 'm':
+			mask = (int32_t)strtol(myoptarg, nullptr, 0); // accepts decimal or 0x-prefixed hex
 			break;
 
 		default:
@@ -192,6 +211,11 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 			print_usage();
 			return 1;
 		}
+	}
+
+	// Instance (-i) takes precedence over the bitmask (-m)
+	if (instance_set) {
+		mask = -1;
 	}
 
 	if ((argc < 3) || (myoptind + 1) >= argc) {
@@ -214,7 +238,7 @@ extern "C" __EXPORT int failure_main(int argc, char *argv[])
 				continue;
 			}
 
-			return inject_failure(failure_unit, failure_type, instance);
+			return inject_failure(failure_unit, failure_type, instance, mask);
 		}
 
 		PX4_ERR("Failure type '%s' not found", requested_failure_type);

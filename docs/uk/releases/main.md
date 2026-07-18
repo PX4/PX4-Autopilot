@@ -13,16 +13,14 @@ const { site } = useData();
   </div>
 </div>
 
-This contains changes to PX4 `main` branch after the next major release ([PX v1.18](../releases/1.16.md)).
+This contains changes to the PX4 `main` branch that are not included in the next release ([PX4 v1.18](../releases/1.18.md)).
 
 :::warning
-PX4 v1.18 is in alpha/beta testing.
-Update these notes with features that are going to be in `main` (PX4 v1.18 or later) but not the PX4 v1.18 release.
+PX4 v1.18 is in beta testing.
+Update these notes with features that are going to be in `main` (PX4 v1.19 or later) but not the PX4 v1.18 release.
 :::
 
 ## Прочитайте перед оновленням
-
-- Уточнюється
 
 Please continue reading for [upgrade instructions](#upgrade-guide).
 

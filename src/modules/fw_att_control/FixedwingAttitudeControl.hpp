@@ -109,6 +109,11 @@ public:
 
 	bool init();
 
+	// Tailsitter body frame conversion:
+	// vector in FW body frame = _q_mc_to_fw.rotateVector(vector in MC body frame);
+	// (public so we can use it in FixedwingAttitudeControlTest)
+	inline static const matrix::Quatf _q_mc_to_fw{matrix::Eulerf{0.f, -M_PI_2_F, 0.f}};
+
 private:
 	void Run() override;
 
@@ -138,8 +143,6 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
 	landing_gear_wheel_s			_landing_gear_wheel{};
-
-	matrix::Dcmf _R{matrix::eye<float, 3>()};
 
 	perf_counter_t _loop_perf;
 

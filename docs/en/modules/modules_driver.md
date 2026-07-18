@@ -358,7 +358,7 @@ Source: [drivers/gps](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers
 ### Description
 
 GPS driver module that handles the communication with the device and publishes the position via uORB.
-It supports multiple protocols (device vendors) and by default automatically selects the correct one.
+The available device protocols are selected at build time.
 
 The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
 on the second uORB topic instance, but it's currently not used by the rest of the system (however the
@@ -401,7 +401,8 @@ gps <command> [arguments...]
                  values: spi|uart, default: uart
      [-j <val>]  secondary GPS interface
                  values: spi|uart, default: uart
-     [-p <val>]  GPS Protocol (default=auto select)
+     [-p <val>]  GPS protocol (availability depends on build; default from
+                 GPS_x_PROTOCOL)
                  values: ubx|mtk|ash|eml|fem|nmea
 
    stop
@@ -1085,7 +1086,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1100,9 +1101,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 

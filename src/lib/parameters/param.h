@@ -475,7 +475,6 @@ __EXPORT void	param_control_autosave(bool enable);
  * Parameter value union.
  */
 union param_value_u {
-	void		*p;
 	int32_t		i;
 	float		f;
 };

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -302,10 +302,14 @@ void SagetechMXS::Run()
 		if (!_mxs_ext_cfg.get()) {
 			// Auto configuration
 			auto_config_operating();
-			auto_config_installation();
-			auto_config_flightid();
-			_mxs_op_mode.set(sg_op_mode_t::modeStby);
-			_mxs_op_mode.commit();
+
+			if (_adsb_icao.get() >= 0) {
+				auto_config_installation();
+				auto_config_flightid();
+				_mxs_op_mode.set(sg_op_mode_t::modeStby);
+				_mxs_op_mode.commit();
+			}
+
 			send_targetreq_msg();
 			mxs_state.initialized = true;
 		}
@@ -695,13 +699,19 @@ void SagetechMXS::send_data_req(const sg_datatype_t dataReqType)
 
 void SagetechMXS::send_install_msg()
 {
+	const int32_t adsb_icao = _adsb_icao.get();
+
+	if (adsb_icao < 0) {
+		return;
+	}
+
 	// MXS must be in OFF mode to change ICAO or Registration
 	if (mxs_state.op.opMode != modeOff) {
 		// gcs().send_text(MAV_SEVERITY_WARNING, "ADSB Sagetech MXS: unable to send installation data while not in OFF mode.");
 		return;
 	}
 
-	mxs_state.inst.icao = _adsb_icao.get();
+	mxs_state.inst.icao = static_cast<uint32_t>(adsb_icao);
 	mxs_state.inst.emitter = convert_emitter_type_to_sg(_adsb_emit_type.get());
 	mxs_state.inst.size = (sg_size_t)_adsb_len_width.get();
 	mxs_state.inst.maxSpeed = (sg_airspeed_t)_adsb_max_speed.get();
@@ -723,8 +733,10 @@ void SagetechMXS::send_flight_id_msg()
 
 void SagetechMXS::send_operating_msg()
 {
-
-	mxs_state.op.opMode = (sg_op_mode_t)_mxs_op_mode.get();
+	// In auto-conf mode ADSB_ICAO_ID=-1 disables ADS-B Out. Keep the transponder
+	// off so a retained installation from an earlier setup cannot transmit.
+	const bool adsb_out_disabled = !_mxs_ext_cfg.get() && _adsb_icao.get() < 0;
+	mxs_state.op.opMode = adsb_out_disabled ? sg_op_mode_t::modeOff : (sg_op_mode_t)_mxs_op_mode.get();
 
 	if (check_valid_squawk(_adsb_squawk.get())) {
 		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());
@@ -1317,12 +1329,13 @@ void SagetechMXS::auto_config_operating()
 
 void SagetechMXS::auto_config_installation()
 {
-	if (mxs_state.ack.opMode != modeOff) {
-		PX4_ERR("MXS not put in OFF Mode before installation.");
+	const int32_t adsb_icao = _adsb_icao.get();
+
+	if (adsb_icao < 0) {
 		return;
 	}
 
-	mxs_state.inst.icao = (uint32_t) _adsb_icao.get();
+	mxs_state.inst.icao = static_cast<uint32_t>(adsb_icao);
 	snprintf(mxs_state.inst.reg, 8, "%-7s", "PX4TEST");
 
 	mxs_state.inst.com0 = sg_baud_t::baud230400;

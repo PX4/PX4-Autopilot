@@ -208,12 +208,28 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 {
 	updateBatteryStatus(timestamp);
-	publishBatteryStatus(getBatteryStatus());
+
+	battery_status_s battery_status = getBatteryStatus();
+
+	_failure_config.update();
+	failure_injection::process_battery(_failure_config, battery_status.id, battery_status);
+
+	publishBatteryStatus(battery_status);
 }
 void Battery::updateDt(const hrt_abstime &timestamp)
 {
 	if (_last_timestamp != 0) {
-		_dt = math::min((timestamp - _last_timestamp) / 1e6f, 2.f); // guard to a maximum 2 seconds dt
+		// _dt_discharge is the true, unclamped time delta: for the coulomb
+		// count in sumDischarged() below, using the real elapsed time is
+		// always more accurate than clamping it, even across an unusually
+		// long gap between updates (e.g. an update source that reports
+		// less often than every 2 seconds).
+		_dt_discharge = (timestamp - _last_timestamp) / 1e6f;
+
+		// _dt is clamped to guard the numerical stability of the current
+		// average filter below, which assumes a roughly steady sample
+		// interval and should not see a single very large dt.
+		_dt = math::min(_dt_discharge, 2.f);
 	}
 
 	_last_timestamp = timestamp;
@@ -221,10 +237,10 @@ void Battery::updateDt(const hrt_abstime &timestamp)
 
 float Battery::sumDischarged(float current_a)
 {
-	if (_dt > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
+	if (_dt_discharge > FLT_EPSILON && fabsf(current_a + 1.f) > FLT_EPSILON) {
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
 		// current = -1 means invalid current measurement
-		_discharged_mah_loop = (current_a * 1e3f) * (_dt / 3600.f);
+		_discharged_mah_loop = (current_a * 1e3f) * (_dt_discharge / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}
 

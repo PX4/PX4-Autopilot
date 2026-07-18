@@ -105,6 +105,13 @@ TEST_F(RtcmTest, BustedSender_RepeatedBadCrcFrames)
 		parser.addData(bad.data(), bad.size());
 	}
 
+	// Re-scanning after a failure can land on a byte that claims a frame longer
+	// than what is buffered, which parks the framer until the rest arrives (see
+	// BustedSender_AllPreambles). Feed a frame's worth of non-preamble filler so
+	// every pending candidate can be resolved, as a live stream would.
+	const std::vector<uint8_t> filler(CorrectionFramer::MAX_FRAME_LEN, 0x00);
+	parser.addData(filler.data(), filler.size());
+
 	size_t len;
 
 	while (parser.getNextMessage(&len) != nullptr) {

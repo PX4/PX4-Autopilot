@@ -42,6 +42,7 @@ px4_add_module(
 		parameters.yaml
 	DEPENDS
 		drivers_barometer
+		failure_injection
 		geo
 		px4_work_queue
 	)

@@ -55,8 +55,23 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 	_time_us = time_us;
 
+	// Hold _signaling_mutex across the whole operation so that waiters which
+	// enter the dance cannot race past us by acquiring it before we do.
+	// Lock order: _signaling_mutex -> _timed_waits_mutex, _signaling_mutex ->
+	// passed_lock. cond_timedwait() uses passed_lock -> _timed_waits_mutex.
+	// No cycle because _signaling_mutex is only ever acquired first here and
+	// independently (without passed_lock held) in the waiter's dance.
+	std::lock_guard<std::mutex> lock_signaling(_signaling_mutex);
+
+	// Phase 1: under _timed_waits_mutex, clean up done entries, mark timeouts,
+	// and thread waiters that need to be signaled onto a temporary list via
+	// signal_next. We do NOT take any passed_lock here — that would create a
+	// lock-order cycle with cond_timedwait (which holds passed_lock while
+	// acquiring _timed_waits_mutex).
+	TimedWait *to_signal_head = nullptr;
+
 	{
-		std::unique_lock<std::mutex> lock_timed_waits(_timed_waits_mutex);
+		std::lock_guard<std::mutex> lock_timed_waits(_timed_waits_mutex);
 		_setting_time = true;
 
 		TimedWait *timed_wait = _timed_waits;
@@ -81,18 +96,33 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 			if (timed_wait->time_us <= time_us &&
 			    !timed_wait->timeout) {
-				// We are abusing the condition here to signal that the time
-				// has passed.
-				pthread_mutex_lock(timed_wait->passed_lock);
 				timed_wait->timeout = true;
-				pthread_cond_broadcast(timed_wait->passed_cond);
-				pthread_mutex_unlock(timed_wait->passed_lock);
+				timed_wait->signal_next = to_signal_head;
+				to_signal_head = timed_wait;
 			}
 
 			timed_wait_prev = timed_wait;
 			timed_wait = timed_wait->next;
 		}
+	}
 
+	// Phase 2: signal each waiter outside _timed_waits_mutex. _signaling_mutex
+	// is still held, so any waiter that sees timeout via the wall-clock
+	// fallback will block in the dance until we are done, preventing
+	// use-after-free of their stack-local passed_lock/passed_cond.
+	for (TimedWait *tw = to_signal_head; tw != nullptr;) {
+		TimedWait *next = tw->signal_next;
+		tw->signal_next = nullptr;
+		pthread_mutex_lock(tw->passed_lock);
+		pthread_cond_broadcast(tw->passed_cond);
+		pthread_mutex_unlock(tw->passed_lock);
+		tw = next;
+	}
+
+	// Phase 3: clear _setting_time under _timed_waits_mutex so waiters in
+	// the dance observe a consistent state.
+	{
+		std::lock_guard<std::mutex> lock_timed_waits(_timed_waits_mutex);
 		_setting_time = false;
 	}
 }
@@ -124,7 +154,32 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		}
 	}
 
-	int result = pthread_cond_wait(cond, lock);
+	// Use a short wall-clock timeout instead of waiting indefinitely.
+	// There is a race window between releasing _timed_waits_mutex (above)
+	// and entering pthread_cond_wait: if set_absolute_time() broadcasts
+	// during that window, the signal is lost and we'd block forever.
+	// A periodic wake-up lets us re-check the timeout flag.
+	int result;
+
+	while (true) {
+		struct timespec ts;
+		clock_gettime(CLOCK_REALTIME, &ts);
+		// Wake up every 10ms wall-clock to re-check
+		ts.tv_nsec += 10000000; // 10ms
+
+		if (ts.tv_nsec >= 1000000000) {
+			ts.tv_sec += 1;
+			ts.tv_nsec -= 1000000000;
+		}
+
+		result = pthread_cond_timedwait(cond, lock, &ts);
+
+		if (timed_wait.timeout || result == 0) {
+			break;
+		}
+
+		// ETIMEDOUT from the wall-clock timeout — just re-check
+	}
 
 	const bool timeout = timed_wait.timeout;
 
@@ -134,17 +189,23 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 
 	timed_wait.done = true;
 
-	if (!timeout && _setting_time) {
-		// This is where it gets tricky: the timeout has not been triggered yet,
-		// and another thread is in set_absolute_time().
-		// If it already passed the 'done' check, it will access the mutex and
-		// the condition variable next. However they might be invalid as soon as we
-		// return here, so we wait until set_absolute_time() is done.
-		// In addition we have to unlock 'lock', otherwise we risk a
-		// deadlock due to a different locking order in set_absolute_time().
-		// Note that this case does not happen too frequently, and thus can be
-		// a bit more expensive.
+	if (_setting_time) {
+		// Another thread is in set_absolute_time(). It may still hold a
+		// pointer to our stack-local passed_lock / passed_cond in its
+		// to-signal list. We must not return (and let those stack objects
+		// go out of scope) until set_absolute_time() is finished.
+		//
+		// We also have to unlock 'lock' before acquiring the scheduler's
+		// internal mutexes to avoid the ABBA with cond_timedwait()'s own
+		// passed_lock -> _timed_waits_mutex order.
+		//
+		// _signaling_mutex is held by set_absolute_time() across its
+		// signal phase, and _timed_waits_mutex guards the Phase 3 clear of
+		// _setting_time. Acquiring both in order guarantees we outlive the
+		// whole operation.
 		pthread_mutex_unlock(lock);
+		_signaling_mutex.lock();
+		_signaling_mutex.unlock();
 		_timed_waits_mutex.lock();
 		_timed_waits_mutex.unlock();
 		pthread_mutex_lock(lock);

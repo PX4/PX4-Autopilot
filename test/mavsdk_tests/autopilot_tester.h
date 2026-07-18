@@ -190,6 +190,7 @@ public:
 	}
 
 protected:
+	mavsdk::Action *getAction() const { return _action.get();}
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
 	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
@@ -209,6 +210,8 @@ protected:
 	}
 
 private:
+	void start_offboard_with_retry(const std::function<void()> &resend_setpoint);
+
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
@@ -298,7 +301,7 @@ private:
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
-	mavsdk::Telemetry::PositionHandle _check_altitude_handle{};
+	mavsdk::Telemetry::PositionVelocityNedHandle _check_altitude_handle{};
 
 	std::atomic<bool> _should_exit {false};
 	std::thread _real_time_report_thread {};

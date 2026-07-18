@@ -122,6 +122,7 @@ dps310 <command> [arguments...]
      [-m <val>]  SPI mode
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
+     [-8]        Drive DPS368
 
    stop
 

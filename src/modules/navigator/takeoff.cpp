@@ -50,6 +50,9 @@ Takeoff::Takeoff(Navigator *navigator) :
 void
 Takeoff::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	set_takeoff_position();
 
 	// reset cruising speed to default
@@ -136,7 +139,6 @@ Takeoff::on_active()
 					// the FW takeoff mode is completed, exit to Hold (handled by Commander)
 					_navigator->get_mission_result()->finished = true;
 					_navigator->set_mission_result_updated();
-					_navigator->mode_completed(getNavigatorStateId());
 
 					_loiter_altitude_msl = NAN; // reset for next takeoff command
 				}
@@ -158,7 +160,6 @@ Takeoff::on_active()
 		} else if (is_mission_item_reached_or_completed() && !_navigator->get_mission_result()->finished) {
 			_navigator->get_mission_result()->finished = true;
 			_navigator->set_mission_result_updated();
-			_navigator->mode_completed(getNavigatorStateId());
 
 			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
@@ -169,13 +170,17 @@ Takeoff::on_active()
 			} else {
 				if (pos_sp_triplet->current.valid
 				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 				}
 			}
 
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 			_navigator->set_position_setpoint_triplet_updated();
 		}
+	}
+
+	if (_navigator->get_mission_result()->finished) {
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 

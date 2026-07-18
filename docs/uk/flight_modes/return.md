@@ -18,8 +18,8 @@ The _Return_ flight mode is used to _fly a vehicle to safety_ on an unobstructed
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
 - Режим вимагає встановленої домашньої позиції.
 - Mode prevents arming (vehicle cannot be armed while this mode is selected).
-- Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
-- RC stick movement in a multicopter (or VTOL in multicopter mode) will [by default](#COM_RC_OVERRIDE) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
+- RC switches can be used to change flight modes on any vehicle.
+- Stick movement in a multicopter (or VTOL in hover) will [by default](#MAN_OVERRIDE_SPD) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - VTOL повернеться як MC або FW на основі свого режиму в точці, коли режим повернення було запущено.
   У режимі багтороторного літання він буде дотримуватися параметрів багтороторного літання, таких як "конус" посадки.
   У режимі ФПВ він буде дотримуватися параметрів фіксованого крила (ігнорувати конус), але, якщо не використовується місійна посадка, перейде в режим багтороторного літання та посадиться у пункт призначення після нависання на висоті спуску.
@@ -46,10 +46,10 @@ PX4 provides four alternative approaches for finding an unobstructed path to a s
 
 На високому рівні є:
 
-- [Home/rally point return](#home_return) (`RTL_TYPE=0`): Ascend to safe altitude and return via a direct path to the closest rally point or home location.
-- [Mission landing/rally point return](#mission-landing-rally-point-return-type-rtl-type-1) (`RTL_TYPE=1`): Ascend to a safe altitude, fly direct to the closest destination _other than home_: rally point or start of mission landing.
+- [Home/rally point return](#rtl_type_0) (`RTL_TYPE=0`): Ascend to safe altitude and return via a direct path to the closest rally point or home location.
+- [Mission landing/rally point return](#rtl_type_1) (`RTL_TYPE=1`): Ascend to a safe altitude, fly direct to the closest destination _other than home_: rally point or start of mission landing.
   Якщо не визначено пунктів посадки або збору місії, поверніться додому прямим шляхом.
-- [Mission path return](#mission-path-return-type-rtl-type-2) (`RTL_TYPE=2`): Use mission path and fast-continue to mission landing (if defined).
+- [Mission path return](#rtl_type_2) (`RTL_TYPE=2`): Use mission path and fast-continue to mission landing (if defined).
   If no mission _landing_ defined, fast-reverse mission to home.
   If no _mission_ defined, return direct to home (rally points are ignored).
 - [Closest safe destination return](#closest-safe-destination-return-type-rtl-type-3) (`RTL_TYPE=3`): Ascend to a safe altitude and return via direct path to closest destination: home, start of mission landing pattern, or rally point.
@@ -57,16 +57,14 @@ PX4 provides four alternative approaches for finding an unobstructed path to a s
 
 Більш детальні пояснення щодо кожного з типів наведено в наступних розділах.
 
-<a id="home_return"></a>
-
-### Тип повернення додому/точка збору (RTL_TYPE=0)
+### Home/Rally Point Return Type (RTL_TYPE=0) {#rtl_type_0}
 
 This is the default return type for a [multicopter](../flight_modes_mc/return.md) (see topic for more information).
 
 У цьому типі повернення транспортний засіб:
 
 - Ascends to a safe [minimum return altitude](#minimum-return-altitude) (above any expected obstacles).
-- Летить прямою траєкторією до вихідної позиції або точки збору (залежно від того, що ближче)
+- Flies to the home position or a rally point (whichever is closest), preferring a [geofence-aware](#geofence_awareness) horizontal path over a direct path where possible.
 - On [arrival](#loiter-landing-at-destination) descends to "descent altitude" and waits for a configurable time.
   Цей час можна використати для розгортання шасі для посадки.
 - Lands or waits (this depends on landing parameters),
@@ -77,7 +75,7 @@ This is the default return type for a [multicopter](../flight_modes_mc/return.md
 If no rally points are defined, this is the same as a _Return to Launch_ (RTL)/_Return to Home_ (RTH).
 :::
 
-### Тип посадки/повернення точки збору (RTL_TYPE=1)
+### Mission Landing/Rally Point Return Type (RTL_TYPE=1) {#rtl_type_1}
 
 This is the default return type for a [fixed-wing](../flight_modes_fw/return.md) or [VTOL](../flight_modes_vtol/return.md) vehicle (see topics for more information).
 
@@ -85,7 +83,7 @@ This is the default return type for a [fixed-wing](../flight_modes_fw/return.md)
 
 - Ascends to a safe [minimum return altitude](#minimum-return-altitude) (above any expected obstacles) if needed.
   Транспортний засіб підтримує свою початкову висоту, якщо вона вище, ніж мінімальна висота повернення.
-- Flies via direct constant-altitude path to a rally point or the start of a [mission landing pattern](#mission-landing-pattern) (whichever is closest).
+- Flies at constant-altitude to a rally point or the start of a [mission landing pattern](#mission-landing-pattern) (whichever is closest), preferring a [geofence-aware](#geofence_awareness) horizontal path over a direct path where possible.
   Якщо місця посадки або збору не визначені, транспортний засіб повертається додому прямим шляхом.
 - Якщо призначенням є місійний маршрут посадки, апарат буде дотримуватися маршруту для посадки.
 - If the destination is a rally point or home it will [land or wait](#loiter-landing-at-destination) at descent altitude (depending on landing parameters).
@@ -100,7 +98,7 @@ This is the default return type for a [fixed-wing](../flight_modes_fw/return.md)
 Fixed wing vehicles commonly also set [MIS_TKO_LAND_REQ](#MIS_TKO_LAND_REQ) to _require_ a mission landing pattern.
 :::
 
-### Тип повернення маршруту завдання (RTL_TYPE=2)
+### Mission Path Return Type (RTL_TYPE=2) {#rtl_type_2}
 
 This return type uses the mission (if defined) to provide a safe return _path_, and the [mission landing pattern](#mission-landing-pattern) (if defined) to provide landing behaviour.
 If there is a mission but no mission landing pattern, the mission is flown _in reverse_.
@@ -108,6 +106,10 @@ If there is a mission but no mission landing pattern, the mission is flown _in r
 
 :::info
 The behaviour is fairly complex because it depends on the flight mode, and whether a mission and mission landing are defined.
+:::
+
+:::warning
+This return type does have [geofence awareness](#geofence_awareness) (at any stage).
 :::
 
 Mission _with_ landing pattern:
@@ -145,7 +147,7 @@ For `RTL_TYPE=4`, PX4 currently chooses between continuing to a mission landing 
 This is only an approximation of the flown path length, because the number if mission items is not indicative of the distance remaining and non-position items are also counted.
 :::
 
-### Тип повернення додому/точка збору (RTL_TYPE=3)
+### Closest Safe Destination Return Type (RTL_TYPE=3) {#rtl_type_3}
 
 У цьому типі повернення транспортний засіб:
 
@@ -156,12 +158,62 @@ This is only an approximation of the flown path length, because the number if mi
   За замовчуванням багатороторні квадрокоптери або вертикально-взлітно-посадкові літаки в режимі багатороторника приземлюються, а фіксованокрилі літаки обертаються на висоті спуску.
   ВТОЛ у режимі FW вирівнює свою орієнтацію на точку призначення, переходить у режим МБ і потім приземлюється.
 
+## Geofence Awareness {#geofence_awareness}
+
+For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence.
+Planning is purely horizontal: the altitude profile is unaffected, and only the lateral path is adjusted to avoid the fence.
+If no geofence is set, the vehicle flies a direct path to the destination.
+
+While the return mode is inactive, the autopilot constantly recalculates a [shortest horizontal return path](#shortest-path-calculation) that does not enter any exclusion zones and does not exit any inclusion zones.
+
+If the return mode is triggered while the vehicle is violating any geofence, then the vehicle will first fly directly to the most recent recorded location at which it was not violating the geofence.
+If no such point exists, or if the autopilot fails to plan a feasible path (e.g. the destination is located in an exclusion zone), then the vehicle falls back to flying directly to the destination.
+
+:::info
+The estimated time for return is based on the current shortest horizontal path to the destination and may change if the geofence is updated.
+:::
+
+:::warning
+Geofence awareness currently supports a maximum of 99 polygon vertices in total (circles count as 8 vertices each).
+If this limit is exceeded, the autopilot falls back to a direct path as described above.
+:::
+
+:::warning
+There is no absolute guarantee that the vehicle will not breach a geofence on the return path.
+Things like path tracking error, wind and other disturbances may cause temporary violation of the geofence.
+It is therefore very important to consider this possibility and especially to review the geofence breach action (e.g. [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION)).
+:::
+
+### RTL-types with Geofence-Awareness
+
+The following table shows which return types currently support geofence awareness:
+
+| Return Type (RTL_TYPE) | Geofence Awareness |
+| -------------------------------------------------------------- | ------------------ |
+| 0 (home/rally point)                        | Так                |
+| 1 (mission landing)                         | Так                |
+| 2 (mission path)                            | Ні                 |
+| 3 (closest safe dest.)      | Так                |
+| 4 (mission path)                            | Ні                 |
+| 5 (rally point only)                        | Так                |
+
+### Shortest-Path Calculation
+
+For the construction of the shortest path between the starting location and the destination, the autopilot uses the vertices of the geofence polygons as intermediate waypoints.
+In order to avoid the path being too close to the polygon boundaries, the autopilot constructs a corresponding set of polygons, which are either enlarged (for exclusion zones) or shrunk (for inclusion zones).
+The margin in both images below is 10m.
+The figures below show an exclusion zone and an inclusion zone.
+
+![Exclusion Zone](../../assets/flight_modes/rtl_geofence_exclusion.jpg)
+
+![Inclusion Zone](../../assets/flight_modes/rtl_geofence_inclusion.jpg)
+
 ## Мінімальна висота повернення
 
 For most [return types](#return_types) a vehicle will ascend to a _minimum safe altitude_ before returning (unless already above that altitude), in order to avoid any obstacles between it and the destination.
 
 :::info
-The exception is when executing a [mission path return](#mission-path-return-type-rtl-type-2) from _within a mission_.
+The exception is when executing a [mission path return](#rtl_type_2) from _within a mission_.
 У цьому випадку транспортний засіб слідує точкам маршруту місії, які ми припускаємо, що сплановані таким чином, щоб уникнути будь-яких перешкод.
 :::
 
@@ -206,7 +258,7 @@ If `RTL_LAND_DELAY=-1` it will loiter indefinitely.
 This consists of a [MAV_CMD_DO_LAND_START](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_LAND_START), one or more position waypoints, and a [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) (or [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND) for a VTOL Vehicle).
 
 Landing patterns defined in missions are the safest way to automatically land a _fixed-wing_ vehicle on PX4.
-For this reason fixed-wing vehicles are configured to use [Mission landing/really point return](#mission-landing-rally-point-return-type-rtl-type-1) by default.
+For this reason fixed-wing vehicles are configured to use [Mission landing/really point return](#rtl_type_1) by default.
 
 ## Параметри
 
@@ -221,7 +273,6 @@ The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced
 | <a id="RTL_MIN_DIST"></a>[RTL_MIN_DIST](../advanced_config/parameter_reference.md#RTL_MIN_DIST)                                  | Within this distance from the return destination, the return altitude is calculated from the "cone" rather than directly from `RTL_RETURN_ALT`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | <a id="RTL_CONE_ANG"></a>[RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG)                                  | Половина кута конуса, який визначає висоту повернення транспортного засобу RTL. Values (in degrees): `0`, `25`, `45`, `65`, `80`, `90`. Note that `0` is "no cone" (always return at `RTL_RETURN_ALT` or higher), while `90` indicates an almost vertical cone, so the vehicle generally returns at its current altitude when close to the destination. The return altitude may still be constrained to avoid flying too low while approaching the destination.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)                            | [VTOL FW only] If set, home or rally-point RTL destinations are only considered when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| <a id="COM_RC_OVERRIDE"></a>[COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE)                         | Controls whether stick movement on a multicopter (or VTOL in MC mode) causes a mode change to [Position mode](../flight_modes_mc/position.md) (unless prevented by the active failsafe state). Це можна окремо увімкнути для автоматичних режимів та для режиму поза бортом, і в автоматичних режимах воно включено за замовчуванням.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| <a id="COM_RC_STICK_OV"></a>[COM_RC_STICK_OV](../advanced_config/parameter_reference.md#COM_RC_STICK_OV)    | The amount of stick movement that causes a transition to [Position mode](../flight_modes_mc/position.md) (if [COM_RC_OVERRIDE](#COM_RC_OVERRIDE) is enabled).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| <a id="MAN_OVERRIDE_SPD"></a>[MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD)                      | Speed (normalized stick travel per second) above which moving the sticks controlling a multicopter (or VTOL in hover) gives control back to the pilot by switching to [Position mode](../flight_modes_mc/position.md) (or Altitude mode if position is unavailable). At the default 1 a half-stick movement in ~0.5 s triggers it; lower is more sensitive. A stick held statically has zero speed and will not trigger. Set to -1 to disable. <Badge type="tip" text="PX4 v1.18" />                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | <a id="RTL_LOITER_RAD"></a>[RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD)                            | [Тільки фіксоване крило] Радіус круга обертання (у значенні [RTL_LAND_DELAY](#RTL_LAND_DELAY)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | <a id="MIS_TKO_LAND_REQ"></a>[MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) | Вказує, чи _необхідний_ місійний маршрут посадки або зльоту. Зазвичай літаки з фіксованим крилом встановлюють це для вимоги до посадкового маршруту, але VTOL - ні.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |

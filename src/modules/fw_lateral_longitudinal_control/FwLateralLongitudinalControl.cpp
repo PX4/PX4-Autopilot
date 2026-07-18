@@ -45,7 +45,7 @@ using matrix::Vector2f;
 
 ModuleBase::Descriptor FwLateralLongitudinalControl::desc{task_spawn, custom_command, print_usage};
 
-// [m/s] maximum reference altitude rate threshhold
+// [m/s] maximum reference altitude rate threshold
 static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
 // [us] time after which the wind estimate is disabled if no longer updating
 static constexpr hrt_abstime WIND_EST_TIMEOUT = 10_s;
@@ -189,7 +189,6 @@ void FwLateralLongitudinalControl::Run()
 
 		const bool should_run = (_control_mode_sub.get().flag_control_position_enabled ||
 					 _control_mode_sub.get().flag_control_velocity_enabled ||
-					 _control_mode_sub.get().flag_control_acceleration_enabled ||
 					 _control_mode_sub.get().flag_control_altitude_enabled ||
 					 _control_mode_sub.get().flag_control_climb_rate_enabled) &&
 					(_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
@@ -211,20 +210,25 @@ void FwLateralLongitudinalControl::Run()
 			// If the both altitude and height rate are set, set altitude setpoint to NAN
 			const float altitude_sp = PX4_ISFINITE(_long_control_sp.height_rate) ? NAN : _long_control_sp.altitude;
 
-			current_flight_phase = tecs_update_pitch_throttle(control_interval, altitude_sp,
-					       airspeed_sp_eas,
-					       _long_configuration.pitch_min,
-					       _long_configuration.pitch_max,
-					       _long_configuration.throttle_min,
-					       _long_configuration.throttle_max,
-					       _long_configuration.sink_rate_target,
-					       _long_configuration.climb_rate_target,
-					       _long_configuration.disable_underspeed_protection,
-					       _long_control_sp.height_rate,
-					       now
-									 );
+			current_flight_phase = tecs_update_pitch_throttle(
+						       control_interval, altitude_sp, airspeed_sp_eas,
+						       _long_configuration.pitch_min,
+						       _long_configuration.pitch_max,
+						       _long_configuration.throttle_min,
+						       _long_configuration.throttle_max,
+						       _long_configuration.sink_rate_target,
+						       _long_configuration.climb_rate_target,
+						       _long_configuration.disable_underspeed_protection,
+						       _long_control_sp.height_rate,
+						       now
+					       );
 
-			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct) ? _long_control_sp.pitch_direct : _tecs.get_pitch_setpoint();
+			// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
+			// so it has to be added back here.
+			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct)
+				   ?  _long_control_sp.pitch_direct
+				   : _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
+
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
 
@@ -467,7 +471,10 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.throttle_integ = debug_output.control.throttle_integrator;
 	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
-	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
+
+	// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
+	// so it has to be added back here.
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;

@@ -47,16 +47,21 @@ px4_add_module(
 		sbf/decoder.cpp
 	MODULE_CONFIG
 		module.yaml
+	DEPENDS
+		failure_injection
+		gnss
 	)
 
-px4_add_functional_gtest(SRC septentrio_fuzz_tests.cpp
-	LINKLIBS
-		driver__septentrio
-	COMPILE_FLAGS
-		# There warnings come from within fuzztest
-		-Wno-float-equal
-		-Wno-sign-compare
-		-Wno-shadow
-		-Wno-extra
-		-Wno-non-template-friend
-)
+if(TARGET fuzztest::fuzztest)
+	px4_add_functional_gtest(SRC septentrio_fuzz_tests.cpp
+		LINKLIBS
+			driver__septentrio
+		COMPILE_FLAGS
+			# There warnings come from within fuzztest
+			-Wno-float-equal
+			-Wno-sign-compare
+			-Wno-shadow
+			-Wno-extra
+			-Wno-non-template-friend
+	)
+endif()

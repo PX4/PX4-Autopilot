@@ -39,25 +39,6 @@
 
 #ifdef __PX4_POSIX
 #include <pthread.h>
-
-class _MutexHolder
-{
-public:
-	pthread_mutex_t _mutex;
-	pthread_mutexattr_t _mutex_attr;
-
-	_MutexHolder()
-	{
-		pthread_mutexattr_init(&_mutex_attr);
-		pthread_mutexattr_settype(&_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
-		pthread_mutex_init(&_mutex, &_mutex_attr);
-	}
-
-	~_MutexHolder()
-	{
-		pthread_mutex_destroy(&_mutex);
-	}
-};
 #endif
 
 
@@ -69,10 +50,16 @@ private:
 #endif
 
 #ifdef __PX4_POSIX
-	static _MutexHolder _mutex_holder;
+	static pthread_mutex_t *_get_mutex();
 #endif
 
 public:
+#ifdef __PX4_POSIX
+	// Initialize the recursive param mutex. Must be called once before any thread
+	// accesses parameters (done from param_init()).
+	static void initialize();
+#endif
+
 	AtomicTransaction()
 	{
 		lock();
@@ -89,7 +76,7 @@ public:
 		_irq_state = px4_enter_critical_section();
 #endif
 #ifdef __PX4_POSIX
-		pthread_mutex_lock(&_mutex_holder._mutex);
+		pthread_mutex_lock(_get_mutex());
 #endif
 	}
 
@@ -99,7 +86,7 @@ public:
 		px4_leave_critical_section(_irq_state);
 #endif
 #ifdef __PX4_POSIX
-		pthread_mutex_unlock(&_mutex_holder._mutex);
+		pthread_mutex_unlock(_get_mutex());
 #endif
 	}
 };
