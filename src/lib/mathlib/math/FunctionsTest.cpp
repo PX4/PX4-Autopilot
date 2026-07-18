@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 #include "Functions.hpp"
+#include "Limits.hpp"
 
 using namespace math;
 
@@ -249,4 +250,14 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, 0.f, NAN)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
+}
+
+TEST(FunctionsTest, RadiansDegrees)
+{
+	EXPECT_FLOAT_EQ(radians(0.f), 0.f);
+	EXPECT_FLOAT_EQ(radians(180.f), static_cast<float>(MATH_PI));
+	EXPECT_FLOAT_EQ(degrees(0.f), 0.f);
+	EXPECT_FLOAT_EQ(degrees(static_cast<float>(MATH_PI)), 180.f);
+	EXPECT_NEAR(degrees(radians(45.f)), 45.f, 1e-5f);
+	EXPECT_NEAR(radians(degrees(1.2f)), 1.2f, 1e-5f);
 }
