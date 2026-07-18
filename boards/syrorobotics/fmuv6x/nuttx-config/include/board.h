@@ -405,13 +405,12 @@
 #define GPIO_CAN2_TX     GPIO_CAN2_TX_1     /* PB13  */
 
 /* SPI
- * SPI1 is sensors1
- * SPI2 is sensors2
- * SPI3 is sensors3
+ * SPI1 is SENSOR1 (ICM45686)
+ * SPI2 is SENSOR2 (ICM45686)
+ * SPI3 is SENSOR3 (BMI088)
  * SPI4 is Not Used
  * SPI5 is FRAM
  * SPI6 is EXTERNAL1
- *
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
@@ -424,17 +423,17 @@
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4               /* PI3  */
 #define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_6) /* PI1  */
 
-// #define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2               /* PC11 */
-// #define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_3               /* PB2  */
-// #define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
-//
-// #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_2               /* PH7  */
-// #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1               /* PF11 */
-// #define GPIO_SPI5_SCK    ADJ_SLEW_RATE(GPIO_SPI5_SCK_1) /* PF7  */
-//
-// #define GPIO_SPI6_MISO   GPIO_SPI6_MISO_2               /* PA6  */
-// #define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14 */
-// #define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_3) /* PB3  */
+#define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2               /* PC11 */
+#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_3               /* PB2  */
+#define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
+
+#define GPIO_SPI5_MISO   GPIO_SPI5_MISO_2               /* PH7  */
+#define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1               /* PF11 */
+#define GPIO_SPI5_SCK    ADJ_SLEW_RATE(GPIO_SPI5_SCK_1) /* PF7  */
+
+#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_2               /* PA6  */
+#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14 */
+#define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_3) /* PB3  */
 
 /* I2C
  *
