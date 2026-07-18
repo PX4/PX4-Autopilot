@@ -65,19 +65,24 @@ then
 	fi
 fi
 
-# Internal SPI bus ICM45686 on SPI1
-icm45686 -s -R 10 start
-# Internal barometer I2C2
-bmp581 -I -a 0x47 start
-# Sensors magnetometer on I2C4
-bmm350 -I -b 4 -a 0x15 -R 14 start 
-# Sensors IMU#1
+# Internal SPI IMU #1: ICM45686 on SPI1
+icm45686 -s -b 1 -R 10 start
+# Internal SPI IMU #2: ICM45686 on SPI2
 icm45686 -s -b 2 -R 10 start
-# Sensors IMU#2
-bmi088 -A -R 0 -s start
-# Sensors barometer on I2C4
-bmp581 -I -b 4 -a 0x47 start
+# Internal SPI IMU #3: BMI088 on SPI3 (accel + gyro)
+bmi088 -A -s -b 3 -R 0 start
+bmi088 -G -s -b 3 -R 0 start
 
+# Onboard baro: BMP581 on I2C2 @ 0x46
+bmp581 -I -b 2 -a 0x46 start
+# Offboard baro: BMP581 on I2C4 @ 0x47
+bmp581 -I -b 4 -a 0x47 start
+# Offboard mag: BMM350 on I2C4 @ 0x14
+bmm350 -I -b 4 -a 0x14 -R 14 start
+
+# External compasses on GPS modules
+ist8310 -X start
+rm3100 -X start
 
 unset INA_CONFIGURED
 unset HAVE_PM2
