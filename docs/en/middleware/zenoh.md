@@ -150,7 +150,7 @@ These are applied to all Zenoh publishers.
 
 If `CONFIG_ZENOH_PUB_OPTION_OVERRIDE=y`, individual publishers can override one or more global publisher options.
 Default configuration [dds_topics.yaml](../middleware/dds_topics.md) already provides overrides for several publishers.
-Individual publisher options can be overriden through the mapping configuration shown in the next section
+Individual publisher options can be overridden through the mapping configuration shown in the next section
 
 ### 4. Modifying Topic Mappings
 
