@@ -675,6 +675,8 @@ private:
 	void publishOrbitStatus(const position_setpoint_s &pos_sp);
 
 	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
+	float getHeightRateSetpointThroughETA(const Vector2d &curr_pos, const Vector2f &ground_speed,
+			const position_setpoint_s &pos_sp_curr) const;
 
 	/**
 	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
@@ -842,6 +844,8 @@ private:
 		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
 		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
 		(ParamBool<px4::params::NPFG_LB_PERIOD>) _param_npfg_en_period_lb,
+		(ParamBool<px4::params::ETA_CLMB_MOD>) _param_eta_based_climbrate_enable,
+		(ParamFloat<px4::params::ETA_HR_SAT>) _param_eta_height_rate_saturation,
 		(ParamBool<px4::params::NPFG_UB_PERIOD>) _param_npfg_en_period_ub,
 		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
 		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
