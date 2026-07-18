@@ -51,6 +51,8 @@ To run all SITL tests using the SIH simulator as defined in [sih-sitl.json](http
 test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10
 ```
 
+For Gazebo Classic SITL suites (iris, tailsitter, typhoon, etc.), use [gazebo-classic-sitl.json](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/configs/gazebo-classic-sitl.json) instead of the SIH config.
+
 This will list all the tests and then run them sequentially.
 
 To see all possible command line arguments use the `-h` argument:
