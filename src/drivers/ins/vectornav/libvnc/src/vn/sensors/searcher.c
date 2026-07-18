@@ -84,6 +84,7 @@ void VnSearcher_discardData(char inputData[], size_t dataLength, size_t discardL
 		memset(inputData, 0, dataLength);
 		/*memcpy_s(inputData, tmpSize, tmp, tmpSize);*/
 		memcpy(inputData, tmp, tmpSize);
+		free(tmp);
 	}
 }
 
