@@ -56,7 +56,7 @@ namespace calibration
 
 static constexpr int MAX_SENSOR_COUNT = 4; // TODO: per sensor?
 
-int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id)
+int FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id)
 {
 	if (device_id == 0) {
 		return -1;
@@ -87,7 +87,7 @@ int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id)
 	return -1;
 }
 
-int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id, int8_t preferred_index)
+int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id, int preferred_index)
 {
 	// if this device is already using a calibration slot then keep it
 	int calibration_index = FindCurrentCalibrationIndex(sensor_type, device_id);

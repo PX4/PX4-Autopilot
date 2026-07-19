@@ -48,9 +48,9 @@ namespace calibration
  *
  * @param sensor_type Calibration parameter abbreviated sensor string ("ACC", "GYRO", "MAG")
  * @param device_id
- * @return int8_t Valid calibration index on success, -1 otherwise
+ * @return int Valid calibration index on success, -1 otherwise
  */
-int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id);
+int FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id);
 
 /**
  * @brief Find sensor's calibration index if it exists, otherwise select an available slot.
@@ -60,7 +60,7 @@ int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id);
  * @param preferred_index preferred index (optional)
  * @return int8_t Valid calibration index on success, -1 otherwise
  */
-int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id, int8_t preferred_index = -1);
+int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id, int preferred_index = -1);
 
 /**
  * @brief Get sensor calibration parameter value.

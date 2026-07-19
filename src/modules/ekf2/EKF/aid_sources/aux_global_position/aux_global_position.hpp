@@ -76,7 +76,7 @@ public:
 private:
 	AgpSource *_sources[MAX_AGP_IDS] {};
 	uORB::Subscription _agp_sub[MAX_AGP_IDS];
-	int8_t _instance_slot_map[MAX_AGP_IDS] {-1, -1, -1, -1};
+	int _instance_slot_map[MAX_AGP_IDS] {-1, -1, -1, -1};
 	uint8_t _n_sources{0};
 
 	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
