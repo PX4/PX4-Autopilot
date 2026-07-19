@@ -250,3 +250,18 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
 }
+
+TEST(FunctionsTest, interpolateN)
+{
+	// N=3 samples over [0,1] => corners y[0], y[1], y[2]
+	const float y[3] = {0.f, 10.f, 20.f};
+
+	EXPECT_FLOAT_EQ(interpolateN(0.f, y), 0.f);
+	EXPECT_FLOAT_EQ(interpolateN(0.25f, y), 5.f);
+	EXPECT_FLOAT_EQ(interpolateN(0.5f, y), 10.f);
+	EXPECT_FLOAT_EQ(interpolateN(0.75f, y), 15.f);
+	EXPECT_FLOAT_EQ(interpolateN(1.f, y), 20.f);
+	// out of range clamps to end segments via index constrain then interpolate
+	EXPECT_FLOAT_EQ(interpolateN(-1.f, y), 0.f);
+	EXPECT_FLOAT_EQ(interpolateN(2.f, y), 20.f);
+}
