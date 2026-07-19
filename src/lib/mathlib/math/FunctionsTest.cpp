@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 #include "Functions.hpp"
+#include <cstdint>
 
 using namespace math;
 
@@ -249,4 +250,17 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, 0.f, NAN)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
+}
+
+TEST(FunctionsTest, negate)
+{
+	EXPECT_FLOAT_EQ(negate(1.5f), -1.5f);
+	EXPECT_FLOAT_EQ(negate(-2.25f), 2.25f);
+	EXPECT_FLOAT_EQ(negate(0.f), 0.f);
+
+	EXPECT_EQ(negate(static_cast<int16_t>(5)), static_cast<int16_t>(-5));
+	EXPECT_EQ(negate(static_cast<int16_t>(-5)), static_cast<int16_t>(5));
+	// int16_t extremal values swap as documented
+	EXPECT_EQ(negate(INT16_MAX), INT16_MIN);
+	EXPECT_EQ(negate(INT16_MIN), INT16_MAX);
 }
