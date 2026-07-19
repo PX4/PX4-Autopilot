@@ -330,3 +330,25 @@ TEST(AlphaFilterTest, runNecgativeRot3)
 	EXPECT_TRUE(matrix::wrap_pi(Eulerf(filter.getState()).phi() - roll) < FLT_EPSILON);
 	EXPECT_TRUE(matrix::wrap_pi(Eulerf(filter.getState()).theta() - pitch) < FLT_EPSILON);
 }
+
+TEST(AlphaFilterTest, setCutoffFreqRejectsInvalid)
+{
+	AlphaFilter<float> filter{};
+	// sample_freq must be positive and cutoff in (0, sample_freq/2]
+	EXPECT_FALSE(filter.setCutoffFreq(0.f, 10.f));
+	EXPECT_FALSE(filter.setCutoffFreq(-100.f, 10.f));
+	EXPECT_FALSE(filter.setCutoffFreq(100.f, 0.f));
+	EXPECT_FALSE(filter.setCutoffFreq(100.f, -1.f));
+	EXPECT_FALSE(filter.setCutoffFreq(100.f, 50.f)); // cutoff >= Nyquist rejected
+}
+
+TEST(AlphaFilterTest, setCutoffFreqValid)
+{
+	AlphaFilter<float> filter{};
+	EXPECT_TRUE(filter.setCutoffFreq(1000.f, 10.f));
+	filter.reset(0.f);
+	// step response remains finite
+	for (int i = 0; i < 20; i++) {
+		EXPECT_TRUE(std::isfinite(filter.update(1.f)));
+	}
+}
