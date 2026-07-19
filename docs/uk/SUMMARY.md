@@ -884,6 +884,7 @@
     - [Log Encryption](dev_log/log_encryption.md)
   - [Просунуті теми](advanced/index.md)
     - [Метадані PX4](advanced/px4_metadata.md)
+    - [Detect and Avoid](advanced_features/detect_and_avoid.md)
     - [Архітектера доставки вантажів](advanced/package_delivery.md)
     - [Інтеграція камери/Архітектура](camera/camera_architecture.md)
     - [Комп'ютерний зір](advanced/computer_vision.md)
