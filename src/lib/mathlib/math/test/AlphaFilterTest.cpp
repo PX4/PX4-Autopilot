@@ -347,6 +347,7 @@ TEST(AlphaFilterTest, setCutoffFreqValid)
 	AlphaFilter<float> filter{};
 	EXPECT_TRUE(filter.setCutoffFreq(1000.f, 10.f));
 	filter.reset(0.f);
+
 	// step response remains finite
 	for (int i = 0; i < 20; i++) {
 		EXPECT_TRUE(std::isfinite(filter.update(1.f)));
