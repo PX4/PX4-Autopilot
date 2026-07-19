@@ -110,7 +110,10 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		_inited = true;
 	}
 
-	int8_t quality = -1;
+	// TOO_CLOSE, TOO_FAR and UNDEFINED readings do not carry a usable range
+	// value: publish them as invalid (0) rather than unknown (-1), which
+	// consumers like the EKF would otherwise accept and fuse.
+	int8_t quality = 0;
 
 	if (msg.reading_type == uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE) {
 		quality = 100;
