@@ -320,3 +320,40 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+TEST_F(GeoTest, distanceAndBearingKnownSegment)
+{
+	// Short eastbound segment near reference (~111m per degree lat)
+	const double lat0 = 47.0;
+	const double lon0 = 8.0;
+	const double lat1 = 47.0;
+	const double lon1 = 8.001; // ~75m east at this latitude-ish
+
+	const float dist = get_distance_to_next_waypoint(lat0, lon0, lat1, lon1);
+	EXPECT_GT(dist, 50.f);
+	EXPECT_LT(dist, 120.f);
+
+	const float bearing = get_bearing_to_next_waypoint(lat0, lon0, lat1, lon1);
+	// Eastward bearing near +pi/2
+	EXPECT_NEAR(bearing, M_PI_F / 2.f, 0.15f);
+
+	// Identity distance
+	EXPECT_FLOAT_EQ(get_distance_to_next_waypoint(lat0, lon0, lat0, lon0), 0.f);
+}
+
+TEST_F(GeoTest, vectorToNextWaypointConsistentWithDistance)
+{
+	const double lat0 = 0.0;
+	const double lon0 = 0.0;
+	const double lat1 = 0.001;
+	const double lon1 = 0.0; // due north
+
+	float v_n = 0.f;
+	float v_e = 0.f;
+	get_vector_to_next_waypoint(lat0, lon0, lat1, lon1, &v_n, &v_e);
+	const float dist = get_distance_to_next_waypoint(lat0, lon0, lat1, lon1);
+
+	EXPECT_NEAR(v_e, 0.f, 1.f);
+	EXPECT_GT(v_n, 0.f);
+	EXPECT_NEAR(sqrtf(v_n * v_n + v_e * v_e), dist, 2.f);
+}
