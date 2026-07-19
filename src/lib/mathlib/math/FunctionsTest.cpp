@@ -260,7 +260,7 @@ TEST(FunctionsTest, negate)
 
 	EXPECT_EQ(negate(static_cast<int16_t>(5)), static_cast<int16_t>(-5));
 	EXPECT_EQ(negate(static_cast<int16_t>(-5)), static_cast<int16_t>(5));
-	// int16_t extremal values swap as documented
-	EXPECT_EQ(negate(INT16_MAX), INT16_MIN);
-	EXPECT_EQ(negate(INT16_MIN), INT16_MAX);
+	// Cast required: INT16_* macros are int-ranked; bare value skips int16 specialization
+	EXPECT_EQ(negate(static_cast<int16_t>(INT16_MAX)), static_cast<int16_t>(INT16_MIN));
+	EXPECT_EQ(negate(static_cast<int16_t>(INT16_MIN)), static_cast<int16_t>(INT16_MAX));
 }
