@@ -57,18 +57,14 @@ uORB::DeviceMaster::~DeviceMaster()
 
 int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance)
 {
-	int ret = PX4_ERROR;
-
 	char nodepath[orb_maxpath];
 
 	/* construct a path to the node - this also checks the node name */
-	ret = uORB::Utils::node_mkpath(nodepath, meta, instance);
+	int ret = uORB::Utils::node_mkpath(nodepath, meta, instance);
 
 	if (ret != PX4_OK) {
 		return ret;
 	}
-
-	ret = PX4_ERROR;
 
 	/* try for topic groups */
 	const unsigned max_group_tries = (instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;

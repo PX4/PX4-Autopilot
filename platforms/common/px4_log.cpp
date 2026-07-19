@@ -81,19 +81,20 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 {
 	static constexpr ssize_t max_length = sizeof(log_message_s::text);
 
-	FILE *out = stdout;
-
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 	bool use_color = true;
 #endif // PX4_LOG_COLORIZED_OUTPUT
 
 #if defined(__PX4_POSIX)
 	bool isatty_ = false;
-	out = get_stdout(&isatty_);
+	FILE *out = get_stdout(&isatty_);
 
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 	use_color = isatty_;
 #endif // PX4_LOG_COLORIZED_OUTPUT
+
+#else
+	FILE *out = stdout;
 #endif // PX4_POSIX
 
 	if (level >= _PX4_LOG_LEVEL_INFO) {
@@ -138,12 +139,12 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		if (use_color) {
 			// always reset color
 			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET) - (ssize_t)1);
-			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s\n", PX4_ANSI_COLOR_RESET);
+			snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s\n", PX4_ANSI_COLOR_RESET);
 
 		} else
 #endif // PX4_LOG_COLORIZED_OUTPUT
 		{
-			pos += snprintf(buf + math::min(pos, max_length - (ssize_t)1), 2, "\n");
+			snprintf(buf + math::min(pos, max_length - (ssize_t)1), 2, "\n");
 		}
 
 		// ensure NULL termination (buffer is max_length + 1)
@@ -195,7 +196,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 
 		va_list argptr;
 		va_start(argptr, fmt);
-		pos += vsnprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
+		vsnprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
 		log_message.text[max_length - 1] = 0; //ensure 0-termination
 		log_message.timestamp = hrt_absolute_time();
@@ -205,12 +206,12 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 {
-	FILE *out = stdout;
-
 #ifdef __PX4_POSIX
 	bool use_color = true;
-	out = get_stdout(&use_color);
-#endif
+	FILE *out = get_stdout(&use_color);
+#else
+	FILE *out = stdout;
+#endif // PX4_POSIX
 
 	if (level >= _PX4_LOG_LEVEL_INFO) {
 		static constexpr ssize_t max_length = sizeof(log_message_s::text);

@@ -500,11 +500,10 @@ void LogWriterFile::run()
 int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start)
 {
 	if (_need_reliable_transfer) {
-		int ret;
 
 		// if there's a dropout, write it first (because we might split the message)
 		if (dropout_start) {
-			while ((ret = write(type, ptr, 0, dropout_start)) == -1) {
+			while (write(type, ptr, 0, dropout_start) == -1) {
 				unlock();
 				notify();
 				px4_usleep(3000);
@@ -513,6 +512,8 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 		}
 
 		uint8_t *uptr = (uint8_t *)ptr;
+
+		int ret;
 
 		do {
 			// Split into several blocks if the data is longer than the write buffer
