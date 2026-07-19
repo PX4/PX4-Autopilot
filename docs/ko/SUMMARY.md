@@ -884,6 +884,7 @@
     - [Log Encryption](dev_log/log_encryption.md)
   - [고급 주제](advanced/index.md)
     - [PX4 Metadata](advanced/px4_metadata.md)
+    - [Detect and Avoid](advanced_features/detect_and_avoid.md)
     - [Package Delivery Architecture](advanced/package_delivery.md)
     - [Camera Integration/Architecture](camera/camera_architecture.md)
     - [컴퓨터 비전](advanced/computer_vision.md)
