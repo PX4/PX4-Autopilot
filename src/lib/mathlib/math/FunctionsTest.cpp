@@ -250,3 +250,18 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
 }
+
+TEST(FunctionsTest, isFiniteFloatAndVector2f)
+{
+	EXPECT_TRUE(isFinite(0.f));
+	EXPECT_TRUE(isFinite(1.f));
+	EXPECT_FALSE(isFinite(NAN));
+	EXPECT_FALSE(isFinite(INFINITY));
+	EXPECT_FALSE(isFinite(-INFINITY));
+
+	EXPECT_TRUE(isFinite(matrix::Vector2f()));
+	EXPECT_TRUE(isFinite(matrix::Vector2f(0.f, 1.f)));
+	EXPECT_FALSE(isFinite(matrix::Vector2f(NAN, 0.f)));
+	EXPECT_FALSE(isFinite(matrix::Vector2f(0.f, INFINITY)));
+	EXPECT_FALSE(isFinite(matrix::Vector2f(NAN, NAN)));
+}
