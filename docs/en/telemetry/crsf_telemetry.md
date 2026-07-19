@@ -209,7 +209,12 @@ The supported telemetry messages and their source are listed below (this table i
 | Roll      | FC Roll angle                                      | FC                               |
 | Yaw       | FC Yaw angle                                       | FC                               |
 | FM        | Flight mode                                        | FC                               |
-| VSPD      | Barometer                                          | FC                               |
+| Alt       | Altitude above the local origin (takeoff point)    | FC                               |
+| VSpd      | Vertical speed                                      | FC                               |
+
+::: info
+`GAlt` (in the GPS sensor) is GPS altitude above mean sea level, while `Alt`/`VSpd` are PX4's fused local altitude and climb rate relative to the estimator origin (roughly the takeoff point). PX4 sends these in the CRSF barometric-altitude frame, so despite the frame name the value is not a raw barometer reading. `VSpd` uses the linear vertical-speed form, which requires a recent EdgeTX (2.9+); the altitude displays on EdgeTX 2.7.1 and later.
+:::
 
 ## See Also
 
