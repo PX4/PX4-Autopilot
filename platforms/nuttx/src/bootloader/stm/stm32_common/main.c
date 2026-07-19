@@ -100,6 +100,7 @@ struct boardinfo board_info = {
 	.board_rev	= 0,
 	.fw_size	= 0,
 	.systick_mhz	= STM32_CPUCLK_FREQUENCY / 1000000,
+	.extf_size	= 0,
 };
 
 static void board_init(void);
@@ -311,6 +312,13 @@ board_init(void)
 #if defined(BOARD_PIN_LED_BOOTLOADER)
 	/* Initialize LEDs */
 	px4_arch_configgpio(BOARD_PIN_LED_BOOTLOADER);
+#endif
+
+#if defined(BOARD_HAS_EXTF)
+	/* bring up the external (QSPI) flash in indirect/command mode and publish
+	 * its usable size so the host can program it */
+	board_extf_init();
+	board_info.extf_size = EXTF_SIZE;
 #endif
 }
 
@@ -746,6 +754,15 @@ bootloader_main(void)
 		try_boot = false;
 	}
 
+#endif
+
+#if defined(BOARD_BOOTLOADER_WAIT_FOR_HOST)
+	/* This board has no USB to signal "host present" and break detection is
+	 * disabled, so nothing above would hold us in the bootloader. Always enter
+	 * it and wait the timeout, giving the host a window to flash on every boot
+	 * (matches the ArduPilot secondary, which always holds its bootloader
+	 * window). If the host syncs, the protocol pins timeout to 0 and we stay. */
+	try_boot = false;
 #endif
 
 	/* Try to boot the app if we think we should just go straight there */

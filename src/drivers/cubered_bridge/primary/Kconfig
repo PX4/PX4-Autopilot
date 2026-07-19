@@ -1,0 +1,8 @@
+menuconfig DRIVERS_CUBERED_BRIDGE_PRIMARY
+	bool "cubered_bridge_primary"
+	default n
+	depends on PLATFORM_NUTTX
+	---help---
+		Enable the CubeRed bridge driver running on the primary MCU.
+		Talks over the IO serial link to the cubered_bridge_secondary
+		running on the secondary MCU, using the PX4IO register protocol.

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017-2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -153,6 +153,9 @@ if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
 	)
 else()
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin)
+	if (px4_external_flash)
+		set(PX4_BINARY_EXTFLASH_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}_extflash.bin)
+	endif()
 endif()
 
 if (NOT CONFIG_BUILD_FLAT)
@@ -396,10 +399,22 @@ else()
 		target_link_libraries(px4 PRIVATE romfs)
 	endif()
 
-	add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
-		DEPENDS px4
-	)
+	if (px4_external_flash)
+		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
+			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT} --remove-section=.extflash
+			DEPENDS px4
+		)
+		add_custom_command(OUTPUT ${PX4_BINARY_EXTFLASH_OUTPUT}
+			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_EXTFLASH_OUTPUT} --only-section=.extflash
+			DEPENDS px4
+		)
+	else()
+		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
+			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
+			DEPENDS px4
+		)
+	endif()
+
 endif()
 
 endif()
@@ -475,30 +490,52 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		set(_mkfw_extra_depends ${_signed_bin})
 	endif()
 
-	add_custom_command(
-		OUTPUT ${fw_package}
-		COMMAND
-			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
-				--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype
-				--git_identity ${PX4_SOURCE_DIR}
-				--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
-				--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-				${_mkfw_signed_flag}
-				--image ${_mkfw_image} > ${fw_package}
-		DEPENDS
-			${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
-			${_mkfw_extra_depends}
-			airframes_xml
-			parameters_xml
-		COMMENT "Creating ${fw_package}"
-		WORKING_DIRECTORY ${PX4_BINARY_DIR}
-		)
+
+	if (px4_external_flash)
+		add_custom_command(
+			OUTPUT ${fw_package}
+			COMMAND
+				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
+					--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype
+					--git_identity ${PX4_SOURCE_DIR}
+					--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
+					--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
+					--image ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+					--extflash_image ${PX4_BINARY_DIR}/${PX4_CONFIG}_extflash.bin > ${fw_package}
+			DEPENDS
+				${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+				${PX4_BINARY_EXTFLASH_OUTPUT}
+				airframes_xml
+				parameters_xml
+			COMMENT "Creating ${fw_package}"
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
+	else()
+		add_custom_command(
+			OUTPUT ${fw_package}
+			COMMAND
+				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
+					--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype
+					--git_identity ${PX4_SOURCE_DIR}
+					--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
+					--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
+					${_mkfw_signed_flag}
+					--image ${_mkfw_image} > ${fw_package}
+			DEPENDS
+				${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+				${_mkfw_extra_depends}
+				airframes_xml
+				parameters_xml
+			COMMENT "Creating ${fw_package}"
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
+	endif()
 
 	add_custom_target(px4_package ALL DEPENDS ${fw_package})
 
 	# upload helper
 	# create upload target helper if NuttX USB CDCACM is present
-	if (CONFIG_CDCACM)
+	if (CONFIG_CDCACM OR CONFIG_BOARD_OVERRIDE_UPLOAD_TARGET)
 		include(upload)
 	endif()
 
@@ -683,7 +720,3 @@ include(blackmagic)
 include(jlink)
 include(profile)
 include(stack_check)
-
-if(EXISTS "${PX4_BOARD_DIR}/cmake/upload.cmake")
-	include(${PX4_BOARD_DIR}/cmake/upload.cmake)
-endif()
