@@ -1,0 +1,72 @@
+{
+  "manufacturer": "Arkin Labs",
+  "product": "AeroMind 6x",
+  "board": "arkin/a2m6x",
+  "fmu_version": null,
+  "since_version": "v1.18",
+  "manufacturer_url": "https://www.arkinlabs.in/aeromind-6x",
+  "rc_ports_wizard": [
+    {
+      "label": "DSM",
+      "side": "IO"
+    },
+    {
+      "label": "PPM",
+      "side": "IO",
+      "ppm_only": true
+    }
+  ],
+  "gps_ports_wizard": [
+    {
+      "port_key": "GPS1",
+      "label": "GPS & SAFETY",
+      "pixhawk_standard": true,
+      "full_port": true
+    },
+    {
+      "port_key": "GPS2",
+      "label": "GPS 2",
+      "pixhawk_standard": true,
+      "full_port": false
+    }
+  ],
+  "power_ports_wizard": [
+    {
+      "label": "POWER 1",
+      "connector_type": "TODOCONNECTORTYPE",
+      "monitor_type": "analog"
+    },
+    {
+      "label": "POWER 2",
+      "connector_type": "TODOCONNECTORTYPE",
+      "monitor_type": "dronecan"
+    }
+  ],
+  "overview_wizard": {
+    "imu": [
+      "ICM-45686",
+      "ICM-45686",
+      "ICM-45686"
+    ],
+    "baro": [
+      "ICP-20100",
+      "ICP-20100"
+    ],
+    "mag": [
+      "RM3100"
+    ],
+    "osd": null,
+    "width_mm": "46",
+    "length_mm": "94",
+    "height_mm": "38",
+    "weight_g": 150.0,
+    "min_voltage": null,
+    "max_voltage": "6V",
+    "usb_connectors": [
+      "USB-C",
+      "JST GH"
+    ],
+    "num_additional_adc_inputs": null,
+    "sensor_variant_labels": null
+  }
+}

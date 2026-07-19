@@ -1,0 +1,19 @@
+#!/bin/sh
+# Fixture for parse_sensor_variant_blocks tests.
+# icm42688p  → unconditional IMU (SPI)
+# ms5611     → unconditional barometer (SPI)
+# ist8310 -I → unconditional internal magnetometer (I2C)
+# if HW000001: bmi088 → variant IMU (SPI)
+# else: icm20602 → other-variants IMU (SPI)
+# ist8310 -X -b 1 → unconditional external magnetometer (I2C bus 1)
+
+icm42688p -s start
+ms5611 -s start
+ist8310 -I start
+if ver hwtypecmp HW000001
+then
+	bmi088 -A -s start
+else
+	icm20602 -s start
+fi
+ist8310 -X -b 1 start

@@ -1,0 +1,14 @@
+{
+  "manufacturer": "Holybro",
+  "product": "KakuteH7",
+  "fmu_version": "v1.18",
+  "since_version": "n",
+  "manufacturer_url": "https://holybro.com/",
+  "rc_ports_wizard": [
+    {
+      "label": "GPS1",
+      "side": "FMU"
+    }
+  ],
+  "gps_ports_wizard": null
+}

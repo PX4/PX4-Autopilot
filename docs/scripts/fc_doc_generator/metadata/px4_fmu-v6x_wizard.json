@@ -1,0 +1,14 @@
+{
+  "manufacturer": "PX4",
+  "product": "FMU-v6X",
+  "fmu_version": "fmu-v6x",
+  "since_version": "v1.18",
+  "manufacturer_url": "TODO",
+  "rc_ports_wizard": [
+    {
+      "label": "RC",
+      "side": "FMU"
+    }
+  ],
+  "gps_ports_wizard": null
+}

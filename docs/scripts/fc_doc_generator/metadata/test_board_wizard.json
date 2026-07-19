@@ -1,0 +1,21 @@
+{
+  "manufacturer": "TestMfr",
+  "product": "TestBoard",
+  "fmu_version": null,
+  "since_version": "v1.18",
+  "manufacturer_url": "https://example.com/",
+  "rc_ports_wizard": [
+    {
+      "label": "RC",
+      "side": "FMU"
+    }
+  ],
+  "gps_ports_wizard": [
+    {
+      "port_key": "GPS1",
+      "label": "GPS1",
+      "pixhawk_standard": true,
+      "full_port": false
+    }
+  ]
+}
