@@ -1,0 +1,10 @@
+module_name: spl07
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_SPL07:
+      description:
+        short: Goertek SPL07 Barometer (external I2C)
+      type: boolean
+      default: 0
+      reboot_required: true
