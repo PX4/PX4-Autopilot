@@ -250,3 +250,13 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
 }
+
+TEST(FunctionsTest, sq)
+{
+	EXPECT_FLOAT_EQ(sq(0.f), 0.f);
+	EXPECT_FLOAT_EQ(sq(2.f), 4.f);
+	EXPECT_FLOAT_EQ(sq(-3.f), 9.f);
+	EXPECT_FLOAT_EQ(sq(0.5f), 0.25f);
+	EXPECT_EQ(sq(4), 16);
+	EXPECT_EQ(sq(-5), 25);
+}
