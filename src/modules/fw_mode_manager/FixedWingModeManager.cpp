@@ -1480,6 +1480,20 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
 
+	// release altitude, floored to the altitude lost while the parachute deploys so that the
+	// canopy is fully open before touchdown
+	const float parachute_release_alt = math::max(_param_fw_lnd_para_alt.get(),
+					    _param_fw_lnd_para_sink.get() * _param_fw_lnd_para_time.get());
+
+	if (_param_fw_lnd_para_en.get() && !_parachute_release_commanded && !_vehicle_status.is_vtol && _wind_valid) {
+		// the release timing below only corrects the touchdown drift along the approach:
+		// compensate the crosswind drift component by aiming upwind of the landing point
+		const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
+		const Vector2f drift = _wind_vel * parachute_release_alt / math::max(_param_fw_lnd_para_sink.get(), 0.5f);
+		const Vector2f cross_drift = drift - approach_direction * drift.dot(approach_direction);
+		local_land_point -= cross_drift;
+	}
+
 	// calculate the altitude setpoint based on the landing glide slope
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
 				local_position - local_land_point);
@@ -1511,6 +1525,42 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	} else {
 		// continue horizontally
 		altitude_setpoint = _current_altitude;
+	}
+
+	if (_param_fw_lnd_para_en.get() && !_parachute_release_commanded) {
+		// follow the normal landing approach down to the release altitude, then continue level
+		// towards the landing point until the release condition below is met
+		altitude_setpoint = math::max(altitude_setpoint, terrain_alt + parachute_release_alt);
+	}
+
+
+	// parachute landing: release once the predicted touchdown point under canopy reaches the landing
+	// point. the vehicle is carried forward by its ground speed while the parachute deploys, and
+	// drifts with the wind while descending under canopy.
+	if (_param_fw_lnd_para_en.get() && !_parachute_release_commanded && !_flare_states.flaring
+	    && _landing_abort_status == position_controller_landing_status_s::NOT_ABORTED) {
+
+		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
+
+		// only release in the altitude band around the level-off: this makes the release
+		// altitude deterministic, and leaves the canopy room to open when arriving below
+		const bool at_release_altitude = altitude_above_ground < parachute_release_alt + kParachuteReleaseAltitudeMargin
+						 && altitude_above_ground > _param_fw_lnd_para_sink.get() * _param_fw_lnd_para_time.get();
+
+		if (at_release_altitude) {
+			const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
+			const float ground_speed_along_track = math::max(ground_speed.dot(approach_direction), 0.f);
+			const float wind_along_track = _wind_valid ? _wind_vel.dot(approach_direction) : 0.f;
+			const float descent_time = altitude_above_ground / math::max(_param_fw_lnd_para_sink.get(), 0.5f);
+
+			const float release_distance = ground_speed_along_track * _param_fw_lnd_para_time.get()
+						       + wind_along_track * descent_time;
+
+			if (along_track_dist_to_touchdown <= release_distance) {
+				releaseParachute(now);
+				_parachute_release_commanded = true;
+			}
+		}
 	}
 
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
@@ -1837,6 +1887,20 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	landing_status_publish();
 	publishOrbitStatus(pos_sp_curr);
+}
+
+void
+FixedWingModeManager::releaseParachute(const hrt_abstime &now)
+{
+	vehicle_command_s vehicle_command{};
+	vehicle_command.timestamp = now;
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE;
+	vehicle_command.param1 = vehicle_command_s::PARACHUTE_ACTION_RELEASE;
+	vehicle_command.target_system = _vehicle_status.system_id;
+	vehicle_command.target_component = 161; // MAV_COMP_ID_PARACHUTE, forwarded to external parachute systems
+	vehicle_command.source_system = _vehicle_status.system_id;
+	vehicle_command.source_component = _vehicle_status.component_id;
+	_vehicle_command_pub.publish(vehicle_command);
 }
 
 void
@@ -2443,6 +2507,8 @@ FixedWingModeManager::reset_landing_state()
 
 	_local_landing_orbit_center.setNaN();
 	_lateral_touchdown_position_offset = 0.0f;
+
+	_parachute_release_commanded = false;
 
 	_last_time_terrain_alt_was_valid = 0;
 

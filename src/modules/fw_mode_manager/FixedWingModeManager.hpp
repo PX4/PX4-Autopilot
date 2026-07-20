@@ -152,6 +152,9 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
+// [m] altitude margin above the parachute release altitude within which the release is allowed
+static constexpr float kParachuteReleaseAltitudeMargin = 5.0f;
+
 class FixedWingModeManager final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
@@ -200,6 +203,7 @@ private:
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
@@ -272,6 +276,9 @@ private:
 
 	// [.] true if a parachute release was detected while in air. Never reset in flight.
 	bool _parachute_released{false};
+
+	// [.] true once this module has commanded the parachute release during a parachute landing
+	bool _parachute_release_commanded{false};
 
 	// MANUAL MODES
 
@@ -642,6 +649,14 @@ private:
 	 */
 	void control_auto_landing_parachute(const hrt_abstime &now);
 
+	/**
+	 * @brief Commands the parachute release via DO_PARACHUTE, triggering both the parachute
+	 * output function and any external parachute system.
+	 *
+	 * @param now Current system time [us]
+	 */
+	void releaseParachute(const hrt_abstime &now);
+
 	/* manual control methods */
 
 	/**
@@ -877,6 +892,10 @@ private:
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
+		(ParamBool<px4::params::FW_LND_PARA_EN>) _param_fw_lnd_para_en,
+		(ParamFloat<px4::params::FW_LND_PARA_ALT>) _param_fw_lnd_para_alt,
+		(ParamFloat<px4::params::FW_LND_PARA_TIME>) _param_fw_lnd_para_time,
+		(ParamFloat<px4::params::FW_LND_PARA_SINK>) _param_fw_lnd_para_sink,
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,

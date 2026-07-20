@@ -26,6 +26,69 @@ parameters:
       min: 0.0
       decimal: 1
       increment: 0.5
+    FW_LND_PARA_EN:
+      description:
+        short: Enable parachute landing on mission landing approach
+        long: |-
+          If enabled, the vehicle follows the normal landing approach down to the parachute
+          release altitude (FW_LND_PARA_ALT), then continues level towards the landing point and
+          releases the parachute once the predicted touchdown point under canopy reaches the
+          landing point. The prediction is based on ground speed, the release lead time
+          (FW_LND_PARA_TIME), the wind estimate and the expected sink rate under canopy
+          (FW_LND_PARA_SINK).
+
+          Under canopy the vehicle drifts with the wind: expect the horizontal touchdown speed
+          to match the wind speed, and reduced accuracy as the wind approaches the landing
+          airspeed (COM_WIND_MAX can enforce a wind limit).
+
+          Requires a parachute output (or external parachute system) that is released by the
+          DO_PARACHUTE command.
+      type: boolean
+      default: 0
+    FW_LND_PARA_ALT:
+      description:
+        short: Parachute landing release altitude above ground
+        long: |-
+          Altitude above the landing point at which the parachute is released. Lower reduces the
+          wind drift of the touchdown point, but must leave enough altitude for the parachute to
+          fully open and stabilize the descent.
+
+          NOTE: max(FW_LND_PARA_ALT, FW_LND_PARA_TIME * FW_LND_PARA_SINK) is taken as the release
+          altitude.
+      type: float
+      default: 20.0
+      unit: m
+      min: 5.0
+      max: 200.0
+      decimal: 1
+      increment: 0.5
+    FW_LND_PARA_SINK:
+      description:
+        short: Sink rate under the deployed parachute
+        long: |-
+          Expected steady-state sink rate under canopy. Used to predict the descent duration and
+          therewith the wind drift of the touchdown point.
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 0.5
+      max: 20.0
+      decimal: 1
+      increment: 0.1
+    FW_LND_PARA_TIME:
+      description:
+        short: Parachute landing release lead time
+        long: |-
+          Time between commanding the release and the parachute being fully deployed. The vehicle
+          keeps moving at ground speed during this time, which shifts the predicted touchdown
+          point forward accordingly.
+      type: float
+      default: 1.0
+      unit: s
+      min: 0.0
+      max: 10.0
+      decimal: 1
+      increment: 0.1
     FW_LND_USETER:
       description:
         short: Use terrain estimation during landing
