@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/syro-roboics/include/board.h
+ * nuttx-configs/syro/include/board.h
  *
  *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david.sidrane@nscdg.com>
