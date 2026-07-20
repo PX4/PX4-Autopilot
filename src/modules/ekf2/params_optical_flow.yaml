@@ -1,16 +1,30 @@
+__max_num_of_instances: &max_num_of_instances 2
+
 module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
-    EKF2_OF_CTRL:
+    EKF2_OF${i}_ID:
       description:
-        short: Optical flow aiding
-        long: Enable optical flow fusion.
+        short: Optical flow sensor ${i} ID
+        long: 'Device ID of the flow sensor bound to slot ${i}. Set to 0 to
+          automatically bind the first unbound sensor reporting data.'
+      type: int32
+      default: 0
+      reboot_required: true
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_CTRL:
+      description:
+        short: Optical flow sensor ${i} aiding
+        long: Enable optical flow fusion for sensor slot ${i}.
       type: boolean
-      default: 1
-    EKF2_OF_DELAY:
+      default: [1, 0]
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_DELAY:
       description:
-        short: Optical flow measurement delay relative to IMU measurements
+        short: Optical flow sensor ${i} measurement delay relative to IMU measurements
         long: Assumes measurement is timestamped at trailing edge of integration period
       type: float
       default: 20
@@ -19,9 +33,11 @@ parameters:
       unit: ms
       reboot_required: true
       decimal: 1
-    EKF2_OF_GATE:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_GATE:
       description:
-        short: Gate size for optical flow fusion
+        short: Gate size for optical flow sensor ${i} fusion
         long: Sets the number of standard deviations used by the innovation consistency
           test.
       type: float
@@ -29,9 +45,11 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
-    EKF2_OF_N_MIN:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_N_MIN:
       description:
-        short: Optical flow minimum noise
+        short: Optical flow sensor ${i} minimum noise
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the maximum
       type: float
@@ -39,9 +57,11 @@ parameters:
       min: 0.05
       unit: rad/s
       decimal: 2
-    EKF2_OF_N_MAX:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_N_MAX:
       description:
-        short: Optical flow maximum noise
+        short: Optical flow sensor ${i} maximum noise
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the minimum
       type: float
@@ -49,27 +69,33 @@ parameters:
       min: 0.05
       unit: rad/s
       decimal: 2
-    EKF2_OF_QMIN:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_QMIN:
       description:
-        short: In air optical flow minimum quality
+        short: In air optical flow sensor ${i} minimum quality
         long: Optical Flow data will only be used in air if the sensor reports a
-          quality metric >= EKF2_OF_QMIN
+          quality metric >= EKF2_OF${i}_QMIN
       type: int32
       default: 1
       min: 0
       max: 255
-    EKF2_OF_QMIN_GND:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_QMINGND:
       description:
-        short: On ground optical flow minimum quality
+        short: On ground optical flow sensor ${i} minimum quality
         long: Optical Flow data will only be used on the ground if the sensor reports
-          a quality metric >= EKF2_OF_QMIN_GND
+          a quality metric >= EKF2_OF${i}_QMINGND
       type: int32
       default: 0
       min: 0
       max: 255
-    EKF2_OF_GYR_SRC:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_GYR_SRC:
       description:
-        short: Optical flow angular rate compensation source
+        short: Optical flow sensor ${i} angular rate compensation source
         long: 'Auto: use gyro from optical flow message if available, internal gyro otherwise.
                Internal: always use internal gyro'
       type: enum
@@ -77,27 +103,35 @@ parameters:
         0: Auto
         1: Internal
       default: 0
-    EKF2_OF_POS_X:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_POS_X:
       description:
-        short: X position of optical flow focal point in body frame
+        short: X position of optical flow sensor ${i} focal point in body frame
         long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
-    EKF2_OF_POS_Y:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_POS_Y:
       description:
-        short: Y position of optical flow focal point in body frame
+        short: Y position of optical flow sensor ${i} focal point in body frame
         long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
-    EKF2_OF_POS_Z:
+      num_instances: *max_num_of_instances
+      instance_start: 0
+    EKF2_OF${i}_POS_Z:
       description:
-        short: Z position of optical flow focal point in body frame
+        short: Z position of optical flow sensor ${i} focal point in body frame
         long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
+      num_instances: *max_num_of_instances
+      instance_start: 0

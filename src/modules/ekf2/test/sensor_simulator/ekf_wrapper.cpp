@@ -169,13 +169,13 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 
 void EkfWrapper::enableFlowFusion()
 {
-	_ekf_params->ekf2_of_ctrl = 1;
+	_ekf_params->of[0].ctrl = 1;
 	_fc->of.enabled = true;
 }
 
 void EkfWrapper::disableFlowFusion()
 {
-	_ekf_params->ekf2_of_ctrl = 0;
+	_ekf_params->of[0].ctrl = 0;
 }
 
 bool EkfWrapper::isIntendingFlowFusion() const
@@ -185,7 +185,7 @@ bool EkfWrapper::isIntendingFlowFusion() const
 
 void EkfWrapper::setFlowOffset(const Vector3f &offset)
 {
-	_ekf_params->flow_pos_body = offset;
+	_ekf_params->of[0].pos_body = offset;
 }
 
 void EkfWrapper::enableExternalVisionPositionFusion()

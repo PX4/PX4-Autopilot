@@ -71,6 +71,10 @@
 # include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+# include "aid_sources/optical_flow/optical_flow_source.hpp"
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
 #if defined(CONFIG_EKF2_GNSS)
 # include "aid_sources/gnss/gnss_checks.hpp"
 #endif // CONFIG_EKF2_GNSS
@@ -126,14 +130,16 @@ public:
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// if optical flow sensor gyro delta angles are not available, set gyro_rate vector fields to NaN and the EKF will use its internal gyro data instead
-	void setOpticalFlowData(const flowSample &flow);
+	void setOpticalFlowData(const flowSample &flow, uint8_t instance = 0);
 
 	// set sensor limitations reported by the optical flow sensor
-	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance)
+	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance, uint8_t instance = 0)
 	{
-		_flow_max_rate = max_flow_rate;
-		_flow_min_distance = min_distance;
-		_flow_max_distance = max_distance;
+		if (instance < MAX_OF_INSTANCES) {
+			_flow_src[instance].max_rate = max_flow_rate;
+			_flow_src[instance].min_distance = min_distance;
+			_flow_src[instance].max_distance = max_distance;
+		}
 	}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
@@ -380,14 +386,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	TimestampedRingBuffer<flowSample> 	*_flow_buffer {nullptr};
-
-	flowSample _flow_sample_delayed{};
-
-	// Sensor limitations
-	float _flow_max_rate{1.0f}; ///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
-	float _flow_min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
-	float _flow_max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
+	OpticalFlowSource _flow_src[MAX_OF_INSTANCES] {};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};		// air density (kg/m**3)

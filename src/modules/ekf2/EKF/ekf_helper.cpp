@@ -299,7 +299,15 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.ekf2_min_rng, 0.1f);
-			vel_err_conservative = math::max(getHagl(), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
+			float flow_innov_norm = 0.f;
+
+			for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+				if (_flow_src[i].active) {
+					flow_innov_norm = math::max(flow_innov_norm, Vector2f(_flow_src[i].aid_src.innovation).norm());
+				}
+			}
+
+			vel_err_conservative = math::max(getHagl(), gndclearance) * flow_innov_norm;
 		}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -365,9 +373,30 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
 	if (relying_on_optical_flow) {
-		// Calculate optical flow limits
-		float flow_hagl_min = _flow_min_distance;
-		float flow_hagl_max = _flow_max_distance;
+		// Calculate optical flow limits: the combined envelope of all sensors currently
+		// delivering data (sensors with different ranges hand over as the height changes)
+		float flow_hagl_min = INFINITY;
+		float flow_hagl_max = 0.f;
+		float flow_max_rate = 0.f;
+		bool any_flow_source = false;
+
+		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+			if (isFlowSlotIntended(i) && (_flow_src[i].buffer != nullptr)
+			    && isRecent(_flow_src[i].buffer->get_newest().time_us, (uint64_t)1e6)) {
+				flow_hagl_min = math::min(flow_hagl_min, _flow_src[i].min_distance);
+				flow_hagl_max = math::max(flow_hagl_max, _flow_src[i].max_distance);
+				flow_max_rate = math::max(flow_max_rate, _flow_src[i].max_rate);
+				any_flow_source = true;
+			}
+		}
+
+		if (!any_flow_source) {
+			// no flow source delivering data, fall back to the primary slot's limits
+			const uint8_t slot = getPrimaryFlowSlot();
+			flow_hagl_min = _flow_src[slot].min_distance;
+			flow_hagl_max = _flow_src[slot].max_distance;
+			flow_max_rate = _flow_src[slot].max_rate;
+		}
 
 		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
 		if ((!_control_status.flags.opt_flow_terrain && _control_status.flags.rng_terrain)
@@ -380,7 +409,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		float flow_vxy_max = 0.5f * flow_max_rate * flow_constrained_height;
 		flow_hagl_max = math::max(flow_hagl_max * 0.9f, flow_hagl_max - 1.0f);
 
 		*vxy_max = flow_vxy_max;
@@ -475,8 +504,12 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		for (auto &test_ratio_filtered : _aid_src_optical_flow.test_ratio_filtered) {
-			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+			if (_flow_src[i].active) {
+				for (auto &test_ratio_filtered : _flow_src[i].aid_src.test_ratio_filtered) {
+					test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+				}
+			}
 		}
 	}
 
@@ -644,10 +677,12 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-	if (_control_status.flags.opt_flow_terrain) {
-		hagl_sum += sqrtf(math::max(fabsf(_aid_src_optical_flow.test_ratio_filtered[0]),
-					    _aid_src_optical_flow.test_ratio_filtered[1]));
-		n_hagl_sources++;
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_flow_src[i].terrain) {
+			hagl_sum += sqrtf(math::max(fabsf(_flow_src[i].aid_src.test_ratio_filtered[0]),
+						    _flow_src[i].aid_src.test_ratio_filtered[1]));
+			n_hagl_sources++;
+		}
 	}
 
 # endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -825,13 +860,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	// optical flow active
 	if (_control_status.flags.opt_flow
-	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
+	    && isRecent(flowTimeLastFuse(), _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
 
 	} else {
 		if (!_control_status.flags.in_air && _fc.of.intended()
-		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
+		    && isRecent(flowLatestSampleTimestamp(), _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
 			aiding_expected_in_air = true;
