@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
+#include <matrix/matrix/math.hpp>
 #include "TrajMath.hpp"
 
 using math::trajectory::computeBrakingDistanceFromVelocity;
