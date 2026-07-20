@@ -405,6 +405,8 @@ private:
 		float ske_weighting;	///< Specific kinetic energy weight.
 	};
 
+	friend class TECSClosedLoopTest;
+
 private:
 	/**
 	 * @brief Get control error from etpoint and estimate
@@ -463,7 +465,7 @@ private:
 	 * @param flag is the control flags.
 	 * @return Weights used for the specific energy balance.
 	 */
-	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
+	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag) const;
 	/**
 	 * @brief Calculate pitch control.
 	 *
@@ -479,13 +481,19 @@ private:
 
 	/**
 	 * @brief Calculate pitch control specific energy balance rates.
+	 * The potential energy rate demand is constrained such that the total energy rate demand stays
+	 * within the envelope the throttle can deliver.
 	 *
 	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
 	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+					       const SpecificEnergyRates &specific_energy_rate, const STERateLimit &limit,
+					       const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -497,6 +505,16 @@ private:
 	 * @param param is the control parameters.
 	 */
 	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
+
+	/**
+	 * @brief Get the airspeed used to convert between climb angle and specific energy balance rate.
+	 *
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return airspeed for the climb angle to specific energy balance rate conversion in [m/s].
+	 */
+	float _airspeedForSebRate(const Input &input, const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Calculate the pitch control output function.
@@ -515,21 +533,26 @@ private:
 	 *
 	 * @param dt is the update time intervall in [s].
 	 * @param specific_energy_rate is the calculated specific energy.
+	 * @param input is the current input measurement of the UAS.
 	 * @param flag is the control flags.
 	 */
-	void _calcThrottleControl(float dt, const SpecificEnergyRates &specific_energy_rate, const Param &param,
-				  const Flag &flag);
+	void _calcThrottleControl(float dt, const SpecificEnergyRates &specific_energy_rate, const Input &input,
+				  const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate throttle control specific total energy
+	 * The setpoint is the potential energy rate implied by the pitch setpoint plus the kinetic energy
+	 * rate demanded for airspeed convergence, keeping the throttle consistent with the pitch loop.
 	 *
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
+	 * @param input is the current input measurement of the UAS.
 	 * @param param is the control parameters.
+	 * @param flag is the control flags.
 	 * @return specific total energy rate values in [m²/s³]
 	 */
 	ControlValues _calcThrottleControlSteRate(const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
-			const Param &param) const;
+			const Input &input, const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Calculate the throttle control update function.
@@ -538,27 +561,33 @@ private:
 	 * @param dt is the update time intervall in [s].
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
+	 * @param ste_rate_error is the lag-matched specific total energy rate error in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 */
-	void _calcThrottleControlUpdate(float dt, const STERateLimit &limit, const ControlValues &ste_rate, const Param &param,
-					const Flag &flag);
+	void _calcThrottleControlUpdate(float dt, const STERateLimit &limit, const ControlValues &ste_rate,
+					const float ste_rate_error, const Param &param, const Flag &flag);
 
 	/**
 	 * @brief Calculate the throttle control output function.
 	 *
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param ste_rate is the specific total energy rates in [m²/s³].
+	 * @param ste_rate_error is the lag-matched specific total energy rate error in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 * @return throttle setpoin in [0,1].
 	 */
-	float _calcThrottleControlOutput(const STERateLimit &limit, const ControlValues &ste_rate, const Param &param,
-					 const Flag &flag) const;
+	float _calcThrottleControlOutput(const STERateLimit &limit, const ControlValues &ste_rate,
+					 const float ste_rate_error, const Param &param, const Flag &flag) const;
 
 private:
 	// State
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_setpoint_filter;		///< Setpoint filter matching the estimate filter lag for the feedback error.
+	float _ste_rate_estimate_raw{0.0f};			///< Slew rate limited raw specific total energy rate estimate [m²/s³].
+	bool _pitch_setpoint_clipped_up{false};			///< True if the last pitch demand was clipped in positive direction.
+	bool _pitch_setpoint_clipped_down{false};		///< True if the last pitch demand was clipped in negative direction.
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
