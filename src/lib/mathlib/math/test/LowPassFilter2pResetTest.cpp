@@ -19,6 +19,7 @@ using math::LowPassFilter2p;
 TEST(LowPassFilter2pReset, resetSeedsStateNearSample)
 {
 	LowPassFilter2p<float> lpf(200.f, 25.f);
+
 	// drive away from zero
 	for (int i = 0; i < 50; i++) {
 		(void)lpf.apply(-5.f);
