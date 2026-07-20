@@ -56,6 +56,8 @@ public:
 
 	const char *name() const override { return "Multirotor"; }
 
+	const ActuatorEffectivenessRotors::Geometry &geometry() const { return _mc_rotors.geometry(); }
+
 protected:
 	ActuatorEffectivenessRotors _mc_rotors;
 };
