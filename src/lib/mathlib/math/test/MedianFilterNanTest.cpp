@@ -19,11 +19,10 @@ using math::MedianFilter;
 TEST(MedianFilterNan, finiteSamplesMedian)
 {
 	MedianFilter<float, 3> mf;
-	EXPECT_FLOAT_EQ(mf.apply(3.f), 3.f); // buffer start partially zero-filled by default
-	// Fill a clear window
-	mf.apply(1.f);
-	mf.apply(5.f);
-	const float m = mf.apply(3.f);
+	// cold start is zero-filled; load a full clear window first
+	(void)mf.apply(1.f);
+	(void)mf.apply(5.f);
+	const float m = mf.apply(3.f); // window {1,5,3} -> median 3
 	EXPECT_FLOAT_EQ(m, 3.f);
 }
 
