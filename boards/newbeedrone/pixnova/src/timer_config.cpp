@@ -47,7 +47,7 @@
  * TIM12_CH2 T FMU_CH8
  *
  * TIM1_CH2  T FMU_CAP1               < Capture
- * TIM1_CH3  T SPI2_DRDY2_ISM330_INT2 < Capture or GPIO INT
+ * TIM1_CH3  T SPI2_DRDY_IMU2         < Capture or GPIO INT
  * TIM1_CH1  T SPIX_SYNC              > Pulse or GPIO strobe
  *
  * TIM2_CH3  T HEATER                 > PWM OUT or GPIO
