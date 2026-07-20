@@ -65,14 +65,13 @@ then
 	fi
 fi
 
-# IMU sensor sets: PixNovaV6X000 (PixNova000) vs PixNovaV6X001 (PixNova001) — board_config.h / spi.cpp
-# Use one block while layouts match; split into per-variant if blocks when rotations or chips differ (see zeroone/x6).
-# if ver hwtypecmp PixNova000 PixNova001
-# then
-icm45686 -b 3 -s -R 0 start
-icm45686 -b 2 -s -R 0 start
-icm45686 -b 1 -s -R 8 start
-# fi
+# Sensor set Rev B: HW revision resistor ID 1
+if ver hwtypecmp PixNova001
+then
+	icm45686 -b 3 -s -R 0 start
+	icm45686 -b 2 -s -R 0 start
+	icm45686 -b 1 -s -R 8 start
+fi
 
 # Internal magnetometer on I2C4
 ist8310 -I -b 4 -a 0x0c -R 12 start
@@ -80,10 +79,10 @@ ist8310 -I -b 4 -a 0x0c -R 12 start
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
-# Internal baro on I2C2
+# External baro on I2C2
 icp201xx -X -b 2 -a 0x63 start
 
-# External baro on I2C4
+# Internal baro on I2C4
 bmp388 -I -b 4 -a 0x76 start
 
 unset INA_CONFIGURED
