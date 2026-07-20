@@ -48,6 +48,9 @@ bool Parachute::init()
 		return false;
 	}
 
+	// advertise on startup so that the topic exists when the logger checks for it
+	_parachute_pub.advertise();
+
 	return true;
 }
 
