@@ -47,6 +47,8 @@ px4_add_module(
 		sbf/decoder.cpp
 	MODULE_CONFIG
 		module.yaml
+	DEPENDS
+		gnss
 	)
 
 if(TARGET fuzztest::fuzztest)
