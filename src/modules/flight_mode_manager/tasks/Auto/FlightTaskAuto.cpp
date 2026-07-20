@@ -79,8 +79,6 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
 	_lock_position_xy.setNaN();
-	_takeoff_locked_xy.setNaN();
-	_takeoff_liftoff_z = NAN;
 
 	return ret;
 }
@@ -91,8 +89,6 @@ void FlightTaskAuto::reActivate()
 
 	// On ground, reset acceleration and velocity to zero
 	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.7f}, _position);
-	_takeoff_locked_xy.setNaN();
-	_takeoff_liftoff_z = NAN;
 }
 
 bool FlightTaskAuto::updateInitialize()
@@ -151,24 +147,35 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::loiter:
 	case WaypointType::takeoff:
+		_position_setpoint = _triplet_current;
+		_velocity_setpoint.setNaN();
+
+		if (_type_previous != WaypointType::takeoff) {
+			_takeoff_liftoff_position.setNaN();
+		}
+
+		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
+			_takeoff_liftoff_position = _position;
+			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+		}
+
+		if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
+			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
+		}
+
+		if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
+			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
+		}
+
+		break;
+
+	case WaypointType::loiter:
 	case WaypointType::position:
 	default:
 		// Simple waypoint navigation: go to xyz target, with standard limitations
 		_position_setpoint = _triplet_current;
 		_velocity_setpoint.setNaN();
-
-		if (_type == WaypointType::takeoff) {
-			if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-				_takeoff_locked_xy = Vector2f(_position);
-			}
-
-			if (_takeoff_locked_xy.isAllFinite()) {
-				_position_setpoint.xy() = _takeoff_locked_xy;
-			}
-		}
-
 		break;
 	}
 
@@ -184,18 +191,6 @@ bool FlightTaskAuto::update()
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
-
-	if (_type == WaypointType::takeoff) {
-		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-			_takeoff_liftoff_z = _position(2);
-			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
-		}
-
-		if (!PX4_ISFINITE(_takeoff_liftoff_z)
-		    || (_takeoff_liftoff_z - _position(2)) < 1.f) {
-			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
-		}
-	}
 
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
@@ -674,8 +669,8 @@ void FlightTaskAuto::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy
 {
 	_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
 
-	if (_takeoff_locked_xy.isAllFinite()) {
-		_takeoff_locked_xy += delta_xy;
+	if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
+		_takeoff_liftoff_position.xy() += delta_xy;
 	}
 }
 
@@ -688,8 +683,8 @@ void FlightTaskAuto::_ekfResetHandlerPositionZ(const float delta_z)
 {
 	_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
 
-	if (PX4_ISFINITE(_takeoff_liftoff_z)) {
-		_takeoff_liftoff_z += delta_z;
+	if (PX4_ISFINITE(_takeoff_liftoff_position(2))) {
+		_takeoff_liftoff_position(2) += delta_z;
 	}
 }
 
