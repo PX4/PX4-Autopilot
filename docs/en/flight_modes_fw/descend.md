@@ -3,7 +3,7 @@
 _Descend_ is a [failsafe](../config/safety.md) fallback mode.
 It is activated automatically by PX4 and cannot be selected by the pilot. It only appears as a status label.
 
-The vehicle descends open-loop: it circles at a fixed bank angle ([FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)) and loses altitude, but does not control its ground position, so the circle drifts with the wind.
+The vehicle descends open-loop: it circles at a fixed bank angle ([FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)) and descends at a fixed 0.5 m/s, but does not control its ground position, so the circle drifts with the wind.
 It is the last resort used when the vehicle must come down but has no valid position estimate for a controlled descent.
 
 ::: info
@@ -19,9 +19,9 @@ It is the last resort used when the vehicle must come down but has no valid posi
 Descend is the bottom of the failsafe chain (`Hold → Return → Land → Descend`).
 PX4 falls through to it whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run. For example:
 
-- Losing the position estimate while landing, e.g. GPS fails during [Land](../flight_modes_fw/land.md): the vehicle keeps descending, but now open-loop as _Descend_.
+- Losing the position estimate while landing, e.g. GNSS and airspeed sensors fail during [Land](../flight_modes_fw/land.md): the vehicle keeps descending, but now open-loop as _Descend_.
 - Losing the position estimate in [Hold](../flight_modes_fw/hold.md), [Mission](../flight_modes_fw/mission.md) or [Return](../flight_modes_fw/return.md): with no position to hold, fly to, or return with, the failsafe escalates down to _Descend_.
-- A Return or Land failsafe (from RC loss, GCS/data link loss, low battery, geofence breach, …) triggered while no valid position estimate is available: Return and Land can't run, so it degrades to _Descend_.
+- A Return or Land failsafe (from manual control loss, GCS/data link loss, low battery, geofence breach, …) triggered while no valid position estimate is available: Return and Land can't run, so it degrades to _Descend_.
 
 ## Exiting Descend
 
