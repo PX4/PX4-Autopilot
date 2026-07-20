@@ -443,14 +443,14 @@
 #define PX4_GPIO_INIT_LIST { \
 		GPIO_TRACE,                       \
 		PX4_ADC_GPIO,                     \
-	GPIO_HW_VER_REV_DRIVE,            \
-	GPIO_CAN1_TX,                     \
-	GPIO_CAN1_RX,                     \
-	GPIO_CAN2_TX,                     \
-	GPIO_CAN2_RX,                     \
-	GPIO_HEATER_OUTPUT,               \
-	GPIO_nPOWER_IN_A,                 \
-	GPIO_nPOWER_IN_B,                 \
+		GPIO_HW_VER_REV_DRIVE,            \
+		GPIO_CAN1_TX,                     \
+		GPIO_CAN1_RX,                     \
+		GPIO_CAN2_TX,                     \
+		GPIO_CAN2_RX,                     \
+		GPIO_HEATER_OUTPUT,               \
+		GPIO_nPOWER_IN_A,                 \
+		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
 		GPIO_VDD_5V_PERIPH_nEN,           \
 		GPIO_VDD_5V_PERIPH_nOC,           \
