@@ -451,6 +451,7 @@ bool MixingOutput::update()
 	// get output values
 	float outputs[MAX_ACTUATORS];
 	bool all_disabled = true;
+	const uint32_t reversible_mask_prev = _reversible_mask;
 	_reversible_mask = 0;
 
 	for (int i = 0; i < _max_num_outputs; ++i) {
@@ -469,6 +470,10 @@ bool MixingOutput::update()
 		} else {
 			outputs[i] = NAN;
 		}
+	}
+
+	if (_reversible_mask != reversible_mask_prev) {
+		_interface.reversibleMaskChanged(_reversible_mask);
 	}
 
 	// Send output if any function mapped or one last disabling sample
