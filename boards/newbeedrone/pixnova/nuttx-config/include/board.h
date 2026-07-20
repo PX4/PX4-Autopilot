@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/px4_fmu-v6x/include/board.h
+ * boards/newbeedrone/pixnova/nuttx-config/include/board.h
  *
  *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david.sidrane@nscdg.com>
@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_NEWBEEDRONE_PIXNOVA_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_NEWBEEDRONE_PIXNOVA_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The px4_fmu-v6X  board provides the following clock sources:
+/* The PixNova board provides the following clock sources:
  *
  *   X1: 16 MHz crystal for HSE
  *
@@ -308,8 +308,8 @@
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
 /* LED definitions ******************************************************************/
-/* The PX4 FMUV6X board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
- * LED_RED a Red LED, that can be controlled by software.
+/* The PixNova board has three LEDs: LED_GREEN, LED_BLUE and LED_RED, that can be
+ * controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
  * The following definitions are used to access individual LEDs.
@@ -317,8 +317,13 @@
 
 /* LED index values for use with board_userled() */
 
-/* LED definitions ******************************************************************/
-/* The px4_fmu-v6x board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
+/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
+ * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
+ * events as follows:
+ *
+ *   SYMBOL                     Meaning                      LED state
+ *                                                        Red   Green Blue
+ *   ----------------------  --------------------------  ------ ------ ----*/
  * LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
@@ -341,15 +346,6 @@
 #define BOARD_LED1_BIT    (1 << BOARD_LED1)
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
 #define BOARD_LED3_BIT    (1 << BOARD_LED3)
-
-/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
- * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
- * events as follows:
- *
- *
- *   SYMBOL                     Meaning                      LED state
- *                                                        Red   Green Blue
- *   ----------------------  --------------------------  ------ ------ ----*/
 
 #define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
 #define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
@@ -563,4 +559,4 @@
 # define PROBE_MARK(n)
 #endif
 
-#endif  /*__NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H  */
+#endif  /* __NUTTX_CONFIG_NEWBEEDRONE_PIXNOVA_INCLUDE_BOARD_H */
