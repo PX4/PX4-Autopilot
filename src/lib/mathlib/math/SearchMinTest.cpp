@@ -17,14 +17,14 @@
 using math::abs_t;
 using math::goldensection;
 
-static float quad_at_zero(float x)
+static double quad_at_zero(double x)
 {
 	return x * x;
 }
 
-static float quad_at_three(float x)
+static double quad_at_three(double x)
 {
-	return (x - 3.f) * (x - 3.f);
+	return (x - 3.0) * (x - 3.0);
 }
 
 TEST(SearchMin, abs_t)
@@ -36,12 +36,12 @@ TEST(SearchMin, abs_t)
 
 TEST(SearchMin, goldenSectionMinimizesX2)
 {
-	const float x = goldensection(-2.f, 2.f, quad_at_zero, 1e-4f);
-	EXPECT_NEAR(x, 0.f, 1e-3f);
+	const double x = goldensection(-2.0, 2.0, quad_at_zero, 1e-4);
+	EXPECT_NEAR(x, 0.0, 1e-3);
 }
 
 TEST(SearchMin, goldenSectionMinimizesShifted)
 {
-	const float x = goldensection(0.f, 5.f, quad_at_three, 1e-4f);
-	EXPECT_NEAR(x, 3.f, 1e-3f);
+	const double x = goldensection(0.0, 5.0, quad_at_three, 1e-4);
+	EXPECT_NEAR(x, 3.0, 1e-3);
 }
