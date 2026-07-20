@@ -74,6 +74,7 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio/mcp23009.hpp>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -284,6 +285,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #  endif /* CONFIG_MMCSD */
+
+	ret = mcp23009_register_gpios(3, 0x25);
+
+	if (ret != OK) {
+		led_on(LED_RED);
+		return ret;
+	}
 
 #endif /* !defined(BOOTLOADER) */
 

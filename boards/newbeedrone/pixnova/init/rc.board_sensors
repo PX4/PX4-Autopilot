@@ -65,30 +65,29 @@ then
 	fi
 fi
 
-
-if ver hwtypecmp PixNovaV6X000
+# IMU sensor sets: PixNovaV6X000 (PixNova000) vs PixNovaV6X001 (PixNova001) — board_config.h / spi.cpp
+# Use one block while layouts match; split into per-variant if blocks when rotations or chips differ (see zeroone/x6).
+if ver hwtypecmp PixNova000 PixNova001
 then
 	# Internal SPI bus ICM-20649 (hard-mounted)
 	icm20649 -R 14 -s start
+
 	# Internal SPI bus BMI088 accel/gyro
 	bmi088 -A -R 0 -s start
 	bmi088 -G -R 0 -s start
+
 	# Internal SPI bus ICM42688p
-	icm42688p -R 10 -s start
+	icm42688p -R 2 -s start
 fi
 
 # Internal magnetometer on I2C4
 rm3100 -I -b 4 -R 4 start
 
-# Optional external compass on GPS1/I2C1 (quiet probe)
-ist8310 -X -b 1 -R 10 -q start
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
 
-# Possible internal Baro
-if param compare SENS_INT_BARO_EN 1
-then
-	# Internal Baro on I2C2
-	icp201xx -I -b 2 -a 0x63 start
-fi
+# Internal baro on I2C2
+icp201xx -X -b 2 -a 0x63 start
 
 # External baro on I2C4
 icp201xx -I -b 4 -a 0x63 start
