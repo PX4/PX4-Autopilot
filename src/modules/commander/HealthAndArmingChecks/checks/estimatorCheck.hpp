@@ -65,6 +65,12 @@ private:
 		Disabled = 2
 	};
 
+	enum class MagArmingCheck : uint8_t {
+		Disabled = 0,
+		DenyArming = 1,
+		WarningOnly = 2
+	};
+
 	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				  NavModes required_groups);
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);

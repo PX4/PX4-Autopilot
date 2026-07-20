@@ -231,6 +231,12 @@ void Navigator::run()
 
 	params_update();
 
+	// the reposition triplet is only partially populated by reposition commands,
+	// reset it so unset fields (yaw, course) are NaN instead of zero
+	reset_position_setpoint(_reposition_triplet.previous);
+	reset_position_setpoint(_reposition_triplet.current);
+	reset_position_setpoint(_reposition_triplet.next);
+
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[3] {};
 
@@ -436,13 +442,27 @@ void Navigator::run()
 						// All three set to NaN - pause vehicle
 						rep->current.alt = get_global_position()->alt;
 
-						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+						// If the vehicle is already established on a circular loiter (orbit), keep that
+						// loiter's center and shape instead of re-centering the circle on the current
+						// position. This lets a Hold/pause continue the existing orbit. Non-circular
+						// patterns (e.g. figure-eight) are not continued: a Hold reverts to a plain
+						// loiter circle so we never mix patterns.
+						if (is_established_on_loiter(curr->current)) {
+							rep->current.lat = curr->current.lat;
+							rep->current.lon = curr->current.lon;
+							rep->current.loiter_radius = curr->current.loiter_radius;
+							rep->current.loiter_pattern = curr->current.loiter_pattern;
+							rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 
+						} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+							   && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+
+							rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 							preproject_stop_point(rep->current.lat, rep->current.lon);
 
 						} else {
 							// For fixedwings we can use the current vehicle's position to define the loiter point
+							rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 							rep->current.lat = get_global_position()->lat;
 							rep->current.lon = get_global_position()->lon;
 						}
@@ -990,31 +1010,6 @@ void Navigator::run()
 			navigation_mode_new = nullptr;
 		}
 
-		/* we have a new navigation mode: reset triplet */
-		if (_navigation_mode != navigation_mode_new) {
-			// We don't reset the triplet in the following two cases:
-			// 1)  if we just did an auto-takeoff and are now
-			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
-			// than where we wanted to go.
-			// 2) We switch to loiter and the current position setpoint already has a valid loiter point.
-			// In that case we can assume that the vehicle has already established a loiter and we don't need to set a new
-			// loiter position.
-			//
-			// FIXME: a better solution would be to add reset where they are needed and remove
-			//        this general reset here.
-
-			const bool current_mode_is_takeoff = _navigation_mode == &_takeoff;
-			const bool new_mode_is_loiter = navigation_mode_new == &_loiter;
-			const bool valid_loiter_setpoint = (_pos_sp_triplet.current.valid
-							    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
-
-			const bool did_not_switch_takeoff_to_loiter = !(current_mode_is_takeoff && new_mode_is_loiter);
-			const bool did_not_switch_to_loiter_with_valid_loiter_setpoint = !(new_mode_is_loiter && valid_loiter_setpoint);
-
-			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
-				reset_triplets();
-			}
-		}
 
 		// VTOL: transition to hover in Descend mode if force_vtol() is true
 		if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
@@ -1147,17 +1142,23 @@ void Navigator::geofence_breach_check()
 		double current_latitude = _global_pos.lat;
 		double current_longitude = _global_pos.lon;
 		float current_altitude = _global_pos.alt;
-		bool position_valid = _global_pos.timestamp > 0;
+		bool global_position_valid = _global_pos.timestamp > 0
+					     && hrt_elapsed_time(&_global_pos.timestamp) < 1_s;
+		bool have_valid_position_for_breach_check = global_position_valid;
+
+		// relying on raw gps is questionable already, but at least check the basics
+		const bool raw_gps_valid =
+			hrt_elapsed_time(&_gps_pos.timestamp) < 2_s && _gps_pos.fix_type >= 2;
 
 		if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 			current_latitude = _gps_pos.latitude_deg;
 			current_longitude = _gps_pos.longitude_deg;
 			current_altitude = _gps_pos.altitude_msl_m;
-			position_valid = _global_pos.timestamp > 0;
+
+			have_valid_position_for_breach_check = raw_gps_valid;
 		}
 
-		if (!position_valid) {
-			// we don't have a valid position yet, so we can't check for geofence violations
+		if (!have_valid_position_for_breach_check) {
 			return;
 		}
 
@@ -1190,16 +1191,26 @@ void Navigator::geofence_breach_check()
 				    || _geofence_result.geofence_custom_fence_triggered;
 
 		if (breach) {
-			if (!_geofence_reposition_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+			if (!_geofence_reposition_sent && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 			    && _geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
+
+				const position_setpoint_s current = get_position_setpoint_triplet()->current;
+				double loiter_center_lat = _global_pos.lat;
+				double loiter_center_lon = _global_pos.lon;
+
+				// if we are established on a loiter, continue loitering
+				if (is_established_on_loiter(current)) {
+					loiter_center_lat = current.lat;
+					loiter_center_lon = current.lon;
+				}
 
 				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				rep->current.timestamp = now;
 				rep->current.yaw = NAN;
-				rep->current.lat = current_latitude;
-				rep->current.lon = current_longitude;
-				rep->current.alt = current_altitude;
+				rep->current.lat = loiter_center_lat;
+				rep->current.lon = loiter_center_lon;
+				rep->current.alt = _global_pos.alt;
 				rep->current.valid = true;
 				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
@@ -1348,7 +1359,7 @@ float Navigator::get_cruising_throttle()
 	}
 }
 
-float Navigator::get_acceptance_radius()
+float Navigator::get_acceptance_radius() const
 {
 	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
 
@@ -1371,6 +1382,19 @@ float Navigator::get_acceptance_radius()
 	}
 
 	return acceptance_radius;
+}
+
+bool Navigator::is_established_on_loiter(const position_setpoint_s &sp) const
+{
+	if (!sp.valid
+	    || sp.type != position_setpoint_s::SETPOINT_TYPE_LOITER
+	    || sp.loiter_pattern != position_setpoint_s::LOITER_TYPE_ORBIT) {
+		return false;
+	}
+
+	const float dist_to_center = get_distance_to_next_waypoint(sp.lat, sp.lon, _global_pos.lat, _global_pos.lon);
+
+	return dist_to_center <= (get_acceptance_radius() + fabsf(sp.loiter_radius));
 }
 
 bool Navigator::get_yaw_to_be_accepted(float mission_item_yaw)

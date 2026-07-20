@@ -23873,7 +23873,7 @@ Measurement noise for magnetometer 3-axis fusion.
 
 Type of magnetometer fusion.
 
-Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field. If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight. If set to 'Magnetic heading' magnetic heading fusion is used at all times. If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GNSS velocity measurements to align the yaw angle. If set to 'Init' the magnetometer is only used to initalize the heading.
+Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field. If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight. If set to 'Magnetic heading' magnetic heading fusion is used at all times. If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GNSS velocity measurements to align the yaw angle. If set to 'Init' the magnetometer is only used to initialize the heading.
 
 **Values:**
 
@@ -24390,7 +24390,7 @@ Forward axis with origin relative to vehicle centre of gravity
 
 ### EKF2_RNG_QLTY_T (`FLOAT`) {#EKF2_RNG_QLTY_T}
 
-Minumum range validity period.
+Minimum range validity period.
 
 Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 
@@ -26592,7 +26592,7 @@ Wipes the flash config of UBX modules.
 
 Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
 PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
-However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+However, configuration parameters that are not overridden by PX4 can still cause unexpected problems during flight.
 To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
 
 Note: Currently only supported on UBX.
@@ -33073,7 +33073,7 @@ Any higher value is truncated.
 
 ### MPC_TILTMAX_LND (`FLOAT`) {#MPC_TILTMAX_LND}
 
-Maximum tilt during inital takeoff ramp.
+Maximum tilt during initial takeoff ramp.
 
 Tighter tilt limit during takeoff to avoid tip over.
 
@@ -40972,7 +40972,7 @@ Eagle Tree airspeed sensor (external I2C).
 
 ### SENS_EN_GPSSIM (`INT32`) {#SENS_EN_GPSSIM}
 
-Enable simulated GPS sinstance.
+Enable simulated GPS instance.
 
 **Values:**
 
@@ -43977,7 +43977,7 @@ It represents the difficulty of the vehicle to modify its angular rate.
 
 First order drag coefficient.
 
-Physical coefficient representing the friction with air particules.
+Physical coefficient representing the friction with air particles.
 The greater this value, the slower the quad will move.
 
 Drag force function of velocity: D=-KDV*V.
@@ -43991,7 +43991,7 @@ The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]
 
 First order angular damper coefficient.
 
-Physical coefficient representing the friction with air particules during rotations.
+Physical coefficient representing the friction with air particles during rotations.
 The greater this value, the slower the quad will rotate.
 
 Aerodynamic moment function of body rate: Ma=-KDW\*W_B.
@@ -46760,9 +46760,12 @@ UAVCAN CAN bus bitrate.
 
 UAVCAN CAN node ID (0 for dynamic allocation).
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 127      |           | 0       |      | &nbsp;    |
+Set to 0 (default) to use dynamic node ID allocation (DNA).
+Set to 1-125 to use a static node ID, which must be unique on the bus.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 125      |           | 0       |      | &nbsp;    |
 
 ### CANNODE_PT_SENS (`INT32`) {#CANNODE_PT_SENS}
 
@@ -47657,7 +47660,7 @@ Yaw differential gain.
 
 ### UUV_YAW_P (`FLOAT`) {#UUV_YAW_P}
 
-Yawh proportional gain.
+Yaw proportional gain.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |

@@ -203,12 +203,14 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 
-	if ((_param_com_arm_mag_str.get() >= 1)
+	if (_param_com_arm_mag_str.get()
 	    && (!context.isArmed() && estimator_status.pre_flt_fail_mag_field_disturbed)) {
+
+		const MagArmingCheck mag_arming_check = static_cast<MagArmingCheck>(_param_com_arm_mag_str.get());
 
 		NavModes required_groups_mag = required_groups;
 
-		if (_param_com_arm_mag_str.get() != 1) {
+		if (mag_arming_check != MagArmingCheck::DenyArming) {
 			required_groups_mag = NavModes::None; // optional
 		}
 
@@ -228,7 +230,14 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				estimator_status.mag_inclination_deg, estimator_status.mag_inclination_ref_deg);
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference");
+			const char *message = "Preflight%s: Strong magnetic interference";
+
+			if (mag_arming_check == MagArmingCheck::DenyArming) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), message, " Fail");
+
+			} else {
+				mavlink_log_warning(reporter.mavlink_log_pub(), message, "");
+			}
 		}
 	}
 
