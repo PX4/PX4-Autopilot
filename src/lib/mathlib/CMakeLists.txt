@@ -43,6 +43,7 @@ px4_add_library(mathlib
 px4_add_unit_gtest(SRC math/test/LowPassFilter2pVector3fTest.cpp LINKLIBS mathlib)
 px4_add_unit_gtest(SRC math/test/AlphaFilterTest.cpp)
 px4_add_unit_gtest(SRC math/test/MedianFilterTest.cpp)
+px4_add_unit_gtest(SRC math/test/MedianFilterNanTest.cpp)
 px4_add_unit_gtest(SRC math/test/NotchFilterTest.cpp)
 px4_add_unit_gtest(SRC math/test/second_order_reference_model_test.cpp)
 px4_add_unit_gtest(SRC math/FunctionsTest.cpp)
