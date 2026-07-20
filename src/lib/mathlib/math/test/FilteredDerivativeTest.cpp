@@ -53,7 +53,6 @@ TEST(FilteredDerivative, resetClearsInitializedPath)
 	// after reset, first sample only primes; next three stay low for flat signal
 	(void)fd.update(0.f);
 	float out = fd.update(0.f);
-	out =
-fd.update(0.f);
+	out = fd.update(0.f);
 	EXPECT_NEAR(out, 0.f, 0.15f);
 }
