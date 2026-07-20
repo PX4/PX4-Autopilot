@@ -1,0 +1,97 @@
+#!/bin/sh
+#
+# PixNova V6X specific board sensors init
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if [ $INA_CONFIGURED = no ]
+then
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
+	then
+		i2c_launcher start -b 2
+	fi
+fi
+
+
+if ver hwtypecmp PixNovaV6X000
+then
+	# Internal SPI bus ICM-20649 (hard-mounted)
+	icm20649 -R 14 -s start
+	# Internal SPI bus BMI088 accel/gyro
+	bmi088 -A -R 0 -s start
+	bmi088 -G -R 0 -s start
+	# Internal SPI bus ICM42688p
+	icm42688p -R 10 -s start
+fi
+
+# Internal magnetometer on I2C4
+rm3100 -I -b 4 -R 4 start
+
+# Optional external compass on GPS1/I2C1 (quiet probe)
+ist8310 -X -b 1 -R 10 -q start
+
+# Possible internal Baro
+if param compare SENS_INT_BARO_EN 1
+then
+	# Internal Baro on I2C2
+	icp201xx -I -b 2 -a 0x63 start
+fi
+
+# External baro on I2C4
+icp201xx -I -b 4 -a 0x63 start
+
+unset INA_CONFIGURED
+unset HAVE_PM2
