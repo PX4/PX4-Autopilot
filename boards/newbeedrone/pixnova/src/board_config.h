@@ -196,7 +196,7 @@
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_ADC3_6V6_CHANNEL)                | \
 	 (1 << ADC_ADC3_3V3_CHANNEL))               | \
-	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL)
+	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
