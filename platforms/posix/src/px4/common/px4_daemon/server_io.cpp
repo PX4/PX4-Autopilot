@@ -61,7 +61,7 @@ using namespace px4_daemon;
 FILE *get_stdout(bool *isatty_)
 {
 	// If the server is not running, we are not in a thread that has been started
-	if (!Server::is_running()) {
+	if (!Server::is_running() || !Server::has_pthread_key()) {
 		if (isatty_) { *isatty_ = isatty(1); }
 
 		return stdout;
