@@ -320,3 +320,27 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+
+TEST_F(GeoTest, getDistanceToLineBasicCrosstrack)
+{
+	// Straight east line segment ~1 km; vehicle north of midpoint should have positive/negative crosstrack
+	const double lat_a = 47.0;
+	const double lon_a = 8.0;
+	double lat_b, lon_b;
+	waypoint_from_heading_and_distance(lat_a, lon_a, M_PI_F / 2.f, 1000.f, &lat_b, &lon_b);
+
+	double lat_mid, lon_mid;
+	waypoint_from_heading_and_distance(lat_a, lon_a, M_PI_F / 2.f, 500.f, &lat_mid, &lon_mid);
+
+	// vehicle 50 m north of midpoint
+	double lat_v, lon_v;
+	waypoint_from_heading_and_distance(lat_mid, lon_mid, 0.f, 50.f, &lat_v, &lon_v);
+
+	crosstrack_error_s err{};
+	const int ret = get_distance_to_line(err, lat_v, lon_v, lat_a, lon_a, lat_b, lon_b);
+	ASSERT_EQ(ret, 0);
+	EXPECT_NEAR(fabsf(err.distance), 50.f, 5.f);
+	EXPECT_FALSE(err.past_end);
+}
+
