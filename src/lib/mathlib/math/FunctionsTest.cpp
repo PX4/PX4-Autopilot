@@ -252,12 +252,14 @@ TEST(FunctionsTest, isFiniteVector3f)
 }
 
 
-TEST(FunctionsTest, gradualSingleSidedDeadzone)
+TEST(FunctionsTest, sqrt_linearEdges)
 {
-	// single-sided via expo deadzone already covered; pin negate-like progressive slope of sqrt_linear at edges
-	EXPECT_FLOAT_EQ(sqrt_linear(0.f, 0.5f), 0.f);
-	EXPECT_NEAR(sqrt_linear(1.f, 0.5f), 1.f, 1e-5f);
-	EXPECT_NEAR(sqrt_linear(-1.f, 0.5f), -1.f, 1e-5f);
+	// pin sqrt_linear corner and linear regions (single-arg API)
+	EXPECT_FLOAT_EQ(sqrt_linear(0.f), 0.f);
+	EXPECT_FLOAT_EQ(sqrt_linear(1.f), 1.f);
+	EXPECT_FLOAT_EQ(sqrt_linear(-1.f), 0.f);
+	EXPECT_NEAR(sqrt_linear(0.25f), 0.5f, 1e-6f);
+	EXPECT_FLOAT_EQ(sqrt_linear(4.f), 4.f);
 }
 
 TEST(FunctionsTest, lerpEndpoints)
@@ -266,4 +268,3 @@ TEST(FunctionsTest, lerpEndpoints)
 	EXPECT_FLOAT_EQ(lerp(0.f, 10.f, 1.f), 10.f);
 	EXPECT_NEAR(lerp(-5.f, 5.f, 0.5f), 0.f, 1e-6f);
 }
-
