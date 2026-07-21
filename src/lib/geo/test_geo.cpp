@@ -320,3 +320,34 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+
+TEST_F(GeoTest, mavlinkLocalPointDistance3d)
+{
+	float dist_xy = 0.f;
+	float dist_z = 0.f;
+	const float d = mavlink_wpm_distance_to_point_local(0.f, 0.f, 0.f, 3.f, 4.f, 12.f, &dist_xy, &dist_z);
+	EXPECT_NEAR(d, 13.f, 1e-4f);
+	EXPECT_NEAR(dist_xy, 5.f, 1e-4f);
+	EXPECT_NEAR(dist_z, 12.f, 1e-4f);
+
+	const float d0 = mavlink_wpm_distance_to_point_local(1.f, 2.f, 3.f, 1.f, 2.f, 3.f, &dist_xy, &dist_z);
+	EXPECT_NEAR(d0, 0.f, 1e-6f);
+	EXPECT_NEAR(dist_xy, 0.f, 1e-6f);
+	EXPECT_NEAR(dist_z, 0.f, 1e-6f);
+}
+
+TEST_F(GeoTest, globalWgs84DistanceHorizontal)
+{
+	const double lat0 = 47.0;
+	const double lon0 = 8.0;
+	double lat1, lon1;
+	waypoint_from_heading_and_distance(lat0, lon0, 0.f, 200.f, &lat1, &lon1);
+	float dist_xy = 0.f;
+	float dist_z = 0.f;
+	float dist = get_distance_to_point_global_wgs84(lat0, lon0, 100.f, lat1, lon1, 100.f, &dist_xy, &dist_z);
+	EXPECT_NEAR(dist_xy, 200.f, 2.0f);
+	EXPECT_NEAR(dist_z, 0.f, 0.1f);
+	EXPECT_NEAR(dist, 200.f, 2.0f);
+}
+
