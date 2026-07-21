@@ -272,7 +272,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [TiltrotorExtraControls](TiltrotorExtraControls.md)
 - [TimesyncStatus](TimesyncStatus.md)
 - [TrajectorySetpoint6dof](TrajectorySetpoint6dof.md) — Trajectory setpoint in NED frame. Input to position controller.
-- [TransponderReport](TransponderReport.md)
+- [TransponderReport](TransponderReport.md) — Transponder report.
 - [TuneControl](TuneControl.md) — This message is used to control the tunes, when the tune_id is set to CUSTOM. then the frequency, duration are used otherwise those values are ignored.
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.
