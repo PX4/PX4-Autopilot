@@ -52,17 +52,6 @@ static constexpr uint32_t SPI_SPEED = 1 * 1000 * 1000; // 1MHz SPI serial interf
 
 using namespace time_literals;
 
-/**
- * @brief register address
- *
- */
-
-/**
- * @brief register bits
- *
- */
-
-
 class RGBLED_APA102 : public device::SPI, public I2CSPIDriver<RGBLED_APA102>
 {
 public:
