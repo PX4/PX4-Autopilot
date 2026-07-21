@@ -250,3 +250,20 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
 }
+
+
+TEST(FunctionsTest, gradualSingleSidedDeadzone)
+{
+	// single-sided via expo deadzone already covered; pin negate-like progressive slope of sqrt_linear at edges
+	EXPECT_FLOAT_EQ(sqrt_linear(0.f, 0.5f), 0.f);
+	EXPECT_NEAR(sqrt_linear(1.f, 0.5f), 1.f, 1e-5f);
+	EXPECT_NEAR(sqrt_linear(-1.f, 0.5f), -1.f, 1e-5f);
+}
+
+TEST(FunctionsTest, lerpEndpoints)
+{
+	EXPECT_FLOAT_EQ(lerp(0.f, 10.f, 0.f), 0.f);
+	EXPECT_FLOAT_EQ(lerp(0.f, 10.f, 1.f), 10.f);
+	EXPECT_NEAR(lerp(-5.f, 5.f, 0.5f), 0.f, 1e-6f);
+}
+
