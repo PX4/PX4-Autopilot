@@ -31,6 +31,9 @@ fi
 # External compass on GPS1/I2C1 (the 3rd external bus): Drotek RTK GPS with LIS3MDL Compass
 lis3mdl -X -b 2 -R 2 start
 
+# Lights
+rgbled_apa102 start -S -b 2
+
 # Disable startup of internal baros if param is set to false
 if param compare SENS_INT_BARO_EN 1
 then
