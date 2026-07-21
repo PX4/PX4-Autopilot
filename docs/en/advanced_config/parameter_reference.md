@@ -41720,7 +41720,11 @@ The secondary instance is then only used if the primary one times out.
 
 To select a DroneCAN GPS, set this to the node ID.
 
-This parameter has no effect if blending is active.
+The primary receiver is reported in the GPS_RAW_INT MAVLink
+message and the secondary in GPS2_RAW.
+
+This parameter has no effect on the EKF GPS selection if
+blending is active.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
