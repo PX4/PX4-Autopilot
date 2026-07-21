@@ -124,3 +124,24 @@ TEST(TestAtmosphere, StandardTemperature)
 	// THEN expect standard temperature at 3000m
 	EXPECT_NEAR(temperature, -4.5f, 0.001f);
 }
+
+
+TEST(TestAtmosphere, PressureAltitudeRoundtrip)
+{
+	const float p0 = 101325.f;
+	for (float alt : {0.f, 500.f, 1500.f, 5000.f, 8000.f}) {
+		const float p = getPressureFromAltitude(alt);
+		const float alt_back = getAltitudeFromPressure(p, p0);
+		EXPECT_NEAR(alt_back, alt, 1.0f) << "alt=" << alt;
+	}
+}
+
+TEST(TestAtmosphere, StandardTemperatureMonotonic)
+{
+	const float t0 = getStandardTemperatureAtAltitude(0.f);
+	const float t1 = getStandardTemperatureAtAltitude(1000.f);
+	const float t3 = getStandardTemperatureAtAltitude(3000.f);
+	EXPECT_GT(t0, t1);
+	EXPECT_GT(t1, t3);
+}
+
