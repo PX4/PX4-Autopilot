@@ -62,3 +62,23 @@ TEST(WelfordMeanTest, NoisySignal)
 	EXPECT_NEAR(var, var_real, 0.1f);
 
 }
+
+TEST(WelfordMeanTest, ConstantSignal)
+{
+	WelfordMean<float> welford{};
+
+	for (int i = 0; i < 50; i++) {
+		welford.update(2.5f);
+	}
+
+	EXPECT_TRUE(welford.valid());
+	EXPECT_NEAR(welford.mean(), 2.5f, 1e-5f);
+	EXPECT_NEAR(welford.variance(), 0.f, 1e-5f);
+}
+
+TEST(WelfordMeanTest, InvalidBeforeSamples)
+{
+	WelfordMean<float> welford{};
+	EXPECT_FALSE(welford.valid());
+}
+
