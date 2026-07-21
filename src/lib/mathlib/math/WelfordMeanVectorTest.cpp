@@ -65,3 +65,27 @@ TEST(WelfordMeanVectorTest, NoisySignal)
 	EXPECT_NEAR(var(1), var_real, 0.1f);
 	EXPECT_NEAR(var(2), var_real, 0.1f);
 }
+
+
+TEST(WelfordMeanVectorTest, ConstantVector)
+{
+	WelfordMeanVector<float, 3> welford{};
+	const Vector3f v{1.f, -2.f, 0.5f};
+
+	for (int i = 0; i < 40; i++) {
+		welford.update(v);
+	}
+
+	EXPECT_TRUE(welford.valid());
+	const Vector3f mean = welford.mean();
+	EXPECT_NEAR(mean(0), 1.f, 1e-5f);
+	EXPECT_NEAR(mean(1), -2.f, 1e-5f);
+	EXPECT_NEAR(mean(2), 0.5f, 1e-5f);
+}
+
+TEST(WelfordMeanVectorTest, InvalidBeforeUpdate)
+{
+	WelfordMeanVector<float, 3> welford{};
+	EXPECT_FALSE(welford.valid());
+}
+
