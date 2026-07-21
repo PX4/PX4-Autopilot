@@ -52,11 +52,27 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 {
 	_failure_injector.update();
 
+	updateParachuteStatus(vehicle_status);
+
 	failure_detector_status_u status_prev = _failure_detector_status;
 
-	if (vehicle_control_mode.flag_control_attitude_enabled) {
+	if (vehicle_control_mode.flag_control_attitude_enabled && !_parachute_deployed) {
 		updateAttitudeStatus(vehicle_status);
 		updateAltitudeStatus(vehicle_status, vehicle_control_mode);
+
+		if (_param_fd_ext_ats_en.get()) {
+			updateExternalAtsStatus();
+		}
+
+	} else if (_parachute_deployed) {
+		// hanging under the canopy exceeds the attitude limits and descends on purpose:
+		// suppress the attitude and altitude loss triggers to not escalate a controlled
+		// parachute descent into flight termination. the external ATS is an independent
+		// trigger system and stays active.
+		_failure_detector_status.flags.roll = false;
+		_failure_detector_status.flags.pitch = false;
+		_failure_detector_status.flags.alt = false;
+		_alt_loss_ref_z = NAN;
 
 		if (_param_fd_ext_ats_en.get()) {
 			updateExternalAtsStatus();
@@ -95,6 +111,22 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.motor_stop_mask = _failure_injector.getMotorStopMask();
 	failure_detector_status.timestamp = hrt_absolute_time();
 	_failure_detector_status_pub.publish(failure_detector_status);
+}
+
+void FailureDetector::updateParachuteStatus(const vehicle_status_s &vehicle_status)
+{
+	if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		_parachute_deployed = false;
+		return;
+	}
+
+	parachute_s parachute;
+
+	while (_parachute_sub.update(&parachute)) {
+		if (parachute.command == parachute_s::COMMAND_RELEASE) {
+			_parachute_deployed = true;
+		}
+	}
 }
 
 void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_status)

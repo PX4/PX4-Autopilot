@@ -2514,6 +2514,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 	state.mission_finished = _mission_result_sub.get().finished;
 	state.user_intended_mode = _user_mode_intention.get();
 	state.vehicle_type = _vehicle_status.vehicle_type;
+	state.parachute_deployed = _failure_detector.parachuteDeployed();
 
 	// There might have been a mode change request without changing the user intended mode.
 	// If a failsafe is active we must pass the request along as it might lead to a user-takeover.

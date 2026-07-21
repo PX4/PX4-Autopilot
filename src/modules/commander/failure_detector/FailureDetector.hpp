@@ -54,6 +54,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/failure_detector_status.h>
+#include <uORB/topics/parachute.h>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -87,9 +88,13 @@ public:
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
 	const failure_detector_status_u &getStatus() const { return _failure_detector_status; }
 
+	// true while the parachute has been released and the vehicle is still armed
+	bool parachuteDeployed() const { return _parachute_deployed; }
+
 	void publishStatus(bool esc_arm_status, uint16_t motor_failure_mask);
 
 private:
+	void updateParachuteStatus(const vehicle_status_s &vehicle_status);
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateAltitudeStatus(const vehicle_status_s &vehicle_status,
 				  const vehicle_control_mode_s &vehicle_control_mode);
@@ -106,12 +111,15 @@ private:
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
 
+	bool _parachute_deployed{false};
+
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
 	uint32_t _selected_accel_device_id{0};
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 
+	uORB::Subscription _parachute_sub{ORB_ID(parachute)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};

@@ -42,7 +42,7 @@ parameters:
           airspeed (COM_WIND_MAX can enforce a wind limit).
 
           Requires a parachute output (or external parachute system) that is released by the
-          DO_PARACHUTE command.
+          DO_PARACHUTE command. Not supported on VTOL.
       type: boolean
       default: 0
     FW_LND_PARA_ALT:

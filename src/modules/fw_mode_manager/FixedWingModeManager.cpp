@@ -1537,7 +1537,10 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	// parachute landing: release once the predicted touchdown point under canopy reaches the landing
 	// point. the vehicle is carried forward by its ground speed while the parachute deploys, and
 	// drifts with the wind while descending under canopy.
+	// not supported on VTOL: an MC failsafe (e.g. quadchute) during the descent would spool up the
+	// hover motors into the parachute lines.
 	if (_param_fw_lnd_para_en.get() && !_parachute_release_commanded && !_flare_states.flaring
+	    && !_vehicle_status.is_vtol
 	    && _landing_abort_status == position_controller_landing_status_s::NOT_ABORTED) {
 
 		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
