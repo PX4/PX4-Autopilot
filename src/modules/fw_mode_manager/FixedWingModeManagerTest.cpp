@@ -38,6 +38,8 @@
 
 #include "FirstOrderHoldAltitude.hpp"
 
+// run with: make tests TESTFILTER=FixedWingModeManager
+
 // Target waypoint on the equator, ~1113 m away from the vehicle's start position.
 static constexpr double kVehicleLat = 0.0;
 static constexpr double kVehicleLon = 0.0;
