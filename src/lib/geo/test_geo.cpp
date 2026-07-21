@@ -356,4 +356,3 @@ TEST_F(GeoTest, addVectorToGlobalPositionRoundtrip)
 	EXPECT_NEAR(vn_back, vn, 0.5f);
 	EXPECT_NEAR(ve_back, ve, 0.5f);
 }
-
