@@ -320,3 +320,40 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+
+TEST_F(GeoTest, bearingDistanceShortHopConsistency)
+{
+	// GIVEN a short north then northeast hop from a known reference
+	const double lat0 = 47.0;
+	const double lon0 = 8.0;
+	double lat_n, lon_n;
+	waypoint_from_heading_and_distance(lat0, lon0, 0.f, 100.f, &lat_n, &lon_n);
+
+	const float d = get_distance_to_next_waypoint(lat0, lon0, lat_n, lon_n);
+	const float b = get_bearing_to_next_waypoint(lat0, lon0, lat_n, lon_n);
+	EXPECT_NEAR(d, 100.f, 1.0f);
+	EXPECT_NEAR(b, 0.f, 0.05f);
+
+	double lat_ne, lon_ne;
+	waypoint_from_heading_and_distance(lat0, lon0, M_PI_F / 4.f, 250.f, &lat_ne, &lon_ne);
+	EXPECT_NEAR(get_distance_to_next_waypoint(lat0, lon0, lat_ne, lon_ne), 250.f, 2.0f);
+	EXPECT_NEAR(get_bearing_to_next_waypoint(lat0, lon0, lat_ne, lon_ne), M_PI_F / 4.f, 0.05f);
+}
+
+TEST_F(GeoTest, addVectorToGlobalPositionRoundtrip)
+{
+	const double lat0 = 47.3566;
+	const double lon0 = 8.5190;
+	const float vn = 30.f;
+	const float ve = -15.f;
+	double lat1, lon1;
+	add_vector_to_global_position(lat0, lon0, vn, ve, &lat1, &lon1);
+
+	float vn_back = 0.f;
+	float ve_back = 0.f;
+	get_vector_to_next_waypoint(lat0, lon0, lat1, lon1, &vn_back, &ve_back);
+	EXPECT_NEAR(vn_back, vn, 0.5f);
+	EXPECT_NEAR(ve_back, ve, 0.5f);
+}
+
