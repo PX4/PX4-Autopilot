@@ -693,7 +693,9 @@ void ModeManagement::checkConfigOverrides()
 void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const
 {
 	valid_nav_state_mask = mode_util::getValidNavStates();
-	can_set_nav_state_mask = valid_nav_state_mask & ~(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+	can_set_nav_state_mask = valid_nav_state_mask
+				 & ~((1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION)
+				     | (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND));
 
 	// Add external modes
 	for (int i = Modes::FIRST_EXTERNAL_NAV_STATE; i <= Modes::LAST_EXTERNAL_NAV_STATE; ++i) {
