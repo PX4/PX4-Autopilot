@@ -350,4 +350,3 @@ TEST_F(GeoTest, globalWgs84DistanceHorizontal)
 	EXPECT_NEAR(dist_z, 0.f, 0.1f);
 	EXPECT_NEAR(dist, 200.f, 2.0f);
 }
-
