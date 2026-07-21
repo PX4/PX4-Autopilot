@@ -132,4 +132,3 @@ TEST(MaxDistanceToCircle, unitDirectionFromOutsideHitsFarSide)
 	float distance = trajectory::getMaxDistanceToCircle(pos, circle_center, radius, direction);
 	EXPECT_FLOAT_EQ(distance, 5.f + 2.f);
 }
-
