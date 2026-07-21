@@ -88,4 +88,3 @@ TEST(WelfordMeanVectorTest, InvalidBeforeUpdate)
 	WelfordMeanVector<float, 3> welford{};
 	EXPECT_FALSE(welford.valid());
 }
-
