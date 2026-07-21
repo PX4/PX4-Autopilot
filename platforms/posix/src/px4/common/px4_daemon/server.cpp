@@ -66,17 +66,34 @@ Server::Server(int instance_id)
 	: _mutex(PTHREAD_MUTEX_INITIALIZER),
 	  _instance_id(instance_id)
 {
+	int ret = pthread_key_create(&_key, _pthread_key_destructor);
+
+	if (ret != 0) {
+		PX4_ERR("failed to create pthread key");
+
+	} else {
+		_key_valid = true;
+	}
+
 	_instance = this;
 }
 
 Server::~Server()
 {
 	_instance = nullptr;
+
+	if (_key_valid) {
+		pthread_key_delete(_key);
+	}
 }
 
 int
 Server::start()
 {
+	if (!_key_valid) {
+		return -1;
+	}
+
 	std::string sock_path = get_socket_path(_instance_id);
 
 	// Delete socket in case it exists already.
@@ -129,13 +146,6 @@ void Server::_pthread_key_destructor(void *arg)
 void
 Server::_server_main()
 {
-	int ret = pthread_key_create(&_key, _pthread_key_destructor);
-
-	if (ret != 0) {
-		PX4_ERR("failed to create pthread key");
-		return;
-	}
-
 	// The list of file descriptors to watch.
 	std::vector<pollfd> poll_fds;
 
@@ -182,7 +192,7 @@ Server::_server_main()
 
 				// Start a new thread to handle the client.
 				pthread_t *thread = &_fd_to_thread[client];
-				ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
+				int ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
 
 				if (ret != 0) {
 					PX4_ERR("could not start pthread (%i)", ret);
