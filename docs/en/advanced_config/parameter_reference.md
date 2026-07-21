@@ -44047,6 +44047,16 @@ to represent a physical ground location on Earth.
 | ------ | -------- | -------- | --------- | -------- | ---- | --------- |
 | &nbsp; | -180     | 180      |           | 8.545594 | deg  | &nbsp;    |
 
+### SIH_LOC_YAW0 (`FLOAT`) {#SIH_LOC_YAW0}
+
+Initial heading (yaw) of the simulated vehicle.
+
+This value represents the initial heading (yaw) of the simulated vehicle at the start of the simulation.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -3.14159 | 3.14159  | 0.01      | 0.0     | rad  | &nbsp;    |
+
 ### SIH_L_PITCH (`FLOAT`) {#SIH_L_PITCH}
 
 Pitch arm length.
