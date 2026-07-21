@@ -223,17 +223,6 @@ private:
 
 	bool checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
-	/**
-	 * Check polygon or circle geofence fullfills the requirements relative to Home.
-	 * @return true if checks pass
-	 */
-	bool checkHomeRequirementsForGeofence(const PolygonInfo &polygon);
-
-	/**
-	 * Check polygon or circle geofence fullfills the requirements relative to the current vehicle position.
-	 * @return true if checks pass
-	 */
-	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
 
 	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
 
