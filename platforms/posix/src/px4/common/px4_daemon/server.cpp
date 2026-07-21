@@ -138,8 +138,6 @@ void Server::_pthread_key_destructor(void *arg)
 void
 Server::_server_main()
 {
-	int ret;
-
 	// The list of file descriptors to watch.
 	std::vector<pollfd> poll_fds;
 
@@ -186,7 +184,7 @@ Server::_server_main()
 
 				// Start a new thread to handle the client.
 				pthread_t *thread = &_fd_to_thread[client];
-				ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
+				int ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
 
 				if (ret != 0) {
 					PX4_ERR("could not start pthread (%i)", ret);
