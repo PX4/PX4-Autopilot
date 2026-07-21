@@ -184,6 +184,18 @@ Things like path tracking error, wind and other disturbances may cause temporary
 It is therefore very important to consider this possibility and especially to review the geofence breach action (e.g. [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION)).
 :::
 
+::: warning
+The autopilot does not check at upload time whether every part of the allowed area is still reachable once the [safety margin](#shortest-path-calculation) has been applied.
+A region can be "cut off" by the margin — for example where several exclusion zones overlap — without any error being reported when the geofence is uploaded.
+The error is only reported when a return is triggered and no feasible path can be found, at which point the vehicle falls back to flying directly to the destination.
+As a result you may believe that every region is reachable when in fact some are not.
+:::
+
+::: warning
+If the autopilot falls back to a direct path (for any of the reasons described above), a configured geofence breach action ([GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION)) still applies.
+For example, if the direct path breaches a geofence, the configured action (such as flight termination) will be carried out.
+:::
+
 ### RTL-types with Geofence-Awareness
 
 The following table shows which return types currently support geofence awareness:
@@ -207,6 +219,11 @@ The figures below show an exclusion zone and an inclusion zone.
 ![Exclusion Zone](../../assets/flight_modes/rtl_geofence_exclusion.jpg)
 
 ![Inclusion Zone](../../assets/flight_modes/rtl_geofence_inclusion.jpg)
+
+::: warning
+The safety margin is currently determined quite crudely and is not directly configurable: it is derived from [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) for fixed-wing and VTOL vehicles, and from twice [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) for multicopters.
+These values may not be appropriate for all vehicles.
+:::
 
 ## Minimum Return Altitude
 
