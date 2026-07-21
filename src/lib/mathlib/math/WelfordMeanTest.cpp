@@ -81,4 +81,3 @@ TEST(WelfordMeanTest, InvalidBeforeSamples)
 	WelfordMean<float> welford{};
 	EXPECT_FALSE(welford.valid());
 }
-
