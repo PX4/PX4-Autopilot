@@ -22,7 +22,7 @@ allowed-tools: Bash, Read, Glob, Grep
 4. PR **title:** `type(scope): description` — under 72 chars, covers the
    overall change across all commits. This becomes the squash-merge commit
    message.
-5. PR **body:** start with a plain leading paragraph explaining what the PR does and why. No headings (`## Summary`, `## Test plan`, etc.), no boilerplate, no Claude attribution. Use bullet lists only to enumerate discrete changes; don't force prose into bullets. Describe testing inline if relevant, no separate test plan section. Use markdown (links, code blocks, lists) only when warranted. Keep it concise and well-formatted.
+5. PR **body:** concise and terse — do not restate what the diff already shows (no file-changed lists, no code snippets that reproduce the diff). Use exactly three sections, in order: `## Summary`, `## Problem`, `## Solution`. If the PR closes a GitHub issue, the first line of `## Summary` must be `fixes #<N>`, then a blank line, then the summary text. No `## Test plan` section, no boilerplate, no Claude attribution. Use markdown (links, code blocks, lists) only when warranted.
 
 6. Push with `-u` if needed, then `gh pr create`. Default base is `main`
    unless user says otherwise.

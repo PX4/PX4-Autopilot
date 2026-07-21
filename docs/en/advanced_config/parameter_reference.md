@@ -24390,7 +24390,7 @@ Forward axis with origin relative to vehicle centre of gravity
 
 ### EKF2_RNG_QLTY_T (`FLOAT`) {#EKF2_RNG_QLTY_T}
 
-Minumum range validity period.
+Minimum range validity period.
 
 Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 
@@ -26592,7 +26592,7 @@ Wipes the flash config of UBX modules.
 
 Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
 PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
-However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+However, configuration parameters that are not overridden by PX4 can still cause unexpected problems during flight.
 To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
 
 Note: Currently only supported on UBX.
@@ -33073,7 +33073,7 @@ Any higher value is truncated.
 
 ### MPC_TILTMAX_LND (`FLOAT`) {#MPC_TILTMAX_LND}
 
-Maximum tilt during inital takeoff ramp.
+Maximum tilt during initial takeoff ramp.
 
 Tighter tilt limit during takeoff to avoid tip over.
 
@@ -41720,7 +41720,11 @@ The secondary instance is then only used if the primary one times out.
 
 To select a DroneCAN GPS, set this to the node ID.
 
-This parameter has no effect if blending is active.
+The primary receiver is reported in the GPS_RAW_INT MAVLink
+message and the secondary in GPS2_RAW.
+
+This parameter has no effect on the EKF GPS selection if
+blending is active.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |

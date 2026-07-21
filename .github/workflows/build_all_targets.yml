@@ -86,17 +86,34 @@ jobs:
       - name: Install Python Dependencies
         run: pip3 install -U packaging -r ./Tools/setup/requirements.txt
 
+      # The generator runs as a standalone assignment so a non-zero exit
+      # fails the step; embedded in `echo "x=$(...)"` it would be masked
+      # and the empty output silently skips the whole build matrix.
       - id: set-matrix
         name: Generate Build Matrix
-        run: echo "matrix=$(./Tools/ci/generate_board_targets_json.py --group)" >> $GITHUB_OUTPUT
+        run: |
+          matrix=$(./Tools/ci/generate_board_targets_json.py --group)
+          {
+            echo "matrix<<EOF"
+            echo "$matrix"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - id: set-seeders
         name: Generate Seeder Matrix
-        run: echo "seeders=$(./Tools/ci/generate_board_targets_json.py --group --seeders)" >> $GITHUB_OUTPUT
+        run: |
+          seeders=$(./Tools/ci/generate_board_targets_json.py --group --seeders)
+          {
+            echo "seeders<<EOF"
+            echo "$seeders"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - id: set-timestamp
         name: Save Current Timestamp
-        run: echo "timestamp=$(date +"%Y%m%d%H%M%S")" >> $GITHUB_OUTPUT
+        run: |
+          timestamp=$(date +"%Y%m%d%H%M%S")
+          echo "timestamp=$timestamp" >> "$GITHUB_OUTPUT"
 
       - id: set-branch
         name: Save Current Branch Name
