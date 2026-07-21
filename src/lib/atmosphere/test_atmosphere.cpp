@@ -129,6 +129,7 @@ TEST(TestAtmosphere, StandardTemperature)
 TEST(TestAtmosphere, PressureAltitudeRoundtrip)
 {
 	const float p0 = 101325.f;
+
 	for (float alt : {0.f, 500.f, 1500.f, 5000.f, 8000.f}) {
 		const float p = getPressureFromAltitude(alt);
 		const float alt_back = getAltitudeFromPressure(p, p0);
@@ -144,4 +145,3 @@ TEST(TestAtmosphere, StandardTemperatureMonotonic)
 	EXPECT_GT(t0, t1);
 	EXPECT_GT(t1, t3);
 }
-
