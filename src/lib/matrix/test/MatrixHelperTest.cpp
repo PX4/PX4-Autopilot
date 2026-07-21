@@ -123,3 +123,15 @@ TEST(MatrixHelperTest, Helper)
 	EXPECT_TRUE(isEqual(c, c));
 	EXPECT_TRUE(isEqual(d, d));
 }
+
+
+TEST(MatrixHelperTest, WrapPiRange)
+{
+	EXPECT_NEAR(wrap_pi(0.f), 0.f, 1e-6f);
+	EXPECT_NEAR(wrap_pi(float(M_PI)), float(M_PI), 1e-5f);
+	EXPECT_NEAR(wrap_pi(-float(M_PI)), -float(M_PI), 1e-5f);
+	EXPECT_NEAR(wrap_pi(3.f * float(M_PI)), float(M_PI), 1e-4f);
+	EXPECT_NEAR(wrap_pi(-3.f * float(M_PI)), -float(M_PI), 1e-4f);
+	EXPECT_NEAR(wrap_pi(2.f * float(M_PI) + 0.1f), 0.1f, 1e-4f);
+}
+
