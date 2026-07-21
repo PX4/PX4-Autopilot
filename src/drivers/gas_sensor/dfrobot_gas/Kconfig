@@ -1,0 +1,5 @@
+menuconfig DRIVERS_GAS_SENSOR_DFROBOT_GAS
+	bool "DFRobot Gravity gas sensors"
+	default n
+	---help---
+		Enable support for DFRobot Gravity electrochemical gas sensors.

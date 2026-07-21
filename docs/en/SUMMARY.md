@@ -299,6 +299,7 @@
       - [PX4FLOW (Deprecated)](sensor/px4flow.md)
     - [Tachometers (Revolution Counters)](sensor/tachometers.md)
       - [ThunderFly TFRPM01 Tachometer Sensor](sensor/thunderfly_tachometer.md)
+    - [Gas Concentration Sensors](sensor/gas_concentration.md)
     - [IMU Factory Calibration](advanced_config/imu_factory_calibration.md)
     - [Sensor Thermal Compensation](advanced_config/sensor_thermal_calibration.md)
   - [Actuators](actuators/index.md)
