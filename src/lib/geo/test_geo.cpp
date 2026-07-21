@@ -343,4 +343,3 @@ TEST_F(GeoTest, getDistanceToLineBasicCrosstrack)
 	EXPECT_NEAR(fabsf(err.distance), 50.f, 5.f);
 	EXPECT_FALSE(err.past_end);
 }
-
