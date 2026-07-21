@@ -120,3 +120,16 @@ TEST(MaxDistanceToCircle, onCircle)
 	distance = trajectory::getMaxDistanceToCircle(pos, circle_center, radius, direction);
 	EXPECT_FLOAT_EQ(distance, 2.f * radius);
 }
+
+
+TEST(MaxDistanceToCircle, unitDirectionFromOutsideHitsFarSide)
+{
+	// Due east of circle looking west should hit far rim at center_x - radius from pos_x perspective
+	Vector2f pos(5.f, 0.f);
+	Vector2f circle_center(0.f, 0.f);
+	float radius = 2.f;
+	Vector2f direction(-1.f, 0.f);
+	float distance = trajectory::getMaxDistanceToCircle(pos, circle_center, radius, direction);
+	EXPECT_FLOAT_EQ(distance, 5.f + 2.f);
+}
+
