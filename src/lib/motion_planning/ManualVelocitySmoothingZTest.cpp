@@ -57,11 +57,16 @@ TEST_F(ManualVelocitySmoothingZTest, resetClearsToInitialState)
 
 	_smoothing.reset(0.f, -1.f, 12.f);
 
-	EXPECT_FLOAT_EQ(_smoothing.getCurrentVelocity(), -1.f);
-	// locked position is std::NAN until a lock engages
+	// reset() seeds the underlying VelocitySmoothing trajectory and clears
+	// position lock; ManualVelocitySmoothingZ getters read _state, which is
+	// refreshed on update() / setCurrent*. After bare reset, lock is open.
 	EXPECT_TRUE(std::isnan(_smoothing.getCurrentPosition()));
 	EXPECT_FLOAT_EQ(_smoothing.getCurrentAcceleration(), 0.f);
 	EXPECT_FLOAT_EQ(_smoothing.getCurrentJerk(), 0.f);
+
+	// Velocity gets into getters via the public setter / update path
+	_smoothing.setCurrentVelocity(-1.f);
+	EXPECT_FLOAT_EQ(_smoothing.getCurrentVelocity(), -1.f);
 }
 
 TEST_F(ManualVelocitySmoothingZTest, setCurrentStateReflected)
