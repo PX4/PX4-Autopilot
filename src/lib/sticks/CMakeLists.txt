@@ -35,3 +35,5 @@ px4_add_library(Sticks
 	Sticks.cpp
 )
 target_include_directories(Sticks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+px4_add_functional_gtest(SRC SticksHelpersTest.cpp LINKLIBS Sticks)
