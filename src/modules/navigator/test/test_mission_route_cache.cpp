@@ -325,8 +325,17 @@ TEST_F(MissionRouteCacheTest, SafePointIdChangeReloadsReplacementSet)
 	mission.safe_points_id = 101;
 	mission.timestamp = hrt_absolute_time();
 
+	// A source change immediately hides the old generation instead of blocking or exposing stale data.
+	_cache.update(mission);
+	EXPECT_EQ(_cache.safePointsId(), mission.safe_points_id);
+	EXPECT_FALSE(_cache.safePointsReady());
+	EXPECT_TRUE(_cache.safePointUpdatePending());
+	EXPECT_EQ(_cache.safePointCount(), 0);
+	EXPECT_FALSE(_cache.loadSafePointItem(0, safe_point));
+
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.safePointsReady(); }))
 			<< "safe-point cache did not become ready";
+	EXPECT_FALSE(_cache.safePointUpdatePending());
 
 	// The stale set is replaced.
 	ASSERT_TRUE(_cache.loadSafePointItem(0, safe_point));

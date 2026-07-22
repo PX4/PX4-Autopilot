@@ -94,6 +94,10 @@ public:
 	/** True after queuing, reading, or validating the current mission land item failed. */
 	bool missionLandItemAttemptFailed() const { return _mission_land.retry.retry_count > 0; }
 
+	/**
+	 * Returns the item count of the complete, validated safe-point generation.
+	 * Returns zero while a replacement is pending (check safePointsReady()) and for a ready empty set.
+	 */
 	int safePointCount() const override;
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override;
 
