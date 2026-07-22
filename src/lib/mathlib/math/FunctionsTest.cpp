@@ -250,3 +250,18 @@ TEST(FunctionsTest, isFiniteVector3f)
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, 0.f)));
 	EXPECT_FALSE(isFinite(matrix::Vector3f(NAN, NAN, NAN)));
 }
+
+TEST(FunctionsTest, interpolateN)
+{
+	// Uniform knots on [0,1] → y corners
+	const float y[4] = {0.f, 1.f, 3.f, 4.f};
+	EXPECT_FLOAT_EQ(interpolateN(0.f, y), 0.f);
+	EXPECT_FLOAT_EQ(interpolateN(1.f / 3.f, y), 1.f);
+	EXPECT_FLOAT_EQ(interpolateN(0.5f, y), 2.f); // mid between y[1]=1 and y[2]=3 at t=2/3 ~ wait: index at 0.5
+	// explicit mid-segment: value 0.5 with N=4 → index constrain(0.5*3)=1 → between 1/3 and 2/3
+	// interpolate(0.5, 1/3, 2/3, 1, 3) = 1 + (3-1)*((0.5-1/3)/(2/3-1/3)) = 1 + 2*(0.5/1) wait:
+	// (0.5 - 0.333)/(0.666-0.333) = 0.5 → 1 + 2*0.5 = 2
+	EXPECT_FLOAT_EQ(interpolateN(1.f, y), 4.f);
+	EXPECT_FLOAT_EQ(interpolateN(-1.f, y), 0.f);  // clamped low via index
+	EXPECT_FLOAT_EQ(interpolateN(2.f, y), 4.f);   // high end (index clamps last segment end)
+}
