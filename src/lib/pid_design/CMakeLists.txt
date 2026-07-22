@@ -32,3 +32,4 @@
 ############################################################################
 
 px4_add_unit_gtest(SRC pid_design_test.cpp)
+px4_add_unit_gtest(SRC PidDesignDegenerateTest.cpp)
