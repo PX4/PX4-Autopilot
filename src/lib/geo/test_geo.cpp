@@ -320,3 +320,32 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 	// THEN: it is NOT treated as on the arc (the old negative-sweep sector math returned ~zero here)
 	EXPECT_GT(err.distance, radius);
 }
+
+TEST_F(GeoTest, MapProjectionRoundtrip)
+{
+	MapProjection proj;
+	ASSERT_FALSE(proj.isInitialized());
+	const double lat0 = 47.397742;
+	const double lon0 = 8.545594;
+	proj.initReference(lat0, lon0);
+	ASSERT_TRUE(proj.isInitialized());
+
+	double lat = lat0 + 0.01;
+	double lon = lon0 - 0.02;
+	float x = 0.f, y = 0.f;
+	proj.project(lat, lon, x, y);
+	// Non-trivial east/north meters
+	EXPECT_GT(fabsf(x) + fabsf(y), 100.f);
+
+	double lat_out = 0.0, lon_out = 0.0;
+	proj.reproject(x, y, lat_out, lon_out);
+	EXPECT_NEAR(lat_out, lat, 1e-7);
+	EXPECT_NEAR(lon_out, lon, 1e-7);
+
+	// Reference project is ~0
+	float x0 = 1.f, y0 = 1.f;
+	proj.project(lat0, lon0, x0, y0);
+	EXPECT_NEAR(x0, 0.f, 1e-2f);
+	EXPECT_NEAR(y0, 0.f, 1e-2f);
+}
+
