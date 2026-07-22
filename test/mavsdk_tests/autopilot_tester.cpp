@@ -298,8 +298,8 @@ void AutopilotTester::execute_mission_and_lose_gps()
 
 	CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
-	// We expect that a blind land is performed.
-	wait_for_flight_mode(Telemetry::FlightMode::Land, std::chrono::seconds(30));
+	// With no position aiding left, a blind descend is performed. MAVSDK has no
+	// Descend flight mode, so the caller just waits for the disarm after landing.
 }
 
 void AutopilotTester::execute_mission_and_lose_mag()
