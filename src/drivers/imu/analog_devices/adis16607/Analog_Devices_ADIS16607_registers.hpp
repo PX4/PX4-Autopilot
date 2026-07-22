@@ -102,6 +102,7 @@ enum DIAG_STAT_BIT : uint16_t {
 // USER_GPIO_CFG1
 enum USER_GPIO_CFG1_BIT : uint16_t {
 	GPIO3_DR = Bit9, // Configure GPIO pins(GPIO3 as DR)
+	GPIO2_SYNC = Bit6, // Configure GPIO pins(GPIO2 as SYNC)
 };
 
 // USER_DATA_CFG
