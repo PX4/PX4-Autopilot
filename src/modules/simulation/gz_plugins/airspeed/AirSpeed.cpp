@@ -123,15 +123,18 @@ void AirSpeed::PreUpdate(const gz::sim::UpdateInfo &_info,
 	// Calculate differential pressure + noise in hPa
 	const float diff_pressure_noise = standard_normal_distribution_(random_generator_) * diff_pressure_stddev_;
 
-	// Read the wind from the ECM: the wind_info topic is only published on wind changes,
-	// which the subscription misses when the model spawns after the world was loaded
-	const gz::sim::Entity wind_entity = _ecm.EntityByComponents(gz::sim::components::Wind());
+	// Default the wind to the world wind entity: the wind_info topic is only published on
+	// wind changes, which the subscription misses when the model spawns after the world was
+	// loaded. Once wind is received from the topic the topic takes precedence.
+	if (!_wind_received_from_topic) {
+		const gz::sim::Entity wind_entity = _ecm.EntityByComponents(gz::sim::components::Wind());
 
-	if (wind_entity != gz::sim::kNullEntity) {
-		const auto wind_linear_velocity = _ecm.Component<gz::sim::components::WorldLinearVelocity>(wind_entity);
+		if (wind_entity != gz::sim::kNullEntity) {
+			const auto wind_linear_velocity = _ecm.Component<gz::sim::components::WorldLinearVelocity>(wind_entity);
 
-		if (wind_linear_velocity) {
-			_wind_velocity = wind_linear_velocity->Data();
+			if (wind_linear_velocity) {
+				_wind_velocity = wind_linear_velocity->Data();
+			}
 		}
 	}
 
@@ -148,5 +151,6 @@ void AirSpeed::PreUpdate(const gz::sim::UpdateInfo &_info,
 
 void AirSpeed::windCallback(const gz::msgs::Wind &msg)
 {
+	_wind_received_from_topic = true;
 	_wind_velocity = gz::math::Vector3d(msg.linear_velocity().x(), msg.linear_velocity().y(), msg.linear_velocity().z());
 }
