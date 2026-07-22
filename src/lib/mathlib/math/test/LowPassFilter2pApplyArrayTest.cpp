@@ -18,11 +18,14 @@ TEST(LowPassFilter2pApplyArray, ConstantSequenceStable)
 {
 	LowPassFilter2p<float> lpf(1000.f, 50.f);
 	float samples[8];
+
 	for (int i = 0; i < 8; i++) {
 		samples[i] = 2.5f;
 	}
+
 	lpf.reset(2.5f);
 	lpf.applyArray(samples, 8);
+
 	for (int i = 0; i < 8; i++) {
 		EXPECT_NEAR(samples[i], 2.5f, 1e-3f);
 	}
