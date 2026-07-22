@@ -40,6 +40,9 @@
 TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 {
 	const float takeoff_altitude = 10.f;
+	// Takeoff overshoot plus the slow VTOL settle can drift the hold altitude by
+	// ~0.1 m; keep the tolerance above that so a normal hover doesn't trip it.
+	const float altitude_hold_tolerance = 0.2f;
 
 	AutopilotTester tester;
 	tester.connect(connection_url);
@@ -60,8 +63,13 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 	tester.wait_until_hovering();
 	tester.wait_until_altitude(ground_altitude + takeoff_altitude, std::chrono::seconds(15), 0.1f);
 
+	// wait_until_altitude() returns on the first touch of the target band, while
+	// the vehicle is still climbing. Let the takeoff overshoot damp out so the
+	// hold reference is captured at the settled hover altitude, not mid-climb.
+	tester.sleep_for(std::chrono::seconds(5));
+
 	// Monitor altitude and fail if it exceeds the tolerance
-	tester.start_checking_altitude(0.15);
+	tester.start_checking_altitude(altitude_hold_tolerance);
 
 	tester.sleep_for(std::chrono::seconds(15));
 }

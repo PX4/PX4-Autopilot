@@ -104,6 +104,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DebugKeyValue](DebugKeyValue.md)
 - [DebugValue](DebugValue.md)
 - [DebugVect](DebugVect.md)
+- [DetectAndAvoid](DetectAndAvoid.md) — Detect-and-avoid conflict assessment for one traffic aircraft.
+- [DetectAndAvoidMostUrgent](DetectAndAvoidMostUrgent.md) — Detect-and-avoid summary for the most urgent active conflict.
 - [DeviceInformation](DeviceInformation.md) — Device information.
 - [DifferentialPressure](DifferentialPressure.md) — Differential-pressure (airspeed) sensor.
 - [DistanceSensor](DistanceSensor.md) — DISTANCE_SENSOR message data.
@@ -159,7 +161,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [GpioOut](GpioOut.md) — GPIO mask and state.
 - [GpioRequest](GpioRequest.md) — Request GPIO mask to be read.
 - [GpsDump](GpsDump.md) — This message is used to dump the raw gps communication to the log.
-- [GpsInjectData](GpsInjectData.md)
 - [Gripper](Gripper.md) — # Used to command an actuation in the gripper, which is mapped to a specific output in the control allocation module.
 - [HealthReport](HealthReport.md)
 - [HeaterStatus](HeaterStatus.md)
@@ -237,6 +238,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint.
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
+- [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
 - [RtlStatus](RtlStatus.md)
 - [RtlTimeEstimate](RtlTimeEstimate.md)
 - [SatelliteInfo](SatelliteInfo.md)

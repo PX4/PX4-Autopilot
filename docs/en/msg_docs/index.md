@@ -64,6 +64,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ConfigOverridesV0](ConfigOverridesV0.md) — Configurable overrides by (external) modes or mode executors.
 - [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
+- [HomePositionV1](HomePositionV1.md) — GPS home position in WGS84 coordinates.
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.

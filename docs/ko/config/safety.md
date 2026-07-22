@@ -276,13 +276,22 @@ The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while und
 
 ## 교통 회피 안전 장치
 
-The Traffic Avoidance Failsafe allows PX4 to respond to transponder data (e.g. from [ADSB transponders](../advanced_features/traffic_avoidance_adsb.md)) during missions.
+The Traffic Avoidance Failsafe allows PX4 to respond to [cooperative traffic reports](../peripherals/adsb_flarm.md).
+The action parameters depend on the conflict model selected when the firmware is built.
 
 관련된 매개 변수는 다음과 같습니다.
 
-| Parameter                                                                                                              | 설명                                                                        |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID) | 비상 안전 장치를 설정합니다 : 비활성화, 경고, 귀환 모드, 착륙 모드. |
+| Parameter                                                                                                                                     | 설명                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [DAA_EN](../advanced_config/parameter_reference.md#DAA_EN)                                                               | Enables or disables Detect and Avoid.        |
+| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                        | Action for the Crosstrack model.             |
+| [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   | F3442-mode action for a `LOW` conflict.      |
+| [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   | F3442-mode action for a `MEDIUM` conflict.   |
+| [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) | F3442-mode action for a `HIGH` conflict.     |
+| [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT) | F3442-mode action for a `CRITICAL` conflict. |
+
+All action parameters use `Disabled`, `Warn only`, `Return mode`, `Land mode`, `Position Hold mode`, and `Terminate`.
+See [Detect and Avoid](../advanced_features/detect_and_avoid.md) for conflict-model and action-transition details.
 
 ## Remote ID Failsafe
 

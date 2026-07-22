@@ -48,7 +48,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Safety
 
-- TBD
+- [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
 
 ### Estimation
 

@@ -1651,6 +1651,7 @@ Change heading/course. param1: heading type (0=course-over-ground, 1=heading). p
 | <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                    | `uint8`  | 103  |                                                                                                                                                                    |
 | <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL               | `uint8`  | 104  |                                                                                                                                                                    |
 | <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL     | `uint8`  | 105  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                                | `uint8`  | 106  |                                                                                                                                                                    |
 | <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                                                     | `uint8`  | 0    |                                                                                                                                                                    |
 | <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                                                   | `uint8`  | 1    |                                                                                                                                                                    |
 | <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                                               | `uint8`  | 2    |                                                                                                                                                                    |
@@ -1854,6 +1855,7 @@ uint8 FAILURE_UNIT_SYSTEM_SERVO = 102
 uint8 FAILURE_UNIT_SYSTEM_AVOIDANCE = 103
 uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
+uint8 FAILURE_UNIT_SYSTEM_ESC = 106
 
 uint8 FAILURE_TYPE_OK = 0
 uint8 FAILURE_TYPE_OFF = 1
