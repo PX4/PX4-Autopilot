@@ -38,16 +38,29 @@
 
 using matrix::Vector3f;
 
-TEST(PidDesignDegenerateTest, ZeroNumeratorReturnsZeroGains)
+TEST(PidDesignDegenerateTest, ZeroNumeratorWithZeroLbdaReturnsZeroGains)
 {
-	// num all zeros → nu ~ 0 → fail-closed empty gains
+	// nu = lbda + (e1+1)*(b0+b1+b2); with zero plant num, nu collapses to lbda.
+	// Fail-closed empty gains only when lbda is also zero (and clamped domain allows 0).
 	const Vector3f num(0.f, 0.f, 0.f);
 	const Vector3f den(1.f, -1.5f, 0.7f);
-	const Vector3f gains = pid_design::computePidGmvc(num, den, 0.01f, 0.1f, 1.f, 0.5f);
+	const Vector3f gains = pid_design::computePidGmvc(num, den, 0.01f, 0.1f, 1.f, 0.f);
 
 	EXPECT_FLOAT_EQ(gains(0), 0.f);
 	EXPECT_FLOAT_EQ(gains(1), 0.f);
 	EXPECT_FLOAT_EQ(gains(2), 0.f);
+}
+
+TEST(PidDesignDegenerateTest, ZeroNumeratorWithPositiveLbdaGivesFiniteGains)
+{
+	// Non-zero lbda keeps nu away from 0 even with zero numerator coefficients.
+	const Vector3f num(0.f, 0.f, 0.f);
+	const Vector3f den(1.f, -1.5f, 0.7f);
+	const Vector3f gains = pid_design::computePidGmvc(num, den, 0.01f, 0.1f, 1.f, 0.5f);
+
+	EXPECT_TRUE(std::isfinite(gains(0)));
+	EXPECT_TRUE(std::isfinite(gains(1)));
+	EXPECT_TRUE(std::isfinite(gains(2)));
 }
 
 TEST(PidDesignDegenerateTest, ParameterClampsStillFinite)
