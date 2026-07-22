@@ -20,7 +20,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `accel`           | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
 | `mag`             | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
 | `baro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
-| `distance_sensor` | `off`, `stuck`                            | `off`, `stuck`             | —                          | `off`, `stuck`             |
+| `distance_sensor` | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
 | `gps`             | — <sup>[1](#1)</sup>                      | `off`, `stuck`, `wrong`    | `off`, `stuck`, `wrong`    | `off`, `stuck`             |
 | `airspeed`        | `off`, `stuck`, `wrong`<sup>[2](#2)</sup> | —                          | `off`, `wrong`             | —                          |
 | `vio`             | —                                         | —                          | `off`                      | —                          |
