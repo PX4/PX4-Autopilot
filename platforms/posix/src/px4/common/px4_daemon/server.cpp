@@ -66,6 +66,15 @@ Server::Server(int instance_id)
 	: _mutex(PTHREAD_MUTEX_INITIALIZER),
 	  _instance_id(instance_id)
 {
+	// The pthread key must exist before the server becomes discoverable via
+	// is_running(): as soon as _instance is set, any thread logging through
+	// get_stdout() calls pthread_getspecific(_key), and an uninitialized key
+	// (0) is not guaranteed to return NULL - on Darwin TSD slot 0 holds
+	// pthread_self, yielding a garbage FILE* and a crash in fputs().
+	if (pthread_key_create(&_key, _pthread_key_destructor) != 0) {
+		fprintf(stderr, "px4_daemon: failed to create pthread key\n");
+	}
+
 	_instance = this;
 }
 
@@ -129,13 +138,6 @@ void Server::_pthread_key_destructor(void *arg)
 void
 Server::_server_main()
 {
-	int ret = pthread_key_create(&_key, _pthread_key_destructor);
-
-	if (ret != 0) {
-		PX4_ERR("failed to create pthread key");
-		return;
-	}
-
 	// The list of file descriptors to watch.
 	std::vector<pollfd> poll_fds;
 
@@ -182,7 +184,7 @@ Server::_server_main()
 
 				// Start a new thread to handle the client.
 				pthread_t *thread = &_fd_to_thread[client];
-				ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
+				int ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
 
 				if (ret != 0) {
 					PX4_ERR("could not start pthread (%i)", ret);

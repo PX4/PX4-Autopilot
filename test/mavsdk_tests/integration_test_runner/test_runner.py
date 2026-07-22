@@ -58,7 +58,8 @@ class Tester:
                  verbose: bool,
                  upload: bool,
                  build_dir: str,
-                 tester_interface: TesterInterface):
+                 tester_interface: TesterInterface,
+                 case_retries: int = 0):
         self.config = config
         self.build_dir = build_dir
         self.active_runners: List[ph.Runner]
@@ -70,6 +71,7 @@ class Tester:
         self.gui = gui
         self.verbose = verbose
         self.upload = upload
+        self.case_retries = case_retries
         self.start_time = datetime.datetime.now()
         self.log_fd: Any[TextIO] = None
         self.tester_interface = tester_interface
@@ -208,6 +210,24 @@ class Tester:
                     self.pre_test_hook(test['model'], key)
 
                 was_success = self.run_test_case(test, key, log_dir)
+
+                # A failed case gets retried with a fresh set of processes:
+                # a stalled PX4 instance (e.g. a lockstep hang at boot) can
+                # only be recovered by starting over.
+                for retry in range(self.case_retries):
+                    if was_success:
+                        break
+                    print(colorize(
+                        "--> Test case '{}' failed, retrying ({} of {})"
+                        .format(key, retry + 1, self.case_retries),
+                        color.RED))
+                    # Drop the failed attempt so the summary reflects the
+                    # final outcome; its logs remain on disk.
+                    case_value['results'].pop()
+                    retry_log_dir = "{}_retry-{}".format(log_dir, retry + 1)
+                    os.makedirs(retry_log_dir, exist_ok=True)
+                    was_success = self.run_test_case(
+                        test, key, retry_log_dir)
 
                 print("--- Test case {} of {}: '{}' {}."
                       .format(test_i + 1,
