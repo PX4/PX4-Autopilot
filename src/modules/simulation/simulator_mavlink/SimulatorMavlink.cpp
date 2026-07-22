@@ -379,6 +379,10 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		handle_message_distance_sensor(msg);
 		break;
 
+	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
+		handle_message_debug_float_array(msg);
+		break;
+
 	case MAVLINK_MSG_ID_HIL_GPS:
 		handle_message_hil_gps(msg);
 		break;
@@ -420,6 +424,21 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		_rpm_pub.publish(rpm_uorb);
 		break;
 	}
+}
+
+void SimulatorMavlink::handle_message_debug_float_array(const mavlink_message_t *msg)
+{
+	mavlink_debug_float_array_t mavlink_array;
+	mavlink_msg_debug_float_array_decode(msg, &mavlink_array);
+	debug_array_s debug_array{};
+	debug_array.timestamp = hrt_absolute_time();
+	debug_array.id = mavlink_array.array_id;
+	memcpy(debug_array.name, mavlink_array.name, sizeof(debug_array.name));
+	debug_array.name[sizeof(debug_array.name) - 1] = '\0';
+	for (size_t i = 0; i < debug_array_s::ARRAY_SIZE; ++i) {
+		debug_array.data[i] = mavlink_array.data[i];
+	}
+	_debug_array_pub.publish(debug_array);
 }
 
 void SimulatorMavlink::handle_message_distance_sensor(const mavlink_message_t *msg)

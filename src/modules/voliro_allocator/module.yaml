@@ -1,0 +1,89 @@
+module_name: Voliro Allocator
+
+parameters:
+    - group: Voliro Allocator
+      definitions:
+        VOLA_EN:
+            description:
+                short: Enable dedicated Voliro allocator at boot
+                long: Requires reboot. The airframe post script stops the stock allocator before starting this module.
+            type: boolean
+            default: false
+            reboot_required: true
+        VOLA_TMAX:
+            description:
+                short: Maximum thrust per rotor
+            type: float
+            unit: N
+            min: 0.1
+            max: 200
+            default: 13.7
+        VOLA_ARM:
+            description:
+                short: Rotor arm radius
+            type: float
+            unit: m
+            min: 0.01
+            max: 5
+            default: 0.315
+        VOLA_KAPPA:
+            description:
+                short: Reaction torque to thrust ratio
+            type: float
+            unit: m
+            min: 0
+            max: 1
+            default: 0.015
+        VOLA_TILT_MIN:
+            description:
+                short: Minimum radial tilt angle
+            type: float
+            unit: rad
+            min: -3.1416
+            max: 0
+            default: -1.5707963
+        VOLA_TILT_MAX:
+            description:
+                short: Maximum radial tilt angle
+            type: float
+            unit: rad
+            min: 0
+            max: 3.1416
+            default: 1.5707963
+        VOLA_TILT_RATE:
+            description:
+                short: Maximum measured-to-command tilt slew rate
+            type: float
+            unit: rad/s
+            min: 0.1
+            max: 100
+            default: 7.85
+        VOLA_FB_TMO:
+            description:
+                short: Tilt feedback timeout
+            type: float
+            unit: s
+            min: 0.01
+            max: 1
+            default: 0.1
+        VOLA_MAX_ITER:
+            description:
+                short: Maximum projected-solver iterations
+            type: int32
+            min: 1
+            max: 1000
+            default: 100
+        VOLA_SOL_TOL:
+            description:
+                short: Projected-solver convergence tolerance
+            type: float
+            min: 0.00000001
+            max: 0.01
+            default: 0.000001
+        VOLA_REG:
+            description:
+                short: Allocation regularization
+            type: float
+            min: 0
+            max: 0.01
+            default: 0.0000000001

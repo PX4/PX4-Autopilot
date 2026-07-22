@@ -44,7 +44,7 @@ param set-default CA_ROTOR5_PY 0.866025404
 param set-default CA_ROTOR5_KM 0.0476190476
 
 # Simulator/HIL channel contract: six motors followed by six independent
-# radial-axis tilt servos. The custom allocator is intentionally not enabled.
+# radial-axis tilt servos.
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 103
@@ -61,3 +61,14 @@ param set-default PWM_MAIN_FUNC12 206
 param set-default SENS_GPS0_DELAY 0
 param set-default SENS_GPS1_DELAY 0
 param set-default THR_MDL_FAC 1
+
+# Reboot-scoped output-owner switch. Set this to 0 to leave the stock
+# control_allocator running in conventional centered-tilt mode.
+param set-default VOLA_EN 1
+param set-default VOLA_TMAX 13.7
+param set-default VOLA_ARM 0.315
+param set-default VOLA_KAPPA 0.015
+param set-default VOLA_TILT_MIN -1.5707963
+param set-default VOLA_TILT_MAX 1.5707963
+param set-default VOLA_TILT_RATE 7.85
+param set-default VOLA_FB_TMO 0.1

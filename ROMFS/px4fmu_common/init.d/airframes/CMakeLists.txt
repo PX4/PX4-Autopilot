@@ -40,6 +40,13 @@ px4_add_romfs_files(
 	# [22000, 22999] Reserve for custom models
 )
 
+if(CONFIG_MODULES_VOLIRO_ALLOCATOR)
+	px4_add_romfs_files(
+		22000_voliro_variable_tilt
+		22000_voliro_variable_tilt.post
+	)
+endif()
+
 if(CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)
 	px4_add_romfs_files(
 		# [1000, 1999] Simulation setups
