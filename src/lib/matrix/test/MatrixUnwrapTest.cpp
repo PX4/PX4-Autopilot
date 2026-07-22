@@ -66,11 +66,13 @@ TEST(MatrixUnwrapTest, UnwrapPiMultipleCrossings)
 	// Staircase of wrap_pi samples that should reconstruct monotone increasing angle
 	float last = 0.f;
 	float walked = 0.f;
+
 	for (int i = 0; i < 20; i++) {
 		walked += 0.7f; // rad per step
 		const float wrapped = matrix::wrap_pi(walked);
 		last = matrix::unwrap_pi(last, wrapped);
 	}
+
 	EXPECT_NEAR(last, 0.7f * 20.f, 1e-3f);
 }
 
@@ -78,10 +80,12 @@ TEST(MatrixUnwrapTest, UnwrapPiNegativeWalk)
 {
 	float last = 0.f;
 	float walked = 0.f;
+
 	for (int i = 0; i < 15; i++) {
 		walked -= 0.8f;
 		const float wrapped = matrix::wrap_pi(walked);
 		last = matrix::unwrap_pi(last, wrapped);
 	}
+
 	EXPECT_NEAR(last, -0.8f * 15.f, 1e-3f);
 }
