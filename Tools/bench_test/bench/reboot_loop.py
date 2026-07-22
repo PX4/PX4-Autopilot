@@ -66,9 +66,10 @@ def main():
 
         # prove the shell (and thus the running system) is responsive
         shell = px4bench.MavlinkShell(mav)
-        if not shell.open(timeout=5):
+        if not shell.open():
             report.fail('cycle {} shell'.format(i),
-                        'no nsh output on SERIAL_CONTROL within 5s')
+                        'no nsh output on SERIAL_CONTROL within {:.0f}s'.format(
+                            px4bench.SHELL_OPEN_TIMEOUT))
             shell.close()
             report.info('aborting remaining {} cycle(s)'.format(args.iterations - i))
             sys.exit(report.finish())

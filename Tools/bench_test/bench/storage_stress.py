@@ -152,8 +152,9 @@ def main():
     report.ok('connect', 'heartbeat from {}'.format(args.connection))
 
     shell = px4bench.MavlinkShell(mav)
-    if not shell.open(timeout=5):
-        report.fail('shell open', 'no nsh output on SERIAL_CONTROL within 5s')
+    if not shell.open():
+        report.fail('shell open', 'no nsh output on SERIAL_CONTROL within {:.0f}s'.format(
+            px4bench.SHELL_OPEN_TIMEOUT))
         mav.close()
         sys.exit(report.finish())
 
