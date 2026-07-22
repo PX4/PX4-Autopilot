@@ -61,7 +61,9 @@ struct FirstOrderHoldAltitudeState {
  * radius around the target. While the target altitude stays the same the ramp keeps progressing and is never
  * restarted, even if the position setpoint is otherwise updated.
  *
- * @param pos_sp_curr current position setpoint (target)
+ * @param target_lat target (current waypoint) latitude [deg]
+ * @param target_lon target (current waypoint) longitude [deg]
+ * @param target_altitude target (current waypoint) altitude [m AMSL]
  * @param current_lat current vehicle latitude [deg]
  * @param current_lon current vehicle longitude [deg]
  * @param current_altitude current vehicle altitude [m AMSL]
@@ -69,6 +71,6 @@ struct FirstOrderHoldAltitudeState {
  * @param state in/out FOH state, persisted across calls
  * @return altitude setpoint [m AMSL]
  */
-float calculateFirstOrderHoldAltitude(const position_setpoint_s &pos_sp_curr, const double current_lat,
-				      const double current_lon, const float current_altitude, const float acc_rad,
-				      FirstOrderHoldAltitudeState &state);
+float calculateFirstOrderHoldAltitude(const double target_lat, const double target_lon, const float target_altitude,
+				      const double current_lat, const double current_lon, const float current_altitude,
+				      const float acc_rad, FirstOrderHoldAltitudeState &state);

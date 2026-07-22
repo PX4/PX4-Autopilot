@@ -38,16 +38,14 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 
-float calculateFirstOrderHoldAltitude(const position_setpoint_s &pos_sp_curr, const double current_lat,
-				      const double current_lon, const float current_altitude, const float acc_rad,
-				      FirstOrderHoldAltitudeState &state)
+float calculateFirstOrderHoldAltitude(const double target_lat, const double target_lon, const float target_altitude,
+				      const double current_lat, const double current_lon, const float current_altitude,
+				      const float acc_rad, FirstOrderHoldAltitudeState &state)
 {
-	const float target_altitude = pos_sp_curr.alt;
+	// The target altitude is considered reached within the acceptance radius of the target.
+	const float completion_radius = acc_rad;
 
-	// The current altitude is considered reached within the acceptance radius (or loiter circle) of the target.
-	const float completion_radius = math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius));
-
-	const float d_curr = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, current_lat, current_lon);
+	const float d_curr = get_distance_to_next_waypoint(target_lat, target_lon, current_lat, current_lon);
 
 	// Start a new ramp whenever the target altitude changes (a genuinely new altitude setpoint). Ramp updates
 	// that keep the same target altitude leave the ongoing ramp untouched so it keeps progressing smoothly.

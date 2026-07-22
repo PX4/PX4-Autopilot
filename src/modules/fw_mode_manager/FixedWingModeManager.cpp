@@ -810,8 +810,8 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 
 	// waypoint is a plain navigation waypoint
 	_foh_altitude_active = true;
-	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr, _current_latitude, _current_longitude,
-				      _current_altitude, acc_rad, _foh_altitude_state);
+	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
+				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
@@ -914,8 +914,8 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	// by the time the vehicle arrives at the loiter circle.
 	const float acc_rad = math::max(_directional_guidance.switchDistance(500.0f), loiter_radius);
 	_foh_altitude_active = true;
-	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr, _current_latitude, _current_longitude,
-				      _current_altitude, acc_rad, _foh_altitude_state);
+	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
+				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
