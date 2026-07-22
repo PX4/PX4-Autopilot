@@ -45,3 +45,4 @@ target_link_libraries(SlewRate PUBLIC mathlib)
 
 px4_add_unit_gtest(SRC SlewRateTest.cpp LINKLIBS SlewRate)
 px4_add_unit_gtest(SRC SlewRateYawTest.cpp LINKLIBS SlewRate)
+px4_add_unit_gtest(SRC SlewRateZeroDtTest.cpp LINKLIBS SlewRate)
