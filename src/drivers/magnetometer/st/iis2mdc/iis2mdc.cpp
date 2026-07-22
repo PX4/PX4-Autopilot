@@ -66,7 +66,9 @@ int IIS2MDC::init()
 
 	_px4_mag.set_scale(0.0015f); // 1.5 mGauss/LSB (datasheet)
 
-	ScheduleDelayed(20_ms);
+	// Poll at the 100 Hz ODR on a fixed interval so the rate does not drift with
+	// the time spent reading the sensor.
+	ScheduleOnInterval(10_ms);
 
 	return PX4_OK;
 }
@@ -95,11 +97,9 @@ void IIS2MDC::RunImpl()
 		}
 
 	} else {
+		// No new sample yet; expected occasionally when polling at the data rate.
 		PX4_DEBUG("not ready: %u", status);
-		perf_count(_comms_errors);
 	}
-
-	ScheduleDelayed(10_ms);
 }
 
 uint8_t IIS2MDC::read_register_block(SensorData *data)
