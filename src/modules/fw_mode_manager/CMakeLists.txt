@@ -71,4 +71,4 @@ px4_add_module(
 		${POSCONTROL_DEPENDENCIES}
 	)
 
-px4_add_unit_gtest(SRC FixedWingModeManagerTest.cpp EXTRA_SRCS FirstOrderHoldAltitude.cpp LINKLIBS geo mathlib)
+px4_add_unit_gtest(SRC FirstOrderHoldAltitudeTest.cpp EXTRA_SRCS FirstOrderHoldAltitude.cpp LINKLIBS geo mathlib)
