@@ -61,13 +61,23 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHO_AM_I_ID       = 0x70; // LSM6DSV16X and LSM6DSV32X (same ID)
 static constexpr uint8_t WHO_AM_I_DSK320X  = 0x75; // LSM6DSK320X (unique ID)
+// The LSM6DSV80X and LSM6DSV320X share this ID and have an identical register map; they differ
+// only in the high-g full-scale table and cannot be distinguished over SPI (no part-ID register;
+// only the MIPI I3C Provisioned ID differs, which is not SPI-accessible). The variant is therefore
+// selected explicitly at driver start (-T 80 | -T 320).
+static constexpr uint8_t WHO_AM_I_HIGHG    = 0x73; // LSM6DSV80X / LSM6DSV320X (shared ID)
 
-// HAODR mode-1 ODR: 2000 Hz
+// Default-variant (16X / 32X / DSK320X) ODR: HAODR_SEL=01, code 0x0A = 2000 Hz
 static constexpr uint32_t GYRO_ODR  = 2000;
 static constexpr uint32_t ACCEL_ODR = 2000;
 
-// HAODR mode-1 ODR codes (written to CTRL1/CTRL2 [3:0])
+// HAODR mode-1 (HAODR_SEL=01) ODR code (written to CTRL1/CTRL2 [3:0] and FIFO BDR [3:0])
 static constexpr uint8_t HAODR_MODE1_ODR_2000HZ = 0x0A;
+
+// High-g variants (LSM6DSV80X / LSM6DSV320X) ODR: HAODR_SEL=00, code 0x0C = 7680 Hz
+// (device max; matches the high-g channel ODR set so all channels co-batch at one rate)
+static constexpr uint32_t GYRO_ODR_HIGHG  = 7680;
+static constexpr uint8_t HAODR_SEL0_ODR_7680HZ = 0x0C;
 
 enum class Register : uint8_t {
 	IF_CFG           = 0x03, // Interrupt polarity and output mode
@@ -76,6 +86,8 @@ enum class Register : uint8_t {
 	FIFO_CTRL2       = 0x08,
 	FIFO_CTRL3       = 0x09,
 	FIFO_CTRL4       = 0x0A,
+
+	COUNTER_BDR_REG1 = 0x0B, // XL_HG_BATCH_EN (high-g FIFO batching)
 
 	INT1_CTRL        = 0x0D, // INT1 pin control
 
@@ -100,6 +112,8 @@ enum class Register : uint8_t {
 	OUTX_L_G         = 0x22,
 
 	OUTX_L_A         = 0x28,
+
+	CTRL1_XL_HG      = 0x4E, // High-g accel: REGOUT_EN + ODR_XL_HG + FS_XL_HG
 
 	FIFO_DATA_OUT_TAG = 0x78,
 	FIFO_DATA_OUT_X_L = 0x79,
@@ -145,18 +159,19 @@ enum CTRL4_BIT : uint8_t {
 
 // CTRL6 — Gyroscope full-scale
 enum CTRL6_BIT : uint8_t {
-	// FS_G [3:0]
-	FS_G_2000DPS        = 0x04, // ±2000 dps (16X / 32X)
+	// FS_G [2:0]
+	FS_G_2000DPS         = 0x04, // ±2000 dps (16X / 32X)
 	FS_G_2000DPS_DSK320X = 0x0C, // ±2000 dps with bit3=1 for DSK320X (0x04 | Bit3)
+	FS_G_4000DPS_HIGHG   = 0x0D, // ±4000 dps for 80X/320X (FS_G=101 | bit3); CTRL6 bit3 must be 1
 };
 
 // CTRL8 — Accelerometer full-scale + LPF2 bandwidth
 enum CTRL8_BIT : uint8_t {
 	// bit2 is hardware-reserved and differs by variant:
-	//   16X / DSK320X = 0 (value OR'd with FS_XL)
+	//   16X / DSK320X / 80X = 0 (value OR'd with FS_XL)
 	//   32X = 1 (must be preserved)
 	// FS_XL [1:0] in bits [1:0]
-	FS_XL_16G          = 0x03, // ±16 g for 16X / DSK320X (bit2=0)
+	FS_XL_16G          = 0x03, // ±16 g for 16X / DSK320X / 80X (bit2=0)
 	FS_XL_16G_DSV32X   = 0x06, // ±16 g for 32X (bit2=1, FS_XL=10)
 
 	// HP_LPF2_XL_BW [2:0] in bits [7:5] — when LPF2 enabled via CTRL9
@@ -178,9 +193,35 @@ enum STATUS_REG_BIT : uint8_t {
 // FIFO_CTRL3 — Batch Data Rate for accel and gyro
 enum FIFO_CTRL3_BIT : uint8_t {
 	// BDR_GY [3:0] in bits [7:4], BDR_XL [3:0] in bits [3:0]
-	// Set both to HAODR mode-1 code = 0x0A
+	// Default variants: HAODR mode-1 code 0x0A (2000 Hz)
 	BDR_XL_HAODR = HAODR_MODE1_ODR_2000HZ,
 	BDR_GY_HAODR = HAODR_MODE1_ODR_2000HZ << 4,
+	// LSM6DSV80X: code 0x0C (7680 Hz)
+	BDR_XL_7680  = HAODR_SEL0_ODR_7680HZ,
+	BDR_GY_7680  = HAODR_SEL0_ODR_7680HZ << 4,
+};
+
+// COUNTER_BDR_REG1 (0x0B)
+enum COUNTER_BDR_REG1_BIT : uint8_t {
+	XL_HG_BATCH_EN = Bit3, // Batch high-g accelerometer data in FIFO
+};
+
+// CTRL1_XL_HG (0x4E) — High-g accelerometer ODR + full-scale
+enum CTRL1_XL_HG_BIT : uint8_t {
+	XL_HG_REGOUT_EN = Bit7, // Enable high-g output registers (not needed for FIFO path)
+	// ODR_XL_HG [5:3]: 111 = 7.68 kHz
+	ODR_XL_HG_7680  = 0x38,
+	// FS_XL_HG [2:0] — value/range mapping is variant-specific (see HighGFullScale tables)
+};
+
+// The high-g accelerometer's full-scale. scale_mg_per_lsb is taken verbatim from the datasheet: it
+// is NOT range_g / 2^15, and the difference matters. The LSM6DSV80X ±80 g range is 3.904 mg/LSB, not
+// 2.44, so its counts saturate around 20492 and never reach the int16 rail — code that infers
+// saturation from int16 will not see this channel clip.
+struct HighGFullScale {
+	uint8_t  fs_code;         // FS_XL_HG [2:0] register code
+	uint16_t range_g;         // ± full scale [g]
+	float    scale_mg_per_lsb; // sensitivity [mg/LSB] (datasheet)
 };
 
 // FIFO_CTRL4 — FIFO mode
@@ -199,24 +240,29 @@ enum FIFO_STATUS2_BIT : uint8_t {
 
 // HAODR_CFG
 enum HAODR_CFG_BIT : uint8_t {
-	HAODR_MODE1 = 0x01, // Enable HAODR mode-1
+	HAODR_SEL_MASK = 0x03, // HAODR_SEL [1:0]
+	HAODR_MODE1    = 0x01, // HAODR_SEL=01 (2000 Hz ODR set)
+	// HAODR_SEL=00 (1920/3840/7680 Hz ODR set) is the default (0x00)
 };
 
 // FIFO tag IDs (upper 5 bits of FIFO_DATA_OUT_TAG >> 3)
 enum class FifoTag : uint8_t {
 	GYRO_NC  = 0x01,
-	ACCEL_NC = 0x02,
+	ACCEL_NC = 0x02,    // low-g accelerometer
 	TEMPERATURE = 0x03,
 	TIMESTAMP = 0x04,
+	ACCEL_HG = 0x1D,    // high-g accelerometer (LSM6DSV80X / LSM6DSV320X)
 };
 
 namespace FIFO
 {
 // FIFO word: 1-byte tag + 6-byte data = 7 bytes
 static constexpr size_t WORD_SIZE = 7;
-// Max samples to drain per poll (avoid blocking scheduler)
+// Words batched per sample period: gyro + low-g, plus high-g on the 80X / 320X
+static constexpr size_t MAX_WORDS_PER_PERIOD = 3;
+// Max sample periods to drain per poll (avoid blocking scheduler)
 static constexpr size_t MAX_DRAIN_SAMPLES = 32;
-// FIFO depth: 512 words max on LSM6DSV
+// Ceiling of the DIFF_FIFO word counter. The buffer itself is 1.5 KB, i.e. ~219 uncompressed words.
 static constexpr size_t DEPTH = 512;
 }
 
