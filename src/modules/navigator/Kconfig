@@ -60,5 +60,3 @@ menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
 	---help---
 		Adds the `navigator fake_traffic` shell command and the scripted scenarios
 		used to validate the Detect and Avoid pipeline without a real transponder.
-		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
-		Actions are warnings, Loiter, Land and RTL without climb.

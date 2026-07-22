@@ -74,11 +74,6 @@ RTL::RTL(Navigator *navigator) :
 	_rtl_direct.initialize();
 }
 
-void RTL::updateDatamanCache()
-{
-	_navigator->get_mission_route_cache().update(_mission_sub.get());
-}
-
 void RTL::on_inactive()
 {
 	_global_pos_sub.update();
@@ -86,8 +81,6 @@ void RTL::on_inactive()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-
-	updateDatamanCache();
 
 	parameters_update();
 
@@ -147,8 +140,6 @@ void RTL::on_activation()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
-	updateDatamanCache();
-
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -192,8 +183,6 @@ void RTL::on_active()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
-
-	updateDatamanCache();
 
 	switch (_rtl_type) {
 	case RtlType::RTL_MISSION_FAST:
