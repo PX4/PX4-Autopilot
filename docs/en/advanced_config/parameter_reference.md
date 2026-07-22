@@ -20650,6 +20650,27 @@ Change time measurement
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### CAM_CAP_REPORT (`INT32`) {#CAM_CAP_REPORT}
+
+Report captures to the ground station.
+
+Whether the autopilot reports captures to the ground station by emitting
+CAMERA_IMAGE_CAPTURED.
+
+Disable for cameras that report captures themselves (e.g. cameras
+implementing the MAVLink Camera Protocol) to avoid duplicate
+CAMERA_IMAGE_CAPTURED messages. Capture events are still published on the
+camera_capture topic and logged for geotagging regardless of this setting.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
 ## Camera trigger
 
 ### TRIG_ACT_TIME (`FLOAT`) {#TRIG_ACT_TIME}
