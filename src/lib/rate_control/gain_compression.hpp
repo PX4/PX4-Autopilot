@@ -49,6 +49,7 @@
 // Libraries
 #include <math.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <mathlib/mathlib.h>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -58,16 +59,42 @@ class GainCompression
 {
 public:
 	void reset() { _compression_gain = 1.f; }
-	float update(float input, float dt);
+
+	// Inline so unit tests can exercise GainCompression without linking
+	// GainCompression3d (ModuleParams / uORB) from the same translation unit.
+	float update(float input, float dt)
+	{
+		if (!PX4_ISFINITE(input)) {
+			return _compression_gain;
+		}
+
+		_hpf = _alpha_hpf * _hpf + _alpha_hpf * (input - _input_prev);
+		_lpf.update(_hpf * _hpf);
+
+		_input_prev = input;
+
+		const float ka = fmaxf(_compression_gain - _compression_gain_min, 0.f);
+		const float spectral_damping = -_kSpectralDamperGain * ka * _lpf.getState();
+
+		const float leakage = _kLeakageGain * (1.f - _compression_gain);
+
+		const float ka_dot = spectral_damping + leakage;
+		_compression_gain = math::constrain(_compression_gain + ka_dot * dt, _compression_gain_min, 1.f);
+
+		return _compression_gain;
+	}
 
 	void setLpfCutoffFrequency(float sample_freq, float cutoff)
 	{
 		_lpf.setCutoffFreq(sample_freq, cutoff);
 	}
+
 	void setHpfCutoffFrequency(float sample_freq, float cutoff) { _alpha_hpf = sample_freq / (sample_freq + 2.f * M_PI_F * cutoff); }
 
 	float getSpectralDamperHpf() const { return _hpf * _hpf; }
+
 	float getSpectralDamperLpf() const { return _lpf.getState(); }
+
 	void setCompressionGainMin(float gain_min) { _compression_gain_min = gain_min; }
 
 private:

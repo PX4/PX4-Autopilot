@@ -93,25 +93,3 @@ void GainCompression3d::update(const Vector3f &input, const float dt)
 		_time_last_publication = now;
 	}
 }
-
-float GainCompression::update(const float input, const float dt)
-{
-	if (!PX4_ISFINITE(input)) {
-		return _compression_gain;
-	}
-
-	_hpf = _alpha_hpf * _hpf + _alpha_hpf * (input - _input_prev);
-	_lpf.update(_hpf * _hpf);
-
-	_input_prev = input;
-
-	const float ka = fmaxf(_compression_gain - _compression_gain_min, 0.f);
-	const float spectral_damping = -_kSpectralDamperGain * ka * _lpf.getState();
-
-	const float leakage = _kLeakageGain * (1.f - _compression_gain);
-
-	const float ka_dot = spectral_damping + leakage;
-	_compression_gain = math::constrain(_compression_gain + ka_dot * dt, _compression_gain_min, 1.f);
-
-	return _compression_gain;
-}
