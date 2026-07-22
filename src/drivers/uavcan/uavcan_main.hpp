@@ -50,6 +50,9 @@
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 #include "actuators/esc.hpp"
 #include "actuators/servo.hpp"
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+#include "actuators/esc_hobbywing.hpp"
+#endif
 #endif
 
 #if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
@@ -173,6 +176,39 @@ private:
 	UavcanServoController &_servo_controller;
 	MixingOutput _mixing_output{"UAVCAN_SV", UavcanServoController::MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
+
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+/**
+ * UAVCAN mixing class for HobbyWing ESCs.
+ * Uses the same UAVCAN_EC parameter namespace as UavcanMixingInterfaceESC so
+ * motor function assignments are shared between ESC protocol variants.
+ */
+class UavcanMixingInterfaceHobbyWingESC : public OutputModuleInterface
+{
+public:
+	UavcanMixingInterfaceHobbyWingESC(pthread_mutex_t &node_mutex, UavcanHobbyWingEscController &esc_controller)
+		: OutputModuleInterface(MODULE_NAME "-actuators-esc-hw", px4::wq_configurations::uavcan),
+		  _node_mutex(node_mutex),
+		  _esc_controller(esc_controller) {}
+
+	bool updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs, unsigned num_control_groups_updated) override;
+
+	void mixerChanged() override;
+
+	MixingOutput &mixingOutput() { return _mixing_output; }
+
+	bool isActuatorTestRunning() const { return _mixing_output.isActuatorTestRunning(); }
+
+protected:
+	void Run() override;
+private:
+	friend class UavcanNode;
+	pthread_mutex_t &_node_mutex;
+	UavcanHobbyWingEscController &_esc_controller;
+	// Shares UAVCAN_EC parameter namespace with UavcanMixingInterfaceESC
+	MixingOutput _mixing_output{"UAVCAN_EC", UavcanHobbyWingEscController::MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+};
+#endif // CONFIG_UAVCAN_HOBBYWING_ESC
 #endif
 
 /**
@@ -271,6 +307,10 @@ private:
 
 	UavcanServoController		_servo_controller;
 	UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+	UavcanHobbyWingEscController		_esc_hobbywing_controller;
+	UavcanMixingInterfaceHobbyWingESC	_mixing_interface_hobbywing_esc{_node_mutex, _esc_hobbywing_controller};
+#endif
 #endif
 #if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
 	UavcanHardpointController	_hardpoint_controller;
