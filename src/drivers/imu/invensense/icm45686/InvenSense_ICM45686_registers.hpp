@@ -132,6 +132,25 @@ enum INT1_STATUS0 : uint8_t {
 	INT1_STATUS_FIFO_FULL = Bit0,
 };
 
+// INT1_CONFIG0: routes the corresponding status (same bit positions as INT1_STATUS0) to INT1
+enum INT1_CONFIG0_BIT : uint8_t {
+	INT1_STATUS_EN_RESET_DONE = Bit7,
+	INT1_STATUS_EN_AUX1_AGC = Bit6,
+	INT1_STATUS_EN_AP_AGC_RDY = Bit5,
+	INT1_STATUS_EN_AP_FSYNC = Bit4,
+	INT1_STATUS_EN_AP_AUX1_DRDY = Bit3,
+	INT1_STATUS_EN_AP_DRDY = Bit2,
+	INT1_STATUS_EN_FIFO_THS = Bit1,
+	INT1_STATUS_EN_FIFO_FULL = Bit0,
+};
+
+// INT1_CONFIG2
+enum INT1_CONFIG2_BIT : uint8_t {
+	INT1_DRIVE    = Bit2, // 0: push-pull, 1: open drain
+	INT1_MODE     = Bit1, // 0: pulsed, 1: latched
+	INT1_POLARITY = Bit0, // 0: active low, 1: active high
+};
+
 enum ACCEL_CONFIG0_BIT : uint8_t {
 	ACCEL_UI_FS_SEL_32_G_SET = 0,
 	ACCEL_UI_FS_SEL_32_G_CLEAR = Bit6 | Bit5 | Bit4,
