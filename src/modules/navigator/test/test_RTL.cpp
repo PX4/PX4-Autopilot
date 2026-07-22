@@ -177,15 +177,9 @@ public:
 	explicit RTLTestPeer(Navigator *navigator) : RTL(navigator) {}
 
 	bool extractValidSafePointPositionForTest(const mission_item_s &safe_point_item, float home_altitude_amsl,
-			PositionYawSetpoint &position) const
+			mission_route::Position &position) const
 	{
-		mission_route::Position safe_point_position{};
-
-		if (!mission_route::extractSafePointPosition(safe_point_item, home_altitude_amsl, safe_point_position)) {
-			return false;
-		}
-
-		return mission_route::copyPositionToYawSetpoint(safe_point_position, position);
+		return mission_route::extractSafePointPosition(safe_point_item, home_altitude_amsl, position);
 	}
 
 	loiter_point_s chooseBestLandingApproachForTest(const land_approaches_s &vtol_land_approaches)
@@ -770,7 +764,7 @@ class ExtractValidSafePointPositionTest :
 TEST_P(ExtractValidSafePointPositionTest, ExtractValidSafePointPositionValidatesInput)
 {
 	const ExtractValidSafePointPositionCase &test_case = GetParam();
-	PositionYawSetpoint extracted_position{};
+	mission_route::Position extracted_position{};
 
 	// GIVEN: One safe-point item.
 	// WHEN: The parser runs.

@@ -71,9 +71,6 @@ float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, floa
 /** @brief Extract the valid position from a rally-point safe-point item. */
 bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl, Position &position);
 
-/** @brief Copy a valid Position into a PositionYawSetpoint (yaw left unset). Returns false for an invalid position. */
-bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &setpoint);
-
 /** @brief Convert one LOITER_TO_ALT safe-point item into a concrete landing-approach point. */
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl);
 
