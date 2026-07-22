@@ -229,10 +229,11 @@ TEST_F(GeoTest, getDistanceToArcOutsideSector)
 
 	// The implementation locates the endpoints with an equirectangular approximation; mirror it so we
 	// can predict which endpoint is nearer and at what distance.
-	auto endpoint = [&](double bearing, double & lat, double & lon) {
+	auto endpoint = [&](double bearing, double &lat, double &lon) {
 		lat = lat_center + static_cast<double>(radius) * cos(bearing) / mpd;
 		lon = lon_center + static_cast<double>(radius) * sin(bearing) / (mpd * cos_lat);
 	};
+
 	double lat_start, lon_start, lat_end, lon_end;
 	endpoint(static_cast<double>(arc_start_bearing), lat_start, lon_start);
 	endpoint(static_cast<double>(arc_start_bearing + arc_sweep), lat_end, lon_end);
@@ -250,7 +251,8 @@ TEST_F(GeoTest, getDistanceToArcOutsideSector)
 	EXPECT_FALSE(err.past_end);
 
 	// WHEN: the vehicle is outside the wedge on the end side (0.5 rad past the end bearing)
-	waypoint_from_heading_and_distance(lat_center, lon_center, arc_start_bearing + arc_sweep + 0.5f, radius, &lat_v, &lon_v);
+	waypoint_from_heading_and_distance(lat_center, lon_center, arc_start_bearing + arc_sweep + 0.5f, radius, &lat_v,
+					   &lon_v);
 	get_distance_to_arc(&err, lat_v, lon_v, lat_center, lon_center, radius, arc_start_bearing, arc_sweep);
 	// THEN: the result is the distance to the nearer (end) endpoint, past the end
 	EXPECT_LT(get_distance_to_next_waypoint(lat_v, lon_v, lat_end, lon_end),
@@ -323,29 +325,32 @@ TEST_F(GeoTest, getDistanceToArcNegativeSweep)
 
 TEST_F(GeoTest, MapProjectionRoundtrip)
 {
-	MapProjection proj;
-	ASSERT_FALSE(proj.isInitialized());
+	// Use a dedicated MapProjection (not fixture member) so init state is isolated
+	MapProjection map_proj;
+	ASSERT_FALSE(map_proj.isInitialized());
 	const double lat0 = 47.397742;
 	const double lon0 = 8.545594;
-	proj.initReference(lat0, lon0);
-	ASSERT_TRUE(proj.isInitialized());
+	map_proj.initReference(lat0, lon0);
+	ASSERT_TRUE(map_proj.isInitialized());
 
 	double lat = lat0 + 0.01;
 	double lon = lon0 - 0.02;
-	float x = 0.f, y = 0.f;
-	proj.project(lat, lon, x, y);
+	float x = 0.f;
+	float y = 0.f;
+	map_proj.project(lat, lon, x, y);
 	// Non-trivial east/north meters
 	EXPECT_GT(fabsf(x) + fabsf(y), 100.f);
 
-	double lat_out = 0.0, lon_out = 0.0;
-	proj.reproject(x, y, lat_out, lon_out);
+	double lat_out = 0.0;
+	double lon_out = 0.0;
+	map_proj.reproject(x, y, lat_out, lon_out);
 	EXPECT_NEAR(lat_out, lat, 1e-7);
 	EXPECT_NEAR(lon_out, lon, 1e-7);
 
 	// Reference project is ~0
-	float x0 = 1.f, y0 = 1.f;
-	proj.project(lat0, lon0, x0, y0);
+	float x0 = 1.f;
+	float y0 = 1.f;
+	map_proj.project(lat0, lon0, x0, y0);
 	EXPECT_NEAR(x0, 0.f, 1e-2f);
 	EXPECT_NEAR(y0, 0.f, 1e-2f);
 }
-
