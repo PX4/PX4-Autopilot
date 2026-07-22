@@ -12,11 +12,10 @@ using math::MedianFilter;
 TEST(MedianFilterWindow5, SteadySequence)
 {
 	MedianFilter<int, 5> mf;
-	// fill
-	EXPECT_EQ(mf.apply(1), 1); // buffer lacks full semantics but median of what is inserted
-	mf.apply(2);
-	mf.apply(3);
-	mf.apply(4);
+	// Buffer starts zero-filled; fill the full window before reading medians.
+	for (int i = 1; i <= 4; i++) {
+		mf.apply(i);
+	}
 	EXPECT_EQ(mf.apply(5), 3); // 1..5 median 3
 	EXPECT_EQ(mf.apply(6), 4); // 2..6 median 4
 }
