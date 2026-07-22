@@ -373,11 +373,11 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
-	PositionYawSetpoint safe_point{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
+	PositionYawSetpoint closest_safe_point{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
 	_one_rally_point_has_land_approach = false;
 
 	if (!mission_route_cache.safePointsReady()) {
-		return safe_point;
+		return closest_safe_point;
 	}
 
 	for (int current_seq = 0; current_seq < mission_route_cache.safePointCount(); ++current_seq) {
@@ -393,25 +393,26 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 			continue;
 		}
 
-		mission_route::Position safe_point_position{};
+		mission_route::Position candidate_position{};
 
-		if (!mission_route::extractSafePointPosition(mission_safe_point, _home_pos_sub.get().alt, safe_point_position)) {
+		if (!mission_route::extractSafePointPosition(mission_safe_point, _home_pos_sub.get().alt, candidate_position)) {
 			continue;
 		}
 
-		PositionYawSetpoint safepoint_position{};
-
-		if (!mission_route::copyPositionToYawSetpoint(safe_point_position, safepoint_position)) {
-			continue;
-		}
+		const PositionYawSetpoint candidate_setpoint{
+			candidate_position.lat,
+			candidate_position.lon,
+			candidate_position.alt,
+			NAN
+		};
 
 		// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
 		const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
-					   safepoint_position.lat, safepoint_position.lon) > mission_route::kLandApproachAssociationDistanceM;
+					   candidate_setpoint.lat, candidate_setpoint.lon) > mission_route::kLandApproachAssociationDistanceM;
 
 		if (far_from_home || (_param_rtl_type.get() == RTL_TYPE_SAFE_POINT_DIRECT)) {
 			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					 safepoint_position.lat, safepoint_position.lon)};
+					 candidate_setpoint.lat, candidate_setpoint.lon)};
 
 			const bool current_safe_point_has_approaches{
 				mission_route_cache.hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)
@@ -427,13 +428,13 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 				}
 
 				min_dist = dist;
-				safe_point = safepoint_position;
+				closest_safe_point = candidate_setpoint;
 				safe_point_index = static_cast<uint8_t>(current_seq);
 			}
 		}
 	}
 
-	return safe_point;
+	return closest_safe_point;
 }
 
 void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index)

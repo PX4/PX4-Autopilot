@@ -100,19 +100,6 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 	return position.valid();
 }
 
-bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &setpoint)
-{
-	if (!position.valid()) {
-		return false;
-	}
-
-	setpoint.lat = position.lat;
-	setpoint.lon = position.lon;
-	setpoint.alt = position.alt;
-	setpoint.yaw = NAN;
-	return true;
-}
-
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)
 {
 	const Position position{mission_item.lat, mission_item.lon,
