@@ -56,7 +56,7 @@ bool Provider::scanVtolLandApproachBlock(int safe_point_index, float home_altitu
 	const int safe_point_count = safePointCount();
 
 	for (int current_seq = safe_point_index + 1; current_seq < safe_point_count; ++current_seq) {
-		mission_item_s mission_item{};
+		mission_item_s mission_item;
 
 		if (!loadSafePointItem(current_seq, mission_item)) {
 			break;
@@ -92,7 +92,7 @@ bool Provider::findAssociatedSafePointIndex(const PositionYawSetpoint &rtl_posit
 		float home_altitude_amsl, int &safe_point_index, mission_item_s &safe_point_item) const
 {
 	for (int current_seq = 0; current_seq < safePointCount(); ++current_seq) {
-		mission_item_s mission_item{};
+		mission_item_s mission_item;
 
 		if (!loadSafePointItem(current_seq, mission_item)) {
 			break;
@@ -125,7 +125,7 @@ land_approaches_s Provider::getVtolLandApproachesNearLocation(const PositionYawS
 		float home_altitude_amsl) const
 {
 	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	mission_item_s safe_point_item;
 
 	if (!findAssociatedSafePointIndex(rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)) {
 		return {};
@@ -141,7 +141,7 @@ bool Provider::hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_
 		float home_altitude_amsl) const
 {
 	int safe_point_index = -1;
-	mission_item_s safe_point_item{};
+	mission_item_s safe_point_item;
 
 	return findAssociatedSafePointIndex(rtl_position, home_altitude_amsl, safe_point_index, safe_point_item)
 	       && hasVtolLandApproachesAtSafePointIndex(safe_point_index, home_altitude_amsl);

@@ -69,7 +69,7 @@ bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 		return false;
 	}
 
-	mission_item_s land_item{};
+	mission_item_s land_item;
 
 	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id),
 					       _mission_land.index,
@@ -89,7 +89,7 @@ bool MissionRouteCache::safePointCacheFullyLoaded() const
 		return true;
 	}
 
-	mission_item_s safe_point_item{};
+	mission_item_s safe_point_item;
 
 	// A miss means async preloading did not finish cleanly.
 	for (int32_t index = 0; index < _safe_point.read_stats.num_items; ++index) {
@@ -156,7 +156,7 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 		return false;
 	}
 
-	mission_item_s cached_land_item{};
+	mission_item_s cached_land_item;
 
 	if (!_dataman_cache_land_item.loadWait(static_cast<dm_item_t>(_mission_land.dataman_id), _mission_land.index,
 					       reinterpret_cast<uint8_t *>(&cached_land_item), sizeof(cached_land_item),
