@@ -43,7 +43,26 @@ if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
 		elif [ -f ../gz_env.sh ]; then
 			. ../gz_env.sh
+		else
+			SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
+			if [ -f "${SCRIPT_DIR}/gz_env.sh" ]; then
+				. "${SCRIPT_DIR}/gz_env.sh"
+			elif [ -f "${SCRIPT_DIR}/../gz_env.sh" ]; then
+				. "${SCRIPT_DIR}/../gz_env.sh"
+			elif [ -f "${SCRIPT_DIR}/../../rootfs/etc/init.d-posix/gz_env.sh" ]; then
+				. "${SCRIPT_DIR}/../../rootfs/etc/init.d-posix/gz_env.sh"
+			elif [ -f "${SCRIPT_DIR}/../../gz_env.sh" ]; then
+				. "${SCRIPT_DIR}/../../gz_env.sh"
+			fi
 		fi
+
+		# default locations if the environment file was not found or did not set them
+		REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../../" >/dev/null 2>&1 && pwd)"
+		PX4_GZ_MODELS="${PX4_GZ_MODELS:-${REPO_ROOT}/Tools/simulation/gz/models}"
+		# PX4_GZ_MODELS="${PX4_GZ_MODELS:-${REPO_ROOT}/Tools/simulation/gz/models:${REPO_ROOT}/custom_models/sim_models}"
+		PX4_GZ_WORLDS="${PX4_GZ_WORLDS:-${REPO_ROOT}/Tools/simulation/gz/worlds}"
+		PX4_GZ_PLUGINS="${PX4_GZ_PLUGINS:-${REPO_ROOT}/build/px4_sitl_default/build_gz_plugins:${REPO_ROOT}/src/modules/simulation/gz_plugins}"
+		export PX4_GZ_MODELS PX4_GZ_WORLDS PX4_GZ_PLUGINS
 
 		echo "INFO  [init] Starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
 
