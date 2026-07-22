@@ -35,7 +35,7 @@
 
 #include "checks/trafficAvoidanceCheck.hpp"
 
-#include "../failsafe/failsafe_mode_params.h"
+#include "../failsafe/failsafe_action_modes.h"
 
 #include <px4_platform_common/param.h>
 

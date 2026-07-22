@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include "failsafe.h"
-#include "failsafe_mode_params.h"
+#include "failsafe_action_modes.h"
 
 #include <px4_platform_common/log.h>
 #include <uORB/topics/vehicle_status.h>

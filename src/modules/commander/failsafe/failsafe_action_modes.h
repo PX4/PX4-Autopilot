@@ -35,10 +35,11 @@
 
 #include <stdint.h>
 
-// Mode enums for failsafe action parameters (values must match the
-// parameter metadata in commander_params.yaml), one namespace per
-// failsafe. Shared between the failsafe state machine and the
-// HealthAndArmingChecks.
+// Failsafe action-mode enums (values must match the parameter metadata
+// in commander_params.yaml), one namespace per failsafe. Kept in this
+// dependency-free header so the enum and its severity predicates can be
+// shared between the failsafe state machine and the HealthAndArmingChecks
+// without the latter pulling in the failsafe framework.
 
 namespace traffic_avoidance
 {

@@ -33,7 +33,7 @@
 
 #include "trafficAvoidanceCheck.hpp"
 
-#include "../../failsafe/failsafe_mode_params.h"
+#include "../../failsafe/failsafe_action_modes.h"
 
 void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &reporter)
 {

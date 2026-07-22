@@ -34,7 +34,7 @@
 #include <gtest/gtest.h>
 
 #include "failsafe.h"
-#include "failsafe_mode_params.h"
+#include "failsafe_action_modes.h"
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
