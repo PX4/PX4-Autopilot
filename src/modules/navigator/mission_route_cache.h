@@ -101,7 +101,12 @@ public:
 	int safePointCount() const override;
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override;
 
-	/** @brief Load the mission item referenced by the active mission's published land_index. */
+	/**
+	 * @brief Load the mission item referenced by the active mission's published land_index.
+	 *
+	 * This lookup is cache-only and never waits for Dataman. While the asynchronous load or a source replacement is
+	 * pending, it returns false and leaves both output parameters unchanged.
+	 */
 	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const;
 
 private:
