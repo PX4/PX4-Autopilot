@@ -33,3 +33,5 @@
 
 px4_add_library(circuit_breaker circuit_breaker.cpp)
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/circuit_breaker_params.yaml)
+
+px4_add_unit_gtest(SRC CircuitBreakerValTest.cpp)
