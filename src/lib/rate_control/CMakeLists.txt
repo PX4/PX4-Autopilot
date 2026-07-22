@@ -43,3 +43,4 @@ target_include_directories(RateControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(RateControl PRIVATE mathlib)
 
 px4_add_unit_gtest(SRC rate_control_test.cpp LINKLIBS RateControl)
+px4_add_unit_gtest(SRC gain_compression_test.cpp LINKLIBS RateControl)
