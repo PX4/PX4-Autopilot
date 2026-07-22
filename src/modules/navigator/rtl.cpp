@@ -476,6 +476,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 					_mission_land_failure_reported = false;
 				}
 
+				// A cache miss is expected while Navigator is asynchronously loading the item.
 				if ((!mission_route_cache.missionLandItemUpdatePending()
 				     || mission_route_cache.missionLandItemAttemptFailed()) && !_mission_land_failure_reported) {
 					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");

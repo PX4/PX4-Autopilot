@@ -157,6 +157,7 @@ TEST_F(MissionRouteCacheTest, MissionLandItemIsHiddenUntilValidated)
 
 	EXPECT_TRUE(_cache.missionLandItemUpdatePending());
 	EXPECT_FALSE(_cache.missionLandItemReady());
+	EXPECT_FALSE(_cache.missionLandItemAttemptFailed());
 
 	// Failed reads leave output parameters untouched.
 	int32_t land_index = 123;
@@ -167,6 +168,45 @@ TEST_F(MissionRouteCacheTest, MissionLandItemIsHiddenUntilValidated)
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionLandItemReady(); }))
 			<< "mission land item did not become ready";
 	EXPECT_FALSE(_cache.missionLandItemUpdatePending());
+	EXPECT_FALSE(_cache.missionLandItemAttemptFailed());
+}
+
+// A new mission-land source immediately hides the previous item while its replacement loads asynchronously.
+TEST_F(MissionRouteCacheTest, MissionLandSourceChangeHidesPreviousItemUntilValidated)
+{
+	const mission_item_s land_item_a = makeLandItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	const mission_item_s land_item_b = makeLandItemFromOffset(kBaseLat, kBaseLon, 250.f, 0.f, kAlt);
+	const mission_s mission_a = makeMission(30, 1, 0, 0, DM_KEY_WAYPOINTS_OFFBOARD_0);
+	const mission_s mission_b = makeMission(31, 1, 0, 0, DM_KEY_WAYPOINTS_OFFBOARD_1);
+
+	writeMissionItem(land_item_a, 0, DM_KEY_WAYPOINTS_OFFBOARD_0);
+	writeMissionItem(land_item_b, 0, DM_KEY_WAYPOINTS_OFFBOARD_1);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_a, [&] { return _cache.missionLandItemReady(); }))
+			<< "first mission land item did not become ready";
+
+	int32_t land_index = -1;
+	mission_item_s land_item{};
+	ASSERT_TRUE(_cache.getMissionLandItem(land_index, land_item));
+	expectMissionItemMatches(land_item, land_item_a);
+
+	_cache.update(mission_b);
+
+	EXPECT_FALSE(_cache.missionLandItemReady());
+	EXPECT_TRUE(_cache.missionLandItemUpdatePending());
+	EXPECT_FALSE(_cache.missionLandItemAttemptFailed());
+	land_index = 123;
+	EXPECT_FALSE(_cache.getMissionLandItem(land_index, land_item));
+	EXPECT_EQ(land_index, 123);
+	expectMissionItemMatches(land_item, land_item_a);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_b, [&] { return _cache.missionLandItemReady(); }))
+			<< "replacement mission land item did not become ready";
+	EXPECT_FALSE(_cache.missionLandItemUpdatePending());
+	EXPECT_FALSE(_cache.missionLandItemAttemptFailed());
+	ASSERT_TRUE(_cache.getMissionLandItem(land_index, land_item));
+	EXPECT_EQ(land_index, 0);
+	expectMissionItemMatches(land_item, land_item_b);
 }
 
 // Published land_index loads the dedicated land-item cache.
