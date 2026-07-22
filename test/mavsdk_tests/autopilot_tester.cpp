@@ -776,6 +776,37 @@ void AutopilotTester::add_mavlink_message_callback(uint16_t message_id,
 	_mavlink_passthrough->subscribe_message(message_id, std::move(callback));
 }
 
+mavlink_home_position_t AutopilotTester::get_home_position(std::chrono::seconds timeout)
+{
+	auto home_position = std::make_shared<mavlink_home_position_t>();
+	auto received = std::make_shared<std::atomic<bool>>(false);
+
+	auto handle = _mavlink_passthrough->subscribe_message(
+			      MAVLINK_MSG_ID_HOME_POSITION,
+	[home_position, received](const mavlink_message_t &message) {
+		mavlink_msg_home_position_decode(&message, home_position.get());
+		received->store(true);
+	});
+
+	// Ask for a fresh HOME_POSITION so we don't rely on the periodic stream timing.
+	MavlinkPassthrough::CommandLong request{};
+	request.target_sysid = _mavlink_passthrough->get_target_sysid();
+	request.target_compid = _mavlink_passthrough->get_target_compid();
+	request.command = MAV_CMD_REQUEST_MESSAGE;
+	request.param1 = static_cast<float>(MAVLINK_MSG_ID_HOME_POSITION);
+	_mavlink_passthrough->send_command_long(request);
+
+	const bool got_it = poll_condition_with_timeout([received]() { return received->load(); }, timeout);
+	_mavlink_passthrough->unsubscribe_message(MAVLINK_MSG_ID_HOME_POSITION, handle);
+	REQUIRE(got_it);
+	return *home_position;
+}
+
+Telemetry::EulerAngle AutopilotTester::get_attitude_euler()
+{
+	return _telemetry->attitude_euler();
+}
+
 std::array<float, 3> AutopilotTester::get_current_position_ned()
 {
 	mavsdk::Telemetry::PositionVelocityNed position_velocity_ned = _telemetry->position_velocity_ned();

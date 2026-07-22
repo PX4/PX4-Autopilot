@@ -152,6 +152,10 @@ public:
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
 
+	mavlink_home_position_t get_home_position(std::chrono::seconds timeout = std::chrono::seconds(10));
+
+	Telemetry::EulerAngle get_attitude_euler();
+
 	void enable_fixedwing_mectrics();
 	void check_airspeed_is_valid();
 	void check_airspeed_is_invalid();
