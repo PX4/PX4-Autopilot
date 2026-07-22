@@ -44,6 +44,7 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 #include <lib/drivers/device/Device.hpp>
+#include <uORB/topics/actuator_test.h>
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -126,8 +127,15 @@ void SimulatorMavlink::actuator_controls_from_outputs(mavlink_hil_actuator_contr
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-	if (armed) {
-		for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+	for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+		// Keep propulsion inhibited while disarmed, but pass servo outputs so
+		// actuator_test can validate simulator mechanisms safely on the ground.
+		// Regular disarmed servo outputs remain centered by MixingOutput.
+		const bool is_servo_output =
+			_output_functions[i] >= actuator_test_s::FUNCTION_SERVO1
+			&& _output_functions[i] < actuator_test_s::FUNCTION_SERVO1 + actuator_test_s::MAX_NUM_SERVOS;
+
+		if (armed || is_servo_output) {
 			msg->controls[i] = _actuator_outputs.output[i];
 		}
 	}
