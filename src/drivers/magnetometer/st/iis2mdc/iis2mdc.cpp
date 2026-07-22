@@ -64,7 +64,7 @@ int IIS2MDC::init()
 	write_register(IIS2MDC_ADDR_CFG_REG_B, OFF_CANC);
 	write_register(IIS2MDC_ADDR_CFG_REG_C, BDU);
 
-	_px4_mag.set_scale(100.f / 65535.f); // +/- 50 Gauss, 16bit
+	_px4_mag.set_scale(0.0015f); // 1.5 mGauss/LSB (datasheet)
 
 	ScheduleDelayed(20_ms);
 
