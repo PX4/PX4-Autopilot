@@ -1,0 +1,17 @@
+module_name: camera_feedback
+parameters:
+- group: Camera Control
+  definitions:
+    CAM_CAP_REPORT:
+      description:
+        short: Report captures to the ground station
+        long: |
+          Whether the autopilot reports captures to the ground station by emitting
+          CAMERA_IMAGE_CAPTURED.
+
+          Disable for cameras that report captures themselves (e.g. cameras
+          implementing the MAVLink Camera Protocol) to avoid duplicate
+          CAMERA_IMAGE_CAPTURED messages. Capture events are still published on the
+          camera_capture topic and logged for geotagging regardless of this setting.
+      type: boolean
+      default: 1
