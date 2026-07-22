@@ -70,6 +70,8 @@ Supported hardware includes (this is not an exhaustive list):
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+- Grippers
+  - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
