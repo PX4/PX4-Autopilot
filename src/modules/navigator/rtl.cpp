@@ -422,11 +422,6 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 			if (((dist + MIN_DIST_THRESHOLD) < min_dist)
 			    && (!vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0) || current_safe_point_has_approaches)) {
-				if (current_seq >= static_cast<int>(RTL_STATUS_NO_SAFE_POINT)) {
-					PX4_ERR("Safe point index %d does not fit rtl_status.safe_point_index", current_seq);
-					continue;
-				}
-
 				min_dist = dist;
 				closest_safe_point = candidate_setpoint;
 				safe_point_index = static_cast<uint8_t>(current_seq);
