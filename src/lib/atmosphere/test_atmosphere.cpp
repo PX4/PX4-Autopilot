@@ -36,6 +36,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <cmath>
 #include <lib/atmosphere/atmosphere.h>
 using namespace atmosphere;
 
@@ -123,4 +124,27 @@ TEST(TestAtmosphere, StandardTemperature)
 
 	// THEN expect standard temperature at 3000m
 	EXPECT_NEAR(temperature, -4.5f, 0.001f);
+}
+
+
+TEST(TestAtmosphere, DensityDecreasesWithAltitudeISA)
+{
+	// GIVEN standard atmosphere ISA temperature profile
+	const float p0 = getPressureFromAltitude(0.f);
+	const float t0 = getStandardTemperatureAtAltitude(0.f);
+	const float d0 = getDensityFromPressureAndTemp(p0, t0);
+
+	const float p5 = getPressureFromAltitude(5000.f);
+	const float t5 = getStandardTemperatureAtAltitude(5000.f);
+	const float d5 = getDensityFromPressureAndTemp(p5, t5);
+
+	const float p10 = getPressureFromAltitude(10000.f);
+	const float t10 = getStandardTemperatureAtAltitude(10000.f);
+	const float d10 = getDensityFromPressureAndTemp(p10, t10);
+
+	EXPECT_GT(d0, d5);
+	EXPECT_GT(d5, d10);
+	EXPECT_NEAR(d0, kAirDensitySeaLevelStandardAtmos, 0.01f);
+	EXPECT_TRUE(std::isfinite(d5));
+	EXPECT_TRUE(std::isfinite(d10));
 }
