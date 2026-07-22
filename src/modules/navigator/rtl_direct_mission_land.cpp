@@ -550,7 +550,7 @@ matrix::Vector2d RtlDirectMissionLand::getRtlPlannerDestination()
 		return position;
 	}
 
-	mission_item_s next_position_mission_item{};
+	mission_item_s next_position_mission_item;
 	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 	const bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
 			     reinterpret_cast<uint8_t *>(&next_position_mission_item),

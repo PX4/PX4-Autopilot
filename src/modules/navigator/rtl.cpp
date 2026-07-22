@@ -460,7 +460,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		// Mission landing
 		if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == RTL_TYPE_DIRECT_WITH_MISSION_LAND)
 		     || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
-			mission_item_s land_mission_item{};
+			mission_item_s land_mission_item;
 			int32_t land_index = -1;
 			const bool success = mission_route_cache.getMissionLandItem(land_index, land_mission_item);
 
