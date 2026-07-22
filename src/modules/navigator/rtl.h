@@ -112,11 +112,6 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
-	/**
-	 * @brief Refresh the safe-point and land-item cache used by RTL destination selection.
-	 */
-	void updateDatamanCache();
-
 	void setRtlTypeAndDestination();
 
 	/**
