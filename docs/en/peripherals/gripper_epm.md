@@ -1,0 +1,129 @@
+# Electro-Permanent Magnet (EPM)
+
+An electro-permanent magnet (EPM) uses a short electrical pulse to switch its magnetic state, and does not consume power continuously while holding a payload.
+
+This topic explains how to connect and configure a [Zubax FluxGrip FG40](https://shop.zubax.com/products/zubax-epm) EPM as a DroneCAN gripper.
+The gripper can then be operated from a [payload delivery mission](../flying/package_delivery_mission.md), a joystick, or a MAVLink command.
+
+![FluxGrip connected to a Pixhawk flight controller](../../assets/hardware/grippers/fluxgrip_px4.jpeg)
+
+::: info
+This setup was tested with a Holybro Pixhawk 6X Pro and FluxGrip firmware `502e1f5`.
+See the [FluxGrip documentation](https://fluxgrip.zubax.com/chapters/hardware/fg40.html#interface-and-power-supply) for product-specific setup and operating limits.
+:::
+
+## PX4 Firmware Support
+
+Please note that EPM operation requires a PX4 build that contains commit [93ab802](https://github.com/PX4/PX4-Autopilot/commit/93ab80220252e58f6a2b43155dcff402699444b8), which forwards gripper commands using the DroneCAN hardpoint message.
+
+The firmware for your flight controller must include both of the following modules:
+
+```ini
+CONFIG_DRIVERS_UAVCAN=y
+CONFIG_MODULES_PAYLOAD_DELIVERER=y
+```
+
+You can check or add these settings in the board's `default.px4board` file under `boards/<vendor>/<board>/`, or use the [PX4 board configuration tool](../hardware/porting_guide_config.md#px4-menuconfig-setup).
+
+For example, build and upload firmware for an FMUv6X flight controller as follows:
+
+```sh
+git submodule update --init --recursive
+make px4_fmu-v6x_default
+make px4_fmu-v6x_default upload
+```
+
+Replace `px4_fmu-v6x_default` with the build target for your flight controller.
+
+## Hardware Setup
+
+::: warning
+FluxGrip can briefly draw a high current when switching.
+FluxGrip can be powered from the flight controller power rail for testing purposes, provided that the rail meets its voltage and current requirements.
+For normal operation, use a suitable separate power supply for the EPM to reduce the load on the flight controller power rail and improve switching performance.
+Follow the voltage, current, and wiring requirements in the [FluxGrip documentation](https://fluxgrip.zubax.com/chapters/hardware/fg40.html#interface-and-power-supply).
+:::
+
+1. Connect FluxGrip to the flight controller's `CAN1` port.
+1. Connect FluxGrip to its power supply.
+1. Check that the CAN bus is wired and terminated as described in [CAN Wiring](../can/index.md#wiring).
+1. Power the flight controller and FluxGrip.
+
+When communication is working, the left CAN LED on FluxGrip is solid and the adjacent CAN LED blinks.
+
+## PX4 Configuration
+
+Set the following parameters in QGroundControl, and then reboot the flight controller:
+
+| Parameter                                                                    | Value                            | Description                                                                                           |
+| ---------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE)     | `Sensors Automatic Config` (`2`) | Enables DroneCAN and dynamic node allocation. Use `3` instead if the vehicle also uses DroneCAN ESCs. |
+| [UAVCAN_BITRATE](../advanced_config/parameter_reference.md#UAVCAN_BITRATE)   | `1000000`                        | Sets the CAN bus bitrate to 1 Mbit/s.                                                                 |
+| [UAVCAN_NODE_ID](../advanced_config/parameter_reference.md#UAVCAN_NODE_ID)   | `1`                              | Sets the flight controller node ID. Use another value if node ID `1` is already used on the CAN bus.  |
+| [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) | `Servo` (`0`)                    | Enables the binary grab/release gripper interface used by the EPM.                                    |
+
+::: info
+The current `PD_GRIPPER_TYPE` value is named `Servo`, but it is also used to enable DroneCAN EPM grippers.
+You do not need to map a flight controller actuator output when controlling the EPM over DroneCAN.
+:::
+
+## Test the Gripper
+
+::: warning
+Remove the propellers and secure the vehicle before testing.
+The payload deliverer commands the gripper to the grab state when the module starts, so the EPM will magnetize during startup.
+:::
+
+Open the QGroundControl [MAVLink Shell](../debug/mavlink_shell.md), then verify that the DroneCAN driver and payload deliverer are running:
+
+```sh
+uavcan status
+payload_deliverer status
+```
+
+Test both gripper states:
+
+```sh
+# Release the payload (magnet off)
+payload_deliverer gripper_open
+
+# Grab the payload (magnet on)
+payload_deliverer gripper_close
+```
+
+PX4 sends these as `MAV_CMD_DO_GRIPPER` commands for hardpoint ID `0`.
+The release command has action `0`, and the grab command has action `1`.
+
+After testing, the EPM can be operated using any of the methods described in [Grippers > Using a Gripper](gripper.md#using-a-gripper).
+
+## LED Status
+
+The Magnet LED, located to the right of the CAN LEDs, indicates the EPM state:
+
+| State          | Meaning                                              |
+| -------------- | ---------------------------------------------------- |
+| Detect/Unknown | Initial state after FluxGrip is powered on.          |
+| On             | The EPM is magnetized and holding the payload.       |
+| Off            | The EPM is demagnetized and the payload is released. |
+| Fade-in        | FluxGrip is switching to the magnetized state.       |
+| Fade-out       | FluxGrip is switching to the demagnetized state.     |
+
+If the Magnet LED blinks rapidly, FluxGrip failed to magnetize.
+Check the power supply and wiring, and contact [Zubax support](mailto:support@zubax.com) if the problem persists.
+
+## Troubleshooting
+
+If FluxGrip does not respond:
+
+1. Run `uavcan status` and confirm that the DroneCAN driver is running and FluxGrip is visible on the bus.
+1. Check that `UAVCAN_ENABLE`, `UAVCAN_BITRATE`, and `UAVCAN_NODE_ID` are set as described above.
+1. Check CAN wiring, bus termination, and the EPM power supply.
+1. Run `payload_deliverer status` and confirm that the gripper is valid.
+1. If `payload_deliverer` is not available, rebuild the firmware with `CONFIG_MODULES_PAYLOAD_DELIVERER=y`.
+
+## See Also
+
+- [FluxGrip: Integration with PX4](https://forum.zubax.com/t/fluxgrip-integration-with-px4/2863) (Zubax Forum)
+- [FluxGrip Quickstart Guide](https://forum.zubax.com/t/fluxgrip-quickstart-guide/2335) (Zubax Forum)
+- [DroneCAN](../dronecan/index.md)
+- [Grippers](gripper.md)
