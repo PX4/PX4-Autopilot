@@ -35,6 +35,27 @@
 
 void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 {
+	int32_t fw_lnd_para_en = 0;
+
+	if (_param_fw_lnd_para_en_handle != PARAM_INVALID) {
+		param_get(_param_fw_lnd_para_en_handle, &fw_lnd_para_en);
+	}
+
+	if (fw_lnd_para_en == 1 && _param_com_parachute.get() < 1 && !_parachute_sub.advertised()) {
+		// Parachute landing is enabled, but neither a monitored external parachute system is
+		// configured nor is the parachute module present to release a local parachute output:
+		// nothing can act on the release command.
+		/* EVENT
+		 * @description
+		 * FW_LND_PARA_EN is set but no monitored parachute system is configured
+		 * (COM_PARACHUTE) and the parachute module is not part of the firmware, so the
+		 * parachute release on the landing approach would have no effect.
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::parachute,
+					    events::ID("check_parachute_landing_no_consumer"),
+					    events::Log::Warning, "Parachute landing enabled but no parachute system found");
+	}
+
 	if (_param_com_parachute.get() < 1) { // COM_PARACHUTE 0 disables the check
 		return;
 	}
