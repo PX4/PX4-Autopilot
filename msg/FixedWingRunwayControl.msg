@@ -12,4 +12,5 @@ uint8 STATE_FLYING = 3			# navigate freely
 uint8 runway_takeoff_state		# Current state of runway takeoff state machine
 
 bool wheel_steering_enabled		# Flag that enables the wheel steering.
+float32 wheel_steering_yaw_setpoint	# [rad] [@range -pi, pi] For the wheel controller to track. NAN means hold the heading captured when steering engaged.
 float32 wheel_steering_nudging_rate	# [norm] [@range -1, 1] [FRD] Manual wheel nudging, added to controller output. NAN is interpreted as 0.
