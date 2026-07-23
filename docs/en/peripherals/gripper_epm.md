@@ -60,10 +60,9 @@ Set the following parameters in QGroundControl, and then reboot the flight contr
 | ---------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE)     | `Sensors Automatic Config` (`2`) | Enables DroneCAN and dynamic node allocation. Use `3` instead if the vehicle also uses DroneCAN ESCs. |
 | [UAVCAN_BITRATE](../advanced_config/parameter_reference.md#UAVCAN_BITRATE)   | `1000000`                        | Sets the CAN bus bitrate to 1 Mbit/s.                                                                 |
-| [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) | `Servo` (`0`)                    | Enables the binary grab/release gripper interface used by the EPM.                                    |
+| [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) | `Binary Grab/Release` (`0`)      | Enables the binary grab/release gripper interface used by the EPM.                                    |
 
 ::: info
-The current `PD_GRIPPER_TYPE` value is named `Servo`, but it is also used to enable DroneCAN EPM grippers.
 You do not need to map a flight controller actuator output when controlling the EPM over DroneCAN.
 No DroneCAN subscription or publication parameters (`UAVCAN_SUB_*`, `UAVCAN_PUB_*`, `CANNODE_SUB_*`, or `CANNODE_PUB_*`) are required.
 PX4 automatically publishes the hardpoint command when DroneCAN is enabled.

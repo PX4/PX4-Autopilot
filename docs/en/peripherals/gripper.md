@@ -46,7 +46,7 @@ PX4 gripper support is tied to the package delivery feature, which must be enabl
    ```
 
 2. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
-   For example, set to `Servo` for a [Servo Gripper](gripper_servo.md) (or [DroneCAN EPM Gripper](../peripherals/gripper_epm.md)).
+   Set it to `Binary Grab/Release` for a [Servo Gripper](gripper_servo.md) or [DroneCAN EPM Gripper](../peripherals/gripper_epm.md).
 
 ### Gripper Actuator Mapping
 
