@@ -463,19 +463,11 @@ void EstimatorInterface::setRangingBeaconData(const rangingBeaconSample &ranging
 				- static_cast<int64_t>(_params.ekf2_rngbc_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
-	// limit data rate to prevent data being lost
-	if (time_us >= static_cast<int64_t>(_ranging_beacon_buffer->get_newest().time_us + _min_obs_interval_us)) {
+	rangingBeaconSample ranging_beacon_sample_new{ranging_beacon_sample};
+	ranging_beacon_sample_new.time_us = time_us;
 
-		rangingBeaconSample ranging_beacon_sample_new{ranging_beacon_sample};
-		ranging_beacon_sample_new.time_us = time_us;
-
-		_ranging_beacon_buffer->push(ranging_beacon_sample_new);
-		_time_last_ranging_beacon_buffer_push = _time_latest_us;
-
-	} else {
-		ECL_WARN("ranging beacon data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us,
-			 _ranging_beacon_buffer->get_newest().time_us, _min_obs_interval_us);
-	}
+	_ranging_beacon_buffer->push(ranging_beacon_sample_new);
+	_time_last_ranging_beacon_buffer_push = _time_latest_us;
 }
 #endif // CONFIG_EKF2_RANGING_BEACON
 

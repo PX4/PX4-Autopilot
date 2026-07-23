@@ -2739,8 +2739,9 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	mavlink_msg_ranging_beacon_decode(msg, &beacon_pos);
 
 	ranging_beacon_s ranging_beacon{};
-	ranging_beacon.timestamp = hrt_absolute_time();
-	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
+	const hrt_abstime now = hrt_absolute_time();
+	ranging_beacon.timestamp = now;
+	ranging_beacon.timestamp_sample = now;
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = (beacon_pos.range != UINT32_MAX) ? static_cast<float>(beacon_pos.range) * 1e-3f : NAN;
 	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
