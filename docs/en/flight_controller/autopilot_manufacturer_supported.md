@@ -52,3 +52,4 @@ The boards in this category are:
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
 - [X-MAV AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md)
+- [SIYI-UniFC-6-PICO](../flight_controller/siyi-unifc-6-pico.md)
