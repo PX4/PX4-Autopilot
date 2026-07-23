@@ -3,7 +3,7 @@
 
 uint64 timestamp
 
-int8 command		# Commanded parachute action
-int8 COMMAND_DISABLE = 0
-int8 COMMAND_ENABLE = 1
-int8 COMMAND_RELEASE = 2
+int8 command		# Commanded parachute action, mirrors the MAVLink PARACHUTE_ACTION enum
+int8 COMMAND_DISABLE = 0	# Inhibit the parachute subsystem: a release must not fire it
+int8 COMMAND_ENABLE = 1		# Arm the parachute subsystem so that a release can fire it
+int8 COMMAND_RELEASE = 2	# Fire the parachute. Latching: stays released until reboot
