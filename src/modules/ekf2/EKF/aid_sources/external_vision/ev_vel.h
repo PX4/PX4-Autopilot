@@ -57,8 +57,11 @@ public:
 	virtual ~ExternalVisionVel() = default;
 	virtual bool fuseVelocity(estimator_aid_source3d_s &aid_src, float gate)
 	{
-		_ekf.fuseLocalFrameVelocity(aid_src, aid_src.timestamp, _measurement,
+		// cahnge this code by naor - need to check it 
+		_ekf.fuseLocalFrameVelocity(aid_src, _sample.time_us, _measurement,
 					    _measurement_var, gate);
+		// PX4_INFO("time print fuseVelocity: %llu, aid_src.fused: %d", _sample.time_us, aid_src.fused);
+		// change until here 
 		return aid_src.fused;
 
 	}

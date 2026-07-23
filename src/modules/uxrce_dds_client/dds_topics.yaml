@@ -88,11 +88,11 @@ publications:
 
 - topic: /fmu/out/sensor_accel
   type: px4_msgs::msg::SensorAccel
-  rate_limit: 250
+  rate_limit: 200
 
 - topic: /fmu/out/sensor_gyro
   type: px4_msgs::msg::SensorGyro
-  rate_limit: 250
+  rate_limit: 200
 
 - topic: /fmu/out/vehicle_command
   type: px4_msgs::msg::VehicleCommand

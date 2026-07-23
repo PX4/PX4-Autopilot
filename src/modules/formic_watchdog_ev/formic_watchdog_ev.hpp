@@ -74,6 +74,7 @@ private:
 	void handle_pos_req_user_intention();
 	bool handle_pos_reset(const float vio_pos[2], const float estimator_pos[2]); // returns true if EV pos aid data was fused this cycle; sets pos_alligned_with_ev
 	void  init_condition_check();
+	void find_max_dist(const matrix::Vector3f &position);
 	// --- Subscriptions ---
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _odometry_sub_formic{ORB_ID(formic_odom)};
@@ -126,6 +127,9 @@ private:
 	int   _vel_count{0};        // number of EV z-velocity samples accumulated during the settle window
 	float _vel_sum{0.0f};       // summed EV z-velocity accumulated during the settle window
 	float _vel_average_init{0.0f}; // mean EV z-velocity over the settle window (computed once at the transition)
+
+
+	matrix::Vector3f VectorInit_location_;
 	
 	// --- Parameters ---
 	DEFINE_PARAMETERS(
@@ -137,6 +141,7 @@ private:
 		(ParamFloat<px4::params::FORMIC_WDEV_DPOS>) _param_formic_wdev_dpos,
 		(ParamFloat<px4::params::FORMIC_WDEV_VINI>) _param_formic_wdev_vini,
 		(ParamFloat<px4::params::FORMIC_WDEV_DATT>) _param_formic_wdev_d_attitude,
-		(ParamInt<px4::params::FORMIC_WDEV_QV>) _param_formic_wdev_qv
+		(ParamInt<px4::params::FORMIC_WDEV_QV>) _param_formic_wdev_qv,
+		(ParamFloat<px4::params::FORMIC_WDEV_DIP>) _param_formic_wdev_dip
 	)
 };

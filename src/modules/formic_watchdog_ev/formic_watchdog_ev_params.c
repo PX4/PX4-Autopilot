@@ -119,3 +119,22 @@ PARAM_DEFINE_FLOAT(FORMIC_WDEV_DATT, 25.0f);
  */
 PARAM_DEFINE_INT32(FORMIC_WDEV_QV, 95);
 
+
+
+
+/**
+ * EV position max dist from init.
+ *
+ * Maximum allowed distance (meters) between the current position and the
+ * initial position. If the distance exceeds this value, the EV data is
+ * considered unreliable, and the init check fails for this session.
+ *
+ * @min 0.0
+ * @max 100.0
+ * @unit m
+ * @group Formic Watchdog EV
+ * @category Standard
+ */
+PARAM_DEFINE_FLOAT(FORMIC_WDEV_DIP, 1.0f);
+
+

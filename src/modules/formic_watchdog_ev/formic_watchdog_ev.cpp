@@ -77,6 +77,7 @@ void FormicWatchdogEv::Run()
 
 		if (_first_ev_timestamp == 0) {
 			_first_ev_timestamp = _last_ev_timestamp;
+			// Init_location_ = matrix::Vector3f(odometry.position);
 		}
 
 
@@ -84,6 +85,7 @@ void FormicWatchdogEv::Run()
 		if (hrt_elapsed_time(&_first_ev_timestamp) < init_timer_us) {
 			accumulate_value(_quality_count,_quality_sum,odometry.quality);
 			accumulate_value(_vel_count,_vel_sum ,matrix::Vector3f(odometry.velocity).norm());
+			// find_max_dist(matrix::Vector3f(odometry.position));
 		}
 		else if (!_formic_state.error_find) { // only forward the data if the aux switch is active (if configured) and if no error has been found, otherwise we keep publishing the state machine with the error flag set but we don't forward the possibly bad data to the rest of the system
 			if (!_init_check_done) {
@@ -220,6 +222,21 @@ void FormicWatchdogEv::init_condition_check(){
 
 }
 
+void FormicWatchdogEv::find_max_dist(const matrix::Vector3f &position){
+
+	// find the max distance from the init location
+	float dist = (position - VectorInit_location_).norm();
+	if (dist > _param_formic_wdev_dip.get()) {
+		_formic_state.error_find = true;
+		PX4_INFO("EV position has moved too far from the initial location: %.2f m (max allowed: %.2f m)", (double)dist, (double)_param_formic_wdev_dip.get());
+
+		/// need to add this error to the state machine
+	}
+
+
+
+
+}
 
 float FormicWatchdogEv::get_yaw_from_quat(const vehicle_odometry_s &odometry)
 {
