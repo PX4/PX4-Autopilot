@@ -40,7 +40,7 @@
 #include <cmath>
 
 #ifndef M_TWOPI_F
-	#define M_TWOPI_F 6.283185307179586f
+#define M_TWOPI_F 6.283185307179586f
 #endif
 
 #include "signal_generator.hpp"
