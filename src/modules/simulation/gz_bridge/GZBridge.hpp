@@ -55,6 +55,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parachute.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/sensor_gps.h>
@@ -142,6 +143,7 @@ private:
 			 float &vel_north, float &vel_east, float &vel_down);
 
 	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription                            _parachute_sub{ORB_ID(parachute)};
 
 	// simulated sensors using the general-purpose driver wrappers
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -182,6 +184,9 @@ private:
 
 	bool _realtime_clock_set{false};
 	gz::transport::Node _node;
+	gz::transport::Node::Publisher _parachute_gz_pub;
+	bool _parachute_released{false};
+	hrt_abstime _last_parachute_publish{0};
 
 	// GPS noise model
 	float _gps_pos_noise_n = 0.0f;
