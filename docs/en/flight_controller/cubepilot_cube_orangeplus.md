@@ -41,6 +41,19 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - High-power, multi-tone piezo audio indicator
 - microSD card for high-rate logging over extended periods of time
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 6 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 6 outputs are in 2 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 - [Reseller list](https://www.cubepilot.com/#/reseller/list)

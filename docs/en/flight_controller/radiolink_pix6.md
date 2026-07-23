@@ -48,6 +48,20 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Weight 80g
   - Size 94mm x 51.5mm x 14.5mm
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+[DShot](../peripherals/dshot.md) is not supported.
+
+The 8 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer2)
+- Outputs 7-8 in group3 (Timer3)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 [Radiolink Amazon](https://www.radiolink.com.cn/pix6_where_to_buy)（International users）

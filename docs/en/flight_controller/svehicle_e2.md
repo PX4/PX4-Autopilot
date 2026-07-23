@@ -120,6 +120,45 @@ If any channel in a group uses DShot then all channels in the group need to use 
 - Current Ratings:
   - TELEM1 and GPS2 combined output current limiter: 1.5A
   - All other port combined output current limiter: 1.5A
+<!-- pwm_outputs-proposed
+<!-- pwm_outputs-proposed
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+FMU Outputs:
+
+- Outputs 1-6 support [DShot](../peripherals/dshot.md).
+- Outputs 7-8 do not support DShot.
+- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 8 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer5)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
+
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 8 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+FMU Outputs:
+
+- Outputs 1-6 support [DShot](../peripherals/dshot.md).
+- Outputs 7-8 do not support DShot.
+- Outputs 1-6 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 8 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer5)
+- Outputs 5-6 in group2 (Timer4)
+- Outputs 7-8 in group3 (Timer12)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
 
 ## Battery Monitoring
 

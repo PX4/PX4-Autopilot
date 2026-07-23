@@ -38,6 +38,24 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 5V 3A BEC
   - ADC for battery voltage (up to 6S) and current monitoring
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 10 FMU PWM outputs (MAIN).
+
+Outputs:
+
+- Outputs 1-10 support [DShot](../peripherals/dshot.md).
+- Outputs 1-9 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+- Output 10 supports Bidirectional DShot output only (no eRPM capture).
+
+The 10 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Outputs 5-6 in group2 (Timer3)
+- Outputs 7-10 in group3 (Timer4)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy
 
 Order from [CORVON](https://corvon.tech).

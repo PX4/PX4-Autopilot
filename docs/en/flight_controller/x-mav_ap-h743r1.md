@@ -102,6 +102,37 @@ If any channel in a group uses DShot then all channels in the group need to use 
   - Max input voltage: 5.4V
   - USB Power Input: 4.75\~5.25V
   - Servo Rail Input: 0\~9.9V
+<!-- pwm_outputs-proposed
+<!-- pwm_outputs-proposed
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 7 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 7 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Output 7 in group2 (Timer2)
+- Outputs 5-6 in group3 (Timer3)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
+
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 7 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+All FMU outputs support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 7 outputs are in 3 groups:
+
+- Outputs 1-4 in group1 (Timer1)
+- Output 7 in group2 (Timer2)
+- Outputs 5-6 in group3 (Timer3)
+
+All outputs within the same group must use the same output protocol and rate.
+-->
 
 ## Battery Monitoring
 
