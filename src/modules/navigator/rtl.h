@@ -47,6 +47,7 @@
 #include "navigation.h"
 #include <dataman_client/DatamanClient.hpp>
 #include "rtl_base.h"
+#include "rtl_corridor.h"
 #include "rtl_direct.h"
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
@@ -55,6 +56,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
@@ -76,6 +78,7 @@ public:
 		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
 		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
+		RTL_CORRIDOR = rtl_status_s::RTL_STATUS_TYPE_CORRIDOR,
 	};
 
 	void on_inactive() override;
@@ -89,6 +92,13 @@ public:
 	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
 
 	bool isLanding();
+
+	/**
+	 * @brief True if flying the given time estimate is affordable within the remaining
+	 * battery time. False whenever either input is invalid/NaN, so callers don't mistake
+	 * missing data for guaranteed reachability.
+	 */
+	static bool isWithinBatteryBudget(const rtl_time_estimate_s &estimate, float battery_remaining_s);
 
 private:
 	enum class DestinationType {
@@ -137,6 +147,23 @@ private:
 	 *
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Compute the direct destination (home, mission landing, or safe point) and its
+	 * landing approach, used for RTL_TYPE 0/1/3/5 and as the fallback for RTL_TYPE 7 when
+	 * no corridor graph is loaded or nothing in it is reachable.
+	 *
+	 */
+	RtlType computeDirectDestination(DestinationType &destination_type, PositionYawSetpoint &destination,
+					 loiter_point_s &landing_loiter, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Try to find a flight corridor path from the current position to the nest or a
+	 * rally point, and hand it to _rtl_corridor if found.
+	 *
+	 * @return true if a path was found (and _rtl_corridor now has it).
+	 */
+	bool tryFindCorridorPath();
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -229,6 +256,7 @@ private:
 	mission_stats_entry_s _stats;
 
 	RtlDirect _rtl_direct;
+	RtlCorridor _rtl_corridor;
 
 	bool _enforce_rtl_alt{false};
 
@@ -248,6 +276,7 @@ private:
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
+	uORB::SubscriptionData<battery_status_s> _battery_status_sub{ORB_ID(battery_status)};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};

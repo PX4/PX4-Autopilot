@@ -44,6 +44,7 @@
 #include "navigator.h"
 #include "mission_block.h"
 
+#include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 
@@ -57,9 +58,11 @@ static constexpr float MIN_DIST_THRESHOLD = 2.f;
 RTL::RTL(Navigator *navigator) :
 	NavigatorMode(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator),
-	_rtl_direct(navigator)
+	_rtl_direct(navigator),
+	_rtl_corridor(navigator)
 {
 	_rtl_direct.initialize();
+	_rtl_corridor.initialize();
 }
 
 void RTL::updateDatamanCache()
@@ -165,6 +168,7 @@ void RTL::on_inactive()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+	_battery_status_sub.update();
 
 	updateDatamanCache();
 
@@ -175,6 +179,7 @@ void RTL::on_inactive()
 	}
 
 	_rtl_direct.run(false);
+	_rtl_corridor.run(false);
 
 	// Limit inactive calculation to 0.5Hz
 	hrt_abstime now{hrt_absolute_time()};
@@ -201,6 +206,10 @@ void RTL::publishRemainingTimeEstimate()
 			estimated_time = _rtl_direct.calc_rtl_time_estimate();
 			break;
 
+		case RtlType::RTL_CORRIDOR:
+			estimated_time = _rtl_corridor.calc_rtl_time_estimate();
+			break;
+
 		case RtlType::RTL_DIRECT_MISSION_LAND:
 		case RtlType::RTL_MISSION_FAST:
 		case RtlType::RTL_MISSION_FAST_REVERSE:
@@ -225,6 +234,7 @@ void RTL::on_activation()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+	_battery_status_sub.update();
 
 	setRtlTypeAndDestination();
 
@@ -238,6 +248,7 @@ void RTL::on_activation()
 		}
 
 		_rtl_direct.run(false);
+		_rtl_corridor.run(false);
 
 		break;
 
@@ -248,6 +259,19 @@ void RTL::on_activation()
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->run(false);
 		}
+
+		_rtl_corridor.run(false);
+
+		break;
+
+	case RtlType::RTL_CORRIDOR:
+		_rtl_corridor.run(true);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(false);
+		}
+
+		_rtl_direct.run(false);
 
 		break;
 
@@ -265,6 +289,7 @@ void RTL::on_active()
 	_mission_sub.update();
 	_home_pos_sub.update();
 	_wind_sub.update();
+	_battery_status_sub.update();
 
 	updateDatamanCache();
 
@@ -284,6 +309,41 @@ void RTL::on_active()
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->run(false);
+		}
+
+		break;
+
+	case RtlType::RTL_CORRIDOR:
+		_rtl_corridor.run(true);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(false);
+		}
+
+		if (_rtl_corridor.hasReachedFinalWaypoint()) {
+			// The corridor has flown the vehicle all the way to the final node -- the standoff
+			// point directly above the landing pad, at the node's own altitude. Hand RtlDirect
+			// only the terminal descent + touchdown, in place: set the return altitude to the
+			// final node's altitude so getActivationState() stays out of CLIMBING (no climb
+			// inserted), and let RtlDirect descend and land. PX4's land detector governs the
+			// actual touchdown, so the final node's altitude is the descend-from (standoff)
+			// altitude, not the true ground level. The corridor is the altitude authority
+			// (setReturnAltMin(false)). One-directional: corridor -> direct only.
+			const mission_corridor_node_s &final_wp = _rtl_corridor.finalWaypoint();
+			const PositionYawSetpoint final_destination{final_wp.lat, final_wp.lon, final_wp.alt, NAN};
+			const loiter_point_s no_approach{}; // NaN -> RtlDirect descends / lands in place at the node
+
+			_rtl_direct.setRtlAlt(final_wp.alt);
+			_rtl_direct.setRtlPosition(final_destination, no_approach);
+			_rtl_direct.setReturnAltMin(false);
+
+			_rtl_corridor.run(false);
+			_rtl_direct.run(true);
+
+			_rtl_type = RtlType::RTL_DIRECT;
+
+		} else {
+			_rtl_direct.run(false);
 		}
 
 		break;
@@ -368,30 +428,13 @@ void RTL::setRtlTypeAndDestination()
 			new_rtl_type = RtlType::RTL_DIRECT;
 		}
 
+	} else if (_param_rtl_type.get() == 7 && tryFindCorridorPath()) {
+		new_rtl_type = RtlType::RTL_CORRIDOR;
+
 	} else {
-		// check the closest allowed destination.
-		findRtlDestination(destination_type, destination, safe_point_index);
-
-		if (destination_type == DestinationType::DESTINATION_TYPE_MISSION_LAND) {
-			new_rtl_type = RtlType::RTL_DIRECT_MISSION_LAND;
-
-		} else {
-
-			new_rtl_type = RtlType::RTL_DIRECT;
-
-			land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
-
-			// set loiter position to destination initially, overwrite for VTOL if land approaches exist
-			landing_loiter.lat = destination.lat;
-			landing_loiter.lon = destination.lon;
-			landing_loiter.height_m = NAN;
-
-			if (_vehicle_status_sub.get().is_vtol
-			    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
-			    && rtl_land_approaches.isAnyApproachValid()) {
-				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
-			}
-		}
+		// check the closest allowed destination. Also the fallback for RTL_TYPE 7 when no
+		// corridor graph is loaded or nothing in it is reachable.
+		new_rtl_type = computeDirectDestination(destination_type, destination, landing_loiter, safe_point_index);
 	}
 
 	const float rtl_alt = computeReturnAltitude(destination);
@@ -417,6 +460,78 @@ void RTL::setRtlTypeAndDestination()
 	rtl_status.safe_point_index = safe_point_index;
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);
+}
+
+RTL::RtlType RTL::computeDirectDestination(DestinationType &destination_type, PositionYawSetpoint &destination,
+		loiter_point_s &landing_loiter, uint8_t &safe_point_index)
+{
+	findRtlDestination(destination_type, destination, safe_point_index);
+
+	if (destination_type == DestinationType::DESTINATION_TYPE_MISSION_LAND) {
+		return RtlType::RTL_DIRECT_MISSION_LAND;
+	}
+
+	land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
+
+	// set loiter position to destination initially, overwrite for VTOL if land approaches exist
+	landing_loiter.lat = destination.lat;
+	landing_loiter.lon = destination.lon;
+	landing_loiter.height_m = NAN;
+
+	if (_vehicle_status_sub.get().is_vtol
+	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+	    && rtl_land_approaches.isAnyApproachValid()) {
+		landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
+	}
+
+	return RtlType::RTL_DIRECT;
+}
+
+bool RTL::isWithinBatteryBudget(const rtl_time_estimate_s &estimate, float battery_remaining_s)
+{
+	return estimate.valid && PX4_ISFINITE(battery_remaining_s) && (estimate.safe_time_estimate < battery_remaining_s);
+}
+
+bool RTL::tryFindCorridorPath()
+{
+	mission_corridor_node_s waypoints[DM_KEY_CORRIDOR_NODES_MAX];
+	uint8_t num_waypoints = 0;
+
+	const bool found = _navigator->get_corridor_graph().findPath(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+			   _global_pos_sub.get().alt, waypoints, num_waypoints, DM_KEY_CORRIDOR_NODES_MAX)
+			   && num_waypoints > 0;
+
+	if (!found) {
+		return false;
+	}
+
+	_rtl_corridor.setPath(waypoints, num_waypoints);
+
+	const bool goal_is_nest = waypoints[num_waypoints - 1].type == static_cast<uint8_t>(CorridorNodeType::Nest);
+	const float battery_remaining_s = _battery_status_sub.get().time_remaining_s;
+
+	// Graph reachability of the nest is already guaranteed at corridor upload time, so the
+	// real gate here is whether there's enough battery left to get there and land. If the
+	// battery estimate itself is unavailable (NaN), we can't assess that -- don't force a
+	// rally point diversion we can't justify; keep the graph's nest-preferred choice.
+	if (goal_is_nest && PX4_ISFINITE(battery_remaining_s)) {
+		const rtl_time_estimate_s time_to_nest = _rtl_corridor.calc_rtl_time_estimate();
+
+		if (!isWithinBatteryBudget(time_to_nest, battery_remaining_s)) {
+			mission_corridor_node_s rally_waypoints[DM_KEY_CORRIDOR_NODES_MAX];
+			uint8_t num_rally_waypoints = 0;
+
+			if (_navigator->get_corridor_graph().findPathToRallyPoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+					_global_pos_sub.get().alt, rally_waypoints, num_rally_waypoints, DM_KEY_CORRIDOR_NODES_MAX)
+			    && num_rally_waypoints > 0) {
+				_rtl_corridor.setPath(rally_waypoints, num_rally_waypoints);
+			}
+
+			// If no rally point is reachable either, keep flying to the nest (already set above).
+		}
+	}
+
+	return true;
 }
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_point_index)

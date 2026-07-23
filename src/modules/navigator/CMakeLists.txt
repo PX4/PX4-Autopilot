@@ -46,6 +46,7 @@ set(NAVIGATOR_SOURCES
 	mission.cpp
 	loiter.cpp
 	rtl.cpp
+	rtl_corridor.cpp
 	rtl_direct.cpp
 	rtl_direct_mission_land.cpp
 	rtl_mission_fast.cpp
@@ -76,6 +77,7 @@ px4_add_module(
 		vtol_takeoff_params.yaml
 	DEPENDS
 		dataman_client
+		dijkstra
 		geo
 		adsb
 		geofence_breach_avoidance

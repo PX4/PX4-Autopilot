@@ -140,6 +140,7 @@ void CorridorGraph::run()
 				// Empty graph: discard any previously loaded data
 				delete[] _nodes; _nodes = nullptr; _num_nodes = 0;
 				delete[] _edges; _edges = nullptr; _num_edges = 0;
+				_nest_idx = -1;
 				_loaded_graph_id = _node_stats.opaque_id;
 				_graph_loaded = true;
 				_dataman_state = DatamanState::UpdateRequestWait;
@@ -208,6 +209,8 @@ void CorridorGraph::run()
 				_dataman_state = DatamanState::Error;
 				break;
 			}
+
+			_buildCostMatrix();
 
 			_loaded_graph_id = _node_stats.opaque_id;
 			_graph_loaded = true;
@@ -316,6 +319,29 @@ int CorridorGraph::_findClosestNode(double lat, double lon, float alt) const
 	return closest_node;
 }
 
+void CorridorGraph::_buildCostMatrix()
+{
+	_nest_idx = -1;
+
+	for (int i = 0; i < MAX_NODES * MAX_NODES; i++) {
+		_cost[i] = INFINITY;
+	}
+
+	for (uint16_t i = 0; i < _num_nodes; i++) {
+		if (_nodes[i].type == static_cast<uint8_t>(CorridorNodeType::Nest) && _nest_idx < 0) {
+			_nest_idx = i;
+		}
+	}
+
+	for (uint16_t e = 0; e < _num_edges; e++) {
+		const mission_corridor_edge_s &edge = _edges[e];
+
+		// cost[from * N + to] is the directed edge from -> to (see dijkstra.h).
+		_cost[(int)edge.node_from * _num_nodes + (int)edge.node_to] =
+			_edgeCost(edge.node_from, edge.node_to, edge.static_cost);
+	}
+}
+
 float CorridorGraph::_edgeCost(uint16_t from_idx, uint16_t to_idx, float static_cost) const
 {
 	// An external static cost overrides distance; the two are never combined.
@@ -333,26 +359,112 @@ float CorridorGraph::_edgeCost(uint16_t from_idx, uint16_t to_idx, float static_
 
 
 bool CorridorGraph::findPath(double cur_lat, double cur_lon, float cur_alt,
-			     double home_lat, double home_lon, float home_alt,
 			     mission_corridor_node_s *waypoints_out, uint8_t &num_waypoints,
 			     uint8_t max_waypoints) const
 {
-	// TODO: implement RTL path search using the dijkstra library.
-	//
-	// Steps:
-	//   1. Call _findClosestNode(cur_lat, cur_lon, cur_alt) to get the start node index.
-	//   2. Identify landing node indices (nodes flagged as acceptable landing points).
-	//   3. Call dijkstra::solveBackward(_num_nodes, start, _cost, false, ...) with
-	//      start as the goal so that best_cost[landing_k] gives the path cost from
-	//      each landing node back to the drone's position.
-	//   4. Pick the landing node with the lowest best_cost[].
-	//   5. Walk next_node[] from that landing node toward start, collecting indices.
-	//   6. Reverse the collected indices and copy the corresponding _nodes[] entries
-	//      into waypoints_out[], capped at max_waypoints.
-	//   7. Set num_waypoints and return true. Return false if no reachable landing node.
-	(void)cur_lat; (void)cur_lon; (void)cur_alt;
-	(void)home_lat; (void)home_lon; (void)home_alt;
-	(void)waypoints_out; (void)max_waypoints;
 	num_waypoints = 0;
-	return false;
+
+	if (!isLoaded() || isEmpty()) {
+		return false;
+	}
+
+	const int start_idx = _findClosestNode(cur_lat, cur_lon, cur_alt);
+
+	if (start_idx < 0) {
+		return false;
+	}
+
+	// solveBackward(N, goal, cost, ...) gives best_cost[i] = shortest cost FROM i TO
+	// goal, respecting cost[from * N + to] as the directed edge from -> to. Fixing
+	// goal to each candidate landing node (rather than to start_idx) is required to
+	// get the cost/direction of travel FROM the drone TO that node, not the reverse.
+	if (_nest_idx >= 0
+	    && dijkstra::solveBackward(_num_nodes, _nest_idx, _cost, false, _best_cost, _next_node, _visited)
+	    && _best_cost[start_idx] < dijkstra::kUnreachable) {
+
+		return _reconstructPath(start_idx, _nest_idx, waypoints_out, num_waypoints, max_waypoints);
+	}
+
+	// Nest not reachable from start_idx: fall back to the nearest reachable rally point.
+	return findPathToRallyPoint(cur_lat, cur_lon, cur_alt, waypoints_out, num_waypoints, max_waypoints);
+}
+
+bool CorridorGraph::findPathToRallyPoint(double cur_lat, double cur_lon, float cur_alt,
+		mission_corridor_node_s *waypoints_out, uint8_t &num_waypoints,
+		uint8_t max_waypoints) const
+{
+	num_waypoints = 0;
+
+	if (!isLoaded() || isEmpty()) {
+		return false;
+	}
+
+	const int start_idx = _findClosestNode(cur_lat, cur_lon, cur_alt);
+
+	if (start_idx < 0) {
+		return false;
+	}
+
+	int best_rally_idx = -1;
+	float best_rally_cost = dijkstra::kUnreachable;
+
+	for (uint16_t i = 0; i < _num_nodes; i++) {
+		if (_nodes[i].type != static_cast<uint8_t>(CorridorNodeType::RallyPoint)) {
+			continue;
+		}
+
+		if (!dijkstra::solveBackward(_num_nodes, i, _cost, false, _best_cost, _next_node, _visited)) {
+			continue;
+		}
+
+		if (_best_cost[start_idx] < best_rally_cost) {
+			best_rally_cost = _best_cost[start_idx];
+			best_rally_idx = i;
+		}
+	}
+
+	if (best_rally_idx < 0) {
+		// No rally point reachable from start_idx.
+		return false;
+	}
+
+	// _best_cost/_next_node are scratch space shared across the calls above;
+	// re-run once more with the winning goal so _next_node reflects it.
+	if (!dijkstra::solveBackward(_num_nodes, best_rally_idx, _cost, false, _best_cost, _next_node, _visited)) {
+		return false;
+	}
+
+	return _reconstructPath(start_idx, best_rally_idx, waypoints_out, num_waypoints, max_waypoints);
+}
+
+bool CorridorGraph::_reconstructPath(int start_idx, int goal_idx, mission_corridor_node_s *waypoints_out,
+				     uint8_t &num_waypoints, uint8_t max_waypoints) const
+{
+	uint8_t count = 0;
+	int u = start_idx;
+
+	while (u != goal_idx) {
+		if (count >= max_waypoints) {
+			num_waypoints = 0;
+			return false;
+		}
+
+		waypoints_out[count++] = _nodes[u];
+		u = _next_node[u];
+
+		if (u < 0) {
+			// Unreachable: should not happen since goal_idx was confirmed reachable by the caller.
+			num_waypoints = 0;
+			return false;
+		}
+	}
+
+	if (count >= max_waypoints) {
+		num_waypoints = 0;
+		return false;
+	}
+
+	waypoints_out[count++] = _nodes[goal_idx];
+	num_waypoints = count;
+	return true;
 }

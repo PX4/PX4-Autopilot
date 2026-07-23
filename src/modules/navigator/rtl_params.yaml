@@ -79,6 +79,11 @@ parameters:
           mission path. Do not consider rally points.
         5: Return directly to safe landing point (do not consider mission landing
           and Home)
+        7: Return via the uploaded flight corridor graph to the nest if it is
+          reachable within the remaining battery time, else to the nearest
+          reachable rally point in the graph. Falls back to the direct path
+          behavior of RTL_TYPE 0 if no corridor graph is loaded or nothing in
+          it is reachable.
       default: 0
     RTL_CONE_ANG:
       description:
