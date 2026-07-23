@@ -1715,7 +1715,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 	case vehicle_command_s::VEHICLE_CMD_DO_WINCH:
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
+#if defined(CONFIG_MODULES_PARACHUTE)
+
+	// only ignore when the parachute module is there to ack it, otherwise fall through to the
+	// unsupported nack below
 	case vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE:
+#endif // CONFIG_MODULES_PARACHUTE
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
