@@ -184,13 +184,13 @@ This check only verifies that a traffic source is present. It is separate from D
 
 The behavior is configured using the [COM_TRAFF_AVOID](../advanced_config/parameter_reference.md#COM_TRAFF_AVOID) parameter:
 
-| Value | Description                                                                                                                    |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | Disabled (default). No check is performed.                                                                                     |
+| Value | Description|
+| ----- | ---------- |
+| 0     | Disabled (default). No check is performed.|
 | 1     | Warning (allow arming). Arming is allowed even if no traffic avoidance system is detected; a warning is issued if it is missing or lost in flight. |
 | 2     | Error (block arming). Arming is denied while no traffic avoidance system is detected, and a warning is issued if it is lost in flight. |
-| 3     | Return. Arming is denied while no traffic avoidance system is detected, and the vehicle returns if it is lost in flight.       |
-| 4     | Land. Arming is denied while no traffic avoidance system is detected, and the vehicle lands if it is lost in flight.           |
+| 3     | Return. Arming is denied while no traffic avoidance system is detected, and the vehicle returns if it is lost in flight.|
+| 4     | Land. Arming is denied while no traffic avoidance system is detected, and the vehicle lands if it is lost in flight.|
 
 When a traffic avoidance system is detected, the system tracks its presence with a 3-second timeout.
 If the system is lost or regained, corresponding events are logged ("Traffic avoidance system lost" / "Traffic avoidance system regained").
