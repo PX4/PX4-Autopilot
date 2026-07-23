@@ -666,17 +666,27 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 		}
 	}
 
-	// check if there is enough space to write the message
-	if (SATCOM_TX_BUF_LEN - _tx_buf_write_idx - _packet_length < 0) {
+	// check if there is enough space to write the full pending message; reset only at packet boundaries
+	if ((int)SATCOM_TX_BUF_LEN - _tx_buf_write_idx - (int)_packet_length < 0) {
 		_tx_buf_write_idx = 0;
 		++_num_tx_buf_reset;
 	}
 
-	// keep track of the remaining packet length and if the full message is written
-	_packet_length -= buflen;
+	// hard bounds check on the actual buflen being copied to prevent overflow when the
+	// declared packet length is smaller than the chunk being written
+	if (buflen > (size_t)(SATCOM_TX_BUF_LEN - _tx_buf_write_idx)) {
+		++_num_tx_buf_reset;
+		pthread_mutex_unlock(&_tx_buf_mutex);
+		return PX4_ERROR;
+	}
 
-	if (_packet_length == 0) {
+	// keep track of the remaining packet length and if the full message is written
+	if (buflen >= _packet_length) {
+		_packet_length = 0;
 		_writing_mavlink_packet = false;
+
+	} else {
+		_packet_length -= buflen;
 	}
 
 	VERBOSE_INFO("WRITE: LEN %zu, TX WRITTEN: %d", buflen, _tx_buf_write_idx);
