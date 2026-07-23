@@ -60,6 +60,7 @@ set(NAVIGATOR_SOURCES
 	course.cpp
 	loiter.cpp
 	rtl.cpp
+	rtl_corridor.cpp
 	rtl_direct.cpp
 	rtl_direct_mission_land.cpp
 	rtl_mission_fast.cpp
@@ -73,6 +74,7 @@ set(NAVIGATOR_SOURCES
 
 set(NAVIGATOR_DEPENDS
 	dataman_client
+	dijkstra
 	geo
 	motion_planning
 	mission_feasibility_checker

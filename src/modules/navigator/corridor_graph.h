@@ -72,11 +72,13 @@ public:
 	void updateGraph();
 
 	/**
-	 * @brief Find the shortest corridor path from cur to home via Dijkstra.
+	 * @brief Find the shortest corridor path from the current position to a landing node.
 	 *
-	 * The nearest corridor node to cur_pos is the start; nearest to home_pos
-	 * is the goal.  The output array contains the full ordered sequence of
-	 * corridor nodes to visit (start node first, goal node last).
+	 * The nearest corridor node to cur_pos is the start. The goal is the graph's
+	 * single Nest node if reachable from the start; otherwise the reachable
+	 * RallyPoint node with the lowest path cost. The output array contains the
+	 * full ordered sequence of corridor nodes to visit (start node first, goal
+	 * node last).
 	 *
 	 * Edge cost: if an external static_cost was provided (> 0) it is used as the
 	 * cost outright; otherwise (static_cost == 0) the 3D Euclidean distance
@@ -85,12 +87,31 @@ public:
 	 * @param waypoints_out  Output array of nodes to visit in order.
 	 * @param num_waypoints  Number of entries written to waypoints_out.
 	 * @param max_waypoints  Capacity of waypoints_out.
-	 * @return true if a path was found; false if not loaded, empty, or no path.
+	 * @return true if a path to the nest or a rally point was found; false if
+	 *         not loaded, empty, or neither is reachable from cur_pos.
 	 */
 	bool findPath(double cur_lat, double cur_lon, float cur_alt,
-		      double home_lat, double home_lon, float home_alt,
 		      mission_corridor_node_s *waypoints_out, uint8_t &num_waypoints,
 		      uint8_t max_waypoints) const;
+
+	/**
+	 * @brief Find the shortest corridor path from the current position to the nearest
+	 * reachable RallyPoint node, ignoring the nest entirely.
+	 *
+	 * Same start-node selection and edge cost rules as findPath(); see its docs. Used
+	 * both as findPath()'s own nest-unreachable fallback and directly by callers that
+	 * have already decided (e.g. on a remaining-battery-time basis) not to target the
+	 * nest even though it may be graph-reachable.
+	 *
+	 * @param waypoints_out  Output array of nodes to visit in order.
+	 * @param num_waypoints  Number of entries written to waypoints_out.
+	 * @param max_waypoints  Capacity of waypoints_out.
+	 * @return true if a path to some rally point was found; false if not loaded, empty,
+	 *         or no rally point is reachable from cur_pos.
+	 */
+	bool findPathToRallyPoint(double cur_lat, double cur_lon, float cur_alt,
+				  mission_corridor_node_s *waypoints_out, uint8_t &num_waypoints,
+				  uint8_t max_waypoints) const;
 
 	bool isLoaded() const { return _graph_loaded; }
 	bool isEmpty() const { return _num_nodes == 0 || _num_edges == 0; }
@@ -119,7 +140,20 @@ private:
 	void _loadNodes();
 	void _loadEdges();
 
+	/**
+	 * @brief (Re)build the _cost matrix and _nest_idx cache from the currently loaded
+	 * nodes/edges. Called once per graph load, not per findPath() call.
+	 */
+	void _buildCostMatrix();
+
 	int _findClosestNode(double lat, double lon, float alt) const;
+
+	/**
+	 * @brief Walk _next_node from start_idx to goal_idx (as populated by the most recent
+	 * dijkstra::solveBackward(..., goal_idx, ...) call) into waypoints_out.
+	 */
+	bool _reconstructPath(int start_idx, int goal_idx, mission_corridor_node_s *waypoints_out,
+			      uint8_t &num_waypoints, uint8_t max_waypoints) const;
 
 	/**
 	 * @brief Cost of the directed edge between two loaded nodes.
@@ -156,11 +190,17 @@ private:
 	bool _graph_loaded{false};
 	bool _update_requested{false};
 
+	int _nest_idx{-1}; ///< index of the single Nest-typed node, or -1 if none loaded
+
 	// Dijkstra buffers (sized to dataman capacity limits)
 	static constexpr int MAX_NODES = DM_KEY_CORRIDOR_NODES_MAX;
 
-	float	_cost[MAX_NODES * MAX_NODES]{};
-	float	_best_cost[MAX_NODES]{};
-	int	_next_node[MAX_NODES]{};
-	bool	_visited[MAX_NODES]{};
+	float	_cost[MAX_NODES * MAX_NODES] {};
+
+	// Scratch space for findPath()'s solveBackward() calls; mutable since findPath()
+	// is logically const from the caller's perspective (only waypoints_out/num_waypoints
+	// are real outputs), but these buffers must be written to compute them.
+	mutable float	_best_cost[MAX_NODES] {};
+	mutable int	_next_node[MAX_NODES] {};
+	mutable bool	_visited[MAX_NODES] {};
 };

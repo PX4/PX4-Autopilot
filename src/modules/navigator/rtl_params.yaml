@@ -82,6 +82,11 @@ parameters:
         6: Return to home if time estimate to home is less than battery remaining estimate,
           else return to the closest rally point. If battery remaining estimate is not available,
           return to the closest safe point (home or rally point).
+        7: Return via the uploaded flight corridor graph to the nest if it is
+          reachable within the remaining battery time, else to the nearest
+          reachable rally point in the graph. Falls back to the direct path
+          behavior of RTL_TYPE 0 if no corridor graph is loaded or nothing in
+          it is reachable.
       default: 0
     RTL_CONE_ANG:
       description:

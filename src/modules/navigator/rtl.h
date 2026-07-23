@@ -46,6 +46,7 @@
 #include "navigator_mode.h"
 #include "navigation.h"
 #include "rtl_base.h"
+#include "rtl_corridor.h"
 #include "rtl_direct.h"
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
@@ -79,6 +80,7 @@ public:
 		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
 		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
+		RTL_CORRIDOR = rtl_status_s::RTL_STATUS_TYPE_CORRIDOR,
 	};
 
 	void on_inactive() override;
@@ -90,6 +92,13 @@ public:
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
 
 	bool isLanding();
+
+	/**
+	 * @brief True if flying the given time estimate is affordable within the remaining
+	 * battery time. False whenever either input is invalid/NaN, so callers don't mistake
+	 * missing data for guaranteed reachability.
+	 */
+	static bool isWithinBatteryBudget(const rtl_time_estimate_s &estimate, float battery_remaining_s);
 
 private:
 	friend class RTLTestPeer;
@@ -133,6 +142,14 @@ private:
 	 *
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Try to find a flight corridor path from the current position to the nest or a
+	 * rally point, and hand it to _rtl_corridor if found.
+	 *
+	 * @return true if a path was found (and _rtl_corridor now has it).
+	 */
+	bool tryFindCorridorPath();
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -187,6 +204,7 @@ private:
 	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
 	RtlDirect _rtl_direct;
+	RtlCorridor _rtl_corridor;
 
 	bool _enforce_rtl_alt{false};
 
