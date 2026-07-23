@@ -474,6 +474,25 @@ parameters:
           If false, also disables upper bound NPFG_PERIOD_UB.
       type: boolean
       default: 1
+    ETA_CLMB_MOD:
+      description:
+        short: Enable ETA-based height-rate modulation
+        long: |-
+          Commands the climb or sink rate required to reach the active mission waypoint altitude at the
+          estimated time of arrival. The estimate uses the horizontal distance and current ground speed.
+      type: boolean
+      default: 0
+    ETA_HR_SAT:
+      description:
+        short: ETA height-rate saturation
+        long: Maximum absolute climb or sink rate commanded by ETA-based height-rate modulation.
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 0.1
+      max: 20.0
+      decimal: 1
+      increment: 0.1
     NPFG_UB_PERIOD:
       description:
         short: Enable automatic upper bound on the NPFG period

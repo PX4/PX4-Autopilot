@@ -217,6 +217,20 @@ The equation is:
 
 $$L_{1_{distance}}=\frac{1}{\pi}L_{1_{damping}}L_{1_{period}}\left \| \vec{v}_{ {xy}_{ground} } \right \|$$
 
+## ETA-Based Height-Rate Modulation
+
+By default, fixed-wing missions generate an altitude setpoint along the active mission leg and let the
+longitudinal controller track that setpoint. If the aircraft reaches the waypoint laterally with remaining altitude
+error, it may need to loiter until the target altitude is reached.
+
+When [ETA_CLMB_MOD](../advanced_config/parameter_reference.md#ETA_CLMB_MOD) is enabled, PX4 estimates the time of
+arrival at the active waypoint from the current horizontal distance and ground speed. It then commands the climb or
+sink rate required to remove the remaining altitude error by that estimated arrival time.
+
+This modulation applies to fixed-wing mission waypoint tracking. The internally calculated height-rate setpoint is
+limited symmetrically by [ETA_HR_SAT](../advanced_config/parameter_reference.md#ETA_HR_SAT). If a valid arrival-time
+estimate is unavailable, PX4 falls back to the normal altitude setpoint.
+
 ## Mission Takeoff
 
 Starting flights with mission takeoff (and landing using a mission landing) is the recommended way of operating a plane autonomously.

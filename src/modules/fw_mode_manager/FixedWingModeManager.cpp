@@ -841,10 +841,13 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 		}
 	}
 
+	const float height_rate_setpoint = _param_eta_based_climbrate_enable.get() ?
+					   getHeightRateSetpointThroughETA(curr_pos, ground_speed, pos_sp_curr) : NAN;
+
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
 		.altitude = position_sp_alt,
-		.height_rate = NAN,
+		.height_rate = height_rate_setpoint,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
 		.throttle_direct = NAN
@@ -2424,6 +2427,30 @@ float FixedWingModeManager::getMaxRollAngleNearGround(const float altitude, cons
 
 	return  math::constrain(2.f * height_above_ground / _param_fw_wing_span.get(), 0.f,
 				math::radians(_param_fw_r_lim.get()));
+}
+
+float FixedWingModeManager::getHeightRateSetpointThroughETA(const Vector2d &curr_pos, const Vector2f &ground_speed,
+		const position_setpoint_s &pos_sp_curr) const
+{
+	const float ground_speed_magnitude = ground_speed.norm();
+
+	if (!PX4_ISFINITE(ground_speed_magnitude) || ground_speed_magnitude <= FLT_EPSILON
+	    || !PX4_ISFINITE(pos_sp_curr.alt) || !PX4_ISFINITE(_current_altitude)) {
+		return NAN;
+	}
+
+	const float distance_to_waypoint = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon,
+					   curr_pos(0), curr_pos(1));
+
+	if (!PX4_ISFINITE(distance_to_waypoint) || distance_to_waypoint <= FLT_EPSILON) {
+		return NAN;
+	}
+
+	const float approach_time = distance_to_waypoint / ground_speed_magnitude;
+	const float height_rate_setpoint = (pos_sp_curr.alt - _current_altitude) / approach_time;
+	const float height_rate_saturation = _param_eta_height_rate_saturation.get();
+
+	return math::constrain(height_rate_setpoint, -height_rate_saturation, height_rate_saturation);
 }
 
 
