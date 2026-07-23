@@ -43,4 +43,22 @@ TEST(MatrixVector4Test, Vector4)
 	EXPECT_EQ(a(1), 2.f);
 	EXPECT_EQ(a(2), 3.f);
 	EXPECT_EQ(a(3), 4.f);
+
+	Vector4f zero;
+	EXPECT_EQ(zero, Vector4f(0.f, 0.f, 0.f, 0.f));
+
+	Vector4f b(4.f, 3.f, 2.f, 1.f);
+	EXPECT_EQ(a + b, Vector4f(5.f, 5.f, 5.f, 5.f));
+	EXPECT_EQ(a - b, Vector4f(-3.f, -1.f, 1.f, 3.f));
+	EXPECT_EQ(-a, Vector4f(-1.f, -2.f, -3.f, -4.f));
+	EXPECT_EQ(a * 2.f, Vector4f(2.f, 4.f, 6.f, 8.f));
+	EXPECT_FLOAT_EQ(a * b, 1.f * 4.f + 2.f * 3.f + 3.f * 2.f + 4.f * 1.f);
+
+	Matrix<float, 4, 1> m(a);
+	Vector4f from_matrix(m);
+	EXPECT_EQ(from_matrix, a);
+
+	float data[] = {7.f, 8.f, 9.f, 10.f};
+	Vector4f from_array(data);
+	EXPECT_EQ(from_array, Vector4f(7.f, 8.f, 9.f, 10.f));
 }
