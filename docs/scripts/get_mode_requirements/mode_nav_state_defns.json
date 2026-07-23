@@ -1,0 +1,166 @@
+{
+    "VEHICLE_TYPE_FIXED_WING": {
+        "NAVIGATION_STATE_MANUAL": {
+            "label": "Manual Mode",
+            "doc": "../flight_modes_fw/manual.md"
+        },
+        "NAVIGATION_STATE_ALTCTL": {
+            "label": "Altitude Mode",
+            "doc": "../flight_modes_fw/altitude.md"
+        },
+        "NAVIGATION_STATE_ALTITUDE_CRUISE": {
+            "warn": false,
+            "status": "Behaves identically to [Altitude Mode](../flight_modes_fw/altitude.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation."
+        },
+        "NAVIGATION_STATE_POSCTL": {
+            "label": "Position Mode",
+            "doc": "../flight_modes_fw/position.md"
+        },
+        "NAVIGATION_STATE_POSITION_SLOW": {
+            "warn": false,
+            "status": "Behaves identically to [Position Mode](../flight_modes_fw/position.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation."
+        },
+        "NAVIGATION_STATE_AUTO_MISSION": {
+            "label": "Mission Mode",
+            "doc": "../flight_modes_fw/mission.md"
+        },
+        "NAVIGATION_STATE_AUTO_LOITER": {
+            "label": "Hold Mode",
+            "doc": "../flight_modes_fw/hold.md"
+        },
+        "NAVIGATION_STATE_AUTO_RTL": {
+            "label": "Return Mode",
+            "doc": "../flight_modes_fw/return.md"
+        },
+        "NAVIGATION_STATE_ACRO": {
+            "label": "Acro Mode",
+            "doc": "../flight_modes_fw/acro.md"
+        },
+        "NAVIGATION_STATE_DESCEND": {
+            "label": "Descend Mode",
+            "doc": "../flight_modes_fw/descend.md"
+        },
+        "NAVIGATION_STATE_TERMINATION": {
+            "warn": false,
+            "status": "Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination."
+        },
+        "NAVIGATION_STATE_OFFBOARD": {
+            "label": "Offboard Mode",
+            "doc": "../flight_modes_fw/offboard.md"
+        },
+        "NAVIGATION_STATE_STAB": {
+            "label": "Stabilized Mode",
+            "doc": "../flight_modes_fw/stabilized.md"
+        },
+        "NAVIGATION_STATE_AUTO_TAKEOFF": {
+            "label": "Takeoff Mode",
+            "doc": "../flight_modes_fw/takeoff.md"
+        },
+        "NAVIGATION_STATE_AUTO_LAND": {
+            "label": "Land Mode",
+            "doc": "../flight_modes_fw/land.md"
+        },
+        "NAVIGATION_STATE_GUIDED_COURSE": {
+            "label": "Guided Course Mode",
+            "doc": "../flight_modes_fw/guided_course.md"
+        },
+        "NAVIGATION_STATE_AUTO_FOLLOW_TARGET": {
+            "warn": false,
+            "status": "Not implemented for fixed-wing frames (Follow Me is a multicopter-only flight task)."
+        },
+        "NAVIGATION_STATE_AUTO_PRECLAND": {
+            "warn": false,
+            "status": "Not implemented for fixed-wing frames (precision landing requires hover capability)."
+        },
+        "NAVIGATION_STATE_ORBIT": {
+            "warn": false,
+            "status": "Not implemented for fixed-wing frames; [Hold Mode](../flight_modes_fw/hold.md) is used instead for orbiting a point."
+        },
+        "NAVIGATION_STATE_AUTO_VTOL_TAKEOFF": {
+            "warn": false,
+            "status": "VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain fixed-wing frames."
+        }
+    },
+    "VEHICLE_TYPE_ROTARY_WING": {
+        "NAVIGATION_STATE_MANUAL": {
+            "label": "Manual/Stabilized Mode",
+            "doc": "../flight_modes_mc/manual_stabilized.md"
+        },
+        "NAVIGATION_STATE_ALTCTL": {
+            "label": "Altitude Mode",
+            "doc": "../flight_modes_mc/altitude.md"
+        },
+        "NAVIGATION_STATE_ALTITUDE_CRUISE": {
+            "label": "Altitude Cruise Mode",
+            "doc": "../flight_modes_mc/altitude_cruise.md"
+        },
+        "NAVIGATION_STATE_POSCTL": {
+            "label": "Position Mode",
+            "doc": "../flight_modes_mc/position.md"
+        },
+        "NAVIGATION_STATE_POSITION_SLOW": {
+            "label": "Position Slow Mode",
+            "doc": "../flight_modes_mc/position_slow.md"
+        },
+        "NAVIGATION_STATE_AUTO_MISSION": {
+            "label": "Mission Mode",
+            "doc": "../flight_modes_mc/mission.md"
+        },
+        "NAVIGATION_STATE_AUTO_LOITER": {
+            "label": "Hold Mode",
+            "doc": "../flight_modes_mc/hold.md"
+        },
+        "NAVIGATION_STATE_AUTO_RTL": {
+            "label": "Return Mode",
+            "doc": "../flight_modes_mc/return.md"
+        },
+        "NAVIGATION_STATE_ACRO": {
+            "label": "Acro Mode",
+            "doc": "../flight_modes_mc/acro.md"
+        },
+        "NAVIGATION_STATE_DESCEND": {
+            "label": "Descend Mode",
+            "doc": "../flight_modes_mc/descend.md"
+        },
+        "NAVIGATION_STATE_GUIDED_COURSE": {
+            "warn": false,
+            "status": "Not implemented for multicopters (course-hold is a fixed-wing-only flight task)."
+        },
+        "NAVIGATION_STATE_TERMINATION": {
+            "warn": false,
+            "status": "Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination."
+        },
+        "NAVIGATION_STATE_OFFBOARD": {
+            "label": "Offboard Mode",
+            "doc": "../flight_modes_mc/offboard.md"
+        },
+        "NAVIGATION_STATE_STAB": {
+            "label": "Manual/Stabilized Mode",
+            "doc": "../flight_modes_mc/manual_stabilized.md"
+        },
+        "NAVIGATION_STATE_AUTO_TAKEOFF": {
+            "label": "Takeoff Mode",
+            "doc": "../flight_modes_mc/takeoff.md"
+        },
+        "NAVIGATION_STATE_AUTO_LAND": {
+            "label": "Land Mode",
+            "doc": "../flight_modes_mc/land.md"
+        },
+        "NAVIGATION_STATE_AUTO_FOLLOW_TARGET": {
+            "label": "Follow Me Mode",
+            "doc": "../flight_modes_mc/follow_me.md"
+        },
+        "NAVIGATION_STATE_AUTO_PRECLAND": {
+            "label": "Precision Landing",
+            "doc": "../advanced_features/precland.md"
+        },
+        "NAVIGATION_STATE_ORBIT": {
+            "label": "Orbit Mode",
+            "doc": "../flight_modes_mc/orbit.md"
+        },
+        "NAVIGATION_STATE_AUTO_VTOL_TAKEOFF": {
+            "warn": false,
+            "status": "VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain multicopter frames."
+        }
+    }
+}
