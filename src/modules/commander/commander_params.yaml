@@ -164,6 +164,7 @@ parameters:
         0: Warning
         2: Land mode
         3: Return at critical level, land at emergency level
+        4: Return at critical level, terminate at emergency level
       default: 0
     COM_FAIL_ACT_T:
       description:
@@ -368,6 +369,21 @@ parameters:
       min: -1
       max: 400
       decimal: 1
+    COM_POS_FS_ACT:
+      description:
+        short: Loss of position autonomous failsafe action
+        long: |-
+          If no autonomous horizontal navigation is possible anymore should the vehicle attempt to
+          descend blindly and land or terminate which can be preferable if there's a parachute and no pilot.
+
+          Action to take when autonomous horizontal navigation is lost:
+          - "Descend if possible" blind with potential drift and uncontrolled landing (risk of hitting obstacles)
+          - "Terminate" can be preferred for unpiloted use with emergency parachute
+      type: enum
+      values:
+        0: Descend if possible
+        1: Terminate
+      default: 0
     COM_VEL_FS_EVH:
       description:
         short: Horizontal velocity error threshold
