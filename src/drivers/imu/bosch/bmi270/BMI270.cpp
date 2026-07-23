@@ -530,7 +530,8 @@ void BMI270::ConfigureFIFOWatermark(uint8_t samples)
 {
 	// FIFO_WTM: 13 bit FIFO watermark level value
 	// unit of the fifo watermark is one byte
-	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::Data);
+	// each combined accel+gyro frame is 1 header byte + 6 gyro bytes + 6 accel bytes
+	const uint16_t fifo_watermark_threshold = samples * (2 * sizeof(FIFO::Data) + FIFO::HEADER_SIZE);
 
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::FIFO_WTM_0) {
