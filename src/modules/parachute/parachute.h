@@ -38,11 +38,13 @@
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 
 #include <uORB/topics/parachute.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 extern "C" __EXPORT int parachute_main(int argc, char *argv[]);
 
@@ -99,6 +101,7 @@ private:
 
 	// Subscription
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	// Publications
 	uORB::Publication<parachute_s> _parachute_pub{ORB_ID(parachute)};

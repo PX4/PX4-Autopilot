@@ -77,6 +77,20 @@ void Parachute::handle_parachute_command(const vehicle_command_s &vehicle_comman
 
 	switch (parachute_action) {
 	case vehicle_command_s::PARACHUTE_ACTION_RELEASE: {
+			// never release the parachute on the ground (also denied when
+			// the land detector has not published yet). In-air releases stay possible in any
+			// arming state, e.g. after an in-air kill.
+			vehicle_land_detected_s land_detected{};
+			const bool landed = !_vehicle_land_detected_sub.copy(&land_detected) || land_detected.landed;
+
+			if (landed) {
+				events::send(events::ID("parachute_release_denied_landed"), events::Log::Warning,
+					     "Parachute release denied: vehicle is landed");
+				send_vehicle_command_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED,
+							 vehicle_command.source_system, vehicle_command.source_component);
+				break;
+			}
+
 			parachute_s parachute{};
 			parachute.timestamp = hrt_absolute_time();
 			parachute.command = parachute_s::COMMAND_RELEASE;
