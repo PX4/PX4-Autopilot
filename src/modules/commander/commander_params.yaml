@@ -312,7 +312,7 @@ parameters:
       values:
         0: Manual
         1: Altitude
-        2: Position
+        2: Position / Cruise
         3: Mission
         4: Hold
         6: Position Slow
