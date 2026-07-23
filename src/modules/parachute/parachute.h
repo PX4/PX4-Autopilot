@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 
 extern "C" __EXPORT int parachute_main(int argc, char *argv[]);
 
@@ -97,11 +98,18 @@ private:
 	bool send_vehicle_command_ack(const uint8_t command_result, const uint8_t target_system,
 				      const uint8_t target_component);
 
+	/**
+	 * @brief Whether the command is addressed to this autopilot (or broadcast), as opposed to
+	 * another component such as an external MAVLink parachute system (MAV_COMP_ID_PARACHUTE)
+	 */
+	bool command_addresses_autopilot(const vehicle_command_s &vehicle_command);
+
 	bool _released{false};
 
 	// Subscription
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// Publications
 	uORB::Publication<parachute_s> _parachute_pub{ORB_ID(parachute)};

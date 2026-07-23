@@ -65,10 +65,22 @@ void Parachute::Run()
 	vehicle_command_s vehicle_command;
 
 	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE) {
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE
+		    && command_addresses_autopilot(vehicle_command)) {
 			handle_parachute_command(vehicle_command);
 		}
 	}
+}
+
+bool Parachute::command_addresses_autopilot(const vehicle_command_s &vehicle_command)
+{
+	// commands addressed to another component (e.g. an external MAVLink parachute system) are
+	// forwarded by the mavlink module and acked by that system, not by this module
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	return vehicle_command.target_component == 0
+	       || vehicle_command.target_component == vehicle_status.component_id;
 }
 
 void Parachute::handle_parachute_command(const vehicle_command_s &vehicle_command)
