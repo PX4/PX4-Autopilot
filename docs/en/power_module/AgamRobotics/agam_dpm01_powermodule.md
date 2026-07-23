@@ -2,7 +2,7 @@
 
 The Agam DPM01 is a digital power module designed for PX4-compatible flight controllers. It provides regulated 5 V power to the flight controller while measuring battery voltage and current through an I2C interface for battery monitoring and power management.
 
-![Agam DPM01](../../assets/hardware/power_module/AgamRobotics/agam_dpm01_powermodule.jpg)
+![Agam DPM01](../../../assets/hardware/power_module/AgamRobotics/agam_dpm01_powermodule.jpg)
 
 ## Where to Buy
 
