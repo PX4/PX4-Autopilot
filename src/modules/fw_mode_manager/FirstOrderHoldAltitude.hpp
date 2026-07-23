@@ -36,7 +36,6 @@
 #include <float.h>
 #include <math.h>
 
-#include <uORB/topics/position_setpoint.h>
 
 /**
  * @brief State of the altitude first order hold (FOH), persisted across calls.
