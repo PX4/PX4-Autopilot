@@ -276,10 +276,7 @@ void Navigator::run()
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
 
 		if (fds[2].revents & POLLIN) {
-			mission_s mission_update{};
-
-			if (orb_copy(ORB_ID(mission), _mission_sub, &mission_update) == PX4_OK) {
-				mission = mission_update;
+			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
 				mission_received = true;
 
 				if (mission.geofence_id != geofence_id) {
