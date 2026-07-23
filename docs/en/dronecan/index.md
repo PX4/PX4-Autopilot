@@ -276,6 +276,13 @@ PX4 DroneCAN parameters:
 
 - [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
 
+#### Grippers
+
+DroneCAN grippers do not require any `UAVCAN_SUB_*`, `UAVCAN_PUB_*`, `CANNODE_SUB_*`, or `CANNODE_PUB_*` parameters.
+When DroneCAN is enabled, PX4 automatically publishes [`uavcan.equipment.hardpoint.Command`](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#uavcanequipmenthardpoint) messages to forward `MAV_CMD_DO_GRIPPER` commands.
+
+See [Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md) for an example setup.
+
 ### ESC & Servos
 
 [DroneCAN ESCs and servos](../dronecan/escs.md) require the [motor order and servo outputs](../config/actuators.md) to be configured.
