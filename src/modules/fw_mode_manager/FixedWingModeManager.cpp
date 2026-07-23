@@ -1485,18 +1485,12 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	const bool parachute_landing_active = _param_fw_lnd_para_en.get() && !_parachute_release_commanded
 					      && !_vehicle_status.is_vtol;
 
+	// minimum release altitude, below which the canopy cannot fully open before touchdown
+	const float parachute_release_floor = _param_fw_lnd_para_sink.get() * _param_fw_lnd_para_time.get();
+
 	// release altitude, constrained to the altitude lost while the parachute deploys so that the
 	// canopy is fully open before touchdown
-	const float parachute_release_alt = math::max(_param_fw_lnd_para_alt.get(),
-					    _param_fw_lnd_para_sink.get() * _param_fw_lnd_para_time.get());
-
-	if (parachute_landing_active && _wind_valid) {
-		// compensate the crosswind drift component by aiming upwind of the landing point
-		const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
-		const Vector2f drift = _wind_vel * parachute_release_alt / math::max(_param_fw_lnd_para_sink.get(), 0.5f);
-		const Vector2f cross_drift = drift - approach_direction * drift.dot(approach_direction);
-		local_land_point -= cross_drift;
-	}
+	const float parachute_release_alt = math::max(_param_fw_lnd_para_alt.get(), parachute_release_floor);
 
 	// calculate the altitude setpoint based on the landing glide slope
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
@@ -1519,6 +1513,18 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 				  abort_on_terrain_timeout);
 	const float glide_slope_reference_alt = (_param_fw_lnd_useter.get() ==
 						TerrainEstimateUseOnLanding::kFollowTerrainRelativeLandingGlideSlope) ? terrain_alt : pos_sp_curr.alt;
+
+	if (parachute_landing_active && _wind_valid) {
+		// compensate the crosswind drift under canopy by aiming upwind of the landing point.
+		// the drift is predicted from the altitude the release is expected to happen at: the
+		// release altitude, or lower if the vehicle cannot hold it (e.g. a motor-less glider).
+		const float release_alt_predicted = math::constrain(_current_altitude - terrain_alt,
+						    parachute_release_floor, parachute_release_alt);
+		const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
+		const Vector2f drift = _wind_vel * release_alt_predicted / math::max(_param_fw_lnd_para_sink.get(), 0.5f);
+		const Vector2f cross_drift = drift - approach_direction * drift.dot(approach_direction);
+		local_land_point -= cross_drift;
+	}
 
 	float altitude_setpoint;
 
@@ -1546,12 +1552,12 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
 
-		// only release in the altitude band around the level-off: this makes the release
-		// altitude deterministic, and leaves the canopy room to open when arriving below
 		const bool at_release_altitude = altitude_above_ground < parachute_release_alt + kParachuteReleaseAltitudeMargin
-						 && altitude_above_ground > _param_fw_lnd_para_sink.get() * _param_fw_lnd_para_time.get();
+						 && altitude_above_ground > parachute_release_floor;
 
 		if (at_release_altitude) {
+			_parachute_release_band_entered = true;
+
 			const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
 			const float ground_speed_along_track = math::max(ground_speed.dot(approach_direction), 0.f);
 			const float wind_along_track = _wind_valid ? _wind_vel.dot(approach_direction) : 0.f;
@@ -1564,6 +1570,15 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 				releaseParachute(now);
 				_parachute_release_commanded = true;
 			}
+
+		} else if (_parachute_release_band_entered && altitude_above_ground <= parachute_release_floor) {
+			// a vehicle that cannot hold the release altitude (e.g. a motor-less glider) can sink
+			// through the band before reaching the release point. Release now
+			releaseParachute(now);
+			_parachute_release_commanded = true;
+
+			events::send(events::ID("fw_mode_manager_parachute_release_floor"), events::Log::Warning,
+				     "Releasing parachute at minimum altitude");
 		}
 	}
 
@@ -2513,6 +2528,7 @@ FixedWingModeManager::reset_landing_state()
 	_lateral_touchdown_position_offset = 0.0f;
 
 	_parachute_release_commanded = false;
+	_parachute_release_band_entered = false;
 
 	_last_time_terrain_alt_was_valid = 0;
 

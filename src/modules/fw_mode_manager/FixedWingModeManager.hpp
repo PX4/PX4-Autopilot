@@ -280,6 +280,9 @@ private:
 	// [.] true once this module has commanded the parachute release during a parachute landing
 	bool _parachute_release_commanded{false};
 
+	// [.] true once the vehicle has been inside the parachute release altitude band during the current landing
+	bool _parachute_release_band_entered{false};
+
 	// MANUAL MODES
 
 	// indicates whether we have completed a manual takeoff in a position control mode
