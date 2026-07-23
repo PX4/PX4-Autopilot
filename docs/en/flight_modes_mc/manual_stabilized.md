@@ -1,4 +1,4 @@
-# Stabilized Mode (Multicopter)
+# Manual/Stabilized Mode (Multicopter)
 
 <img src="../../assets/site/difficulty_medium.png" title="Medium difficulty to fly" width="30px" />&nbsp;<img src="../../assets/site/remote_control.svg" title="Manual/Remote control required" width="30px" />&nbsp;
 
@@ -6,7 +6,8 @@ The _Stabilized_ manual mode stabilizes and levels the multicopter when the RC c
 To move/fly the vehicle you move the sticks outside of the centre.
 
 ::: info
-This mode is also enabled if you set the flight mode to _Manual_.
+PX4 has separate MC _Manual_ and _Stabilized_ navigation states, which correspond to separate flight modes that can be set (and displayed via MAVLink).
+These modes behave identically in flight, but have different arming requirements — see [Mode Requirements](#mode-requirements) below.
 :::
 
 When sticks are outside the centre, the roll and pitch sticks control the _angle_ of the vehicle (attitude) around the respective axes, the yaw stick controls the rate of rotation above the horizontal plane, and the throttle controls altitude/speed.
@@ -55,6 +56,24 @@ The following requirements must be met to arm in this mode, or to switch to this
 - [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
 
 <!-- END AUTO-GENERATED: mode_requirements_rotary_wing_stab -->
+
+::: info
+These requirements are form arming in Stabilized mode.
+:::
+
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_manual -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_manual -->
+
+::: info
+These requirements are for arming in Manual mode.
+:::
 
 ## Parameters
 

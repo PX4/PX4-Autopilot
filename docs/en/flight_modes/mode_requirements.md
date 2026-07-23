@@ -13,22 +13,22 @@ The following sections provide an overview of the requirements and what modes th
 
 ## Requirements Definitions
 
-| Requirement                                                                                     | Example                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="mode_req_angular_velocity">`mode_req_angular_velocity`</a>                               | Angular velocity (gyroscope)                                                                                                                                                                                                                                                                                                                                                                                                          |
-| <a id="mode_req_attitude">`mode_req_attitude`</a>                                               | Attitude/pose (IMU, or theoretically a motion capture system)                                                                                                                                                                                                                                                                                                                                                                         |
-| <a id="mode_req_local_position">`mode_req_local_position`</a>                                   | Position relative to EKF2 origin ('0') point (GNSS, VIO, mocap)                                                                                                                                                                                                                                                                                                                                                                       |
-| <a id="mode_req_local_position_relaxed">`mode_req_local_position_relaxed`</a>                   | Position relative to EKF2 origin ('0') point but accepts poor accuracy (Optical flow) <br><br>Typically optical flow. You set zero when you take off and just integrate up the flow. So the absolute position can be very inaccurate but better than nothing. Useful to not drift away quickly and roughly know where you are.                                                                                                        |
-| <a id="mode_req_global_position">`mode_req_global_position`</a>                                 | Position measurement updates in a global coordinate frame (GNSS, or local position and global reference to EKF 0)                                                                                                                                                                                                                                                                                                                     |
-| <a id="mode_req_global_position_relaxed">`mode_req_global_position_relaxed`</a>                 | Position measurement updates in a global coordinate frame but accepts poor accuracy <br><br>Local position and global reference to EKF2 origin                                                                                                                                                                                                                                                                                        |
-| <a id="mode_req_local_alt">`mode_req_local_alt`</a>                                             | Local altitude relative to EKF2 origin ('0') position (Barometer corrected by GNSS altitude over time, distance sensor) <br><br>Usually not the distance sensor because if the ground shifts then the coordinate frame would shift with it (range aid problem).                                                                                                                                                                       |
-| <a id="mode_req_mission">`mode_req_mission`</a>                                                 | Valid mission in autopilot's storage (Mission mode only requirement) <br><br>can be from last time no need to upload fresh                                                                                                                                                                                                                                                                                                            |
-| <a id="mode_req_offboard_signal">`mode_req_offboard_signal`</a>                                 | Offboard heartbeat <br><br>MAVLink messages SET_ATTITUDE_TARGET or SET_POSITION_TARGET_LOCAL_NED or SET_POSITION_TARGET_GLOBAL_INT not timing out. Offboard mode specific requirement.                                                                                                                                                                                                                                                |
-| <a id="mode_req_home_position">`mode_req_home_position`</a>                                     | Global home reference must be set <br><br>Specific requirement for Return mode                                                                                                                                                                                                                                                                                                                                                        |
-| <a id="mode_req_wind_and_flight_time_compliance">`mode_req_wind_and_flight_time_compliance`</a> | Safety compliance limits on wind and flight time. <br><br>Autonomous flight prevented in high winds (20m/s?) or if exceeds planned flight time, except for failsafe flight. See COM_FLT_TIME_MAX or COM_WIND_MAX for limits (also see COM_WIND_WARN, COM_WIND_MAX_ACT).                                                                                                                                                               |
-| <a id="mode_req_prevent_arming">`mode_req_prevent_arming`</a>                                   | Mode prevents arming (vehicle must be armed to switch to this mode) <br><br>Set for modes like Land, Orbit, Return that you can't take off in                                                                                                                                                                                                                                                                                         |
-| <a id="mode_req_manual_control">`mode_req_manual_control`</a>                                   | Requires stick input <br><br>This can come from multiple channels: RC driver -> channels -> RC mapping/calibration -> [`manual_control_input` or `manual_control_setpoint` topic](../msg_docs/ManualControlSetpoint.md) -> Selector using [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) -> Joystick (MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) message) -> ... |
-| <a id="mode_req_other">`mode_req_other`</a>                                                     | Others requirement. <br><br>This is used by external modes. It is intended to specify additional requirements not covered by the existing flags                                                                                                                                                                                                                                                                                       |
+| Requirement | Example |
+| --- | --- |
+| <a id="mode_req_angular_velocity">`mode_req_angular_velocity`</a> | Angular velocity (gyroscope) |
+| <a id="mode_req_attitude">`mode_req_attitude`</a> | Attitude/pose (IMU, or theoretically a motion capture system) |
+| <a id="mode_req_local_position">`mode_req_local_position`</a> | Position relative to EKF2 origin ('0') point (GNSS, VIO, mocap) |
+| <a id="mode_req_local_position_relaxed">`mode_req_local_position_relaxed`</a> | Position relative to EKF2 origin ('0') point but accepts poor accuracy (Optical flow) <br><br>Typically optical flow. You set zero when you take off and just integrate up the flow. So the absolute position can be very inaccurate but better than nothing. Useful to not drift away quickly and roughly know where you are. |
+| <a id="mode_req_global_position">`mode_req_global_position`</a> | Position measurement updates in a global coordinate frame (GNSS, or local position and global reference to EKF 0) |
+| <a id="mode_req_global_position_relaxed">`mode_req_global_position_relaxed`</a> | Position measurement updates in a global coordinate frame but accepts poor accuracy <br><br>Local position and global reference to EKF2 origin |
+| <a id="mode_req_local_alt">`mode_req_local_alt`</a> | Local altitude relative to EKF2 origin ('0') position (Barometer corrected by GNSS altitude over time, distance sensor) <br><br>Usually not the distance sensor because if the ground shifts then the coordinate frame would shift with it (range aid problem). |
+| <a id="mode_req_mission">`mode_req_mission`</a> | Valid mission in autopilot's storage (Mission mode only requirement) <br><br>can be from last time no need to upload fresh |
+| <a id="mode_req_offboard_signal">`mode_req_offboard_signal`</a> | Offboard heartbeat <br><br>MAVLink messages SET_ATTITUDE_TARGET or SET_POSITION_TARGET_LOCAL_NED or SET_POSITION_TARGET_GLOBAL_INT not timing out. Offboard mode specific requirement. |
+| <a id="mode_req_home_position">`mode_req_home_position`</a> | Global home reference must be set <br><br>Specific requirement for Return mode |
+| <a id="mode_req_wind_and_flight_time_compliance">`mode_req_wind_and_flight_time_compliance`</a> | Safety compliance limits on wind and flight time. <br><br>Autonomous flight prevented in high winds (20m/s?) or if exceeds planned flight time, except for failsafe flight. See COM_FLT_TIME_MAX or COM_WIND_MAX for limits (also see COM_WIND_WARN, COM_WIND_MAX_ACT). |
+| <a id="mode_req_prevent_arming">`mode_req_prevent_arming`</a> | Mode prevents arming (vehicle must be armed to switch to this mode) <br><br>Set for modes like Land, Orbit, Return that you can't take off in |
+| <a id="mode_req_manual_control">`mode_req_manual_control`</a> | Requires stick input <br><br>This can come from multiple channels: RC driver -> channels -> RC mapping/calibration -> [`manual_control_input` or `manual_control_setpoint` topic](../msg_docs/ManualControlSetpoint.md) -> Selector using [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) -> Joystick (MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) message) -> ... |
+| <a id="mode_req_other">`mode_req_other`</a> | Others requirement. <br><br>This is used by external modes. It is intended to specify additional requirements not covered by the existing flags |
 
 ### Naming Conventions
 
@@ -48,6 +48,114 @@ Note that a global position requirement can be met if you have a valid _local po
 This can be done by setting the global position of the local origin using the MAVLink message [SET_GPS_GLOBAL_ORIGIN](https://mavlink.io/en/messages/common.html#SET_GPS_GLOBAL_ORIGIN), either directly or via a GCS (see [External Position Estimate > Enabling Auto Modes with a Local Position](../ros/external_position_estimation#enabling-auto-modes-with-a-local-position)).
 Similarly, if the vehicle has `mode_req_local_position_relaxed`, then you can map to a global position in order to meet the `global_position_relaxed` requirement.
 This allows PX4 automatic flight modes that require a global position to be used locally, such as Mission and Return.
+
+
+## Fixed-wing (VEHICLE_TYPE_FIXED_WING)
+
+### [Manual Mode](../flight_modes_fw/manual.md) (NAVIGATION_STATE_MANUAL)
+
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Altitude Mode](../flight_modes_fw/altitude.md) (NAVIGATION_STATE_ALTCTL)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Position Mode](../flight_modes_fw/position.md) (NAVIGATION_STATE_POSCTL)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Mission Mode](../flight_modes_fw/mission.md) (NAVIGATION_STATE_AUTO_MISSION)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_mission`](#mode_req_mission)
+- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
+
+### [Hold Mode](../flight_modes_fw/hold.md) (NAVIGATION_STATE_AUTO_LOITER)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
+
+### [Guided Course Mode](../flight_modes_fw/guided_course.md) (NAVIGATION_STATE_GUIDED_COURSE)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
+
+### [Return Mode](../flight_modes_fw/return.md) (NAVIGATION_STATE_AUTO_RTL)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
+- [`mode_req_home_position`](#mode_req_home_position)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
+
+### [Acro Mode](../flight_modes_fw/acro.md) (NAVIGATION_STATE_ACRO)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Descend Mode](../flight_modes_fw/descend.md) (NAVIGATION_STATE_DESCEND)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
+
+### [Offboard Mode](../flight_modes_fw/offboard.md) (NAVIGATION_STATE_OFFBOARD)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_offboard_signal`](#mode_req_offboard_signal)
+
+### [Stabilized Mode](../flight_modes_fw/stabilized.md) (NAVIGATION_STATE_STAB)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Takeoff Mode](../flight_modes_fw/takeoff.md) (NAVIGATION_STATE_AUTO_TAKEOFF)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+
+### [Land Mode](../flight_modes_fw/land.md) (NAVIGATION_STATE_AUTO_LAND)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
+
+### Modes Without a Dedicated Page
+
+The following internal navigation states have no distinct user-facing behaviour or documentation page on this frame type:
+
+- **NAVIGATION_STATE_ALTITUDE_CRUISE** — Behaves identically to [Altitude Mode](../flight_modes_fw/altitude.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation.
+- **NAVIGATION_STATE_POSITION_SLOW** — Behaves identically to [Position Mode](../flight_modes_fw/position.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation.
+- **NAVIGATION_STATE_TERMINATION** — Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination.
+- **NAVIGATION_STATE_AUTO_FOLLOW_TARGET** — Not implemented for fixed-wing frames (Follow Me is a multicopter-only flight task).
+- **NAVIGATION_STATE_AUTO_PRECLAND** — Not implemented for fixed-wing frames (precision landing requires hover capability).
+- **NAVIGATION_STATE_ORBIT** — Not implemented for fixed-wing frames; [Hold Mode](../flight_modes_fw/hold.md) is used instead for orbiting a point.
+- **NAVIGATION_STATE_AUTO_VTOL_TAKEOFF** — VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain fixed-wing frames.
 
 ## Multicopter (VEHICLE_TYPE_ROTARY_WING)
 
@@ -119,14 +227,10 @@ This allows PX4 automatic flight modes that require a global position to be used
 - [`mode_req_angular_velocity`](#mode_req_angular_velocity)
 - [`mode_req_manual_control`](#mode_req_manual_control)
 
-### [Land Mode](../flight_modes_mc/land.md) (NAVIGATION_STATE_DESCEND)
+### [Descend Mode](../flight_modes_mc/descend.md) (NAVIGATION_STATE_DESCEND)
 
 - [`mode_req_angular_velocity`](#mode_req_angular_velocity)
 - [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### NAVIGATION_STATE_TERMINATION
-
 - [`mode_req_prevent_arming`](#mode_req_prevent_arming)
 
 ### [Offboard Mode](../flight_modes_mc/offboard.md) (NAVIGATION_STATE_OFFBOARD)
@@ -182,148 +286,10 @@ This allows PX4 automatic flight modes that require a global position to be used
 - [`mode_req_prevent_arming`](#mode_req_prevent_arming)
 - [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
 
-### NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
+### Modes Without a Dedicated Page
 
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position`](#mode_req_local_position)
+The following internal navigation states have no distinct user-facing behaviour or documentation page on this frame type:
 
-## Fixed-wing (VEHICLE_TYPE_FIXED_WING)
-
-### [Manual Mode](../flight_modes_fw/manual.md) (NAVIGATION_STATE_MANUAL)
-
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Altitude Mode](../flight_modes_fw/altitude.md) (NAVIGATION_STATE_ALTCTL)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### NAVIGATION_STATE_ALTITUDE_CRUISE
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Position Mode](../flight_modes_fw/position.md) (NAVIGATION_STATE_POSCTL)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### NAVIGATION_STATE_POSITION_SLOW
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Mission Mode](../flight_modes_fw/mission.md) (NAVIGATION_STATE_AUTO_MISSION)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_mission`](#mode_req_mission)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### [Hold Mode](../flight_modes_fw/hold.md) (NAVIGATION_STATE_AUTO_LOITER)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### [Return Mode](../flight_modes_fw/return.md) (NAVIGATION_STATE_AUTO_RTL)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
-- [`mode_req_home_position`](#mode_req_home_position)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### [Acro Mode](../flight_modes_fw/acro.md) (NAVIGATION_STATE_ACRO)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Land Mode](../flight_modes_fw/land.md) (NAVIGATION_STATE_DESCEND)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### NAVIGATION_STATE_TERMINATION
-
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### [Offboard Mode](../flight_modes_fw/offboard.md) (NAVIGATION_STATE_OFFBOARD)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_offboard_signal`](#mode_req_offboard_signal)
-
-### [Stabilized Mode](../flight_modes_fw/stabilized.md) (NAVIGATION_STATE_STAB)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Takeoff Mode](../flight_modes_fw/takeoff.md) (NAVIGATION_STATE_AUTO_TAKEOFF)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-
-### [Land Mode](../flight_modes_fw/land.md) (NAVIGATION_STATE_AUTO_LAND)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### NAVIGATION_STATE_AUTO_FOLLOW_TARGET
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position`](#mode_req_local_position)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### NAVIGATION_STATE_AUTO_PRECLAND
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position`](#mode_req_local_position)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### NAVIGATION_STATE_ORBIT
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position`](#mode_req_local_position)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- **NAVIGATION_STATE_GUIDED_COURSE** — Not implemented for multicopters (course-hold is a fixed-wing-only flight task).
+- **NAVIGATION_STATE_TERMINATION** — Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination.
+- **NAVIGATION_STATE_AUTO_VTOL_TAKEOFF** — VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain multicopter frames.

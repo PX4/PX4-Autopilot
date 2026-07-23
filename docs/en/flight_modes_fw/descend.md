@@ -14,7 +14,9 @@ It is the last resort used when the vehicle must come down but has no valid posi
 
 :::
 
-## When It Occurs
+## Technical Description
+
+### When It Occurs
 
 Descend is the bottom of the failsafe chain (`Hold → Return → Land → Descend`).
 PX4 falls through to it whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run. For example:
@@ -23,12 +25,24 @@ PX4 falls through to it whenever a failsafe needs to bring the vehicle down or h
 - Losing the position estimate in [Hold](../flight_modes_fw/hold.md), [Mission](../flight_modes_fw/mission.md) or [Return](../flight_modes_fw/return.md): with no position to hold, fly to, or return with, the failsafe escalates down to _Descend_.
 - A Return or Land failsafe (from manual control loss, GCS/data link loss, low battery, geofence breach, …) triggered while no valid position estimate is available: Return and Land can't run, so it degrades to _Descend_.
 
-## Exiting Descend
+### Exiting Descend
 
 Descend ends when either:
 
 - the failsafe condition is resolved (e.g. the position estimate recovers), and the vehicle returns to its previous mode; or
 - the pilot takes over by switching to a manual mode ([Position](../flight_modes_fw/position.md), [Altitude](../flight_modes_fw/altitude.md) or [Stabilized](../flight_modes_fw/stabilized.md)).
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_descend -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming (vehicle must be armed to switch to this mode)
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_descend -->
 
 ## See Also
 

@@ -37,7 +37,7 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 [Manual nudging](../flight_modes_fw/mission.md#automatic-abort) and [automatic land abort](../flight_modes_fw/mission.md#nudging) are not available in land mode.
 
-<!-- AUTO-GENERATED: mode_requirements_fixed_wing_descend -->
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_land -->
 
 ### Mode Requirements
 
@@ -45,9 +45,11 @@ The following requirements must be met to arm in this mode, or to switch to this
 
 - [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
 - [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
 - [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming (vehicle must be armed to switch to this mode)
 
-<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_descend -->
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_land -->
 
 ### Parameters
 
