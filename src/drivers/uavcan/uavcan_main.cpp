@@ -89,6 +89,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller(_node),
 	_servo_controller(_node),
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+	_esc_hobbywing_controller(_node),
+#endif
 #endif
 #if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
 	_hardpoint_controller(_node),
@@ -121,6 +124,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+	_mixing_interface_hobbywing_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanHobbyWingEscController::MAX_RATE_HZ);
+#endif
 	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
 #endif
 }
@@ -415,6 +421,9 @@ UavcanNode::update_params()
 {
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_mixing_interface_esc.updateParams();
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+	_mixing_interface_hobbywing_esc.updateParams();
+#endif
 	_mixing_interface_servo.updateParams();
 #endif
 }
@@ -451,7 +460,21 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+	{
+		int32_t esc_type = 0;
+		(void)param_get(param_find("UAVCAN_ESC_TYPE"), &esc_type);
+
+		if (esc_type == 1) {
+			_instance->_mixing_interface_hobbywing_esc.ScheduleNow();
+
+		} else {
+			_instance->_mixing_interface_esc.ScheduleNow();
+		}
+	}
+#else
 	_instance->_mixing_interface_esc.ScheduleNow();
+#endif
 	_instance->_mixing_interface_servo.ScheduleNow();
 #endif
 
@@ -534,8 +557,18 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 2) {
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+		int32_t esc_type = 0;
+		(void)param_get(param_find("UAVCAN_ESC_TYPE"), &esc_type);
 
-		ret = _esc_controller.init();
+		if (esc_type == 1) {
+			ret = _esc_hobbywing_controller.init();
+
+		} else
+#endif
+		{
+			ret = _esc_controller.init();
+		}
 
 		if (ret < 0) {
 			return ret;
@@ -610,7 +643,17 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+
+	if (_esc_hobbywing_controller.initialized()) {
+		_esc_hobbywing_controller.set_node_info_publisher(&_node_info_publisher);
+
+	} else
+#endif
+	{
+		_esc_controller.set_node_info_publisher(&_node_info_publisher);
+	}
+
 #endif
 
 	/* Set up shared service clients */
@@ -970,7 +1013,11 @@ UavcanNode::Run()
 	}
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	_arming_status_controller.setActuatorTestRunning(_mixing_interface_esc.isActuatorTestRunning());
+	bool actuator_test_running = _mixing_interface_esc.isActuatorTestRunning();
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+	actuator_test_running = actuator_test_running || _mixing_interface_hobbywing_esc.isActuatorTestRunning();
+#endif
+	_arming_status_controller.setActuatorTestRunning(actuator_test_running);
 #endif
 
 	perf_end(_cycle_perf);
@@ -982,6 +1029,11 @@ UavcanNode::Run()
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 		_mixing_interface_esc.mixingOutput().unregister();
 		_mixing_interface_esc.ScheduleClear();
+
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+		_mixing_interface_hobbywing_esc.mixingOutput().unregister();
+		_mixing_interface_hobbywing_esc.ScheduleClear();
+#endif
 
 		_mixing_interface_servo.mixingOutput().unregister();
 		_mixing_interface_servo.ScheduleClear();
@@ -1147,6 +1199,51 @@ void UavcanMixingInterfaceServo::Run()
 	_mixing_output.updateSubscriptions(false);
 	pthread_mutex_unlock(&_node_mutex);
 }
+
+#if defined(CONFIG_UAVCAN_HOBBYWING_ESC)
+bool UavcanMixingInterfaceHobbyWingESC::updateOutputs(float outputs[MAX_ACTUATORS], unsigned num_outputs,
+		unsigned num_control_groups_updated)
+{
+	if (_esc_controller.initialized()) {
+		uint8_t output_array_size = 0;
+
+		for (int i = MAX_ACTUATORS - 1; i >= 0; i--) {
+			if (mixingOutput().isFunctionSet(i)) {
+				output_array_size = i + 1;
+				break;
+			}
+		}
+
+		_esc_controller.update_outputs(outputs, output_array_size);
+	}
+
+	return true;
+}
+
+void UavcanMixingInterfaceHobbyWingESC::Run()
+{
+	pthread_mutex_lock(&_node_mutex);
+	_mixing_output.update();
+	_mixing_output.updateSubscriptions(false);
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void UavcanMixingInterfaceHobbyWingESC::mixerChanged()
+{
+	int rotor_count = 0;
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
+		rotor_count += _mixing_output.isFunctionSet(i);
+
+		if (i < esc_status_s::CONNECTED_ESC_MAX) {
+			_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+		}
+	}
+
+	_esc_controller.set_rotor_count(rotor_count);
+}
+#endif // CONFIG_UAVCAN_HOBBYWING_ESC
+
 #endif
 
 void
