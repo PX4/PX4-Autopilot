@@ -58,6 +58,7 @@
 #include "input_test.h"
 #include "output_rc.h"
 #include "output_mavlink.h"
+#include "output_gimbal_manager.h"
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -106,6 +107,9 @@ static OutputBase *create_output(int32_t mode, const Parameters &params)
 
 	case MNT_MODE_OUT_MAVLINK_V2:
 		return new OutputMavlinkV2(params);
+
+	case MNT_MODE_OUT_TO_GIMBAL_MANAGER:
+		return new OutputToGimbalManager(params);
 
 	default:
 		PX4_ERR("invalid output mode %" PRId32, mode);
