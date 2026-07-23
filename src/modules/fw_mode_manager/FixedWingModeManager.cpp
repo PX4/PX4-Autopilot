@@ -1901,7 +1901,7 @@ FixedWingModeManager::releaseParachute(const hrt_abstime &now)
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE;
 	vehicle_command.param1 = vehicle_command_s::PARACHUTE_ACTION_RELEASE;
 	vehicle_command.target_system = _vehicle_status.system_id;
-	vehicle_command.target_component = 161; // MAV_COMP_ID_PARACHUTE, forwarded to external parachute systems
+	vehicle_command.target_component = 0; // MAV_COMP_ID_ALL: handled by the parachute module, forwarded to external parachute systems
 	vehicle_command.source_system = _vehicle_status.system_id;
 	vehicle_command.source_component = _vehicle_status.component_id;
 	_vehicle_command_pub.publish(vehicle_command);
@@ -1910,8 +1910,8 @@ FixedWingModeManager::releaseParachute(const hrt_abstime &now)
 void
 FixedWingModeManager::control_auto_landing_parachute(const hrt_abstime &now)
 {
-	// The aerodynamic controllers have no authority under canopy. Command the attitude
-	// open-loop: level pitch directly, wings level via zero lateral acceleration.
+	// The aerodynamic controllers have no authority under canopy.
+	// level pitch directly, wings level via zero lateral acceleration.
 	fixed_wing_longitudinal_setpoint_s longitudinal_ctrl_sp{empty_longitudinal_control_setpoint};
 	longitudinal_ctrl_sp.timestamp = now;
 	longitudinal_ctrl_sp.pitch_direct = 0.f;
