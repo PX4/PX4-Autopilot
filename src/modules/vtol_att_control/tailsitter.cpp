@@ -56,6 +56,48 @@ Tailsitter::parameters_update()
 
 }
 
+Eulerf Tailsitter::getFixedWingAttitudeEuler() const
+{
+	// Tailsitter attitude is estimated in MC frame; rotate it to FW frame before checking FW limits.
+	return Eulerf(Quatf(_v_att->q) * _q_fw_to_mc);
+}
+
+bool Tailsitter::isPitchExceeded()
+{
+	if (_common_vtol_mode != mode::FIXED_WING) {
+		return false;
+	}
+
+	// fixed-wing maximum pitch angle
+	if (_param_vt_fw_qc_p.get() > 0) {
+		const Eulerf euler = getFixedWingAttitudeEuler();
+
+		if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Tailsitter::isRollExceeded()
+{
+	if (_common_vtol_mode != mode::FIXED_WING) {
+		return false;
+	}
+
+	// fixed-wing maximum roll angle
+	if (_param_vt_fw_qc_r.get() > 0) {
+		const Eulerf euler = getFixedWingAttitudeEuler();
+
+		if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void Tailsitter::update_vtol_state()
 {
 	/* simple logic using a two way switch to perform transitions.

@@ -42,6 +42,9 @@
 #include "rtl_direct_mission_land.h"
 #include "mission_item_utils.h"
 #include "navigator.h"
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+#include "rtl_geofence_avoidance_helper.h"
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 #include <drivers/drv_hrt.h>
 
@@ -111,11 +114,23 @@ void RtlDirectMissionLand::on_activation()
 		_is_current_planned_mission_item_valid = false;
 	}
 
+	// Snapshot the setpoint the previous mode left before MissionBase::on_activation() resets the
+	// triplet, so the climb can continue an already-established loiter (used in setActiveMissionItems()).
+	_setpoint_on_activation = _navigator->get_position_setpoint_triplet()->current;
+
 	MissionBase::on_activation();
 }
 
 bool RtlDirectMissionLand::setNextMissionItem()
 {
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+	// Stay on the same mission item until the geofence-avoidance path is fully consumed.
+	if (_navigator->get_geofence_avoidance_planner().hasMore()) {
+		return true;
+	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	return (goToNextPositionItem() == PX4_OK);
 }
 
@@ -135,8 +150,30 @@ void RtlDirectMissionLand::setActiveMissionItems()
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 		}
 
+		// By default climb centered on the current position with the default loiter radius.
 		_mission_item.lat = _global_pos_sub.get().lat;
 		_mission_item.lon = _global_pos_sub.get().lon;
+		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
+
+		// If the vehicle was already established on a loiter when RTL was engaged (e.g. from Hold),
+		// keep that loiter's center and radius while climbing instead of re-centering the circle on
+		// the current position. The setpoint was snapshotted on activation before the triplet reset.
+		if (_setpoint_on_activation.valid
+		    && _setpoint_on_activation.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+		    && _setpoint_on_activation.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+			const float dist_to_center = get_distance_to_next_waypoint(
+							     _setpoint_on_activation.lat, _setpoint_on_activation.lon,
+							     _global_pos_sub.get().lat, _global_pos_sub.get().lon);
+
+			if (dist_to_center <= (_navigator->get_acceptance_radius() + fabsf(_setpoint_on_activation.loiter_radius))) {
+				_mission_item.lat = _setpoint_on_activation.lat;
+				_mission_item.lon = _setpoint_on_activation.lon;
+				// loiter_radius sign encodes direction (negative == counter-clockwise).
+				_mission_item.loiter_radius = _setpoint_on_activation.loiter_direction_counter_clockwise ?
+							      -_setpoint_on_activation.loiter_radius : _setpoint_on_activation.loiter_radius;
+			}
+		}
+
 		_mission_item.altitude = _rtl_alt;
 		_mission_item.altitude_is_relative = false;
 
@@ -144,7 +181,6 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.time_inside = 0.0f;
 		_mission_item.autocontinue = true;
 		_mission_item.origin = ORIGIN_ONBOARD;
-		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL Mission land: climb to %d m\t",
 				 (int)ceilf(_rtl_alt));
@@ -168,6 +204,60 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+	} else if (_navigator->get_geofence_avoidance_planner().hasMore()) {
+
+		GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+		matrix::Vector2d point = planner.getCurrentWaypoint();
+		const matrix::Vector2d next_point = planner.getNextWaypoint();
+		const bool is_first_waypoint = 0 == planner.getPathCursor();
+		planner.advanceWaypoint();
+
+		if (!point.isAllFinite()) {
+			// Should never happen -- the geofence branch is only entered while hasMore() is true.
+			// Fall back to flying straight to the destination, as rtl_direct does.
+			const matrix::Vector2d destination = getRtlPlannerDestination();
+
+			if (destination.isAllFinite()) {
+				point = destination;
+
+			} else {
+				point(0) = _global_pos_sub.get().lat;
+				point(1) = _global_pos_sub.get().lon;
+			}
+		}
+
+		// Line following only between points on the path, not when flying to the first point
+		if (is_first_waypoint) {
+			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
+
+		} else {
+			pos_sp_triplet->previous = current_setpoint_copy;
+		}
+
+		_mission_item.lat = point(0);
+		_mission_item.lon = point(1);
+		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		_mission_item.altitude = _rtl_alt;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.autocontinue = true;
+		_mission_item.origin = ORIGIN_ONBOARD;
+		_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
+
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		// If next point does not exist, we have NaN and inalid next setpoint
+		pos_sp_triplet->next.valid = next_point.isAllFinite();
+		pos_sp_triplet->next.alt = _rtl_alt;
+		pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		pos_sp_triplet->next.lat = next_point(0);
+		pos_sp_triplet->next.lon = next_point(1);
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	} else if (mission_item_contains_position(_mission_item)) {
 
@@ -267,9 +357,19 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 			is_in_climbing_submode = checkNeedsToClimb();
 		}
 
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+		matrix::Vector2d hor_position_at_calculation_point = add_geofence_avoidance_path_distance(
+					_rtl_time_estimator,
+					_navigator->get_geofence_avoidance_planner(),
+					matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon)
+				);
+#else
+		matrix::Vector2d hor_position_at_calculation_point {_global_pos_sub.get().lat, _global_pos_sub.get().lon};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 		if (start_item_index >= 0 && start_item_index < static_cast<int32_t>(_mission.count)) {
 			float altitude_at_calculation_point;
-			matrix::Vector2d hor_position_at_calculation_point{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 
 			if (is_in_climbing_submode) {
 				if (_enforce_rtl_alt) {
@@ -432,3 +532,37 @@ bool RtlDirectMissionLand::checkNeedsToClimb()
 
 	return needs_climbing;
 }
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+matrix::Vector2d RtlDirectMissionLand::getRtlPlannerDestination()
+{
+	matrix::Vector2d position((double)NAN, (double)NAN);
+
+	if (!hasMissionLandStart()) {
+		return position;
+	}
+
+	int32_t next_mission_item_index{-1};
+	size_t num_found_items{0U};
+	getNextPositionItems(_mission.land_start_index + 1, &next_mission_item_index, num_found_items, 1U);
+
+	if (num_found_items == 0U) {
+		return position;
+	}
+
+	mission_item_s next_position_mission_item{};
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+	const bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
+			     reinterpret_cast<uint8_t *>(&next_position_mission_item),
+			     sizeof(next_position_mission_item), MAX_DATAMAN_LOAD_WAIT);
+
+	if (!success) {
+		return position;
+	}
+
+	position(0) = next_position_mission_item.lat;
+	position(1) = next_position_mission_item.lon;
+
+	return position;
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE

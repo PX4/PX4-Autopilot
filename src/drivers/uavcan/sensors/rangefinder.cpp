@@ -82,7 +82,9 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		return;
 	}
 
-	if (!_inited) {
+	const int8_t channel_idx = get_channel_index_for_node(msg.getSrcNodeID().get());
+
+	if (channel_idx >= 0 && !_channel_initialized[channel_idx]) {
 
 		uint8_t rangefinder_type = 0;
 
@@ -107,10 +109,13 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		rangefinder->set_min_distance(_range_min_m);
 		rangefinder->set_max_distance(_range_max_m);
 
-		_inited = true;
+		_channel_initialized[channel_idx] = true;
 	}
 
-	int8_t quality = -1;
+	// TOO_CLOSE, TOO_FAR and UNDEFINED readings do not carry a usable range
+	// value: publish them as invalid (0) rather than unknown (-1), which
+	// consumers like the EKF would otherwise accept and fuse.
+	int8_t quality = 0;
 
 	if (msg.reading_type == uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE) {
 		quality = 100;

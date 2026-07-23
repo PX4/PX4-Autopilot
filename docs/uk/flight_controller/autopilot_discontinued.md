@@ -9,6 +9,8 @@ They are listed because you may be using them in an existing drone, and because 
 - _Drotek DroPix_ (FMUv2) — last published in [PX4 v1.13](https://docs.px4.io/v1.13/en/flight_controller/dropix) <!-- 202603 removed doc -->
 - _Drotek Pixhawk 3 Pro_ (FMUv4pro) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhawk3_pro) <!-- 202603 removed doc -->
 - _Omnibus F4 SD_ — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/omnibus_f4_sd) <!-- 202603 removed doc -->
+- _CUAV V5 nano_ (Manufacturer supported) — last published in [PX4 v1.17](https://docs.px4.io/v1.17/en/flight_controller/cuav_v5_nano) <!-- 202607 removed doc -->
+- _CUAV V5+_ (Manufacturer supported) — last published in [PX4 v1.17](https://docs.px4.io/v1.17/en/flight_controller/cuav_v5_plus) <!-- 202607 removed doc -->
 - _CUAV X7_ — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/cuav_x7) <!-- 202507 removed doc -->
 - _CUAV v5_ (Pixhawk FMUv5) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/cuav_v5) <!-- 202507 removed doc -->
 - _CUAV Pixhack v3_ (FMUv3) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhack_v3) <!-- 202603 removed doc -->

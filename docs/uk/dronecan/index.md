@@ -109,7 +109,7 @@ The PX4 node ID can be configured using the [UAVCAN_NODE_ID](../advanced_config/
 
 Devices running the [PX4 DroneCAN firmware](px4_cannode_fw.md) (such as [ARK CANnode](ark_cannode.md)) can use the
 [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter to set a static node ID.
-Set it to 0 (default) for dynamic allocation, or to a value between 1-127 to use a specific static node ID.
+Set it to 0 (default) for dynamic allocation, or to a value between 1-125 to use a specific static node ID.
 :::
 
 :::warning
@@ -306,7 +306,7 @@ For example, the screenshot below shows the parameters for a CAN GPS with node i
 
 Common CANNODE parameters that you can configure include:
 
-- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-127) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
+- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-125) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
 - [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM): Enable CAN bus termination on the last node in the bus.
 
 ## Налаштування пристрою
@@ -334,31 +334,12 @@ On boot, PX4 scans both locations, reads the board ID from the _APDescriptor_ of
 The source file is then deleted.
 Any connected node whose running version does not match is then flashed over the CAN bus.
 
-### Firmware Database
-
-A flat-file database at `/fs/microsd/ufw/FW.db` maps each board ID to the original firmware filename that was installed.
-This may be queried by external tools to determine current firmware versions.
-
-Example entry:
-
-```txt
-122.bin=122-1.17.63eeff1a.uavcan.bin
-```
-
-Entries are removed on boot if their corresponding firmware is not present.
-
 ### Remote Update
 
 Remote updates can be made by uploading the corresponding bin files to `/fs/microsd/ufw_staging/`.
 PX4 will then update firmware on next boot.
 
 This approach enables efficient mass-update of binaries from archives (`.zip` or `.tar` that contains `.bin` files for the target CAN nodes).
-Tools can:
-
-1. Read the PX4 firmware database to determine what firmware is present
-2. Extract the more-recent versions of matching firmware to the staging directory
-
-PX4 does not provide such tools.
 
 :::info
 Auterion uses a form of this workflow to update CAN firmware to SkyNode based devices.
@@ -372,7 +353,7 @@ The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle 
   --ext-fw=build/auterion_canio_default/some_other_default.uavcan.bin
 ```
 
-Another tool then checks the firmware database and extracts just the relevant files to the PX4 firmware staging area.
+Another tool then checks which files were already uploaded using a local database and extracts just the relevant files to the PX4 firmware staging area.
 :::
 
 ## Усунення проблем

@@ -35,11 +35,13 @@
 
 #include "autopilot_tester.h"
 
+#include <atomic>
 #include <vector>
 
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/geometry.h>
 #include <mavsdk/plugins/action/action.h>
+#include <mavsdk/plugins/telemetry/telemetry.h>
 
 
 class AutopilotTesterRtl : public AutopilotTester
@@ -61,11 +63,44 @@ public:
 	void check_rtl_approaches(float acceptance_radius_m, std::chrono::seconds timeout);
 	void upload_rally_points();
 
+	// Import a QGC .plan and upload both the mission and any geofence polygons/circles it
+	// contains. Mission and geofence are shifted by the same offset so the fences stay in
+	// their plan-relative positions (same semantics as load_qgc_mission_raw_and_move_here).
+	// All fence shapes (inclusion/exclusion, polygon/circle) are cached in local NED for the
+	// breach monitor.
+	void load_qgc_mission_and_geofence_here(const std::string &plan_file);
+
+	// Subscribe to ground-truth position and assert (latched) that the vehicle never breaches
+	// any of the cached fence shapes. A breach is entering an exclusion shape or leaving an
+	// inclusion shape. Call after load_qgc_mission_and_geofence_here().
+	void start_monitoring_geofence_breach();
+
+	// Unsubscribe and CHECK() that no breach was observed.
+	void check_no_geofence_breach();
 
 private:
+	struct GeofenceShape {
+		enum class Kind { PolygonInclusion, PolygonExclusion, CircleInclusion, CircleExclusion };
+		Kind kind;
+		std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> vertices{}; // polygons only
+		mavsdk::geometry::CoordinateTransformation::LocalCoordinate center{}; // circles only
+		double radius_m{0.0}; // circles only
+	};
+
 	void add_approaches_to_point(mavsdk::geometry::CoordinateTransformation::LocalCoordinate local_coordinate);
+
+	static bool point_in_polygon_local(
+		double north_m, double east_m,
+		const std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> &poly);
+
+	static bool point_breaches_shape(double north_m, double east_m, const GeofenceShape &shape);
 
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::vector<mavsdk::MissionRaw::MissionItem> _rally_points{};
 	std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> _local_rally_points{};
+
+	std::vector<GeofenceShape> _geofence_shapes{};
+	mavsdk::Telemetry::GroundTruthHandle _geofence_monitor_handle{};
+	std::atomic<bool> _geofence_breached{false};
+	std::atomic<bool> _geofence_monitor_active{false};
 };

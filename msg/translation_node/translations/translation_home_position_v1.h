@@ -6,14 +6,14 @@
 
 // Translate HomePosition v0 <--> v1
 #include <px4_msgs_old/msg/home_position_v0.hpp>
-#include <px4_msgs/msg/home_position.hpp>
+#include <px4_msgs_old/msg/home_position_v1.hpp>
 
 class HomePositionV1Translation {
 public:
 	using MessageOlder = px4_msgs_old::msg::HomePositionV0;
 	static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
-	using MessageNewer = px4_msgs::msg::HomePosition;
+	using MessageNewer = px4_msgs_old::msg::HomePositionV1;
 	static_assert(MessageNewer::MESSAGE_VERSION == 1);
 
 	static constexpr const char* kTopic = "fmu/out/home_position";

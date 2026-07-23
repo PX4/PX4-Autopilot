@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(health_and_arming_checks
+set(health_and_arming_checks_srcs
 	Common.cpp
 	HealthAndArmingChecks.cpp
 
@@ -74,6 +74,13 @@ px4_add_library(health_and_arming_checks
 
 	checks/externalChecks.cpp
 )
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND health_and_arming_checks_srcs checks/daaCheck.cpp)
+endif()
+
+px4_add_library(health_and_arming_checks ${health_and_arming_checks_srcs})
+
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/esc_check_params.yaml)
 add_dependencies(health_and_arming_checks mode_util)
 target_link_libraries(health_and_arming_checks PRIVATE geo hysteresis)

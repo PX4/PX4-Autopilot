@@ -74,7 +74,9 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -125,6 +127,7 @@ public:
 
 private:
 	void parameters_updated();
+	void updateFailureConfig();
 
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -142,6 +145,12 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
+	failure_injection::Config _failure_config;
+
+	bool _airspeed_blocked{false};
+	bool _distance_sensor_blocked{false};
+	bool _accel_blocked{false};
+	bool _gyro_blocked{false};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
@@ -325,6 +334,7 @@ private:
 		(ParamFloat<px4::params::SIH_LOC_LAT0>) _sih_lat0,
 		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
+		(ParamFloat<px4::params::SIH_LOC_YAW0>) _sih_yaw0,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,

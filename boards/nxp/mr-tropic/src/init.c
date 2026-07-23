@@ -276,9 +276,9 @@ int imxrt_phy_boardinitialize(int intf)
 #ifdef CONFIG_IMXRT_GPIO1_0_15_IRQ
 	/* Configure the PHY interrupt pin */
 
-	printf("Configuring interrupt: %08x\n", GPIO_ENET_INT);
 	imxrt_config_gpio(GPIO_ENET_INT);
 #endif
+
 	return OK;
 }
 

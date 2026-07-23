@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,52 +30,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/**
+ * @file daaCheck.cpp
+ *
+ * Prevent arming while an active traffic conflict requires an automated DAA action.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ */
 
-#ifndef GPS_RTCM_DATA_HPP
-#define GPS_RTCM_DATA_HPP
+#include "daaCheck.hpp"
 
-#include <uORB/topics/gps_inject_data.h>
-
-class MavlinkStreamGPSRTCMData : public MavlinkStream
+void DaaChecks::checkAndReport(const Context &context, Report &reporter)
 {
-public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGPSRTCMData(mavlink); }
-
-	static constexpr const char *get_name_static() { return "GPS_RTCM_DATA"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GPS_RTCM_DATA; }
-
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
-	unsigned get_size() override
-	{
-		return _gps_inject_data_sub.advertised() ? (MAVLINK_MSG_ID_GPS_RTCM_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	if (_param_daa_en.get() <= 0) {
+		return;
 	}
 
-private:
-	explicit MavlinkStreamGPSRTCMData(Mavlink *mavlink) : MavlinkStream(mavlink) {}
-
-	uORB::Subscription _gps_inject_data_sub{ORB_ID(gps_inject_data), 0};
-
-	bool send() override
-	{
-		gps_inject_data_s gps_inject_data;
-		bool sent = false;
-
-		while ((_mavlink->get_free_tx_buf() >= get_size()) && _gps_inject_data_sub.update(&gps_inject_data)) {
-			mavlink_gps_rtcm_data_t msg{};
-
-			msg.len = gps_inject_data.len;
-			msg.flags = gps_inject_data.flags;
-			memcpy(msg.data, gps_inject_data.data, sizeof(msg.data));
-
-			mavlink_msg_gps_rtcm_data_send_struct(_mavlink->get_channel(), &msg);
-
-			sent = true;
-		}
-
-		return sent;
+	if (context.isArmed()) {
+		return;
 	}
-};
 
-#endif // GPS_RTCM_DATA_HPP
+	detect_and_avoid_most_urgent_s daa_status{};
+	const hrt_abstime stale_timeout = static_cast<hrt_abstime>(_param_daa_traff_tout.get()) * 1_s;
+
+	if (!_detect_and_avoid_most_urgent_sub.copy(&daa_status)
+	    || daa_status.timestamp == 0
+	    || hrt_elapsed_time(&daa_status.timestamp) > stale_timeout
+	    || !daa_status.has_action) {
+		return;
+	}
+
+	/* EVENT
+	 * @description
+	 * Resolve the reported detect-and-avoid conflict before arming.
+	 */
+	reporter.armingCheckFailure(NavModes::All, health_component_t::traffic_avoidance,
+				    events::ID("check_daa_conflict"),
+				    events::Log::Error, "Air conflict detected");
+
+	if (reporter.mavlink_log_pub()) {
+		mavlink_log_critical(reporter.mavlink_log_pub(), "In conflict with automated DAA action\t");
+	}
+}

@@ -74,16 +74,9 @@ void VnSearcher_discardData(char inputData[], size_t dataLength, size_t discardL
 	else
 	{
 		/* Move the data to the front of the array and zero out everything else */
-		/* Size of the data to move */
-		size_t tmpSize = dataLength - discardLength;
-		/* Temporary swap buffer */
-		char* tmp = (char*)malloc(sizeof(char) * tmpSize);
-		/* And the swap operations */
-		/*memcpy_s(tmp, tmpSize, inputData + discardLength, tmpSize);*/
-		memcpy(tmp, inputData + discardLength, tmpSize);
-		memset(inputData, 0, dataLength);
-		/*memcpy_s(inputData, tmpSize, tmp, tmpSize);*/
-		memcpy(inputData, tmp, tmpSize);
+		const size_t newSize = dataLength - discardLength;
+		memmove(inputData, inputData + discardLength, newSize);
+		memset(inputData + newSize, 0, discardLength);
 	}
 }
 

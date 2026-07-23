@@ -128,8 +128,17 @@ Additional (and underlying) parameter settings are shown below.
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="COM_RC_LOSS_T"></a>[COM_RC_LOSS_T](../advanced_config/parameter_reference.md#COM_RC_LOSS_T)    | Manual Control Loss Timeout | Time after last setpoint received from the selected manual control source after which manual control is considered lost. This must be kept short because the vehicle will continue to fly using the last known stick position until the timeout triggers.                                                                                                                                                                                                                      |
 | <a id="COM_FAIL_ACT_T"></a>[COM_FAIL_ACT_T](../advanced_config/parameter_reference.md#COM_FAIL_ACT_T) | Failsafe Reaction Delay     | Delay in seconds between failsafe condition being triggered (`COM_RC_LOSS_T`) and failsafe action (RTL, Land, Hold). In this state the vehicle waits in hold mode for the manual control source to reconnect. This might be set longer for long-range flights so that intermittent connection loss doesn't immediately invoke the failsafe. It can be to zero so that the failsafe triggers immediately. |
-| <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                               | 안전장치 동작                     | Disabled, Loiter, Return, Land, Disarm, Terminate.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)                               | 안전장치 동작                     | Disabled, Loiter, Return, Land, Disarm, Terminate, Hold mode (no failsafe).                                                                                                                                                                                                                                                                                                                                                                                                 |
 | <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)                      | RC 손실 예외                    | Set modes in which manual control loss is ignored.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+### Hold Mode (No Failsafe)
+
+The `Hold mode (no failsafe)` action (`NAV_RCL_ACT = 7`) is a special case that does _not_ enter the failsafe.
+Instead, if manual control is lost while actively flying a manual mode (such as Position, Altitude, or Stabilized), the vehicle switches to [Hold mode](../flight_modes_mc/hold.md) as if the user had commanded it: there is no failsafe state and no alarming failsafe notification.
+This is intended for operations where a switch to Hold on manual control loss is expected and should not be surfaced as a failsafe (for example when operating multiple drones with one GCS).
+
+If Hold cannot be entered (for example without a valid position estimate), the normal failsafe takes over and escalates from there (Return, Land, Descend, or Terminate as applicable).
+Manual control loss in any non-manual (auto/offboard) mode is ignored with this setting.
 
 ## 데이터 연결불량 안전장치
 
@@ -267,13 +276,22 @@ The _Offboard Loss Failsafe_ is triggered if the offboard link is lost while und
 
 ## 교통 회피 안전 장치
 
-The Traffic Avoidance Failsafe allows PX4 to respond to transponder data (e.g. from [ADSB transponders](../advanced_features/traffic_avoidance_adsb.md)) during missions.
+The Traffic Avoidance Failsafe allows PX4 to respond to [cooperative traffic reports](../peripherals/adsb_flarm.md).
+The action parameters depend on the conflict model selected when the firmware is built.
 
 관련된 매개 변수는 다음과 같습니다.
 
-| Parameter                                                                                                              | 설명                                                                        |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID) | 비상 안전 장치를 설정합니다 : 비활성화, 경고, 귀환 모드, 착륙 모드. |
+| Parameter                                                                                                                                     | 설명                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [DAA_EN](../advanced_config/parameter_reference.md#DAA_EN)                                                               | Enables or disables Detect and Avoid.        |
+| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                        | Action for the Crosstrack model.             |
+| [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   | F3442-mode action for a `LOW` conflict.      |
+| [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   | F3442-mode action for a `MEDIUM` conflict.   |
+| [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) | F3442-mode action for a `HIGH` conflict.     |
+| [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT) | F3442-mode action for a `CRITICAL` conflict. |
+
+All action parameters use `Disabled`, `Warn only`, `Return mode`, `Land mode`, `Position Hold mode`, and `Terminate`.
+See [Detect and Avoid](../advanced_features/detect_and_avoid.md) for conflict-model and action-transition details.
 
 ## Remote ID Failsafe
 

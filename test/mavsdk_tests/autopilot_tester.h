@@ -152,6 +152,10 @@ public:
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
 
+	mavlink_home_position_t get_home_position(std::chrono::seconds timeout = std::chrono::seconds(10));
+
+	Telemetry::EulerAngle get_attitude_euler();
+
 	void enable_fixedwing_mectrics();
 	void check_airspeed_is_valid();
 	void check_airspeed_is_invalid();
@@ -190,6 +194,7 @@ public:
 	}
 
 protected:
+	mavsdk::Action *getAction() const { return _action.get();}
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
 	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
@@ -209,6 +214,8 @@ protected:
 	}
 
 private:
+	void start_offboard_with_retry(const std::function<void()> &resend_setpoint);
+
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
@@ -298,7 +305,7 @@ private:
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
-	mavsdk::Telemetry::PositionHandle _check_altitude_handle{};
+	mavsdk::Telemetry::PositionVelocityNedHandle _check_altitude_handle{};
 
 	std::atomic<bool> _should_exit {false};
 	std::thread _real_time_report_thread {};
