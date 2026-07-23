@@ -187,6 +187,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		switch ((LowBatteryAction)param_value) {
 		case LowBatteryAction::Return:
 		case LowBatteryAction::ReturnOrLand:
+		case LowBatteryAction::ReturnOrTerminate:
 			options.action = Action::RTL;
 			break;
 
@@ -217,6 +218,10 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		case LowBatteryAction::Warning:
 			options.action = Action::Warn;
+			break;
+
+		case LowBatteryAction::ReturnOrTerminate:
+			options.action = Action::Terminate;
 			break;
 		}
 

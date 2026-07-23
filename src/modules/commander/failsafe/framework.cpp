@@ -600,7 +600,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// fallthrough
 	case Action::Descend:
-		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)) {
+		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)
+		    && _param_com_pos_fs_act.get() != (int32_t)PositionFailsafeAction::Terminate) {
 			selected_action = Action::Descend;
 			break;
 		}
