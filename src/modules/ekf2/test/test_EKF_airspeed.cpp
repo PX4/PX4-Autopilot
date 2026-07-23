@@ -75,6 +75,32 @@ public:
 	void TearDown() override
 	{
 	}
+
+	void startExternalVisionVelocity(const Vector3f &velocity)
+	{
+		_ekf_wrapper.enableExternalVisionVelocityFusion();
+		_sensor_simulator._vio.setVelocity(velocity);
+		_sensor_simulator._vio.setVelocityFrameToLocalNED();
+		_sensor_simulator.startExternalVision();
+
+		// Allow EV fusion to reset velocity.
+		_sensor_simulator.runSeconds(0.5);
+	}
+
+	void startMulticopterAirspeedFusionScenario(bool mc_airspeed_enabled, float true_airspeed)
+	{
+		parameters *params = _ekf->getParamHandle();
+		params->ekf2_arsp_thr = 2.0f;
+		params->ekf2_aspd_mc = mc_airspeed_enabled ? 1 : 0;
+		params->ekf2_aspd_mc_lim = 1.0f;
+		_ekf_wrapper.enableBetaFusion();
+
+		_ekf->set_in_air_status(true);
+		_ekf->set_vehicle_at_rest(false);
+		_ekf->set_is_fixed_wing(false);
+		_sensor_simulator.startAirspeedSensor();
+		_sensor_simulator._airspeed.setData(true_airspeed, true_airspeed);
+	}
 };
 
 TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
@@ -345,4 +371,80 @@ TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+}
+
+TEST_F(EkfAirspeedTest, testMulticopterAirspeedFusionRequiresParam)
+{
+	startExternalVisionVelocity(Vector3f(0.0f, 1.5f, 0.0f));
+	startMulticopterAirspeedFusionScenario(false, 2.4f);
+
+	_sensor_simulator.runSeconds(2);
+
+	EXPECT_FALSE(_ekf_wrapper.isIntendingAirspeedFusion());
+	EXPECT_FALSE(_ekf_wrapper.isWindVelocityEstimated());
+}
+
+TEST_F(EkfAirspeedTest, testMulticopterWindVelocityEstimation)
+{
+	const Vector3f simulated_velocity_earth(0.0f, 1.5f, 0.0f);
+	const Vector2f airspeed_body(2.4f, 0.0f);
+	startExternalVisionVelocity(simulated_velocity_earth);
+	startMulticopterAirspeedFusionScenario(true, airspeed_body(0));
+
+	_sensor_simulator.runSeconds(15);
+
+	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
+	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
+
+	const Dcmf R_to_earth_sim(_quat_sim);
+	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
+	const Vector3f vel_wind_expected = simulated_velocity_earth - R_to_earth_sim * Vector3f(airspeed_body(0),
+					   airspeed_body(1), 0.0f);
+
+	EXPECT_NEAR(vel_wind_earth(0), vel_wind_expected(0), 1e-1f);
+	EXPECT_NEAR(vel_wind_earth(1), vel_wind_expected(1), 1e-1f);
+}
+
+TEST_F(EkfAirspeedTest, testMulticopterAirspeedFusionStopsWhenMisaligned)
+{
+	startExternalVisionVelocity(Vector3f(0.0f, 1.5f, 0.0f));
+	startMulticopterAirspeedFusionScenario(true, 2.4f);
+
+	_sensor_simulator.runSeconds(2);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
+
+	// Exceed the lateral specific force limit.
+	_sensor_simulator._imu.setAccelData(Vector3f(0.0f, 3.0f, -CONSTANTS_ONE_G));
+	_sensor_simulator.runSeconds(2);
+
+	EXPECT_FALSE(_ekf_wrapper.isIntendingAirspeedFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingBetaFusion());
+
+	// Fusion restarts once the specific force drops below the limit.
+	_sensor_simulator._imu.setAccelData(Vector3f(0.0f, 0.0f, -CONSTANTS_ONE_G));
+	_sensor_simulator.runSeconds(5);
+
+	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
+	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
+}
+
+TEST_F(EkfAirspeedTest, testMulticopterAirspeedNoDeadReckoning)
+{
+	startExternalVisionVelocity(Vector3f(0.0f, 1.5f, 0.0f));
+	startMulticopterAirspeedFusionScenario(true, 8.0f);
+
+	_sensor_simulator.runSeconds(5);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
+
+	// MC air data must not count as dead-reckoning aiding.
+	_sensor_simulator.stopExternalVision();
+	_sensor_simulator.runSeconds(3);
+
+	EXPECT_FALSE(_ekf->control_status_flags().wind_dead_reckoning);
+	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
+
+	_sensor_simulator.runSeconds(5);
+	EXPECT_FALSE(_ekf->isLocalHorizontalPositionValid());
 }

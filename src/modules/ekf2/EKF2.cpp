@@ -118,6 +118,8 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_tas_gate(_params->ekf2_tas_gate),
 	_param_ekf2_eas_noise(_params->ekf2_eas_noise),
 	_param_ekf2_arsp_thr(_params->ekf2_arsp_thr),
+	_param_ekf2_aspd_mc(_params->ekf2_aspd_mc),
+	_param_ekf2_aspd_mc_lim(_params->ekf2_aspd_mc_lim),
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
 	_param_ekf2_beta_gate(_params->ekf2_beta_gate),

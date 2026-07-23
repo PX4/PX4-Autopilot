@@ -424,6 +424,8 @@ struct parameters {
 	float ekf2_tas_gate{5.0f};              ///< True Airspeed innovation consistency gate size (STD)
 	float ekf2_eas_noise{1.4f};             ///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
 	float ekf2_arsp_thr{2.0f};              ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
+	int32_t ekf2_aspd_mc{0};                ///< Enable airspeed fusion for wind estimation in MC mode
+	float ekf2_aspd_mc_lim{1.0f};           ///< MC airspeed fusion lateral specific force limit (m/sec**2); 0 disables
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
