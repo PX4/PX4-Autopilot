@@ -90,7 +90,7 @@ parameters:
             the matching threshold (BAT_LOW_THR, BAT_CRIT_THR or
             BAT_EMERGEN_THR).
         type: enum
-        default: 2
+        default: 3
         values:
           1: Warn
           2: Critical
