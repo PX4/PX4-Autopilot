@@ -14,19 +14,19 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)                             | [SIH]                      | Gazebo Classic/JMAVSim     | Hardware                   |
-| ----------------- | ----------------------------------------- | -------------------------- | -------------------------- | -------------------------- |
-| `gyro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
-| `accel`           | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
-| `mag`             | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
-| `baro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
-| `distance_sensor` | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`             | `off`, `stuck`             |
-| `gps`             | — <sup>[1](#1)</sup>                      | `off`, `stuck`, `wrong`    | `off`, `stuck`, `wrong`    | `off`, `stuck`             |
-| `airspeed`        | `off`, `stuck`, `wrong`<sup>[2](#2)</sup> | —                          | `off`, `wrong`             | —                          |
-| `vio`             | —                                         | —                          | `off`                      | —                          |
-| `battery`         | `off`, `wrong`<sup>[3](#3)</sup>          | `off`, `wrong`<sup>3</sup> | `off`, `wrong`<sup>3</sup> | `off`, `wrong`<sup>3</sup> |
-| `traffic`         | `off`, `stuck`<sup>[4](#4)</sup>          | `off`, `stuck`<sup>4</sup> | `off`, `stuck`<sup>4</sup> | `off`, `stuck`<sup>4</sup> |
-| `motor`           | `off`<sup>[5](#5)</sup>                   | `off`<sup>5</sup>          | `off`<sup>5</sup>          | `off`<sup>5</sup>          |
+| Component         | [Gazebo] (gz)                             | [SIH]                      | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware                   |
+| ----------------- | ----------------------------------------- | -------------------------- | -------------------------------------------- | -------------------------- |
+| `gyro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
+| `accel`           | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
+| `mag`             | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
+| `baro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
+| `distance_sensor` | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
+| `gps`             | — <sup>[1](#1)</sup>                      | `off`, `stuck`, `wrong`    | `off`, `stuck`, `wrong`                      | `off`, `stuck`             |
+| `airspeed`        | `off`, `stuck`, `wrong`<sup>[2](#2)</sup> | —                          | `off`, `wrong`                               | —                          |
+| `vio`             | —                                         | —                          | `off`                                        | —                          |
+| `battery`         | `off`, `wrong`<sup>[3](#3)</sup>          | `off`, `wrong`<sup>3</sup> | `off`, `wrong`<sup>3</sup>                   | `off`, `wrong`<sup>3</sup> |
+| `traffic`         | `off`, `stuck`<sup>[4](#4)</sup>          | `off`, `stuck`<sup>4</sup> | `off`, `stuck`<sup>4</sup>                   | `off`, `stuck`<sup>4</sup> |
+| `motor`           | `off`<sup>[5](#5)</sup>                   | `off`<sup>5</sup>          | `off`<sup>5</sup>                            | `off`<sup>5</sup>          |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
