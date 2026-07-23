@@ -54,7 +54,8 @@ enum MntModeOut {
 	MNT_MODE_OUT_DISABLED = -1,			// Only valid for the secondary output (MNT_MODE_OUT2)
 	MNT_MODE_OUT_AUX = 0,
 	MNT_MODE_OUT_MAVLINK_V1, 			// MAVLink gimbal protocol v1 (to be deprecated)
-	MNT_MODE_OUT_MAVLINK_V2 			// MAVLink gimbal protocol v2
+	MNT_MODE_OUT_MAVLINK_V2, 			// MAVLink gimbal protocol v2
+	MNT_MODE_OUT_TO_GIMBAL_MANAGER		// Forward to an external MAVLink gimbal manager
 };
 
 struct Parameters {

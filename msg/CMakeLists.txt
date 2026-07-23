@@ -114,6 +114,7 @@ set(msg_files
 	GimbalManagerInformation.msg
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
+	GimbalManagerSetPitchyaw.msg
 	GimbalManagerStatus.msg
 	GpioConfig.msg
 	GpioIn.msg
