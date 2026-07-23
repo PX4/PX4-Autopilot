@@ -20650,6 +20650,27 @@ Change time measurement
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### CAM_CAP_REPORT (`INT32`) {#CAM_CAP_REPORT}
+
+Report captures to the ground station.
+
+Whether the autopilot reports captures to the ground station by emitting
+CAMERA_IMAGE_CAPTURED.
+
+Disable for cameras that report captures themselves (e.g. cameras
+implementing the MAVLink Camera Protocol) to avoid duplicate
+CAMERA_IMAGE_CAPTURED messages. Capture events are still published on the
+camera_capture topic and logged for geotagging regardless of this setting.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
 ## Camera trigger
 
 ### TRIG_ACT_TIME (`FLOAT`) {#TRIG_ACT_TIME}
@@ -21779,12 +21800,15 @@ Parachute requirement and failsafe.
 
 Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
 
+Warning only warns without preventing arming. Actions other than Warning also prevent arming.
+
 **Values:**
 
 - `0`: Disabled
 - `1`: Warning
-- `2`: Return
-- `3`: Land
+- `2`: Error
+- `3`: Return
+- `4`: Land
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -44046,6 +44070,16 @@ to represent a physical ground location on Earth.
 | Reboot | minValue | maxValue | increment | default  | unit | Read-Only |
 | ------ | -------- | -------- | --------- | -------- | ---- | --------- |
 | &nbsp; | -180     | 180      |           | 8.545594 | deg  | &nbsp;    |
+
+### SIH_LOC_YAW0 (`FLOAT`) {#SIH_LOC_YAW0}
+
+Initial heading (yaw) of the simulated vehicle.
+
+This value represents the initial heading (yaw) of the simulated vehicle at the start of the simulation.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -3.14159 | 3.14159  | 0.01      | 0.0     | rad  | &nbsp;    |
 
 ### SIH_L_PITCH (`FLOAT`) {#SIH_L_PITCH}
 

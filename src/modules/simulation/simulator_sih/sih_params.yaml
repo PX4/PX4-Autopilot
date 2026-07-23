@@ -215,6 +215,18 @@ parameters:
       max: 8848.0
       decimal: 2
       increment: 0.01
+    SIH_LOC_YAW0:
+      description:
+        short: Initial heading (yaw) of the simulated vehicle
+        long: |-
+          This value represents the initial heading (yaw) of the simulated vehicle at the start of the simulation.
+      type: float
+      default: 0.0
+      unit: rad
+      min: -3.14159
+      max: 3.14159
+      decimal: 3
+      increment: 0.01
     SIH_DISTSNSR_MIN:
       description:
         short: distance sensor minimum range

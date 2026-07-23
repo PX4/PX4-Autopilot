@@ -276,13 +276,22 @@ The relevant parameters are shown below:
 
 ## 交通规避故障保护
 
-The Traffic Avoidance Failsafe allows PX4 to respond to transponder data (e.g. from [ADSB transponders](../advanced_features/traffic_avoidance_adsb.md)) during missions.
+The Traffic Avoidance Failsafe allows PX4 to respond to [cooperative traffic reports](../peripherals/adsb_flarm.md).
+The action parameters depend on the conflict model selected when the firmware is built.
 
 The relevant parameters are shown below:
 
-| Parameter                                                                                                              | 描述                        |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID) | 设置故障保护动作：禁用、警告、返航模式、降落模式。 |
+| Parameter                                                                                                                                     | 描述                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [DAA_EN](../advanced_config/parameter_reference.md#DAA_EN)                                                               | Enables or disables Detect and Avoid.        |
+| [NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                        | Action for the Crosstrack model.             |
+| [DAA_LVL_LOW_ACT](../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT)   | F3442-mode action for a `LOW` conflict.      |
+| [DAA_LVL_MED_ACT](../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT)   | F3442-mode action for a `MEDIUM` conflict.   |
+| [DAA_LVL_HIGH_ACT](../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT) | F3442-mode action for a `HIGH` conflict.     |
+| [DAA_LVL_CRIT_ACT](../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT) | F3442-mode action for a `CRITICAL` conflict. |
+
+All action parameters use `Disabled`, `Warn only`, `Return mode`, `Land mode`, `Position Hold mode`, and `Terminate`.
+See [Detect and Avoid](../advanced_features/detect_and_avoid.md) for conflict-model and action-transition details.
 
 ## Remote ID Failsafe
 

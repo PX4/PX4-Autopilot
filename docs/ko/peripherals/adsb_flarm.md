@@ -1,12 +1,27 @@
 # ADS-B/FLARM/UTM Receivers: Air Traffic Avoidance
 
-PX4 supports simple air traffic avoidance in [missions](../flying/missions.md) using [ADS-B](https://en.wikipedia.org/wiki/Automatic_dependent_surveillance_%E2%80%93_broadcast), [FLARM](https://en.wikipedia.org/wiki/FLARM), or [UTM](https://www.faa.gov/uas/advanced_operations/traffic_management) transponders that use the standard MAVLink interfaces.
+PX4 can monitor cooperative air traffic reported by [ADS-B](https://en.wikipedia.org/wiki/Automatic_dependent_surveillance_%E2%80%93_broadcast), [FLARM](https://en.wikipedia.org/wiki/FLARM), or [UTM](https://www.faa.gov/uas/advanced_operations/traffic_management) integrations.
+When it detects a potential conflict, PX4 can warn the operator or request an action such as Hold, Return, Land, or Terminate.
 
-If a potential collision is detected, PX4 can _warn_, immediately [land](../flight_modes_mc/land.md), or [return](../flight_modes_mc/return.md) (depending on the value of [NAV_TRAFF_AVOID](#NAV_TRAFF_AVOID)).
+This page explains how to connect a supported receiver and configure traffic avoidance behavior.
+It is most relevant for operations in shared airspace, particularly beyond visual line of sight (BVLOS), where the vehicle must maintain safe separation from manned aviation without an onboard pilot.
+
+:::info
+PX4 can only assess _cooperative_ traffic: aircraft that actively broadcast their position via ADS-B, FLARM, UTM, or a compatible integration.
+If your operation does not involve that kind of traffic data, this page is unlikely to apply.
+
+For details on conflict-detection logic, alert volumes, notifications, testing, and extension points, see [Detect and Avoid](../advanced_features/detect_and_avoid.md).
+:::
 
 ## 지원 하드웨어
 
-PX4 traffic avoidance works with ADS-B or FLARM products that supply transponder data using the MAVLink [ADSB_VEHICLE](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) message, and UTM products that supply transponder data using the MAVLink [UTM_GLOBAL_POSITION](https://mavlink.io/en/messages/common.html#UTM_GLOBAL_POSITION) message.
+PX4 traffic avoidance works directly with ADS-B and FLARM products that send MAVLink [`ADSB_VEHICLE`](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE).
+DAA consumes PX4's `transponder_report` topic, so other traffic sources can be supported by an adapter that publishes compatible reports.
+
+:::info
+PX4 does not currently convert incoming MAVLink [`UTM_GLOBAL_POSITION`](https://mavlink.io/en/messages/common.html#UTM_GLOBAL_POSITION) messages into traffic reports.
+A UTM integration therefore needs a separate `transponder_report` adapter.
+:::
 
 It has been tested with the following devices:
 
@@ -16,7 +31,7 @@ It has been tested with the following devices:
 ## 하드웨어 설정
 
 Any of the devices can be connected to any free/unused serial port on the flight controller.
-Most commonly they are connected to `TELEM2` (if this is not being use for some other purpose).
+Most commonly they are connected to `TELEM2` (if this is not being used for some other purpose).
 
 ### PingRX Pro
 
@@ -77,19 +92,96 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 
 ### Configure Traffic Avoidance
 
-Configure the action when there is a potential collision using the parameter below:
+Traffic avoidance is included when the firmware is built with `CONFIG_NAVIGATOR_ADSB`.
+The conflict model is also selected at build time:
 
-| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="NAV_TRAFF_AVOID"></a>[NAV_TRAFF_AVOID](../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID)                         | Enable traffic avoidance mode specify avoidance response. 0: Disable, 1: Warn only, 2: Return mode, 3: Land mode.                    |
-| <a id="NAV_TRAFF_A_HOR"></a>[NAV_TRAFF_A_HOR](../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR)    | Horizontal radius of cylinder around the vehicle that defines its airspace (i.e. the airspace in the ground plane).                                               |
-| <a id="NAV_TRAFF_A_VER"></a>[NAV_TRAFF_A_VER](../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER)    | Vertical height above and below vehicle of the cylinder that defines its airspace (also see [NAV_TRAFF_A_HOR](#NAV_TRAFF_A_HOR)).  |
-| <a id="NAV_TRAFF_COLL_T"></a>[NAV_TRAFF_COLL_T](../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T) | Collision time threshold. Avoidance will trigger if the estimated time until collision drops below this value (the estimated time is based on relative speed of traffic and UAV). |
+- **Crosstrack mode** is used when `CONFIG_NAVIGATOR_ADSB_F3442` is disabled.
+  It raises one conflict level and action when the current vehicle is close to the traffic's predicted track, vertically close, and within a configured collision-time threshold.
+  This is the avoidance mode historically supported by PX4.
+- **F3442 mode** is used when `CONFIG_NAVIGATOR_ADSB_F3442` is enabled.
+  It evaluates four alert tests derived from concepts in [ASTM F3442/F3442M-23](https://store.astm.org/f3442_f3442m-23.html) and supports a separate action for each result level.
+
+:::warning
+The F3442 mode processes cooperative traffic only and implements selected alert concepts and thresholds.
+It does not by itself establish compliance with ASTM F3442/F3442M-23, which applies to the complete DAA system and its compliance evidence.
+The implementation references the 2023 edition and has not been evaluated against the later [ASTM F3442-25](https://store.astm.org/f3442-25.html) edition.
+:::
+
+For the detailed behavior of each conflict model, see [Detect and Avoid > Conflict Standards](../advanced_features/detect_and_avoid.md#conflict-standards) and [Detect and Avoid > Automated Actions](../advanced_features/detect_and_avoid.md#automated-actions).
+
+#### Enable Avoidance
+
+Use [DAA_EN](../advanced_config/parameter_reference.md#DAA_EN) to enable or disable DAA at runtime.
+
+#### Crosstrack
+
+Use firmware built without `CONFIG_NAVIGATOR_ADSB_F3442` if you want the single-threshold traffic avoidance behavior.
+
+| Parameter                                                            | 설명                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="NAV_TRAFF_AVOID"></a>[NAV\_TRAFF\_AVOID][NAV_TRAFF_AVOID]     | Action requested when the crosstrack threshold is breached. `0`: Disabled, `1`: Warn only, `2`: Return, `3`: Land, `4`: Hold, `5`: Terminate. |
+| <a id="NAV_TRAFF_A_HOR"></a>[NAV\_TRAFF\_A\_HOR][NAV_TRAFF_A_HOR]    | Maximum absolute crosstrack distance from the projected traffic track.                                                                                                                                                                                        |
+| <a id="NAV_TRAFF_A_VER"></a>[NAV\_TRAFF\_A\_VER][NAV_TRAFF_A_VER]    | Maximum vertical separation from the traffic aircraft.                                                                                                                                                                                                        |
+| <a id="NAV_TRAFF_COLL_T"></a>[NAV\_TRAFF\_COLL\_T][NAV_TRAFF_COLL_T] | Maximum conservative time-to-collision estimate. A conflict is raised only if the horizontal, vertical, and time conditions are all met.                                                                                                      |
+
+[NAV_TRAFF_AVOID]: ../advanced_config/parameter_reference.md#NAV_TRAFF_AVOID
+[NAV_TRAFF_A_HOR]: ../advanced_config/parameter_reference.md#NAV_TRAFF_A_HOR
+[NAV_TRAFF_A_VER]: ../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER
+[NAV_TRAFF_COLL_T]: ../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T
+
+#### F3442
+
+Use firmware built with `CONFIG_NAVIGATOR_ADSB_F3442` for staged alerting based on selected ASTM F3442/F3442M-23 concepts.
+
+PX4 evaluates four conflict levels and maps each level to an action:
+
+| Parameter                                                            | 설명                                                                           |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| <a id="DAA_LVL_LOW_ACT"></a>[DAA\_LVL\_LOW\_ACT][DAA_LVL_LOW_ACT]    | Action for the augmented well clear alert volume.            |
+| <a id="DAA_LVL_MED_ACT"></a>[DAA\_LVL\_MED\_ACT][DAA_LVL_MED_ACT]    | Action for the augmented NMAC alert volume.                  |
+| <a id="DAA_LVL_HIGH_ACT"></a>[DAA\_LVL\_HIGH\_ACT][DAA_LVL_HIGH_ACT] | Action for Loss of Well Clear (LoWC).     |
+| <a id="DAA_LVL_CRIT_ACT"></a>[DAA\_LVL\_CRIT\_ACT][DAA_LVL_CRIT_ACT] | Action for Near Mid-Air Collision (NMAC). |
+
+[DAA_LVL_LOW_ACT]: ../advanced_config/parameter_reference.md#DAA_LVL_LOW_ACT
+[DAA_LVL_MED_ACT]: ../advanced_config/parameter_reference.md#DAA_LVL_MED_ACT
+[DAA_LVL_HIGH_ACT]: ../advanced_config/parameter_reference.md#DAA_LVL_HIGH_ACT
+[DAA_LVL_CRIT_ACT]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_ACT
+
+F3442 mode evaluates four cylindrical alert tests in priority order.
+A test is breached when both horizontal and vertical separation are inside its combined ownship (the current vehicle) plus traffic bounds.
+
+| 항목             | 매개변수                                                                             | 설명                                                                                                      |
+| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `CRITICAL`     | [DAA\_LVL\_CRIT\_RAD][DAA_LVL_CRIT_RAD], [DAA\_LVL\_CRIT\_HGT][DAA_LVL_CRIT_HGT] | Per-aircraft NMAC base radius and vertical bound.                                       |
+| `HIGH`         | [DAA\_LVL\_HIGH\_RAD][DAA_LVL_HIGH_RAD], [DAA\_LVL\_HIGH\_HGT][DAA_LVL_HIGH_HGT] | Per-aircraft Well Clear base radius and vertical bound.                                 |
+| `MEDIUM`       | [DAA\_LVL\_MED\_TIME][DAA_LVL_MED_TIME]                                          | Expands the NMAC base volume using aircraft speed and the configured time margin.       |
+| `LOW`          | [DAA\_LVL\_LOW\_TIME][DAA_LVL_LOW_TIME]                                          | Expands the Well Clear base volume using aircraft speed and the configured time margin. |
+| Velocity input | [DAA\_EN\_DFLT\_VEL][DAA_EN_DFLT_VEL], [DAA\_DFLT\_VEL][DAA_DFLT_VEL]            | Optional replacement for the reported traffic vertical speed.                           |
+
+[DAA_LVL_CRIT_RAD]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_RAD
+[DAA_LVL_CRIT_HGT]: ../advanced_config/parameter_reference.md#DAA_LVL_CRIT_HGT
+[DAA_LVL_HIGH_RAD]: ../advanced_config/parameter_reference.md#DAA_LVL_HIGH_RAD
+[DAA_LVL_HIGH_HGT]: ../advanced_config/parameter_reference.md#DAA_LVL_HIGH_HGT
+[DAA_LVL_MED_TIME]: ../advanced_config/parameter_reference.md#DAA_LVL_MED_TIME
+[DAA_LVL_LOW_TIME]: ../advanced_config/parameter_reference.md#DAA_LVL_LOW_TIME
+[DAA_EN_DFLT_VEL]: ../advanced_config/parameter_reference.md#DAA_EN_DFLT_VEL
+[DAA_DFLT_VEL]: ../advanced_config/parameter_reference.md#DAA_DFLT_VEL
+
+Changing an action parameter does not re-evaluate buffered conflicts immediately.
+The new action is considered on a later change of the overall most-urgent conflict level, and automatic mode changes are only requested when that level increases.
+
+These parameters use the same action scale:
+`0`: Disabled, `1`: Warn only, `2`: Return, `3`: Land, `4`: Hold, `5`: Terminate.
+
+Most users can start with the default F3442 volume parameters and tune them only if needed.
+See [Detect and Avoid > F3442 Mode](../advanced_features/detect_and_avoid.md#f3442-mode), which also includes the zone-computation equations.
 
 ### Arming Check
 
-PX4 can be configured to check for the presence of a traffic avoidance system (ADSB or FLARM transponder) before arming.
+PX4 can be configured to check for the presence of a traffic avoidance system (for example an ADS-B or FLARM receiver) before arming.
 This ensures that a traffic avoidance system is connected and functioning before flight.
+
+This check only verifies that a traffic source is present. It is separate from DAA rejecting arming because active traffic already requires an automatic action; that behavior is described in [Detect and Avoid > Arming, Preflight, and Ground Behavior](../advanced_features/detect_and_avoid.md#arming-preflight-and-ground-behavior).
 
 The check is configured using the [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) parameter:
 
@@ -103,99 +195,9 @@ The check is configured using the [COM_ARM_TRAFF](../advanced_config/parameter_r
 When a traffic avoidance system is detected, the system tracks its presence with a 3-second timeout.
 If the system is lost or regained, corresponding events are logged ("Traffic avoidance system lost" / "Traffic avoidance system regained").
 
-## 구현
+## 시험
 
-### ADSB/FLARM
-
-PX4 listens for valid transponder reports during missions.
-
-If a valid transponder report is received, PX4 first uses the traffic transponder information to estimate whether the traffic heading and height indicates there will be an intersection with the airspace of the UAV.
-The UAV airspace consists of a surrounding cylinder defined by the radius [NAV_TRAFF_A_HOR](#NAV_TRAFF_A_HOR) and height [NAV_TRAFF_A_VER](#NAV_TRAFF_A_VER), with the UAV at it's center.
-The traffic detector then checks if the time until intersection with the UAV airspace is below the [NAV_TRAFF_COLL_T](#NAV_TRAFF_COLL_T) threshold based on the relative speed.
-If the both checks are true, the [Traffic Avoidance Failsafe](../config/safety.md#traffic-avoidance-failsafe) action is started, and the vehicle will either warn, land, or return.
-
-The code can be found in `Navigator::check_traffic` ([/src/modules/navigator/navigator_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp)).
-
-PX4 will also forward the transponder data to a GCS if this has been configured for the MAVLink instance (this is recommended).
-The last 10 Digits of the GUID is displayed as Drone identification.
-
-### UTM
-
-PX4 listens for `UTM_GLOBAL_POSITION` MAVLink messages during missions.
-When a valid message is received, its validity flags, position and heading are mapped into the same `transponder_report` UORB topic used for _ADS-B traffic avoidance_.
-
-The implementation is otherwise _exactly_ as described in the section above.
-
-:::info
-[UTM_GLOBAL_POSITION](https://mavlink.io/en/messages/common.html#UTM_GLOBAL_POSITION) contains additional fields that are not provided by an ADSB transponder (see [ADSB_VEHICLE](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE)).
-The current implementation simply drops the additional fields (including information about the vehicle's planned next waypoint).
-:::
-
-## Testing/Simulated ADSB Traffic
-
-You can simulate ADS-B traffic for testing.
-Note that this requires that you [Build PX4](../dev_setup/building_px4.md).
-
-:::info
-Simulated ADS-B traffic can trigger real failsafe actions.
-Use with care in real flight!
-:::
-
-이 기능을 활성화하려면:
-
-1. Uncomment the code in `AdsbConflict::run_fake_traffic()`([AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1)).
-2. Rebuild and run PX4.
-3. Execute the [`navigator fake_traffic` command](../modules/modules_controller.md#navigator) in the [QGroundControl MAVLink Shell](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) (or some other [PX4 Console or MAVLink shell](../debug/consoles.md), such as the PX4 simulator terminal).
-
-The code in `run_fake_traffic()` is then executed.
-You should see ADS-B warnings in the Console/MAVLink shell, and QGC should also show an ADS-B traffic popup.
-
-By default `run_fake_traffic()` publishes a number of traffic messages (it calls [`AdsbConflict::fake_traffic()`](#fake-traffic-method) to emit each report).
-These simulate ADS-B traffic where there may be a conflict, where there won't be a conflict, as well as spamming the traffic buffer.
-
-:::details
-Information about the test methods
-
-The relevant methods are defined in [AdsbConflict.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/adsb/AdsbConflict.cpp#L342C1-L342C1).
-
-#### `run_fake_traffic()` method
-
-The `run_fake_traffic()` method is run when the `navigator fake_traffic` command is called.
-
-The method calls the `fake_traffic()` method to generate simulated transponder messages around the current vehicle position.
-It passes in the current vehicle position, and information about the simulated traffic, such as callsign, distances, directions, altitude differences, velocities, and emitter types.
-
-The (commented out) code in `run_fake_traffic()` simulates a number of different scenarios, including conflicts and non-conflicts, as well as spamming the traffic buffer.
-
-#### `fake_traffic()` method
-
-`AdsbConflict::fake_traffic()` is called by the [`run_fake_traffic()`](#run-fake-traffic-method) to create individual ADS-B transponder reports.
-
-This takes several parameters, which specify the characteristics of the fake traffic:
-
-- `callsign`: Callsign of the fake transponder.
-- `distance`: Horizontal distance to the fake vehicle from the current vehicle.
-- `direction`: Direction in NED from this vehicle to the fake in radians.
-- `traffic_heading`: Travel direction of the traffic in NED in radians.
-- `altitude_diff`: Altitude difference of the fake traffic. Positive is up.
-- `hor_velocity`: Horizontal velocity of fake traffic, in m/s.
-- `ver_velocity`: Vertical velocity of fake traffic, in m/s.
-- `emitter_type`: Type of fake vehicle, as an enumerated value.
-- `icao_address`: ICAO address.
-- `lat_uav`: Lat of this vehicle (used to position fake traffic around vehicle)
-- `on_uav`: Lon of this vehicle (used to position fake traffic around vehicle)
-- `alt_uav`: Altitude of the vehicle (as reference - used to position fake traffic around vehicle)
-
-The method creates a simulated transponder message near the vehicle, using following steps:
-
-- Calculates the latitude and longitude of the traffic based on the UAV's position, distance, and direction.
-- Computes the new altitude by adding the altitude difference to the UAV's altitude.
-- Populates a [TransponderReport](../msg_docs/TransponderReport.md) topic with the simulated traffic data.
-- If the board supports a Universally Unique Identifier (UUID), the method retrieves the UUID using `board_get_px4_guid` and copies it to the `uas_id` field of the structure.
-  Otherwise, it generates a simulated GUID.
-- Publishes the simulated traffic message using `orb_publish`.
-
-:::
+To test your DAA configuration using simulated traffic, see [Detect and Avoid > Testing and Simulation](../advanced_features/detect_and_avoid.md#testing-and-simulation).
 
 <!-- See also implementation PR: https://github.com/PX4/PX4-Autopilot/pull/21283 -->
 
@@ -203,5 +205,6 @@ The method creates a simulated transponder message near the vehicle, using follo
 
 ## 추가 정보
 
+- [Detect and Avoid](../advanced_features/detect_and_avoid.md)
 - [MAVLink Peripherals](../peripherals/mavlink_peripherals.md)
 - [Serial Port Configuration](../peripherals/serial_configuration.md)

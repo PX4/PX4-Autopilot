@@ -332,7 +332,7 @@ void Sih::parameters_updated()
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
-
+		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
 		_q_E.normalize();
 	}

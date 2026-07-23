@@ -56,8 +56,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### Implementation
 
