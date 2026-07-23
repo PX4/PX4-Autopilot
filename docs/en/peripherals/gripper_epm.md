@@ -7,7 +7,7 @@ An electro-permanent magnet (EPM) uses a short electrical pulse to switch its ma
 This topic explains how to connect and configure a [Zubax FluxGrip FG40](https://shop.zubax.com/products/zubax-epm) EPM as a DroneCAN gripper.
 The gripper can then be operated from a [payload delivery mission](../flying/package_delivery_mission.md), a joystick, or a MAVLink command.
 
-![FluxGrip connected to a Pixhawk flight controller](../../assets/hardware/grippers/fluxgrip_px4.jpeg)
+![FluxGrip connected to a Pixhawk flight controller](../../assets/hardware/grippers/fluxgrip_px4.png)
 
 ::: info
 This setup was tested with a Holybro Pixhawk 6X Pro and FluxGrip firmware `502e1f5`.
