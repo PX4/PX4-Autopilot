@@ -951,6 +951,7 @@
   - [Support](contribute/support.md)
   - [Source Code Management](contribute/code.md)
     - [GIT Examples](contribute/git_examples.md)
+  - [AI Coding Assistants](contribute/ai_assistants.md)
   - [Documentation](contribute/docs.md)
   - [Translation](contribute/translation.md)
   - [Terminology/Notation](contribute/notation.md)
