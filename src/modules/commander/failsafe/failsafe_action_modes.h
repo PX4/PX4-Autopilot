@@ -33,18 +33,28 @@
 
 #pragma once
 
-#include "../Common.hpp"
+#include <stdint.h>
 
-class TrafficAvoidanceChecks : public HealthAndArmingCheckBase
+// Failsafe action-mode enums (values must match the parameter metadata
+// in commander_params.yaml), one namespace per failsafe. Kept in this
+// dependency-free header so the enum and its severity predicates can be
+// shared between the failsafe state machine and the HealthAndArmingChecks
+// without the latter pulling in the failsafe framework.
+
+namespace traffic_avoidance
 {
-public:
-	TrafficAvoidanceChecks() = default;
-	~TrafficAvoidanceChecks() = default;
 
-	void checkAndReport(const Context &context, Report &reporter) override;
-
-private:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_TRAFF_AVOID>) _param_com_traff_avoid
-				       )
+// COM_TRAFF_AVOID parameter values.
+enum class FailsafeMode : int32_t {
+	Disabled = 0,
+	Warning = 1, // arming allowed, in-flight warning
+	Error = 2, // arming blocked, in-flight warning
+	Return = 3, // arming blocked, in-flight RTL
+	Land = 4, // arming blocked, in-flight Land
 };
+
+// Increasing order of severity in enum is assumed.
+constexpr bool isEnabled(FailsafeMode mode) { return mode >= FailsafeMode::Warning; }
+constexpr bool blocksArming(FailsafeMode mode) { return mode >= FailsafeMode::Error; }
+
+} // namespace traffic_avoidance

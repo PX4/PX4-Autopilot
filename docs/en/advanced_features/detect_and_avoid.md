@@ -409,7 +409,7 @@ That means DAA will not automatically switch a manually flown vehicle into Hold,
 The commander health check reads [`detect_and_avoid_most_urgent`](../msg_docs/DetectAndAvoidMostUrgent.md) and applies the result only while the vehicle is disarmed.
 
 This section covers conflict-based DAA behavior when traffic is already present.
-The separate traffic-system-presence arming check is configured by [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) and described in [ADS-B/FLARM/UTM Receivers > Arming Check](../peripherals/adsb_flarm.md#arming-check).
+The separate traffic-system-presence arming check and failsafe is configured by [COM_TRAFF_AVOID](../advanced_config/parameter_reference.md#COM_TRAFF_AVOID) and described in [ADS-B/FLARM/UTM Receivers > Arming Check and Failsafe](../peripherals/adsb_flarm.md#arming-check-and-failsafe).
 
 Preflight behavior:
 
