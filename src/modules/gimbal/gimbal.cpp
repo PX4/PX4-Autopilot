@@ -73,12 +73,14 @@ static px4::atomic<bool> thread_should_exit {false};
 static px4::atomic<bool> thread_running {false};
 
 static constexpr int input_objs_len_max = 3;
+static constexpr int output_objs_len_max = 2;
 
 struct ThreadData {
 	InputBase *input_objs[input_objs_len_max] = {nullptr, nullptr, nullptr};
 	int input_objs_len = 0;
 	int last_input_active = -1;
-	OutputBase *output_obj = nullptr;
+	OutputBase *output_objs[output_objs_len_max] = {nullptr, nullptr};
+	int output_objs_len = 0;
 	InputTest *test_input = nullptr;
 	ControlData control_data {};
 };
@@ -88,9 +90,28 @@ static ThreadData *g_thread_data = nullptr;
 static void usage();
 static void update_params(ParameterHandles &param_handles, Parameters &params);
 static bool initialize_params(ParameterHandles &param_handles, Parameters &params);
+static OutputBase *create_output(int32_t mode, const Parameters &params);
 
 static int gimbal_thread_main(int argc, char *argv[]);
 extern "C" __EXPORT int gimbal_main(int argc, char *argv[]);
+
+static OutputBase *create_output(int32_t mode, const Parameters &params)
+{
+	switch (mode) {
+	case MNT_MODE_OUT_AUX:
+		return new OutputRC(params);
+
+	case MNT_MODE_OUT_MAVLINK_V1:
+		return new OutputMavlinkV1(params);
+
+	case MNT_MODE_OUT_MAVLINK_V2:
+		return new OutputMavlinkV2(params);
+
+	default:
+		PX4_ERR("invalid output mode %" PRId32, mode);
+		return nullptr;
+	}
+}
 
 static int gimbal_thread_main(int argc, char *argv[])
 {
@@ -169,40 +190,40 @@ static int gimbal_thread_main(int argc, char *argv[])
 		}
 	}
 
-	switch (params.mnt_mode_out) {
-	case MNT_MODE_OUT_AUX: //AUX
-		thread_data.output_obj = new OutputRC(params);
+	const int32_t out_modes[output_objs_len_max] = {params.mnt_mode_out, params.mnt_mode_out2};
 
-		if (!thread_data.output_obj) { alloc_failed = true; }
-
-		break;
-
-	case MNT_MODE_OUT_MAVLINK_V1: //MAVLink gimbal v1 protocol
-		thread_data.output_obj = new OutputMavlinkV1(params);
-
-		if (!thread_data.output_obj) { alloc_failed = true; }
-
-		break;
-
-	case MNT_MODE_OUT_MAVLINK_V2: //MAVLink gimbal v2 protocol
-		thread_data.output_obj = new OutputMavlinkV2(params);
-
-		if (!thread_data.output_obj) { alloc_failed = true; }
-
-		break;
-
-	default:
-		PX4_ERR("invalid output mode %" PRId32, params.mnt_mode_out);
-		thread_should_exit.store(true);
-		break;
-	}
-
-	if (alloc_failed) {
-		PX4_ERR("output memory allocation failed");
+	// The two outputs must use different modes: two instances of the same output
+	// would fight over the same device/topic (e.g. two AUX outputs both driving
+	// gimbal_controls).
+	if (params.mnt_mode_out2 != MNT_MODE_OUT_DISABLED && params.mnt_mode_out2 == params.mnt_mode_out) {
+		PX4_ERR("MNT_MODE_OUT2 must differ from MNT_MODE_OUT");
 		thread_should_exit.store(true);
 	}
 
-	const unsigned int poll_timeout_ms = params.mnt_mode_out == MNT_MODE_OUT_AUX ? 10 : 20;
+	for (int i = 0; i < output_objs_len_max && !thread_should_exit.load(); ++i) {
+		if (out_modes[i] == MNT_MODE_OUT_DISABLED) {
+			continue;
+		}
+
+		OutputBase *output = create_output(out_modes[i], params);
+
+		if (!output) {
+			// Invalid mode already logged by create_output().
+			thread_should_exit.store(true);
+			break;
+		}
+
+		thread_data.output_objs[thread_data.output_objs_len++] = output;
+	}
+
+	if (thread_data.output_objs_len == 0) {
+		PX4_ERR("no output configured");
+		thread_should_exit.store(true);
+	}
+
+	const bool any_aux_output =
+		(params.mnt_mode_out == MNT_MODE_OUT_AUX) || (params.mnt_mode_out2 == MNT_MODE_OUT_AUX);
+	const unsigned int poll_timeout_ms = any_aux_output ? 10 : 20;
 
 	while (!thread_should_exit.load()) {
 
@@ -261,42 +282,49 @@ static int gimbal_thread_main(int argc, char *argv[])
 				}
 			}
 
+			bool stabilize[3];
+
 			switch (params.mnt_do_stab) {
-			case MntDoStabilize::ALL_AXES: {
-					thread_data.output_obj->set_stabilize(true, true, true);
-					break;
-				}
+			case MntDoStabilize::ALL_AXES:
+				stabilize[0] = true; stabilize[1] = true; stabilize[2] = true;
+				break;
 
-			case MntDoStabilize::YAW_LOCK: {
-					thread_data.output_obj->set_stabilize(false, false, true);
-					break;
-				}
+			case MntDoStabilize::YAW_LOCK:
+				stabilize[0] = false; stabilize[1] = false; stabilize[2] = true;
+				break;
 
-			case MntDoStabilize::PITCH_LOCK: {
-					thread_data.output_obj->set_stabilize(false, true, false);
-					break;
-				}
+			case MntDoStabilize::PITCH_LOCK:
+				stabilize[0] = false; stabilize[1] = true; stabilize[2] = false;
+				break;
 
-			default: {
-					thread_data.output_obj->set_stabilize(false, false, false);
-					break;
-				}
+			default:
+				stabilize[0] = false; stabilize[1] = false; stabilize[2] = false;
+				break;
 			}
 
-			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
+			// The setpoint timeout operates on control_data and is independent of the
+			// output, so it only needs to run once for the shared control_data.
+			if (thread_data.output_objs[0]->check_and_handle_setpoint_timeout(
+				    thread_data.control_data, hrt_absolute_time())) {
 				// Without flagging an update the changes are not processed in the output
 				update_result = InputBase::UpdateResult::UpdatedActive;
 			}
 
-			// Update output
-			thread_data.output_obj->update(
-				thread_data.control_data,
-				update_result != InputBase::UpdateResult::NoUpdate, thread_data.control_data.device_compid);
+			const bool new_setpoints = (update_result != InputBase::UpdateResult::NoUpdate);
 
-			// Only publish the mount orientation if the mode is not mavlink v1 or v2
-			// If the gimbal speaks mavlink it publishes its own orientation.
-			if (params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V1 && params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V2) {
-				thread_data.output_obj->publish();
+			// Fan the same setpoints out to all configured outputs.
+			for (int i = 0; i < thread_data.output_objs_len; ++i) {
+				OutputBase *output = thread_data.output_objs[i];
+
+				output->set_stabilize(stabilize[0], stabilize[1], stabilize[2]);
+
+				output->update(thread_data.control_data, new_setpoints, thread_data.control_data.device_compid);
+
+				// Only publish the mount orientation for outputs that don't report it
+				// themselves. A MAVLink gimbal publishes its own orientation.
+				if (output->publishes_mount_orientation()) {
+					output->publish();
+				}
 			}
 
 		} else {
@@ -316,10 +344,14 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 	thread_data.input_objs_len = 0;
 
-	if (thread_data.output_obj) {
-		delete (thread_data.output_obj);
-		thread_data.output_obj = nullptr;
+	for (int i = 0; i < output_objs_len_max; ++i) {
+		if (thread_data.output_objs[i]) {
+			delete (thread_data.output_objs[i]);
+			thread_data.output_objs[i] = nullptr;
+		}
 	}
+
+	thread_data.output_objs_len = 0;
 
 	thread_running.store(false);
 	return 0;
@@ -523,8 +555,10 @@ int gimbal_main(int argc, char *argv[])
 
 			}
 
-			if (g_thread_data->output_obj) {
-				g_thread_data->output_obj->print_status();
+			if (g_thread_data->output_objs_len > 0) {
+				for (int i = 0; i < g_thread_data->output_objs_len; ++i) {
+					g_thread_data->output_objs[i]->print_status();
+				}
 
 			} else {
 				PX4_INFO("Output: None");
@@ -546,6 +580,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 {
 	param_get(param_handles.mnt_mode_in, &params.mnt_mode_in);
 	param_get(param_handles.mnt_mode_out, &params.mnt_mode_out);
+	param_get(param_handles.mnt_mode_out2, &params.mnt_mode_out2);
 	param_get(param_handles.mnt_mav_sysid_v1, &params.mnt_mav_sysid_v1);
 	param_get(param_handles.mnt_mav_compid_v1, &params.mnt_mav_compid_v1);
 	param_get(param_handles.mnt_man_pitch, &params.mnt_man_pitch);
@@ -571,6 +606,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 {
 	param_handles.mnt_mode_in = param_find("MNT_MODE_IN");
 	param_handles.mnt_mode_out = param_find("MNT_MODE_OUT");
+	param_handles.mnt_mode_out2 = param_find("MNT_MODE_OUT2");
 	param_handles.mnt_mav_sysid_v1 = param_find("MNT_MAV_SYSID");
 	param_handles.mnt_mav_compid_v1 = param_find("MNT_MAV_COMPID");
 	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
@@ -593,6 +629,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
+	    param_handles.mnt_mode_out2 == PARAM_INVALID ||
 	    param_handles.mnt_mav_sysid_v1 == PARAM_INVALID ||
 	    param_handles.mnt_mav_compid_v1 == PARAM_INVALID ||
 	    param_handles.mnt_man_pitch == PARAM_INVALID ||

@@ -44,6 +44,25 @@ parameters:
       min: 0
       max: 2
       reboot_required: true
+    MNT_MODE_OUT2:
+      description:
+        short: Second mount output mode
+        long: |-
+          Optional second output, driven in parallel to MNT_MODE_OUT with the
+          same setpoints. This allows the gimbal driver to talk to a second
+          gimbal in addition to the primary one.
+
+          Set to Disabled if not used. The two outputs must use different modes.
+      type: enum
+      values:
+        -1: Disabled
+        0: AUX
+        1: MAVLink gimbal protocol v1
+        2: MAVLink gimbal protocol v2
+      default: -1
+      min: -1
+      max: 2
+      reboot_required: true
     MNT_MAV_SYSID:
       description:
         short: Mavlink System ID of the mount
