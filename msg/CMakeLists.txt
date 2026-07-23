@@ -88,6 +88,8 @@ set(msg_files
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
 	versioned/Event.msg
+	ExternalGimbalManagerInformation.msg
+	ExternalGimbalManagerStatus.msg
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
