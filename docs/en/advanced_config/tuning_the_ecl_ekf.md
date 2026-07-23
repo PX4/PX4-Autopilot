@@ -244,15 +244,15 @@ A good tuning is obtained as follows:
    The same log file can be used to tune the [multirotor wind estimator](#mc_wind_estimation_using_drag).
    :::
 
-3. Use the log with the [baro_static_pressure_compensation_tuning.py](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/ekf2/EKF/python/tuning_tools/baro_static_pressure_compensation) Python script to obtain the optimal set of parameters.
+3. Use the log with the [baro_static_pressure_compensation_tuning.py](https://github.com/PX4/PX4-Autopilot/tree/main/Tools/baro_compensation) Python script to obtain the optimal set of parameters.
 
 Tuning parameters:
 
-- [EKF2_PCOEF_XP](../advanced_config/parameter_reference.md#EKF2_PCOEF_XP)
-- [EKF2_PCOEF_XN](../advanced_config/parameter_reference.md#EKF2_PCOEF_XN)
-- [EKF2_PCOEF_YP](../advanced_config/parameter_reference.md#EKF2_PCOEF_YP)
-- [EKF2_PCOEF_YN](../advanced_config/parameter_reference.md#EKF2_PCOEF_YN)
-- [EKF2_PCOEF_Z](../advanced_config/parameter_reference.md#EKF2_PCOEF_Z)
+- [SENS_BARO_K_XP](../advanced_config/parameter_reference.md#SENS_BARO_K_XP)
+- [SENS_BARO_K_XN](../advanced_config/parameter_reference.md#SENS_BARO_K_XN)
+- [SENS_BARO_K_YP](../advanced_config/parameter_reference.md#SENS_BARO_K_YP)
+- [SENS_BARO_K_YN](../advanced_config/parameter_reference.md#SENS_BARO_K_YN)
+- [SENS_BARO_K_Z](../advanced_config/parameter_reference.md#SENS_BARO_K_Z)
 
 #### Barometer bias compensation
 
