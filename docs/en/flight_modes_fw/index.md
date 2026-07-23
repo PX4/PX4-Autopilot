@@ -11,12 +11,12 @@ Manual modes provide different levels of autopilot support when flying manually 
 
 Manual-Easy:
 
-- [Position mode](../flight_modes_fw/position.md) — Easiest and safest manual mode for vehicles that have a position fix/GPS.
+- [Cruise mode](../flight_modes_fw/cruise.md) — Easiest and safest manual mode for vehicles that have a position fix/GPS.
   The vehicle performs a [coordinated turn](https://en.wikipedia.org/wiki/Coordinated_flight) if the roll stick is non-zero, while the pitch stick controls the rate of ascent/descent.
   If the sticks are released the vehicle levels out and holds a straight flight path, even against wind.
   Airspeed is actively controlled if an airspeed sensor is installed.
 - [Altitude](../flight_modes_fw/altitude.md) — Easiest and safest _non-GPS_ manual mode.
-  The only difference compared to _Position mode_ is that the pilot always directly controls the roll angle of the plane and there is no automatic course holding.
+  The only difference compared to _Cruise mode_ is that the pilot always directly controls the roll angle of the plane and there is no automatic course holding.
 - Altitude Cruise mode — It behaves exactly like _Altitude mode_, with the only difference being that the manual control failsafe can be disabled. This is done by setting the corresponding flag in [COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT). In that case the current altitude, airspeed and heading (by leveling out the roll angle) are kept until the manual control link is regained or the mode is exited.
   It is highly recommended to only disable the manual control loss failsafe for this mode if there is a stable data link connection to the vehicle at all times, or to enable the data link loss failsafe through [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT).
 - [Stabilized mode](../flight_modes_fw/stabilized.md) — The pilot directly commands the roll and pitch angle and the vehicle keeps the setpoint until the sticks are moved again.

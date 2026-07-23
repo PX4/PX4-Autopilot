@@ -73,7 +73,7 @@
     - [Trimming Guide](/config_fw/trimming_guide_fixedwing.md)
   - [Flying (Basics)](/flying/basic_flying_fw.md)
   - [Flight Modes](/flight_modes_fw/index.md)
-    - [Position Mode (FW)](/flight_modes_fw/position.md)
+    - [Cruise Mode (FW)](/flight_modes_fw/cruise.md)
     - [Altitude Mode (FW)](/flight_modes_fw/altitude.md)
     - [Stabilized Mode (FW)](/flight_modes_fw/stabilized.md)
     - [Acro Mode (FW)](/flight_modes_fw/acro.md)
