@@ -62,7 +62,7 @@ NfsMount::NfsMount() : ModuleParams(nullptr) {}
 
 /* Send a minimal RPC NULL call to portmapper and wait for a reply.
  * recv() blocks on the socket semaphore (not net_lock), so no priority
- * inheritance occurs while waiting.  Returns true when any reply arrives. */
+ * inheritance occurs while waiting.  Returns true when a valid RPC REPLY arrives. */
 static bool portmapper_up(in_addr_t ip)
 {
 	/* Minimal RPC CALL for portmapper NULL procedure (RFC 1831 / RFC 1057).
@@ -81,7 +81,7 @@ static bool portmapper_up(in_addr_t ip)
 	};
 	struct sockaddr_in dst {};
 	dst.sin_family = AF_INET;
-	dst.sin_port   = htons(NFS_PMAPPORT);
+	dst.sin_port = htons(NFS_PMAPPORT);
 	dst.sin_addr.s_addr = ip;
 
 	int s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -125,7 +125,7 @@ void NfsMount::run()
 	updateParams();
 
 #ifdef __PX4_NUTTX
-	const int32_t ip_int = _param_nfs_ip.get();
+	const uint32_t ip_int = static_cast<uint32_t>(_param_nfs_ip.get());
 	char ip_str[16];
 	snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u",
 		 static_cast<uint8_t>(ip_int >> 24),
@@ -147,23 +147,21 @@ void NfsMount::run()
 	args.retrans = 5;   /* 5 retries = 15 s total before soft-fail */
 	args.path    = const_cast<char *>(NFS_SERVER_PATH);
 
+	bool armed = false;
+
 	while (!should_exit()) {
 		vehicle_status_s vs{};
 
 		if (_vehicle_status_sub.update(&vs)) {
-			_armed = (vs.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			armed = (vs.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 		}
 
-		if (_armed) {
+		if (armed) {
 			PX4_WARN("armed before NFS mount completed, aborting");
-			return;
+			request_stop();
+			break;
 		}
 
-		/* Probe portmapper via socket API before calling mount(): mount() acquires
-		 * net_lock internally, which can cause priority-inheritance starvation if
-		 * the server is unreachable.  recv() on a plain socket blocks on the socket
-		 * semaphore (not net_lock), so we use it to confirm the server is responsive
-		 * before handing control to mount(). */
 		if (portmapper_up(sin.sin_addr.s_addr)) {
 
 			if (mount(nullptr, NFS_MOUNT_POINT, "nfs", 0, &args) == 0) {
