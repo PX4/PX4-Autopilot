@@ -59,7 +59,6 @@ private:
 	static int run_trampoline(int argc, char *argv[]);
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	bool _armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::NFS_IP>) _param_nfs_ip
