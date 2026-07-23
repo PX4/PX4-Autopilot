@@ -21800,12 +21800,15 @@ Parachute requirement and failsafe.
 
 Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
 
+Warning only warns without preventing arming. Actions other than Warning also prevent arming.
+
 **Values:**
 
 - `0`: Disabled
 - `1`: Warning
-- `2`: Return
-- `3`: Land
+- `2`: Error
+- `3`: Return
+- `4`: Land
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
