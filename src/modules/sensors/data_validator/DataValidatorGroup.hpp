@@ -136,6 +136,7 @@ private:
 	DataValidator *_last{nullptr};  /**< last node in the group */
 
 	uint32_t _timeout_interval_us{0}; /**< currently set timeout */
+	uint32_t _equal_value_threshold{100}; /**< currently set equal value threshold */
 
 	int _curr_best{-1}; /**< currently best index */
 	int _prev_best{-1}; /**< the previous best index */
