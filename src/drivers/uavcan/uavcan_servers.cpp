@@ -160,7 +160,6 @@ void UavcanServers::check_nfs()
 	nfs_up_s nfs_up{};
 
 	if (_nfs_up_sub.update(&nfs_up)) {
-		validateFwDatabase(UAVCAN_NFS_PATH "/fw.db");
 		migrateFWFromRoot(UAVCAN_NFS_PATH, UAVCAN_NFS_STAGING_PATH);
 		_fw_version_checker.setFirmwareNfsBasePath(UAVCAN_NFS_PATH);
 		_fileserver_backend.setNfsRootPath(UAVCAN_NFS_PATH);
