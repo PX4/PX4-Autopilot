@@ -4,10 +4,8 @@ Parses mode requirements in
 https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp
 and uses the result to generate Markdown documentation.
 
-Default behaviour: inject mode requirements directly into parent flight-mode docs,
-wrapped in sentinel comments so subsequent runs update the content in-place.
-
-Use --snippets to generate separate per-mode snippet files instead (legacy behaviour).
+Mode requirements are injected directly into parent flight-mode docs, wrapped in sentinel
+comments so subsequent runs update the content in-place.
 """
 import re
 import argparse
@@ -209,6 +207,7 @@ def build_snippet_to_parent_map(docs_base: Path) -> dict:
         docs_base / "flight_modes",
         docs_base / "flight_modes_fw",
         docs_base / "flight_modes_mc",
+        docs_base / "advanced_features",
     ]
     for search_dir in search_dirs:
         for md_file in sorted(search_dir.glob("*.md")):
@@ -265,12 +264,6 @@ if __name__ == "__main__":
 
     _parser = argparse.ArgumentParser(
         description="Generate PX4 flight-mode requirement documentation."
-    )
-    _parser.add_argument(
-        '--snippets',
-        action='store_true',
-        help='Generate separate per-mode snippet files (legacy behaviour) instead of '
-             'injecting requirements directly into parent flight-mode docs.',
     )
     _parser.add_argument(
         '--suppress_warnings',
@@ -359,18 +352,26 @@ This allows PX4 automatic flight modes that require a global position to be used
             mode_requirements_markdown += f"\n## Multicopter ({vehicle_type})\n"
         elif vehicle_type == 'VEHICLE_TYPE_FIXED_WING':
             mode_requirements_markdown += f"\n## Fixed-wing ({vehicle_type})\n"
-        else:    
+        else:
             mode_requirements_markdown += f"\n## {vehicle_type}\n"
 
+
+        undocumented_modes = []
 
         for flight_mode in vehicle_modes_sorted[vehicle_type]:
             defn  = _get_nav_state_def(vehicle_type, flight_mode)
             label = defn.get("label")
             doc   = defn.get("doc")
-            if label and doc:
+
+            # Modes with no doc page have no meaningful (or no implemented) behaviour to
+            # document on this vehicle type: list them in a trailing summary instead of
+            # giving them a full heading in the main list.
+            if not doc:
+                undocumented_modes.append((flight_mode, defn.get("status")))
+                continue
+
+            if label:
                 mode_heading_markdown = f"\n### [{label}]({doc}) ({flight_mode})\n\n"
-            elif label:
-                mode_heading_markdown = f"\n### {label} ({flight_mode})\n\n"
             else:
                 mode_heading_markdown = f"\n### {flight_mode}\n\n"
 
@@ -379,6 +380,23 @@ This allows PX4 automatic flight modes that require a global position to be used
             for requirement in vehicle_modes_sorted[vehicle_type][flight_mode]:
                 #mode_requirements_markdown += f"- {requirement}: {requirement_defns[requirement]}\n"
                 mode_requirements_markdown += f"- [`{requirement}`](#{requirement})\n"
+
+        if undocumented_modes:
+            mode_requirements_markdown += "\n### Modes Without a Dedicated Page\n\n"
+            mode_requirements_markdown += (
+                "The following internal navigation states have no distinct user-facing "
+                "behaviour or documentation page on this frame type:\n\n"
+            )
+            for flight_mode, status in undocumented_modes:
+                if not status:
+                    print(
+                        f"WARNING: no 'status' text in mode_nav_state_defns.json for "
+                        f"({vehicle_type}, {flight_mode}) — it has no doc and will show "
+                        "with no explanation in the 'Modes Without a Dedicated Page' summary.",
+                        file=sys.stderr,
+                    )
+                    status = "Not currently documented."
+                mode_requirements_markdown += f"- **{flight_mode}** — {status}\n"
 
 
     # 2. Define the filename for the overview topic: mode_requirements
@@ -395,11 +413,9 @@ This allows PX4 automatic flight modes that require a global position to be used
         print(f"❌ An error occurred: {e}")
 
 
-    # Generate per-doc mode requirements (inline into parent docs, or as snippet files)
+    # Generate per-doc mode requirements, injected inline into parent docs
 
-    # Build parent-doc map once (only needed for inline mode)
-    if not args.snippets:
-        snippet_to_parent = build_snippet_to_parent_map(docs_output_path_base)
+    snippet_to_parent = build_snippet_to_parent_map(docs_output_path_base)
 
     # Display labels for vehicle types used in shared-doc headings.
     _VT_DISPLAY_LABEL = {
@@ -412,17 +428,7 @@ This allows PX4 automatic flight modes that require a global position to be used
             vehicle_part = vehicle_type.split("VEHICLE_TYPE_")[-1]
             mode_part = flight_mode.split("NAVIGATION_STATE_")[-1]
 
-            if vehicle_part.startswith("FIXED_WING"):
-                vehicle_path = "flight_modes_fw"
-            elif vehicle_part.startswith("ROTARY_WING"):
-                vehicle_path = "flight_modes_mc"
-            else:
-                print("UNKNOWN_VEHICLE_TYPE")
-                exit()
-
-            vehicle_mode_filename = f"mode_requirements_{vehicle_part}_{mode_part}.md".lower()
-            vehicle_mode_filepath = docs_output_path_base / vehicle_path / vehicle_mode_filename
-            snippet_stem = vehicle_mode_filepath.stem  # filename without .md
+            snippet_stem = f"mode_requirements_{vehicle_part}_{mode_part}".lower()
 
             print(f"Processing: {snippet_stem}")
 
@@ -434,7 +440,7 @@ This allows PX4 automatic flight modes that require a global position to be used
                 continue
 
             # Resolve parent doc early so we can choose the right heading.
-            parent = snippet_to_parent.get(snippet_stem) if not args.snippets else None
+            parent = snippet_to_parent.get(snippet_stem)
 
             # Use a labeled heading when injecting into a shared doc (flight_modes/)
             # so readers know which vehicle type each section applies to.
@@ -455,28 +461,18 @@ The following requirements must be met to arm in this mode, or to switch to this
                 text = _get_req_def(requirement)['text']
                 vehicle_mode_markdown += f"- [`{requirement}`](../flight_modes/mode_requirements.md#{requirement}) — {text}\n"
 
-            if args.snippets:
-                # Legacy behaviour: write standalone snippet file
-                try:
-                    with open(vehicle_mode_filepath, 'w', encoding='utf-8') as f:
-                        f.write(vehicle_mode_markdown)
-                    print(f"✅ Successfully wrote snippet to {vehicle_mode_filepath}")
-                except Exception as e:
-                    print(f"❌ An error occurred writing {vehicle_mode_filepath}: {e}")
+            if parent:
+                inline_requirements_into_doc(parent, snippet_stem, vehicle_mode_markdown)
             else:
-                # Default behaviour: inject directly into parent flight-mode doc
-                if parent:
-                    inline_requirements_into_doc(parent, snippet_stem, vehicle_mode_markdown)
-                else:
-                    if not args.suppress_warnings and nav_defn.get("warn", True):
-                        print(
-                            f"⚠️  Missing mode: '{snippet_stem}' is not mapped to a doc.\n"
-                            f"  Resolve by:\n"
-                            f"    • Adding a doc page with an injection point for this mode\n"
-                            f"    • Setting \"warn\": false in mode_nav_state_defns.json for "
-                            f"({vehicle_type}, {flight_mode})\n"
-                            f"    • Re-running with --suppress_warnings to silence this warning"
-                        )
+                if not args.suppress_warnings and nav_defn.get("warn", True):
+                    print(
+                        f"⚠️  Missing mode: '{snippet_stem}' is not mapped to a doc.\n"
+                        f"  Resolve by:\n"
+                        f"    • Adding a doc page with an injection point for this mode\n"
+                        f"    • Setting \"warn\": false in mode_nav_state_defns.json for "
+                        f"({vehicle_type}, {flight_mode})\n"
+                        f"    • Re-running with --suppress_warnings to silence this warning"
+                    )
 
 
 

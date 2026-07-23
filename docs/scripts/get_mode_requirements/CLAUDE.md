@@ -8,12 +8,9 @@
 It produces two kinds of output under `docs/en/`:
 
 - `flight_modes/mode_requirements.md` — a consolidated overview table for all vehicle types.
-- Per-mode requirement text injected directly into individual flight-mode pages (default), or
-  written as separate snippet files (`--snippets`).
+- Per-mode requirement text injected directly into individual flight-mode pages using include markers.
 
 ## Running
-
-**Default (inline mode):** inject mode requirements directly into parent flight-mode docs.
 
 From the repo root:
 
@@ -27,17 +24,32 @@ Or from the `docs/` directory:
 python3 scripts/get_mode_requirements/get_mode_requirements.py
 ```
 
-**Snippet mode (legacy):** generate separate per-mode snippet files instead.
-
-```sh
-python3 docs/scripts/get_mode_requirements/get_mode_requirements.py --snippets
-```
-
 ## Inline Injection
 
-In default mode the script locates each parent flight-mode doc (e.g. `flight_modes_fw/manual.md`)
-by scanning for a VitePress `<!--@include:-->` directive that references the corresponding snippet
-file.  It replaces that directive with the rendered content, wrapped in sentinel HTML comments:
+The script locates each parent flight-mode doc (e.g. `flight_modes_fw/manual.md`) by scanning
+`docs/en/flight_modes/`, `docs/en/flight_modes_fw/`, `docs/en/flight_modes_mc/`, and
+`docs/en/advanced_features/` for a VitePress `<!--@include:-->` directive (or an existing
+`AUTO-GENERATED` sentinel block) that references the corresponding snippet name
+(`build_snippet_to_parent_map()`). This directory scan is what actually determines where a
+mode's requirements get injected — it is **independent** of the `doc` field in
+`mode_nav_state_defns.json`, which only controls headings/links in `mode_requirements.md`. A
+mode can have a `doc` pointing at a page that isn't scanned (or has no injection marker on it
+yet) and still trigger a "not mapped to a doc" warning; fix this by adding an
+`<!-- AUTO-GENERATED: snippet_stem --><!-- END AUTO-GENERATED: snippet_stem -->` marker pair
+(content between them can be empty — the script fills it in) to the actual doc page, and if
+that page lives outside the four scanned directories, add its directory to `search_dirs` in
+`build_snippet_to_parent_map()`.
+
+A single doc page can contain multiple injection points for different nav-states (e.g.
+`flight_modes/offboard.md` has one per vehicle type; `flight_modes_mc/manual_stabilized.md`
+has one for `NAVIGATION_STATE_STAB` and one for `NAVIGATION_STATE_MANUAL`, since those are
+distinct nav-states with different requirements that happen to share one doc page). Each
+generated block always starts its own `### Mode Requirements` heading, so when adding a second
+block to the same page, add distinguishing surrounding text/labels manually to avoid duplicate
+headings, then hand-write the marker pair; the script replaces the content and heading between
+the markers.
+
+It replaces that directive with the rendered content, wrapped in sentinel HTML comments:
 
 ```markdown
 <!-- AUTO-GENERATED: mode_requirements_fixed_wing_manual -->
@@ -95,15 +107,23 @@ Each entry may contain:
 | `label` | string | — | Human-readable mode name (e.g. `"Mission Mode"`) |
 | `doc` | string | — | Relative doc path used as a heading hyperlink (e.g. `"../flight_modes_fw/mission.md"`) |
 | `warn` | bool | `true` | Set to `false` to suppress warnings for this mode |
+| `status` | string | — | Short implementation-status note, used only when `doc` is absent (see below) |
 
-**Heading generation** (in `mode_requirements.md`):  
-- `label` + `doc` present → `### [label](doc) (NAV_STATE)`  
-- `label` only → `### label (NAV_STATE)`  
-- Neither → `### NAV_STATE` (and a WARNING is emitted)
+**Heading generation** (in `mode_requirements.md`):
+A mode is only given a full heading + requirement list in the main per-vehicle-type list if it
+has a `doc`. Modes with no `doc` are **not** given a bare heading in the main list — instead
+they are collected into a trailing `### Modes Without a Dedicated Page` summary for that
+vehicle type, rendered as `- **NAV_STATE** — {status}`. Use `status` to explain *why* there's
+no dedicated page — e.g. the mode isn't implemented for this vehicle type, or it behaves
+identically to another mode already documented, or it's an internal/failsafe state that isn't
+user-selectable. If a no-doc mode has no `status` text, the script prints a `WARNING:` to
+stderr and falls back to "Not currently documented."
 
 **Skipping snippet injection:** if an entry has `"warn": false` and no `"doc"` key, the script
 skips snippet processing for that mode without printing a warning.  Use this for modes that
 are not real operational modes (e.g. `TERMINATION`) or that deliberately have no doc page.
+(This is orthogonal to `status`: `warn`/`doc` control snippet-injection behaviour, while
+`status` controls what's shown in the `mode_requirements.md` summary.)
 
 If the script encounters a `(vehicle_type, nav_state)` pair that has no entry at all in
 `mode_nav_state_defns.json`, it prints a `WARNING:` line to stderr.  Add a new entry whenever
