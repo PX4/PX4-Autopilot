@@ -52,7 +52,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
    Enter the time to wait after landing before disarming the vehicle.
    :::
 
-Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Position mode](../flight_modes_fw/position.md)), and resumed by switching back to mission mode.
+Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
@@ -369,7 +369,7 @@ Note that if the wheel controller is enabled ([FW_W_EN](#FW_W_EN)), the controll
 
 ::: info
 Nudging should not be used to supplement poor position control tuning.
-If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/cruise.md) for instruction.
 :::
 
 | Parameter                                                                                          | Description                                                                        |

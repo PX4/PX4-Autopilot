@@ -371,7 +371,7 @@ In particular you should check:
 
 ### Radio Setup
 
-You should enable Manual, Acro, and Position modes on your controller (at least for the first flight).
+You should enable Manual, Acro, and Cruise modes on your controller (at least for the first flight).
 For instructions see [Flight mode Configuration](../config/flight_mode.md)
 
 We also recommend configuring an [autotuning switch](../config/autotune_fw.md#enable-disable-autotune-switch) for the first flight, as this makes it easier to enable/disable autotuning while flying.
@@ -437,7 +437,7 @@ It's critical to be ready to give aft stick input to prevent the airplane from i
 Once the airplane is successfully airborne, cruise up to an altitude of a few hundred feet and switch to [Acro mode](../flight_modes_fw/acro.md).
 This is a good time to use [Autotuning](../config/autotune_fw.md) to tune the airframe.
 
-If the airplane is well behaved in _Acro mode_, switch to [Position mode](../flight_modes_fw/position.md).
+If the airplane is well behaved in _Acro mode_, switch to [Cruise mode](../flight_modes_fw/cruise.md).
 
 ## Build Results & Performance
 

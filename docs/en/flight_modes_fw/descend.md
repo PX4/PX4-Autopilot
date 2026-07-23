@@ -28,7 +28,7 @@ PX4 falls through to it whenever a failsafe needs to bring the vehicle down or h
 Descend ends when either:
 
 - the failsafe condition is resolved (e.g. the position estimate recovers), and the vehicle returns to its previous mode; or
-- the pilot takes over by switching to a manual mode ([Position](../flight_modes_fw/position.md), [Altitude](../flight_modes_fw/altitude.md) or [Stabilized](../flight_modes_fw/stabilized.md)).
+- the pilot takes over by switching to a manual mode ([Cruise](../flight_modes_fw/cruise.md), [Altitude](../flight_modes_fw/altitude.md) or [Stabilized](../flight_modes_fw/stabilized.md)).
 
 ## See Also
 
