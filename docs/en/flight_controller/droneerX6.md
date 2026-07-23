@@ -1,6 +1,6 @@
 # DroneerX6 Flight Controller
 
-<Badge type="tip" text="PX4 main (v1.19)" />
+<Badge type="tip" text="PX4 main (v2.0)" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
