@@ -59,6 +59,7 @@ The flag comments are used as label for the failsafe state machine simulation
 | <a id="fld_position_accuracy_low"></a>position_accuracy_low                                       | `bool`   |              |            | Position estimate has dropped below threshold, but is currently still declared valid             |
 | <a id="fld_navigator_failure"></a>navigator_failure                                               | `bool`   |              |            | Navigator failed to execute a mode                                                               |
 | <a id="fld_parachute_unhealthy"></a>parachute_unhealthy                                           | `bool`   |              |            | Parachute system missing or unhealthy                                                            |
+| <a id="fld_traffic_avoidance_unhealthy"></a>traffic_avoidance_unhealthy                           | `bool`   |              |            | Traffic avoidance (ADS-B/FLARM) system missing or unhealthy                                      |
 | <a id="fld_remote_id_unhealthy"></a>remote_id_unhealthy                                           | `bool`   |              |            | Remote ID (Open Drone ID) system missing or unhealthy                                            |
 | <a id="fld_gnss_lost"></a>gnss_lost                                                               | `bool`   |              |            | Active GNSS count dropped below SYS_HAS_NUM_GNSS, or two receivers report inconsistent positions |
 
@@ -131,6 +132,7 @@ bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
 bool parachute_unhealthy              # Parachute system missing or unhealthy
+bool traffic_avoidance_unhealthy      # Traffic avoidance (ADS-B/FLARM) system missing or unhealthy
 bool remote_id_unhealthy              # Remote ID (Open Drone ID) system missing or unhealthy
 bool gnss_lost                        # Active GNSS count dropped below SYS_HAS_NUM_GNSS, or two receivers report inconsistent positions
 ```
