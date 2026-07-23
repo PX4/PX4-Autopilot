@@ -295,7 +295,68 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::battery);
 	}
 
+	batteryVoltageDeltaCheck(context, reporter);
+
 	_last_armed = context.isArmed();
+}
+
+void BatteryChecks::batteryVoltageDeltaCheck(const Context &context, Report &reporter)
+{
+	if (context.isArmed()) {
+		return;
+	}
+
+	const float max_delta = _param_com_arm_bat_vdif.get();
+
+	if (max_delta <= FLT_EPSILON) {
+		return;
+	}
+
+	float min_v = FLT_MAX;
+	float max_v = -FLT_MAX;
+	int num_connected = 0;
+
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
+
+		if (!battery_sub.copy(&battery) || !battery.connected) {
+			continue;
+		}
+
+		++num_connected;
+
+		if (battery.voltage_v < min_v) {
+			min_v = battery.voltage_v;
+		}
+
+		if (battery.voltage_v > max_v) {
+			max_v = battery.voltage_v;
+		}
+	}
+
+	if (num_connected >= 2) {
+		const float delta = max_v - min_v;
+
+		if (delta > max_delta) {
+			/* EVENT
+			 * @description
+			 * The voltage difference between the connected batteries exceeds the allowed maximum.
+			 *
+			 * <profile name="dev">
+			 * Configure the allowed difference with <param>COM_ARM_BAT_VDIF</param>.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure<float, float>(NavModes::All, health_component_t::battery,
+					events::ID("check_battery_vdelta_high"), events::Log::Error,
+					"Battery voltage difference too high: {1:.1} V (max {2:.1} V)",
+					delta, max_delta);
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(),
+						     "Preflight Fail: Battery voltage difference too high: %.1f V", (double)delta);
+			}
+		}
+	}
 }
 
 void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s)

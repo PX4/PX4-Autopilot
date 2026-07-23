@@ -50,6 +50,7 @@ public:
 
 private:
 	void rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s);
+	void batteryVoltageDeltaCheck(const Context &context, Report &reporter);
 
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
@@ -58,6 +59,7 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_com_arm_bat_min,
-					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk
+					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
+					(ParamFloat<px4::params::COM_ARM_BAT_VDIF>) _param_com_arm_bat_vdif
 				       )
 };
