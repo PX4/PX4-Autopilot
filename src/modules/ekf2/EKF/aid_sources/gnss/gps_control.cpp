@@ -57,6 +57,15 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			      imu_delayed.delta_vel, imu_delayed.delta_vel_dt,
 			      (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest));
 
+	// Track when the EKF-GSF yaw estimate is not stably converged. Its yaw is only
+	// observable during horizontal acceleration and can briefly diverge then
+	// re-converge on a wrong solution at acceleration sign transitions (variance
+	// spikes then collapses within ~1 s). Latching the last un-converged time lets the
+	// emergency reset require a sustained, un-spiked estimate before trusting it.
+	if (!_yawEstimator.isActive() || !(_yawEstimator.getYawVar() < sq(_params.EKFGSF_yaw_err_max))) {
+		_time_last_gsf_yaw_unstable = _time_delayed_us;
+	}
+
 	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
@@ -106,7 +115,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		bool do_vel_pos_reset = false;
 
-		if (!_control_status.flags.gnss_fault && _control_status.flags.in_air && isYawFailure()) {
+		if (!_control_status.flags.gnss_fault && _control_status.flags.in_air && isYawFailure()
+		    && isYawEstimatorStable()) {
 			const bool velocity_fusion_failure =  _aid_src_gnss_vel.innovation_rejected
 							      && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
 							      && (_time_last_hor_vel_fuse > _time_last_on_ground_us);
@@ -528,6 +538,19 @@ bool Ekf::isYawFailure() const
 	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
 
 	return fabsf(yaw_error) > math::radians(25.f);
+}
+
+bool Ekf::isYawEstimatorStable() const
+{
+	// The emergency reset overwrites the main filter heading with the mag-free EKF-GSF
+	// estimate (and declares the magnetometer faulty as a side effect). That estimate's
+	// yaw is only observable during horizontal acceleration; at acceleration sign
+	// transitions it can briefly diverge and then re-converge confidently on a wrong
+	// solution (composite yaw variance spikes then collapses within ~1 s). Only trust it
+	// for a reset once it has stayed converged for the whole evidence window, so a large
+	// EKF-vs-GSF disagreement backed by a freshly re-converged estimate is treated as a
+	// GSF error rather than a main-filter yaw failure.
+	return isTimedOut(_time_last_gsf_yaw_unstable, _params.EKFGSF_reset_delay);
 }
 
 bool Ekf::resetYawToEKFGSF()
