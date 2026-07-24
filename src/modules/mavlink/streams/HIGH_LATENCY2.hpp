@@ -39,7 +39,7 @@
 #include <lib/matrix/matrix/math.hpp>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
@@ -139,7 +139,6 @@ private:
 			updated |= write_failure_detector_status(&msg);
 
 			// these topics are already updated in update_data() and thus we just copy them here
-			write_airspeed(&msg);
 			write_battery_status(&msg);
 			write_tecs_status(&msg);
 			write_vehicle_status(&msg);
@@ -245,21 +244,6 @@ private:
 		_windspeed.reset();
 
 		_last_reset_time = t;
-	}
-
-	bool write_airspeed(mavlink_high_latency2_t *msg)
-	{
-		airspeed_s airspeed;
-
-		if (_airspeed_sub.copy(&airspeed)) {
-			if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
-				msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
-			}
-
-			return true;
-		}
-
-		return false;
 	}
 
 	bool write_attitude_setpoint_if_updated(mavlink_high_latency2_t *msg)
@@ -441,6 +425,11 @@ private:
 				}
 
 				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
+				    events::px4::enums::health_component_t::differential_pressure) {
+					msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
+				}
+
+				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
 				    events::px4::enums::health_component_t::accel) {
 					msg->failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
 				}
@@ -540,10 +529,16 @@ private:
 
 	void update_airspeed()
 	{
-		airspeed_s airspeed;
+		airspeed_validated_s airspeed_validated;
 
-		if (_airspeed_sub.update(&airspeed)) {
-			_airspeed.add_value(airspeed.indicated_airspeed_m_s, _update_rate_filtered);
+		if (_airspeed_validated_sub.update(&airspeed_validated)) {
+			const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
+
+			if (airspeed_from_sensor) {
+				_airspeed.add_value(airspeed_validated.calibrated_airspeed_m_s, _update_rate_filtered);
+			}
 		}
 	}
 
@@ -666,7 +661,7 @@ private:
 
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
