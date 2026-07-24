@@ -386,6 +386,34 @@ void Battery::computeScale()
 	}
 }
 
+// Returns the voltage spread across cells: max(cell_v) - min(cell_v).
+// Only cells with a positive voltage are considered; cells reporting 0 V are
+// treated as absent.
+// Returns 0 if fewer than two valid cells are present.
+float Battery::computeMaxCellVoltageDelta(const float *cells, size_t n)
+{
+	if (cells == nullptr) { return 0.0; }
+
+	float v_min = FLT_MAX;
+	float v_max = 0.f;
+
+	for (size_t i = 0; i < n; i++) {
+		const float v = cells[i];
+
+		if (v > 0.f) {
+			if (v < v_min) {
+				v_min = v;
+			}
+
+			if (v > v_max) {
+				v_max = v;
+			}
+		}
+	}
+
+	return (v_max > 0.f && v_min <= v_max) ? (v_max - v_min) : 0.f;
+}
+
 float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
