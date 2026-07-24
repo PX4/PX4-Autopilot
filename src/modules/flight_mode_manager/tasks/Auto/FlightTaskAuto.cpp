@@ -40,9 +40,6 @@
 
 using namespace matrix;
 
-// First meter after lift-off prioritises altitude over horizontal tracking.
-static constexpr float kTakeoffClimbPriorityHeight = 1.0f; // [m]
-
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
@@ -81,8 +78,7 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
-	_takeoff_locked_xy.setNaN();
-	_takeoff_liftoff_z = NAN;
+	_lock_position_xy.setNaN();
 
 	return ret;
 }
@@ -93,8 +89,6 @@ void FlightTaskAuto::reActivate()
 
 	// On ground, reset acceleration and velocity to zero
 	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.7f}, _position);
-	_takeoff_locked_xy.setNaN();
-	_takeoff_liftoff_z = NAN;
 }
 
 bool FlightTaskAuto::updateInitialize()
@@ -153,25 +147,35 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::loiter:
 	case WaypointType::takeoff:
+		_position_setpoint = _triplet_current;
+		_velocity_setpoint.setNaN();
+
+		if (_type_previous != WaypointType::takeoff) {
+			_takeoff_liftoff_position.setNaN();
+		}
+
+		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
+			_takeoff_liftoff_position = _position;
+			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+		}
+
+		if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
+			_position_setpoint.xy() = _takeoff_liftoff_position.xy();
+		}
+
+		if (PX4_ISFINITE(_takeoff_liftoff_position(2)) && (_takeoff_liftoff_position(2) - _position(2)) < 1.f) {
+			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
+		}
+
+		break;
+
+	case WaypointType::loiter:
 	case WaypointType::position:
 	default:
 		// Simple waypoint navigation: go to xyz target, with standard limitations
 		_position_setpoint = _triplet_current;
 		_velocity_setpoint.setNaN();
-
-		if (_type == WaypointType::takeoff) {
-			if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-				_takeoff_locked_xy = Vector2f(_position);
-			}
-
-			if (_takeoff_locked_xy.isAllFinite()) {
-				_position_setpoint(0) = _takeoff_locked_xy(0);
-				_position_setpoint(1) = _takeoff_locked_xy(1);
-			}
-		}
-
 		break;
 	}
 
@@ -187,18 +191,6 @@ bool FlightTaskAuto::update()
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
-
-	if (_type == WaypointType::takeoff) {
-		if (_takeoff_status_sub.get().takeoff_state < takeoff_status_s::TAKEOFF_STATE_FLIGHT) {
-			_takeoff_liftoff_z = _position(2);
-			_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
-		}
-
-		if (!PX4_ISFINITE(_takeoff_liftoff_z)
-		    || (_takeoff_liftoff_z - _position(2)) < kTakeoffClimbPriorityHeight) {
-			_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
-		}
-	}
 
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
@@ -423,8 +415,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
 
-	if (!PX4_ISFINITE(position_setpoint_triplet.current.lat)
-	    || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
+	if (!PX4_ISFINITE(position_setpoint_triplet.current.lat) || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
 		// No position provided in xy. Lock position
 		if (!_lock_position_xy.isAllFinite()) {
 			tmp_target(0) = _lock_position_xy(0) = _position(0);
@@ -436,12 +427,11 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 		}
 
 	} else {
-		// reset locked position if current lon and lat are valid
-		_lock_position_xy.setAll(NAN);
+		// reset locked position if current coordinates are valid
+		_lock_position_xy.setNaN();
 
 		// Convert from global to local frame.
-		_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon,
-					    tmp_target(0), tmp_target(1));
+		_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon, tmp_target(0), tmp_target(1));
 	}
 
 	tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
@@ -678,6 +668,10 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 void FlightTaskAuto::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
 	_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
+
+	if (Vector2f(_takeoff_liftoff_position).isAllFinite()) {
+		_takeoff_liftoff_position.xy() += delta_xy;
+	}
 }
 
 void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
@@ -688,6 +682,10 @@ void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vx
 void FlightTaskAuto::_ekfResetHandlerPositionZ(const float delta_z)
 {
 	_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
+
+	if (PX4_ISFINITE(_takeoff_liftoff_position(2))) {
+		_takeoff_liftoff_position(2) += delta_z;
+	}
 }
 
 void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float delta_vz)

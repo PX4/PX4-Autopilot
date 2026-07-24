@@ -121,9 +121,9 @@ protected:
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
-	uORB::SubscriptionData<home_position_s>			_sub_home_position {ORB_ID(home_position)};
-	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status{ORB_ID(vehicle_status)};
-	uORB::SubscriptionData<takeoff_status_s>		_takeoff_status_sub{ORB_ID(takeoff_status)};
+	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
+	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 
@@ -173,9 +173,8 @@ protected:
 				       );
 
 private:
-	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
-	matrix::Vector2f _takeoff_locked_xy{NAN, NAN}; /**< lift-off XY tracked during the takeoff ramp and frozen at FLIGHT to keep the climb vertical */
-	float _takeoff_liftoff_z{NAN}; /**< lift-off altitude (NED z), frozen at FLIGHT */
+	matrix::Vector2f _lock_position_xy; /**< if no valid triplet is received, lock positition to current position */
+	matrix::Vector3f _takeoff_liftoff_position; /**< tracks the position state during the takeoff ramp and is frozen at FLIGHT */
 	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
 
 	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator
