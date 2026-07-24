@@ -34,6 +34,7 @@ parameters:
                 13: Rover (Mecanum)
                 14: Spacecraft 2D
                 15: Spacecraft 3D
+                16: Airship
             default: 0
 
         CA_METHOD:
