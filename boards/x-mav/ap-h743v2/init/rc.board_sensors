@@ -17,6 +17,7 @@ dps310 -I start -a 118
 
 # internal mag
 ist8310 -I -R 2 start
+qmc5883p -I -R 0 start
 
 #osd
 atxxxx -s start
