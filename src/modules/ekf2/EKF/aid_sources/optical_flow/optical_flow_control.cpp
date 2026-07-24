@@ -139,6 +139,8 @@ void Ekf::controlOpticalFlowFusionSlot(const uint8_t slot, const imuSample &imu_
 		Vector2f innov_var;
 		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, epsilon, &innov_var, &H);
 
+		src.aid_src.device_id = flow_sample.device_id;
+
 		// run the innovation consistency check and record result
 		updateAidSourceStatus(src.aid_src,
 				      flow_sample.time_us,                                       // sample timestamp

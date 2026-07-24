@@ -242,3 +242,8 @@ subscriptions_multi:
     type: px4_msgs::msg::AuxGlobalPosition
     route_field: id
     max_instances: 4
+
+  - topic: /fmu/in/sensor_optical_flow
+    type: px4_msgs::msg::SensorOpticalFlow
+    route_field: device_id
+    max_instances: 2

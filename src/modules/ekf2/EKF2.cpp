@@ -2589,7 +2589,8 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			.time_us = optical_flow.timestamp_sample - optical_flow.integration_timespan_us / 2, // correct timestamp to midpoint of integration interval as the data is converted to rates
 			.flow_rate = flow_rate,
 			.gyro_rate = gyro_rate,
-			.quality = optical_flow.quality
+			.quality = optical_flow.quality,
+			.device_id = optical_flow.device_id
 		};
 
 		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && optical_flow.integration_timespan_us < 1e6) {

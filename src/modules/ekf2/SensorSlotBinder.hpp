@@ -60,9 +60,7 @@ public:
 		for (uint8_t slot = 0; slot < _num_slots; slot++) {
 			char param_name[17] {};
 			snprintf(param_name, sizeof(param_name), id_param_format, static_cast<unsigned>(slot));
-			// use _no_notification so an unset ID stays hidden from the GCS until it is
-			// explicitly assigned; auto-bind also persists silently (param_set_no_notification)
-			_id_param_handles[slot] = param_find_no_notification(param_name);
+			_id_param_handles[slot] = param_find(param_name);
 
 			if (_id_param_handles[slot] != PARAM_INVALID) {
 				param_get(_id_param_handles[slot], &_ids[slot]);

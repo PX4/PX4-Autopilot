@@ -231,6 +231,7 @@ struct flowSample {
 	Vector2f    flow_rate{}; ///< measured angular rate of the image about the X and Y body axes (rad/s), RH rotation is positive
 	Vector3f    gyro_rate{}; ///< measured angular rate of the inertial frame about the body axes obtained from rate gyro measurements (rad/s), RH rotation is positive
 	uint8_t     quality{};   ///< quality indicator between 0 and 255
+	uint32_t    device_id{}; ///< unique device ID for the sensor that does not change between power cycles
 };
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
