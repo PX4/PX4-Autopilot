@@ -671,6 +671,11 @@ else
 		internal_combustion_engine_control start
 	fi
 
+	if param compare -s NFS_EN 1
+	then
+		nfs_mount start &
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#

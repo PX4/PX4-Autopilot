@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,35 +33,34 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/nfs_up.h>
+#include <uORB/topics/vehicle_status.h>
 
-#include <drivers/device/device.h>
+class NfsMount : public ModuleBase, public ModuleParams
+{
+public:
+	NfsMount();
+	~NfsMount() override = default;
 
-/**
- * @file uavcan_module.hpp
- *
- * Public header for the UAVCAN module
- *
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- * @author David Sidrane <david_s5@nscdg.com>
- * @author Holger Steinhaus <holger@steinhaus-home.de>
- */
+	static ModuleBase::Descriptor desc;
 
-// firmware paths
-#define UAVCAN_MAX_PATH_LENGTH  (128 + 40)
-#define UAVCAN_SD_ROOT_PATH     CONFIG_BOARD_ROOT_PATH
-#define UAVCAN_FIRMWARE_PATH    UAVCAN_SD_ROOT_PATH "/ufw"
-#define UAVCAN_SD_STAGING_PATH  UAVCAN_SD_ROOT_PATH "/ufw_staging"
-#ifdef CONFIG_MODULES_NFS_MOUNT
-#define UAVCAN_NFS_PATH         CONFIG_NFS_MOUNT_MOUNT_POINT "/ufw"
-#define UAVCAN_NFS_STAGING_PATH CONFIG_NFS_MOUNT_MOUNT_POINT "/ufw_staging"
-#endif
-#define UAVCAN_ROMFS_FW_PATH    "/etc/uavcan/fw"
-#define UAVCAN_ROMFS_FW_PREFIX  "_"
+	static int task_spawn(int argc, char *argv[]);
+	static int custom_command(int argc, char *argv[]);
+	static int print_usage(const char *reason = nullptr);
 
-// logging
-#define UAVCAN_NODE_DB_PATH     UAVCAN_SD_ROOT_PATH "/uavcan.db"
-#define UAVCAN_LOG_FILE         UAVCAN_NODE_DB_PATH "/trace.log"
+	void run() override;
 
-// public prototypes
-extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
+private:
+	static int run_trampoline(int argc, char *argv[]);
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::NFS_IP>) _param_nfs_ip
+	)
+};
