@@ -53,6 +53,9 @@ public:
 	virtual void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id);
 	virtual void print_status() const;
 
+	// AUX gimbals cannot report their own orientation, so the driver publishes it.
+	bool publishes_mount_orientation() const override { return true; }
+
 private:
 	void _stream_device_attitude_status();
 	float anglesMappedToOutput(const uint8_t index);
