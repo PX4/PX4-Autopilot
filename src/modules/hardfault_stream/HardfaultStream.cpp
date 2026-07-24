@@ -78,6 +78,24 @@ void HardfaultStream::start()
 	ScheduleOnInterval(150_ms);
 }
 
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+bool HardfaultStream::is_transport_ready()
+{
+#ifdef CONFIG_DRIVERS_UAVCANNODE
+	dronecan_node_status_s status;
+
+	if (_dronecan_node_status_sub.update(&status)) {
+		return status.mode == dronecan_node_status_s::MODE_OPERATIONAL;
+	}
+
+	return false;
+#else
+	// No known transport to wait for - don't block.
+	return true;
+#endif
+}
+#endif // BOARD_HAS_RAM_HARDFAULT_DUMP
+
 bool HardfaultStream::mavlink_gcs_up()
 {
 	for (auto &telemetry_status : _telemetry_status_subs) {
@@ -135,7 +153,7 @@ void HardfaultStream::stream_hardfault()
 			return;
 		}
 
-		PX4_INFO("Streaming hardfault log: %s", _hardfault_file_path);
+		PX4_ERR("Streaming hardfault log: %s", _hardfault_file_path);
 	}
 
 	static constexpr int chunk_size = sizeof(mavlink_log_s::text) - 1;
@@ -160,9 +178,22 @@ void HardfaultStream::Run()
 	}
 
 	switch (_state) {
-	case State::SearchFile:
+	case State::SearchHardFault:
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+		if (g_px4_ram_hardfault.magic == BOARD_RAM_HARDFAULT_MAGIC) {
+			_ram_off = 0;
+			_ram_crc = 0xFFFFFFFFu;
+			_state = State::WaitTransportReady;
+
+		} else {
+			_state = State::RequestStop;
+		}
+
+#else
 		search_hardfault_file();
 		_state = State::WaitMavlink;
+#endif
+
 		ScheduleNow();
 		break;
 
@@ -183,6 +214,53 @@ void HardfaultStream::Run()
 		}
 
 		break;
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+
+	case State::WaitTransportReady:
+
+		// Don't stream before the log transport is ready, otherwise part of dump gets lost
+		if (is_transport_ready()) {
+			_state = State::StreamRAM;
+		}
+
+		break;
+
+	case State::StreamRAM: {
+			using LogTextField = uavcan::protocol::debug::LogMessage::FieldTypes::text;
+			static constexpr size_t kLogTextMax    = LogTextField::MaxSize;          // uint8[<=90]
+			static constexpr size_t kHexPfxLen     = 5;                              // "%04x "
+			static constexpr size_t kBytesPerChunk = (kLogTextMax - kHexPfxLen) / 2; // 2 hex chars per byte
+
+			const uint8_t *ptr   = reinterpret_cast<const uint8_t *>(&g_px4_ram_hardfault.context);
+			const size_t   total = sizeof(fullcontext_s);
+
+			if (_ram_off < total) {
+				size_t n = total - _ram_off;
+
+				if (n > kBytesPerChunk) { n = kBytesPerChunk; }
+
+				char hexline[kLogTextMax];
+				int  pos = snprintf(hexline, sizeof(hexline), "%04x ", (unsigned)_ram_off);
+
+				for (size_t i = 0; i < n; i++) {
+					pos += snprintf(hexline + pos, sizeof(hexline) - pos, "%02x", ptr[_ram_off + i]);
+				}
+
+				_ram_crc = crc32part((const uint8_t *)hexline, strlen(hexline), _ram_crc);
+				PX4_ERR("%s", hexline);
+				_ram_off += n;
+
+			} else {
+				PX4_ERR("crc %08" PRIx32, _ram_crc ^ 0xFFFFFFFFu);
+				g_px4_ram_hardfault.magic = 0u;
+				_state = State::RequestStop;
+			}
+
+			break;
+		}
+
+#endif
 
 	case State::RequestStop:
 		request_stop();

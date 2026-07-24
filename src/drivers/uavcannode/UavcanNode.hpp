@@ -54,7 +54,6 @@
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
 #include <uavcan/node/timer.hpp>
-#include <uavcan/protocol/node_status_monitor.hpp>
 #include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
@@ -65,9 +64,11 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/dronecan_node_status.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 
@@ -148,6 +149,7 @@ private:
 	void Run() override;
 
 	void fill_node_info();
+	void publish_node_status();
 	int init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
@@ -177,6 +179,10 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionCallbackWorkItem _log_message_sub{this, ORB_ID(log_message)};
+
+	uORB::Publication<dronecan_node_status_s> _node_status_pub{ORB_ID(dronecan_node_status)};
+	hrt_abstime _last_node_status_pub{0};
+	hrt_abstime _up_time{0};
 
 	UavcanNodeParamManager _param_manager;
 	uavcan::ParamServer _param_server;

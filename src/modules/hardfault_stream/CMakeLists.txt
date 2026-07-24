@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016-2025 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2026 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,11 +34,15 @@ px4_add_module(
 	MODULE modules__hardfault_stream
 	MAIN hardfault_stream
 	COMPILE_FLAGS
+		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 	SRCS
 		HardfaultStream.cpp
 		HardfaultStream.hpp
 	MODULE_CONFIG
 		params.yaml
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan/libuavcan/include
+		${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan/libuavcan/include/dsdlc_generated
 	DEPENDS
 		px4_work_queue
 )
