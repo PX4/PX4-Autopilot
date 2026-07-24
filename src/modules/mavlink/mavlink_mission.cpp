@@ -1664,8 +1664,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				const mavlink_mission_item_int_t *item_int =
 					reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
 				// x/y are p5/p6 generic params (not lat/lon) for non-position frames.
-				// Normalize INT32_MAX (MISSION_ITEM_INT "unused" sentinel) to NaN so
-				// both the int sentinel and the NaN are treated as unset.
+				// Turn both int values that mean "param not used" (INT32_MAX per the
+				// spec, INT32_MIN from ground stations converting NaN to int32) into
+				// NaN so the validation treats them as not used.
 				const float p5 = mavlink_cmd_params::int_param_is_unset(item_int->x) ? NAN : (float)item_int->x;
 				const float p6 = mavlink_cmd_params::int_param_is_unset(item_int->y) ? NAN : (float)item_int->y;
 				bad = mavlink_cmd_params::check_params_for_vehicle(mavlink_mission_item->command, true, _vehicle_type_bitmask,
