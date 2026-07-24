@@ -87,8 +87,8 @@ void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_
 	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.timestamp_sample = timestamp_sample;
 
-	// zero actuators if not armed
-	if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	// zero actuators unless armed and in a manual flight mode
+	if (_vehicle_control_mode.flag_armed && _vehicle_control_mode.flag_control_manual_enabled) {
 		v_torque_sp.xyz[0] = 0.f;
 		v_torque_sp.xyz[1] = _manual_control_setpoint.pitch;
 		v_torque_sp.xyz[2] = _manual_control_setpoint.yaw;
@@ -103,8 +103,8 @@ void AirshipAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
 
-	// zero actuators if not armed
-	if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	// zero actuators unless armed and in a manual flight mode
+	if (_vehicle_control_mode.flag_armed && _vehicle_control_mode.flag_control_manual_enabled) {
 		v_thrust_sp.xyz[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 	}
 
@@ -127,15 +127,13 @@ AirshipAttitudeControl::Run()
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
-		/* run the rate controller immediately after a gyro update */
+		/* refresh manual control and control mode before publishing */
+		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+
+		/* run the controller immediately after a gyro update */
 		publishThrustSetpoint(angular_velocity.timestamp_sample);
 		publishTorqueSetpoint(angular_velocity.timestamp_sample);
-
-		/* check for updates in manual control topic */
-		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-
-		/* check for updates in vehicle status topic */
-		_vehicle_status_sub.update(&_vehicle_status);
 
 		parameter_update_poll();
 	}
