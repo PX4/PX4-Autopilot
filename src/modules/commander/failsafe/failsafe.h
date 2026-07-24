@@ -63,11 +63,12 @@ private:
 
 	// COM_LOW_BAT_ACT parameter values
 	enum class LowBatteryAction : int32_t {
-		Warning = 0,        // Warning
-		Return = 1,         // Return mode (deprecated)
-		Land = 2,           // Land mode
-		ReturnOrLand = 3    // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
-	};
+		Warning = 0, // Warning
+		Return = 1, // Return mode (deprecated)
+		Land = 2, // Land mode
+		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+		ReturnOrTerminate = 4 // Return mode at critically low level, Terminate if reaching dangerously low levels
+};
 
 	enum class offboard_loss_failsafe_mode : int32_t {
 		Position_mode = 0,
