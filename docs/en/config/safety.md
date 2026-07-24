@@ -7,6 +7,10 @@ PX4 has a number of safety features to protect and recover your vehicle if somet
   Others must be configured via [parameters](../advanced_config/parameters.md).
 - [Safety switches](#emergency-switches) on the remote control can be used to immediately stop motors or return the vehicle in the event of a problem.
 
+:::note
+These failsafes protect against equipment faults and operator error, not a deliberate attacker. For protecting the vehicle against interference with its communication links and onboard systems, see [Security](../security/index.md).
+:::
+
 ## QGroundControl Safety Setup
 
 The _QGroundControl_ Safety Setup page is accessed by clicking the _QGroundControl_ icon, **Vehicle Setup**, and then **Safety** in the sidebar.

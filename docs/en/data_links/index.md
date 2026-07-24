@@ -3,6 +3,7 @@
 Data links are radio channels that are used to communicate vehicle telemetry (position, velocity, battery status, and so on) from the flight controller to ground control stations (and to some RC systems), and commands from ground stations to the vehicle.
 These links are usually created using different radios than those used for manual RC control of the vehicle.
 PX4 uses the [MAVLink](https://mavlink.io/en/) protocol for communicating serial data over the radio channel.
+MAVLink is unauthenticated by default, so securing the data link is the integrator's responsibility (see [MAVLink Security](../mavlink/security_hardening.md) and [Security](../security/index.md)).
 
 This section provides information about various radio systems that you can use, and how to configure them for use with PX4.
 

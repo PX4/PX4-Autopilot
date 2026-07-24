@@ -53,6 +53,10 @@ The [Hardware Selection & Setup](hardware/drone_parts.md) section covers flight 
 
 Read [Operations](config/operations.md) to understand safety features and failsafe behavior before your first flight. Then see [Basic Flying (Multicopter)](flying/basic_flying_mc.md) or the equivalent for your frame type.
 
+## Security
+
+Taking PX4 to production? MAVLink is unauthenticated by default, so securing the vehicle is the integrator's responsibility. The [Security](security/index.md) section covers the production [hardening checklist](mavlink/security_hardening.md), [message signing](mavlink/message_signing.md), and how to [report a vulnerability](https://github.com/PX4/PX4-Autopilot/blob/main/SECURITY.md). Read the [Threat Model](https://github.com/PX4/PX4-Autopilot/blob/main/THREAT_MODEL.md) to understand what PX4 defends against and what it does not.
+
 ## Support
 
 Get help on the [discussion forums](https://discuss.px4.io/) or [Discord](https://discord.com/invite/dronecode). See the [Support](contribute/support.md) page for diagnosing problems, reporting bugs, and joining the [weekly dev call](contribute/dev_call.md).

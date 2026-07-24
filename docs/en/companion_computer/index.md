@@ -14,6 +14,10 @@ They are connected using a fast serial or Ethernet link, and typically communica
 
 Communications with the ground stations and the cloud are usually routed via the companion computer (e.g. using the [MAVLink Router](https://github.com/mavlink-router/mavlink-router)).
 
+::: warning
+A companion computer is trusted as the operator: software on it can command the vehicle directly, and links such as uXRCE-DDS are not covered by MAVLink message signing. Securing the companion computer and its links is the integrator's responsibility. See [Security](../security/index.md) and [MAVLink Security Hardening](../mavlink/security_hardening.md).
+:::
+
 ## Pixhawk Autopilot Bus Carrier Boards with Companion Computers
 
 The following carrier boards make it easy to integrate Pixhawk flight controllers with a companion computer, significantly easing both hardware and software setup.

@@ -141,6 +141,11 @@ To install ROS 2 and its dependencies:
 
 For ROS 2 to communicate with PX4, [uXRCE-DDS client](../modules/modules_system.md#uxrce-dds-client) must be running on PX4, connected to a micro XRCE-DDS agent running on the companion computer.
 
+::: info
+The uXRCE-DDS link is not authenticated by default, so any node that can reach the agent can command the vehicle.
+Securing the deployment is the integrator's responsibility: see [Security](../security/index.md).
+:::
+
 #### Setup the Agent
 
 The agent can be installed onto the companion computer in a [number of ways](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation).
