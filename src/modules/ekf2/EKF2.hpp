@@ -428,6 +428,9 @@ private:
 	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
 	void syncSensEnParam();
 
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
