@@ -786,9 +786,13 @@ void GPS::injectRtcmFrames(gnss::CorrectionFramer &framer, perf_counter_t inject
 				(*rtcm_frames_in_window)++;
 			}
 
-		} else if (spartn_frames_in_window != nullptr) {
-			(*spartn_frames_in_window)++;
+		} else if (protocol == gnss::CorrectionProtocol::Spartn) {
+			if (spartn_frames_in_window != nullptr) {
+				(*spartn_frames_in_window)++;
+			}
 		}
+
+		// UBX (AssistNow MGA) is injected the same way; no rate window counter yet.
 	}
 }
 
