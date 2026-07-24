@@ -5,6 +5,8 @@ PX4 provides a number of manual and automated features that you can use to impro
 These features range from failsafe actions that can trigger when the vehicle travels outside an allowed geofence boundary, or starts to run low on battery, though to automatic disarming after landing, so that it is less likely that you will approach a vehicle while propellers are still spinning.
 They also include flight termination actions such as parachute deployment.
 
+Safety here means protecting against failures and operator error. For protecting against a deliberate attacker, such as securing the unauthenticated-by-default MAVLink link, see [Security](../security/index.md).
+
 These are covered in the following topics:
 
 - [Safety Configuration (Failsafes)](../config/safety.md)

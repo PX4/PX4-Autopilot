@@ -363,6 +363,8 @@ The main failsafe areas are listed below:
 
 For more information see: [Safety](../config/safety.md) (Basic Configuration).
 
+Note that failsafes protect against malfunction but not against tampering: MAVLink is unauthenticated by default, so securing a deployment against unauthorized access is the integrator's responsibility (see [Security](../security/index.md)).
+
 ## Heading and Directions
 
 All the vehicles, boats and aircraft have a heading direction or an orientation based on their forward motion.

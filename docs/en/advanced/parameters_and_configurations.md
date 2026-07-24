@@ -361,6 +361,7 @@ For more information see [PX4 Metadata (Translation & Publication)](../advanced/
 ## Read-Only Parameters
 
 Integrators who productize PX4 can lock down parameters so that end users cannot change safety-critical or product-defining settings.
+Parameter lockdown is one piece of hardening a deployment; because MAVLink is unauthenticated by default, see the [Security](../security/index.md) section for the broader integrator responsibilities.
 This works in two phases:
 
 1. **Build time** — a YAML file in the board directory declares _which_ parameters are read-only.

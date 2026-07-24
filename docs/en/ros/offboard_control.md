@@ -3,6 +3,7 @@
 ::: warning
 [Offboard control](../flight_modes/offboard.md) is dangerous.
 It is the responsibility of the developer to ensure adequate preparation, testing and safety precautions are taken before offboard flights.
+MAVLink is unauthenticated by default, so securing the link between the external computer and the vehicle is also the developer's responsibility (see [Security](../security/index.md)).
 :::
 
 The idea behind off-board control is to be able to control the PX4 flight stack using software running outside of the autopilot.
