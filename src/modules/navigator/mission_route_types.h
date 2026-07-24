@@ -32,83 +32,46 @@
  ****************************************************************************/
 
 /**
- * @file vector_mission_item_store.h
+ * @file mission_route_types.h
  *
- * In-memory mission item store for navigator tests.
- *
- * Allows to mark specific indices as failed reads to cover error-handling paths
- * without involving dataman or uORB.
+ * Mission-route planner data types.
  *
  * @author Jonas Perolini <jonspero@me.com>
- *
  */
 
 #pragma once
 
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <initializer_list>
-#include <vector>
-
 #include "navigation.h"
+#include "safe_point_land.hpp"
 
-namespace navigator_test
+#include <math.h>
+#include <stdint.h>
+
+#include <px4_platform_common/defines.h>
+
+namespace mission_route
 {
 
-class VectorMissionItemStore
-{
-public:
-	/** Replace all stored items and clear any configured load failures. */
-	void setItems(const std::vector<mission_item_s> &items)
-	{
-		_items = items;
-		clearLoadFailures();
-	}
+static constexpr double kNullIslandThresholdDeg{1e-7};
+static constexpr float kLandApproachAssociationDistanceM{10.f};
 
-	/** Configure indices whose loadItem() calls should fail. */
-	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
-	{
-		_load_failure_indices.assign(indices.begin(), indices.end());
-	}
+/** @brief A global geographic coordinate. */
+struct Position {
+	double lat{static_cast<double>(NAN)};
+	double lon{static_cast<double>(NAN)};
+	float alt{NAN};
 
-	/** Configure indices whose loadItem() calls should fail. */
-	void setLoadFailureIndices(const std::vector<int32_t> &indices)
-	{
-		_load_failure_indices = indices;
-	}
-
-	/** Remove all injected load failures. */
-	void clearLoadFailures()
-	{
-		_load_failure_indices.clear();
-	}
-
-	/** Return false for injected failures and out-of-range indices; otherwise copy the item out. */
-	bool loadItem(int32_t index, mission_item_s &mission_item) const
-	{
-		if (std::find(_load_failure_indices.begin(), _load_failure_indices.end(), index)
-		    != _load_failure_indices.end()) {
-			return false;
-		}
-
-		if (index < 0 || index >= static_cast<int32_t>(_items.size())) {
-			return false;
-		}
-
-		mission_item = _items[static_cast<std::size_t>(index)];
-		return true;
-	}
-
-	/** Number of stored mission items. */
-	std::size_t itemCount() const
-	{
-		return _items.size();
-	}
-
-private:
-	std::vector<mission_item_s> _items;
-	std::vector<int32_t> _load_failure_indices;
+	bool valid() const;
 };
 
-} // namespace navigator_test
+bool isLandingCmd(uint16_t nav_cmd);
+
+float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl);
+
+/** @brief Extract the valid position from a rally-point safe-point item. */
+bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl, Position &position);
+
+/** @brief Convert one LOITER_TO_ALT safe-point item into a concrete landing-approach point. */
+loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl);
+
+} // namespace mission_route
