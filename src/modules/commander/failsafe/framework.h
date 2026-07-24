@@ -124,6 +124,7 @@ public:
 		uint8_t vehicle_type;
 		bool vtol_in_transition_mode{false};
 		bool mission_finished{false};
+		bool parachute_deployed{false};
 	};
 
 	FailsafeBase(ModuleParams *parent);

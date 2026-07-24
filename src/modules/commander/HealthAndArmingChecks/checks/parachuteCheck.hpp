@@ -35,15 +35,23 @@
 
 #include "../Common.hpp"
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parachute.h>
+
 class ParachuteChecks : public HealthAndArmingCheckBase
 {
 public:
-	ParachuteChecks() = default;
+	ParachuteChecks() : _param_fw_lnd_para_en_handle(param_find("FW_LND_PARA_EN")) {}
 	~ParachuteChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	// only exists on builds with the fixed-wing mode manager
+	const param_t _param_fw_lnd_para_en_handle{PARAM_INVALID};
+
+	uORB::Subscription _parachute_sub{ORB_ID(parachute)};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute
 				       )

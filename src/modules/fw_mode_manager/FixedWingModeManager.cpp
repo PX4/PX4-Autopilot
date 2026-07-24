@@ -158,6 +158,18 @@ FixedWingModeManager::vehicle_command_poll()
 }
 
 void
+FixedWingModeManager::parachute_poll()
+{
+	parachute_s parachute;
+
+	while (_parachute_sub.update(&parachute)) {
+		if (parachute.command == parachute_s::COMMAND_RELEASE && !_landed) {
+			_parachute_released = true;
+		}
+	}
+}
+
+void
 FixedWingModeManager::airspeed_poll()
 {
 	airspeed_validated_s airspeed_validated;
@@ -380,6 +392,19 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 	}
 
 	const FW_POSCTRL_MODE previous_position_control_mode = _control_mode_current;
+
+	if (_parachute_released && _control_mode.flag_armed) {
+		// A parachute release was detected in air. Regardless of the commanded mode, keep the motor
+		// off and hold attitude: there is no meaningful control authority under canopy, and any
+		// spooled-up motor risks entangling the parachute lines.
+		if (previous_position_control_mode != FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE) {
+			events::send(events::ID("fw_mode_manager_parachute_descent"), events::Log::Warning,
+				     "Descending under parachute, motor off");
+		}
+
+		_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE;
+		return;
+	}
 
 	_skipping_takeoff_detection = false;
 	const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
@@ -1455,6 +1480,18 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
 
+	// parachute landing is not supported on VTOL: an MC failsafe (e.g. quadchute) during the
+	// descent would spool up the hover motors into the parachute lines.
+	const bool parachute_landing_active = _param_fw_lnd_para_en.get() && !_parachute_release_commanded
+					      && !_vehicle_status.is_vtol;
+
+	// minimum release altitude, below which the canopy cannot fully open before touchdown
+	const float parachute_release_floor = _param_fw_lnd_para_sink.get() * _param_fw_lnd_para_time.get();
+
+	// release altitude, constrained to the altitude lost while the parachute deploys so that the
+	// canopy is fully open before touchdown
+	const float parachute_release_alt = math::max(_param_fw_lnd_para_alt.get(), parachute_release_floor);
+
 	// calculate the altitude setpoint based on the landing glide slope
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
 				local_position - local_land_point);
@@ -1477,6 +1514,18 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	const float glide_slope_reference_alt = (_param_fw_lnd_useter.get() ==
 						TerrainEstimateUseOnLanding::kFollowTerrainRelativeLandingGlideSlope) ? terrain_alt : pos_sp_curr.alt;
 
+	if (parachute_landing_active && _wind_valid) {
+		// compensate the crosswind drift under canopy by aiming upwind of the landing point.
+		// the drift is predicted from the altitude the release is expected to happen at: the
+		// release altitude, or lower if the vehicle cannot hold it (e.g. a motor-less glider).
+		const float release_alt_predicted = math::constrain(_current_altitude - terrain_alt,
+						    parachute_release_floor, parachute_release_alt);
+		const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
+		const Vector2f drift = _wind_vel * release_alt_predicted / math::max(_param_fw_lnd_para_sink.get(), 0.5f);
+		const Vector2f cross_drift = drift - approach_direction * drift.dot(approach_direction);
+		local_land_point -= cross_drift;
+	}
+
 	float altitude_setpoint;
 
 	if (_current_altitude > glide_slope_reference_alt + glide_slope_rel_alt) {
@@ -1486,6 +1535,51 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	} else {
 		// continue horizontally
 		altitude_setpoint = _current_altitude;
+	}
+
+	if (parachute_landing_active) {
+		// follow the normal landing approach down to the release altitude, then continue level
+		// towards the landing point until the release condition below is met
+		altitude_setpoint = math::max(altitude_setpoint, terrain_alt + parachute_release_alt);
+	}
+
+
+	// parachute landing: release once the predicted touchdown point under canopy reaches the landing
+	// point. the vehicle is carried forward by its ground speed while the parachute deploys, and
+	// drifts with the wind while descending under canopy.
+	if (parachute_landing_active && !_flare_states.flaring
+	    && _landing_abort_status == position_controller_landing_status_s::NOT_ABORTED) {
+
+		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
+
+		const bool at_release_altitude = altitude_above_ground < parachute_release_alt + kParachuteReleaseAltitudeMargin
+						 && altitude_above_ground > parachute_release_floor;
+
+		if (at_release_altitude) {
+			_parachute_release_band_entered = true;
+
+			const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
+			const float ground_speed_along_track = math::max(ground_speed.dot(approach_direction), 0.f);
+			const float wind_along_track = _wind_valid ? _wind_vel.dot(approach_direction) : 0.f;
+			const float descent_time = altitude_above_ground / math::max(_param_fw_lnd_para_sink.get(), 0.5f);
+
+			const float release_distance = ground_speed_along_track * _param_fw_lnd_para_time.get()
+						       + wind_along_track * descent_time;
+
+			if (along_track_dist_to_touchdown <= release_distance) {
+				releaseParachute(now);
+				_parachute_release_commanded = true;
+			}
+
+		} else if (_parachute_release_band_entered && altitude_above_ground <= parachute_release_floor) {
+			// a vehicle that cannot hold the release altitude (e.g. a motor-less glider) can sink
+			// through the band before reaching the release point. Release now
+			releaseParachute(now);
+			_parachute_release_commanded = true;
+
+			events::send(events::ID("fw_mode_manager_parachute_release_floor"), events::Log::Warning,
+				     "Releasing parachute at minimum altitude");
+		}
 	}
 
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
@@ -1812,6 +1906,42 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	landing_status_publish();
 	publishOrbitStatus(pos_sp_curr);
+}
+
+void
+FixedWingModeManager::releaseParachute(const hrt_abstime &now)
+{
+	vehicle_command_s vehicle_command{};
+	vehicle_command.timestamp = now;
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_PARACHUTE;
+	vehicle_command.param1 = vehicle_command_s::PARACHUTE_ACTION_RELEASE;
+	vehicle_command.target_system = _vehicle_status.system_id;
+	vehicle_command.target_component = 0; // MAV_COMP_ID_ALL: handled by the parachute module, forwarded to external parachute systems
+	vehicle_command.source_system = _vehicle_status.system_id;
+	vehicle_command.source_component = _vehicle_status.component_id;
+	_vehicle_command_pub.publish(vehicle_command);
+}
+
+void
+FixedWingModeManager::control_auto_landing_parachute(const hrt_abstime &now)
+{
+	// The aerodynamic controllers have no authority under canopy.
+	// level pitch directly, wings level via zero lateral acceleration.
+	fixed_wing_longitudinal_setpoint_s longitudinal_ctrl_sp{empty_longitudinal_control_setpoint};
+	longitudinal_ctrl_sp.timestamp = now;
+	longitudinal_ctrl_sp.pitch_direct = 0.f;
+	longitudinal_ctrl_sp.throttle_direct = 0.f;
+	_longitudinal_ctrl_sp_pub.publish(longitudinal_ctrl_sp);
+
+	fixed_wing_lateral_setpoint_s lateral_ctrl_sp{empty_lateral_control_setpoint};
+	lateral_ctrl_sp.timestamp = now;
+	lateral_ctrl_sp.lateral_acceleration = 0.f;
+	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
+
+	// Keep the motor off, and keep TECS underspeed protection from spooling it back up
+	_ctrl_configuration_handler.setThrottleMin(0.f);
+	_ctrl_configuration_handler.setThrottleMax(0.f);
+	_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 }
 
 void
@@ -2207,6 +2337,8 @@ FixedWingModeManager::Run()
 			}
 		}
 
+		parachute_poll();
+
 		if (!_vehicle_status.in_transition_mode) {
 			// reset position of backtransition start if not in transition
 			_lpos_where_backtrans_started = Vector2f(NAN, NAN);
@@ -2282,6 +2414,11 @@ FixedWingModeManager::Run()
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
 				control_auto_landing_circular(now, control_interval, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_LANDING_PARACHUTE: {
+				control_auto_landing_parachute(now);
 				break;
 			}
 
@@ -2389,6 +2526,9 @@ FixedWingModeManager::reset_landing_state()
 
 	_local_landing_orbit_center.setNaN();
 	_lateral_touchdown_position_offset = 0.0f;
+
+	_parachute_release_commanded = false;
+	_parachute_release_band_entered = false;
 
 	_last_time_terrain_alt_was_valid = 0;
 

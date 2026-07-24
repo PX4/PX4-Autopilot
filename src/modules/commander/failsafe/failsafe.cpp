@@ -555,6 +555,11 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool ignore_any_link_loss_vtol_takeoff_fixedwing = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 			&& in_forward_flight && !state.mission_finished;
 
+	// While descending under a deployed parachute the vehicle has no control authority left to
+	// execute a failsafe reaction; ignore the failsafes whose only effect would be a mode change
+	// and continue the descent. Failsafes acting on the current state (e.g. termination) stay active.
+	const bool parachute_descent = state.parachute_deployed;
+
 	// Manual control (RC or joystick) loss
 	if (!status_flags.manual_control_signal_lost) {
 		// If manual control was lost and arming was allowed, consider it optional until we regain manual control
@@ -562,7 +567,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	const bool rc_loss_ignored = isFailsafeIgnored(state.user_intended_mode, _param_com_rcl_except.get())
-				     || ignore_any_link_loss_vtol_takeoff_fixedwing || _manual_control_lost_at_arming;
+				     || ignore_any_link_loss_vtol_takeoff_fixedwing || _manual_control_lost_at_arming
+				     || parachute_descent;
 
 	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::DisableManualControl) && !rc_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
@@ -574,7 +580,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					   || state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 
 	const bool dll_loss_ignored = isFailsafeIgnored(state.user_intended_mode, _param_com_dll_except.get())
-				      || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land || !state.armed;
+				      || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land || !state.armed
+				      || parachute_descent;
 
 	if (_param_nav_dll_act.get() != int32_t(gcs_connection_loss_failsafe_mode::Disabled) && !dll_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, gcs_connection_lost, fromNavDllOrRclActParam(_param_nav_dll_act.get()).causedBy(Cause::GCSConnectionLoss));
@@ -603,13 +610,15 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		}
 	}
 
-	CHECK_FAILSAFE(status_flags, wind_limit_exceeded,
-		       ActionOptions(fromHighWindLimitActParam(_param_com_wind_max_act.get()).cannotBeDeferred()));
-	CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded, ActionOptions(Action::RTL).cannotBeDeferred());
+	if (!parachute_descent) {
+		CHECK_FAILSAFE(status_flags, wind_limit_exceeded,
+			       ActionOptions(fromHighWindLimitActParam(_param_com_wind_max_act.get()).cannotBeDeferred()));
+		CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded, ActionOptions(Action::RTL).cannotBeDeferred());
+	}
 
 	// trigger Low Position Accuracy Failsafe (only in auto mission and auto loiter)
-	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
-	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+	if ((state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+	     state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) && !parachute_descent) {
 		CHECK_FAILSAFE(status_flags, position_accuracy_low, fromPosLowActParam(_param_com_pos_low_act.get()));
 	}
 
