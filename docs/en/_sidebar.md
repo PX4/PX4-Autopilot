@@ -380,6 +380,7 @@
     - [Gimbal \(Mount\) Configuration](/advanced/gimbal_control.md)
     - [Grippers](/peripherals/gripper.md)
       - [Servo Gripper](/peripherals/gripper_servo.md)
+      - [Electro-Permanent Magnet (EPM)](/peripherals/gripper_epm.md)
   - [Peripherals](/peripherals/index.md)
     - [ADSB/FLARM/UTM (Traffic Avoidance)](/peripherals/adsb_flarm.md)
     - [On-Screen Display (OSD)](/peripherals/osd.md)
