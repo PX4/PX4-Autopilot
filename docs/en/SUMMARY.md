@@ -899,6 +899,7 @@
         - [HITL Simulation](simulation/hitl.md)
         - [SIH on Hardware](sim_sih/hardware.md)
       - [Multi-vehicle simulation](simulation/multi-vehicle-simulation.md)
+    - [Gazebo Terrain Generator](simulation/gazebo_terrain_generator.md)
   - [Platform Testing and CI](test_and_ci/index.md)
     - [Test Flights](test_and_ci/test_flights.md)
       - [Multicopter](test_and_ci/test_flights.md#multicopter)
