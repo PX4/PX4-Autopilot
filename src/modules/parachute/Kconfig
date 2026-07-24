@@ -1,0 +1,6 @@
+menuconfig MODULES_PARACHUTE
+	bool "parachute"
+	default n
+	---help---
+		Enable parachute module to release the parachute output function
+		via the DO_PARACHUTE vehicle command

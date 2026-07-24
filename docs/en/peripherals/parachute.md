@@ -1,6 +1,7 @@
 # Parachute
 
 PX4 can be configured to trigger a parachute during [flight termination](../advanced_config/flight_termination.md).
+A parachute connected to an output can also be [released by command](#releasing-the-parachute-by-command) without terminating the flight.
 
 The parachute can be connected to a free PWM output or via MAVLink.
 
@@ -86,6 +87,28 @@ PX4 will then indicate parachute status using the [MAV_SYS_STATUS_RECOVERY_SYSTE
 A MAVLink parachute is required to emit a [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT) with `HEARTBEAT.type` of [MAV_TYPE_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_TYPE_PARACHUTE).
 
 <!-- PX4 v1.13 support added here: https://github.com/PX4/PX4-Autopilot/pull/18589 -->
+
+## Releasing the Parachute by Command
+
+A parachute assigned to a flight controller output can also be released with the [MAV_CMD_DO_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_PARACHUTE) command and the [PARACHUTE_RELEASE](https://mavlink.io/en/messages/common.html#PARACHUTE_ACTION) action, without going through flight termination.
+The vehicle stays armed on release, and the vehicle disarms normally after landing.
+
+:::warning
+Unlike flight termination, releasing the parachute by command does not stop the motors: the active flight mode keeps controlling the vehicle.
+Whatever sends the release is responsible for first putting the vehicle into a state that is safe under a parachute.
+:::
+
+To use this:
+
+- Assign the _Parachute_ function to an output as described in [Parachute Output Bus Setup](#parachute-output-bus-setup).
+- Include the `parachute` module in the firmware by setting `CONFIG_MODULES_PARACHUTE=y` in the board configuration.
+
+Notes:
+
+- The release is denied while the vehicle is landed, so that the parachute cannot be deployed with people around the vehicle.
+- Once released, the output stays in the released position until reboot.
+- Flight termination still releases the parachute output through the failsafe values.
+  Releasing the parachute by command does not trigger flight termination.
 
 ## Parachute Testing
 
