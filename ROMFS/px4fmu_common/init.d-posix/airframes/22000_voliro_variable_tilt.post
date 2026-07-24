@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# rc.mc_apps starts the stock allocator first. Transfer output ownership only
+# when explicitly enabled; VOLA_EN=0 keeps the conventional safe fallback.
+if param compare VOLA_EN 1
+then
+	control_allocator stop
+	voliro_allocator start
+fi

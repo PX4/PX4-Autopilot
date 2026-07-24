@@ -1,0 +1,5 @@
+menuconfig MODULES_VOLIRO_ALLOCATOR
+	bool "voliro_allocator"
+	default n
+	---help---
+		Dedicated six-rotor, six-independent-tilt Voliro control allocator.

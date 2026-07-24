@@ -44,6 +44,7 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 #include <lib/drivers/device/Device.hpp>
+#include <uORB/topics/actuator_test.h>
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -126,8 +127,15 @@ void SimulatorMavlink::actuator_controls_from_outputs(mavlink_hil_actuator_contr
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-	if (armed) {
-		for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+	for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+		// Keep propulsion inhibited while disarmed, but pass servo outputs so
+		// actuator_test can validate simulator mechanisms safely on the ground.
+		// Regular disarmed servo outputs remain centered by MixingOutput.
+		const bool is_servo_output =
+			_output_functions[i] >= actuator_test_s::FUNCTION_SERVO1
+			&& _output_functions[i] < actuator_test_s::FUNCTION_SERVO1 + actuator_test_s::MAX_NUM_SERVOS;
+
+		if (armed || is_servo_output) {
 			msg->controls[i] = _actuator_outputs.output[i];
 		}
 	}
@@ -335,6 +343,10 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		handle_message_distance_sensor(msg);
 		break;
 
+	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
+		handle_message_debug_float_array(msg);
+		break;
+
 	case MAVLINK_MSG_ID_HIL_GPS:
 		handle_message_hil_gps(msg);
 		break;
@@ -376,6 +388,21 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		_rpm_pub.publish(rpm_uorb);
 		break;
 	}
+}
+
+void SimulatorMavlink::handle_message_debug_float_array(const mavlink_message_t *msg)
+{
+	mavlink_debug_float_array_t mavlink_array;
+	mavlink_msg_debug_float_array_decode(msg, &mavlink_array);
+	debug_array_s debug_array{};
+	debug_array.timestamp = hrt_absolute_time();
+	debug_array.id = mavlink_array.array_id;
+	memcpy(debug_array.name, mavlink_array.name, sizeof(debug_array.name));
+	debug_array.name[sizeof(debug_array.name) - 1] = '\0';
+	for (size_t i = 0; i < debug_array_s::ARRAY_SIZE; ++i) {
+		debug_array.data[i] = mavlink_array.data[i];
+	}
+	_debug_array_pub.publish(debug_array);
 }
 
 void SimulatorMavlink::handle_message_distance_sensor(const mavlink_message_t *msg)

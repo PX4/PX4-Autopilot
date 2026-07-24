@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# @name Voliro variable-tilt hexarotor
+#
+# @type Hexarotor x
+# @class Copter
+#
+# @output Motor1 propulsion 1 (FMU/AUX 1)
+# @output Motor2 propulsion 2 (FMU/AUX 2)
+# @output Motor3 propulsion 3 (FMU/AUX 3)
+# @output Motor4 propulsion 4 (FMU/AUX 4)
+# @output Motor5 propulsion 5 (FMU/AUX 5)
+# @output Motor6 propulsion 6 (FMU/AUX 6)
+# @output Servo1 radial tilt 1 (MAIN/I/O 1)
+# @output Servo2 radial tilt 2 (MAIN/I/O 2)
+# @output Servo3 radial tilt 3 (MAIN/I/O 3)
+# @output Servo4 radial tilt 4 (MAIN/I/O 4)
+# @output Servo5 radial tilt 5 (MAIN/I/O 5)
+# @output Servo6 radial tilt 6 (MAIN/I/O 6)
+#
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default MAV_TYPE 13
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 6
+param set-default CA_METHOD 0
+
+# PX4 FRD geometry corresponding to the MuJoCo rotor order. The stock
+# allocator uses this geometry whenever VOLA_EN is zero.
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 0
+param set-default CA_ROTOR0_KM -0.0476190476
+param set-default CA_ROTOR1_PX 0.5
+param set-default CA_ROTOR1_PY -0.866025404
+param set-default CA_ROTOR1_KM 0.0476190476
+param set-default CA_ROTOR2_PX -0.5
+param set-default CA_ROTOR2_PY -0.866025404
+param set-default CA_ROTOR2_KM -0.0476190476
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 0
+param set-default CA_ROTOR3_KM 0.0476190476
+param set-default CA_ROTOR4_PX -0.5
+param set-default CA_ROTOR4_PY 0.866025404
+param set-default CA_ROTOR4_KM -0.0476190476
+param set-default CA_ROTOR5_PX 0.5
+param set-default CA_ROTOR5_PY 0.866025404
+param set-default CA_ROTOR5_KM 0.0476190476
+
+# Pixhawk 6X FMU outputs support the propulsion bank; the I/O MAIN bank
+# provides six conventional PWM channels for the first GL40II prototype.
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+param set-default PWM_AUX_FUNC4 104
+param set-default PWM_AUX_FUNC5 105
+param set-default PWM_AUX_FUNC6 106
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC3 203
+param set-default PWM_MAIN_FUNC4 204
+param set-default PWM_MAIN_FUNC5 205
+param set-default PWM_MAIN_FUNC6 206
+
+# Keep the dedicated allocator off on hardware until a measured tilt encoder
+# driver publishes the feedback contract used by the module.
+param set-default VOLA_EN 0
+param set-default VOLA_TMAX 13.7
+param set-default VOLA_ARM 0.315
+param set-default VOLA_KAPPA 0.015
+param set-default VOLA_TILT_MIN -1.5707963
+param set-default VOLA_TILT_MAX 1.5707963
+param set-default VOLA_TILT_RATE 7.85
+param set-default VOLA_FB_TMO 0.1

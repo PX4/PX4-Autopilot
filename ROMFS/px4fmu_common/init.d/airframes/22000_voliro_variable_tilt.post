@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Select exactly one actuator-output owner at boot. Revert VOLA_EN to zero and
+# reboot to recover the stock conventional hex allocator.
+if param compare VOLA_EN 1
+then
+	control_allocator stop
+	voliro_allocator start
+fi
