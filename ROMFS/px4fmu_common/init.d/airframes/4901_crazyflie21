@@ -20,7 +20,7 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default SYS_HAS_MAG 0
-param set-default EKF2_OF_CTRL 1
+param set-default EKF2_OF0_CTRL 1
 param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_MAG_TYPE 5
 

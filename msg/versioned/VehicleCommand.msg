@@ -114,7 +114,7 @@ uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
 uint16 VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE = 43006 # Enable/disable estimator sensor fusion. |Source (FUSION_SOURCE_*)|Sensor instance (0-based)|Enable (1) or Disable (0)|Estimator Instance (NaN: not used)|Empty|Empty|Empty|
 # Sensor fusion source types for VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE
 uint8 FUSION_SOURCE_GPS = 0   # GNSS (EKF2_GPS{i}_CTRL, use instance param)
-uint8 FUSION_SOURCE_OF = 1    # Optical Flow (EKF2_OF_CTRL)
+uint8 FUSION_SOURCE_OF = 1    # Optical Flow (toggles all sensors, per-slot config via EKF2_OF{i}_CTRL)
 uint8 FUSION_SOURCE_EV = 2    # External Vision (EKF2_EV_CTRL)
 uint8 FUSION_SOURCE_AGP = 3   # Auxiliary Global Position (EKF2_AGP{i}_CTRL, use instance param)
 uint8 FUSION_SOURCE_BARO = 4  # Barometer (EKF2_BARO_CTRL)

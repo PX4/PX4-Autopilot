@@ -42,11 +42,12 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -62,10 +63,12 @@
 namespace sensors
 {
 
-class VehicleOpticalFlow : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleOpticalFlow : public px4::ScheduledWorkItem
 {
 public:
-	VehicleOpticalFlow();
+	static constexpr uint8_t MAX_FLOW_INSTANCES = 2;
+
+	explicit VehicleOpticalFlow(uint8_t instance = 0);
 	~VehicleOpticalFlow() override;
 
 	bool Start();
@@ -88,8 +91,8 @@ private:
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
-	uORB::Publication<vehicle_optical_flow_s> _vehicle_optical_flow_pub{ORB_ID(vehicle_optical_flow)};
-	uORB::Publication<vehicle_optical_flow_vel_s> _vehicle_optical_flow_vel_pub{ORB_ID(vehicle_optical_flow_vel)};
+	uORB::PublicationMulti<vehicle_optical_flow_s> _vehicle_optical_flow_pub{ORB_ID(vehicle_optical_flow)};
+	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _vehicle_optical_flow_vel_pub{ORB_ID(vehicle_optical_flow_vel)};
 
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 
@@ -138,13 +141,27 @@ private:
 	RingBuffer<gyroSample, 32> _gyro_buffer{};
 	RingBuffer<rangeSample, 5> _range_buffer{};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_FLOW_ROT>) _param_sens_flow_rot,
-		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXR>) _param_sens_flow_maxr,
-		(ParamFloat<px4::params::SENS_FLOW_RATE>) _param_sens_flow_rate,
-		(ParamFloat<px4::params::SENS_FLOW_SCALE>) _param_sens_flow_scale
-	)
+	const uint8_t _instance;
+
+	// per-instance parameters (SENS_FLOW<i>_*), resolved by name
+	struct ParamHandles {
+		param_t rot{PARAM_INVALID};
+		param_t scale{PARAM_INVALID};
+		param_t hmin{PARAM_INVALID};
+		param_t hmax{PARAM_INVALID};
+		param_t maxr{PARAM_INVALID};
+		param_t rate{PARAM_INVALID};
+	} _param_handles;
+
+	struct Params {
+		int32_t rot{0};
+		float scale{1.f};
+		float hmin{0.08f};
+		float hmax{100.f};
+		float maxr{8.f};
+		float rate{70.f};
+	} _params;
+
+	void UpdateParameters();
 };
 }; // namespace sensors

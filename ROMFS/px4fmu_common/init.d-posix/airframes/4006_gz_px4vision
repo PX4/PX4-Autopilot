@@ -23,10 +23,10 @@ param set-default EKF2_IMU_POS_X 0.02
 param set-default SENS_GPS0_OFFX 0.055
 param set-default SENS_GPS0_OFFZ -0.15
 param set-default EKF2_MIN_RNG 0.03
-param set-default EKF2_OF_CTRL 1
-param set-default EKF2_OF_POS_X 0.055
-param set-default EKF2_OF_POS_Y 0.02
-param set-default EKF2_OF_POS_Z 0.065
+param set-default EKF2_OF0_CTRL 1
+param set-default EKF2_OF0_POS_X 0.055
+param set-default EKF2_OF0_POS_Y 0.02
+param set-default EKF2_OF0_POS_Z 0.065
 param set-default EKF2_REQ_HDRIFT 0.3
 param set-default EKF2_REQ_SACC 1
 param set-default EKF2_REQ_VDRIFT 0.3
@@ -84,8 +84,8 @@ param set-default SDLOG_PROFILE 131
 
 # Sensors Parameters
 # param set-default SENS_CM8JL65_CFG 202 	Not found
-param set-default SENS_FLOW_MAXHGT 25
-param set-default SENS_FLOW_MINHGT 0.5
+param set-default SENS_FLOW0_HMAX 25
+param set-default SENS_FLOW0_HMIN 0.5
 param set-default IMU_GYRO_CUTOFF 100
 # param set-default SENS_TFLOW_CFG 103		Not found
 
