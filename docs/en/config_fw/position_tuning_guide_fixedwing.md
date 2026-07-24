@@ -74,7 +74,7 @@ Fly in stabilized mode, reduce throttle to `FW_THR_MIN` and adjust the pitch ang
 
 Specify the target climb and sink rate for autonomous missions by adjusting [FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) and [FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP).
 These specify the height rates at which the vehicle will climb or descend in order to change altitude.
-Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Position mode](../flight_modes_fw/position.md).
+Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Cruise mode](../flight_modes_fw/cruise.md).
 
 ### FW Path Control Tuning (Position)
 

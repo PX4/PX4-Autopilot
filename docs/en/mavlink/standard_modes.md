@@ -48,7 +48,7 @@ FW vehicles support the following standard modes (some of these are supported by
 
 | Standard Mode                                                      | PX4 Mode                                           | Internal Mode |
 | ------------------------------------------------------------------ | -------------------------------------------------- | ------------- |
-| [MAV_STANDARD_MODE_CRUISE][MAV_STANDARD_MODE_CRUISE]               | [FW Position mode](../flight_modes_fw/position.md) | POSCTL        |
+| [MAV_STANDARD_MODE_CRUISE][MAV_STANDARD_MODE_CRUISE]               | [FW Cruise mode](../flight_modes_fw/cruise.md) | POSCTL        |
 | [MAV_STANDARD_MODE_ALTITUDE_HOLD][MAV_STANDARD_MODE_ALTITUDE_HOLD] | [FW Altitude mode](../flight_modes_fw/altitude.md) | ALTCTL        |
 | [MAV_STANDARD_MODE_ORBIT][MAV_STANDARD_MODE_ORBIT]                 | [FW Hold mode](../flight_modes_fw/hold.md)         | AUTO_LOITER   |
 | [MAV_STANDARD_MODE_SAFE_RECOVERY][MAV_STANDARD_MODE_SAFE_RECOVERY] | [Return mode](../flight_modes/return.md)           | AUTO_RTL      |

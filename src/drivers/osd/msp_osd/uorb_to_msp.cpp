@@ -89,7 +89,7 @@ msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
 		}
 
 		// display flight mode
-		display.set(MessageDisplayType::FLIGHT_MODE, mode_util::nav_state_names[vehicle_status.nav_state]);
+		display.set(MessageDisplayType::FLIGHT_MODE, mode_util::nav_state_name(vehicle_status.nav_state, vehicle_status.vehicle_type));
 	}
 
 	// display, if updated
