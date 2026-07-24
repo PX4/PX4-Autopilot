@@ -92,6 +92,7 @@ void DShot::Run()
 
 	perf_begin(_cycle_perf);
 
+	update_reversible_min_values();
 	_mixing_output.update();
 
 	bool serial_updated = process_serial_telemetry();
@@ -912,6 +913,21 @@ int DShot::get_pole_count(int motor_index) const
 	return 14;
 }
 
+void DShot::update_reversible_min_values()
+{
+	const uint32_t reversible = _mixing_output.reversibleOutputs();
+
+	if (reversible == _reversible_min_applied_mask) {
+		return;
+	}
+
+	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		_mixing_output.minValue(i) = (reversible & (1u << i)) ? DSHOT_MIN_THROTTLE : _dshot_min_value;
+	}
+
+	_reversible_min_applied_mask = reversible;
+}
+
 void DShot::update_params()
 {
 	parameter_update_s pupdate;
@@ -929,16 +945,13 @@ void DShot::update_params()
 
 	// Calculate minimum DShot output as percent of throttle and constrain.
 	float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
-	uint16_t dshot_min_value = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
+	_dshot_min_value = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
 
-	_mixing_output.setAllMinValues(dshot_min_value);
+	_mixing_output.setAllMinValues(_dshot_min_value);
 
-	// Do not use the minimum parameter for reversible outputs
-	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-		if (_mixing_output.reversibleOutputs() & (1 << i)) {
-			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
-		}
-	}
+	// Do not use the minimum parameter for reversible outputs; force a re-apply of the override.
+	_reversible_min_applied_mask = ~_mixing_output.reversibleOutputs();
+	update_reversible_min_values();
 
 	// Update per-motor pole count param handles and cached values
 	for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {

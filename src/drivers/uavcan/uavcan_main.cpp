@@ -58,6 +58,7 @@
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
+#include <mathlib/math/Functions.hpp>
 
 #include "uavcan_module.hpp"
 #include "uavcan_main.hpp"
@@ -1105,7 +1106,32 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			}
 		}
 
-		_esc_controller.update_outputs(outputs, output_array_size);
+		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Use a local copy
+		// so the published actuator_outputs stay in [min,max].
+		const uint32_t reversible = mixingOutput().reversibleOutputs();
+
+		if (reversible != 0) {
+			float esc_outputs[MAX_ACTUATORS];
+
+			for (unsigned i = 0; i < output_array_size; i++) {
+				esc_outputs[i] = outputs[i];
+
+				if (reversible & (1u << i)) {
+					// Encode armed outputs only; a stopped channel sits at the disarmed value and must
+					// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
+					if (outputs[i] > (float)mixingOutput().disarmedValue(i)) {
+						const float min_i = (float)mixingOutput().minValue(i);
+						const float max_i = (float)mixingOutput().maxValue(i);
+						esc_outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
+					}
+				}
+			}
+
+			_esc_controller.update_outputs(esc_outputs, output_array_size);
+
+		} else {
+			_esc_controller.update_outputs(outputs, output_array_size);
+		}
 	}
 
 	return true;

@@ -70,6 +70,15 @@ parameters:
                 10: Motor 11
                 11: Motor 12
             default: 0
+        CA_REV_THR_FRAC:
+            description:
+                short: Reverse thrust fraction for reversible motors
+                long: |
+                  Fraction of forward thrust a reversible motor produces in reverse (e.g. 0.4 = 40%).
+            type: float
+            min: 0.1
+            max: 1.0
+            default: 0.4
         CA_R${i}_SLEW:
             description:
                 short: Motor ${i} slew rate limit
@@ -614,12 +623,15 @@ parameters:
             description:
                 short: Motor failure handling mode
                 long: |
-                    This is used to specify how to handle motor failures
-                    reported by failure detector.
+                    What to do on a single motor failure. The failed motor is always removed from the
+                    allocation. On a hexarotor its geometric-opposite motor is additionally stopped (mode 1)
+                    or reversed (mode 2) to recover the lost yaw/roll/pitch authority; on other airframes
+                    only the failed motor is removed. Mode 2 needs a reverse-capable ESC on the opposite motor.
             type: enum
             values:
                 0: Ignore
-                1: Remove first failed motor from effectiveness
+                1: Remove failed motor and stop its opposite
+                2: Remove failed motor and reverse its opposite
             default: 0
 
         CA_ICE_PERIOD:

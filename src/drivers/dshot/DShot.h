@@ -129,6 +129,10 @@ private:
 	void Run() override;
 	void update_params();
 
+	// Reversible outputs use DSHOT_MIN_THROTTLE so neutral lands on the 3D split; the set can change at
+	// runtime (failure recovery), so re-apply the per-channel minimums whenever the reversible mask changes.
+	void update_reversible_min_values();
+
 	// Mavlink command handlers
 	void handle_vehicle_commands();
 	void handle_configure_actuator(const vehicle_command_s &command);
@@ -193,6 +197,8 @@ private:
 	int _3d_dead_l = 0;
 	int _3d_dead_h = 0;
 	float _dshot_min = 0.f;
+	uint16_t _dshot_min_value = DSHOT_MIN_THROTTLE; // cached min throttle for non-reversible outputs
+	uint32_t _reversible_min_applied_mask = 0; // reversible mask last used to set per-channel minimums
 	int _esc_type = 0;
 
 	// Hardware initialization state
