@@ -56,6 +56,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/open_drone_id/odid_bid_storage.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
@@ -469,8 +470,12 @@ private:
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
 		(ParamInt<px4::params::BAT1_N_CELLS>)       _param_bat_cells_count,
 		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
-		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
+		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty,
+		(ParamInt<px4::params::ODID_BID_SRC>)    _param_odid_bid_src
 	);
+
+	open_drone_id::BidLock _odid_bid_lock{};
+	bool _odid_bid_lock_warning_reported{false};
 
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
