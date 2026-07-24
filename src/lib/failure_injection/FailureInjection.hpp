@@ -189,11 +189,14 @@ inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
 }
 
 /**
- * Battery counterpart to process(): on FAILURE_UNIT_SYSTEM_BATTERY Off for the given 1-based
- * instance, report a depleted pack (zero remaining, emergency warning) so the low-battery
- * failsafe triggers. Mutates rather than suppresses, so the pack reads empty not disconnected.
+ * Battery counterpart to process(): on FAILURE_UNIT_SYSTEM_BATTERY for the given 1-based
+ * instance, Off suppresses the publication (the pack reads disconnected) and Wrong reports the
+ * warning level selected by SYS_FAIL_BAT_LVL with the remaining charge just below the matching
+ * threshold, so that stage of the low-battery failsafe triggers.
+ *
+ * @return false if the battery_status publication must be suppressed (Off), true otherwise.
  */
-void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
+bool process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
 
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
@@ -220,7 +223,7 @@ inline bool process(Mode) { return true; }
 
 inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
-inline void process_battery(const Config &, uint8_t, battery_status_s &) {}
+inline bool process_battery(const Config &, uint8_t, battery_status_s &) { return true; }
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 

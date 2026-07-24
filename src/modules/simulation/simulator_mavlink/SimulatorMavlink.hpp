@@ -47,6 +47,7 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
@@ -156,10 +157,6 @@ public:
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
-		for (size_t i = 0; i < sizeof(_dist_pubs) / sizeof(_dist_pubs[0]); i++) {
-			delete _dist_pubs[i];
-		}
-
 		px4_lockstep_unregister_component(_lockstep_component);
 
 		for (size_t i = 0; i < sizeof(_sensor_gps_pubs) / sizeof(_sensor_gps_pubs[0]); i++) {
@@ -205,6 +202,12 @@ private:
 		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
 	};
 
+	static constexpr uint8_t DIST_SENSOR_COUNT_MAX = 4;
+	PX4Rangefinder _px4_rangefinder[DIST_SENSOR_COUNT_MAX] {
+		{0}, {0}, {0}, {0}
+	};
+	uint32_t _dist_sensor_ids[DIST_SENSOR_COUNT_MAX] {};
+
 	float _sensors_temperature{0};
 
 	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
@@ -217,9 +220,6 @@ private:
 	uORB::Publication<esc_status_s>			_esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
-
-	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
-	uint32_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

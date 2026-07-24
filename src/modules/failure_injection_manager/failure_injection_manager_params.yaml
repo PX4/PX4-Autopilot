@@ -51,6 +51,7 @@ parameters:
           8: Airspeed
           100: Battery
           101: Motor
+          107: Traffic avoidance
       SYS_FAIL_RC_MODE:
         description:
           short: Failure type applied by the RC switch
@@ -80,3 +81,17 @@ parameters:
         max: 16
         default: 1
         reboot_required: true
+      SYS_FAIL_BAT_LVL:
+        description:
+          short: Battery failure injection severity
+          long: |-
+            Battery warning level reported while a battery 'wrong' failure
+            injection is active. The injected remaining charge is set just below
+            the matching threshold (BAT_LOW_THR, BAT_CRIT_THR or
+            BAT_EMERGEN_THR).
+        type: enum
+        default: 3
+        values:
+          1: Warn
+          2: Critical
+          3: Emergency

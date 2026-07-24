@@ -48,6 +48,7 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 	case failure_injection_s::FAILURE_UNIT_SENSOR_MAG:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_BARO:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR:
+	case failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE:
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF
 		       || type == failure_injection_s::FAILURE_TYPE_STUCK;
@@ -61,9 +62,13 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 		       || type == failure_injection_s::FAILURE_TYPE_WRONG;
 
 	case failure_injection_s::FAILURE_UNIT_SENSOR_VIO:
-	case failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY:
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF;
+
+	case failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY:
+		return type == failure_injection_s::FAILURE_TYPE_OK
+		       || type == failure_injection_s::FAILURE_TYPE_OFF
+		       || type == failure_injection_s::FAILURE_TYPE_WRONG;
 
 	default:
 		return false;

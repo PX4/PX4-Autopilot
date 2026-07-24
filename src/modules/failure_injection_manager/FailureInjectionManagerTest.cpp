@@ -42,9 +42,10 @@ using AckResult = FailureTable::AckResult;
 namespace
 {
 
-constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
-constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
-constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t GYRO      = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
+constexpr uint8_t GPS       = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
+constexpr uint8_t MOTOR     = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t TRAFFIC   = failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE;
 
 constexpr uint8_t OK      = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
@@ -66,6 +67,10 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// Traffic avoidance supports OFF (blind) and STUCK (frozen), but not WRONG.
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, WRONG));
 	// Unimplemented units.
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL, OFF));
 }
