@@ -43,7 +43,8 @@
  *   bits 4–6: params 5–7  (bit 4 = param5, bit 5 = param6, bit 6 = param7)
  *
  * For global-frame MISSION_ITEM_INT, check_params_int_for_vehicle() is used so
- * that p5/p6 are validated as int32 (INT32_MAX = unset) and p7 as float.
+ * that p5/p6 are validated as int32 (INT32_MAX or INT32_MIN = not used) and p7
+ * as float.
  *
  * A secondary VehicleParamOverrides table holds per-airframe additions (e.g.
  * NAV_TAKEOFF pitch angle on FW); use check_params_for_vehicle() for callers
@@ -157,10 +158,14 @@ static inline bool param_is_zero(float v)
 	return !std::isnan(v) && (bits & 0x7FFFFFFFu) == 0u;
 }
 
-// INT32_MAX is the MAVLink sentinel for "int32 param not provided".
+// INT32_MAX is the value the MAVLink spec defines to mean "this int32 param is
+// not used". Ground stations also convert unused NaN float params straight into
+// the int32 x/y fields of MISSION_ITEM_INT (QGC does this for camera items in
+// MAV_FRAME_MISSION), and converting NaN to int32 gives INT32_MIN on most
+// hardware — so treat that as "not used" too.
 static inline bool int_param_is_unset(int32_t v)
 {
-	return v == INT32_MAX;
+	return v == INT32_MAX || v == INT32_MIN;
 }
 
 // Vehicle type bitmask for per-vehicle parameter support.
