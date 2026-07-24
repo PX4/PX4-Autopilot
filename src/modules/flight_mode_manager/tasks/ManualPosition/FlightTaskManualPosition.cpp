@@ -79,14 +79,7 @@ void FlightTaskManualPosition::_scaleSticks()
 		stick_xy(0) *= _param_mpc_vel_man_back.get() / _param_mpc_vel_manual.get();
 	}
 
-	const float max_speed_from_estimator = _sub_vehicle_local_position.get().vxy_max;
-
 	float velocity_scale = _param_mpc_vel_manual.get();
-
-	if (PX4_ISFINITE(max_speed_from_estimator)) {
-		// Constrain with optical flow limit but leave 0.3 m/s for repositioning
-		velocity_scale = math::constrain(velocity_scale, 0.3f, max_speed_from_estimator);
-	}
 
 	// scale velocity to its maximum limits
 	Vector2f vel_sp_xy = stick_xy * velocity_scale;
