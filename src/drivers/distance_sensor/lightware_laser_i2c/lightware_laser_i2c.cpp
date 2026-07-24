@@ -53,6 +53,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/rangefinder/PX4Rangefinder.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/device_information.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
@@ -85,6 +87,9 @@ private:
 	enum class Register : uint8_t {
 		// Common registers
 		ProductName = 0,
+		HardwareVersion = 1,
+		FirmwareVersion = 2,
+		SerialNumber = 3,
 		DistanceData = 44,
 		LaserFiring = 50,
 		Protocol = 120,
@@ -150,6 +155,10 @@ private:
 	int updateRestriction();
 
 	PX4Rangefinder _px4_rangefinder;
+
+	void readDeviceInformation();
+	void updateDeviceInformation();
+	uORB::PublicationData<device_information_s> _device_info_pub{ORB_ID(device_information)};
 
 	int _conversion_interval{-1};
 
@@ -368,6 +377,10 @@ int LightwareLaser::configure()
 			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
+			if (ret == PX4_OK) {
+				readDeviceInformation();
+			}
+
 			return ret;
 		}
 		break;
@@ -386,6 +399,10 @@ int LightwareLaser::configure()
 			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
+			if (ret == PX4_OK) {
+				readDeviceInformation();
+			}
+
 			return ret;
 		}
 		break;
@@ -403,6 +420,38 @@ int LightwareLaser::configure()
 	}
 
 	return -1;
+}
+
+void LightwareLaser::readDeviceInformation()
+{
+	_device_info_pub.get().device_type = device_information_s::DEVICE_TYPE_RANGEFINDER;
+	_device_info_pub.get().device_id = get_device_id();
+
+	char string_buffer[17] {};
+	readRegister(Register::ProductName, (uint8_t *)string_buffer, sizeof(string_buffer) - 1);
+	snprintf(_device_info_pub.get().name, sizeof(_device_info_pub.get().name), "%s %s", "LightWare", string_buffer);
+
+	uint32_t hw_version = 0;
+	readRegister(Register::HardwareVersion, (uint8_t *)&hw_version, sizeof(hw_version));
+	snprintf(_device_info_pub.get().hardware_version, sizeof(_device_info_pub.get().hardware_version), "%" PRIu32, hw_version);
+
+	uint8_t fw_bytes[4] {}; // Datasheet: 4 bytes but forth one is "Reserved"
+	readRegister(Register::FirmwareVersion, fw_bytes, sizeof(fw_bytes));
+	snprintf(_device_info_pub.get().firmware_version, sizeof(_device_info_pub.get().firmware_version), "%u.%u.%u", fw_bytes[2], fw_bytes[1],
+		 fw_bytes[0]);
+
+	readRegister(Register::SerialNumber, (uint8_t *)string_buffer, sizeof(string_buffer) - 1);
+	strlcpy(_device_info_pub.get().serial_number, string_buffer, sizeof(_device_info_pub.get().serial_number));
+}
+
+void LightwareLaser::updateDeviceInformation()
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (_device_info_pub.get().name[0] != '\0' && now >= _device_info_pub.get().timestamp + 3_s) {
+		_device_info_pub.get().timestamp = now;
+		_device_info_pub.update();
+	}
 }
 
 int LightwareLaser::collect()
@@ -578,6 +627,8 @@ void LightwareLaser::RunImpl()
 		PX4_DEBUG("restriction error");
 		perf_count(_comms_errors);
 	}
+
+	updateDeviceInformation();
 
 	switch (_state) {
 	case State::Configuring: {
