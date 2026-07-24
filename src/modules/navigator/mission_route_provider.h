@@ -70,11 +70,11 @@ public:
 	 * items that follow it. The next rally point starts a new block.
 	 * Invalid rally points are skipped so a later nearby valid rally point can still be considered.
 	 */
-	virtual land_approaches_s getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
+	land_approaches_s getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
 			float home_altitude_amsl) const;
-	virtual bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
-			float home_altitude_amsl) const;
-	virtual bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
+	bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
+					       float home_altitude_amsl) const;
+	bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
 
 protected:
 	/**

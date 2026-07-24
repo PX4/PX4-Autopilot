@@ -303,7 +303,9 @@ void RTL::setRtlTypeAndDestination()
 	}
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		landing_loiter = selectLandingApproach(destination);
+#endif
 
 		if (!landing_loiter.isValid()) {
 			landing_loiter.lat = destination.lat;
@@ -369,8 +371,10 @@ void RTL::setRtlTypeAndDestination()
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_point_index)
 {
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+#endif
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	PositionYawSetpoint closest_safe_point{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
@@ -414,14 +418,19 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 					 candidate_setpoint.lat, candidate_setpoint.lon)};
 
-			const bool current_safe_point_has_approaches{
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+			const bool current_safe_point_has_approaches {
 				mission_route_cache.hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)
 			};
 
 			_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
+			const bool approach_requirement_satisfied = !vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0)
+					|| current_safe_point_has_approaches;
+#else
+			constexpr bool approach_requirement_satisfied = true;
+#endif
 
-			if (((dist + MIN_DIST_THRESHOLD) < min_dist)
-			    && (!vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0) || current_safe_point_has_approaches)) {
+			if (((dist + MIN_DIST_THRESHOLD) < min_dist) && approach_requirement_satisfied) {
 				min_dist = dist;
 				closest_safe_point = candidate_setpoint;
 				safe_point_index = static_cast<uint8_t>(current_seq);
@@ -437,17 +446,22 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
-	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
-				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 	float min_dist = FLT_MAX;
 
 	if (_param_rtl_type.get() != RTL_TYPE_SAFE_POINT_DIRECT) {
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+		const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
+					     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		_home_has_land_approach = mission_route_cache.hasVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+#endif
 
 		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		const bool required_approach_missing_for_home = (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1) && !_home_has_land_approach);
+#else
+		constexpr bool required_approach_missing_for_home = false;
+#endif
 
 		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we force approach landing for vtol in fw and it is not defined for home.
 		const bool deprioritize_home = prioritize_safe_points_over_home || required_approach_missing_for_home;

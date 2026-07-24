@@ -45,8 +45,6 @@
 
 #include "mission_route_types.h"
 
-#include <inttypes.h>
-
 #include <px4_platform_common/log.h>
 
 void MissionRouteCache::update(const mission_s &mission)
@@ -196,7 +194,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 		_dataman_cache_land_item.invalidate();
 
 		if (valid_land_index && !valid_dataman_id) {
-			PX4_ERR("Mission land cache rejected invalid dataman id: %" PRIu8, mission.mission_dataman_id);
+			PX4_ERR("Mission land cache: invalid dataman id");
 		}
 
 		if (state.index >= 0) {
@@ -226,8 +224,7 @@ void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 			state.retry.clear();
 
 		} else {
-			PX4_WARN("Mission land cache invalid or incomplete, retrying mission_id=%" PRIu32 ", index=%" PRIi32,
-				 state.mission_id, state.index);
+			PX4_WARN("Mission land cache retry");
 			_dataman_cache_land_item.invalidate();
 			state.retry.scheduleRetry(now);
 		}
@@ -258,7 +255,7 @@ bool MissionRouteCache::queueMissionLandItem()
 		return true;
 	}
 
-	PX4_WARN("Mission land cache queue failed, retrying! item=%" PRIu8 ", index=%" PRIi32, state.dataman_id, state.index);
+	PX4_WARN("Mission land cache retry");
 	return false;
 }
 
@@ -290,7 +287,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 				reinterpret_cast<uint8_t *>(&state.read_stats), sizeof(mission_stats_entry_s));
 
 		if (!success) {
-			state.error_state = SafePointDatamanState::kRead;
 			state.dataman_state = SafePointDatamanState::kError;
 		}
 
@@ -304,38 +300,17 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		}
 
 		if (!success) {
-			state.error_state = SafePointDatamanState::kReadWait;
 			state.dataman_state = SafePointDatamanState::kError;
 			break;
 		}
 
-		if (state.read_stats.num_items > DM_KEY_SAFE_POINTS_MAX) {
-			PX4_ERR("Safe points update failed! invalid count: %" PRIu16, state.read_stats.num_items);
-			state.error_state = SafePointDatamanState::kReadWait;
-			state.dataman_state = SafePointDatamanState::kError;
-			break;
-		}
-
-		if (state.read_stats.opaque_id != state.source_id) {
-			PX4_WARN("Safe point state id mismatch, expected %" PRIu32 ", got %" PRIu32,
-				 state.source_id, state.read_stats.opaque_id);
-			state.error_state = SafePointDatamanState::kReadWait;
-			state.dataman_state = SafePointDatamanState::kError;
-			break;
-		}
-
-		if (state.read_stats.num_items > 0 && state.read_stats.dataman_id != state.source_dataman_id) {
-			PX4_WARN("Safe point dataman id mismatch, expected %" PRIu8 ", got %" PRIu8,
-				 state.source_dataman_id, state.read_stats.dataman_id);
-			state.error_state = SafePointDatamanState::kReadWait;
-			state.dataman_state = SafePointDatamanState::kError;
-			break;
-		}
-
-		if (state.read_stats.num_items > 0 && state.read_stats.dataman_id != DM_KEY_SAFE_POINTS_0
-		    && state.read_stats.dataman_id != DM_KEY_SAFE_POINTS_1) {
-			PX4_ERR("Safe points update failed! invalid dataman id: %" PRIu8, state.read_stats.dataman_id);
-			state.error_state = SafePointDatamanState::kReadWait;
+		if (!(state.read_stats.num_items <= DM_KEY_SAFE_POINTS_MAX
+		      && state.read_stats.opaque_id == state.source_id
+		      && (state.read_stats.num_items == 0
+			  || (state.read_stats.dataman_id == state.source_dataman_id
+			      && (state.read_stats.dataman_id == DM_KEY_SAFE_POINTS_0
+				  || state.read_stats.dataman_id == DM_KEY_SAFE_POINTS_1))))) {
+			PX4_ERR("Safe point cache metadata invalid");
 			state.dataman_state = SafePointDatamanState::kError;
 			break;
 		}
@@ -358,18 +333,12 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 		}
 
 		if (_dataman_cache_safepoint.size() != state.read_stats.num_items) {
-			PX4_WARN("Safe point cache resize failed, retrying! requested: %" PRIu16 ", actual: %d",
-				 state.read_stats.num_items, _dataman_cache_safepoint.size());
-			state.error_state = SafePointDatamanState::kReadWait;
 			state.dataman_state = SafePointDatamanState::kError;
 			break;
 		}
 
 		for (int index = 0; index < state.read_stats.num_items; ++index) {
 			if (!_dataman_cache_safepoint.load(static_cast<dm_item_t>(state.read_stats.dataman_id), index)) {
-				PX4_WARN("Safe point cache queue failed, retrying! item=%" PRIu8 ", index=%d",
-					 state.read_stats.dataman_id, index);
-				state.error_state = SafePointDatamanState::kReadWait;
 				state.dataman_state = SafePointDatamanState::kError;
 				break;
 			}
@@ -406,7 +375,6 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			state.retry.clear();
 
 		} else {
-			state.error_state = SafePointDatamanState::kLoad;
 			state.dataman_state = SafePointDatamanState::kError;
 		}
 
@@ -418,10 +386,10 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 			const RetryBackoff retry = state.retry;
 
 			if (state.dataman_state == SafePointDatamanState::kError) {
-				PX4_WARN("Safe points update failed, retrying! error state: %" PRIu8, static_cast<uint8_t>(state.error_state));
+				PX4_WARN("Safe point cache retry");
 
 			} else {
-				PX4_ERR("Safe points update failed! invalid dataman state: %" PRIu8, static_cast<uint8_t>(state.dataman_state));
+				PX4_ERR("Safe point cache state invalid");
 			}
 
 			resetSafePointCacheState(false);
