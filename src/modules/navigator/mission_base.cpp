@@ -542,15 +542,30 @@ MissionBase::set_mission_items()
 
 bool MissionBase::loadCurrentMissionItem()
 {
-	const bool success = loadMissionItemFromCache(_mission.current_seq, _mission_item);
+	// _mission.current_seq may point directly at a DO_JUMP item: it can be set verbatim by an
+	// external MISSION_SET_CURRENT (which does no jump resolution), or returned by a jump
+	// resolution that gave up. A DO_JUMP is not an executable current item, so resolve it to the
+	// next non-jump item here. We follow the jump to its target but do NOT consume a repetition
+	// (write_jumps == false), since a set-current is an out-of-band action, not a normal traversal.
+	// For an already-resolved (non-jump) current item this is a no-op.
+	int32_t resolved_index = _mission.current_seq;
+	mission_item_s resolved_item;
+
+	const bool success = getNonJumpItem(resolved_index, resolved_item, MissionTraversalType::FollowMissionControlFlow,
+					    /*write_jumps*/ false, /*mission_direction_backward*/ false) == PX4_OK;
 
 	if (!success) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item could not be set.\t");
 		events::send(events::ID("mission_item_set_failed"), events::Log::Error,
 			     "Mission item could not be set");
+		return false;
 	}
 
-	return success;
+	// Persist the resolved index (republishes the mission topic only if it actually changed).
+	setMissionIndex(resolved_index);
+	_mission_item = resolved_item;
+
+	return true;
 }
 
 void MissionBase::setEndOfMissionItems()
@@ -1045,6 +1060,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 		} else {
 			break;
 		}
+	}
+
+	if (new_mission.nav_cmd == NAV_CMD_DO_JUMP) {
+		// Ran out of iterations while still on a DO_JUMP (e.g. a jump loop or a chain longer than
+		// MAX_JUMP_ITERATION). Report failure instead of returning an unresolved jump as a valid
+		// item, which would otherwise be loaded as the current mission item.
+		PX4_ERR("Do Jump could not be resolved within %u iterations.", MAX_JUMP_ITERATION);
+		return PX4_ERROR;
 	}
 
 	mission_index = new_mission_index;
