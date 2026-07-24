@@ -64,10 +64,27 @@ param set-default PWM_MAIN_FUNC6 206
 # Keep the dedicated allocator off on hardware until a measured tilt encoder
 # driver publishes the feedback contract used by the module.
 param set-default VOLA_EN 0
-param set-default VOLA_TMAX 13.7
+# F100 rounded 2.5 kgf peak target. This is a provisional peak value, not a
+# validated continuous-flight limit; replace it with propulsion-bench data.
+param set-default VOLA_TMAX 24.5
 param set-default VOLA_ARM 0.315
 param set-default VOLA_KAPPA 0.015
-param set-default VOLA_TILT_MIN -1.5707963
-param set-default VOLA_TILT_MAX 1.5707963
+# The mechanism has 450 degrees total travel: one full thrust-direction
+# revolution plus 45 degrees of finite over-travel at either end.
+param set-default VOLA_TILT_MIN -3.9269908
+param set-default VOLA_TILT_MAX 3.9269908
 param set-default VOLA_TILT_RATE 7.85
+# Provisional simulation value. Identify this from the loaded encoder
+# step-response before enabling the allocator on real hardware.
+param set-default VOLA_TILT_TAU 0.05
 param set-default VOLA_FB_TMO 0.1
+
+# Keep the onboard pose controller disabled until estimator/mocap input,
+# setpoint timeout behavior, and no-propeller output behavior are validated.
+param set-default VCTRL_EN 0
+
+# Use the full body-frame thrust vector for land detection. Keep PX4's stock
+# attitude-failure angles on hardware until the Voliro tracking/rate/authority
+# safety monitor is implemented; intentional vertical/inverted flight must not
+# be enabled before that replacement protection exists.
+param set-default LNDMC_THR_VEC 1

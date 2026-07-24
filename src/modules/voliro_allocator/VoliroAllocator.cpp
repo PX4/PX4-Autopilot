@@ -16,6 +16,8 @@ VoliroAllocator::VoliroAllocator() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	_measured_tilt.setZero();
+	_measured_tilt_velocity.setZero();
+	_tilt_command.setZero();
 	updateConfiguration();
 }
 
@@ -47,7 +49,8 @@ bool VoliroAllocator::init()
 bool VoliroAllocator::updateConfiguration()
 {
 	updateParams();
-	if (_param_tilt_min.get() >= _param_tilt_max.get()) {
+	if (_param_tilt_min.get() >= _param_tilt_max.get()
+	    || _param_tilt_max.get() - _param_tilt_min.get() < 2.f * M_PI_F) {
 		PX4_ERR("invalid tilt limits");
 		return false;
 	}
@@ -57,6 +60,7 @@ bool VoliroAllocator::updateConfiguration()
 		return false;
 	}
 	_allocator = updated;
+	_tilt_command_initialized = false;
 	return true;
 }
 
@@ -69,10 +73,13 @@ void VoliroAllocator::updateTiltFeedback()
 			bool valid = true;
 			for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
 				valid &= PX4_ISFINITE(feedback.data[rotor]);
+				valid &= PX4_ISFINITE(feedback.data[VoliroAllocation::NUM_ROTORS + rotor]);
 			}
 			if (valid) {
 				for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
 					_measured_tilt(rotor) = feedback.data[rotor];
+					_measured_tilt_velocity(rotor) =
+						feedback.data[VoliroAllocation::NUM_ROTORS + rotor];
 				}
 				_last_feedback = feedback.timestamp;
 			}
@@ -94,21 +101,25 @@ void VoliroAllocator::conventionalFallback(const Vector3f &thrust_sp, const Vect
 	}
 }
 
-VoliroAllocation::RotorVector VoliroAllocator::limitTiltCommand(const VoliroAllocation::RotorVector &target,
-		float dt, uint8_t &rate_limited_mask) const
+void VoliroAllocator::synchronizeTiltCommand()
 {
-	VoliroAllocation::RotorVector command;
-	const float max_step = _param_tilt_rate.get() * dt;
-	rate_limited_mask = 0;
 	for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
-		const float delta = atan2f(sinf(target(rotor) - _measured_tilt(rotor)),
-					   cosf(target(rotor) - _measured_tilt(rotor)));
-		const float limited_delta = math::constrain(delta, -max_step, max_step);
-		if (fabsf(limited_delta - delta) > 1e-6f) { rate_limited_mask |= 1u << rotor; }
-		command(rotor) = math::constrain(_measured_tilt(rotor) + limited_delta,
-						 _param_tilt_min.get(), _param_tilt_max.get());
+		_tilt_command(rotor) = math::constrain(
+			_measured_tilt(rotor), _param_tilt_min.get(), _param_tilt_max.get());
 	}
-	return command;
+	_tilt_command_initialized = true;
+}
+
+VoliroAllocation::RotorVector VoliroAllocator::limitTiltCommand(const VoliroAllocation::RotorVector &target,
+		float dt, uint8_t &rate_limited_mask)
+{
+	if (!_tilt_command_initialized) {
+		synchronizeTiltCommand();
+	}
+	_tilt_command = VoliroAllocation::slewTiltCommand(
+		target, _tilt_command, _param_tilt_min.get(), _param_tilt_max.get(),
+		_param_tilt_rate.get(), dt, rate_limited_mask);
+	return _tilt_command;
 }
 
 void VoliroAllocator::publishOutputs(const VoliroAllocation::RotorVector &motor_normalized,
@@ -174,7 +185,12 @@ void VoliroAllocator::publishStatus(const VoliroAllocation::WrenchVector &reques
 	ca_status.unallocated_torque[0] = -residual(3) / roll_pitch_scale;
 	ca_status.unallocated_torque[1] = residual(4) / roll_pitch_scale;
 	ca_status.unallocated_torque[2] = residual(5) / yaw_scale;
-	ca_status.unallocated_thrust[2] = residual(2) / (6.f * _allocator.maxThrust());
+	const float force_scale = 6.f * _allocator.maxThrust();
+	// control_allocator_status is requested minus allocated in normalized FRD.
+	// The physical residual above is achieved minus requested in FLU.
+	ca_status.unallocated_thrust[0] = -residual(0) / force_scale;
+	ca_status.unallocated_thrust[1] = residual(1) / force_scale;
+	ca_status.unallocated_thrust[2] = residual(2) / force_scale;
 	ca_status.torque_setpoint_achieved = Vector3f(ca_status.unallocated_torque).norm_squared() < 1e-6f;
 	ca_status.thrust_setpoint_achieved = Vector3f(ca_status.unallocated_thrust).norm_squared() < 1e-6f;
 	for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
@@ -229,8 +245,17 @@ void VoliroAllocator::Run()
 	const Vector3f torque_sp(torque_message.xyz);
 	const Vector3f thrust_sp(thrust_message.xyz);
 	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - _last_run) * 1e-6f, 0.0002f, 0.02f);
+	float dt = (now - _last_run) * 1e-6f;
+	// External DDS setpoints can be delivered in a burst during lockstep SITL,
+	// even though their state samples are regularly spaced. Use that sample
+	// interval when it is monotonic so the tilt-rate limit remains tied to
+	// simulation time rather than host scheduling jitter.
+	if (_last_setpoint_sample != 0 && torque_message.timestamp_sample > _last_setpoint_sample) {
+		dt = (torque_message.timestamp_sample - _last_setpoint_sample) * 1e-6f;
+	}
+	dt = math::constrain(dt, 0.0002f, 0.02f);
 	_last_run = now;
+	_last_setpoint_sample = torque_message.timestamp_sample;
 
 	const auto requested = _allocator.setpointToWrench(thrust_sp, torque_sp);
 	VoliroAllocation::RotorVector thrust; thrust.setZero();
@@ -286,16 +311,70 @@ void VoliroAllocator::Run()
 			thrust(rotor) = motor_normalized(rotor) * _allocator.maxThrust();
 		}
 	}
+	if (feedback_valid && (!_tilt_command_initialized || fallback_reason != _last_fallback_reason)) {
+		// Re-anchor once on every mode/fallback transition. Normal active updates
+		// then slew from the persistent command, rather than repeatedly limiting
+		// the measured-to-command position error.
+		synchronizeTiltCommand();
+	}
 	// A stale encoder sample must not become the reference for another incremental
 	// command. Command center directly and let the servo's physical rate limit act.
-	const auto tilt_command = feedback_valid
+	auto tilt_command = feedback_valid
 		? limitTiltCommand(target_tilt, dt, tilt_rate_limited_mask)
 		: target_tilt;
+	if (!feedback_valid) {
+		_tilt_command_initialized = false;
+	}
+
+	if (fallback_reason == voliro_allocator_status_s::FALLBACK_NONE) {
+		// The instantaneous stage chooses the desired thrust directions. The
+		// transient stage predicts where the measured joints can actually be on
+		// the next control sample, then re-solves rotor thrust at those fixed
+		// directions. This prevents commanding thrust that only becomes correct
+		// after a rate-limited tilt transition has finished.
+		const auto predicted_tilt = VoliroAllocation::predictTilt(
+			_measured_tilt, _measured_tilt_velocity, tilt_command, dt,
+			_param_tilt_tau.get(), _param_tilt_rate.get());
+		const hrt_abstime transient_solver_start = hrt_absolute_time();
+		const auto transient_result = _allocator.allocateThrustForTilt(
+			requested, predicted_tilt, thrust);
+		solver_time_us += hrt_elapsed_time(&transient_solver_start);
+		optimization_used |= transient_result.optimization_used;
+		iterations = static_cast<uint16_t>(iterations + transient_result.iterations);
+		solver_success = transient_result.success;
+
+		if (transient_result.success) {
+			thrust = transient_result.thrust;
+			thrust_saturation_mask = transient_result.saturation_mask;
+			for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
+				motor_normalized(rotor) = math::constrain(
+					thrust(rotor) / _allocator.maxThrust(), 0.f, 1.f);
+			}
+		} else {
+			fallback_reason = voliro_allocator_status_s::FALLBACK_SOLVER_FAILED;
+			conventionalFallback(thrust_sp, torque_sp, motor_normalized);
+			target_tilt.setZero();
+			for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
+				thrust(rotor) = motor_normalized(rotor) * _allocator.maxThrust();
+			}
+			// The fallback was discovered after the normal command was already
+			// generated. Re-anchor before slewing toward center so a stale
+			// accumulated command cannot cross the mode transition.
+			synchronizeTiltCommand();
+			tilt_command = limitTiltCommand(target_tilt, dt, tilt_rate_limited_mask);
+		}
+	}
+
 	const auto achieved = _allocator.wrenchFromCommands(thrust, feedback_valid ? _measured_tilt : target_tilt);
 	publishOutputs(motor_normalized, tilt_command, torque_message.timestamp_sample);
 	publishStatus(requested, achieved, thrust, tilt_command, thrust_saturation_mask, tilt_rate_limited_mask,
 		      fallback_reason, optimization_used, solver_success, iterations, solver_time_us,
 		      torque_message.timestamp_sample);
+	if (!_publish_controls) {
+		// No command was applied. The next enabled cycle must start from encoder
+		// feedback rather than an internal command trajectory that ran off-line.
+		_tilt_command_initialized = false;
+	}
 	_last_fallback_reason = fallback_reason;
 	perf_end(_loop_perf);
 }
@@ -333,7 +412,7 @@ int VoliroAllocator::print_usage(const char *reason)
 	if (reason) { PX4_WARN("%s", reason); }
 	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
 Dedicated six-motor, six-independent-tilt Voliro allocator. The first-stage
-interface consumes stock multicopter body torque and Z-thrust setpoints. It
+interface consumes normalized PX4 body torque and three-axis thrust setpoints. It
 requires measured tilt feedback named VOLA_TILT on debug_array id 4242.
 )DESCR_STR");
 	PRINT_MODULE_USAGE_NAME("voliro_allocator", "controller");

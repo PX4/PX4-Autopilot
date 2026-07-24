@@ -1,0 +1,5 @@
+menuconfig MODULES_VOLIRO_CONTROL
+	bool "voliro_control"
+	default n
+	---help---
+		Fully actuated Voliro position-and-attitude controller.

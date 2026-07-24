@@ -32,6 +32,16 @@ parameters:
       default: 20.0
       unit: deg/s
       decimal: 1
+    LNDMC_THR_VEC:
+      description:
+        short: Use full thrust-vector norm for land detection
+        long: |-
+          Use the norm of the three-axis vehicle thrust setpoint instead of
+          only the negative body-z component. Enable this for fully actuated
+          vehicles that can support weight with lateral or inverted body-axis
+          thrust. Leave disabled for conventional multicopters.
+      type: boolean
+      default: false
     LNDMC_ALT_GND:
       description:
         short: Ground effect altitude for multicopters

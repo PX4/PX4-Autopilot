@@ -1,0 +1,149 @@
+module_name: Voliro Control
+
+parameters:
+    - group: Voliro Control
+      definitions:
+        VCTRL_EN:
+            description:
+                short: Enable onboard Voliro pose controller at boot
+                long: Requires reboot. Enable only with the Voliro allocator and a trajectory_setpoint6dof source.
+            type: boolean
+            default: false
+            reboot_required: true
+        VCTRL_MASS:
+            description:
+                short: Vehicle mass
+            type: float
+            unit: kg
+            min: 0.1
+            max: 100
+            default: 4.28
+        VCTRL_IXX:
+            description:
+                short: Body roll inertia
+            type: float
+            unit: kg m^2
+            min: 0.0001
+            max: 100
+            default: 0.11290823
+        VCTRL_IYY:
+            description:
+                short: Body pitch inertia
+            type: float
+            unit: kg m^2
+            min: 0.0001
+            max: 100
+            default: 0.11290823
+        VCTRL_IZZ:
+            description:
+                short: Body yaw inertia
+            type: float
+            unit: kg m^2
+            min: 0.0001
+            max: 100
+            default: 0.203963
+        VCTRL_POS_X:
+            description:
+                short: North position proportional gain
+                long: Position-error gain in N/m.
+            type: float
+            min: 0
+            max: 100
+            default: 1.5
+        VCTRL_POS_Y:
+            description:
+                short: East position proportional gain
+                long: Position-error gain in N/m.
+            type: float
+            min: 0
+            max: 100
+            default: 1.5
+        VCTRL_POS_Z:
+            description:
+                short: Down position proportional gain
+                long: Position-error gain in N/m.
+            type: float
+            min: 0
+            max: 100
+            default: 6
+        VCTRL_VEL_X:
+            description:
+                short: North velocity proportional gain
+            type: float
+            unit: N/(m/s)
+            min: 0
+            max: 100
+            default: 2.5
+        VCTRL_VEL_Y:
+            description:
+                short: East velocity proportional gain
+            type: float
+            unit: N/(m/s)
+            min: 0
+            max: 100
+            default: 2.5
+        VCTRL_VEL_Z:
+            description:
+                short: Down velocity proportional gain
+            type: float
+            unit: N/(m/s)
+            min: 0
+            max: 100
+            default: 3
+        VCTRL_ATT_R:
+            description:
+                short: Roll attitude proportional gain
+                long: Attitude-error gain in Nm/rad.
+            type: float
+            min: 0
+            max: 100
+            default: 4
+        VCTRL_ATT_P:
+            description:
+                short: Pitch attitude proportional gain
+                long: Attitude-error gain in Nm/rad.
+            type: float
+            min: 0
+            max: 100
+            default: 4
+        VCTRL_ATT_Y:
+            description:
+                short: Yaw attitude proportional gain
+                long: Attitude-error gain in Nm/rad.
+            type: float
+            min: 0
+            max: 100
+            default: 3
+        VCTRL_RATE_R:
+            description:
+                short: Roll angular-rate damping gain
+            type: float
+            unit: Nm/(rad/s)
+            min: 0
+            max: 100
+            default: 1.5
+        VCTRL_RATE_P:
+            description:
+                short: Pitch angular-rate damping gain
+            type: float
+            unit: Nm/(rad/s)
+            min: 0
+            max: 100
+            default: 1.5
+        VCTRL_RATE_Y:
+            description:
+                short: Yaw angular-rate damping gain
+            type: float
+            unit: Nm/(rad/s)
+            min: 0
+            max: 100
+            default: 0.5
+        VCTRL_SP_TMO:
+            description:
+                short: Pose-setpoint timeout
+                long: The controller stops publishing if the trajectory_setpoint6dof stream exceeds this age.
+            type: float
+            unit: s
+            min: 0.02
+            max: 2
+            default: 0.25

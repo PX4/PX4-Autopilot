@@ -89,7 +89,18 @@ void MulticopterLandDetector::_update_topics()
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
-		_vehicle_thrust_setpoint_throttle = -vehicle_thrust_setpoint.xyz[2];
+		if (_param_lndmc_thr_vec.get()) {
+			// A fully actuated vehicle may support its weight with body-x/body-y
+			// thrust while vertical or with positive body-z thrust while
+			// inverted. In that case -xyz[2] is not a throttle measure and can
+			// falsely declare an airborne vehicle landed.
+			_vehicle_thrust_setpoint_throttle = Vector3f{
+				vehicle_thrust_setpoint.xyz[0],
+				vehicle_thrust_setpoint.xyz[1],
+				vehicle_thrust_setpoint.xyz[2]}.norm();
+		} else {
+			_vehicle_thrust_setpoint_throttle = -vehicle_thrust_setpoint.xyz[2];
+		}
 		_vehicle_thrust_setpoint_last_update = hrt_absolute_time();
 	}
 

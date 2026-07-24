@@ -6,4 +6,9 @@ if param compare VOLA_EN 1
 then
 	control_allocator stop
 	voliro_allocator start
+
+	if param compare VCTRL_EN 1
+	then
+		voliro_control start
+	fi
 fi

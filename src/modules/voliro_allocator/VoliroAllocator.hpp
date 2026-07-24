@@ -43,7 +43,8 @@ private:
 	void conventionalFallback(const matrix::Vector3f &thrust_sp, const matrix::Vector3f &torque_sp,
 				  VoliroAllocation::RotorVector &motor_normalized) const;
 	VoliroAllocation::RotorVector limitTiltCommand(const VoliroAllocation::RotorVector &target, float dt,
-		uint8_t &rate_limited_mask) const;
+		uint8_t &rate_limited_mask);
+	void synchronizeTiltCommand();
 	void publishOutputs(const VoliroAllocation::RotorVector &motor_normalized,
 			    const VoliroAllocation::RotorVector &tilt_command, uint64_t timestamp_sample);
 	void publishStatus(const VoliroAllocation::WrenchVector &requested,
@@ -68,12 +69,16 @@ private:
 
 	VoliroAllocation _allocator;
 	VoliroAllocation::RotorVector _measured_tilt;
+	VoliroAllocation::RotorVector _measured_tilt_velocity;
+	VoliroAllocation::RotorVector _tilt_command;
 	hrt_abstime _last_feedback{0};
 	hrt_abstime _last_run{0};
+	uint64_t _last_setpoint_sample{0};
 	uint8_t _last_fallback_reason{voliro_allocator_status_s::FALLBACK_FEEDBACK_STALE};
 	bool _armed{false};
 	bool _landed{true};
 	bool _publish_controls{true};
+	bool _tilt_command_initialized{false};
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
@@ -84,6 +89,7 @@ private:
 		(ParamFloat<px4::params::VOLA_TILT_MIN>) _param_tilt_min,
 		(ParamFloat<px4::params::VOLA_TILT_MAX>) _param_tilt_max,
 		(ParamFloat<px4::params::VOLA_TILT_RATE>) _param_tilt_rate,
+		(ParamFloat<px4::params::VOLA_TILT_TAU>) _param_tilt_tau,
 		(ParamFloat<px4::params::VOLA_FB_TMO>) _param_feedback_timeout,
 		(ParamInt<px4::params::VOLA_MAX_ITER>) _param_max_iterations,
 		(ParamFloat<px4::params::VOLA_SOL_TOL>) _param_solver_tolerance,

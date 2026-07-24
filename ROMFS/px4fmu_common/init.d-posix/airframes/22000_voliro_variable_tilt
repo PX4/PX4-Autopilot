@@ -65,10 +65,29 @@ param set-default THR_MDL_FAC 1
 # Reboot-scoped output-owner switch. Set this to 0 to leave the stock
 # control_allocator running in conventional centered-tilt mode.
 param set-default VOLA_EN 1
-param set-default VOLA_TMAX 13.7
+# F100 rounded 2.5 kgf peak target; replace with the final propulsion bench
+# curve/continuous limit before hardware flight. The tilt mechanism has 450
+# degrees total travel: one full revolution plus 45 degrees at either end.
+param set-default VOLA_TMAX 24.5
 param set-default VOLA_ARM 0.315
 param set-default VOLA_KAPPA 0.015
-param set-default VOLA_TILT_MIN -1.5707963
-param set-default VOLA_TILT_MAX 1.5707963
+param set-default VOLA_TILT_MIN -3.9269908
+param set-default VOLA_TILT_MAX 3.9269908
 param set-default VOLA_TILT_RATE 7.85
+# Provisional critically damped tilt model for SITL. Identify this parameter
+# from encoder step-response data before hardware flight.
+param set-default VOLA_TILT_TAU 0.05
 param set-default VOLA_FB_TMO 0.1
+
+# The companion publishes only a six-DoF pose reference. Position, attitude,
+# rate, gravity compensation, and wrench normalization run inside PX4.
+param set-default VCTRL_EN 1
+
+# Intentional vertical/inverted flight is normal for this fully actuated
+# airframe. The stock attitude-failure angles would terminate it. A future
+# Voliro safety monitor must replace these with tracking/rate/authority checks.
+param set-default FD_FAIL_R 0
+param set-default FD_FAIL_P 0
+# Land detection must see lateral and positive body-z support thrust instead
+# of treating only negative body-z thrust as throttle.
+param set-default LNDMC_THR_VEC 1
