@@ -47,7 +47,12 @@
 #include <fcntl.h>
 #include <math.h>
 #include <unistd.h>
+#if defined(__PX4_LINUX)
+#include <sys/ioctl.h>
+#include <asm-generic/termbits.h>
+#else
 #include <termios.h>
+#endif
 #include <string.h>
 
 #include "dsm.h"
@@ -447,7 +452,17 @@ int dsm_config(int fd)
 	int ret = -1;
 
 	if (fd >= 0) {
+#if defined(__PX4_LINUX)
+		struct termios2 t;
+		ioctl(fd, TCGETS2, &t);
 
+		t.c_cflag &= ~(CSTOPB | PARENB |CBAUD);
+ 	   	t.c_cflag |= BOTHER | CREAD;
+		t.c_ispeed = 115200;
+		t.c_ospeed = 115200;
+
+		ioctl(fd, TCSETS2, &t);
+#else
 		struct termios t;
 
 		/* 115200bps, no parity, one stop bit */
@@ -455,7 +470,7 @@ int dsm_config(int fd)
 		cfsetspeed(&t, 115200);
 		t.c_cflag &= ~(CSTOPB | PARENB);
 		tcsetattr(fd, TCSANOW, &t);
-
+#endif
 		/* initialise the decoder */
 		dsm_partial_frame_count = 0;
 		dsm_last_rx_time = hrt_absolute_time();
