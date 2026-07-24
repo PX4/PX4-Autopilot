@@ -492,6 +492,7 @@ private:
 
 	static constexpr float kGyroBiasVarianceMin{1e-9f};
 	static constexpr float kAccelBiasVarianceMin{1e-9f};
+	static constexpr float kYawResetGyroBiasCovThreshold{math::radians(25.f)};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	static constexpr float kMagVarianceMin = 1e-6f;
