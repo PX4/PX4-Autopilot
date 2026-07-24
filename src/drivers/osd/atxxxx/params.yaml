@@ -15,3 +15,544 @@ parameters:
         2: PAL
       default: 0
       reboot_required: true
+    OSD_BAT_VOLT_X:
+        description:
+            short: Analog OSD battery voltage X position
+        type: int32
+        min: 0
+        max: 23
+        default: 1
+
+    OSD_BAT_VOLT_Y:
+        description:
+            short: Analog OSD battery voltage Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 1
+
+    OSD_MAH_X:
+        description:
+            short: Analog OSD consumed capacity X position
+        type: int32
+        min: 0
+        max: 24
+        default: 2
+
+    OSD_MAH_Y:
+        description:
+            short: Analog OSD consumed capacity Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 2
+
+    OSD_CELL_V_X:
+        description:
+            short: Analog OSD average cell voltage X position
+        type: int32
+        min: 0
+        max: 23
+        default: 12
+
+    OSD_CELL_V_Y:
+        description:
+            short: Analog OSD average cell voltage Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 1
+
+    OSD_SYSID_X:
+        description:
+            short: Analog OSD MAVLink system ID X position
+        type: int32
+        min: 0
+        max: 26
+        default: 1
+
+    OSD_SYSID_Y:
+        description:
+            short: Analog OSD MAVLink system ID Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 0
+
+    OSD_MISSION_X:
+        description:
+            short: Analog OSD mission state X position
+        type: int32
+        min: 0
+        max: 22
+        default: 6
+
+    OSD_MISSION_Y:
+        description:
+            short: Analog OSD mission state Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 0
+
+    OSD_MAV_STATE_X:
+        description:
+            short: Analog OSD MAVLink state X position
+        type: int32
+        min: 0
+        max: 24
+        default: 15
+
+    OSD_MAV_STATE_Y:
+        description:
+            short: Analog OSD MAVLink state Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 0
+
+    OSD_RSSI_X:
+        description:
+            short: Analog OSD RSSI X position
+        type: int32
+        min: 0
+        max: 25
+        default: 23
+
+    OSD_RSSI_Y:
+        description:
+            short: Analog OSD RSSI Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 0
+
+    OSD_LQ_X:
+        description:
+            short: Analog OSD link quality X position
+        type: int32
+        min: 0
+        max: 25
+        default: 23
+
+    OSD_LQ_Y:
+        description:
+            short: Analog OSD link quality Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 1
+
+    OSD_GPS_SAT_X:
+        description:
+            short: Analog OSD GPS satellites X position
+        type: int32
+        min: 0
+        max: 26
+        default: 20
+
+    OSD_GPS_SAT_Y:
+        description:
+            short: Analog OSD GPS satellites Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 2
+
+    OSD_GPS_SPD_X:
+        description:
+            short: Analog OSD GPS speed X position
+        type: int32
+        min: 0
+        max: 24
+        default: 24
+
+    OSD_GPS_SPD_Y:
+        description:
+            short: Analog OSD GPS speed Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 2
+
+    OSD_GPS_INFO_X:
+        description:
+            short: Analog OSD GPS quality X position
+        type: int32
+        min: 0
+        max: 18
+        default: 8
+
+    OSD_GPS_INFO_Y:
+        description:
+            short: Analog OSD GPS quality Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 2
+
+    OSD_ALT_X:
+        description:
+            short: Analog OSD altitude X position
+        type: int32
+        min: 0
+        max: 21
+        default: 1
+
+    OSD_ALT_Y:
+        description:
+            short: Analog OSD altitude Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 3
+
+    OSD_HOME_DIR_X:
+        description:
+            short: Analog OSD home direction X position
+        type: int32
+        min: 0
+        max: 29
+        default: 21
+
+    OSD_HOME_DIR_Y:
+        description:
+            short: Analog OSD home direction Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 3
+
+    OSD_HOME_DST_X:
+        description:
+            short: Analog OSD home distance X position
+        type: int32
+        min: 0
+        max: 24
+        default: 23
+
+    OSD_HOME_DST_Y:
+        description:
+            short: Analog OSD home distance Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 3
+
+    OSD_AH_X:
+        description:
+            short: Analog OSD horizon center X position
+        type: int32
+        min: 4
+        max: 25
+        default: 15
+
+    OSD_AH_Y:
+        description:
+            short: Analog OSD horizon center Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 6
+
+    OSD_MODE_X:
+        description:
+            short: Analog OSD flight mode X position
+        type: int32
+        min: 0
+        max: 16
+        default: 9
+
+    OSD_MODE_Y:
+        description:
+            short: Analog OSD flight mode Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 11
+
+    OSD_FTIME_X:
+        description:
+            short: Analog OSD flight time X position
+        type: int32
+        min: 0
+        max: 23
+        default: 1
+
+    OSD_FTIME_Y:
+        description:
+            short: Analog OSD flight time Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 12
+
+    OSD_STATUS_X:
+        description:
+            short: Analog OSD status message X position
+        type: int32
+        min: 0
+        max: 18
+        default: 17
+
+    OSD_STATUS_Y:
+        description:
+            short: Analog OSD status message Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 12
+
+    OSD_ARM_X:
+        description:
+            short: Analog OSD arming state X position
+        type: int32
+        min: 0
+        max: 22
+        default: 1
+
+    OSD_ARM_Y:
+        description:
+            short: Analog OSD arming state Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 11
+
+    OSD_HEAD_X:
+        description:
+            short: Analog OSD heading X position
+        type: int32
+        min: 0
+        max: 24
+        default: 24
+
+    OSD_HEAD_Y:
+        description:
+            short: Analog OSD heading Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 10
+
+    OSD_CROSS_X:
+        description:
+            short: Analog OSD crosshair center X position
+        type: int32
+        min: 0
+        max: 29
+        default: 15
+
+    OSD_CROSS_Y:
+        description:
+            short: Analog OSD crosshair center Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 6
+
+    OSD_CURRENT_X:
+        description:
+            short: Analog OSD current X position
+        type: int32
+        min: 0
+        max: 24
+        default: 1
+
+    OSD_CURRENT_Y:
+        description:
+            short: Analog OSD current Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 4
+
+    OSD_POWER_X:
+        description:
+            short: Analog OSD power X position
+        type: int32
+        min: 0
+        max: 24
+        default: 1
+
+    OSD_POWER_Y:
+        description:
+            short: Analog OSD power Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 5
+
+    OSD_THROT_X:
+        description:
+            short: Analog OSD throttle X position
+        type: int32
+        min: 0
+        max: 26
+        default: 24
+
+    OSD_THROT_Y:
+        description:
+            short: Analog OSD throttle Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 11
+
+    OSD_VARIO_X:
+        description:
+            short: Analog OSD vertical speed X position
+        type: int32
+        min: 0
+        max: 23
+        default: 23
+
+    OSD_VARIO_Y:
+        description:
+            short: Analog OSD vertical speed Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 5
+
+    OSD_PITCH_X:
+        description:
+            short: Analog OSD pitch angle X position
+        type: int32
+        min: 0
+        max: 24
+        default: 1
+
+    OSD_PITCH_Y:
+        description:
+            short: Analog OSD pitch angle Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 7
+
+    OSD_ROLL_X:
+        description:
+            short: Analog OSD roll angle X position
+        type: int32
+        min: 0
+        max: 24
+        default: 1
+
+    OSD_ROLL_Y:
+        description:
+            short: Analog OSD roll angle Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 8
+
+    OSD_GPS_LAT_X:
+        description:
+            short: Analog OSD GPS latitude X position
+        type: int32
+        min: 0
+        max: 17
+        default: 1
+
+    OSD_GPS_LAT_Y:
+        description:
+            short: Analog OSD GPS latitude Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 9
+
+    OSD_GPS_LON_X:
+        description:
+            short: Analog OSD GPS longitude X position
+        type: int32
+        min: 0
+        max: 16
+        default: 1
+
+    OSD_GPS_LON_Y:
+        description:
+            short: Analog OSD GPS longitude Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 10
+
+    OSD_VTX_INFO_X:
+        description:
+            short: Analog OSD VTX info X position
+        type: int32
+        min: 0
+        max: 19
+        default: 19
+
+    OSD_VTX_INFO_Y:
+        description:
+            short: Analog OSD VTX info Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 4
+
+    OSD_VTX_FREQ_X:
+        description:
+            short: Analog OSD VTX frequency X position
+        type: int32
+        min: 0
+        max: 19
+        default: 19
+
+    OSD_VTX_FREQ_Y:
+        description:
+            short: Analog OSD VTX frequency Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 7
+
+    OSD_VTX_POWER_X:
+        description:
+            short: Analog OSD VTX power X position
+        type: int32
+        min: 0
+        max: 18
+        default: 18
+
+    OSD_VTX_POWER_Y:
+        description:
+            short: Analog OSD VTX power Y position
+        type: int32
+        min: 0
+        max: 12
+        default: 8
+
+    OSD_CAM_VFOV:
+        description:
+            short: Camera vertical field of view
+            long: Vertical field of view used to project the analog artificial horizon.
+        type: int32
+        unit: deg
+        min: 20
+        max: 170
+        default: 90
+
+    OSD_CAM_HFOV:
+        description:
+            short: Camera horizontal field of view
+            long: Horizontal field of view used to project the analog artificial horizon.
+        type: int32
+        unit: deg
+        min: 20
+        max: 179
+        default: 120
+
+    OSD_CAM_UPT:
+        description:
+            short: Camera uptilt angle
+            long: Positive values indicate that the camera points above the vehicle forward axis.
+        type: int32
+        unit: deg
+        min: -45
+        max: 90
+        default: 0
