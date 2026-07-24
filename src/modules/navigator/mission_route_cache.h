@@ -155,7 +155,6 @@ private:
 
 	struct SafePointState {
 		SafePointDatamanState dataman_state{SafePointDatamanState::kUpdateRequestWait};
-		SafePointDatamanState error_state{SafePointDatamanState::kUpdateRequestWait};
 		mission_stats_entry_s read_stats{};   ///< Async DM_KEY_SAFE_POINTS_STATE read buffer.
 		mission_stats_entry_s cached_stats{}; ///< Identity of the safe-point set currently in the RAM cache.
 		uint32_t source_id{0};                ///< Active mission.safe_points_id being tracked.
