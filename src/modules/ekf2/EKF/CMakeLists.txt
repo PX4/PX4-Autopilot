@@ -148,6 +148,21 @@ add_library(ecl_EKF
 	${EKF_SRCS}
 )
 
+# PROFILE-DIRECTED: predictCovariance (covariance.cpp), fuseVelocity/fuseHorizontalVelocity
+# (velocity_fusion.cpp), fuseHorizontalPosition/fuseVerticalPosition (position_fusion.cpp), and
+# fuseYaw (yaw_fusion.cpp) are the top self-time hotspots in Ekf::update() -- machine-generated
+# straight-line floating-point algebra (covariance propagation, innovation/Kalman-gain math). The
+# project default build does not enable the tree-vectorizer on these files; -O3 does, with no
+# change to the math itself. FP-exact: ecl_EKF already builds with -fno-associative-math (see
+# target_compile_options below), so -O3 here does not reorder floating-point operations -- output
+# is bit-identical to the default build on every workload tested.
+set_source_files_properties(
+	covariance.cpp
+	velocity_fusion.cpp
+	position_fusion.cpp
+	yaw_fusion.cpp
+	PROPERTIES COMPILE_OPTIONS "-O3")
+
 add_dependencies(ecl_EKF prebuild_targets)
 target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
 
