@@ -90,6 +90,12 @@ static uint8_t output_channel_from_timer_channel(uint8_t timer_index, uint8_t ti
 static void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static void capture_complete_callback(void *arg);
 
+// Round-robin: capture a single channel per cycle, borrowing one DMA stream from the
+// burst UP stream. Concurrent: capture every channel of the timer every cycle, using
+// dedicated DMA streams from a board-declared, separate DMA pool (dshot_conf_t.concurrent_capture).
+static void start_capture_round_robin(uint8_t timer_index, void *arg);
+static void start_capture_concurrent(uint8_t timer_index, void *arg);
+
 static void process_capture_results(uint8_t timer_index, uint8_t channel_index);
 static uint32_t convert_edge_intervals_to_bitstream(uint8_t timer_index, uint8_t channel_index);
 static void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet);
@@ -98,13 +104,15 @@ static void dshot_start_timer_burst(uint8_t timer_index);
 
 // Timer configuration struct
 typedef struct timer_config_t {
-	DMA_HANDLE dma_handle;          // DMA stream for DMA update and eRPM Capture Compare
+	DMA_HANDLE dma_handle;          // DMA stream for DMA update and (round-robin) eRPM Capture Compare
+	DMA_HANDLE capture_dma_handles[MAX_NUM_CHANNELS_PER_TIMER]; // per-channel capture DMA streams, concurrent_capture only
 	bool enabled;                   // Timer enabled
 	bool enabled_channels[4];       // Timer Channels enabled (requested)
 	bool initialized;               // Timer initialized
 	bool initialized_channels[4];   // Timer channels initialized (successfully started)
 	bool bidirectional;             // Timer in bidir (inverted) mode
-	int capture_channel;            // Timer channel currently being captured in bidirectional mode
+	bool concurrent_capture;        // Capture all channels every cycle instead of round-robin (board opt-in)
+	int capture_channel;            // Timer channel currently being captured (round-robin only)
 	uint8_t timer_index;            // Timer index. Necessary to have memory for passing pointer to hrt callback
 } timer_config_t;
 
@@ -209,6 +217,7 @@ static void init_timer_config(uint32_t channel_mask)
 			// Mark timer as bidirectional
 			if (_bdshot_channel_mask & (1 << output_channel)) {
 				timer_configs[timer_index].bidirectional = true;
+				timer_configs[timer_index].concurrent_capture = io_timers[timer_index].dshot.concurrent_capture;
 			}
 		}
 	}
@@ -323,6 +332,15 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 
 	// Initialize timer_config data based on enabled channels
 	init_timer_config(channel_mask);
+
+	if (bdshot_channel_mask) {
+		for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+			if (timer_configs[timer_index].bidirectional) {
+				PX4_INFO("Timer %u: %s BDShot capture", timer_index,
+					 timer_configs[timer_index].concurrent_capture ? "concurrent" : "round-robin");
+			}
+		}
+	}
 
 	// Initializes dshot on each timer if DShot mode is enabled and DMA is available
 	init_timers_dma_up();
@@ -537,6 +555,20 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		timer->dma_handle = NULL;
 	}
 
+	// Free capture DMA streams left over from the previous cycle. This can only be done
+	// here, in thread/DMA-completion context - freeing from capture_complete_callback
+	// (an hrt callback) was found to lock up other peripherals on the same DMA
+	// controller (see the single-stream round-robin handling above, which has always
+	// deferred its free() to this same point for that reason).
+	if (timer->concurrent_capture) {
+		for (uint8_t ch = 0; ch < MAX_NUM_CHANNELS_PER_TIMER; ch++) {
+			if (timer->capture_dma_handles[ch] != NULL) {
+				stm32_dmafree(timer->capture_dma_handles[ch]);
+				timer->capture_dma_handles[ch] = NULL;
+			}
+		}
+	}
+
 	// Disable DMA update request
 	io_timer_update_dma_req(timer_index, false);
 
@@ -548,8 +580,22 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	up_clean_dcache((uintptr_t) dshot_capture_buffer[timer_index],
 			(uintptr_t) dshot_capture_buffer[timer_index] + DSHOT_CAPTURE_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER));
 
+	if (timer->concurrent_capture) {
+		start_capture_concurrent(timer_index, arg);
+
+	} else {
+		start_capture_round_robin(timer_index, arg);
+	}
+}
+
+// Round-robin: capture a single channel this cycle (unchanged behavior/timing from
+// before concurrent_capture was introduced).
+static void start_capture_round_robin(uint8_t timer_index, void *arg)
+{
+	timer_config_t *timer = &timer_configs[timer_index];
+
 	// Re-initialize the current capture channel back to CaptureDMA
-	uint8_t capture_output_channel = output_channel_from_timer_channel(timer_index, timer_configs[timer_index].capture_channel);
+	uint8_t capture_output_channel = output_channel_from_timer_channel(timer_index, timer->capture_channel);
 
 	if (capture_output_channel < MAX_TIMER_IO_CHANNELS) {
 		io_timer_unallocate_channel(capture_output_channel);
@@ -560,8 +606,8 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	select_next_capture_channel(timer_index);
 
 	// Allocate DMA for currently selected capture_channel
-	uint8_t capture_channel = timer_configs[timer_index].capture_channel;
-	timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_ch[capture_channel]);
+	uint8_t capture_channel = timer->capture_channel;
+	timer->dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_ch[capture_channel]);
 
 	// If DMA handler is invalid, skip capture
 	if (timer->dma_handle == NULL) {
@@ -586,7 +632,7 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	uint32_t periph_addr = io_timers[timer_index].base + STM32_GTIM_CCR1_OFFSET + (4 * capture_channel);
 
 	// Setup DMA for this channel
-	px4_stm32_dmasetup(timer_configs[timer_index].dma_handle,
+	px4_stm32_dmasetup(timer->dma_handle,
 			   periph_addr,
 			   (uint32_t) dshot_capture_buffer[timer_index][capture_channel],
 			   CHANNEL_CAPTURE_BUFF_SIZE,
@@ -594,9 +640,72 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 	// NOTE: we can't use DMA callback since GCR encoding creates a variable length pulse train. Instead
 	// we use an hrt callback to schedule the processing of the received and DMAd eRPM frames.
-	stm32_dmastart(timer_configs[timer_index].dma_handle, NULL, NULL, false);
+	stm32_dmastart(timer->dma_handle, NULL, NULL, false);
 
 	// Enable CaptureDMA on this timer's channels only
+	io_timer_set_enable(true, IOTimerChanMode_CaptureDMA, io_timer_get_group(timer_index));
+
+	perf_end(burst_perf);
+	perf_begin(capture_window_perf);
+
+	hrt_call_after(&_cc_calls[timer_index], _bdshot_capture_delay, capture_complete_callback, arg);
+}
+
+// Concurrent: capture every initialized, capture-capable channel of the timer at once,
+// each on its own DMA stream (dma_map_ch[0..3]). All ESCs on this timer respond within
+// the same fixed turnaround window, so a single shared hrt deadline (below) covers all
+// of them - no per-channel timing bookkeeping is needed beyond what round-robin already had.
+static void start_capture_concurrent(uint8_t timer_index, void *arg)
+{
+	timer_config_t *timer = &timer_configs[timer_index];
+	bool any_channel_armed = false;
+
+	for (uint8_t timer_channel = 0; timer_channel < MAX_NUM_CHANNELS_PER_TIMER; timer_channel++) {
+		if (!timer->initialized_channels[timer_channel]) {
+			continue;
+		}
+
+		uint8_t output_channel = output_channel_from_timer_channel(timer_index, timer_channel);
+
+		if (output_channel >= MAX_TIMER_IO_CHANNELS || !_bdshot_capture_supported[output_channel]) {
+			continue;
+		}
+
+		io_timer_unallocate_channel(output_channel);
+		io_timer_channel_init(output_channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
+
+		timer->capture_dma_handles[timer_channel] =
+			stm32_dmachannel(io_timers[timer_index].dshot.dma_map_ch[timer_channel]);
+
+		if (timer->capture_dma_handles[timer_channel] == NULL) {
+			PX4_WARN("failed to allocate concurrent capture dma for timer %u channel %u", timer_index, timer_channel);
+			io_timer_unallocate_channel(output_channel);
+			io_timer_channel_init(output_channel, IOTimerChanMode_DshotInverted, NULL, NULL);
+			continue;
+		}
+
+		io_timer_set_dshot_capture_mode(timer_index, timer_channel, _dshot_frequency);
+		io_timer_capture_dma_req(timer_index, timer_channel, true);
+
+		uint32_t periph_addr = io_timers[timer_index].base + STM32_GTIM_CCR1_OFFSET + (4 * timer_channel);
+
+		px4_stm32_dmasetup(timer->capture_dma_handles[timer_channel],
+				   periph_addr,
+				   (uint32_t) dshot_capture_buffer[timer_index][timer_channel],
+				   CHANNEL_CAPTURE_BUFF_SIZE,
+				   DSHOT_BIDIRECTIONAL_DMA_SCR);
+
+		stm32_dmastart(timer->capture_dma_handles[timer_channel], NULL, NULL, false);
+		any_channel_armed = true;
+	}
+
+	if (!any_channel_armed) {
+		perf_end(burst_perf);
+		_bdshot_cycle_complete[timer_index] = true;
+		return;
+	}
+
+	// One shared enable, since every channel armed above was just switched to CaptureDMA
 	io_timer_set_enable(true, IOTimerChanMode_CaptureDMA, io_timer_get_group(timer_index));
 
 	perf_end(burst_perf);
@@ -611,17 +720,26 @@ static void capture_complete_callback(void *arg)
 	perf_begin(capture_complete_perf);
 
 	uint8_t timer_index = *((uint8_t *)arg);
+	timer_config_t *timer = &timer_configs[timer_index];
 
 	// Unallocate the timer as CaptureDMA
 	io_timer_unallocate_timer(timer_index);
 
-	uint8_t capture_channel = timer_configs[timer_index].capture_channel;
+	// Disable capture DMA and stop DMA (should already be finished). Freeing the DMA
+	// handle(s) is deferred to dma_burst_finished_callback - see the comment there.
+	if (timer->concurrent_capture) {
+		for (uint8_t ch = 0; ch < MAX_NUM_CHANNELS_PER_TIMER; ch++) {
+			if (timer->capture_dma_handles[ch] != NULL) {
+				io_timer_capture_dma_req(timer_index, ch, false);
+				stm32_dmastop(timer->capture_dma_handles[ch]);
+			}
+		}
 
-	// Disable capture DMA
-	io_timer_capture_dma_req(timer_index, capture_channel, false);
-
-	// Stop DMA (should already be finished)
-	stm32_dmastop(timer_configs[timer_index].dma_handle);
+	} else {
+		uint8_t capture_channel = timer->capture_channel;
+		io_timer_capture_dma_req(timer_index, capture_channel, false);
+		stm32_dmastop(timer->dma_handle);
+	}
 
 	// Re-initialize all output channels on this timer
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
@@ -641,8 +759,17 @@ static void capture_complete_callback(void *arg)
 	up_invalidate_dcache((uintptr_t) dshot_capture_buffer[timer_index],
 			     (uintptr_t) dshot_capture_buffer[timer_index] + DSHOT_CAPTURE_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER));
 
-	// Process eRPM frames from all channels on this timer
-	process_capture_results(timer_index, capture_channel);
+	// Process eRPM/EDT frames from the captured channel(s) on this timer
+	if (timer->concurrent_capture) {
+		for (uint8_t ch = 0; ch < MAX_NUM_CHANNELS_PER_TIMER; ch++) {
+			if (timer->capture_dma_handles[ch] != NULL) {
+				process_capture_results(timer_index, ch);
+			}
+		}
+
+	} else {
+		process_capture_results(timer_index, timer->capture_channel);
+	}
 
 	// Enable this timer's channels as DShotInverted
 	io_timer_set_enable(true, IOTimerChanMode_DshotInverted, io_timer_get_group(timer_index));
