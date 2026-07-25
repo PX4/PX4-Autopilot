@@ -136,3 +136,8 @@ Channels within the same group need to use the same output rate. If any channel 
 ```sh
 make droneer_x6_default
 ```
+
+## Supported Platforms / Airframes
+
+Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
