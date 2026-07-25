@@ -679,7 +679,7 @@ private:
 
 	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
 	float getHeightRateSetpointThroughETA(const Vector2d &curr_pos, const Vector2f &ground_speed,
-			const position_setpoint_s &pos_sp_curr) const;
+					      const position_setpoint_s &pos_sp_curr) const;
 
 	/**
 	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
