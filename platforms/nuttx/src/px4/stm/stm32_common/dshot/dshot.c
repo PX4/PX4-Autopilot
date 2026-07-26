@@ -83,6 +83,7 @@
 static void init_timer_config(uint32_t channel_mask);
 static void init_timers_dma_up(void);
 static int32_t init_timer_channels(uint8_t timer_index);
+static void init_timers_capture_dma(void);
 
 static void select_next_capture_channel(uint8_t timer_index);
 static uint8_t output_channel_from_timer_channel(uint8_t timer_index, uint8_t timer_channel);
@@ -308,6 +309,45 @@ static int32_t init_timer_channels(uint8_t timer_index)
 	return channels_init_mask;
 }
 
+// Concurrent capture only: allocate each channel's dedicated capture DMA stream once,
+// here at init, instead of freeing and re-allocating it every cycle. The streams stay
+// held for the driver's lifetime; start_capture_concurrent() just re-arms them
+// (px4_stm32_dmasetup()/stm32_dmastart()) each cycle, the same way init_timers_dma_up()
+// leaves the non-bidirectional burst UP stream allocated once and just re-armed.
+// Must run after init_timer_channels() (needs initialized_channels[]) and after
+// up_dshot_init()'s _bdshot_capture_supported pass (needs a valid dma_map_ch entry).
+static void init_timers_capture_dma(void)
+{
+	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+		timer_config_t *timer = &timer_configs[timer_index];
+
+		if (!timer->concurrent_capture) {
+			continue;
+		}
+
+		for (uint8_t timer_channel = 0; timer_channel < MAX_NUM_CHANNELS_PER_TIMER; timer_channel++) {
+			if (!timer->initialized_channels[timer_channel]) {
+				continue;
+			}
+
+			uint8_t output_channel = output_channel_from_timer_channel(timer_index, timer_channel);
+
+			if (output_channel >= MAX_TIMER_IO_CHANNELS || !_bdshot_capture_supported[output_channel]) {
+				continue;
+			}
+
+			timer->capture_dma_handles[timer_channel] =
+				stm32_dmachannel(io_timers[timer_index].dshot.dma_map_ch[timer_channel]);
+
+			if (timer->capture_dma_handles[timer_channel] == NULL) {
+				// Left NULL: start_capture_concurrent() skips this channel every cycle from
+				// here on, so it stays DShotInverted (DShot output works, no telemetry).
+				PX4_WARN("failed to allocate concurrent capture dma for timer %u channel %u", timer_index, timer_channel);
+			}
+		}
+	}
+}
+
 int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable)
 {
 	_dshot_frequency = dshot_pwm_freq;
@@ -393,6 +433,10 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 			}
 		}
 	}
+
+	// Concurrent capture: allocate each channel's dedicated capture DMA stream once, now
+	// that initialized_channels[] and _bdshot_capture_supported[] are both populated.
+	init_timers_capture_dma();
 
 	return channels_init_mask;
 }
@@ -548,25 +592,17 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 		return;
 	}
 
-	// Clean DMA UP configuration
+	// Clean DMA UP configuration. This free (and the round-robin capture channel's own
+	// free/realloc dance in start_capture_round_robin()) can only happen here, in
+	// thread/DMA-completion context - freeing from capture_complete_callback (an hrt
+	// callback) was found to lock up other peripherals on the same DMA controller. This
+	// doesn't apply to concurrent_capture's per-channel streams: those are allocated once
+	// in init_timers_capture_dma() and held for the driver's lifetime, so there's nothing
+	// to free here for them.
 	if (timer->dma_handle != NULL) {
 		stm32_dmastop(timer->dma_handle);
 		stm32_dmafree(timer->dma_handle);
 		timer->dma_handle = NULL;
-	}
-
-	// Free capture DMA streams left over from the previous cycle. This can only be done
-	// here, in thread/DMA-completion context - freeing from capture_complete_callback
-	// (an hrt callback) was found to lock up other peripherals on the same DMA
-	// controller (see the single-stream round-robin handling above, which has always
-	// deferred its free() to this same point for that reason).
-	if (timer->concurrent_capture) {
-		for (uint8_t ch = 0; ch < MAX_NUM_CHANNELS_PER_TIMER; ch++) {
-			if (timer->capture_dma_handles[ch] != NULL) {
-				stm32_dmafree(timer->capture_dma_handles[ch]);
-				timer->capture_dma_handles[ch] = NULL;
-			}
-		}
 	}
 
 	// Disable DMA update request
@@ -655,13 +691,16 @@ static void start_capture_round_robin(uint8_t timer_index, void *arg)
 // each on its own DMA stream (dma_map_ch[0..3]). All ESCs on this timer respond within
 // the same fixed turnaround window, so a single shared hrt deadline (below) covers all
 // of them - no per-channel timing bookkeeping is needed beyond what round-robin already had.
+// The DMA streams themselves are allocated once in init_timers_capture_dma(), not here -
+// this just re-arms whatever's already held (a channel left NULL there failed permanently
+// and is skipped every cycle, staying DShotInverted with no telemetry).
 static void start_capture_concurrent(uint8_t timer_index, void *arg)
 {
 	timer_config_t *timer = &timer_configs[timer_index];
 	bool any_channel_armed = false;
 
 	for (uint8_t timer_channel = 0; timer_channel < MAX_NUM_CHANNELS_PER_TIMER; timer_channel++) {
-		if (!timer->initialized_channels[timer_channel]) {
+		if (!timer->initialized_channels[timer_channel] || timer->capture_dma_handles[timer_channel] == NULL) {
 			continue;
 		}
 
@@ -673,16 +712,6 @@ static void start_capture_concurrent(uint8_t timer_index, void *arg)
 
 		io_timer_unallocate_channel(output_channel);
 		io_timer_channel_init(output_channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
-
-		timer->capture_dma_handles[timer_channel] =
-			stm32_dmachannel(io_timers[timer_index].dshot.dma_map_ch[timer_channel]);
-
-		if (timer->capture_dma_handles[timer_channel] == NULL) {
-			PX4_WARN("failed to allocate concurrent capture dma for timer %u channel %u", timer_index, timer_channel);
-			io_timer_unallocate_channel(output_channel);
-			io_timer_channel_init(output_channel, IOTimerChanMode_DshotInverted, NULL, NULL);
-			continue;
-		}
 
 		io_timer_set_dshot_capture_mode(timer_index, timer_channel, _dshot_frequency);
 		io_timer_capture_dma_req(timer_index, timer_channel, true);
@@ -725,8 +754,10 @@ static void capture_complete_callback(void *arg)
 	// Unallocate the timer as CaptureDMA
 	io_timer_unallocate_timer(timer_index);
 
-	// Disable capture DMA and stop DMA (should already be finished). Freeing the DMA
-	// handle(s) is deferred to dma_burst_finished_callback - see the comment there.
+	// Disable capture DMA and stop DMA (should already be finished). For concurrent_capture,
+	// the streams are held (not freed) - see init_timers_capture_dma(); stopping here just
+	// leaves them ready for the next cycle's dmasetup()/dmastart() re-arm. For round-robin,
+	// freeing timer->dma_handle is deferred to dma_burst_finished_callback - see the comment there.
 	if (timer->concurrent_capture) {
 		for (uint8_t ch = 0; ch < MAX_NUM_CHANNELS_PER_TIMER; ch++) {
 			if (timer->capture_dma_handles[ch] != NULL) {
