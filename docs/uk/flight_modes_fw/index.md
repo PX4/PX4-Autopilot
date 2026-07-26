@@ -47,6 +47,7 @@ Manual-Acrobatic
 - [Місія](../flight_modes_fw/mission.md) — Транспортний засіб виконує [передбачений план місії/польоту](../flying/missions.md), який був завантажений до керуючого пристрою польоту.
 - [Зліт](../flight_modes_fw/takeoff.md) — Транспортний засіб ініціює послідовність підйому, використовуючи лише _режим запуску за допомогою катапульта або запуску вручну_ або _режим зльоту зі злітної смуги_ (у поточному напрямку).
 - [Посадка](../flight_modes_fw/land.md) — Вертикальний апарат активує послідовність [посадки планера](../flight_modes_fw/mission.md#mission-landing).
+- [Descend](../flight_modes_fw/descend.md) — Failsafe fallback: the vehicle circles down at a fixed bank angle without position control (used when the position estimate is lost). Not pilot-selectable.
 - [Офборд](../flight_modes_fw/offboard.md) — Транспортний засіб слідкує за встановленими точками орієнтації, що надаються через MAVLink або ROS 2.
 
 Пілоти переходять між режимами польоту за допомогою перемикачів на дистанційному керуванні або зі станції земного керування (див. [Конфігурацію режиму польоту](../config/flight_mode.md)).

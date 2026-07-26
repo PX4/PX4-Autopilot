@@ -190,6 +190,7 @@ See messages
 - [HealthReport](../msg_docs/HealthReport.md)
 - [HeaterStatus](../msg_docs/HeaterStatus.md)
 - [HomePositionV0](../msg_docs/HomePositionV0.md)
+- [HomePositionV1](../msg_docs/HomePositionV1.md)
 - [HoverThrustEstimate](../msg_docs/HoverThrustEstimate.md)
 - [InternalCombustionEngineControl](../msg_docs/InternalCombustionEngineControl.md)
 - [InternalCombustionEngineStatus](../msg_docs/InternalCombustionEngineStatus.md)
