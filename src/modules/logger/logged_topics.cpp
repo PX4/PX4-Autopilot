@@ -232,7 +232,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	add_topic("vehicle_optical_flow", 500);
+	add_topic_multi("vehicle_optical_flow", 500, 2);
 	add_topic_multi("aux_global_position", 500);
 	add_optional_topic("pps_capture");
 
@@ -333,7 +333,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	// current EKF2 subscriptions
 	add_topic("airspeed");
 	add_topic("airspeed_validated");
-	add_topic("vehicle_optical_flow");
+	add_topic_multi("vehicle_optical_flow", 0, 2);
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");

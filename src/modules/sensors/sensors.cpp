@@ -135,9 +135,11 @@ Sensors::~Sensors()
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 
-	if (_vehicle_optical_flow) {
-		_vehicle_optical_flow->Stop();
-		delete _vehicle_optical_flow;
+	for (auto &vehicle_optical_flow : _vehicle_optical_flow) {
+		if (vehicle_optical_flow) {
+			vehicle_optical_flow->Stop();
+			delete vehicle_optical_flow;
+		}
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
@@ -482,14 +484,16 @@ void Sensors::InitializeVehicleMagnetometer()
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 void Sensors::InitializeVehicleOpticalFlow()
 {
-	if (_vehicle_optical_flow == nullptr) {
-		uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow)};
+	for (uint8_t i = 0; i < VehicleOpticalFlow::MAX_FLOW_INSTANCES; i++) {
+		if (_vehicle_optical_flow[i] == nullptr) {
+			uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow), i};
 
-		if (sensor_optical_flow_sub.advertised()) {
-			_vehicle_optical_flow = new VehicleOpticalFlow();
+			if (sensor_optical_flow_sub.advertised()) {
+				_vehicle_optical_flow[i] = new VehicleOpticalFlow(i);
 
-			if (_vehicle_optical_flow) {
-				_vehicle_optical_flow->Start();
+				if (_vehicle_optical_flow[i]) {
+					_vehicle_optical_flow[i]->Start();
+				}
 			}
 		}
 	}
@@ -697,9 +701,11 @@ int Sensors::print_status()
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 
-	if (_vehicle_optical_flow) {
-		PX4_INFO_RAW("\n");
-		_vehicle_optical_flow->PrintStatus();
+	for (auto &vehicle_optical_flow : _vehicle_optical_flow) {
+		if (vehicle_optical_flow) {
+			PX4_INFO_RAW("\n");
+			vehicle_optical_flow->PrintStatus();
+		}
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
