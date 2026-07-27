@@ -83,7 +83,6 @@
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/external_gimbal_manager_information.h>
 #include <uORB/topics/external_gimbal_manager_status.h>
-#include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
