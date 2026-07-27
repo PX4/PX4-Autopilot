@@ -44,7 +44,7 @@
 #include "EKF/ekf.h"
 
 #include "EKF2Selector.hpp"
-#include "SensorSlotBinder.hpp"
+#include <lib/sensor_slot_binder/SensorSlotBinder.hpp>
 #include "mathlib/math/filter/AlphaFilter.hpp"
 
 #include <float.h>
