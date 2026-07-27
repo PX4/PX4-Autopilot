@@ -45,7 +45,7 @@ using matrix::Vector2f;
 
 ModuleBase::Descriptor FwLateralLongitudinalControl::desc{task_spawn, custom_command, print_usage};
 
-// [m/s] maximum reference altitude rate threshhold
+// [m/s] maximum reference altitude rate threshold
 static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
 // [us] time after which the wind estimate is disabled if no longer updating
 static constexpr hrt_abstime WIND_EST_TIMEOUT = 10_s;
@@ -471,7 +471,10 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.throttle_integ = debug_output.control.throttle_integrator;
 	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
-	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
+
+	// Trim pitch is subtracted before entering TECS (in tecs_update_pitch_throttle),
+	// so it has to be added back here.
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;

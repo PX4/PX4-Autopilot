@@ -57,7 +57,8 @@ MavlinkReceiver::handle_message_battery_status_demo(mavlink_message_t *msg)
 	battery_status.timestamp = hrt_absolute_time();
 
 	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
-	battery_status.temperature = (float)battery_mavlink.temperature;
+	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
+				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
 
 	_battery_pub.publish(battery_status);

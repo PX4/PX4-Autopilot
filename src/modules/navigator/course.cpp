@@ -49,6 +49,9 @@ Course::Course(Navigator *navigator) :
 void
 Course::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	const vehicle_local_position_s *lpos = _navigator->get_local_position();
 
 	_altitude = _navigator->get_global_position()->alt;

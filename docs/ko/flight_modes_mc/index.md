@@ -38,6 +38,7 @@ Autonomous:
   This requires a global position estimate (GPS).
 - [Takeoff](../flight_modes_mc/takeoff.md) — Vehicle takes off vertically and then switches to _Hold mode_.
 - [Land](../flight_modes_mc/land.md) — Vehicle lands immediately.
+- [Descend](../flight_modes_mc/descend.md) — Failsafe fallback: the vehicle descends without horizontal position control (used when the position estimate is lost). Not pilot-selectable.
 - [Orbit](../flight_modes_mc/orbit.md) - Vehicle flys in a circle, yawing so that it always faces towards the center.
   RC control can optionally be used to change the orbit radius, direction, speed and so on.
 - [Follow Me](../flight_modes_mc/follow_me.md) — Vehicle follows a beacon that is providing position setpoints.

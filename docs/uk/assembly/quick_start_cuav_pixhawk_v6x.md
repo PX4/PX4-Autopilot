@@ -39,7 +39,7 @@
 
 ## GPS + компас + зумер + захисний вимикач + світлодіод
 
-Pixhawk<sup>®</sup> V6X можна придбати з GPS [NEO3](https://store.cuav.net/shop/neo-3/) (10-контактний роз'єм) та слід підключити до порту **GPS1**.
+The Pixhawk<sup>&reg;</sup> V6X can be purchased with a [NEO3 GPS](https://store.cuav.net/shop/neo-3-pro/) (10-pin connector) and should be connected to the **GPS1** port.
 Ці модулі GNSS мають вбудований компас, безпечний перемикач, дзвіночок та світлодіод.
 
 Якщо вам потрібно використовувати допоміжний GPS, підключіться до порту **GPS2**.
@@ -49,7 +49,7 @@ GPS/компас слід [монтувати на раму](../assembly/mount_g
 ![GPS](../../assets/flight_controller/cuav_pixhawk_v6x/quickstart_03.jpg)
 
 :::info
-Pixhawk V6X<sup>&reg;</sup> is not compatible with NEO V2 GPS built-in buzzer: you should use [NEO3/NEO 3Pro](https://store.cuav.net/shop/neo-3/) instead.
+Pixhawk V6X<sup>&reg;</sup> is not compatible with NEO V2 GPS built-in buzzer: you should use [NEO3/NEO 3Pro](https://store.cuav.net/shop/neo-3-pro/) instead.
 Вбудований безпечний вимикач в GPS-модулі увімкнений _за замовчуванням_ (коли включений, PX4 не дозволить вам готувати до польоту).
 Щоб вимкнути безпеку, натисніть і утримуйте безпечний вимикач протягом 1 секунди.
 Ви можете натиснути безпечний вимикач знову, щоб увімкнути безпеку та відключити транспортний засіб (це може бути корисно, якщо, з якихось причин, ви не можете вимкнути транспортний засіб за допомогою вашого пульта дистанційного керування або наземної станції).
@@ -85,7 +85,7 @@ Connect the 6pin connector of the module to the flight control **Power C1** or *
 Бортову радіостанцію слід підключити до порту **TELEM1**/**TELEM2**/**TELEM3**, як показано нижче (у разі підключення до **TELEM1**, подальша конфігурація не потрібна).
 Інша радіостанція підключається до вашого комп'ютера або мобільного пристрою наземної станції (зазвичай за допомогою USB).
 
-Ви також можете придбати телеметричні радіо з [магазину CUAV](https://store.cuav.net/uav-telemetry-module/).
+You can also purchase telemetry radios from the [CUAV store](https://store.cuav.net/category/telemetry/).
 
 ![Telemetry radios](../../assets/flight_controller/cuav_pixhawk_v6x/quickstart_06.jpg)
 

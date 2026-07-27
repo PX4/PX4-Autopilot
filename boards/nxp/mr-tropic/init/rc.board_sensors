@@ -45,7 +45,12 @@ then
 fi
 
 # Internal SPI bus icm45686
-icm45686 -R 2 -b 3 -s start
+if ! icm45686 -R 2 -b 3 -s start
+then
+	# Internal SPI bus icm42686p
+	icm42688p -R 2 -b 3 -s -6 start
+fi
+
 
 # Internal on IMU SPI BMI088
 bmi088 -A -R 2 -b 4 -s start

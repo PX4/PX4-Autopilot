@@ -24,7 +24,7 @@ Follow the [ROS 2 Installation & Setup](../ros2/user_guide.md#installation-setup
 
 You will also need to install:
 
-- [PlotJuggler for ROS2](https://github.com/facontidavide/PlotJuggler)
+- [PlotJuggler for ROS2](https://github.com/PlotJuggler/PlotJuggler)
 
   ::: tip
   Use the Debian packages (the snap files are not supported).

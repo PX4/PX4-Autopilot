@@ -47,6 +47,7 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 	case failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_MAG:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_BARO:
+	case failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR:
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF
 		       || type == failure_injection_s::FAILURE_TYPE_STUCK;
@@ -130,12 +131,15 @@ void FailureTable::compact()
 
 FailureTable::AckResult FailureTable::inject(uint8_t unit, uint8_t type, uint8_t instance)
 {
+	return injectMask(unit, type, instanceToMask(instance));
+}
+
+FailureTable::AckResult FailureTable::injectMask(uint8_t unit, uint8_t type, uint16_t mask)
+{
 	// Validate the request against the capability catalogue.
 	if (!isSupported(unit, type)) {
 		return AckResult::Unsupported;
 	}
-
-	const uint16_t mask = instanceToMask(instance);
 
 	if (mask == 0) {
 		// Out-of-range instance: nothing addressable to do.

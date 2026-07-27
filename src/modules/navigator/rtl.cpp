@@ -403,6 +403,35 @@ void RTL::setRtlTypeAndDestination()
 
 	_rtl_type = new_rtl_type;
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+	// Update destination of geofence avoidance planner. Depending on the
+	// RTL type it is the position of the loiter or mission landing.
+
+	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+	matrix::Vector2d planner_destination{(double)NAN, (double)NAN};
+
+	if (new_rtl_type == RtlType::RTL_DIRECT) {
+		planner_destination = matrix::Vector2d{landing_loiter.lat, landing_loiter.lon};
+
+	} else if (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND && _rtl_mission_type_handle) {
+		planner_destination = _rtl_mission_type_handle->getRtlPlannerDestination();
+	}
+
+	if (planner_destination.isAllFinite()) {
+		planner.updateDestination(planner_destination);
+	}
+
+	const vehicle_global_position_s gpos = _global_pos_sub.get();
+
+	const bool gpos_recent = gpos.timestamp > 0 && hrt_elapsed_time(&gpos.timestamp) < 10_s;
+
+	if (gpos_recent) {
+		planner.updateStartAndFillPath(matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon));
+	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 	// Publish rtl status
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = _safe_points_id;

@@ -39,6 +39,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+
 class PX4Barometer
 {
 public:
@@ -57,4 +59,7 @@ private:
 	uORB::PublicationMulti<sensor_baro_s> _sensor_pub{ORB_ID(sensor_baro)};
 
 	sensor_baro_s	_report{};
+
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_baro_s> _stuck;
 };

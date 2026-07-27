@@ -128,7 +128,6 @@ px4_add_module(
 		module.yaml
 		mavlink_params.yaml
 	DEPENDS
-		adsb
 		airspeed
 		component_general_json # for checksums.h
 		dataman_client

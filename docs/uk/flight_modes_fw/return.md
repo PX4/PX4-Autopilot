@@ -4,10 +4,10 @@
 
 Режим польоту _Return_ використовується для _повернення транспортного засобу до безпеки_ по вільному шляху до безпечного пункту призначення, де він може приземлитися.
 
-Літаки з фіксованим крилом за замовчуванням використовують тип повернення до призначення [місії посадки/точка збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1), і завжди передбачається, що у них буде завдання з шаблоном посадки.
+Fixed-wing vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default, and are expected to always have a mission with a landing pattern.
 З цією конфігурацією режим повернення зумовлює підняття транспортного засобу на мінімальну безпечну висоту над перешкодами (якщо потрібно), польот до початку схеми посадки, визначеної у плані місії, і далі слідує за нею для посадки.
 
-Фіксоване крило підтримує [інші типи повернення PX4](../flight_modes/return.md#return-types-rtl-type), включаючи повернення додому/радільної точки, маршрут місії та найближче безпечне місце призначення.
+Fixed-wing supports the [other PX4 return types](../flight_modes/return.md#return_types), including home/rally point return, mission path and closest safe destination.
 За замовчуванням рекомендується використовувати цей тип.
 
 ::: info
@@ -33,7 +33,8 @@
 - Піднімається на безпечну мінімальну висоту повернення, визначену за допомогою [RTL_RETURN_ALT](#RTL_RETURN_ALT) (безпечно вище будь-яких очікуваних перешкод).
   Транспортний засіб підтримує свою початкову висоту, якщо вона вище, ніж мінімальна висота повернення.
   Зверніть увагу, що висоту повернення не можна налаштувати, використовуючи параметр "cone" в літаках з фіксованим крилом.
-- Летить прямим шляхом на постійній висоті до призначення, яким буде найближча з точки старту місійного маршруту посадки та будь-яка точка збору, або домашня локація, якщо місійний маршрут посадки або точки збору не визначені.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+  The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
 - Якщо призначення - це шаблон посадки місії, воно буде слідувати за шаблоном для посадки.
 - Якщо місце призначення - це точка ралі або дім, воно спуститься на висоту спуску, а потім обережно почекає або приземлиться (в залежності від параметрів посадки).
 

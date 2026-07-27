@@ -214,32 +214,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 			_px4_accel[sensors.id].set_scale(ACCEL_FIFO_SCALE);
 			_px4_accel[sensors.id].set_range(ACCEL_FIFO_RANGE);
+			_px4_accel[sensors.id].set_temperature(_sensors_temperature);
 
-			if (_accel_stuck[sensors.id]) {
-				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
+			sensor_accel_fifo_s accel_fifo{};
+			accel_fifo.samples = 1;
+			accel_fifo.dt = time - _last_accel_fifo_timestamp;
+			accel_fifo.timestamp_sample = time;
+			accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
+			accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
+			accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+			_last_accel_fifo_timestamp = time;
 
-			} else if (!_accel_blocked[sensors.id]) {
-				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
-
-				_last_accel_fifo.samples = 1;
-				_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
-				_last_accel_fifo.timestamp_sample = time;
-				_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
-				_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
-				_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
-
-				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
-			}
+			_px4_accel[sensors.id].updateFIFO(accel_fifo);
 
 		} else {
-			if (_accel_stuck[sensors.id]) {
-				_px4_accel[sensors.id].update(time, _last_accel[sensors.id](0), _last_accel[sensors.id](1), _last_accel[sensors.id](2));
-
-			} else if (!_accel_blocked[sensors.id]) {
-				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
-				_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-				_last_accel[sensors.id] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
-			}
+			_px4_accel[sensors.id].set_temperature(_sensors_temperature);
+			_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 		}
 	}
 
@@ -257,32 +247,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 			_px4_gyro[sensors.id].set_scale(GYRO_FIFO_SCALE);
 			_px4_gyro[sensors.id].set_range(GYRO_FIFO_RANGE);
+			_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
 
-			if (_gyro_stuck[sensors.id]) {
-				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
+			sensor_gyro_fifo_s gyro_fifo{};
+			gyro_fifo.samples = 1;
+			gyro_fifo.dt = time - _last_gyro_fifo_timestamp;
+			gyro_fifo.timestamp_sample = time;
+			gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
+			gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
+			gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+			_last_gyro_fifo_timestamp = time;
 
-			} else if (!_gyro_blocked[sensors.id]) {
-				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
-
-				_last_gyro_fifo.samples = 1;
-				_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
-				_last_gyro_fifo.timestamp_sample = time;
-				_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
-				_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
-				_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
-
-				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
-			}
+			_px4_gyro[sensors.id].updateFIFO(gyro_fifo);
 
 		} else {
-			if (_gyro_stuck[sensors.id]) {
-				_px4_gyro[sensors.id].update(time, _last_gyro[sensors.id](0), _last_gyro[sensors.id](1), _last_gyro[sensors.id](2));
-
-			} else if (!_gyro_blocked[sensors.id]) {
-				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
-				_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-				_last_gyro[sensors.id] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
-			}
+			_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
+			_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 		}
 	}
 
@@ -293,16 +273,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			return;
 		}
 
-		if (_mag_stuck[sensors.id]) {
-			_px4_mag[sensors.id].update(time, _last_magx[sensors.id], _last_magy[sensors.id], _last_magz[sensors.id]);
-
-		} else if (!_mag_blocked[sensors.id]) {
-			_px4_mag[sensors.id].set_temperature(_sensors_temperature);
-			_px4_mag[sensors.id].update(time, sensors.xmag, sensors.ymag, sensors.zmag);
-			_last_magx[sensors.id] = sensors.xmag;
-			_last_magy[sensors.id] = sensors.ymag;
-			_last_magz[sensors.id] = sensors.zmag;
-		}
+		_px4_mag[sensors.id].set_temperature(_sensors_temperature);
+		_px4_mag[sensors.id].update(time, sensors.xmag, sensors.ymag, sensors.zmag);
 	}
 
 	// baro
@@ -312,16 +284,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			return;
 		}
 
-		if (_baro_stuck[sensors.id]) {
-			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
-			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
-
-		} else if (!_baro_blocked[sensors.id]) {
-			_last_baro_pressure[sensors.id] = sensors.abs_pressure * 100.f; // hPa to Pa
-			_last_baro_temperature[sensors.id] = sensors.temperature;
-			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
-			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
-		}
+		_px4_baro[sensors.id].set_temperature(sensors.temperature);
+		_px4_baro[sensors.id].update(time, sensors.abs_pressure * 100.f); // hPa to Pa
 	}
 
 	// differential pressure
@@ -1497,30 +1461,6 @@ void SimulatorMavlink::run()
 void SimulatorMavlink::updateFailureConfig()
 {
 	_failure_config.update();
-
-	for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, i + 1);
-		_accel_blocked[i] = (mode == failure_injection::Mode::Off);
-		_accel_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, i + 1);
-		_gyro_blocked[i] = (mode == failure_injection::Mode::Off);
-		_gyro_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	for (int i = 0; i < MAG_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_MAG, i + 1);
-		_mag_blocked[i] = (mode == failure_injection::Mode::Off);
-		_mag_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	for (int i = 0; i < BARO_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, i + 1);
-		_baro_blocked[i] = (mode == failure_injection::Mode::Off);
-		_baro_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
 
 	const failure_injection::Mode gps_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, 1);
 	_gps_blocked = (gps_mode == failure_injection::Mode::Off);

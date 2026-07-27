@@ -95,16 +95,32 @@ bool HomePosition::setHomePosition(bool force)
 
 	bool updated = false;
 	home_position_s home{};
+	home.x = NAN;
+	home.y = NAN;
+	home.z = NAN;
+	home.roll = NAN;
+	home.pitch = NAN;
+	home.yaw = NAN;
 
 	if (!_failsafe_flags.local_position_invalid) {
 		// Set home position in local coordinates
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 		_heading_reset_counter = lpos.heading_reset_counter; // TODO: should not be here
 
-		const vehicle_attitude_s &attitude = _attitude_sub.get();
-
-		fillLocalHomePos(home, lpos, attitude);
+		fillLocalHomePos(home, lpos);
 		updated = true;
+	}
+
+	if (!_failsafe_flags.attitude_invalid && _vehicle_land_detected_sub.get().landed) {
+		// Capture orientation only on the ground, where it is the orientation at the home point.
+		fillAttitude(home, _attitude_sub.get());
+		updated = true;
+
+	} else {
+		home.roll = _home_position_pub.get().roll;
+		home.pitch = _home_position_pub.get().pitch;
+		home.yaw = _home_position_pub.get().yaw;
+		home.valid_attitude = _home_position_pub.get().valid_attitude;
 	}
 
 	if (!_failsafe_flags.global_position_invalid) {
@@ -139,25 +155,26 @@ bool HomePosition::setHomePosition(bool force)
 	return updated;
 }
 
-void HomePosition::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos,
-				    const vehicle_attitude_s &attitude)
+void HomePosition::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos)
 {
-	matrix::Quatf q(attitude.q);
-	matrix::Eulerf euler(q);
-	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z, euler(0), euler(1), euler(2));
+	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z);
 }
 
-void HomePosition::fillLocalHomePos(home_position_s &home, float x, float y, float z, float roll, float pitch,
-				    float yaw)
+void HomePosition::fillLocalHomePos(home_position_s &home, float x, float y, float z)
 {
 	home.x = x;
 	home.y = y;
 	home.z = z;
 	home.valid_lpos = true;
+}
 
-	home.roll = roll;
-	home.pitch = pitch;
-	home.yaw = yaw;
+void HomePosition::fillAttitude(home_position_s &home, const vehicle_attitude_s &attitude)
+{
+	const matrix::Eulerf euler(matrix::Quatf(attitude.q));
+	home.roll = euler.phi();
+	home.pitch = euler.theta();
+	home.yaw = euler.psi();
+	home.valid_attitude = true;
 }
 
 void HomePosition::fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos)
@@ -239,7 +256,7 @@ void HomePosition::setInAirHomePosition()
 			ref_pos.project(home.lat, home.lon, home_x, home_y);
 
 			const float home_z = -(home.alt - lpos.ref_alt);
-			fillLocalHomePos(home, home_x, home_y, home_z, NAN, NAN, NAN);
+			fillLocalHomePos(home, home_x, home_y, home_z);
 
 			home.timestamp = hrt_absolute_time();
 			home.update_count++;
@@ -281,6 +298,7 @@ bool HomePosition::setManually(double lat, double lon, float alt, float roll, fl
 	home.roll = roll;
 	home.pitch = pitch;
 	home.yaw = yaw;
+	home.valid_attitude = PX4_ISFINITE(roll) && PX4_ISFINITE(pitch) && PX4_ISFINITE(yaw);
 
 	home.timestamp = hrt_absolute_time();
 	home.update_count++;
@@ -329,6 +347,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 	_local_position_sub.update();
 	_global_position_sub.update();
 	_attitude_sub.update();
+	_vehicle_land_detected_sub.update();
 
 	if (_vehicle_air_data_sub.updated()) {
 		vehicle_air_data_s baro_data;
@@ -423,11 +442,13 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 	if (check_if_changed && set_automatically) {
 		const bool can_set_home_lpos_first_time = !home.valid_lpos && !_failsafe_flags.local_position_invalid;
+		const bool can_set_home_attitude_first_time = !home.valid_attitude;
 		const bool can_set_home_gpos_first_time = ((!home.valid_hpos || !home.valid_alt)
 				&& (!_failsafe_flags.global_position_invalid || _gps_position_for_home_valid));
 		const bool can_set_home_alt_first_time = (!home.valid_alt && lpos.z_global);
 
 		if (can_set_home_lpos_first_time
+		    || can_set_home_attitude_first_time
 		    || can_set_home_gpos_first_time
 		    || can_set_home_alt_first_time
 		    || hasMovedFromCurrentHomeLocation()) {

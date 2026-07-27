@@ -48,6 +48,7 @@
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
+#include <lib/geofence/geofence_utils.h>
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
@@ -183,6 +184,8 @@ void Geofence::run()
 			status.status = geofence_status_s::GF_STATUS_READY;
 
 			_geofence_status_pub.publish(status);
+
+			_geofence_updated = true;
 		}
 
 		break;
@@ -272,7 +275,7 @@ void Geofence::_updateFence()
 
 				} else {
 					polygon.vertex_count = mission_fence_point.vertex_count;
-					current_seq += mission_fence_point.vertex_count;
+					current_seq += polygon.vertex_count;
 				}
 
 				// check if requiremetns for Home location are met
@@ -733,4 +736,22 @@ void Geofence::printStatus()
 
 	PX4_INFO("Geofence: polygons: %i inclusion, %i exclusion, %i vertices; circles: %i inclusion, %i exclusion",
 		 num_inclusion_polygons, num_exclusion_polygons, total_num_vertices, num_inclusion_circles, num_exclusion_circles);
+}
+
+matrix::Vector2<double>Geofence::getPolygonVertexByIndex(int poly_idx, int idx)
+{
+	PolygonInfo info = _polygons[poly_idx];
+
+	mission_fence_point_s vertex{};
+
+	dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+	const bool success = _dataman_cache.loadWait(fence_dataman_id, info.dataman_index + idx,
+			     reinterpret_cast<uint8_t *>(&vertex),
+			     sizeof(mission_fence_point_s));
+
+	if (!success) {
+		return matrix::Vector2<double> {(double)NAN, (double)NAN};
+	}
+
+	return matrix::Vector2d {vertex.lat, vertex.lon};
 }

@@ -73,8 +73,6 @@ void BatterySimulator::Run()
 		updateParams();
 	}
 
-	updateFailureConfig();
-
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
@@ -106,10 +104,6 @@ void BatterySimulator::Run()
 	float vbatt = math::interpolate(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(),
 					_battery.full_cell_voltage());
 
-	if (_force_empty_battery) {
-		vbatt = _battery.empty_cell_voltage();
-	}
-
 	vbatt *= _battery.cell_count();
 
 	_battery.setConnected(true);
@@ -118,16 +112,6 @@ void BatterySimulator::Run()
 	_battery.updateAndPublishBatteryStatus(now_us);
 
 	perf_end(_loop_perf);
-}
-
-void BatterySimulator::updateFailureConfig()
-{
-	_failure_config.update();
-
-	// Force the battery empty for FAILURE_TYPE_OFF - not perfectly accurate, but
-	// achieves the intended battery failsafe.
-	_force_empty_battery = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, 1)
-				== failure_injection::Mode::Off);
 }
 
 int BatterySimulator::task_spawn(int argc, char *argv[])

@@ -605,6 +605,18 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 	sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
 
+	_failure_config.update();
+
+	const int node_id = msg.getSrcNodeID().get();
+	const int8_t channel = get_channel_index_for_node(node_id);
+	const int instance = get_orb_instance_for_node(node_id);
+
+	if (channel >= 0 && instance >= 0
+	    && !failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+					   instance, sensor_gps, _stuck[channel])) {
+		return;
+	}
+
 	publish(msg.getSrcNodeID().get(), &sensor_gps);
 }
 
@@ -613,16 +625,85 @@ void UavcanGnssBridge::update()
 	handleInjectDataTopic();
 }
 
-// Partially taken from src/drivers/gps/gps.cpp
-// This listens on the gps_inject_data uORB topic for RTCM data
-// sent from a GCS (usually over MAVLINK GPS_RTCM_DATA).
-// Forwarding this data to the UAVCAN bus enables DGPS/RTK GPS
-// to work.
+// Drains rtcm_corrections (fixed-base RTCM from a GCS over MAVLink, or CAN nodes) to
+// uavcan::RTCMStream. Several sources may be active (one uORB instance each); switch to a
+// different instance if the selected one goes stale.
+void UavcanGnssBridge::drainRtcmCorrections()
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	bool already_copied = false;
+	rtcm_data_s msg;
+
+	if (now > _last_rtcm_injection_time + 5_s) {
+		for (int instance = 0; instance < _rtcm_corrections_sub.size(); instance++) {
+			if (_rtcm_corrections_sub[instance].advertised() && _rtcm_corrections_sub[instance].copy(&msg)) {
+				if (now < msg.timestamp + 5_s) {
+					already_copied = true;
+					_selected_rtcm_instance = instance;
+					break;
+				}
+			}
+		}
+	}
+
+	bool updated = already_copied;
+	size_t num_injections = 0;
+
+	do {
+		if (updated) {
+			num_injections++;
+			PublishRTCMStream(msg.data, msg.len);
+			_rtcm_injection_rate_message_count++;
+			_last_rtcm_injection_time = hrt_absolute_time();
+		}
+
+		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
+		const unsigned last_generation = sub.get_last_generation();
+
+		updated = sub.update(&msg);
+
+		if (updated && sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
+				 last_generation, sub.get_last_generation());
+		}
+	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
+}
+
+// Drains rtcm_moving_baseline (moving-base RTCM 4072 from a peer GPS) to
+// ardupilot::MovingBaselineData. Single publisher (instance 0), so no stale-link selection.
+void UavcanGnssBridge::drainMovingBaseline()
+{
+	rtcm_data_s msg;
+	size_t num_injections = 0;
+
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		const unsigned last_generation = _rtcm_moving_baseline_sub.get_last_generation();
+
+		if (!_rtcm_moving_baseline_sub.update(&msg)) {
+			break;
+		}
+
+		num_injections++;
+
+		if (_rtcm_moving_baseline_sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("%s lost, generation %u -> %u", _rtcm_moving_baseline_sub.get_topic()->o_name,
+				 last_generation, _rtcm_moving_baseline_sub.get_last_generation());
+		}
+
+		PublishMovingBaselineData(msg.data, msg.len);
+	}
+}
+
+// The two RTCM streams use separate CAN publishers: fixed-base corrections go to
+// uavcan::RTCMStream and moving-baseline RTCM to ardupilot::MovingBaselineData, so corrections
+// are never mirrored onto the moving-baseline message.
 void UavcanGnssBridge::handleInjectDataTopic()
 {
-	hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
 
-	// measure RTCM update rate every 5 seconds
+	// Measure the fixed-base corrections injection rate every 5 seconds (moving-baseline forwarding
+	// is tracked separately via _moving_baseline_data_pub_perf, so it is excluded here).
 	if (now > _last_rate_measurement + 5_s) {
 		float dt = (now - _last_rate_measurement) / 1e6f;
 		_rtcm_injection_rate = _rtcm_injection_rate_message_count / dt;
@@ -630,72 +711,13 @@ void UavcanGnssBridge::handleInjectDataTopic()
 		_rtcm_injection_rate_message_count = 0;
 	}
 
-	// We don't want to call copy again further down if we have already done a
-	// copy in the selection process.
-	bool already_copied = false;
-	gps_inject_data_s msg;
-
-	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (now > _last_rtcm_injection_time + 5_s) {
-
-		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
-			const bool exists = _orb_inject_data_sub[instance].advertised();
-
-			if (exists) {
-				if (_orb_inject_data_sub[instance].copy(&msg)) {
-					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
-						// Remember that we already did a copy on this instance.
-						already_copied = true;
-						_selected_rtcm_instance = instance;
-						break;
-					}
-				}
-			}
-		}
+	if (_publish_rtcm_stream) {
+		drainRtcmCorrections();
 	}
 
-	bool updated = already_copied;
-
-	// Limit maximum number of GPS injections to 8 since usually
-	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
-	// Looking at 8 packets thus guarantees, that at least a full injection
-	// data set is evaluated.
-	// Moving Base requires a higher rate, so we allow up to 8 packets.
-	const size_t max_num_injections = gps_inject_data_s::ORB_QUEUE_LENGTH;
-	size_t num_injections = 0;
-
-	do {
-		if (updated) {
-			num_injections++;
-
-			// Write the message to the gps device. Note that the message could be fragmented.
-			// But as we don't write anywhere else to the device during operation, we don't
-			// need to assemble the message first.
-			if (_publish_rtcm_stream) {
-				PublishRTCMStream(msg.data, msg.len);
-			}
-
-			if (_publish_moving_baseline_data) {
-				PublishMovingBaselineData(msg.data, msg.len);
-			}
-
-			++_rtcm_injection_rate_message_count;
-			_last_rtcm_injection_time = hrt_absolute_time();
-		}
-
-		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
-
-		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
-
-		updated = gps_inject_data_sub.update(&msg);
-
-		if (updated) {
-			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
-				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
-			}
-		}
-
-	} while (updated && num_injections < max_num_injections);
+	if (_publish_moving_baseline_data) {
+		drainMovingBaseline();
+	}
 }
 
 bool UavcanGnssBridge::PublishRTCMStream(const uint8_t *const data, const size_t data_len)

@@ -86,7 +86,7 @@ MavlinkReceiver::~MavlinkReceiver()
 #endif // !CONSTRAINED_FLASH
 
 	_distance_sensor_pub.unadvertise();
-	_gps_inject_data_pub.unadvertise();
+	_rtcm_corrections_pub.unadvertise();
 	_rc_pub.unadvertise();
 	_manual_control_input_pub.unadvertise();
 	_ping_pub.unadvertise();
@@ -2009,6 +2009,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.temperature = (battery_mavlink.temperature == INT16_MAX) ?
 				     NAN : (float)battery_mavlink.temperature / 100.0f;
 	battery_status.connected = true;
+	battery_status.time_remaining_s = (battery_mavlink.time_remaining > 0) ? static_cast<float>(battery_mavlink.time_remaining) : NAN;
 
 	// Set the battery warning based on remaining charge, if available.
 	//  Note: Smallest values must come first in evaluation.
@@ -2871,19 +2872,17 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.tslc = adsb.tslc;
 	t.squawk = adsb.squawk;
 
-	t.flags = transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;  //Unset in receiver already broadcast its messages
-
-	if (adsb.flags & ADSB_FLAGS_VALID_COORDS) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_ALTITUDE) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_HEADING) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_VELOCITY) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_CALLSIGN) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; }
-
-	if (adsb.flags & ADSB_FLAGS_VALID_SQUAWK) { t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK; }
+	t.flags = adsb.flags; // The PX4_ADSB_FLAGS_* bit values are defined to be identical to MAVLink's ADSB_FLAGS bitmask (see TransponderReport.msg),
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS == ADSB_FLAGS_VALID_COORDS);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE == ADSB_FLAGS_VALID_ALTITUDE);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING == ADSB_FLAGS_VALID_HEADING);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY == ADSB_FLAGS_VALID_VELOCITY);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN == ADSB_FLAGS_VALID_CALLSIGN);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK == ADSB_FLAGS_VALID_SQUAWK);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_SIMULATED == ADSB_FLAGS_SIMULATED);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_VERTICAL_VELOCITY_VALID == ADSB_FLAGS_VERTICAL_VELOCITY_VALID);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_BARO_VALID == ADSB_FLAGS_BARO_VALID);
+	static_assert(transponder_report_s::PX4_ADSB_FLAGS_SOURCE_UAT == ADSB_FLAGS_SOURCE_UAT);
 
 	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
 
@@ -2909,38 +2908,38 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 				 packet_len, now, message_len);
 
 	if (message != nullptr) {
-		publish_gps_inject_data(message, message_len);
+		publish_rtcm_corrections(message, message_len);
 
 		// addPacket() can queue at most one deferred message.
 		const uint8_t *deferred_message = _gps_rtcm_message_assembler.takeDeferredMessage(message_len);
 
 		if (deferred_message != nullptr) {
-			publish_gps_inject_data(deferred_message, message_len);
+			publish_rtcm_corrections(deferred_message, message_len);
 		}
 	}
 }
 
 void
-MavlinkReceiver::publish_gps_inject_data(const uint8_t *data, size_t len)
+MavlinkReceiver::publish_rtcm_corrections(const uint8_t *data, size_t len)
 {
-	gps_inject_data_s gps_inject_data_topic{};
-	constexpr uint8_t gps_inject_data_flag_fragmented = 1;
+	rtcm_data_s rtcm_corrections_topic{};
+	constexpr uint8_t rtcm_corrections_flag_fragmented = 1;
 
-	const size_t capacity = sizeof(gps_inject_data_topic.data);
-	// gps_inject_data only carries the transport-level fragmented bit. The
+	const size_t capacity = sizeof(rtcm_corrections_topic.data);
+	// rtcm_corrections only carries the transport-level fragmented bit. The
 	// MAVLink fragment/sequence bits are consumed by the assembler above.
-	gps_inject_data_topic.flags = (len > capacity) ? gps_inject_data_flag_fragmented : 0;
+	rtcm_corrections_topic.flags = (len > capacity) ? rtcm_corrections_flag_fragmented : 0;
 
 	size_t written = 0;
 
-	// gps_inject_data transports RTCM in 300-byte uORB chunks, so a fully
+	// rtcm_corrections transports RTCM in 300-byte uORB chunks, so a fully
 	// reassembled RTCM frame may still require multiple publications.
 	while (written < len) {
 		const size_t chunk_len = math::min(len - written, capacity);
-		gps_inject_data_topic.timestamp = hrt_absolute_time();
-		gps_inject_data_topic.len = static_cast<decltype(gps_inject_data_topic.len)>(chunk_len);
-		memcpy(gps_inject_data_topic.data, &data[written], chunk_len);
-		_gps_inject_data_pub.publish(gps_inject_data_topic);
+		rtcm_corrections_topic.timestamp = hrt_absolute_time();
+		rtcm_corrections_topic.len = static_cast<decltype(rtcm_corrections_topic.len)>(chunk_len);
+		memcpy(rtcm_corrections_topic.data, &data[written], chunk_len);
+		_rtcm_corrections_pub.publish(rtcm_corrections_topic);
 		written += chunk_len;
 	}
 }

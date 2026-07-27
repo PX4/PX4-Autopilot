@@ -186,22 +186,22 @@ bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
 	switch (test_type) {
 	case ADVERTISE_TEST_TYPE:
 		rc = topic_advertised(muorb_test_topic_name);
-		PX4_INFO("succesfully did ADVERTISE_TEST_TYPE");
+		PX4_INFO("successfully did ADVERTISE_TEST_TYPE");
 		break;
 
 	case SUBSCRIBE_TEST_TYPE:
 		rc = add_subscription(muorb_test_topic_name, 1000);
-		PX4_INFO("succesfully did SUBSCRIBE_TEST_TYPE");
+		PX4_INFO("successfully did SUBSCRIBE_TEST_TYPE");
 		break;
 
 	case TOPIC_TEST_TYPE:
 		rc = fc_sensor_send_data(muorb_test_topic_name, test_data, MUORB_TEST_DATA_LEN);
-		PX4_INFO("succesfully did TOPIC_TEST_TYPE");
+		PX4_INFO("successfully did TOPIC_TEST_TYPE");
 		break;
 
 	case UNSUBSCRIBE_TEST_TYPE:
 		rc = remove_subscription(muorb_test_topic_name);
-		PX4_INFO("succesfully did UNSUBSCRIBE_TEST_TYPE");
+		PX4_INFO("successfully did UNSUBSCRIBE_TEST_TYPE");
 		break;
 
 	default:
@@ -269,10 +269,10 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 				  };
 
 		if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initialize method failed"); }
 
 		} else {
-			PX4_INFO("muorb protobuf initalize method succeeded");
+			PX4_INFO("muorb protobuf initialize method succeeded");
 
 			_task_handle = px4_task_spawn_cmd("muorb_keepalive",
 							  SCHED_DEFAULT,

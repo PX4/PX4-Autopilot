@@ -4,7 +4,7 @@
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
-Contact the [manufacturer](https://aedrox.com/) for hardware support.
+Contact the [manufacturer](https://www.aedrox.com/) for hardware support.
 :::
 
 The AEDROXH7 is an STM32H743-based FPV / racing flight controller from AEDROX.

@@ -42,7 +42,6 @@ px4_add_module(
 		battery_simulator_params.yaml
 	DEPENDS
 		battery
-		failure_injection
 		mathlib
 		px4_work_queue
 	)

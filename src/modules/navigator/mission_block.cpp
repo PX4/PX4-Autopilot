@@ -615,6 +615,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
+	sp->course = NAN; // mission items never command a course, only Course mode sets it
 	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
 			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
@@ -698,27 +699,26 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 }
 
 void
-MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item)
+MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item,
+		const position_setpoint_s &reference_setpoint)
 {
-	setLoiterItemCommonFields(item);
+	setLoiterItemCommonFields(&item);
 
-	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	item->lat = pos_sp_triplet->current.lat;
-	item->lon = pos_sp_triplet->current.lon;
-	item->altitude = pos_sp_triplet->current.alt;
-	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
-			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
-	item->yaw = pos_sp_triplet->current.yaw;
+	item.lat = reference_setpoint.lat;
+	item.lon = reference_setpoint.lon;
+	item.altitude = reference_setpoint.alt;
+	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
+			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
+	item.yaw = reference_setpoint.yaw;
 }
 
 void
-MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
+MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s &item)
 {
-	setLoiterItemCommonFields(item);
+	setLoiterItemCommonFields(&item);
 
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
+	item.lat = _navigator->get_global_position()->lat;
+	item.lon = _navigator->get_global_position()->lon;
 
 	// check if minimum loiter altitude is specified, and enforce it if so
 	float loiter_altitude_amsl = _navigator->get_global_position()->alt;
@@ -728,9 +728,9 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 						 _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
 	}
 
-	item->altitude = loiter_altitude_amsl;
-	item->loiter_radius = _navigator->get_default_loiter_rad();
-	item->yaw = NAN;
+	item.altitude = loiter_altitude_amsl;
+	item.loiter_radius = _navigator->get_default_loiter_rad();
+	item.yaw = NAN;
 }
 
 void
@@ -1065,7 +1065,7 @@ void MissionBlock::updateMaxHaglFailsafe()
 		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
 
 		// While waiting for a failsafe action from commander, keep the curren position
-		setLoiterItemFromCurrentPosition(&_mission_item);
+		setLoiterItemFromCurrentPosition(_mission_item);
 
 		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 

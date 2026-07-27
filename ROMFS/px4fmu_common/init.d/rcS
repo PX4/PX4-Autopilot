@@ -715,6 +715,14 @@ else
 	fi
 
 	#
+	# Start the failure injection manager. SYS_FAILURE_EN only exists when the module is built
+	#
+	if param compare -s SYS_FAILURE_EN 1
+	then
+		failure_injection_manager start
+	fi
+
+	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
