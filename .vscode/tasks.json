@@ -50,6 +50,26 @@
             }
         },
         {
+            "label": "build px4_sitl_sih (Debug)",
+            "type": "shell",
+            "command": "make px4_sitl_sih PX4_CMAKE_BUILD_TYPE=Debug",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": {
+                "base": "$gcc",
+                "fileLocation": ["relative", "${workspaceFolder}/build/px4_sitl_sih"]
+            },
+            "presentation": {
+                "echo": false,
+                "showReuseMessage": false,
+                "clear": true,
+                "panel": "shared",
+                "group": "build"
+            }
+        },
+        {
             "label": "jmavsim kill",
             "type": "shell",
             "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}') || true",
