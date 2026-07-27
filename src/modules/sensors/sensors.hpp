@@ -246,6 +246,7 @@ private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	VehicleOpticalFlow *_vehicle_optical_flow[VehicleOpticalFlow::MAX_FLOW_INSTANCES] {};
+	SensorSlotBinder _flow_slot_binder{};
 	uint8_t _n_optical_flow{0};
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 

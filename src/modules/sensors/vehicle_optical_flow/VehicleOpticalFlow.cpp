@@ -43,33 +43,12 @@ using namespace time_literals;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
-VehicleOpticalFlow::VehicleOpticalFlow(uint8_t instance) :
+VehicleOpticalFlow::VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_instance(instance)
+	_instance(instance),
+	_slot_binder(slot_binder)
 {
 	_sensor_flow_sub.ChangeInstance(instance);
-
-	char param_name[20] {};
-
-	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_ROT", instance);
-	_param_handles.rot = param_find(param_name);
-
-	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_SCALE", instance);
-	_param_handles.scale = param_find(param_name);
-
-	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_HMIN", instance);
-	_param_handles.hmin = param_find(param_name);
-
-	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_HMAX", instance);
-	_param_handles.hmax = param_find(param_name);
-
-	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_MAXR", instance);
-	_param_handles.maxr = param_find(param_name);
-
-	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_RATE", instance);
-	_param_handles.rate = param_find(param_name);
-
-	UpdateParameters();
 
 	_vehicle_optical_flow_pub.advertise();
 
@@ -117,6 +96,45 @@ void VehicleOpticalFlow::ParametersUpdate()
 	}
 }
 
+void VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
+{
+	// map the sensor to its SENS_FLOW<i> parameter slot by device ID, falling back
+	// to the uORB instance for sensors that do not report a device ID
+	int8_t slot = _slot_binder.slotForInstance(_instance, device_id);
+
+	if (slot < 0) {
+		slot = _instance;
+	}
+
+	if (slot == _param_slot) {
+		return;
+	}
+
+	_param_slot = slot;
+
+	char param_name[20] {};
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_ROT", slot);
+	_param_handles.rot = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_SCALE", slot);
+	_param_handles.scale = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_HMIN", slot);
+	_param_handles.hmin = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_HMAX", slot);
+	_param_handles.hmax = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_MAXR", slot);
+	_param_handles.maxr = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_RATE", slot);
+	_param_handles.rate = param_find(param_name);
+
+	UpdateParameters();
+}
+
 void VehicleOpticalFlow::UpdateParameters()
 {
 	if (_param_handles.rot == PARAM_INVALID) {
@@ -148,6 +166,8 @@ void VehicleOpticalFlow::Run()
 	sensor_optical_flow_s sensor_optical_flow;
 
 	if (_sensor_flow_sub.update(&sensor_optical_flow)) {
+
+		UpdateParamSlot(sensor_optical_flow.device_id);
 
 		// clear data accumulation if there's a gap in data
 		const uint64_t integration_gap_threshold_us = sensor_optical_flow.integration_timespan_us * 2;
@@ -524,7 +544,7 @@ void VehicleOpticalFlow::ClearAccumulatedData()
 
 void VehicleOpticalFlow::PrintStatus()
 {
-	PX4_INFO_RAW("vehicle_optical_flow: %" PRIu8 "\n", _instance);
+	PX4_INFO_RAW("vehicle_optical_flow: %" PRIu8 ", param slot: %d\n", _instance, _param_slot);
 }
 
 }; // namespace sensors
