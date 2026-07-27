@@ -606,6 +606,10 @@ private:
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
 		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
 
+		(ParamInt<px4::params::EKF2_TOUT_MULT>)
+		_param_ekf2_tout_mult,	///< multiplier applied to EKF2_NOAID_TOUT for formic VIO position-mode timeout
+
+
 #if defined(CONFIG_EKF2_TERRAIN) || defined(CONFIG_EKF2_OPTICAL_FLOW) || defined(CONFIG_EKF2_RANGE_FINDER)
 		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,
 #endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER

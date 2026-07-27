@@ -81,7 +81,7 @@ parameters:
     EKF2_TOUT_MULT:
       description:
         short: multiplier of the time out for non-aiding position hold
-        long: multipli the EKF2_NOAID_TOUT to get a time out for position mode base  - if the value is 1 then the time out is the same as EKF2_NOAID_TOUT, if the value is 2 then the time out is 2 times EKF2_NOAID_TOUT
+        long: multipli the EKF2_NOAID_TOUT to get a time out for position mode base  - if the value is 1 then the time out is the same as EKF2_NOAID_TOUT, if the value is 2 then the time out is 2 times EKF2_NOAID_TOUT wirte for formic vio sys
       type: int32
       default: 1
       min: 1

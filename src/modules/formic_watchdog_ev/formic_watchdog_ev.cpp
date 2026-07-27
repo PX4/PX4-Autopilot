@@ -85,7 +85,6 @@ void FormicWatchdogEv::Run()
 		if (hrt_elapsed_time(&_first_ev_timestamp) < init_timer_us) {
 			accumulate_value(_quality_count,_quality_sum,odometry.quality);
 			accumulate_value(_vel_count,_vel_sum ,matrix::Vector3f(odometry.velocity).norm());
-			// find_max_dist(matrix::Vector3f(odometry.position));
 		}
 		else if (!_formic_state.error_find) { // only forward the data if the aux switch is active (if configured) and if no error has been found, otherwise we keep publishing the state machine with the error flag set but we don't forward the possibly bad data to the rest of the system
 			if (!_init_check_done) {
@@ -110,10 +109,6 @@ void FormicWatchdogEv::Run()
 void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
 
 {
-	// RP_misalignment(odometry);
-	// if (RP_misalignment(odometry)){
-		// _formic_state.error_find = true;
-	// }
 	odometry.reset_counter = _formic_state.reset_counter;
 	_odometry_pub.publish(odometry);
 }
@@ -384,7 +379,7 @@ void FormicWatchdogEv::no_EvData()
 {
 	/* Determine if there has been a dropout in the EV (Extended Visual) data stream. */
 	if ((_last_ev_timestamp == 0) ||
-	    ((hrt_absolute_time() - _last_ev_timestamp) > 300_ms)) {
+	    ((hrt_absolute_time() - _last_ev_timestamp) > 700_ms)) {
 		_formic_state.error_find = false; // dropout = end of session: clear latched error so the next session may use EV
 		_formic_state.ev_data_arrived = false;
 		_first_ev_timestamp = 0; // EV dropped out: restart the settle window on re-arrival

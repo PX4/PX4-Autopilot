@@ -1091,9 +1091,21 @@ PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
  */
 PARAM_DEFINE_INT32(TURTLE_AUX_CHN, 0);
 
-
-
-
+/**
+ * Minimum SLAM and MSCKF feature count threshold
+ *
+ * Below this value the VIO estimate is considered poor. The VIO fusion is
+ * suspended and the system prepares to dead-reckon for a short period.
+ * If the feature count recovers, the current flight mode is maintained and
+ * VIO fusion resumes. If features do not return, the mode switches to
+ * Altitude Hold. The counter is reset once valid data is received again.
+ *
+ * Set to 0 to disable.
+ *
+ * @group Commander
+ * @min 0
+ */
+PARAM_DEFINE_INT32(FORMIC_VIO_MF, 5);
 
 
 

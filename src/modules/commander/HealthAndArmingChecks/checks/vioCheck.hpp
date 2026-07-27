@@ -65,8 +65,6 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	// Feature-count threshold below which the VIO stream is considered degraded.
-	static constexpr int THERSHOLD = 5;
 
 	// Low-pass filter tuning. The VIO feature stream is not perfectly periodic, so
 	// these are nominal values: a ~20 Hz sample rate with a 1 Hz cutoff smooths
@@ -75,8 +73,8 @@ private:
 	static constexpr float FILTER_CUTOFF_FREQ = 1.0f;
 
 
-	void checkDataStream(const Context &context, Report &reporter);
-	void get_vio_features();
+	void checkFeaturesQuality(const Context &context, Report &reporter);
+	bool get_vio_features();
 	void checkEstimateQuality(const Context &context, Report &reporter);
 
 	uORB::Subscription _vio_features_sub{ORB_ID(formic_vio_features)}; 
@@ -96,6 +94,10 @@ private:
 
 
 	// DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase)
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::FORMIC_VIO_MF>) _param_formic_vio_minimum_features
+				       )
 
 	/// TODO NAOR:
 	// 1) dont do this check at the start of the data or when the qaue isnt full 

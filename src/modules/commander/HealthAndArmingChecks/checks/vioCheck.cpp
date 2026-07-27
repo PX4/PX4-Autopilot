@@ -41,34 +41,36 @@ void VioChecks::checkAndReport(const Context &context, Report &reporter)
 
 	// Sub-checks. Each one decides for itself whether it is relevant pre-arm,
 	// in flight, or both, and reports via the `reporter`.
-	checkDataStream(context, reporter);
+	checkFeaturesQuality(context, reporter);
 	// checkEstimateQuality(context, reporter);
 }
 
-void VioChecks::checkDataStream(const Context &context, Report &reporter)
+
+
+void VioChecks::checkFeaturesQuality(const Context &context, Report &reporter)
 {
-    get_vio_features();
-    // It's a good PX4 practice to zero-initialize the struct to prevent garbage data
+
+    int THRESHOLD = _param_formic_vio_minimum_features.get(); // TODO: use this parameter to set the threshold once it exists
+    if (get_vio_features() &&  THRESHOLD > 0) {
     features_filter_s pub_data{};
     pub_data.slam_features_filterd = _slam_features_filtered;
     pub_data.msckf_features_filterd = _msckf_features_filtered;
     pub_data.timestamp = hrt_absolute_time();
-    pub_data.at_problem = (pub_data.slam_features_filterd < THERSHOLD);
+    pub_data.at_problem = pub_data.slam_features_filterd < (uint32_t)THRESHOLD && pub_data.msckf_features_filterd < (uint32_t)THRESHOLD;
     _features_filter_pub.publish(pub_data);
 
-	const bool data_stale = false; // TODO: replace with the real condition
-
-	if (data_stale) {
+	if (pub_data.at_problem) {
 		/* EVENT
-		 * @description
-		 * No recent visual odometry (VIO/EV) data was received.
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::system,
-				       events::ID("check_vio_no_data"),
-				       events::Log::Error, "No visual odometry data");
+			* @description
+			* The number of visual odometry (VIO/EV) features is below the minimum threshold.
+			*/
+		reporter.healthFailure(NavModes::PositionControl, health_component_t::system,
+					events::ID("check_vio_no_features"),
+					events::Log::Error, "No Features Problem - poor vio");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No visual odometry data");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "No Features Problem - poor vio");
+			}
 		}
 	}
 }
@@ -96,10 +98,12 @@ void VioChecks::checkEstimateQuality(const Context &context, Report &reporter)
 
 
 
-void VioChecks::get_vio_features(){
+bool VioChecks::get_vio_features(){
+	bool ret;
 	if (_vio_features_sub.updated()) {
 		formic_vio_features_s vio_features{};
 		_vio_features_sub.copy(&vio_features);
+		ret = true;
 
 		// If there was a gap (>1 s) since the previous sample, the filter state is
 		// stale — re-seed it with the fresh sample instead of ramping from the old one.
@@ -123,6 +127,10 @@ void VioChecks::get_vio_features(){
 			on_startup = false;
 		}
 	}
+	else {
+		ret = false;
+	}
+	return ret;
 }
 
 
