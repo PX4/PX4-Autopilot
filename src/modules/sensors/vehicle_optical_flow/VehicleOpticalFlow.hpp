@@ -43,6 +43,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/parameters/param.h>
+#include <lib/sensor_slot_binder/SensorSlotBinder.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -68,7 +69,7 @@ class VehicleOpticalFlow : public px4::ScheduledWorkItem
 public:
 	static constexpr uint8_t MAX_FLOW_INSTANCES = 2;
 
-	explicit VehicleOpticalFlow(uint8_t instance = 0);
+	VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder);
 	~VehicleOpticalFlow() override;
 
 	bool Start();
@@ -143,7 +144,11 @@ private:
 
 	const uint8_t _instance;
 
-	// per-instance parameters (SENS_FLOW<i>_*), resolved by name
+	// uORB instance -> SENS_FLOW<i> parameter slot mapping (by device ID, SENS_FLOW<i>_ID)
+	SensorSlotBinder &_slot_binder;
+	int8_t _param_slot{-1};
+
+	// per-sensor parameters (SENS_FLOW<i>_*), resolved by name
 	struct ParamHandles {
 		param_t rot{PARAM_INVALID};
 		param_t scale{PARAM_INVALID};
@@ -162,6 +167,7 @@ private:
 		float rate{70.f};
 	} _params;
 
+	void UpdateParamSlot(uint32_t device_id);
 	void UpdateParameters();
 };
 }; // namespace sensors

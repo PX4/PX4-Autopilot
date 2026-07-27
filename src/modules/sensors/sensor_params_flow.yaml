@@ -4,6 +4,17 @@ module_name: sensors
 parameters:
 - group: Sensor Calibration
   definitions:
+    SENS_FLOW${i}_ID:
+      description:
+        short: Optical flow sensor ${i} ID
+        long: 'Device ID of the flow sensor configured by the SENS_FLOW${i}_*
+          parameters. Set to 0 to automatically bind the first unbound sensor
+          reporting data.'
+      type: int32
+      default: 0
+      reboot_required: true
+      num_instances: *max_num_flow_instances
+      instance_start: 0
     SENS_FLOW${i}_HMIN:
       description:
         short: Minimum height above ground when reliant on optical flow ${i}

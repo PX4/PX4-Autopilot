@@ -77,6 +77,10 @@ Sensors::Sensors(bool hil_enabled) :
 	_vehicle_angular_velocity.Start();
 #endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+	_flow_slot_binder.init("SENS_FLOW%u_ID", VehicleOpticalFlow::MAX_FLOW_INSTANCES);
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+
 	param_find("SYS_FAC_CAL_MODE");
 
 	// Parameters controlling the on-board sensor thermal calibrator
@@ -489,7 +493,7 @@ void Sensors::InitializeVehicleOpticalFlow()
 			uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow), i};
 
 			if (sensor_optical_flow_sub.advertised()) {
-				_vehicle_optical_flow[i] = new VehicleOpticalFlow(i);
+				_vehicle_optical_flow[i] = new VehicleOpticalFlow(i, _flow_slot_binder);
 
 				if (_vehicle_optical_flow[i]) {
 					_vehicle_optical_flow[i]->Start();
