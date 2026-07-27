@@ -81,8 +81,7 @@ RGBLED_APA102::RGBLED_APA102(const I2CSPIDriverConfig &config) :
 {
 }
 
-int
-RGBLED_APA102::init()
+int RGBLED_APA102::init()
 {
 	int ret = SPI::init();
 
