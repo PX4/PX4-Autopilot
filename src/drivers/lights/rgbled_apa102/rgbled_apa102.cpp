@@ -66,7 +66,7 @@ public:
 	void			RunImpl();
 
 private:
-	int			send_led_enable(uint8_t color_);
+	int			send_led_enable(uint8_t color);
 	int			send_led_rgb(uint8_t r, uint8_t g, uint8_t b);
 
 	bool			_led_opened{true};
@@ -87,7 +87,7 @@ int RGBLED_APA102::init()
 		return ret;
 	}
 
-	/* switch off LED on start */
+	// switch off LED on start 
 	send_led_enable(false);
 
 	// kick off work queue
@@ -133,12 +133,11 @@ RGBLED_APA102::end_frame(uint16_t count)
 void
 RGBLED_APA102::RunImpl()
 {
-
 	const uint16_t led_count = BOARD_MAX_LEDS;
 
 	LedControlData led_control_data;
 
-	if (_led_controller.update(led_control_data) == 1) {
+	if (_led_controller.update(led_control_data)) {
 		int ret = start_frame();
 
 		if (ret != PX4_OK) {
