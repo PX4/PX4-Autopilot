@@ -101,6 +101,17 @@ protected:
 class DatamanClientTestPeer
 {
 public:
+	static bool completeOperationWithFailure(DatamanClient &client)
+	{
+		if (client._state != DatamanClient::State::RequestSent) {
+			return false;
+		}
+
+		client._response_status = dataman_response_s::STATUS_FAILURE_READ_FAILED;
+		client._state = DatamanClient::State::ResponseReceived;
+		return true;
+	}
+
 	static bool waitForOperation(DatamanClient &client, hrt_abstime timeout)
 	{
 		if (client._state != DatamanClient::State::RequestSent) {
