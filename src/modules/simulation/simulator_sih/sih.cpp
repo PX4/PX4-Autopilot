@@ -466,7 +466,7 @@ void Sih::generate_force_and_torques(const float dt)
 		float u_sq[6];
 
 		for (int i = 0; i < 6; ++i) {
-			u_sq[i] = _u[i] * _u[i]; // quadratic thrust model, keep _u[i] intact for the filter
+			u_sq[i] = _u[i] * fabsf(_u[i]);
 		}
 
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+u_sq[0] + u_sq[1] + u_sq[2] + u_sq[3] + u_sq[4] + u_sq[5]));
