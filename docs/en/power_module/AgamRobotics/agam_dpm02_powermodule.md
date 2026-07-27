@@ -113,4 +113,4 @@ The Molex connector provides power and monitoring signals between the power modu
 ## See Also
 
 - [Agam Robotics](https://www.agamrobotics.com/)
-- [Agam DPM02 Product Page](https://agamrobotics.gitbook.io/docs/digital-power-modules-dpm/dpm01-6s)
+- [Agam DPM02 Product Page](https://www.agamrobotics.com/product-page/dpm02-digital-power-module-pdb)
