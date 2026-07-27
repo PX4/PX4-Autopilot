@@ -1,6 +1,6 @@
 # Agam GNSS02 CAN RTK
 
-The Agam GNSS02 CAN RTK is a Made in India high-precision GNSS/RTK module designed for PX4-compatible flight controllers. It features the u-blox NEO-F9P multi-band GNSS receiver integrated with an IMU, barometer, magnetometer, safety switch, and buzzer. The module communicates over the CAN interface using DroneCAN and supports centimeter-level RTK positioning for autonomous flight applications.
+The Agam GNSS02 CAN RTK is a Made in India high-precision GNSS/RTK module designed for PX4-compatible flight controllers. It integrates the u-blox NEO-F9P multi-band GNSS receiver with an onboard IMU, barometer, magnetometer, safety switch, and buzzer. The module communicates over the CAN interface using DroneCAN and provides centimeter-level RTK positioning for autonomous flight applications.
 
 ![Agam GNSS02 CAN RTK](../../../assets/hardware/gps/AgamRobotics/agam_gnss02.jpg)
 
@@ -8,7 +8,7 @@ The Agam GNSS02 CAN RTK is a Made in India high-precision GNSS/RTK module design
 
 Order this module from:
 
-- [Agam GNSS02 CAN RTK](https://www.agamrobotics.com/product-page/agam-gnss02-can-rtk)
+- https://www.agamrobotics.com/product-page/agam-gnss02-can-rtk
 
 ## Hardware Specifications
 
@@ -19,6 +19,7 @@ Order this module from:
 - Integrated Safety Switch
 - Integrated Buzzer
 - Compatible with PX4-based flight controllers
+- Optimized for autonomous UAV applications
 
 ### Sensors
 
@@ -130,7 +131,7 @@ Order this module from:
 
 ## Hardware Setup
 
-The Agam GNSS02 CAN RTK should be connected to the CAN port of the flight controller.
+The Agam GNSS02 CAN RTK connects to the flight controller through the CAN interface using the JST-GH 4-pin connector.
 
 1. Connect the 4-pin JST-GH CAN cable to the CAN port.
 2. Mount the GNSS module with an unobstructed view of the sky.
@@ -149,7 +150,7 @@ The Agam GNSS02 CAN RTK communicates using DroneCAN and is supported by PX4.
 5. Reboot the flight controller if required.
 6. Verify that the GNSS module is detected.
 7. Wait until a valid GNSS fix is obtained before arming the vehicle.
-8. For RTK operation, configure a compatible RTK base station or correction source in QGroundControl. :contentReference[oaicite:1]{index=1}
+8. For RTK operation, configure a compatible RTK base station or correction source in QGroundControl.
 
 ## Connector
 
@@ -157,7 +158,7 @@ The GNSS02 CAN RTK uses:
 
 - JST-GH 1.25 mm 4-pin CAN connector
 
-## Applications
+## Typical Applications
 
 - Precision UAV navigation
 - Multirotor UAVs
