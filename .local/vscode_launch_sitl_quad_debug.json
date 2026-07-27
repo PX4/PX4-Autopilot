@@ -1,0 +1,60 @@
+// .vscode/launch.json is gitignored (see .vscode/.gitignore), so this config
+// doesn't travel with the repo. On a new machine, paste this object into the
+// "configurations" array of .vscode/launch.json.
+//
+// Depends on the "build px4_sitl_sih (Debug)" task in .vscode/tasks.json,
+// which IS tracked in git and comes along automatically.
+{
+    "name": "SITL (sihsim_quadx Debug)",
+    "type": "cppdbg",
+    "request": "launch",
+    "program": "${workspaceFolder}/build/px4_sitl_sih/bin/px4",
+    "args": [
+        "${workspaceFolder}/ROMFS/px4fmu_common"
+    ],
+    "stopAtEntry": false,
+    "cwd": "${workspaceFolder}/build/px4_sitl_sih/rootfs",
+    "environment": [
+        {
+            "name": "PX4_SYS_AUTOSTART",
+            "value": "10040"
+        },
+        {
+            "name": "PX4_HOME_LAT",
+            "value": "49.796766"
+        },
+        {
+            "name": "PX4_HOME_LON",
+            "value": "24.347826"
+        },
+        {
+            "name": "PX4_HOME_ALT",
+            "value": "270"
+        }
+    ],
+    "preLaunchTask": "build px4_sitl_sih (Debug)",
+    "postDebugTask": "px4_sitl_cleanup",
+    "linux": {
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            },
+            {
+                "description": "PX4 ignore wq signals",
+                "text": "handle SIGCONT nostop noprint nopass",
+                "ignoreFailures": true
+            }
+        ]
+    },
+    "osx": {
+        "MIMode": "lldb",
+        "setupCommands": [
+            {
+                "text": "pro hand -p true -s false -n false SIGCONT"
+            }
+        ]
+    }
+}

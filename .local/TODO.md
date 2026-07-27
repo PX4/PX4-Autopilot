@@ -13,4 +13,5 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [x] Configure PX4 to use beacon ranges: `EKF2_RNGBC_CTRL, 1`
 * [x] Debug SITL
 * [ ] Disable GPS
-* [ ] Debug build
+* [ ] Debug build:
+* [ ] SITL starting location
