@@ -55,7 +55,7 @@ class Navigator;
 class RtlDirectMissionLand : public RtlBase
 {
 public:
-	RtlDirectMissionLand(Navigator *navigator);
+	RtlDirectMissionLand(Navigator *navigator, const mission_s &mission);
 	~RtlDirectMissionLand() = default;
 
 	void on_activation() override;
