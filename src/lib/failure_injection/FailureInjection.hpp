@@ -49,6 +49,7 @@
 #include <cstdint>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_injection.h>
 
 struct battery_status_s;
@@ -195,6 +196,13 @@ inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
  */
 void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
 
+/**
+ * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to an esc_status
+ * (matched per ESC by actuator_function). Off reports the ESC offline; Wrong keeps it online but reports
+ * consistently wrong values. Call after Config::update().
+ */
+void process_esc(const Config &config, esc_status_s &status);
+
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 class Config
@@ -221,6 +229,8 @@ inline bool process(Mode) { return true; }
 inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
 inline void process_battery(const Config &, uint8_t, battery_status_s &) {}
+
+inline void process_esc(const Config &, esc_status_s &) {}
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
