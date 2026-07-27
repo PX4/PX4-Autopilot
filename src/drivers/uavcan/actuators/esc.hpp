@@ -55,6 +55,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/dronecan_node_status.h>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
 
 class UavcanEscController
@@ -124,6 +125,8 @@ private:
 	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
+
+	failure_injection::Config _failure_config;
 
 	/*
 	 * libuavcan related things

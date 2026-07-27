@@ -129,7 +129,11 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		_esc_status.esc_online_flags = check_escs_status();
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 		_esc_status.timestamp = esc_report.timestamp;
-		_esc_status_pub.publish(_esc_status);
+
+		_failure_config.update();
+		esc_status_s esc_status = _esc_status;   // copy so Wrong doesn't compound on the persistent status
+		failure_injection::process_esc(_failure_config, esc_status);
+		_esc_status_pub.publish(esc_status);
 	}
 
 	// Register device capability for each ESC channel

@@ -437,7 +437,9 @@ void Sih::publish_esc_status()
 		_esc_status.esc_armed_flags = (1u << motor_idx) - 1;
 	}
 
-	_esc_status_pub.publish(_esc_status);
+	esc_status_s esc_status = _esc_status;   // config refreshed in updateFailureConfig()
+	failure_injection::process_esc(_failure_config, esc_status);
+	_esc_status_pub.publish(esc_status);
 }
 
 void Sih::generate_force_and_torques(const float dt)

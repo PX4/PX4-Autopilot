@@ -45,6 +45,7 @@ namespace
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
 
 constexpr uint8_t OK      = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
@@ -60,7 +61,12 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
-	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // motor is off-only (actuation)
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
+	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
 	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
