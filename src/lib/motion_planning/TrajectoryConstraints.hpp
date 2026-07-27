@@ -202,8 +202,11 @@ inline void computeTarget3DSpeedFromWaypoints(const Vector3f &start_position, co
 		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
 						  Vector2f((target - next_target).xy()).unit_or_zero()));
 		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
+		// the corner arc has to fit into the segments on both sides of the waypoint
+		const float corner_distance = min(config.xy_accept_rad, distance_target_next_xy,
+						  (target - start_position).xy().norm());
 		xy_speed_at_target = fminf(xy_speed_at_target, computeMaxSpeedInWaypoint(safe_alpha,
-					   config.max_acc_xy_radius_scale * config.max_acc_xy, config.xy_accept_rad));
+					   config.max_acc_xy_radius_scale * config.max_acc_xy, corner_distance));
 
 	}
 
