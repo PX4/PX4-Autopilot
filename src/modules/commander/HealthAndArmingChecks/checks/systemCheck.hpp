@@ -37,6 +37,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/uavcan_firmware_update.h>
 
 class SystemChecks : public HealthAndArmingCheckBase
 {
@@ -48,6 +49,7 @@ public:
 
 private:
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _uavcan_fw_update_sub{ORB_ID(uavcan_firmware_update)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
