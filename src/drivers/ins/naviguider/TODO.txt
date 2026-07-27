@@ -1,0 +1,21 @@
+TODO
+
+ 1. Move all #define lines to header, maybe even a header separate from
+    naviguider.hpp called naviguider_constants.hpp or something.
+ 2. Rearrange all functions such that they are ordered the same in the header as
+    in the source so that the header serves as a summary of the source file.
+ 3. Remove any duplicate structs, such as SensorData3AxisRaw and have all
+    structs defined in a header.
+ 4. Remove the "naviguider" part from function names, as they're already class
+    functions and part of the namespace.
+ 5. Make the dynamic range of the sensors be a PX4 parameter and used at least
+    on startup to set the ranges and the scale factors.
+ 6. Use the meta events and various sensor info for actually setting the scale
+    factors before publishing any data.
+ 7. Do not publish data until "all lights are green" as defined by the meta
+    events and sensor info, i.e. the confirmation of the dynamic scales (and
+    rates?) and the calibration status of the sensors.
+ 8. Use the accuracy info given to set the estimator status message's various
+    test ratio values.
+ 9. Only output a debug array when something changes.
+10. 

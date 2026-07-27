@@ -1,0 +1,186 @@
+Parameter Behavior Test Cases
+
+Pertinent Parameters:
+    > EKF2_EN:      Enables/disables the EKF2
+    > SENS_EN_NG:   Enables the NaviGuider
+    > SENS_NG_MODE: Sets the NaviGuider to sensors only (0) or INS (1) mode
+
+Pertinent Actions:
+    > Flashing the firmware.
+    > Resetting all parameters to defaults via QGC.
+    > (Re)Setting EKF2_EN
+    > (Re)Setting SENS_EN_NG
+    > (Re)Setting SENS_NG_MODE
+
+Known Behaviors:
+    > Setting SENS_NG_MODE will reset EKF2_EN once the NaviGuider driver runs.
+    > Resetting SENS_NG_MODE will set EKF2_EN once the NaviGuider driver runs.
+    > In ROMFS/px4fmu_common/init.d/rcS it starts ekf2 if EKF2_EN is set.
+    > In ROMFS/px4fmu_common/init.d/rcS it runs rc.sensors before checking EKF2_EN.
+    > In ROMFS/px4fmu_common/init.d/rc.sensors it starts naviguider if SENS_EN_NG is set.
+
+Suspected Behaviors:
+    > Flashing the firmware does not always set parameters to their defaults.
+    > Resetting the EKF2_EN manually does not stop the EKF system.
+    > Setting SENS_NG_MODE does not always prevent the EKF system from starting.
+
+Desired Behaviors:
+    > NaviGuider only publishes to vehicle_attitude is EKF2 is not running.
+
+
+
+Test Sequence:
+    Initial State:
+        > Reset all [params] to firmware's defaults
+        > Reboot
+        > Reboot
+
+    Check EKF2_EN Behavior:
+        > Initial State
+        > Change EKF2_EN to 0
+        > Check if vehicle_attitude is published
+        > Reboot
+        > Check if vehicle_attitude is published
+        Results:
+            > After reboot EKF2_EN was re-enabled.
+
+    Check SENS_EN_NG Behavior:
+        > Initial State
+        > Change SENS_EN_NG to 0
+        > Check if naviguider is running
+        > Reboot 1
+        > Check if naviguider is running
+        > Reboot 2
+        > Check if naviguider is running
+        > Change SENS_EN_NG to 1
+        > Check if naviguider is running
+        > Reboot 3
+        > Check if naviguider is running
+        > Reboot 4
+        > Check if naviguider is running
+        > Reboot 5
+        > Check if naviguider is running
+        > Change SENS_EN_NG to 0
+        > Reboot 6
+        > Check if naviguider is running
+        > Reset all [params] to firmware's defaults
+        Results:
+            > Before reboot naviguider is running.
+            > After reboot 1 naviguider is not running.
+            > After reboot 2 naviguider is not running.
+            > After setting SENS_EN_NG to 1 naviguider is not running.
+            > After reboot 3 naviguider is running.
+            > At some point it did not start after resetting all params needs further investigation.
+
+    Check SENS_NG_MODE Behavior:
+        1  Initial State
+        2  Change SENS_NG_MODE to 1
+        3  Check vehicle_attitude
+        4  Check value of EKF2_EN
+        5  Reboot
+        6  Check vehicle_attitude
+        7  Check value of EKF2_EN
+        8  Reboot
+        9  Check vehicle_attitude
+        10 Check value of EKF2_EN
+        Results Test Run 1:
+            3  vehicle attitude is from EKF2
+            4  EKF2_EN 1
+            6  vehicle_attitude is from naviguider
+            7  EKF2_EN 0
+            9  vehicle_attitude is from naviguider
+            10 EKF2_EN 0
+        Results Test Run 2:
+            3  vehicle attitude is from EKF2
+            4  EKF2_EN 1
+            6  vehicle_attitude is from naviguider
+            7  EKF2_EN 0
+            9  vehicle_attitude is from naviguider
+            10 EKF2_EN 0
+        Results Test Run 3:
+            3  vehicle attitude is from EKF2
+            4  EKF2_EN 1
+            6  vehicle_attitude is from naviguider
+            7  EKF2_EN 0
+            9  vehicle_attitude is from naviguider
+            10 EKF2_EN 0
+
+reset params
+reboot
+flashed firmware
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+
+reset params
+reboot
+flashed firmware
+sens_ng_mode == 0
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+sens_ng_mode == 0
+
+on JD Computer
+reset params
+reboot
+flashed firmware
+sens_ng_mode == 0
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+sens_ng_mode == 0
+
+* Unsure on exact steps
+flashed firmware
+reboot (maybe not, unsure)
+sens_ng_mode == 0
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+sens_ng_mode == 0
+
+
+* params should be at default, did not check
+pulled battery
+plug in via USB
+unplug and plug in USB for flashing
+flashed firmware
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+sens_ng_mode == 0
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+sens_ng_mode == 0
+flashed firmware
+unplug and plug in USB for flashing
+flashed firmware
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+sens_ng_mode == 0
+unplug USB
+plug in battery (comms over teleme radio)
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+unplug battery
+plug in battery
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+unplug battery
+plug in battery
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+reboot
+saw 1 vehicle_attitude publisher, autopilot
+unplug battery
+plug in battery
+saw 2 vehicle_attitude publishers, autopilot and naviguider
+sens_ng_mode == 0
+
+
+
+
+
+
+
+Battery Pull:
+    
