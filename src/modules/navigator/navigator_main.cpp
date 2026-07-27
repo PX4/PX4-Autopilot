@@ -288,7 +288,9 @@ void Navigator::run()
 		}
 
 		if (mission_received) {
-			_mission_route_cache.update(mission);
+			// Blocking dataman reads only while disarmed, in flight the cache fills asynchronously.
+			const bool blocking_load_allowed = _vstatus.arming_state == vehicle_status_s::ARMING_STATE_DISARMED;
+			_mission_route_cache.update(mission, blocking_load_allowed);
 		}
 
 		/* gps updated */
