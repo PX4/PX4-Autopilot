@@ -83,9 +83,7 @@ RGBLED_APA102::RGBLED_APA102(const I2CSPIDriverConfig &config) :
 
 int RGBLED_APA102::init()
 {
-	int ret = SPI::init();
-
-	if (ret != OK) {
+	if (SPI::init() != PX4_OK) {
 		return ret;
 	}
 
