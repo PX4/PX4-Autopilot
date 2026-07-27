@@ -56,9 +56,6 @@
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
 
-static constexpr size_t FW_DB_LINE_SIZE = 256; // key(~15) + '=' + filename(NAME_MAX) + '\n'
-static const char FW_DB_PATH[] = UAVCAN_FIRMWARE_PATH "/FW.db";
-static const char FW_DB_TMP_PATH[] = UAVCAN_FIRMWARE_PATH "/FW.db.tmp";
 static uint8_t _buffer[512]
 px4_cache_aligned_data() = {};
 
@@ -141,9 +138,6 @@ int UavcanServers::init()
 		PX4_ERR("FirmwareUpdateTrigger init: %d", ret);
 		return ret;
 	}
-
-	/* Check if all entries in the firmware database are still valid */
-	validateFwDatabase();
 
 	/*
 	Check for firmware in the root directory, move it to appropriate location on
@@ -236,7 +230,6 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 		snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor.board_id);
 
 		if (copyFw(dstpath, srcpath) >= 0) {
-			updateFwDatabase(dstpath, bin_names[i]);
 			unlink(srcpath);
 		}
 	}
@@ -295,113 +288,4 @@ int UavcanServers::copyFw(const char *dst, const char *src)
 	(void)close(sfd);
 
 	return rv;
-}
-
-void UavcanServers::updateFwDatabase(const char *fw_path, const char *original_filename)
-{
-	// DB key is the filename portion of fw_path, e.g. "12345.bin"
-	const char *last_slash = strrchr(fw_path, '/');
-	const char *new_filename = last_slash ? (last_slash + 1) : fw_path;
-
-	// The new/updated DB entry, e.g. "122.bin=122-1.17.63eeff1a.uavcan-dev.bin\n"
-	char new_entry[FW_DB_LINE_SIZE];
-	snprintf(new_entry, sizeof(new_entry), "%s=%s\n", new_filename, original_filename);
-
-	// Open the existing DB for reading (may not exist yet) and a temp file for writing.
-	FILE *db_in  = fopen(FW_DB_PATH, "r");
-	FILE *db_out = fopen(FW_DB_TMP_PATH, "w");
-
-	if (!db_out) {
-		if (db_in) { fclose(db_in); }
-
-		PX4_WARN("updateFwDatabase: couldn't open tmp file");
-		return;
-	}
-
-	// Copy all existing entries to the temp file, replacing the matching key in-place.
-	bool line_updated = false;
-	char line[FW_DB_LINE_SIZE];
-
-	if (db_in) {
-		while (fgets(line, sizeof(line), db_in)) {
-			if (strncmp(line, new_filename, strlen(new_filename)) == 0 && line[strlen(new_filename)] == '=') {
-				fputs(new_entry, db_out);
-				line_updated = true;
-
-			} else {
-				fputs(line, db_out);
-			}
-		}
-
-		fclose(db_in);
-	}
-
-	// Key was not present in the existing DB — append it as a new entry.
-	if (!line_updated) {
-		fputs(new_entry, db_out);
-	}
-
-	fflush(db_out);
-	fsync(fileno(db_out));
-	fclose(db_out);
-
-	// Atomically replace the old DB with the updated version.
-	rename(FW_DB_TMP_PATH, FW_DB_PATH);
-}
-
-void UavcanServers::validateFwDatabase()
-{
-	FILE *db_in = fopen(FW_DB_PATH, "r");
-
-	if (!db_in) {
-		return; // no DB yet, nothing to validate
-	}
-
-	FILE *db_out = fopen(FW_DB_TMP_PATH, "w");
-
-	if (!db_out) {
-		fclose(db_in);
-		PX4_WARN("validateFwDatabase: couldn't open tmp file");
-		return;
-	}
-
-	bool changed = false;
-	char line[FW_DB_LINE_SIZE];
-
-	while (fgets(line, sizeof(line), db_in)) {
-		// Each valid line is "key=original_filename\n", e.g. "122.bin=122-1.17.abc.bin"
-		const char *eq = strchr(line, '=');
-
-		if (eq == nullptr) {
-			changed = true; // malformed line — drop it
-			continue;
-		}
-
-		// Build the full path to the firmware file to check if it still exists.
-		char full_path[UAVCAN_MAX_PATH_LENGTH + 1];
-		snprintf(full_path, sizeof(full_path), "%s/%.*s", UAVCAN_FIRMWARE_PATH,
-			 (int)(eq - line), line);
-
-		struct stat sb;
-
-		if (stat(full_path, &sb) == 0 && S_ISREG(sb.st_mode)) {
-			fputs(line, db_out);
-
-		} else {
-			PX4_INFO("validateFwDatabase: removing stale entry for '%.*s'", (int)(eq - line), line);
-			changed = true;
-		}
-	}
-
-	fclose(db_in);
-	fflush(db_out);
-	fsync(fileno(db_out));
-	fclose(db_out);
-
-	if (changed) {
-		rename(FW_DB_TMP_PATH, FW_DB_PATH);
-
-	} else {
-		unlink(FW_DB_TMP_PATH);
-	}
 }

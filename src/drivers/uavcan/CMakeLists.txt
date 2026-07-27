@@ -203,4 +203,6 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
+
+		failure_injection
 	)

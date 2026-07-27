@@ -204,6 +204,9 @@ MissionBase::on_inactivation()
 void
 MissionBase::on_activation()
 {
+	// reset triplets, modes should be explicit about which fields they want to set
+	_navigator->reset_triplets();
+
 	/* reset the current mission to the start sequence if needed.*/
 	checkMissionRestart();
 
@@ -561,10 +564,10 @@ void MissionBase::setEndOfMissionItems()
 		if (pos_sp_triplet->current.valid &&
 		    (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
 		     pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
-			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+			setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
 
 		} else {
-			setLoiterItemFromCurrentPosition(&_mission_item);
+			setLoiterItemFromCurrentPosition(_mission_item);
 		}
 	}
 

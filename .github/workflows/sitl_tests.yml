@@ -26,17 +26,14 @@ jobs:
     name: Testing PX4 ${{ matrix.config.model }}
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev-simulation-focal:2021-09-08
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {model: "iris",          latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
-          # VTOL/tailsitter disabled: persistent flaky CI failures (timeouts, erratic
-          # transitions). Re-enable once the test infrastructure is stabilized.
-          # - {model: "tailsitter" ,   latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo" } # Florida
-          # - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
+          - {model: "quadx",         latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
+          - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
     env:
       PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
       PX4_SBOM_DISABLE: 1
@@ -55,13 +52,19 @@ jobs:
           cache-key-prefix: ccache-sitl-gazebo-classic
           max-size: 350M
 
-      - uses: ./.github/actions/build-gazebo-sitl
+      - name: Build PX4 SITL
+        shell: bash
+        run: make px4_sitl_default
+
+      - name: Cache Stats after PX4 Firmware
+        shell: bash
+        run: ccache -s
 
       - name: Download MAVSDK
-        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu22.04_amd64.deb"
 
       - name: Install MAVSDK
-        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu22.04_amd64.deb"
 
       - name: Check PX4 Environment Variables
         env:
@@ -75,7 +78,7 @@ jobs:
       - name: Build PX4 / MAVSDK tests
         env:
           DONT_RUN: 1
-        run: make px4_sitl_default sitl_gazebo-classic mavsdk_tests
+        run: make px4_sitl_default mavsdk_tests
 
       - uses: ./.github/actions/save-ccache
         if: always()
@@ -92,7 +95,7 @@ jobs:
           PX4_HOME_LAT: ${{matrix.config.latitude}}
           PX4_HOME_LON: ${{matrix.config.longitude}}
           PX4_HOME_ALT: ${{matrix.config.altitude}}
-        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} test/mavsdk_tests/configs/sitl.json --verbose --force-color
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} test/mavsdk_tests/configs/sih-sitl.json --verbose --force-color
         timeout-minutes: 45
 
       - name: Upload failed logs
@@ -124,7 +127,7 @@ jobs:
             echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials # add credential
             git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
             mkdir -p coverage
-            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info --ignore-errors negative
 
       - name: Upload Coverage Information to Codecov
         if: contains(matrix.config.build_type, 'Coverage')

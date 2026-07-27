@@ -159,6 +159,18 @@ public:
 		});
 	}
 
+	void wait_until_ready()
+	{
+		// Block until the worker thread has locked its mutex and is about to wait
+		// on the condition. Otherwise advancing virtual time could pass this case's
+		// timeout before the thread even starts, so check() (which early-returns on
+		// !_thread_ready) would never complete it and its thread would be left
+		// joinable at destruction.
+		while (!_thread_ready) {
+			std::this_thread::yield();
+		}
+	}
+
 	void check()
 	{
 		if (_is_done || !_thread_ready) {
@@ -258,6 +270,12 @@ void test_multiple_semaphores_waiting()
 		test_case->run();
 	}
 
+	// Make sure every thread has started and is waiting before we advance virtual
+	// time, so the loop below can't skip past a case's timeout before it registers.
+	for (auto &test_case : test_cases) {
+		test_case->wait_until_ready();
+	}
+
 	const int min_step_size = 1;
 	const int max_step_size = 100;
 
@@ -321,7 +339,7 @@ void test_usleep()
 TEST(LockstepScheduler, All)
 {
 	for (unsigned iteration = 1; iteration <= 100; ++iteration) {
-		std::cout << "Test iteration: " << iteration << "\n";
+		//std::cout << "Test iteration: " << iteration << "\n";
 		test_absolute_time();
 		test_condition_timing_out();
 		test_locked_semaphore_getting_unlocked();

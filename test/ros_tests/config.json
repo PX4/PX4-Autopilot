@@ -1,6 +1,7 @@
 {
     "mode": "sitl",
     "simulator": "gazebo",
+    "model_prefix": "gazebo-classic_",
     "tests":
     [
         {

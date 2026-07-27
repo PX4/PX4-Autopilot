@@ -197,7 +197,7 @@ For that reason:
 
 The board support process improves over time, and contributions to the process itself are welcome.
 
-- Ask the community on the PX4 [Discord](https://chat.dronecode.org) under the `Hardware` channels, or on the [discuss forum](https://discuss.px4.io/).
+- Ask the community on the PX4 [Discord](https://discord.com/invite/dronecode) under the `Hardware` channels, or on the [discuss forum](https://discuss.px4.io/).
 - Join the regular hardware call.
 - Consultancy options are listed at [px4.io/community/consultants](https://px4.io/community/consultants/).
 

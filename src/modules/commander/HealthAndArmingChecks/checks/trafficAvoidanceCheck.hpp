@@ -45,6 +45,6 @@ public:
 
 private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_ARM_TRAFF>) _param_com_arm_traff
+					(ParamInt<px4::params::COM_TRAFF_AVOID>) _param_com_traff_avoid
 				       )
 };

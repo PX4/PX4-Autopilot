@@ -117,7 +117,6 @@ set(msg_files
 	GpioOut.msg
 	GpioRequest.msg
 	GpsDump.msg
-	GpsInjectData.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
@@ -194,6 +193,7 @@ set(msg_files
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
 	Rpm.msg
+	RtcmData.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
@@ -234,8 +234,8 @@ set(msg_files
 	UlogStreamAck.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAccelerationSetpoint.msg
 	VehicleConstraints.msg
+	VehicleControlMode.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
@@ -269,6 +269,8 @@ set(msg_files
 	versioned/RaptorStatus.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
+	versioned/SetpointConfig.msg
+	versioned/SetpointConfigReply.msg
 	versioned/TrajectorySetpoint.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
@@ -276,7 +278,6 @@ set(msg_files
 	versioned/VehicleAttitudeSetpoint.msg
 	versioned/VehicleCommandAck.msg
 	versioned/VehicleCommand.msg
-	versioned/VehicleControlMode.msg
 	versioned/VehicleGlobalPosition.msg
 	versioned/VehicleLandDetected.msg
 	versioned/VehicleLocalPosition.msg
@@ -287,6 +288,12 @@ set(msg_files
 	versioned/Wind.msg
 )
 list(SORT msg_files)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND msg_files
+		DetectAndAvoid.msg
+		DetectAndAvoidMostUrgent.msg)
+endif()
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND msg_files
@@ -548,7 +555,7 @@ if(CONFIG_LIB_CDRSTREAM)
                   FILES ${uorb_cdr_idl}
                   INCLUDES ${idl_include_path}
                   BASE_DIR ${idl_include_path}
-                  WARNINGS no-implicit-extensibility)
+                  WARNINGS no-implicit-extensibility no-unsupported-annotations)
 	target_link_libraries(uorb_cdrstream INTERFACE cdr)
 
 	# Generate and overwrite IDL header with custom headers for uORB operatability
@@ -584,13 +591,9 @@ if(CONFIG_LIB_CDRSTREAM)
 endif()
 
 if(CONFIG_MODULES_ZENOH)
-	# Update kconfig file for topics
-	execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
-			--zenoh-config
-			-f ${msg_files}
-			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
-			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
-		)
+	# The Zenoh Kconfig.topics catalog is generated into the build tree in
+	# cmake/kconfig.cmake (it must exist before Kconfig is parsed). Here we only
+	# generate the per-board publisher/subscriber factory.
 	add_custom_command(
 		OUTPUT
 			${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp

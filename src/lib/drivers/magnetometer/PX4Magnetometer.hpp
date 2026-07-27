@@ -38,6 +38,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_mag.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+
 class PX4Magnetometer
 {
 public:
@@ -64,4 +66,7 @@ private:
 	float			_scale{1.f};
 	float			_temperature{NAN};
 	uint32_t		_error_count{0};
+
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_mag_s> _stuck;
 };

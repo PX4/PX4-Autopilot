@@ -39,6 +39,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/register_ext_component_request.h>
 #include <uORB/topics/register_ext_component_reply.h>
+#include <uORB/topics/setpoint_config.h>
+#include <uORB/topics/setpoint_config_reply.h>
 #include <uORB/topics/unregister_ext_component.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -47,6 +49,7 @@
 #include <lib/modes/ui.hpp>
 #include "UserModeIntention.hpp"
 #include "HealthAndArmingChecks/checks/externalChecks.hpp"
+#include "ModeUtil/setpoint_types.hpp"
 
 class ModeExecutors
 {
@@ -82,22 +85,9 @@ public:
 	static constexpr int MAX_NUM = LAST_EXTERNAL_NAV_STATE - FIRST_EXTERNAL_NAV_STATE + 1;
 
 	struct Mode {
-		Mode()
-		{
-			// Set defaults for control mode
-			setControlModeDefaults(config_control_setpoint);
-		}
-		static void setControlModeDefaults(vehicle_control_mode_s &config_control_setpoint_)
-		{
-			config_control_setpoint_.flag_control_position_enabled = true;
-			config_control_setpoint_.flag_control_velocity_enabled = true;
-			config_control_setpoint_.flag_control_altitude_enabled = true;
-			config_control_setpoint_.flag_control_climb_rate_enabled = true;
-			config_control_setpoint_.flag_control_acceleration_enabled = true;
-			config_control_setpoint_.flag_control_attitude_enabled = true;
-			config_control_setpoint_.flag_control_rates_enabled = true;
-			config_control_setpoint_.flag_control_allocation_enabled = true;
-		}
+		static constexpr auto kDefaultSetpointType = mode_util::SetpointType::Trajectory;
+
+		Mode() = default;
 
 		static constexpr uint8_t REPLACES_NAV_STATE_NONE = 0xff;
 
@@ -109,7 +99,7 @@ public:
 		int mode_executor_registration_id{-1};
 		bool request_offboard_setpoints{false};
 		config_overrides_s overrides{};
-		vehicle_control_mode_s config_control_setpoint{};
+		mode_util::SetpointType current_setpoint_type{kDefaultSetpointType};
 	};
 
 	void printStatus() const;
@@ -141,7 +131,7 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request);
+	void update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void setFailsafeState(bool failsafe_action_active)
 	{
 		_failsafe_action_active = failsafe_action_active;
@@ -166,7 +156,7 @@ public:
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true);
 
-	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode);
+	mode_util::SetpointType getSetpointType(uint8_t nav_state);
 
 	void printStatus() const;
 
@@ -177,19 +167,21 @@ public:
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 
 private:
-	bool checkConfigControlSetpointUpdates();
+	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type);
 	void checkNewRegistrations(UpdateRequest &update_request);
 	void checkUnregistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void checkConfigOverrides();
 
 	void removeModeExecutor(int mode_executor_id);
 
-	uORB::Subscription _config_control_setpoints_sub{ORB_ID(config_control_setpoints)};
+	uORB::Subscription _setpoint_config_sub{ORB_ID(setpoint_config)};
+	uORB::Publication<setpoint_config_reply_s> _setpoint_config_reply_pub{ORB_ID(setpoint_config_reply)};
 	uORB::Subscription _register_ext_component_request_sub{ORB_ID(register_ext_component_request)};
 	uORB::Subscription _unregister_ext_component_sub{ORB_ID(unregister_ext_component)};
 	uORB::Publication<register_ext_component_reply_s> _register_ext_component_reply_pub{ORB_ID(register_ext_component_reply)};
 	uORB::Publication<config_overrides_s> _config_overrides_pub{ORB_ID(config_overrides)};
 	uORB::Subscription _config_overrides_request_sub{ORB_ID(config_overrides_request)};
+	uORB::Publication<config_overrides_s> _config_overrides_confirm_pub{ORB_ID(config_overrides_confirm)};
 
 	ExternalChecks &_external_checks;
 	ModeExecutors _mode_executors;
@@ -201,7 +193,6 @@ private:
 	bool _invalid_mode_printed{false};
 
 	uint8_t _last_served_nav_state{0xff};
-	hrt_abstime _last_served_change_us{0};
 };
 
 #else /* CONSTRAINED_FLASH */
@@ -218,7 +209,7 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request) {}
+	void update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request) {}
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
@@ -230,7 +221,7 @@ public:
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true) { return nav_state; }
 
-	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) { return false; }
+	mode_util::SetpointType getSetpointType(uint8_t nav_state) { return mode_util::SetpointType::Trajectory; }
 
 	void printStatus() const {}
 

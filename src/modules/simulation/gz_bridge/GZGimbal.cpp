@@ -84,8 +84,10 @@ void GZGimbal::Run()
 		publishJointCommand(_gimbal_yaw_cmd_publisher, _yaw_stp, _yaw_rate_stp, _last_yaw_stp, _yaw_min, _yaw_max, dt);
 	}
 
-	if (_mnt_mode_out == 2) {
-		// We have a Mavlink gimbal capable of sending messages
+	if (_mnt_mode_out == 2 && _gimbal_present) {
+		// We have a Mavlink gimbal capable of sending messages. Only present it if the
+		// model actually has a gimbal (_gimbal_present), otherwise PX4 would advertise a
+		// phantom gimbal device and could not manage an external MAVLink gimbal.
 		publishDeviceInfo();
 		publishDeviceAttitude();
 	}
@@ -101,6 +103,9 @@ void GZGimbal::stop()
 void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 {
 	pthread_mutex_lock(&_node_mutex);
+
+	// Receiving gimbal IMU data means the model actually has a gimbal.
+	_gimbal_present = true;
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
 	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, cosf(M_PI_4_F), cosf(M_PI_4_F), 0.0f);
@@ -140,7 +145,23 @@ bool GZGimbal::pollSetpoint()
 		gimbal_device_set_attitude_s msg;
 
 		if (_gimbal_device_set_attitude_sub.copy(&msg)) {
-			const matrix::Eulerf gimbal_att_stp(matrix::Quatf(msg.q));
+			matrix::Quatf attitude_setpoint(msg.q);
+			const bool yaw_in_vehicle_frame = msg.flags
+							  & gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+			const bool yaw_in_earth_frame = msg.flags
+							& gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_IN_EARTH_FRAME;
+			const bool legacy_yaw_lock = !yaw_in_vehicle_frame && !yaw_in_earth_frame
+						     && (msg.flags & gimbal_device_set_attitude_s::GIMBAL_DEVICE_FLAGS_YAW_LOCK);
+
+			if ((yaw_in_earth_frame && !yaw_in_vehicle_frame) || legacy_yaw_lock) {
+				vehicle_attitude_s vehicle_attitude{};
+
+				if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+					attitude_setpoint = matrix::Quatf(vehicle_attitude.q).inversed() * attitude_setpoint;
+				}
+			}
+
+			const matrix::Eulerf gimbal_att_stp(attitude_setpoint);
 			_roll_stp = gimbal_att_stp.phi();
 			_pitch_stp = gimbal_att_stp.theta();
 			_yaw_stp = gimbal_att_stp.psi();

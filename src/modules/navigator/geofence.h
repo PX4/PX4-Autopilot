@@ -53,6 +53,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
+#include "./RTLPlanner/geofence_interface.h"
 
 #if defined(PX4_STORAGEDIR)
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
@@ -62,7 +63,8 @@
 
 class Navigator;
 
-class Geofence : public ModuleParams
+
+class Geofence : public ModuleParams, public GeofenceInterface
 {
 public:
 	Geofence(Navigator *navigator);
@@ -146,6 +148,18 @@ public:
 	bool isHomeRequired();
 
 	/**
+	 * Returns true once after the polygon set changes (e.g. dataman finished loading a new fence),
+	 * then clears the flag. Navigator polls this to know when to rebuild the avoidance planner's
+	 * vertex graph.
+	 */
+	bool consumeFenceUpdated()
+	{
+		const bool updated = _geofence_updated;
+		_geofence_updated = false;
+		return updated;
+	}
+
+	/**
 	 * print Geofence status to the console
 	 */
 	void printStatus();
@@ -158,15 +172,6 @@ private:
 		ReadWait,
 		Load,
 		Error
-	};
-
-	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
-		uint16_t dataman_index;
-		union {
-			uint16_t vertex_count;
-			float circle_radius;
-		};
 	};
 
 	Navigator   *_navigator{nullptr};
@@ -188,6 +193,7 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
+	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
 	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
 
@@ -228,6 +234,12 @@ private:
 	 * @return true if checks pass
 	 */
 	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
+
+	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
+
+	matrix::Vector2<double>getPolygonVertexByIndex(int poly_idx, int idx) override;
+
+	int getNumPolygons() const override { return _num_polygons; }
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,

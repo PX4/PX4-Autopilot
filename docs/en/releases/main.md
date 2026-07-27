@@ -13,16 +13,14 @@ const { site } = useData();
   </div>
 </div>
 
-This contains changes to PX4 `main` branch after the next major release ([PX v1.18](../releases/1.16.md)).
+This contains changes to the PX4 `main` branch that are not included in the next release ([PX4 v1.18](../releases/1.18.md)).
 
 ::: warning
-PX4 v1.18 is in alpha/beta testing.
-Update these notes with features that are going to be in `main` (PX4 v1.18 or later) but not the PX4 v1.18 release.
+PX4 v1.18 is in beta testing.
+Update these notes with features that are going to be in `main` (PX4 v1.19 or later) but not the PX4 v1.18 release.
 :::
 
 ## Read Before Upgrading
-
-- The RC override parameters `COM_RC_OVERRIDE` and `COM_RC_STICK_OV` are replaced by a single [MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) (minimum stick speed to take over, default `1`; negative disables). `COM_RC_OVERRIDE=0` is migrated to `MAN_OVERRIDE_SPD=-1`. The `COM_RC_STICK_OV` value is not auto-migrated because its unit changed, so re-tune `MAN_OVERRIDE_SPD` if you had customized it.
 
 Please continue reading for [upgrade instructions](#upgrade-guide).
 
@@ -31,6 +29,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - TBD
 
 ## Upgrade Guide
+
+- `COM_ARM_TRAFF` has been replaced by `COM_TRAFF_AVOID`. The old value 3 ("enforce for mission modes only") is migrated to `COM_TRAFF_AVOID=2`, which blocks arming in all modes, not just mission modes. If you relied on being able to arm manually with traffic detected, set `COM_TRAFF_AVOID=1` (warning only) instead.
 
 ## Other changes
 
@@ -50,7 +50,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Safety
 
-- TBD
+- [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
 
 ### Estimation
 
@@ -82,7 +82,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### RC
 
-- Merged the RC override parameters `COM_RC_OVERRIDE` and `COM_RC_STICK_OV` into a single [MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) and made override reject erratic signal jumps. ([PX4-Autopilot#27041](https://github.com/PX4/PX4-Autopilot/pull/27041)).
+- TBD
 
 ### Multi-Rotor
 
