@@ -34,7 +34,7 @@ param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_HGT_REF 0
 param set-default EKF2_EVP_NOISE 0.05
 param set-default EKF2_EVA_NOISE 0.05
-param set-default EKF2_OF_CTRL 1
+param set-default EKF2_OF0_CTRL 1
 
 # LPE: Flow-only mode
 param set-default LPE_FUSION 242
