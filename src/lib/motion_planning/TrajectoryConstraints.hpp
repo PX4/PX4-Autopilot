@@ -187,8 +187,11 @@ inline void computeTarget3DSpeedFromWaypoints(const Vector3f &start_position, co
 	bool start_position_target_overlap = ((start_position - target).xy().norm() < 0.001f)
 					     && (fabsf(start_position(2) - target(2)) < 0.001f);
 
-	const bool z_direction_changed = !(start_position(2) <= target(2) && target(2) <= next_target(2))
-					 && !(start_position(2) >= target(2) && target(2) >= next_target(2));
+	// tolerate overshoots within the Z acceptance radius so numerical noise doesn't flag a direction change
+	const float z_tol = config.z_accept_rad;
+	const bool z_descending = (start_position(2) <= target(2) + z_tol) && (target(2) <= next_target(2) + z_tol);
+	const bool z_climbing = (start_position(2) >= target(2) - z_tol) && (target(2) >= next_target(2) - z_tol);
+	const bool z_direction_changed = !z_descending && !z_climbing;
 	const bool z_direction_up = target(2) > next_target(2);
 
 	// Horizontal speed at target waypoint
