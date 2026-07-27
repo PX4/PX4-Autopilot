@@ -153,6 +153,7 @@ protected:
 				out_firmware_file_path = bin_file_name;
 			}
 		}
+
 		if (rv) {
 			for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
 				if (memcmp(_updating_nodes[i], _zero_id, 16) == 0) {
