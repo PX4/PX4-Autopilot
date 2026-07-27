@@ -101,8 +101,7 @@ RGBLED_APA102::probe()
 {
 	// Check if device responds by reading RSTR register (should return 0x09)
 
-	int ret = start_frame();
-	return ret;
+	return start_frame();
 }
 
 int
