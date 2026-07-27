@@ -52,6 +52,12 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 	 */
 	typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
+	static constexpr uint8_t MaxUpdatingNodes = 8;
+	uint8_t _updating_nodes[MaxUpdatingNodes][16] {};
+	static constexpr uint8_t _zero_id[16] {};
+
+	bool _armed = false;
+
 	BasePathString base_path_;
 	BasePathString alt_base_path_;
 
@@ -100,6 +106,10 @@ protected:
 	{
 		using namespace std;
 
+		if (_armed) {
+			return false;
+		}
+
 		/* This is a work  around for two issues.
 		 *  1) FirmwareFilePath is 40
 		 *  2) OK using is using 32 for max file names.
@@ -141,6 +151,21 @@ protected:
 				      descriptor.image_crc != node_info.software_version.image_crc)) {
 				rv = true;
 				out_firmware_file_path = bin_file_name;
+			}
+		}
+		if (rv) {
+			for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
+				if (memcmp(_updating_nodes[i], _zero_id, 16) == 0) {
+					memcpy(_updating_nodes[i], node_info.hardware_version.unique_id.begin(), 16);
+					break;
+				}
+			}
+
+		} else {
+			for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
+				if (memcmp(_updating_nodes[i], node_info.hardware_version.unique_id.begin(), 16) == 0) {
+					memset(_updating_nodes[i], 0, 16);
+				}
 			}
 		}
 
@@ -250,6 +275,17 @@ out_close:
 	const BasePathString &getFirmwareBasePath() const { return base_path_; }
 
 	const BasePathString &getFirmwareAltBasePath() const { return alt_base_path_; }
+
+	void setArmed(bool armed) { _armed = armed; }
+
+	bool hasUpdatingNodes() const
+	{
+		for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
+			if (memcmp(_updating_nodes[i], _zero_id, 16) != 0) { return true; }
+		}
+
+		return false;
+	}
 
 	static char getPathSeparator()
 	{

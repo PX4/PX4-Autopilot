@@ -751,11 +751,25 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
+	// propagate armed state to firmware version checker
+	if (_actuator_armed_sub.updated() && _servers != nullptr) {
+		actuator_armed_s actuator_armed{};
+		_actuator_armed_sub.copy(&actuator_armed);
+		_servers->setArmed(actuator_armed.armed);
+	}
+
 	_node.spinOnce(); // expected to be non-blocking
 
 	publish_can_interface_statuses();
 
 	publish_node_statuses();
+
+	if (_servers != nullptr) {
+		uavcan_firmware_update_s fw_update{};
+		fw_update.timestamp = hrt_absolute_time();
+		fw_update.pending_updates = _servers->hasPendingFirmwareUpdates();
+		_fw_update_pub.publish(fw_update);
+	}
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
