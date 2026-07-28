@@ -106,6 +106,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
 	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
 	{  214, 0x07, 0x07 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
+	{  224, 0x00, 0x03 }, // DO_SET_MISSION_CURRENT:      cmd:p1:seq,p2:reset_jump_counters
 	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
 	{  420, 0x07, 0x07 }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode

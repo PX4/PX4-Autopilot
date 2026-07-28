@@ -831,6 +831,22 @@ void Navigator::run()
 
 				publish_vehicle_command_ack(cmd, result);
 
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MISSION_CURRENT) {
+				uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
+					const bool reset_jump_counters = PX4_ISFINITE(cmd.param2) && (cmd.param2 > 0.5f);
+
+					if (_mission.set_current_mission_index(cmd.param1, reset_jump_counters)) {
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+					}
+				}
+
+				publish_vehicle_command_ack(cmd, result);
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
 					if (!_mission.set_current_mission_index(cmd.param1)) {

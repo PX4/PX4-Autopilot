@@ -62,7 +62,7 @@ public:
 	virtual void on_inactive() override;
 	virtual void on_activation() override;
 
-	bool set_current_mission_index(uint16_t index);
+	bool set_current_mission_index(uint16_t index, bool reset_jump_counters = false);
 
 	uint16_t get_land_start_index() const { return _mission.land_start_index; }
 	bool get_land_start_available() const { return hasMissionLandStart(); }

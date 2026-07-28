@@ -93,9 +93,13 @@ Mission::on_activation()
 
 
 bool
-Mission::set_current_mission_index(uint16_t index)
+Mission::set_current_mission_index(uint16_t index, bool reset_jump_counters)
 {
 	if (index == _mission.current_seq) {
+		if (reset_jump_counters) {
+			resetMissionJumpCounter();
+		}
+
 		return true;
 	}
 
@@ -103,6 +107,10 @@ Mission::set_current_mission_index(uint16_t index)
 		if (goToItem(index, MissionTraversalType::FollowMissionControlFlow) != PX4_OK) {
 			// Keep the old mission index (it was not updated by the interface) and report back.
 			return false;
+		}
+
+		if (reset_jump_counters) {
+			resetMissionJumpCounter();
 		}
 
 		_is_current_planned_mission_item_valid = true;
