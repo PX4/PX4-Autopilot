@@ -60,19 +60,18 @@ public:
 
 	static void print_usage();
 
-	int		init() override;
-	int		probe() override;
+	int init() override;
+	int probe() override;
 
-	void			RunImpl();
+	void RunImpl();
 
 private:
-	int			send_led_enable(uint8_t color);
-	int			send_led_rgb(uint8_t r, uint8_t g, uint8_t b);
-
-	bool			_led_opened{true};
-	int start_frame();
+	int write_led_intensity(uint8_t r, uint8_t g, uint8_t b);
 	void end_frame(uint16_t count);
-	LedController		_led_controller;
+	int start_frame();
+
+	bool _led_opened{true};
+	LedController _led_controller;
 };
 
 RGBLED_APA102::RGBLED_APA102(const I2CSPIDriverConfig &config) :
@@ -84,28 +83,25 @@ RGBLED_APA102::RGBLED_APA102(const I2CSPIDriverConfig &config) :
 int RGBLED_APA102::init()
 {
 	if (SPI::init() != PX4_OK) {
-		return ret;
+		return PX4_ERROR;
 	}
 
-	// switch off LED on start 
-	send_led_enable(false);
+	// switch off LED on start: required to initiate LED status update to APA102
+	write_led_intensity(0, 0, 0);
 
-	// kick off work queue
-	ScheduleNow();
+	ScheduleOnInterval(_led_controller.maximum_update_interval(), 0);
 
 	return OK;
 }
 
-int
-RGBLED_APA102::probe()
+int RGBLED_APA102::probe()
 {
 	// Check if device responds by reading RSTR register (should return 0x09)
 
 	return start_frame();
 }
 
-int
-RGBLED_APA102::start_frame()
+int RGBLED_APA102::start_frame()
 {
 	uint8_t data = 0;
 
@@ -119,19 +115,19 @@ RGBLED_APA102::start_frame()
 	return ret;
 }
 
-void
-RGBLED_APA102::end_frame(uint16_t count)
+void RGBLED_APA102::end_frame(uint16_t count)
 {
 
 	uint8_t ef = 0xFF;
 
+	// End frame consists of up to 32 bits, used to generate clock pulses. At least (NLEDs / 2) clock pulses
+	// End Frame =  N_LEDs + 14 / 16 - will guarantee enough clock pulses
 	for (uint16_t i = 0; i < (count + 14) / 16; i++) {
 		transfer(&ef, nullptr, 1);
 	}
 }
 
-void
-RGBLED_APA102::RunImpl()
+void RGBLED_APA102::RunImpl()
 {
 	const uint16_t led_count = BOARD_MAX_LEDS;
 
@@ -142,45 +138,46 @@ RGBLED_APA102::RunImpl()
 
 		if (ret != PX4_OK) {
 			PX4_ERR("Unable to init");
+			return;
 		}
 
 
 		for (uint16_t i = 0; i < led_count; i++) {
 			const float scale = (float)led_control_data.leds[i].brightness / 255.f;
-			const uint8_t on = (uint8_t)(scale * 255.f + 0.5f);
+			const uint8_t intensity = (uint8_t)(scale * 255.f + 0.5f);
 
 			switch (led_control_data.leds[i].color) {
 			case led_control_s::COLOR_RED:
-				send_led_rgb(on, 0, 0);
+				write_led_intensity(intensity, 0, 0);
 				break;
 
 			case led_control_s::COLOR_GREEN:
-				send_led_rgb(0, on, 0);
+				write_led_intensity(0, intensity, 0);
 				break;
 
 			case led_control_s::COLOR_BLUE:
-				send_led_rgb(0, 0, on);
+				write_led_intensity(0, 0, intensity);
 				break;
 
 			case led_control_s::COLOR_AMBER: //make it the same as yellow
 			case led_control_s::COLOR_YELLOW:
-				send_led_rgb(on, on, 0);
+				write_led_intensity(intensity,  intensity, 0);
 				break;
 
 			case led_control_s::COLOR_PURPLE:
-				send_led_rgb(on, 0, on);
+				write_led_intensity(intensity, 0, intensity);
 				break;
 
 			case led_control_s::COLOR_CYAN:
-				send_led_rgb(0, on, on);
+				write_led_intensity(0,  intensity,  intensity);
 				break;
 
 			case led_control_s::COLOR_WHITE:
-				send_led_rgb(on, on, on);
+				write_led_intensity(intensity, intensity,  intensity);
 				break;
 
 			default: // led_control_s::COLOR_OFF
-				send_led_rgb(0, 0, 0);
+				write_led_intensity(0, 0, 0);
 				break;
 			}
 
@@ -189,28 +186,12 @@ RGBLED_APA102::RunImpl()
 		end_frame(led_count);
 	}
 
-	/* re-queue ourselves to run again later */
-	ScheduleDelayed(_led_controller.maximum_update_interval());
-}
-
-/**
- * Sent ENABLE flag to LED driveer
- */
-int
-RGBLED_APA102::send_led_enable(uint8_t color_)
-{
-	if (color_ == 0) {
-		send_led_rgb(0, 0, 0);
-	}
-
-	return 0;
 }
 
 /**
  * Send RGB PWM settings to LED driver according to current color and brightness
  */
-int
-RGBLED_APA102::send_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
+int RGBLED_APA102::write_led_intensity(uint8_t red, uint8_t green, uint8_t blue)
 {
 
 	int ret = 0;
@@ -223,8 +204,7 @@ RGBLED_APA102::send_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
 	return ret;
 }
 
-void
-RGBLED_APA102::print_usage()
+void RGBLED_APA102::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("rgbled_apa102", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
