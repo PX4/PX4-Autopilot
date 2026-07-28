@@ -212,6 +212,23 @@ __EXPORT int parameter_flashfs_write(flash_file_token_t ft, uint8_t *buffer, siz
 __EXPORT int parameter_flashfs_erase(void);
 
 /****************************************************************************
+ * Name: parameter_flashfs_compact_if_full
+ *
+ * Description:
+ *   If the sector lacks room for another entry the size of the stored one,
+ *   rewrite it through the normal wrap path now (sector erase + rewrite).
+ *   Called at boot so the erase, which stalls every read of its flash bank
+ *   while it runs, cannot land on a save made once the vehicle is armed.
+ *
+ * Returned value:
+ *   1 if a compaction was performed, 0 if there was enough space or nothing
+ *   is stored, or a negative errno.
+ *
+ ****************************************************************************/
+
+__EXPORT int parameter_flashfs_compact_if_full(void);
+
+/****************************************************************************
  * Name: parameter_flashfs_alloc
  *
  * Description:
