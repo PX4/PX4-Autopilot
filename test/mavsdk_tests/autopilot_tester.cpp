@@ -407,6 +407,98 @@ void AutopilotTester::execute_mission_raw()
 	wait_for_mission_raw_finished(std::chrono::seconds(300));
 }
 
+namespace
+{
+MissionRaw::MissionItem make_raw_mission_item(uint32_t seq, uint32_t command, uint32_t frame,
+		float param1, float param2, int32_t x, int32_t y, float z, uint32_t current)
+{
+	MissionRaw::MissionItem item{};
+	item.seq = seq;
+	item.frame = frame;
+	item.command = command;
+	item.current = current;
+	item.autocontinue = 1;
+	item.param1 = param1;
+	item.param2 = param2;
+	item.param3 = 0.f;
+	item.param4 = 0.f;
+	item.x = x;
+	item.y = y;
+	item.z = z;
+	item.mission_type = MAV_MISSION_TYPE_MISSION;
+	return item;
+}
+} // namespace
+
+int AutopilotTester::prepare_multicopter_mission_with_do_jump(const MissionOptions &mission_options, int jump_repeats)
+{
+	const auto ct = get_coordinate_transformation();
+	const float altitude_m = static_cast<float>(mission_options.relative_altitude_m);
+	const double leg_m = mission_options.leg_length_m;
+
+	// Convert a local (north, east) offset from home into a GLOBAL_RELATIVE_ALT mission item.
+	auto position_item = [&](uint32_t seq, uint32_t command, double north_m, double east_m, float z,
+	uint32_t current) {
+		const auto global = ct.global_from_local({north_m, east_m});
+		return make_raw_mission_item(seq, command, MAV_FRAME_GLOBAL_RELATIVE_ALT, 0.f, 0.f,
+					     static_cast<int32_t>(std::lround(global.latitude_deg * 1e7)),
+					     static_cast<int32_t>(std::lround(global.longitude_deg * 1e7)), z, current);
+	};
+
+	// A simple square-ish path with a DO_JUMP that loops back to waypoint 1. The DO_JUMP is at seq 3.
+	const int jump_index = 3;
+	std::vector<MissionRaw::MissionItem> items;
+	items.push_back(position_item(0, MAV_CMD_NAV_TAKEOFF, 0., 0., altitude_m, /*current*/ 1));
+	items.push_back(position_item(1, MAV_CMD_NAV_WAYPOINT, leg_m, 0., altitude_m, 0));
+	items.push_back(position_item(2, MAV_CMD_NAV_WAYPOINT, leg_m, leg_m, altitude_m, 0));
+	items.push_back(make_raw_mission_item(jump_index, MAV_CMD_DO_JUMP, MAV_FRAME_MISSION,
+					      /*param1: target seq*/ 1.f, /*param2: repeats*/ static_cast<float>(jump_repeats),
+					      0, 0, 0.f, 0));
+	items.push_back(position_item(4, MAV_CMD_NAV_WAYPOINT, 0., leg_m, altitude_m, 0));
+	items.push_back(position_item(5, MAV_CMD_NAV_LAND, 0., 0., 0.f, 0));
+
+	REQUIRE(_mission_raw->upload_mission(items) == MissionRaw::Result::Success);
+	// PX4 needs time to realize that it now has a mission available, so we need to wait a bit here.
+	sleep_for(std::chrono::seconds(1));
+
+	return jump_index;
+}
+
+void AutopilotTester::start_mission_raw_and_wait_for_sequence(int sequence_number)
+{
+	start_and_wait_for_mission_sequence_raw(sequence_number);
+}
+
+void AutopilotTester::send_set_current_mission_item(int index)
+{
+	// Send a single raw MISSION_SET_CURRENT, fire-and-forget - this mimics a one-shot operator/GCS
+	// action. We deliberately do NOT use MissionRaw::set_current_mission_item(): that call keeps
+	// retransmitting MISSION_SET_CURRENT until the autopilot echoes back MISSION_CURRENT with the
+	// exact requested seq. When the requested item is a DO_JUMP the navigator resolves it to the
+	// jump target and reports a different seq, so MAVSDK would re-send indefinitely and continuously
+	// reset the mission, which is not the scenario we want to exercise here.
+	const uint8_t target_sysid = _mavlink_passthrough->get_target_sysid();
+	const uint16_t seq = static_cast<uint16_t>(index);
+
+	const MavlinkPassthrough::Result result = _mavlink_passthrough->queue_message(
+	[target_sysid, seq](MavlinkAddress mavlink_address, uint8_t channel) {
+		mavlink_message_t message;
+		mavlink_msg_mission_set_current_pack_chan(
+			mavlink_address.system_id,
+			mavlink_address.component_id,
+			channel,
+			&message,
+			target_sysid,
+			MAV_COMP_ID_AUTOPILOT1,
+			seq);
+		return message;
+	});
+
+	// Extra parentheses stop Catch2 from decomposing the expression: stringifying
+	// MavlinkPassthrough::Result pulls in an operator<< that the MAVSDK lib does not export.
+	REQUIRE((result == MavlinkPassthrough::Result::Success));
+}
+
 void AutopilotTester::execute_rtl()
 {
 	REQUIRE(Action::Result::Success == _action->return_to_launch());
