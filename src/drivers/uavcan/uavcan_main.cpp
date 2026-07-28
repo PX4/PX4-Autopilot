@@ -765,10 +765,15 @@ UavcanNode::Run()
 	publish_node_statuses();
 
 	if (_servers != nullptr) {
-		uavcan_firmware_update_s fw_update{};
-		fw_update.timestamp = hrt_absolute_time();
-		fw_update.pending_updates = _servers->hasPendingFirmwareUpdates();
-		_fw_update_pub.publish(fw_update);
+		const bool pending = _servers->hasPendingFirmwareUpdates();
+
+		if (pending != _fw_update_pending_last) {
+			_fw_update_pending_last = pending;
+			uavcan_firmware_update_s fw_update{};
+			fw_update.timestamp = hrt_absolute_time();
+			fw_update.pending_updates = pending;
+			_fw_update_pub.publish(fw_update);
+		}
 	}
 
 	// check for parameter updates

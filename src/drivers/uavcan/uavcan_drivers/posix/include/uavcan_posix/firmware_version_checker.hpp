@@ -17,6 +17,7 @@
 #include <dirent.h>
 
 #include <uavcan/protocol/firmware_update_trigger.hpp>
+#include <containers/List.hpp>
 
 // TODO Get rid of the macro
 #if !defined(DIRENT_ISFILE) && defined(DT_REG)
@@ -52,9 +53,14 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 	 */
 	typedef uavcan::MakeString<MaxPathLength>::Type PathString;
 
-	static constexpr uint8_t MaxUpdatingNodes = 8;
-	uint8_t _updating_nodes[MaxUpdatingNodes][16] {};
-	static constexpr uint8_t _zero_id[16] {};
+	struct UpdatingNode : public ListNode<UpdatingNode *> {
+		uint8_t unique_id[16];
+	};
+
+	// Dynamic allocation is acceptable here: firmware updates only occur before arming
+	// (shouldRequestFirmwareUpdate returns false when armed), so nodes are added and
+	// removed only during the pre-arm phase. The list is cleared in the destructor.
+	List<UpdatingNode *> _updating_nodes;
 
 	bool _armed = false;
 
@@ -155,17 +161,36 @@ protected:
 		}
 
 		if (rv) {
-			for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
-				if (memcmp(_updating_nodes[i], _zero_id, 16) == 0) {
-					memcpy(_updating_nodes[i], node_info.hardware_version.unique_id.begin(), 16);
-					break;
+			UpdatingNode *curr_node = _updating_nodes.getHead();
+
+			if (curr_node == nullptr) {
+				UpdatingNode *new_node = new UpdatingNode();
+				memcpy(new_node->unique_id, node_info.hardware_version.unique_id.begin(), 16);
+				_updating_nodes.add(new_node);
+
+			} else {
+				while (curr_node != nullptr) {
+					UpdatingNode *sibling = curr_node->getSibling();
+
+					if (memcmp(curr_node->unique_id, node_info.hardware_version.unique_id.begin(), 16) == 0) {
+						break;
+
+					} else if (sibling == nullptr) {
+						UpdatingNode *new_node = new UpdatingNode();
+						memcpy(new_node->unique_id, node_info.hardware_version.unique_id.begin(), 16);
+						_updating_nodes.add(new_node);
+						break;
+					}
+
+					curr_node = sibling;
 				}
 			}
 
 		} else {
-			for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
-				if (memcmp(_updating_nodes[i], node_info.hardware_version.unique_id.begin(), 16) == 0) {
-					memset(_updating_nodes[i], 0, 16);
+			for (auto *curr_node = _updating_nodes.getHead(); curr_node != nullptr; curr_node = curr_node->getSibling()) {
+				if (memcmp(curr_node->unique_id, node_info.hardware_version.unique_id.begin(), 16) == 0) {
+					_updating_nodes.deleteNode(curr_node);
+					break;
 				}
 			}
 		}
@@ -279,13 +304,14 @@ out_close:
 
 	void setArmed(bool armed) { _armed = armed; }
 
+	~FirmwareVersionChecker()
+	{
+		_updating_nodes.clear();
+	}
+
 	bool hasUpdatingNodes() const
 	{
-		for (uint8_t i = 0; i < MaxUpdatingNodes; i++) {
-			if (memcmp(_updating_nodes[i], _zero_id, 16) != 0) { return true; }
-		}
-
-		return false;
+		return !_updating_nodes.empty();
 	}
 
 	static char getPathSeparator()

@@ -327,6 +327,7 @@ private:
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<uavcan_firmware_update_s> _fw_update_pub{ORB_ID(uavcan_firmware_update)};
+	bool _fw_update_pending_last{false};
 
 	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
 
