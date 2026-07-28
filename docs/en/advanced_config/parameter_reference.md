@@ -33934,6 +33934,35 @@ Can be set to increase the amount of integrator available to counteract disturba
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      |          | 0.01      | 0.3     |      | &nbsp;    |
 
+## NFS
+
+### NFS_EN (`INT32`) {#NFS_EN}
+
+Enable NFS mount.
+
+When enabled, mounts the NFS export at the configured mount point.
+Retries every 2 s until the server is reachable or the system is armed.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### NFS_IP (`INT32`) {#NFS_IP}
+
+NFS server IP address.
+
+IP address of the NFS server in int32 format.
+Same encoding as UXRCE_DDS_AG_IP: 10.41.10.1 maps to 170461697.
+
+| Reboot  | minValue | maxValue | increment | default   | unit | Read-Only |
+| ------- | -------- | -------- | --------- | --------- | ---- | --------- |
+| &check; |          |          |           | 170461697 |      | &nbsp;    |
+
 ## Neural Control
 
 ### MC_NN_EN (`INT32`) {#MC_NN_EN}

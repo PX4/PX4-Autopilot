@@ -708,6 +708,27 @@ netman <command> [arguments...]
                  default: eth0
 ```
 
+## nfs_mount
+
+Source: [modules/nfs_mount](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/nfs_mount)
+
+### Description
+
+Mounts an NFS filesystem from NFS_IP on NFS_MOUNT_MOUNT_POINT.
+Started automatically by rcS when NFS_EN is set.
+
+### Usage {#nfs_mount_usage}
+
+```
+nfs_mount <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
 ## pwm_input
 
 Source: [drivers/pwm_input](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/pwm_input)
