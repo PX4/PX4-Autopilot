@@ -341,7 +341,7 @@ void MspOsd::Run()
 		char msg[sizeof(msp_name_t) + 5] = {0};
 		int index = 0;
 		msg[index++] = MSP_DP_WRITE_STRING;
-		msg[index++] = 0x02; // row position
+		msg[index++] = 0x03; // row position
 		msg[index++] = 0x14; // colum position
 		msg[index++] = 0;		// Icon attr
 		msg[index++] = 0x03; // Icon index >
