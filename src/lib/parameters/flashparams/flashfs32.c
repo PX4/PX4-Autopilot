@@ -1108,6 +1108,83 @@ int parameter_flashfs_erase(void)
 
 
 /****************************************************************************
+ * Name: parameter_flashfs_compact_if_full
+ *
+ * Description:
+ *   If the sector cannot take another entry the size of the one it holds
+ *   (plus a growth margin), rewrite that entry now through the normal write
+ *   path, which wraps and erases the sector.
+ *
+ *   An erase stalls every read of the bank the sector lives in until it
+ *   completes, which for a 128 KB sector on STM32H7 is on the order of a
+ *   second. Where the firmware image shares that bank, execution halts for
+ *   the duration. A save can be triggered at any time - including the
+ *   autosave released on disarm - so paying the wrap here bounds that halt
+ *   to a point where the vehicle is not yet armed and nothing is being
+ *   controlled. In-service saves then stay append-only (a few 32-byte row
+ *   programs). If the stored data outgrows the margin between boots, the
+ *   save-time wrap still covers it.
+ *
+ *   Cost: a boot that compacts takes one erase longer to reach the rest of
+ *   board init. Every other boot pays only the free-space check below.
+ *
+ * Returned value:
+ *   1 if a compaction (sector erase + rewrite) was performed, 0 if there
+ *   was enough space or nothing is stored, or a negative errno.
+ *
+ ****************************************************************************/
+
+int parameter_flashfs_compact_if_full(void)
+{
+	if (sector_map == NULL) {
+		return -ENXIO;
+	}
+
+	flash_entry_header_t *pf = find_entry(parameters_token);
+
+	if (pf == NULL) {
+		return 0;
+	}
+
+	/* Headroom kept beyond one more copy of the current entry. Each save
+	 * stores the same parameter set give or take a few values, so a couple
+	 * of KB covers normal growth over a run of saves; data that outgrows it
+	 * takes the save-time wrap once, as before.
+	 */
+
+	const size_t growth_margin = 2048;
+
+	size_t data_length = entry_data_length(pf);
+	size_t entry_total = sizeof(flash_entry_header_t) + data_length + SizeMask;
+	size_t reserve = entry_total + growth_margin;
+
+	if (check_free_space_in_sector(pf, reserve) == NULL) {
+		return 0;
+	}
+
+	/* The entry data lives in the flash about to be erased: copy it out first. */
+
+	uint8_t *buffer;
+	size_t buffer_size = data_length;
+	int rv = parameter_flashfs_alloc(parameters_token, &buffer, &buffer_size);
+
+	if (rv != 0) {
+		return rv;
+	}
+
+	if (buffer_size < data_length) {
+		parameter_flashfs_free();
+		return -ENOMEM;
+	}
+
+	memcpy(buffer, entry_data(pf), data_length);
+	rv = parameter_flashfs_write(parameters_token, buffer, data_length);
+	parameter_flashfs_free();
+
+	return rv >= 0 ? 1 : rv;
+}
+
+/****************************************************************************
  * Name: parameter_flashfs_init
  *
  * Description:
@@ -1161,6 +1238,14 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 		// A positive return value means flash space has been erased successfully.
 		if (rv > 0) {
 			rv = 0;
+		}
+
+	} else {
+		// Pay the sector-wrap erase here at boot, not on a save at the disarm edge.
+		int compacted = parameter_flashfs_compact_if_full();
+
+		if (compacted < 0) {
+			rv = compacted;
 		}
 	}
 
