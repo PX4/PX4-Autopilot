@@ -145,6 +145,14 @@ git rebase -i HEAD~N
 git push --force-with-lease
 ```
 
+## AI-assisted contributions
+
+AI coding assistants are welcome, under the [AI coding assistants policy](docs/en/contribute/ai_assistants.md):
+
+- You are the author. You must understand, and be able to defend, every line you submit. An AI tool is never an author or co-author, and never appears in a `Signed-off-by` tag.
+- Disclosure is required. Every commit with AI-generated or AI-assisted content must carry an `Assisted-by: NAME:MODEL` trailer in the commit body (for example `Assisted-by: Claude:claude-fable-5`).
+- All licensing, testing, and review requirements apply unchanged. Never claim testing that did not happen.
+
 ## Test your changes
 
 PX4 is safety-critical software. All contributions must include adequate testing where practical:

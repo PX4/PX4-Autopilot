@@ -249,7 +249,8 @@ void Navigator::run()
 	fds[2].events = POLLIN;
 
 	uint32_t geofence_id{0};
-	uint32_t safe_points_id{0};
+	mission_s mission{};
+	bool mission_received{false};
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -275,18 +276,19 @@ void Navigator::run()
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
 
 		if (fds[2].revents & POLLIN) {
-			mission_s mission;
-			orb_copy(ORB_ID(mission), _mission_sub, &mission);
+			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
+				mission_received = true;
 
-			if (mission.geofence_id != geofence_id) {
-				geofence_id = mission.geofence_id;
-				_geofence.updateFence();
+				if (mission.geofence_id != geofence_id) {
+					geofence_id = mission.geofence_id;
+					_geofence.updateFence();
+				}
 			}
 
-			if (mission.safe_points_id != safe_points_id) {
-				safe_points_id = mission.safe_points_id;
-				_rtl.updateSafePoints(safe_points_id);
-			}
+		}
+
+		if (mission_received) {
+			_mission_route_cache.update(mission);
 		}
 
 		/* gps updated */

@@ -21110,25 +21110,6 @@ Arm switch is a momentary button.
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
-### COM_ARM_TRAFF (`INT32`) {#COM_ARM_TRAFF}
-
-Enable Traffic Avoidance system detection check.
-
-This check detects if a traffic avoidance system (ADSB/FLARM transponder)
-is missing. Depending on the value of the parameter, the check can be
-disabled, warn only, or deny arming.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Warning only
-- `2`: Enforce for all modes
-- `3`: Enforce for mission modes only
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          |           | 0       |      | &nbsp;    |
-
 ### COM_ARM_WO_GPS (`INT32`) {#COM_ARM_WO_GPS}
 
 Arming without GNSS configuration.
@@ -22031,6 +22012,26 @@ Set to 0 to disable.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        |          | 0.1       | 5       | m/s  | &nbsp;    |
+
+### COM_TRAFF_AVOID (`INT32`) {#COM_TRAFF_AVOID}
+
+Traffic avoidance system requirement and failsafe.
+
+Warn about, and optionally require, a traffic avoidance system (ADS-B/FLARM
+transponder, detected via MAVLink heartbeats with a 3 second timeout), and
+trigger a failsafe action when it is missing or lost in flight.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warning
+- `2`: Error
+- `3`: Return
+- `4`: Land
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_VEL_FS_EVH (`FLOAT`) {#COM_VEL_FS_EVH}
 
