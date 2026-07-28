@@ -1,4 +1,3 @@
-
 #!/bin/sh
 #
 # @name Gazebo vertex
@@ -10,5 +9,6 @@ PX4_GZ_WORLD=${PX4_GZ_WORLD:=wind_turbine}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=vertex}
 
 param set-default COM_DISARM_PRFLT 0
+param set-default UXRCE_DDS_PTCFG 1
 
 . ${R}etc/init.d-posix/airframes/4001_gz_x500

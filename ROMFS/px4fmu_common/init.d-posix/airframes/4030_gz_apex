@@ -11,6 +11,8 @@ PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=apex}
 
+param set-default UXRCE_DDS_PTCFG 1
+
 param set-default SIM_GPS_RTK 1
 
 param set-default SIM_GZ_EN 1

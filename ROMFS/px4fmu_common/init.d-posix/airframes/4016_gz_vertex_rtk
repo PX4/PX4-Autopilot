@@ -8,8 +8,7 @@
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=wind_turbine}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=vertex}
 
-param set-default COM_DISARM_PRFLT 0
 param set-default SIM_GPS_RTK 1
 param set-default UXRCE_DDS_SYNCT 0
 
-. ${R}etc/init.d-posix/airframes/4001_gz_x500
+. ${R}etc/init.d-posix/airframes/4012_gz_vertex
