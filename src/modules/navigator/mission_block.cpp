@@ -101,6 +101,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_SET_HOME:
 	case NAV_CMD_RETURN_TO_LAUNCH:
 
+	// Safety net: a DO_JUMP should never reach here as a current item (it is resolved in
+	// loadCurrentMissionItem), but if one ever does, treat it as complete so the navigator
+	// advances instead of hanging on an IDLE setpoint.
+	case NAV_CMD_DO_JUMP:
+
 		return true;
 
 	// Indefinite Waypoints
