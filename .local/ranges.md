@@ -1,3 +1,5 @@
+# Timestamp domain bug
+
 Incomming mavling message has wrong timestamp:
 mavlink_ranging_beacon_t.time_usec = 650880495394
 while system time is 1039768000
@@ -38,3 +40,16 @@ later regression.
 
 **Fix**: `ranging_beacon.timestamp_sample = _mavlink_timesync.sync_stamp(beacon_pos.time_usec);`
 matching the pattern used by every sibling handler.
+
+---
+
+# EKF failsafe
+
+Failsafe activated: switching to Land
+- Navigation error: No valid position estimate
+- Navigation error: No valid global position estimate
+- No manual control input
+
+check src/modules/commander/HealthAndArmingChecks/checks/modeCheck.cpp
+Local position error is greater than threshold: lpos.eph, lpos_eph_threshold
+Global position is still valid.

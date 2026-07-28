@@ -12,6 +12,8 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [x] Connect Copilot: `./copilot --mav udpin:0.0.0.0:14540`
 * [x] Configure PX4 to use beacon ranges: `EKF2_RNGBC_CTRL, 1`
 * [x] Debug SITL
-* [ ] Disable GPS
-* [ ] Debug build:
-* [ ] SITL starting location
+* [x] Disable GPS: EKF2_GPS_CTRL=0
+* [x] Debug build: export PX4_CMAKE_BUILD_TYPE=Debug
+* [x] SITL starting location: export PX4_HOME_LAT(LON/ALT)=49.796766
+* [ ] Clean SITL start with default params:
+	Delete build/px4_sitl_sih/rootfs/parameters.bson?
