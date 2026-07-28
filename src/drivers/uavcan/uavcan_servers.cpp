@@ -154,6 +154,20 @@ int UavcanServers::init()
 	return 0;
 }
 
+#ifdef CONFIG_MODULES_NFS_MOUNT
+void UavcanServers::check_nfs()
+{
+	nfs_up_s nfs_up{};
+
+	if (_nfs_up_sub.update(&nfs_up)) {
+		migrateFWFromRoot(UAVCAN_NFS_PATH, UAVCAN_NFS_STAGING_PATH);
+		_fw_version_checker.setFirmwareNfsBasePath(UAVCAN_NFS_PATH);
+		_fileserver_backend.setNfsRootPath(UAVCAN_NFS_PATH);
+		_node_info_retriever.invalidateAll();
+	}
+}
+#endif
+
 void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_path)
 {
 	/*
@@ -217,7 +231,7 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 	for (int i = 0; i < bin_count; i++) {
 		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor{0};
 
-		snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, bin_names[i]);
+		snprintf(srcpath, sizeof(srcpath), "%s/%s", sd_root_path, bin_names[i]);
 
 		if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor, 1024) != 0) {
 			continue;
@@ -239,7 +253,7 @@ int UavcanServers::copyFw(const char *dst, const char *src)
 {
 	int rv = 0;
 
-	int dfd = open(dst, O_WRONLY | O_CREAT, 0666);
+	int dfd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
 	if (dfd < 0) {
 		PX4_ERR("copyFw: couldn't open dst");
