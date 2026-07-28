@@ -211,6 +211,9 @@ private:
 
 	bool _hover_thrust_initialized{false};
 
+	float _z_v_auto_up_last_valid{0.f};
+	float _z_v_auto_dn_last_valid{0.f};
+
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 

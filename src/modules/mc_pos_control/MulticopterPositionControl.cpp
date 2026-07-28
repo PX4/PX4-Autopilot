@@ -259,26 +259,36 @@ void MulticopterPositionControl::parameters_update(bool force)
 					    "Manual sideways speed has been constrained by forward speed", _param_mpc_vel_manual.get());
 		}
 
-		if (_param_mpc_z_v_auto_up.get() > _param_mpc_z_vel_max_up.get()) {
-			_param_mpc_z_v_auto_up.set(_param_mpc_z_vel_max_up.get());
+		if (_param_mpc_z_v_auto_up.get() > _param_mpc_z_vel_max_up.get() ||
+		    _param_mpc_z_v_auto_up.get() <= 0.f) {
+			const bool keep_previous = (_param_mpc_z_v_auto_up.get() <= 0.f) && (_z_v_auto_up_last_valid > 0.f);
+			_param_mpc_z_v_auto_up.set(keep_previous ? _z_v_auto_up_last_valid : _param_mpc_z_vel_max_up.get());
 			_param_mpc_z_v_auto_up.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed has been constrained by max speed\t");
+			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed limit invalid\t");
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
 			 */
 			events::send<float>(events::ID("mc_pos_ctrl_up_vel_set"), events::Log::Warning,
-					    "Ascent speed has been constrained by max speed", _param_mpc_z_vel_max_up.get());
+					    "Ascent speed limit invalid", _param_mpc_z_v_auto_up.get());
+
+		} else {
+			_z_v_auto_up_last_valid = _param_mpc_z_v_auto_up.get();
 		}
 
-		if (_param_mpc_z_v_auto_dn.get() > _param_mpc_z_vel_max_dn.get()) {
-			_param_mpc_z_v_auto_dn.set(_param_mpc_z_vel_max_dn.get());
+		if (_param_mpc_z_v_auto_dn.get() > _param_mpc_z_vel_max_dn.get() ||
+		    _param_mpc_z_v_auto_dn.get() <= 0.f) {
+			const bool keep_previous = (_param_mpc_z_v_auto_dn.get() <= 0.f) && (_z_v_auto_dn_last_valid > 0.f);
+			_param_mpc_z_v_auto_dn.set(keep_previous ? _z_v_auto_dn_last_valid : _param_mpc_z_vel_max_dn.get());
 			_param_mpc_z_v_auto_dn.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Descent speed has been constrained by max speed\t");
+			mavlink_log_critical(&_mavlink_log_pub, "Descent speed limit invalid\t");
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
 			 */
 			events::send<float>(events::ID("mc_pos_ctrl_down_vel_set"), events::Log::Warning,
-					    "Descent speed has been constrained by max speed", _param_mpc_z_vel_max_dn.get());
+					    "Descent speed limit invalid", _param_mpc_z_v_auto_dn.get());
+
+		} else {
+			_z_v_auto_dn_last_valid = _param_mpc_z_v_auto_dn.get();
 		}
 
 		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
