@@ -125,63 +125,63 @@ int Naviguider::init() {
 
     // Check the mode, measurements only or EKF override
     if (this->_param_ng_mode_initial_value == 1) {
-        this->_att_pub = new uORB::PublicationMulti<vehicle_attitude_s>(ORB_ID(vehicle_attitude));
+	this->_att_pub = new uORB::PublicationMulti<vehicle_attitude_s>(ORB_ID(vehicle_attitude));
 
-        int32_t v = 0;
+	int32_t v = 0;
 
-        // EKF2_EN 0 (disabled)
-        v = 0;
-        param_set(param_find("EKF2_EN"), &v);
+	// EKF2_EN 0 (disabled)
+	v = 0;
+	param_set(param_find("EKF2_EN"), &v);
 
-        // SENS_IMU_MODE (VN handles sensor selection)
-        v = 0;
-        param_set(param_find("SENS_IMU_MODE"), &v);
+	// SENS_IMU_MODE (VN handles sensor selection)
+	v = 0;
+	param_set(param_find("SENS_IMU_MODE"), &v);
 
-        // SENS_MAG_MODE (VN handles sensor selection)
-        v = 0;
-        param_set(param_find("SENS_MAG_MODE"), &v);
+	// SENS_MAG_MODE (VN handles sensor selection)
+	v = 0;
+	param_set(param_find("SENS_MAG_MODE"), &v);
     } else {
-        this->_att_pub = new uORB::PublicationMulti<vehicle_attitude_s>(ORB_ID(external_ins_attitude));
+	this->_att_pub = new uORB::PublicationMulti<vehicle_attitude_s>(ORB_ID(external_ins_attitude));
 
-        int32_t v = 1;
+	int32_t v = 1;
 
-        // EKF2_EN 0 (disabled)
-        v = 1;
-        param_set(param_find("EKF2_EN"), &v);
+	// EKF2_EN 0 (disabled)
+	v = 1;
+	param_set(param_find("EKF2_EN"), &v);
 
-        // SENS_IMU_MODE (VN handles sensor selection)
-        v = 1;
-        param_set(param_find("SENS_IMU_MODE"), &v);
+	// SENS_IMU_MODE (VN handles sensor selection)
+	v = 1;
+	param_set(param_find("SENS_IMU_MODE"), &v);
 
-        // SENS_MAG_MODE (VN handles sensor selection)
-        v = 1;
-        param_set(param_find("SENS_MAG_MODE"), &v);
+	// SENS_MAG_MODE (VN handles sensor selection)
+	v = 1;
+	param_set(param_find("SENS_MAG_MODE"), &v);
     }
 
     // initialize the base I2C device
     const int ret = device::I2C::init();
     if (ret != PX4_OK) {
-        PX4_ERR("I2C init failed (%d)", ret);
-        return ret;
+	PX4_ERR("I2C init failed (%d)", ret);
+	return ret;
     }
 
     // Reset device
     if (this->write_reg_u8(RESET_REQ_REG, 1) != PX4_OK) {
-        PX4_ERR("RESET_REQ_REG write failed");
-        return PX4_ERROR;
+	PX4_ERR("RESET_REQ_REG write failed");
+	return PX4_ERROR;
     }
     px4_usleep(RESET_DELAY_US);
 
     // Put Sentral CPU into RUN
     if (this->write_reg_u8(CHIP_CONTROL_REG, CHIP_CONTROL_CPU_RUN) != PX4_OK) {
-        PX4_ERR("CHIP_CONTROL_REG write failed");
-        return PX4_ERROR;
+	PX4_ERR("CHIP_CONTROL_REG write failed");
+	return PX4_ERROR;
     }
 
     // Flush anything stale
     if (this->write_reg_u8(FIFO_FLUSH_REG, FIFO_FLUSH_DISCARD_ALL) != PX4_OK) {
-        PX4_ERR("FIFO_FLUSH_REG write failed");
-        return PX4_ERROR;
+	PX4_ERR("FIFO_FLUSH_REG write failed");
+	return PX4_ERROR;
     }
 
     // Wait for device to be ready for parameter transactions
@@ -190,55 +190,55 @@ int Naviguider::init() {
     int last_read_ret = PX4_OK;
 
     for (uint32_t i = 0; i < BOOT_TIMEOUT_ITERATIONS; i++) {
-        last_read_ret = this->read_reg_u8(HOST_STATUS_REG, host);  // reset host status
-        if (last_read_ret != PX4_OK) {
-            px4_usleep(STATUS_CHECK_DELAY_US);
-            continue;
-        }
+	last_read_ret = this->read_reg_u8(HOST_STATUS_REG, host);  // reset host status
+	if (last_read_ret != PX4_OK) {
+	    px4_usleep(STATUS_CHECK_DELAY_US);
+	    continue;
+	}
 
-        last_read_ret = this->read_reg_u8(CHIP_STATUS_REG, chip);  // EEPROM detected
-        if (last_read_ret != PX4_OK) {
-            px4_usleep(STATUS_CHECK_DELAY_US);
-            continue;
-        }
+	last_read_ret = this->read_reg_u8(CHIP_STATUS_REG, chip);  // EEPROM detected
+	if (last_read_ret != PX4_OK) {
+	    px4_usleep(STATUS_CHECK_DELAY_US);
+	    continue;
+	}
 
-        last_read_ret = this->read_reg_u8(ERR_REG, err);  // set error register to no error
-        if (last_read_ret != PX4_OK) {
-            px4_usleep(STATUS_CHECK_DELAY_US);
-            continue;
-        }
+	last_read_ret = this->read_reg_u8(ERR_REG, err);  // set error register to no error
+	if (last_read_ret != PX4_OK) {
+	    px4_usleep(STATUS_CHECK_DELAY_US);
+	    continue;
+	}
 
-        const bool host_reset_cleared = ((host & HOST_STATUS_RESET) == 0);
+	const bool host_reset_cleared = ((host & HOST_STATUS_RESET) == 0);
 
-        // For EM7186-style parts, EEPROM upload done is the key "boot completed" signal.
-        // Do NOT require CHIP_STATUS_FIRMWARE_IDLE
-        const bool eeprom_done = ((chip & CHIP_STATUS_EEPROM_UPLOAD_DONE) != 0);
-        const bool eeprom_err  = ((chip & CHIP_STATUS_EEPROM_UPLOAD_ERROR) != 0);
+	// For EM7186-style parts, EEPROM upload done is the key "boot completed" signal.
+	// Do NOT require CHIP_STATUS_FIRMWARE_IDLE
+	const bool eeprom_done = ((chip & CHIP_STATUS_EEPROM_UPLOAD_DONE) != 0);
+	const bool eeprom_err  = ((chip & CHIP_STATUS_EEPROM_UPLOAD_ERROR) != 0);
 
-        if (host_reset_cleared && eeprom_done && !eeprom_err) {
-            ready = true;
-            break;
-        }
+	if (host_reset_cleared && eeprom_done && !eeprom_err) {
+	    ready = true;
+	    break;
+	}
 
-        px4_usleep(STATUS_CHECK_DELAY_US);
+	px4_usleep(STATUS_CHECK_DELAY_US);
     }
 
     PX4_INFO("NG host=0x%02x chip=0x%02x err=0x%02x ready=%d last_read_ret=%d",
-             host, chip, err, (int)ready, last_read_ret);
+	     host, chip, err, (int)ready, last_read_ret);
 
     if (!ready) {
-        PX4_ERR("NG not ready for param writes (host=0x%02x chip=0x%02x err=0x%02x last_read_ret=%d)",
-                host, chip, err, last_read_ret);
-        return PX4_ERROR;
+	PX4_ERR("NG not ready for param writes (host=0x%02x chip=0x%02x err=0x%02x last_read_ret=%d)",
+		host, chip, err, last_read_ret);
+	return PX4_ERROR;
     }
 
     // If algorithm standby is set, clear/adjust host interface ctrl as needed
     if (host & HOST_STATUS_ALGORITHM_STANDBY) {
-        if (this->write_reg_u8(HOST_INTERFACE_CTRL_REG, 0x00) != PX4_OK) {
-            PX4_ERR("HOST_INTERFACE_CTRL_REG write failed");
-            return PX4_ERROR;
-        }
-        px4_usleep(STATUS_CHECK_DELAY_US);
+	if (this->write_reg_u8(HOST_INTERFACE_CTRL_REG, 0x00) != PX4_OK) {
+	    PX4_ERR("HOST_INTERFACE_CTRL_REG write failed");
+	    return PX4_ERROR;
+	}
+	px4_usleep(STATUS_CHECK_DELAY_US);
     }
 
     this->_last_rate_acc    = 0;
@@ -250,7 +250,7 @@ int Naviguider::init() {
     // Update the sensor rates based on the params, passing any error through
     err = this->update_sensor_rates();
     if (err) {
-        return err;
+	return err;
     }
 
     this->set_scale_factors();
@@ -274,9 +274,9 @@ int Naviguider::print_status() {
 
 void Naviguider::Run() {
     if (should_exit()) {
-        ScheduleClear();
-        //exit_and_cleanup();
-        return;
+	ScheduleClear();
+	//exit_and_cleanup();
+	return;
     }
 
     const hrt_abstime now = hrt_absolute_time();
@@ -286,28 +286,28 @@ void Naviguider::Run() {
     const uint32_t bytes = this->read_fifo(_fifo_buf);
 
     if (bytes > 0 && bytes <= FIFO_BUF_SIZE) {
-        this->parse_fifo(_fifo_buf, bytes);
+	this->parse_fifo(_fifo_buf, bytes);
 
     } else if (bytes > FIFO_BUF_SIZE) {
-        PX4_WARN("FIFO overflow: bytes=%lu > buf=%u",
-                 static_cast<uint32_t>(bytes), (unsigned)FIFO_BUF_SIZE);
+	PX4_WARN("FIFO overflow: bytes=%lu > buf=%u",
+		 static_cast<uint32_t>(bytes), (unsigned)FIFO_BUF_SIZE);
     }
 
     perf_end(_sample_perf);
 
     // If we're in INS mode, then every 100ms, publish sensor selection
     if (   (this->_param_ng_mode_initial_value == 1)
-        && (now - this->_last_sens_select_time > 100000)) {
-        this->publish_sensor_selection();
+	&& (now - this->_last_sens_select_time > 100000)) {
+	this->publish_sensor_selection();
     }
 
     if (now - this->_last_print_time > 1000000) {
-        // Print out sensor update rate info
-        print_sensor_counts();
-        // Check for any parameter updates
-        this->parameters_update();
-        this->debug_pub();
-        this->_last_print_time = now;
+	// Print out sensor update rate info
+	print_sensor_counts();
+	// Check for any parameter updates
+	this->parameters_update();
+	this->debug_pub();
+	this->_last_print_time = now;
     }
 
     // Update the local mag field value for the synth mag, if necessary
@@ -319,8 +319,8 @@ uint32_t Naviguider::read_fifo(uint8_t *buffer) {
     // Query the device for how many bytes are available in the FIFO
     uint16_t raw = 0;
     if (this->read_reg(BYTES_REMAINING_REG, &raw, sizeof(raw)) != PX4_OK) {
-            PX4_WARN("BYTES_REMAINING_REG read failed");
-            return 0;
+	    PX4_WARN("BYTES_REMAINING_REG read failed");
+	    return 0;
     }
 
     // Handle potential endianness mismatch
@@ -330,18 +330,18 @@ uint32_t Naviguider::read_fifo(uint8_t *buffer) {
     /* If the raw value seems too large but the swapped value is reasonable,
     use the swapped value. Defensive check for byte-order issues.*/
     if (bytes_remaining > FIFO_BUF_SIZE && swapped <= FIFO_BUF_SIZE) {
-                bytes_remaining = swapped;
+		bytes_remaining = swapped;
     }
 
     // No data is available
     if (bytes_remaining == 0) {
-            return 0;
+	    return 0;
     }
 
     // Cap the read amount to our buffer size
     uint32_t to_read = bytes_remaining;
     if (to_read > FIFO_BUF_SIZE) {
-            to_read = FIFO_BUF_SIZE;
+	    to_read = FIFO_BUF_SIZE;
     }
 
     /* Read FIFO data in chunks. The FIFO has a 50-byte register window that wraps around,
@@ -349,28 +349,28 @@ uint32_t Naviguider::read_fifo(uint8_t *buffer) {
     uint32_t offset = 0;
 
     while (offset < to_read) {
-        // Calculate register address (wraps at FIFO_WINDOW_BYTES)
-        const uint32_t reg = offset % FIFO_WINDOW_BYTES;
+	// Calculate register address (wraps at FIFO_WINDOW_BYTES)
+	const uint32_t reg = offset % FIFO_WINDOW_BYTES;
 
-        // Calculate how many bytes until we hit the window boundary
-        const uint32_t until_boundary = FIFO_WINDOW_BYTES - reg;
+	// Calculate how many bytes until we hit the window boundary
+	const uint32_t until_boundary = FIFO_WINDOW_BYTES - reg;
 
-        /* Determine chunk size: smallest of:
-        1. Bytes remaining to read
-        2. Bytes until window wraps
-        3. Max I2C transaction size
-        */
-        const uint32_t chunk = math::min<uint32_t>(
-            to_read - offset,
-            math::min<uint32_t>(until_boundary, I2C_MAX_READ));
+	/* Determine chunk size: smallest of:
+	1. Bytes remaining to read
+	2. Bytes until window wraps
+	3. Max I2C transaction size
+	*/
+	const uint32_t chunk = math::min<uint32_t>(
+	    to_read - offset,
+	    math::min<uint32_t>(until_boundary, I2C_MAX_READ));
 
-        // Read chunk into buffer
-        if (this->read_reg((uint8_t)reg, buffer + offset, chunk) != PX4_OK) {
-            PX4_WARN("FIFO read failed at reg=%u chunk=%lu", (unsigned)reg, static_cast<uint32_t>(chunk));
-            return 0;
-                }
+	// Read chunk into buffer
+	if (this->read_reg((uint8_t)reg, buffer + offset, chunk) != PX4_OK) {
+	    PX4_WARN("FIFO read failed at reg=%u chunk=%lu", (unsigned)reg, static_cast<uint32_t>(chunk));
+	    return 0;
+		}
 
-        offset += chunk;
+	offset += chunk;
     }
 
     return to_read;
@@ -381,18 +381,18 @@ uint32_t Naviguider::parse_fifo(uint8_t *buffer, uint32_t len) {
 
     // Parse all packets in the buffer sequentially
     while (idx < len) {
-        // Parse one packet starting at current position
-        const uint32_t used = this->parse_next_fifo_block(&buffer[idx], len - idx);
-        // If parsing failed (incomplete packet or unknown sensor ID), stop
-        if (used == 0) {
-                PX4_WARN("parse stopped: idx=%lu sensorId=0x%02x remaining=%lu",
-                 (uint32_t)idx, buffer[idx], (uint32_t)(len - idx));
-                break;
-        }
+	// Parse one packet starting at current position
+	const uint32_t used = this->parse_next_fifo_block(&buffer[idx], len - idx);
+	// If parsing failed (incomplete packet or unknown sensor ID), stop
+	if (used == 0) {
+		PX4_WARN("parse stopped: idx=%lu sensorId=0x%02x remaining=%lu",
+		 (uint32_t)idx, buffer[idx], (uint32_t)(len - idx));
+		break;
+	}
 
-        // Move onto the next packet
-        idx += used;
-        }
+	// Move onto the next packet
+	idx += used;
+	}
 
     // Return total bytes successfully parsed
     return idx;
@@ -403,7 +403,7 @@ Extracts raw data, converts to physical units, and publishes to appropriate uORB
 Returns number of bytes consumed (0 if incomplete packet or unknown sensor type).*/
 uint32_t Naviguider::parse_next_fifo_block(uint8_t *buf, uint32_t remaining) {
     if (remaining == 0) {
-        return 0;
+	return 0;
     }
 
     // Every packet starts with a sensor ID byte.
@@ -411,11 +411,11 @@ uint32_t Naviguider::parse_next_fifo_block(uint8_t *buf, uint32_t remaining) {
 
     // Skip null padding bytes.
     if (sensorId == 0) {
-        uint32_t n = 0;
-        while (n < remaining && buf[n] == 0) {
-            n++;
-        }
-        return n;
+	uint32_t n = 0;
+	while (n < remaining && buf[n] == 0) {
+	    n++;
+	}
+	return n;
     }
 
     switch (sensorId) {
@@ -427,44 +427,44 @@ uint32_t Naviguider::parse_next_fifo_block(uint8_t *buf, uint32_t remaining) {
     case SENSOR_TYPE_GYROSCOPE_WAKE:
     case SENSOR_TYPE_MAGNETIC_FIELD:
     case SENSOR_TYPE_MAGNETIC_FIELD_WAKE:
-        return handle_sensor_data_3axis(remaining, sensorId, buf+1);
+	return handle_sensor_data_3axis(remaining, sensorId, buf+1);
 
     /* Barometer sensor
     Packet format: [ID][P_lo][P_mid][P_hi] = 4 bytes (24-bit pressure value). */
     case SENSOR_TYPE_PRESSURE:
     case SENSOR_TYPE_PRESSURE_WAKE:
-        return handle_pressure(remaining, sensorId, buf+1);
+	return handle_pressure(remaining, sensorId, buf+1);
 
     /*Vehichle Attitude vector (fused attitude quaternion from onboard sensor fusion)
     Packet format: [ID][X_lo][X_hi][Y_lo][Y_hi][Z_lo][Z_hi][W_lo][W_hi][acc_lo][acc_hi] = 11 bytes*/
     case SENSOR_TYPE_ROTATION_VECTOR:
     case SENSOR_TYPE_ROTATION_VECTOR_WAKE:
-        return handle_rotation_vector(remaining, sensorId, buf+1);
+	return handle_rotation_vector(remaining, sensorId, buf+1);
 
     // Timestamp packets (3 bytes) - currently unused, just skip
     case SENSOR_TYPE_TIMESTAMP:
     case SENSOR_TYPE_TIMESTAMP_WAKE:
     case SENSOR_TYPE_TIMESTAMP_OVERFLOW:
     case SENSOR_TYPE_TIMESTAMP_OVERFLOW_WAKE:
-        return (remaining >= 3) ? 3 : 0;
+	return (remaining >= 3) ? 3 : 0;
 
     // Metadata packets (4 bytes) - currently unused, just skip
     case SENSOR_TYPE_META:
     case SENSOR_TYPE_META_WAKE:
-        return handle_meta_event(remaining, buf+1);
+	return handle_meta_event(remaining, buf+1);
 
     // Unknown sensor ID - stop parsing to prevent corruption
     default:
-        PX4_WARN("Unknown FIFO sensorId=0x%02x, dropping %lu bytes", sensorId, (uint32_t)remaining);
-        return 0;
+	PX4_WARN("Unknown FIFO sensorId=0x%02x, dropping %lu bytes", sensorId, (uint32_t)remaining);
+	return 0;
     }
 }
 
 uint32_t Naviguider::handle_sensor_data_3axis(uint32_t remaining,
-                                                uint8_t sensor_id,
-                                                uint8_t* data_start) {
+						uint8_t sensor_id,
+						uint8_t* data_start) {
     if (remaining < 8) {
-        return 0;
+	return 0;
     }
 
     const hrt_abstime timestamp = hrt_absolute_time();
@@ -478,14 +478,14 @@ uint32_t Naviguider::handle_sensor_data_3axis(uint32_t remaining,
 
     // if(_param_ng_mode.get() == 1){
     if (sensor_id == SENSOR_TYPE_ACCELEROMETER || sensor_id == SENSOR_TYPE_ACCELEROMETER_WAKE) {
-        // publish_accel(timestamp, raw.x * s, raw.y * s, raw.z * s);
-        publish_accel(timestamp, raw.y * s, raw.x * s, -raw.z * s);
+	// publish_accel(timestamp, raw.x * s, raw.y * s, raw.z * s);
+	publish_accel(timestamp, raw.y * s, raw.x * s, -raw.z * s);
     } else if (sensor_id == SENSOR_TYPE_GYROSCOPE || sensor_id == SENSOR_TYPE_GYROSCOPE_WAKE) {
-        // publish_gyro(timestamp, raw.x * s, raw.y * s, raw.z * s);
-         publish_gyro(timestamp, raw.y * s, raw.x * s, -raw.z * s);
+	// publish_gyro(timestamp, raw.x * s, raw.y * s, raw.z * s);
+	 publish_gyro(timestamp, raw.y * s, raw.x * s, -raw.z * s);
     } else {
-        // publish_mag(timestamp, raw.x * s, raw.y * s, raw.z * s);
-        publish_mag(timestamp, raw.y * s, raw.x * s, -raw.z * s);
+	// publish_mag(timestamp, raw.x * s, raw.y * s, raw.z * s);
+	publish_mag(timestamp, raw.y * s, raw.x * s, -raw.z * s);
     }
     // }
 
@@ -493,19 +493,19 @@ uint32_t Naviguider::handle_sensor_data_3axis(uint32_t remaining,
 }
 
 uint32_t Naviguider::handle_pressure(uint32_t remaining,
-                                     uint8_t sensor_id,
-                                     uint8_t* data_start) {
+				     uint8_t sensor_id,
+				     uint8_t* data_start) {
     if (remaining < 4) {
-        return 0;
+	return 0;
     }
 
     const hrt_abstime timestamp = hrt_absolute_time();
 
     // Reconstruct 24-bit little-endian pressure value.
     uint32_t raw = static_cast<uint32_t>((0x00000000
-                               | data_start[0]
-                               | data_start[1] << 8
-                               | data_start[2] << 16));
+			       | data_start[0]
+			       | data_start[1] << 8
+			       | data_start[2] << 16));
 
     // Convert to Pascals and publish.
     const float pressure_pa = static_cast<float>((raw * _scale[sensor_id]));
@@ -515,10 +515,10 @@ uint32_t Naviguider::handle_pressure(uint32_t remaining,
 }
 
 uint32_t Naviguider::handle_rotation_vector(uint32_t remaining,
-                                            uint8_t sensor_id,
-                                            uint8_t* data_start) {
+					    uint8_t sensor_id,
+					    uint8_t* data_start) {
     if (remaining < 11) {
-        return 0;
+	return 0;
     }
 
     const hrt_abstime timestamp = hrt_absolute_time();
@@ -610,21 +610,21 @@ void Naviguider::publish_attitude(const hrt_abstime &timestamp, float qw, float 
     _att_pub->publish(msg);
 
     if (_param_ng_mode.get() == 1) {
-        estimator_status_s est_status{};
-        est_status.timestamp_sample = time_now_us;
+	estimator_status_s est_status{};
+	est_status.timestamp_sample = time_now_us;
 
-        float test_ratio = 0.1f;
+	float test_ratio = 0.1f;
 
-        est_status.hdg_test_ratio = test_ratio;  // heading test
-        est_status.vel_test_ratio = test_ratio;  // velocity test
-        est_status.pos_test_ratio = test_ratio;  // position test
-        est_status.hgt_test_ratio = test_ratio;  // hight test
+	est_status.hdg_test_ratio = test_ratio;  // heading test
+	est_status.vel_test_ratio = test_ratio;  // velocity test
+	est_status.pos_test_ratio = test_ratio;  // position test
+	est_status.hgt_test_ratio = test_ratio;  // hight test
 
-        est_status.accel_device_id = get_device_id();
-        est_status.gyro_device_id = get_device_id();
+	est_status.accel_device_id = get_device_id();
+	est_status.gyro_device_id = get_device_id();
 
-        est_status.timestamp = time_now_us;
-        _est_status_pub.publish(est_status);
+	est_status.timestamp = time_now_us;
+	_est_status_pub.publish(est_status);
     }
 }
 
@@ -638,10 +638,10 @@ void Naviguider::publish_synthetic_mag(const hrt_abstime &timestamp, float qw, f
 
     // Check if _last_mag_ned_vec has not been initialized
     if (   this->_last_mag_ned_vec[0] < static_cast<float>(0.0001)  && this->_last_mag_ned_vec[0] > static_cast<float>(-0.0001)
-        && this->_last_mag_ned_vec[1] < static_cast<float>(0.0001) && this->_last_mag_ned_vec[1] > static_cast<float>(-0.0001)
-        && this->_last_mag_ned_vec[2] < static_cast<float>(0.0001)  && this->_last_mag_ned_vec[2] > static_cast<float>(-0.0001)) {
-        // Do nothing until it's updated
-        return;
+	&& this->_last_mag_ned_vec[1] < static_cast<float>(0.0001) && this->_last_mag_ned_vec[1] > static_cast<float>(-0.0001)
+	&& this->_last_mag_ned_vec[2] < static_cast<float>(0.0001)  && this->_last_mag_ned_vec[2] > static_cast<float>(-0.0001)) {
+	// Do nothing until it's updated
+	return;
     }
 
     float dcm[3][3];
@@ -661,21 +661,16 @@ void Naviguider::publish_synthetic_mag(const hrt_abstime &timestamp, float qw, f
 
     // Multiplying by the transpose of the DCM because that seemed to work
     float x =   dcm[0][0]*this->_last_mag_ned_vec[0]
-              + dcm[1][0]*this->_last_mag_ned_vec[1]
-              + dcm[2][0]*this->_last_mag_ned_vec[2];
+	      + dcm[1][0]*this->_last_mag_ned_vec[1]
+	      + dcm[2][0]*this->_last_mag_ned_vec[2];
 
     float y =   dcm[0][1]*this->_last_mag_ned_vec[0]
-              + dcm[1][1]*this->_last_mag_ned_vec[1]
-              + dcm[2][1]*this->_last_mag_ned_vec[2];
+	      + dcm[1][1]*this->_last_mag_ned_vec[1]
+	      + dcm[2][1]*this->_last_mag_ned_vec[2];
 
     float z =   dcm[0][2]*this->_last_mag_ned_vec[0]
-              + dcm[1][2]*this->_last_mag_ned_vec[1]
-              + dcm[2][2]*this->_last_mag_ned_vec[2];
-
-    // // Add some small randomness to the data to ensure it never goes stale
-    // x = x + (((rand() % 10) + 1) * (static_cast<float>(0.000001)));
-    // y = y + (((rand() % 10) + 1) * (static_cast<float>(0.000001)));
-    // z = z + (((rand() % 10) + 1) * (static_cast<float>(0.000001)));
+	      + dcm[1][2]*this->_last_mag_ned_vec[1]
+	      + dcm[2][2]*this->_last_mag_ned_vec[2];
 
     // Add some small randomness to the data to ensure it never goes stale
     x = x + (((random() % 10) + 1) * (static_cast<float>(0.000001)));
@@ -691,8 +686,8 @@ void Naviguider::publish_synthetic_mag(const hrt_abstime &timestamp, float qw, f
 void Naviguider::update_synthetic_mag_field_from_readings() {
     // If both vehicle status and vehicle local pos have not been updated
     if (!(_vehicle_status_sub.updated()) && !(_vehicle_local_pos_sub.updated())) {
-        // Do nothing
-        return;
+	// Do nothing
+	return;
     }
 
     vehicle_status_s vs_update;
@@ -703,61 +698,61 @@ void Naviguider::update_synthetic_mag_field_from_readings() {
     // If we're using the automatic synth mag field, we're disarmed, and we're stationary
     float vel_norm = sqrt(pow(vlp_update.vx, 2) + pow(vlp_update.vy, 2) + pow(vlp_update.vz, 2));
     if ((this->_synth_mag_mode == 0)
-        && (vs_update.arming_state == vs_update.ARMING_STATE_DISARMED)
-        && (vel_norm < static_cast<float>(0.1))) {
-        float dcm[3][3];
+	&& (vs_update.arming_state == vs_update.ARMING_STATE_DISARMED)
+	&& (vel_norm < static_cast<float>(0.1))) {
+	float dcm[3][3];
 
-        // Use the last recorded attitude to rotate the mag field into the NED frame
-        dcm[0][0] =   this->_last_att_quat[0]*this->_last_att_quat[0]
-                    + this->_last_att_quat[1]*this->_last_att_quat[1]
-                    - this->_last_att_quat[2]*this->_last_att_quat[2]
-                    - this->_last_att_quat[3]*this->_last_att_quat[3];
+	// Use the last recorded attitude to rotate the mag field into the NED frame
+	dcm[0][0] =   this->_last_att_quat[0]*this->_last_att_quat[0]
+		    + this->_last_att_quat[1]*this->_last_att_quat[1]
+		    - this->_last_att_quat[2]*this->_last_att_quat[2]
+		    - this->_last_att_quat[3]*this->_last_att_quat[3];
 
-        dcm[0][1] = 2*(this->_last_att_quat[1]*this->_last_att_quat[2]
-                       - this->_last_att_quat[0]*this->_last_att_quat[3]);
+	dcm[0][1] = 2*(this->_last_att_quat[1]*this->_last_att_quat[2]
+		       - this->_last_att_quat[0]*this->_last_att_quat[3]);
 
-        dcm[0][2] = 2*(this->_last_att_quat[1]*this->_last_att_quat[3]
-                       + this->_last_att_quat[0]*this->_last_att_quat[2]);
+	dcm[0][2] = 2*(this->_last_att_quat[1]*this->_last_att_quat[3]
+		       + this->_last_att_quat[0]*this->_last_att_quat[2]);
 
-        dcm[1][0] = 2*(this->_last_att_quat[1]*this->_last_att_quat[2]
-                       + this->_last_att_quat[0]*this->_last_att_quat[3]);
+	dcm[1][0] = 2*(this->_last_att_quat[1]*this->_last_att_quat[2]
+		       + this->_last_att_quat[0]*this->_last_att_quat[3]);
 
-        dcm[1][1] =   this->_last_att_quat[0]*this->_last_att_quat[0]
-                    - this->_last_att_quat[1]*this->_last_att_quat[1]
-                    + this->_last_att_quat[2]*this->_last_att_quat[2]
-                    - this->_last_att_quat[3]*this->_last_att_quat[3];
+	dcm[1][1] =   this->_last_att_quat[0]*this->_last_att_quat[0]
+		    - this->_last_att_quat[1]*this->_last_att_quat[1]
+		    + this->_last_att_quat[2]*this->_last_att_quat[2]
+		    - this->_last_att_quat[3]*this->_last_att_quat[3];
 
-        dcm[1][2] = 2*(this->_last_att_quat[2]*this->_last_att_quat[3]
-                       - this->_last_att_quat[0]*this->_last_att_quat[1]);
+	dcm[1][2] = 2*(this->_last_att_quat[2]*this->_last_att_quat[3]
+		       - this->_last_att_quat[0]*this->_last_att_quat[1]);
 
-        dcm[2][0] = 2*(this->_last_att_quat[1]*this->_last_att_quat[3]
-                       - this->_last_att_quat[0]*this->_last_att_quat[2]);
+	dcm[2][0] = 2*(this->_last_att_quat[1]*this->_last_att_quat[3]
+		       - this->_last_att_quat[0]*this->_last_att_quat[2]);
 
-        dcm[2][1] = 2*(this->_last_att_quat[2]*this->_last_att_quat[3]
-                       + this->_last_att_quat[0]*this->_last_att_quat[1]);
+	dcm[2][1] = 2*(this->_last_att_quat[2]*this->_last_att_quat[3]
+		       + this->_last_att_quat[0]*this->_last_att_quat[1]);
 
-        dcm[2][2] =   this->_last_att_quat[0]*this->_last_att_quat[0]
-                    - this->_last_att_quat[1]*this->_last_att_quat[1]
-                    - this->_last_att_quat[2]*this->_last_att_quat[2]
-                    + this->_last_att_quat[3]*this->_last_att_quat[3];
+	dcm[2][2] =   this->_last_att_quat[0]*this->_last_att_quat[0]
+		    - this->_last_att_quat[1]*this->_last_att_quat[1]
+		    - this->_last_att_quat[2]*this->_last_att_quat[2]
+		    + this->_last_att_quat[3]*this->_last_att_quat[3];
 
-        // Multiplying by the DCM to rotate from body to NED frame
-        float n =   dcm[0][0]*this->_last_mag_body_vec[0]
-                  + dcm[0][1]*this->_last_mag_body_vec[1]
-                  + dcm[0][2]*this->_last_mag_body_vec[2];
+	// Multiplying by the DCM to rotate from body to NED frame
+	float n =   dcm[0][0]*this->_last_mag_body_vec[0]
+		  + dcm[0][1]*this->_last_mag_body_vec[1]
+		  + dcm[0][2]*this->_last_mag_body_vec[2];
 
-        float e =   dcm[1][0]*this->_last_mag_body_vec[0]
-                  + dcm[1][1]*this->_last_mag_body_vec[1]
-                  + dcm[1][2]*this->_last_mag_body_vec[2];
+	float e =   dcm[1][0]*this->_last_mag_body_vec[0]
+		  + dcm[1][1]*this->_last_mag_body_vec[1]
+		  + dcm[1][2]*this->_last_mag_body_vec[2];
 
-        float d =   dcm[2][0]*this->_last_mag_body_vec[0]
-                  + dcm[2][1]*this->_last_mag_body_vec[1]
-                  + dcm[2][2]*this->_last_mag_body_vec[2];
+	float d =   dcm[2][0]*this->_last_mag_body_vec[0]
+		  + dcm[2][1]*this->_last_mag_body_vec[1]
+		  + dcm[2][2]*this->_last_mag_body_vec[2];
 
-        // Set the record of the last magnetic field vector
-        this->_last_mag_ned_vec[0] = n;
-        this->_last_mag_ned_vec[1] = e;
-        this->_last_mag_ned_vec[2] = d;
+	// Set the record of the last magnetic field vector
+	this->_last_mag_ned_vec[0] = n;
+	this->_last_mag_ned_vec[1] = e;
+	this->_last_mag_ned_vec[2] = d;
     }
 }
 /* ---- Initialization End ---- */
@@ -774,7 +769,7 @@ int Naviguider::read_reg_u8(uint8_t reg, uint8_t &v) {
 int Naviguider::write_reg(uint8_t reg, const void *data, uint32_t len) {
     uint8_t buf[1 + 32];
     if (len > 32) {
-        return -EINVAL;
+	return -EINVAL;
     }
     buf[0] = reg;
     memcpy(&buf[1], data, len);
@@ -791,49 +786,49 @@ int Naviguider::update_sensor_rates() {
     // If the last set rate isn't equal to the current param rate
     uint16_t cur_rate_acc = _param_ng_rate_acc.get();
     if (this->_last_rate_acc != cur_rate_acc) {
-        // Set sensor rate, if error occurred print error message and return error.
-        if (this->set_sensor_rate(SENSOR_TYPE_ACCELEROMETER, cur_rate_acc) != PX4_OK) {
-            PX4_ERR("set accel rate failed");
-            return PX4_ERROR;
-        }
-        // Save the current rate as the last set rate
-        this->_last_rate_acc = cur_rate_acc;
+	// Set sensor rate, if error occurred print error message and return error.
+	if (this->set_sensor_rate(SENSOR_TYPE_ACCELEROMETER, cur_rate_acc) != PX4_OK) {
+	    PX4_ERR("set accel rate failed");
+	    return PX4_ERROR;
+	}
+	// Save the current rate as the last set rate
+	this->_last_rate_acc = cur_rate_acc;
     }
 
     uint16_t cur_rate_gyro = _param_ng_rate_gyro.get();
     if (this->_last_rate_gyro != cur_rate_gyro) {
-        if (this->set_sensor_rate(SENSOR_TYPE_GYROSCOPE, cur_rate_gyro) != PX4_OK) {
-            PX4_ERR("set gyro rate failed");
-            return PX4_ERROR;
-        }
-        this->_last_rate_gyro = cur_rate_gyro;
+	if (this->set_sensor_rate(SENSOR_TYPE_GYROSCOPE, cur_rate_gyro) != PX4_OK) {
+	    PX4_ERR("set gyro rate failed");
+	    return PX4_ERROR;
+	}
+	this->_last_rate_gyro = cur_rate_gyro;
     }
 
     uint16_t cur_rate_mag = _param_ng_rate_mag.get();
     if (this->_last_rate_mag != cur_rate_mag) {
-        if (this->set_sensor_rate(SENSOR_TYPE_MAGNETIC_FIELD, cur_rate_mag) != PX4_OK) {
-            PX4_ERR("set mag rate failed");
-            return PX4_ERROR;
-        }
-        this->_last_rate_mag = cur_rate_mag;
+	if (this->set_sensor_rate(SENSOR_TYPE_MAGNETIC_FIELD, cur_rate_mag) != PX4_OK) {
+	    PX4_ERR("set mag rate failed");
+	    return PX4_ERROR;
+	}
+	this->_last_rate_mag = cur_rate_mag;
     }
 
     uint16_t cur_rate_baro = _param_ng_rate_baro.get();
     if (this->_last_rate_baro != cur_rate_baro) {
-        if (this->set_sensor_rate(SENSOR_TYPE_PRESSURE, cur_rate_baro) != PX4_OK) {
-            PX4_ERR("set pressure rate failed");
-            return PX4_ERROR;
-        }
-        this->_last_rate_baro = cur_rate_baro;
+	if (this->set_sensor_rate(SENSOR_TYPE_PRESSURE, cur_rate_baro) != PX4_OK) {
+	    PX4_ERR("set pressure rate failed");
+	    return PX4_ERROR;
+	}
+	this->_last_rate_baro = cur_rate_baro;
     }
 
     uint16_t cur_rate_rotvec = _param_ng_rate_rotvec.get();
     if (this->_last_rate_rotvec != cur_rate_rotvec) {
-        if (this->set_sensor_rate(SENSOR_TYPE_ROTATION_VECTOR, cur_rate_rotvec) != PX4_OK) {
-            PX4_ERR("set attitude rate failed");
-            return PX4_ERROR;
-        }
-        this->_last_rate_rotvec = cur_rate_rotvec;
+	if (this->set_sensor_rate(SENSOR_TYPE_ROTATION_VECTOR, cur_rate_rotvec) != PX4_OK) {
+	    PX4_ERR("set attitude rate failed");
+	    return PX4_ERROR;
+	}
+	this->_last_rate_rotvec = cur_rate_rotvec;
     }
 
     return 0;
@@ -843,12 +838,12 @@ void Naviguider::update_synthetic_mag_field_from_params() {
     // Check whether or not we should even pull from params for the mag field
     this->_synth_mag_mode = _param_synth_mag_mode.get();
     if (this->_synth_mag_mode == 1) {
-        // Set local mag north value
-        this->_last_mag_ned_vec[0] = _param_ng_local_north_mag_field.get();
-        // Set local mag east value
-        this->_last_mag_ned_vec[1] = _param_ng_local_east_mag_field.get();
-        // Set local mag down value
-        this->_last_mag_ned_vec[2] = _param_ng_local_down_mag_field.get();
+	// Set local mag north value
+	this->_last_mag_ned_vec[0] = _param_ng_local_north_mag_field.get();
+	// Set local mag east value
+	this->_last_mag_ned_vec[1] = _param_ng_local_east_mag_field.get();
+	// Set local mag down value
+	this->_last_mag_ned_vec[2] = _param_ng_local_down_mag_field.get();
     }
 }
 
@@ -858,7 +853,7 @@ int Naviguider::set_sensor_rate(uint8_t sensorId, uint16_t rate) {
 
 void Naviguider::set_scale_factors() {
     for (unsigned i = 0; i < 128; i++) {
-        _scale[i] = 1.0f;
+	_scale[i] = 1.0f;
     }
 
     constexpr float ONE_OVER_2P15 = 1.0f / 32768.0f;  // 2^15
@@ -905,11 +900,11 @@ void Naviguider::set_ned_frame(bool ned_not_enu) {
     host_iface_ctrl = host_iface_ctrl & (~HIC_MASK_UPDATE_TX_COUNT);
     // Change the value of the NED coordinates bit
     if (ned_not_enu) {
-        // Set the NED coord bit
-        host_iface_ctrl |= HIC_MASK_NED_COORD;
+	// Set the NED coord bit
+	host_iface_ctrl |= HIC_MASK_NED_COORD;
     } else {
-        // Clear the NED coord bit
-        host_iface_ctrl &= (~HIC_MASK_NED_COORD);
+	// Clear the NED coord bit
+	host_iface_ctrl &= (~HIC_MASK_NED_COORD);
     }
 
     // Send the Host Interface Control value back
@@ -926,23 +921,23 @@ void Naviguider::print_sensor_counts() {
     const float elapsed_sec = (now - _count_start_time) / 1000000.0f;
 
     const float accel_rate = (_accel_count > 0 && elapsed_sec > 0) ?
-                             (_accel_count / elapsed_sec) : 0.0f;
+			     (_accel_count / elapsed_sec) : 0.0f;
     const float gyro_rate = (_gyro_count > 0 && elapsed_sec > 0) ?
-                            (_gyro_count / elapsed_sec) : 0.0f;
+			    (_gyro_count / elapsed_sec) : 0.0f;
     const float baro_rate = (_baro_count > 0 && elapsed_sec > 0) ?
-                            (_baro_count / elapsed_sec) : 0.0f;
+			    (_baro_count / elapsed_sec) : 0.0f;
     const float mag_rate =  (_mag_count > 0 && elapsed_sec > 0) ?
-                            (_mag_count / elapsed_sec) : 0.0f;
+			    (_mag_count / elapsed_sec) : 0.0f;
     const float att_rate =  (_attitude_count > 0 && elapsed_sec > 0) ?
-                            (_attitude_count /elapsed_sec) : 0.0f;
+			    (_attitude_count /elapsed_sec) : 0.0f;
 
     PX4_INFO("Accel: %llu (%.1f Hz), Gyro: %llu (%.1f Hz), Mag: %llu (%.1f Hz), Baro: %llu (%.1f Hz), Att: %llu (%.1f Hz) Time: %.1f s",
-        static_cast<uint64_t>(_accel_count), static_cast<double>(accel_rate),
-        static_cast<uint64_t>(_gyro_count), static_cast<double>(gyro_rate),
-        static_cast<uint64_t>(_mag_count), static_cast<double>(mag_rate),
-        static_cast<uint64_t>(_baro_count), static_cast<double>(baro_rate),
-        static_cast<uint64_t>(_attitude_count), static_cast<double>(att_rate),
-        static_cast<double>(elapsed_sec));
+	static_cast<uint64_t>(_accel_count), static_cast<double>(accel_rate),
+	static_cast<uint64_t>(_gyro_count), static_cast<double>(gyro_rate),
+	static_cast<uint64_t>(_mag_count), static_cast<double>(mag_rate),
+	static_cast<uint64_t>(_baro_count), static_cast<double>(baro_rate),
+	static_cast<uint64_t>(_attitude_count), static_cast<double>(att_rate),
+	static_cast<double>(elapsed_sec));
 }
 
 // Reset the counter for accel & gyro count.
@@ -960,95 +955,95 @@ void Naviguider::reset_sensor_counts() {
 void Naviguider::debug_pub() {
     switch (this->_dbg_round_robin_sensor) {
     case 0:
-        // Get the accel sensor info
-        this->get_sensor_info(SENSOR_TYPE_ACCELEROMETER);
-        this->pub_last_sensor_info();
-        break;
+	// Get the accel sensor info
+	this->get_sensor_info(SENSOR_TYPE_ACCELEROMETER);
+	this->pub_last_sensor_info();
+	break;
     case 1:
-        // Get the accel physical sensor info
-        this->get_phys_sensor_info(SENSOR_TYPE_ACCELEROMETER);
-        this->pub_last_phys_sensor_info();
-        break;
+	// Get the accel physical sensor info
+	this->get_phys_sensor_info(SENSOR_TYPE_ACCELEROMETER);
+	this->pub_last_phys_sensor_info();
+	break;
     case 2:
-        // Get the accel sensor config
-        this->get_sensor_config(SENSOR_TYPE_ACCELEROMETER);
-        this->pub_last_sensor_config();
-        break;
+	// Get the accel sensor config
+	this->get_sensor_config(SENSOR_TYPE_ACCELEROMETER);
+	this->pub_last_sensor_config();
+	break;
     case 3:
-        // Get the mag sensor info
-        this->get_sensor_info(SENSOR_TYPE_MAGNETIC_FIELD);
-        this->pub_last_sensor_info();
-        break;
+	// Get the mag sensor info
+	this->get_sensor_info(SENSOR_TYPE_MAGNETIC_FIELD);
+	this->pub_last_sensor_info();
+	break;
     case 4:
-        // Get the mag physical sensor info
-        this->get_phys_sensor_info(SENSOR_TYPE_MAGNETIC_FIELD);
-        this->pub_last_phys_sensor_info();
-        break;
+	// Get the mag physical sensor info
+	this->get_phys_sensor_info(SENSOR_TYPE_MAGNETIC_FIELD);
+	this->pub_last_phys_sensor_info();
+	break;
     case 5:
-        // Get the mag sensor config
-        this->get_sensor_config(SENSOR_TYPE_MAGNETIC_FIELD);
-        this->pub_last_sensor_config();
-        break;
+	// Get the mag sensor config
+	this->get_sensor_config(SENSOR_TYPE_MAGNETIC_FIELD);
+	this->pub_last_sensor_config();
+	break;
     case 6:
-        // Get the pressure sensor info
-        this->get_sensor_info(SENSOR_TYPE_PRESSURE);
-        this->pub_last_sensor_info();
-        break;
+	// Get the pressure sensor info
+	this->get_sensor_info(SENSOR_TYPE_PRESSURE);
+	this->pub_last_sensor_info();
+	break;
     case 7:
-        // Get the pressure physical sensor info
-        this->get_phys_sensor_info(SENSOR_TYPE_PRESSURE);
-        this->pub_last_phys_sensor_info();
-        break;
+	// Get the pressure physical sensor info
+	this->get_phys_sensor_info(SENSOR_TYPE_PRESSURE);
+	this->pub_last_phys_sensor_info();
+	break;
     case 8:
-        // Get the pressure sensor config
-        this->get_sensor_config(SENSOR_TYPE_PRESSURE);
-        this->pub_last_sensor_config();
-        break;
+	// Get the pressure sensor config
+	this->get_sensor_config(SENSOR_TYPE_PRESSURE);
+	this->pub_last_sensor_config();
+	break;
     case 9:
-        // Get the gyro sensor info
-        this->get_sensor_info(SENSOR_TYPE_GYROSCOPE);
-        this->pub_last_sensor_info();
-        break;
+	// Get the gyro sensor info
+	this->get_sensor_info(SENSOR_TYPE_GYROSCOPE);
+	this->pub_last_sensor_info();
+	break;
     case 10:
-        // Get the gyro physical sensor info
-        this->get_phys_sensor_info(SENSOR_TYPE_GYROSCOPE);
-        this->pub_last_phys_sensor_info();
-        break;
+	// Get the gyro physical sensor info
+	this->get_phys_sensor_info(SENSOR_TYPE_GYROSCOPE);
+	this->pub_last_phys_sensor_info();
+	break;
     case 11:
-        // Get the gyro sensor config
-        this->get_sensor_config(SENSOR_TYPE_GYROSCOPE);
-        this->pub_last_sensor_config();
-        break;
+	// Get the gyro sensor config
+	this->get_sensor_config(SENSOR_TYPE_GYROSCOPE);
+	this->pub_last_sensor_config();
+	break;
     case 12:
-        // Get the rotation vector sensor info
-        this->get_sensor_info(SENSOR_TYPE_ROTATION_VECTOR);
-        this->pub_last_sensor_info();
-        break;
+	// Get the rotation vector sensor info
+	this->get_sensor_info(SENSOR_TYPE_ROTATION_VECTOR);
+	this->pub_last_sensor_info();
+	break;
     case 13:
-        // Get the rotation vector physical sensor info
-        this->get_phys_sensor_info(SENSOR_TYPE_ROTATION_VECTOR);
-        this->pub_last_phys_sensor_info();
-        break;
+	// Get the rotation vector physical sensor info
+	this->get_phys_sensor_info(SENSOR_TYPE_ROTATION_VECTOR);
+	this->pub_last_phys_sensor_info();
+	break;
     case 14:
-        // Get the rotation vector sensor config
-        this->get_sensor_config(SENSOR_TYPE_ROTATION_VECTOR);
-        this->pub_last_sensor_config();
-        break;
+	// Get the rotation vector sensor config
+	this->get_sensor_config(SENSOR_TYPE_ROTATION_VECTOR);
+	this->pub_last_sensor_config();
+	break;
     case 15:
-        // Get the physical sensor status
-        this->get_phys_sensor_status();
-        this->pub_last_phys_sensor_status();
-        break;
+	// Get the physical sensor status
+	this->get_phys_sensor_status();
+	this->pub_last_phys_sensor_status();
+	break;
     case 16:
-        // Get the physical sensors present
-        this->get_phys_sensors_present();
-        this->pub_last_phys_sensors_present();
-        break;
+	// Get the physical sensors present
+	this->get_phys_sensors_present();
+	this->pub_last_phys_sensors_present();
+	break;
     case 17:
-        // Get current warm start calibration score
-        this->get_warm_start_cal_score();
-        this->pub_last_warm_start_cal_score();
-        break;
+	// Get current warm start calibration score
+	this->get_warm_start_cal_score();
+	this->pub_last_warm_start_cal_score();
+	break;
     }
 
     // Move to the next sensor on the list
@@ -1178,50 +1173,50 @@ int Naviguider::param_read(uint8_t page, uint8_t param_no, void *data, uint8_t s
     uint8_t ack = 0;
 
     auto cleanup = [&]() {
-        (void)this->write_reg_u8(PARAM_REQUEST_REG, 0);
-        (void)this->write_reg_u8(PARAM_PAGE_SELECT_REG, 0);
+	(void)this->write_reg_u8(PARAM_REQUEST_REG, 0);
+	(void)this->write_reg_u8(PARAM_PAGE_SELECT_REG, 0);
     };
 
     if (this->write_reg_u8(PARAM_PAGE_SELECT_REG, pageSelectValue) != PX4_OK) {
-        cleanup();
-        return 1;
+	cleanup();
+	return 1;
     }
 
     if (this->write_reg_u8(PARAM_REQUEST_REG, request) != PX4_OK) {
-        cleanup();
-        return 2;
+	cleanup();
+	return 2;
     }
 
     uint8_t ack_good = 0;
     // Loop until we either error out, or the request is acknowledged
     for (uint32_t i = 0; (i < PARAM_TIMEOUT_ITERATIONS) && !ack_good; i++) {
-        if (this->read_reg_u8(PARAM_ACK_REG, ack) != PX4_OK) {
-            cleanup();
-            return 3;
-        }
+	if (this->read_reg_u8(PARAM_ACK_REG, ack) != PX4_OK) {
+	    cleanup();
+	    return 3;
+	}
 
-        if (ack == request) {
-            ack_good = 1;
-        }
+	if (ack == request) {
+	    ack_good = 1;
+	}
 
-        if (ack == 0x80) {
-            cleanup();
-            return 4;
-        }
+	if (ack == 0x80) {
+	    cleanup();
+	    return 4;
+	}
 
-        px4_usleep(PARAM_POLL_DELAY_US);
+	px4_usleep(PARAM_POLL_DELAY_US);
     }
 
     if (!ack_good) {
-        cleanup();
-        PX4_ERR("param_read timeout: page=%u param=%u size=%u last_ack=0x%02x",
-                (unsigned)page, (unsigned)param_no, (unsigned)size, (unsigned)ack);
-        return 5;
+	cleanup();
+	PX4_ERR("param_read timeout: page=%u param=%u size=%u last_ack=0x%02x",
+		(unsigned)page, (unsigned)param_no, (unsigned)size, (unsigned)ack);
+	return 5;
     }
 
     if (this->read_reg(PARAM_SAVED_REG, data, size) != PX4_OK) {
-        cleanup();
-        return 6;
+	cleanup();
+	return 6;
     }
 
     return 0;
@@ -1236,42 +1231,42 @@ int Naviguider::param_write(uint8_t page, uint8_t param_no, const void *data, ui
 
     // lambda function clearing the registers PARAM_REQUEST_REG & PARAM_PAGE_SELECT_REG back to zero
     auto cleanup = [&]() {
-        (void) this->write_reg_u8(PARAM_REQUEST_REG, 0);
-        (void) this->write_reg_u8(PARAM_PAGE_SELECT_REG, 0);
+	(void) this->write_reg_u8(PARAM_REQUEST_REG, 0);
+	(void) this->write_reg_u8(PARAM_PAGE_SELECT_REG, 0);
     };
 
     if (this->write_reg_u8(PARAM_PAGE_SELECT_REG, pageSelectValue) != PX4_OK) {
-        cleanup();
-        return PX4_ERROR;
+	cleanup();
+	return PX4_ERROR;
     }
 
     if (this->write_reg(PARAM_LOAD_REG, data, size) != PX4_OK) {
-        cleanup();
-        return PX4_ERROR;
+	cleanup();
+	return PX4_ERROR;
     }
 
     if (this->write_reg_u8(PARAM_REQUEST_REG, request) != PX4_OK) {
-        cleanup();
-        return PX4_ERROR;
+	cleanup();
+	return PX4_ERROR;
     }
 
     for (uint32_t i = 0; i < PARAM_TIMEOUT_ITERATIONS; i++) {
-        if (this->read_reg_u8(PARAM_ACK_REG, ack) != PX4_OK) {
-            cleanup();
-            return PX4_ERROR;
-        }
+	if (this->read_reg_u8(PARAM_ACK_REG, ack) != PX4_OK) {
+	    cleanup();
+	    return PX4_ERROR;
+	}
 
-        if (ack == request) {
-            cleanup();
-            return PX4_OK;
-        }
+	if (ack == request) {
+	    cleanup();
+	    return PX4_OK;
+	}
 
-        if (ack == 0x80) {
-            cleanup();
-            return PX4_ERROR;
-        }
+	if (ack == 0x80) {
+	    cleanup();
+	    return PX4_ERROR;
+	}
 
-        px4_usleep(PARAM_POLL_DELAY_US);
+	px4_usleep(PARAM_POLL_DELAY_US);
     }
 
     // Add if statement for checking if successful, currently this can
@@ -1279,20 +1274,20 @@ int Naviguider::param_write(uint8_t page, uint8_t param_no, const void *data, ui
 
     cleanup();
     PX4_ERR("param_write timeout: page=%u param=%u size=%u last_ack=0x%02x",
-            (unsigned)page, (unsigned)param_no, (unsigned)size, (unsigned)ack);
+	    (unsigned)page, (unsigned)param_no, (unsigned)size, (unsigned)ack);
     return PX4_ERROR;
 }
 
 int Naviguider::get_phys_sensor_status() {
     int ret_val = this->param_read(PARAM_PAGE_SYSTEM,
-                                   PARAM_NUM_PHYS_SENSOR_STATUS,
-                                   reinterpret_cast<void*> (&(this->_last_phys_sensor_status)),
-                                   sizeof(PhysSensorStatus));
+				   PARAM_NUM_PHYS_SENSOR_STATUS,
+				   reinterpret_cast<void*> (&(this->_last_phys_sensor_status)),
+				   sizeof(PhysSensorStatus));
     // If something went wrong, fill the struct with all 1's aside from the first two fields
     if (ret_val != 0) {
-        memset(&(this->_last_phys_sensor_status), 0xff, sizeof(PhysSensorStatus));
-        this->_last_phys_sensor_status.accel_dynamic_range = PARAM_NUM_PHYS_SENSOR_STATUS;
-        this->_last_phys_sensor_status.accel_flags = ret_val;
+	memset(&(this->_last_phys_sensor_status), 0xff, sizeof(PhysSensorStatus));
+	this->_last_phys_sensor_status.accel_dynamic_range = PARAM_NUM_PHYS_SENSOR_STATUS;
+	this->_last_phys_sensor_status.accel_flags = ret_val;
     }
 
     return ret_val;
@@ -1300,15 +1295,15 @@ int Naviguider::get_phys_sensor_status() {
 
 int Naviguider::get_phys_sensors_present() {
     int ret_val = this->param_read(PARAM_PAGE_SYSTEM,
-                                   PARAM_NUM_PHYS_SENSORS_PRESENT,
-                                   reinterpret_cast<void*> (&(this->_last_phys_sensors_present)),
-                                   sizeof(PhysSensorsPresent));
+				   PARAM_NUM_PHYS_SENSORS_PRESENT,
+				   reinterpret_cast<void*> (&(this->_last_phys_sensors_present)),
+				   sizeof(PhysSensorsPresent));
 
     // If something went wrong, fill the struct with all 1's aside from the first two fields
     if (ret_val != 0) {
-        memset(&(this->_last_phys_sensors_present), 0xff, sizeof(PhysSensorsPresent));
-        this->_last_phys_sensors_present &= ((static_cast<uint64_t> (PARAM_NUM_PHYS_SENSORS_PRESENT)) << 8);
-        this->_last_phys_sensors_present &= ((static_cast<uint64_t> (ret_val)) << 16);
+	memset(&(this->_last_phys_sensors_present), 0xff, sizeof(PhysSensorsPresent));
+	this->_last_phys_sensors_present &= ((static_cast<uint64_t> (PARAM_NUM_PHYS_SENSORS_PRESENT)) << 8);
+	this->_last_phys_sensors_present &= ((static_cast<uint64_t> (ret_val)) << 16);
     }
 
     return ret_val;
@@ -1316,15 +1311,15 @@ int Naviguider::get_phys_sensors_present() {
 
 int Naviguider::get_sensor_info(uint8_t sensorId) {
     int ret_val = this->param_read(PARAM_PAGE_SENSOR_INFO,
-                                   sensorId,
-                                   reinterpret_cast<void*>(&(this->_last_sensor_info)),
-                                   sizeof(SensorInfo));
+				   sensorId,
+				   reinterpret_cast<void*>(&(this->_last_sensor_info)),
+				   sizeof(SensorInfo));
 
     // If something went wrong, fill the struct with all 1's aside from the first two fields
     if (ret_val != 0) {
-        memset(&(this->_last_sensor_info), 0xff, sizeof(SensorInfo));
-        this->_last_sensor_info.driver_id = sensorId;
-        this->_last_sensor_info.driver_version = ret_val;
+	memset(&(this->_last_sensor_info), 0xff, sizeof(SensorInfo));
+	this->_last_sensor_info.driver_id = sensorId;
+	this->_last_sensor_info.driver_version = ret_val;
     }
 
     return ret_val;
@@ -1332,15 +1327,15 @@ int Naviguider::get_sensor_info(uint8_t sensorId) {
 
 int Naviguider::get_phys_sensor_info(uint8_t sensorId) {
     int ret_val = this->param_read(PARAM_PAGE_SYSTEM,
-                                   sensorId + 32,
-                                   reinterpret_cast<void*> (&(this->_last_phys_sensor_info)),
-                                   sizeof(PhysSensorInfo));
+				   sensorId + 32,
+				   reinterpret_cast<void*> (&(this->_last_phys_sensor_info)),
+				   sizeof(PhysSensorInfo));
 
     // If something went wrong, fill the struct with all 1's aside from the first two fields
     if (ret_val != 0) {
-        memset(&(this->_last_phys_sensor_info), 0xff, sizeof(PhysSensorInfo));
-        this->_last_phys_sensor_info.driver_id = sensorId;
-        this->_last_phys_sensor_info.driver_version = ret_val;
+	memset(&(this->_last_phys_sensor_info), 0xff, sizeof(PhysSensorInfo));
+	this->_last_phys_sensor_info.driver_id = sensorId;
+	this->_last_phys_sensor_info.driver_version = ret_val;
     }
 
     return ret_val;
@@ -1348,17 +1343,17 @@ int Naviguider::get_phys_sensor_info(uint8_t sensorId) {
 
 int Naviguider::get_sensor_config(uint8_t sensorId) {
     int ret_val = this->param_read(PARAM_PAGE_SENSOR_CONF,
-                                   sensorId,
-                                   reinterpret_cast<void*> (&(this->_last_sensor_config)),
-                                   sizeof(SensorConfig));
+				   sensorId,
+				   reinterpret_cast<void*> (&(this->_last_sensor_config)),
+				   sizeof(SensorConfig));
 
     this->_last_sensor_config_sensor_id = sensorId;
 
     // If something went wrong, fill the struct with all 1's aside from the first two fields
     if (ret_val != 0) {
-        memset(&(this->_last_sensor_config), 0xff, sizeof(SensorConfig));
-        this->_last_sensor_config_sensor_id = sensorId;
-        this->_last_sensor_config.sample_rate = ret_val;
+	memset(&(this->_last_sensor_config), 0xff, sizeof(SensorConfig));
+	this->_last_sensor_config_sensor_id = sensorId;
+	this->_last_sensor_config.sample_rate = ret_val;
     }
 
     return ret_val;
@@ -1368,13 +1363,13 @@ int Naviguider::get_sensor_config(uint8_t sensorId) {
 /* ---- Warm Start Begin ---- */
 int Naviguider::get_warm_start_cal_score() {
     int ret_val = this->param_read(PARAM_PAGE_WARM_START,
-                                   PARAM_WARM_START_CAL_SCORE,
-                                   reinterpret_cast<void*> (&(this->_last_warm_start_cal_score)),
-                                   sizeof(WarmStartCalScore));
+				   PARAM_WARM_START_CAL_SCORE,
+				   reinterpret_cast<void*> (&(this->_last_warm_start_cal_score)),
+				   sizeof(WarmStartCalScore));
 
     // If something went wrong, fill the struct with all 1's aside from the first two fields
     if (ret_val != 0) {
-        memset(&(this->_last_warm_start_cal_score), 0xff, sizeof(WarmStartCalScore));
+	memset(&(this->_last_warm_start_cal_score), 0xff, sizeof(WarmStartCalScore));
     }
 
     return ret_val;
@@ -1384,53 +1379,53 @@ int Naviguider::get_warm_start_cal_score() {
 /* ---- Meta Events Begin ---- */
 uint32_t Naviguider::handle_meta_event(uint32_t remaining, uint8_t* data_start) {
     if (remaining < 4) {
-        return 0;
+	return 0;
     }
 
     // First byte is the event ID
     uint8_t event_id = data_start[0];
 
     switch (event_id) {
-        case META_FLUSH_COMPLETE:
-            break;
-        case META_SAMPLE_RATE_CHANGED:
-            this->handle_meta_sample_rate_changed(data_start+1);
-            break;
-        case META_POWER_MODE_CHANGED:
-            break;
-        case META_ERROR:
-            break;
-        case META_MAGNETIC_TRANSIENT:
-            this->handle_meta_magnetic_transient(data_start+1);
-            break;
-        case META_CAL_STATUS_CHANGED:
-            this->handle_meta_cal_status_changed(data_start+1);
-            break;
-        case META_STILLNESS_CHANGED:
-            break;
-        case META_AVAILABLE:
-            break;
-        case META_CALIBRATION_STABLE:
-            this->handle_meta_calibration_stable(data_start+1);
-            break;
-        case META_SENSOR_ERROR:
-            this->handle_meta_sensor_error(data_start+1);
-            break;
-        case META_FIFO_OVERFLOW:
-            break;
-        case META_DYNAMIC_RANGE_CHANGED:
-            this->handle_meta_dynamic_range_changed(data_start+1);
-            break;
-        case META_FIFO_WATERMARK:
-            break;
-        case META_SELF_TEST_RESULTS:
-            this->handle_meta_self_test_results(data_start+1);
-            break;
-        case META_INITIALIZED:
-            this->handle_meta_initialized(data_start+1);
-            break;
-        case META_TRANSFER_CAUSE:
-            break;
+	case META_FLUSH_COMPLETE:
+	    break;
+	case META_SAMPLE_RATE_CHANGED:
+	    this->handle_meta_sample_rate_changed(data_start+1);
+	    break;
+	case META_POWER_MODE_CHANGED:
+	    break;
+	case META_ERROR:
+	    break;
+	case META_MAGNETIC_TRANSIENT:
+	    this->handle_meta_magnetic_transient(data_start+1);
+	    break;
+	case META_CAL_STATUS_CHANGED:
+	    this->handle_meta_cal_status_changed(data_start+1);
+	    break;
+	case META_STILLNESS_CHANGED:
+	    break;
+	case META_AVAILABLE:
+	    break;
+	case META_CALIBRATION_STABLE:
+	    this->handle_meta_calibration_stable(data_start+1);
+	    break;
+	case META_SENSOR_ERROR:
+	    this->handle_meta_sensor_error(data_start+1);
+	    break;
+	case META_FIFO_OVERFLOW:
+	    break;
+	case META_DYNAMIC_RANGE_CHANGED:
+	    this->handle_meta_dynamic_range_changed(data_start+1);
+	    break;
+	case META_FIFO_WATERMARK:
+	    break;
+	case META_SELF_TEST_RESULTS:
+	    this->handle_meta_self_test_results(data_start+1);
+	    break;
+	case META_INITIALIZED:
+	    this->handle_meta_initialized(data_start+1);
+	    break;
+	case META_TRANSFER_CAUSE:
+	    break;
     }
 
     // Return that we consumed the event bytes
@@ -1558,19 +1553,19 @@ void Naviguider::handle_meta_initialized(uint8_t* data_start) {
 /* ---- Parameters Begin ---- */
 void Naviguider::parameters_update() {
     if (_parameter_update_sub.updated()) {
-        parameter_update_s param_update;
-        _parameter_update_sub.copy(&param_update);
-        // Note: We do not do anything with the param_update struct, it only
-        //       says that an update has occurred, not what has been updated.
+	parameter_update_s param_update;
+	_parameter_update_sub.copy(&param_update);
+	// Note: We do not do anything with the param_update struct, it only
+	//       says that an update has occurred, not what has been updated.
 
-        // Update all the param values to potentially new values
-        updateParams();
+	// Update all the param values to potentially new values
+	updateParams();
 
-        // Update sensor rates based on the potentially changed rate values
-        this->update_sensor_rates();
+	// Update sensor rates based on the potentially changed rate values
+	this->update_sensor_rates();
 
-        // Update the local mag field based on the potentially changed values
-        this->update_synthetic_mag_field_from_params();
+	// Update the local mag field based on the potentially changed values
+	this->update_synthetic_mag_field_from_params();
     }
 }
 /* ---- Parameters End ---- */

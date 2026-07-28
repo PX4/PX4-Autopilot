@@ -249,7 +249,6 @@ then
 	naviguider start
 fi
 
-
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
