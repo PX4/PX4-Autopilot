@@ -802,7 +802,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionCache)
 }
 
 // An authoritative write during an in-flight read rebuilds the generation instead of publishing stale data.
-TEST_F(MissionRouteCacheTest, SyncMissionItemRestartsPendingMissionCache)
+TEST_F(MissionRouteCacheTest, SyncMissionItemRereadsInFlightMissionItem)
 {
 	const std::vector<mission_item_s> mission_items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 20.f),
@@ -817,9 +817,12 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRestartsPendingMissionCache)
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
 	writeMissionItem(updated, 0);
 
-	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kRestarted);
+	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kDeferred);
 	EXPECT_FALSE(_cache.isReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
+
+	// The in-flight response is discarded, so the load front stays on the synced index.
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), 0);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
 			<< "mission cache did not reload after an in-flight item update";
@@ -827,6 +830,76 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRestartsPendingMissionCache)
 	mission_item_s cached_item{};
 	ASSERT_TRUE(_cache.loadMissionItem(mission, 0, cached_item));
 	expectMissionItemMatches(cached_item, updated);
+}
+
+// A write past the load front keeps the already loaded items and still lands in the cache.
+TEST_F(MissionRouteCacheTest, SyncMissionItemAheadOfLoadFrontKeepsProgress)
+{
+	std::vector<mission_item_s> mission_items;
+
+	for (int i = 0; i < 6; ++i) {
+		mission_items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f * i, 0.f, kAlt + 10.f));
+	}
+
+	const int32_t sync_index = 5;
+	const mission_s mission = makeMission(48, static_cast<uint16_t>(mission_items.size()));
+	writeMissionItems(mission_items);
+
+	// Load a prefix, leaving a read in flight below the index we sync.
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
+		return MissionRouteCacheTestPeer::missionNextIndex(_cache) >= 2
+		&& MissionRouteCacheTestPeer::missionLoadInProgress(_cache);
+	}));
+	const int32_t load_front = MissionRouteCacheTestPeer::missionNextIndex(_cache);
+	ASSERT_LT(load_front, sync_index) << "the synced index must still be unread";
+
+	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 999.f, 42.f, kAlt + 77.f);
+	writeMissionItem(updated, sync_index);
+	EXPECT_EQ(_cache.syncMissionItem(mission, sync_index, updated), MissionRouteCache::SyncResult::kDeferred);
+
+	// No progress was dropped: the loaded prefix is not re-read.
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), load_front);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+
+	// The sequential load picked the new item up from dataman on its own.
+	mission_item_s cached_item{};
+	ASSERT_TRUE(_cache.loadMissionItem(mission, sync_index, cached_item));
+	expectMissionItemMatches(cached_item, updated);
+	ASSERT_TRUE(_cache.loadMissionItem(mission, 0, cached_item));
+	expectMissionItemMatches(cached_item, mission_items[0]);
+}
+
+// syncMissionItem() is not a substitute for the dataman write: an index the load has not
+// reached is always filled from storage, so syncing one that was never written is ignored.
+TEST_F(MissionRouteCacheTest, SyncMissionItemWithoutDatamanWriteKeepsStoredItem)
+{
+	std::vector<mission_item_s> mission_items;
+
+	for (int i = 0; i < 6; ++i) {
+		mission_items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f * i, 0.f, kAlt + 10.f));
+	}
+
+	const int32_t sync_index = 5;
+	const mission_s mission = makeMission(49, static_cast<uint16_t>(mission_items.size()));
+	writeMissionItems(mission_items);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
+		return MissionRouteCacheTestPeer::missionNextIndex(_cache) >= 2
+		&& MissionRouteCacheTestPeer::missionLoadInProgress(_cache);
+	}));
+	ASSERT_LT(MissionRouteCacheTestPeer::missionNextIndex(_cache), sync_index);
+
+	// Sync an unread index whose new value never reached dataman.
+	const mission_item_s never_written = makePositionItemFromOffset(kBaseLat, kBaseLon, 999.f, 42.f, kAlt + 77.f);
+	EXPECT_EQ(_cache.syncMissionItem(mission, sync_index, never_written), MissionRouteCache::SyncResult::kDeferred);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+
+	// Storage wins for unread indices, unlike the loaded ones patched in place above.
+	mission_item_s cached_item{};
+	ASSERT_TRUE(_cache.loadMissionItem(mission, sync_index, cached_item));
+	expectMissionItemMatches(cached_item, mission_items[sync_index]);
 }
 
 // Patching the land item keeps both the mission cache and the dedicated land cache coherent.
