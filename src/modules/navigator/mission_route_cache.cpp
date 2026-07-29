@@ -117,8 +117,8 @@ void MissionRouteCache::advanceMissionGeneration()
 	}
 }
 
-// Start or restart the load for the current source.
-// Callers must first establish that the source is valid and loadable.
+// Start the load for a new source, which must be valid and loadable.
+// Read failures do not restart here, they resume at the failed index.
 void MissionRouteCache::startMissionLoad()
 {
 	// A rebuild immediately hides the old generation. An active older request
@@ -353,9 +353,9 @@ MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s
 		return SyncResult::kPatched;
 	}
 
-	if (_mission.validation_pending && index < _mission.next_index) {
-		// Sequential loading makes every earlier index stable, so patch it in place
-		// while the later indices keep loading.
+	if (index < _mission.next_index) {
+		// Indices below the load front are stable, patch in place. Deferring would
+		// lose the write: a resumed load does not re-read the prefix.
 		_mission_items[index] = mission_item;
 		return SyncResult::kPatched;
 	}
@@ -534,8 +534,9 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 		state.retry.clear();
 
 	} else if (state.retry.due(now)) {
-		advanceMissionGeneration();
-		startMissionLoad();
+		// Resume at the failed index, the loaded prefix is still valid.
+		state.validation_pending = true;
+		state.retry.retry_at = 0;
 	}
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE

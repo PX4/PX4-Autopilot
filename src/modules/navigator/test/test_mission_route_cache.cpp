@@ -902,6 +902,44 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemWithoutDatamanWriteKeepsStoredItem)
 	expectMissionItemMatches(cached_item, mission_items[sync_index]);
 }
 
+// A write during the retry backoff patches the loaded prefix; the retry resumes at the failed index.
+TEST_F(MissionRouteCacheTest, SyncMissionItemDuringRetryBackoffPatchesLoadedPrefix)
+{
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 20.f),
+	};
+	const mission_s mission = makeMission(50, static_cast<uint16_t>(mission_items.size()));
+	writeMissionItems(mission_items);
+
+	// Load the first item, then fail the read of the second to enter the backoff window.
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
+		return MissionRouteCacheTestPeer::missionNextIndex(_cache) == 1
+		&& MissionRouteCacheTestPeer::missionLoadInProgress(_cache);
+	}));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::failPendingMissionLoad(_cache));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
+			[&] { return MissionRouteCacheTestPeer::missionRetryScheduled(_cache); }));
+
+	// Patched in place: the resumed load never re-reads the prefix.
+	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
+	writeMissionItem(updated, 0);
+	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kPatched);
+
+	// The retry resumes at the failed index.
+	MissionRouteCacheTestPeer::expireMissionRetryBackoff(_cache);
+	_cache.update(mission);
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), 1);
+
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
+
+	mission_item_s cached_item{};
+	ASSERT_TRUE(_cache.loadMissionItem(mission, 0, cached_item));
+	expectMissionItemMatches(cached_item, updated);
+	ASSERT_TRUE(_cache.loadMissionItem(mission, 1, cached_item));
+	expectMissionItemMatches(cached_item, mission_items[1]);
+}
+
 // Patching the land item keeps both the mission cache and the dedicated land cache coherent.
 TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionLandCache)
 {
