@@ -91,7 +91,6 @@ public:
 	void update(const mission_s &mission, bool allow_blocking_load = false);
 	void invalidate();
 
-	bool missionExceedsCacheLimit(const mission_s &mission) const;
 	bool isReady(const mission_s &mission) const;
 	bool safePointsReady() const
 	{
