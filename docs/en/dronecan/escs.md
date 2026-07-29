@@ -31,3 +31,15 @@ In addition to the general setup, such as setting `UAVCAN_ENABLE` to `3`:
 
 - Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
 - Configure the [motor order and servo outputs](../config/actuators.md).
+
+## Reversible Motors {#reversible-motors}
+
+<Badge type="tip" text="PX4 v1.18" />
+
+Motors that are configured as [bidirectional](../config/actuators.md#bidirectional-motors) are commanded with a _signed_ `uavcan.equipment.esc.RawCommand` value, as defined by the DroneCAN ESC message: zero is stop, positive is forward and negative is reverse.
+Motors that are not configured as bidirectional are commanded with positive values only, as before.
+
+The ESC must support bidirectional operation and interpret negative commands as reverse.
+Check the sign of the RPM reported in the ESC telemetry to confirm that the motor really turns the other way.
+
+Reverse is also used by [Motor Failure Recovery](../config/motor_failure_recovery.md) to keep a hexarotor controllable after a motor failure.

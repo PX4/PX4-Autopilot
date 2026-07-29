@@ -115,6 +115,7 @@
 - [Operations](config/operations.md)
   - [Safety](config/safety_intro.md)
     - [Safety Configuration (Failsafes)](config/safety.md)
+    - [Motor Failure Recovery](config/motor_failure_recovery.md)
     - [Failsafe Simulation](config/safety_simulation.md)
     - [Geofence](flying/geofence.md)
     - [Safe Points (Rally)](flying/plan_safety_points.md)
