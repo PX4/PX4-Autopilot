@@ -834,13 +834,19 @@ void Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MISSION_CURRENT) {
 				uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
-				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
-					const bool reset_jump_counters = PX4_ISFINITE(cmd.param2) && (cmd.param2 > 0.5f);
+				// param2 is a MAV_BOOL: only 0 or 1 are valid values.
+				const bool param2_valid = PX4_ISFINITE(cmd.param2)
+							  && ((fabsf(cmd.param2) < FLT_EPSILON) || (fabsf(cmd.param2 - 1.f) < FLT_EPSILON));
 
-					if (_mission.set_current_mission_index(cmd.param1, reset_jump_counters)) {
+				// -1 is a valid param1: keep the current mission item unchanged (e.g. to only reset jump counters).
+				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && param2_valid) {
+					const bool reset_jump_counters = cmd.param2 > 0.5f;
+
+					if (_mission.set_current_mission_index(static_cast<int32_t>(cmd.param1), reset_jump_counters)) {
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					} else {
+						// Sequence number out of range, or no mission / no current mission item.
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 					}
 				}
