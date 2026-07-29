@@ -9,4 +9,6 @@ export PX4_CMAKE_BUILD_TYPE=Debug
 
 cd ..
 
+rm -f build/px4_sitl_sih/rootfs/parameters.bson build/px4_sitl_sih/rootfs/parameters_backup.bson
+
 make px4_sitl_sih sihsim_quadx
