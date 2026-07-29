@@ -52,12 +52,12 @@
     "mode_req_wind_and_flight_time_compliance": {
         "text": "Safety compliance limits on wind and flight time.",
         "sensor": "",
-        "detail": "Autonomous flight prevented in high winds (20m/s?) or if exceeds planned flight time, except for failsafe flight. See COM_FLT_TIME_MAX or COM_WIND_MAX for limits (also see COM_WIND_WARN, COM_WIND_MAX_ACT)."
+        "detail": "Blocks arming or switching into the mode when the estimated wind speed exceeds `COM_WIND_MAX` (if `COM_WIND_MAX_ACT` is set to an action stronger than a warning), or when the flight time exceeds `COM_FLT_TIME_MAX`. Both limits are disabled by default. Modes commanded by a failsafe are exempt (see also `COM_WIND_WARN`)."
     },
     "mode_req_prevent_arming": {
-        "text": "Mode prevents arming (vehicle must be armed to switch to this mode)",
+        "text": "Mode prevents arming",
         "sensor": "",
-        "detail": "Set for modes like Land, Orbit, Return that you can't take off in"
+        "detail": "The vehicle cannot be armed while this mode is selected. Set for modes such as Land, Orbit, and Return that you can't take off in (they can only be entered in flight)."
     },
     "mode_req_manual_control": {
         "text": "Requires stick input",
