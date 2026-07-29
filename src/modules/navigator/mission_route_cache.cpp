@@ -483,7 +483,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 
 		const bool current_generation = _mission_request.generation == _mission_generation;
 		const bool current_index = _mission_request.index == state.next_index;
-		_mission_request = {};
+		_mission_request.pending = false;
 
 		if (current_generation && current_index && state.validation_pending) {
 			if (request_success) {

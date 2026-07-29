@@ -224,9 +224,9 @@ private:
 	};
 
 	struct MissionRequest {
-		uint32_t generation{0}; ///< Mission generation the read was issued for; a mismatch discards the response.
+		uint32_t generation{0}; ///< Generation the read was issued for; a mismatch discards the response.
 		int32_t index{-1};      ///< Mission item index being read.
-		bool pending{false};    ///< True while the response has not been consumed.
+		bool pending{false};    ///< generation and index are only meaningful while true.
 	};
 #endif
 
