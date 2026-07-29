@@ -121,30 +121,26 @@ public:
 	bool missionLandItemAttemptFailed() const { return _mission_land.retry.retry_count > 0; }
 
 	/**
-	 * Returns the item count of the complete, validated mission generation.
-	 * Returns zero while a replacement is pending and for a ready empty mission.
-	 * Index-based reads carry no mission identity; use getMissionView() /
-	 * missionViewStillValid() for consistency across reads or update() cycles.
+	 * Item count of the complete, validated mission. Zero both while a replacement is
+	 * pending and for a ready empty mission. These reads carry no mission identity, use
+	 * getMissionView() for consistency across reads or update() cycles.
 	 */
 	int missionCount() const;
 	bool loadMissionItem(int index, mission_item_s &mission_item) const;
 
 	/**
-	 * @brief Borrow the complete typed mission view without copying its items.
+	 * @brief Borrow the mission items without copying them.
 	 *
-	 * The returned view is immutable and valid only for the current synchronous
-	 * planning invocation. It must not be retained across update(), invalidate(),
-	 * source replacement, or syncMissionItem(); use missionViewStillValid() to verify.
+	 * Valid for the current synchronous call only, re-check it with missionViewStillValid().
 	 *
 	 * @return true for a complete view, including a ready empty mission.
-	 *         On failure the view output is left unchanged.
+	 *         On failure the view is left unchanged.
 	 */
 	bool getMissionView(const mission_s &mission, MissionView &view) const;
 
 	/**
-	 * @brief True while a borrowed view still matches the cached mission.
-	 *
-	 * Source changes, invalidate(), reloads, and syncMissionItem() advance the generation.
+	 * @brief True while a borrowed view still matches the cached mission. Source changes,
+	 *        invalidate(), reloads and syncMissionItem() advance the generation.
 	 */
 	bool missionViewStillValid(const MissionView &view) const;
 
@@ -166,11 +162,10 @@ public:
 	bool loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const;
 
 	/**
-	 * @brief Apply an authoritative mission item write to the cached copies.
+	 * @brief Apply a mission item write to the cached copies, once it reached dataman.
 	 *
-	 * The result describes the full-mission cache; kRejected is always returned when
-	 * that cache is compiled out. The land-item cache is refreshed alongside on every
-	 * board when index is the published land index; its failures retry asynchronously.
+	 * SyncResult describes the full-mission cache only. The land-item cache is refreshed
+	 * alongside on every board when index is the published land index, retrying async.
 	 */
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
