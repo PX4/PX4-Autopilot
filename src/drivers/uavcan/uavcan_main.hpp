@@ -45,6 +45,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include "cannode_configurator.hpp"
 #include "node_info.hpp"
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
@@ -295,6 +296,7 @@ private:
 
 	uavcan::NodeInfoRetriever   _node_info_retriever;
 	NodeInfoPublisher           _node_info_publisher;
+	CanNodeConfigurator         _node_configurator;
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
