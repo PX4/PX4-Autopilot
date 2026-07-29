@@ -68,12 +68,12 @@ public:
 
 	static bool missionLoadInProgress(const MissionRouteCache &cache)
 	{
-		return cache._mission.validation_pending && cache._mission_request_pending;
+		return cache._mission.validation_pending && cache._mission_request.pending;
 	}
 
 	static bool failPendingMissionLoad(MissionRouteCache &cache)
 	{
-		return cache._mission_request_pending
+		return cache._mission_request.pending
 		       && DatamanClientTestPeer::completeOperationWithFailure(cache._dataman_client_mission);
 	}
 
@@ -159,7 +159,7 @@ private:
 	// Returns false when nothing can progress without waiting on a scheduled retry backoff.
 	static bool progressOneEvent(MissionRouteCache &cache, const mission_s &mission, hrt_abstime timeout)
 	{
-		if (cache._mission_request_pending) {
+		if (cache._mission_request.pending) {
 			if (!DatamanClientTestPeer::waitForOperation(cache._dataman_client_mission, timeout)) {
 				return false;
 			}

@@ -222,6 +222,12 @@ private:
 		bool validation_pending{false};
 		RetryBackoff retry{};
 	};
+
+	struct MissionRequest {
+		uint32_t generation{0}; ///< Mission generation the read was issued for; a mismatch discards the response.
+		int32_t index{-1};      ///< Mission item index being read.
+		bool pending{false};    ///< True while the response has not been consumed.
+	};
 #endif
 
 	struct MissionLandState {
@@ -271,10 +277,9 @@ private:
 	mission_item_s *_mission_items {nullptr};
 	DatamanClient _dataman_client_mission{};
 	orb_advert_t *_mavlink_log_pub{nullptr};
+	// Keep outside of MissionCacheState: it must survive `_mission = {}` reset
 	uint32_t _mission_generation{0};
-	uint32_t _mission_request_generation{0};
-	int32_t _mission_request_index{-1};
-	bool _mission_request_pending{false};
+	MissionRequest _mission_request{};
 #endif
 	mutable DatamanCache _dataman_cache_safepoint {"navigator_dm_cache_route_safepoint", kInitialSafePointCacheSize};
 	mutable DatamanCache _dataman_cache_land_item{"navigator_dm_cache_route_land", kInitialLandItemCacheSize};

@@ -474,16 +474,16 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 
 	_dataman_client_mission.update();
 
-	if (_mission_request_pending) {
+	if (_mission_request.pending) {
 		bool request_success = false;
 
 		if (!_dataman_client_mission.lastOperationCompleted(request_success)) {
 			return;
 		}
 
-		const bool current_generation = _mission_request_generation == _mission_generation;
-		const bool current_index = _mission_request_index == state.next_index;
-		_mission_request_pending = false;
+		const bool current_generation = _mission_request.generation == _mission_generation;
+		const bool current_index = _mission_request.index == state.next_index;
+		_mission_request = {};
 
 		if (current_generation && current_index && state.validation_pending) {
 			if (request_success) {
@@ -505,7 +505,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (state.validation_pending) {
-		if (_mission_request_pending) {
+		if (_mission_request.pending) {
 			return;
 		}
 
@@ -523,9 +523,9 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 							     sizeof(mission_item_s));
 
 			if (request_started) {
-				_mission_request_generation = _mission_generation;
-				_mission_request_index = request_index;
-				_mission_request_pending = true;
+				_mission_request.generation = _mission_generation;
+				_mission_request.index = request_index;
+				_mission_request.pending = true;
 
 			} else {
 				state.validation_pending = false;
