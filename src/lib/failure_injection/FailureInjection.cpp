@@ -91,10 +91,12 @@ void process_battery(const Config &config, uint8_t instance, battery_status_s &b
 	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
 }
 
-void process_esc(const Config &config, esc_status_s &status)
+esc_status_s process_esc(const Config &config, const esc_status_s &status)
 {
-	for (int i = 0; i < status.esc_count && i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-		const uint8_t function = status.esc[i].actuator_function;
+	esc_status_s result = status;
+
+	for (int i = 0; i < result.esc_count && i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		const uint8_t function = result.esc[i].actuator_function;
 
 		if (function < esc_report_s::ACTUATOR_FUNCTION_MOTOR1 || function > esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX) {
 			continue; // not a motor output
@@ -104,19 +106,21 @@ void process_esc(const Config &config, esc_status_s &status)
 
 		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_ESC, instance)) {
 		case Mode::Off:
-			status.esc_online_flags &= ~(1u << i);
+			result.esc_online_flags &= ~(1u << i);
 			break;
 
 		case Mode::Wrong:
-			status.esc[i].esc_voltage *= 0.1f;
-			status.esc[i].esc_current *= 0.1f;
-			status.esc[i].esc_rpm *= 10;
+			result.esc[i].esc_voltage *= 0.1f;
+			result.esc[i].esc_current *= 0.1f;
+			result.esc[i].esc_rpm *= 10;
 			break;
 
 		default:
 			break;
 		}
 	}
+
+	return result;
 }
 
 } // namespace failure_injection

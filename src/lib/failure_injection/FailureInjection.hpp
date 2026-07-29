@@ -197,11 +197,13 @@ inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
 void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
 
 /**
- * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to an esc_status
- * (matched per ESC by actuator_function). Off reports the ESC offline; Wrong keeps it online but reports
- * consistently wrong values. Call after Config::update().
+ * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
+ * status (matched per ESC by actuator_function). Off reports the ESC offline; Wrong keeps it online
+ * but reports consistently wrong values. Takes status by const reference and returns the mutated
+ * copy so callers can't accidentally apply it in place to a persistent status, which would compound
+ * Wrong across calls. Call after Config::update().
  */
-void process_esc(const Config &config, esc_status_s &status);
+esc_status_s process_esc(const Config &config, const esc_status_s &status);
 
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
@@ -230,7 +232,7 @@ inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
 inline void process_battery(const Config &, uint8_t, battery_status_s &) {}
 
-inline void process_esc(const Config &, esc_status_s &) {}
+inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 

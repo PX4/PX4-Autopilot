@@ -301,7 +301,7 @@ TEST(FailureInjectionConfig, ProcessEscOffReportsOffline)
 	config.set(make_config(ESC, 0x1, OFF)); // ESC 1
 
 	esc_status_s status = make_esc_status(4);
-	process_esc(config, status);
+	status = process_esc(config, status);
 
 	EXPECT_EQ(status.esc_online_flags & 0x1u, 0u);   // motor 1 reported offline
 	EXPECT_EQ(status.esc_online_flags & 0xEu, 0xEu); // motors 2-4 untouched
@@ -318,7 +318,7 @@ TEST(FailureInjectionConfig, ProcessEscMapsByActuatorFunction)
 	status.esc_online_flags = 0x1;
 	status.esc[0].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2; // Motor 3
 
-	process_esc(config, status);
+	status = process_esc(config, status);
 
 	EXPECT_EQ(status.esc_online_flags & 0x1u, 0u);
 }
@@ -329,7 +329,7 @@ TEST(FailureInjectionConfig, ProcessEscWrongScalesTelemetryButStaysOnline)
 	config.set(make_config(ESC, 0x1, WRONG)); // ESC 1
 
 	esc_status_s status = make_esc_status(4);
-	process_esc(config, status);
+	status = process_esc(config, status);
 
 	EXPECT_EQ(status.esc_online_flags & 0xFu, 0xFu);  // all still online
 	EXPECT_FLOAT_EQ(status.esc[0].esc_voltage, 1.6f); // 16 * 0.1

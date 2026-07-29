@@ -131,9 +131,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		_esc_status.timestamp = esc_report.timestamp;
 
 		_failure_config.update();
-		esc_status_s esc_status = _esc_status;   // copy so Wrong doesn't compound on the persistent status
-		failure_injection::process_esc(_failure_config, esc_status);
-		_esc_status_pub.publish(esc_status);
+		_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
 	}
 
 	// Register device capability for each ESC channel
