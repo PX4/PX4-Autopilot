@@ -110,6 +110,20 @@ At time of writing is no _convenient_ way to directly invoke precision landing (
 - [MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) should work, but you will need to determine the appropriate base and custom modes used by PX4 to represent the precision landing mode.
   :::
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming (vehicle must be armed to switch to this mode)
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_precland -->
+
 ## Hardware Setup
 
 ### IR Sensor/Beacon Setup
