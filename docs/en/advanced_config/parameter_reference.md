@@ -48697,6 +48697,8 @@ Time in seconds used for a transition
 
 Target throttle value for the transition to fixed-wing flight.
 
+Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE).
+
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 1.0      | 0.01      | 1.0     |      | &nbsp;    |
