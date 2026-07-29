@@ -46,6 +46,7 @@ parameters:
     VT_F_TRANS_THR:
       description:
         short: Target throttle value for the transition to fixed-wing flight
+        long: Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE).
       type: float
       default: 1.0
       min: 0.0

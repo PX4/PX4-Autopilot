@@ -34,6 +34,7 @@
 #include <gtest/gtest.h>
 
 #include "failsafe.h"
+#include "failsafe_action_modes.h"
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -726,6 +727,40 @@ TEST_F(FailsafeTest, FallbackAltitudeUsesNavRclActParam)
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+}
+
+TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](traffic_avoidance::FailsafeMode mode) {
+		int32_t com_traff_avoid = static_cast<int32_t>(mode);
+		param_set(param_handle(px4::params::COM_TRAFF_AVOID), &com_traff_avoid);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		failsafe_flags.traffic_avoidance_unhealthy = true;
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Disabled), FailsafeBase::Action::None);
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Warning), FailsafeBase::Action::Warn);
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Error), FailsafeBase::Action::Warn); // same as Warning in-flight
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Return), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(traffic_avoidance::FailsafeMode::Land), FailsafeBase::Action::Land);
 }
 
 TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)

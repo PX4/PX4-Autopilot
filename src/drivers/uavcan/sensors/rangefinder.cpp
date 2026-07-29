@@ -82,7 +82,9 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		return;
 	}
 
-	if (!_inited) {
+	const int8_t channel_idx = get_channel_index_for_node(msg.getSrcNodeID().get());
+
+	if (channel_idx >= 0 && !_channel_initialized[channel_idx]) {
 
 		uint8_t rangefinder_type = 0;
 
@@ -107,7 +109,7 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		rangefinder->set_min_distance(_range_min_m);
 		rangefinder->set_max_distance(_range_max_m);
 
-		_inited = true;
+		_channel_initialized[channel_idx] = true;
 	}
 
 	// TOO_CLOSE, TOO_FAR and UNDEFINED readings do not carry a usable range

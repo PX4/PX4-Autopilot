@@ -204,15 +204,17 @@ void Standard::update_transition_state()
 			roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 		}
 
+		const float transition_throttle = getFrontTransitionThrottle();
+
 		if (_param_vt_psher_slew.get() <= FLT_EPSILON) {
 			// just set the final target throttle value
-			_pusher_throttle = _param_vt_f_trans_thr.get();
+			_pusher_throttle = transition_throttle;
 
-		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
+		} else if (_pusher_throttle <= transition_throttle) {
 			// ramp up throttle to the target throttle value
 			const float dt = math::min((now - _last_time_pusher_transition_update) / 1e6f, 0.05f);
 			_pusher_throttle = math::min(_pusher_throttle +
-						     _param_vt_psher_slew.get() * dt, _param_vt_f_trans_thr.get());
+						     _param_vt_psher_slew.get() * dt, transition_throttle);
 
 			_last_time_pusher_transition_update = now;
 		}

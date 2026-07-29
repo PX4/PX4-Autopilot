@@ -7,7 +7,9 @@ allowed-tools: Bash, Read, Glob, Grep
 
 # PX4 Pull Request
 
-**No Claude attribution anywhere (no Co-Authored-By, no "Generated with Claude").**
+**The user is the author: no `Co-Authored-By`, no "Generated with Claude"
+footers. AI disclosure lives in the commit trailers (`Assisted-by:`), not in
+the PR body.**
 
 ## Steps
 
@@ -22,7 +24,7 @@ allowed-tools: Bash, Read, Glob, Grep
 4. PR **title:** `type(scope): description` — under 72 chars, covers the
    overall change across all commits. This becomes the squash-merge commit
    message.
-5. PR **body:** concise and terse — do not restate what the diff already shows (no file-changed lists, no code snippets that reproduce the diff). Use exactly three sections, in order: `## Summary`, `## Problem`, `## Solution`. If the PR closes a GitHub issue, the first line of `## Summary` must be `fixes #<N>`, then a blank line, then the summary text. No `## Test plan` section, no boilerplate, no Claude attribution. Use markdown (links, code blocks, lists) only when warranted.
+5. PR **body:** concise and terse — do not restate what the diff already shows (no file-changed lists, no code snippets that reproduce the diff). Use exactly three sections, in order: `## Summary`, `## Problem`, `## Solution`. If the PR closes a GitHub issue, the first line of `## Summary` must be `fixes #<N>`, then a blank line, then the summary text. No `## Test plan` section, no boilerplate, no Claude attribution. Use markdown (links, code blocks, lists) only when warranted. Never state testing that did not happen: ask the user what they actually ran beyond the builds in step 3, report exactly that, and say so plainly when something is untested.
 
 6. Push with `-u` if needed, then `gh pr create`. Default base is `main`
    unless user says otherwise.
