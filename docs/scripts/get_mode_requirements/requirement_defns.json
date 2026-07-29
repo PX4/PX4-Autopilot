@@ -62,7 +62,7 @@
     "mode_req_manual_control": {
         "text": "Requires stick input",
         "sensor": "",
-        "detail": "This can come from multiple channels: RC driver -> channels -> RC mapping/calibration -> [`manual_control_input` or `manual_control_setpoint` topic](../msg_docs/ManualControlSetpoint.md) -> Selector using [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) -> Joystick (MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) message) -> ..."
+        "detail": "Manual control can come from an RC system (RC driver -> channel mapping/calibration -> [`manual_control_input`](../msg_docs/ManualControlSetpoint.md)) or from a joystick (MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) message -> `manual_control_input`). A selector configured with [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) chooses which source is used and publishes it as `manual_control_setpoint`. The requirement is met while the selected source has not timed out."
     },
     "mode_req_other": {
         "text": "Others requirement.",
