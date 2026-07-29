@@ -163,7 +163,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheLoadsAllMissionItems)
 	writeMissionItems(mission_items);
 
 	// Drive the async cache until ready.
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
 
 	MissionRouteCache::MissionView view{};
@@ -194,7 +194,7 @@ TEST_F(MissionRouteCacheTest, InvalidateImmediatelyHidesMissionView)
 	};
 	const mission_s mission = makeMission(16, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 
 	MissionRouteCache::MissionView view{};
 	ASSERT_TRUE(_cache.getMissionView(mission, view));
@@ -230,7 +230,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	EXPECT_FALSE(MissionRouteCacheTestPeer::missionLoadInProgress(_cache));
 
 	// The failed generation stays unavailable.
-	EXPECT_FALSE(_cache.isReady(mission));
+	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 	EXPECT_GT(MissionRouteCacheTestPeer::missionRetryCount(_cache), 0U);
 	MissionRouteCache::MissionView view{};
@@ -241,7 +241,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 
 	// The next generation can still publish in full.
 	MissionRouteCacheTestPeer::expireMissionRetryBackoff(_cache);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 	ASSERT_TRUE(_cache.getMissionView(mission, view));
 	expectMissionItemMatches(view.items[0], mission_items[0]);
 	expectMissionItemMatches(view.items[1], mission_items[1]);
@@ -251,12 +251,12 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 TEST_F(MissionRouteCacheTest, MissionCacheRejectsTooLargeMission)
 {
 	// One item beyond the configured cache size.
-	const mission_s mission = makeMission(19, static_cast<uint16_t>(MissionRouteCache::kMaxRouteMissionCacheSize + 1));
+	const mission_s mission = makeMission(19, static_cast<uint16_t>(MissionRouteCache::kMaxFullMissionCacheSize + 1));
 
 	// Driving the cache never makes an oversized mission ready and exposes no items.
-	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 
-	EXPECT_FALSE(_cache.isReady(mission));
+	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	mission_item_s cached_item{};
@@ -347,7 +347,7 @@ TEST_F(MissionRouteCacheTest, MissionLandItemLoadsReferencedWaypoint)
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		int32_t ready_index = -1;
 		mission_item_s ready_land_item{};
-		return _cache.isReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
+		return _cache.missionItemsReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
 	}))
 			<< "mission land item did not become ready";
 
@@ -375,7 +375,7 @@ TEST_F(MissionRouteCacheTest, MissionLandItemRejectsOutOfBoundsPublishedIndex)
 	writeMissionItems(mission_items);
 
 	// The mission cache itself still becomes ready.
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
 
 	// No land item is exposed from the invalid index.
@@ -549,10 +549,10 @@ TEST_F(MissionRouteCacheTest, EmptyMissionIsReadyAndHasNoItems)
 {
 	mission_s mission = makeMission(0, 0);
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "empty mission did not become ready";
 
-	EXPECT_TRUE(_cache.isReady(mission));
+	EXPECT_TRUE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	MissionRouteCache::MissionView view{};
@@ -568,7 +568,7 @@ TEST_F(MissionRouteCacheTest, EmptyMissionIsReadyAndHasNoItems)
 	// An empty mission remains valid when its otherwise unused storage key changes.
 	mission.mission_dataman_id = DM_KEY_SAFE_POINTS_0;
 	_cache.update(mission);
-	EXPECT_TRUE(_cache.isReady(mission));
+	EXPECT_TRUE(_cache.missionItemsReady(mission));
 }
 
 // A mission_dataman_id change reloads the cache from the new storage.
@@ -587,7 +587,7 @@ TEST_F(MissionRouteCacheTest, MissionDatamanIdChangeReloadsCache)
 	const mission_s mission_0 = makeMission(31, static_cast<uint16_t>(mission_items_0.size()), 0, -1,
 						DM_KEY_WAYPOINTS_OFFBOARD_0);
 	writeMissionItems(mission_items_0, DM_KEY_WAYPOINTS_OFFBOARD_0);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_0, [&] { return _cache.isReady(mission_0); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_0, [&] { return _cache.missionItemsReady(mission_0); }))
 			<< "mission cache did not become ready";
 
 	mission_item_s cached_item{};
@@ -603,13 +603,13 @@ TEST_F(MissionRouteCacheTest, MissionDatamanIdChangeReloadsCache)
 	_cache.update(mission_1);
 
 	// A replacement source immediately hides the old generation while the new one loads.
-	EXPECT_FALSE(_cache.isReady(mission_0));
+	EXPECT_FALSE(_cache.missionItemsReady(mission_0));
 	EXPECT_EQ(_cache.missionCount(), 0);
 	MissionRouteCache::MissionView unavailable_view{};
 	EXPECT_FALSE(_cache.getMissionView(mission_0, unavailable_view));
 	EXPECT_FALSE(_cache.getMissionView(mission_1, unavailable_view));
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_1, [&] { return _cache.isReady(mission_1); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_1, [&] { return _cache.missionItemsReady(mission_1); }))
 			<< "mission cache did not reload after dataman id change";
 
 	MissionRouteCache::MissionView view_1{};
@@ -647,7 +647,7 @@ TEST_F(MissionRouteCacheTest, MissionSourceChangeDuringReadDoesNotPublishOldGene
 	EXPECT_FALSE(_cache.getMissionView(mission_a, view));
 	EXPECT_FALSE(_cache.getMissionView(mission_b, view));
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_b, [&] { return _cache.isReady(mission_b); }));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_b, [&] { return _cache.missionItemsReady(mission_b); }));
 	ASSERT_TRUE(_cache.getMissionView(mission_b, view));
 	ASSERT_EQ(view.count, static_cast<int32_t>(mission_items_b.size()));
 
@@ -664,7 +664,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheRejectsInvalidDatamanId)
 
 	_cache.update(mission);
 
-	EXPECT_FALSE(_cache.isReady(mission));
+	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	mission_item_s cached_item{};
@@ -783,7 +783,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionCache)
 	};
 	const mission_s mission = makeMission(40, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
 	MissionRouteCache::MissionView before_sync{};
 	ASSERT_TRUE(_cache.getMissionView(mission, before_sync));
@@ -818,13 +818,13 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRereadsInFlightMissionItem)
 	writeMissionItem(updated, 0);
 
 	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kDeferred);
-	EXPECT_FALSE(_cache.isReady(mission));
+	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
 	// The in-flight response is discarded, so the load front stays on the synced index.
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), 0);
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not reload after an in-flight item update";
 
 	mission_item_s cached_item{};
@@ -860,7 +860,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemAheadOfLoadFrontKeepsProgress)
 	// No progress was dropped: the loaded prefix is not re-read.
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), load_front);
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 
 	// The sequential load picked the new item up from dataman on its own.
 	mission_item_s cached_item{};
@@ -894,7 +894,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemWithoutDatamanWriteKeepsStoredItem)
 	const mission_item_s never_written = makePositionItemFromOffset(kBaseLat, kBaseLon, 999.f, 42.f, kAlt + 77.f);
 	EXPECT_EQ(_cache.syncMissionItem(mission, sync_index, never_written), MissionRouteCache::SyncResult::kDeferred);
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 
 	// Storage wins for unread indices, unlike the loaded ones patched in place above.
 	mission_item_s cached_item{};
@@ -916,7 +916,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionLandCache)
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		int32_t ready_index = -1;
 		mission_item_s ready_land_item{};
-		return _cache.isReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
+		return _cache.missionItemsReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
 	}))
 			<< "mission land item did not become ready";
 
@@ -949,7 +949,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemInvalidatesMissionLandCacheForNonLa
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		int32_t ready_index = -1;
 		mission_item_s ready_land_item{};
-		return _cache.isReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
+		return _cache.missionItemsReady(mission) && _cache.getMissionLandItem(ready_index, ready_land_item);
 	}))
 			<< "mission land item did not become ready";
 
@@ -983,13 +983,13 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemInvalidatesPendingMissionLandCacheF
 	writeMissionItems(mission_items);
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_without_land,
-			[&] { return _cache.isReady(mission_without_land); }))
+			[&] { return _cache.missionItemsReady(mission_without_land); }))
 			<< "mission cache did not become ready";
 
 	mission_s mission = mission_without_land;
 	mission.land_index = land_index;
 	_cache.update(mission);
-	ASSERT_TRUE(_cache.isReady(mission));
+	ASSERT_TRUE(_cache.missionItemsReady(mission));
 	ASSERT_TRUE(_cache.missionLandItemUpdatePending());
 	ASSERT_FALSE(_cache.missionLandItemReady());
 
@@ -1027,7 +1027,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRejectsInactiveMission)
 	};
 	const mission_s mission = makeMission(42, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
 
 	// A mission that does not match the cached one must be rejected.
@@ -1043,11 +1043,11 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemRejectsInactiveMission)
 }
 
 // The land item cache is kept coherent by syncMissionItem() even when the mission
-// cache cannot hold the mission. E.g. boards where CONFIG_RTL_MISSION_CACHE_SIZE = 0.
+// cache cannot hold the mission. E.g. boards where CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE = 0.
 TEST_F(MissionRouteCacheTest, SyncMissionItemMaintainsLandCacheWithoutMissionCache)
 {
 	const int32_t land_index = 2;
-	const uint16_t count = static_cast<uint16_t>(MissionRouteCache::kMaxRouteMissionCacheSize + 1);
+	const uint16_t count = static_cast<uint16_t>(MissionRouteCache::kMaxFullMissionCacheSize + 1);
 	const mission_s mission = makeMission(46, count, 0, land_index);
 	writeMissionItem(makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt), land_index);
 
@@ -1056,7 +1056,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemMaintainsLandCacheWithoutMissionCac
 		mission_item_s ready_land_item{};
 		return _cache.getMissionLandItem(ready_index, ready_land_item);
 	})) << "land item did not become ready for an oversized mission";
-	EXPECT_FALSE(_cache.isReady(mission));
+	EXPECT_FALSE(_cache.missionItemsReady(mission));
 
 	// The mission cache rejects the write, the land cache still applies it.
 	const mission_item_s updated_land = makeLandItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
@@ -1084,7 +1084,7 @@ TEST_F(MissionRouteCacheTest, MissionViewStillValidTracksGeneration)
 	};
 	const mission_s mission = makeMission(46, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }))
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }))
 			<< "mission cache did not become ready";
 
 	// A default view has never been published.
@@ -1121,11 +1121,11 @@ TEST_F(MissionRouteCacheTest, BlockingLoadFillsMissionCacheWithoutAsyncPump)
 
 	// Every blocking update() call loads at least one item before checking its budget,
 	// so the cache must become ready within count calls even on a slow machine.
-	for (size_t i = 0; i < mission_items.size() && !_cache.isReady(mission); ++i) {
+	for (size_t i = 0; i < mission_items.size() && !_cache.missionItemsReady(mission); ++i) {
 		_cache.update(mission, true);
 	}
 
-	ASSERT_TRUE(_cache.isReady(mission));
+	ASSERT_TRUE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), static_cast<int>(mission_items.size()));
 
 	mission_item_s cached_item{};

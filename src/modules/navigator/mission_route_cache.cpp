@@ -58,12 +58,12 @@ static bool isMissionDatamanIdValid(uint8_t dataman_id)
 
 MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
 {
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	_mavlink_log_pub = mavlink_log_pub;
 
 	// Allocated once at Navigator start and kept for the module lifetime. Intentionally
 	// not zero-filled: no index is exposed before a successful dataman read fills it.
-	_mission_items = new mission_item_s[kMaxRouteMissionCacheSize];
+	_mission_items = new mission_item_s[kMaxFullMissionCacheSize];
 
 	if (_mission_items == nullptr) {
 		PX4_ERR("Mission cache allocation failed");
@@ -76,7 +76,7 @@ MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
 
 MissionRouteCache::~MissionRouteCache()
 {
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	_dataman_client_mission.abortCurrentOperation();
 	delete[] _mission_items;
 #endif
@@ -84,7 +84,7 @@ MissionRouteCache::~MissionRouteCache()
 
 void MissionRouteCache::update(const mission_s &mission, bool allow_blocking_load)
 {
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	updateMissionCache(mission, allow_blocking_load);
 #else
 	(void)allow_blocking_load;
@@ -95,7 +95,7 @@ void MissionRouteCache::update(const mission_s &mission, bool allow_blocking_loa
 
 void MissionRouteCache::invalidate()
 {
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	advanceMissionGeneration();
 	_mission = {};
 #endif
@@ -106,7 +106,7 @@ void MissionRouteCache::invalidate()
 	resetSafePointCacheState(true);
 }
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 void MissionRouteCache::advanceMissionGeneration()
 {
 	++_mission_generation;
@@ -117,16 +117,10 @@ void MissionRouteCache::advanceMissionGeneration()
 	}
 }
 
-// Start or restart the load for the current source; fall back to a backoff retry.
-void MissionRouteCache::startMissionLoadOrRetry(const mission_s &mission, hrt_abstime now)
+// Start or restart the load for the current source.
+// Callers must first establish that the source is valid and loadable.
+void MissionRouteCache::startMissionLoad()
 {
-	if (!_mission.source_valid || _mission.too_large || mission.count <= 0 || _mission_items == nullptr) {
-		_mission.validation_pending = false;
-		PX4_WARN("Mission cache load start failed");
-		_mission.retry.scheduleRetry(now);
-		return;
-	}
-
 	// A rebuild immediately hides the old generation. An active older request
 	// is allowed to finish, and its result is discarded before this generation
 	// starts writing the shared typed buffer.
@@ -139,7 +133,7 @@ void MissionRouteCache::startMissionLoadOrRetry(const mission_s &mission, hrt_ab
 bool MissionRouteCache::blockingLoadMissionItems(MissionCacheState &state)
 {
 	// Disarmed-only warm-up: synchronous reads with a bounded budget per update() call.
-	// Worst case a single read overruns the budget by kBlockingLoadItemTimeout.
+	// readSync() polls in fixed 100 ms chunks, so a slow read can overrun kBlockingLoadItemTimeout.
 	const hrt_abstime start = hrt_absolute_time();
 
 	while (state.next_index < state.count) {
@@ -241,14 +235,14 @@ void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
 	_safe_point.source_dataman_id = source_dataman_id;
 }
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 // True while the current mission generation is fully loaded and readable.
 bool MissionRouteCache::missionCacheAvailable() const
 {
 	return _mission.initialized && _mission.source_valid && !_mission.too_large && _mission.ready;
 }
 
-bool MissionRouteCache::isReady(const mission_s &mission) const
+bool MissionRouteCache::missionItemsReady(const mission_s &mission) const
 {
 	return missionCacheAvailable() && missionMatchesCache(mission);
 }
@@ -270,7 +264,7 @@ bool MissionRouteCache::loadMissionItem(int index, mission_item_s &mission_item)
 
 bool MissionRouteCache::getMissionView(const mission_s &mission, MissionView &view) const
 {
-	if (!isReady(mission)) {
+	if (!missionItemsReady(mission)) {
 		return false;
 	}
 
@@ -290,7 +284,7 @@ bool MissionRouteCache::missionViewStillValid(const MissionView &view) const
 }
 
 #else
-bool MissionRouteCache::isReady(const mission_s &) const { return false; }
+bool MissionRouteCache::missionItemsReady(const mission_s &) const { return false; }
 int MissionRouteCache::missionCount() const { return 0; }
 bool MissionRouteCache::loadMissionItem(int, mission_item_s &) const { return false; }
 bool MissionRouteCache::getMissionView(const mission_s &, MissionView &) const { return false; }
@@ -336,7 +330,7 @@ bool MissionRouteCache::getMissionLandItem(int32_t &index, mission_item_s &land_
 
 bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const
 {
-	return isReady(mission) && loadMissionItem(index, mission_item);
+	return missionItemsReady(mission) && loadMissionItem(index, mission_item);
 }
 
 MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
@@ -346,7 +340,7 @@ MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s
 	// mission, so keep it coherent independently of the full-mission cache outcome.
 	syncMissionLandItem(mission, index, mission_item);
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 	if (!_mission.source_valid || _mission.too_large
 	    || !missionMatchesCache(mission) || index < 0 || index >= _mission.count) {
@@ -420,7 +414,7 @@ void MissionRouteCache::syncMissionLandItem(const mission_s &mission, int32_t in
 	}
 }
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_blocking_load)
 {
 	MissionCacheState &state = _mission;
@@ -437,7 +431,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 		state.initialized = true;
 		state.source_valid = mission.count == 0 || isMissionDatamanIdValid(mission.mission_dataman_id);
 		state.ready = state.source_valid && mission.count == 0;
-		state.too_large = mission.count > kMaxRouteMissionCacheSize;
+		state.too_large = mission.count > kMaxFullMissionCacheSize;
 
 		if (!state.source_valid) {
 			PX4_ERR("Mission cache: invalid dataman id");
@@ -446,14 +440,14 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 		if (state.source_valid && state.too_large) {
 			// Runs once per source change; the route cache stays unavailable for this mission.
 			if (_mavlink_log_pub != nullptr) {
-				mavlink_log_critical(_mavlink_log_pub, "Mission with %u items exceeds route cache capacity %d\t",
-						     mission.count, static_cast<int>(kMaxRouteMissionCacheSize));
+				mavlink_log_warning(_mavlink_log_pub, "Mission with %u items exceeds route cache capacity %d\t",
+						    mission.count, static_cast<int>(kMaxFullMissionCacheSize));
 			}
 
 			events::send<uint16_t, int32_t>(events::ID("navigator_route_cache_too_large"),
-			{events::Log::Error, events::LogInternal::Info},
+			{events::Log::Warning, events::LogInternal::Info},
 			"Mission with {1} items exceeds the route cache capacity {2}",
-			mission.count, kMaxRouteMissionCacheSize);
+			mission.count, kMaxFullMissionCacheSize);
 		}
 
 		// The boot-time allocation failed, no recovery is possible for a non-empty mission.
@@ -463,7 +457,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 		}
 
 		if (state.source_valid && !state.too_large && mission.count > 0) {
-			startMissionLoadOrRetry(mission, hrt_absolute_time());
+			startMissionLoad();
 		}
 	}
 
@@ -501,6 +495,8 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 
 	if (state.validation_pending) {
 		if (_mission_request.pending) {
+			// The blocking load below uses readSync(), which would consume this pending
+			// response and stall the async read until its 100 ms self-retry.
 			return;
 		}
 
@@ -539,7 +535,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 
 	} else if (state.retry.due(now)) {
 		advanceMissionGeneration();
-		startMissionLoadOrRetry(mission, now);
+		startMissionLoad();
 	}
 }
 #endif
@@ -769,7 +765,7 @@ void MissionRouteCache::updateSafePointCache(const mission_s &mission)
 	}
 }
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 bool MissionRouteCache::missionMatchesCache(const mission_s &mission) const
 {
 	return _mission.initialized
