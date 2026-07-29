@@ -57,7 +57,7 @@ public:
 	// Disarmed-only warm-up: bounded synchronous dataman reads per update() call.
 	static constexpr hrt_abstime kBlockingLoadBudget{20000}; // 20 ms per update() call
 	static constexpr hrt_abstime kBlockingLoadItemTimeout{50000}; // 50 ms per item read
-	static constexpr int32_t kMaxRouteMissionCacheSize{CONFIG_RTL_MISSION_CACHE_SIZE};
+	static constexpr int32_t kMaxFullMissionCacheSize{CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE};
 	static constexpr uint32_t kInitialSafePointCacheSize{0};
 	static constexpr uint32_t kInitialLandItemCacheSize{1};
 
@@ -91,7 +91,7 @@ public:
 	void update(const mission_s &mission, bool allow_blocking_load = false);
 	void invalidate();
 
-	bool isReady(const mission_s &mission) const;
+	bool missionItemsReady(const mission_s &mission) const;
 	bool safePointsReady() const
 	{
 		return _safe_point.ready
@@ -203,7 +203,7 @@ private:
 		}
 	};
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	struct MissionCacheState {
 		uint32_t id{0};
 		int32_t count{0};
@@ -246,11 +246,11 @@ private:
 		RetryBackoff retry{};
 	};
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	void updateMissionCache(const mission_s &mission, bool allow_blocking_load);
 	bool missionMatchesCache(const mission_s &mission) const;
 	bool missionCacheAvailable() const;
-	void startMissionLoadOrRetry(const mission_s &mission, hrt_abstime now);
+	void startMissionLoad();
 	bool blockingLoadMissionItems(MissionCacheState &state);
 	void advanceMissionGeneration();
 #endif
@@ -267,7 +267,7 @@ private:
 
 	// Navigator accesses MissionRouteCache from one serialized task loop. The
 	// typed mission view can therefore be borrowed for one synchronous planning call.
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	mission_item_s *_mission_items {nullptr};
 	DatamanClient _dataman_client_mission{};
 	orb_advert_t *_mavlink_log_pub{nullptr};
@@ -279,7 +279,7 @@ private:
 	mutable DatamanCache _dataman_cache_land_item{"navigator_dm_cache_route_land", kInitialLandItemCacheSize};
 	DatamanClient &_dataman_client_safepoint = _dataman_cache_safepoint.client();
 
-#if CONFIG_RTL_MISSION_CACHE_SIZE > 0
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	MissionCacheState _mission {};
 #endif
 	MissionLandState _mission_land {};

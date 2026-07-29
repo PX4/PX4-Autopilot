@@ -61,16 +61,15 @@ menuconfig NAVIGATOR_ADSB_FAKE_TRAFFIC
 		Adds the `navigator fake_traffic` shell command and the scripted scenarios
 		used to validate the Detect and Avoid pipeline without a real transponder.
 
-config RTL_MISSION_CACHE_SIZE
+config NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	int "Maximum number of mission items cached for route planning"
 	default 500 if PLATFORM_POSIX
 	default 0
-	range 0 1000
+	range 0 NUM_MISSION_ITMES_SUPPORTED
 	depends on MODULES_NAVIGATOR
 	---help---
 		Maximum number of mission items reserved in RAM for full-route planning helpers:
 		56 bytes per item, allocated once at Navigator start. Set to 0 to disable the
-		route-mission cache on boards without the extra RAM. The POSIX default matches
-		the dataman mission limit. After upload or reboot the cache refills in the
-		background: about one item per Navigator cycle (~20/s) while armed, or via
-		short blocking reads while disarmed.
+		cache on boards without the extra RAM. Longer missions are not cached at all.
+		After upload or reboot the cache refills in the background: about one item per
+		Navigator cycle (~20/s) while armed, or via short blocking reads while disarmed.
