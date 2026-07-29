@@ -67,7 +67,7 @@ public:
 	 *
 	 * @param index Mission sequence to set as current, or -1 to keep the current item unchanged
 	 *              (e.g. to reset jump counters in place).
-	 * @param reset_jump_counters Reset all DO_JUMP repeat counters.
+	 * @param reset_jump_counters Reset all DO_JUMP repeat counters and mission completion flag
 	 * @return true if the current mission item was set successfully (or the reset-only, unchanged-index
 	 *         request could be honored), false if index is out of range or there is no current mission item.
 	 */
