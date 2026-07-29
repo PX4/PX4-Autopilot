@@ -73,7 +73,7 @@ public:
 	enum class SyncResult : uint8_t {
 		kRejected,  ///< The mission cache did not apply the write: source mismatch, index out of range, or cache compiled out.
 		kPatched,   ///< The item was applied in place; any previously borrowed view is stale.
-		kRestarted  ///< The item was not stably loaded; progress was dropped and a full reload (re)started.
+		kDeferred   ///< The item is not loaded yet; the pending load reads it from dataman.
 	};
 
 	// The optional mavlink log advert (Navigator's) reports a mission exceeding the cache.

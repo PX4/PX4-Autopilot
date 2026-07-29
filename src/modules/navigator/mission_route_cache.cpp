@@ -353,28 +353,28 @@ MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s
 		return SyncResult::kRejected;
 	}
 
-	SyncResult result = SyncResult::kRestarted;
-
 	if (_mission.ready) {
 		_mission_items[index] = mission_item;
 		advanceMissionGeneration();
-		result = SyncResult::kPatched;
-
-	} else if (_mission.validation_pending && index < _mission.next_index) {
-		// Sequential loading makes every earlier index stable. An authoritative
-		// write can patch it while later indices continue loading.
-		_mission_items[index] = mission_item;
-		result = SyncResult::kPatched;
-
-	} else {
-		// The item is unread or its old read is still in flight. Start a new
-		// unpublished generation after that request has been safely drained.
-		advanceMissionGeneration();
-		_mission.retry.clear();
-		startMissionLoadOrRetry(mission, hrt_absolute_time());
+		return SyncResult::kPatched;
 	}
 
-	return result;
+	if (_mission.validation_pending && index < _mission.next_index) {
+		// Sequential loading makes every earlier index stable, so patch it in place
+		// while the later indices keep loading.
+		_mission_items[index] = mission_item;
+		return SyncResult::kPatched;
+	}
+
+	if (_mission_request.pending && _mission_request.index == index) {
+		// This read sampled the index before the write, so its response would store the
+		// old item. Advance the generation to discard it and read the index again.
+		advanceMissionGeneration();
+	}
+
+	// Any other index is still unread and dataman already holds the new item, so the
+	// pending load picks it up on its own.
+	return SyncResult::kDeferred;
 #else
 	return SyncResult::kRejected;
 #endif
