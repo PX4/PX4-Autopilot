@@ -14,22 +14,31 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)                             | [SIH]                      | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware                   |
-| ----------------- | ----------------------------------------- | -------------------------- | -------------------------------------------- | -------------------------- |
-| `gyro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
-| `accel`           | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
-| `mag`             | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
-| `baro`            | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
-| `distance_sensor` | `off`, `stuck`                            | `off`, `stuck`             | `off`, `stuck`                               | `off`, `stuck`             |
-| `gps`             | — <sup>[1](#1)</sup>                      | `off`, `stuck`, `wrong`    | `off`, `stuck`, `wrong`                      | `off`, `stuck`             |
-| `airspeed`        | `off`, `stuck`, `wrong`<sup>[2](#2)</sup> | —                          | `off`, `wrong`                               | —                          |
-| `vio`             | —                                         | —                          | `off`                                        | —                          |
-| `battery`         | `off`, `wrong`<sup>[3](#3)</sup>          | `off`, `wrong`<sup>3</sup> | `off`, `wrong`<sup>3</sup>                   | `off`, `wrong`<sup>3</sup> |
-| `traffic`         | `off`, `stuck`<sup>[4](#4)</sup>          | `off`, `stuck`<sup>4</sup> | `off`, `stuck`<sup>4</sup>                   | `off`, `stuck`<sup>4</sup> |
-| `motor`           | `off`<sup>[5](#5)</sup>                   | `off`<sup>5</sup>          | `off`<sup>5</sup>                            | `off`<sup>5</sup>          |
+| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware       |
+| ----------------- | ----------------------- | ----------------------- | -------------------------------------------- | -------------- |
+| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `gps`             | —                       | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck` |
+| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —              |
+| `vio`             | —                       | —                       | `off`                                        | —              |
+| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong` |
+| `traffic`         | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `motor`           | `off`                   | `off`                   | `off`                                        | `off`          |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
+
+> [!INFO]
+>
+> - `gps off | stuck | wrong` on Gazebo (Gz): only available if [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) is set to `0` to use the injectable simulated-GPS module.
+>   By default Gazebo publishes GPS from the simulator's own GNSS sensor (`SIM_GZ_EN_GPS` = 1), which is not injectable.
+> - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+> - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
+> - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy; `stuck` freezes the traffic picture at the last received report while the link stays healthy.
+> - `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
 
 Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
 The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see footnotes 1–2), SIH does not simulate an injectable airspeed, and `simulator_mavlink` publishes the distance sensor directly (no wrapper).
@@ -42,15 +51,6 @@ All [MAV_CMD_INJECT_FAILURE](https://mavlink.io/en/messages/common.html#MAV_CMD_
 The failure-injection module will NACK the command with [MAV_RESULT_UNSUPPORTED](https://mavlink.io/en/messages/common.html#MAV_RESULT_UNSUPPORTED) for failure combinations that are not implemented by PX4 or any simulator.
 However it the module will accept (respond with [MAV_MISSION_ACCEPTED](https://mavlink.io/en/messages/common.html#MAV_MISSION_ACCEPTED)) for any other failure-type, even if it is not supported by your _particular_ simulator.
 :::
-
-Table footnotes:
-
-1. <a id="1"></a>By default Gazebo publishes GPS from the simulator's own GNSS sensor ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) = 1), which is not injectable.
-   Set `SIM_GZ_EN_GPS` to `0` to use the injectable simulated-GPS module (`off`, `stuck`, `wrong`).
-2. <a id="2"></a>Gazebo airspeed is injectable only when provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
-3. <a id="3"></a>`battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
-4. <a id="4"></a>`traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy; `stuck` freezes the traffic picture at the last received report while the link stays healthy.
-5. <a id="5"></a>`motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
 
 ## Failure System Command
 
