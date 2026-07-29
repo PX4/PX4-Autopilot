@@ -638,7 +638,12 @@ void FwLateralLongitudinalControl::updateAirspeed() {
 
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
 			_long_control_state.airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
-			_long_control_state.eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
+
+			// before takeoff the ratio can be 0/0 = NaN, which constrain() passes through; keep the previous value then
+			if (fabsf(airspeed_validated.calibrated_airspeed_m_s) > FLT_EPSILON) {
+				_long_control_state.eas2tas = constrain(airspeed_validated.true_airspeed_m_s /
+									airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
+			}
 		}
 	}
 
