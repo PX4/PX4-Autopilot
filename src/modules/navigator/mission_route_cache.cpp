@@ -241,11 +241,6 @@ void MissionRouteCache::resetSafePointCacheState(bool clear_source_identity)
 	_safe_point.source_dataman_id = source_dataman_id;
 }
 
-bool MissionRouteCache::missionExceedsCacheLimit(const mission_s &mission) const
-{
-	return mission.count > kMaxRouteMissionCacheSize;
-}
-
 #if CONFIG_RTL_MISSION_CACHE_SIZE > 0
 // True while the current mission generation is fully loaded and readable.
 bool MissionRouteCache::missionCacheAvailable() const
@@ -442,7 +437,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 		state.initialized = true;
 		state.source_valid = mission.count == 0 || isMissionDatamanIdValid(mission.mission_dataman_id);
 		state.ready = state.source_valid && mission.count == 0;
-		state.too_large = missionExceedsCacheLimit(mission);
+		state.too_large = mission.count > kMaxRouteMissionCacheSize;
 
 		if (!state.source_valid) {
 			PX4_ERR("Mission cache: invalid dataman id");

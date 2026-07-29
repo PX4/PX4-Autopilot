@@ -256,7 +256,6 @@ TEST_F(MissionRouteCacheTest, MissionCacheRejectsTooLargeMission)
 	// Driving the cache never makes an oversized mission ready and exposes no items.
 	EXPECT_FALSE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.isReady(mission); }));
 
-	EXPECT_TRUE(_cache.missionExceedsCacheLimit(mission));
 	EXPECT_FALSE(_cache.isReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 
@@ -978,7 +977,6 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemMaintainsLandCacheWithoutMissionCac
 	const uint16_t count = static_cast<uint16_t>(MissionRouteCache::kMaxRouteMissionCacheSize + 1);
 	const mission_s mission = makeMission(46, count, 0, land_index);
 	writeMissionItem(makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt), land_index);
-	ASSERT_TRUE(_cache.missionExceedsCacheLimit(mission));
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
 		int32_t ready_index = -1;
