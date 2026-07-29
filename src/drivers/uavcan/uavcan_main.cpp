@@ -110,6 +110,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node_status_monitor(_node),
 	_node_info_retriever(_node),
 	_node_info_publisher(_node, _node_info_retriever),
+	_node_configurator(_node, _node_info_retriever),
 	_master_timer(_node),
 	_param_getset_client(_node),
 	_param_opcode_client(_node),
@@ -798,6 +799,8 @@ UavcanNode::Run()
 	_node.spinOnce(); // expected to be non-blocking
 
 	apply_can_failure_injection();
+
+	_node_configurator.update();
 
 	publish_can_interface_statuses();
 
