@@ -71,7 +71,7 @@ MissionRouteCache::MissionRouteCache(orb_advert_t *mavlink_log_pub)
 
 #else
 	(void)mavlink_log_pub;
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 MissionRouteCache::~MissionRouteCache()
@@ -79,7 +79,7 @@ MissionRouteCache::~MissionRouteCache()
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	_dataman_client_mission.abortCurrentOperation();
 	delete[] _mission_items;
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 void MissionRouteCache::update(const mission_s &mission, bool allow_blocking_load)
@@ -88,7 +88,7 @@ void MissionRouteCache::update(const mission_s &mission, bool allow_blocking_loa
 	updateMissionCache(mission, allow_blocking_load);
 #else
 	(void)allow_blocking_load;
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	updateMissionLandItemCache(mission);
 	updateSafePointCache(mission);
 }
@@ -98,7 +98,7 @@ void MissionRouteCache::invalidate()
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	advanceMissionGeneration();
 	_mission = {};
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	_mission_land = {};
 	_dataman_cache_land_item.invalidate();
@@ -159,7 +159,7 @@ bool MissionRouteCache::blockingLoadMissionItems(MissionCacheState &state)
 
 	return true;
 }
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 bool MissionRouteCache::missionLandItemCacheFullyLoaded() const
 {
@@ -289,7 +289,7 @@ int MissionRouteCache::missionCount() const { return 0; }
 bool MissionRouteCache::loadMissionItem(int, mission_item_s &) const { return false; }
 bool MissionRouteCache::getMissionView(const mission_s &, MissionView &) const { return false; }
 bool MissionRouteCache::missionViewStillValid(const MissionView &) const { return false; }
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 int MissionRouteCache::safePointCount() const
 {
@@ -371,7 +371,7 @@ MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s
 	return SyncResult::kDeferred;
 #else
 	return SyncResult::kRejected;
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
 
 void MissionRouteCache::syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
@@ -538,7 +538,7 @@ void MissionRouteCache::updateMissionCache(const mission_s &mission, bool allow_
 		startMissionLoad();
 	}
 }
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void MissionRouteCache::updateMissionLandItemCache(const mission_s &mission)
 {
@@ -773,7 +773,7 @@ bool MissionRouteCache::missionMatchesCache(const mission_s &mission) const
 	       && mission.count == _mission.count
 	       && mission.mission_dataman_id == _mission.dataman_id;
 }
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 bool MissionRouteCache::missionLandMatchesCache(const mission_s &mission) const
 {

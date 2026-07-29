@@ -222,7 +222,7 @@ private:
 		int32_t index{-1};      ///< Mission item index being read.
 		bool pending{false};    ///< generation and index are only meaningful while true.
 	};
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	struct MissionLandState {
 		uint32_t mission_id{0};
@@ -253,7 +253,7 @@ private:
 	void startMissionLoad();
 	bool blockingLoadMissionItems(MissionCacheState &state);
 	void advanceMissionGeneration();
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	void updateMissionLandItemCache(const mission_s &mission);
 	void syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 	bool missionLandMatchesCache(const mission_s &mission) const;
@@ -274,14 +274,14 @@ private:
 	// Keep outside of MissionCacheState: it must survive `_mission = {}` reset
 	uint32_t _mission_generation{0};
 	MissionRequest _mission_request{};
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	mutable DatamanCache _dataman_cache_safepoint {"navigator_dm_cache_route_safepoint", kInitialSafePointCacheSize};
 	mutable DatamanCache _dataman_cache_land_item{"navigator_dm_cache_route_land", kInitialLandItemCacheSize};
 	DatamanClient &_dataman_client_safepoint = _dataman_cache_safepoint.client();
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	MissionCacheState _mission {};
-#endif
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	MissionLandState _mission_land {};
 	SafePointState _safe_point{};
 };
