@@ -51,7 +51,7 @@ The following requirements must be met to arm in this mode, or to switch to this
 
 - [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
 - [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
-- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming (vehicle must be armed to switch to this mode)
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
 
 <!-- END AUTO-GENERATED: mode_requirements_rotary_wing_descend -->
 
