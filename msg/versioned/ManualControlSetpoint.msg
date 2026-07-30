@@ -29,7 +29,7 @@ float32 pitch # [-] [@range -1,1] [@invalid - NaN expected but not implemented] 
 float32 yaw # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Positive values are generally used for: positive yaw rotation, clockwise when seen top down
 float32 throttle # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Positive values are generally used for: move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust
 
-float32 flaps # [-] [@range -1,1] [@invalid NaN] Position of flaps switch/knob/lever
+float32 flaps # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Position of flaps switch/knob/lever
 
 float32 aux1 # [-] [@range -1,1] [@invalid NaN] Auxiliary channel 1
 float32 aux2 # [-] [@range -1,1] [@invalid NaN] Auxiliary channel 2
