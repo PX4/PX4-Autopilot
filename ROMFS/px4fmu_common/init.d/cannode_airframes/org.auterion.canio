@@ -1,8 +1,7 @@
 # UAVCAN node parameter defaults for org.auterion.canio
-# Format: PARAM_NAME=type:value
-#   type: i = integer, f = float, b = boolean, s = string
+# Format: PARAM_NAME=value  (type is learned automatically via GET)
 # Applied by CanNodeConfigurator on the FMU whenever this node is discovered.
 #
 # Example:
-# GPS_1_CONFIG=i:200
-GPS_1_CONFIG=i:204
+# GPS_1_CONFIG=200
+GPS_1_CONFIG=222
