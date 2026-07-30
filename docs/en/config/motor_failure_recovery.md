@@ -13,8 +13,6 @@ A vehicle flying with a failed motor has less control authority and thrust margi
 Fly gently and land as soon as it is safe to do so.
 :::
 
-                                                                                                                                |
-
 ## Hexarotor
 
 ### Stop or Reverse the Opposite Motor
