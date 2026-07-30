@@ -74,7 +74,7 @@ public:
 
 	bool init();
 
-private:
+protected:
 	void Run() override;
 
 	void handleCommand(const vehicle_command_s &cmd);
