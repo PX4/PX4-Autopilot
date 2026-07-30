@@ -1,16 +1,8 @@
 # Parachute
 
-PX4 can be configured to trigger a parachute during [flight termination](../advanced_config/flight_termination.md).
-A parachute connected to an output can also be [released by command](#releasing-the-parachute-by-command) without terminating the flight.
+PX4 can be configured to trigger a parachute during [flight termination](#flight-termination) or in response to the MAVLink [`MAV_CMD_DO_PARACHUTE` command](#mav-cmd-do-parachute).
 
 The parachute can be connected to a free PWM output or via MAVLink.
-
-::: info
-During flight termination PX4 turns off all controllers and sets all PWM outputs to their failsafe values (including those connected to PWM outputs) and triggers any connected MAVLink parachutes.
-
-You can therefore use this feature to activate multiple complementary safety devices connected to different outputs.
-For more information see [Flight Termination Configuration](../advanced_config/flight_termination.md).
-:::
 
 ## Using Parachutes
 
@@ -26,16 +18,18 @@ Below are a few considerations when using parachutes:
 - The parachute will only deploy if the flight controller is powered and PX4 is running properly (unless it is triggered independently of PX4).
   It will not deploy if something causes the flight stack to crash.
 
-## Parachute Setup
+## Flight Termination {#flight-termination}
 
-Flight termination (and hence parachute deployment) may be triggered by safety checks such as RC Loss, geofence violation, and so on, from attitude triggers and other failure detector checks, or by a command from a ground station.
-During flight termination PX4 sets PWM outputs to their "failsafe" values (failsafe values turn off motors, but may be used to turn on/trigger the parachute).
+[Flight termination](../advanced_config/flight_termination.md) (and hence parachute deployment) may be triggered by safety checks such as RC Loss, geofence violation, and so on, from attitude triggers and other failure detector checks, or by a command from a ground station.
+
+During flight termination PX4 turns off all controllers and sets PWM outputs to their "failsafe" values.
+These values are set to a level that stops motors, and may also be used to trigger the parachute.
 If a MAVLink parachute is connected and healthy, a command will be sent to activate it.
 
-Parachute setup therefore involves:
+The setup to deploy a parachute during flight termination involves configuring:
 
-- Configuring [flight termination](../advanced_config/flight_termination.md) as the appropriate action for those safety and failure cases where the parachute should be deployed.
-- Configure PX4 to deploy the parachute during flight termination (set PWM output levels appropriately or send the MAVLink parachute deploy command).
+- _Flight termination_ as the appropriate action for those safety and failure cases where the parachute should be deployed.
+- PX4 to deploy the parachute during flight termination (set PWM output levels appropriately or send the MAVLink parachute deploy command).
 - Configure PX4 output levels to disable motors on failsafe.
   This is the default so usually nothing is required (for servos it's the center value).
 
@@ -71,11 +65,18 @@ You then need to ensure that the parachute pin will be set to a value that will 
   For the spring-loaded launcher from [Fruity Chutes](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/drone_multicopter_quadcopter_recovery_parachutes#Harrier) the minimum PWM value should be between 700 and 1000ms, and the maximum value between 1800 and 2200ms.
   :::
 
-### MAVLink Parachute Setup
+### MAVLink Parachute Setup for Flight Termination
 
-PX4 will trigger a connected and healthy parachute on failsafe by sending the command [MAV_CMD_DO_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_PARACHUTE) with the [PARACHUTE_RELEASE](https://mavlink.io/en/messages/common.html#PARACHUTE_ACTION) action.
+<Badge type="tip" text="PX4 v1.13" />
 
-MAVLink parachute support is enabled by setting the parameter [COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) to a non-zero value.
+::: tip
+This setup is only required to enable parachute integration for flight termination.
+It does affect parachute deployment commanded by an external system using the [MAV_CMD_DO_PARACHUTE command](#mav-cmd-do-parachute).
+:::
+
+PX4 will trigger a connected and healthy MAVLink parachute on failsafe by sending the command [MAV_CMD_DO_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_PARACHUTE) with the [PARACHUTE_RELEASE](https://mavlink.io/en/messages/common.html#PARACHUTE_ACTION) action.
+
+MAVLink parachute support in flight termination is enabled by setting the parameter [COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE) to a non-zero value.
 The parameter also configures the arming check and in-flight failsafe action when the parachute system is missing or unhealthy, see [Parachute Health Failsafe](../config/safety.md#parachute-health-failsafe).
 
 PX4 will then indicate parachute status using the [MAV_SYS_STATUS_RECOVERY_SYSTEM](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_RECOVERY_SYSTEM) bit in the [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) extended onboard control sensors fields:
@@ -88,27 +89,36 @@ A MAVLink parachute is required to emit a [HEARTBEAT](https://mavlink.io/en/mess
 
 <!-- PX4 v1.13 support added here: https://github.com/PX4/PX4-Autopilot/pull/18589 -->
 
-## Releasing the Parachute by Command
+## MAVLink Trigger (MAV_CMD_DO_PARACHUTE) {#mav-cmd-do-parachute}
 
-A parachute assigned to a flight controller output can also be released with the [MAV_CMD_DO_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_PARACHUTE) command and the [PARACHUTE_RELEASE](https://mavlink.io/en/messages/common.html#PARACHUTE_ACTION) action, without going through flight termination.
-The vehicle stays armed on release, and the vehicle disarms normally after landing.
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+Parachutes can also be directly triggered using the [MAV_CMD_DO_PARACHUTE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_PARACHUTE) command during normal operation.
+
+This does not trigger flight termination, and does not require any of the setup described in [MAVLink Parachute Setup for Flight Termination](#mavlink-parachute-setup-for-flight-termination).
 
 :::warning
-Unlike flight termination, releasing the parachute by command does not stop the motors: the active flight mode keeps controlling the vehicle.
-Whatever sends the release is responsible for first putting the vehicle into a state that is safe under a parachute.
+Unlike with flight termination, releasing the parachute by command does not stop the motors: the vehicle remains armed, is controlled by the active flight, and disarms normally after landing.
+The component that sends the command is responsible for first putting the vehicle into a state that is safe under a parachute.
 :::
 
-To use this:
+### MAVLink Parachute
 
-- Assign the _Parachute_ function to an output as described in [Parachute Output Bus Setup](#parachute-output-bus-setup).
-- Include the `parachute` module in the firmware by setting `CONFIG_MODULES_PARACHUTE=y` in the board configuration.
+For a MAVLink parachute, the command should be addressed to the parachute's system and component id.
+
+### Flight-Controller Connected Parachute
+
+For a parachute connected to a flight controller output, address the command to the autopilot MAVLink component.
+
+Setup instructions:
+
+- Include the `parachute` module in the firmware by setting `CONFIG_MODULES_PARACHUTE=y` in the [board configuration](../hardware/porting_guide_config.md).
+- Assign the _Parachute_ function to the connected output as described in [Parachute Output Bus Setup](#parachute-output-bus-setup).
 
 Notes:
 
 - The release is denied while the vehicle is landed, so that the parachute cannot be deployed with people around the vehicle.
-- Once released, the output stays in the released position until reboot.
-- Flight termination still releases the parachute output through the failsafe values.
-  Releasing the parachute by command does not trigger flight termination.
+- Once released, the parachute output is latched to the release value until reboot.
 
 ## Parachute Testing
 
