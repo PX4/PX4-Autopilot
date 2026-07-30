@@ -24,7 +24,7 @@ parameters:
       instance_start: 0
     EKF2_OF${i}_DELAY:
       description:
-        short: Optical flow sensor ${i} measurement delay relative to IMU measurements
+        short: Optical flow sensor ${i} measurement delay relative to IMU
         long: Assumes measurement is timestamped at trailing edge of integration period
       type: float
       default: 20
