@@ -4,7 +4,7 @@ The Agam DPM02 is a digital power module with an integrated Power Distribution B
 
 The integrated PDB enables battery power distribution to ESCs, motors, and onboard peripherals.
 
-![Agam DPM02](../../../assets/hardware/power_module/agam_robotics_dpm/agam_dpm02_powermodule.png)
+![Agam DPM02](../../../docs/assets/hardware/power_module/agam_robotics_dpm/agam_dpm02_powermodule.png)
 
 ## Where to Buy
 
