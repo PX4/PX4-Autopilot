@@ -35,12 +35,23 @@
 
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <stdint.h>
 #include "setpoint_types.hpp"
 
 namespace mode_util
 {
+
+/**
+ * Whether Manual mode is attitude-stabilized for a given vehicle type (as opposed to a direct
+ * passthrough to thrust and torque). If true, Manual is equivalent to Stabilized.
+ * @param vehicle_type one of vehicle_status_s::VEHICLE_TYPE_*
+ */
+static inline bool stabilizationRequired(uint8_t vehicle_type)
+{
+	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+}
 
 void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			   const offboard_control_mode_s &offboard_control_mode,
