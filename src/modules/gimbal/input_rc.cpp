@@ -194,29 +194,40 @@ float InputRC::_get_aux_value(const manual_control_setpoint_s &manual_control_se
 		}
 	}();
 
+	float value = 0.0f;
+
 	switch (aux_channel) {
 
 	case 1:
-		return manual_control_setpoint.aux1;
+		value = manual_control_setpoint.aux1;
+		break;
 
 	case 2:
-		return manual_control_setpoint.aux2;
+		value = manual_control_setpoint.aux2;
+		break;
 
 	case 3:
-		return manual_control_setpoint.aux3;
+		value = manual_control_setpoint.aux3;
+		break;
 
 	case 4:
-		return manual_control_setpoint.aux4;
+		value = manual_control_setpoint.aux4;
+		break;
 
 	case 5:
-		return manual_control_setpoint.aux5;
+		value = manual_control_setpoint.aux5;
+		break;
 
 	case 6:
-		return manual_control_setpoint.aux6;
+		value = manual_control_setpoint.aux6;
+		break;
 
 	default:
-		return 0.0f;
+		value = 0.0f;
+		break;
 	}
+
+	return PX4_ISFINITE(value) ? value : 0.0f;
 }
 
 void InputRC::print_status() const

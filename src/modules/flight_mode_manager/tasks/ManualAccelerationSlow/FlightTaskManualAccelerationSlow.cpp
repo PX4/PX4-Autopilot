@@ -157,7 +157,8 @@ bool FlightTaskManualAccelerationSlow::update()
 float FlightTaskManualAccelerationSlow::getInputFromSanitizedAuxParameterIndex(int parameter_value)
 {
 	const int sanitized_index = math::constrain(parameter_value - 1, 0, 5);
-	return _sticks.getAux()(sanitized_index);
+	const float aux_value = _sticks.getAux()(sanitized_index);
+	return PX4_ISFINITE(aux_value) ? aux_value : 0.f;
 }
 
 bool FlightTaskManualAccelerationSlow::haveTakenOff()
