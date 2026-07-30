@@ -1,0 +1,9 @@
+module_name: navputer
+parameters:
+- group: NAVPUTER
+  definitions:
+    NAVPUTER_EN:
+      description:
+        short: NAVPUTER enable
+      type: boolean
+      default: 1

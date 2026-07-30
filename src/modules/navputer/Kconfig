@@ -1,0 +1,5 @@
+menuconfig MODULES_NAVPUTER
+	bool "navputer"
+	default n
+	---help---
+		Enable support for navputer
