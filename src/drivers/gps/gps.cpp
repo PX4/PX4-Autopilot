@@ -1582,9 +1582,6 @@ GPS::publishSatelliteInfo()
 		}
 
 		_is_sat_info_main_advertised.store(true);
-
-	} else {
-		//we don't publish satellite info for the secondary gps
 	}
 }
 
