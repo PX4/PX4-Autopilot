@@ -4,21 +4,20 @@
 
 PX4 can reconfigure [control allocation (mixing)](../concept/control_allocation.md) in flight when a motor failure is detected, so that the vehicle can keep flying on the motors that are left.
 
-What happens on a failure is selected with [CA_FAILURE_MODE](#CA_FAILURE_MODE), which is disabled by default.
+The failure action is selected with [CA_FAILURE_MODE](#CA_FAILURE_MODE).
+This can be set to `0` (the default) to simply warn the user, or `1` to remove the failed motor from allocation.
+Hexarotor frames provide additional recovery options, which are outlined in the following sections.
 
 ::: warning
 A vehicle flying with a failed motor has less control authority and thrust margin than a healthy one.
 Fly gently and land as soon as it is safe to do so.
 :::
 
-## Configuration
+                                                                                                                                |
 
-| Parameter                                                                                                | Description                                                                                                                                                                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | What to do on a single motor failure. `0`: Ignore (default), the failure is only reported and the allocation is left unchanged. `1`: Remove the failed motor from the allocation and, on a hexarotor, stop the motor opposite it. `2`: Same, but reverse the opposite motor (needs a reverse-capable ESC). |
-| <a id="CA_REV_THR_FRAC"></a>[CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) | Fraction of forward thrust that the recovery motor is expected to produce in reverse (default `0.4`). Only used by mode `2`.                                                                                                                                                                               |
+## Hexarotor
 
-## Hexarotor: Stop or Reverse the Opposite Motor
+### Stop or Reverse the Opposite Motor
 
 Modes `1` and `2` only differ on a hexarotor; on any other airframe both simply remove the failed motor.
 
@@ -35,7 +34,26 @@ A propeller spun backwards produces less thrust than it does forwards, and [CA_R
 
 A value in the right region is best, but it is not critical: a hexarotor still recovers with `1.0` set on a propeller whose real fraction is 0.4.
 
-## Detection
+### ESC Requirements for Reversing
+
+[CA_FAILURE_MODE=2](#CA_FAILURE_MODE) requires that the ESC driving the motor (opposite the failed motor) can spin it backwards.
+This requires appropriate firmware and PX4 configuration:
+
+- **DroneCAN:** The ESC must support and be configured for bidirectional operation.
+  See [Reversible motors](../dronecan/escs.md#reversible-motors) in _DroneCAN ESC_
+- **DShot:** Requires an ESC running in 3D mode.
+  A reversible output is encoded using the DShot 3D split range, where neutral sits in the middle of the range.
+  3D mode is a persistent ESC setting (see [ESC Commands](../peripherals/dshot.md#commands)), so the vehicle has to be set up to run in 3D mode ([DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE)) for PX4's encoding and the ESC configuration to agree.
+
+PWM, OneShot, and other protocols do not support motor reversal.
+If using these you must set [CA_FAILURE_MODE](#CA_FAILURE_MODE)=`1` (or `0`)
+
+::: warning
+PX4 does not check whether the ESC can reverse, and a reverse command sent to an ESC that is not configured for it comes out as forward throttle.
+Before flying with mode `2`, confirm on the bench that the motor really does spin backwards, for example from the sign of the reported RPM.
+:::
+
+## Failure Detection
 
 Recovery reacts to the motor failure flag raised by the [failure detector](safety.md#motor-failure-trigger), which is set when either:
 
@@ -53,23 +71,15 @@ The ESC offline/fault check does clear if the ESC starts reporting again, in whi
 
 To exercise the whole chain you can take an ESC offline with [failure injection](../debug/failure_injection.md): `failure esc off -i <n>`.
 
-## ESC Requirements for Reversing
+## Parameters
 
-[CA_FAILURE_MODE=2](#CA_FAILURE_MODE) is only meaningful if the ESC driving the opposite motor can spin it backwards, and interprets PX4's reverse command as reverse:
-
-| Output              | Reverse support                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DroneCAN            | Supported. Reversible motor outputs are sent as signed `RawCommand` values, where negative means reverse, as defined by the DroneCAN ESC message. The ESC must support bidirectional operation.                                                                                                                                                                                                                                       |
-| DShot               | Requires an ESC running in 3D mode. A reversible output is encoded using the DShot 3D split range, where neutral sits in the middle of the range. 3D mode is a persistent ESC setting (see [ESC Commands](../peripherals/dshot.md#commands)), so the vehicle has to be set up to run in 3D mode ([DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE)) for PX4's encoding and the ESC configuration to agree. |
-| PWM, OneShot, other | Not supported: these outputs cannot reverse a motor. Use [CA_FAILURE_MODE=1](#CA_FAILURE_MODE) instead.                                                                                                                                                                                                                                                                                                                               |
-
-::: warning
-PX4 does not check whether the ESC can reverse, and a reverse command sent to an ESC that is not configured for it comes out as forward throttle.
-Before flying with mode `2`, confirm on the bench that the motor really does spin backwards, for example from the sign of the reported RPM.
-:::
+| Parameter                                                                                                | Description                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | What to do on a single motor failure. <br>`0` (default): Ignore and report failure.<br>`1`: Remove failed motor from allocation. Hexarotor: also stop the opposite motor.<br>`2`: Remove failed motor from allocation. Hexarotor: also reverse the opposite motor. |
+| <a id="CA_REV_THR_FRAC"></a>[CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) | Fraction of forward thrust that the recovery motor is expected to produce in reverse (default `0.4`). Only used by mode `2`.                                                                                                                                       |
 
 ## See Also
 
-- [Safety Configuration (Failsafes)](safety.md), covering the failure detector and motor failure detection.
+- [Safety Configuration (Failsafes)](../config/safety.md), covering the failure detector and motor failure detection.
 - [Control Allocation (Mixing)](../concept/control_allocation.md)
 - [Actuator Configuration and Testing](actuators.md), covering geometry, motor order and bidirectional motors.

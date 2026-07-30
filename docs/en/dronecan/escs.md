@@ -36,10 +36,18 @@ In addition to the general setup, such as setting `UAVCAN_ENABLE` to `3`:
 
 <Badge type="tip" text="PX4 v1.18" />
 
-Motors that are configured as [bidirectional](../config/actuators.md#bidirectional-motors) are commanded with a _signed_ `uavcan.equipment.esc.RawCommand` value, as defined by the DroneCAN ESC message: zero is stop, positive is forward and negative is reverse.
-Motors that are not configured as bidirectional are commanded with positive values only, as before.
+Motors can be reversible "on the fly" (bidirectional) if the motor hardware supports reversal, the ESC firmware is configured for 3D/bidirectional operation, and the motor is set as [bidirectional](../config/actuators.md#bidirectional-motors) in the actuator configuration.
 
-The ESC must support bidirectional operation and interpret negative commands as reverse.
-Check the sign of the RPM reported in the ESC telemetry to confirm that the motor really turns the other way.
+When configured as bidirectional, PX4 commands the motor with a _signed_ `uavcan.equipment.esc.RawCommand` value, as defined by the DroneCAN ESC message protocol:
 
-Reverse is also used by [Motor Failure Recovery](../config/motor_failure_recovery.md) to keep a hexarotor controllable after a motor failure.
+- **Zero:** Motor stop / neutral
+- **Positive values:** Forward thrust
+- **Negative values:** Reverse thrust
+
+Motors that are not configured as bidirectional continue to receive positive values only.
+
+::: tip Verifying Operation
+Check the sign of the RPM reported in the ESC telemetry to confirm that the ESC is interpreting negative commands correctly and actively spinning the motor in reverse.
+:::
+
+Reversible motors may also be used in [Motor Failure Recovery](../config/motor_failure_recovery.md) to keep a hexarotor controllable after a single motor failure.
