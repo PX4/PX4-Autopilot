@@ -41,82 +41,42 @@
 #pragma once
 
 #include <uavcan/protocol/node_info_retriever.hpp>
-#include <uavcan/protocol/param/GetSet.hpp>
-#include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <containers/List.hpp>
+#include <pthread.h>
 
 class CanNodeConfigurator : private uavcan::INodeInfoListener
 {
 public:
-	CanNodeConfigurator(uavcan::INode &node, uavcan::NodeInfoRetriever &retriever);
+	explicit CanNodeConfigurator(uavcan::NodeInfoRetriever &retriever);
 	~CanNodeConfigurator();
 
-	/**
-	 * Drive the configuration state machine.
-	 * Must be called every Run() cycle, after node.spinOnce().
-	 */
-	void update();
+	void init();
 
 private:
 	// --- INodeInfoListener ---
 	void handleNodeInfoRetrieved(uavcan::NodeID node_id,
 				     const uavcan::protocol::GetNodeInfo_::Response &node_info) override;
-	void handleNodeInfoUnavailable(uavcan::NodeID node_id) override;
+	void handleNodeInfoUnavailable(uavcan::NodeID node_id) override {}
 
-	// --- ServiceClient callbacks ---
-	void cbGetSet(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
-	void cbOpcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
+	// --- Thread ---
+	static void *threadEntry(void *arg);
+	void threadMain();
+	void applyConfig(uint8_t node_id, const char *path);
 
-	// --- Internal helpers ---
-	void startNextNode();
-	bool readNextLine();        // fills _param_name/_param_type/_param_value; returns false on EOF
-	void sendSet();
-	void sendSave();
-	void abortCurrent(bool requeue);
+	// --- Constants ---
+	static constexpr size_t MaxNodeNameLen = uavcan::protocol::GetNodeInfo_::Response::FieldTypes::name::MaxSize;
+	static constexpr size_t MaxPathLen     = 40 + MaxNodeNameLen;
 
-	// --- State ---
-	enum class State : uint8_t { IDLE, SETTING, SAVING };
-
-	// Path/queue sizing constants (defined first so all members can use them)
-	static constexpr size_t  MaxNodeNameLen = uavcan::protocol::GetNodeInfo_::Response::FieldTypes::name::MaxSize;
-	static constexpr size_t  MaxPathLen     = 40 + MaxNodeNameLen; // dir prefix + name + NUL
-	static constexpr size_t  MaxParamName   = 93; // UAVCAN max param name + NUL
-	static constexpr size_t  MaxParamValue  = 32;
-	static constexpr uint8_t QueueSize      = 16;
-
-	State _state{State::IDLE};
-
-	uavcan::NodeID _current_node{};
-	FILE          *_config_fp{nullptr};
-	char           _current_path[MaxPathLen]{};
-
-	// Callback results (set by cbGetSet / cbOpcode, consumed by update())
-	bool _cb_fired{false};
-	bool _cb_success{false};
-
-	// Current param being processed
-	char                              _param_name[MaxParamName]{};
-	uavcan::protocol::param::Value    _param_value_typed{};
-
-	// Pending-node queue (nodes waiting to be configured)
-	struct QueueEntry {
+	struct QueueEntry : public ListNode<QueueEntry *> {
 		uint8_t node_id;
 		char    path[MaxPathLen];
 	};
-	QueueEntry _queue[QueueSize]{};
-	uint8_t    _queue_head{0};
-	uint8_t    _queue_tail{0};
-	uint8_t    _queue_len{0};
-
-	void queuePush(uint8_t node_id, const char *path);
-
-	// --- ServiceClients (members — must outlive their callbacks) ---
-	using GetSetCb = uavcan::MethodBinder<CanNodeConfigurator *,
-		void (CanNodeConfigurator::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)>;
-	using OpcodeCb = uavcan::MethodBinder<CanNodeConfigurator *,
-		void (CanNodeConfigurator::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)>;
-
-	uavcan::ServiceClient<uavcan::protocol::param::GetSet,       GetSetCb> _getset_client;
-	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, OpcodeCb> _save_client;
 
 	uavcan::NodeInfoRetriever &_retriever;
+
+	pthread_t        _thread{};
+	pthread_mutex_t  _queue_mutex{};
+	volatile bool    _should_exit{false};
+
+	List<QueueEntry *> _queue{};
 };
