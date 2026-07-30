@@ -321,7 +321,7 @@ else
 	then
 		if param greater SYS_AUTOCFG_CAL 0
 		then
-			param reset CAL_*
+			param reset CAL_* SYS_AUTOCFG_CAL
 		fi
 	fi
 
