@@ -48,3 +48,4 @@ px4_add_module(
 
 px4_add_unit_gtest(SRC FailureInjectionManagerTest.cpp EXTRA_SRCS FailureTable.cpp LINKLIBS failure_injection)
 px4_add_functional_gtest(SRC FailureInjectionConfigTest.cpp LINKLIBS failure_injection)
+px4_add_functional_gtest(SRC FailureInjectionManagerRcInjectionTest.cpp EXTRA_SRCS FailureInjectionManager.cpp FailureTable.cpp LINKLIBS failure_injection)
