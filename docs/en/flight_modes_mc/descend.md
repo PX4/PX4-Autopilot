@@ -16,7 +16,7 @@ It is the last resort used when the vehicle must come down but has no valid posi
 
 ## When It Occurs
 
-Descend is the bottom of the failsafe chain (`Hold → Return → Land → Descend`).
+Descend is the bottom of the failsafe chain (`Hold → Return → Land → Descend`), unless [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT) is set to `Terminate`, which replaces it with [Flight termination](../advanced_config/flight_termination.md). <Badge type="tip" text="PX4 v1.19" />
 PX4 falls through to it whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run. For example:
 
 - Losing the position estimate while landing, e.g. GNSS fails during [Land](../flight_modes_mc/land.md): the vehicle keeps descending, but now open-loop as _Descend_.

@@ -83,12 +83,13 @@ You can configure both the levels and the failsafe actions at each level in QGro
 ![Safety - Battery (QGC)](../../assets/qgc/setup/safety/safety_battery.png)
 
 The most common configuration is to set the values and action as above (with `Warn > Failsafe > Emergency`), and to set the [Failsafe Action](#COM_LOW_BAT_ACT) to warn at "warn level", trigger Return mode at "Failsafe level", and land immediately at "Emergency level".
+Vehicles that carry a parachute can instead run [Flight termination](#act_term) at "Emergency level" (`COM_LOW_BAT_ACT = 4`), which may be preferable to landing wherever the vehicle happens to be. <Badge type="tip" text="PX4 v1.19" />
 
 The settings and underlying parameters are shown below.
 
 | Setting                                             | Parameter                                                                    | Description                                                                           |
 | --------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Return, or Land based when capacity drops below the trigger levels.             |
+| <a id="COM_LOW_BAT_ACT"></a>Failsafe Action         | [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) | Warn, Return, Land, or Terminate based when capacity drops below the trigger levels.  |
 | <a id="BAT_LOW_THR"></a>Battery Warn Level          | [BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR)         | Percentage capacity for warnings (or other actions).                                  |
 | <a id="BAT_CRIT_THR"></a>Battery Failsafe Level     | [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR)       | Percentage capacity for Return action (or other actions if a single action selected). |
 | <a id="BAT_EMERGEN_THR"></a>Battery Emergency Level | [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR) | Percentage capacity for triggering Land (immediately) action.                         |
@@ -227,13 +228,17 @@ Multicopters will switch to [Altitude mode](../flight_modes_mc/altitude.md) if a
 Fixed-wing planes, and VTOLs not configured to land in hover ([NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)), have a parameter ([FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)) that defines how long they will loiter (circle with a constant roll angle ([FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)) at the current altitude) after losing position before attempting to land.
 If VTOLs have are configured to switch to hover for landing ([NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)) then they will first transition and then descend.
 
+The above applies while the pilot can still take over; in autonomous modes, or if manual control is lost as well, the failsafe escalates through Return and Land to [Descend mode (MC)](../flight_modes_mc/descend.md) or [Descend mode (FW)](../flight_modes_fw/descend.md), which drifts with the wind.
+Set [COM_POS_FS_ACT](#COM_POS_FS_ACT) to `Terminate` to run [Flight termination](#act_term) instead of descending, which is intended for unpiloted vehicles that carry a parachute. <Badge type="tip" text="PX4 v1.19" />
+
 The relevant parameters are:
 
-| Parameter                                                                                       | Description                                                                                                                                  |
-| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)       | Fixed-wing only: Loiter time (waiting at current altitude for position estimation recovery before starting to descend). Set to 0 to disable. |
-| <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)          | Fixed roll/bank angle while circling.                                                                                                        |
-| <a id="NAV_FORCE_VT"></a>[NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) | If true, force VTOL takeoff and landing, even in `Descend` failsafe.                                                                         |
+| Parameter                                                                                             | Description                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_POS_FS_ACT"></a>[COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT) | Action when the failsafe would otherwise Descend. `0`: Descend if possible (default), `1`: Terminate. <Badge type="tip" text="PX4 v1.19" />  |
+| <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)             | Fixed-wing only: Loiter time (waiting at current altitude for position estimation recovery before starting to descend). Set to 0 to disable. |
+| <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)                | Fixed roll/bank angle while circling.                                                                                                        |
+| <a id="NAV_FORCE_VT"></a>[NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)       | If true, force VTOL takeoff and landing, even in `Descend` failsafe.                                                                         |
 
 ### Position Accuracy Low Failsafe
 
