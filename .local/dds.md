@@ -73,3 +73,5 @@ registration path exists for arbitrary uORB→DDS exposure. Options:
 MAVLink (if the field already rides an existing message), or live ULog
 streaming (self-describing, decodes any topic already in the logger config
 without knowing its schema in advance).
+
+---

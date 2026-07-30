@@ -1,0 +1,8 @@
+click==8.4.2
+eclipse-zenoh==1.9.0
+markdown-it-py==4.2.0
+mdurl==0.1.2
+Pygments==2.20.0
+rich==15.0.0
+rich-click==1.9.8
+typing_extensions==4.16.0
