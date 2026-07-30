@@ -47,7 +47,7 @@
 
 #include "board_config.h"
 
-#include <barriers.h>
+#include <arch/barriers.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -188,9 +188,9 @@ void imxrt_octl_flash_initialize(void)
 	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
 	ROM_FLEXSPI_NorFlash_ClearCache(1);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 #endif
 
@@ -221,9 +221,9 @@ void imxrt_flash_setup_prefetch_partition(void)
 				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
 				    FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
 
@@ -408,7 +408,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
-#ifdef CONFIG_BOARD_CRASHDUMP
+#ifdef CONFIG_BOARD_CRASHDUMP_CUSTOM
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);
