@@ -129,6 +129,16 @@ If the script encounters a `(vehicle_type, nav_state)` pair that has no entry at
 `mode_nav_state_defns.json`, it prints a `WARNING:` line to stderr.  Add a new entry whenever
 a new navigation state is introduced in `mode_requirements.cpp`.
 
+**Ordering:** the key order of `NAVIGATION_STATE_*` entries within each vehicle-type block in
+`mode_nav_state_defns.json` — not the order `setRequirement()` calls appear in
+`mode_requirements.cpp` — determines the order modes are rendered in `mode_requirements.md`,
+for both the headed list and the trailing "Modes Without a Dedicated Page" summary. The
+intended order is low-to-high autonomy (e.g. `MANUAL` → `STAB` → `ACRO` → ... → `OFFBOARD`).
+`VEHICLE_TYPE_FIXED_WING` and `VEHICLE_TYPE_ROTARY_WING` are separate JSON objects, so keep
+their key order in sync manually when adding or reordering a mode. Any nav_state the parser
+finds that has no entry at all in `mode_nav_state_defns.json` is appended after all
+JSON-ordered modes (in addition to the existing "no entry" warning).
+
 ## Parser design
 
 `parse_requirements()` uses a single-pass token scanner.  A single compiled regex (`_TOKEN`)

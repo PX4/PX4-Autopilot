@@ -358,7 +358,17 @@ This allows PX4 automatic flight modes that require a global position to be used
 
         undocumented_modes = []
 
-        for flight_mode in vehicle_modes_sorted[vehicle_type]:
+        # Iterate in the order modes are listed in mode_nav_state_defns.json (rather than the
+        # order setRequirement() calls happen to appear in mode_requirements.cpp) so headings
+        # follow the intended low-to-high autonomy progression. Any mode the parser found that
+        # has no entry at all in mode_nav_state_defns.json is appended at the end, preserving
+        # the existing "no entry" warning via _get_nav_state_def().
+        nav_defs_for_vt = mode_nav_state_defns.get(vehicle_type, {})
+        modes_present = vehicle_modes_sorted[vehicle_type]
+        ordered_modes = [m for m in nav_defs_for_vt if m in modes_present]
+        extra_modes = [m for m in modes_present if m not in nav_defs_for_vt]
+
+        for flight_mode in ordered_modes + extra_modes:
             defn  = _get_nav_state_def(vehicle_type, flight_mode)
             label = defn.get("label")
             doc   = defn.get("doc")
