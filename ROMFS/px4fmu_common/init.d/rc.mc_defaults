@@ -20,5 +20,3 @@ param set-default RTL_DESCEND_ALT 10
 
 # lower RNG_FOG since MC are expected to fly closer over obstacles
 param set-default EKF2_RNG_FOG 1
-
-

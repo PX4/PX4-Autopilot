@@ -35,39 +35,44 @@
 #include <parameters/param.h>
 
 extern "C" __EXPORT int naviguider_main(int argc, char *argv[]) {
-    //return Naviguider::main(argc, argv);
-            return ModuleBase::main(Naviguider::module_desc, argc, argv);
-    }
+	//return Naviguider::main(argc, argv);
+	return ModuleBase::main(Naviguider::module_desc, argc, argv);
+}
 
 
-int Naviguider::task_spawn(int argc, char *argv[]){
+int Naviguider::task_spawn(int argc, char *argv[]) {
 	int32_t bus = 2;
 	int32_t addr = 0x28;
+	int32_t enabled = 1;
 
 	param_t p;
 
 	p = param_find("SENS_NG_BUS");
+
 	if (p != PARAM_INVALID) {
 		param_get(p, &bus);
 	}
 
 	p = param_find("SENS_NG_ADDR");
+
 	if (p != PARAM_INVALID) {
 		param_get(p, &addr);
 	}
 
-	int32_t enabled = 1;
 	p = param_find("SENS_EN_NG");
+
 	if (p != PARAM_INVALID) {
 		param_get(p, &enabled);
 	}
+
 	if (enabled == 0) {
 		PX4_WARN("Naviguider disabled by parameter");
 		return PX4_ERROR;
 	}
 
 	// Spawn instance
-	Naviguider *instance = new Naviguider(bus,static_cast<uint8_t>(addr));
+	Naviguider *instance = new Naviguider(bus, static_cast<uint8_t>(addr));
+
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 		return PX4_ERROR;
@@ -75,6 +80,7 @@ int Naviguider::task_spawn(int argc, char *argv[]){
 
 	module_desc.object.store(instance);
 	module_desc.task_id = task_id_is_work_queue;
+
 	if (instance->init() != PX4_OK) {
 		PX4_ERR("init failed");
 		delete instance;
@@ -87,24 +93,24 @@ int Naviguider::task_spawn(int argc, char *argv[]){
 }
 
 int Naviguider::custom_command(int argc, char *argv[]) {
-    return print_usage("unknown command");
-    }
+	return print_usage("unknown command");
+}
 
 int Naviguider::print_usage(const char *reason) {
-    if (reason) {
-        PX4_WARN("%s", reason);
-    }
+	if (reason) {
+		PX4_WARN("%s", reason);
+	}
 
-    PRINT_MODULE_DESCRIPTION(
-        R"DESCR_STR(
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
 Driver for the PNI NaviGuider over I2C.
 
 )DESCR_STR");
 
-    PRINT_MODULE_USAGE_NAME("naviguider", "driver");
-    PRINT_MODULE_USAGE_COMMAND("start");
-    PRINT_MODULE_USAGE_COMMAND("stop");
-    PRINT_MODULE_USAGE_COMMAND("status");
+	PRINT_MODULE_USAGE_NAME("naviguider", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 
-    return 0;
+	return 0;
 }
