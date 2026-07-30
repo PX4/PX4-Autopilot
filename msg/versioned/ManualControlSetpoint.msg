@@ -27,10 +27,10 @@ uint8 SOURCE_MAVLINK_5 = 7 # MAVLink instance 5
 uint8 source_system_id  # [@invalid 0] MAVLink system ID of the manual control source
 uint8 source_component_id # [@invalid 0] MAVLink component ID of the manual control source
 
-float32 roll # [-] [@range -1,1] [@invalid NaN] Positive values are generally used for: move right, positive roll rotation, right side down
-float32 pitch # [-] [@range -1,1] [@invalid NaN] Positive values are generally used for: move forward, negative pitch rotation, nose down
-float32 yaw # [-] [@range -1,1] [@invalid NaN] Positive values are generally used for: positive yaw rotation, clockwise when seen top down
-float32 throttle # [-] [@range -1,1] [@invalid NaN] Positive values are generally used for: move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust
+float32 roll # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Positive values are generally used for: move right, positive roll rotation, right side down
+float32 pitch # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Positive values are generally used for: move forward, negative pitch rotation, nose down
+float32 yaw # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Positive values are generally used for: positive yaw rotation, clockwise when seen top down
+float32 throttle # [-] [@range -1,1] [@invalid - NaN expected but not implemented] Positive values are generally used for: move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust
 
 float32 flaps # [-] [@range -1,1] [@invalid NaN] Position of flaps switch/knob/lever
 
