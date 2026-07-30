@@ -66,6 +66,8 @@ public:
 	class VehicleOpticalFlowTestable  : public  sensors::VehicleOpticalFlow
 	{
 	public:
+		using sensors::VehicleOpticalFlow::VehicleOpticalFlow;
+
 		void UpdateDistanceSensorPublic()
 		{
 			VehicleOpticalFlow::UpdateDistanceSensor();
@@ -82,6 +84,8 @@ public:
 		uORB::Manager::initialize();
 
 	}
+
+	SensorSlotBinder _flow_slot_binder{};
 	void TearDown() override
 	{
 		uORB::Manager::terminate();
@@ -96,7 +100,7 @@ TEST_F(VehicleOpticalFlowTest, CameraFacingDown)
 	orb_advertise(ORB_ID(distance_sensor), &message);
 
 	// WHEN: update distance sensor
-	VehicleOpticalFlowTest::VehicleOpticalFlowTestable testable;
+	VehicleOpticalFlowTest::VehicleOpticalFlowTestable testable{0, _flow_slot_binder};
 	testable.UpdateDistanceSensorPublic();
 
 	// THEN: sensor selected
@@ -110,7 +114,7 @@ TEST_F(VehicleOpticalFlowTest, CameraFacingForward)
 	orb_advertise(ORB_ID(distance_sensor), &message);
 
 	// WHEN: update distance sensor
-	VehicleOpticalFlowTest::VehicleOpticalFlowTestable testable;
+	VehicleOpticalFlowTest::VehicleOpticalFlowTestable testable{0, _flow_slot_binder};
 	testable.UpdateDistanceSensorPublic();
 
 	// THEN: sensor is not selected

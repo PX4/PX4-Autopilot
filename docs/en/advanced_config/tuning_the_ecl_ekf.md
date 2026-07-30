@@ -531,13 +531,13 @@ A good tuning is obtained as follows:
 [Optical flow](../sensor/optical_flow.md) data will be used if the following conditions are met:
 
 - Valid range finder data is available.
-- [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) is set (for a second flow sensor: [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL)).
+- [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) is set.
 - The quality metric returned by the flow sensor is greater than the minimum requirement set by the [EKF2_OF0_QMIN](../advanced_config/parameter_reference.md#EKF2_OF0_QMIN) parameter.
-
-For better performance, set the location of the optical flow sensor as described [here](../sensor/optical_flow.md#ekf2).
+- For a second flow sensor [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL) is set and the quality metric is greater than [EKF2_OF1_QMIN](../advanced_config/parameter_reference.md#EKF2_OF1_QMIN).
 
 Up to two optical flow sensors can be fused at the same time, each with its own set of `EKF2_OFn_*` parameters (see [Optical Flow > Multiple Optical Flow Sensors](../sensor/optical_flow.md#multiple-flow-sensors)).
 
+For better performance, set the location of the optical flow sensor as described in [Optical Flow > EKF2](../sensor/optical_flow.md#ekf2).
 If a stable hover can be achieved at low altitude above ground (< 10m) but slow oscillations occur at higher altitude, consider adjusting the [optical flow scale factor](../sensor/optical_flow.md#scale-factor).
 
 ### External Vision System
