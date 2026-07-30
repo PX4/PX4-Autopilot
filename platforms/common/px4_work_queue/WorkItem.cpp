@@ -37,7 +37,10 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 #include <drivers/drv_hrt.h>
+
+#include <pthread.h>
 
 namespace px4
 {
@@ -92,6 +95,22 @@ void WorkItem::Deinit()
 
 		// remove any queued work
 		wq_temp->Remove(this);
+
+		// If Run() is already executing on the worker thread at this
+		// moment, Remove was a no-op and Run() will still read/write
+		// `this`. Wait for it to return before letting the owning
+		// object's memory be torn down — otherwise a late
+		// ScheduleDelayed from Run() writes into freed/reused memory
+		// and corrupts the hrt callout queue.
+		//
+		// Skip the wait if we're being called from inside Run() on the
+		// worker thread itself (e.g. should_exit() → ScheduleClear),
+		// which would deadlock against our own flag.
+		if (!pthread_equal(pthread_self(), wq_temp->runner_tid())) {
+			while (_run_in_progress.load()) {
+				px4_usleep(100);
+			}
+		}
 
 		wq_temp->Detach(this);
 	}

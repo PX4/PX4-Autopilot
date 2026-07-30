@@ -11,7 +11,7 @@
 
 На діаграмі нижче показано загальний огляд типової "простої" системи PX4 на основі польотного контролера.
 
-![PX4 architecture - FC only system](../../assets/diagrams/px4_arch_fc.svg)
+<img src="../../assets/diagrams/px4_arch_fc.svg" alt="PX4 architecture - FC only system" class="diagram-invert">
 
 <!-- Source for drawing: https://docs.google.com/drawings/d/1_2n43WrbkWTs1kz0w0avVEeebJbfTj5SSqvCmvSOBdU/edit -->
 
@@ -34,7 +34,7 @@
 
 На діаграмі показано систему PX4, яка включає як політний контролер, так і супутній комп'ютер (тут згадується як "комп'ютер політного завдання").
 
-![PX4 architecture - FC + Companion Computer](../../assets/diagrams/px4_arch_fc_companion.svg)
+<img src="../../assets/diagrams/px4_arch_fc_companion.svg" alt="PX4 architecture - FC + Companion Computer" class="diagram-invert">
 
 <!-- source for drawing: https://docs.google.com/drawings/d/1zFtvA_B-BmfmxFmAd-XIvAZ-jRqOydj0aBtqSolBcqI/edit -->
 

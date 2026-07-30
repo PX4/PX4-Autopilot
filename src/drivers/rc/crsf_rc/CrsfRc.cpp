@@ -114,6 +114,31 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 	return PX4_OK;
 }
 
+/**
+ * pack an altitude for the barometric altitude frame: decimeters + 10000 offset,
+ * or meters with the MSB set when above the decimeter range
+ */
+static uint16_t pack_baro_altitude(const float altitude_m)
+{
+	int32_t altitude_dm = lroundf(altitude_m * 10.f) + 10000;
+
+	if (altitude_dm < 0) {
+		return 0;
+	}
+
+	if (altitude_dm < 0x8000) {
+		return (uint16_t)altitude_dm;
+	}
+
+	int32_t altitude_full_m = lroundf(altitude_m);
+
+	if (altitude_full_m > 0x7FFF) {
+		altitude_full_m = 0x7FFF;
+	}
+
+	return (uint16_t)altitude_full_m | 0x8000;
+}
+
 void CrsfRc::Run()
 {
 	if (should_exit()) {
@@ -303,9 +328,9 @@ void CrsfRc::Run()
 				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
 					int32_t latitude = static_cast<int32_t>(round(sensor_gps.latitude_deg * 1e7));
 					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
-					uint16_t groundspeed = sensor_gps.vel_d_m_s / 3.6f * 10.f;
-					uint16_t gps_heading = math::degrees(sensor_gps.cog_rad) * 100.f;
-					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;
+					uint16_t groundspeed = sensor_gps.vel_m_s * 3.6f * 10.f;   // 0.1 km/h
+					uint16_t gps_heading = math::degrees(matrix::wrap_2pi(sensor_gps.cog_rad)) * 100.f;
+					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;   // meters + 1000 offset
 					uint8_t num_satellites = sensor_gps.satellites_used;
 					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}
@@ -390,6 +415,24 @@ void CrsfRc::Run()
 					}
 
 					this->SendTelemetryFlightMode(flight_mode);
+				}
+
+				break;
+
+			case 4:
+				// Reuse the CRSF baro-altitude frame to carry the fused local altitude
+				// (above the EKF origin), not a raw barometer reading. EdgeTX shows it as "Alt".
+				vehicle_local_position_s local_position;
+
+				if (_vehicle_local_position_sub.update(&local_position) && local_position.z_valid) {
+					uint16_t altitude = pack_baro_altitude(-local_position.z);
+					int16_t vertical_speed = 0;
+
+					if (local_position.v_z_valid) {
+						vertical_speed = lroundf(math::constrain(-local_position.vz * 100.f, (float)INT16_MIN, (float)INT16_MAX));
+					}
+
+					this->SendTelemetryBaroAltitude(altitude, vertical_speed);
 				}
 
 				break;
@@ -527,6 +570,17 @@ bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, cons
 	write_uint16_t(buf, offset, pitch);
 	write_uint16_t(buf, offset, roll);
 	write_uint16_t(buf, offset, yaw);
+	WriteFrameCrc(buf, offset, sizeof(buf));
+	return _uart->write((void *) buf, (size_t) offset);
+}
+
+bool CrsfRc::SendTelemetryBaroAltitude(const uint16_t altitude, const int16_t vertical_speed)
+{
+	uint8_t buf[(uint8_t)crsf_payload_size_t::baro_altitude + 4];
+	int offset = 0;
+	WriteFrameHeader(buf, offset, crsf_frame_type_t::baro_altitude, (uint8_t)crsf_payload_size_t::baro_altitude);
+	write_uint16_t(buf, offset, altitude);
+	write_uint16_t(buf, offset, (uint16_t)vertical_speed);
 	WriteFrameCrc(buf, offset, sizeof(buf));
 	return _uart->write((void *) buf, (size_t) offset);
 }

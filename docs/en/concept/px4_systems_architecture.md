@@ -11,7 +11,7 @@ Offboard APIs are covered in [ROS](../ros/index.md) and [MAVSDK](https://mavsdk.
 
 The diagram below provides a high level overview of a typical "simple" PX4 system based around a flight controller.
 
-![PX4 architecture - FC only system](../../assets/diagrams/px4_arch_fc.svg)
+<img src="../../assets/diagrams/px4_arch_fc.svg" alt="PX4 architecture - FC only system" class="diagram-invert">
 
 <!-- Source for drawing: https://docs.google.com/drawings/d/1_2n43WrbkWTs1kz0w0avVEeebJbfTj5SSqvCmvSOBdU/edit -->
 
@@ -34,7 +34,7 @@ The left hand side of the diagram shows the software stack, which is horizontall
 
 The diagram below shows a PX4 system that includes both a flight controller and a companion computer (here referred to as a "mission computer").
 
-![PX4 architecture - FC + Companion Computer](../../assets/diagrams/px4_arch_fc_companion.svg)
+<img src="../../assets/diagrams/px4_arch_fc_companion.svg" alt="PX4 architecture - FC + Companion Computer" class="diagram-invert">
 
 <!-- source for drawing: https://docs.google.com/drawings/d/1zFtvA_B-BmfmxFmAd-XIvAZ-jRqOydj0aBtqSolBcqI/edit -->
 

@@ -42,7 +42,8 @@
 
 #include <stdlib.h>
 
-const cdev::px4_file_operations_t cdev::CDev::fops = {};
+static const cdev::px4_file_operations_t g_fops = {};
+const cdev::px4_file_operations_t &cdev::CDev::fops_ref() { return g_fops; }
 
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;

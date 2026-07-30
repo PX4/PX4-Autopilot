@@ -5,16 +5,14 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-:::warning
-Failure injection still in development.
-At time of writing (PX4 v1.14):
+Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe).
 
-- Support may vary by failure type and between simulatiors and real vehicle.
-- It requires support in the simulator.
-  It is supported in Gazebo Classic
-- 많은 실패 유형이 광범위하게 구현되지 않았습니다.
-  이러한 경우 명령은 "지원되지 않는" 메시지와 함께 반환됩니다.
+:::info
+PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
 
+All [MAV_CMD_INJECT_FAILURE](https://mavlink.io/en/messages/common.html#MAV_CMD_INJECT_FAILURE) commands are handled internally by the failure-injection module, which acknowledges each command and republishes the active failures for the sensor/actuator simulators to apply.
+The failure-injection module will NACK the command with [MAV_RESULT_UNSUPPORTED](https://mavlink.io/en/messages/common.html#MAV_RESULT_UNSUPPORTED) for failure combinations that are not implemented by PX4 or any simulator.
+However it the module will accept (respond with [MAV_MISSION_ACCEPTED](https://mavlink.io/en/messages/common.html#MAV_MISSION_ACCEPTED)) for any other failure-type, even if it is not supported by your _particular_ simulator.
 :::
 
 ## 장애 시스템 명령
@@ -26,7 +24,7 @@ Failures can be injected using the [failure system command](../modules/modules_c
 The full syntax of the [failure](../modules/modules_command.md#failure) command is:
 
 ```sh
-failure <component> <failure_type> [-i <instance_number>]
+failure <component> <failure_type> [-i <instance_number>] [-m <instance_bitmask>]
 ```
 
 여기서:
@@ -60,6 +58,22 @@ failure <component> <failure_type> [-i <instance_number>]
   - `intermittent`: Publish intermittently
 - _instance number_ (optional): Instance number of affected sensor.
   0 (기본값) 지정된 유형의 모든 센서를 나타냅니다.
+- _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted. Example: `-m 0x5` targets instances 1 and 3.
+
+:::info
+The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+:::
+
+## RC Switch Trigger
+
+A failure can also be injected from an RC switch, without a console or telemetry link. This is useful for in-flight hardware testing. It is configured with the following parameters:
+
+- [SYS_FAIL_RC_SRC](../advanced_config/parameter_reference.md#SYS_FAIL_RC_SRC): the auxiliary RC input that triggers the failure — `0` disables it, `1`–`6` select AUX1–AUX6 (mapped via `RC_MAP_AUXn`).
+- [SYS_FAIL_RC_UNIT](../advanced_config/parameter_reference.md#SYS_FAIL_RC_UNIT): the affected component (the `FAILURE_UNIT` value; e.g. `101` = motor).
+- [SYS_FAIL_RC_MODE](../advanced_config/parameter_reference.md#SYS_FAIL_RC_MODE): the failure type (the `FAILURE_TYPE` value; e.g. `1` = off).
+- [SYS_FAIL_RC_INST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_INST): the affected instance (1-based; `0` = all instances).
+
+While the selected aux switch is on the configured failure is injected; switching it back off clears the failure. The injection goes through the same path as the console/MAVLink commands, so for a motor it stops the motor exactly as `failure motor off` does (which also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE)).
 
 ## MAVSDK 실패 플러그인
 
@@ -68,19 +82,19 @@ It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsd
 
 The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
 
-## Example: RC signal
+## Example: GPS
 
-To simulate losing RC signal without having to turn off your RC controller:
+To test the GPS failsafe by stopping GPS:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
-   # Fail RC (turn publishing off)
-   failure rc_signal off
+   # Stop GPS publishing
+   failure gps off
 
-   # Restart RC publishing
-   failure rc_signal ok
+   # Restart GPS publishing
+   failure gps ok
    ```
 
 ## Example: Motor
@@ -97,4 +111,19 @@ To stop a motor mid-flight without the system anticipating it or excluding it fr
 
    # Turn it back on
    failure motor ok -i 1
+   ```
+
+## Example: Battery
+
+To trigger the battery failsafe by reporting a depleted pack:
+
+1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
+2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+
+   ```sh
+   # Report the battery as depleted (warning EMERGENCY) -> battery failsafe
+   failure battery off
+
+   # Stop injecting the failure
+   failure battery ok
    ```

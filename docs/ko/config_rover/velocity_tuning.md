@@ -116,7 +116,7 @@ Both these setpoint are then sent to their own closed loop speed controllers.
 
 ## Parameter Overview
 
-| 매개변수                                                                                                                                                                       | 설명                                                        | Unit  |
+| Parameter                                                                                                                                                                  | 설명                                                        | Unit  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----- |
 | <a id="RO_MAX_THR_SPEED"></a>[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) | Speed the rover drives at maximum throttle                | $m/s$ |
 | <a id="RO_SPEED_LIM"></a>[RO_SPEED_LIM](../advanced_config/parameter_reference.md#RO_SPEED_LIM)                                  | Maximum allowed speed                                     | $m/s$ |
@@ -126,7 +126,7 @@ Both these setpoint are then sent to their own closed loop speed controllers.
 
 ### Pure Pursuit
 
-| 매개변수                                                                                                                                               | 설명                                                                    | Unit |
+| Parameter                                                                                                                                          | 설명                                                                    | Unit |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ---- |
 | <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                   | -    |
 | <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius | m    |

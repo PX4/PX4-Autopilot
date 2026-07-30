@@ -29,7 +29,7 @@ The PX4 parameters should be set as below for each case.
 
 To use the Hawk A1 your main GPS device:
 
-| 매개변수                                                                                                                 | Value                                                             | 설명                                                                                                         |
+| Parameter                                                                                                            | Value                                                             | 설명                                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [GPS_1_CONFIG](../advanced_config/parameter_reference.md#GPS_1_CONFIG)     | 102 (Telem 2 or another available serial port) | Configure main GPS port                                                                                    |
 | [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL) | 1 (u-blox)                                     | Configure GPS protocol                                                                                     |
@@ -39,7 +39,7 @@ To use the Hawk A1 your main GPS device:
 
 To use the Hawk A1 as an auxiliary GPS device (in addition to the main GPS):
 
-| 매개변수                                                                                                                 | Value                                                             | 설명                                                                                                       |
+| Parameter                                                                                                            | Value                                                             | 설명                                                                                                       |
 | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG)     | 102 (Telem 2 or another available serial port) | Configure main GPS port                                                                                  |
 | [GPS_2_PROTOCOL](../advanced_config/parameter_reference.md#GPS_2_PROTOCOL) | 1 (u-blox)                                     | Configure GPS protocol                                                                                   |

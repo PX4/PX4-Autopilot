@@ -3,6 +3,7 @@
 PX4 자동비행 프로그램의 고급 기능에 대하여 설명합니다.
 
 - [Air Traffic Avoidance: ADS-B/FLARM/UTM](../peripherals/adsb_flarm.md)
+- [Detect And Avoid](../advanced_features/detect_and_avoid.md)
 - [Computer Vision](../computer_vision/index.md)
   - [Collision Prevention](../computer_vision/collision_prevention.md)
   - [Motion Capture (MoCap)](../computer_vision/motion_capture.md)
@@ -10,3 +11,5 @@ PX4 자동비행 프로그램의 고급 기능에 대하여 설명합니다.
 - [Iridium/RockBlock Satellite Communication System](../advanced_features/satcom_roadblock.md)
 - [Precision Landing](../advanced_features/precland.md)
 - [RTK GNSS (GPS)](../gps_compass/rtk_gps.md)
+- [Vision Target Estimator](../advanced_features/vision_target_estimator.md)
+  - [Vision Target Estimator Deep Dive](../advanced_features/vision_target_estimator_advanced.md)

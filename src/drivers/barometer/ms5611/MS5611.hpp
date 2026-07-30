@@ -34,6 +34,7 @@
 #pragma once
 
 #include <drivers/device/device.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
@@ -115,7 +116,7 @@ public:
 protected:
 	void print_status() override;
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro;
 
 	device::Device		*_interface;
 

@@ -38,6 +38,7 @@
  * - MAVLink gimbal protocol v1
  * - MAVLink gimbal protocol v2
  * - Test CLI commands
+ * - Fixed (no user input)
  * Supported outputs:
  * - PWM
  * - MAVLink gimbal protocol v1
@@ -51,6 +52,7 @@
 #include <px4_platform_common/tasks.h>
 
 #include "gimbal_params.h"
+#include "input_fixed.h"
 #include "input_mavlink.h"
 #include "input_rc.h"
 #include "input_test.h"
@@ -98,7 +100,6 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 	if (!initialize_params(param_handles, params)) {
 		PX4_ERR("could not get mount parameters!");
-		delete g_thread_data->test_input;
 		return -1;
 	}
 
@@ -137,6 +138,10 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 	case MNT_MODE_IN_MAVLINK_V2: //MAVLINK_V2
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkGimbalV2(params);
+		break;
+
+	case MNT_MODE_IN_FIXED: // Fixed world-frame attitude, not user controllable
+		thread_data.input_objs[thread_data.input_objs_len++] = new InputFixed(params);
 		break;
 
 	default:
@@ -559,6 +564,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_lnd_p_min, &params.mnt_lnd_p_min);
 	param_get(param_handles.mnt_lnd_p_max, &params.mnt_lnd_p_max);
 	param_get(param_handles.mnt_tau, &params.mnt_tau);
+	param_get(param_handles.mnt_fixed_pitch, &params.mnt_fixed_pitch);
 }
 
 bool initialize_params(ParameterHandles &param_handles, Parameters &params)
@@ -583,6 +589,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_lnd_p_min = param_find("MNT_LND_P_MIN");
 	param_handles.mnt_lnd_p_max = param_find("MNT_LND_P_MAX");
 	param_handles.mnt_tau = param_find("MNT_TAU");
+	param_handles.mnt_fixed_pitch = param_find("MNT_FIXED_PITCH");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -603,7 +610,8 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_rc_in_mode == PARAM_INVALID ||
 	    param_handles.mnt_lnd_p_min == PARAM_INVALID ||
 	    param_handles.mnt_lnd_p_max == PARAM_INVALID ||
-	    param_handles.mnt_tau == PARAM_INVALID
+	    param_handles.mnt_tau == PARAM_INVALID ||
+	    param_handles.mnt_fixed_pitch == PARAM_INVALID
 	   ) {
 		return false;
 	}

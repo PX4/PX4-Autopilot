@@ -47,7 +47,7 @@ The vehicle course is not maintained, and can drift due to wind.
 
 The mode is affected by the following parameters:
 
-| 매개변수                                                                                                                                                                                      | 설명                                                                                                                   |
+| Parameter                                                                                                                                                                                 | 설명                                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_AIRSPD_MIN"></a>[FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN)                                              | Min airspeed. Default: 10 m/s.                                       |
 | <a id="FW_AIRSPD_MAX"></a>[FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)                                              | Max airspeed. Default: 20 m/s.                                       |
@@ -56,6 +56,21 @@ The mode is affected by the following parameters:
 | <a id="FW_MAN_R_MAX"></a>[FW_MAN_R_MAX](../advanced_config/parameter_reference.md#FW_MAN_R_MAX)                            | Max roll setpoint in attitude stabilized mode. Default: 45 degrees.  |
 | <a id="FW_T_CLMB_R_SP"></a>[FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) | Max climb rate setpoint. 기본값: 3 m/s.                                 |
 | <a id="FW_T_SINK_R_SP"></a>[FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP) | Max sink rate setpoint. Default: 2 m/s.                              |
+
+## MAVLink Commands
+
+The following commands are relevant to this mode:
+
+- [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) — Sets the cruise airspeed for centred throttle stick.
+
+  This requires an airspeed sensor.
+  Only the airspeed speed type is handled (`param1` must be `0`); other speed types are ignored.
+  At centered throttle the vehicle holds the commanded airspeed (`param2`) if a positive value is set (non-positive values are ignored).
+  The value is constrained between [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) and [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX), and defaults to [FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM) if no airspeed has been commanded.
+  Deflecting the throttle stick scales the airspeed toward `FW_AIRSPD_MIN` (back) or `FW_AIRSPD_MAX` (forward) around this value.
+  The commanded airspeed resets to `FW_AIRSPD_TRIM` on every flight mode change.
+
+Note, other commands may be supported.
 
 <!--
 FW notes:

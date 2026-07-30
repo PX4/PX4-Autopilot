@@ -11,7 +11,7 @@ It features a powerful STM32H743 processor, dual high-performance IMUs (BMI088/B
 
 With its highly integrated 36x36mm footprint and 9g weight, and specialized interfaces like a direct plug-and-play DJI O3 Air Unit connector, this flight controller is optimized for space-constrained FPV builds and agile multirotors that require top-tier processing power and sensor redundancy.
 
-The board uses [Pixhawk Autopilot Standard Connections](https://docs.px4.io/main/en/flight_controller/autopilot_pixhawk_standard.html).
+The board uses [Pixhawk Autopilot Standard Connections](../flight_controller/autopilot_pixhawk_standard.md).
 
 <img src="../../assets/flight_controller/corvon_743v1/corvon_743v1_top.jpg" width="400px" title="CORVON 743v1 Top Baseboard" /> <img src="../../assets/flight_controller/corvon_743v1/corvon_743v1_bottom.jpg" width="400px" title="CORVON 743v1 Bottom Interfaces" />
 

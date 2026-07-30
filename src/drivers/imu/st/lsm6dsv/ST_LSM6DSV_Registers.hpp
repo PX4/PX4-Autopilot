@@ -59,7 +59,8 @@ static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8 MHz SPI data clock
 
 static constexpr uint8_t DIR_READ = 0x80;
 
-static constexpr uint8_t WHO_AM_I_ID = 0x70; // LSM6DSV16X
+static constexpr uint8_t WHO_AM_I_ID       = 0x70; // LSM6DSV16X and LSM6DSV32X (same ID)
+static constexpr uint8_t WHO_AM_I_DSK320X  = 0x75; // LSM6DSK320X (unique ID)
 
 // HAODR mode-1 ODR: 2000 Hz
 static constexpr uint32_t GYRO_ODR  = 2000;
@@ -145,13 +146,18 @@ enum CTRL4_BIT : uint8_t {
 // CTRL6 — Gyroscope full-scale
 enum CTRL6_BIT : uint8_t {
 	// FS_G [3:0]
-	FS_G_2000DPS = 0x04, // ±2000 dps
+	FS_G_2000DPS        = 0x04, // ±2000 dps (16X / 32X)
+	FS_G_2000DPS_DSK320X = 0x0C, // ±2000 dps with bit3=1 for DSK320X (0x04 | Bit3)
 };
 
 // CTRL8 — Accelerometer full-scale + LPF2 bandwidth
 enum CTRL8_BIT : uint8_t {
+	// bit2 is hardware-reserved and differs by variant:
+	//   16X / DSK320X = 0 (value OR'd with FS_XL)
+	//   32X = 1 (must be preserved)
 	// FS_XL [1:0] in bits [1:0]
-	FS_XL_16G = 0x03, // ±16 g
+	FS_XL_16G          = 0x03, // ±16 g for 16X / DSK320X (bit2=0)
+	FS_XL_16G_DSV32X   = 0x06, // ±16 g for 32X (bit2=1, FS_XL=10)
 
 	// HP_LPF2_XL_BW [2:0] in bits [7:5] — when LPF2 enabled via CTRL9
 	LPF2_BW_ODR_DIV_10 = Bit5, // 0x20 → ODR/10

@@ -17,15 +17,15 @@ A good understanding of [PX4 controller diagrams](../flight_stack/controller_dia
 The vehicle obeys position, velocity, acceleration, attitude, attitude rates or thrust/torque setpoints provided by some source that is external to the flight stack, such as a companion computer.
 The setpoints may be provided using MAVLink (or a MAVLink API such as [MAVSDK](https://mavsdk.mavlink.io/)) or by [ROS 2](../ros2/index.md).
 
-PX4 requires that the external controller provides a continuous 2Hz "proof of life" signal, by streaming any of the supported MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) message.
-PX4 enables switching to offboard control mode only after receiving the signal for more than a second, and will failsafe (controlled by [COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT)) if the signal stops.
+PX4 requires that the external controller provides a continuous "proof of life" signal by streaming any of the supported MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) message.
+The stream should be active before switching to Offboard mode, and PX4 will trigger the configured Offboard-loss failsafe action ([COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT)) if proof-of-life messages are not received within the timeout configured by [COM_OF_LOSS_T](#COM_OF_LOSS_T).
 
 ::: info
 
 - This mode requires position or pose/attitude information - e.g. GPS, optical flow, visual-inertial odometry, mocap, etc. depending on the type of offboard setpoints that the external controller sends.
 - Manual control is disabled except to change modes (you can also fly without any manual controller at all by setting the parameter [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) to `4: Disable manual control`).
 - The vehicle must already be receiving a stream of MAVLink setpoint messages or ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) messages before arming in offboard mode or switching to offboard mode when flying.
-- The vehicle will exit offboard mode if MAVLink setpoint messages or `OffboardControlMode` are not received at a rate of > 2Hz.
+- The vehicle will exit Offboard mode if MAVLink setpoint messages or `OffboardControlMode` messages stop being received for longer than the timeout configured by [COM_OF_LOSS_T](#COM_OF_LOSS_T).
 - Not all coordinate frames and field values allowed by MAVLink are supported for all setpoint messages and vehicles.
   Read the sections below _carefully_ to ensure only supported values are used.
 
@@ -34,10 +34,9 @@ PX4 enables switching to offboard control mode only after receiving the signal f
 ## Description
 
 Offboard mode is used for controlling vehicle movement and attitude, by setting position, velocity, acceleration, attitude, attitude rates or thrust/torque setpoints.
-
-PX4 must receive a stream of MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) at 2 Hz as proof that the external controller is healthy.
-The stream must be sent for at least a second before PX4 will arm in offboard mode, or switch to offboard mode when flying.
-If the rate falls below 2Hz while under external control PX4 will switch out of offboard mode after a timeout ([COM_OF_LOSS_T](#COM_OF_LOSS_T)), and attempt to land or perform some other failsafe action.
+PX4 must receive a stream of MAVLink setpoint messages or the ROS 2 [OffboardControlMode](../msg_docs/OffboardControlMode.md) message as proof that the external controller is healthy.
+The stream should be active before PX4 arms in Offboard mode or switches to Offboard mode when flying.
+If MAVLink setpoint messages or `OffboardControlMode` messages stop being received for longer than the timeout configured by [COM_OF_LOSS_T](#COM_OF_LOSS_T), PX4 will switch out of Offboard mode and attempt to land or perform some other failsafe action.
 The action depends on whether or not RC control is available, and is defined in the parameter [COM_OBL_RC_ACT](#COM_OBL_RC_ACT).
 
 When using MAVLink the setpoint messages convey both the signal to indicate that the external source is "alive", and the setpoint value itself.
@@ -355,13 +354,12 @@ Rover MAVLink setpoints are gated by the MAVLink parameter [MAV_FWDEXTSP](../adv
 
 _Offboard mode_ is affected by the following parameters:
 
-| Parameter                                                                                                | Description                                                                                                                                                                                      |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="COM_OF_LOSS_T"></a>[COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)       | Time-out (in seconds) to wait when offboard connection is lost before triggering offboard lost failsafe (`COM_OBL_RC_ACT`)                                                                       |
-| <a id="COM_OBL_RC_ACT"></a>[COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT)    | Flight mode to switch to if offboard control is lost (Values are - `0`: _Position_, `1`: _Altitude_, `2`: _Manual_, `3`: _Return_, `4`: _Land_).                                                 |
-| <a id="COM_RC_OVERRIDE"></a>[COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE) | Controls whether stick movement on a multicopter (or VTOL in MC mode) causes a mode change to [Position mode](../flight_modes_mc/position.md). This is not enabled for offboard mode by default. |
-| <a id="COM_RC_STICK_OV"></a>[COM_RC_STICK_OV](../advanced_config/parameter_reference.md#COM_RC_STICK_OV) | The amount of stick movement that causes a transition to [Position mode](../flight_modes_mc/position.md) (if [COM_RC_OVERRIDE](#COM_RC_OVERRIDE) is enabled).                                    |
-| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)    | Specify modes in which RC loss is ignored and the failsafe action not triggered. Set bit `2` to ignore RC loss in Offboard mode.                                                                 |
+| Parameter                                                                                                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_OF_LOSS_T"></a>[COM_OF_LOSS_T](../advanced_config/parameter_reference.md#COM_OF_LOSS_T)          | Time-out (in seconds) to wait when offboard connection is lost before triggering offboard lost failsafe (`COM_OBL_RC_ACT`)                                                                                                                                                                                                                                                                                                                                                                    |
+| <a id="COM_OBL_RC_ACT"></a>[COM_OBL_RC_ACT](../advanced_config/parameter_reference.md#COM_OBL_RC_ACT)       | Flight mode to switch to if offboard control is lost.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| <a id="MAN_OVERRIDE_SPD"></a>[MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) | Speed (normalized stick travel per second) above which moving the sticks controlling a multicopter (or VTOL in hover) gives control back to the pilot by switching to [Position mode](../flight_modes_mc/position.md) (or Altitude mode if position is unavailable). At the default value of 1 a half-stick movement in ~0.5 s triggers it; lower is more sensitive. A stick held statically has zero speed and will not trigger. Set to -1 to disable. <Badge type="tip" text="PX4 v1.18" /> |
+| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT)       | Specify modes in which RC loss is ignored and the failsafe action not triggered. Set bit `2` to ignore RC loss in Offboard mode.                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Developer Resources
 

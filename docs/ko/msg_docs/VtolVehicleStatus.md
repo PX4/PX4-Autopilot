@@ -10,11 +10,11 @@ VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE.
 
 ## Fields
 
-| 명칭                                                                                       | 형식       | Unit [Frame] | Range/Enum | 설명                                                                                          |
-| ---------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
-| timestamp                                                                                | `uint64` |                                                                  |            | time since system start (microseconds)                                   |
-| vehicle_vtol_state                             | `uint8`  |                                                                  |            | current state of the vtol, see VEHICLE_VTOL_STATE |
-| fixed_wing_system_failure | `bool`   |                                                                  |            | vehicle in fixed-wing system failure failsafe mode (after quad-chute)    |
+| 명칭                                                                                                                                 | 형식       | Unit [Frame] | Range/Enum | 설명                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                                | `uint64` |                                                                  |            | time since system start (microseconds)                                   |
+| <a id="fld_vehicle_vtol_state"></a>vehicle_vtol_state                                    | `uint8`  |                                                                  |            | current state of the vtol, see VEHICLE_VTOL_STATE |
+| <a id="fld_fixed_wing_system_failure"></a>fixed_wing_system_failure | `bool`   |                                                                  |            | vehicle in fixed-wing system failure failsafe mode (after quad-chute)    |
 
 ## Constants
 

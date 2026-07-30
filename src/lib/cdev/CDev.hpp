@@ -170,10 +170,11 @@ public:
 
 protected:
 	/**
-	 * Pointer to the default cdev file operations table; useful for
-	 * registering clone devices etc.
+	 * Accessor for the default cdev file operations table; useful for
+	 * registering clone devices etc. Defined in the platform-specific
+	 * cdev_platform.cpp.
 	 */
-	static const px4_file_operations_t	fops;
+	static const px4_file_operations_t	&fops_ref();
 
 	/**
 	 * Check the current state of the device for poll events from the

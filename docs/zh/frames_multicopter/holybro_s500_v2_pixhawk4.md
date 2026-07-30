@@ -30,7 +30,7 @@ Holybro [S500 V2 套件](https://holybro.com/collections/s500/products/s500-v2-d
 - 433 MHz / 915 MHz [Holybro数传电台](../telemetry/holybro_sik_radio.md)
 - 电源线和信号线
 - 电池绑带
-- 尺寸：383_385_240毫米
+- 尺寸：38&#x33;_&#x33;8&#x35;_&#x32;40毫米
 - 轴距：480毫米
 
 :::info
@@ -147,8 +147,8 @@ The following tools are used in this assembly:
 
    ![Figure 9](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig91.jpg)
 
-2. Assemble the 8_3 2.54mm pitch Horizontal Pin to the 10 to 10 pin cable (PWM) to the Power Management Board.
-   Connect the 10 to 10 pin cable (PWM) to the 8_3 2.54mm pitch Horizontal Pin.
+2. Assemble the &#x38;_&#x33; 2.54mm pitch Horizontal Pin to the 10 to 10 pin cable (PWM) to the Power Management Board.
+   Connect the 10 to 10 pin cable (PWM) to the &#x38;_&#x33; 2.54mm pitch Horizontal Pin.
 
    ![Figure 10](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig10.jpg)
 

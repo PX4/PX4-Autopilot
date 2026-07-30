@@ -1,314 +1,220 @@
-#include <gtest/gtest.h>
+/****************************************************************************
+ *
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
+#include <gtest/gtest.h>
 #include "AdsbConflict.h"
 
-#include "AdsbConflictTest.h"
+#include <parameters/param.h>
 
-class TestAdsbConflict : public AdsbConflict
+#include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
+#include <limits>
+
+struct RelativeTrafficScenario {
+	float distance_m;
+	float bearing_rad;
+	float altitude_offset_m;
+	float heading_rad;
+	float hor_speed_m_s;
+	float ver_speed_up_m_s;
+};
+
+class AdsbConflictTest : public ::testing::Test
 {
-public:
-	TestAdsbConflict() : AdsbConflict() {}
-	~TestAdsbConflict() = default;
+protected:
+	const matrix::Vector2d uav_lat_lon_{32.617013, -96.490564};
+	const float uav_alt_{1000.f};
+	const matrix::Vector3f stationary_uav_vel_ned_{0.f, 0.f, 0.f};
 
-	void set_traffic_buffer(const traffic_buffer_s &traffic_buffer)
+	void SetUp() override
 	{
-		_traffic_buffer = traffic_buffer;
+		param_control_autosave(false);
+		param_reset_all();
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+		set_f3442_params(20.f, 10.f, 100.f, 50.f, 30, 40);
+#else
+		set_crosstrack_params(500.f, 500.f, 60);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 	}
 
-	void set_conflict(bool &conflict_detected)
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	void set_f3442_params(float nmac_radius, float nmac_height, float wc_radius,
+			      float wc_height, int nmac_latency_s, int wc_latency_s)
 	{
-		_conflict_detected = conflict_detected;
+		param_set(param_handle(px4::params::DAA_LVL_CRIT_RAD), &nmac_radius);
+		param_set(param_handle(px4::params::DAA_LVL_CRIT_HGT), &nmac_height);
+		param_set(param_handle(px4::params::DAA_LVL_HIGH_RAD), &wc_radius);
+		param_set(param_handle(px4::params::DAA_LVL_HIGH_HGT), &wc_height);
+		param_set(param_handle(px4::params::DAA_LVL_MED_TIME), &nmac_latency_s);
+		param_set(param_handle(px4::params::DAA_LVL_LOW_TIME), &wc_latency_s);
+	}
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
+
+	void set_crosstrack_params(float horizontal_separation_m,
+				   float vertical_separation_m, int collision_time_s)
+	{
+		param_set(param_handle(px4::params::NAV_TRAFF_A_HOR), &horizontal_separation_m);
+		param_set(param_handle(px4::params::NAV_TRAFF_A_VER), &vertical_separation_m);
+		param_set(param_handle(px4::params::NAV_TRAFF_COLL_T), &collision_time_s);
+	}
+
+	// Build a traffic report from a relative encounter against the fixed ownship state.
+	transponder_report_s create_relative_report(const RelativeTrafficScenario &scenario)
+	{
+		transponder_report_s report{};
+		report.timestamp = hrt_absolute_time();
+		waypoint_from_heading_and_distance(uav_lat_lon_(0), uav_lat_lon_(1),
+						   scenario.bearing_rad, scenario.distance_m, &report.lat, &report.lon);
+		report.altitude = uav_alt_ + scenario.altitude_offset_m;
+		report.heading = scenario.heading_rad;
+		report.hor_velocity = scenario.hor_speed_m_s;
+		report.ver_velocity = scenario.ver_speed_up_m_s;
+		return report;
+	}
+
+	daa_input_s create_daa_input(const matrix::Vector2d &uav_lat_lon, const float uav_alt,
+				     const matrix::Vector3f &uav_vel_ned, const transponder_report_s &report) const
+	{
+		daa_input_s daa_input{};
+		daa_input.uav_lat_lon = uav_lat_lon;
+		daa_input.uav_alt = uav_alt;
+		daa_input.uav_vel_ned = uav_vel_ned;
+		daa_input.transponder_report = report;
+		return daa_input;
 	}
 };
 
-
-TEST_F(AdsbConflictTest, detectTrafficConflict)
+TEST_F(AdsbConflictTest, RejectsInvalidAircraftState)
 {
-	int collision_time_threshold = 60;
+	AdsbConflict adsb_conflict;
+	const RelativeTrafficScenario valid_traffic{200.f, math::radians(90.f), 0.f, 0.f, 30.f, 0.f};
 
-	float crosstrack_separation = 500.0f;
-	float vertical_separation = 500.0f;
+	detect_and_avoid_s daa_output{};
+	transponder_report_s report = create_relative_report(valid_traffic);
+	const float nan = std::numeric_limits<float>::quiet_NaN();
+	const float inf = std::numeric_limits<float>::infinity();
 
-	double lat_now = 32.617013;
-	double lon_now = -96.490564;
-	float alt_now = 1000.0f;
+	// non-finite ownship coordinate
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(nan, uav_lat_lon_(1)), uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), nan), uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(90.1, uav_lat_lon_(1)), uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(matrix::Vector2d(uav_lat_lon_(0), -180.1), uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
 
-	float vx_now = 0.0f;
-	float vy_now = 0.0f;
-	float vz_now = 0.0f;
+	report.lat = nan;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	report = create_relative_report(valid_traffic);
+	report.lon = 180.1;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
 
-	uint32_t traffic_dataset_size = sizeof(traffic_dataset) / sizeof(traffic_dataset[0]);
+	report = create_relative_report(valid_traffic);
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, nan,
+			stationary_uav_vel_ned_, report), daa_output));
+	report.altitude = inf;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
 
-	TestAdsbConflict 	adsb_conflict;
+	report = create_relative_report(valid_traffic);
+	report.hor_velocity = inf;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+	report.hor_velocity = -1.f;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
 
-	adsb_conflict.set_conflict_detection_params(crosstrack_separation, vertical_separation, collision_time_threshold, 1);
-
-	for (uint32_t i = 0; i < traffic_dataset_size; i++) {
-
-		struct traffic_data_s traffic = traffic_dataset[i];
-
-		// GIVEN traffic dataset (which should result in conflict)
-		adsb_conflict._transponder_report.lat = traffic.lat_traffic;
-		adsb_conflict._transponder_report.lon = traffic.lon_traffic;
-		adsb_conflict._transponder_report.altitude = traffic.alt_traffic;
-		adsb_conflict._transponder_report.heading = traffic.heading_traffic;
-		adsb_conflict._transponder_report.hor_velocity = traffic.vxy_traffic;
-		adsb_conflict._transponder_report.ver_velocity = traffic.vz_traffic;
-
-		// WHEN detect traffic conflict is called
-		adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
-
-		// THEN expect conflict to be detected
-		EXPECT_TRUE(adsb_conflict._conflict_detected == traffic.in_conflict);
-	}
+	report = create_relative_report(valid_traffic);
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			matrix::Vector3f(0.f, nan, 0.f), report), daa_output));
 }
 
-
-TEST_F(AdsbConflictTest, trafficAlerts)
+#if !defined(CONFIG_NAVIGATOR_ADSB_F3442) || !CONFIG_NAVIGATOR_ADSB_F3442
+TEST_F(AdsbConflictTest, CrosstrackRejectsNonFiniteTrafficHeading)
 {
-	struct	traffic_buffer_s used_buffer;
-	used_buffer.icao_address.push_back(2345);
-	used_buffer.icao_address.push_back(1234);
-	used_buffer.icao_address.push_back(1897);
-	used_buffer.icao_address.push_back(0567);
-	used_buffer.icao_address.push_back(8685);
-	used_buffer.icao_address.push_back(5000);
+	AdsbConflict adsb_conflict;
+	const RelativeTrafficScenario approaching_traffic{200.f, math::radians(90.f), 0.f, math::radians(270.f), 30.f, 0.f};
 
-	used_buffer.timestamp.push_back(3_s);
-	used_buffer.timestamp.push_back(800_s);
-	used_buffer.timestamp.push_back(100_s);
-	used_buffer.timestamp.push_back(20000_s);
-	used_buffer.timestamp.push_back(6000_s);
-	used_buffer.timestamp.push_back(6587_s);
+	detect_and_avoid_s daa_output{};
+	transponder_report_s report = create_relative_report(approaching_traffic);
+	const float nan = std::numeric_limits<float>::quiet_NaN();
 
-	struct	traffic_buffer_s full_buffer;
-	full_buffer.icao_address.push_back(2345);
-	full_buffer.icao_address.push_back(1234);
-	full_buffer.icao_address.push_back(1897);
-	full_buffer.icao_address.push_back(0567);
-	full_buffer.icao_address.push_back(8685);
-	full_buffer.icao_address.push_back(5000);
-	full_buffer.icao_address.push_back(0000);
-	full_buffer.icao_address.push_back(2);
-	full_buffer.icao_address.push_back(589742397);
-	full_buffer.icao_address.push_back(99999);
+	report.heading = nan;
+	EXPECT_FALSE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
+}
+#endif // !CONFIG_NAVIGATOR_ADSB_F3442
 
-	full_buffer.timestamp.push_back(1_s);
-	full_buffer.timestamp.push_back(800_s);
-	full_buffer.timestamp.push_back(100_s);
-	full_buffer.timestamp.push_back(20000_s);
-	full_buffer.timestamp.push_back(6000_s);
-	full_buffer.timestamp.push_back(19000_s);
-	full_buffer.timestamp.push_back(5000_s);
-	full_buffer.timestamp.push_back(2_s);
-	full_buffer.timestamp.push_back(1000_s);
-	full_buffer.timestamp.push_back(58943_s);
+// try_updating_params() validates against the built standard and rejects bad values.
+TEST_F(AdsbConflictTest, UsesBuiltStandardForParamValidation)
+{
+	AdsbConflict adsb_conflict;
+	constexpr float invalid_bound{-1.f};
 
-	struct traffic_buffer_s empty_buffer = {};
+	EXPECT_TRUE(adsb_conflict.try_updating_params());
 
-	TestAdsbConflict 	adsb_conflict;
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	set_f3442_params(invalid_bound, 10.f, 100.f, 50.f, 30, 40);
+#else
+	set_crosstrack_params(invalid_bound, 500.f, 60);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 
-	// GIVEN used buffer
-	adsb_conflict.set_traffic_buffer(used_buffer);
-
-	// WHEN no conflict detected
-	bool conflict_detected  = false;
-	hrt_abstime now = 0_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 00001;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect no conflict
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
-
-	// GIVEN conflict detected
-	conflict_detected  = true;
-	now = 1_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 9876;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict to be added to buffer
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
-
-	// GIVEN empty buffer
-	adsb_conflict.set_traffic_buffer(empty_buffer);
-
-	// WHEN conflict detected
-	conflict_detected  = true;
-	now = 0_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 9876;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict to be added to buffer
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
-
-	// GIVEN full buffer
-	adsb_conflict.set_traffic_buffer(full_buffer);
-
-	// WHEN conflict detected
-	conflict_detected  = true;
-	now = 1_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 7777;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect buffer full
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::BUFFER_FULL);
-
-	// WHEN conflict set to false again
-	conflict_detected  = false;
-	now = 2_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 7777;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect no conflict message
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
-
-	// WHEN existing conflict is set to false
-	conflict_detected  = false;
-	now = 3_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict to be removed from buffer
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
-
-	// GIVEN used buffer
-	adsb_conflict.set_traffic_buffer(used_buffer);
-
-	// WHEN conflict is set to false again
-	conflict_detected  = false;
-	now = 0_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict to be removed from buffer
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
+	EXPECT_FALSE(adsb_conflict.try_updating_params());
 }
 
-TEST_F(AdsbConflictTest, trafficReminder)
+// The wrapper forwards the built standard's result (level + distances).
+TEST_F(AdsbConflictTest, DelegatesToBuiltStandardAndForwardsOutput)
 {
-	struct	traffic_buffer_s used_buffer;
-	used_buffer.icao_address.push_back(2345);
-	used_buffer.icao_address.push_back(1234);
-	used_buffer.icao_address.push_back(1897);
-	used_buffer.icao_address.push_back(0567);
-	used_buffer.icao_address.push_back(8685);
-	used_buffer.icao_address.push_back(5000);
+	AdsbConflict adsb_conflict;
+	const RelativeTrafficScenario approaching_traffic{19.f, math::radians(90.f), 9.f, math::radians(270.f), 5.f, 0.f};
+	const transponder_report_s report = create_relative_report(approaching_traffic);
 
-	used_buffer.timestamp.push_back(3_s);
-	used_buffer.timestamp.push_back(80_s);
-	used_buffer.timestamp.push_back(10_s);
-	used_buffer.timestamp.push_back(1000_s);
-	used_buffer.timestamp.push_back(100_s);
-	used_buffer.timestamp.push_back(187_s);
+	detect_and_avoid_s daa_output{};
 
-	struct	traffic_buffer_s full_buffer;
-	full_buffer.icao_address.push_back(2345);
-	full_buffer.icao_address.push_back(1234);
-	full_buffer.icao_address.push_back(1897);
-	full_buffer.icao_address.push_back(0567);
-	full_buffer.icao_address.push_back(8685);
-	full_buffer.icao_address.push_back(5000);
-	full_buffer.icao_address.push_back(0000);
-	full_buffer.icao_address.push_back(2);
-	full_buffer.icao_address.push_back(589742397);
-	full_buffer.icao_address.push_back(99999);
+	ASSERT_TRUE(adsb_conflict.try_updating_params());
+	ASSERT_TRUE(adsb_conflict.calculate_daa_output(create_daa_input(uav_lat_lon_, uav_alt_,
+			stationary_uav_vel_ned_, report), daa_output));
 
-	full_buffer.timestamp.push_back(1_s);
-	full_buffer.timestamp.push_back(80_s);
-	full_buffer.timestamp.push_back(10_s);
-	full_buffer.timestamp.push_back(1000_s);
-	full_buffer.timestamp.push_back(100_s);
-	full_buffer.timestamp.push_back(900_s);
-	full_buffer.timestamp.push_back(500_s);
-	full_buffer.timestamp.push_back(2_s);
-	full_buffer.timestamp.push_back(100_s);
-	full_buffer.timestamp.push_back(5843_s);
-
-	TestAdsbConflict 	adsb_conflict;
-
-	// GIVEN buffer with 8685 at t=100
-	adsb_conflict.set_traffic_buffer(used_buffer);
-
-	// WHEN conflict detected at t=200
-	bool conflict_detected  = true;
-	hrt_abstime now = 200_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict reminder
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMIND_CONFLICT);
-
-	// WHEN INSTEAD conflict is detected only 1s later
-	conflict_detected  = true;
-	now = 201_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN do not sent conflict notification again
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
-
-	// GIVEN full buffer with 8685 at t=100
-	adsb_conflict.set_traffic_buffer(full_buffer);
-
-	// WHEN conflict detected at t=400
-	conflict_detected  = true;
-	now = 400_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict reminder
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMIND_CONFLICT);
-
-	// WHEN INSTEAD conflict is detected only 1s later
-	conflict_detected  = true;
-	now = 401_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN do not sent conflict notification again
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
-
-	// WHEN conflict is set to false
-	conflict_detected  = false;
-	now = 600_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect conflict to be removed from buffer
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
-
-	// WHEN new conflict is detected
-	conflict_detected  = true;
-	now = 700_s;
-	adsb_conflict.set_conflict(conflict_detected);
-	adsb_conflict._transponder_report.icao_address = 7777;
-	adsb_conflict.get_traffic_state(now);
-
-	// THEN expect new conflict to be added to buffer
-	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
-	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
+#if defined(CONFIG_NAVIGATOR_ADSB_F3442) && CONFIG_NAVIGATOR_ADSB_F3442
+	EXPECT_EQ(daa_output.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_CRITICAL);
+	EXPECT_NEAR(daa_output.aircraft_dist_hor, approaching_traffic.distance_m, 0.1f);
+	EXPECT_NEAR(daa_output.aircraft_dist_vert, approaching_traffic.altitude_offset_m, 0.1f);
+#else
+	EXPECT_EQ(daa_output.conflict_level, detect_and_avoid_s::DAA_CONFLICT_LVL_HIGH);
+	EXPECT_NEAR(daa_output.aircraft_dist_vert, approaching_traffic.altitude_offset_m, 0.1f);
+	EXPECT_LT(fabsf(daa_output.aircraft_dist_hor), 500.f);
+#endif // CONFIG_NAVIGATOR_ADSB_F3442
 }

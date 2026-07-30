@@ -39,7 +39,7 @@
 
 Якщо налаштування [Основного налаштування TECS](../config_fw/position_tuning_guide_fixedwing.md#tecs-tuning-altitude-and-airspeed) не було виконано в стандартних умовах рівня моря, тоді параметр [FW_T_SINK_MIN](../advanced_config/parameter_reference.md#FW_T_SINK_MIN) повинен бути змінений шляхом множення на корекційний фактор $P$ (де $\rho$ - густина повітря під час налаштування):
 
-$$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
+$$P = \sqrt{\frac{\rho}{\rho_{\text{sealevel}}}}$$
 
 Для отримання додаткової інформації див. [Ефект густини на мінімальну швидкість опускання](#effect-of-density-on-minimum-sink-rate).
 
@@ -49,7 +49,7 @@ $$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
 
 Якщо базове налаштування не було виконано в стандартних умовах рівня моря, тоді значення для [FW_THR_TRIM](../advanced_config/parameter_reference.md#FW_THR_TRIM) повинно бути змінено шляхом множення на корекційний фактор $P$:
 
-$$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
+$$P = \sqrt{\frac{\rho}{\rho_{\text{sealevel}}}}$$
 
 Для отримання додаткової інформації див. [Ефект густини на обрізний регулятор](#effect-of-density-on-trim-throttle)
 
@@ -63,7 +63,7 @@ $$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
 У наступних розділах ми будемо використовувати позначення $\hat X$ для того, щоб вказати, що це значення є каліброваним значенням змінної $X$.
 Під каліброваним ми маємо на увазі значення цієї змінної, виміряне на рівні моря в стандартних атмосферних умовах, коли вага транспортного засобу дорівнювала [WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE).
 
-Наприклад, за $\hat{\dot{h}}_{max}$ ми вказуємо максимальну швидкість підйому, яку транспортний засіб може досягти при [WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE) на рівні моря в стандартних атмосферних умовах.
+Наприклад, by $\hat{\dot{h}}_{\text{max}}$ we specify the maximum climb rate the vehicle can achieve at [WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE) at sea level in standard atmospheric conditions.
 
 ### Вплив ваги на максимальну швидкість підйому
 
@@ -71,7 +71,7 @@ $$P = \sqrt{\rho\over{\rho_{sealevel}}}$$
 
 З рівноважних рівнянь руху літака ми встановлюємо, що максимальна швидкість підйому може бути записана як:
 
-$$\dot{h}_{max} = { V * ( Thrust - Drag ) \over{m*g}}$$
+$$\dot{h}_{\text{max}} = \frac{V \cdot (\text{Thrust} - \text{Drag})}{m \cdot g}$$
 
 де `V` - це справжня швидкість повітря, а `m` - маса транспортного засобу.
 З цього рівняння ми бачимо, що максимальні швидкості підйому масштабуються з масою транспортного засобу.
@@ -82,7 +82,7 @@ $$\dot{h}_{max} = { V * ( Thrust - Drag ) \over{m*g}}$$
 
 Мінімальна швидкість опускання може бути записана як:
 
-$$\dot{h}_{min} = \sqrt{2mg\over{\rho S}} f(C_L, C_D)$$
+$$\dot{h}_{\text{min}} = \sqrt{\frac{2mg}{\rho S}}\, f(C_L, C_D)$$
 
 де $\rho$ - щільність повітря, S - площа опорної поверхні крила, а $f(C_L, C_D)$ - функція полюсів, підйому та опору.
 
@@ -94,14 +94,22 @@ The minimum airspeed ([FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#
 
 У стані сталого польоту ми можемо вимагати, щоб підйом був рівним вазіллю транспортного засобу:
 
-$$Lift = mg = {1\over{2}} \rho V^2 S C_L$$
+$$\text{Lift} = mg = \frac{1}{2} \rho V^2 S C_L$$
 
 перегруповування цього рівняння для швидкості повітря дає:
 
-$$V = \\sqrt{\\frac{2mg}{\\rho S C_D }}$$
+$$V = \sqrt{\frac{2mg}{\rho S C_L}}$$
 
 З цього рівняння ми бачимо, що якщо ми припускаємо постійний кут атаки (який, як правило, ми бажаємо), вага транспортного засобу впливає на швидкість повітря з квадратним коренем відношення.
 Отже, обмеження швидкості повітря, згадані вище, масштабуються за допомогою квадратного кореня відношення ваги.
+
+### Effect of Bank Angle on Airspeed Limits
+
+Flying a coordinated, level turn at bank angle $\phi$ increases the load factor by $\frac{1}{\cos{\phi}}$. This is similar to the added load factor due to weight (section above), and thus the stall and minimum airspeeds are increased by an additional factor of $\sqrt{\frac{1}{\cos{\phi}}}$.
+
+The maximum airspeed ([FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX)) is _not_ compensated in this way, as it can represent structural limits of the airframe.
+
+It can be that at maximum bank angle [FW_R_LIM](../advanced_config/parameter_reference.md#FW_R_LIM), the maximum airspeed is _lower_ than the minimum airspeed (compensated for weight ratio and bank angle). This means the allowed airspeed range is empty at that bank angle. If a system is configured like this, a warning on the ground station is shown.
 
 ### Вплив щільності на максимальну швидкість підйому
 
@@ -109,15 +117,15 @@ $$V = \\sqrt{\\frac{2mg}{\\rho S C_D }}$$
 
 Як ми вже бачили раніше, максимальна швидкість підйому може бути сформульована як:
 
-$$\dot{h}_{max} = { V * ( Thrust - Drag ) \over{m*g}}$$
+$$\dot{h}_{\text{max}} = \frac{V \cdot (\text{Thrust} - \text{Drag})}{m \cdot g}$$
 
 Густина повітря впливає на швидкість повітря, тягу та опір, і моделювання цих ефектів не є прямолінійним.
 Проте ми можемо посилатися на літературу та досвід, які вказують, що для літака з гвинтовим пропелером максимальна швидкість підйому зменшується приблизно лінійно з густиною повітря.
 Таким чином, ми можемо написати максимальну швидкість підйому як:
 
-$$\dot{h}_{max} = \hat{\dot{h}} * {\rho_{sealevel} \over{\rho}} K$$
+$$\dot{h}_{\text{max}} = \hat{\dot{h}} \cdot \frac{\rho_{\text{sealevel}}}{\rho} K$$
 
-де$\rho_{sealevel}$ - щільність повітря на рівні моря в стандартній атмосфері, а К - масштабний фактор, який визначає нахил функції.
+where $\rho_{\text{sealevel}}$ is the air density at sea level in the standard atmosphere and K is a scaling factor which determines the slope of the function.
 Замість спроби ідентифікувати ці константи, звичайною практикою в авіації є вказання висоти службового стелі, на якій транспортний засіб все ще може досягти мінімально вказаної швидкості підйому.
 
 ### Вплив щільності на мінімальну швидкість опускання
@@ -126,7 +134,7 @@ $$\dot{h}_{max} = \hat{\dot{h}} * {\rho_{sealevel} \over{\rho}} K$$
 
 У попередніх розділах ми бачили формулу для мінімальної швидкості опускання:
 
-$$\dot{h}_{min} = \sqrt{2mg\over{\rho S}} f(C_L, C_D)$$
+$$\dot{h}_{\text{min}} = \sqrt{\frac{2mg}{\rho S}}\, f(C_L, C_D)$$
 
 Це показує, що мінімальна швидкість опускання масштабується з квадратним коренем відношення оберненої густини повітря.
 

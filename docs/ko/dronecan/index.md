@@ -6,7 +6,7 @@
 
 - DroneCAN is not enabled by default, and nor are specific sensors and features that use it.
   For setup information see [PX4 Configuration](#px4-configuration).
-- PX4 requires an SD card to enable dynamic node allocation and for firmware update.
+- PX4 requires an SD card to enable dynamic node allocation and for [firmware update](#firmware-update).
   The SD card is not used in flight.
 
 :::
@@ -109,7 +109,7 @@ The parameter is set to 1 by default.
 
 Devices running the [PX4 DroneCAN firmware](px4_cannode_fw.md) (such as [ARK CANnode](ark_cannode.md)) can use the
 [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter to set a static node ID.
-Set it to 0 (default) for dynamic allocation, or to a value between 1-127 to use a specific static node ID.
+Set it to 0 (default) for dynamic allocation, or to a value between 1-125 to use a specific static node ID.
 :::
 
 :::warning
@@ -306,7 +306,7 @@ For example, the screenshot below shows the parameters for a CAN GPS with node i
 
 Common CANNODE parameters that you can configure include:
 
-- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-127) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
+- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-125) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
 - [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM): Enable CAN bus termination on the last node in the bus.
 
 ## Device Specific Setup
@@ -316,10 +316,45 @@ Most DroneCAN nodes require no further setup, unless specifically noted in their
 ## 펌웨어 업데이트
 
 PX4 can upgrade device firmware over DroneCAN.
-To upgrade the device, all you need to do is copy the firmware binary into the root directory of the flight controller's SD card and reboot.
 
-Upon boot the flight controller will automatically transfer the firmware onto the device and upgrade it.
-If successful, the firmware binary will be removed from the root directory and there will be a file named **XX.bin** in the **/ufw** directory of the SD card.
+:::info
+PX4 identifies valid firmware binaries (`.bin`) based on the presence of an **APDescriptor** — a metadata block embedded in the `.bin` file that contains the target board ID, firmware version, and a checksum.
+PX4 uses this descriptor to match each binary to the correct node and to determine whether an update is needed.
+:::
+
+### Firmware Directories
+
+Place firmware binaries in one of these locations on the SD card before rebooting:
+
+- **SD card root** (`/fs/microsd/`): Simplest option for manual updates.
+- **Staging directory** (`/fs/microsd/ufw_staging/`): Preferred for remote/programmatic updates.
+  Files are moved to `/fs/microsd/ufw/` at boot before any node is flashed, avoiding write conflicts if firmware is uploaded while the vehicle is running.
+
+On boot, PX4 scans both locations, reads the board ID from the _APDescriptor_ of each file, and copies them to `/fs/microsd/ufw/<board_id>.bin`.
+The source file is then deleted.
+Any connected node whose running version does not match is then flashed over the CAN bus.
+
+### Remote Update
+
+Remote updates can be made by uploading the corresponding bin files to `/fs/microsd/ufw_staging/`.
+PX4 will then update firmware on next boot.
+
+This approach enables efficient mass-update of binaries from archives (`.zip` or `.tar` that contains `.bin` files for the target CAN nodes).
+
+:::info
+Auterion uses a form of this workflow to update CAN firmware to SkyNode based devices.
+The `upload_skynode.sh` script with multiple `--ext-fw` flags is used to bundle a number of firmware files and upload them to a directory on the companion-computer part.
+
+```sh
+./Tools/auterion/upload_skynode.sh \
+  --ext-fw=build/auterion_canio_default/auterion_canio_default.uavcan.bin
+  --ext-fw=build/auterion_canio_default/another_default.uavcan.bin
+  ...
+  --ext-fw=build/auterion_canio_default/some_other_default.uavcan.bin
+```
+
+Another tool then checks which files were already uploaded using a local database and extracts just the relevant files to the PX4 firmware staging area.
+:::
 
 ## 문제 해결
 

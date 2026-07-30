@@ -89,6 +89,12 @@ public:
 	{
 		return _instance->_key;
 	}
+
+	static bool has_pthread_key()
+	{
+		return _instance != nullptr && _instance->_key_valid;
+	}
+
 private:
 	static void *_server_main_trampoline(void *arg);
 	void _server_main();
@@ -111,7 +117,8 @@ private:
 	std::map<int, pthread_t> _fd_to_thread;
 	pthread_mutex_t _mutex; ///< Protects _fd_to_thread.
 
-	pthread_key_t _key;
+	pthread_key_t _key{};
+	bool _key_valid{false};
 
 	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 

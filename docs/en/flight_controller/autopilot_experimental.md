@@ -1,6 +1,10 @@
 # Community Supported & Experimental Autopilots
 
 ::: tip
+**Are you a manufacturer who wants to get a board supported by PX4?** See the [Manufacturer's Board Support Guide](../hardware/board_support_guide.md).
+:::
+
+::: tip
 For more information about PX4 project autopilot board support levels see: [px4.io/autopilots/](https://px4.io/autopilots/).
 :::
 

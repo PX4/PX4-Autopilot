@@ -41,6 +41,7 @@
 MS5837::MS5837(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
+	_px4_baro{get_device_id()},
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
@@ -340,14 +341,9 @@ int MS5837::_collect()
 		int32_t pressure_pascal = ((((raw * _SENS) >> 21) - _OFF) >> 13) * 10;
 
 		// publish
-		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = timestamp_sample;
-		sensor_baro.device_id = get_device_id();
-		sensor_baro.pressure = pressure_pascal;
-		sensor_baro.temperature = _last_temperature;
-		sensor_baro.error_count = perf_event_count(_comms_errors);
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pub.publish(sensor_baro);
+		_px4_baro.set_error_count(perf_event_count(_comms_errors));
+		_px4_baro.set_temperature(_last_temperature);
+		_px4_baro.update(timestamp_sample, pressure_pascal);
 	}
 
 	/* update the measurement state machine */

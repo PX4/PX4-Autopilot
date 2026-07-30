@@ -10,10 +10,10 @@ Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 
 ## Fields
 
-| 명칭                                | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
-| --------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                         | `uint64` |                                                                  |            | time since system start (microseconds) |
-| msg_sequence | `uint16` |                                                                  |            |                                                           |
+| 명칭                                                             | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
+| -------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                            | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_msg_sequence"></a>msg_sequence | `uint16` |                                                                  |            |                                                           |
 
 ## Constants
 

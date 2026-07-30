@@ -17,10 +17,10 @@ The reply will also include the registration_id for each external component, pro
 
 ## Fields
 
-| 명칭                              | 형식       | Unit [Frame] | Range/Enum | 설명                                                                                                                |
-| ------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| timestamp                       | `uint64` | us                                                               |            | Time since system start.                                                                          |
-| request_id | `uint8`  |                                                                  |            | Id of this request. Allows correlation with associated ArmingCheckReply messages. |
+| 명칭                                                         | 형식       | Unit [Frame] | Range/Enum | 설명                                                                                                                |
+| ---------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                        | `uint64` | us                                                               |            | Time since system start.                                                                          |
+| <a id="fld_request_id"></a>request_id | `uint8`  |                                                                  |            | Id of this request. Allows correlation with associated ArmingCheckReply messages. |
 
 ## Constants
 

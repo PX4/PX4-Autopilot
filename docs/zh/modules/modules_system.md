@@ -56,8 +56,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### 实现
 
@@ -248,6 +250,40 @@ This implements using information from the ESC status and publish it as battery 
 
 ```
 esc_battery <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
+## failure_injection_manager
+
+Source: [modules/failure_injection_manager](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/failure_injection_manager)
+
+### 描述
+
+Central module for handling failure injection. It collects failure requests, tracks
+the set of active failures, and publishes them on the `failure_injection` topic for
+the apply-sites to act on.
+
+Failures can be triggered through:
+
+- `MAV_CMD_INJECT_FAILURE` over MAVLink (e.g. from MAVSDK)
+- the `failure` console command
+- an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
+  `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
+
+Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
+
+Failures can be applied both in simulation and on real hardware, where the apply-sites are
+compiled in alongside this module.
+
+### Usage {#failure_injection_manager_usage}
+
+```
+failure_injection_manager <command> [arguments...]
  Commands:
    start
 

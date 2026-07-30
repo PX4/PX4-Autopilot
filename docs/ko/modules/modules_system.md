@@ -56,8 +56,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### 구현
 
@@ -151,8 +153,8 @@ commander <command> [arguments...]
 
    mode          Change flight mode
      manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
-                 |auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:
-                 precland|ext1 Flight mode
+                 |auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|aut
+                 o:land|auto:precland|ext1 Flight mode
 
    pair
 
@@ -256,6 +258,40 @@ esc_battery <command> [arguments...]
    status        print status info
 ```
 
+## failure_injection_manager
+
+Source: [modules/failure_injection_manager](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/failure_injection_manager)
+
+### 설명
+
+Central module for handling failure injection. It collects failure requests, tracks
+the set of active failures, and publishes them on the `failure_injection` topic for
+the apply-sites to act on.
+
+Failures can be triggered through:
+
+- `MAV_CMD_INJECT_FAILURE` over MAVLink (e.g. from MAVSDK)
+- the `failure` console command
+- an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
+  `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
+
+Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
+
+Failures can be applied both in simulation and on real hardware, where the apply-sites are
+compiled in alongside this module.
+
+### Usage {#failure_injection_manager_usage}
+
+```
+failure_injection_manager <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
 ## gyro_calibration
 
 Source: [modules/gyro_calibration](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/gyro_calibration)
@@ -327,7 +363,7 @@ Source: [drivers/heater](https://github.com/PX4/PX4-Autopilot/tree/main/src/driv
 
 ### 설명
 
-Background process running periodically on the INS{i} queue to regulate IMU temperature at a setpoint.
+Background process running periodically on the INS{i} queue to regulate temperature at a setpoint.
 
 This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
 
@@ -1102,6 +1138,28 @@ uxrce_dds_client <command> [arguments...]
      [-n <val>]  Client DDS namespace. If not provided but UXRCE_DDS_NS_IDX is
                  between 0 and 9999 inclusive, then uav_ + UXRCE_DDS_NS_IDX will
                  be used
+
+   stop
+
+   status        print status info
+```
+
+## vision_target_estimator
+
+Source: [modules/vision_target_estimator](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/vision_target_estimator)
+
+### 설명
+
+Module to estimate the position and orientation of a target using relative sensors.
+
+The module runs periodically on the px4::wq_configurations::vte queue.
+
+### Usage {#vision_target_estimator_usage}
+
+```
+vision_target_estimator <command> [arguments...]
+ Commands:
+   start         Start the background task
 
    stop
 

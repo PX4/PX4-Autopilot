@@ -132,6 +132,11 @@ void EkfWrapper::disableGpsFusion()
 	_ekf_params->ekf2_gps_ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
 }
 
+void EkfWrapper::setGpsEnabled(bool enabled)
+{
+	_fc->gps.enabled = enabled;
+}
+
 bool EkfWrapper::isIntendingGpsFusion() const
 {
 	return _ekf->control_status_flags().gnss_vel || _ekf->control_status_flags().gnss_pos;

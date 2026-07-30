@@ -213,7 +213,7 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	Vector3f delta_vel_earth{_R_to_earth_now * delta_velocity_corrected};
 
 	// correct for measured acceleration due to gravity
-	delta_vel_earth(2) += CONSTANTS_ONE_G * delta_velocity_dt;
+	delta_vel_earth(2) += _gravity * delta_velocity_dt;
 
 	// calculate the earth frame velocity derivatives
 	_delta_vel_sum += delta_vel_earth;

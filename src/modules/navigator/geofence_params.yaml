@@ -57,14 +57,3 @@ parameters:
       min: 0
       max: 10000
       increment: 1
-    GF_PREDICT:
-      description:
-        short: '[EXPERIMENTAL] Use Pre-emptive geofence triggering'
-        long: |-
-          WARNING: This experimental feature may cause flyaways. Use at your own risk.
-
-          Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
-          would result in a breach happening before the vehicle can make evasive maneuvers.
-          The vehicle is then re-routed to a safe hold position (stop for multirotor, loiter for fixed wing).
-      type: boolean
-      default: 0

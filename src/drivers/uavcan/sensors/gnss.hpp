@@ -48,8 +48,10 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/gps_dump.h>
+
+#include <lib/failure_injection/FailureInjection.hpp>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
@@ -62,6 +64,8 @@
 #include <lib/perf/perf_counter.h>
 
 #include "sensor_bridge.hpp"
+
+#include <clock_offset_estimator.hpp>
 
 class UavcanGnssBridge : public UavcanSensorBridgeBase
 {
@@ -99,6 +103,8 @@ private:
 			  const uint8_t spoofing_state);
 
 	void handleInjectDataTopic();
+	void drainRtcmCorrections();
+	void drainMovingBaseline();
 	bool PublishRTCMStream(const uint8_t *data, size_t data_len);
 	bool PublishMovingBaselineData(const uint8_t *data, size_t data_len);
 
@@ -143,7 +149,8 @@ private:
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
+	uORB::SubscriptionMultiArray<rtcm_data_s, rtcm_data_s::MAX_INSTANCES> _rtcm_corrections_sub{ORB_ID::rtcm_corrections};
+	uORB::Subscription _rtcm_moving_baseline_sub{ORB_ID(rtcm_moving_baseline)};
 	hrt_abstime		_last_rtcm_injection_time{0};	///< time of last rtcm injection
 	uint8_t			_selected_rtcm_instance{0};	///< uorb instance that is being used for RTCM corrections
 
@@ -151,7 +158,18 @@ private:
 
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_gps_s> _stuck[DEFAULT_MAX_CHANNELS];
+
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
+
+	// Per-source-node clock-offset estimator. Slot count matches channel count.
+	struct ClockEstimatorSlot {
+		int node_id{-1};
+		ClockOffsetEstimator estimator;
+	};
+	static constexpr unsigned kMaxClockEstimatorSlots = 4;
+	ClockEstimatorSlot _clock_estimator_slots[kMaxClockEstimatorSlots];
 
 	bool _publish_rtcm_stream{false};
 	bool _publish_moving_baseline_data{false};
@@ -165,6 +183,6 @@ private:
 	perf_counter_t _moving_baseline_data_sub_perf{nullptr};
 
 	hrt_abstime _last_rate_measurement{0};
-	float _rtcm_injection_rate{0.f}; ///< RTCM message injection rate
-	unsigned _rtcm_injection_rate_message_count{0}; ///< number of RTCM messages since last rate calculation
+	float _rtcm_injection_rate{0.f}; ///< fixed-base corrections injection rate (Hz); moving-baseline tracked via _moving_baseline_data_pub_perf
+	unsigned _rtcm_injection_rate_message_count{0}; ///< fixed-base corrections messages since last rate calculation
 };

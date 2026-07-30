@@ -35,6 +35,6 @@ We placed the integrator in the rate controller since it can run without the att
 
 ## Parameter Overview
 
-| 参数                                                                                                                            | 描述                                   | Unit |
+| Parameter                                                                                                                     | 描述                                   | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ---- |
 | <a id="RO_YAW_P"></a>[RO_YAW_P](../advanced_config/parameter_reference.md#RO_YAW_P) | Proportional gain for yaw controller | -    |

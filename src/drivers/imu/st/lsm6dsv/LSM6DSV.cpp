@@ -40,6 +40,11 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
+static constexpr bool IsSupportedWhoAmI(uint8_t whoami)
+{
+	return (whoami == WHO_AM_I_ID) || (whoami == WHO_AM_I_DSK320X);
+}
+
 LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
@@ -73,6 +78,23 @@ int LSM6DSV::init()
 		return ret;
 	}
 
+	// Update device IDs based on probed variant (for proper identification in logs)
+	switch (_device_variant) {
+	case DeviceVariant::LSM6DSV16X:
+		// default — no change needed
+		break;
+
+	case DeviceVariant::LSM6DSV32X:
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSV32X);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSV32X);
+		break;
+
+	case DeviceVariant::LSM6DSK320X:
+		_px4_accel.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSK320X);
+		_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_ST_LSM6DSK320X);
+		break;
+	}
+
 	return Reset() ? 0 : -1;
 }
 
@@ -95,6 +117,17 @@ void LSM6DSV::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
+	const char *variant_str = "unknown";
+
+	switch (_device_variant) {
+	case DeviceVariant::LSM6DSV16X:   variant_str = "LSM6DSV16X";   break;
+
+	case DeviceVariant::LSM6DSV32X:   variant_str = "LSM6DSV32X";   break;
+
+	case DeviceVariant::LSM6DSK320X:  variant_str = "LSM6DSK320X";  break;
+	}
+
+	PX4_INFO("Device variant: %s", variant_str);
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz), %ld samples per cycle",
 		 _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us, (long)_fifo_gyro_samples);
 	PX4_INFO("Sensor ODR: %u Hz (HAODR mode1), FIFO sample dt: %.0f us",
@@ -112,11 +145,25 @@ int LSM6DSV::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
+	if (whoami == WHO_AM_I_DSK320X) {
+		_device_variant = DeviceVariant::LSM6DSK320X;
+		PX4_INFO("detected LSM6DSK320X");
+		UpdateVariantRegisterConfig();
+		return PX4_OK;
+	}
+
 	if (whoami != WHO_AM_I_ID) {
 		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 		return PX4_ERROR;
 	}
 
+	// 16X vs 32X: read CTRL8 bit2 (hardware-reserved, differs per variant)
+	const uint8_t ctrl8 = RegisterRead(Register::CTRL8);
+	_device_variant = (ctrl8 & Bit2) ? DeviceVariant::LSM6DSV32X : DeviceVariant::LSM6DSV16X;
+
+	PX4_INFO("detected %s", _device_variant == DeviceVariant::LSM6DSV32X ? "LSM6DSV32X" : "LSM6DSV16X");
+
+	UpdateVariantRegisterConfig();
 	return PX4_OK;
 }
 
@@ -135,7 +182,7 @@ void LSM6DSV::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET:
-		if (RegisterRead(Register::WHO_AM_I) == WHO_AM_I_ID) {
+		if (IsSupportedWhoAmI(RegisterRead(Register::WHO_AM_I))) {
 			// Set IF_INC immediately to enable multi-byte reads
 			RegisterWrite(Register::CTRL3, CTRL3_BIT::IF_INC | CTRL3_BIT::BDU);
 
@@ -302,6 +349,22 @@ void LSM6DSV::ConfigureSampleRate(int sample_rate)
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
 
 	ConfigureFIFOWatermark(_fifo_gyro_samples);
+}
+
+void LSM6DSV::UpdateVariantRegisterConfig()
+{
+	for (auto &r : _register_cfg) {
+		if (r.reg == Register::CTRL6) {
+			r.set_bits = (_device_variant == DeviceVariant::LSM6DSK320X)
+				     ? CTRL6_BIT::FS_G_2000DPS_DSK320X
+				     : CTRL6_BIT::FS_G_2000DPS;
+
+		} else if (r.reg == Register::CTRL8) {
+			r.set_bits = (_device_variant == DeviceVariant::LSM6DSV32X)
+				     ? static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G_DSV32X | CTRL8_BIT::LPF2_BW_ODR_DIV_10)
+				     : static_cast<uint8_t>(CTRL8_BIT::FS_XL_16G | CTRL8_BIT::LPF2_BW_ODR_DIV_10);
+		}
+	}
 }
 
 bool LSM6DSV::Configure()

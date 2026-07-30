@@ -105,6 +105,10 @@ public:
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
 	bool isTerrainEstimateValid() const { return _terrain_valid; }
+	bool isHeightAboveGroundEstimateValid() const
+	{
+		return isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE);
+	}
 
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain + getEkfGlobalOriginAltitude(); };
@@ -293,6 +297,9 @@ public:
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
 	Vector3f getAccelBiasVariance() const { return getStateVariance<State::accel_bias>(); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.ekf2_abl_lim; }
+
+	// latitude-dependent gravity magnitude
+	float getGravityMss() const { return _gravity; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
@@ -535,6 +542,8 @@ private:
 
 	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
 	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
+
+	float _gravity{CONSTANTS_ONE_G}; ///< latitude-dependent gravity magnitude (m/s^2)
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 

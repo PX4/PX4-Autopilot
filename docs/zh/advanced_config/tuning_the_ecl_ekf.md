@@ -326,7 +326,7 @@ GSF 应用于各个 3 状态 EKF 输出的权重位于 `weight` 字段中。
 
 为了让 ECL 接受 GNSS 数据进行导航，需要在一段时间内满足某些最低要求，该时间由 [EKF2_REQ_GPS_H](../advanced_config/parameter_reference.md#EKF2_REQ_GPS_H) 定义（默认为 10 秒）。
 
-最小值在 [EKF2_REQ_\*](../advanced_config/parameter_reference.md#EKF2_REQ_EPH) 参数中定义，并且可以使用 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 参数启用/禁用每个检查。
+最小值在 [EKF&#x32;_&#x52;EQ_\*](../advanced_config/parameter_reference.md#EKF2_REQ_EPH) 参数中定义，并且可以使用 [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) 参数启用/禁用每个检查。
 
 下表列出了直接从 GNSS 数据中报告或计算的不同指标，以及 ECL 使用这些数据所需满足的最低要求值。
 此外，_平均值 (Average Value)_ 列显示了可能从标准 GNSS 模块（例如 u-blox M8 系列）合理获得的典型值 - 即被认为良好/可接受的值。

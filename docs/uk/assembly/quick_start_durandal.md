@@ -113,7 +113,7 @@ This is wired up in the same way as described in the [Pixhawk 4 Quick Start > Po
 - Поточний PCB: загальна потужність виходів 120A (MAX)
 - UBEC вихідний струм 5В: 3А
 - Напруга входу UBEC: 7~51v (2~12s LiPo)
-- Dimensions: 68_50_8 mm
+- Dimensions: 6&#x38;_&#x35;&#x30;_&#x38; mm
 - Отвір для монтажу: 45\*45мм
 - Вага: 36g
 - Пакет включає:

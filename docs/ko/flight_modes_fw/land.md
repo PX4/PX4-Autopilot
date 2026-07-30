@@ -18,7 +18,7 @@ Where possible, instead use [Return mode](../flight_modes_fw/return.md) with a p
 - Mode requires at least a valid local position estimate (does not require a global position).
   - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
 - RC stick movement is ignored.
 - The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
@@ -41,7 +41,7 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 Land mode behaviour can be configured using the parameters below.
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                                                                                           |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                                                           |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)                            | The loiter radius that the controller tracks for the whole landing sequence.                                                                                                                                                 |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | The flight path angle setpoint.                                                                                                                                                                                              |

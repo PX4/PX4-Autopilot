@@ -110,14 +110,14 @@ A very small subset are listed below.
 
 General parameters:
 
-| 参数                                                                                                                                           | 描述                                                                                                                                                                                                 |
+| Parameter                                                                                                                                    | 描述                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)       | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc. |
 | <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_RCL_ACT) | Fixed-wing loiter radius.                                                                                                                                                          |
 
 Parameters related to [mission feasibility checks](#mission-feasibility-checks):
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                                                 |
+| Parameter                                                                                                                                                                  | 描述                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_DIST_1WP"></a>[MIS_DIST_1WP](../advanced_config/parameter_reference.md#MIS_DIST_1WP)                                  | There is a warning message if the distance of the first waypoint to Home is more than this value. Disabled if value is 0 or less.                                  |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Maximum landing slope angle.                                                                                                                                                       |
@@ -222,6 +222,23 @@ The equation is:
 
 $$L_{1_{distance}}=\frac{1}{\pi}L_{1_{damping}}L_{1_{period}}\left \| \vec{v}_{ {xy}_{ground} } \right \|$$
 
+## Altitude Changes Between Waypoints
+
+When the target altitude changes from one waypoint to the next, PX4 does not change the altitude setpoint in a single step.
+Instead it ramps the altitude setpoint linearly (a first order hold, FOH) from the vehicle's **current altitude** to the new target altitude, reaching the target by the time the vehicle arrives at the acceptance radius of the current waypoint.
+The result is a smooth diagonal climb or descent along the leg, rather than an immediate climb/descent followed by level flight.
+
+![Fixed-wing altitude profile for a climbing mission leg](../../assets/flight_modes/fw_waypoint_altitude_foh.png)
+
+The ramp is anchored at the altitude the vehicle is at when the new target is received, and its progress is measured by the vehicle's horizontal approach to the waypoint (not by time).
+
+If the vehicle cannot follow the ramp (for example when the required climb or sink rate exceeds what the aircraft can achieve), the altitude setpoint still reaches the full target altitude at the acceptance radius.
+Any remaining altitude error is then removed by climbing or sinking once the vehicle reaches the horizontal position of the waypoint.
+
+:::info
+The ramp is (re)started whenever the target altitude changes; consecutive waypoints at the same altitude are held level.
+:::
+
 ## Mission Takeoff
 
 Starting flights with mission takeoff (and landing using a mission landing) is the recommended way of operating a plane autonomously.
@@ -278,7 +295,7 @@ Note that the glide slope is calculated from the 3D positions of the loiter and 
 
 The parameters that affect the landing approach are listed below.
 
-| 参数                                                                                                                                            | 描述                                                                                                                                                                                    |
+| Parameter                                                                                                                                     | 描述                                                                                                                                                                                    |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)           | The maximum achievable landing approach slope angle. Note that smaller angles may still be commanded via the landing pattern mission item.            |
 | [FW_LND_EARLYCFG](../advanced_config/parameter_reference.md#FW_LND_EARLYCFG)                        | Optionally deploy landing configuration during the landing descent orbit (e.g. flaps, spoilers, landing airspeed). |
@@ -297,7 +314,7 @@ If belly landing, the vehicle will continue in the flaring state until touchdown
 
 The parameters that affect flaring are listed below.
 
-| 参数                                                                                                                                                                   | 描述                                                                                                                                                                                                     |
+| Parameter                                                                                                                                                            | 描述                                                                                                                                                                                                     |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="FW_LND_FL_TIME"></a>[FW_LND_FL_TIME](../advanced_config/parameter_reference.md#FW_LND_FL_TIME) | Time before impact (at current descent rate) at which the vehicle should flare.                                                                                     |
 | <a id="FW_LND_FL_SINK"></a>[FW_LND_FL_SINK](../advanced_config/parameter_reference.md#FW_LND_FL_SINK) | A shallow sink rate the aircraft will track during the flare.                                                                                                                          |
@@ -333,7 +350,7 @@ Landing without a distance sensor is **strongly** discouraged.
 Disabling terrain estimation with [FW_LND_USETER](#FW_LND_USETER) and select bits of [FW_LND_ABORT](#FW_LND_ABORT) will remove the default distance sensor requirement, but consequently falls back to GNSS altitude to determine the flaring altitude, which may be several meters too high or too low, potentially resulting in damage to the airframe.
 :::
 
-| 参数                                                                                                                                                                         | 描述                                                                                         |
+| Parameter                                                                                                                                                                  | 描述                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | <a id="MIS_LND_ABRT_ALT"></a>[MIS_LND_ABRT_ALT](../advanced_config/parameter_reference.md#MIS_LND_ABRT_ALT) | The minimum altitude above the land point an abort orbit can be commanded. |
 | <a id="FW_LND_ABORT"></a>[FW_LND_ABORT](../advanced_config/parameter_reference.md#FW_LND_ABORT)                                  | Determines which automatic abort criteria are enabled.                     |
@@ -360,7 +377,7 @@ Nudging should not be used to supplement poor position control tuning.
 If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
 :::
 
-| 参数                                                                                                                                                                | 描述                                                                                                 |
+| Parameter                                                                                                                                                         | 描述                                                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_NUDGE"></a>[FW_LND_NUDGE](../advanced_config/parameter_reference.md#FW_LND_NUDGE)                         | Enable nudging behavior for fixed-wing landing.                                    |
 | <a id="FW_LND_TD_OFF"></a>[FW_LND_TD_OFF](../advanced_config/parameter_reference.md#FW_LND_TD_OFF) | Configure the allowable touchdown lateral offset from the commanded landing point. |
@@ -372,7 +389,7 @@ In landing mode, the distance sensor is used to determine proximity to the groun
 
 ![Fixed-wing landing nudging](../../assets/flying/wing_geometry.png)
 
-| 参数                                                                                                                   | 描述                                                                                           |
+| Parameter                                                                                                            | 描述                                                                                           |
 | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | [FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)     | Wing span of the airframe.                                                   |
 | [FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT) | Height of wing from bottom of gear (or belly if no gear). |

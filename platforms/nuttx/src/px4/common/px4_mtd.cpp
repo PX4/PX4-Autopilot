@@ -60,8 +60,13 @@
 
 extern "C" {
 	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
+#if defined(CONFIG_MTD_MX25L)
+	struct mtd_dev_s *mx25l_initialize_spi(FAR struct spi_dev_s *dev);
+#endif
 	struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 					off_t firstblock, off_t nblocks);
+	int register_mtddriver(FAR const char *path, FAR struct mtd_dev_s *mtd,
+			       unsigned int mode, FAR void *priv);
 }
 static int num_instances = 0;
 static int total_blocks = 0;
@@ -131,6 +136,34 @@ static int ramtron_attach(mtd_instance_s &instance)
 #endif
 }
 
+#if defined(CONFIG_SPI)
+template<struct mtd_dev_s *(*Initialize)(struct spi_dev_s *)>
+static int spi_nor_attach(mtd_instance_s &instance, uint32_t spi_speed_hz)
+{
+	struct spi_dev_s *spi = px4_spibus_initialize(px4_find_spi_bus(instance.devid));
+
+	if (spi == nullptr) {
+		PX4_ERR("failed to locate spi bus");
+		return -ENXIO;
+	}
+
+	SPI_LOCK(spi, true);
+	SPI_SETFREQUENCY(spi, spi_speed_hz);
+	SPI_SETBITS(spi, 8);
+	SPI_SETMODE(spi, SPIDEV_MODE0);
+	SPI_SELECT(spi, instance.devid, false);
+	SPI_LOCK(spi, false);
+
+	instance.mtd_dev = Initialize(spi);
+
+	if (instance.mtd_dev == nullptr) {
+		PX4_ERR("failed to initialize NOR flash driver");
+		return -EIO;
+	}
+
+	return 0;
+}
+#endif
 
 static int at24xxx_attach(mtd_instance_s &instance)
 {
@@ -313,6 +346,7 @@ memoryout:
 
 		uint32_t nparts = mtd_list->entries[num_entry]->npart;
 		instances[i]->devid = mtd_list->entries[num_entry]->device->devid;
+		instances[i]->bulk_erase = mtd_list->entries[num_entry]->bulk_erase;
 		instances[i]->mtd_dev = nullptr;
 		instances[i]->n_partitions_current = 0;
 
@@ -340,17 +374,47 @@ memoryout:
 			goto memoryout;
 		}
 
+		instances[i]->partition_bypass_ftl = new bool[nparts];
+
+		if (instances[i]->partition_bypass_ftl == nullptr) {
+			goto memoryout;
+		}
+
 		for (uint32_t p = 0; p < nparts; p++) {
 			instances[i]->partition_block_counts[p] =  mtd_list->entries[num_entry]->partd[p].nblocks;
 			instances[i]->partition_names[p] = mtd_list->entries[num_entry]->partd[p].path;
 			instances[i]->partition_types[p] = mtd_list->entries[num_entry]->partd[p].type;
+			instances[i]->partition_bypass_ftl[p] = mtd_list->entries[num_entry]->partd[p].bypass_ftl;
 		}
+
+		unsigned long blocksize;
+		unsigned long erasesize;
+		unsigned long neraseblocks;
+		unsigned int  blkpererase;
+		unsigned int  nblocks;
+		unsigned int  partsize;
+		char blockname[32];
+		unsigned long offset;
+		unsigned part;
 
 		if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::I2C) {
 			rv = at24xxx_attach(*instances[i]);
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::SPI) {
-			rv = ramtron_attach(*instances[i]);
+			switch (mtd_list->entries[num_entry]->device->spi_driver) {
+#if defined(CONFIG_MTD_MX25L)
+
+			case px4_mft_device_t::SPI_DRIVER_MX25L:
+				rv = spi_nor_attach<mx25l_initialize_spi>(*instances[i], CONFIG_MX25L_SPIFREQUENCY);
+				break;
+#endif
+
+			case px4_mft_device_t::SPI_DRIVER_DEFAULT:
+			default:
+				rv = ramtron_attach(*instances[i]);
+				break;
+			}
+
 #if defined(HAS_FLEXSPI)
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::FLEXSPI) {
@@ -370,13 +434,6 @@ memoryout:
 			goto errout;
 		}
 
-		unsigned long blocksize;
-		unsigned long erasesize;
-		unsigned long neraseblocks;
-		unsigned int  blkpererase;
-		unsigned int  nblocks;
-		unsigned int  partsize;
-
 		rv = px4_mtd_get_geometry(instances[i], &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize);
 
 		if (rv != 0) {
@@ -384,11 +441,6 @@ memoryout:
 		}
 
 		/* Now create MTD FLASH partitions */
-
-		char blockname[32];
-
-		unsigned long offset;
-		unsigned part;
 
 		for (offset = 0, part = 0; rv == 0 && part < nparts; offset += instances[i]->partition_block_counts[part], part++) {
 
@@ -403,26 +455,43 @@ memoryout:
 				goto errout;
 			}
 
-			/* Initialize to provide an FTL block driver on the MTD FLASH interface */
+			if (instances[i]->partition_bypass_ftl[part]) {
+				/* When requested: register MTD device directly so the filesystem can drive
+				 * erase blocks natively, bypassing the FTL. Only works for filesystem that
+				 * can directly work with MTD devices */
+#if !defined(CONFIG_BCH)
+				PX4_WARN("%s bypasses the FTL but CONFIG_BCH is not set: mtd commands will fail!",
+					 instances[i]->partition_names[part]);
+#endif
+				rv = register_mtddriver(instances[i]->partition_names[part], instances[i]->part_dev[part], 0755, NULL);
 
-			snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", total_blocks);
+				if (rv < 0) {
+					PX4_ERR("register_mtddriver %s failed: %d", instances[i]->partition_names[part], rv);
+					goto errout;
+				}
 
-			rv = ftl_initialize(total_blocks, instances[i]->part_dev[part]);
+			} else {
+				/* Initialize to provide an FTL block driver on the MTD FLASH interface */
 
-			if (rv < 0) {
-				PX4_ERR("ftl_initialize %s failed: %d", blockname, rv);
-				goto errout;
-			}
+				snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", total_blocks);
 
-			total_blocks++;
+				rv = ftl_initialize(total_blocks, instances[i]->part_dev[part]);
 
-			/* Now create a character device on the block device */
+				if (rv < 0) {
+					PX4_ERR("ftl_initialize %s failed: %d", blockname, rv);
+					goto errout;
+				}
 
-			rv = bchdev_register(blockname, instances[i]->partition_names[part], false);
+				total_blocks++;
 
-			if (rv < 0) {
-				PX4_ERR("bchdev_register %s failed: %d", instances[i]->partition_names[part], rv);
-				goto errout;
+				/* Now create a character device on the block device */
+
+				rv = bchdev_register(blockname, instances[i]->partition_names[part], false);
+
+				if (rv < 0) {
+					PX4_ERR("bchdev_register %s failed: %d", instances[i]->partition_names[part], rv);
+					goto errout;
+				}
 			}
 
 			instances[i]->n_partitions_current++;

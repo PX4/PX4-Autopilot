@@ -45,7 +45,7 @@ public:
 	CallbackHandler(orb_id_t id) : uORB::SubscriptionCallback(id) {}
 	virtual ~CallbackHandler() {}
 
-	void call() override
+	void call(unsigned generation) override
 	{
 		px4::msg::GpioIn new_input;
 

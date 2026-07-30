@@ -40,3 +40,18 @@ parameters:
       max: 1
       decimal: 2
       increment: 0.01
+    MAN_OVERRIDE_SPD:
+      description:
+        short: Manual control override speed threshold
+        long: >-
+          Stick velocity above which the pilot regains control by switching to Position
+          mode (or Altitude if position is unavailable). Unit: normalized stick travel
+          per second — at 1.0, moving a stick half its range in ~0.5s triggers it.
+          A negative value disables the feature. Only applies to multicopters and VTOLs in MC mode.
+      type: float
+      default: 1
+      unit: '1/s'
+      min: -1
+      max: 10.0
+      decimal: 1
+      increment: 0.5

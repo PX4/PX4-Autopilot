@@ -40,5 +40,6 @@ px4_add_module(
 		bmp581.cpp
 		bmp581_main.cpp
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

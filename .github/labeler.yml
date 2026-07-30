@@ -260,25 +260,6 @@
     - "**/*_test.*"
     - "**/test_*.*"
 
-"risk:safety-critical":
-- changed-files:
-  - any-glob-to-any-file:
-    - src/modules/commander/**
-    - src/modules/navigator/**
-    - src/modules/ekf2/**
-    - src/modules/sensors/**
-    - src/modules/*_control/**
-    - src/modules/control_allocator/**
-    - src/modules/land_detector/**
-    - src/modules/flight_mode_manager/**
-    - src/drivers/actuators/**
-    - src/drivers/imu/**
-    - src/drivers/ins/**
-    - src/drivers/pwm_out/**
-    - src/lib/collision_prevention/**
-    - src/lib/flight_tasks/**
-    - src/lib/geofence/**
-
 "risk:security":
 - changed-files:
   - any-glob-to-any-file:

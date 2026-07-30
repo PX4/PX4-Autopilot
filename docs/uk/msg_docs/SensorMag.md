@@ -13,10 +13,10 @@ pageClass: is-wide-page
 | <a id="fld_timestamp"></a>timestamp                                    | `uint64`  |                                                                  |            | time since system start (microseconds)                 |
 | <a id="fld_timestamp_sample"></a>timestamp_sample | `uint64`  |                                                                  |            |                                                                           |
 | <a id="fld_device_id"></a>device_id               | `uint32`  |                                                                  |            | unique device ID for the sensor that does not change between power cycles |
-| <a id="fld_x"></a>x                                                    | `float32` |                                                                  |            | magnetic field in the FRD board frame X-axis in Gauss                     |
-| <a id="fld_y"></a>y                                                    | `float32` |                                                                  |            | magnetic field in the FRD board frame Y-axis in Gauss                     |
-| <a id="fld_z"></a>z                                                    | `float32` |                                                                  |            | magnetic field in the FRD board frame Z-axis in Gauss                     |
-| <a id="fld_temperature"></a>temperature                                | `float32` |                                                                  |            | temperature in degrees Celsius                                            |
+| <a id="fld_x"></a>x                                                    | `float32` | Gauss                                                            |            | magnetic field in the FRD board frame X-axis                              |
+| <a id="fld_y"></a>y                                                    | `float32` | Gauss                                                            |            | magnetic field in the FRD board frame Y-axis                              |
+| <a id="fld_z"></a>z                                                    | `float32` | Gauss                                                            |            | magnetic field in the FRD board frame Z-axis                              |
+| <a id="fld_temperature"></a>temperature                                | `float32` | °C                                                               |            | Temperature.                                              |
 | <a id="fld_error_count"></a>error_count           | `uint32`  |                                                                  |            |                                                                           |
 
 ## Constants
@@ -38,11 +38,11 @@ uint64 timestamp_sample
 
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
-float32 x                 # magnetic field in the FRD board frame X-axis in Gauss
-float32 y                 # magnetic field in the FRD board frame Y-axis in Gauss
-float32 z                 # magnetic field in the FRD board frame Z-axis in Gauss
+float32 x                 # [Gauss] magnetic field in the FRD board frame X-axis
+float32 y                 # [Gauss] magnetic field in the FRD board frame Y-axis
+float32 z                 # [Gauss] magnetic field in the FRD board frame Z-axis
 
-float32 temperature       # temperature in degrees Celsius
+float32 temperature       # [°C] Temperature.
 
 uint32 error_count
 

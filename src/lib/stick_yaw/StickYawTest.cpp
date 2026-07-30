@@ -75,3 +75,46 @@ TEST(StickYawTest, UnaidedYawNanTransitionNoYawJump)
 			<< "Yaw setpoint jumped from " << yaw_sp_before << " to " << yaw_sp
 			<< " when unaided_yaw became NAN";
 }
+
+TEST(StickYawTest, UnaidedYawNanToFiniteTransitionResetsYawLock)
+{
+	// When unaided_yaw recovers from NAN, stale yaw correction state from before
+	// the outage must not be applied to the locked yaw setpoint.
+
+	param_control_autosave(false);
+
+	StickYaw stick_yaw{nullptr};
+	float yawspeed_sp = 0.f;
+	float yaw_sp = NAN;
+	const float dt = 0.01f;
+
+	// Phase 1: Establish yaw lock at yaw=0 with unaided_yaw=0.
+	stick_yaw.reset(0.f, 0.f);
+
+	for (int i = 0; i < 10; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.f, dt, 0.f);
+	}
+
+	EXPECT_NEAR(yaw_sp, 0.f, 0.01f);
+
+	// Phase 2: Simulate a yaw estimate correction while unaided_yaw is valid.
+	for (int i = 0; i < 20; i++) {
+		stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.3f, dt, 0.f);
+	}
+
+	EXPECT_NEAR(yaw_sp, 0.3f, 0.01f);
+
+	// Phase 3: unaided_yaw becomes unavailable. The yaw setpoint is held by the
+	// existing correction state.
+	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.3f, dt, NAN);
+
+	EXPECT_NEAR(yaw_sp, 0.3f, 0.01f);
+
+	// Phase 4: unaided_yaw recovers with a new yaw error baseline. The yaw lock
+	// should reset to the current yaw instead of applying stale correction state.
+	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.3f, dt, 0.3f);
+
+	EXPECT_NEAR(yaw_sp, 0.3f, 0.01f)
+			<< "Yaw setpoint jumped to " << yaw_sp
+			<< " when unaided_yaw recovered from NAN";
+}

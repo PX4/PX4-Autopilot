@@ -38,6 +38,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+
 class PX4Rangefinder
 {
 public:
@@ -71,4 +73,7 @@ public:
 
 private:
 	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
+
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<distance_sensor_s> _stuck;
 };

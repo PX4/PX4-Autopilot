@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭        | 형식         | Unit [Frame] | Range/Enum | 설명                                                        |
-| --------- | ---------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64`   |                                                                  |            | time since system start (microseconds) |
-| 키         | `char[10]` |                                                                  |            | max. 10 characters as key / name          |
-| value     | `float32`  |                                                                  |            | the value to send as debug output                         |
+| 명칭                                  | 형식         | Unit [Frame] | Range/Enum | 설명                                                        |
+| ----------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`   |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_key"></a>key             | `char[10]` |                                                                  |            | max. 10 characters as key / name          |
+| <a id="fld_value"></a>value         | `float32`  |                                                                  |            | the value to send as debug output                         |
 
 ## Source Message
 

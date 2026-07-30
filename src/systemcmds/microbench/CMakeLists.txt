@@ -44,10 +44,13 @@ px4_add_module(
 		microbench_main.cpp
 
 		test_microbench_atomic.cpp
+		test_microbench_gravity.cpp
 		test_microbench_hrt.cpp
 		test_microbench_math.cpp
 		test_microbench_matrix.cpp
 		test_microbench_uorb.cpp
+		test_microbench_perf.cpp
 
 	DEPENDS
+		lat_lon_alt
 )

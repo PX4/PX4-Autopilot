@@ -128,7 +128,6 @@ px4_add_module(
 		module.yaml
 		mavlink_params.yaml
 	DEPENDS
-		adsb
 		airspeed
 		component_general_json # for checksums.h
 		dataman_client
@@ -146,6 +145,10 @@ px4_add_module(
 		version
 	UNITY_BUILD
 	)
+
+if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
+	target_link_libraries(modules__mavlink PRIVATE drivers__serialpassthrough)
+endif()
 
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES

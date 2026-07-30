@@ -109,7 +109,7 @@ If you are loading the pre-built firmware via QGroundControl, you must use QGC D
 
 In addition to the [basic configuration](../config/index.md), the following parameters are important:
 
-| Параметр                                                                                                       | Налаштування                                                                                                                                                  |
+| Parameter                                                                                                      | Налаштування                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | Це має бути вимкнено, оскільки у платі немає внутрішнього магніту. Ви можете активувати це, якщо приєднаєте зовнішній магніт. |
 

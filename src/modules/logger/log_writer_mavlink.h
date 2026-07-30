@@ -78,7 +78,7 @@ private:
 
 	ulog_stream_s _ulog_stream_data{};
 	uORB::Publication<ulog_stream_s> _ulog_stream_pub{ORB_ID(ulog_stream)};
-	int _ulog_stream_ack_sub{-1};
+	orb_sub_t _ulog_stream_ack_sub{ORB_SUB_INVALID};
 	bool _need_reliable_transfer{false};
 	bool _is_started{false};
 };

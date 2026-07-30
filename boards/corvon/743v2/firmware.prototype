@@ -1,0 +1,13 @@
+{
+    "board_id": 1229,
+    "magic": "PX4FWv1",
+    "description": "Firmware file for Corvon 743V2 flight controller",
+    "image": "",
+    "build_time": 0,
+    "summary": "Corvon_743V2",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1835008,
+    "git_identity": "",
+    "board_revision": 0
+}

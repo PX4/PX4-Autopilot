@@ -1233,6 +1233,30 @@
   },
   {
     "link": {
+      "url": "https://grabcad.com/library/raccoonlab-autopilot-1",
+      "text": ""
+    },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": {
+      "url": "https://www.rcgroups.com/forums/showthread.php?3904021-NEW-E-flite-Turbo-Timber-Evolution-1-5m/page50",
+      "text": ""
+    },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": {
+      "url": "https://optitrack.com/applications/robotics",
+      "text": ""
+    },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": {
       "url": "https://senterasensors.com/phx/",
       "text": ""
     },
@@ -1272,6 +1296,24 @@
       "text": "Aion Robotics R1 UGV"
     },
     "hideReason": "Link from airframe data"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/flight_controller/cuav_v5_nano",
+      "text": "PX4 v1.17"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\flight_controller\\autopilot_discontinued.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/flight_controller/cuav_v5_plus",
+      "text": "PX4 v1.17"
+    },
+    "hideReason": "Expected link to old version"
   },
   {
     "type": "UrlToLocalSite",

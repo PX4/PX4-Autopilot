@@ -8,10 +8,10 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭                                 | 형식           | Unit [Frame] | Range/Enum | 설명                                                        |
-| ---------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                          | `uint64`     |                                                                  |            | time since system start (microseconds) |
-| control_power | `float32[3]` |                                                                  |            |                                                           |
+| 명칭                                                               | 형식           | Unit [Frame] | Range/Enum | 설명                                                        |
+| ---------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                              | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_control_power"></a>control_power | `float32[3]` |                                                                  |            |                                                           |
 
 ## Source Message
 

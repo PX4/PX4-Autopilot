@@ -54,6 +54,8 @@ exception_list = [
     'MODULES_MUORB_APPS', # Weird QURT/Posix package doesn't work on x86 px4 sitl
     'MODULES_SIMULATION_SIMULATOR_SIH', # Causes compile errors
     'MODULES_SPACECRAFT', # Clashes with Control Allocation (mom's spaghetti code)
+    'DRIVERS_SERIALPASSTHROUGH', # Requires board-specific UART config and NuttX
+    'SERIALPASSTHROUGH_BITBANG', # Requires STM32 timer and GPIO config
 ]
 
 exception_list_sitl = [
@@ -110,6 +112,7 @@ exception_list_sitl = [
     'SYSTEMCMDS_USB_CONNECTED', # Not supported in SITL
     'SYSTEMCMDS_MFT_CFG', # Not supported in SITL
     'MODULES_SPACECRAFT', # Clashes with Control Allocation (mom's spaghetti code)
+    'DRIVERS_SERIALPASSTHROUGH', # Not supported in SITL
 ]
 
 def main():

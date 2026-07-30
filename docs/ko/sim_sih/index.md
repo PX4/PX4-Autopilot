@@ -30,14 +30,14 @@ Two modes are supported:
 
 The following vehicle types are supported:
 
-| Vehicle                                                                            | Make Target                              | Status |
-| ---------------------------------------------------------------------------------- | ---------------------------------------- | ------ |
-| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                                   | `make px4_sitl_sih sihsim_quadx`         | Stable |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                                  | `make px4_sitl_sih sihsim_hexa`          | 실험     |
-| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`      | 실험     |
-| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                              | `make px4_sitl_sih sihsim_xvert`         | 실험     |
-| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol` | 실험     |
-| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                              | `make px4_sitl_sih sihsim_rover`         | 실험     |
+| Vehicle                                                                            | Make Target                                | Status |
+| ---------------------------------------------------------------------------------- | ------------------------------------------ | ------ |
+| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                                   | `make px4_sitl_sih sihsim_quadx`           | Stable |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                                  | `make px4_sitl_sih sihsim_hexa`            | 실험     |
+| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`        | 실험     |
+| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                              | `make px4_sitl_sih sihsim_xvert`           | 실험     |
+| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol`   | 실험     |
+| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                              | `make px4_sitl_sih sihsim_rover_ackermann` | 실험     |
 
 :::warning
 Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behaviour.
@@ -303,7 +303,7 @@ If not, the SIH uses a simple model with maximum thrust force given by `SIH_F_T_
 
 ## 비디오
 
-SIH demo with a fixed-wing vehicle @[youtube](https://youtu.be/PzIpSCRD8Jo)  
+SIH demo with a fixed-wing vehicle @[youtube](https://youtu.be/PzIpSCRD8Jo)
 How to parametrize the thrust and power coefficients CT & CP @[youtube](https://www.youtube.com/watch?v=KNSd9ge0sSw)
 
 ## Credits

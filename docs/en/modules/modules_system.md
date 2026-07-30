@@ -56,8 +56,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### Implementation
 
@@ -248,6 +250,40 @@ This implements using information from the ESC status and publish it as battery 
 
 ```
 esc_battery <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
+## failure_injection_manager
+
+Source: [modules/failure_injection_manager](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/failure_injection_manager)
+
+### Description
+
+Central module for handling failure injection. It collects failure requests, tracks
+the set of active failures, and publishes them on the `failure_injection` topic for
+the apply-sites to act on.
+
+Failures can be triggered through:
+
+- `MAV_CMD_INJECT_FAILURE` over MAVLink (e.g. from MAVSDK)
+- the `failure` console command
+- an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
+  `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
+
+Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
+
+Failures can be applied both in simulation and on real hardware, where the apply-sites are
+compiled in alongside this module.
+
+### Usage {#failure_injection_manager_usage}
+
+```
+failure_injection_manager <command> [arguments...]
  Commands:
    start
 
@@ -670,6 +706,27 @@ netman <command> [arguments...]
    save          Save the current network parameters to the SD card.
      [-i <val>]  Set the interface name
                  default: eth0
+```
+
+## nfs_mount
+
+Source: [modules/nfs_mount](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/nfs_mount)
+
+### Description
+
+Mounts an NFS filesystem from NFS_IP on NFS_MOUNT_MOUNT_POINT.
+Started automatically by rcS when NFS_EN is set.
+
+### Usage {#nfs_mount_usage}
+
+```
+nfs_mount <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
 ```
 
 ## pwm_input

@@ -10,10 +10,10 @@ power button state notification message.
 
 ## Fields
 
-| 명칭        | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
-| --------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
-| event     | `uint8`  |                                                                  |            | one of PWR_BUTTON_STATE_\*           |
+| 명칭                                  | 형식       | Unit [Frame] | Range/Enum | 설명                                                        |
+| ----------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64` |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_event"></a>event         | `uint8`  |                                                                  |            | one of PW&#x52;_&#x42;UTTON_STATE_\* |
 
 ## Constants
 

@@ -46,6 +46,7 @@
  */
 
 #include "mission.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <string.h>
@@ -197,7 +198,7 @@ void Mission::setActiveMissionItems()
 		}
 	}
 
-	if (item_contains_position(_mission_item)) {
+	if (mission_item_contains_position(_mission_item)) {
 
 		handleTakeoff(new_work_item_type, next_mission_items, num_found_items);
 

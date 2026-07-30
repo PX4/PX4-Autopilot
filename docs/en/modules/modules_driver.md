@@ -358,7 +358,7 @@ Source: [drivers/gps](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers
 ### Description
 
 GPS driver module that handles the communication with the device and publishes the position via uORB.
-It supports multiple protocols (device vendors) and by default automatically selects the correct one.
+The available device protocols are selected at build time.
 
 The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
 on the second uORB topic instance, but it's currently not used by the rest of the system (however the
@@ -401,7 +401,8 @@ gps <command> [arguments...]
                  values: spi|uart, default: uart
      [-j <val>]  secondary GPS interface
                  values: spi|uart, default: uart
-     [-p <val>]  GPS Protocol (default=auto select)
+     [-p <val>]  GPS protocol (availability depends on build; default from
+                 GPS_x_PROTOCOL)
                  values: ubx|mtk|ash|eml|fem|nmea
 
    stop
@@ -1317,6 +1318,40 @@ septentrio <command> [arguments...]
 
    reset         Reset connected receiver
      cold|warm|hot Specify reset type
+```
+
+## serialpassthrough
+
+Source: [drivers/serialpassthrough](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/serialpassthrough)
+
+### Description
+
+Serial passthrough driver driven by MAVLink SERIAL_CONTROL messages.
+Bridges a MAVLink stream to a hardware UART or an ESC signal pin (bitbang).
+
+Only a single sender is supported at a time. Simultaneous SERIAL_CONTROL
+messages from multiple senders produce undefined behaviour.
+
+Up to 8 instances can run simultaneously, one per device.
+
+### Usage {#serialpassthrough_usage}
+
+```
+serialpassthrough <command> [arguments...]
+ Commands:
+   start
+     [-d <val>]  Serial device path
+                 values: <dev>
+     [-b <val>]  Baudrate
+                 default: 115200
+     [-x]        Swap RX/TX pins
+     [-s]        Single-wire (half-duplex) mode
+     [-e <val>]  ESC bitbang channel (0-7), instead of -d
+     [-i <val>]  Internal: instance registry key (injected by startForDevice())
+
+   stop
+
+   status
 ```
 
 ## sht3x

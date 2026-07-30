@@ -272,6 +272,48 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	EXPECT_GT(yaw_change, 0.3f) << "Yaw change: " << degrees(yaw_change) << " deg";
 }
 
+TEST_F(EkfMagTest, magHeadingChangeRateLimited)
+{
+	// GIVEN: EKF just had its initial yaw alignment from mag, setting heading variance to
+	// sq(ekf2_head_noise). At this point, a wrong mag measurement would cause a heading
+	// jump without the rate limit.
+	const Vector3f correct_mag(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(correct_mag);
+
+	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+	_sensor_simulator.runSeconds(1.f);
+
+	ASSERT_GT(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter)
+			<< "Initial yaw reset should have occurred";
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagFusion());
+
+	// WHEN: mag suddenly changes direction (within innovation gate, but enough to trigger the rate limit)
+	const float wrong_angle = radians(15.f);
+	const Vector3f wrong_mag(0.2f * cosf(wrong_angle), -0.2f * sinf(wrong_angle), 0.4f);
+	_sensor_simulator._mag.setData(wrong_mag);
+
+	// allow the EKF delay buffer to flush so wrong mag data starts being processed
+	const float step_dt = 0.1f;
+	_sensor_simulator.runSeconds(3.f * step_dt);
+
+	// THEN: per-step heading change is bounded
+	const float max_rate_rad_per_s = radians(1.f);
+	float yaw_prev = _ekf_wrapper.getYawAngle();
+
+	for (int i = 0; i < 10; i++) {
+		_sensor_simulator.runSeconds(step_dt);
+		const float yaw_curr = _ekf_wrapper.getYawAngle();
+		const float rate = fabsf(wrap_pi(yaw_curr - yaw_prev)) / step_dt;
+		EXPECT_NEAR(rate, max_rate_rad_per_s, radians(0.1f)) << "step " << i << ": heading rate "
+				<< degrees(rate) << " deg/s";
+		yaw_prev = yaw_curr;
+	}
+
+	// AND: heading eventually converges to the wrong heading despite being rate-limited
+	_sensor_simulator.runSeconds(30.f);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), wrong_angle, radians(4.f));
+}
+
 TEST_F(EkfMagTest, magFaultCleared)
 {
 	// GIVEN: biased mag data

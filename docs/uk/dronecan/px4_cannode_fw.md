@@ -29,7 +29,7 @@ However, you can configure a static node ID using the [CANNODE_NODE_ID](../advan
 
 To configure a static node ID:
 
-1. Set [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) to a value between 1-127 using [QGroundControl](index.md#qgc-cannode-parameter-configuration)
+1. Set [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) to a value between 1-125 using [QGroundControl](index.md#qgc-cannode-parameter-configuration)
 2. Reboot the device
 
 To return to dynamic allocation, set `CANNODE_NODE_ID` back to 0.

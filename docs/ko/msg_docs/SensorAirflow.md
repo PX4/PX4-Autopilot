@@ -8,13 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭                             | 형식        | Unit [Frame] | Range/Enum | 설명                                                                        |
-| ------------------------------ | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| timestamp                      | `uint64`  |                                                                  |            | time since system start (microseconds)                 |
-| device_id | `uint32`  |                                                                  |            | unique device ID for the sensor that does not change between power cycles |
-| speed                          | `float32` |                                                                  |            | the speed being reported by the wind / airflow sensor                     |
-| direction                      | `float32` |                                                                  |            | the direction being reported by the wind / airflow sensor                 |
-| status                         | `uint8`   |                                                                  |            | Status code from the sensor                                               |
+| 명칭                                                       | 형식        | Unit [Frame] | Range/Enum | 설명                                                                        |
+| -------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                      | `uint64`  |                                                                  |            | time since system start (microseconds)                 |
+| <a id="fld_device_id"></a>device_id | `uint32`  |                                                                  |            | unique device ID for the sensor that does not change between power cycles |
+| <a id="fld_speed"></a>speed                              | `float32` |                                                                  |            | the speed being reported by the wind / airflow sensor                     |
+| <a id="fld_direction"></a>direction                      | `float32` |                                                                  |            | the direction being reported by the wind / airflow sensor                 |
+| <a id="fld_status"></a>status                            | `uint8`   |                                                                  |            | Status code from the sensor                                               |
 
 ## Source Message
 

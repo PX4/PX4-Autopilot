@@ -40,6 +40,7 @@
  */
 
 #include "rtl_mission_fast.h"
+#include "mission_item_utils.h"
 #include "navigator.h"
 
 #include <drivers/drv_hrt.h>
@@ -139,7 +140,7 @@ void RtlMissionFast::setActiveMissionItems()
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 
-	} else if (item_contains_position(_mission_item)) {
+	} else if (mission_item_contains_position(_mission_item)) {
 
 		static constexpr size_t max_num_next_items{1u};
 		int32_t next_mission_items_index[max_num_next_items];

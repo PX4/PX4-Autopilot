@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭        | 형식         | Unit [Frame] | Range/Enum | 설명 |
-| --------- | ---------- | ---------------------------------------------------------------- | ---------- | -- |
-| timestamp | `uint64`   |                                                                  |            |    |
-| status    | `uint8`    |                                                                  |            |    |
-| error     | `char[50]` |                                                                  |            |    |
+| 명칭                                  | 형식         | Unit [Frame] | Range/Enum | 설명 |
+| ----------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | -- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`   |                                                                  |            |    |
+| <a id="fld_status"></a>status       | `uint8`    |                                                                  |            |    |
+| <a id="fld_error"></a>error         | `char[50]` |                                                                  |            |    |
 
 ## Source Message
 

@@ -1,9 +1,22 @@
 # 출시
 
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
+<div v-if="site.title !== 'PX4 Guide (main)'">
+  <div class="custom-block danger">
+    <p class="custom-block-title">This page is on a release branch, and hence probably out of date. <a href="https://docs.px4.io/main/en/releases/">See the latest version</a>.</p>
+  </div>
+  <Redirect to="https://docs.px4.io/main/en/releases/" />
+</div>
+
 PX4 릴리스 노트는 각 릴리스의 변경 사항들을 설명합니다.
 
-- [main](../releases/main.md) (changes planned for v1.18 or later)
-- [v1.17](../releases/1.17.md) (changes in v1.17, since v1.16)
+- [main](../releases/main.md) (changes planned for v1.19 or later)
+- [v1.18](../releases/1.18.md) (changes in v1.18, since v1.17)
+- [v1.17](../releases/1.17.md)
 - [v1.16](../releases/1.16.md)
 - [v1.15](../releases/1.15.md)
 - [v1.14](../releases/1.14.md)

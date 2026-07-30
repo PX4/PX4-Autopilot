@@ -183,7 +183,7 @@ The position controller uses the following structure:
 
 ## Огляд параметрів
 
-| Параметр                                                                                                                                           | Опис                                                                                             | Unit |
+| Parameter                                                                                                                                          | Опис                                                                                             | Unit |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
 | <a id="RO_SPEED_RED"></a>[RO_SPEED_RED](../advanced_config/parameter_reference.md#RO_SPEED_RED)          | (Optional) Tuning parameter for the speed reduction based on the course error | -    |
 | <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                                              | -    |
@@ -192,14 +192,14 @@ The position controller uses the following structure:
 
 ## Ackermann Specific
 
-| Параметр                                                                                                                                                                | Опис                                                                                | Unit |
+| Parameter                                                                                                                                                               | Опис                                                                                | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---- |
 | <a id="RA_ACC_RAD_MAX"></a>[RA_ACC_RAD_MAX](../advanced_config/parameter_reference.md#RA_ACC_RAD_MAX)    | (Optional) Maximum radius the acceptance radius can be scaled to | m    |
 | <a id="RA_ACC_RAD_GAIN"></a>[RA_ACC_RAD_GAIN](../advanced_config/parameter_reference.md#RA_ACC_RAD_GAIN) | (Optional) Tuning parameter for the acceptance radius scaling    | -    |
 
 ## Differential Specific
 
-| Параметр                                                                                                                                                                   | Опис                                                           | Unit |
+| Parameter                                                                                                                                                                  | Опис                                                           | Unit |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---- |
 | <a id="RD_TRANS_DRV_TRN"></a>[RD_TRANS_DRV_TRN](../advanced_config/parameter_reference.md#RD_TRANS_DRV_TRN) | Heading error threshold to switch from driving to spot turning | deg  |
 | <a id="RD_TRANS_TRN_DRV"></a>[RD_TRANS_TRN_DRV](../advanced_config/parameter_reference.md#RD_TRANS_TRN_DRV) | Heading error threshold to switch from spot turning to driving | deg  |

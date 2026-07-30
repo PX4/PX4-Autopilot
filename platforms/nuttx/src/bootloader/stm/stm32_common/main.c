@@ -19,6 +19,10 @@
 #include "bl.h"
 #include "uart.h"
 
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+#include "ecc_scrub.h"
+#endif
+
 
 #define MK_GPIO_INPUT(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT))
 
@@ -455,11 +459,16 @@ inline void arch_setvtor(const uint32_t *address)
 	putreg32((uint32_t)address, NVIC_VECTAB);
 }
 
+/* the chip code may provide its own sector size (see stm32h7/ecc_scrub.h) */
+#if !defined(FLASH_SECTOR_SIZE)
+#define FLASH_SECTOR_SIZE   (128u * 1024u)
+#endif
+
 uint32_t
 flash_func_sector_size(unsigned sector)
 {
 	if (sector <= BOARD_FLASH_SECTORS) {
-		return 128 * 1024;
+		return FLASH_SECTOR_SIZE;
 	}
 
 	return 0;
@@ -663,6 +672,11 @@ bootloader_main(void)
 
 	/* configure the clock for bootloader activity */
 	clock_init();
+
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+	/* scrub any uncorrectable flash ECC errors before we try to run the app */
+	check_ecc_errors();
+#endif
 
 	/*
 	 * Check the force-bootloader register; if we find the signature there, don't

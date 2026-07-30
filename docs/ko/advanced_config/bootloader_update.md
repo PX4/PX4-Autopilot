@@ -2,7 +2,7 @@
 
 The _PX4 Bootloader_ is used to load firmware for [Pixhawk boards](../flight_controller/pixhawk_series.md) (PX4FMU, PX4IO).
 
-Pixhawk controllers usually comes with an appropriate bootloader version pre-installed.
+Pixhawk controllers usually come with an appropriate bootloader version pre-installed.
 However in some cases it is not present, or an older version is present that needs to be updated, or the board has been bricked and needs to be erased and the bootloader reinstalled.
 
 이 섹션은 픽스호크 부트로더를 업데이트 방법을 설명합니다.
@@ -38,7 +38,7 @@ You can enable this key in your own custom firmware if needed.
 2. [Update the Firmware](../config/firmware.md#custom) with an image containing the new/desired bootloader.
 
    ::: info
-   The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
+   The updated bootloader might be included in the default firmware for your board or supplied in custom firmware.
 
 :::
 
@@ -51,7 +51,7 @@ You can enable this key in your own custom firmware if needed.
 
 Generally at this point you may then want to [update the firmware](../config/firmware.md) again using the correct/newly installed bootloader.
 
-An specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
+A specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
 
 ## Building the PX4 Bootloader
 
@@ -89,7 +89,7 @@ The following steps explain how you can "manually" update the bootloader using a
 1. Get a binary containing the bootloader (either from dev team or [build it yourself](#building-the-px4-bootloader)).
 
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
-   Connect the probe your PC via USB and setup the `gdbserver`.
+   Connect the probe to your PC via USB and setup the `gdbserver`.
 
 3. Go into the directory containing the binary and run the command for your target bootloader in the terminal:
 
@@ -152,7 +152,7 @@ The following steps explain how you can "manually" update the bootloader using a
 
 :::
 
-8. Use the following command to scan for the Pixhawk\`s SWD and connect to it:
+8. Use the following command to scan for the Pixhawk's SWD and connect to it:
 
    ```sh
    (gdb) mon swdp_scan
@@ -212,4 +212,5 @@ For boards that are preflashed with Betaflight, see [Bootloader Flashing onto Be
 
 ## See Also
 
+- [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md)
 - [OEM/Factory Configuration](../advanced_config/oem.md)

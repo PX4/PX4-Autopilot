@@ -39,5 +39,6 @@ px4_add_module(
 		tcbp001ta_spi.cpp
 		tcbp001ta_main.cpp
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

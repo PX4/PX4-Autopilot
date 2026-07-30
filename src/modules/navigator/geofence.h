@@ -53,12 +53,18 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
+#include "./RTLPlanner/geofence_interface.h"
 
+#if defined(PX4_STORAGEDIR)
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
+#else
+#define GEOFENCE_FILENAME PX4_ROOTFSDIR"/etc/geofence.txt"
+#endif
 
 class Navigator;
 
-class Geofence : public ModuleParams
+
+class Geofence : public ModuleParams, public GeofenceInterface
 {
 public:
 	Geofence(Navigator *navigator);
@@ -138,9 +144,20 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
-	bool getPredict() { return _param_gf_predict.get(); }
 
 	bool isHomeRequired();
+
+	/**
+	 * Returns true once after the polygon set changes (e.g. dataman finished loading a new fence),
+	 * then clears the flag. Navigator polls this to know when to rebuild the avoidance planner's
+	 * vertex graph.
+	 */
+	bool consumeFenceUpdated()
+	{
+		const bool updated = _geofence_updated;
+		_geofence_updated = false;
+		return updated;
+	}
 
 	/**
 	 * print Geofence status to the console
@@ -155,15 +172,6 @@ private:
 		ReadWait,
 		Load,
 		Error
-	};
-
-	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
-		uint16_t dataman_index;
-		union {
-			uint16_t vertex_count;
-			float circle_radius;
-		};
 	};
 
 	Navigator   *_navigator{nullptr};
@@ -185,6 +193,7 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
+	bool _geofence_updated{false}; ///< set when polygons change, consumed by Navigator to rebuild avoidance graph
 
 	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
 
@@ -226,11 +235,16 @@ private:
 	 */
 	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
 
+	PolygonInfo getPolygonInfoByIndex(int index) override { return _polygons[index]; }
+
+	matrix::Vector2<double>getPolygonVertexByIndex(int poly_idx, int idx) override;
+
+	int getNumPolygons() const override { return _num_polygons; }
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 };

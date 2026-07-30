@@ -45,7 +45,6 @@
 
 #include "navigator_mode.h"
 #include "navigation.h"
-#include <dataman_client/DatamanClient.hpp>
 #include "rtl_base.h"
 #include "rtl_direct.h"
 #include "rtl_direct_mission_land.h"
@@ -62,6 +61,8 @@
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
+class MissionRouteCache;
+class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
 {
@@ -86,25 +87,23 @@ public:
 
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
 
-	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
-
 	bool isLanding();
 
 private:
+	friend class RTLTestPeer;
+
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
 		DESTINATION_TYPE_SAFE_POINT
 	};
 
-private:
-
 	/**
 	 * @brief Check mission landing validity
 	 * @return true if mission has a land start, a land and is valid
 	 */
 	bool hasMissionLandStart() const;
-
+	bool hasValidMission() const;
 
 	/**
 	 * @brief Check whether there are more waypoints between current waypoint
@@ -112,11 +111,6 @@ private:
 	 * @return true if the reverse is more items away.
 	 */
 	bool reverseIsFurther() const;
-
-	/**
-	 * @brief function to call regularly to do background work
-	 */
-	void updateDatamanCache();
 
 	void setRtlTypeAndDestination();
 
@@ -145,13 +139,6 @@ private:
 	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
 
 	/**
-	 * @brief Set the safepoint as destination.
-	 *
-	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
-	 */
-	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
-
-	/**
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
@@ -173,60 +160,29 @@ private:
 	void parameters_update();
 
 	/**
-	 * @brief read VTOL land approaches
+	 * @brief Choose the most wind-aligned approach in a landing-approach block.
 	 *
-	 * @param[in] rtl_position landing position of the rtl
-	 *
+	 * Bearings are evaluated from the block's land location.
 	 */
-	land_approaches_s readVtolLandApproaches(PositionYawSetpoint rtl_position) const;
+	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
 
 	/**
-	 * @brief Has VTOL land approach
-	 *
-	 * @param[in] rtl_position landing position of the rtl
-	 *
-	 * @return true if home land approaches are defined for home position
-	 * @return false otherwise
+	 * @brief Return the wind-selected VTOL approach for destination, or an invalid loiter if none exists.
 	 */
-	bool hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const;
-
-	/**
-	 * @brief Choose best landing approach
-	 *
-	 * Choose best landing approach for home considering wind
-	 *
-	 * @return loiter_point_s best landing approach
-	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches);
-
-	enum class DatamanState {
-		UpdateRequestWait,
-		Read,
-		ReadWait,
-		Load,
-		Error
-	};
+	loiter_point_s selectLandingApproach(const PositionYawSetpoint &destination) const;
 
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
+	uint32_t _mission_land_failure_mission_id{0};
+	uint16_t _mission_land_failure_count{0};
+	int32_t _mission_land_failure_index{-1};
+	uint8_t _mission_land_failure_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
+	bool _mission_land_failure_reported{false};
 
-	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
-	bool _one_rally_point_has_land_approach;	///< Flag if a rally point has a land approach defined
-
-	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
-	DatamanState _error_state{DatamanState::UpdateRequestWait};
-	uint32_t _opaque_id{0}; ///< dataman safepoint id: if it does not match, safe points data was updated
-	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
-	mutable DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
-	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
-	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
-	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
-	uint32_t _mission_id = 0u;
-	uint32_t _safe_points_id = 0u;
-
-	mission_stats_entry_s _stats;
+	bool _home_has_land_approach{false};           ///< Flag if the home position has a land approach defined
+	bool _one_rally_point_has_land_approach{false}; ///< Flag if a rally point has a land approach defined
 
 	RtlDirect _rtl_direct;
 

@@ -145,11 +145,11 @@
  * -------------------------------------------------------------------------- */
 
 .medium-zoom-overlay {
-  z-index: 20;
+  z-index: 70;
 }
 
 .medium-zoom-image {
-  z-index: 21;
+  z-index: 71;
 }
 
 
@@ -217,4 +217,16 @@ html {
     z-index: 10;
   }
 
+}
+
+
+/**
+ * Dark mode: invert vectorized diagram SVGs (Google Drawings exports where all
+ * text and arrows are black paths — invisible on a dark background without this).
+ * hue-rotate(180deg) keeps blue tones from turning orange after the invert.
+ * Apply class="diagram-invert" to any image that needs this treatment.
+ * -------------------------------------------------------------------------- */
+
+.dark .diagram-invert {
+  filter: invert(1) hue-rotate(180deg);
 }

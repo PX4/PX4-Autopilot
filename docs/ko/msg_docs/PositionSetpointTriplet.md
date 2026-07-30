@@ -10,12 +10,12 @@ Global position setpoint triplet in WGS84 coordinates. This are the three next w
 
 ## Fields
 
-| 명칭        | 형식                 | Unit [Frame] | Range/Enum | 설명                                                        |
-| --------- | ------------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp | `uint64`           |                                                                  |            | time since system start (microseconds) |
-| previous  | `PositionSetpoint` |                                                                  |            |                                                           |
-| current   | `PositionSetpoint` |                                                                  |            |                                                           |
-| next      | `PositionSetpoint` |                                                                  |            |                                                           |
+| 명칭                                  | 형식                 | Unit [Frame] | Range/Enum | 설명                                                        |
+| ----------------------------------- | ------------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp | `uint64`           |                                                                  |            | time since system start (microseconds) |
+| <a id="fld_previous"></a>previous   | `PositionSetpoint` |                                                                  |            |                                                           |
+| <a id="fld_current"></a>current     | `PositionSetpoint` |                                                                  |            |                                                           |
+| <a id="fld_next"></a>next           | `PositionSetpoint` |                                                                  |            |                                                           |
 
 ## Source Message
 

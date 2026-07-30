@@ -30,6 +30,7 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
+- [CUAV X25-MEGA](../flight_controller/cuav_x25-mega.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
 - [RaccoonLab FMUv6X Autopilot](../flight_controller/raccoonlab_fmu6x.md)
@@ -165,7 +166,7 @@ You must separately configure the PX4 IP address and other _network settings_ ([
 
 PX4配置串行端口以通过MAVLink连接到地面站，使用下面的参数:
 
-| 参数                                                                                                                                            | 值      | 描述                             |
+| Parameter                                                                                                                                     | 值      | 描述                             |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------ |
 | [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                              | 1000   | 配置以太网端口                        |
 | [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                        | 1      | Broadcast `HEARTBEAT` messages |

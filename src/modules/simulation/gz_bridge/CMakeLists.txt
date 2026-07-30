@@ -69,6 +69,11 @@ if (gz-transport_FOUND)
 			GZGimbal.cpp
 			GZGimbal.hpp
 		DEPENDS
+			drivers_accelerometer
+			drivers_gyroscope
+			drivers_magnetometer
+			drivers_rangefinder
+			drivers_barometer
 			mixer_module
 			px4_work_queue
 			${GZ_TRANSPORT_TARGET}

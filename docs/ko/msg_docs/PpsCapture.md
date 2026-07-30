@@ -8,11 +8,11 @@ pageClass: is-wide-page
 
 ## Fields
 
-| 명칭                                 | 형식       | Unit [Frame] | Range/Enum                                             | 설명                                                                             |
-| ---------------------------------- | -------- | ---------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| timestamp                          | `uint64` |                                                                  |                                                        | time since system start (microseconds) at PPS capture event |
-| rtc_timestamp | `uint64` |                                                                  |                                                        | Corrected GPS UTC timestamp at PPS capture event                               |
-| `uint8`                            |          |                                                                  | Increments when PPS dt < 50ms |                                                                                |
+| 명칭                                                               | 형식       | Unit [Frame] | Range/Enum | 설명                                                                             |
+| ---------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------ |
+| <a id="fld_timestamp"></a>timestamp                              | `uint64` |                                                                  |            | time since system start (microseconds) at PPS capture event |
+| <a id="fld_rtc_timestamp"></a>rtc_timestamp | `uint64` |                                                                  |            | Corrected GPS UTC timestamp at PPS capture event                               |
+| <a id="fld_"></a>                                                | `uint8`  |                                                                  |            | Increments when PPS dt < 50ms                         |
 
 ## Source Message
 

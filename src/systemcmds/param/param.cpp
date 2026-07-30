@@ -78,6 +78,7 @@ static int 	do_save(const char *param_file_name);
 static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name = nullptr);
+static int	do_load_or_init(const char *backup_file_name);
 static int	do_show(const char *search_string, bool only_changed);
 static int	do_show_for_airframe();
 static int	do_show_all();
@@ -127,6 +128,9 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("import", "Import params from a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("load-or-init",
+					 "Load params from storage; if blank, seed from a backup file or defaults and persist");
+	PRINT_MODULE_USAGE_ARG("<backup_file>", "Backup file to seed from when storage is blank", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save params to a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 
@@ -221,6 +225,15 @@ param_main(int argc, char *argv[])
 
 			} else {
 				return do_import();
+			}
+		}
+
+		if (!strcmp(argv[1], "load-or-init")) {
+			if (argc >= 3) {
+				return do_load_or_init(argv[2]);
+
+			} else {
+				return do_load_or_init(nullptr);
 			}
 		}
 
@@ -508,6 +521,105 @@ do_import(const char *param_file_name)
 		return 1;
 	}
 
+	return 0;
+}
+
+/**
+ * Load parameters from the default storage, initializing it if blank.
+ *
+ * A blank storage (nothing stored yet - e.g. first boot, or after switching
+ * firmware) is not an error: the parameters are seeded from the backup file
+ * if one is given and readable, otherwise the firmware defaults are kept,
+ * and the result is persisted so the storage is valid on the next boot.
+ *
+ * @return 0 if parameters were loaded or the storage was initialized,
+ *         1 if the storage is corrupt, a backup exists but could not be
+ *         imported, or the result could not be persisted
+ */
+static int
+do_load_or_init(const char *backup_file_name)
+{
+	/* resolve the storage like 'param import' does: the selected default
+	 * file, or the flash backend when none is set */
+	const char *param_file_name = param_get_default_file();
+	int result;
+
+	if (param_file_name) {
+		int storage_fd = open(param_file_name, O_RDONLY);
+
+		if (storage_fd >= 0) {
+			result = param_import(storage_fd);
+			close(storage_fd);
+
+		} else if (errno == ENOENT) {
+			/* no file yet */
+			result = 1;
+
+		} else {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			result = -1;
+		}
+
+	} else {
+		result = param_import(-1);
+	}
+
+	if (result == 0) {
+		PX4_INFO("parameters loaded from storage");
+		return 0;
+	}
+
+	if (result < 0) {
+		PX4_ERR("parameter storage is corrupt (%i)", result);
+		return 1;
+	}
+
+	/* result > 0: storage is blank, nothing has been stored yet */
+	PX4_INFO("parameter storage empty, initializing");
+
+	int fd = -1;
+
+	if (backup_file_name) {
+		fd = open(backup_file_name, O_RDONLY);
+
+		if (fd < 0 && errno != ENOENT) {
+			/* a backup exists but cannot be read: report failure so the boot
+			 * recovery alerts the operator instead of silently persisting
+			 * defaults over it */
+			PX4_ERR("open backup '%s' failed (%i)", backup_file_name, errno);
+			return 1;
+		}
+	}
+
+	if (fd >= 0) {
+		PX4_INFO("seeding parameters from backup '%s'", backup_file_name);
+
+		int backup_result = param_import(fd);
+		close(fd);
+
+		if (backup_result < 0) {
+			/* a backup exists but does not import cleanly: report failure so
+			 * the boot recovery alerts the operator. Do not reset to defaults
+			 * - that would also discard parameters loaded before this call
+			 * (e.g. factory calibration from a caldata partition). */
+			PX4_ERR("backup import failed (%i)", backup_result);
+			return 1;
+		}
+
+		if (backup_result > 0) {
+			PX4_INFO("backup is blank, using firmware defaults");
+		}
+
+	} else {
+		PX4_INFO("no backup file, using firmware defaults");
+	}
+
+	if (do_save_default() != 0) {
+		PX4_ERR("failed to persist initial parameters");
+		return 1;
+	}
+
+	PX4_INFO("parameter storage initialized");
 	return 0;
 }
 

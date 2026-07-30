@@ -10,11 +10,11 @@ ParameterResetRequest : Used by the primary to reset one or all parameter value(
 
 ## Fields
 
-| 명칭                                   | 형식       | Unit [Frame] | Range/Enum | 설명                                                               |
-| ------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- |
-| timestamp                            | `uint64` |                                                                  |            |                                                                  |
-| parameter_index | `uint16` |                                                                  |            |                                                                  |
-| reset_all       | `bool`   |                                                                  |            | If this is true then ignore parameter_index |
+| 명칭                                                                   | 형식       | Unit [Frame] | Range/Enum | 설명                                                               |
+| -------------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                  | `uint64` |                                                                  |            |                                                                  |
+| <a id="fld_parameter_index"></a>parameter_index | `uint16` |                                                                  |            |                                                                  |
+| <a id="fld_reset_all"></a>reset_all             | `bool`   |                                                                  |            | If this is true then ignore parameter_index |
 
 ## Constants
 

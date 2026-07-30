@@ -37,6 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
@@ -70,7 +71,7 @@ private:
 	int send_command(Cmd cmd);
 	int send_command(Cmd cmd, uint8_t *data, uint8_t len);
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	PX4Barometer _px4_baro;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
