@@ -93,40 +93,62 @@ Mission::on_activation()
 
 
 bool
-Mission::set_current_mission_index(uint16_t index)
+Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 {
-	if (index == _mission.current_seq) {
-		return true;
+	if (!_navigator->get_mission_result()->valid || (_mission.count == 0)) {
+		return false;
 	}
 
-	if (_navigator->get_mission_result()->valid && (index < _mission.count)) {
-		if (goToItem(index, MissionTraversalType::FollowMissionControlFlow) != PX4_OK) {
-			// Keep the old mission index (it was not updated by the interface) and report back.
-			return false;
+	if ((index != -1) && ((index < 0) || (index >= _mission.count))) {
+		return false;
+	}
+
+	if ((index == -1) || (index == _mission.current_seq)) {
+		// Keep the current mission item unchanged.
+		if (reset_jump_counters) {
+			resetMissionJumpCounter();
+
+			// A reset can bring a finished mission back to a resumable state (mirrors
+			// checkMissionRestart()'s use of the same assignment).
+			_is_current_planned_mission_item_valid = isMissionValid();
+
+			if (isActive()) {
+				update_mission();
+				set_mission_items();
+			}
 		}
-
-		_is_current_planned_mission_item_valid = true;
-
-		// we start from the first item so can reset the cache
-		if (_mission.current_seq == 0) {
-			resetItemCache();
-		}
-
-		// update mission items if already in active mission
-		if (isActive()) {
-			// prevent following "previous - current" line
-			_navigator->reset_triplets();
-			update_mission();
-			set_mission_items();
-		}
-
-		// User has actively set new index, reset.
-		_inactivation_index = -1;
 
 		return true;
 	}
 
-	return false;
+	if (goToItem(index, MissionTraversalType::FollowMissionControlFlow) != PX4_OK) {
+		// Keep the old mission index (it was not updated by the interface) and report back.
+		return false;
+	}
+
+	if (reset_jump_counters) {
+		resetMissionJumpCounter();
+	}
+
+	_is_current_planned_mission_item_valid = true;
+
+	// we start from the first item so can reset the cache
+	if (_mission.current_seq == 0) {
+		resetItemCache();
+	}
+
+	// update mission items if already in active mission
+	if (isActive()) {
+		// prevent following "previous - current" line
+		_navigator->reset_triplets();
+		update_mission();
+		set_mission_items();
+	}
+
+	// User has actively set new index, reset.
+	_inactivation_index = -1;
+
+	return true;
 }
 
 bool Mission::setNextMissionItem()
