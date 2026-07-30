@@ -1514,7 +1514,7 @@ void VoxlEsc::Run()
 						setpoint = _manual_control_setpoint.aux2;
 					}
 
-					activate = (setpoint > VOXL_ESC_MODE_THRESHOLD);
+					activate = PX4_ISFINITE(setpoint) && (setpoint > VOXL_ESC_MODE_THRESHOLD);
 				}
 
 				_turtle_mode_en = activate;
@@ -1553,7 +1553,7 @@ void VoxlEsc::Run()
 				break;
 			}
 
-			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
+			if (PX4_ISFINITE(gpio_setpoint) && gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
 				_gpio_ctl_high = false;
 
 			} else {

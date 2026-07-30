@@ -40,6 +40,7 @@ class TestRCUpdate : public RCUpdate
 {
 public:
 	void UpdateManualSwitches(const hrt_abstime &timestamp_sample) { RCUpdate::UpdateManualSwitches(timestamp_sample); }
+	void UpdateManualControlInput(const hrt_abstime &timestamp_sample) { RCUpdate::UpdateManualControlInput(timestamp_sample); }
 	void updateParams() { RCUpdate::updateParams(); }
 	void setChannel(size_t index, float channel_value) { _rc.channels[index] = channel_value; }
 };
@@ -162,7 +163,9 @@ public:
 
 		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
 		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th,
-		(ParamFloat<px4::params::RC_PAYLOAD_MIDTH>) _param_rc_payload_midth
+		(ParamFloat<px4::params::RC_PAYLOAD_MIDTH>) _param_rc_payload_midth,
+
+		(ParamInt<px4::params::RC_MAP_AUX1>) _param_rc_map_aux1
 	)
 };
 
@@ -323,4 +326,59 @@ TEST_F(RCUpdateTest, PayloadPower3WaySwitchNegativeThresholds)
 	checkPayloadPowerSwitch(-0.5f, -0.75f, -0.25f, 2); // On mid_threshold -> SWITCH_POS_MIDDLE
 	checkPayloadPowerSwitch(-0.501f, -0.75f, -0.25f, 1); // Slightly above on_threshold -> SWITCH_POS_ON
 	checkPayloadPowerSwitch(-1.f, -0.75f, -0.25f, 1); // Above on_threshold -> SWITCH_POS_ON
+}
+
+TEST_F(RCUpdateTest, UnmappedAuxChannelsAreNaN)
+{
+	// GIVEN: default configuration, no RC_MAP_AUX1..6 assigned
+	EXPECT_EQ(_param_rc_map_aux1.get(), 0);
+
+	// WHEN: we update the manual control input
+	_rc_update.UpdateManualControlInput(0);
+
+	// THEN: unmapped aux channels report NaN (invalid), not 0
+	uORB::SubscriptionData<manual_control_setpoint_s> manual_control_input_sub{ORB_ID(manual_control_input)};
+	manual_control_input_sub.update();
+	const manual_control_setpoint_s &manual_control_input = manual_control_input_sub.get();
+
+	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux1));
+	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux2));
+	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux3));
+	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux4));
+	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux5));
+	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux6));
+
+	// AND: unmapped roll/pitch/yaw/throttle still default to 0 (out of scope for this fix)
+	EXPECT_FLOAT_EQ(manual_control_input.roll, 0.f);
+	EXPECT_FLOAT_EQ(manual_control_input.pitch, 0.f);
+	EXPECT_FLOAT_EQ(manual_control_input.yaw, 0.f);
+	EXPECT_FLOAT_EQ(manual_control_input.throttle, 0.f);
+}
+
+TEST_F(RCUpdateTest, MappedAuxChannelReportsRealValue)
+{
+	// GIVEN: first channel is configured as aux1
+	_param_rc_map_aux1.set(1);
+	_param_rc_map_aux1.commit();
+	EXPECT_EQ(_param_rc_map_aux1.get(), 1);
+	_rc_update.updateParams();
+
+	// GIVEN: first channel has a real value
+	_rc_update.setChannel(0, 0.3f);
+
+	// WHEN: we update the manual control input
+	_rc_update.UpdateManualControlInput(0);
+
+	// THEN: aux1 reflects the mapped channel's value, not NaN
+	uORB::SubscriptionData<manual_control_setpoint_s> manual_control_input_sub{ORB_ID(manual_control_input)};
+	manual_control_input_sub.update();
+	const manual_control_setpoint_s &manual_control_input = manual_control_input_sub.get();
+
+	EXPECT_TRUE(PX4_ISFINITE(manual_control_input.aux1));
+	EXPECT_FLOAT_EQ(manual_control_input.aux1, 0.3f);
+
+	// Reset for other tests
+	_param_rc_map_aux1.set(0);
+	_param_rc_map_aux1.commit();
+	_rc_update.setChannel(0, 0.f);
 }

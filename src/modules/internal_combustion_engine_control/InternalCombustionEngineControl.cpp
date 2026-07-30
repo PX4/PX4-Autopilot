@@ -129,21 +129,25 @@ void InternalCombustionEngineControl::Run()
 		break;
 
 	case ICESource::Aux1: {
-			if (manual_control_setpoint.aux1 > 0.5f) {
-				_user_request = UserOnOffRequest::On;
+			if (PX4_ISFINITE(manual_control_setpoint.aux1)) {
+				if (manual_control_setpoint.aux1 > 0.5f) {
+					_user_request = UserOnOffRequest::On;
 
-			} else if (manual_control_setpoint.aux1 < -0.5f) {
-				_user_request = UserOnOffRequest::Off;
+				} else if (manual_control_setpoint.aux1 < -0.5f) {
+					_user_request = UserOnOffRequest::Off;
+				}
 			}
 		}
 		break;
 
 	case ICESource::Aux2: {
-			if (manual_control_setpoint.aux2 > 0.5f) {
-				_user_request = UserOnOffRequest::On;
+			if (PX4_ISFINITE(manual_control_setpoint.aux2)) {
+				if (manual_control_setpoint.aux2 > 0.5f) {
+					_user_request = UserOnOffRequest::On;
 
-			} else if (manual_control_setpoint.aux2 < -0.5f) {
-				_user_request = UserOnOffRequest::Off;
+				} else if (manual_control_setpoint.aux2 < -0.5f) {
+					_user_request = UserOnOffRequest::Off;
+				}
 			}
 		}
 		break;
