@@ -109,7 +109,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node_status_monitor(_node),
 	_node_info_retriever(_node),
 	_node_info_publisher(_node, _node_info_retriever),
-	_node_configurator(_node, _node_info_retriever),
+#if defined(CONFIG_UAVCAN_CANNODE_CONFIGURATOR)
+	_node_configurator(_node_info_retriever),
+#endif
 	_master_timer(_node),
 	_param_getset_client(_node),
 	_param_opcode_client(_node),
@@ -633,6 +635,9 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	// Start the Node
+#if defined(CONFIG_UAVCAN_CANNODE_CONFIGURATOR)
+	_node_configurator.init();
+#endif
 	return _node.start();
 }
 
@@ -769,8 +774,6 @@ UavcanNode::Run()
 #endif
 
 	_node.spinOnce(); // expected to be non-blocking
-
-	_node_configurator.update();
 
 	publish_can_interface_statuses();
 
