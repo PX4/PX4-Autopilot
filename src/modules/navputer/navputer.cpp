@@ -186,6 +186,10 @@ void Navputer::Run()
 
 		if (_ekf.update()) {
 			PublishLocalPosition(now);
+
+			UpdateAccelCalibration(now);
+			UpdateGyroCalibration(now);
+			UpdateMagCalibration(now);
 		}
 
 		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
@@ -404,6 +408,100 @@ void Navputer::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
+}
+
+
+void Navputer::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
+			     const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid)
+{
+	// reset existing cal on takeoff
+	if (!_ekf.control_status_prev_flags().in_air && _ekf.control_status_flags().in_air) {
+		cal = {};
+	}
+
+	// Check if conditions are OK for learning of accelerometer bias values
+	// the EKF is operating in the correct mode and there are no filter faults
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const bool valid = bias_valid
+			   && (bias_variance.max() < max_var_allowed)
+			   && (bias_variance.max() < max_var_ratio * bias_variance.min());
+
+	if (valid && learning_valid) {
+		// consider bias estimates stable when all checks pass consistently and bias hasn't changed more than 10% of the limit
+		const float bias_change_limit = 0.1f * bias_limit;
+
+		if (!(cal.bias - bias).longerThan(bias_change_limit)) {
+			if (cal.last_us != 0) {
+				cal.total_time_us += timestamp - cal.last_us;
+			}
+
+			if (cal.total_time_us > 10_s) {
+				cal.cal_available = true;
+			}
+
+		} else {
+			cal.total_time_us = 0;
+			cal.bias = bias;
+			cal.cal_available = false;
+		}
+
+		cal.last_us = timestamp;
+
+	} else {
+		// conditions are NOT OK for learning bias, reset timestamp
+		// but keep the accumulated calibration time
+		cal.last_us = 0;
+
+		if (!valid && (cal.total_time_us != 0)) {
+			// if a filter fault has occurred, assume previous learning was invalid and do not
+			// count it towards total learning time.
+			cal = {};
+		}
+	}
+}
+
+void Navputer::UpdateAccelCalibration(const hrt_abstime &timestamp)
+{
+	// the EKF is operating in the correct mode and there are no filter faults
+	const bool bias_valid = true // TODO: (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))
+				&& _ekf.control_status_flags().tilt_align
+				&& (_ekf.fault_status().value == 0)
+				&& !_ekf.fault_status_flags().bad_acc_clipping
+				&& !_ekf.fault_status_flags().bad_acc_vertical;
+
+	const bool learning_valid = bias_valid && !_ekf.accel_bias_inhibited();
+
+	UpdateCalibration(timestamp, _accel_cal, _ekf.getAccelBias(), _ekf.getAccelBiasVariance(), _ekf.getAccelBiasLimit(),
+			  bias_valid, learning_valid);
+}
+
+void Navputer::UpdateGyroCalibration(const hrt_abstime &timestamp)
+{
+	// the EKF is operating in the correct mode and there are no filter faults
+	const bool bias_valid = true // TODO: (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GyroBias))
+				&& _ekf.control_status_flags().tilt_align
+				&& (_ekf.fault_status().value == 0);
+
+	const bool learning_valid = bias_valid && !_ekf.gyro_bias_inhibited();
+
+	UpdateCalibration(timestamp, _gyro_cal, _ekf.getGyroBias(), _ekf.getGyroBiasVariance(), _ekf.getGyroBiasLimit(),
+			  bias_valid, learning_valid);
+}
+
+void Navputer::UpdateMagCalibration(const hrt_abstime &timestamp)
+{
+	const Vector3f mag_bias = _ekf.getMagBias();
+	const Vector3f mag_bias_var = _ekf.getMagBiasVariance();
+
+	const bool bias_valid = (_ekf.fault_status().value == 0)
+				&& _ekf.control_status_flags().yaw_align
+				&& mag_bias_var.longerThan(0.f) && !mag_bias_var.longerThan(0.02f);
+
+	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag;
+
+	UpdateCalibration(timestamp, _mag_cal, mag_bias, mag_bias_var, _ekf.getMagBiasLimit(), bias_valid, learning_valid);
 }
 
 int Navputer::custom_command(int argc, char *argv[])

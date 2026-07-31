@@ -121,6 +121,14 @@ public:
 	static void unlock_module() { pthread_mutex_unlock(&navputer_module_mutex); }
 
 private:
+	// Used to check, save and use learned accel/gyro/mag biases
+	struct InFlightCalibration {
+		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
+		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
+		matrix::Vector3f bias{};
+		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
+	};
+
 	void Run() override;
 
 	void AdvertiseTopics();
@@ -132,20 +140,18 @@ private:
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 
+	void UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
+			       const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid);
+	void UpdateAccelCalibration(const hrt_abstime &timestamp);
+	void UpdateGyroCalibration(const hrt_abstime &timestamp);
+	void UpdateMagCalibration(const hrt_abstime &timestamp);
+
 	px4::atomic_bool _task_should_exit{false};
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
-
-	// Used to check, save and use learned accel/gyro/mag biases
-	struct InFlightCalibration {
-		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
-		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
-		matrix::Vector3f bias{};
-		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
-	};
 
 	InFlightCalibration _accel_cal{};
 	InFlightCalibration _gyro_cal{};
