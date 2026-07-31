@@ -26,6 +26,7 @@
 
 #include <stdbool.h>
 #include <errno.h>
+#include <string.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
@@ -488,21 +489,37 @@ static ssize_t imxrt_flexspi_fram_bwrite(struct mtd_dev_s *dev,
 		(struct imxrt_flexspi_fram_dev_s *)dev;
 	size_t len = nblocks * FRAM_PAGE_SIZE;
 	off_t offset = startblock * FRAM_PAGE_SIZE;
-	uint8_t *src = (uint8_t *) buffer;
+	const uint8_t *src = (const uint8_t *) buffer;
 #ifdef CONFIG_ARMV7M_DCACHE
 	uint8_t *dst = priv->ahb_base + startblock * FRAM_PAGE_SIZE;
 #endif
+	/* Bounce buffer for callers that pass a non word-aligned buffer. */
+	uint32_t aligned_page[FRAM_PAGE_SIZE / sizeof(uint32_t)];
 	int i;
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
 	while (len) {
+		const uint8_t *page_src = src;
 		i = MIN(FRAM_PAGE_SIZE, len);
+
+		/* imxrt_flexspi_fram_page_program() casts this buffer to uint32_t *
+		 * and imxrt_flexspi_write_blocking() reads through it one word at a
+		 * time, but the MTD interface makes no alignment guarantee and the
+		 * block layer above does pass byte-aligned buffers. Copy the page to
+		 * a word-aligned buffer when needed.
+		 */
+		if (((uintptr_t)src & 3u) != 0u) {
+			memcpy(aligned_page, src, i);
+			page_src = (const uint8_t *)aligned_page;
+		}
+
 		imxrt_flexspi_fram_write_enable(priv);
-		imxrt_flexspi_fram_page_program(priv, offset, src, i);
+		imxrt_flexspi_fram_page_program(priv, offset, page_src, i);
 		imxrt_flexspi_fram_wait_bus_busy(priv);
 		FLEXSPI_SOFTWARE_RESET(priv->flexspi);
 		offset += i;
+		src += i;
 		len -= i;
 	}
 
