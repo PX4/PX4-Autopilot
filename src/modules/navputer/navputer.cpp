@@ -90,7 +90,21 @@ int Navputer::print_status(bool verbose)
 
 void Navputer::Run()
 {
+	if (should_exit()) {
+		_sensor_combined_sub.unregisterCallback();
+		_vehicle_imu_sub.unregisterCallback();
 
+		return;
+	}
+
+	if (!_callback_registered) {
+		_callback_registered = _sensor_combined_sub.registerCallback();
+
+		if (!_callback_registered) {
+			ScheduleDelayed(10_ms);
+			return;
+		}
+	}
 }
 
 int Navputer::custom_command(int argc, char *argv[])

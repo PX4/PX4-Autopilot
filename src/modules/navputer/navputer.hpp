@@ -120,5 +120,10 @@ private:
 	void VerifyParams();
 
 	px4::atomic_bool _task_should_exit{false};
+
+	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
+
+	bool _callback_registered{false};
 };
 #endif // !NAVPUTER_HPP

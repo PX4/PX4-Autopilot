@@ -39,3 +39,5 @@ param set SIH_VEHICLE_TYPE 0
 
 param set-default ZENOH_ENABLE 1
 param set-default EKF2_RNGBC_CTRL 1
+
+navputer start
