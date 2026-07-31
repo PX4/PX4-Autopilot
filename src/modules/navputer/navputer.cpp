@@ -182,6 +182,7 @@ void Navputer::Run()
 
 		UpdateBaroSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
+		UpdateRangingBeaconSample(ekf2_timestamps);
 
 
 		if (_ekf.update()) {
@@ -410,6 +411,27 @@ void Navputer::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
+void Navputer::UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	ranging_beacon_s ranging_beacon;
+
+	if (_ranging_beacon_sub.update(&ranging_beacon)) {
+		const float range_var = PX4_ISFINITE(ranging_beacon.range_accuracy)
+					? sq(ranging_beacon.range_accuracy) : 50.f; // TODO: expose in params sq(_param_ekf2_rngbc_noise.get());
+
+		rangingBeaconSample sample{
+			.time_us = ranging_beacon.timestamp_sample,
+			.beacon_id = ranging_beacon.beacon_id,
+			.range_m = ranging_beacon.range,
+			.range_var = range_var,
+			.beacon_lat = ranging_beacon.lat,
+			.beacon_lon = ranging_beacon.lon,
+			.beacon_alt = ranging_beacon.alt,
+		};
+
+		_ekf.setRangingBeaconData(sample);
+	}
+}
 
 void Navputer::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
 			     const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid)
