@@ -4125,8 +4125,7 @@ void MavlinkReceiver::start()
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr,
-				  PX4_STACK_ADJUSTED(sizeof(MavlinkReceiver) + 2840 + MAVLINK_RECEIVER_NET_ADDED_STACK));
+	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(4000 + MAVLINK_RECEIVER_NET_ADDED_STACK));
 
 	pthread_create(&_thread, &receiveloop_attr, MavlinkReceiver::start_trampoline, (void *)this);
 
