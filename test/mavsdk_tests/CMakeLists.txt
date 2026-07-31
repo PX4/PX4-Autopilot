@@ -28,15 +28,18 @@ if(MAVSDK_FOUND)
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
         test_multicopter_mission.cpp
+        test_multicopter_mission_do_jump.cpp
         test_multicopter_offboard.cpp
         test_multicopter_manual.cpp
         test_multicopter_rtl_with_geofence.cpp
+        test_sih_xvert_transition.cpp
         test_vtol_mission.cpp
         test_vtol_figure_eight.cpp
         test_vtol_loiter_reposition.cpp
         test_vtol_rtl.cpp
         test_vtol_mission_wind.cpp
         test_vtol_loiter_airspeed_failure_blockage.cpp
+        test_multicopter_home.cpp
         # test_multicopter_follow_me.cpp
     )
 

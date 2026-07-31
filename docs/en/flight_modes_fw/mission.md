@@ -217,6 +217,23 @@ The equation is:
 
 $$L_{1_{distance}}=\frac{1}{\pi}L_{1_{damping}}L_{1_{period}}\left \| \vec{v}_{ {xy}_{ground} } \right \|$$
 
+## Altitude Changes Between Waypoints
+
+When the target altitude changes from one waypoint to the next, PX4 does not change the altitude setpoint in a single step.
+Instead it ramps the altitude setpoint linearly (a first order hold, FOH) from the vehicle's **current altitude** to the new target altitude, reaching the target by the time the vehicle arrives at the acceptance radius of the current waypoint.
+The result is a smooth diagonal climb or descent along the leg, rather than an immediate climb/descent followed by level flight.
+
+![Fixed-wing altitude profile for a climbing mission leg](../../assets/flight_modes/fw_waypoint_altitude_foh.png)
+
+The ramp is anchored at the altitude the vehicle is at when the new target is received, and its progress is measured by the vehicle's horizontal approach to the waypoint (not by time).
+
+If the vehicle cannot follow the ramp (for example when the required climb or sink rate exceeds what the aircraft can achieve), the altitude setpoint still reaches the full target altitude at the acceptance radius.
+Any remaining altitude error is then removed by climbing or sinking once the vehicle reaches the horizontal position of the waypoint.
+
+::: info
+The ramp is (re)started whenever the target altitude changes; consecutive waypoints at the same altitude are held level.
+:::
+
 ## Mission Takeoff
 
 Starting flights with mission takeoff (and landing using a mission landing) is the recommended way of operating a plane autonomously.

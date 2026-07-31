@@ -334,6 +334,7 @@ private:
 		(ParamFloat<px4::params::SIH_LOC_LAT0>) _sih_lat0,
 		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
+		(ParamFloat<px4::params::SIH_LOC_YAW0>) _sih_yaw0,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,

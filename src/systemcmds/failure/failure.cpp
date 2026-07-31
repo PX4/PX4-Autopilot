@@ -64,6 +64,7 @@ static constexpr FailureUnit failure_units[] = {
 	{ "airspeed", vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED},
 	{ "battery", vehicle_command_s::FAILURE_UNIT_SYSTEM_BATTERY},
 	{ "motor", vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR},
+	{ "esc", vehicle_command_s::FAILURE_UNIT_SYSTEM_ESC},
 	{ "servo", vehicle_command_s::FAILURE_UNIT_SYSTEM_SERVO},
 	{ "avoidance", vehicle_command_s::FAILURE_UNIT_SYSTEM_AVOIDANCE},
 	{ "rc_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL},

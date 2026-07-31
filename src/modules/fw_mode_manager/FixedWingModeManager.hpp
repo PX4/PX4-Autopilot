@@ -43,6 +43,7 @@
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 #include "ControllerConfigurationHandler.hpp"
+#include "FirstOrderHoldAltitude.hpp"
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -401,7 +402,8 @@ private:
 	float _spoilers_setpoint{0.f};
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
-	float _min_current_sp_distance_xy{FLT_MAX};
+	FirstOrderHoldAltitudeState _foh_altitude_state{};
+	bool _foh_altitude_active{false}; ///< whether the altitude FOH ran on the current cycle (else its state is reset)
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 	/* Loitering */
@@ -544,7 +546,8 @@ private:
 	 * @param pos_sp_next next position setpoint
 	 */
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+				 const position_setpoint_s &pos_sp_curr,
+				 const position_setpoint_s &pos_sp_next);
 
 
 	/**

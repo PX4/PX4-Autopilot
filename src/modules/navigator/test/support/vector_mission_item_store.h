@@ -34,6 +34,11 @@
 /**
  * @file vector_mission_item_store.h
  *
+ * In-memory mission item store for navigator tests.
+ *
+ * Allows to mark specific indices as failed reads to cover error-handling paths
+ * without involving dataman or uORB.
+ *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
@@ -54,22 +59,32 @@ namespace navigator_test
 class VectorMissionItemStore
 {
 public:
+	/** Replace all stored items and clear any configured load failures. */
 	void setItems(const std::vector<mission_item_s> &items)
 	{
 		_items = items;
 		clearLoadFailures();
 	}
 
+	/** Configure indices whose loadItem() calls should fail. */
 	void setLoadFailureIndices(std::initializer_list<int32_t> indices)
 	{
 		_load_failure_indices.assign(indices.begin(), indices.end());
 	}
 
+	/** Configure indices whose loadItem() calls should fail. */
+	void setLoadFailureIndices(const std::vector<int32_t> &indices)
+	{
+		_load_failure_indices = indices;
+	}
+
+	/** Remove all injected load failures. */
 	void clearLoadFailures()
 	{
 		_load_failure_indices.clear();
 	}
 
+	/** Return false for injected failures and out-of-range indices; otherwise copy the item out. */
 	bool loadItem(int32_t index, mission_item_s &mission_item) const
 	{
 		if (std::find(_load_failure_indices.begin(), _load_failure_indices.end(), index)
@@ -85,6 +100,7 @@ public:
 		return true;
 	}
 
+	/** Number of stored mission items. */
 	std::size_t itemCount() const
 	{
 		return _items.size();

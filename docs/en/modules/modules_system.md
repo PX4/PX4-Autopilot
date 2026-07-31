@@ -56,8 +56,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### Implementation
 
@@ -704,6 +706,27 @@ netman <command> [arguments...]
    save          Save the current network parameters to the SD card.
      [-i <val>]  Set the interface name
                  default: eth0
+```
+
+## nfs_mount
+
+Source: [modules/nfs_mount](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/nfs_mount)
+
+### Description
+
+Mounts an NFS filesystem from NFS_IP on NFS_MOUNT_MOUNT_POINT.
+Started automatically by rcS when NFS_EN is set.
+
+### Usage {#nfs_mount_usage}
+
+```
+nfs_mount <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
 ```
 
 ## pwm_input

@@ -79,6 +79,7 @@ failure_injection_s make_config(uint8_t unit, uint16_t instance_mask, uint8_t fa
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
 
 constexpr uint8_t OK    = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF   = failure_injection_s::FAILURE_TYPE_OFF;
@@ -266,4 +267,73 @@ TEST(FailureInjectionConfig, ProcessMessageLessSuppressesOnlyOff)
 	// Convenience overload maps the 0-based uORB instance to the 1-based failure instance.
 	EXPECT_FALSE(process(config, GYRO, 1));
 	EXPECT_TRUE(process(config, GYRO, 0));
+}
+
+// ===========================================================================
+// process_esc(): ESC Off / Wrong on the multi-instance esc_status
+// ===========================================================================
+
+namespace
+{
+
+esc_status_s make_esc_status(uint8_t num_motors)
+{
+	esc_status_s status{};
+	status.esc_count = num_motors;
+	status.esc_online_flags = (1u << num_motors) - 1; // all online
+
+	for (uint8_t i = 0; i < num_motors; i++) {
+		status.esc[i].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + i;
+		status.esc[i].timestamp = 1000;
+		status.esc[i].esc_voltage = 16.f;
+		status.esc[i].esc_current = 5.f;
+		status.esc[i].esc_rpm = 4000;
+	}
+
+	return status;
+}
+
+} // namespace
+
+TEST(FailureInjectionConfig, ProcessEscOffReportsOffline)
+{
+	Config config;
+	config.set(make_config(ESC, 0x1, OFF)); // ESC 1
+
+	esc_status_s status = make_esc_status(4);
+	status = process_esc(config, status);
+
+	EXPECT_EQ(status.esc_online_flags & 0x1u, 0u);   // motor 1 reported offline
+	EXPECT_EQ(status.esc_online_flags & 0xEu, 0xEu); // motors 2-4 untouched
+}
+
+TEST(FailureInjectionConfig, ProcessEscMapsByActuatorFunction)
+{
+	// Motor 3 sits on ESC slot 0; failing motor 3 must take slot 0 offline.
+	Config config;
+	config.set(make_config(ESC, 0x4, OFF)); // ESC 3 -> instance bit (3 - 1)
+
+	esc_status_s status{};
+	status.esc_count = 1;
+	status.esc_online_flags = 0x1;
+	status.esc[0].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2; // Motor 3
+
+	status = process_esc(config, status);
+
+	EXPECT_EQ(status.esc_online_flags & 0x1u, 0u);
+}
+
+TEST(FailureInjectionConfig, ProcessEscWrongScalesTelemetryButStaysOnline)
+{
+	Config config;
+	config.set(make_config(ESC, 0x1, WRONG)); // ESC 1
+
+	esc_status_s status = make_esc_status(4);
+	status = process_esc(config, status);
+
+	EXPECT_EQ(status.esc_online_flags & 0xFu, 0xFu);  // all still online
+	EXPECT_FLOAT_EQ(status.esc[0].esc_voltage, 1.6f); // 16 * 0.1
+	EXPECT_FLOAT_EQ(status.esc[0].esc_current, 0.5f); // 5 * 0.1
+	EXPECT_EQ(status.esc[0].esc_rpm, 40000);          // 4000 * 10
+	EXPECT_FLOAT_EQ(status.esc[1].esc_voltage, 16.f); // other ESCs untouched
 }

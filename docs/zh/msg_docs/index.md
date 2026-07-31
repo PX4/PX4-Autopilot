@@ -64,6 +64,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ConfigOverridesV0](ConfigOverridesV0.md) — Configurable overrides by (external) modes or mode executors.
 - [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
+- [HomePositionV1](HomePositionV1.md) — GPS home position in WGS84 coordinates.
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [RegisterExtComponentRequestV1](RegisterExtComponentRequestV1.md) — Request to register an external component.
@@ -104,6 +105,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DebugKeyValue](DebugKeyValue.md)
 - [DebugValue](DebugValue.md)
 - [DebugVect](DebugVect.md)
+- [DetectAndAvoid](DetectAndAvoid.md) — Detect-and-avoid conflict assessment for one traffic aircraft.
+- [DetectAndAvoidMostUrgent](DetectAndAvoidMostUrgent.md) — Detect-and-avoid summary for the most urgent active conflict.
 - [DeviceInformation](DeviceInformation.md) — Device information.
 - [DifferentialPressure](DifferentialPressure.md) — Differential-pressure (airspeed) sensor.
 - [DistanceSensor](DistanceSensor.md) — DISTANCE_SENSOR message data.
@@ -159,7 +162,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [GpioOut](GpioOut.md) — GPIO mask and state.
 - [GpioRequest](GpioRequest.md) — Request GPIO mask to be read.
 - [GpsDump](GpsDump.md) — This message is used to dump the raw gps communication to the log.
-- [GpsInjectData](GpsInjectData.md)
 - [Gripper](Gripper.md) — # Used to command an actuation in the gripper, which is mapped to a specific output in the control allocation module.
 - [HealthReport](HealthReport.md)
 - [HeaterStatus](HeaterStatus.md)
@@ -237,6 +239,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint.
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
+- [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
 - [RtlStatus](RtlStatus.md)
 - [RtlTimeEstimate](RtlTimeEstimate.md)
 - [SatelliteInfo](SatelliteInfo.md)
@@ -270,7 +273,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [TiltrotorExtraControls](TiltrotorExtraControls.md)
 - [TimesyncStatus](TimesyncStatus.md)
 - [TrajectorySetpoint6dof](TrajectorySetpoint6dof.md) — Trajectory setpoint in NED frame. Input to position controller.
-- [TransponderReport](TransponderReport.md)
+- [TransponderReport](TransponderReport.md) — Transponder report.
 - [TuneControl](TuneControl.md) — This message is used to control the tunes, when the tune_id is set to CUSTOM. then the frequency, duration are used otherwise those values are ignored.
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.

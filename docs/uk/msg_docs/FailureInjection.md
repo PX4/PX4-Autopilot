@@ -46,6 +46,7 @@ Used in field(s): [unit](#fld_unit)
 | <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                  | `uint8` | 103      |      |
 | <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL             | `uint8` | 104      |      |
 | <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL   | `uint8` | 105      |      |
+| <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                              | `uint8` | 106      |      |
 
 ### FAILURE_TYPE {#FAILURE_TYPE}
 
@@ -107,6 +108,7 @@ uint8 FAILURE_UNIT_SYSTEM_SERVO = 102
 uint8 FAILURE_UNIT_SYSTEM_AVOIDANCE = 103
 uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
+uint8 FAILURE_UNIT_SYSTEM_ESC = 106
 
 uint16[4] instance_mask # Bit i targets instance (i+1); 0xFFFF = all instances
 

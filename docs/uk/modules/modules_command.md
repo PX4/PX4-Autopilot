@@ -121,6 +121,7 @@ failure [arguments...]
    ok|off|...    Specify failure type
      [-i <val>]  sensor instance (0=all)
                  default: 0
+     [-m <val>]  instance bitmask (bit i = instance i+1); overridden by -i
 ```
 
 ## gpio

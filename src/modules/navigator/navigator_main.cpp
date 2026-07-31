@@ -249,7 +249,8 @@ void Navigator::run()
 	fds[2].events = POLLIN;
 
 	uint32_t geofence_id{0};
-	uint32_t safe_points_id{0};
+	mission_s mission{};
+	bool mission_received{false};
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -275,18 +276,19 @@ void Navigator::run()
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
 
 		if (fds[2].revents & POLLIN) {
-			mission_s mission;
-			orb_copy(ORB_ID(mission), _mission_sub, &mission);
+			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
+				mission_received = true;
 
-			if (mission.geofence_id != geofence_id) {
-				geofence_id = mission.geofence_id;
-				_geofence.updateFence();
+				if (mission.geofence_id != geofence_id) {
+					geofence_id = mission.geofence_id;
+					_geofence.updateFence();
+				}
 			}
 
-			if (mission.safe_points_id != safe_points_id) {
-				safe_points_id = mission.safe_points_id;
-				_rtl.updateSafePoints(safe_points_id);
-			}
+		}
+
+		if (mission_received) {
+			_mission_route_cache.update(mission);
 		}
 
 		/* gps updated */
@@ -825,6 +827,28 @@ void Navigator::run()
 				} else {
 					PX4_WARN("planned mission landing not available");
 					result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED;
+				}
+
+				publish_vehicle_command_ack(cmd, result);
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MISSION_CURRENT) {
+				uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+				// param2 is a MAV_BOOL: only 0 or 1 are valid values.
+				const bool param2_valid = PX4_ISFINITE(cmd.param2)
+							  && ((fabsf(cmd.param2) < FLT_EPSILON) || (fabsf(cmd.param2 - 1.f) < FLT_EPSILON));
+
+				// -1 is a valid param1: keep the current mission item unchanged (e.g. to only reset jump counters).
+				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && param2_valid) {
+					const bool reset_jump_counters = cmd.param2 > 0.5f;
+
+					if (_mission.set_current_mission_index(static_cast<int32_t>(cmd.param1), reset_jump_counters)) {
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						// Sequence number out of range, or no mission / no current mission item.
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+					}
 				}
 
 				publish_vehicle_command_ack(cmd, result);

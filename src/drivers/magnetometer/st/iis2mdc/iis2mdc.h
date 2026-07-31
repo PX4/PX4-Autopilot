@@ -46,7 +46,7 @@
 
 // IIS2MDC Definitions
 #define IIS2MDC_WHO_AM_I         0b01000000
-#define IIS2MDC_STATUS_REG_READY 0b00001111
+#define IIS2MDC_STATUS_REG_READY 0b00001000 // Zyxda: X, Y and Z all have new data
 // CFG_REG_A
 #define COMP_TEMP_EN    (1 << 7)
 #define MD_CONTINUOUS   (0 << 0)

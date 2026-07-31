@@ -86,7 +86,8 @@ public:
 			transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 			transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
 			transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
-			transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+			transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN |
+			transponder_report_s::PX4_ADSB_FLAGS_SIMULATED;
 
 	// Fake traffic scripts used for manual DAA validation from the navigator shell.
 	enum class FakeTraffMode : uint8_t {
