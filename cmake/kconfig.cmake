@@ -33,6 +33,7 @@ set(ZENOH_KCONFIG_TOPICS ${PX4_BINARY_DIR}/src/modules/zenoh/Kconfig.topics)
 file(GLOB zenoh_catalog_msg_files
 	${PX4_SOURCE_DIR}/msg/*.msg
 	${PX4_SOURCE_DIR}/msg/versioned/*.msg
+	${PX4_SOURCE_DIR}/msg/navput/*.msg
 )
 execute_process(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py

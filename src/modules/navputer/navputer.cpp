@@ -56,7 +56,7 @@ Navputer::~Navputer()
 
 void Navputer::AdvertiseTopics()
 {
-
+	_attitude_pub.advertise();
 }
 
 
@@ -104,6 +104,144 @@ void Navputer::Run()
 			ScheduleDelayed(10_ms);
 			return;
 		}
+	}
+
+	bool imu_updated = false;
+	imuSample imu_sample_new {};
+
+	hrt_abstime imu_dt = 0; // for tracking time slip later
+
+	sensor_combined_s sensor_combined;
+	imu_updated = _sensor_combined_sub.update(&sensor_combined);
+
+	if (imu_updated) {
+		imu_sample_new.time_us = sensor_combined.timestamp;
+		imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
+		imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
+		imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
+		imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+
+		if (sensor_combined.accelerometer_clipping > 0) {
+			imu_sample_new.delta_vel_clipping[0] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_X;
+			imu_sample_new.delta_vel_clipping[1] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Y;
+			imu_sample_new.delta_vel_clipping[2] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Z;
+		}
+
+		imu_dt = sensor_combined.gyro_integral_dt;
+
+		if (sensor_combined.accel_calibration_count != _accel_calibration_count) {
+
+			PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+
+			_ekf.resetAccelBias();
+			_accel_calibration_count = sensor_combined.accel_calibration_count;
+
+			// reset bias learning
+			_accel_cal = {};
+		}
+
+		if (sensor_combined.gyro_calibration_count != _gyro_calibration_count) {
+
+			PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+
+			_ekf.resetGyroBias();
+			_gyro_calibration_count = sensor_combined.gyro_calibration_count;
+
+			// reset bias learning
+			_gyro_cal = {};
+		}
+	}
+
+	if (imu_updated) {
+		const hrt_abstime now = imu_sample_new.time_us;
+
+		// push imu data into estimator
+		_ekf.setIMUData(imu_sample_new);
+
+		// integrate time to monitor time slippage
+		if (_start_time_us > 0) {
+			_integrated_time_us += imu_dt;
+			_last_time_slip_us = (imu_sample_new.time_us - _start_time_us) - _integrated_time_us;
+
+		} else {
+			_start_time_us = imu_sample_new.time_us;
+			_last_time_slip_us = 0;
+		}
+
+		// ekf2_timestamps (using 0.1 ms relative timestamps)
+		ekf2_timestamps_s ekf2_timestamps {
+			.timestamp = now,
+			.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.airspeed_validated_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		};
+
+		UpdateBaroSample(ekf2_timestamps);
+
+
+		if (_ekf.update()) {
+
+		}
+
+		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
+	}
+
+	// re-schedule as backup timeout
+	ScheduleDelayed(100_ms);
+}
+
+void Navputer::PublishAttitude(const hrt_abstime &timestamp)
+{
+	if (_ekf.attitude_valid()) {
+		// generate vehicle attitude quaternion data
+		navput_attitude_s att;
+		att.timestamp_sample = timestamp;
+		_ekf.getQuaternion().copyTo(att.q);
+
+		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
+		att.timestamp = hrt_absolute_time();
+		_attitude_pub.publish(att);
+	}
+}
+
+void Navputer::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF baro sample
+	vehicle_air_data_s airdata;
+
+	if (_airdata_sub.update(&airdata)) {
+
+		bool reset = false;
+
+		// check if barometer has changed
+		if (airdata.baro_device_id != _device_id_baro) {
+			if (_device_id_baro != 0) {
+				PX4_DEBUG("baro sensor ID changed %" PRIu32 " -> %" PRIu32, _device_id_baro, airdata.baro_device_id);
+			}
+
+			reset = true;
+
+		} else if (airdata.calibration_count != _baro_calibration_count) {
+			// existing calibration has changed, reset saved baro bias
+			PX4_DEBUG("baro %" PRIu32 " calibration updated, resetting bias", _device_id_baro);
+			reset = true;
+		}
+
+		if (reset) {
+			_device_id_baro = airdata.baro_device_id;
+			_baro_calibration_count = airdata.calibration_count;
+		}
+
+		_ekf.set_air_density(airdata.rho);
+
+		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter, reset});
+
+		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }
 

@@ -286,6 +286,8 @@ set(msg_files
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
+
+	navput/NavputAttitude.msg
 )
 list(SORT msg_files)
 

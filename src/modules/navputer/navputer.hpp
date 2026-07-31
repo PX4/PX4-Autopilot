@@ -41,6 +41,7 @@
 #ifndef NAVPUTER_HPP
 #define NAVPUTER_HPP
 
+#include "EKF/ekf.h"
 
 #include <float.h>
 
@@ -85,6 +86,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/yaw_estimator_status.h>
 
+#include <uORB/topics/vehicle_air_data.h>
+
+#include <uORB/topics/navput_attitude.h>
+
 extern pthread_mutex_t navputer_module_mutex;
 
 class Navputer final : public ModuleParams, public px4::ScheduledWorkItem
@@ -119,11 +124,42 @@ private:
 	void AdvertiseTopics();
 	void VerifyParams();
 
+	void PublishAttitude(const hrt_abstime &timestamp);
+
+	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
+
 	px4::atomic_bool _task_should_exit{false};
+
+	// time slip monitoring
+	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
+	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
+	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
+
+	// Used to check, save and use learned accel/gyro/mag biases
+	struct InFlightCalibration {
+		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
+		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
+		matrix::Vector3f bias{};
+		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
+	};
+
+	InFlightCalibration _accel_cal{};
+	InFlightCalibration _gyro_cal{};
+
+	uint8_t _accel_calibration_count{0};
+	uint8_t _gyro_calibration_count{0};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
+	uint8_t _baro_calibration_count {0};
+	uint32_t _device_id_baro{0};
+	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
+
+	uORB::Publication<navput_attitude_s>           _attitude_pub{ORB_ID(navput_attitude)};
+
 	bool _callback_registered{false};
+
+	Ekf _ekf;
 };
 #endif // !NAVPUTER_HPP

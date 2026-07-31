@@ -31,8 +31,9 @@
 #
 #############################################################################
 
+set(EKF_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ekf2)
 
-set(EKF_DERIVATION_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../ekf2/EKF/python/ekf_derivation)
+set(EKF_DERIVATION_SRC_DIR ${EKF_BASE_DIR}/EKF/python/ekf_derivation)
 
 set(EKF_GENERATED_FILES ${EKF_DERIVATION_SRC_DIR}/generated/state.h)
 set(EKF_GENERATED_DERIVATION_INCLUDE_PATH "${EKF_DERIVATION_SRC_DIR}/..")
@@ -50,6 +51,8 @@ px4_add_module(
 		#-DDEBUG_BUILD
 		#-O0
 	INCLUDES
+		${EKF_BASE_DIR}
+		${EKF_BASE_DIR}/EKF
 		${EKF_GENERATED_DERIVATION_INCLUDE_PATH}
 	PRIORITY
 		"SCHED_PRIORITY_MAX - 18" # max priority below high priority WQ threads

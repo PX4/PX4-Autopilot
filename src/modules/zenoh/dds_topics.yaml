@@ -134,6 +134,9 @@ publications:
       rel: reliable
       express: true
 
+  - topic: /fmu/out/navput_attitude
+    type: px4_msgs::msg::NavputAttitude
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request

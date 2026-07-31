@@ -1,5 +1,5 @@
 import zenoh
-from msgs.SensorCombined import SensorCombined
+from msgs.NavputAttitude import NavputAttitude
 
 conf = zenoh.Config()
 conf.insert_json5("mode", '"client"')
@@ -13,11 +13,11 @@ if not routers:
     print("WARNING: not connected to any zenohd router")
 
 domain_id = 0
-topic = "/fmu/out/sensor_combined"
+topic = "/fmu/out/navput_attitude"
 keyexpr = f"{domain_id}{topic}/**"  # ** skips the px4_msgs/RIHS01 hash suffix
 
 def listener(sample):
-    print(sample.key_expr, "->", SensorCombined.deserialize(bytes(sample.payload)))
+    print(sample.key_expr, "->", NavputAttitude.deserialize(bytes(sample.payload)))
 
 sub = session.declare_subscriber(keyexpr, listener)
 
