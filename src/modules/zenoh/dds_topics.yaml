@@ -137,6 +137,9 @@ publications:
   - topic: /fmu/out/navput_attitude
     type: px4_msgs::msg::NavputAttitude
 
+  - topic: /fmu/out/navput_local_position
+    type: px4_msgs::msg::NavputLocalPosition
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request

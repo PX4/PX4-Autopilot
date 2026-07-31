@@ -87,8 +87,10 @@
 #include <uORB/topics/yaw_estimator_status.h>
 
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 #include <uORB/topics/navput_attitude.h>
+#include <uORB/topics/navput_local_position.h>
 
 extern pthread_mutex_t navputer_module_mutex;
 
@@ -125,7 +127,9 @@ private:
 	void VerifyParams();
 
 	void PublishAttitude(const hrt_abstime &timestamp);
+	void PublishLocalPosition(const hrt_abstime &timestamp);
 
+	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	px4::atomic_bool _task_should_exit{false};
@@ -152,11 +156,19 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
-	uint8_t _baro_calibration_count {0};
+	// Baro
 	uint32_t _device_id_baro{0};
+	uint8_t _baro_calibration_count {0};
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 
+	// Magnetometer
+	uint32_t _device_id_mag {0};
+	uint8_t _mag_calibration_count{0};
+	InFlightCalibration _mag_cal{};
+	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+
 	uORB::Publication<navput_attitude_s>           _attitude_pub{ORB_ID(navput_attitude)};
+	uORB::Publication<navput_local_position_s>     _local_position_pub{ORB_ID(navput_local_position)};
 
 	bool _callback_registered{false};
 

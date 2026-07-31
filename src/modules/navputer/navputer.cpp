@@ -181,10 +181,11 @@ void Navputer::Run()
 		};
 
 		UpdateBaroSample(ekf2_timestamps);
+		UpdateMagSample(ekf2_timestamps);
 
 
 		if (_ekf.update()) {
-
+			PublishLocalPosition(now);
 		}
 
 		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
@@ -206,6 +207,129 @@ void Navputer::PublishAttitude(const hrt_abstime &timestamp)
 		att.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(att);
 	}
+}
+
+void Navputer::PublishLocalPosition(const hrt_abstime &timestamp)
+{
+	navput_local_position_s lpos{};
+	// generate vehicle local position data
+	lpos.timestamp_sample = timestamp;
+
+	// Position of body origin in local NED frame
+	const Vector3f position{_ekf.getPosition()};
+	lpos.x = position(0);
+	lpos.y = position(1);
+	lpos.z = position(2);
+
+	// Velocity of body origin in local NED frame (m/s)
+	const Vector3f velocity{_ekf.getVelocity()};
+	lpos.vx = velocity(0);
+	lpos.vy = velocity(1);
+	lpos.vz = velocity(2);
+
+	// vertical position time derivative (m/s)
+	lpos.z_deriv = _ekf.getVerticalPositionDerivative();
+
+	// Acceleration of body origin in local frame
+	const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
+	_ekf.resetVelocityDerivativeAccumulation();
+	lpos.ax = vel_deriv(0);
+	lpos.ay = vel_deriv(1);
+	lpos.az = vel_deriv(2);
+
+	lpos.xy_valid = _ekf.isLocalHorizontalPositionValid();
+	lpos.v_xy_valid = _ekf.isLocalHorizontalPositionValid();
+
+	// TODO: some modules (e.g.: mc_pos_control) don't handle v_z_valid != z_valid properly
+	lpos.z_valid = _ekf.isLocalVerticalPositionValid() || _ekf.isLocalVerticalVelocityValid();
+	lpos.v_z_valid = _ekf.isLocalVerticalVelocityValid() || _ekf.isLocalVerticalPositionValid();
+
+	// Position of local NED origin in GPS / WGS84 frame
+	if (_ekf.global_origin_valid()) {
+		lpos.ref_timestamp = _ekf.global_origin().getProjectionReferenceTimestamp();
+		lpos.ref_lat = _ekf.global_origin().getProjectionReferenceLat(); // Reference point latitude in degrees
+		lpos.ref_lon = _ekf.global_origin().getProjectionReferenceLon(); // Reference point longitude in degrees
+		lpos.ref_alt = _ekf.getEkfGlobalOriginAltitude();           // Reference point in MSL altitude meters
+		lpos.xy_global = true;
+		lpos.z_global = true;
+
+	} else {
+		lpos.ref_timestamp = 0;
+		lpos.ref_lat = static_cast<double>(NAN);
+		lpos.ref_lon = static_cast<double>(NAN);
+		lpos.ref_alt = NAN;
+		lpos.xy_global = false;
+		lpos.z_global = false;
+	}
+
+	Quatf delta_q_reset;
+	_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
+
+	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
+	lpos.unaided_heading = _ekf.getUnaidedYaw();
+	lpos.heading_var = _ekf.getYawVar();
+	lpos.delta_heading = Eulerf(delta_q_reset).psi();
+	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
+	lpos.tilt_var = _ekf.getTiltVariance();
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	// Distance to bottom surface (ground) in meters, must be positive
+	lpos.dist_bottom_valid = _ekf.isHeightAboveGroundEstimateValid();
+	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
+	lpos.dist_bottom_var = _ekf.getHaglVariance();
+	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);
+
+	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
+
+	if (_ekf.control_status_flags().rng_terrain || _ekf.control_status_flags().rng_hgt) {
+		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
+	}
+
+	if (_ekf.control_status_flags().opt_flow_terrain) {
+		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_FLOW;
+	}
+
+#endif // CONFIG_EKF2_TERRAIN
+
+	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
+
+	// get state reset information of position and velocity
+	_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
+	_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
+	_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
+	_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
+	lpos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
+			      || _ekf.control_status_flags().wind_dead_reckoning;
+
+	// get control limit information
+	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max_z, &lpos.hagl_max_xy);
+
+	// convert NaN to INFINITY
+	if (!PX4_ISFINITE(lpos.vxy_max)) {
+		lpos.vxy_max = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.vz_max)) {
+		lpos.vz_max = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_min)) {
+		lpos.hagl_min = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_max_z)) {
+		lpos.hagl_max_z = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_max_xy)) {
+		lpos.hagl_max_xy = INFINITY;
+	}
+
+	// publish vehicle local position data
+	lpos.timestamp = hrt_absolute_time();
+	_local_position_pub.publish(lpos);
 }
 
 void Navputer::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
@@ -241,6 +365,43 @@ void Navputer::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter, reset});
 
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
+				(int64_t)ekf2_timestamps.timestamp / 100);
+	}
+}
+
+void Navputer::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	vehicle_magnetometer_s magnetometer;
+
+	if (_magnetometer_sub.update(&magnetometer)) {
+
+		bool reset = false;
+
+		// check if magnetometer has changed
+		if (magnetometer.device_id != _device_id_mag) {
+			if (_device_id_mag != 0) {
+				PX4_DEBUG("mag sensor ID changed %" PRIu32 " -> %" PRIu32, _device_id_mag, magnetometer.device_id);
+			}
+
+			reset = true;
+
+		} else if (magnetometer.calibration_count != _mag_calibration_count) {
+			// existing calibration has changed, reset saved mag bias
+			PX4_DEBUG("mag %" PRIu32 " calibration updated, resetting bias", _device_id_mag);
+			reset = true;
+		}
+
+		if (reset) {
+			_device_id_mag = magnetometer.device_id;
+			_mag_calibration_count = magnetometer.calibration_count;
+
+			// reset magnetometer bias learning
+			_mag_cal = {};
+		}
+
+		_ekf.setMagData(magSample{magnetometer.timestamp_sample, Vector3f{magnetometer.magnetometer_ga}, reset});
+
+		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = (int16_t)((int64_t)magnetometer.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 }

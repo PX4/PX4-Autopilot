@@ -288,6 +288,7 @@ set(msg_files
 	versioned/Wind.msg
 
 	navput/NavputAttitude.msg
+	navput/NavputLocalPosition.msg
 )
 list(SORT msg_files)
 

@@ -1,5 +1,6 @@
 import zenoh
 from msgs.NavputAttitude import NavputAttitude
+from msgs.NavputLocalPosition import NavputLocalPosition
 
 conf = zenoh.Config()
 conf.insert_json5("mode", '"client"')
@@ -12,14 +13,23 @@ print("connected routers:", routers)
 if not routers:
     print("WARNING: not connected to any zenohd router")
 
-domain_id = 0
-topic = "/fmu/out/navput_attitude"
-keyexpr = f"{domain_id}{topic}/**"  # ** skips the px4_msgs/RIHS01 hash suffix
 
-def listener(sample):
-    print(sample.key_expr, "->", NavputAttitude.deserialize(bytes(sample.payload)))
+def full_topic(topic):
+    domain_id = 0
+    return f"{domain_id}/fmu/out/{topic}/**"
 
-sub = session.declare_subscriber(keyexpr, listener)
+
+def on_attitude(sample):
+    print(NavputAttitude.deserialize(bytes(sample.payload)))
+
+def on_local_position(sample):
+    print(NavputLocalPosition.deserialize(bytes(sample.payload)))
+
+
+sub_local_pos = session.declare_subscriber(full_topic('navput_local_position'), on_local_position)
+# sub_att = session.declare_subscriber(full_topic('navput_attitude'), on_attitude)
+
+
 
 import time
 while True:

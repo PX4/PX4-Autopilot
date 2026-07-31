@@ -10,6 +10,7 @@ export PX4_CMAKE_BUILD_TYPE=Debug
 cd ..
 
 rm -f build/px4_sitl_navput/rootfs/parameters.bson build/px4_sitl_navput/rootfs/parameters_backup.bson
+rm -rf build/px4_sitl_navput/rootfs/zenoh
 
 make px4_sitl_navput
 
