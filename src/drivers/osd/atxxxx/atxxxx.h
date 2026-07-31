@@ -101,14 +101,14 @@ private:
 	int writeRegister(unsigned reg, uint8_t data);
 
 	int write_character_to_screen(uint8_t c, uint8_t pos_x, uint8_t pos_y);
-	int add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y);
-	int add_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width);
+	void add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y);
+	void add_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width);
 	int flush_screen(int max_updates);
 
-	int add_battery_voltage(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
-	int add_consumed_mah(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
-	int add_altitude(const vehicle_local_position_s &local_position, uint8_t pos_x, uint8_t pos_y);
-	int add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
+	void add_battery_voltage(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
+	void add_consumed_mah(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
+	void add_altitude(const vehicle_local_position_s &local_position, uint8_t pos_x, uint8_t pos_y);
+	void add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
 	bool enabled(osd::Symbol symbol) const;
 
 	int enable_screen();
@@ -121,6 +121,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
 	uint8_t _screen[OSD_CHARS_PER_ROW * OSD_NUM_ROWS_PAL] {};
 	uint8_t _displayed_screen[OSD_CHARS_PER_ROW * OSD_NUM_ROWS_PAL] {};
+	int _num_rows{OSD_NUM_ROWS_NTSC};	// rows of the active video standard, the smaller of the two until configured
 	int _flush_position{};
 	bool _keep_running{false};
 	bool _spi_initialized{false};
@@ -157,8 +158,6 @@ private:
 		(ParamInt<px4::params::OSD_GPS_INFO_Y>) _param_osd_gps_info_y,
 		(ParamInt<px4::params::OSD_ALT_X>) _param_osd_alt_x,
 		(ParamInt<px4::params::OSD_ALT_Y>) _param_osd_alt_y,
-		(ParamInt<px4::params::OSD_HOME_DIR_X>) _param_osd_home_dir_x,
-		(ParamInt<px4::params::OSD_HOME_DIR_Y>) _param_osd_home_dir_y,
 		(ParamInt<px4::params::OSD_HOME_DST_X>) _param_osd_home_dst_x,
 		(ParamInt<px4::params::OSD_HOME_DST_Y>) _param_osd_home_dst_y,
 		(ParamInt<px4::params::OSD_AH_X>) _param_osd_ah_x,

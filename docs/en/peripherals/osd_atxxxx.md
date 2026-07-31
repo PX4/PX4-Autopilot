@@ -74,7 +74,9 @@ Set and clear bits in QGroundControl's bitmask parameter editor, or enter the co
 Each element has separate `_X` and `_Y` parameters.
 The origin is the top-left character cell: X increases to the right and Y increases downward.
 The permitted X range depends on the width of the element so that its complete text fits within the 30-column display.
-The configurable Y range is 0 through 12.
+
+The Y range is 0 through 15, which is the PAL row count.
+NTSC has 13 rows, so on NTSC an element positioned at row 13, 14, or 15 is not drawn.
 
 Position changes are applied while the driver is running.
 When elements overlap, the element rendered later by the driver occupies the shared character cells.
