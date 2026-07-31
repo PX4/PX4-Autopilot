@@ -198,10 +198,11 @@ void process_battery(const Config &config, uint8_t instance, battery_status_s &b
 
 /**
  * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
- * status (matched per ESC by actuator_function). Off reports the ESC offline; Wrong keeps it online
- * but reports consistently wrong values. Takes status by const reference and returns the mutated
- * copy so callers can't accidentally apply it in place to a persistent status, which would compound
- * Wrong across calls. Call after Config::update().
+ * status (matched per ESC by actuator_function). Off zeroes the ESC's telemetry (keeping only
+ * actuator_function) and reports it offline and unarmed; Wrong keeps it online but reports
+ * consistently wrong values. Takes status by const reference and returns the mutated copy so callers
+ * can't accidentally apply it in place to a persistent status, which would compound Wrong across
+ * calls. Call after Config::update().
  */
 esc_status_s process_esc(const Config &config, const esc_status_s &status);
 

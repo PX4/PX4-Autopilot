@@ -107,6 +107,9 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_ESC, instance)) {
 		case Mode::Off:
 			result.esc_online_flags &= ~(1u << i);
+			result.esc_armed_flags &= ~(1u << i);
+			result.esc[i] = esc_report_s{};
+			result.esc[i].actuator_function = function;
 			break;
 
 		case Mode::Wrong:
