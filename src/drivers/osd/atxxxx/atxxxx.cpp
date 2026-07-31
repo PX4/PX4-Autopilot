@@ -53,12 +53,100 @@ static constexpr uint32_t OSD_UPDATE_RATE{100_ms};	// 10 Hz
 static constexpr int OSD_MAX_UPDATES_PER_CYCLE{10};
 static constexpr uint32_t OSD_RETRY_INTERVAL{500_ms};
 
+
+static constexpr param_t POSITION_PARAM[] {
+	static_cast<param_t>(px4::params::OSD_BAT_VOLT_X),
+	static_cast<param_t>(px4::params::OSD_BAT_VOLT_Y),
+	static_cast<param_t>(px4::params::OSD_MAH_X),
+	static_cast<param_t>(px4::params::OSD_MAH_Y),
+	static_cast<param_t>(px4::params::OSD_CELL_V_X),
+	static_cast<param_t>(px4::params::OSD_CELL_V_Y),
+	static_cast<param_t>(px4::params::OSD_SYSID_X),
+	static_cast<param_t>(px4::params::OSD_SYSID_Y),
+	static_cast<param_t>(px4::params::OSD_MISSION_X),
+	static_cast<param_t>(px4::params::OSD_MISSION_Y),
+	static_cast<param_t>(px4::params::OSD_MAV_STATE_X),
+	static_cast<param_t>(px4::params::OSD_MAV_STATE_Y),
+	static_cast<param_t>(px4::params::OSD_RSSI_X),
+	static_cast<param_t>(px4::params::OSD_RSSI_Y),
+	static_cast<param_t>(px4::params::OSD_LQ_X),
+	static_cast<param_t>(px4::params::OSD_LQ_Y),
+	static_cast<param_t>(px4::params::OSD_GPS_SAT_X),
+	static_cast<param_t>(px4::params::OSD_GPS_SAT_Y),
+	static_cast<param_t>(px4::params::OSD_GPS_SPD_X),
+	static_cast<param_t>(px4::params::OSD_GPS_SPD_Y),
+	static_cast<param_t>(px4::params::OSD_GPS_INFO_X),
+	static_cast<param_t>(px4::params::OSD_GPS_INFO_Y),
+	static_cast<param_t>(px4::params::OSD_ALT_X),
+	static_cast<param_t>(px4::params::OSD_ALT_Y),
+	static_cast<param_t>(px4::params::OSD_HOME_DST_X),
+	static_cast<param_t>(px4::params::OSD_HOME_DST_Y),
+	static_cast<param_t>(px4::params::OSD_AH_X),
+	static_cast<param_t>(px4::params::OSD_AH_Y),
+	static_cast<param_t>(px4::params::OSD_MODE_X),
+	static_cast<param_t>(px4::params::OSD_MODE_Y),
+	static_cast<param_t>(px4::params::OSD_FTIME_X),
+	static_cast<param_t>(px4::params::OSD_FTIME_Y),
+	static_cast<param_t>(px4::params::OSD_STATUS_X),
+	static_cast<param_t>(px4::params::OSD_STATUS_Y),
+	static_cast<param_t>(px4::params::OSD_ARM_X),
+	static_cast<param_t>(px4::params::OSD_ARM_Y),
+	static_cast<param_t>(px4::params::OSD_HEAD_X),
+	static_cast<param_t>(px4::params::OSD_HEAD_Y),
+	static_cast<param_t>(px4::params::OSD_CROSS_X),
+	static_cast<param_t>(px4::params::OSD_CROSS_Y),
+	static_cast<param_t>(px4::params::OSD_CURRENT_X),
+	static_cast<param_t>(px4::params::OSD_CURRENT_Y),
+	static_cast<param_t>(px4::params::OSD_POWER_X),
+	static_cast<param_t>(px4::params::OSD_POWER_Y),
+	static_cast<param_t>(px4::params::OSD_THROT_X),
+	static_cast<param_t>(px4::params::OSD_THROT_Y),
+	static_cast<param_t>(px4::params::OSD_VARIO_X),
+	static_cast<param_t>(px4::params::OSD_VARIO_Y),
+	static_cast<param_t>(px4::params::OSD_PITCH_X),
+	static_cast<param_t>(px4::params::OSD_PITCH_Y),
+	static_cast<param_t>(px4::params::OSD_ROLL_X),
+	static_cast<param_t>(px4::params::OSD_ROLL_Y),
+	static_cast<param_t>(px4::params::OSD_GPS_LAT_X),
+	static_cast<param_t>(px4::params::OSD_GPS_LAT_Y),
+	static_cast<param_t>(px4::params::OSD_GPS_LON_X),
+	static_cast<param_t>(px4::params::OSD_GPS_LON_Y),
+	static_cast<param_t>(px4::params::OSD_VTX_INFO_X),
+	static_cast<param_t>(px4::params::OSD_VTX_INFO_Y),
+	static_cast<param_t>(px4::params::OSD_VTX_FREQ_X),
+	static_cast<param_t>(px4::params::OSD_VTX_FREQ_Y),
+	static_cast<param_t>(px4::params::OSD_VTX_POWER_X),
+	static_cast<param_t>(px4::params::OSD_VTX_POWER_Y),
+};
+
+void
+OSDatxxxx::mark_position_params_used()
+{
+	static_assert(sizeof(POSITION_PARAM) / sizeof(POSITION_PARAM[0]) == POS_COUNT,
+		      "position parameter table does not match PositionParam");
+
+	// mark them used so they are still reported to a GCS, as ParamInt members would
+	for (unsigned i = 0; i < POS_COUNT; ++i) {
+		param_set_used(POSITION_PARAM[i]);
+	}
+}
+
+void
+OSDatxxxx::update_position_params()
+{
+	for (unsigned i = 0; i < POS_COUNT; ++i) {
+		param_get(POSITION_PARAM[i], &_position[i]);
+	}
+}
+
 OSDatxxxx::OSDatxxxx(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	ModuleParams(nullptr),
 	I2CSPIDriver(config),
 	_keep_running(config.keep_running)
 {
+	mark_position_params_used();
+	update_position_params();
 	_display.set_period(_param_osd_scroll_rate.get() * 1000ULL);
 	_display.set_dwell(_param_osd_dwell_time.get() * 1000ULL);
 }
@@ -230,6 +318,13 @@ OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 }
 
 void
+OSDatxxxx::add_element_to_screen(const char *str, PositionParam element, int width)
+{
+	// the X entry is followed by its Y entry, so one index locates both
+	add_string_to_screen(str, _position[element], _position[element + 1], width);
+}
+
+void
 OSDatxxxx::add_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width)
 {
 	int i = 0;
@@ -386,8 +481,8 @@ OSDatxxxx::update_screen()
 {
 	const osd::TelemetryData &telemetry = _telemetry.data();
 	char buf[16] {};
-	const int horizon_x = _param_osd_ah_x.get();
-	const int horizon_y = _param_osd_ah_y.get();
+	const int horizon_x = position(POS_AH_X);
+	const int horizon_y = position(POS_AH_Y);
 	const battery_status_s battery = telemetry.battery_valid ? telemetry.battery : battery_status_s{};
 	const float roll_rad = telemetry.attitude_valid ? telemetry.roll_rad : 0.f;
 	const float pitch_rad = telemetry.attitude_valid ? telemetry.pitch_rad : 0.f;
@@ -442,41 +537,42 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::Crosshairs)) {
-		const int crosshair_x = _param_osd_cross_x.get();
-		const int crosshair_y = _param_osd_cross_y.get();
+		const int crosshair_x = position(POS_CROSS_X);
+		const int crosshair_y = position(POS_CROSS_Y);
 		add_character_to_screen(OSD_SYMBOL_AH_CENTER, crosshair_x, crosshair_y);
 	}
 
 	if (enabled(osd::Symbol::MainBatteryVoltage)) {
-		add_battery_voltage(battery, _param_osd_bat_volt_x.get(), _param_osd_bat_volt_y.get());
+		add_battery_voltage(battery, position(POS_BAT_VOLT_X), position(POS_BAT_VOLT_Y));
 	}
 
 	if (enabled(osd::Symbol::MahDrawn)) {
-		add_consumed_mah(battery, _param_osd_mah_x.get(), _param_osd_mah_y.get());
+		add_consumed_mah(battery, position(POS_MAH_X), position(POS_MAH_Y));
 	}
 
 	if (enabled(osd::Symbol::AverageCellVoltage)) {
 		const float cell_voltage = battery.cell_count > 0 ? battery.voltage_v / battery.cell_count : 0.f;
 		snprintf(buf, sizeof(buf), "%c%4.2fV", OSD_SYMBOL_BATT_EMPTY, (double)cell_voltage);
-		add_string_to_screen(buf, _param_osd_cell_v_x.get(), _param_osd_cell_v_y.get(), 7);
+		add_element_to_screen(buf, POS_CELL_V_X, 7);
 	}
 
 	if (enabled(osd::Symbol::CurrentDraw)) {
 		const float current_a = PX4_ISFINITE(battery.current_a) ? battery.current_a : 0.f;
 		snprintf(buf, sizeof(buf), "%c%4.1fA", OSD_SYMBOL_AMP, (double)current_a);
-		add_string_to_screen(buf, _param_osd_current_x.get(), _param_osd_current_y.get(), 6);
+		add_element_to_screen(buf, POS_CURRENT_X, 6);
 	}
 
 	if (enabled(osd::Symbol::Power)) {
 		const float current_a = PX4_ISFINITE(battery.current_a) ? battery.current_a : 0.f;
 		snprintf(buf, sizeof(buf), "%4.0fW", (double)(battery.voltage_v * current_a));
-		add_string_to_screen(buf, _param_osd_power_x.get(), _param_osd_power_y.get(), 5);
+		add_element_to_screen(buf, POS_POWER_X, 5);
 	}
 
 	if (enabled(osd::Symbol::SystemId)) {
-		const int system_id = telemetry.status.system_id != 0 ? telemetry.status.system_id : _param_mav_sys_id.get();
-		snprintf(buf, sizeof(buf), "S%03d", math::constrain(system_id, 0, 999));
-		add_string_to_screen(buf, _param_osd_sysid_x.get(), _param_osd_sysid_y.get(), 4);
+		// vehicle_status carries the MAVLink system ID, so the driver does not depend on
+		// MAV_SYS_ID: that parameter only exists on boards that build the mavlink module
+		snprintf(buf, sizeof(buf), "S%03d", telemetry.status.system_id);
+		add_element_to_screen(buf, POS_SYSID_X, 4);
 	}
 
 	if (enabled(osd::Symbol::MavState)) {
@@ -497,7 +593,7 @@ OSDatxxxx::update_screen()
 			mav_state = "MAVSTB";
 		}
 
-		add_string_to_screen(mav_state, _param_osd_mav_state_x.get(), _param_osd_mav_state_y.get(), 6);
+		add_element_to_screen(mav_state, POS_MAV_STATE_X, 6);
 	}
 
 	if (enabled(osd::Symbol::Rssi)) {
@@ -519,27 +615,27 @@ OSDatxxxx::update_screen()
 			snprintf(buf, sizeof(buf), "%c%3d", OSD_SYMBOL_RSSI, rssi);
 		}
 
-		add_string_to_screen(buf, _param_osd_rssi_x.get(), _param_osd_rssi_y.get(), 5);
+		add_element_to_screen(buf, POS_RSSI_X, 5);
 	}
 
 	if (enabled(osd::Symbol::LinkQuality)) {
 		const int link_quality = telemetry.input_rc.timestamp != 0 && telemetry.input_rc.link_quality >= 0
 					 ? telemetry.input_rc.link_quality : 0;
 		snprintf(buf, sizeof(buf), "LQ%3d", link_quality);
-		add_string_to_screen(buf, _param_osd_lq_x.get(), _param_osd_lq_y.get(), 5);
+		add_element_to_screen(buf, POS_LQ_X, 5);
 	}
 
 	if (enabled(osd::Symbol::GpsSatellites)) {
 		const int satellites = telemetry.gps.timestamp != 0 ? telemetry.gps.satellites_used : 0;
 		snprintf(buf, sizeof(buf), "%c%c%2d", OSD_SYMBOL_SAT_L, OSD_SYMBOL_SAT_R, satellites);
-		add_string_to_screen(buf, _param_osd_gps_sat_x.get(), _param_osd_gps_sat_y.get(), 4);
+		add_element_to_screen(buf, POS_GPS_SAT_X, 4);
 	}
 
 	if (enabled(osd::Symbol::GpsSpeed)) {
 		const float speed = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.vel_m_s)
 				    ? telemetry.gps.vel_m_s * 3.6f : 0.f;
 		snprintf(buf, sizeof(buf), "SPD%3.0f", (double)speed);
-		add_string_to_screen(buf, _param_osd_gps_spd_x.get(), _param_osd_gps_spd_y.get(), 6);
+		add_element_to_screen(buf, POS_GPS_SPD_X, 6);
 	}
 
 	if (enabled(osd::Symbol::GpsInfo)) {
@@ -550,45 +646,45 @@ OSDatxxxx::update_screen()
 		const float eph = PX4_ISFINITE(telemetry.gps.eph) ? telemetry.gps.eph : 0.f;
 		const float pdop = sqrtf(hdop * hdop + vdop * vdop);
 		snprintf(buf, sizeof(buf), "%s D%3.1f E%3.1f", fix_type, (double)pdop, (double)eph);
-		add_string_to_screen(buf, _param_osd_gps_info_x.get(), _param_osd_gps_info_y.get(), 12);
+		add_element_to_screen(buf, POS_GPS_INFO_X, 12);
 	}
 
 	if (enabled(osd::Symbol::GpsLatitude)) {
 		const double latitude = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.latitude_deg)
 					? telemetry.gps.latitude_deg : 0.;
 		snprintf(buf, sizeof(buf), "LAT%+.5f", latitude);
-		add_string_to_screen(buf, _param_osd_gps_lat_x.get(), _param_osd_gps_lat_y.get(), 13);
+		add_element_to_screen(buf, POS_GPS_LAT_X, 13);
 	}
 
 	if (enabled(osd::Symbol::GpsLongitude)) {
 		const double longitude = telemetry.gps.fix_type >= sensor_gps_s::FIX_TYPE_2D && PX4_ISFINITE(telemetry.gps.longitude_deg)
 					 ? telemetry.gps.longitude_deg : 0.;
 		snprintf(buf, sizeof(buf), "LON%+.5f", longitude);
-		add_string_to_screen(buf, _param_osd_gps_lon_x.get(), _param_osd_gps_lon_y.get(), 14);
+		add_element_to_screen(buf, POS_GPS_LON_X, 14);
 	}
 
 	if (enabled(osd::Symbol::Altitude)) {
 		vehicle_local_position_s local_position{};
 		local_position.z = telemetry.local_position.z_valid && PX4_ISFINITE(telemetry.local_position.z)
 				   ? telemetry.local_position.z : 0.f;
-		add_altitude(local_position, _param_osd_alt_x.get(), _param_osd_alt_y.get());
+		add_altitude(local_position, position(POS_ALT_X), position(POS_ALT_Y));
 	}
 
 	if (enabled(osd::Symbol::NumericalVario)) {
 		const float vertical_speed = telemetry.local_position.v_z_valid && PX4_ISFINITE(telemetry.local_position.vz)
 					     ? -telemetry.local_position.vz : 0.f;
 		snprintf(buf, sizeof(buf), "V%+4.1f", (double)vertical_speed);
-		add_string_to_screen(buf, _param_osd_vario_x.get(), _param_osd_vario_y.get(), 7);
+		add_element_to_screen(buf, POS_VARIO_X, 7);
 	}
 
 	if (enabled(osd::Symbol::PitchAngle)) {
 		snprintf(buf, sizeof(buf), "P%+4.0f", (double)math::degrees(pitch_rad));
-		add_string_to_screen(buf, _param_osd_pitch_x.get(), _param_osd_pitch_y.get(), 6);
+		add_element_to_screen(buf, POS_PITCH_X, 6);
 	}
 
 	if (enabled(osd::Symbol::RollAngle)) {
 		snprintf(buf, sizeof(buf), "R%+4.0f", (double)math::degrees(roll_rad));
-		add_string_to_screen(buf, _param_osd_roll_x.get(), _param_osd_roll_y.get(), 6);
+		add_element_to_screen(buf, POS_ROLL_X, 6);
 	}
 
 	if (enabled(osd::Symbol::MissionState)) {
@@ -612,13 +708,13 @@ OSDatxxxx::update_screen()
 				 static_cast<unsigned>(math::min(mission.seq_total, static_cast<uint16_t>(99))));
 		}
 
-		add_string_to_screen(buf, _param_osd_mission_x.get(), _param_osd_mission_y.get(), 8);
+		add_element_to_screen(buf, POS_MISSION_X, 8);
 	}
 
 	if (enabled(osd::Symbol::HomeDistance)) {
 		const float home_distance = telemetry.home_valid ? telemetry.home_distance_m : 0.f;
 		snprintf(buf, sizeof(buf), "%4.0f%c", (double)home_distance, OSD_SYMBOL_M);
-		add_string_to_screen(buf, _param_osd_home_dst_x.get(), _param_osd_home_dst_y.get(), 6);
+		add_element_to_screen(buf, POS_HOME_DST_X, 6);
 	}
 
 	const char *flight_mode = _telemetry.flight_mode();
@@ -635,19 +731,19 @@ OSDatxxxx::update_screen()
 			buf[i] = toupper(static_cast<unsigned char>(buf[i]));
 		}
 
-		add_string_to_screen(buf, _param_osd_mode_x.get(), _param_osd_mode_y.get(), 14);
+		add_element_to_screen(buf, POS_MODE_X, 14);
 	}
 
 	if (enabled(osd::Symbol::Disarmed)) {
 		const char *arming_state = telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 					   ? "ARMED" : "DISARMED";
-		add_string_to_screen(arming_state, _param_osd_arm_x.get(), _param_osd_arm_y.get(), 8);
+		add_element_to_screen(arming_state, POS_ARM_X, 8);
 	}
 
 	if (enabled(osd::Symbol::Heading)) {
 		const int heading_deg = static_cast<int>(lroundf(math::degrees(yaw_rad))) % 360;
 		snprintf(buf, sizeof(buf), "%c%03d", OSD_SYMBOL_ARROW_NORTH, heading_deg);
-		add_string_to_screen(buf, _param_osd_head_x.get(), _param_osd_head_y.get(), 4);
+		add_element_to_screen(buf, POS_HEAD_X, 4);
 	}
 
 	if (enabled(osd::Symbol::Throttle)) {
@@ -657,7 +753,7 @@ OSDatxxxx::update_screen()
 		const float throttle = manual_control_valid
 				       ? math::constrain((telemetry.manual_control.throttle + 1.f) * 50.f, 0.f, 100.f) : 0.f;
 		snprintf(buf, sizeof(buf), "T%3.0f", (double)throttle);
-		add_string_to_screen(buf, _param_osd_throt_x.get(), _param_osd_throt_y.get(), 4);
+		add_element_to_screen(buf, POS_THROT_X, 4);
 	}
 
 #if defined(CONFIG_DRIVERS_VTX)
@@ -672,13 +768,13 @@ OSDatxxxx::update_screen()
 			strncpy(buf, "VTX -:0:0", sizeof(buf));
 		}
 
-		add_string_to_screen(buf, _param_osd_vtx_info_x.get(), _param_osd_vtx_info_y.get(), 11);
+		add_element_to_screen(buf, POS_VTX_INFO_X, 11);
 	}
 
 	if (enabled(osd::Symbol::VtxFrequency)) {
 		const uint16_t frequency = telemetry.vtx.timestamp != 0 ? telemetry.vtx.frequency : 0;
 		snprintf(buf, sizeof(buf), "VTF: %huM", frequency);
-		add_string_to_screen(buf, _param_osd_vtx_freq_x.get(), _param_osd_vtx_freq_y.get(), 11);
+		add_element_to_screen(buf, POS_VTX_FREQ_X, 11);
 	}
 
 	if (enabled(osd::Symbol::VtxPower)) {
@@ -690,13 +786,13 @@ OSDatxxxx::update_screen()
 			snprintf(buf, sizeof(buf), "VTW: 0MW");
 		}
 
-		add_string_to_screen(buf, _param_osd_vtx_power_x.get(), _param_osd_vtx_power_y.get(), 12);
+		add_element_to_screen(buf, POS_VTX_POWER_X, 12);
 	}
 
 #endif
 
 	if (enabled(osd::Symbol::FlightTime)) {
-		add_flighttime(_telemetry.flight_time_s(), _param_osd_ftime_x.get(), _param_osd_ftime_y.get());
+		add_flighttime(_telemetry.flight_time_s(), position(POS_FTIME_X), position(POS_FTIME_Y));
 	}
 
 	_telemetry.update_message_display(_param_osd_log_level.get(), _display);
@@ -749,7 +845,7 @@ OSDatxxxx::update_screen()
 			}
 		}
 
-		add_string_to_screen(message, _param_osd_status_x.get(), _param_osd_status_y.get(), FULL_MSG_LENGTH);
+		add_element_to_screen(message, POS_STATUS_X, FULL_MSG_LENGTH);
 	}
 
 	return flush_screen(OSD_MAX_UPDATES_PER_CYCLE);
@@ -798,6 +894,7 @@ OSDatxxxx::RunImpl()
 		parameter_update_s parameter_update{};
 		_parameter_update_sub.copy(&parameter_update);
 		updateParams();
+		update_position_params();
 		_num_rows = _param_osd_atxxxx_cfg.get() == 1 ? OSD_NUM_ROWS_NTSC : OSD_NUM_ROWS_PAL;
 		_display.set_period(_param_osd_scroll_rate.get() * 1000ULL);
 		_display.set_dwell(_param_osd_dwell_time.get() * 1000ULL);
