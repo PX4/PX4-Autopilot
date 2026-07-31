@@ -284,6 +284,7 @@ private:
 	perf_counter_t _rtcm_moving_baseline_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm moving baseline injected")};
 
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
+	static px4::atomic_bool _is_sat_info_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
 
 	static px4::atomic<GPS *> _secondary_instance;
@@ -380,6 +381,7 @@ private:
 };
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
+px4::atomic_bool GPS::_is_sat_info_main_advertised{false};
 px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
 ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
@@ -1574,15 +1576,12 @@ GPS::publish()
 void
 GPS::publishSatelliteInfo()
 {
-	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
+	if (_instance == Instance::Main || _is_sat_info_main_advertised.load()) {
 		if (_p_report_sat_info != nullptr) {
 			_report_sat_info_pub.publish(*_p_report_sat_info);
 		}
 
-		_is_gps_main_advertised.store(true);
-
-	} else {
-		//we don't publish satellite info for the secondary gps
+		_is_sat_info_main_advertised.store(true);
 	}
 }
 
