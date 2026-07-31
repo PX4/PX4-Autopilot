@@ -1,0 +1,42 @@
+{
+    "folders": [{ "path": ".." }],
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+		{
+			"name": "Navputer",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/px4_sitl_navput/bin/px4",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${fileDirname}",
+			"environment": [
+				{
+					"name": "PX4_SIM_MODEL",
+					"value": "navput_quadx"
+				},
+				{
+					"name": "PX4_SIMULATOR",
+					"value": "sihsim"
+				}
+			],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Set Disassembly Flavor to Intel",
+					"text": "-gdb-set disassembly-flavor intel",
+					"ignoreFailures": true
+				}
+			],
+			"visualizerFile": "/home/kofe/.config/Code/User/workspaceStorage/8c9a2685b22df66c38fb7df0c72942ae/tonka3000.qtvsctools/qt.natvis.xml"
+		}
+	]
+    }
+}

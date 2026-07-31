@@ -69,6 +69,77 @@ for shared struct types (e.g. all `estimator_aid_src_*` topics map to
 `EstimatorAidSource1d`/`2d`/`3d`, not a per-topic type — check the `.msg`
 file's `# TOPICS` comment).
 
+## Adding a custom message + topic
+
+Worked example: `navput_attitude`, a brand new topic published by the
+`navputer` module (not an existing PX4 message).
+
+1. **Define the message.** `msg/navput/NavputAttitude.msg` (subdirectory is
+   fine, same as `msg/versioned/`). Register the filename in `msg/CMakeLists.txt`'s
+   `msg_files` list — it's an explicit list, not a glob. The PascalCase
+   filename maps mechanically to the snake_case topic: `NavputAttitude.msg`
+   → topic `navput_attitude`, struct `navput_attitude_s`, `ORB_ID(navput_attitude)`.
+
+2. **Publish it from the module.**
+   ```cpp
+   #include <uORB/topics/navput_attitude.h>
+   uORB::PublicationMulti<navput_attitude_s> _attitude_pub{ORB_ID(navput_attitude)};
+   ```
+
+3. **Wire it into zenoh.** Add to `src/modules/zenoh/dds_topics.yaml` under
+   `publications:`:
+   ```yaml
+     - topic: /fmu/out/navput_attitude
+       type: px4_msgs::msg::NavputAttitude
+   ```
+   No subdirectory prefix in the type name — same as `versioned/AirspeedValidated.msg`
+   → `px4_msgs::msg::AirspeedValidated`.
+
+That's the documented path, but two more things had to be fixed before data
+actually showed up on zenoh — both "stale/missing generated artifact" bugs,
+not usage mistakes:
+
+**a) Runtime pub/sub config only generates once.** `Zenoh_Config`'s
+constructor (`zenoh_config.cpp:61-88`) regenerates
+`<rootfs>/zenoh/{pub.csv,sub.csv,net.txt}` from the build's compiled-in
+defaults *only if* that directory or any of those three files is missing —
+if they already exist from an earlier boot, they're trusted as-is and never
+re-synced against a changed `dds_topics.yaml`. After adding or changing a
+topic mapping, delete the stale copy:
+```bash
+rm -rf build/px4_sitl_navput/rootfs/zenoh
+```
+
+**b) The Kconfig topic catalog has its own, narrower file glob.** Two
+separate generators discover topics differently:
+- `msg/CMakeLists.txt`'s explicit `msg_files` list drives the actual C++
+  codegen (the `uorb_pubsub_factory.hpp` entry, guarded by
+  `#ifdef CONFIG_ZENOH_PUBSUB_<TOPIC>`).
+- `cmake/kconfig.cmake` generates the Kconfig *symbol* for that same guard
+  from a hardcoded `file(GLOB ... msg/*.msg msg/versioned/*.msg)` — it never
+  looked at `msg/navput/`, so `CONFIG_ZENOH_PUBSUB_NAVPUT_ATTITUDE` never got
+  declared as a Kconfig symbol at all. Not stale — structurally absent. The
+  `ZENOH_PUBSUB_ALL` choice (default) has nothing to select, so the
+  `#ifdef` permanently excludes the entry no matter how often you rebuild.
+
+Fixed by adding the subdirectory to that glob in `cmake/kconfig.cmake`:
+```cmake
+file(GLOB zenoh_catalog_msg_files
+	${PX4_SOURCE_DIR}/msg/*.msg
+	${PX4_SOURCE_DIR}/msg/versioned/*.msg
+	${PX4_SOURCE_DIR}/msg/navput/*.msg
+)
+```
+This needs a **full CMake reconfigure**, not just a rebuild — `Kconfig.topics`
+feeds the Kconfig merge that produces `px4_boardconfig.h`, which runs once
+per configure, earlier than the incremental C++ codegen that already picks
+up new messages on a plain rebuild. Delete `build/px4_sitl_navput/CMakeCache.txt`
+(or otherwise force a reconfigure) after touching this file.
+
+If you add another custom subdirectory under `msg/` later, it needs its own
+line in that same glob, or its topics will silently compile everywhere
+except into the zenoh factory.
+
 ## Python: subscribe
 
 `pip install eclipse-zenoh` — that's the only dependency. PX4's key
