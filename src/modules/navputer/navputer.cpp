@@ -47,6 +47,12 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 	ScheduledWorkItem(MODULE_NAME, config)
 {
 	AdvertiseTopics();
+
+	// TODO: temp solution
+	auto* fc = _ekf.getFusionControlHandle();
+	fc->baro.enabled = true;
+	fc->mag.enabled = true;
+	fc->rngbcn.enabled = true;
 }
 
 Navputer::~Navputer()

@@ -8,7 +8,9 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [x] Ensure SITL has all sensors (GPS, Acc, Gyro, Baro)
 * [x] Expose 2 ports in SITL: `14550, 14540`
 * [x] Ensure Beacon support is enabled
-* [ ] How to provide initial params?
+* [x] How to provide initial params?
+	ROMFS/px4fmu_common/init.d-posix/airframes/10046_navput_quadx
+	param set-default <name> <value>
 * [x] Connect Copilot: `./copilot --mav udpin:0.0.0.0:14540`
 * [x] Configure PX4 to use beacon ranges: `EKF2_RNGBC_CTRL, 1`
 * [x] Debug SITL
@@ -18,3 +20,10 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [x] Clean SITL start with default params:
 	rm -f build/px4_sitl_sih/rootfs/parameters.bson build/px4_sitl_sih/rootfs/parameters_backup.bson
 	To always boot with your own predefined set (not just firmware defaults — e.g. keep EKF2_RNGBC_CTRL=1 and whatever else you're testing with), the cleanest approach is to snapshot a "golden" parameters.bson once you've got the params you want, then restore it before every launch instead of just deleting.
+
+
+* [ ] How to set initial position estimate?
+* [ ] Add params to SIH to control Beacon simulation: enable/disable, max range, packet loss, rate
+* [ ] Declare custom param group and forware to EKF for fusion control and tuning
+* [ ] Publish fusion state/EKF state - EKF2::PublishFusionControl()
+* [ ] Aux Position source fusion - for initial estimate and recovery.
