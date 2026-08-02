@@ -192,6 +192,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [NavigatorMissionItem](NavigatorMissionItem.md)
 - [NavigatorStatus](NavigatorStatus.md) — Current status of a Navigator mode. Можливі значення nav_state визначені в повідомленні VehicleStatus.
 - [NeuralControl](NeuralControl.md) — Neural control.
+- [NfsUp](NfsUp.md)
 - [NormalizedUnsignedSetpoint](NormalizedUnsignedSetpoint.md)
 - [ObstacleDistance](ObstacleDistance.md) — Obstacle distances in front of the sensor.
 - [OffboardControlMode](OffboardControlMode.md) — Off-board control mode.

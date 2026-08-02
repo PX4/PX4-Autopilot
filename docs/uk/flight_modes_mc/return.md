@@ -4,7 +4,7 @@
 
 Режим польоту _Return_ використовується для _повернення транспортного засобу до безпеки_ по вільному шляху до безпечного пункту призначення, де він може приземлитися.
 
-Multicopters use a [home/rally point return type](../flight_modes/return.md#home_return) by default.
+Multicopters use a [home/rally point return type](../flight_modes/return.md#rtl_type_0) by default.
 In this return type vehicles ascend to a safe altitude above obstructions if needed, fly to the closest safe landing point (a rally point or the home position) via the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness), descend to the "descent altitude", wait briefly, and then land.
 Висота повернення, висота зниження та затримка при посадці зазвичай встановлені на консервативні "безпечні" значення, але їх можна змінити за потреби.
 
@@ -28,7 +28,7 @@ Multicopter supports the [other PX4 return types](../flight_modes/return.md#retu
 
 ## Технічний підсумок
 
-Multicopters use the [home/rally point return type](../flight_modes/return.md#home_return) by default. ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
+Multicopters use the [home/rally point return type](../flight_modes/return.md#rtl_type_0) by default. ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
 У цьому типі повернення вертольот:
 
 - Піднімається на [мінімальну висоту повернення](#minimum-return-altitude) (безпечно вище будь-яких очікуваних перешкод).
@@ -53,7 +53,7 @@ The cone affects the minimum return altitude if return mode is triggered within 
 Inside the cone, the vehicle returns at an altitude calculated from the cone geometry, up to `RTL_RETURN_ALT`.
 After reaching the destination, it descends to `RTL_DESCEND_ALT` (if above that altitude) before landing or loitering.
 
-For more information on this return type see [Home/Rally Point Return Type (RTL_TYPE=0)](../flight_modes/return.md#home_return)
+For more information on this return type see [Home/Rally Point Return Type (RTL_TYPE=0)](../flight_modes/return.md#rtl_type_0)
 
 ## Параметри
 

@@ -214,6 +214,7 @@ See messages
 - [NavigatorMissionItem](../msg_docs/NavigatorMissionItem.md)
 - [NavigatorStatus](../msg_docs/NavigatorStatus.md)
 - [NeuralControl](../msg_docs/NeuralControl.md)
+- [NfsUp](../msg_docs/NfsUp.md)
 - [NormalizedUnsignedSetpoint](../msg_docs/NormalizedUnsignedSetpoint.md)
 - [OpenDroneIdArmStatus](../msg_docs/OpenDroneIdArmStatus.md)
 - [OpenDroneIdBasicId](../msg_docs/OpenDroneIdBasicId.md)
