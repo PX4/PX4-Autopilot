@@ -22,8 +22,10 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 	To always boot with your own predefined set (not just firmware defaults — e.g. keep EKF2_RNGBC_CTRL=1 and whatever else you're testing with), the cleanest approach is to snapshot a "golden" parameters.bson once you've got the params you want, then restore it before every launch instead of just deleting.
 
 
-* [ ] How to set initial position estimate?
+* [x] How to set initial position estimate? Why it is automagically set already?
+	Its not. LocalPosition is tracked from abstact 0.0/0.0 origin.
+	_ekf.resetGlobalPositionTo()
 * [ ] Add params to SIH to control Beacon simulation: enable/disable, max range, packet loss, rate
-* [ ] Declare custom param group and forware to EKF for fusion control and tuning
+* [ ] Declare custom param group and forward to EKF for fusion control and tuning
 * [ ] Publish fusion state/EKF state - EKF2::PublishFusionControl()
 * [ ] Aux Position source fusion - for initial estimate and recovery.

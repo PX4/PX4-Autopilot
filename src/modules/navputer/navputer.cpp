@@ -48,11 +48,19 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 {
 	AdvertiseTopics();
 
-	// TODO: temp solution
+	// TODO: hardcoding required params for now
 	auto* fc = _ekf.getFusionControlHandle();
 	fc->baro.enabled = true;
 	fc->mag.enabled = true;
 	fc->rngbcn.enabled = true;
+
+	auto* params = _ekf.getParamHandle();
+	params->ekf2_rngbc_ctrl = 1;
+	params->ekf2_rngbc_noise = 50; // m
+	params->ekf2_rngbc_gate = 5; // 1-sigma
+	params->ekf2_baro_ctrl = 1;
+
+	_ekf.resetGlobalPositionTo(49.796766, 24.347826, 270);
 }
 
 Navputer::~Navputer()
