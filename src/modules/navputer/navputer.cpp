@@ -44,7 +44,12 @@ static px4::atomic<Navputer *> _instance {};
 
 Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, config)
+	ScheduledWorkItem(MODULE_NAME, config),
+	_params(_ekf.getParamHandle()),
+	_param_npt_rngbc_ctrl(_params->ekf2_rngbc_ctrl),
+	_param_npt_rngbc_delay(_params->ekf2_rngbc_delay),
+	_param_npt_rngbc_noise(_params->ekf2_rngbc_noise),
+	_param_npt_rngbc_gate(_params->ekf2_rngbc_gate)
 {
 	AdvertiseTopics();
 
@@ -54,12 +59,7 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 	fc->mag.enabled = true;
 	fc->rngbcn.enabled = true;
 
-	auto* params = _ekf.getParamHandle();
-	params->ekf2_rngbc_ctrl = 1;
-	params->ekf2_rngbc_noise = 50; // m
-	params->ekf2_rngbc_gate = 5; // 1-sigma
-	params->ekf2_baro_ctrl = 1;
-
+	// TODO: temp solution, should be provided externally or from Aux aid src
 	_ekf.resetGlobalPositionTo(49.796766, 24.347826, 270);
 }
 
@@ -71,6 +71,7 @@ Navputer::~Navputer()
 void Navputer::AdvertiseTopics()
 {
 	_attitude_pub.advertise();
+	_local_position_pub.advertise();
 }
 
 
@@ -111,7 +112,19 @@ void Navputer::Run()
 		return;
 	}
 
-	if (!_callback_registered) {
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || !_callback_registered) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+
+		_ekf.updateParameters();
+	}
+
+	if(!_callback_registered) {
 		_callback_registered = _sensor_combined_sub.registerCallback();
 
 		if (!_callback_registered) {

@@ -26,6 +26,6 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 	Its not. LocalPosition is tracked from abstact 0.0/0.0 origin.
 	_ekf.resetGlobalPositionTo()
 * [ ] Add params to SIH to control Beacon simulation: enable/disable, max range, packet loss, rate
-* [ ] Declare custom param group and forward to EKF for fusion control and tuning
+* [x] Declare custom param group and forward to EKF for fusion control and tuning
 * [ ] Publish fusion state/EKF state - EKF2::PublishFusionControl()
 * [ ] Aux Position source fusion - for initial estimate and recovery.

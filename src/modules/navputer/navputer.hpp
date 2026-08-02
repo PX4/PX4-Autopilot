@@ -93,6 +93,8 @@
 #include <uORB/topics/navput_attitude.h>
 #include <uORB/topics/navput_local_position.h>
 
+using namespace time_literals;
+
 extern pthread_mutex_t navputer_module_mutex;
 
 class Navputer final : public ModuleParams, public px4::ScheduledWorkItem
@@ -161,6 +163,8 @@ private:
 	uint8_t _accel_calibration_count{0};
 	uint8_t _gyro_calibration_count{0};
 
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
@@ -184,5 +188,15 @@ private:
 	bool _callback_registered{false};
 
 	Ekf _ekf;
+
+	parameters *_params;
+
+	DEFINE_PARAMETERS(
+		// ranging beacon fusion
+		(ParamExtInt<px4::params::NPT_RNGBC_CTRL>) _param_npt_rngbc_ctrl,
+		(ParamExtFloat<px4::params::NPT_RNGBC_DELAY>) _param_npt_rngbc_delay,
+		(ParamExtFloat<px4::params::NPT_RNGBC_NOISE>) _param_npt_rngbc_noise,
+		(ParamExtFloat<px4::params::NPT_RNGBC_GATE>) _param_npt_rngbc_gate
+	)
 };
 #endif // !NAVPUTER_HPP
