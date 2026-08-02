@@ -7,11 +7,9 @@ parameters:
         # Gripper configuration
         PD_GRIPPER_TYPE:
             description:
-                short: Gripper command type (transport configured separately)
+                short: Gripper control type
                 long: |
-                  Selects the gripper command behavior.
-                  The output transport is configured separately using actuator
-                  mapping for directly connected grippers, or DroneCAN.
+                  Selects the types of control actions the gripper accepts.
             type: enum
             values:
                 -1: Undefined
