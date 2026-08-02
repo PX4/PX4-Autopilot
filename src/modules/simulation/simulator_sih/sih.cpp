@@ -265,8 +265,9 @@ void Sih::sensor_step()
 		send_dist_snsr(now);
 	}
 
-	// ranging beacon published at 2 Hz (each beacon at 0.5 Hz)
-	if (now - _ranging_beacon_time >= 500_ms) {
+	// ranging beacon published at 1/SIH_RNGBC_INTV Hz (each beacon at 1/(N*SIH_RNGBC_INTV) Hz)
+	if (_sih_ranging_beacon_en.get()
+	    && now - _ranging_beacon_time >= _sih_ranging_beacon_interval.get() * 1_ms) {
 		_ranging_beacon_time = now;
 		send_ranging_beacon(now);
 	}
@@ -820,29 +821,33 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
 		const double true_range_m = delta_ecef.norm();
 
-		const float noise_std = _sih_ranging_beacon_noise.get();
-		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
-		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
+		const float max_range_m = _sih_ranging_beacon_max_range.get();
 
-		ranging_beacon_s msg{};
-		msg.timestamp = hrt_absolute_time();
-		msg.timestamp_sample = time_now_us;
-		msg.beacon_id = _ranging_beacon_idx;
-		msg.range = static_cast<float>(measured_range_m);
-		msg.lat = beacon.lat_deg;
-		msg.lon = beacon.lon_deg;
-		msg.alt = beacon.alt_m;
-		msg.alt_type = 0; // WGS84
-		msg.hacc = 1.0f;
-		msg.vacc = 1.0f;
-		msg.range_accuracy = noise_std;
-		msg.sequence_nr = 0;
-		msg.status = 0;
-		msg.carrier_freq = 0;
+		if (max_range_m <= 0.f || true_range_m <= static_cast<double>(max_range_m)) {
+			const float noise_std = _sih_ranging_beacon_noise.get();
+			const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+			const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 
-		_ranging_beacon_pub.publish(msg);
+			ranging_beacon_s msg{};
+			msg.timestamp = hrt_absolute_time();
+			msg.timestamp_sample = time_now_us;
+			msg.beacon_id = _ranging_beacon_idx;
+			msg.range = static_cast<float>(measured_range_m);
+			msg.lat = beacon.lat_deg;
+			msg.lon = beacon.lon_deg;
+			msg.alt = beacon.alt_m;
+			msg.alt_type = 0; // WGS84
+			msg.hacc = 1.0f;
+			msg.vacc = 1.0f;
+			msg.range_accuracy = noise_std;
+			msg.sequence_nr = 0;
+			msg.status = 0;
+			msg.carrier_freq = 0;
 
-		// cycle through the beacons
+			_ranging_beacon_pub.publish(msg);
+		}
+
+		// cycle through the beacons regardless of whether this one was in range
 		_ranging_beacon_idx = (_ranging_beacon_idx + 1) % NUM_RANGING_BEACONS;
 	}
 }

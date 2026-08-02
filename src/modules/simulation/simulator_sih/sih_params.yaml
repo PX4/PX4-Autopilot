@@ -287,6 +287,12 @@ parameters:
       type: float
       default: 0.0
       unit: m/s
+    SIH_RNGBC_EN:
+      description:
+        short: Enable ranging beacon simulation
+        long: If disabled, no ranging_beacon measurements are published.
+      type: boolean
+      default: 1
     SIH_RNGBC_NOISE:
       description:
         short: Ranging beacon measurement noise standard deviation
@@ -297,6 +303,23 @@ parameters:
       min: 0.0
       max: 100.0
       decimal: 1
+    SIH_RNGBC_MAXR:
+      description:
+        short: Ranging beacon maximum range
+        long: Beacons farther than this are not published (no measurement). Set to 0 to disable the range limit.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0.0
+      decimal: 1
+    SIH_RNGBC_INTV:
+      description:
+        short: Ranging beacon publish interval
+        long: Time between beacon measurements (each beacon cycles through in turn, so one beacon is updated per interval).
+      type: int32
+      default: 500
+      unit: ms
+      min: 1
     SIH_F_T_MAX:
       description:
         short: Forward thruster max thrust (N)

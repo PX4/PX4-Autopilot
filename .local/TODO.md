@@ -25,7 +25,8 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [x] How to set initial position estimate? Why it is automagically set already?
 	Its not. LocalPosition is tracked from abstact 0.0/0.0 origin.
 	_ekf.resetGlobalPositionTo()
-* [ ] Add params to SIH to control Beacon simulation: enable/disable, max range, packet loss, rate
+* [x] Add params to SIH to control Beacon simulation: enable/disable, max range, rate (interval)
 * [x] Declare custom param group and forward to EKF for fusion control and tuning
 * [ ] Publish fusion state/EKF state - EKF2::PublishFusionControl()
 * [ ] Aux Position source fusion - for initial estimate and recovery.
+* [ ] Where does heading error between Navput and EK2 come from?
