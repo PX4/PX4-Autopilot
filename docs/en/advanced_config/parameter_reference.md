@@ -21247,7 +21247,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21285,7 +21285,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21323,7 +21323,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21361,7 +21361,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21399,7 +21399,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21437,7 +21437,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21474,7 +21474,7 @@ mode command is received.
 
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `6`: Position Slow
