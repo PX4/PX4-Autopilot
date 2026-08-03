@@ -801,13 +801,13 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	}
 
 	if (!scale_20bit) {
-		// On the 686, if highres enabled gyro data is always 65.5 LSB/dps
-		// On the 688, if highres enabled gyro data is always 131 LSB/dps
+		// published data is the 20 bit value shifted right by 1, so it spans the full range in
+		// 2^18 counts: 65.536 LSB/dps on the 686, 131.072 LSB/dps on the 688
 		if (isICM686) {
-			_px4_gyro.set_scale(math::radians(1.f / 65.5f));
+			_px4_gyro.set_scale(math::radians(4000.f / 262144.f));
 
 		} else {
-			_px4_gyro.set_scale(math::radians(1.f / 131.f));
+			_px4_gyro.set_scale(math::radians(2000.f / 262144.f));
 		}
 
 	} else {
@@ -819,7 +819,7 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 		}
 
 		if (isICM686) {
-			_px4_gyro.set_scale(math::radians(2000.f / 16384.f));
+			_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
 
 		} else {
 			_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
