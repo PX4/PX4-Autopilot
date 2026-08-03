@@ -60,7 +60,7 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0xE9;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 132.48f; // LSB/C
+static constexpr float TEMPERATURE_SENSITIVITY = 128.f; // LSB/C (16 bit FIFO temperature)
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
 
 namespace Register
