@@ -461,9 +461,10 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 		return false;
 	}
 
-	if (fifo_packets >= FIFO::SIZE / sizeof(FIFO::DATA)) {
-		// FIFO saturated: in stop-on-full mode newer samples have been dropped, reset for a
-		// clean restart rather than draining a stale backlog
+	if (fifo_packets > FIFO_MAX_SAMPLES) {
+		// More frames queued than a single transfer can publish. Draining them would stamp stale
+		// samples with the current timestamp, so reset for a clean restart instead. Also covers
+		// the FIFO being saturated, where stop-on-full has already dropped newer samples.
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 		return false;
