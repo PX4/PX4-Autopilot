@@ -30,6 +30,7 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/mutex.h>
 #include <nuttx/signal.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/mtd/mtd.h>
@@ -112,6 +113,12 @@ struct imxrt_flexspi_fram_dev_s {
 	uint8_t *ahb_base;
 	enum flexspi_port_e port;
 	struct flexspi_device_config_s *config;
+	mutex_t lock;                    /* Serializes access to page_buffer */
+	/* Bounce buffer for callers that pass a non word-aligned buffer. Kept
+	 * here rather than on the stack so that write() on this device does not
+	 * add a page worth of stack usage to every caller.
+	 */
+	uint32_t page_buffer[FRAM_PAGE_SIZE / sizeof(uint32_t)];
 };
 
 /****************************************************************************
@@ -179,7 +186,8 @@ static struct imxrt_flexspi_fram_dev_s g_flexspi_nor = {
 	.flexspi = (void *)0,
 	.ahb_base = (uint8_t *) IMXRT_FLEXSPI2_CIPHER_BASE,
 	.port = FLEXSPI_PORT_A1,
-	.config = &g_flexspi_device_config
+	.config = &g_flexspi_device_config,
+	.lock = NXMUTEX_INITIALIZER
 };
 
 /****************************************************************************
@@ -493,11 +501,20 @@ static ssize_t imxrt_flexspi_fram_bwrite(struct mtd_dev_s *dev,
 #ifdef CONFIG_ARMV7M_DCACHE
 	uint8_t *dst = priv->ahb_base + startblock * FRAM_PAGE_SIZE;
 #endif
-	/* Bounce buffer for callers that pass a non word-aligned buffer. */
-	uint32_t aligned_page[FRAM_PAGE_SIZE / sizeof(uint32_t)];
 	int i;
+	int ret;
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+
+	/* priv->page_buffer is shared, and the partitions layered on this device
+	 * do not serialize their callers.
+	 */
+
+	ret = nxmutex_lock(&priv->lock);
+
+	if (ret < 0) {
+		return ret;
+	}
 
 	while (len) {
 		const uint8_t *page_src = src;
@@ -510,8 +527,8 @@ static ssize_t imxrt_flexspi_fram_bwrite(struct mtd_dev_s *dev,
 		 * a word-aligned buffer when needed.
 		 */
 		if (((uintptr_t)src & 3u) != 0u) {
-			memcpy(aligned_page, src, i);
-			page_src = (const uint8_t *)aligned_page;
+			memcpy(priv->page_buffer, src, i);
+			page_src = (const uint8_t *)priv->page_buffer;
 		}
 
 		imxrt_flexspi_fram_write_enable(priv);
@@ -522,6 +539,8 @@ static ssize_t imxrt_flexspi_fram_bwrite(struct mtd_dev_s *dev,
 		src += i;
 		len -= i;
 	}
+
+	nxmutex_unlock(&priv->lock);
 
 #ifdef CONFIG_ARMV7M_DCACHE
 	up_invalidate_dcache((uintptr_t)dst,
