@@ -1,0 +1,5 @@
+menuconfig DRIVERS_GL40II
+	bool "gl40ii"
+	default n
+	---help---
+		Enable the native dual-CAN CubeMars GL40II tilt actuator driver.

@@ -66,6 +66,37 @@ bool VoliroAllocator::updateConfiguration()
 
 void VoliroAllocator::updateTiltFeedback()
 {
+	voliro_tilt_feedback_s typed_feedback{};
+
+	while (_tilt_feedback_sub.update(&typed_feedback)) {
+		_typed_feedback_seen = true;
+		const uint8_t all_rotors = (1u << VoliroAllocation::NUM_ROTORS) - 1u;
+		bool valid = (typed_feedback.active_mask & all_rotors) == all_rotors
+			     && (typed_feedback.valid_mask & all_rotors) == all_rotors
+			     && typed_feedback.fault_mask == 0;
+
+		for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
+			valid &= PX4_ISFINITE(typed_feedback.angle[rotor]);
+			valid &= PX4_ISFINITE(typed_feedback.angular_velocity[rotor]);
+		}
+
+		if (valid) {
+			for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
+				_measured_tilt(rotor) = typed_feedback.angle[rotor];
+				_measured_tilt_velocity(rotor) = typed_feedback.angular_velocity[rotor];
+			}
+
+			_last_feedback = typed_feedback.timestamp;
+		}
+	}
+
+	// The MuJoCo bridge publishes the original debug_array contract. Once the
+	// hardware topic has appeared, never mask a stopped/faulted CAN driver with
+	// legacy data from another publisher.
+	if (_typed_feedback_seen) {
+		return;
+	}
+
 	debug_array_s feedback;
 	while (_debug_array_sub.update(&feedback)) {
 		if (feedback.id == TILT_FEEDBACK_ID
@@ -133,15 +164,21 @@ void VoliroAllocator::publishOutputs(const VoliroAllocation::RotorVector &motor_
 	actuator_servos_s servos{};
 	servos.timestamp = motors.timestamp;
 	servos.timestamp_sample = timestamp_sample;
+	voliro_tilt_setpoint_s tilt_setpoint{};
+	tilt_setpoint.timestamp = motors.timestamp;
+	tilt_setpoint.timestamp_sample = timestamp_sample;
+	tilt_setpoint.valid_mask = (1u << VoliroAllocation::NUM_ROTORS) - 1u;
 	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) { motors.control[i] = NAN; }
 	for (int i = 0; i < actuator_servos_s::NUM_CONTROLS; ++i) { servos.control[i] = NAN; }
 	const float tilt_span = _param_tilt_max.get() - _param_tilt_min.get();
 	for (int rotor = 0; rotor < VoliroAllocation::NUM_ROTORS; ++rotor) {
 		motors.control[rotor] = _armed ? motor_normalized(rotor) : 0.f;
 		servos.control[rotor] = 2.f * (tilt_command(rotor) - _param_tilt_min.get()) / tilt_span - 1.f;
+		tilt_setpoint.angle[rotor] = tilt_command(rotor);
 	}
 	_actuator_motors_pub.publish(motors);
 	_actuator_servos_pub.publish(servos);
+	_tilt_setpoint_pub.publish(tilt_setpoint);
 }
 
 void VoliroAllocator::publishStatus(const VoliroAllocation::WrenchVector &requested,
@@ -413,7 +450,9 @@ int VoliroAllocator::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
 Dedicated six-motor, six-independent-tilt Voliro allocator. The first-stage
 interface consumes normalized PX4 body torque and three-axis thrust setpoints. It
-requires measured tilt feedback named VOLA_TILT on debug_array id 4242.
+uses typed voliro_tilt_feedback on hardware and publishes joint-radian commands
+on voliro_tilt_setpoint. The legacy VOLA_TILT debug_array id 4242 input remains
+available for the MuJoCo bridge until typed feedback is first observed.
 )DESCR_STR");
 	PRINT_MODULE_USAGE_NAME("voliro_allocator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

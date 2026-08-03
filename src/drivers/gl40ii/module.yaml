@@ -1,0 +1,150 @@
+module_name: GL40II dual-CAN tilt driver
+
+parameters:
+  - group: GL40II Tilt Actuators
+    definitions:
+      GL40_EN:
+        description:
+          short: Enable GL40II tilt motion
+          long: |
+            Allows MIT position commands only while the vehicle is armed and all
+            configured motors have fresh, non-fault feedback and fresh Voliro tilt
+            setpoints. The driver still transmits motor-disable requests when false.
+        type: boolean
+        default: 0
+
+      GL40_MASK:
+        description:
+          short: Active GL40II motor mask
+          long: Bit 0 through bit 5 select Voliro tilt motors 1 through 6.
+        type: bitmask
+        bit:
+          0: Rotor 1, CAN1, slave 1, master 0x011
+          1: Rotor 2, CAN2, slave 2, master 0x012
+          2: Rotor 3, CAN1, slave 3, master 0x013
+          3: Rotor 4, CAN2, slave 4, master 0x014
+          4: Rotor 5, CAN1, slave 5, master 0x015
+          5: Rotor 6, CAN2, slave 6, master 0x016
+        default: 63
+        min: 1
+        max: 63
+        reboot_required: true
+
+      GL40_RATE:
+        description:
+          short: GL40II command and reply rate
+          long: Per-motor MIT request/reply rate. Begin bench testing at 500 Hz.
+        type: int32
+        unit: Hz
+        default: 500
+        min: 50
+        max: 1000
+
+      GL40_PMAX:
+        description:
+          short: GL40II MIT motor position range
+          long: |
+            Positive motor-side MIT position range used by both command packing and
+            feedback decoding. This must exactly match the drive firmware setting.
+            Commands outside this range are rejected, never clamped.
+        type: float
+        unit: rad
+        default: 12.5
+        min: 1.0
+        max: 100.0
+        decimal: 4
+        reboot_required: true
+
+      GL40_VMAX:
+        description:
+          short: GL40II MIT motor velocity range
+          long: Positive motor-side MIT velocity range used for packing and decoding.
+        type: float
+        unit: rad/s
+        default: 200.0
+        min: 1.0
+        max: 500.0
+        decimal: 2
+        reboot_required: true
+
+      GL40_TMAX:
+        description:
+          short: GL40II MIT motor torque range
+          long: Positive motor-side MIT torque range used for packing and decoding.
+        type: float
+        unit: Nm
+        default: 10.0
+        min: 0.1
+        max: 50.0
+        decimal: 3
+        reboot_required: true
+
+      GL40_RATIO:
+        description:
+          short: Motor radians per tilt-joint radian
+          long: |
+            Positive cable-drive transmission ratio. Motor command equals joint
+            command times this ratio; measured motor angle is divided by it.
+        type: float
+        default: 6.0
+        min: 0.01
+        max: 100.0
+        decimal: 5
+        reboot_required: true
+
+      GL40_KP:
+        description:
+          short: GL40II MIT position gain
+        type: float
+        default: 0.123
+        min: 0.0
+        max: 500.0
+        decimal: 5
+
+      GL40_KD:
+        description:
+          short: GL40II MIT damping gain
+        type: float
+        default: 0.005
+        min: 0.0
+        max: 5.0
+        decimal: 5
+
+      GL40_SP_TMO:
+        description:
+          short: Tilt setpoint timeout
+          long: Motor motion is disabled when the typed Voliro tilt command is older than this.
+        type: float
+        unit: s
+        default: 0.1
+        min: 0.02
+        max: 1.0
+        decimal: 3
+
+      GL40_FB_TMO:
+        description:
+          short: GL40II feedback timeout
+          long: Each configured motor must reply within this interval or all tilt motion is disabled.
+        type: float
+        unit: s
+        default: 0.05
+        min: 0.01
+        max: 1.0
+        decimal: 3
+
+      GL40_REV:
+        description:
+          short: Reversed tilt motor mask
+          long: Bit 0 through bit 5 reverse motor-to-joint position and velocity signs.
+        type: bitmask
+        bit:
+          0: Rotor 1
+          1: Rotor 2
+          2: Rotor 3
+          3: Rotor 4
+          4: Rotor 5
+          5: Rotor 6
+        default: 0
+        min: 0
+        max: 63
+        reboot_required: true

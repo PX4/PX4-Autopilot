@@ -61,8 +61,17 @@ param set-default PWM_MAIN_FUNC4 204
 param set-default PWM_MAIN_FUNC5 205
 param set-default PWM_MAIN_FUNC6 206
 
-# Keep the dedicated allocator off on hardware until a measured tilt encoder
-# driver publishes the feedback contract used by the module.
+# GL40II uses both physical CAN ports directly. Force the DroneCAN protocol
+# node off before rcS reaches its CAN startup check, including when a saved
+# value from an earlier generic-airframe installation was nonzero.
+param set UAVCAN_ENABLE 0
+# During restrained bring-up, require an explicit enable after every boot. A
+# saved value from an earlier test must never make tilt motion permissible as
+# soon as the manually started driver sees arming and fresh setpoints.
+param set GL40_EN 0
+
+# Keep the dedicated allocator off until the GL40II reply-only and restrained
+# motion tests validate IDs, range scaling, sign, timing, and disable behavior.
 param set-default VOLA_EN 0
 # F100 rounded 2.5 kgf peak target. This is a provisional peak value, not a
 # validated continuous-flight limit; replace it with propulsion-bench data.

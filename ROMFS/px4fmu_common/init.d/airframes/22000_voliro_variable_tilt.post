@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# Keep the new raw-CAN driver manual-start during initial hardware validation.
+# This preserves USB/MAVLink recovery if CAN initialization faults on a board
+# revision or wiring configuration that has not yet been characterized.
+# Start it from NSH with `gl40ii start` only after normal boot is confirmed.
+
 # Select exactly one actuator-output owner at boot. Revert VOLA_EN to zero and
 # reboot to recover the stock conventional hex allocator.
 if param compare VOLA_EN 1

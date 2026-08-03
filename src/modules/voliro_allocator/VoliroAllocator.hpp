@@ -21,6 +21,8 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/voliro_allocator_status.h>
+#include <uORB/topics/voliro_tilt_feedback.h>
+#include <uORB/topics/voliro_tilt_setpoint.h>
 
 class VoliroAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -57,6 +59,7 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _torque_sp_sub{this, ORB_ID(vehicle_torque_setpoint)};
 	uORB::Subscription _thrust_sp_sub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Subscription _tilt_feedback_sub{ORB_ID(voliro_tilt_feedback)};
 	uORB::Subscription _debug_array_sub{ORB_ID(debug_array)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -64,6 +67,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1'000'000};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<voliro_tilt_setpoint_s> _tilt_setpoint_pub{ORB_ID(voliro_tilt_setpoint)};
 	uORB::Publication<control_allocator_status_s> _control_allocator_status_pub{ORB_ID(control_allocator_status)};
 	uORB::Publication<voliro_allocator_status_s> _voliro_status_pub{ORB_ID(voliro_allocator_status)};
 
@@ -79,6 +83,7 @@ private:
 	bool _landed{true};
 	bool _publish_controls{true};
 	bool _tilt_command_initialized{false};
+	bool _typed_feedback_seen{false};
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(

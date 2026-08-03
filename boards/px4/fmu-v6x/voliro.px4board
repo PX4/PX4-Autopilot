@@ -18,11 +18,12 @@ CONFIG_DRIVERS_OSD_MSP_OSD=n
 CONFIG_DRIVERS_PWM_INPUT=n
 CONFIG_SENSORS_VEHICLE_AIRSPEED=n
 
-# The GL40II CAN protocol is not DroneCAN/UAVCAN. A dedicated driver or an
-# external MCU bridge will be added later; retaining this driver would not
-# provide GL40II support.
-# CONFIG_BOARD_UAVCAN_TIMER_OVERRIDE is not set
-CONFIG_DRIVERS_UAVCAN=n
+# The GL40II protocol is raw classic CAN, not DroneCAN. Compile PX4's proven
+# STM32H7 FDCAN backend and the dedicated GL40II owner. UAVCAN_ENABLE remains
+# zero at runtime so the DroneCAN node never competes for CAN1/CAN2.
+CONFIG_BOARD_UAVCAN_TIMER_OVERRIDE=2
+CONFIG_DRIVERS_UAVCAN=y
+CONFIG_DRIVERS_GL40II=y
 
 # Remove fixed-wing/VTOL and payload modules. Keep the stock multicopter
 # controller stack as the conservative bring-up/fallback path until the
