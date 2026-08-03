@@ -70,6 +70,8 @@ Supported hardware includes (this is not an exhaustive list):
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
+- Grippers
+  - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
@@ -273,6 +275,13 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 PX4 DroneCAN parameters:
 
 - [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
+
+#### Grippers
+
+DroneCAN grippers do not require any `UAVCAN_SUB_*`, `UAVCAN_PUB_*`, `CANNODE_SUB_*`, or `CANNODE_PUB_*` parameters.
+When DroneCAN is enabled, PX4 automatically publishes [`uavcan.equipment.hardpoint.Command`](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#uavcanequipmenthardpoint) messages to forward `MAV_CMD_DO_GRIPPER` commands.
+
+See [Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md) for an example setup.
 
 ### ESC & Servos
 
