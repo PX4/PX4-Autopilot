@@ -29,26 +29,50 @@ The opposite motor is taken from the configured [geometry](actuators.md#motor-ge
 ### Reverse Thrust Fraction
 
 A propeller spun backwards produces less thrust than it does forwards, and [CA_REV_THR_FRAC](#CA_REV_THR_FRAC) tells the allocator what fraction to expect (default `0.4`, i.e. 40%, which is representative of a standard multicopter propeller).
+A symmetric (3D) propeller produces almost the same thrust either way, so it should be set closer to `1.0`.
 
 A value in the right region is best, but it is not critical: a hexarotor still recovers with `1.0` set on a propeller whose real fraction is 0.4.
 
 ### ESC Requirements for Reversing
 
-[CA_FAILURE_MODE=2](#CA_FAILURE_MODE) requires that the ESC driving the motor (opposite the failed motor) can spin it backwards.
-This requires appropriate firmware and PX4 configuration:
+Mode `2` reverses whichever motor sits opposite the one that failed, and any of the six can fail, so every motor on the vehicle has to be able to reverse (not just one of them).
 
-- **DroneCAN:** The ESC must support and be configured for bidirectional operation.
-  See [Reversible motors](../dronecan/escs.md#reversible-motors) in _DroneCAN ESC_
-- **DShot:** Requires an ESC running in 3D mode.
-  A reversible output is encoded using the DShot 3D split range, where neutral sits in the middle of the range.
-  3D mode is a persistent ESC setting (see [ESC Commands](../peripherals/dshot.md#commands)), so the vehicle has to be set up to run in 3D mode ([DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE)) for PX4's encoding and the ESC configuration to agree.
+Reversing needs all of the following:
 
-PWM, OneShot, and other protocols do not support motor reversal.
-If using these you must set [CA_FAILURE_MODE](#CA_FAILURE_MODE)=`1` (or `0`)
+1. Motors and ESCs that can be driven backwards.
+2. Reversal enabled in the ESC configuration.
+   This is stored in the ESC and PX4 does not set it for you.
+3. [CA_FAILURE_MODE](#CA_FAILURE_MODE) = `2`.
+4. For DShot ESCs only: [DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE) = `1`.
+
+Nothing else is required, in particular the motors do _not_ have to be marked as [bidirectional](actuators.md#bidirectional-motors) ([CA_R_REV](../advanced_config/parameter_reference.md#CA_R_REV)).
+PX4 makes the recovery motor reversible by itself while handling the failure, and returns it to forward-only if the failure clears.
+
+#### DroneCAN
+
+Reverse is part of the protocol: PX4 sends the recovery motor a negative `RawCommand`, and an ESC configured for bidirectional operation spins it backwards.
+No additional PX4 parameter is needed.
+See [Reversible motors](../dronecan/escs.md#reversible-motors) in _DroneCAN ESCs_.
+
+#### DShot
+
+A reversible output is encoded using the DShot 3D split range, where neutral sits in the middle of the range, so the ESC has to be running in 3D mode.
+3D mode is a persistent ESC setting (see [ESC Commands](../peripherals/dshot.md#commands)), and PX4 has to be told about it with [DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE), which puts every motor on the matching encoding.
+This has nothing to do with [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry), which is about eRPM telemetry rather than reversing a motor.
 
 ::: warning
-PX4 does not check whether the ESC can reverse, and a reverse command sent to an ESC that is not configured for it comes out as forward throttle.
-Before flying with mode `2`, confirm on the bench that the motor really does spin backwards, for example from the sign of the reported RPM.
+`DSHOT_3D_ENABLE` and the 3D setting in the ESCs must always agree, whether or not a motor has failed.
+If the ESCs run in 3D mode while `DSHOT_3D_ENABLE` is `0`, the lower part of the throttle range is sent in the range those ESCs read as reverse, and the vehicle is not flyable.
+:::
+
+#### PWM, OneShot, and Other Protocols
+
+These cannot reverse a motor, so [CA_FAILURE_MODE](#CA_FAILURE_MODE) has to be `1` or `0`.
+With mode `2` the recovery motor would sit at around half throttle forwards instead of reversing, which is worse than stopping it.
+
+::: warning
+PX4 does not check whether an ESC can reverse, and a reverse command sent to an ESC that is not set up for it comes out as forward thrust.
+Before flying with mode `2`, confirm on the bench that each motor really does spin backwards, for example from the sign of the reported RPM.
 :::
 
 ## Failure Detection

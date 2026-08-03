@@ -51,3 +51,4 @@ Check the sign of the RPM reported in the ESC telemetry to confirm that the ESC 
 :::
 
 Reversible motors may also be used in [Motor Failure Recovery](../config/motor_failure_recovery.md) to keep a hexarotor controllable after a single motor failure.
+That case still needs ESCs configured for reversal, but not the bidirectional setting in the actuator configuration, because PX4 makes the recovery motor reversible while it handles the failure.
