@@ -348,10 +348,10 @@ bool ICM45686::Configure()
 	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(4000.f));
 
-	// data is published from the 16-bit FIFO registers (data[19:4]) which always cover the
-	// full range: 1024 LSB/g and 131/16 LSB/dps
-	_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f * 8.f);
-	_px4_gyro.set_scale(math::radians(1.f / 131.f * 16.f));
+	// data is published from the 16-bit FIFO registers (data[19:4]), which always span the full
+	// range: 1024 LSB/g and 8.192 LSB/dps
+	_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
+	_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
 
 	return success;
 }
