@@ -28,3 +28,21 @@ parameters:
       default: 0
       min: 0
       max: 3
+    SIM_AGP_NOISE:
+      description:
+        short: AGP horizontal position measurement noise standard deviation
+        long: Gaussian noise added to the simulated horizontal position. Set to 0 to disable noise.
+      type: float
+      default: 2.0
+      unit: m
+      min: 0.0
+      max: 100.0
+      decimal: 1
+    SIM_AGP_INTV:
+      description:
+        short: AGP publish interval
+        long: Time between simulated AGP measurements.
+      type: int32
+      default: 500
+      unit: ms
+      min: 1

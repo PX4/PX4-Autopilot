@@ -91,6 +91,8 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_AGP_FAIL>) _param_sim_agp_fail
+		(ParamInt<px4::params::SIM_AGP_FAIL>) _param_sim_agp_fail,
+		(ParamFloat<px4::params::SIM_AGP_NOISE>) _param_sim_agp_noise,
+		(ParamInt<px4::params::SIM_AGP_INTV>) _param_sim_agp_intv
 	)
 };

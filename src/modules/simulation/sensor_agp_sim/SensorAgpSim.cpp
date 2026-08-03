@@ -54,7 +54,7 @@ SensorAgpSim::~SensorAgpSim()
 
 bool SensorAgpSim::init()
 {
-	ScheduleOnInterval(500_ms); // 2 Hz
+	ScheduleOnInterval(_param_sim_agp_intv.get() * 1_ms);
 	return true;
 }
 
@@ -102,6 +102,9 @@ void SensorAgpSim::Run()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+
+		ScheduleClear();
+		ScheduleOnInterval(_param_sim_agp_intv.get() * 1_ms);
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
@@ -125,10 +128,10 @@ void SensorAgpSim::Run()
 			_position_bias.zero();
 		}
 
-		const double latitude = _measured_lla.latitude_deg() + math::degrees((double)generate_wgn() * 2.0 /
-					CONSTANTS_RADIUS_OF_EARTH);
-		const double longitude = _measured_lla.longitude_deg() + math::degrees((double)generate_wgn() * 2.0 /
-					 CONSTANTS_RADIUS_OF_EARTH);
+		const double latitude = _measured_lla.latitude_deg() + math::degrees((double)generate_wgn() *
+					(double)_param_sim_agp_noise.get() / CONSTANTS_RADIUS_OF_EARTH);
+		const double longitude = _measured_lla.longitude_deg() + math::degrees((double)generate_wgn() *
+					 (double)_param_sim_agp_noise.get() / CONSTANTS_RADIUS_OF_EARTH);
 		const double altitude = (double)(_measured_lla.altitude() + (generate_wgn() * 0.5f));
 
 		aux_global_position_s sample{};

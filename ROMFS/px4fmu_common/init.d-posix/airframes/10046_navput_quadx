@@ -38,6 +38,17 @@ param set-default SENS_GPS1_DELAY 0
 param set SIH_VEHICLE_TYPE 0
 
 param set-default ZENOH_ENABLE 1
+
 param set-default EKF2_RNGBC_CTRL 1
+param set-default EKF2_AGP0_ID 123
+param set-default EKF2_AGP0_CTRL 1
+
+param set-default SIH_RNGBC_EN 1
+param set-default SIH_RNGBC_INTV 134
+param set-default SIH_RNGBC_NOISE 50.0
+
+param set-default SENS_EN_AGPSIM 1
+param set-default SIM_AGP_NOISE 30
+param set-default SIM_AGP_INTV 500
 
 navputer start
