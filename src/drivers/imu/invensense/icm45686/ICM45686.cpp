@@ -438,12 +438,16 @@ bool ICM45686::DataReadyInterruptDisable()
 uint16_t ICM45686::FIFOReadCount()
 {
 	// read FIFO count
+	// errata AN-000364 (2.2): the first read can return a stale value, use the second one
 	uint8_t fifo_count_buf[3] {};
-	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNT_0) | DIR_READ;
 
-	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
-		perf_count(_bad_transfer_perf);
-		return 0;
+	for (int i = 0; i < 2; i++) {
+		fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNT_0) | DIR_READ;
+
+		if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
+			perf_count(_bad_transfer_perf);
+			return 0;
+		}
 	}
 
 	// FIFO_COUNT_0 is supposed to contain the high bits and FIFO_COUNT_1 the low bits,
