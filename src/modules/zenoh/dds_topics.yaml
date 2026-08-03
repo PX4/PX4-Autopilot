@@ -140,6 +140,12 @@ publications:
   - topic: /fmu/out/navput_local_position
     type: px4_msgs::msg::NavputLocalPosition
 
+  - topic: /fmu/out/navput_status_flags
+    type: px4_msgs::msg::NavputStatusFlags
+
+  - topic: /fmu/out/navput_fusion_control
+    type: px4_msgs::msg::NavputFusionControl
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request

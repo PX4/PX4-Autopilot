@@ -1,6 +1,9 @@
 import zenoh
 from msgs.NavputAttitude import NavputAttitude
 from msgs.NavputLocalPosition import NavputLocalPosition
+from msgs.NavputStatusFlags import NavputStatusFlags
+from msgs.NavputFusionControl import NavputFusionControl
+
 
 conf = zenoh.Config()
 conf.insert_json5("mode", '"client"')
@@ -22,13 +25,19 @@ def full_topic(topic):
 def on_attitude(sample):
     print(NavputAttitude.deserialize(bytes(sample.payload)))
 
-def on_local_position(sample):
-    print(NavputLocalPosition.deserialize(bytes(sample.payload)))
-
-
-sub_local_pos = session.declare_subscriber(full_topic('navput_local_position'), on_local_position)
+sub_local_pos = session.declare_subscriber(
+    full_topic('navput_local_position'),
+    lambda sample: print(NavputLocalPosition.deserialize(bytes(sample.payload)))
+)
 # sub_att = session.declare_subscriber(full_topic('navput_attitude'), on_attitude)
-
+sub_status_flags = session.declare_subscriber(
+    full_topic('navput_status_flags'),
+    lambda sample: print(NavputStatusFlags.deserialize(bytes(sample.payload)))
+)
+sub_fusion_control = session.declare_subscriber(
+    full_topic('navput_fusion_control'),
+    lambda sample: print(NavputFusionControl.deserialize(bytes(sample.payload)))
+)
 
 
 import time

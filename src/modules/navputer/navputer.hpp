@@ -92,6 +92,8 @@
 
 #include <uORB/topics/navput_attitude.h>
 #include <uORB/topics/navput_local_position.h>
+#include <uORB/topics/navput_status_flags.h>
+#include <uORB/topics/navput_fusion_control.h>
 
 using namespace time_literals;
 
@@ -139,6 +141,8 @@ private:
 
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishLocalPosition(const hrt_abstime &timestamp);
+	void PublishStatusFlags(const hrt_abstime &timestamp);
+	void PublishFusionControl(const hrt_abstime &timestamp);
 
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -167,7 +171,6 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
-
 	// Baro
 	uint32_t _device_id_baro{0};
 	uint8_t _baro_calibration_count {0};
@@ -182,14 +185,25 @@ private:
 	// Beacons
 	uORB::Subscription _ranging_beacon_sub {ORB_ID(ranging_beacon)};
 
-	uORB::Publication<navput_attitude_s>           _attitude_pub{ORB_ID(navput_attitude)};
-	uORB::Publication<navput_local_position_s>     _local_position_pub{ORB_ID(navput_local_position)};
+	uORB::Publication<navput_attitude_s>           		_attitude_pub{ORB_ID(navput_attitude)};
+	uORB::Publication<navput_local_position_s>     		_local_position_pub{ORB_ID(navput_local_position)};
+
+	hrt_abstime _last_status_flags_publish{0};
+	uint64_t _filter_control_status{0};
+	uint32_t _filter_fault_status{0};
+	uint32_t _filter_control_status_changes{0};
+	uint32_t _filter_fault_status_changes{0};
+	uORB::PublicationMulti<navput_status_flags_s>     	_status_flags_pub{ORB_ID(navput_status_flags)};
+
+	uORB::PublicationMulti<navput_fusion_control_s>   	_fc_pub{ORB_ID(navput_fusion_control)};
 
 	bool _callback_registered{false};
+
 
 	Ekf _ekf;
 
 	parameters *_params;
+	FusionControl &_fc;
 
 	DEFINE_PARAMETERS(
 		// ranging beacon fusion

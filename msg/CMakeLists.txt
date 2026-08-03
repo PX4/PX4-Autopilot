@@ -288,7 +288,9 @@ set(msg_files
 	versioned/Wind.msg
 
 	navput/NavputAttitude.msg
+	navput/NavputFusionControl.msg
 	navput/NavputLocalPosition.msg
+	navput/NavputStatusFlags.msg
 )
 list(SORT msg_files)
 

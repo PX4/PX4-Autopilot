@@ -46,6 +46,7 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, config),
 	_params(_ekf.getParamHandle()),
+	_fc(*_ekf.getFusionControlHandle()),
 	_param_npt_rngbc_ctrl(_params->ekf2_rngbc_ctrl),
 	_param_npt_rngbc_delay(_params->ekf2_rngbc_delay),
 	_param_npt_rngbc_noise(_params->ekf2_rngbc_noise),
@@ -215,6 +216,8 @@ void Navputer::Run()
 
 		if (_ekf.update()) {
 			PublishLocalPosition(now);
+			PublishStatusFlags(now);
+			PublishFusionControl(now);
 
 			UpdateAccelCalibration(now);
 			UpdateGyroCalibration(now);
@@ -363,6 +366,142 @@ void Navputer::PublishLocalPosition(const hrt_abstime &timestamp)
 	// publish vehicle local position data
 	lpos.timestamp = hrt_absolute_time();
 	_local_position_pub.publish(lpos);
+}
+
+void Navputer::PublishFusionControl(const hrt_abstime &timestamp)
+{
+	navput_fusion_control_s msg{};
+	msg.gps_intended[0] = _fc.gps.intended();
+	msg.of_intended     = _fc.of.intended();
+	msg.ev_intended     = _fc.ev.intended();
+
+	for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+		msg.agp_intended[i] = _fc.agp[i].intended();
+	}
+
+	msg.baro_intended   = _fc.baro.intended();
+	msg.rng_intended    = _fc.rng.intended();
+	msg.mag_intended    = _fc.mag.intended();
+	msg.aspd_intended   = _fc.aspd.intended();
+	msg.rngbcn_intended = _fc.rngbcn.intended();
+
+	const auto &cs = _ekf.control_status_flags();
+	msg.gps_active[0] = cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw;
+	msg.of_active     = cs.opt_flow;
+	msg.ev_active     = cs.ev_pos || cs.ev_hgt || cs.ev_vel || cs.ev_yaw;
+	msg.baro_active   = cs.baro_hgt;
+	msg.rng_active    = cs.rng_hgt;
+	msg.mag_active    = cs.mag;
+	msg.aspd_active   = cs.fuse_aspd;
+	msg.rngbcn_active = cs.rngbcn_fusion;
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	{
+		const uint8_t agp_mask = _ekf.getAgpFusingBitmask();
+
+		for (uint8_t i = 0; i < MAX_AGP_INSTANCES; i++) {
+			msg.agp_active[i] = agp_mask & (1u << i);
+		}
+	}
+#endif
+
+	msg.timestamp = hrt_absolute_time();
+	_fc_pub.publish(msg);
+}
+
+void Navputer::PublishStatusFlags(const hrt_abstime &timestamp)
+{
+	// publish at ~ 1 Hz (or immediately if filter control status or fault status changes)
+	bool update = (timestamp >= _last_status_flags_publish + 1_s);
+
+	// filter control status
+	if (_ekf.control_status().value != _filter_control_status) {
+		update = true;
+		_filter_control_status = _ekf.control_status().value;
+		_filter_control_status_changes++;
+	}
+
+	// filter fault status
+	if (_ekf.fault_status().value != _filter_fault_status) {
+		update = true;
+		_filter_fault_status = _ekf.fault_status().value;
+		_filter_fault_status_changes++;
+	}
+
+	if (update) {
+		navput_status_flags_s status_flags{};
+		status_flags.timestamp_sample = _ekf.time_delayed_us();
+
+		status_flags.control_status_changes   = _filter_control_status_changes;
+		status_flags.cs_tilt_align            = _ekf.control_status_flags().tilt_align;
+		status_flags.cs_yaw_align             = _ekf.control_status_flags().yaw_align;
+		status_flags.cs_gnss_pos              = _ekf.control_status_flags().gnss_pos;
+		status_flags.cs_opt_flow              = _ekf.control_status_flags().opt_flow;
+		status_flags.cs_mag_hdg               = _ekf.control_status_flags().mag_hdg;
+		status_flags.cs_mag_3d                = _ekf.control_status_flags().mag_3D;
+		status_flags.cs_mag_dec               = _ekf.control_status_flags().mag_dec;
+		status_flags.cs_in_air                = _ekf.control_status_flags().in_air;
+		status_flags.cs_wind                  = _ekf.control_status_flags().wind;
+		status_flags.cs_baro_hgt              = _ekf.control_status_flags().baro_hgt;
+		status_flags.cs_rng_hgt               = _ekf.control_status_flags().rng_hgt;
+		status_flags.cs_gps_hgt               = _ekf.control_status_flags().gps_hgt;
+		status_flags.cs_ev_pos                = _ekf.control_status_flags().ev_pos;
+		status_flags.cs_ev_yaw                = _ekf.control_status_flags().ev_yaw;
+		status_flags.cs_ev_hgt                = _ekf.control_status_flags().ev_hgt;
+		status_flags.cs_fuse_beta             = _ekf.control_status_flags().fuse_beta;
+		status_flags.cs_mag_field_disturbed   = _ekf.control_status_flags().mag_field_disturbed;
+		status_flags.cs_fixed_wing            = _ekf.control_status_flags().fixed_wing;
+		status_flags.cs_mag_fault             = _ekf.control_status_flags().mag_fault;
+		status_flags.cs_fuse_aspd             = _ekf.control_status_flags().fuse_aspd;
+		status_flags.cs_gnd_effect            = _ekf.control_status_flags().gnd_effect;
+		status_flags.cs_rng_stuck             = _ekf.control_status_flags().rng_stuck;
+		status_flags.cs_gnss_yaw               = _ekf.control_status_flags().gnss_yaw;
+		status_flags.cs_mag_aligned_in_flight = _ekf.control_status_flags().mag_aligned_in_flight;
+		status_flags.cs_ev_vel                = _ekf.control_status_flags().ev_vel;
+		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
+		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
+		status_flags.cs_gnss_yaw_fault         = _ekf.control_status_flags().gnss_yaw_fault;
+		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
+		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
+		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
+		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
+		status_flags.cs_fake_pos                = _ekf.control_status_flags().fake_pos;
+		status_flags.cs_fake_hgt                = _ekf.control_status_flags().fake_hgt;
+		status_flags.cs_gravity_vector          = _ekf.control_status_flags().gravity_vector;
+		status_flags.cs_mag                     = _ekf.control_status_flags().mag;
+		status_flags.cs_ev_yaw_fault            = _ekf.control_status_flags().ev_yaw_fault;
+		status_flags.cs_mag_heading_consistent  = _ekf.control_status_flags().mag_heading_consistent;
+		status_flags.cs_aux_gpos                = _ekf.control_status_flags().aux_gpos;
+		status_flags.cs_rng_terrain    = _ekf.control_status_flags().rng_terrain;
+		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
+		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
+		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
+		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
+		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
+		status_flags.cs_gnss_fault          = _ekf.control_status_flags().gnss_fault;
+		status_flags.cs_yaw_manual          = _ekf.control_status_flags().yaw_manual;
+		status_flags.cs_gnss_hgt_fault      = _ekf.control_status_flags().gnss_hgt_fault;
+		status_flags.cs_in_transition       = _ekf.control_status_flags().in_transition;
+		status_flags.cs_heading_observable  = _ekf.control_status_flags().heading_observable;
+
+		status_flags.fault_status_changes     = _filter_fault_status_changes;
+		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
+		status_flags.fs_bad_mag_y             = _ekf.fault_status_flags().bad_mag_y;
+		status_flags.fs_bad_mag_z             = _ekf.fault_status_flags().bad_mag_z;
+		status_flags.fs_bad_hdg               = _ekf.fault_status_flags().bad_hdg;
+		status_flags.fs_bad_mag_decl          = _ekf.fault_status_flags().bad_mag_decl;
+		status_flags.fs_bad_airspeed          = _ekf.fault_status_flags().bad_airspeed;
+		status_flags.fs_bad_sideslip          = _ekf.fault_status_flags().bad_sideslip;
+		status_flags.fs_bad_optflow_x         = _ekf.fault_status_flags().bad_optflow_X;
+		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
+		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
+		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
+
+		status_flags.timestamp = hrt_absolute_time();
+		_status_flags_pub.publish(status_flags);
+
+		_last_status_flags_publish = status_flags.timestamp;
+	}
 }
 
 void Navputer::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
