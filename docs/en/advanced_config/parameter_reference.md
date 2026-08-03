@@ -34207,12 +34207,14 @@ this time before considering gripper actuation successful and publish a
 
 ### PD_GRIPPER_TYPE (`INT32`) {#PD_GRIPPER_TYPE}
 
-Type of Gripper (Servo, etc.).
+Gripper control type.
+
+Selects the types of control actions the gripper accepts.
 
 **Values:**
 
 - `-1`: Undefined
-- `0`: Servo
+- `0`: Binary Grab/Release
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
