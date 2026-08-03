@@ -200,8 +200,8 @@ enum FIFO_CONFIG0_BIT : uint8_t {
 
 enum FIFO_CONFIG2_BIT : uint8_t {
 	FIFO_FLUSH = Bit7,
-	FIFO_WR_WM_GT_TH_EQUAL = 0,
-	FIFO_WR_WM_GT_TH_GREATER_THAN = Bit3,
+	FIFO_WR_WM_EQ_TH = 0,        // watermark reached only when count == threshold
+	FIFO_WR_WM_EQ_OR_GT_TH = Bit3, // watermark reached when count >= threshold
 };
 
 enum FIFO_CONFIG3_BIT : uint8_t {
