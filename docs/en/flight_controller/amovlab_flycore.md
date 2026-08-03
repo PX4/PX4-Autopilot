@@ -1,6 +1,6 @@
 # Amovlab Flycore
 
-<Badge type="tip" text="PX4 v1.18" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
