@@ -34,7 +34,7 @@ In addition to the general setup, such as setting `UAVCAN_ENABLE` to `3`:
 
 ## Reversible Motors {#reversible-motors}
 
-<Badge type="tip" text="main (PX4 v1.19)" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
 Motors can be reversible "on the fly" (bidirectional) if the motor hardware supports reversal, the ESC firmware is configured for 3D/bidirectional operation, and the motor is set as [bidirectional](../config/actuators.md#bidirectional-motors) in the actuator configuration.
 
@@ -51,4 +51,5 @@ Check the sign of the RPM reported in the ESC telemetry to confirm that the ESC 
 :::
 
 Reversible motors may also be used in [Motor Failure Recovery](../config/motor_failure_recovery.md) to keep a hexarotor controllable after a single motor failure.
-That case still needs ESCs configured for reversal, but not the bidirectional setting in the actuator configuration, because PX4 makes the recovery motor reversible while it handles the failure.
+That case still needs ESCs configured for reversal.
+However it is not necessary to set the motor as bidirectional in the actuator configuration, because PX4 makes the recovery motor reversible as it handles the failure.

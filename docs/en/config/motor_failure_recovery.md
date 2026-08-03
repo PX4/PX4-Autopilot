@@ -1,6 +1,6 @@
 # Motor Failure Recovery
 
-<Badge type="tip" text="main (PX4 v1.19)" /> <Badge type="tip" text="Multicopter" />
+<Badge type="tip" text="main (PX4 v2.0)" /> <Badge type="tip" text="Multicopter" />
 
 PX4 can reconfigure [control allocation (mixing)](../concept/control_allocation.md) in flight when a motor failure is detected, so that the vehicle can keep flying on the motors that are left.
 
@@ -41,7 +41,7 @@ Reversing needs all of the following:
 
 1. Motors and ESCs that can be driven backwards.
 2. Reversal enabled in the ESC configuration.
-   This is stored in the ESC and PX4 does not set it for you.
+   This is set in the ESC (PX4 does not set it for you).
 3. [CA_FAILURE_MODE](#CA_FAILURE_MODE) = `2`.
 4. For DShot ESCs only: [DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE) = `1`.
 
@@ -56,8 +56,9 @@ See [Reversible motors](../dronecan/escs.md#reversible-motors) in _DroneCAN ESCs
 
 #### DShot
 
-A reversible output is encoded using the DShot 3D split range, where neutral sits in the middle of the range, so the ESC has to be running in 3D mode.
-3D mode is a persistent ESC setting (see [ESC Commands](../peripherals/dshot.md#commands)), and PX4 has to be told about it with [DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE), which puts every motor on the matching encoding.
+A reversible output is encoded using the DShot 3D split range, where neutral sits in the middle of the range
+The ESC has to be running in 3D mode, which is a persistent ESC setting (see [ESC Commands](../peripherals/dshot.md#commands)), and PX4 has to be told about it with [DSHOT_3D_ENABLE](../advanced_config/parameter_reference.md#DSHOT_3D_ENABLE).
+`DSHOT_3D_ENABLE` puts every motor on the matching encoding.
 This has nothing to do with [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry), which is about eRPM telemetry rather than reversing a motor.
 
 ::: warning
