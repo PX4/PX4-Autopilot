@@ -134,6 +134,9 @@ publications:
       rel: reliable
       express: true
 
+  - topic: /fmu/out/ranging_beacon
+    type: px4_msgs::msg::RangingBeacon
+
   - topic: /fmu/out/navput_attitude
     type: px4_msgs::msg::NavputAttitude
 
