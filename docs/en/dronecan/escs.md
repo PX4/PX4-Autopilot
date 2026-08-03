@@ -34,7 +34,7 @@ In addition to the general setup, such as setting `UAVCAN_ENABLE` to `3`:
 
 ## Reversible Motors {#reversible-motors}
 
-<Badge type="tip" text="PX4 v1.18" />
+<Badge type="tip" text="main (PX4 v1.19)" />
 
 Motors can be reversible "on the fly" (bidirectional) if the motor hardware supports reversal, the ESC firmware is configured for 3D/bidirectional operation, and the motor is set as [bidirectional](../config/actuators.md#bidirectional-motors) in the actuator configuration.
 

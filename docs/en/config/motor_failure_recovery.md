@@ -1,6 +1,6 @@
 # Motor Failure Recovery
 
-<Badge type="tip" text="PX4 v1.18" /> <Badge type="tip" text="Multicopter" />
+<Badge type="tip" text="main (PX4 v1.19)" /> <Badge type="tip" text="Multicopter" />
 
 PX4 can reconfigure [control allocation (mixing)](../concept/control_allocation.md) in flight when a motor failure is detected, so that the vehicle can keep flying on the motors that are left.
 

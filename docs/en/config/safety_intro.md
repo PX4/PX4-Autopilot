@@ -8,7 +8,6 @@ They also include flight termination actions such as parachute deployment.
 These are covered in the following topics:
 
 - [Safety Configuration (Failsafes)](../config/safety.md)
-- [Motor Failure Recovery](../config/motor_failure_recovery.md)
 - [Failsafe Simulation](../config/safety_simulation.md)
 - [Geofence](../flying/geofence.md)
 - [Safe Points (Rally)](../flying/plan_safety_points.md)
