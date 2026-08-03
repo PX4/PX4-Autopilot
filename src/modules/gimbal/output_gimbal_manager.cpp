@@ -52,7 +52,6 @@ void OutputToGimbalManager::update(const ControlData &control_data, bool new_set
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	_update_manager_info();
 	_update_manager_status();
 
 	if (!_manager_found) {
@@ -115,20 +114,6 @@ void OutputToGimbalManager::update(const ControlData &control_data, bool new_set
 	}
 }
 
-void OutputToGimbalManager::_update_manager_info()
-{
-	external_gimbal_manager_information_s information;
-
-	if (_information_sub.update(&information)) {
-		if (!_manager_found) {
-			_manager_found = true;
-			_manager_sysid = information.manager_sysid;
-			_manager_compid = information.manager_compid;
-			_gimbal_device_id = information.gimbal_device_id;
-		}
-	}
-}
-
 void OutputToGimbalManager::_update_manager_status()
 {
 	external_gimbal_manager_status_s status;
@@ -137,8 +122,8 @@ void OutputToGimbalManager::_update_manager_status()
 		_status = status;
 		_status_valid = true;
 
-		// The status is streamed periodically, so it also works as a discovery
-		// source if we haven't received the information message.
+		// The status is streamed periodically, so we use it to discover the
+		// manager as well as to track control ownership.
 		if (!_manager_found) {
 			_manager_found = true;
 			_manager_sysid = status.manager_sysid;

@@ -364,10 +364,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
-	case MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION:
-		handle_message_gimbal_manager_information(msg);
-		break;
-
 	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
 		handle_message_gimbal_manager_status(msg);
 		break;
@@ -3633,37 +3629,10 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 }
 
 void
-MavlinkReceiver::handle_message_gimbal_manager_information(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_gimbal_manager_status(mavlink_message_t *msg)
 {
 	// Ignore our own gimbal manager: PX4 streams this itself from the autopilot
 	// component, and we only care about external gimbal managers here.
-	if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-		return;
-	}
-
-	mavlink_gimbal_manager_information_t information_msg;
-	mavlink_msg_gimbal_manager_information_decode(msg, &information_msg);
-
-	external_gimbal_manager_information_s information{};
-	information.timestamp = hrt_absolute_time();
-	information.manager_sysid = msg->sysid;
-	information.manager_compid = msg->compid;
-	information.cap_flags = information_msg.cap_flags;
-	information.gimbal_device_id = information_msg.gimbal_device_id;
-	information.roll_min = information_msg.roll_min;
-	information.roll_max = information_msg.roll_max;
-	information.pitch_min = information_msg.pitch_min;
-	information.pitch_max = information_msg.pitch_max;
-	information.yaw_min = information_msg.yaw_min;
-	information.yaw_max = information_msg.yaw_max;
-
-	_external_gimbal_manager_information_pub.publish(information);
-}
-
-void
-MavlinkReceiver::handle_message_gimbal_manager_status(mavlink_message_t *msg)
-{
-	// Ignore our own gimbal manager (see handle_message_gimbal_manager_information).
 	if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
 		return;
 	}

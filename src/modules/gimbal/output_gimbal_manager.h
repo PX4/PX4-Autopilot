@@ -39,7 +39,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/gimbal_manager_set_pitchyaw.h>
-#include <uORB/topics/external_gimbal_manager_information.h>
 #include <uORB/topics/external_gimbal_manager_status.h>
 
 namespace gimbal
@@ -67,13 +66,11 @@ private:
 		InControl	// the manager reports us as primary control
 	};
 
-	void _update_manager_info();
 	void _update_manager_status();
 	bool _have_primary_control() const;
 	void _send_configure(bool acquire);
 	void _publish_set_pitchyaw();
 
-	uORB::Subscription _information_sub{ORB_ID(external_gimbal_manager_information)};
 	uORB::Subscription _status_sub{ORB_ID(external_gimbal_manager_status)};
 	uORB::Publication<gimbal_manager_set_pitchyaw_s> _set_pitchyaw_pub{ORB_ID(gimbal_manager_set_pitchyaw)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
