@@ -38,6 +38,27 @@ export default {
     app.config.globalProperties.$buildTime = JSON.stringify(
       new Date().toISOString()
     );
+    // Switching version in the navbar keeps the current page. The "Version"
+    // links in navbar.json point at each version's root (e.g.
+    // https://docs.px4.io/v1.16/en/), so swap the path of the current page in.
+    // Pages that do not exist in the target version 404.
+    if (inBrowser) {
+      addEventListener(
+        "click",
+        (e) => {
+          if (e.defaultPrevented || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+          const link = e.target.closest?.(".VPNav a[href]");
+          // Only bare version roots, i.e. the version switcher entries: the site
+          // logo is root-relative and "Support" has a deeper path.
+          const version = link?.getAttribute("href").match(/^(https?:\/\/[^/]+\/(?:main|v\d+\.\d+)\/)(?:[a-z]{2}\/)?$/);
+          if (!version || new URL(link.href).origin !== location.origin) return;
+          if (!/^\/(?:main|v\d+\.\d+)\//.test(location.pathname)) return;
+          e.preventDefault();
+          location.href = version[1] + location.pathname.split("/").slice(2).join("/") + location.hash;
+        },
+        true
+      );
+    }
   },
 
   // to support medium zoom: https://github.com/vuejs/vitepress/issues/854
