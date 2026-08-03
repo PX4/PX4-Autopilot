@@ -515,7 +515,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 
 					if (_runtime_reversible_bitmask & (1u << actuator_type_idx)) {
 						// Failure recovery: a forward propeller driven in reverse makes only a fraction of its forward thrust
-						minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -_param_rev_thr_frac.get();
+						minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -_param_ca_rev_thr_frac.get();
 
 					} else if (_param_r_rev.get() & (1u << actuator_type_idx)) {
 						// Statically reversible thruster (symmetric): full reverse authority
@@ -746,7 +746,7 @@ ControlAllocator::publish_actuator_controls()
 
 		// Recovery motor was solved with min = -CA_REV_THR_FRAC; re-expand to [-1, 0] (static CA_R_REV uses -1, no rescale).
 		if ((_runtime_reversible_bitmask & (1u << motors_idx)) && PX4_ISFINITE(actuator_sp) && actuator_sp < 0.f) {
-			actuator_sp /= _param_rev_thr_frac.get();
+			actuator_sp /= _param_ca_rev_thr_frac.get();
 		}
 
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
