@@ -1,7 +1,9 @@
 #include "GL40IIDriver.hpp"
+#include "GL40IIBench.hpp"
 
 #include <board_config.h>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <inttypes.h>
 #include <parameters/param.h>
@@ -30,6 +32,7 @@ GL40IIDriver::GL40IIDriver() :
 	for (uint8_t rotor = 0; rotor < gl40ii::NUM_MOTORS; ++rotor) {
 		_joint_angle[rotor] = NAN;
 		_joint_velocity[rotor] = NAN;
+		_motor_position[rotor] = NAN;
 		_motor_torque[rotor] = NAN;
 	}
 }
@@ -169,6 +172,14 @@ bool GL40IIDriver::enabledFeedback() const
 	return (_enabled_mask & activeMask()) == activeMask();
 }
 
+bool GL40IIDriver::benchSafetyValid() const
+{
+	return _vehicle_status_received && !_armed
+	       && !_param_enable.get() && !_param_vola_enable.get() && !_param_vctrl_enable.get()
+	       && activeMask() == 0x01
+	       && configurationValid() && feedbackFresh() && _fault_mask == 0;
+}
+
 bool GL40IIDriver::sendFrame(uint8_t bus, const gl40ii::Frame &frame)
 {
 	if (!g_can_initialized || bus >= 2 || frame.dlc > uavcan::CanFrame::MaxDataLen) {
@@ -185,7 +196,7 @@ bool GL40IIDriver::sendFrame(uint8_t bus, const gl40ii::Frame &frame)
 
 	const uavcan::CanFrame can_frame(frame.id, frame.data, frame.dlc);
 	const uavcan::MonotonicTime deadline = uavcan_stm32h7::clock::getMonotonic()
-			+ uavcan::MonotonicDuration::fromMSec(2);
+					       + uavcan::MonotonicDuration::fromMSec(2);
 	const int result = iface->send(can_frame, deadline, 0);
 
 	if (result != 1) {
@@ -211,6 +222,13 @@ bool GL40IIDriver::sendSpecialAll(gl40ii::SpecialCommand command)
 	return success;
 }
 
+bool GL40IIDriver::sendSpecialRotor1(gl40ii::SpecialCommand command)
+{
+	gl40ii::Frame frame{};
+	return gl40ii::packSpecial(gl40ii::Mode::MIT, 1, command, frame)
+	       && sendFrame(gl40ii::busIndex(0), frame);
+}
+
 bool GL40IIDriver::sendMotorCommands()
 {
 	bool success = true;
@@ -220,12 +238,22 @@ bool GL40IIDriver::sendMotorCommands()
 			gl40ii::Frame frame{};
 			const float motor_position = motorSign(rotor) * _param_ratio.get() * _tilt_setpoint.angle[rotor];
 			const bool packed = gl40ii::packMit(rotor + 1, _limits, motor_position, 0.f,
-							 _param_kp.get(), _param_kd.get(), 0.f, frame);
+							    _param_kp.get(), _param_kd.get(), 0.f, frame);
 			success = packed && sendFrame(gl40ii::busIndex(rotor), frame) && success;
 		}
 	}
 
 	return success;
+}
+
+bool GL40IIDriver::sendBenchCommand(float motor_position)
+{
+	gl40ii::Frame frame{};
+	const float kp = fminf(_param_kp.get(), BENCH_KP_MAX);
+	const float kd = fminf(_param_kd.get(), BENCH_KD_MAX);
+
+	return gl40ii::packMit(1, _limits, motor_position, 0.f, kp, kd, 0.f, frame)
+	       && sendFrame(gl40ii::busIndex(0), frame);
 }
 
 void GL40IIDriver::updateSubscriptions(hrt_abstime now)
@@ -241,6 +269,7 @@ void GL40IIDriver::updateSubscriptions(hrt_abstime now)
 
 	if (_vehicle_status_sub.update(&vehicle_status)) {
 		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		_vehicle_status_received = true;
 	}
 
 	voliro_tilt_setpoint_s setpoint{};
@@ -304,12 +333,13 @@ void GL40IIDriver::drainRx(hrt_abstime now)
 			gl40ii::Feedback feedback{};
 
 			if (!gl40ii::parseFeedback(frame, gl40ii::masterId(rotor_index), rotor_index + 1,
-							_limits, feedback)) {
+						   _limits, feedback)) {
 				++_invalid_rx_count;
 				continue;
 			}
 
 			const float sign = motorSign(rotor_index);
+			_motor_position[rotor_index] = feedback.position;
 			_joint_angle[rotor_index] = sign * feedback.position / _param_ratio.get();
 			_joint_velocity[rotor_index] = sign * feedback.velocity / _param_ratio.get();
 			_motor_torque[rotor_index] = feedback.torque;
@@ -395,6 +425,229 @@ void GL40IIDriver::enterDisabled(hrt_abstime now)
 	_last_disable_tx = now;
 }
 
+void GL40IIDriver::finishBenchTest(hrt_abstime now, bool success, const char *reason)
+{
+	// Address rotor 1 directly so a runtime GL40_MASK change cannot suppress
+	// the disable frame for the motor that this bench mode enabled.
+	sendSpecialRotor1(gl40ii::SpecialCommand::Disable);
+	_control_state = ControlState::Disabled;
+	_last_disable_tx = now;
+	_bench_state = BenchState::Idle;
+	_bench_state_start = 0;
+	_bench_test_start = 0;
+	_bench_target_position = NAN;
+
+	if (success) {
+		PX4_INFO("bench complete and disabled: %s", reason);
+
+	} else {
+		PX4_ERR("bench aborted and disabled: %s", reason);
+	}
+}
+
+void GL40IIDriver::processBenchRequest(hrt_abstime now)
+{
+	if (_bench_abort_requested.load()) {
+		_bench_abort_requested.store(false);
+		_bench_request_pending.store(false);
+
+		if (_bench_state != BenchState::Idle) {
+			finishBenchTest(now, false, "operator stop request");
+		}
+
+		return;
+	}
+
+	if (!_bench_request_pending.load()) {
+		return;
+	}
+
+	_bench_request_pending.store(false);
+	const int32_t millirevolutions = _bench_request_millirevolutions.load();
+	const float turns = static_cast<float>(millirevolutions) * 0.001f;
+	const float delta = turns * TWO_PI_F;
+
+	if (_bench_state != BenchState::Idle) {
+		PX4_ERR("bench rejected: another bench test is active");
+		return;
+	}
+
+	if (_control_state != ControlState::Disabled) {
+		PX4_ERR("bench rejected: normal control is not disabled");
+		return;
+	}
+
+	if (!benchSafetyValid()) {
+		PX4_ERR("bench rejected: require disarmed, GL40/VOLA/VCTRL off, mask=1, fresh fault-free feedback");
+		return;
+	}
+
+	if (_motor_state[0] != voliro_tilt_feedback_s::STATE_DISABLED) {
+		PX4_ERR("bench rejected: rotor 1 does not report disabled");
+		return;
+	}
+
+	if (!PX4_ISFINITE(_motor_position[0])
+	    || !gl40ii::benchRangeValid(_motor_position[0], delta, _limits.position, BENCH_RANGE_MARGIN_RAD)) {
+		PX4_ERR("bench rejected: start %.3f + delta %.3f exceeds Pmax %.3f with %.2f rad margin",
+			(double)_motor_position[0], (double)delta, (double)_limits.position, (double)BENCH_RANGE_MARGIN_RAD);
+		return;
+	}
+
+	const float duration = gl40ii::minimumJerkDuration(delta, BENCH_PEAK_RATE_RAD_S,
+			       BENCH_MIN_PHASE_DURATION_S);
+
+	if (!PX4_ISFINITE(duration)) {
+		PX4_ERR("bench rejected: invalid trajectory duration");
+		return;
+	}
+
+	_bench_start_position = _motor_position[0];
+	_bench_delta = delta;
+	_bench_target_position = _bench_start_position;
+	_bench_phase_duration_s = duration;
+	_bench_state = BenchState::AwaitEnable;
+	_bench_state_start = now;
+	_bench_test_start = now;
+	_last_tx = now;
+
+	if (!sendSpecialRotor1(gl40ii::SpecialCommand::Enable)) {
+		finishBenchTest(now, false, "enable transmission failed");
+		return;
+	}
+
+	PX4_WARN("BENCH START rotor 1: start=%.3f delta=%+.3f rad (%+.3f rev), phase=%.2f s; keep power cutoff ready",
+		 (double)_bench_start_position, (double)_bench_delta, (double)turns, (double)_bench_phase_duration_s);
+}
+
+void GL40IIDriver::runBenchTest(hrt_abstime now)
+{
+	if (_bench_state == BenchState::Idle) {
+		return;
+	}
+
+	if (!benchSafetyValid()) {
+		finishBenchTest(now, false, "safety gate changed");
+		return;
+	}
+
+	if (now - _bench_test_start > BENCH_TOTAL_TIMEOUT_US) {
+		finishBenchTest(now, false, "total timeout");
+		return;
+	}
+
+	if (_bench_state == BenchState::AwaitEnable) {
+		if (enabledFeedback()) {
+			_bench_state = BenchState::Settle;
+			_bench_state_start = now;
+			_bench_target_position = _bench_start_position;
+			_last_tx = 0;
+
+		} else if (now - _bench_state_start > BENCH_ENABLE_TIMEOUT_US) {
+			finishBenchTest(now, false, "enable feedback timeout");
+			return;
+
+		} else if (now - _last_tx >= ENABLE_INTERVAL_US) {
+			if (!sendSpecialRotor1(gl40ii::SpecialCommand::Enable)) {
+				finishBenchTest(now, false, "enable retransmission failed");
+				return;
+			}
+
+			_last_tx = now;
+		}
+
+		if (_bench_state == BenchState::AwaitEnable) {
+			return;
+		}
+	}
+
+	if (!enabledFeedback()) {
+		finishBenchTest(now, false, "drive left enabled state");
+		return;
+	}
+
+	if (!PX4_ISFINITE(_motor_position[0])
+	    || fabsf(_motor_position[0] - _bench_target_position) > BENCH_MAX_TRACKING_ERROR_RAD) {
+		finishBenchTest(now, false, "tracking error exceeded 0.5 motor rad");
+		return;
+	}
+
+	const hrt_abstime state_elapsed = now - _bench_state_start;
+
+	switch (_bench_state) {
+	case BenchState::Settle:
+		_bench_target_position = _bench_start_position;
+
+		if (state_elapsed >= BENCH_SETTLE_US) {
+			_bench_state = BenchState::Outbound;
+			_bench_state_start = now;
+		}
+
+		break;
+
+	case BenchState::Outbound: {
+			const float phase = static_cast<float>(state_elapsed) * 1e-6f / _bench_phase_duration_s;
+			_bench_target_position = _bench_start_position + _bench_delta * gl40ii::minimumJerk(phase);
+
+			if (phase >= 1.f) {
+				_bench_target_position = _bench_start_position + _bench_delta;
+				_bench_state = BenchState::EndpointDwell;
+				_bench_state_start = now;
+			}
+
+			break;
+		}
+
+	case BenchState::EndpointDwell:
+		_bench_target_position = _bench_start_position + _bench_delta;
+
+		if (state_elapsed >= BENCH_DWELL_US) {
+			_bench_state = BenchState::Return;
+			_bench_state_start = now;
+		}
+
+		break;
+
+	case BenchState::Return: {
+			const float phase = static_cast<float>(state_elapsed) * 1e-6f / _bench_phase_duration_s;
+			_bench_target_position = _bench_start_position + _bench_delta * (1.f - gl40ii::minimumJerk(phase));
+
+			if (phase >= 1.f) {
+				_bench_target_position = _bench_start_position;
+				_bench_state = BenchState::ReturnDwell;
+				_bench_state_start = now;
+			}
+
+			break;
+		}
+
+	case BenchState::ReturnDwell:
+		_bench_target_position = _bench_start_position;
+
+		if (state_elapsed >= BENCH_DWELL_US) {
+			finishBenchTest(now, true, "out-and-back trajectory finished");
+			return;
+		}
+
+		break;
+
+	case BenchState::Idle:
+	case BenchState::AwaitEnable:
+		return;
+	}
+
+	const hrt_abstime command_interval_us = 1'000'000u / _param_command_rate.get();
+
+	if (now - _last_tx >= command_interval_us) {
+		if (!sendBenchCommand(_bench_target_position)) {
+			finishBenchTest(now, false, "position command transmission failed");
+			return;
+		}
+
+		_last_tx = now;
+	}
+}
+
 void GL40IIDriver::Run()
 {
 	if (should_exit()) {
@@ -410,6 +663,14 @@ void GL40IIDriver::Run()
 	updateSubscriptions(now);
 	drainRx(now);
 	updateMasks(now);
+	processBenchRequest(now);
+
+	if (_bench_state != BenchState::Idle) {
+		runBenchTest(now);
+		publishFeedback(now);
+		perf_end(_cycle_perf);
+		return;
+	}
 
 	const hrt_abstime setpoint_timeout_us = static_cast<hrt_abstime>(_param_setpoint_timeout.get() * 1e6f);
 	const bool setpoint_fresh = _last_setpoint_rx != 0 && now - _last_setpoint_rx <= setpoint_timeout_us;
@@ -428,6 +689,7 @@ void GL40IIDriver::Run()
 			sendSpecialAll(gl40ii::SpecialCommand::Disable);
 			_last_disable_tx = now;
 		}
+
 		break;
 
 	case ControlState::Enabling:
@@ -442,24 +704,26 @@ void GL40IIDriver::Run()
 			sendSpecialAll(gl40ii::SpecialCommand::Enable);
 			_last_tx = now;
 		}
+
 		break;
 
 	case ControlState::Active: {
-		const hrt_abstime command_interval_us = 1'000'000u / _param_command_rate.get();
+			const hrt_abstime command_interval_us = 1'000'000u / _param_command_rate.get();
 
-		if (!control_requested || !enabledFeedback()) {
-			enterDisabled(now);
-
-		} else if (now - _last_tx >= command_interval_us) {
-			if (!sendMotorCommands()) {
+			if (!control_requested || !enabledFeedback()) {
 				enterDisabled(now);
 
-			} else {
-				_last_tx = now;
+			} else if (now - _last_tx >= command_interval_us) {
+				if (!sendMotorCommands()) {
+					enterDisabled(now);
+
+				} else {
+					_last_tx = now;
+				}
 			}
+
+			break;
 		}
-		break;
-	}
 	}
 
 	publishFeedback(now);
@@ -470,8 +734,31 @@ const char *GL40IIDriver::stateName() const
 {
 	switch (_control_state) {
 	case ControlState::Disabled: return "disabled";
+
 	case ControlState::Enabling: return "enabling";
+
 	case ControlState::Active: return "active";
+	}
+
+	return "unknown";
+}
+
+const char *GL40IIDriver::benchStateName() const
+{
+	switch (_bench_state) {
+	case BenchState::Idle: return "idle";
+
+	case BenchState::AwaitEnable: return "await-enable";
+
+	case BenchState::Settle: return "settle";
+
+	case BenchState::Outbound: return "outbound";
+
+	case BenchState::EndpointDwell: return "endpoint-dwell";
+
+	case BenchState::Return: return "return";
+
+	case BenchState::ReturnDwell: return "return-dwell";
 	}
 
 	return "unknown";
@@ -490,15 +777,18 @@ int GL40IIDriver::print_status()
 		 static_cast<double>(_limits.torque), static_cast<unsigned>(_param_reverse_mask.get() & 0x3F));
 	PX4_INFO("tx errors=%" PRIu32 ", rx errors=%" PRIu32 ", invalid rx=%" PRIu32,
 		 _tx_error_count, _rx_error_count, _invalid_rx_count);
+	PX4_INFO("bench=%s start=%.3f target=%.3f delta=%+.3f motor rad",
+		 benchStateName(), (double)_bench_start_position, (double)_bench_target_position, (double)_bench_delta);
 
 	for (uint8_t rotor = 0; rotor < gl40ii::NUM_MOTORS; ++rotor) {
 		if (activeMask() & (1u << rotor)) {
 			const double age_ms = _last_rx[rotor] == 0 ? static_cast<double>(INFINITY)
 					      : static_cast<double>(hrt_elapsed_time(&_last_rx[rotor])) * 1e-3;
-			PX4_INFO("rotor %u CAN%u slave=%u master=0x%03x state=%u age=%.1f ms rx=%" PRIu32,
+			PX4_INFO("rotor %u CAN%u slave=%u master=0x%03x state=%u motor=%.3f joint=%.3f age=%.1f ms rx=%" PRIu32,
 				 static_cast<unsigned>(rotor + 1), static_cast<unsigned>(gl40ii::busIndex(rotor) + 1),
 				 static_cast<unsigned>(rotor + 1), static_cast<unsigned>(gl40ii::masterId(rotor)),
-				 static_cast<unsigned>(_motor_state[rotor]), age_ms, _rx_count[rotor]);
+				 static_cast<unsigned>(_motor_state[rotor]), (double)_motor_position[rotor],
+				 (double)_joint_angle[rotor], age_ms, _rx_count[rotor]);
 		}
 	}
 
@@ -527,6 +817,50 @@ int GL40IIDriver::task_spawn(int argc, char *argv[])
 
 int GL40IIDriver::custom_command(int argc, char *argv[])
 {
+	if (argc >= 1 && strcmp(argv[0], "test") == 0) {
+		if (!is_running(desc)) {
+			PX4_ERR("gl40ii is not running");
+			return PX4_ERROR;
+		}
+
+		GL40IIDriver *instance = get_instance<GL40IIDriver>(desc);
+
+		if (instance == nullptr) {
+			PX4_ERR("driver instance unavailable");
+			return PX4_ERROR;
+		}
+
+		if (argc == 2 && strcmp(argv[1], "stop") == 0) {
+			instance->_bench_request_pending.store(false);
+			instance->_bench_abort_requested.store(true);
+			PX4_WARN("bench stop requested; use the physical power cutoff for any unexpected motion");
+			return PX4_OK;
+		}
+
+		if (argc != 2) {
+			return print_usage("test requires signed motor revolutions or 'stop'");
+		}
+
+		char *end = nullptr;
+		const float turns = strtof(argv[1], &end);
+
+		if (end == argv[1] || end == nullptr || *end != '\0' || !PX4_ISFINITE(turns)
+		    || fabsf(turns) < BENCH_MIN_TURNS || fabsf(turns) > BENCH_MAX_TURNS) {
+			return print_usage("test turns must be in [-2.0,-0.01] or [0.01,2.0]");
+		}
+
+		if (instance->_bench_request_pending.load()) {
+			PX4_ERR("a bench request is already pending");
+			return PX4_ERROR;
+		}
+
+		instance->_bench_request_millirevolutions.store(static_cast<int32_t>(lroundf(turns * 1000.f)));
+		instance->_bench_request_pending.store(true);
+		PX4_WARN("queued relative rotor-1 bare-motor sweep: %+.3f rev out, then return; keep power cutoff ready",
+			 (double)turns);
+		return PX4_OK;
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -545,11 +879,21 @@ It always polls configured drives with disable frames while GL40_EN is false or
 the vehicle is disarmed. Motion additionally requires fresh typed setpoints,
 fresh feedback, enabled-state feedback, and no drive faults.
 
+The `test` command is a deliberately restricted rotor-1 bare-motor bench mode.
+It requires PX4 disarmed, GL40_EN/VOLA_EN/VCTRL_EN zero, GL40_MASK=1, fresh
+fault-free feedback, and a drive that reports disabled. It follows a smooth
+relative raw-motor trajectory, returns to the captured start, and disables.
+The signed argument is motor revolutions in the encoder-positive direction.
+Use `gl40ii test stop` to request an immediate disable, but retain a physical
+motor-power cutoff.
+
 Rotor mapping: CAN1 carries rotors 1/3/5 and CAN2 carries rotors 2/4/6.
 Slave IDs are 1..6 and persistent master response IDs are 0x011..0x016.
 )DESCR_STR");
 	PRINT_MODULE_USAGE_NAME("gl40ii", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Run a bounded rotor-1 relative bare-motor out-and-back sweep");
+	PRINT_MODULE_USAGE_ARG("<turns|stop>", "Signed motor revolutions (0.01 to 2.0), or stop an active test", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }

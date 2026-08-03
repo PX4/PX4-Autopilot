@@ -4,9 +4,20 @@ px4_add_library(GL40IIProtocol
 )
 target_include_directories(GL40IIProtocol PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+px4_add_library(GL40IIBench
+	GL40IIBench.cpp
+	GL40IIBench.hpp
+)
+target_include_directories(GL40IIBench PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 px4_add_unit_gtest(
 	SRC GL40IIProtocolTest.cpp
 	LINKLIBS GL40IIProtocol
+)
+
+px4_add_unit_gtest(
+	SRC GL40IIBenchTest.cpp
+	LINKLIBS GL40IIBench
 )
 
 if("${PX4_PLATFORM}" STREQUAL "nuttx")
@@ -32,6 +43,7 @@ if("${PX4_PLATFORM}" STREQUAL "nuttx")
 			${PX4_SOURCE_DIR}/src/drivers/uavcan/uavcan_drivers/stm32h7/driver/include
 		MODULE_CONFIG module.yaml
 		DEPENDS
+			GL40IIBench
 			GL40IIProtocol
 			px4_work_queue
 	)

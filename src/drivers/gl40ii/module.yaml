@@ -86,7 +86,7 @@ parameters:
             Positive cable-drive transmission ratio. Motor command equals joint
             command times this ratio; measured motor angle is divided by it.
         type: float
-        default: 6.0
+        default: 4.0
         min: 0.01
         max: 100.0
         decimal: 5

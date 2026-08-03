@@ -2,8 +2,10 @@
 
 #include "GL40IIProtocol.hpp"
 
+#include <cmath>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -37,10 +39,33 @@ private:
 		Active,
 	};
 
+	enum class BenchState : uint8_t {
+		Idle = 0,
+		AwaitEnable,
+		Settle,
+		Outbound,
+		EndpointDwell,
+		Return,
+		ReturnDwell,
+	};
+
 	static constexpr hrt_abstime RUN_INTERVAL_US = 1'000;
 	static constexpr hrt_abstime DISABLE_INTERVAL_US = 20'000;
 	static constexpr hrt_abstime ENABLE_INTERVAL_US = 20'000;
 	static constexpr hrt_abstime FEEDBACK_PUBLISH_INTERVAL_US = 20'000;
+	static constexpr hrt_abstime BENCH_ENABLE_TIMEOUT_US = 1'000'000;
+	static constexpr hrt_abstime BENCH_SETTLE_US = 500'000;
+	static constexpr hrt_abstime BENCH_DWELL_US = 500'000;
+	static constexpr hrt_abstime BENCH_TOTAL_TIMEOUT_US = 120'000'000;
+	static constexpr float BENCH_MIN_TURNS = 0.01f;
+	static constexpr float BENCH_MAX_TURNS = 2.f;
+	static constexpr float BENCH_RANGE_MARGIN_RAD = 0.5f;
+	static constexpr float BENCH_MAX_TRACKING_ERROR_RAD = 0.5f;
+	static constexpr float BENCH_PEAK_RATE_RAD_S = 1.f;
+	static constexpr float BENCH_MIN_PHASE_DURATION_S = 1.f;
+	static constexpr float BENCH_KP_MAX = 0.123f;
+	static constexpr float BENCH_KD_MAX = 0.005f;
+	static constexpr float TWO_PI_F = 6.28318530718f;
 
 	void Run() override;
 	void updateSubscriptions(hrt_abstime now);
@@ -48,17 +73,24 @@ private:
 	void updateMasks(hrt_abstime now);
 	void publishFeedback(hrt_abstime now, bool force = false);
 	void enterDisabled(hrt_abstime now);
+	void processBenchRequest(hrt_abstime now);
+	void runBenchTest(hrt_abstime now);
+	void finishBenchTest(hrt_abstime now, bool success, const char *reason);
 
 	bool sendFrame(uint8_t bus, const gl40ii::Frame &frame);
+	bool sendSpecialRotor1(gl40ii::SpecialCommand command);
 	bool sendSpecialAll(gl40ii::SpecialCommand command);
 	bool sendMotorCommands();
+	bool sendBenchCommand(float motor_position);
 	bool configurationValid() const;
 	bool commandValid() const;
 	bool feedbackFresh() const;
 	bool enabledFeedback() const;
+	bool benchSafetyValid() const;
 	uint8_t activeMask() const;
 	float motorSign(uint8_t rotor) const;
 	const char *stateName() const;
+	const char *benchStateName() const;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1'000'000};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -70,6 +102,7 @@ private:
 
 	float _joint_angle[gl40ii::NUM_MOTORS] {};
 	float _joint_velocity[gl40ii::NUM_MOTORS] {};
+	float _motor_position[gl40ii::NUM_MOTORS] {};
 	float _motor_torque[gl40ii::NUM_MOTORS] {};
 	int8_t _driver_temperature[gl40ii::NUM_MOTORS] {};
 	int8_t _motor_temperature[gl40ii::NUM_MOTORS] {};
@@ -81,6 +114,8 @@ private:
 	hrt_abstime _last_tx{0};
 	hrt_abstime _last_disable_tx{0};
 	hrt_abstime _last_feedback_publish{0};
+	hrt_abstime _bench_state_start{0};
+	hrt_abstime _bench_test_start{0};
 	uint32_t _tx_error_count{0};
 	uint32_t _rx_error_count{0};
 	uint32_t _invalid_rx_count{0};
@@ -89,8 +124,17 @@ private:
 	uint8_t _fault_mask{0};
 	uint8_t _stale_mask{0};
 	bool _armed{false};
+	bool _vehicle_status_received{false};
 	bool _feedback_dirty{false};
 	ControlState _control_state{ControlState::Disabled};
+	BenchState _bench_state{BenchState::Idle};
+	float _bench_start_position{NAN};
+	float _bench_delta{NAN};
+	float _bench_target_position{NAN};
+	float _bench_phase_duration_s{NAN};
+	px4::atomic<int32_t> _bench_request_millirevolutions{0};
+	px4::atomic<bool> _bench_request_pending{false};
+	px4::atomic<bool> _bench_abort_requested{false};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	DEFINE_PARAMETERS(
@@ -105,6 +149,8 @@ private:
 		(ParamFloat<px4::params::GL40_KD>) _param_kd,
 		(ParamFloat<px4::params::GL40_SP_TMO>) _param_setpoint_timeout,
 		(ParamFloat<px4::params::GL40_FB_TMO>) _param_feedback_timeout,
-		(ParamInt<px4::params::GL40_REV>) _param_reverse_mask
+		(ParamInt<px4::params::GL40_REV>) _param_reverse_mask,
+		(ParamBool<px4::params::VOLA_EN>) _param_vola_enable,
+		(ParamBool<px4::params::VCTRL_EN>) _param_vctrl_enable
 	)
 };
