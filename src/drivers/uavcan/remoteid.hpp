@@ -69,7 +69,7 @@ private:
 	typedef uavcan::MethodBinder<UavcanRemoteIDController *, void (UavcanRemoteIDController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
-	static constexpr unsigned MAX_RATE_HZ = 1;
+	static constexpr unsigned MAX_RATE_HZ = 2;
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
 	void periodic_update(const uavcan::TimerEvent &);
