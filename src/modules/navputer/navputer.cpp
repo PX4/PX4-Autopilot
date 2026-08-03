@@ -58,6 +58,7 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 	fc->baro.enabled = true;
 	fc->mag.enabled = true;
 	fc->rngbcn.enabled = true;
+	fc->agp[0].enabled = true;
 
 	// TODO: temp solution, should be provided externally or from Aux aid src
 	_ekf.resetGlobalPositionTo(49.796766, 24.347826, 270);

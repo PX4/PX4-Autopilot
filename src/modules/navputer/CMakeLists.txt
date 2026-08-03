@@ -40,7 +40,10 @@ set(EKF_GENERATED_DERIVATION_INCLUDE_PATH "${EKF_DERIVATION_SRC_DIR}/..")
 
 set(NAVPUTER_MODULE_PARAMS)
 set(NAVPUTER_LIBS)
-set(NAVPUTER_SRCS)
+set(NAVPUTER_SRCS
+	navputer.cpp
+	navputer.hpp
+)
 
 px4_add_module(
 	MODULE modules__navputer
@@ -60,10 +63,6 @@ px4_add_module(
 		3600
 	SRCS
 		${NAVPUTER_SRCS}
-
-		navputer.cpp
-		navputer.hpp
-
 		${EKF_GENERATED_FILES}
 
 	MODULE_CONFIG

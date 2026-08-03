@@ -27,6 +27,9 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 	_ekf.resetGlobalPositionTo()
 * [x] Add params to SIH to control Beacon simulation: enable/disable, max range, rate (interval)
 * [x] Declare custom param group and forward to EKF for fusion control and tuning
-* [ ] Publish fusion state/EKF state - EKF2::PublishFusionControl()
-* [ ] Aux Position source fusion - for initial estimate and recovery.
+* [ ] Publish fusion state/EKF state - EKF2::PublishFusionControl() + PublishStatusFlags()
+* [x] Aux Position source fusion - for initial estimate and recovery.
+	Works out of the box. Good to proceed.
+* [ ] Add MLAT solver as AUX source.
+* [ ] Check/add logic to set global origin from Aux source.
 * [ ] Where does heading error between Navput and EK2 come from?
