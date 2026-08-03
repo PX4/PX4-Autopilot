@@ -158,7 +158,7 @@ private:
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register_bank0{0};
-	static constexpr uint8_t size_register_bank0_cfg{10};
+	static constexpr uint8_t size_register_bank0_cfg{13};
 	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
 		// route only the FIFO threshold (watermark) interrupt to INT1
 		{ Register::BANK_0::INT1_CONFIG0, INT1_CONFIG0_BIT::INT1_STATUS_EN_FIFO_THS, (uint8_t)~INT1_CONFIG0_BIT::INT1_STATUS_EN_FIFO_THS },
@@ -170,6 +170,11 @@ private:
 		{ Register::BANK_0::ACCEL_CONFIG0, ACCEL_CONFIG0_BIT::ACCEL_UI_FS_SEL_32_G_SET | ACCEL_CONFIG0_BIT::ACCEL_ODR_6400_HZ_SET, ACCEL_CONFIG0_BIT::ACCEL_UI_FS_SEL_32_G_CLEAR | ACCEL_CONFIG0_BIT::ACCEL_ODR_6400_HZ_CLEAR },
 		{ Register::BANK_0::FIFO_CONFIG4, 0, FIFO_CONFIG4_BIT::FIFO_COMP_EN },
 		{ Register::BANK_0::FIFO_CONFIG0, FIFO_CONFIG0_BIT::FIFO_MODE_STOP_ON_FULL_SET | FIFO_CONFIG0_BIT::FIFO_DEPTH_8K_SET, FIFO_CONFIG0_BIT::FIFO_MODE_STOP_ON_FULL_CLEAR | FIFO_CONFIG0_BIT::FIFO_DEPTH_8K_CLEAR },
+		{ Register::BANK_0::FIFO_CONFIG1_0, 0, 0}, // FIFO_WM[7:0] set at runtime
+		{ Register::BANK_0::FIFO_CONFIG1_1, 0, 0}, // FIFO_WM[15:8] set at runtime
+		// assert the watermark interrupt on count >= threshold, otherwise it is missed whenever
+		// the FIFO overshoots the threshold between reads
+		{ Register::BANK_0::FIFO_CONFIG2, FIFO_CONFIG2_BIT::FIFO_WR_WM_EQ_OR_GT_TH, 0 },
 		{ Register::BANK_0::FIFO_CONFIG3, FIFO_CONFIG3_BIT::FIFO_HIRES_EN | FIFO_CONFIG3_BIT::FIFO_GYRO_EN | FIFO_CONFIG3_BIT::FIFO_ACCEL_EN | FIFO_CONFIG3_BIT::FIFO_IF_EN, 0 },
 
 		{ Register::BANK_0::RTC_CONFIG, 0, 0}, // RTC_MODE[5] set at runtime

@@ -285,17 +285,21 @@ void ICM45686::ConfigureSampleRate(int sample_rate)
 
 void ICM45686::ConfigureFIFOWatermark(uint8_t samples)
 {
-	// FIFO watermark threshold in number of bytes
-	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::DATA);
+	// FIFO watermark threshold is a FIFO frame count, unlike the ICM42688P where it counts bytes
+	const uint16_t fifo_watermark_threshold = samples;
 
 	for (auto &r : _register_bank0_cfg) {
 		if (r.reg == Register::BANK_0::FIFO_CONFIG1_0) {
-			// FIFO_WM[7:0]  FIFO_CONFIG2
-			r.set_bits = fifo_watermark_threshold & 0xFF;
+			// FIFO_WM[7:0]
+			const uint8_t value = fifo_watermark_threshold & 0xFF;
+			r.set_bits = value;
+			r.clear_bits = static_cast<uint8_t>(~value);
 
 		} else if (r.reg == Register::BANK_0::FIFO_CONFIG1_1) {
-			// FIFO_WM[11:8] FIFO_CONFIG3
-			r.set_bits = (fifo_watermark_threshold >> 8) & 0xFF;
+			// FIFO_WM[15:8]
+			const uint8_t value = (fifo_watermark_threshold >> 8) & 0xFF;
+			r.set_bits = value;
+			r.clear_bits = static_cast<uint8_t>(~value);
 		}
 	}
 }
