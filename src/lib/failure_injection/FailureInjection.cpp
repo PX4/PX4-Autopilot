@@ -35,7 +35,9 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_gps.h>
 
 namespace failure_injection
 {
@@ -89,6 +91,28 @@ void process_battery(const Config &config, uint8_t instance, battery_status_s &b
 	// Report a depleted pack so the low-battery failsafe triggers.
 	battery_status.remaining = 0.f;
 	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+}
+
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
+		  Stuck<sensor_gps_s> &stuck)
+{
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, uorb_instance + 1);
+
+	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
+	// uncorrupted sample and a later Stuck replays a healthy fix.
+	if (!process(mode, sensor_gps, stuck)) {
+		return false;
+	}
+
+	if (mode == Mode::Wrong) {
+		static const param_t fix_type_handle = param_find("SYS_FAIL_GPS_WRG");
+
+		int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+		param_get(fix_type_handle, &fix_type);
+		sensor_gps.fix_type = (uint8_t)fix_type;
+	}
+
+	return true;
 }
 
 esc_status_s process_esc(const Config &config, const esc_status_s &status)
