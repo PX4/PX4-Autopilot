@@ -673,7 +673,7 @@ bool DShot::process_bdshot_telemetry()
 				}
 
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
-					esc.current = static_cast<float>(value) / 2.f; // BDShot current is in 0.5A
+					esc.current = static_cast<float>(value); // EDT current is in 1A steps
 
 				} else {
 					esc.current = _esc_status.esc[motor_index].esc_current; // use previous
