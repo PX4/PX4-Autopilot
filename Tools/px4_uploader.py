@@ -231,6 +231,10 @@ class BootloaderCommand(IntEnum):
     GET_CHIP_DES = 0x2E  # rev5+, get chip description in ASCII
     GET_VERSION = 0x2F  # rev5+, get bootloader version in ASCII
     REBOOT = 0x30
+    EXTFLASH_ERASE = 0x34  # Erase sectors from external flash
+    EXTFLASH_PROG_MULTI = 0x35  # Write bytes at external flash program address
+    EXTFLASH_READ_MULTI = 0x36  # Read bytes at external flash program address
+    EXTFLASH_GET_CRC = 0x37  # Compute and return CRC of data in external flash
     VERIFY_SIG = 0x39  # verify signature of programmed image (secure boot)
     CHIP_FULL_ERASE = 0x40  # Full erase of flash, rev6+
 
@@ -253,6 +257,7 @@ class DeviceInfo(IntEnum):
     BOARD_ID = 0x02  # Board type
     BOARD_REV = 0x03  # Board revision
     FLASH_SIZE = 0x04  # Max firmware size in bytes
+    EXTFLASH_SIZE = 0x06  # Available external flash size in bytes
 
 
 @dataclass
@@ -326,6 +331,7 @@ class Firmware:
     image_size: int = field(init=False)
     image_maxsize: int = field(init=False)
     image_signed: bool = field(init=False)
+    extflash_image: bytes = field(init=False, default=b"")
     description: dict = field(init=False)
 
     def __post_init__(self):
@@ -380,10 +386,31 @@ class Firmware:
 
         self.image = bytes(image_data)
 
+        # Optional external flash image
+        extflash_b64 = self.description.get("extflash_image", "")
+        if extflash_b64:
+            try:
+                extflash_compressed = base64.b64decode(extflash_b64)
+                extflash_data = bytearray(zlib.decompress(extflash_compressed))
+            except (base64.binascii.Error, zlib.error) as e:
+                raise FirmwareError(
+                    f"Cannot decompress extflash image: {e}",
+                    details=str(self.path),
+                )
+
+            while len(extflash_data) % 4 != 0:
+                extflash_data.append(0xFF)
+
+            self.extflash_image = bytes(extflash_data)
+
         logger.info(
             f"Loaded firmware: board_id={self.board_id}, "
             f"size={self.image_size} bytes ({self.usage_percent:.1f}%)"
         )
+        if self.extflash_image:
+            logger.info(
+                f"Loaded extflash image: {len(self.extflash_image)} bytes"
+            )
 
     @property
     def usage_percent(self) -> float:
@@ -403,6 +430,18 @@ class Firmware:
         state = zlib.crc32(self.image, state)
 
         padding_length = padlen - len(self.image)
+        if padding_length > 0:
+            padding = b"\xff" * padding_length
+            state = zlib.crc32(padding, state)
+
+        return (state ^ 0xFFFFFFFF) & 0xFFFFFFFF
+
+    def extflash_crc(self, padlen: int) -> int:
+        """Calculate CRC32 of external flash image with padding."""
+        state = 0xFFFFFFFF
+        state = zlib.crc32(self.extflash_image, state)
+
+        padding_length = padlen - len(self.extflash_image)
         if padding_length > 0:
             padding = b"\xff" * padding_length
             state = zlib.crc32(padding, state)
@@ -1275,6 +1314,99 @@ class BootloaderProtocol:
             operation="verify_signature",
         )
 
+    def erase_extflash(
+        self, firmware: Firmware, progress_callback: Optional[callable] = None
+    ) -> None:
+        """Erase the external flash region needed for the firmware image."""
+        size_bytes = len(firmware.extflash_image).to_bytes(4, byteorder="little")
+        logger.debug(f"Erasing {len(firmware.extflash_image)} bytes of extflash")
+
+        self._send_command(BootloaderCommand.EXTFLASH_ERASE, size_bytes)
+        self._get_sync()
+
+        # Bootloader streams 1-byte progress (0..99) until done, then sends
+        # a final INSYNC/OK pair.
+        last_pct = 0
+        while True:
+            if last_pct < 90:
+                pct = self.transport.recv(1)[0]
+                if pct != last_pct:
+                    last_pct = pct
+                    if progress_callback:
+                        progress_callback(pct, 100)
+            elif self._try_sync():
+                if progress_callback:
+                    progress_callback(1.0, 1.0)
+                return
+
+    def _program_multi_extflash(self, data: bytes) -> None:
+        """Program a chunk of data to external flash."""
+        length = len(data)
+        cmd = bytes([BootloaderCommand.EXTFLASH_PROG_MULTI, length]) + data
+        cmd += bytes([BootloaderResponse.EOC])
+        self.transport.send(cmd)
+        self._get_sync()
+
+    def program_extflash(
+        self, firmware: Firmware, progress_callback: Optional[callable] = None
+    ) -> None:
+        """Program firmware extflash image to external flash."""
+        image = firmware.extflash_image
+        total = len(image)
+        written = 0
+
+        logger.debug(f"Programming {total} bytes to extflash")
+
+        chunk_size = ProtocolConfig.PROG_MULTI_MAX
+        chunks = [image[i : i + chunk_size] for i in range(0, total, chunk_size)]
+
+        for chunk in chunks:
+            self._program_multi_extflash(chunk)
+            written += len(chunk)
+            if progress_callback:
+                progress_callback(written, total)
+
+        logger.debug("Extflash programming complete")
+
+    def verify_extflash(
+        self, firmware: Firmware, progress_callback: Optional[callable] = None
+    ) -> None:
+        """Verify external flash contents using CRC."""
+        size = len(firmware.extflash_image)
+        size_bytes = size.to_bytes(4, byteorder="little")
+        expected_crc = firmware.extflash_crc(size)
+
+        logger.debug(f"Verifying extflash CRC, expected 0x{expected_crc:08X}")
+
+        self._send_command(BootloaderCommand.EXTFLASH_GET_CRC, size_bytes)
+
+        # CRC across external flash can be slow, allow up to 10 s.
+        original_timeout = self.transport._port.timeout if self.transport._port else None
+        if self.transport._port is not None:
+            self.transport._port.timeout = 10.0
+        try:
+            reported_crc = self._recv_int()
+        finally:
+            if self.transport._port is not None and original_timeout is not None:
+                self.transport._port.timeout = original_timeout
+
+        self._get_sync()
+
+        if progress_callback:
+            progress_callback(1.0, 1.0)
+
+        logger.debug(f"Reported extflash CRC: 0x{reported_crc:08X}")
+
+        if reported_crc != expected_crc:
+            raise ProtocolError(
+                f"Extflash CRC mismatch: expected 0x{expected_crc:08X}, "
+                f"got 0x{reported_crc:08X}",
+                port=self.transport.port_name,
+                operation="verify_extflash",
+            )
+
+        logger.debug("Extflash CRC verification passed")
+
     # Reboot confirmation tuning
     REBOOT_ATTEMPTS = 3
     REBOOT_REENUM_TIMEOUT = 5.0
@@ -2085,6 +2217,29 @@ class Uploader:
 
         # Print OTP/SN info
         self._print_board_info(protocol)
+
+        # External flash (if firmware provides one) is programmed before
+        # internal flash. The bootloader rejects EXTFLASH_* commands on
+        # boards without external flash.
+        if firmware.extflash_image:
+            if not self.config.json_output:
+                print("\nExternal flash:")
+            extflash_progress = UploadProgressBar(
+                noninteractive=self.config.noninteractive,
+                json_output=self.config.json_output,
+            )
+            protocol.erase_extflash(
+                firmware, progress_callback=extflash_progress.update_erase
+            )
+            protocol.program_extflash(
+                firmware, progress_callback=extflash_progress.update_program
+            )
+            protocol.verify_extflash(
+                firmware, progress_callback=extflash_progress.update_verify
+            )
+            extflash_progress.finish()
+            if not self.config.json_output:
+                print("\nInternal flash:")
 
         # Create unified progress bar
         if not self.config.json_output:

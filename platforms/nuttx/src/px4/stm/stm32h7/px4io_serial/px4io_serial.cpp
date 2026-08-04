@@ -124,7 +124,11 @@ ArchPX4IOSerial::~ArchPX4IOSerial()
 
 	/* reset the UART */
 	rCR1 = 0;
+#ifdef PX4IO_SERIAL_SWAPPED
+	rCR2 = USART_CR2_SWAP;
+#else
 	rCR2 = 0;
+#endif
 	rCR3 = 0;
 
 	/* detach our interrupt handler */
@@ -171,7 +175,11 @@ ArchPX4IOSerial::init()
 
 	/* reset & configure the UART */
 	rCR1 = 0;
+#ifdef PX4IO_SERIAL_SWAPPED
+	rCR2 = USART_CR2_SWAP;
+#else
 	rCR2 = 0;
+#endif
 	rCR3 = 0;
 
 	/* clear data that may be in the RDR and clear overrun error: */
