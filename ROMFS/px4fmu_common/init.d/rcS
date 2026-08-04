@@ -317,9 +317,9 @@ else
 	fi
 
 	# Calibration defaults
-	if [ ${PARAM_RESET_DONE} = yes ]
+	if param greater SYS_AUTOCFG_CAL 0
 	then
-		if param greater SYS_AUTOCFG_CAL 0
+		if [ ${PARAM_RESET_DONE} = yes ]
 		then
 			param reset CAL_* SYS_AUTOCFG_CAL
 		fi
