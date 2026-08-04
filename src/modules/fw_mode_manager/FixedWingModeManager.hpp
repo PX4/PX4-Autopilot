@@ -151,6 +151,17 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
+// [m] altitude margin above the parachute release altitude within which the release is allowed
+static constexpr float kParachuteReleaseAltitudeMargin = 5.0f;
+
+// [s] nominal time from the release command until the canopy decelerates the vehicle, used to
+// predict the forward carry of the touchdown point
+static constexpr float kParachuteDeploymentTime = 1.0f;
+
+// [s] conservative time for the canopy to fully open: the release is never triggered below
+// FW_LND_PARA_SINK times this, so that the canopy has room to open before touchdown
+static constexpr float kParachuteCanopyOpenTime = 3.0f;
+
 class FixedWingModeManager final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
@@ -198,6 +209,7 @@ private:
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
@@ -266,6 +278,12 @@ private:
 	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
+
+	// [.] true once this module has commanded the parachute release during a parachute landing
+	bool _parachute_release_commanded{false};
+
+	// [.] true once the vehicle has been inside the parachute release altitude band during the current landing
+	bool _parachute_release_band_entered{false};
 
 	// MANUAL MODES
 
@@ -667,6 +685,13 @@ private:
 	void reset_landing_state();
 
 	/**
+	 * @brief Releases the parachute by triggering flight termination.
+	 *
+	 * @param now Current system time [us]
+	 */
+	void terminateForParachuteLanding(const hrt_abstime &now);
+
+	/**
 	 * @brief Decides which control mode to execute.
 	 *
 	 * May also change the position setpoint type depending on the desired behavior.
@@ -859,6 +884,9 @@ private:
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
+		(ParamBool<px4::params::FW_LND_PARA_EN>) _param_fw_lnd_para_en,
+		(ParamFloat<px4::params::FW_LND_PARA_ALT>) _param_fw_lnd_para_alt,
+		(ParamFloat<px4::params::FW_LND_PARA_SINK>) _param_fw_lnd_para_sink,
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
