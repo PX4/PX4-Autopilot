@@ -28,6 +28,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 | `traffic`         | `off`                   | `off`                   | `off`                                        | `off`                   |
 | `motor`           | `off`                   | `off`                   | `off`                                        | `off`                   |
 | `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
+| `can`             | —                       | —                       | —                                            | `off`                   |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
@@ -42,6 +43,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 - `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
 - `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
 - On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
+- `can off` takes the addressed CAN bus offline entirely, so every node on it stops responding; the instance selects the bus. Only applied on fmu-v6x-class hardware.
 
 :::
 
@@ -91,6 +93,7 @@ where:
     - `traffic`: Traffic avoidance (ADS-B/transponder)
     - `rc_signal`: RC Signal
     - `mavlink_signal`: MAVLink data telemetry connection
+    - `can`: CAN bus. The instance selects the bus. Supported on fmu-v6x-class hardware.
 - _failure_type_:
   - `ok`: Publish as normal (Disable failure injection)
   - `off`: Stop publishing
