@@ -34,8 +34,8 @@
 /**
  * @file FailureInjectionGnss.cpp
  *
- * GNSS Wrong/Garbage failure mutators: the pure cores (apply_gnss_wrong / apply_gnss_garbage)
- * plus the thin param-reading wrappers (gnss_wrong / gnss_garbage). The cores take an explicit
+ * GNSS Drift/Garbage failure mutators: the pure cores (apply_gnss_drift / apply_gnss_garbage)
+ * plus the thin param-reading wrappers (gnss_drift / gnss_garbage). The cores take an explicit
  * profile + now_us so they are deterministic; the wrappers read the SYS_FAIL_GPS_* params.
  * Exercised by FailureInjectionGnssTest, a functional gtest (functional gtests link the
  * parameters lib, so the wrappers resolve).
@@ -54,13 +54,13 @@ namespace failure_injection
 
 namespace
 {
-// Wrong-failure (false position) hardcoded magnitudes.
-constexpr float kWrongDriftRateMs  = 2.0f;   // drift speed for the drift profiles [m/s]
-constexpr float kWrongBearingDeg   = 90.0f;  // drift/jump direction (0=N, 90=E)
-constexpr float kWrongStaticJumpM  = 100.0f; // jump distance for the static profile [m]
+// Drift-failure (false position) hardcoded magnitudes.
+constexpr float kDriftRateMs       = 2.0f;   // drift speed for the drift profiles [m/s]
+constexpr float kDriftBearingDeg   = 90.0f;  // drift/jump direction (0=N, 90=E)
+constexpr float kDriftStaticJumpM  = 100.0f; // jump distance for the static profile [m]
 // Onset ramp for the smooth-drift profile [s]. Chosen so the injected position and velocity
 // offsets both start at zero, giving a C1-continuous handover the EKF adopts instead of gating.
-constexpr float kWrongBlendTau     = 5.0f;
+constexpr float kDriftBlendTau     = 5.0f;
 
 // Garbage-failure constants anchored to real degraded u-blox behaviour seen in flight logs
 // (nominal noise_per_ms ~0 / jamming_indicator ~0; degraded ~110 / ~90).
@@ -104,13 +104,13 @@ void arm_onset(GnssFailureState &state, Mode mode, uint64_t now_us)
 
 } // namespace
 
-void apply_gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, int32_t profile, uint64_t now_us)
+void apply_gnss_drift(sensor_gps_s &gps, GnssFailureState &state, int32_t profile, uint64_t now_us)
 {
-	arm_onset(state, Mode::Wrong, now_us);
+	arm_onset(state, Mode::Drift, now_us);
 
 	const float t = (float)((double)(now_us - state.onset_us) * 1e-6);
-	const float R = kWrongDriftRateMs;
-	const float brg = math::radians(kWrongBearingDeg);
+	const float R = kDriftRateMs;
+	const float brg = math::radians(kDriftBearingDeg);
 	const float cb = cosf(brg);
 	const float sb = sinf(brg);
 
@@ -119,7 +119,7 @@ void apply_gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, int32_t profil
 
 	switch (profile) {
 	case 0: // static jump / teleport
-		offset_m = kWrongStaticJumpM;
+		offset_m = kDriftStaticJumpM;
 		break;
 
 	case 1: // constant drift
@@ -128,8 +128,8 @@ void apply_gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, int32_t profil
 		break;
 
 	case 3: { // altitude drift -- vertical ramp (coherent vel_d); leaves offset_m 0 (no horizontal move)
-			const float e = expf(-t / kWrongBlendTau);
-			const float d = R * (t - kWrongBlendTau * (1.f - e));
+			const float e = expf(-t / kDriftBlendTau);
+			const float d = R * (t - kDriftBlendTau * (1.f - e));
 			gps.altitude_msl_m       -= (double)d; // walk the reported altitude down
 			gps.altitude_ellipsoid_m -= (double)d;
 			gps.vel_d_m_s += R * (1.f - e);        // NED, down positive
@@ -137,9 +137,9 @@ void apply_gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, int32_t profil
 		}
 
 	default: { // 2: smooth drift -- expanding, C1-continuous at onset
-			const float e = expf(-t / kWrongBlendTau);
+			const float e = expf(-t / kDriftBlendTau);
 			vel_m_s = R * (1.f - e);
-			offset_m = R * (t - kWrongBlendTau * (1.f - e));
+			offset_m = R * (t - kDriftBlendTau * (1.f - e));
 			break;
 		}
 	}
@@ -201,11 +201,11 @@ void apply_gnss_garbage(sensor_gps_s &gps, GnssFailureState &state, int32_t mode
 	} else {
 		// Degraded-but-present fix: the quality metrics collapse and fluctuate each cycle, and
 		// the position/velocity jitter within that degraded accuracy. Bounded noise, not a
-		// coherent teleport -- moving the position elsewhere is the Wrong failure.
+		// coherent teleport -- moving the position elsewhere is the Drift failure.
 		gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
 
 		const int32_t sats = kGarbageSatsDegraded + (int32_t)(2.5f * rand_sym(rng)); // ~2..6
-		gps.satellites_used = (uint8_t)math::max(sats, 1);
+		gps.satellites_used = (uint8_t)math::max(sats, static_cast<int32_t>(1));
 
 		gps.s_variance_m_s = kGarbageSacc + 20.f * rand_sym(rng);            // ~80..120
 		gps.eph = kGarbageEphDegraded + 20.f * fabsf(rand_sym(rng));         // ~20..40 m
@@ -231,13 +231,13 @@ void apply_gnss_garbage(sensor_gps_s &gps, GnssFailureState &state, int32_t mode
 	gps.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
 }
 
-void gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, uint64_t now_us)
+void gnss_drift(sensor_gps_s &gps, GnssFailureState &state, uint64_t now_us)
 {
 	// Cache the handle once; param_get leaves the default untouched if the param is missing.
-	static const param_t handle = param_find("SYS_FAIL_GPS_WRG");
+	static const param_t handle = param_find("SYS_FAIL_GPS_DRF");
 	int32_t profile = 2;
 	param_get(handle, &profile);
-	apply_gnss_wrong(gps, state, profile, now_us);
+	apply_gnss_drift(gps, state, profile, now_us);
 }
 
 void gnss_garbage(sensor_gps_s &gps, GnssFailureState &state, uint64_t now_us)
@@ -258,7 +258,7 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &gps
 	}
 
 	switch (m) {
-	case Mode::Wrong:   gnss_wrong(gps, state, now_us); break;
+	case Mode::Drift:   gnss_drift(gps, state, now_us); break;
 
 	case Mode::Garbage: gnss_garbage(gps, state, now_us); break;
 

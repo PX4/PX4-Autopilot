@@ -51,6 +51,7 @@ constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
 constexpr uint8_t STUCK   = failure_injection_s::FAILURE_TYPE_STUCK;
 constexpr uint8_t WRONG   = failure_injection_s::FAILURE_TYPE_WRONG;
 constexpr uint8_t GARBAGE = failure_injection_s::FAILURE_TYPE_GARBAGE;
+constexpr uint8_t DRIFT   = failure_injection_s::FAILURE_TYPE_DRIFT;
 
 } // namespace
 
@@ -59,7 +60,10 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
-	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(GPS, DRIFT));
+	EXPECT_TRUE(FailureTable::isSupported(GPS, GARBAGE));
+	EXPECT_FALSE(FailureTable::isSupported(GPS, WRONG));
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, DRIFT));  // DRIFT is GPS-only today
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG));
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
 	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
@@ -74,6 +78,7 @@ TEST(FailureTable, UnsupportedIsRejectedWithoutChange)
 {
 	FailureTable table;
 	EXPECT_EQ(table.inject(GYRO, WRONG, 0), AckResult::Unsupported);
+	EXPECT_EQ(table.inject(GPS, WRONG, 0), AckResult::Unsupported); // GPS uses DRIFT instead
 	EXPECT_FALSE(table.changed());
 	EXPECT_EQ(table.count(), 0);
 }

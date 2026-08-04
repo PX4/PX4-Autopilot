@@ -40,7 +40,7 @@
  * topic. Each producer caches it in a Config (update() per loop), looks up the
  * Mode for its (unit, instance), and applies it: process<MsgT>() covers the
  * generic Off (suppress) / Stuck (replay last sample) for single-message
- * producers; value-mutating modes (GNSS Wrong/Garbage) are type-specific, below.
+ * producers; value-mutating modes (GNSS Drift/Garbage) are type-specific, below.
  */
 
 #pragma once
@@ -63,6 +63,7 @@ enum class Mode : uint8_t {
 	Slow         = failure_injection_s::FAILURE_TYPE_SLOW,
 	Delayed      = failure_injection_s::FAILURE_TYPE_DELAYED,
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
+	Drift        = failure_injection_s::FAILURE_TYPE_DRIFT,
 };
 
 class Config
@@ -146,8 +147,8 @@ bool process(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &ms
 }
 
 /**
- * GNSS Wrong / Garbage failures that mutate the sensor_gps signal itself. The profile is
- * configurable (SYS_FAIL_GPS_WRG / SYS_FAIL_GPS_GRB);
+ * GNSS Drift / Garbage failures that mutate the sensor_gps signal itself. The profile is
+ * configurable (SYS_FAIL_GPS_DRF / SYS_FAIL_GPS_GRB);
  */
 
 /**
@@ -160,10 +161,10 @@ struct GnssFailureState {
 };
 
 /**
- * Corrupt the message for a Wrong failure: a plausible but false position.
+ * Corrupt the message for a Drift failure: a plausible but false position.
  * @param profile 0 static jump, 1 constant drift, 2 smooth drift, 3 altitude drift
  */
-void apply_gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, int32_t profile, uint64_t now_us);
+void apply_gnss_drift(sensor_gps_s &gps, GnssFailureState &state, int32_t profile, uint64_t now_us);
 
 /**
  * Corrupt the message for a Garbage failure: degraded quality / loss of fix.
@@ -171,15 +172,15 @@ void apply_gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, int32_t profil
  */
 void apply_gnss_garbage(sensor_gps_s &gps, GnssFailureState &state, int32_t mode, uint64_t now_us);
 
-/** Read SYS_FAIL_GPS_WRG / _GRB, then apply the corresponding core. */
-void gnss_wrong(sensor_gps_s &gps, GnssFailureState &state, uint64_t now_us);
+/** Read SYS_FAIL_GPS_DRF / _GRB, then apply the corresponding core. */
+void gnss_drift(sensor_gps_s &gps, GnssFailureState &state, uint64_t now_us);
 void gnss_garbage(sensor_gps_s &gps, GnssFailureState &state, uint64_t now_us);
 
 /** Reset state when the failure clears to Ok. */
 inline void gnss_reset(GnssFailureState &state) { state = GnssFailureState{}; }
 
 /**
- * GNSS producer helper: process() for Off/Stuck, then Wrong/Garbage mutation.
+ * GNSS producer helper: process() for Off/Stuck, then Drift/Garbage mutation.
  * @return false if the message must be suppressed (Off); true otherwise. now_us = hrt_absolute_time().
  */
 bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &gps,

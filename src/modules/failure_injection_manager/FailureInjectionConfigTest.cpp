@@ -74,7 +74,7 @@ constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t OK    = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF   = failure_injection_s::FAILURE_TYPE_OFF;
 constexpr uint8_t STUCK = failure_injection_s::FAILURE_TYPE_STUCK;
-constexpr uint8_t WRONG = failure_injection_s::FAILURE_TYPE_WRONG;
+constexpr uint8_t DRIFT = failure_injection_s::FAILURE_TYPE_DRIFT;
 
 } // namespace
 
@@ -124,7 +124,7 @@ TEST(FailureInjectionConfig, MultipleEntriesResolveIndependently)
 	cfg.failure_type[0] = OFF;
 	cfg.unit[1] = GPS;
 	cfg.instance_mask[1] = 0xFFFF;
-	cfg.failure_type[1] = WRONG;
+	cfg.failure_type[1] = DRIFT;
 
 	Config config;
 	config.set(cfg);
@@ -132,7 +132,7 @@ TEST(FailureInjectionConfig, MultipleEntriesResolveIndependently)
 	EXPECT_EQ(config.mode(MOTOR, 1), Mode::Off);
 	EXPECT_EQ(config.mode(MOTOR, 2), Mode::Ok);
 	EXPECT_EQ(config.mode(MOTOR, 3), Mode::Off);
-	EXPECT_EQ(config.mode(GPS, 1), Mode::Wrong);
+	EXPECT_EQ(config.mode(GPS, 1), Mode::Drift);
 }
 
 TEST(FailureInjectionConfig, CountIsClampedToMax)

@@ -56,13 +56,10 @@ where:
   - `slow`: Publish at a reduced rate
   - `delayed`: Publish valid data with a significant delay
   - `intermittent`: Publish intermittently
+  - `drift`: Publish plausible values that drift away from the true values (GPS only)
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
 - _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted. Example: `-m 0x5` targets instances 1 and 3.
-
-::: info
-The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
-:::
 
 ## RC Switch Trigger
 

@@ -69,6 +69,7 @@ parameters:
           5: Slow
           6: Delayed
           7: Intermittent
+          8: Drift
       SYS_FAIL_RC_INST:
         description:
           short: Instance failed by the RC switch
@@ -80,11 +81,11 @@ parameters:
         max: 16
         default: 1
         reboot_required: true
-      SYS_FAIL_GPS_WRG:
+      SYS_FAIL_GPS_DRF:
         description:
-          short: GPS Wrong-failure profile
+          short: GPS Drift-failure profile
           long: |-
-            Position-corruption profile applied when a GPS 'wrong' failure (FAILURE_TYPE_WRONG)
+            Position-corruption profile applied when a GPS 'drift' failure (FAILURE_TYPE_DRIFT)
             is injected. The reported position is walked away from the truth while the fix keeps
             looking healthy. Smooth drift ramps an expanding offset that starts matched to the
             true position, keeping reported velocity consistent so the EKF adopts it.

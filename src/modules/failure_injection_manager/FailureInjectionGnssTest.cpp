@@ -70,14 +70,14 @@ sensor_gps_s clean_gps()
 
 } // namespace
 
-TEST(FailureInjectionGnss, WrongSmoothDriftZeroAtOnset)
+TEST(FailureInjectionGnss, DriftSmoothProfileZeroAtOnset)
 {
 	sensor_gps_s gps = clean_gps();
 	const sensor_gps_s ref = gps;
 	GnssFailureState st;
 
 	// At onset (now == captured onset), the expanding-drift offset and velocity are 0.
-	apply_gnss_wrong(gps, st, 2, 1000);
+	apply_gnss_drift(gps, st, 2, 1000);
 
 	EXPECT_NEAR(gps.latitude_deg, ref.latitude_deg, 1e-12);
 	EXPECT_NEAR(gps.longitude_deg, ref.longitude_deg, 1e-12);
@@ -89,17 +89,17 @@ TEST(FailureInjectionGnss, WrongSmoothDriftZeroAtOnset)
 	EXPECT_EQ(gps.spoofing_state, sensor_gps_s::SPOOFING_STATE_OK);
 }
 
-TEST(FailureInjectionGnss, WrongConstantDriftEastCoherent)
+TEST(FailureInjectionGnss, DriftConstantProfileEastCoherent)
 {
 	sensor_gps_s gps = clean_gps();
 	const sensor_gps_s ref = gps;
 	GnssFailureState st;
 
-	apply_gnss_wrong(gps, st, 1, 0); // constant drift, onset at t=0
+	apply_gnss_drift(gps, st, 1, 0); // constant drift, onset at t=0
 
 	// The mutator is applied to a fresh truth sample each cycle; offset is absolute from onset.
 	gps = clean_gps();
-	apply_gnss_wrong(gps, st, 1, 10000000); // +10 s
+	apply_gnss_drift(gps, st, 1, 10000000); // +10 s
 
 	// Drift is due east (bearing hardcoded to 90 deg): latitude unchanged, longitude grows.
 	EXPECT_NEAR(gps.latitude_deg, ref.latitude_deg, 1e-9);
@@ -114,13 +114,13 @@ TEST(FailureInjectionGnss, WrongConstantDriftEastCoherent)
 	EXPECT_NEAR(gps.longitude_deg - ref.longitude_deg, expected_dlon, 1e-6);
 }
 
-TEST(FailureInjectionGnss, WrongStaticJumpEast)
+TEST(FailureInjectionGnss, DriftStaticJumpEast)
 {
 	sensor_gps_s gps = clean_gps();
 	const sensor_gps_s ref = gps;
 	GnssFailureState st;
 
-	apply_gnss_wrong(gps, st, 0, 5000); // static jump
+	apply_gnss_drift(gps, st, 0, 5000); // static jump
 
 	// Jump is east and does not move latitude, with no velocity injected (teleport).
 	EXPECT_GT(gps.longitude_deg, ref.longitude_deg);
@@ -129,16 +129,16 @@ TEST(FailureInjectionGnss, WrongStaticJumpEast)
 	EXPECT_NEAR(gps.vel_n_m_s, 0.f, 1e-4f);
 }
 
-TEST(FailureInjectionGnss, WrongAltitudeDrift)
+TEST(FailureInjectionGnss, DriftAltitudeProfile)
 {
 	sensor_gps_s gps = clean_gps();
 	const sensor_gps_s ref = gps;
 	GnssFailureState st;
 
-	apply_gnss_wrong(gps, st, 3, 0); // altitude drift, onset at t=0
+	apply_gnss_drift(gps, st, 3, 0); // altitude drift, onset at t=0
 
 	gps = clean_gps();
-	apply_gnss_wrong(gps, st, 3, 20000000); // +20 s
+	apply_gnss_drift(gps, st, 3, 20000000); // +20 s
 
 	EXPECT_LT(gps.altitude_msl_m, ref.altitude_msl_m); // altitude walked down
 	EXPECT_GT(gps.vel_d_m_s, 0.f);                      // coherent downward rate
@@ -226,7 +226,7 @@ TEST(FailureInjectionGnss, GarbageBlackoutWithinOneToSixSeconds)
 TEST(FailureInjectionGnss, ResetClearsState)
 {
 	GnssFailureState st;
-	st.active = Mode::Wrong;
+	st.active = Mode::Drift;
 	st.onset_us = 12345;
 
 	gnss_reset(st);
