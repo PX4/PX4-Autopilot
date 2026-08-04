@@ -36,6 +36,7 @@ set(SRCS
 	mavlink_log.cpp
 	mavlink_log.h
 	px4_macros.h
+	system_time_source.h
 )
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")

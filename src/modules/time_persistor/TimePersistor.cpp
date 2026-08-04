@@ -142,7 +142,7 @@ int TimePersistor::init()
 
 	time_t t;
 
-	if (read_time(&t) == PX4_OK) {
+	if (read_time(&t) == PX4_OK && (_param_sys_time_src.get() & SYS_TIME_SRC_SOFT_RTC)) {
 		struct timespec ts;
 		ts.tv_sec = t;
 		ts.tv_nsec = 0;

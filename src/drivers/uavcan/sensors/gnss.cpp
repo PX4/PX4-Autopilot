@@ -45,6 +45,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
+#include <systemlib/system_time_source.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <lib/parameters/param.h>
@@ -560,15 +561,20 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	// If we haven't already done so, set the system clock using GPS data
 	if (sensor_gps.time_utc_usec != 0 && (fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
-		timespec ts{};
+		int32_t sys_time_src = 0;
+		param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
 
-		// get the whole microseconds
-		ts.tv_sec = sensor_gps.time_utc_usec / 1000000ULL;
+		if (sys_time_src & SYS_TIME_SRC_GPS) {
+			timespec ts{};
 
-		// get the remainder microseconds and convert to nanoseconds
-		ts.tv_nsec = (sensor_gps.time_utc_usec % 1000000ULL) * 1000;
+			// get the whole microseconds
+			ts.tv_sec = sensor_gps.time_utc_usec / 1000000ULL;
 
-		px4_clock_settime(CLOCK_REALTIME, &ts);
+			// get the remainder microseconds and convert to nanoseconds
+			ts.tv_nsec = (sensor_gps.time_utc_usec % 1000000ULL) * 1000;
+
+			px4_clock_settime(CLOCK_REALTIME, &ts);
+		}
 
 		_system_clock_set = true;
 	}

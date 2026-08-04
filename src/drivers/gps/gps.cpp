@@ -71,6 +71,7 @@
 
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/gnss/correction_framer.h>
+#include <systemlib/system_time_source.h>
 
 #include "devices/src/gps_helper.h"
 
@@ -569,7 +570,10 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 		timespec rtc_gps_time = *(timespec *)data1;
 		int drift_time = abs(static_cast<long>(rtc_system_time.tv_sec - rtc_gps_time.tv_sec));
 
-		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
+		int32_t sys_time_src = 0;
+		param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
+
+		if (drift_time >= SET_CLOCK_DRIFT_TIME_S && (sys_time_src & SYS_TIME_SRC_GPS)) {
 			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
 			// so only set the time if it is very wrong.
 			// TODO: clock slewing of the RTC for small time differences

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,19 @@
  *
  ****************************************************************************/
 
+/**
+ * @file system_time_source.h
+ * Bit values for the SYS_TIME_SRC bitmask parameter.
+ */
+
 #pragma once
 
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform_common/time.h>
-#include <systemlib/system_time_source.h>
+#include <cstdint>
 
-static constexpr const auto TIME_FILE_PATH = PX4_STORAGEDIR "/time_save.bin";
-
-using namespace time_literals;
-
-class TimePersistor : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
-{
-public:
-	TimePersistor();
-	~TimePersistor() override;
-
-	static Descriptor desc;
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::run() */
-	void Run() override;
-
-	void start();
-
-private:
-	int init();
-	int read_time(time_t *time);
-	int write_time(const time_t time);
-
-	FILE *_file = 0;
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_TIME_SRC>) _param_sys_time_src
-	)
+enum SystemTimeSource : int32_t {
+	SYS_TIME_SRC_GPS       = 1 << 0,
+	SYS_TIME_SRC_MAVLINK   = 1 << 1,
+	SYS_TIME_SRC_SOFT_RTC  = 1 << 2,
+	SYS_TIME_SRC_DDS       = 1 << 3,
+	SYS_TIME_SRC_SIMULATOR = 1 << 4,
 };

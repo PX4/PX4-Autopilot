@@ -56,6 +56,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/systemlib/system_time_source.h>
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/sensor_gps.h>
 
@@ -1893,7 +1894,10 @@ bool SeptentrioDriver::clock_needs_update(timespec real_time)
 
 void SeptentrioDriver::set_clock(timespec rtc_gps_time)
 {
-	if (clock_needs_update(rtc_gps_time)) {
+	int32_t sys_time_src = 0;
+	get_parameter("SYS_TIME_SRC", &sys_time_src);
+
+	if (clock_needs_update(rtc_gps_time) && (sys_time_src & SYS_TIME_SRC_GPS)) {
 		px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
 	}
 }
