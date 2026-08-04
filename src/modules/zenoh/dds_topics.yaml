@@ -149,6 +149,9 @@ publications:
   - topic: /fmu/out/navput_fusion_control
     type: px4_msgs::msg::NavputFusionControl
 
+  - topic: /fmu/out/aux_global_position
+    type: px4_msgs::msg::AuxGlobalPosition
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -226,8 +229,8 @@ subscriptions:
   - topic: /fmu/in/actuator_servos
     type: px4_msgs::msg::ActuatorServos
 
-  - topic: /fmu/in/aux_global_position
-    type: px4_msgs::msg::AuxGlobalPosition
+  # - topic: /fmu/in/aux_global_position
+  #   type: px4_msgs::msg::AuxGlobalPosition
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
