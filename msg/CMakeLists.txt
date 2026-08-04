@@ -287,6 +287,8 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 
+	navput/NavputAidSource1d.msg
+	navput/NavputAidSource2d.msg
 	navput/NavputAttitude.msg
 	navput/NavputFusionControl.msg
 	navput/NavputLocalPosition.msg

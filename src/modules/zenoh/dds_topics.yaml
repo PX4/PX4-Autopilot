@@ -152,6 +152,15 @@ publications:
   - topic: /fmu/out/aux_global_position
     type: px4_msgs::msg::AuxGlobalPosition
 
+  - topic: /fmu/out/navput_aid_src_baro_hgt
+    type: px4_msgs::msg::NavputAidSource1d
+
+  - topic: /fmu/out/navput_aid_src_ranging_beacon
+    type: px4_msgs::msg::NavputAidSource1d
+
+  - topic: /fmu/out/navput_aid_src_aux_global_position
+    type: px4_msgs::msg::NavputAidSource2d
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
