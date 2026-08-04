@@ -214,7 +214,7 @@ msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
 {
 	msp_rendor_rssi_t rssi;
 	rssi.screenYPosition = 0x02;
-	rssi.screenXPosition = 0x02;
+	rssi.screenXPosition = 0x05;
 
 	snprintf(&rssi.str[0], sizeof(rssi.str), "%3d", input_rc.link_quality);
 	rssi.str[3] = '%';
@@ -252,7 +252,7 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 	msp_rendor_battery_state_t battery_state = {0};
 
 	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
-	battery_state.screenYPosition = 0x0C;
+	battery_state.screenYPosition = 0x0D;
 	battery_state.screenXPosition = 0x02;
 	battery_state.iconAttrs = 0x00;
 
@@ -598,7 +598,7 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_FULL_VOLTAGE(const battery_s
 	msp_rendor_battery_state_t battery_state = {0};
 
 	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
-	battery_state.screenYPosition = 0x0B; // Position below single cell voltage
+	battery_state.screenYPosition = 0x0E; // Position below single cell voltage
 	battery_state.screenXPosition = 0x02;
 	battery_state.iconAttrs = 0x00;
 	battery_state.iconIndex = 0x91; // Full battery icon (same as single cell full battery)(145 dec)
@@ -614,7 +614,7 @@ msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_ai
 	msp_rendor_distance_sensor_t distance = {0}; // Initialize all fields to zero
 
 	distance.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
-	distance.screenYPosition = 0x0C;
+	distance.screenYPosition = 0x0E;
 	distance.screenXPosition = 0x2F;
 	distance.iconAttrs = 0x00;
 	distance.iconIndex = 0xB1; // Use altitude icon (similar to distance/height measurement)
@@ -709,7 +709,7 @@ msp_rendor_total_arm_time_t construct_rendor_TOTAL_ACTIVATED_TIME(const vehicle_
 	msp_rendor_total_arm_time_t render_total_arm_time = {}; // Initialize all fields to zero
 
 	render_total_arm_time.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
-	render_total_arm_time.screenYPosition = 0x04;
+	render_total_arm_time.screenYPosition = 0x08;
 	render_total_arm_time.screenXPosition = 0x2F;
 	render_total_arm_time.iconAttrs = 0x00;
 	render_total_arm_time.iconIndex = MCP_TIMER_ICON; // Timer/clock icon (common Betaflight timer icon index)
@@ -733,7 +733,7 @@ msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time
 	msp_rendor_total_arm_time_t render_total_arm_time = {}; // Initialize all fields to zero
 
 	render_total_arm_time.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
-	render_total_arm_time.screenYPosition = 0x05;
+	render_total_arm_time.screenYPosition = 0x09;
 	render_total_arm_time.screenXPosition = 0x2F;
 	render_total_arm_time.iconAttrs = 0x00;
 	render_total_arm_time.iconIndex = MCP_TIMER_ICON; // Timer/clock icon (common Betaflight timer icon index)

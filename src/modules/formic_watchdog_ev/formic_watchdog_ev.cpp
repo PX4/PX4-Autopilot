@@ -109,9 +109,9 @@ void FormicWatchdogEv::copy_odometry_msg(vehicle_odometry_s &odometry)
 
 {
 	// RP_misalignment(odometry);
-	if (RP_misalignment(odometry)){
-		_formic_state.error_find = true;
-	}
+	// if (RP_misalignment(odometry)){
+		// _formic_state.error_find = true;
+	// }
 	odometry.reset_counter = _formic_state.reset_counter;
 	_odometry_pub.publish(odometry);
 }
