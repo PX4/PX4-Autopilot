@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_BNO055
+	bool "bno055"
+	default n
+	---help---
+		Enable experimental BNO055 IMU+Compass driver
