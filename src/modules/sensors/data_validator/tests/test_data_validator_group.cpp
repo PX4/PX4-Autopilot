@@ -48,7 +48,7 @@
 
 
 const uint32_t base_timeout_usec = 2000;//from original private value
-const int equal_value_count = 100; //default is private VALUE_EQUAL_COUNT_DEFAULT
+const int equal_value_count = 1000; //default is private VALUE_EQUAL_COUNT_DEFAULT
 const uint64_t base_timestamp = 666;
 const unsigned base_num_siblings = 4;
 
@@ -74,8 +74,7 @@ DataValidatorGroup  *setup_base_group(unsigned *sibling_count)
 
 	//this sets the timeout on all current members of the group, as well as members added later
 	group->set_timeout(base_timeout_usec);
-	//the following sets the threshold on all CURRENT members of the group, but not any added later
-	//TODO This is likely a bug in DataValidatorGroup
+	//this sets the equal value threshold on all current members and members added later
 	group->set_equal_value_threshold(equal_value_count);
 
 	//return values
@@ -154,9 +153,8 @@ DataValidator *add_validator_to_group(DataValidatorGroup *group)
 	DataValidator *validator = group->add_new_validator();
 	//verify the previously set timeout applies to the new group member
 	assert(validator->get_timeout() == base_timeout_usec);
-	//for testing purposes, ensure this newly added member is consistent with the rest of the group
-	//TODO this is likely a bug in DataValidatorGroup
-	validator->set_equal_value_threshold(equal_value_count);
+	//verify the previously set equal value threshold applies to the new group member
+	assert(validator->get_equal_value_threshold() == equal_value_count);
 
 	return validator;
 }

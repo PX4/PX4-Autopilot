@@ -4,7 +4,7 @@
 
 The _Return_ flight mode is used to _fly a vehicle to safety_ on an unobstructed path to a safe destination, where it can land.
 
-Multicopters use a [home/rally point return type](../flight_modes/return.md#home_return) by default.
+Multicopters use a [home/rally point return type](../flight_modes/return.md#rtl_type_0) by default.
 In this return type vehicles ascend to a safe altitude above obstructions if needed, fly to the closest safe landing point (a rally point or the home position) via the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness), descend to the "descent altitude", wait briefly, and then land.
 The return altitude, descent altitude, and landing delay are normally set to conservative "safe" values, but can be changed if needed.
 
@@ -28,7 +28,7 @@ The default type is recommended.
 
 ## Technical Summary
 
-Multicopters use the [home/rally point return type](../flight_modes/return.md#home_return) by default. ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
+Multicopters use the [home/rally point return type](../flight_modes/return.md#rtl_type_0) by default. ([RTL_TYPE=0](../advanced_config/parameter_reference.md#RTL_TYPE)).
 For this return type the copter:
 
 - Ascends to the [minimum return altitude](#minimum-return-altitude) (safely above any expected obstacles).
@@ -53,7 +53,7 @@ The cone affects the minimum return altitude if return mode is triggered within 
 Inside the cone, the vehicle returns at an altitude calculated from the cone geometry, up to `RTL_RETURN_ALT`.
 After reaching the destination, it descends to `RTL_DESCEND_ALT` (if above that altitude) before landing or loitering.
 
-For more information on this return type see [Home/Rally Point Return Type (RTL_TYPE=0)](../flight_modes/return.md#home_return)
+For more information on this return type see [Home/Rally Point Return Type (RTL_TYPE=0)](../flight_modes/return.md#rtl_type_0)
 
 ## Parameters
 

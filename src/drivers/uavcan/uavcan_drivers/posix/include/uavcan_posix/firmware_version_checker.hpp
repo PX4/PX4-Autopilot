@@ -66,6 +66,7 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 
 	BasePathString base_path_;
 	BasePathString alt_base_path_;
+	BasePathString nfs_base_path_;
 
 	static void addSlash(BasePathString &path)
 	{
@@ -148,6 +149,14 @@ protected:
 				snprintf(bin_file_name, sizeof(bin_file_name), "%u.bin", board_id);
 				snprintf(bin_file_path, sizeof(bin_file_path), "%s/%s",
 					 getFirmwareAltBasePath().c_str(), bin_file_name);
+
+				found = getFileInfo(bin_file_path, descriptor) == 0;
+			}
+
+			if (!found && !nfs_base_path_.empty()) {
+				snprintf(bin_file_name, sizeof(bin_file_name), "%u.bin", board_id);
+				snprintf(bin_file_path, sizeof(bin_file_path), "%s/%s",
+					 nfs_base_path_.c_str(), bin_file_name);
 
 				found = getFileInfo(bin_file_path, descriptor) == 0;
 			}
@@ -312,6 +321,11 @@ out_close:
 	bool hasUpdatingNodes() const
 	{
 		return !_updating_nodes.empty();
+	const BasePathString &getFirmwareNfsBasePath() const { return nfs_base_path_; }
+
+	void setFirmwareNfsBasePath(const char *path)
+	{
+		nfs_base_path_ = path;
 	}
 
 	static char getPathSeparator()

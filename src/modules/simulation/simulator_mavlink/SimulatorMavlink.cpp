@@ -169,7 +169,8 @@ void SimulatorMavlink::send_esc_telemetry(mavlink_hil_actuator_controls_t hil_ac
 	esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
 	esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
 
-	_esc_status_pub.publish(esc_status);
+	// _failure_config refreshed in updateFailureConfig(), called each loop before send_controls()
+	_esc_status_pub.publish(failure_injection::process_esc(_failure_config, esc_status));
 }
 
 void SimulatorMavlink::send_controls()

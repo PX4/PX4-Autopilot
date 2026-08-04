@@ -102,6 +102,8 @@ public:
 		mode_util::SetpointType current_setpoint_type{kDefaultSetpointType};
 	};
 
+	Modes();
+
 	void printStatus() const;
 
 	bool valid(uint8_t nav_state) const { return nav_state >= FIRST_EXTERNAL_NAV_STATE && nav_state <= LAST_EXTERNAL_NAV_STATE && _modes[nav_state - FIRST_EXTERNAL_NAV_STATE].valid; }
@@ -114,6 +116,7 @@ public:
 
 private:
 	Mode _modes[MAX_NUM] {};
+	param_t _mode_hash_handles[MAX_NUM];
 };
 
 

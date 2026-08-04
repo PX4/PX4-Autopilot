@@ -21247,7 +21247,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21285,7 +21285,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21323,7 +21323,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21361,7 +21361,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21399,7 +21399,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21437,7 +21437,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21474,7 +21474,7 @@ mode command is received.
 
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `6`: Position Slow
@@ -33934,6 +33934,35 @@ Can be set to increase the amount of integrator available to counteract disturba
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      |          | 0.01      | 0.3     |      | &nbsp;    |
 
+## NFS
+
+### NFS_EN (`INT32`) {#NFS_EN}
+
+Enable NFS mount.
+
+When enabled, mounts the NFS export at the configured mount point.
+Retries every 2 s until the server is reachable or the system is armed.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### NFS_IP (`INT32`) {#NFS_IP}
+
+NFS server IP address.
+
+IP address of the NFS server in int32 format.
+Same encoding as UXRCE_DDS_AG_IP: 10.41.10.1 maps to 170461697.
+
+| Reboot  | minValue | maxValue | increment | default   | unit | Read-Only |
+| ------- | -------- | -------- | --------- | --------- | ---- | --------- |
+| &check; |          |          |           | 170461697 |      | &nbsp;    |
+
 ## Neural Control
 
 ### MC_NN_EN (`INT32`) {#MC_NN_EN}
@@ -34178,12 +34207,14 @@ this time before considering gripper actuation successful and publish a
 
 ### PD_GRIPPER_TYPE (`INT32`) {#PD_GRIPPER_TYPE}
 
-Type of Gripper (Servo, etc.).
+Gripper control type.
+
+Selects the types of control actions the gripper accepts.
 
 **Values:**
 
 - `-1`: Undefined
-- `0`: Servo
+- `0`: Binary Grab/Release
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -48667,6 +48698,8 @@ Time in seconds used for a transition
 ### VT_F_TRANS_THR (`FLOAT`) {#VT_F_TRANS_THR}
 
 Target throttle value for the transition to fixed-wing flight.
+
+Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |

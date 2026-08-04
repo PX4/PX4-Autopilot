@@ -45,7 +45,7 @@ using namespace time_literals;
 typedef struct GripperConfig {
 	enum class GripperType {
 		UNDEFINED = -1,
-		SERVO = 0,
+		GRAB_RELEASE = 0,
 	};
 
 	GripperType type{GripperType::UNDEFINED};
