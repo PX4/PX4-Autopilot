@@ -99,6 +99,63 @@ float VehicleAirData::AirTemperatureUpdate(const float temperature_baro, Tempera
 	return math::constrain(temperature, TEMPERATURE_MIN_CELSIUS, TEMPERATURE_MAX_CELSIUS);
 }
 
+void VehicleAirData::updateThrustBuffer()
+{
+	vehicle_thrust_setpoint_s thrust_sp;
+
+	while (_vehicle_thrust_setpoint_sub.update(&thrust_sp)) {
+		ThrustSample &sample = _thrust_buffer[_thrust_buffer_head];
+		sample.timestamp = thrust_sp.timestamp;
+		sample.thrust_z = PX4_ISFINITE(thrust_sp.xyz[2]) ? fabsf(thrust_sp.xyz[2]) : 0.f;
+
+		_thrust_buffer_head = (_thrust_buffer_head + 1) % THRUST_BUFFER_SIZE;
+
+		if (_thrust_buffer_count < THRUST_BUFFER_SIZE) {
+			_thrust_buffer_count++;
+		}
+	}
+}
+
+float VehicleAirData::thrustCompensation(hrt_abstime timestamp_sample)
+{
+	const float k_t = _param_sens_baro_k_t.get();
+
+	if (fabsf(k_t) < FLT_EPSILON || _thrust_buffer_count == 0) {
+		return 0.f;
+	}
+
+	// Find the thrust sample closest to the baro measurement time.
+	// Buffer is chronologically ordered (newest at head-1), so once
+	// the time delta starts increasing we've passed the closest match.
+	int best_idx = -1;
+	hrt_abstime best_dt = UINT64_MAX;
+
+	for (int i = 0; i < _thrust_buffer_count; i++) {
+		int idx = (_thrust_buffer_head - 1 - i + THRUST_BUFFER_SIZE) % THRUST_BUFFER_SIZE;
+		const hrt_abstime ts = _thrust_buffer[idx].timestamp;
+
+		if (ts == 0) {
+			continue;
+		}
+
+		const hrt_abstime dt = (ts >= timestamp_sample) ? (ts - timestamp_sample) : (timestamp_sample - ts);
+
+		if (dt < best_dt) {
+			best_dt = dt;
+			best_idx = idx;
+
+		} else {
+			break;
+		}
+	}
+
+	if (best_idx < 0 || best_dt > 500_ms) {
+		return 0.f;
+	}
+
+	return k_t * _thrust_buffer[best_idx].thrust_z;
+}
+
 bool VehicleAirData::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
@@ -143,6 +200,8 @@ void VehicleAirData::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	const bool parameter_update = ParametersUpdate();
+
+	updateThrustBuffer();
 
 	estimator_status_flags_s estimator_status_flags;
 	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
@@ -292,10 +351,14 @@ void VehicleAirData::Run()
 						const float ambient_temperature = AirTemperatureUpdate(temperature_baro, temperature_source, time_now_us);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
-						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
+						float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
+
+						// apply compensations
+						altitude += dynamicPressureCompensation(air_density);
+						altitude += thrustCompensation(timestamp_sample);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
@@ -479,6 +542,64 @@ void VehicleAirData::PrintStatus()
 			_calibration[i].PrintStatus();
 		}
 	}
+}
+
+float VehicleAirData::dynamicPressureCompensation(const float air_density)
+{
+	// Early return if all coefficients are zero (the default)
+	if (fabsf(_param_sens_baro_k_xp.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_xn.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_yp.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_yn.get()) < FLT_EPSILON
+	    && fabsf(_param_sens_baro_k_z.get()) < FLT_EPSILON) {
+		return 0.f;
+	}
+
+	wind_s wind;
+	vehicle_local_position_s local_pos;
+
+	if (!_wind_sub.copy(&wind) || !_vehicle_local_position_sub.copy(&local_pos)) {
+		return 0.f;
+	}
+
+	// Only compensate when wind estimate and horizontal position are valid
+	if ((hrt_elapsed_time(&wind.timestamp) > 1_s) || !local_pos.v_xy_valid || !local_pos.xy_valid) {
+		return 0.f;
+	}
+
+	// vehicle_local_position velocity is already corrected for IMU lever arm
+	// by the EKF2 OutputPredictor, so no additional correction is needed.
+	const Vector3f velocity_earth(local_pos.vx, local_pos.vy, local_pos.vz);
+
+	// Subtract wind to get airspeed in earth frame
+	const Vector3f wind_velocity_earth(wind.windspeed_north, wind.windspeed_east, 0.f);
+	const Vector3f airspeed_earth = velocity_earth - wind_velocity_earth;
+
+	// Rotate airspeed to body frame
+	vehicle_attitude_s attitude;
+
+	if (!_vehicle_attitude_sub.copy(&attitude)) {
+		return 0.f;
+	}
+
+	const Quatf q(attitude.q);
+	const Vector3f airspeed_body = q.rotateVectorInverse(airspeed_earth);
+
+	// Select direction-dependent coefficients
+	const Vector3f K_pstatic_coef(
+		airspeed_body(0) >= 0.f ? _param_sens_baro_k_xp.get() : _param_sens_baro_k_xn.get(),
+		airspeed_body(1) >= 0.f ? _param_sens_baro_k_yp.get() : _param_sens_baro_k_yn.get(),
+		_param_sens_baro_k_z.get());
+
+	// Clamp airspeed components to max
+	const float aspd_max_sq = _param_sens_baro_vmax.get() * _param_sens_baro_vmax.get();
+	const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), aspd_max_sq);
+
+	// Static pressure error: Ps_error = 0.5 * rho * V^2 * K
+	const float pstatic_err = 0.5f * air_density * (airspeed_squared.dot(K_pstatic_coef));
+
+	// Convert pressure error to altitude correction: delta_alt = Ps_error / (rho * g)
+	return pstatic_err / (air_density * CONSTANTS_ONE_G);
 }
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
