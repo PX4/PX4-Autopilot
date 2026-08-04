@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# bmi088
+bmi088 -A -R 10 -s start
+bmi088 -G -R 10 -s start
+
+# icm45686
+icm45686 -s -R 12 start
+
+# baro
+spa06 -I start -a 118
+
+# internal mag
+qmc5883p -I -R 10 start
+
+#osd
+atxxxx -s start
