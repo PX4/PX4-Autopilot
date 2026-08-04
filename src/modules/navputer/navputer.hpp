@@ -95,6 +95,8 @@
 #include <uORB/topics/navput_status_flags.h>
 #include <uORB/topics/navput_fusion_control.h>
 
+#include "mlat_aux.hpp"
+
 using namespace time_literals;
 
 extern pthread_mutex_t navputer_module_mutex;
@@ -199,6 +201,7 @@ private:
 
 	bool _callback_registered{false};
 
+	MlatAux _mlat_aux;
 
 	Ekf _ekf;
 

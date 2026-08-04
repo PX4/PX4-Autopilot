@@ -55,11 +55,10 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 	AdvertiseTopics();
 
 	// TODO: hardcoding required params for now
-	auto* fc = _ekf.getFusionControlHandle();
-	fc->baro.enabled = true;
-	fc->mag.enabled = true;
-	fc->rngbcn.enabled = true;
-	fc->agp[0].enabled = true;
+	_fc.baro.enabled = true;
+	_fc.mag.enabled = true;
+	_fc.rngbcn.enabled = false;
+	_fc.agp[0].enabled = true;
 
 	// TODO: temp solution, should be provided externally or from Aux aid src
 	_ekf.resetGlobalPositionTo(49.796766, 24.347826, 270);
@@ -180,6 +179,8 @@ void Navputer::Run()
 			_gyro_cal = {};
 		}
 	}
+
+	_mlat_aux.update();
 
 	if (imu_updated) {
 		const hrt_abstime now = imu_sample_new.time_us;

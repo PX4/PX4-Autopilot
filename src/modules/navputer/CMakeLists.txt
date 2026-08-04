@@ -43,6 +43,8 @@ set(NAVPUTER_LIBS)
 set(NAVPUTER_SRCS
 	navputer.cpp
 	navputer.hpp
+	mlat_aux.cpp
+	mlat_aux.hpp
 )
 
 px4_add_module(
