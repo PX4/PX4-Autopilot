@@ -46,6 +46,7 @@ constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
+constexpr uint8_t BUS   = failure_injection_s::FAILURE_UNIT_SYSTEM_BUS;
 
 constexpr uint8_t OK      = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
@@ -72,6 +73,11 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// Communication bus (e.g. CAN): blackout on/off only.
+	EXPECT_TRUE(FailureTable::isSupported(BUS, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(BUS, OK));
+	EXPECT_FALSE(FailureTable::isSupported(BUS, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(BUS, WRONG));
 	// Unimplemented units.
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL, OFF));
 }
