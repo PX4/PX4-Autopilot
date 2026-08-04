@@ -391,23 +391,18 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
-Motor failures are non-latching: if the failure condition clears, the failure is cleared.
+The failure detector can be configured to detect a motor that has stopped producing the thrust it was commanded, by comparing the current each ESC reports against the current expected for that motor's command.
+A motor whose current stays too far below or above that expectation for long enough is flagged as failed, and stays flagged until the vehicle disarms.
 
-The undercurrent and overcurrent conditions are defined by:
+The trigger needs ESC that report per-motor current, and thresholds calibrated for the specific airframe.
+For how the check works, and how to set the `MOTFAIL_*` thresholds, see [Motor Failure Detection](../config/motor_failure_detection.md).
 
-```text
-undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_OFF}
-overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
-```
+The action on motor failure is set with [COM_ACT_FAIL_ACT](../advanced_config/parameter_reference.md#COM_ACT_FAIL_ACT) and [CA_FAILURE_MODE](#CA_FAILURE_MODE).
+Actions depend on the vehicle type, and might include warning the user, running a failsafe, or removing the failed motor from control allocation.
 
 | Parameter                                                                                                | Description                                                                                                                                                                                                                               |
 | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)             | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%).                                                                                                                            |
-| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)             | Under/over-current detection threshold offset (A). Added to the expected current to form the upper bound. Subtracted from the expected current to form the lower bound.                                                                   |
-|                                                                                                          |
-| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)          | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                             |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
 
 ### External Automatic Trigger System (ATS)
