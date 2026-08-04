@@ -241,3 +241,18 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
+    SYS_TIME_SRC:
+      description:
+        short: Select the source of the system time.
+        long: |-
+          This parameter selects the source allowed to set the system time.
+          The default value enables all sources.
+      type: bitmask
+      bit:
+        0: GPS time
+        1: MAVLink time
+        2: Software RTC time
+        3: DDS time
+        4: Input simulation time
+      default: 31
+      reboot_required: true
