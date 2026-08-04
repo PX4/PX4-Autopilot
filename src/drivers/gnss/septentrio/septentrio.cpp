@@ -328,7 +328,10 @@ void SeptentrioDriver::run()
 				receive_result = receive(k_timeout_5hz);
 
 				if (receive_result == -1 || receiver_configuration_healthy() == false) {
-					SEP_WARN("Receiver unhealthy, reconfiguring the receiver.");
+					if (first_gps_uorb_message_created()) {
+						SEP_WARN("Receiver unhealthy, reconfiguring the receiver.");
+					}
+
 					_state = State::DetectingBaudRate;
 				}
 
@@ -1494,7 +1497,6 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 		}
 	} while (timeout_time > hrt_absolute_time());
 
-	SEP_WARN("Response: timeout");
 	return false;
 }
 
