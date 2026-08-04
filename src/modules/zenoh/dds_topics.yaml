@@ -109,10 +109,10 @@ publications:
 
   - topic: /fmu/out/vehicle_local_position
     type: px4_msgs::msg::VehicleLocalPosition
-    options:
-      cc: drop
-      rel: best_effort
-      express: true
+    # options:
+    #   cc: drop
+    #   rel: best_effort
+    #   express: true
 
   - topic: /fmu/out/vehicle_odometry
     type: px4_msgs::msg::VehicleOdometry
