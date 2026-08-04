@@ -50,6 +50,26 @@
 
 #include <mathlib/mathlib.h>
 
+// The magnetometer observation Jacobian H is structurally sparse: only ~7 of the State::size error
+// states are ever nonzero for a mag observation (quaternion, mag_I, one mag_B component). PH = P*H
+// therefore only needs the nonzero-H columns. Summing the nonzero columns in increasing index order
+// gives a result bit-identical to the dense P*H (the skipped entries are exactly 0.f, contributing
+// exactly +0 either way).
+static inline void sparseMatVec(const Ekf::SquareMatrixState &P, const Ekf::VectorState &H,
+				 const uint8_t *nz, const uint8_t nnz, Ekf::VectorState &PH)
+{
+	for (unsigned j = 0; j < State::size; j++) {
+		float s = 0.f;
+
+		for (uint8_t m = 0; m < nnz; m++) {
+			const uint8_t k = nz[m];
+			s += P(j, k) * H(k);
+		}
+
+		PH(j) = s;
+	}
+}
+
 bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
 		  bool update_all_states, bool update_tilt)
 {
@@ -107,7 +127,19 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			return false;
 		}
 
-		VectorState Kfusion = P * H / aid_src.innovation_variance[index];
+		// H (the mag observation Jacobian) is sparse: build its nonzero-index list once and reuse it
+		// for every P*H below. The scan is O(State::size) and negligible next to the MACs it saves.
+		uint8_t nz[State::size];
+		uint8_t nnz = 0;
+
+		for (uint8_t k = 0; k < State::size; k++) {
+			if (H(k) != 0.f) { nz[nnz++] = k; }
+		}
+
+		// PH == P * H (bit-identical to the dense product; the skipped columns are exactly 0)
+		VectorState PH;
+		sparseMatVec(P, H, nz, nnz, PH);
+		VectorState Kfusion = PH / aid_src.innovation_variance[index];
 
 		if (update_all_states) {
 			if (!update_tilt) {
@@ -144,7 +176,40 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			delta_heading_max -= delta_heading_abs;
 		}
 
-		measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index]);
+		// Inline the Joseph-stabilized covariance update (equivalent to measurementUpdate()) so we can
+		// (a) reuse the P*H already computed above for Kfusion as the conventional-update PH -- P is
+		// unchanged in between, measurementUpdate() would recompute it -- and (b) exploit H's sparsity
+		// in both P*H evaluations, skipping zero-K rows in the conventional-update step. The shared
+		// measurementUpdate() is left untouched; every other fusion type keeps using it unmodified.
+		clearInhibitedStateKalmanGains(Kfusion);
+		{
+			const VectorState &K = Kfusion;
+			const float R = aid_src.observation_variance[index];
+
+			// Step 1: conventional update  P -= K * PH^T  (PH reused from above; skip zero-K rows)
+			for (unsigned i = 0; i < State::size; i++) {
+				const float Ki = K(i);
+
+				if (Ki == 0.f) { continue; }
+
+				for (unsigned j = 0; j < State::size; j++) {
+					P(i, j) -= Ki * PH(j);
+				}
+			}
+
+			// Step 2: stabilized update, recompute PH = P*H on the updated (still sparse-H) P
+			sparseMatVec(P, H, nz, nnz, PH);
+
+			for (unsigned i = 0; i < State::size; i++) {
+				for (unsigned j = 0; j <= i; j++) {
+					P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+					P(j, i) = P(i, j);
+				}
+			}
+
+			constrainStateVariances();
+			fuse(K, aid_src.innovation[index]);
+		}
 	}
 
 	_fault_status.flags.bad_mag_x = false;
