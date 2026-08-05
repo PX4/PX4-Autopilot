@@ -60,7 +60,7 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0xE9;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 132.48f; // LSB/C
+static constexpr float TEMPERATURE_SENSITIVITY = 128.f; // LSB/C (16 bit FIFO temperature)
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
 
 namespace Register
@@ -132,6 +132,25 @@ enum INT1_STATUS0 : uint8_t {
 	INT1_STATUS_FIFO_FULL = Bit0,
 };
 
+// INT1_CONFIG0: routes the corresponding status (same bit positions as INT1_STATUS0) to INT1
+enum INT1_CONFIG0_BIT : uint8_t {
+	INT1_STATUS_EN_RESET_DONE = Bit7,
+	INT1_STATUS_EN_AUX1_AGC = Bit6,
+	INT1_STATUS_EN_AP_AGC_RDY = Bit5,
+	INT1_STATUS_EN_AP_FSYNC = Bit4,
+	INT1_STATUS_EN_AP_AUX1_DRDY = Bit3,
+	INT1_STATUS_EN_AP_DRDY = Bit2,
+	INT1_STATUS_EN_FIFO_THS = Bit1,
+	INT1_STATUS_EN_FIFO_FULL = Bit0,
+};
+
+// INT1_CONFIG2
+enum INT1_CONFIG2_BIT : uint8_t {
+	INT1_DRIVE    = Bit2, // 0: push-pull, 1: open drain
+	INT1_MODE     = Bit1, // 0: pulsed, 1: latched
+	INT1_POLARITY = Bit0, // 0: active low, 1: active high
+};
+
 enum ACCEL_CONFIG0_BIT : uint8_t {
 	ACCEL_UI_FS_SEL_32_G_SET = 0,
 	ACCEL_UI_FS_SEL_32_G_CLEAR = Bit6 | Bit5 | Bit4,
@@ -181,8 +200,8 @@ enum FIFO_CONFIG0_BIT : uint8_t {
 
 enum FIFO_CONFIG2_BIT : uint8_t {
 	FIFO_FLUSH = Bit7,
-	FIFO_WR_WM_GT_TH_EQUAL = 0,
-	FIFO_WR_WM_GT_TH_GREATER_THAN = Bit3,
+	FIFO_WR_WM_EQ_TH = 0,        // watermark reached only when count == threshold
+	FIFO_WR_WM_EQ_OR_GT_TH = Bit3, // watermark reached when count >= threshold
 };
 
 enum FIFO_CONFIG3_BIT : uint8_t {
