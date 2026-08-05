@@ -161,6 +161,9 @@ publications:
   - topic: /fmu/out/navput_aid_src_aux_global_position
     type: px4_msgs::msg::NavputAidSource2d
 
+  - topic: /fmu/out/estimator_aid_src_aux_global_position
+    type: px4_msgs::msg::EstimatorAidSource2d
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
