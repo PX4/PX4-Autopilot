@@ -176,9 +176,8 @@ private:
 	// 320 -> LSM6DSV320X, anything else (incl. 80 / unset) -> LSM6DSV80X.
 	const int _highg_variant_arg;
 
-	// High-g accelerometer fallback (LSM6DSV80X / LSM6DSV320X): published in place of the low-g
-	// channel whenever the low-g channel clips, pinned at the variant's top full-scale (see
-	// HIGH_G_FS_DSV80X / HIGH_G_FS_DSV320X).
+	// High-g accelerometer (LSM6DSV80X / LSM6DSV320X): the published accelerometer on those parts,
+	// pinned at the variant's top full-scale (see HIGH_G_FS_DSV80X / HIGH_G_FS_DSV320X).
 	bool _high_g_enabled{false};
 	const HighGFullScale *_hg_fs{nullptr};
 
