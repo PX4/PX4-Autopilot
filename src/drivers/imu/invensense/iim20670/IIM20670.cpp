@@ -213,6 +213,10 @@ void IIM20670::RunImpl()
 					_px4_accel.set_temperature(temperature);
 					_px4_gyro.set_temperature(temperature);
 
+					const uint32_t error_count = perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_crc_perf);
+					_px4_accel.set_error_count(error_count);
+					_px4_gyro.set_error_count(error_count);
+
 					// sensor's frame is +x forward, +y left, +z up
 					//  flip y & z to publish right handed with z down (x forward, y right, z down)
 					const int16_t accel_y = (data.accel_y == INT16_MIN) ? INT16_MAX : -data.accel_y;
