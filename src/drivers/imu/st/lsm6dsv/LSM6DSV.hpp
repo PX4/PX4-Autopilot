@@ -71,6 +71,10 @@ private:
 
 	// Sensor Configuration
 	static constexpr int32_t FIFO_MAX_SAMPLES{static_cast<int32_t>(FIFO::MAX_DRAIN_SAMPLES)};
+	static_assert(FIFO_MAX_SAMPLES <= (int32_t)(sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])),
+		      "FIFO drain exceeds sensor_gyro_fifo capacity");
+	static_assert(FIFO_MAX_SAMPLES <= (int32_t)(sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0])),
+		      "FIFO drain exceeds sensor_accel_fifo capacity");
 
 	// A FIFO word is a tag byte plus 6 data bytes. With IF_INC set the address rounds from
 	// FIFO_DATA_OUT_Z_H back to FIFO_DATA_OUT_TAG at every word boundary, so the whole FIFO drains
@@ -86,10 +90,8 @@ private:
 	};
 	static_assert(sizeof(FIFOWord) == FIFO::WORD_SIZE, "FIFO word must be 7 bytes");
 
-	// RunImpl() bounds a drain to FIFO_MAX_SAMPLES whole sample periods; a period only partially
-	// batched when the status was read adds up to one word short of a further period on top.
-	static constexpr uint16_t FIFO_MAX_WORDS{
-		static_cast<uint16_t>(FIFO_MAX_SAMPLES * FIFO::MAX_WORDS_PER_PERIOD + FIFO::MAX_WORDS_PER_PERIOD - 1)};
+	// RunImpl() drains whole sample periods only, at most FIFO_MAX_SAMPLES of them
+	static constexpr uint16_t FIFO_MAX_WORDS{static_cast<uint16_t>(FIFO_MAX_SAMPLES * FIFO::MAX_WORDS_PER_PERIOD)};
 
 	struct FIFOTransferBuffer {
 		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA_OUT_TAG) | DIR_READ};

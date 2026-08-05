@@ -347,8 +347,10 @@ void LSM6DSV::RunImpl()
 					fifo_words |= (1u << 8);
 				}
 
-				// Convert word count to sample periods for comparisons against _fifo_gyro_samples / FIFO_MAX_SAMPLES
-				const uint16_t sample_periods = fifo_words / _fifo_words_per_period;
+				// Drain whole sample periods only. A period that was still being batched when the
+				// status was read stays in the FIFO for the next cycle, so a batch never carries a
+				// partial period and the per-channel sample counts always agree.
+				uint16_t sample_periods = fifo_words / _fifo_words_per_period;
 
 				if (sample_periods == 0) {
 					perf_count(_fifo_empty_perf);
@@ -363,10 +365,10 @@ void LSM6DSV::RunImpl()
 					// tolerate minor jitter, leave sample to next iteration if behind by only 1
 					if (sample_periods == static_cast<uint16_t>(_fifo_gyro_samples) + 1) {
 						timestamp_sample -= static_cast<int>(_fifo_sample_dt);
-						fifo_words -= _fifo_words_per_period;
+						sample_periods--;
 					}
 
-					if (FIFORead(timestamp_sample, fifo_words)) {
+					if (FIFORead(timestamp_sample, sample_periods * _fifo_words_per_period)) {
 						success = true;
 
 						if (_failure_count > 0) {
@@ -620,9 +622,9 @@ void LSM6DSV::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 
 bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 {
-	// Drain the whole FIFO in one burst. RunImpl() already bounds the word count; clamp defensively
-	// so transfer_size can never run past the buffer.
-	const uint16_t words_to_read = math::min(words, FIFO_MAX_WORDS);
+	// Drain the requested words in one burst. RunImpl() hands over whole sample periods, at most
+	// FIFO_MAX_SAMPLES of them; clamp defensively so transfer_size can never run past the buffer.
+	const uint16_t words_to_read = math::min<uint16_t>(words, FIFO_MAX_SAMPLES * _fifo_words_per_period);
 	const size_t transfer_size = words_to_read * FIFO::WORD_SIZE + 1;
 
 	FIFOTransferBuffer buffer{};
@@ -646,6 +648,9 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	// by the FIFO (the high-g channel is enabled alongside it) but nothing consumes them.
 	const uint8_t accel_tag = static_cast<uint8_t>(_high_g_enabled ? FifoTag::ACCEL_HG : FifoTag::ACCEL_NC);
 
+	// set if the tag stream carries more samples of a channel than the drain should have produced
+	bool tag_mismatch = false;
+
 	for (uint16_t i = 0; i < words_to_read; i++) {
 		const FIFOWord &word = buffer.words[i];
 
@@ -661,20 +666,26 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 		const int16_t data_z = (z == INT16_MIN) ? INT16_MAX : -z;
 
 		if (tag_id == static_cast<uint8_t>(FifoTag::GYRO_NC)) {
-			if (gyro.samples < (sizeof(gyro.x) / sizeof(gyro.x[0]))) {
-				gyro.x[gyro.samples] = data_x;
-				gyro.y[gyro.samples] = data_y;
-				gyro.z[gyro.samples] = data_z;
-				gyro.samples++;
+			if (gyro.samples >= FIFO_MAX_SAMPLES) {
+				tag_mismatch = true;
+				break;
 			}
 
+			gyro.x[gyro.samples] = data_x;
+			gyro.y[gyro.samples] = data_y;
+			gyro.z[gyro.samples] = data_z;
+			gyro.samples++;
+
 		} else if (tag_id == accel_tag) {
-			if (accel.samples < (sizeof(accel.x) / sizeof(accel.x[0]))) {
-				accel.x[accel.samples] = data_x;
-				accel.y[accel.samples] = data_y;
-				accel.z[accel.samples] = data_z;
-				accel.samples++;
+			if (accel.samples >= FIFO_MAX_SAMPLES) {
+				tag_mismatch = true;
+				break;
 			}
+
+			accel.x[accel.samples] = data_x;
+			accel.y[accel.samples] = data_y;
+			accel.z[accel.samples] = data_z;
+			accel.samples++;
 
 		} else if (tag_id == static_cast<uint8_t>(FifoTag::TEMPERATURE)) {
 			const int16_t temp_raw = combine(word.DATA_X_H, word.DATA_X_L);
@@ -687,6 +698,14 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 		}
 
 		// Other tags (TIMESTAMP, etc.) are silently ignored
+	}
+
+	if (tag_mismatch) {
+		// the drain is bounded to whole sample periods, so a channel overrunning its share means
+		// the tag stream no longer matches the configured batching - resync rather than publish it
+		perf_count(_bad_transfer_perf);
+		FIFOReset();
+		return false;
 	}
 
 	const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
