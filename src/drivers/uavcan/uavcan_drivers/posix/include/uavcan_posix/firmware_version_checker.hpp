@@ -117,6 +117,13 @@ protected:
 			return false;
 		}
 
+		// per spec: all-zeros unique_id is undefined; node cannot be reliably identified
+		const uint8_t zero_uid[16] {};
+
+		if (memcmp(node_info.hardware_version.unique_id.begin(), zero_uid, 16) == 0) {
+			return false;
+		}
+
 		/* This is a work  around for two issues.
 		 *  1) FirmwareFilePath is 40
 		 *  2) OK using is using 32 for max file names.
@@ -169,38 +176,21 @@ protected:
 			}
 		}
 
+		const auto *uid = node_info.hardware_version.unique_id.begin();
+		UpdatingNode *existing = _updating_nodes.find([uid](UpdatingNode *node) {
+			return memcmp(node->unique_id, uid, 16) == 0;
+		});
+
 		if (rv) {
-			UpdatingNode *curr_node = _updating_nodes.getHead();
-
-			if (curr_node == nullptr) {
+			if (!existing) {
 				UpdatingNode *new_node = new UpdatingNode();
-				memcpy(new_node->unique_id, node_info.hardware_version.unique_id.begin(), 16);
+				memcpy(new_node->unique_id, uid, 16);
 				_updating_nodes.add(new_node);
-
-			} else {
-				while (curr_node != nullptr) {
-					UpdatingNode *sibling = curr_node->getSibling();
-
-					if (memcmp(curr_node->unique_id, node_info.hardware_version.unique_id.begin(), 16) == 0) {
-						break;
-
-					} else if (sibling == nullptr) {
-						UpdatingNode *new_node = new UpdatingNode();
-						memcpy(new_node->unique_id, node_info.hardware_version.unique_id.begin(), 16);
-						_updating_nodes.add(new_node);
-						break;
-					}
-
-					curr_node = sibling;
-				}
 			}
 
 		} else {
-			for (auto *curr_node = _updating_nodes.getHead(); curr_node != nullptr; curr_node = curr_node->getSibling()) {
-				if (memcmp(curr_node->unique_id, node_info.hardware_version.unique_id.begin(), 16) == 0) {
-					_updating_nodes.deleteNode(curr_node);
-					break;
-				}
+			if (existing) {
+				_updating_nodes.deleteNode(existing);
 			}
 		}
 
