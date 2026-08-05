@@ -1773,24 +1773,19 @@ class Uploader:
                 print(f"Flash: {kwargs['flash_size']} bytes")
                 print(f"Windowed mode: {'yes' if kwargs.get('windowed') else 'no'}")
 
-    def upload(self, firmware_paths: list[str]) -> bool:
-        """Upload firmware to connected board.
+    def load_firmwares(self, firmware_paths: list[str]) -> list[Firmware]:
+        """Load and validate firmware files once, up front.
 
-        Args:
-            firmware_paths: List of firmware file paths to try
-
-        Returns:
-            True if upload successful
+        Loading decompresses the whole image, so it must not happen inside the
+        wait-for-bootloader retry loop.
 
         Raises:
-            UploadError: If upload fails
+            FirmwareError: If no firmware file could be loaded
         """
-        # Load all firmware files
         firmwares = []
         for path in firmware_paths:
             try:
-                fw = Firmware(path)
-                firmwares.append(fw)
+                firmwares.append(Firmware(path))
             except FirmwareError as e:
                 logger.error(f"Failed to load {path}: {e}")
                 if len(firmware_paths) == 1:
@@ -1798,7 +1793,20 @@ class Uploader:
 
         if not firmwares:
             raise FirmwareError("No valid firmware files")
+        return firmwares
 
+    def upload(self, firmwares: list[Firmware]) -> bool:
+        """Upload firmware to connected board.
+
+        Args:
+            firmwares: Loaded firmware images (see load_firmwares)
+
+        Returns:
+            True if upload successful
+
+        Raises:
+            UploadError: If upload fails
+        """
         # Determine ports to try
         if self.config.port:
             patterns = self.config.port.split(",")
@@ -2349,10 +2357,19 @@ Examples:
     uploader = Uploader(config)
 
     try:
+        firmwares = uploader.load_firmwares(args.firmware)
+    except UploadError as e:
+        if args.noninteractive_json:
+            print(json.dumps({"type": "error", "message": str(e)}))
+        else:
+            print(f"\nError: {e}", file=sys.stderr)
+        return 1
+
+    try:
         # Keep trying until we find a board or user interrupts
         while True:
             try:
-                if uploader.upload(args.firmware):
+                if uploader.upload(firmwares):
                     return 0
             except BoardMismatchError:
                 # No suitable firmware for this board
