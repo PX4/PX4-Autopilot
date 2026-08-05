@@ -168,14 +168,12 @@ private:
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _bad_crc_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad CRC")};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _read_start_timestamp{0};
-	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
 
 	uint16_t _last_register_bank{0};
@@ -194,7 +192,6 @@ private:
 	ACCEL_RANGE _accel_range{ACCEL_RANGE::RANGE_32G};
 	hrt_abstime _accel_last_clip_timestamp{0};
 
-	uint8_t _checked_register_bank0{0};
 	static constexpr uint8_t size_register_bank0_cfg{3};
 	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
 		// Register                       | Set bits, Clear bits
