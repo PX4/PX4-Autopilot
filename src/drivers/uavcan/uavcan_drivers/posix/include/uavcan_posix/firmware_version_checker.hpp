@@ -311,71 +311,73 @@ out_close:
 	bool hasUpdatingNodes() const
 	{
 		return !_updating_nodes.empty();
-		const BasePathString &getFirmwareNfsBasePath() const { return nfs_base_path_; }
+	}
 
-		void setFirmwareNfsBasePath(const char *path) {
-			nfs_base_path_ = path;
-		}
+	const BasePathString &getFirmwareNfsBasePath() const { return nfs_base_path_; }
 
-		static char getPathSeparator() {
-			return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
-		}
+	void setFirmwareNfsBasePath(const char *path) {
+		nfs_base_path_ = path;
+	}
 
-		/**
-		 * Creates the Directories were the files will be stored
-		 *
-		 * This is directory structure is in support of a workaround
-		 * for the issues that FirmwareFilePath is 40
-		 *
-		 *  It creates a path structure:
-		 *    +---(base_path)  <----------- Files are here.
-		 */
+	static char getPathSeparator() {
+		return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
+	}
 
-		int createFwPaths(const char *base_path, const char *alt_base_path = nullptr) {
-			using namespace std;
-			int rv = -uavcan::ErrInvalidParam;
+	/**
+	 * Creates the Directories were the files will be stored
+	 *
+	 * This is directory structure is in support of a workaround
+	 * for the issues that FirmwareFilePath is 40
+	 *
+	 *  It creates a path structure:
+	 *    +---(base_path)  <----------- Files are here.
+	 */
 
-			if (alt_base_path) {
-				const int len = strlen(alt_base_path);
+	int createFwPaths(const char *base_path, const char *alt_base_path = nullptr) {
+		using namespace std;
+		int rv = -uavcan::ErrInvalidParam;
 
-				if (len > 0 && len < base_path_.MaxSize) {
-					setFirmwareAltBasePath(alt_base_path);
+		if (alt_base_path) {
+			const int len = strlen(alt_base_path);
 
-				} else {
-					return rv;
-				}
+			if (len > 0 && len < base_path_.MaxSize) {
+				setFirmwareAltBasePath(alt_base_path);
+
+			} else {
+				return rv;
 			}
+		}
 
-			if (base_path) {
-				const int len = strlen(base_path);
+		if (base_path) {
+			const int len = strlen(base_path);
 
-				if (len > 0 && len < base_path_.MaxSize) {
-					setFirmwareBasePath(base_path);
-					removeSlash(base_path_);
-					const char *path = getFirmwareBasePath().c_str();
+			if (len > 0 && len < base_path_.MaxSize) {
+				setFirmwareBasePath(base_path);
+				removeSlash(base_path_);
+				const char *path = getFirmwareBasePath().c_str();
 
-					rv = 0;
-					struct stat sb;
+				rv = 0;
+				struct stat sb;
 
-					if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
-						rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-					}
-
-					addSlash(base_path_);
+				if (stat(path, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+					rv = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 				}
+
+				addSlash(base_path_);
 			}
-
-			return rv;
 		}
 
-		const char *getFirmwarePath() const {
-			return getFirmwareBasePath().c_str();
-		}
+		return rv;
+	}
 
-		const char *getAltFirmwarePath() const {
-			return getFirmwareAltBasePath().c_str();
-		}
-	};
+	const char *getFirmwarePath() const {
+		return getFirmwareBasePath().c_str();
+	}
+
+	const char *getAltFirmwarePath() const {
+		return getFirmwareAltBasePath().c_str();
+	}
+};
 }
 
 #endif // Include guard
