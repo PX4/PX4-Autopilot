@@ -153,6 +153,14 @@ My assumption is that the mixing system can cope with whatever geometry you thro
 Yes but it must be physically feasible. E.g. if you make a quadrotor where all motors turn the same way it will "deal" with it but that cannot work without very specific controllers. Same for a monocopter or a tricopter without swiveling one motor.
 -->
 
+### Tuning your drone with third party software
+[Genius Tools](https://sites.google.com/view/altitude-rd/genius-tools) is a commercial web app that provides step response from a logfile,
+ curve fitting, and model predictions with interactive sliders. Developed by Altitude R&D with a free tier and premium access.
+
+<p align="center">
+  <img width="50%" alt="Genius_Tools" src="https://github.com/user-attachments/assets/88d5c929-0f6d-4f7d-978a-1fc431479440" >
+</p>
+
 ## See Also
 
 - [QGroundControl > Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/setup_view.html)
