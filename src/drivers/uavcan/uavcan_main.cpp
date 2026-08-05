@@ -1114,32 +1114,23 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			}
 		}
 
-		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Use a local copy
-		// so the published actuator_outputs stay in [min,max].
+		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Encoded in
+		// place so actuator_outputs reflects the actual wire value sent to the ESC. Done here rather
+		// than via minValue()/maxValue() (as DShot does for its 3D range) because those are uint16_t
+		// and can't hold the negative bound a signed RawCommand would need.
 		const uint32_t reversible = mixingOutput().reversibleOutputs();
 
-		if (reversible != 0) {
-			float esc_outputs[MAX_ACTUATORS];
-
-			for (unsigned i = 0; i < output_array_size; i++) {
-				esc_outputs[i] = outputs[i];
-
-				if (reversible & (1u << i)) {
-					// Encode armed outputs only; a stopped channel sits at the disarmed value and must
-					// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
-					if (outputs[i] > (float)mixingOutput().disarmedValue(i)) {
-						const float min_i = (float)mixingOutput().minValue(i);
-						const float max_i = (float)mixingOutput().maxValue(i);
-						esc_outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
-					}
-				}
+		for (unsigned i = 0; i < output_array_size; i++) {
+			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
+			// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
+			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
+				const float min_i = (float)mixingOutput().minValue(i);
+				const float max_i = (float)mixingOutput().maxValue(i);
+				outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
 			}
-
-			_esc_controller.update_outputs(esc_outputs, output_array_size);
-
-		} else {
-			_esc_controller.update_outputs(outputs, output_array_size);
 		}
+
+		_esc_controller.update_outputs(outputs, output_array_size);
 	}
 
 	return true;
