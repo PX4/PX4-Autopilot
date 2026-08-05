@@ -290,6 +290,7 @@ private:
 	static px4::atomic<GPS *> _secondary_instance;
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
+	bool _reset_performed{false};	///< a reset we issued dropped the receiver, so _mode is still known good
 
 	/**
 	 * Publish the gps struct
@@ -1393,7 +1394,13 @@ GPS::run()
 #endif
 		}
 
-		if (_mode_auto) {
+		// Dropping out of the receive loop normally means the protocol guess was
+		// wrong, but a reset we issued is a receiver we already had talking:
+		// keep the mode and wait for it to come back on it.
+		const bool keep_mode = _reset_performed;
+		_reset_performed = false;
+
+		if (_mode_auto && !keep_mode) {
 			size_t i = 0;
 
 			while (kAutoDetectModes[i] != _mode && kAutoDetectModes[i] != gps_driver_mode_t::None) {
@@ -1548,6 +1555,7 @@ GPS::reset_if_scheduled()
 			PX4_INFO("Reset failed.");
 
 		} else {
+			_reset_performed = true;
 			PX4_INFO("Reset succeeded.");
 		}
 	}
