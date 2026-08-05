@@ -74,7 +74,7 @@ This allows PX4 automatic flight modes that require a global position to be used
 - [`mode_req_local_alt`](#mode_req_local_alt)
 - [`mode_req_manual_control`](#mode_req_manual_control)
 
-### [Cruise Mode](../flight_modes_fw/position.md) (NAVIGATION_STATE_POSCTL)
+### [Cruise Mode](../flight_modes_fw/cruise.md) (NAVIGATION_STATE_POSCTL)
 
 - [`mode_req_angular_velocity`](#mode_req_angular_velocity)
 - [`mode_req_attitude`](#mode_req_attitude)
