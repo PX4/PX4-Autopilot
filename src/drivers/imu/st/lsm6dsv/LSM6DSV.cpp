@@ -45,23 +45,11 @@ static constexpr bool IsSupportedWhoAmI(uint8_t whoami)
 	return (whoami == WHO_AM_I_ID) || (whoami == WHO_AM_I_DSK320X) || (whoami == WHO_AM_I_HIGHG);
 }
 
-// Returns true if any axis is at (or near) the int16 limit. Only meaningful for the low-g channel,
-// whose ±16 g / 0.488 mg/LSB scaling actually reaches the rail (16 g = 32787 counts). Limits are
-// pulled in by sqrt(2) plus a small margin so a sample that would clip only after rotation is also
-// caught (the same approach used by the ICM45686 driver).
-static constexpr bool SampleClips(int16_t x, int16_t y, int16_t z)
-{
-	constexpr int16_t hi = static_cast<int16_t>(INT16_MAX / 1.41421356f) - 100;
-	constexpr int16_t lo = static_cast<int16_t>(INT16_MIN / 1.41421356f) + 100;
-	return (x >= hi) || (x <= lo) || (y >= hi) || (y <= lo) || (z >= hi) || (z <= lo);
-}
-
-// High-g full-scale, pinned at each variant's top range. The high-g channel is only ever published
-// while the low-g channel clips, i.e. above 16 g, where the finer resolution of a smaller range buys
-// nothing — the fallback already steps in with the high-g channel's ±1.5 g typ zero-g offset
-// uncalibrated. The top range is instead what keeps an impact's first peak unclipped, since that
-// peak lands within a few ms of the low-g clipping and no runtime full-scale change could follow it.
-// Sensitivities are taken verbatim from the datasheet.
+// High-g full-scale, pinned at each variant's top range. On the parts that have a high-g channel it
+// is the accelerometer the driver publishes, always. A FIFO batch carries one scale factor for the
+// whole batch, so there is no way to hand over between channels without restating the scale of
+// samples that were already taken; and the low-g channel's finer resolution is not what a part
+// chosen for its high-g range is for. Sensitivities are taken verbatim from the datasheet.
 //
 // LSM6DSV80X (datasheet DS14764 Table 3): FS_XL_HG=010 -> ±80 g, 3.904 mg/LSB.
 static constexpr HighGFullScale HIGH_G_FS_DSV80X{0x02, 80, 3.904f};
@@ -70,13 +58,6 @@ static constexpr HighGFullScale HIGH_G_FS_DSV80X{0x02, 80, 3.904f};
 // ±320 g, 10.417 mg/LSB. The two parts share WHO_AM_I 0x73 and are selected explicitly at start
 // (see WHO_AM_I_HIGHG); codes above 010 are reserved on the 80X.
 static constexpr HighGFullScale HIGH_G_FS_DSV320X{0x04, 320, 10.417f};
-
-// Convert a high-g full-scale to PX4Accelerometer scale (m/s^2 per LSB) and range (m/s^2).
-static void GetHighGScaleRange(const HighGFullScale &fs, float &scale, float &range)
-{
-	scale = fs.scale_mg_per_lsb * (CONSTANTS_ONE_G / 1000.f);
-	range = static_cast<float>(fs.range_g) * CONSTANTS_ONE_G;
-}
 
 LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 	SPI(config),
@@ -182,7 +163,7 @@ void LSM6DSV::print_status()
 		 (unsigned)_sensor_odr, (double)_fifo_sample_dt, (unsigned)_fifo_words_per_period);
 
 	if (_high_g_enabled) {
-		PX4_INFO("High-g fallback: enabled, full-scale +/-%u g", (unsigned)_hg_fs->range_g);
+		PX4_INFO("Accel channel: high-g, full-scale +/-%u g", (unsigned)_hg_fs->range_g);
 	}
 
 	perf_print_counter(_bad_register_perf);
@@ -569,20 +550,26 @@ bool LSM6DSV::Configure()
 		}
 	}
 
+	// Scale and range are set once here and never touched again, so every published batch carries
+	// the same scale factor.
 	if (_high_g_enabled) {
 		// Gyroscope: ±4000 dps, 140 mdps/LSB (ST datasheet) — LSM6DSV80X / LSM6DSV320X
 		_px4_gyro.set_scale(math::radians(140.f / 1000.f));
 		_px4_gyro.set_range(math::radians(4000.f));
 
+		// Accelerometer: the high-g channel
+		_px4_accel.set_scale(_hg_fs->scale_mg_per_lsb * (CONSTANTS_ONE_G / 1000.f));
+		_px4_accel.set_range(_hg_fs->range_g * CONSTANTS_ONE_G);
+
 	} else {
 		// Gyroscope: ±2000 dps, 70 mdps/LSB (ST datasheet)
 		_px4_gyro.set_scale(math::radians(70.f / 1000.f));
 		_px4_gyro.set_range(math::radians(2000.f));
-	}
 
-	// Accelerometer: ±16g, 0.488 mg/LSB (ST datasheet)
-	_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+		// Accelerometer: ±16g, 0.488 mg/LSB (ST datasheet)
+		_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+	}
 
 	return success;
 }
@@ -650,15 +637,14 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	gyro.samples = 0;
 	gyro.dt = _fifo_sample_dt;
 
-	sensor_accel_fifo_s accel{}; // low-g channel (±16 g)
+	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 	accel.dt = _fifo_sample_dt;
 
-	sensor_accel_fifo_s accel_hg{}; // high-g channel (LSM6DSV80X / LSM6DSV320X)
-	accel_hg.timestamp_sample = timestamp_sample;
-	accel_hg.samples = 0;
-	accel_hg.dt = _fifo_sample_dt;
+	// On the 80X / 320X the high-g channel is the accelerometer; the low-g words are still batched
+	// by the FIFO (the high-g channel is enabled alongside it) but nothing consumes them.
+	const uint8_t accel_tag = static_cast<uint8_t>(_high_g_enabled ? FifoTag::ACCEL_HG : FifoTag::ACCEL_NC);
 
 	for (uint16_t i = 0; i < words_to_read; i++) {
 		const FIFOWord &word = buffer.words[i];
@@ -682,20 +668,12 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 				gyro.samples++;
 			}
 
-		} else if (tag_id == static_cast<uint8_t>(FifoTag::ACCEL_NC)) {
+		} else if (tag_id == accel_tag) {
 			if (accel.samples < (sizeof(accel.x) / sizeof(accel.x[0]))) {
 				accel.x[accel.samples] = data_x;
 				accel.y[accel.samples] = data_y;
 				accel.z[accel.samples] = data_z;
 				accel.samples++;
-			}
-
-		} else if (tag_id == static_cast<uint8_t>(FifoTag::ACCEL_HG)) {
-			if (accel_hg.samples < (sizeof(accel_hg.x) / sizeof(accel_hg.x[0]))) {
-				accel_hg.x[accel_hg.samples] = data_x;
-				accel_hg.y[accel_hg.samples] = data_y;
-				accel_hg.z[accel_hg.samples] = data_z;
-				accel_hg.samples++;
 			}
 
 		} else if (tag_id == static_cast<uint8_t>(FifoTag::TEMPERATURE)) {
@@ -714,46 +692,17 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
 
-	// Evaluate clipping on the raw (pre-rotation) low-g samples before any publish rotates them in place.
-	bool low_g_clipping = false;
-
-	if (_high_g_enabled) {
-		for (uint8_t n = 0; n < accel.samples; n++) {
-			if (SampleClips(accel.x[n], accel.y[n], accel.z[n])) {
-				low_g_clipping = true;
-				break;
-			}
-		}
-	}
-
-	// Publish gyro
 	if (gyro.samples > 0) {
 		_px4_gyro.set_error_count(error_count);
 		_px4_gyro.updateFIFO(gyro);
 	}
 
-	// Publish accelerometer: fall back to the high-g channel while the low-g channel is clipping.
-	bool accel_published = false;
-
-	if (_high_g_enabled && low_g_clipping && (accel_hg.samples > 0)) {
-		float scale, range;
-		GetHighGScaleRange(*_hg_fs, scale, range);
-		_px4_accel.set_range(range);
-		_px4_accel.set_scale(scale);
-		_px4_accel.set_error_count(error_count);
-		_px4_accel.updateFIFO(accel_hg);
-		accel_published = true;
-
-	} else if (accel.samples > 0) {
-		// low-g: ±16 g, 0.488 mg/LSB (ST datasheet)
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
+	if (accel.samples > 0) {
 		_px4_accel.set_error_count(error_count);
 		_px4_accel.updateFIFO(accel);
-		accel_published = true;
 	}
 
-	return accel_published && (gyro.samples > 0);
+	return (gyro.samples > 0) && (accel.samples > 0);
 }
 
 void LSM6DSV::FIFOReset()
