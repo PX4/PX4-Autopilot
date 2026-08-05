@@ -198,6 +198,12 @@ then
 	sht3x start -X -a 0x45
 fi
 
+# DFRobot electrochemical gas sensor, external I2C
+if param compare -s SENS_EN_DFGAS 1
+then
+	dfrobot_gas start -X
+fi
+
 # IR-LOCK sensor external I2C
 if param compare -s SENS_EN_IRLOCK 1
 then

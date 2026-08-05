@@ -40,6 +40,7 @@ Optional:
 - [Optical Flow](../sensor/optical_flow.md) — Estimates velocity using a downward facing camera and a downward facing distance sensor.
   Enables a more accurate position lock than GPS alone, and can be used indoors when no GPS signal is available.
 - [Tachometers (Revolution Counters)](../sensor/tachometers.md) — Only used for logging.
+- [Gas Concentration](../sensor/gas_concentration.md) - Used for logging and safety checks (not implemented yet).
 
 Primarily for OEMs/Manufacturers:
 
