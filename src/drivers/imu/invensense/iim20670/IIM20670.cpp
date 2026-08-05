@@ -50,7 +50,6 @@ IIM20670::IIM20670(const I2CSPIDriverConfig &config) :
 IIM20670::~IIM20670()
 {
 	perf_free(_reset_perf);
-	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_bad_crc_perf);
 	perf_free(_drdy_missed_perf);
@@ -92,7 +91,6 @@ void IIM20670::print_status()
 	PX4_INFO("accel range: %s, gyro range: 1966 dps", range_str);
 
 	perf_print_counter(_reset_perf);
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_bad_crc_perf);
 	perf_print_counter(_drdy_missed_perf);
@@ -249,26 +247,6 @@ void IIM20670::RunImpl()
 					Reset();
 					return;
 				}
-			}
-
-			// check configuration registers periodically
-			if (hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
-				    && RegisterCheck(_register_bank6_cfg[0])
-				    && RegisterCheck(_register_bank7_cfg[0])
-				   ) {
-					_last_config_check_timestamp = now;
-					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
-
-				} else {
-					// register check failed, force reset
-					perf_count(_bad_register_perf);
-					Reset();
-					return;
-				}
-
-				// the low resolution accel data registers are only accessible from bank 0
-				SelectRegisterBank(0);
 			}
 		}
 
