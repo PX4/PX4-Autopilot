@@ -81,8 +81,10 @@ bool dead_reckoning                     # True if this position is estimated thr
 float32 vxy_max				# maximum horizontal speed (meters/sec)
 float32 vz_max				# maximum vertical speed (meters/sec)
 float32 hagl_min			# minimum height above ground level (meters)
-float32 hagl_max_z			# maximum height above ground level for z-control (meters)
-float32 hagl_max_xy			# maximum height above ground level for xy-control (meters)
+float32 hagl_max_z			# maximum height above ground level for z-control (meters), hard limit, controllers should
+                            # apply margins accordingly
+float32 hagl_max_xy			# maximum height above ground level for xy-control (meters), hard limit, controllers should
+                            # apply margins accordingly
 
 # TOPICS vehicle_local_position vehicle_local_position_groundtruth external_ins_local_position
 # TOPICS estimator_local_position
