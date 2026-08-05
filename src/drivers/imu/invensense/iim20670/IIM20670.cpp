@@ -259,6 +259,13 @@ void IIM20670::RunImpl()
 
 bool IIM20670::Configure()
 {
+	// Every unlock frame writes tcode_status, which lives at offset 0x19 of bank 0, so the sequence
+	// only unlocks anything while bank 0 is selected. Configure() is re-entered on a retry with
+	// whatever bank the previous attempt left behind - after a WHOAMI mismatch that is bank 1 - so
+	// select it rather than assume it. bank_select is reachable from every bank, and while it is
+	// still locked the write is a no-op and the part is in bank 0 anyway.
+	SelectRegisterBank(0, true);
+
 	// unlock the full-scale change operation and the ODR pin routing (also unlocks bank_select)
 	for (auto frame : UNLOCK_SEQUENCE) {
 		TransferSpiFrame(frame);
