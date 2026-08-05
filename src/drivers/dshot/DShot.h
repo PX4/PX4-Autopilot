@@ -203,7 +203,6 @@ private:
 	int _3d_dead_l = 0;
 	int _3d_dead_h = 0;
 	float _dshot_min = 0.f;
-	uint16_t _dshot_min_value = DSHOT_MIN_THROTTLE; // cached min throttle for non-reversible outputs
 	int _esc_type = 0;
 
 	// Hardware initialization state

@@ -926,7 +926,8 @@ void DShot::apply_min_values(uint32_t reversible)
 			_mixing_output.minValue(i) = DSHOT_3D_FORWARD_START;
 
 		} else {
-			_mixing_output.minValue(i) = _dshot_min_value;
+			const float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
+			_mixing_output.minValue(i) = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
 		}
 	}
 }
@@ -950,10 +951,6 @@ void DShot::update_params()
 	_3d_dead_h = _param_dshot_3d_dead_h.get();
 	_dshot_min = _param_dshot_min.get();
 	_esc_type = _param_dshot_esc_type.get();
-
-	// Calculate minimum DShot output as percent of throttle and constrain.
-	float min_value = _dshot_min * (float)DSHOT_MAX_THROTTLE;
-	_dshot_min_value = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
 
 	// Re-apply after updateParams(), which reloads the minimums from the shared output params.
 	apply_min_values(_mixing_output.reversibleOutputs());
