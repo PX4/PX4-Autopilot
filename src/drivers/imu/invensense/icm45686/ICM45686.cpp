@@ -459,10 +459,14 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 		return false;
 	}
 
-	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(sizeof(FIFOTransferBuffer), fifo_packets * sizeof(FIFO::DATA) + 1);
 
-	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
+	// _fifo_buffer is reused across cycles. transfer() clobbers the command byte with the byte
+	// clocked in alongside it, so restore it; the rest needs no clearing because only the frames
+	// covered by transfer_size are ever parsed.
+	_fifo_buffer.cmd = static_cast<uint8_t>(Register::BANK_0::FIFO_DATA) | DIR_READ;
+
+	if (transfer((uint8_t *)&_fifo_buffer, (uint8_t *)&_fifo_buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
@@ -473,7 +477,7 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 		bool valid = true;
 
 		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
-		const uint8_t FIFO_HEADER = buffer.f[i].FIFO_Header;
+		const uint8_t FIFO_HEADER = _fifo_buffer.f[i].FIFO_Header;
 
 		if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_MSG) {
 			// FIFO sample empty if HEADER_MSG set
@@ -514,9 +518,9 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 	}
 
 	if (valid_samples > 0) {
-		if (ProcessTemperature(buffer.f, valid_samples)) {
-			ProcessGyro(timestamp_sample, buffer.f, valid_samples);
-			ProcessAccel(timestamp_sample, buffer.f, valid_samples);
+		if (ProcessTemperature(_fifo_buffer.f, valid_samples)) {
+			ProcessGyro(timestamp_sample, _fifo_buffer.f, valid_samples);
+			ProcessAccel(timestamp_sample, _fifo_buffer.f, valid_samples);
 			return true;
 		}
 	}
@@ -593,7 +597,6 @@ void ICM45686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	for (int i = 0; i < accel.samples; i++) {
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		accel.x[i] = accel.x[i];
 		accel.y[i] = (accel.y[i] == INT16_MIN) ? INT16_MAX : -accel.y[i];
 		accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MAX : -accel.z[i];
 	}
@@ -634,7 +637,6 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	for (int i = 0; i < gyro.samples; i++) {
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		gyro.x[i] = gyro.x[i];
 		gyro.y[i] = (gyro.y[i] == INT16_MIN) ? INT16_MAX : -gyro.y[i];
 		gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MAX : -gyro.z[i];
 	}
