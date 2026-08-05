@@ -904,6 +904,7 @@
       - [JSBSim Simulation](sim_jsbsim/index.md)
       - [RotorPy Simulation](sim_rotorpy/index.md)
       - [X-Plane Simulation](sim_xplane/index.md)
+      - [PteroSim Simulation](sim_pterosim/index.md)
       - [Hardware Simulation](simulation/hardware.md)
         - [HITL Simulation](simulation/hitl.md)
         - [SIH on Hardware](sim_sih/hardware.md)
