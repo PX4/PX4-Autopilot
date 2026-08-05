@@ -953,12 +953,25 @@ private:
 	// Declarations used to control use of the EKF-GSF yaw estimator
 	bool isYawFailure() const;
 
+	// True when the EKF-GSF yaw estimate has stayed converged for the whole
+	// emergency-reset evidence window. Its yaw is only observable during horizontal
+	// acceleration; at acceleration sign transitions it can briefly diverge and then
+	// re-converge confidently on a wrong solution (variance spikes then collapses
+	// within ~1 s). Requiring a stable, un-spiked estimate keeps the emergency reset
+	// from overwriting a good heading with a freshly re-converged, possibly wrong one.
+	bool isYawEstimatorStable() const;
+
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
 	// Returns true if the reset was successful
 	bool resetYawToEKFGSF();
 
 	// yaw estimator instance
 	EKFGSF_yaw _yawEstimator{};
+
+	// time of the last update at which the EKF-GSF yaw estimate was not converged
+	// (inactive or composite yaw variance above the convergence threshold); used to
+	// require a sustained, un-spiked estimate before allowing an emergency yaw reset
+	uint64_t _time_last_gsf_yaw_unstable{0};
 
 #endif // CONFIG_EKF2_GNSS
 
