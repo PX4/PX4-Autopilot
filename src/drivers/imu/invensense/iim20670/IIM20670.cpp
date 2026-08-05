@@ -292,10 +292,6 @@ bool IIM20670::Configure()
 		return false;
 	}
 
-	// start over from the smallest accel range every time the sensor is configured
-	_register_bank6_cfg[0].set_bits = ACCEL_FS_SEL_16G_SET;
-	_register_bank6_cfg[0].clear_bits = ACCEL_FS_SEL_16G_CLEAR;
-
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_bank0_cfg) {
 		if (reg_cfg.reg != Register::BANK_0::FIXED_VALUE_REG) {

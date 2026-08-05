@@ -160,9 +160,6 @@ enum RESET_CONTROL_BIT : uint16_t {
 
 // SENSITIVITY_CONFIG (Bank 6) accel_fs_sel[2:0]
 enum ACCEL_FS_SEL_BIT : uint16_t {
-	// accel_fs_sel[2:0] = 001: FS ±16.384 g, FS_LR ±65.536 g
-	ACCEL_FS_SEL_16G_SET   = Bit0,
-	ACCEL_FS_SEL_16G_CLEAR = Bit2 | Bit1,
 	// accel_fs_sel[2:0] = 011: FS ±32.768 g, FS_LR ±65.536 g
 	ACCEL_FS_SEL_32G_SET   = Bit1 | Bit0,
 	ACCEL_FS_SEL_32G_CLEAR = Bit2,
