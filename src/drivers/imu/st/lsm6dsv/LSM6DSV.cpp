@@ -612,9 +612,12 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	const uint16_t words_to_read = math::min<uint16_t>(words, FIFO_MAX_SAMPLES * _fifo_words_per_period);
 	const size_t transfer_size = words_to_read * FIFO::WORD_SIZE + 1;
 
-	FIFOTransferBuffer buffer{};
+	// _fifo_buffer is reused across cycles. transfer() clobbers the command byte with the byte
+	// clocked in alongside it, so restore it; the rest needs no clearing because only the words
+	// covered by transfer_size are ever parsed.
+	_fifo_buffer.cmd = static_cast<uint8_t>(Register::FIFO_DATA_OUT_TAG) | DIR_READ;
 
-	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
+	if (transfer((uint8_t *)&_fifo_buffer, (uint8_t *)&_fifo_buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return false;
 	}
@@ -637,7 +640,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	bool tag_mismatch = false;
 
 	for (uint16_t i = 0; i < words_to_read; i++) {
-		const FIFOWord &word = buffer.words[i];
+		const FIFOWord &word = _fifo_buffer.words[i];
 
 		// Decode tag from upper 5 bits
 		const uint8_t tag_id = word.TAG >> 3;
@@ -671,18 +674,10 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 			accel.y[accel.samples] = data_y;
 			accel.z[accel.samples] = data_z;
 			accel.samples++;
-
-		} else if (tag_id == static_cast<uint8_t>(FifoTag::TEMPERATURE)) {
-			const int16_t temp_raw = combine(word.DATA_X_H, word.DATA_X_L);
-			const float temperature = (temp_raw / 256.0f) + 25.0f;
-
-			if (PX4_ISFINITE(temperature)) {
-				_px4_accel.set_temperature(temperature);
-				_px4_gyro.set_temperature(temperature);
-			}
 		}
 
-		// Other tags (TIMESTAMP, etc.) are silently ignored
+		// Other tags are ignored. FIFO_CTRL4 leaves ODR_T_BATCH and DEC_TS_BATCH at 0, so neither
+		// temperature nor timestamp is batched; temperature comes from UpdateTemperature().
 	}
 
 	if (tag_mismatch) {

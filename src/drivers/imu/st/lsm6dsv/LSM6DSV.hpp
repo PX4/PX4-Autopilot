@@ -99,6 +99,10 @@ private:
 	};
 	static_assert(sizeof(FIFOTransferBuffer) == (1 + FIFO_MAX_WORDS * FIFO::WORD_SIZE), "Invalid transfer buffer size");
 
+	// held here rather than on the work queue stack: a wq:SPIx frame is not the place for a buffer
+	// this size, and reusing it avoids re-zeroing memory that transfer() overwrites anyway
+	FIFOTransferBuffer _fifo_buffer{};
+
 	// Sensor ODR and FIFO layout are variant-dependent (set in UpdateVariantRegisterConfig()):
 	//   default (16X/32X/DSK320X): 2000 Hz, 2 FIFO words/period (gyro + low-g)
 	//   LSM6DSV80X:                7680 Hz, 3 FIFO words/period (gyro + low-g + high-g)
