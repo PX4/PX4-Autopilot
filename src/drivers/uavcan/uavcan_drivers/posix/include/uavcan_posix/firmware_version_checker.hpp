@@ -315,11 +315,13 @@ out_close:
 
 	const BasePathString &getFirmwareNfsBasePath() const { return nfs_base_path_; }
 
-	void setFirmwareNfsBasePath(const char *path) {
+	void setFirmwareNfsBasePath(const char *path)
+	{
 		nfs_base_path_ = path;
 	}
 
-	static char getPathSeparator() {
+	static char getPathSeparator()
+	{
 		return static_cast<char>(uavcan::protocol::file::Path::SEPARATOR);
 	}
 
@@ -333,7 +335,8 @@ out_close:
 	 *    +---(base_path)  <----------- Files are here.
 	 */
 
-	int createFwPaths(const char *base_path, const char *alt_base_path = nullptr) {
+	int createFwPaths(const char *base_path, const char *alt_base_path = nullptr)
+	{
 		using namespace std;
 		int rv = -uavcan::ErrInvalidParam;
 
@@ -370,11 +373,13 @@ out_close:
 		return rv;
 	}
 
-	const char *getFirmwarePath() const {
+	const char *getFirmwarePath() const
+	{
 		return getFirmwareBasePath().c_str();
 	}
 
-	const char *getAltFirmwarePath() const {
+	const char *getAltFirmwarePath() const
+	{
 		return getFirmwareAltBasePath().c_str();
 	}
 };
