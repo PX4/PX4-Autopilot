@@ -14,7 +14,14 @@ PteroSim runs on **Windows 10/11** and **Ubuntu 22.04+** (64-bit).
 Install PteroSim from [GitHub Releases](https://github.com/PteroLabsAI/PteroSim-UAV-Simulator/releases) and set up PX4 SITL using the [PX4 development environment](../dev_setup/dev_env.md).
 For full installation, UI walkthrough, and QGroundControl setup, see the [PteroSim PX4 SITL guide](https://pterosimdocs.readthedocs.io/en/latest/sitl_simulation_px4.html).
 
+## Videos
+
+PX4 tutorial:
+
 <lite-youtube videoid="gUSc84v3f44" title="PteroSim PX4 tutorial"/>
+
+PteroSim demo:
+
 <lite-youtube videoid="4QMwmZL_3O4" title="PteroSim PX4 demo"/>
 
 ## Supported Vehicles
