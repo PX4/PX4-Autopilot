@@ -164,7 +164,8 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	// Block arming while a UAVCAN node firmware update is pending
 	uavcan_firmware_update_s uavcan_fw_update{};
 
-	if (_uavcan_fw_update_sub.copy(&uavcan_fw_update) && uavcan_fw_update.pending_updates) {
+	if (!circuit_breaker_enabled_by_val(_param_cbrk_uavcan_fw.get(), CBRK_UAVCAN_FW_KEY)
+	    && _uavcan_fw_update_sub.copy(&uavcan_fw_update) && uavcan_fw_update.pending_updates) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
