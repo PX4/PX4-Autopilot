@@ -71,7 +71,6 @@ ICM45686::ICM45686(const I2CSPIDriverConfig &config) :
 
 ICM45686::~ICM45686()
 {
-	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -113,7 +112,6 @@ void ICM45686::print_status()
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
 	PX4_INFO("Clock input: %s", _enable_clock_input ? "enabled" : "disabled");
 
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
@@ -248,19 +246,6 @@ void ICM45686::RunImpl()
 				if (_failure_count > 10) {
 					Reset();
 					return;
-				}
-			}
-
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
-				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])) {
-					_last_config_check_timestamp = now;
-					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
-
-				} else {
-					// register check failed, force reset
-					perf_count(_bad_register_perf);
-					Reset();
 				}
 			}
 		}
@@ -613,7 +598,7 @@ void ICM45686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 		accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MAX : -accel.z[i];
 	}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+	_px4_accel.set_error_count(perf_event_count(_bad_transfer_perf) +
 				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 
 	if (accel.samples > 0) {
@@ -654,7 +639,7 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 		gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MAX : -gyro.z[i];
 	}
 
-	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+	_px4_gyro.set_error_count(perf_event_count(_bad_transfer_perf) +
 				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 
 	if (gyro.samples > 0) {
