@@ -51,7 +51,7 @@ public:
 	Airspeed(std::shared_ptr<Ekf> ekf);
 	~Airspeed();
 
-	void setData(float true_airspeed, float eas2tas);
+	void setData(float true_airspeed, float indicated_airspeed);
 
 private:
 	float _true_airspeed_data{0.0f};

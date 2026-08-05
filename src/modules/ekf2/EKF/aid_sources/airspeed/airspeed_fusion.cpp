@@ -66,9 +66,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_external_wind_init = false;
 	}
 
-#if defined(CONFIG_EKF2_GNSS)
+	const bool fixed_wing_or_transition = _control_status.flags.fixed_wing || _control_status.flags.in_transition;
 
-	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
+#if defined(CONFIG_EKF2_GNSS)
+	// EKF-GSF airspeed compensation assumes fixed-wing dynamics.
 	if (_control_status.flags.fixed_wing) {
 		if (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest) {
 			if (!_control_status.flags.fuse_aspd) {
@@ -78,6 +79,9 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		} else {
 			_yawEstimator.setTrueAirspeed(0.f);
 		}
+
+	} else if (!_control_status.flags.in_transition) {
+		_yawEstimator.setTrueAirspeed(NAN);
 	}
 
 #endif // CONFIG_EKF2_GNSS
@@ -95,8 +99,13 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air && (_control_status.flags.fixed_wing
-				|| _control_status.flags.in_transition)
+		// Use lateral specific force to check the zero-sideslip assumption in MC mode.
+		const bool mc_airflow_aligned = (_params.ekf2_aspd_mc_lim <= 0.f)
+						|| (fabsf(_aspd_mc_lat_accel_lpf.getState()) < _params.ekf2_aspd_mc_lim);
+		const bool mc_aspd_allowed = (_params.ekf2_aspd_mc == 1) && mc_airflow_aligned;
+
+		const bool continuing_conditions_passing = _control_status.flags.in_air
+				&& (fixed_wing_or_transition || mc_aspd_allowed)
 				&& !_control_status.flags.fake_pos;
 
 		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.ekf2_arsp_thr;
@@ -112,7 +121,11 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 				}
 
 #if defined(CONFIG_EKF2_GNSS)
-				_yawEstimator.setTrueAirspeed(airspeed_sample.true_airspeed);
+
+				if (fixed_wing_or_transition) {
+					_yawEstimator.setTrueAirspeed(airspeed_sample.true_airspeed);
+				}
+
 #endif // CONFIG_EKF2_GNSS
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
@@ -126,8 +139,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			}
 
 		} else if (starting_conditions_passing) {
-			const bool do_vel_reset = _horizontal_deadreckon_time_exceeded
-						  || (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent);
+			// Never reset navigation states from airspeed in MC mode.
+			const bool do_vel_reset = (_horizontal_deadreckon_time_exceeded
+						   || (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent))
+						  && fixed_wing_or_transition;
 
 			const Vector2f wind_vel_var = getWindVelocityVariance();
 			const bool do_wind_reset = (!_control_status.flags.wind || ((wind_vel_var(0) + wind_vel_var(1)) > sq(_params.initial_wind_uncertainty)))
@@ -192,8 +207,9 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 		return;
 	}
 
-	// determine if we need the airspeed fusion to correct states other than wind
-	const bool update_wind_only = !_control_status.flags.wind_dead_reckoning;
+	// Airspeed never corrects navigation states in MC mode.
+	const bool update_wind_only = !_control_status.flags.wind_dead_reckoning
+				      || !(_control_status.flags.fixed_wing || _control_status.flags.in_transition);
 
 	const float innov_var = aid_src.innovation_variance;
 
