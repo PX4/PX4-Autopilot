@@ -154,9 +154,9 @@ protected:
 	 */
 	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
 
-	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item);
+	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item, const position_setpoint_s &reference_setpoint);
 
-	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
+	void setLoiterItemFromCurrentPosition(struct mission_item_s &item);
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
 	void setLoiterFromLastLink(struct mission_item_s *item);
 

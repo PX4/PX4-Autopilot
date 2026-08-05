@@ -350,7 +350,6 @@ private:
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
 		(ParamBool<px4::params::COM_ARM_ON_BOOT>)   _param_com_arm_on_boot,
 		(ParamInt<px4::params::COM_FLTMODE_BOOT>)   _param_com_fltmode_boot,
-		(ParamInt<px4::params::COM_ARM_TRAFF>)      _param_com_arm_traff,
 		(ParamInt<px4::params::NAV_RCL_ACT>)        _param_nav_rcl_act
 	)
 };

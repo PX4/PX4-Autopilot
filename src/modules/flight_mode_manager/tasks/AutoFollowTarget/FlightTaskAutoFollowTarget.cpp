@@ -51,7 +51,7 @@ using matrix::Quatf;
 using matrix::Eulerf;
 
 // Call the constructor of _sticks to establish Follow Target class as a parent as ModuleParams class
-// which enables chained paramter update sequence, which keeps the parameters in _sticks up to date.
+// which enables chained parameter update sequence, which keeps the parameters in _sticks up to date.
 FlightTaskAutoFollowTarget::FlightTaskAutoFollowTarget() : _sticks(this)
 {
 	_target_estimator.Start();

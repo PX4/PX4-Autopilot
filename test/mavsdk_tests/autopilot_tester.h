@@ -132,6 +132,14 @@ public:
 	void execute_mission_and_get_baro_stuck();
 	void load_qgc_mission_raw_and_move_here(const std::string &plan_file);
 	void execute_mission_raw();
+	// Build and upload a multicopter mission (relative to home) that contains a DO_JUMP item looping
+	// back to an earlier waypoint. The mission lands at the end so it terminates on its own. Returns
+	// the sequence index of the DO_JUMP item.
+	int prepare_multicopter_mission_with_do_jump(const MissionOptions &mission_options, int jump_repeats);
+	// Start the (raw) mission and block until the vehicle reaches the given sequence number.
+	void start_mission_raw_and_wait_for_sequence(int sequence_number);
+	// Send MISSION_SET_CURRENT for the given sequence index (mimics an operator/GCS command).
+	void send_set_current_mission_item(int index);
 	void execute_rtl();
 	void execute_land();
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
@@ -151,6 +159,10 @@ public:
 	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
+
+	mavlink_home_position_t get_home_position(std::chrono::seconds timeout = std::chrono::seconds(10));
+
+	Telemetry::EulerAngle get_attitude_euler();
 
 	void enable_fixedwing_mectrics();
 	void check_airspeed_is_valid();
@@ -190,6 +202,7 @@ public:
 	}
 
 protected:
+	mavsdk::Action *getAction() const { return _action.get();}
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
 	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
@@ -209,6 +222,8 @@ protected:
 	}
 
 private:
+	void start_offboard_with_retry(const std::function<void()> &resend_setpoint);
+
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
@@ -298,7 +313,7 @@ private:
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
-	mavsdk::Telemetry::PositionHandle _check_altitude_handle{};
+	mavsdk::Telemetry::PositionVelocityNedHandle _check_altitude_handle{};
 
 	std::atomic<bool> _should_exit {false};
 	std::thread _real_time_report_thread {};

@@ -310,7 +310,7 @@ The benefits of the PX4 hardware abstraction comes into play here!
 无需以任何方式与传感器驱动程序交互，如果板或传感器更新，也无需更新您的应用程序。
 :::
 
-Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
+Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
 
 订阅主题很简单：
 

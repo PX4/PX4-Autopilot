@@ -32,6 +32,18 @@
 ############################################################################
 
 add_subdirectory(MissionFeasibility)
+add_subdirectory(RTLPlanner)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	add_subdirectory(DetectAndAvoid)
+endif()
+
+px4_add_library(navigator_mission_route
+	mission_route_types.cpp
+	mission_route_provider.cpp
+)
+
+target_link_libraries(navigator_mission_route PUBLIC geo)
 
 if(BUILD_TESTING)
 	add_subdirectory(test)
@@ -40,6 +52,7 @@ endif()
 set(NAVIGATOR_SOURCES
 	navigator_main.cpp
 	navigator_mode.cpp
+	mission_route_cache.cpp
 	mission_base.cpp
 	mission_block.cpp
 	mission.cpp
@@ -56,10 +69,28 @@ set(NAVIGATOR_SOURCES
 	mission_feasibility_checker.cpp
 	geofence.cpp)
 
+set(NAVIGATOR_DEPENDS
+	dataman_client
+	geo
+	motion_planning
+	mission_feasibility_checker
+	navigator_mission_route
+	rtl_time_estimator)
+
+if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
+	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)
+	# geofence_utils (polygon offsetting / visibility graph) is only used by the planner
+	list(APPEND NAVIGATOR_DEPENDS geofence_utils geofence_avoidance_planner)
+endif()
+
 if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
 	set(NAVIGATOR_SOURCES
 		${NAVIGATOR_SOURCES}
 		vtol_takeoff.cpp)
+endif()
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND NAVIGATOR_DEPENDS adsb detect_and_avoid)
 endif()
 
 px4_add_module(
@@ -74,10 +105,5 @@ px4_add_module(
 		rtl_params.yaml
 		vtol_takeoff_params.yaml
 	DEPENDS
-		dataman_client
-		geo
-		adsb
-		motion_planning
-		mission_feasibility_checker
-		rtl_time_estimator
+		${NAVIGATOR_DEPENDS}
 	)

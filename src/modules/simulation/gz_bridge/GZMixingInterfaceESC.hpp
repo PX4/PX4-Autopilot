@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/mixer_module/mixer_module.hpp>
 
 #include <gz/msgs.hh>
@@ -82,5 +83,6 @@ private:
 	gz::transport::Node::Publisher _actuators_pub;
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	failure_injection::Config _failure_config;
 
 };

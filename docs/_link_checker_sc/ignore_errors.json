@@ -1769,5 +1769,77 @@
     "type": "OrphanedImage",
     "fileRelativeToRoot": "assets\\diagrams\\SIH_diagram.png",
     "hideReason": ""
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\config_mc\\racer_setup.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer",
+      "text": "QAV-R 5\" KISS ESC Racer"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\config_mc\\racer_setup.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer#mounting",
+      "text": "O-rings"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\config_mc\\racer_setup.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer",
+      "text": "QAV-R 5\" KISS ESC Racer"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\dev_airframes\\adding_a_new_frame.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/holybro_qav250_pixhawk4_mini",
+      "text": "HolyBro QAV250"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\log\\flight_review.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer",
+      "text": "QAV-R 5\" Racer"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\log\\flight_review.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer",
+      "text": "QAV-R 5\" Racer"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\log\\flight_review.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer",
+      "text": "QAV-R 5\" Racer"
+    },
+    "hideReason": "Expected link to old version"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\log\\flight_review.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer",
+      "text": "QAV-R 5\" Racer"
+    },
+    "hideReason": "Expected link to old version"
   }
 ]

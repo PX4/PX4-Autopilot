@@ -118,7 +118,7 @@ This ensures that stale logs from a different time mode are cleaned up before cu
 ## Обмеження розміру файлу
 
 Максимальний розмір файлу залежить від файлової системи та ОС.
-Розмір обмеження на NuttX наразі становить близько 2 ГБ.
+The size limit on NuttX is currently around 4GB.
 
 ## Відключення
 

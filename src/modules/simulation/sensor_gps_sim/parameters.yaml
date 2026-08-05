@@ -4,7 +4,7 @@ parameters:
   definitions:
     SENS_EN_GPSSIM:
       description:
-        short: Enable simulated GPS sinstance
+        short: Enable simulated GPS instance
       type: enum
       values:
         0: Disabled

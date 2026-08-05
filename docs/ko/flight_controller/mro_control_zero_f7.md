@@ -27,9 +27,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - F-RAM Cypress MF25V02-G 256Kbit 비휘발성 메모리(RAM만큼 빠른 플래시 메모리)
 
 - 센서:
-  - [Bosch BMI088](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/) 3-axis accelerometer/gyroscope (internally vibration dampened)
-  - [Invensense ICM-20602](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
-  - [Invensense ICM-20948](https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
+  - [Bosch BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/) 3-axis accelerometer/gyroscope (internally vibration dampened)
+  - [Invensense ICM-20602](https://www.invensense.tdk.com/en-us/products/motion-tracking/6-axis/icm-20602) 3-axis accelerometer/gyroscope
+  - [Invensense ICM-20948](https://www.invensense.tdk.com/en-us/products/9-axis/icm-20948) 3-axis accelerometer/gyroscope/magnetometer
   - Infineon DPS310 barometer - [Discontinued](https://www.infineon.com/products/sensor/pressure-sensors/pressure-sensors-for-iot) (So smooth and NO more light sensitivity)
 
 - 인터페이스:

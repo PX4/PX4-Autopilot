@@ -51,9 +51,11 @@ CMD_NAV_VTOL_TAKEOFF = 84
 CMD_NAV_VTOL_LAND = 85
 CMD_NAV_DELAY = 93
 CMD_COMPONENT_ARM_DISARM = 400
+CMD_IMAGE_STOP_CAPTURE = 2001
 
 NAN = float("nan")
 INT32_MAX = 2_147_483_647
+INT32_MIN = -2_147_483_648
 
 # Helpers
 
@@ -314,6 +316,21 @@ def run_mission_tests(mav: Any, timeout: float) -> None:
     ], timeout)
     _check(
         "NAV_VTOL_TAKEOFF mission valid (p4=yaw only) -> ACCEPTED",
+        result, MAV_MISSION_ACCEPTED,
+    )
+
+    # 17. IMAGE_STOP_CAPTURE with x/y = INT32_MIN (mask 0x01: only p1).
+    # QGC camera-section items carry NaN in the unused float params and
+    # convert them into the int32 x/y fields of MISSION_ITEM_INT, which
+    # becomes INT32_MIN on x86. PX4 must treat both INT32_MAX and INT32_MIN
+    # as "param not used" and accept the item.
+    result = _upload_mission(mav, [
+        _item(0, CMD_IMAGE_STOP_CAPTURE, MAV_FRAME_MISSION,
+              p1=0.0, p2=NAN, p3=NAN, p4=NAN,
+              x=INT32_MIN, y=INT32_MIN, z=NAN),
+    ], timeout)
+    _check(
+        "IMAGE_STOP_CAPTURE NaN-cast x/y (INT32_MIN) -> ACCEPTED",
         result, MAV_MISSION_ACCEPTED,
     )
 

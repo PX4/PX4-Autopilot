@@ -60,6 +60,7 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_com_arm_bat_min,
 					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
-					(ParamFloat<px4::params::COM_ARM_BAT_VDIF>) _param_com_arm_bat_vdif
+					(ParamFloat<px4::params::COM_ARM_BAT_VDIF>) _param_com_arm_bat_vdif,
+					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act
 				       )
 };

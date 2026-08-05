@@ -200,6 +200,42 @@
  * edge then indicates a change in state of the PHY.
  */
 
+// Compile time selection
+#if defined(CONFIG_ETH0_PHY_TJA1103)
+#  define BOARD_PHY_ADDR (18)
+#endif
+#if defined(CONFIG_ETH0_PHY_LAN8742A)
+#  define BOARD_PHY_ADDR (0)
+#endif
+
+/* Run time selection see mii.h */
+
+#define BOARD_ETH0_PHY_LIST \
+	{                                   \
+		"LAN8742A",                      \
+		MII_PHYID1_LAN8742A,             \
+		MII_PHYID2_LAN8742A,             \
+		MII_LAN8740_SCSR,                \
+		0,                               \
+		7,                               \
+		MII_LAN8720_SPSCR_10MBPS,        \
+		MII_LAN8720_SPSCR_100MBPS,       \
+		MII_LAN8720_SPSCR_DUPLEX,        \
+		22,                              \
+	},                                  \
+	{                                   \
+		"TJA1103",                       \
+		MII_PHYID1_TJA1103,              \
+		MII_PHYID2_TJA1103,              \
+		0xffff,                          \
+		18,                              \
+		0xffff,                          \
+		0,                               \
+		MII_LAN8720_SPSCR_100MBPS,       \
+		MII_LAN8720_SPSCR_DUPLEX,        \
+		45,                              \
+	},                                  \
+
 #define GPIO_ENET_INT   (IOMUX_ENET_INT_DEFAULT | \
 			 GPIO_PORT2 | GPIO_PIN15)    /* B0_15 */
 #define GPIO_ENET_IRQ   IMXRT_IRQ_GPIO2_15
@@ -375,8 +411,6 @@
 
 #define GPIO_LPI2C4_SDA_RESET (GPIO_PORT1 | GPIO_PIN13 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LPI2C_IO_IOMUX) /* GPIO_AD_B0_13 */
 #define GPIO_LPI2C4_SCL_RESET (GPIO_PORT1 | GPIO_PIN12 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LPI2C_IO_IOMUX) /* GPIO_AD_B0_12 */
-
-#define BOARD_PHY_ADDR (18)
 
 /* Board doesn't provide GPIO or other Hardware for signaling to timing analyzer */
 

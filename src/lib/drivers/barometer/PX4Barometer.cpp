@@ -50,5 +50,12 @@ void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
 	_report.pressure = pressure;
 	_report.timestamp = hrt_absolute_time();
 
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_BARO,
+					_sensor_pub.get_instance(), _report, _stuck)) {
+		return;
+	}
+
 	_sensor_pub.publish(_report);
 }

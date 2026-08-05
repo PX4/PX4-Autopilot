@@ -8,8 +8,8 @@ The mode will not attempt to hold the vehicle course against wind.
 Airspeed is actively controlled if an airspeed sensor is installed.
 
 :::tip
-_Altitude mode_ is similar to [Position mode](../flight_modes_fw/position.md) in that both modes level the vehicle and maintain altitude when sticks are released.
-The difference is that position mode holds the actual flight path (course) steady against wind, while altitude just holds the heading.
+_Altitude mode_ is similar to [Cruise mode](../flight_modes_fw/cruise.md) in that both modes level the vehicle and maintain altitude when sticks are released.
+The difference is that Cruise mode holds the actual flight path (course) steady against wind, while altitude just holds the heading.
 :::
 
 The vehicle performs a [coordinated turn](https://en.wikipedia.org/wiki/Coordinated_flight) if the roll sticks are non-zero, while the pitch stick controls the rate of ascent/descent.

@@ -124,15 +124,25 @@ private:
 	bool send() override
 	{
 		// Required update for static message is 0.1 [Hz]
+		const int32_t adsb_icao = _adsb_icao.get();
+		const bool adsb_out_enabled = adsb_icao >= 0;
+		// ADSB_ICAO_ID controls transmission only. Keep the receiver enabled so
+		// uAvionix traffic reports remain available to ADS-B In and DAA.
+		uint8_t rf_select{UAVIONIX_ADSB_OUT_RF_SELECT_RX_ENABLED};
+
+		if (adsb_out_enabled) {
+			rf_select |= UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED;
+		}
+
 		mavlink_uavionix_adsb_out_cfg_t cfg_msg = {
-			.ICAO = static_cast<uint32_t>(_adsb_icao.get()),
+			.ICAO = adsb_out_enabled ? static_cast<uint32_t>(adsb_icao) : 0,
 			.stallSpeed = _stall_speed,
 			.callsign = {'\0'},
 			.emitterType = static_cast<uint8_t>(_adsb_emit_type.get()),
 			.aircraftSize = static_cast<uint8_t>(_adsb_len_width.get()),
 			.gpsOffsetLat = static_cast<uint8_t>(_adsb_gps_offset_lat.get()),
 			.gpsOffsetLon = static_cast<uint8_t>(_adsb_gps_offset_lon.get()),
-			.rfSelect = UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED
+			.rfSelect = rf_select
 		};
 
 		static_assert(sizeof(cfg_msg.callsign) == sizeof(_callsign), "Size mismatch");

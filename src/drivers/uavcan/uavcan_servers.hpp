@@ -46,6 +46,9 @@
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/nfs_up.h>
+
 #include "uavcan_module.hpp"
 
 /**
@@ -68,6 +71,10 @@ public:
 
 	int init();
 
+#ifdef CONFIG_MODULES_NFS_MOUNT
+	void check_nfs();
+#endif
+
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
 private:
@@ -75,8 +82,6 @@ private:
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
 	void migrateFWFromRoot(const char *sd_path, const char *sd_root_path);
 	int copyFw(const char *dst, const char *src);
-	void updateFwDatabase(const char *fw_path, const char *original_filename);
-	void validateFwDatabase();
 
 	uavcan_posix::dynamic_node_id_server::FileEventTracer _tracer;
 	uavcan_posix::dynamic_node_id_server::FileStorageBackend _storage_backend;
@@ -87,4 +92,6 @@ private:
 	uavcan::BasicFileServer _fw_server;
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
+
+	uORB::Subscription _nfs_up_sub{ORB_ID(nfs_up)};
 };

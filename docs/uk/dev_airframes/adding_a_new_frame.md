@@ -127,7 +127,7 @@ param set-default CA_ROTOR3_KM -0.05
 ### Example - HolyBro QAV250 Complete Vehicle
 
 A more complete configuration file for a real vehicle is provided below.
-This is the configuration for the [HolyBro QAV250](../frames_multicopter/holybro_qav250_pixhawk4_mini.md) quadrotor ([original file here](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/4052_holybro_qav250)).
+This is the configuration for the [HolyBro QAV250](https://docs.px4.io/v1.17/en/frames_multicopter/holybro_qav250_pixhawk4_mini) quadrotor ([original file here](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/4052_holybro_qav250)).
 
 The shebang and documentation sections are similar to those for the generic frame.
 Here we also add a `@url` link to the vehicle documentation, a `@maintainer`, and additional board exclusions.
@@ -246,16 +246,19 @@ If the airframe is for a **new group** you additionally need to:
 
 3. Update _QGroundControl_:
    - Add the svg image for the group into: [src/AutopilotPlugins/Common/images](https://github.com/mavlink/qgroundcontrol/tree/master/src/AutoPilotPlugins/Common/Images)
-   - Add reference to the svg image into [qgcimages.qrc](https://github.com/mavlink/qgroundcontrol/blob/master/qgcimages.qrc), following the pattern below:
+   - Add a reference to the svg image into [CMakeLists.txt](https://github.com/mavlink/qgroundcontrol/blob/master/src/AutoPilotPlugins/Common/CMakeLists.txt), following the pattern below:
 
-     ```xml
-     <qresource prefix="/qmlimages">
-        ...
-        <file alias="Airframe/AirframeSimulation">src/AutoPilotPlugins/Common/Images/AirframeSimulation.svg</file>
-        <file alias="Airframe/AirframeUnknown">src/AutoPilotPlugins/Common/Images/AirframeUnknown.svg</file>
-        <file alias="Airframe/Boat">src/AutoPilotPlugins/Common/Images/Boat.svg</file>
-        <file alias="Airframe/FlyingWing">src/AutoPilotPlugins/Common/Images/FlyingWing.svg</file>
-        ...
+     ```cmake
+     qt_add_resources(${CMAKE_PROJECT_NAME} autopilot_plugin_common_airframes
+         PREFIX "/qmlimages/Airframe"
+         BASE "${CMAKE_SOURCE_DIR}/src/AutoPilotPlugins/Common/Images"
+         FILES
+             "${CMAKE_SOURCE_DIR}/src/AutoPilotPlugins/Common/Images/AirframeSimulation.svg"
+             "${CMAKE_SOURCE_DIR}/src/AutoPilotPlugins/Common/Images/AirframeUnknown.svg"
+             "${CMAKE_SOURCE_DIR}/src/AutoPilotPlugins/Common/Images/Boat.svg"
+             "${CMAKE_SOURCE_DIR}/src/AutoPilotPlugins/Common/Images/FlyingWing.svg"
+             ...
+     )
      ```
 
      ::: info

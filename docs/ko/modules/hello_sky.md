@@ -310,7 +310,7 @@ The benefits of the PX4 hardware abstraction comes into play here!
 센서 드라이버와 어떤 식으로든 상호 작용할 필요가 없으며, 보드 또는 센서가 업데이트된 경우 앱을 업데이트할 필요도 없습니다.
 :::
 
-Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
+Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
 
 주제 구독은 간단합니다.
 

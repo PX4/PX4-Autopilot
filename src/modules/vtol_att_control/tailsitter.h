@@ -88,9 +88,15 @@ private:
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;
 
+	inline static const matrix::Quatf _q_fw_to_mc{matrix::Eulerf{0.f, M_PI_2_F, 0.f}};
+
 	void parameters_update() override;
 
 	bool isFrontTransitionCompletedBase() override;
+	bool isPitchExceeded() override;
+	bool isRollExceeded() override;
+
+	matrix::Eulerf getFixedWingAttitudeEuler() const;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off

@@ -89,7 +89,7 @@ To add another X-Plane aircraft:
 4. Tune the PX4 parameters from ULog data and X-Plane truth logs.
 
 See the [px4xplane custom airframe guide](https://github.com/alireza787b/px4xplane/blob/master/docs/custom-airframe-config.md) for bridge configuration details.
-For X-Plane-side aircraft design and dataref mapping, see the official [Plane Maker manual](https://developer.x-plane.com/manuals/planemaker/index.html) and [X-Plane datarefs reference](https://developer.x-plane.com/datarefs/).
+For X-Plane-side aircraft design and dataref mapping, see the official [Plane Maker manual](https://developer.x-plane.com/manuals/planemaker/) and [X-Plane datarefs reference](https://developer.x-plane.com/datarefs/).
 
 ## 故障处理
 

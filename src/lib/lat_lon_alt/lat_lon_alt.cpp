@@ -50,7 +50,7 @@ LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
 	const double P = 4.0 / 3.0 * (E * F + 1);
 	const double Q = 2 * (E * E - F * F);
 	const double D = P * P * P + Q * Q;
-	const double V = pow(sqrt(D) - Q, 1.0 / 3.0) - pow(sqrt(D) + Q, 1.0 / 3.0);
+	const double V = cbrt(sqrt(D) - Q) - cbrt(sqrt(D) + Q);
 	const double G = 0.5 * (sqrt(E * E + V) + E);
 	const double T = sqrt(G * G + (F - V * G) / (2 * G - E)) - G;
 

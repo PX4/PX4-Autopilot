@@ -34,9 +34,11 @@
 
 #include "output_rc.h"
 
+#include <string.h>
 #include <uORB/topics/gimbal_controls.h>
 #include <px4_platform_common/defines.h>
 #include <matrix/matrix/math.hpp>
+#include <mixer_module/output_functions.hpp>
 
 namespace gimbal
 {
@@ -44,6 +46,7 @@ namespace gimbal
 OutputRC::OutputRC(const Parameters &parameters)
 	: OutputBase(parameters)
 {
+	_check_gimbal_output_functions_assigned();
 }
 
 void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
@@ -58,10 +61,14 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 
 	_calculate_angle_output(now);
 
-	_stream_device_attitude_status();
+	// Without any gimbal output function assigned to a channel there is no gimbal,
+	// so we should not act as a gimbal device (and hence not advertise a gimbal manager).
+	if (_gimbal_output_functions_assigned) {
+		_stream_device_attitude_status();
+	}
 
 	// If the output is RC, then we signal this by referring to compid 1.
-	gimbal_device_id = 1;
+	gimbal_device_id = _gimbal_output_functions_assigned ? 1 : 0;
 
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
@@ -72,6 +79,46 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 	_gimbal_controls_pub.publish(gimbal_controls);
 
 	_last_update = now;
+}
+
+void OutputRC::_check_gimbal_output_functions_assigned()
+{
+	_gimbal_output_functions_assigned = false;
+
+	for (unsigned i = 0; i < param_count(); ++i) {
+		const param_t param = param_for_index(i);
+
+		// Match the output function params of all output drivers, e.g. PWM_MAIN_FUNC1.
+		const char *suffix = strstr(param_name(param), "_FUNC");
+
+		if (suffix == nullptr || suffix[5] == '\0') {
+			continue;
+		}
+
+		bool digits_only = true;
+
+		for (const char *c = suffix + 5; *c != '\0'; ++c) {
+			if (*c < '0' || *c > '9') {
+				digits_only = false;
+				break;
+			}
+		}
+
+		if (!digits_only) {
+			continue;
+		}
+
+		int32_t function;
+
+		if (param_type(param) != PARAM_TYPE_INT32 || param_get(param, &function) != PX4_OK) {
+			continue;
+		}
+
+		if (function >= (int32_t)OutputFunction::Gimbal_Roll && function <= (int32_t)OutputFunction::Gimbal_Yaw) {
+			_gimbal_output_functions_assigned = true;
+			return;
+		}
+	}
 }
 
 float OutputRC::anglesMappedToOutput(const uint8_t index)
@@ -120,6 +167,8 @@ float OutputRC::anglesMappedToOutput(const uint8_t index)
 void OutputRC::print_status() const
 {
 	PX4_INFO("Output: AUX");
+	PX4_INFO_RAW("  gimbal output function assigned: %s\n",
+		     _gimbal_output_functions_assigned ? "yes (acting as gimbal device)" : "no (not acting as gimbal device)");
 }
 
 void OutputRC::_stream_device_attitude_status()

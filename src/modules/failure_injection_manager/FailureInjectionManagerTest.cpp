@@ -45,6 +45,7 @@ namespace
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
+constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
 
 constexpr uint8_t OK      = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
@@ -60,11 +61,19 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
-	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // motor is off-only (actuation)
+	EXPECT_FALSE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
+	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
 	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
+	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
 	// Unimplemented units.
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL, OFF));
-	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 }
 
 TEST(FailureTable, UnsupportedIsRejectedWithoutChange)
@@ -195,4 +204,34 @@ TEST(FailureTable, AddingInstanceToExistingEntryDoesNotCountAsNew)
 	table.fill(msg);
 	// gyro entry now covers instances 1 and 2
 	EXPECT_EQ(msg.instance_mask[0], 0x1 | 0x2);
+}
+
+TEST(FailureTable, InjectMaskSetsMultipleInstances)
+{
+	FailureTable table;
+	// bits 0 and 2 -> instances 1 and 3 (MAV_CMD_INJECT_FAILURE param4)
+	EXPECT_EQ(table.injectMask(GYRO, OFF, 0x5), AckResult::Accepted);
+	EXPECT_TRUE(table.changed());
+	ASSERT_EQ(table.count(), 1);
+
+	failure_injection_s msg{};
+	table.fill(msg);
+	EXPECT_EQ(msg.unit[0], GYRO);
+	EXPECT_EQ(msg.failure_type[0], OFF);
+	EXPECT_EQ(msg.instance_mask[0], 0x5);
+}
+
+TEST(FailureTable, InjectMaskZeroIsAcceptedNoOp)
+{
+	FailureTable table;
+	EXPECT_EQ(table.injectMask(GYRO, OFF, 0), AckResult::Accepted);
+	EXPECT_FALSE(table.changed());
+	EXPECT_EQ(table.count(), 0);
+}
+
+TEST(FailureTable, InjectMaskUnsupportedIsRejected)
+{
+	FailureTable table;
+	EXPECT_EQ(table.injectMask(GYRO, WRONG, 0x1), AckResult::Unsupported);
+	EXPECT_EQ(table.count(), 0);
 }

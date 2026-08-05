@@ -28,7 +28,7 @@ parameters:
       decimal: 2
     UUV_YAW_P:
       description:
-        short: Yawh proportional gain
+        short: Yaw proportional gain
       type: float
       default: 4.0
       decimal: 2

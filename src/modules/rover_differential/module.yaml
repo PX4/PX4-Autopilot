@@ -17,7 +17,7 @@ parameters:
 
       RD_TRANS_TRN_DRV:
         description:
-            short: Yaw error threshhold to switch from spot turning to driving
+            short: Yaw error threshold to switch from spot turning to driving
             long: |
               This threshold is used for the state machine to switch from turning to driving based on the
               error between the desired and actual yaw.
@@ -31,7 +31,7 @@ parameters:
 
       RD_TRANS_DRV_TRN:
         description:
-            short: Yaw error threshhold to switch from driving to spot turning
+            short: Yaw error threshold to switch from driving to spot turning
             long: |
               This threshold is used for the state machine to switch from driving to turning based on the
               error between the desired and actual yaw. It is also used as the threshold whether the rover should come
