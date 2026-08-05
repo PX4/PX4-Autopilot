@@ -39,9 +39,10 @@ param set SIH_VEHICLE_TYPE 0
 
 param set-default ZENOH_ENABLE 1
 
-param set-default EKF2_RNGBC_CTRL 0
-param set-default EKF2_AGP0_ID 123 # how to set this to my EKF not PX4?
-param set-default EKF2_AGP0_CTRL 1
+param set-default EKF2_SENS_EN 3855 # mask out AGP0-3 and ranging beacon (default 8191, minus bits 4,5,6,7,12)
+
+param set-default EKF2_AGP0_ID 111 # MLAT source
+param set-default EKF2_AGP0_CTRL 1 # enable AGP (both instances)
 
 param set-default SIH_RNGBC_EN 1
 param set-default SIH_RNGBC_INTV 134

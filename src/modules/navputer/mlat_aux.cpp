@@ -29,7 +29,7 @@ constexpr float kTolerance = 1.0f; // m
 
 // AGP publication: matches EKF2_AGP0_ID in the 10046_navput_quadx airframe, i.e. the
 // already-enabled slot 0 (Navputer::Navputer() hardcodes _fc.agp[0].enabled = true).
-constexpr uint8_t kAgpId = 123;
+constexpr uint8_t kAgpId = 111;
 
 struct BeaconInput {
 	matrix::Vector2f pos; // local north/east, m
