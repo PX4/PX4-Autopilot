@@ -68,7 +68,14 @@ public:
 
 private:
 	// Sensor Configuration
-	static constexpr uint32_t SAMPLE_INTERVAL_US{1000000 / 8000}; // 8 kHz internal sampling rate
+	static constexpr uint32_t SENSOR_ODR_HZ{8000};  // fixed internal sampling rate
+	static constexpr uint32_t SAMPLE_RATE_HZ{1000}; // rate the driver reads and publishes at
+	static constexpr uint32_t SAMPLE_INTERVAL_US{1000000 / SAMPLE_RATE_HZ};
+
+	// The ODR pin carries a copy of the internal sampling clock, so read on every Nth edge. The
+	// configured FLT cut-offs (60 Hz gyro, 400 Hz accel) sit inside the Nyquist limit of the
+	// decimated rate, so the discarded edges carry no signal.
+	static constexpr uint8_t DRDY_DECIMATION{SENSOR_ODR_HZ / SAMPLE_RATE_HZ};
 
 	// sensor output is invalid while the signal path settles after reset/configuration:
 	// discard samples (no publish, no clip evaluation) until this has elapsed
@@ -175,6 +182,7 @@ private:
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
+	uint8_t _drdy_count{0}; // only touched from the DRDY interrupt
 
 	enum class STATE : uint8_t {
 		RESET,

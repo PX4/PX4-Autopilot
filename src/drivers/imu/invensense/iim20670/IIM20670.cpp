@@ -154,7 +154,6 @@ void IIM20670::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
-			// start reading from the sensor at the full 8 kHz internal sampling rate
 			_state = STATE::READ;
 			_read_start_timestamp = now;
 
@@ -562,6 +561,12 @@ int IIM20670::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void IIM20670::DataReady()
 {
+	// the pin carries the free-running internal sampling clock, not a per-read data ready pulse
+	if (++_drdy_count < DRDY_DECIMATION) {
+		return;
+	}
+
+	_drdy_count = 0;
 	_drdy_timestamp_sample.store(hrt_absolute_time());
 	ScheduleNow();
 }
@@ -571,6 +576,8 @@ bool IIM20670::DataReadyInterruptConfigure()
 	if (_drdy_gpio == 0) {
 		return false;
 	}
+
+	_drdy_count = 0;
 
 	// Setup data ready on rising edge (sensor data request window opens 5 us after the ODR rising edge)
 	return px4_arch_gpiosetevent(_drdy_gpio, true, false, false, &DataReadyInterruptCallback, this) == 0;
