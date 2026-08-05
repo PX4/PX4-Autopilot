@@ -71,3 +71,9 @@ parameters:
         long: Enable/disable aux global position source 0 fusion in the navputer estimator.
       type: boolean
       default: 1
+    NPT_POS_LOCK:
+      description:
+        short: Enable constant position fusion while on ground
+        long: When enabled, constant position fusion is enabled when the vehicle is landeded if position has been initialized but has currently no vel/pos aiding.
+      type: boolean
+      default: 0

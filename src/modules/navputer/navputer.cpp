@@ -219,7 +219,7 @@ void Navputer::Run()
 		UpdateBaroSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangingBeaconSample(ekf2_timestamps);
-
+		UpdateSystemFlagsSample(ekf2_timestamps);
 
 		if (_ekf.update()) {
 			PublishLocalPosition(now);
@@ -688,6 +688,56 @@ void Navputer::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibrati
 			// count it towards total learning time.
 			cal = {};
 		}
+	}
+}
+
+void Navputer::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF system flags
+	if (_status_sub.updated() || _vehicle_land_detected_sub.updated()) {
+
+		systemFlagUpdate flags{};
+		flags.time_us = ekf2_timestamps.timestamp;
+
+		// vehicle_status
+		vehicle_status_s vehicle_status;
+
+		if (_status_sub.copy(&vehicle_status)
+		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
+
+			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+			// initially set in_air from arming_state (will be overridden if land detector is available)
+			flags.in_air = armed;
+
+			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+			flags.in_transition = vehicle_status.in_transition_mode;
+		}
+
+		// vehicle_land_detected
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)
+		    && (ekf2_timestamps.timestamp < vehicle_land_detected.timestamp + 3_s)) {
+
+			flags.at_rest = vehicle_land_detected.at_rest;
+			flags.in_air = !vehicle_land_detected.landed;
+			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+
+			flags.constant_pos = _param_npt_pos_lock.get() && !flags.in_air && _ekf.isGlobalHorizontalPositionValid();
+		}
+
+		launch_detection_status_s launch_detection_status;
+
+		if (_launch_detection_status_sub.copy(&launch_detection_status)
+		    && (ekf2_timestamps.timestamp < launch_detection_status.timestamp + 3_s)) {
+
+			flags.constant_pos |= (launch_detection_status.launch_detection_state ==
+					       launch_detection_status_s::STATE_WAITING_FOR_LAUNCH);
+		}
+
+		_ekf.setSystemFlagData(flags);
 	}
 }
 

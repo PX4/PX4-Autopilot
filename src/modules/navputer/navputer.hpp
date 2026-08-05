@@ -172,6 +172,8 @@ private:
 
 	void UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
 			       const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid);
+
+	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateAccelCalibration(const hrt_abstime &timestamp);
 	void UpdateGyroCalibration(const hrt_abstime &timestamp);
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
@@ -190,6 +192,10 @@ private:
 	uint8_t _gyro_calibration_count{0};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
@@ -245,7 +251,10 @@ private:
 		(ParamBool<px4::params::NPT_FUSE_BARO>) _param_npt_fuse_baro,
 		(ParamBool<px4::params::NPT_FUSE_MAG>) _param_npt_fuse_mag,
 		(ParamBool<px4::params::NPT_FUSE_RNGBC>) _param_npt_fuse_rngbc,
-		(ParamBool<px4::params::NPT_FUSE_AGP0>) _param_npt_fuse_agp0
+		(ParamBool<px4::params::NPT_FUSE_AGP0>) _param_npt_fuse_agp0,
+
+		// other
+		(ParamBool<px4::params::NPT_POS_LOCK>) _param_npt_pos_lock
 	)
 };
 #endif // !NAVPUTER_HPP
