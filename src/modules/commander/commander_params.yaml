@@ -371,17 +371,14 @@ parameters:
       decimal: 1
     COM_POS_FS_ACT:
       description:
-        short: Loss of position autonomous failsafe action
+        short: Loss of position failsafe action
         long: |-
-          If no autonomous horizontal navigation is possible anymore should the vehicle attempt to
-          descend blindly and land or terminate which can be preferable if there's a parachute and no pilot.
-
-          Action to take when autonomous horizontal navigation is lost:
-          - "Descend if possible" blind with potential drift and uncontrolled landing (risk of hitting obstacles)
-          - "Terminate" can be preferred for unpiloted use with emergency parachute
+          Final fallback failsafe action for loss of horizontal position:
+          - Descend (potential for horizontal drift on landing)
+          - Flight termination (allows parachute landing)
       type: enum
       values:
-        0: Descend if possible
+        0: Descend mode
         1: Terminate
       default: 0
     COM_VEL_FS_EVH:
