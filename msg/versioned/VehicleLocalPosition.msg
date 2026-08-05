@@ -81,6 +81,7 @@ bool dead_reckoning                     # True if this position is estimated thr
 float32 vxy_max				# maximum horizontal speed (meters/sec)
 float32 vz_max				# maximum vertical speed (meters/sec)
 float32 hagl_min			# minimum height above ground level (meters)
+# the hagl_max limits are hard limits, consumers are expected to apply their own margin to them
 float32 hagl_max_z			# maximum height above ground level for z-control (meters)
 float32 hagl_max_xy			# maximum height above ground level for xy-control (meters)
 
