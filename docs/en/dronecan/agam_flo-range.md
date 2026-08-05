@@ -1,14 +1,10 @@
 # Agam Flo Range Sensor
 
-![Agam FloRange Sensor](../../assets/hardware/sensors/optical_flow/agam_flo-range.png)
+Agam Flo Range Sensor is a DroneCAN [optical flow](../sensor/optical_flow.md), [distance sensor](../sensor/rangefinders.md), and IMU module, designed for PX4 and ArduPilot compatible autonomous vehicles.
 
-## Introduction
+![Agam Flo Range Sensor](../../assets/hardware/sensors/optical_flow/agam_flo-range.png)
 
-Agam Flo Range Sensor is a high-performance DroneCAN optical flow and laser rangefinder designed for PX4 and ArduPilot compatible autonomous vehicles. The sensor integrates a Broadcom Time-of-Flight (ToF) laser rangefinder, a PixArt optical flow sensor, and an industrial-grade TDK InvenSense ICM-42688-P IMU to provide accurate altitude estimation, terrain following, precision landing, and GPS-denied navigation.
-
-Designed around the DroneCAN protocol, Agam Flo Range Sensor provides plug-and-play integration with Pixhawk-compatible flight controllers while delivering reliable operation in demanding indoor and outdoor environments.
-
-The sensor is fully supported by PX4 and is suitable for multirotors, fixed-wing aircraft, VTOLs, rovers, boats, underwater vehicles, and other autonomous robotic platforms.
+The sensor is suitable for multirotors, fixed-wing aircraft, VTOLs, rovers, boats, underwater vehicles, and other autonomous robotic platforms, and requires **PX4 v1.15 or later**.
 
 The standard package includes:
 
@@ -19,170 +15,115 @@ The standard package includes:
 
 For enterprise, OEM, and bulk orders, contact Agam Robotics directly through their sales channel.
 
+## Where to Buy
+
+- [Agam Flo Range Sensor](https://www.agamrobotics.com/product-page/agam-florange-sensor)
+
 ## Hardware Specifications
 
-### Processor
-
-- STM32F412RET6
-- ARM Cortex-M4
-- Up to 100 MHz
-
-### Sensors
-
-- Broadcom AFBR-S50LV85D Time-of-Flight Laser Rangefinder
-- PixArt Optical Flow Sensor
-- TDK InvenSense ICM-42688-P 6-axis IMU
-
-### Interfaces
-
-- DroneCAN
-- CAN
-- SPI
-- SWD Debug Interface
-- Status LEDs
-
-### Distance Performance
-
-- Long-range laser distance measurement
-- High update rate
-- High ambient light immunity
-- Indoor and outdoor operation
-
-### Dimensions
-
-Sensor Module
-
-- Compact UAV form factor
-
-Weight
-
-- Lightweight design suitable for small and medium UAV platforms
-
-## Support (Compatible Devices)
-
-Agam Flo Range Sensor supports PX4 v1.15 and later as well as DroneCAN-compatible autopilots.
-
-Supported platforms include:
-
-- Agam Autopilot 6X-RT
-- Pixhawk FMUv5
-- Pixhawk FMUv6X
-- Pixhawk FMUv6X-RT
-- PX4 Flight Controllers
-- ArduPilot Flight Controllers
-
-Supported applications include:
-
-- Terrain Following
-- Precision Landing
-- Optical Flow Navigation
-- Position Hold
-- GPS-denied Navigation
-- Autonomous Landing
-- Low-altitude Flight
-- Indoor Navigation
-
-## Electrical Specification
-
-| Parameter             | Specification              |
-| --------------------- | -------------------------- |
-| MCU                   | STM32F412RET6              |
-| Distance Sensor       | Broadcom AFBR-S50LV85D     |
-| Optical Flow Sensor   | PixArt Optical Flow Sensor |
-| IMU                   | ICM-42688-P                |
-| Communication         | DroneCAN                   |
-| Operating Voltage     | 5 V                        |
-| Programming Interface | SWD                        |
-
-Additional hardware protection includes:
-
-- Reverse polarity protection
-- Over-voltage protection
-- EMI filtering
-- ESD protection
-- Brown-out protection
-- Hardware watchdog support
+- Sensors
+  - PixArt PAA3905E1 Optical Flow Sensor
+    <!-- check this: figures below are from the vendor product page; confirm before merge -->
+    - Working distance 80 mm to infinity
+    - 16-bit motion data output
+  - Broadcom AFBR-S50LV85D Time-of-Flight Distance Sensor
+    <!-- check this: figures below are from the vendor product page; confirm before merge -->
+    - Typical range up to 30 m, up to 100 m in dual-frequency mode
+    - Field of View 12.4° x 6.2° (32 pixels)
+    - Update rate up to 3 kHz
+    - Operates in up to 200k lux ambient light, 850 nm laser, Class 1 eye-safe
+  - TDK InvenSense ICM-42688-P 6-axis IMU
+- STM32F412RET6 MCU (ARM Cortex-M4, up to 100 MHz)
+- DroneCAN interface, SWD debug interface, status LED
+- Dimensions: 44.95 x 29.4 x 15.59 mm <!-- check this: from vendor product page -->
+- Weight: 9.38 g <!-- check this: from vendor product page -->
+- Operating voltage: 5 V <!-- check this: current draw / power consumption not published by vendor -->
+- Additional hardware protection: reverse polarity, over-voltage, EMI filtering, ESD, brown-out protection, hardware watchdog
 
 ## Hardware Setup
 
-A typical hardware setup consists of:
+### Wiring
 
-1. Mount the sensor securely on the underside of the airframe with an unobstructed downward field of view.
-2. Connect the DroneCAN cable to the flight controller.
-3. Supply power through the DroneCAN connector.
-4. Verify the status LED indicates normal operation.
-5. Configure the sensor in PX4 or ArduPilot.
-6. Verify optical flow and rangefinder data.
-7. Perform sensor calibration if required.
-8. Conduct a low-altitude hover test before normal operation.
+The Agam Flo Range Sensor is connected to the CAN bus using a Pixhawk standard 4-pin JST-GH cable.
+For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
 
-Refer to the wiring guide for connector-specific wiring diagrams.
+### Mounting
 
-## PX4 Configuration
+Mount the sensor securely on the underside of the airframe with an unobstructed downward field of view. <!-- check this: confirm recommended orientation / add orientation image if vendor provides one -->
 
-Agam Flo Range Sensor supports **PX4 firmware version 1.15 or later**.
+This corresponds to the default value (`0`) of [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT).
+Change the parameter appropriately if using a different orientation.
 
-Typical setup workflow:
+## Firmware Setup
 
-1. Install QGroundControl.
-2. Connect the DroneCAN network.
-3. Enable DroneCAN peripherals.
-4. Verify that the sensor is detected.
-5. Configure the rangefinder.
-6. Configure the optical flow sensor.
-7. Verify IMU data.
-8. Perform sensor calibration if required.
-9. Perform preflight safety checks.
+The Agam Flo Range Sensor integrates with the PX4 DroneCAN framework and follows the standard DroneCAN peripheral architecture, supporting firmware update over the CAN bus and [dynamic node allocation](index.md#node-id-allocation).
+<!-- check this: exact firmware/bootloader target names, and whether firmware update over CAN and dynamic
+     node allocation are actually supported, are not confirmed on Agam's own site — verify with Agam
+     Robotics and compare against ark_flow.md's "Firmware Setup" section before merge. -->
 
-The sensor follows the standard DroneCAN peripheral architecture and integrates with the PX4 DroneCAN framework.
+## Flight Controller Setup
 
-## Connectors
+::: info
+Confirm whether the Agam Flo Range Sensor requires an SD card in the flight controller to boot, as [ARK Flow](ark_flow.md) does. <!-- check this -->
+:::
 
-The sensor provides the following interfaces:
+### Enable DroneCAN
 
-- DroneCAN
-- SWD Debug Interface
+The steps are:
 
-Connector pinouts and wiring diagrams are available in the dedicated hardware documentation.
+- In _QGroundControl_ set the parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if using [DroneCAN ESCs](escs.md)) and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
+- Connect the Agam Flo Range Sensor CAN to the flight controller CAN.
 
-## Features
+DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enabling DroneCAN](index.md#enabling-dronecan).
 
-- STM32F412 ARM Cortex-M4 MCU
-- Broadcom AFBR-S50LV85D Time-of-Flight Laser Rangefinder
-- PixArt Optical Flow Sensor
-- TDK InvenSense ICM-42688-P IMU
-- DroneCAN communication
-- PX4 supported
-- ArduPilot compatible
-- Industrial-grade EMI and ESD protection
-- Low-latency sensor processing
-- High ambient light immunity
-- Compact and lightweight design
-- Designed and manufactured by Agam Robotics
+### PX4 Configuration
+
+First set the parameters to [Enable DroneCAN](#enable-dronecan) (as shown above).
+Then set the EKF optical flow and rangefinder parameters to enable fusing the sensor data, and define offsets if the sensor is not centred within the vehicle.
+
+Set the following parameters in _QGroundControl_:
+
+- Enable optical flow fusion by setting [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL).
+- To optionally disable GPS aiding, set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
+- Enable [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW).
+- Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
+- Set [EKF2_RNG_CTRL](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL) to `1`.
+- Set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to match the AFBR-S50LV85D's operating range (up to `30`, or `100` in dual-frequency mode). <!-- check this -->
+- Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
+- Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) and [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) to match the AFBR-S50LV85D's operating range. <!-- check this -->
+- Set [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) to match the PAA3905E1's minimum working distance (`0.08`). <!-- check this -->
+- Set [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT) appropriately for the vehicle's typical operating height. <!-- check this -->
+- Set [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR) to match the PAA3905E1's maximum angular flow rate. <!-- check this: not published by vendor -->
+- The parameters [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X), [EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) and [EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) can be set to account for the offset of the sensor from the vehicle centre of gravity.
+
+When optical flow is the only source of horizontal position/velocity, then lowering the gain for controller response to horizontal position error [MPC_XY_P](../advanced_config/parameter_reference.md#MPC_XY_P) (e.g. to 0.5) is recommended to reduce oscillations.
+
+## Agam Flo Range Sensor Configuration
+
+<!-- check this: table assumes standard PX4 CAN-node parameters (CANNODE_NODE_ID / CANNODE_TERM), per the
+     "Firmware Setup" note above — confirm the sensor actually exposes these before merge -->
+
+On the Agam Flo Range Sensor, you may need to configure the following parameters:
+
+| Parameter                                                                                                | Description                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-125 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination.                                                                                                         |
 
 ## Applications
 
-Agam Flo Range Sensor is designed for professional autonomous systems including:
+Agam Flo Range Sensor is suited to applications including:
 
-- Precision Agriculture
-- Surveying
-- Mapping
-- Infrastructure Inspection
-- Warehouse Automation
-- Indoor Navigation
-- GPS-denied Flight
-- Autonomous Landing
 - Terrain Following
-- Drone Delivery
-- Search and Rescue
-- Ground Robots (UGVs)
-- Surface Vehicles (USVs)
-- Research Platforms
-
-## Where to Buy
-
-https://www.agamrobotics.com/product-page/agam-florange-sensor
+- Precision Landing / Autonomous Landing
+- Optical Flow Navigation / Position Hold
+- GPS-denied Navigation
+- Indoor Navigation
+- Low-altitude Flight
+- Precision Agriculture, Surveying, Mapping, Infrastructure Inspection
+- Warehouse Automation, Drone Delivery, Search and Rescue
+- Ground Robots (UGVs), Surface Vehicles (USVs), Research Platforms
 
 ## See Also
 
-https://agamrobotics.gitbook.io/docs/sensors/agam-florange-sensor
+- [Agam Flo Range Sensor](https://agamrobotics.gitbook.io/docs/sensors/agam-florange-sensor) (Agam Robotics Docs)
