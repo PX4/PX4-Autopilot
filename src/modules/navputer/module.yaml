@@ -46,3 +46,28 @@ parameters:
       max: 500.0
       unit: m
       decimal: 1
+
+    NPT_FUSE_BARO:
+      description:
+        short: Barometer fusion enable
+        long: Enable/disable barometric height fusion in the navputer estimator.
+      type: boolean
+      default: 1
+    NPT_FUSE_MAG:
+      description:
+        short: Magnetometer fusion enable
+        long: Enable/disable magnetometer fusion in the navputer estimator.
+      type: boolean
+      default: 1
+    NPT_FUSE_RNGBC:
+      description:
+        short: Ranging beacon fusion enable
+        long: Enable/disable ranging beacon fusion in the navputer estimator.
+      type: boolean
+      default: 1
+    NPT_FUSE_AGP0:
+      description:
+        short: Aux global position 0 fusion enable
+        long: Enable/disable aux global position source 0 fusion in the navputer estimator.
+      type: boolean
+      default: 1

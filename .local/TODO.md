@@ -33,6 +33,7 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [x] Add beacon ranges/innovation/pass to deBIN. Ensure that SIH fix - fixes fusion. DEBILKO!!!
 * [ ] Add MLAT solver as AUX source.
   * [x] Separate fusion/data flow for SIH and NAVPUT.
+  * [x] Expose AUX fusion status
   * [ ] Forecast ranges to the event horizon.
   * [x] Show AUX pos in the deBIN.
   * [ ] Looks like raw ranges require some pre-filtering, or higher noise ratio for AUX src.
@@ -44,4 +45,4 @@ cd /home/ayakuba/src/poc/px4/build/px4_sitl_sih/src/modules/simulation/simulator
 * [ ] Where does heading error between Navput and EK2 come from? It revolves counter-clock-wise always.
 * [ ] Annoying timing exceptions during start when launching under debugger.
 * [ ] Figure out how to publish to custom topic, but reuse existing messages.
-=
+* [x] Expose params to control fusion

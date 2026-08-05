@@ -54,14 +54,18 @@ Navputer::Navputer(const px4::wq_config_t &config, bool replay_mode):
 {
 	AdvertiseTopics();
 
-	// TODO: hardcoding required params for now
-	_fc.baro.enabled = true;
-	_fc.mag.enabled = true;
-	_fc.rngbcn.enabled = true;
-	_fc.agp[0].enabled = true;
+	SyncFusionControlFlags();
 
 	// TODO: temp solution, should be provided externally or from Aux aid src
 	_ekf.resetGlobalPositionTo(49.796766, 24.347826, 270);
+}
+
+void Navputer::SyncFusionControlFlags()
+{
+	_fc.baro.enabled = _param_npt_fuse_baro.get();
+	_fc.mag.enabled = _param_npt_fuse_mag.get();
+	_fc.rngbcn.enabled = _param_npt_fuse_rngbc.get();
+	_fc.agp[0].enabled = _param_npt_fuse_agp0.get();
 }
 
 Navputer::~Navputer()
@@ -121,6 +125,8 @@ void Navputer::Run()
 
 		// update parameters from storage
 		updateParams();
+
+		SyncFusionControlFlags();
 
 		_ekf.updateParameters();
 	}

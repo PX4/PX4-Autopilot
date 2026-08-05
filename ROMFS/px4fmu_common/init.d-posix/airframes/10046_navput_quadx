@@ -39,11 +39,14 @@ param set SIH_VEHICLE_TYPE 0
 
 param set-default ZENOH_ENABLE 1
 
+# SIH EKF config
 param set-default EKF2_SENS_EN 3855 # mask out AGP0-3 and ranging beacon (default 8191, minus bits 4,5,6,7,12)
 
+# AGP is param driven, no per-instance levers
 param set-default EKF2_AGP0_ID 111 # MLAT source
-param set-default EKF2_AGP0_CTRL 1 # enable AGP (both instances)
+param set-default EKF2_AGP0_CTRL 1 # enable AGP (both EKF instances)
 
+# Simulation
 param set-default SIH_RNGBC_EN 1
 param set-default SIH_RNGBC_INTV 134
 param set-default SIH_RNGBC_NOISE 50.0
@@ -51,8 +54,13 @@ param set-default SIH_RNGBC_NOISE 50.0
 param set-default SIH_LOC_LAT0 49.796766
 param set-default SIH_LOC_LON0 24.347826
 
-# param set-default SENS_EN_AGPSIM 1
-# param set-default SIM_AGP_NOISE 30
-# param set-default SIM_AGP_INTV 500
+# Navputer HW setup
+param set-default NPT_RNGBC_CTRL 1
+
+# Enable fusion of all NAVPUT sensors
+param set-defautl NPT_FUSE_BARO 1
+param set-defautl NPT_FUSE_MAG 1
+param set-defautl NPT_FUSE_RNGBC 1
+param set-defautl NPT_FUSE_AGP0 1
 
 navputer start

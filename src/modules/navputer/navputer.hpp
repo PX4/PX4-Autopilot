@@ -141,6 +141,7 @@ private:
 
 	void AdvertiseTopics();
 	void VerifyParams();
+	void SyncFusionControlFlags();
 
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishLocalPosition(const hrt_abstime &timestamp);
@@ -238,7 +239,13 @@ private:
 		(ParamExtInt<px4::params::NPT_RNGBC_CTRL>) _param_npt_rngbc_ctrl,
 		(ParamExtFloat<px4::params::NPT_RNGBC_DELAY>) _param_npt_rngbc_delay,
 		(ParamExtFloat<px4::params::NPT_RNGBC_NOISE>) _param_npt_rngbc_noise,
-		(ParamExtFloat<px4::params::NPT_RNGBC_GATE>) _param_npt_rngbc_gate
+		(ParamExtFloat<px4::params::NPT_RNGBC_GATE>) _param_npt_rngbc_gate,
+
+		// per-source fusion enable
+		(ParamBool<px4::params::NPT_FUSE_BARO>) _param_npt_fuse_baro,
+		(ParamBool<px4::params::NPT_FUSE_MAG>) _param_npt_fuse_mag,
+		(ParamBool<px4::params::NPT_FUSE_RNGBC>) _param_npt_fuse_rngbc,
+		(ParamBool<px4::params::NPT_FUSE_AGP0>) _param_npt_fuse_agp0
 	)
 };
 #endif // !NAVPUTER_HPP
