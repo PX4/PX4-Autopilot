@@ -148,7 +148,8 @@ private:
 	bool DataReadyInterruptDisable();
 
 	template <typename T> bool RegisterCheck(const T &reg_cfg);
-	template <typename T> uint16_t RegisterRead(T reg);
+	// returns false (leaving value untouched) if the response fails CRC or reports a bad status
+	template <typename T> bool RegisterRead(T reg, uint16_t &value);
 	template <typename T> void RegisterWrite(T reg, uint16_t value);
 	template <typename T> void RegisterSetAndClearBits(T reg, uint16_t setbits, uint16_t clearbits);
 	template <typename T> void RegisterSetBits(T reg, uint16_t setbits) { RegisterSetAndClearBits(reg, setbits, 0); }
