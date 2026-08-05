@@ -127,7 +127,6 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
 	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO overflow")};
@@ -137,8 +136,6 @@ private:
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 
 	hrt_abstime _reset_timestamp{0};
-	hrt_abstime _last_config_check_timestamp{0};
-	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
 
 	bool _enable_clock_input{false};
@@ -157,7 +154,6 @@ private:
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
-	uint8_t _checked_register_bank0{0};
 	static constexpr uint8_t size_register_bank0_cfg{13};
 	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
 		// route only the FIFO threshold (watermark) interrupt to INT1
