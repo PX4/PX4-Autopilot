@@ -141,7 +141,6 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
 	perf_counter_t _fifo_overflow_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO overflow")};
@@ -149,7 +148,6 @@ private:
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
-	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
 
@@ -186,7 +184,6 @@ private:
 	uint16_t _fifo_empty_interval_us{500}; // default 500 us / 2000 Hz
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_ODR))};
 
-	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{14};
 	// Variant-dependent fields (HAODR_CFG, CTRL1/2/6/8, FIFO_CTRL3, COUNTER_BDR_REG1,
 	// CTRL1_XL_HG) are overwritten in UpdateVariantRegisterConfig(); initializers below are

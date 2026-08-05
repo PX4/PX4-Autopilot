@@ -76,7 +76,6 @@ LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 
 LSM6DSV::~LSM6DSV()
 {
-	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
 	perf_free(_fifo_overflow_perf);
@@ -166,7 +165,6 @@ void LSM6DSV::print_status()
 		PX4_INFO("Accel channel: high-g, full-scale +/-%u g", (unsigned)_hg_fs->range_g);
 	}
 
-	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
 	perf_print_counter(_fifo_overflow_perf);
@@ -387,23 +385,10 @@ void LSM6DSV::RunImpl()
 				}
 			}
 
-			// periodically check configuration registers
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				if (RegisterCheck(_register_cfg[_checked_register])) {
-					_last_config_check_timestamp = now;
-					_checked_register = (_checked_register + 1) % size_register_cfg;
-
-				} else {
-					perf_count(_bad_register_perf);
-					Reset();
-				}
-
-			} else {
-				// periodically update temperature (~1 Hz)
-				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
-					UpdateTemperature();
-					_temperature_update_timestamp = now;
-				}
+			// periodically update temperature (~1 Hz)
+			if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+				UpdateTemperature();
+				_temperature_update_timestamp = now;
 			}
 		}
 
@@ -708,7 +693,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 		return false;
 	}
 
-	const uint32_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+	const uint32_t error_count = perf_event_count(_bad_transfer_perf) +
 				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
 
 	if (gyro.samples > 0) {
