@@ -373,7 +373,7 @@ parameters:
       description:
         short: Loss of position failsafe action
         long: |-
-          Final fallback failsafe action for loss of horizontal position:
+          Final fallback failsafe action for loss of horizontal position in autonomous modes:
           - Descend (potential for horizontal drift on landing)
           - Flight termination (allows parachute landing)
       type: enum
