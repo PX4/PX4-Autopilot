@@ -102,9 +102,9 @@ int IIM20670::probe()
 	SelectRegisterBank(0, true);
 
 	for (int i = 0; i < 3; i++) {
-		const uint16_t fixed_value = RegisterRead(Register::BANK_0::FIXED_VALUE_REG);
+		uint16_t fixed_value = 0;
 
-		if (fixed_value == FIXED_VALUE) {
+		if (RegisterRead(Register::BANK_0::FIXED_VALUE_REG, fixed_value) && (fixed_value == FIXED_VALUE)) {
 			return PX4_OK;
 		}
 
@@ -130,21 +130,24 @@ void IIM20670::RunImpl()
 		ScheduleDelayed(200_ms); // start-up time for register read/write from power-up
 		break;
 
-	case STATE::WAIT_FOR_RESET:
-		if (RegisterRead(Register::BANK_0::FIXED_VALUE_REG) == FIXED_VALUE) {
-			_state = STATE::CONFIGURE;
-			ScheduleNow();
+	case STATE::WAIT_FOR_RESET: {
+			uint16_t fixed_value = 0;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+			if (RegisterRead(Register::BANK_0::FIXED_VALUE_REG, fixed_value) && (fixed_value == FIXED_VALUE)) {
+				_state = STATE::CONFIGURE;
+				ScheduleNow();
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
 		}
 
@@ -239,7 +242,7 @@ void IIM20670::RunImpl()
 				}
 
 			} else {
-				perf_count(_bad_transfer_perf);
+				// CheckResponse() has already counted the CRC or status failure
 				_failure_count++;
 
 				// full reset if things are failing consistently
@@ -262,10 +265,10 @@ bool IIM20670::Configure()
 	}
 
 	// verify identity now that bank 1 is accessible
-	const uint8_t whoami = RegisterRead(Register::BANK_1::WHOAMI) & 0xFF;
+	uint16_t whoami = 0;
 
-	if (whoami != WHOAMI) {
-		PX4_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+	if (!RegisterRead(Register::BANK_1::WHOAMI, whoami) || ((whoami & 0xFF) != WHOAMI)) {
+		PX4_DEBUG("unexpected WHO_AM_I 0x%02x", whoami & 0xFF);
 		return false;
 	}
 
@@ -423,7 +426,12 @@ bool IIM20670::RegisterCheck(const T &reg_cfg)
 {
 	bool success = true;
 
-	const uint16_t reg_value = RegisterRead(reg_cfg.reg);
+	uint16_t reg_value = 0;
+
+	if (!RegisterRead(reg_cfg.reg, reg_value)) {
+		PX4_DEBUG("0x%02hhX: read failed", (uint8_t)reg_cfg.reg);
+		return false;
+	}
 
 	if (reg_cfg.set_bits && ((reg_value & reg_cfg.set_bits) != reg_cfg.set_bits)) {
 		PX4_DEBUG("0x%02hhX: 0x%04hX (0x%04hX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
@@ -439,7 +447,7 @@ bool IIM20670::RegisterCheck(const T &reg_cfg)
 }
 
 template <typename T>
-uint16_t IIM20670::RegisterRead(T reg)
+bool IIM20670::RegisterRead(T reg, uint16_t &value)
 {
 	SelectRegisterBank(reg);
 
@@ -449,7 +457,12 @@ uint16_t IIM20670::RegisterRead(T reg)
 	TransferSpiFrame(cmd);
 	const uint32_t response = TransferSpiFrame(cmd);
 
-	return (response >> 8) & 0xFFFF;
+	if (!CheckResponse(response)) {
+		return false;
+	}
+
+	value = (response >> 8) & 0xFFFF;
+	return true;
 }
 
 template <typename T>
@@ -462,9 +475,17 @@ void IIM20670::RegisterWrite(T reg, uint16_t value)
 template <typename T>
 void IIM20670::RegisterSetAndClearBits(T reg, uint16_t setbits, uint16_t clearbits)
 {
-	const uint16_t orig_val = RegisterRead(reg);
+	uint16_t orig_val = 0;
 
-	uint16_t val = (orig_val & ~clearbits) | setbits;
+	// The datasheet requires read-modify-write here: every bit outside the configured field is
+	// reserved, and "changing them might cause unwanted effects" (section 6.17). Writing back a
+	// response that failed validation would do exactly that, so skip the write and let the
+	// Configure() verification pass fail instead.
+	if (!RegisterRead(reg, orig_val)) {
+		return;
+	}
+
+	const uint16_t val = (orig_val & ~clearbits) | setbits;
 
 	if (orig_val != val) {
 		RegisterWrite(reg, val);
@@ -514,7 +535,12 @@ bool IIM20670::CheckResponse(uint32_t response)
 
 	const uint8_t return_status = (response >> 24) & 0x3;
 
-	return return_status == RS_SUCCESS;
+	if (return_status != RS_SUCCESS) {
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
+
+	return true;
 }
 
 uint32_t IIM20670::TransferSpiFrame(uint32_t frame)
