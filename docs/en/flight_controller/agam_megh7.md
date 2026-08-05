@@ -1,6 +1,6 @@
 # Agam MegH7 v1.1 Flight Controller
 
-![Agam MegH7](../../../docs/assets/flight_controller/agam_megh7/agam_megh7.png)
+![Agam MegH7](../../assets/flight_controller/agam_megh7/agam_megh7.png)
 
 ## Introduction
 
@@ -25,7 +25,6 @@ Included accessories:
 - 2 × JST-SH 6-pin DJI Air Unit cables (80 mm & 150 mm)
 
 For OEM, B2B, and bulk orders, contact **info@agamrobotics.com**.
-
 
 ## Hardware Specifications
 
@@ -106,29 +105,26 @@ The Agam MegH7 is compatible with numerous PX4-supported peripherals.
 - ESCs
 - 4-in-1 ESC
 
-
-
 ## Electrical Specifications
 
-| Parameter | Specification |
-|------------|---------------|
-| MCU | STM32H743 |
-| Input Voltage | 2S–8S LiPo |
-| USB | Type-C |
-| 5 V BEC | 5 V @ 3 A |
-| 10 V BEC | 10 V @ 3 A |
-| UART | 7 |
-| CAN | 1 |
-| PWM Outputs | 9 |
-| Blackbox | Full-size MicroSD |
-| SPI Flash | Optional |
+| Parameter     | Specification     |
+| ------------- | ----------------- |
+| MCU           | STM32H743         |
+| Input Voltage | 2S–8S LiPo        |
+| USB           | Type-C            |
+| 5 V BEC       | 5 V @ 3 A         |
+| 10 V BEC      | 10 V @ 3 A        |
+| UART          | 7                 |
+| CAN           | 1                 |
+| PWM Outputs   | 9                 |
+| Blackbox      | Full-size MicroSD |
+| SPI Flash     | Optional          |
 
 ### Status Indicators
 
 - 2 × User LEDs
 - 3.3 V Power LED
 - 10 V VTX Indicator
-
 
 ## Hardware Setup
 
@@ -168,24 +164,23 @@ Typical configuration steps:
 6. Verify actuator outputs.
 7. Perform preflight checks.
 
-
 ## Connectors
 
 ### Main Connectors
 
-| Connector | Description |
-|------------|-------------|
-| USB Type-C | Firmware & Configuration |
-| MicroSD | Blackbox Logging |
-| ESC | JST-SH 8-pin |
-| GPS | JST-GH 6-pin |
-| Telemetry | JST-GH 6-pin (Flow Control) |
-| Digital VTX | JST-SH 6-pin |
-| Receiver | JST-GH 4-pin |
-| CAN | JST-GH 4-pin |
-| SPI | JST-SH 8-pin |
-| I²C | JST-SH 4-pin |
-| LED/Buzzer | JST-SH 4-pin |
+| Connector   | Description                 |
+| ----------- | --------------------------- |
+| USB Type-C  | Firmware & Configuration    |
+| MicroSD     | Blackbox Logging            |
+| ESC         | JST-SH 8-pin                |
+| GPS         | JST-GH 6-pin                |
+| Telemetry   | JST-GH 6-pin (Flow Control) |
+| Digital VTX | JST-SH 6-pin                |
+| Receiver    | JST-GH 4-pin                |
+| CAN         | JST-GH 4-pin                |
+| SPI         | JST-SH 8-pin                |
+| I²C         | JST-SH 4-pin                |
+| LED/Buzzer  | JST-SH 4-pin                |
 
 ### Exposed Pads
 
@@ -244,14 +239,11 @@ The Agam MegH7 is designed for:
 - Indoor Navigation
 - CAN-based Robotics
 
-
 ## Where to Buy
 
 The Agam MegH7 v1.1 Flight Controller is available directly from
 **Agam Robotics**.
 https://www.agamrobotics.com/shop
-
-
 
 ## For further updates
 

@@ -2,7 +2,7 @@
 
 The Agam GNSS01 CAN is a Made in India GNSS/GPS module designed for PX4-compatible flight controllers. It integrates the u-blox NEO-M9N GNSS receiver with an onboard IMU, barometer, magnetometer, safety switch, and buzzer. The module communicates over the CAN interface using DroneCAN and provides reliable positioning, navigation, and orientation for autonomous flight applications.
 
-![Agam GNSS01 CAN](../../../docs/assets/hardware/gps/agam_robotics/agam_gnns01.png)
+![Agam GNSS01 CAN](../../assets/hardware/gps/agam_robotics/agam_gnns01.png)
 
 ## Where to Buy
 

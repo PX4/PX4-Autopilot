@@ -2,7 +2,7 @@
 
 The Agam DPM01 is a digital power module designed for PX4-compatible flight controllers. It provides regulated 5 V power to the flight controller while measuring battery voltage and current through an I2C interface for battery monitoring and power management.
 
-![Agam DPM01](../../../docs/assets/hardware/power_module/agam_robotics_dpm/agam_dpm01_powermodule.png)
+![Agam DPM01](../../assets/hardware/power_module/agam_robotics_dpm/agam_dpm01_powermodule.png)
 
 ## Where to Buy
 
@@ -60,7 +60,6 @@ The module should be securely mounted to minimize vibration and cable strain.
 
 ## PX4 Configuration
 
-
 Agam Autopilot V6X-RT supports Digital Power Modules such as the DPM01.
 
 In PX4 v1.15 or later, the module is automatically detected.
@@ -72,6 +71,7 @@ Enable the following parameter:
 No current divider or voltage divider configuration is required in the Battery Configuration settings, unlike analog power modules.
 
 The default calibration values provide measurement accuracy within ±5%.
+
 1. Open QGroundControl.
 2. Navigate to **Vehicle Setup > Power**.
 3. Verify the battery voltage and current measurements.

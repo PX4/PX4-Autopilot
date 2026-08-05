@@ -2,7 +2,7 @@
 
 The Agam GNSS02 CAN RTK is a Made in India high-precision GNSS/RTK module designed for PX4-compatible flight controllers. It integrates the u-blox NEO-F9P multi-band GNSS receiver with an onboard IMU, barometer, magnetometer, safety switch, and buzzer. The module communicates over the CAN interface using DroneCAN and provides centimeter-level RTK positioning for autonomous flight applications.
 
-![Agam GNSS02 CAN RTK](../../../docs/assets/hardware/gps/agam_robotics/agam_gnns02.png)
+![Agam GNSS02 CAN RTK](../../assets/hardware/gps/agam_robotics/agam_gnns02.png)
 
 ## Where to Buy
 
