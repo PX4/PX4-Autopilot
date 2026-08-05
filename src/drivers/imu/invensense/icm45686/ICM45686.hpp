@@ -133,6 +133,10 @@ private:
 	perf_counter_t _fifo_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO reset")};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
+	// held here rather than on the work queue stack: 641 bytes is a large frame for wq:SPIx, and
+	// reusing it across cycles avoids re-zeroing a buffer that transfer() overwrites anyway
+	FIFOTransferBuffer _fifo_buffer{};
+
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 
 	hrt_abstime _reset_timestamp{0};
