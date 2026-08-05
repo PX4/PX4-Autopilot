@@ -44347,6 +44347,22 @@ Number of voltage pulses per one rotor revolution on the capturing pin.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 1        | 50       |           | 1       |      | &nbsp;    |
 
+### SYS_AUTOCFG_CAL (`INT32`) {#SYS_AUTOCFG_CAL}
+
+Sensor calibration in SYS_AUTOCONFIG reset.
+
+If enabled, a SYS_AUTOCONFIG reset overwrites stored sensor calibration with the airframe's built-in defaults.
+Enable when the airframe ships its own calibration.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ### SYS_AUTOCONFIG (`INT32`) {#SYS_AUTOCONFIG}
 
 Automatically configure default values.
