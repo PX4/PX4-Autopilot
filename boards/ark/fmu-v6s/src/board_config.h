@@ -206,8 +206,6 @@
 #define HW_INFO_INIT_PREFIX    "ARKV6S"
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
-//                 Base/FMUM
-#define ARKV6S_0   HW_FMUM_ID(0x0) // ARKV6S,     Sensor Set  Rev 0
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
