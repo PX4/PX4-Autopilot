@@ -394,6 +394,7 @@ struct parameters {
 	float ekf2_gsf_tas{15.0f};              ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000}; ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};     ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+	const unsigned EKFGSF_min_active_time{10'000'000}; ///< Minimum period of continuous EKF-GSF velocity fusion after an in-flight restart
 
 #endif // CONFIG_EKF2_GNSS
 
