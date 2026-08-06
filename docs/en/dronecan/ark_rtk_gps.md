@@ -96,6 +96,8 @@ You may need to [configure the following parameters](../dronecan/index.md#qgc-ca
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-125 to use a static node ID. |
 | <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination. Set to `1` if this is the last node on the CAN bus.                                                     |
+| <a id="GPS_UBX_BAUD1"></a>[GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1)       | UART1 target baudrate after auto-detect. Board default is `921600` (short on-module MCU↔F9P link). Lower only if UART1 is rewired over a long serial cable. |
+| <a id="GPS_UBX_BAUD2"></a>[GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2)       | UART2 baudrate (default `230400`). Used when two modules exchange RTCM over UART2 ([GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) 1/2). |
 
 ### Setting Up Rover and Fixed Base
 
@@ -137,6 +139,7 @@ Setup via CAN:
 - On the _Moving Base_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `4`.
   - [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) to `1`.
+- Leave [GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1) at the board default (`921600`) on both nodes unless UART1 has been rewired off-board.
 - On the _Flight Controller_, set [SENS_GPS_PRIME](../advanced_config/parameter_reference.md#SENS_GPS_PRIME) to the CAN node ID of the _Moving Base_ (see [PX4 Configuration](#px4-configuration)).
 
 Setup via UART:
@@ -156,6 +159,7 @@ Setup via UART:
   - [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to `0` if your _Rover_ is in front of your _Moving Base_, `90` if _Rover_ is right of _Moving Base_, `180` if _Rover_ is behind _Moving Base_, or `270` if _Rover_ is left of _Moving Base_.
 - On the _Moving Base_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `2`.
+- Optionally set [GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2) on both nodes if the UART2 link needs a rate other than the default `230400`.
 - On the _Flight Controller_, set [SENS_GPS_PRIME](../advanced_config/parameter_reference.md#SENS_GPS_PRIME) to the CAN node ID of the _Moving Base_ (see [PX4 Configuration](#px4-configuration)).
 
 For more information see [Rover and Moving Base](../dronecan/index.md#rover-and-moving-base) in the DroneCAN guide.
