@@ -45,6 +45,7 @@
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/sensor_gnss_rf.h>
 #include <uORB/topics/sensor_gnss_spectrum.h>
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
