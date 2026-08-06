@@ -1,7 +1,7 @@
 # Descend Mode (Fixed-Wing)
 
-_Descend_ is a [failsafe](../config/safety.md) fallback mode.
-It is activated automatically by PX4 and cannot be selected by the pilot. It only appears as a status label.
+_Descend_ is a [failsafe](../config/safety.md) fallback mode that is activated automatically by PX4.
+The mode is published when active but cannot be selected by the pilot.
 
 The vehicle descends open-loop: it circles at a fixed bank angle ([FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)) and descends at a fixed 0.5 m/s, but does not control its ground position, so the circle drifts with the wind.
 It is the last resort used when the vehicle must come down but has no valid position estimate for a controlled descent.
@@ -16,8 +16,18 @@ It is the last resort used when the vehicle must come down but has no valid posi
 
 ## When It Occurs
 
-Descend is the bottom of the failsafe chain (`Hold → Return → Land → Descend`).
-PX4 falls through to it whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run. For example:
+Descend mode is at the bottom of the failsafe chain (along with [Flight termination](../advanced_config/flight_termination.md)):
+
+```text
+Hold → Return → Land → ( Descend | Terminate )
+```
+
+::: tip
+[COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT) <Badge type="tip" text="main (PX4 v2.0)" /> selects whether `Descend` or `Terminate` is used as the failsafe.
+:::
+
+PX4 falls through to Descend mode whenever a failsafe needs to bring the vehicle down or hold position but the position estimate is missing, so none of the higher options can run.
+For example:
 
 - Losing the position estimate while landing, e.g. GNSS and airspeed sensors fail during [Land](../flight_modes_fw/land.md): the vehicle keeps descending, but now open-loop as _Descend_.
 - Losing the position estimate in [Hold](../flight_modes_fw/hold.md), [Mission](../flight_modes_fw/mission.md) or [Return](../flight_modes_fw/return.md): with no position to hold, fly to, or return with, the failsafe escalates down to _Descend_.
@@ -25,10 +35,10 @@ PX4 falls through to it whenever a failsafe needs to bring the vehicle down or h
 
 ## Exiting Descend
 
-Descend ends when either:
+Descend ends when either the:
 
-- the failsafe condition is resolved (e.g. the position estimate recovers), and the vehicle returns to its previous mode; or
-- the pilot takes over by switching to a manual mode ([Cruise](../flight_modes_fw/cruise.md), [Altitude](../flight_modes_fw/altitude.md) or [Stabilized](../flight_modes_fw/stabilized.md)).
+- failsafe condition is resolved (e.g. the position estimate recovers), and the vehicle returns to its previous mode; or
+- pilot takes over by switching to a manual mode ([Cruise](../flight_modes_fw/cruise.md), [Altitude](../flight_modes_fw/altitude.md) or [Stabilized](../flight_modes_fw/stabilized.md)).
 
 ## See Also
 
