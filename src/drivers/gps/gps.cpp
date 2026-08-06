@@ -1539,6 +1539,20 @@ GPS::print_status()
 	perf_print_counter(_rtcm_corrections_injection_perf);
 	perf_print_counter(_rtcm_moving_baseline_injection_perf);
 
+	const gnss::CorrectionFramerStats corrections_stats = _rtcm_corrections_framer.getStats();
+	PX4_INFO("corrections framed: %u RTCM3, %u SPARTN, %u UBX, %u CRC errors, %u bytes discarded",
+		 (unsigned)corrections_stats.rtcm3_messages, (unsigned)corrections_stats.spartn_messages,
+		 (unsigned)corrections_stats.ubx_messages, (unsigned)corrections_stats.crc_errors,
+		 (unsigned)corrections_stats.bytes_discarded);
+
+	const gnss::CorrectionFramerStats mb_stats = _rtcm_moving_baseline_framer.getStats();
+
+	if (mb_stats.messages_parsed > 0 || mb_stats.crc_errors > 0 || mb_stats.bytes_discarded > 0) {
+		PX4_INFO("moving baseline framed: %u RTCM3, %u CRC errors, %u bytes discarded",
+			 (unsigned)mb_stats.rtcm3_messages, (unsigned)mb_stats.crc_errors,
+			 (unsigned)mb_stats.bytes_discarded);
+	}
+
 	if (_instance == Instance::Main && _secondary_instance.load()) {
 		GPS *secondary_instance = _secondary_instance.load();
 		secondary_instance->print_status();
