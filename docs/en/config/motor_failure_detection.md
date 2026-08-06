@@ -205,12 +205,14 @@ The vehicle still flies, so the command stays near hover and the residual stays 
 
 ## Upgrading From PX4 v1.18
 
-Setting [MOTFAIL_UNDER](#MOTFAIL_UNDER) to 0 selects a single symmetric band: a motor is flagged when the residual leaves `±MOTFAIL_OVER` in either direction for [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME).
-That is the shape of the check in PX4 v1.18 and earlier, and it is what an upgraded vehicle keeps.
-`MOTFAIL_OFF` is renamed to [MOTFAIL_OVER](#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) when the parameters are imported, and [MOTFAIL_UNDER](#MOTFAIL_UNDER) defaults to 0.
+In PX4 v1.18 and earlier, the check compared the _instantaneous_ current residual against a single symmetric threshold, `±MOTFAIL_OFF`, held for `MOTFAIL_TIME`.
 
-The check is not identical to the older one.
-The residual is now low-pass filtered before it is compared, so a sustained deviation is needed rather than isolated samples.
+From PX4 main (v2.0), the residual is low-pass filtered before it's compared, so a sustained deviation is needed rather than isolated samples, and the single threshold is replaced by two independent bands: [MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) for undercurrent and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) for overcurrent.
+The current model also gains an offset term ([MOTFAIL_IDLE](#MOTFAIL_IDLE)), and the [offline replay tool](../debug/motor_failure_replay.md) is available to calibrate the new parameters from logs.
+
+None of that changes behaviour on an upgraded vehicle by default: `MOTFAIL_OFF` is renamed to [MOTFAIL_OVER](#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) on import, and [MOTFAIL_UNDER](#MOTFAIL_UNDER) defaults to 0 — which selects the single symmetric band, the v1.18 shape of the check, until reconfigured.
+
+The thresholds are still worth re-deriving: see [Choosing Parameter Values](#choosing-parameter-values).
 
 ## See Also
 
