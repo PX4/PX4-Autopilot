@@ -470,9 +470,6 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
-#define PX4_I2C_BUS_MTD      4,5
-
-
 #define BOARD_NUM_IO_TIMERS 4
 
 /* No CDCACM driver for this board, so this is manually defined for version.c
