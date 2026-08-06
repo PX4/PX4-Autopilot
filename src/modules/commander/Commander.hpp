@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 using math::constrain;
@@ -167,9 +168,42 @@ private:
 
 	unsigned handleCommandActuatorTest(const vehicle_command_s &cmd);
 
+	/**
+	 * @brief Resolve the altitude a takeoff command will climb to
+	 *
+	 * A takeoff command does not have to carry an altitude. In that case the navigator takes off to
+	 * MIS_TAKEOFF_ALT above the current altitude, so the altitude the command results in has to be resolved
+	 * here to be able to check it. Does not apply to a VTOL takeoff, which has no such default.
+	 *
+	 * @param commanded_altitude_amsl altitude of the takeoff command, NAN if not set [m AMSL]
+	 * @return altitude the vehicle will climb to, NAN if it cannot be determined [m AMSL]
+	 */
+	float getTakeoffAltitudeAmsl(float commanded_altitude_amsl);
+
+	/**
+	 * @brief Highest altitude a takeoff can be commanded to
+	 *
+	 * Derived from the maximum height above the ground the estimator can support with the currently available
+	 * aiding sources, so that a takeoff is rejected before the vehicle leaves the ground instead of running
+	 * into the limit during the climb.
+	 *
+	 * @return maximum takeoff altitude [m AMSL], NAN if there is no limit
+	 */
+	float getMaxTakeoffAltitudeAmsl();
+
+	/**
+	 * @brief Check a commanded takeoff altitude against the limit
+	 *
+	 * @param altitude_amsl commanded takeoff altitude [m AMSL]
+	 * @return true if the commanded altitude exceeds the limit
+	 */
+	bool isTakeoffAltitudeAboveLimit(float altitude_amsl);
+
 	void executeActionRequest(const action_request_s &action_request);
 
 	void printRejectMode(uint8_t nav_state);
+
+	void printRejectTakeoffAltitude();
 
 	void updateControlMode();
 
@@ -317,6 +351,8 @@ private:
 #endif // BOARD_HAS_POWER_CONTROL
 
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// Publications
@@ -352,4 +388,8 @@ private:
 		(ParamInt<px4::params::COM_FLTMODE_BOOT>)   _param_com_fltmode_boot,
 		(ParamInt<px4::params::NAV_RCL_ACT>)        _param_nav_rcl_act
 	)
+
+	// Owned by the navigator, which is not part of every build that includes the commander, hence the handle
+	// instead of a typed parameter.
+	const param_t _param_mis_takeoff_alt_handle{param_find("MIS_TAKEOFF_ALT")};
 };
