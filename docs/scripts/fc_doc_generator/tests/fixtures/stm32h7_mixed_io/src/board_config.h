@@ -1,0 +1,10 @@
+#define DIRECT_PWM_OUTPUT_CHANNELS  9
+#define BOARD_NUMBER_BRICKS          2
+#define BOARD_HAS_LTC44XX_VALIDS     2
+#define BOARD_HAS_NBAT_V             2
+#define BOARD_HAS_NBAT_I             2
+#define GPIO_nPOWER_IN_CAN           /* PG2 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN2)
+#define GPIO_nVDD_BRICK2_VALID       GPIO_nPOWER_IN_CAN
+#define PX4IO_SERIAL_DEVICE "/dev/ttyS5"
+#define HRT_PPM_CHANNEL  1
+#define GPIO_PPM_IN  GPIO_TIM8_CH1IN

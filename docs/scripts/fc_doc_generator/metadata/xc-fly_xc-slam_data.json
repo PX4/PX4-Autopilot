@@ -1,0 +1,230 @@
+{
+  "board": "xc-fly/xc-slam",
+  "chip_family": "stm32h7",
+  "chip_model": "STM32H743",
+  "total_outputs": 8,
+  "has_io_board": false,
+  "io_outputs": 0,
+  "groups": [
+    {
+      "group": 1,
+      "timer": "Timer1",
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 2,
+      "timer": "Timer2",
+      "outputs": [
+        7,
+        8
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        7,
+        8
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        7,
+        8
+      ],
+      "bdshot_output_only": []
+    },
+    {
+      "group": 3,
+      "timer": "Timer3",
+      "outputs": [
+        5,
+        6
+      ],
+      "dshot": true,
+      "dshot_outputs": [
+        5,
+        6
+      ],
+      "non_dshot_outputs": [],
+      "bdshot_outputs": [
+        5,
+        6
+      ],
+      "bdshot_output_only": []
+    }
+  ],
+  "serial_ports": [
+    {
+      "uart": "USART1",
+      "device": "/dev/ttyS0",
+      "label": "GPS1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART2",
+      "device": "/dev/ttyS1",
+      "label": "TELEM1",
+      "flow_control": false
+    },
+    {
+      "uart": "USART3",
+      "device": "/dev/ttyS2",
+      "label": "EXT2",
+      "flow_control": false
+    },
+    {
+      "uart": "UART4",
+      "device": "/dev/ttyS3",
+      "label": "TELEM2",
+      "flow_control": false
+    },
+    {
+      "uart": "UART5",
+      "device": "/dev/ttyS4",
+      "label": "RC",
+      "flow_control": false
+    },
+    {
+      "uart": "USART6",
+      "device": "/dev/ttyS5",
+      "label": "TELEM3",
+      "flow_control": false
+    },
+    {
+      "uart": "UART7",
+      "device": "/dev/ttyS6",
+      "label": "",
+      "flow_control": false
+    },
+    {
+      "uart": "UART8",
+      "device": "/dev/ttyS7",
+      "label": "TELEM4",
+      "flow_control": false
+    }
+  ],
+  "has_rc_input": true,
+  "has_common_rc": false,
+  "rc_serial_device": "/dev/ttyS4",
+  "has_ppm_pin": false,
+  "ppm_shared_with_rc_serial": false,
+  "has_pps_capture": false,
+  "has_safety_switch": false,
+  "has_safety_led": false,
+  "has_buzzer": true,
+  "num_power_inputs": 1,
+  "has_redundant_power": false,
+  "has_dual_battery_monitoring": false,
+  "has_dronecan_power_input": false,
+  "power_monitor_type": null,
+  "has_sd_card": true,
+  "has_ethernet": false,
+  "has_heater": false,
+  "sensor_imu_drivers": [
+    "BMI088",
+    "ICM-42688P"
+  ],
+  "sensor_baro_drivers": [
+    "DPS310"
+  ],
+  "sensor_mag_drivers": [
+    "IST8310",
+    "QMC5883L"
+  ],
+  "sensor_osd_drivers": [],
+  "sensor_bus_info": {
+    "imu": [
+      {
+        "name": "BMI088",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      },
+      {
+        "name": "ICM-42688P",
+        "bus_type": "SPI",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "baro": [
+      {
+        "name": "DPS310",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "mag": [
+      {
+        "name": "IST8310",
+        "bus_type": "I2C",
+        "bus_num": null,
+        "external": false
+      }
+    ],
+    "osd": []
+  },
+  "sensor_variant_info": {
+    "has_variants": false,
+    "unconditional": {
+      "imu": [
+        {
+          "name": "BMI088",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        },
+        {
+          "name": "ICM-42688P",
+          "bus_type": "SPI",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "baro": [
+        {
+          "name": "DPS310",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "mag": [
+        {
+          "name": "IST8310",
+          "bus_type": "I2C",
+          "bus_num": null,
+          "external": false
+        }
+      ],
+      "osd": []
+    },
+    "variants": {}
+  },
+  "num_i2c_buses": 2,
+  "num_spi_buses": 4,
+  "num_can_buses": 1,
+  "has_usb": true,
+  "doc_url": null,
+  "doc_file": null,
+  "doc_exists": false,
+  "documented": false
+}

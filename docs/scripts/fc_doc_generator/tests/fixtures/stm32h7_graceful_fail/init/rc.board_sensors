@@ -1,0 +1,22 @@
+#!/bin/sh
+# Fixture for graceful-fail sensor inference tests.
+# icm20689  → unconditional (truly always-present, not in any variant block)
+# bmi088    → unconditional graceful-fail AND in VD000000 block → should be moved to VD000000 only
+# icm20602  → VD000001 only
+# ist8310   → unconditional internal mag (not in any variant block)
+# ms5611    → unconditional baro
+
+icm20689 -R 2 -s start
+bmi088 -A -R 2 -s start
+bmi088 -G -R 2 -s start
+if ver hwtypecmp VD000000
+then
+	bmi088 -A -R 2 -s start
+	bmi088 -G -R 2 -s start
+fi
+if ver hwtypecmp VD000001
+then
+	icm20602 -R 2 -s start
+fi
+ist8310 -I -R 10 start
+ms5611 -s start
