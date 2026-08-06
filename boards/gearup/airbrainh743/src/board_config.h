@@ -109,8 +109,6 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
 #define DIRECT_INPUT_TIMER_CHANNELS  9
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
-
 
 /* Tone alarm output (directly connected to transistor switch of external buzzer)
  *
