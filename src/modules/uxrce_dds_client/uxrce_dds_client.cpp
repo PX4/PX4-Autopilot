@@ -387,6 +387,9 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	}
 
 	_connected = true;
+
+	_safe_dds_offboard_mode = _param_uxrce_dds_safe_offboard.get();
+	_safe_dds_manual_mode = _param_uxrce_dds_safe_manual.get();
 	return true;
 }
 
@@ -682,6 +685,26 @@ void UxrceddsClient::run()
 					orb_poll_timeout_ms = 0;
 				}
 			}
+
+			// Update vehicle status to check for offboard mode
+			vehicle_status_s vehicle_status{};
+			_vehicle_status_sub.copy(&vehicle_status);
+			// Check if vehicle is in a mode that just uses attitude feedback
+			_manual_modes_enabled = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
+						 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
+						 vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
+			// Check if vehicle is in any mode other than offboard
+			_offboard_mode_enabled = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD);
+
+			// Allow publish from DDS to uORB if:
+			// - _safe_dds_manual_mode and _safe_dds_offboard_mode are false, regardless of operating mode
+			// OR
+			// - _safe_dds_manual_mode is true AND manual modes are not enabled
+			// OR
+			// - _safe_dds_offboard_mode is true AND offboard mode is enabled
+			_pubs->allow_publishing((!_safe_dds_manual_mode && !_safe_dds_offboard_mode) ||
+						(_safe_dds_manual_mode && !_manual_modes_enabled) ||
+						(_safe_dds_offboard_mode && _offboard_mode_enabled));
 
 			/* Wait for topic updates */
 			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
