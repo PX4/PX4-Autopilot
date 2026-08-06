@@ -624,10 +624,11 @@ parameters:
             description:
                 short: Motor failure handling mode
                 long: |
-                    What to do on a single motor failure. The failed motor is always removed from the
-                    allocation. On a hexarotor its geometric-opposite motor is additionally stopped (mode 1)
-                    or reversed (mode 2) to recover the lost yaw/roll/pitch authority; on other airframes
-                    only the failed motor is removed. Mode 2 needs a reverse-capable ESC on the opposite motor.
+                    What to do on a single motor failure. Ignore disables this feature entirely. Otherwise
+                    the failed motor is removed from the allocation, and on a hexarotor its geometric-opposite
+                    motor is additionally stopped (mode 1) or reversed (mode 2) to recover the lost
+                    yaw/roll/pitch authority; on other airframes only the failed motor is removed. Mode 2
+                    needs a reverse-capable ESC on the opposite motor.
             type: enum
             values:
                 0: Ignore

@@ -814,7 +814,7 @@ void
 ControlAllocator::check_for_motor_failures()
 {
 	failure_detector_status_s failure_detector_status;
-	const FailureMode failure_mode = (FailureMode)_param_ca_failure_mode.get();
+	const FailureMode failure_mode = static_cast<FailureMode>(_param_ca_failure_mode.get());
 
 	if (failure_mode > FailureMode::IGNORE
 	    && _failure_detector_status_sub.update(&failure_detector_status)) {
