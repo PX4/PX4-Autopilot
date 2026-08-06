@@ -187,6 +187,11 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_pos,
 
 void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 {
+	if (_fault_status.flags.bad_acc_vertical
+	    && isTimedOut(_time_good_vert_accel, (uint64_t)_params.bad_acc_reset_delay_us)) {
+		_time_bad_vert_accel_hgt_reset = _time_delayed_us;
+	}
+
 	const float old_altitude = _gpos.altitude();
 	_gpos.setAltitude(new_altitude);
 

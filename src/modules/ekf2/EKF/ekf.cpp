@@ -123,6 +123,7 @@ void Ekf::reset()
 
 	_time_bad_vert_accel = 0;
 	_time_good_vert_accel = 0;
+	_time_bad_vert_accel_hgt_reset = 0;
 
 	for (auto &clip_count : _clip_counter) {
 		clip_count = 0;
