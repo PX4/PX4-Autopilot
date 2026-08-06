@@ -2025,6 +2025,12 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 		}
 	}
 
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, 1, battery_status)) {
+		return;
+	}
+
 	_battery_pub.publish(battery_status);
 }
 
@@ -2645,6 +2651,12 @@ MavlinkReceiver::publish_hil_battery()
 		hil_battery_status.voltage_cell_v[cell_count] = cells_v;
 	}
 
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, 1, hil_battery_status)) {
+		return;
+	}
+
 	_battery_pub.publish(hil_battery_status);
 }
 
@@ -2888,8 +2900,7 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 
 	_failure_config.update();
 
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE,
-					0, t, _adsb_stuck)) {
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0)) {
 		return;
 	}
 
