@@ -77,9 +77,6 @@ If the GCS link drops, the vehicle will continue on its last commanded course in
 It is strongly recommended to either leave the datalink failsafe active or ensure a secondary safety mechanism (e.g. geofence, battery failsafe) is in place.
 :::
 
-
-
-
 ## Parameters
 
 | Parameter                                                                  | Description                                                                                           |
