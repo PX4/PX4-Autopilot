@@ -70,6 +70,7 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF
 		       || type == failure_injection_s::FAILURE_TYPE_WRONG;
+
 	default:
 		return false;
 	}
