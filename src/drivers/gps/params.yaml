@@ -128,6 +128,21 @@ parameters:
       min: 0
       max: 6
       reboot_required: true
+    GPS_UBX_BAUD1:
+      description:
+        short: u-blox UART1 target baudrate
+        long: |-
+          Baudrate the receiver's UART1 is configured to after the driver
+          connects. The link is auto-detected first, so unlike a fixed
+          baudrate (gps start -b) this cannot lock the driver out of a
+          receiver at its power-on default. 0 keeps the driver default
+          (115200; heading modes use 921600).
+      type: int32
+      default: 0
+      min: 0
+      max: 3000000
+      unit: B/s
+      reboot_required: true
     GPS_UBX_BAUD2:
       description:
         short: u-blox F9P UART2 Baudrate

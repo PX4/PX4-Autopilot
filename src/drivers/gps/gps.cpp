@@ -1019,6 +1019,13 @@ GPS::run()
 		}
 	}
 
+	handle = param_find("GPS_UBX_BAUD1");
+	int32_t ubx_uart1_baudrate = 0;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &ubx_uart1_baudrate);
+	}
+
 	handle = param_find("GPS_UBX_BAUD2");
 	int32_t f9p_uart2_baudrate = 57600;
 
@@ -1142,6 +1149,7 @@ GPS::run()
 					.min_elev = (int8_t)gps_ubx_min_elev,
 					.output_rate = (uint8_t)gps_ubx_rate,
 					.heading_offset = heading_offset,
+					.uart1_baudrate = ubx_uart1_baudrate,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
 					.jam_det_sensitivity_hi = jam_det_sensitivity_hi > 0,
