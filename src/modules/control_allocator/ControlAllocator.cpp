@@ -555,7 +555,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 		}
 
 		// Handle failed actuators
-		if (_handled_motor_failure_bitmask) {
+		if (_handled_motor_failure_bitmask != 0) {
 			actuator_idx = 0;
 			memset(&actuator_idx_matrix, 0, sizeof(actuator_idx_matrix));
 
@@ -563,11 +563,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 
 				if (_handled_motor_failure_bitmask & (1 << motors_idx)) {
-					ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[selected_matrix];
-
-					for (int i = 0; i < NUM_AXES; i++) {
-						matrix(i, actuator_idx_matrix[selected_matrix]) = 0.0f;
-					}
+					config.effectiveness_matrices[selected_matrix].setCol(actuator_idx_matrix[selected_matrix], 0.f);
 				}
 
 				++actuator_idx_matrix[selected_matrix];
@@ -816,7 +812,7 @@ ControlAllocator::check_for_motor_failures()
 	failure_detector_status_s failure_detector_status;
 	const FailureMode failure_mode = static_cast<FailureMode>(_param_ca_failure_mode.get());
 
-	if (failure_mode > FailureMode::IGNORE
+	if ((failure_mode == FailureMode::REMOVE_AND_STOP_OPPOSITE || failure_mode == FailureMode::REMOVE_AND_REVERSE_OPPOSITE)
 	    && _failure_detector_status_sub.update(&failure_detector_status)) {
 
 		if (_motor_stop_mask != failure_detector_status.motor_stop_mask) {
