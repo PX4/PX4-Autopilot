@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2022-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+#include <cmath>
 
 #include <gtest/gtest.h>
 #include "rc_update.h"
@@ -341,12 +343,12 @@ TEST_F(RCUpdateTest, UnmappedAuxChannelsAreNaN)
 	manual_control_input_sub.update();
 	const manual_control_setpoint_s &manual_control_input = manual_control_input_sub.get();
 
-	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux1));
-	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux2));
-	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux3));
-	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux4));
-	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux5));
-	EXPECT_FALSE(PX4_ISFINITE(manual_control_input.aux6));
+	EXPECT_TRUE(std::isnan(manual_control_input.aux1));
+	EXPECT_TRUE(std::isnan(manual_control_input.aux2));
+	EXPECT_TRUE(std::isnan(manual_control_input.aux3));
+	EXPECT_TRUE(std::isnan(manual_control_input.aux4));
+	EXPECT_TRUE(std::isnan(manual_control_input.aux5));
+	EXPECT_TRUE(std::isnan(manual_control_input.aux6));
 
 	// AND: unmapped roll/pitch/yaw/throttle still default to 0 (out of scope for this fix)
 	EXPECT_FLOAT_EQ(manual_control_input.roll, 0.f);

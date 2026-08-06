@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,6 +86,25 @@ bool Sticks::checkAndUpdateStickInputs()
 float Sticks::expoDeadzone(float value, float expo, float deadzone)
 {
 	return math::expo(math::deadzone(value, deadzone), expo);
+}
+
+float Sticks::getAuxValue(const manual_control_setpoint_s &manual_control_setpoint, int channel)
+{
+	switch (channel) {
+	case 1: return manual_control_setpoint.aux1;
+
+	case 2: return manual_control_setpoint.aux2;
+
+	case 3: return manual_control_setpoint.aux3;
+
+	case 4: return manual_control_setpoint.aux4;
+
+	case 5: return manual_control_setpoint.aux5;
+
+	case 6: return manual_control_setpoint.aux6;
+
+	default: return NAN;
+	}
 }
 
 void Sticks::limitStickUnitLengthXY(Vector2f &v)
