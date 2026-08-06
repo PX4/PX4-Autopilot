@@ -127,6 +127,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
+		(ParamFloat<px4::params::SIM_GPS_OFS_N>)   _sim_gps_ofs_n,
+		(ParamFloat<px4::params::SIM_GPS_OFS_E>)   _sim_gps_ofs_e,
 		(ParamFloat<px4::params::SENS_GPS1_OFFX>)  _param_gps1_offx,
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>)  _param_gps1_offy
 	)

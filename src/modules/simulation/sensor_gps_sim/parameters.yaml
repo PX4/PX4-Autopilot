@@ -22,3 +22,27 @@ parameters:
       default: 10
       min: 0
       max: 50
+    SIM_GPS_OFS_N:
+      description:
+        short: simulated GPS position offset, north
+        long: |
+          Constant north offset added to the simulated GPS position on top of
+          the noise model. Runtime-settable, e.g. to create a persistent
+          position innovation for estimator fault-handling tests.
+      type: float
+      unit: m
+      default: 0.0
+      min: -10000
+      max: 10000
+    SIM_GPS_OFS_E:
+      description:
+        short: simulated GPS position offset, east
+        long: |
+          Constant east offset added to the simulated GPS position on top of
+          the noise model. Runtime-settable, e.g. to create a persistent
+          position innovation for estimator fault-handling tests.
+      type: float
+      unit: m
+      default: 0.0
+      min: -10000
+      max: 10000

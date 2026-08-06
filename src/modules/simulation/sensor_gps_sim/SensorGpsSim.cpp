@@ -128,8 +128,10 @@ void SensorGpsSim::Run()
 		_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
 				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
 
-		const double latitude = gpos.lat + math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-		const double longitude = gpos.lon + math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
+		const double latitude = gpos.lat + math::degrees((double)(_gps_pos_noise_n + _sim_gps_ofs_n.get()) /
+					CONSTANTS_RADIUS_OF_EARTH);
+		const double longitude = gpos.lon + math::degrees((double)(_gps_pos_noise_e + _sim_gps_ofs_e.get()) /
+					 (CONSTANTS_RADIUS_OF_EARTH * cos(math::radians(gpos.lat))));
 		const double altitude = (double)(gpos.alt + _gps_pos_noise_d);
 
 		_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
