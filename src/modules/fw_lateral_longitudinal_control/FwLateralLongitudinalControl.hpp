@@ -48,6 +48,7 @@
 #include <lib/npfg/AirspeedDirectionController.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -66,6 +67,7 @@
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
 #include <uORB/topics/fixed_wing_lateral_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
+#include <uORB/topics/fuel_tank_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/lateral_control_configuration.h>
@@ -114,6 +116,7 @@ private:
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _fuel_tank_status_sub{ORB_ID(fuel_tank_status)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_air_data_s> _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
@@ -204,6 +207,10 @@ private:
 	float _load_factor_from_bank_angle{1.f};
 	SlewRate<float> _airspeed_slew_rate_controller;
 
+	AlphaFilter<float> _fuel_fraction_filter;
+	hrt_abstime _time_last_fuel_fraction_update{0};
+	int _fuel_tank_id{-1}; ///< id of the tracked fuel tank, -1 until the first fuel tank status is received
+
 	perf_counter_t _loop_perf; // loop performance counter
 
 	PerformanceModel _performance_model;
@@ -234,6 +241,8 @@ private:
 	float mapLateralAccelerationToRollAngle(float lateral_acceleration_sp) const;
 
 	void updateWind(hrt_abstime now);
+
+	void updateFuelState();
 
 	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
 
