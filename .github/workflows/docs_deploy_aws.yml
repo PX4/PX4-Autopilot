@@ -10,12 +10,18 @@ on:
       - "docs/zh/**"
       - "docs/uk/**"
       - "docs/ko/**"
+      - "docs/.vitepress/**"
+      - "docs/package.json"
+      - "docs/yarn.lock"
   pull_request:
     paths:
       - "docs/en/**"
       - "docs/zh/**"
       - "docs/uk/**"
       - "docs/ko/**"
+      - "docs/.vitepress/**"
+      - "docs/package.json"
+      - "docs/yarn.lock"
 
   workflow_dispatch:
 
