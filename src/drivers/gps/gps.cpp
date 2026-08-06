@@ -674,35 +674,41 @@ void GPS::drainRtcmCorrections(bool inject)
 		}
 	}
 
-	bool updated = already_copied;
+	bool have_msg = already_copied;
 	size_t num_injections = 0;
 
-	// Limit maximum number of injections per call so a burst can't starve the driver loop.
-	do {
-		if (updated) {
-			num_injections++;
+	// Limit maximum number of injections per call so a burst can't starve the driver loop. The
+	// budget is checked before reading, never after: a message taken off the queue and then left
+	// behind by the loop exit is gone, and one missing frame can invalidate a whole assistance
+	// burst.
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		if (!have_msg) {
+			auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
+			const unsigned last_generation = sub.get_last_generation();
 
-			// Prevent injection of data from self
-			if (inject && msg.device_id != get_device_id()) {
-				// Add data to the framer buffer for frame reassembly
-				if (_rtcm_corrections_framer.addData(msg.data, msg.len) < msg.len) {
-					perf_count(_correction_buffer_full_perf);
-				}
+			if (!sub.update(&msg)) {
+				break;
+			}
 
-				_last_rtcm_injection_time = hrt_absolute_time();
+			if (sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
+					 last_generation, sub.get_last_generation());
 			}
 		}
 
-		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
-		const unsigned last_generation = sub.get_last_generation();
+		have_msg = false;
+		num_injections++;
 
-		updated = sub.update(&msg);
+		// Prevent injection of data from self
+		if (inject && msg.device_id != get_device_id()) {
+			// Add data to the framer buffer for frame reassembly
+			if (_rtcm_corrections_framer.addData(msg.data, msg.len) < msg.len) {
+				perf_count(_correction_buffer_full_perf);
+			}
 
-		if (updated && sub.get_last_generation() != last_generation + 1) {
-			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
-				 last_generation, sub.get_last_generation());
+			_last_rtcm_injection_time = hrt_absolute_time();
 		}
-	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
+	}
 }
 
 void GPS::drainMovingBaseline()
@@ -801,9 +807,12 @@ void GPS::injectRtcmFrames(gnss::CorrectionFramer &framer, perf_counter_t inject
 			if (spartn_frames_in_window != nullptr) {
 				(*spartn_frames_in_window)++;
 			}
-		}
 
-		// UBX (AssistNow MGA) is injected the same way; no rate window counter yet.
+		} else if (protocol == gnss::CorrectionProtocol::Ubx && frame_len >= 4) {
+			// AssistNow (MGA) arrives once per caster connection and a single missing
+			// message can invalidate the rest, so name each one as it goes to the receiver.
+			PX4_INFO("injected UBX-%02X-%02X, %u bytes", frame_ptr[2], frame_ptr[3], (unsigned)frame_len);
+		}
 	}
 }
 

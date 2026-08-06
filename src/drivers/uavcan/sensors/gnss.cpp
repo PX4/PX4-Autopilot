@@ -647,27 +647,33 @@ void UavcanGnssBridge::drainRtcmCorrections()
 		}
 	}
 
-	bool updated = already_copied;
+	bool have_msg = already_copied;
 	size_t num_injections = 0;
 
-	do {
-		if (updated) {
-			num_injections++;
-			PublishRTCMStream(msg.data, msg.len);
-			_rtcm_injection_rate_message_count++;
-			_last_rtcm_injection_time = hrt_absolute_time();
+	// The budget is checked before reading, never after: a message taken off the queue and then
+	// left behind by the loop exit is gone, and one missing frame can invalidate a whole
+	// assistance burst.
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		if (!have_msg) {
+			auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
+			const unsigned last_generation = sub.get_last_generation();
+
+			if (!sub.update(&msg)) {
+				break;
+			}
+
+			if (sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
+					 last_generation, sub.get_last_generation());
+			}
 		}
 
-		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
-		const unsigned last_generation = sub.get_last_generation();
-
-		updated = sub.update(&msg);
-
-		if (updated && sub.get_last_generation() != last_generation + 1) {
-			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
-				 last_generation, sub.get_last_generation());
-		}
-	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
+		have_msg = false;
+		num_injections++;
+		PublishRTCMStream(msg.data, msg.len);
+		_rtcm_injection_rate_message_count++;
+		_last_rtcm_injection_time = hrt_absolute_time();
+	}
 }
 
 // Drains rtcm_moving_baseline (moving-base RTCM 4072 from a peer GPS) to
