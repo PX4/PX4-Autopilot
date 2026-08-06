@@ -167,8 +167,8 @@ static int spi_nor_attach(mtd_instance_s &instance, uint32_t spi_speed_hz)
 
 static int at24xxx_attach(mtd_instance_s &instance)
 {
-#if !defined(CONFIG_I2C)
-	PX4_ERR("Misconfiguration CONFIG_I2C not set");
+#if !defined(CONFIG_MTD)
+	PX4_ERR("Misconfiguration CONFIG_MTD not set");
 	return -ENXIO;
 #else
 
