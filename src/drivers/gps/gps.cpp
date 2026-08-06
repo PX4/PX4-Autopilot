@@ -68,6 +68,7 @@
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/sensor_gnss_rf.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/gnss/correction_framer.h>
@@ -241,6 +242,8 @@ private:
 
 	uORB::PublicationMulti<sensor_gps_s>	_sensor_gps_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
+	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block0_pub{ORB_ID(sensor_gnss_rf_block0)};
+	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block1_pub{ORB_ID(sensor_gnss_rf_block1)};
 
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
@@ -283,9 +286,12 @@ private:
 	perf_counter_t _rtcm_corrections_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm corrections injected")};
 	perf_counter_t _rtcm_moving_baseline_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm moving baseline injected")};
 
-	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
-	static px4::atomic_bool _is_sat_info_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
-	/// and thus we wait until the first one publishes at least one message.
+	// For the second gps we want to make sure that it gets instance 1 and thus we wait until the first one publishes at least one message.
+	static px4::atomic_bool _is_gps_main_advertised;
+	static px4::atomic_bool _is_sat_info_main_advertised;
+	static px4::atomic_bool _is_rf_block0_main_advertised;
+	static px4::atomic_bool _is_rf_block1_main_advertised;
+
 
 	static px4::atomic<GPS *> _secondary_instance;
 
@@ -310,6 +316,13 @@ private:
 	 * Publish RTCM corrections
 	 */
 	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
+
+	/**
+	 * Publish RF data
+	 */
+	void 				publishRF(sensor_gnss_rf_s &gnss_rf);
+	void 				publishRFBlock0(sensor_gnss_rf_s &gnss_rf);
+	void 				publishRFBlock1(sensor_gnss_rf_s &gnss_rf);
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -382,6 +395,8 @@ private:
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
 px4::atomic_bool GPS::_is_sat_info_main_advertised{false};
+px4::atomic_bool GPS::_is_rf_block0_main_advertised{false};
+px4::atomic_bool GPS::_is_rf_block1_main_advertised{false};
 px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
 ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
@@ -552,6 +567,13 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	case GPSCallbackType::gotRelativePositionMessage:
 		if (data1 && data2 == sizeof(sensor_gnss_relative_s)) {
 			gps->publishRelativePosition(*static_cast<sensor_gnss_relative_s *>(data1));
+		}
+
+		break;
+
+	case GPSCallbackType::gotRFMessage:
+		if (data1 && data2 == sizeof(sensor_gnss_rf_s)) {
+			gps->publishRF(*static_cast<sensor_gnss_rf_s *>(data1));
 		}
 
 		break;
@@ -1633,6 +1655,45 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
 	_sensor_gnss_relative_pub.publish(gnss_relative);
+}
+
+void
+GPS::publishRF(sensor_gnss_rf_s &gnss_rf)
+{
+	if (gnss_rf.block_id == 0) {
+		publishRFBlock0(gnss_rf);
+
+	}
+
+	else if (gnss_rf.block_id == 1) {
+		publishRFBlock1(gnss_rf);
+	}
+}
+
+void
+GPS::publishRFBlock0(sensor_gnss_rf_s &gnss_rf)
+{
+	if (_instance == Instance::Main || _is_rf_block0_main_advertised.load()) {
+		gnss_rf.device_id = get_device_id();
+		gnss_rf.timestamp = hrt_absolute_time();
+
+		_sensor_gnss_rf_block0_pub.publish(gnss_rf);
+		// impose Main instance to publish sat_info first to assign first index
+		_is_rf_block0_main_advertised.store(true);
+	}
+}
+
+void
+GPS::publishRFBlock1(sensor_gnss_rf_s &gnss_rf)
+{
+	if (_instance == Instance::Main || _is_rf_block1_main_advertised.load()) {
+		gnss_rf.device_id = get_device_id();
+		gnss_rf.timestamp = hrt_absolute_time();
+
+		_sensor_gnss_rf_block1_pub.publish(gnss_rf);
+		// impose Main instance to publish sat_info first to assign first index
+		_is_rf_block1_main_advertised.store(true);
+	}
 }
 
 int
