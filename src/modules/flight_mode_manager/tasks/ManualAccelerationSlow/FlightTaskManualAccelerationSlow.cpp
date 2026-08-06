@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -157,8 +157,7 @@ bool FlightTaskManualAccelerationSlow::update()
 float FlightTaskManualAccelerationSlow::getInputFromSanitizedAuxParameterIndex(int parameter_value)
 {
 	const int sanitized_index = math::constrain(parameter_value - 1, 0, 5);
-	const float aux_value = _sticks.getAux()(sanitized_index);
-	return PX4_ISFINITE(aux_value) ? aux_value : 0.f;
+	return _sticks.getAux(sanitized_index);
 }
 
 bool FlightTaskManualAccelerationSlow::haveTakenOff()
