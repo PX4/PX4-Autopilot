@@ -12,6 +12,7 @@ uint32 post_status         # POST status word
 uint16 noise_per_ms        # Noise level as measured by the GPS core
 uint16 automatic_gain_control # Automatic Gain Control monitor as percentage of maximum gain, range 0 to 8191 (100%)
 uint8 jamming_indicator    # CW jamming indicator (0=no CW jamming, 255=strong CW jamming)
+uint8 jamming_state	   # indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected
 int8  i_offset             # Imbalance of I-part of complex signal, scaled (-128 = max. negative imbalance, 127 = max. positive imbalance)
 uint8 i_magnitude          # Magnitude of I-part of complex signal (0=no signal, 255=max magnitude)
 int8  q_offset             # Imbalance of Q-part of complex signal, scaled (-128 = max. negative imbalance, 127 = max. positive imbalance)
