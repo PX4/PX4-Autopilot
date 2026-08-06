@@ -87,16 +87,18 @@ enum STATUS_BIT : uint8_t {
 // CNTL1
 enum CNTL1_BIT : uint8_t {
 	// OSR[7:6]
-	OSR_512         = Bit7 | Bit6, // 00
+	OSR_512_CLEAR         = Bit7 | Bit6, // 00: 512
 
 	// RNG[5:4]
-	RNG_2G          = Bit5 | Bit4, // 00
+	RNG_2G_CLEAR          = Bit5 | Bit4, // 00: 2G
 
 	// ODR[3:2]
-	ODR_50HZ        = Bit2,        // 01
+	ODR_50HZ_SET          = Bit2,        // 01: 50Hz
+	ODR_50HZ_CLEAR        = Bit3,
 
 	// MODE[1:0]
-	Mode_Continuous = Bit0,        // 01
+	Mode_Continuous_SET   = Bit0,        // 01: Continuous
+	Mode_Continuous_CLEAR = Bit1,
 };
 
 // CNTL2
