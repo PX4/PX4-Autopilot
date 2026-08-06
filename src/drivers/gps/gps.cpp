@@ -331,9 +331,11 @@ private:
 
 	/**
 	 * Drain the multi-instance rtcm_corrections subscription into its RTCM parser, selecting an
-	 * active instance if the current one goes stale.
+	 * active instance if the current one goes stale. With inject false the messages are dropped
+	 * rather than framed, which keeps the subscription current while the receiver cannot be
+	 * written to.
 	 */
-	void drainRtcmCorrections();
+	void drainRtcmCorrections(bool inject);
 
 	/**
 	 * Drain the single-publisher rtcm_moving_baseline subscription into its RTCM parser.
@@ -647,7 +649,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	return ret;
 }
 
-void GPS::drainRtcmCorrections()
+void GPS::drainRtcmCorrections(bool inject)
 {
 	// rtcm_corrections may have several sources (MAVLink plus CAN nodes), one uORB instance each.
 	rtcm_data_s msg;
@@ -681,7 +683,7 @@ void GPS::drainRtcmCorrections()
 			num_injections++;
 
 			// Prevent injection of data from self
-			if (msg.device_id != get_device_id()) {
+			if (inject && msg.device_id != get_device_id()) {
 				// Add data to the framer buffer for frame reassembly
 				if (_rtcm_corrections_framer.addData(msg.data, msg.len) < msg.len) {
 					perf_count(_correction_buffer_full_perf);
@@ -736,8 +738,15 @@ void GPS::drainMovingBaseline()
 void GPS::handleInjectDataTopic()
 {
 	// receiverReady() is false until the receiver is configured, which keeps us from writing to the
-	// device mid-configuration.
-	if (!_helper->receiverReady()) {
+	// device mid-configuration. Keep draining regardless: rtcm_corrections is queued, and letting
+	// a burst pile up deeper than the queue means the first read after it silently discards the
+	// oldest messages. That is fatal for a one-shot AssistNow burst, whose leading UBX-MGA-INI
+	// carries the time base the ephemeris behind it is useless without.
+	const bool receiver_ready = _helper->receiverReady();
+
+	drainRtcmCorrections(receiver_ready);
+
+	if (!receiver_ready) {
 		return;
 	}
 
@@ -745,7 +754,6 @@ void GPS::handleInjectDataTopic()
 	// SPARTN framed from one buffer in arrival order. Every configured receiver can use these -
 	// including a UART2 moving-base rover, whose baseline arrives in hardware but which still wants
 	// fixed-base corrections over its main link.
-	drainRtcmCorrections();
 	injectRtcmFrames(_rtcm_corrections_framer, _rtcm_corrections_injection_perf,
 			 &_rtcm_frames_in_rate_window, &_spartn_frames_in_rate_window);
 
