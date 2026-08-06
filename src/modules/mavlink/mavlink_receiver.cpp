@@ -364,6 +364,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
+		handle_message_gimbal_manager_status(msg);
+		break;
+
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
 
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
@@ -3622,6 +3626,32 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void
+MavlinkReceiver::handle_message_gimbal_manager_status(mavlink_message_t *msg)
+{
+	// Ignore our own gimbal manager: PX4 streams this itself from the autopilot
+	// component, and we only care about external gimbal managers here.
+	if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+		return;
+	}
+
+	mavlink_gimbal_manager_status_t status_msg;
+	mavlink_msg_gimbal_manager_status_decode(msg, &status_msg);
+
+	external_gimbal_manager_status_s status{};
+	status.timestamp = hrt_absolute_time();
+	status.manager_sysid = msg->sysid;
+	status.manager_compid = msg->compid;
+	status.flags = status_msg.flags;
+	status.gimbal_device_id = status_msg.gimbal_device_id;
+	status.primary_control_sysid = status_msg.primary_control_sysid;
+	status.primary_control_compid = status_msg.primary_control_compid;
+	status.secondary_control_sysid = status_msg.secondary_control_sysid;
+	status.secondary_control_compid = status_msg.secondary_control_compid;
+
+	_external_gimbal_manager_status_pub.publish(status);
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *msg)

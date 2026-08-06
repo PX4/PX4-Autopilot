@@ -618,11 +618,15 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 		poll_timeout = timeout_ms - (hrt_absolute_time() - poll_start) / 1000;
 	}
 
-	_stream_gimbal_manager_status(control_data);
+	// When forwarding to an external gimbal manager, PX4 is a client of that
+	// manager, not the manager itself, so it must not advertise as one.
+	if (_parameters.mnt_mode_out != MNT_MODE_OUT_TO_GIMBAL_MANAGER) {
+		_stream_gimbal_manager_status(control_data);
 
-	if (_last_device_compid != control_data.device_compid) {
-		_last_device_compid = control_data.device_compid;
-		_stream_gimbal_manager_information(control_data);
+		if (_last_device_compid != control_data.device_compid) {
+			_last_device_compid = control_data.device_compid;
+			_stream_gimbal_manager_information(control_data);
+		}
 	}
 
 	return update_result;
