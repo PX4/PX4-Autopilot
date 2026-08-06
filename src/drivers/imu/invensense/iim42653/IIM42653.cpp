@@ -411,9 +411,9 @@ bool IIM42653::Configure()
 	}
 
 	// 20-bits data format used
-	//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_range(math::radians(2000.f));
+	//  IIM-42653 FSR: ±4000 dps gyroscope and ±32 g accelerometer (default full-scale)
+	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
+	_px4_gyro.set_range(math::radians(4000.f));
 
 	return success;
 }
