@@ -36,4 +36,11 @@ add_library(output_predictor
 	output_predictor.h
 )
 
+# See src/modules/ekf2/EKF/CMakeLists.txt for the full rationale: calculateOutputStates() is one
+# of the same profile-directed hotspots (machine-generated straight-line FP algebra), just split
+# into its own library. -O3 here turns on the tree-vectorizer without changing the math.
+set_source_files_properties(
+	output_predictor.cpp
+	PROPERTIES COMPILE_OPTIONS "-O3")
+
 add_dependencies(output_predictor prebuild_targets lat_lon_alt)
