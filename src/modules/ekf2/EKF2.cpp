@@ -185,19 +185,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
-	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
-	_param_ekf2_of_delay(_params->ekf2_of_delay),
-	_param_ekf2_of_n_min(_params->ekf2_of_n_min),
-	_param_ekf2_of_n_max(_params->ekf2_of_n_max),
-	_param_ekf2_of_qmin(_params->ekf2_of_qmin),
-	_param_ekf2_of_qmin_gnd(_params->ekf2_of_qmin_gnd),
-	_param_ekf2_of_gate(_params->ekf2_of_gate),
-	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
-	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
-	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	_param_ekf2_drag_ctrl(_params->ekf2_drag_ctrl),
 	_param_ekf2_drag_noise(_params->ekf2_drag_noise),
@@ -220,6 +207,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->ekf2_abl_tau),
 	_param_ekf2_gyr_b_lim(_params->ekf2_gyr_b_lim)
 {
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	InitOpticalFlowParameters();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
 	initFusionControl();
 	AdvertiseTopics();
 }
@@ -359,9 +350,11 @@ void EKF2::AdvertiseTopics()
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-		if (_param_ekf2_of_ctrl.get()) {
-			_estimator_optical_flow_vel_pub.advertise();
-			_estimator_aid_src_optical_flow_pub.advertise();
+		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+			if (_params->of[i].ctrl) {
+				_estimator_optical_flow_vel_pub[i].advertise();
+				_estimator_aid_src_optical_flow_pub[i].advertise();
+			}
 		}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -462,6 +455,11 @@ void EKF2::Run()
 
 		// update parameters from storage
 		updateParams();
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+		UpdateOpticalFlowParameters();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
 		initFusionControl();
 
 		VerifyParams();
@@ -972,8 +970,10 @@ void EKF2::VerifyParams()
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-	if (_param_ekf2_of_delay.get() > delay_max) {
-		delay_max = _param_ekf2_of_delay.get();
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_params->of[i].ctrl && (_params->of[i].delay > delay_max)) {
+			delay_max = _params->of[i].delay;
+		}
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -1168,9 +1168,13 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
 	// optical flow
-	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last,
-			       _estimator_aid_src_optical_flow_pub);
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(i), _status_optical_flow_pub_last[i],
+				       _estimator_aid_src_optical_flow_pub[i]);
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
@@ -1457,9 +1461,9 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// Optical flow
-	innovations.flow[0] = _ekf.aid_src_optical_flow().innovation[0];
-	innovations.flow[1] = _ekf.aid_src_optical_flow().innovation[1];
+	// Optical flow (primary slot only, per-slot data is in estimator_aid_src_optical_flow)
+	innovations.flow[0] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation[0];
+	innovations.flow[1] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation[1];
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1550,9 +1554,9 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// Optical flow
-	test_ratios.flow[0] = _ekf.aid_src_optical_flow().test_ratio[0];
-	test_ratios.flow[1] = _ekf.aid_src_optical_flow().test_ratio[1];
+	// Optical flow (primary slot only, per-slot data is in estimator_aid_src_optical_flow)
+	test_ratios.flow[0] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).test_ratio[0];
+	test_ratios.flow[1] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).test_ratio[1];
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1643,9 +1647,9 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// Optical flow
-	variances.flow[0] = _ekf.aid_src_optical_flow().innovation_variance[0];
-	variances.flow[1] = _ekf.aid_src_optical_flow().innovation_variance[1];
+	// Optical flow (primary slot only, per-slot data is in estimator_aid_src_optical_flow)
+	variances.flow[0] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation_variance[0];
+	variances.flow[1] = _ekf.aid_src_optical_flow(_ekf.getPrimaryFlowSlot()).innovation_variance[1];
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -2210,32 +2214,34 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 {
-	const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow(i).timestamp_sample;
 
-	if ((timestamp_sample != 0) && (timestamp_sample > _optical_flow_vel_pub_last)) {
+		if ((timestamp_sample != 0) && (timestamp_sample > _optical_flow_vel_pub_last[i])) {
 
-		vehicle_optical_flow_vel_s flow_vel{};
-		flow_vel.timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
+			vehicle_optical_flow_vel_s flow_vel{};
+			flow_vel.timestamp_sample = _ekf.aid_src_optical_flow(i).timestamp_sample;
 
-		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
-		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
+			_ekf.getFlowVelBody(i).copyTo(flow_vel.vel_body);
+			_ekf.getFlowVelNE(i).copyTo(flow_vel.vel_ne);
 
-		_ekf.getFilteredFlowVelBody().copyTo(flow_vel.vel_body_filtered);
-		_ekf.getFilteredFlowVelNE().copyTo(flow_vel.vel_ne_filtered);
+			_ekf.getFilteredFlowVelBody(i).copyTo(flow_vel.vel_body_filtered);
+			_ekf.getFilteredFlowVelNE(i).copyTo(flow_vel.vel_ne_filtered);
 
-		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
-		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
+			_ekf.getFlowUncompensated(i).copyTo(flow_vel.flow_rate_uncompensated);
+			_ekf.getFlowCompensated(i).copyTo(flow_vel.flow_rate_compensated);
 
-		_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate);
+			_ekf.getFlowGyro(i).copyTo(flow_vel.gyro_rate);
 
-		_ekf.getFlowGyroBias().copyTo(flow_vel.gyro_bias);
-		_ekf.getFlowRefBodyRate().copyTo(flow_vel.ref_gyro);
+			_ekf.getFlowGyroBias(i).copyTo(flow_vel.gyro_bias);
+			_ekf.getFlowRefBodyRate().copyTo(flow_vel.ref_gyro);
 
-		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+			flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
-		_estimator_optical_flow_vel_pub.publish(flow_vel);
+			_estimator_optical_flow_vel_pub[i].publish(flow_vel);
 
-		_optical_flow_vel_pub_last = timestamp_sample;
+			_optical_flow_vel_pub_last[i] = timestamp_sample;
+		}
 	}
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -2548,9 +2554,20 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF flow sample
 	bool new_optical_flow = false;
-	vehicle_optical_flow_s optical_flow;
 
-	if (_vehicle_optical_flow_sub.update(&optical_flow)) {
+	for (uint8_t instance = 0; instance < MAX_OF_INSTANCES; instance++) {
+		vehicle_optical_flow_s optical_flow;
+
+		if (!_vehicle_optical_flow_subs[instance].update(&optical_flow)) {
+			continue;
+		}
+
+		// map the uORB instance to a sensor slot by device id
+		const int slot = _of_slot_binder.slotForInstance(instance, optical_flow.device_id);
+
+		if (slot < 0) {
+			continue;
+		}
 
 		const float dt = 1e-6f * (float)optical_flow.integration_timespan_us;
 		Vector2f flow_rate;
@@ -2572,16 +2589,17 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			.time_us = optical_flow.timestamp_sample - optical_flow.integration_timespan_us / 2, // correct timestamp to midpoint of integration interval as the data is converted to rates
 			.flow_rate = flow_rate,
 			.gyro_rate = gyro_rate,
-			.quality = optical_flow.quality
+			.quality = optical_flow.quality,
+			.device_id = optical_flow.device_id
 		};
 
 		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && optical_flow.integration_timespan_us < 1e6) {
 
 			// Save sensor limits reported by the optical flow sensor
 			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
-						     optical_flow.max_ground_distance);
+						     optical_flow.max_ground_distance, slot);
 
-			_ekf.setOpticalFlowData(flow);
+			_ekf.setOpticalFlowData(flow, slot);
 
 			new_optical_flow = true;
 		}
@@ -2589,7 +2607,9 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 		// use optical_flow distance as range sample if distance_sensor unavailable
-		if (PX4_ISFINITE(optical_flow.distance_m) && (ekf2_timestamps.timestamp > _last_range_sensor_update + 1_s)) {
+		// (only from the lowest configured slot to avoid mixing lever arms)
+		if ((slot == LowestConfiguredFlowSlot())
+		    && PX4_ISFINITE(optical_flow.distance_m) && (ekf2_timestamps.timestamp > _last_range_sensor_update + 1_s)) {
 
 			int8_t quality = static_cast<float>(optical_flow.quality) / static_cast<float>(UINT8_MAX) * 100.f;
 
@@ -2611,6 +2631,100 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 
 	return new_optical_flow;
+}
+
+void EKF2::InitOpticalFlowParameters()
+{
+	_of_slot_binder.init("EKF2_OF%u_ID", MAX_OF_INSTANCES);
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		char param_name[20] {};
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_CTRL", i);
+		_of_param_handles[i].ctrl = param_find(param_name);
+
+		int32_t ctrl = 0;
+
+		if (_of_param_handles[i].ctrl != PARAM_INVALID) {
+			param_get(_of_param_handles[i].ctrl, &ctrl);
+		}
+
+		// Only resolve the remaining per-slot params for enabled slots, so a disabled slot
+		// stays hidden from the GCS (a param becomes visible once it is param_find'd).
+		if (ctrl == 0) {
+			continue;
+		}
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_GYR_SRC", i);
+		_of_param_handles[i].gyr_src = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_DELAY", i);
+		_of_param_handles[i].delay = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_N_MIN", i);
+		_of_param_handles[i].n_min = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_N_MAX", i);
+		_of_param_handles[i].n_max = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_QMIN", i);
+		_of_param_handles[i].qmin = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_QMINGND", i);
+		_of_param_handles[i].qmin_gnd = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_GATE", i);
+		_of_param_handles[i].gate = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_POS_X", i);
+		_of_param_handles[i].pos_x = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_POS_Y", i);
+		_of_param_handles[i].pos_y = param_find(param_name);
+
+		snprintf(param_name, sizeof(param_name), "EKF2_OF%d_POS_Z", i);
+		_of_param_handles[i].pos_z = param_find(param_name);
+	}
+
+	UpdateOpticalFlowParameters();
+}
+
+void EKF2::UpdateOpticalFlowParameters()
+{
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		if (_of_param_handles[i].ctrl == PARAM_INVALID) {
+			continue;
+		}
+
+		param_get(_of_param_handles[i].ctrl, &_params->of[i].ctrl);
+
+		// the remaining handles are only resolved for enabled slots (see InitOpticalFlowParameters)
+		if (_of_param_handles[i].gyr_src == PARAM_INVALID) {
+			continue;
+		}
+
+		param_get(_of_param_handles[i].gyr_src, &_params->of[i].gyr_src);
+		param_get(_of_param_handles[i].delay, &_params->of[i].delay);
+		param_get(_of_param_handles[i].n_min, &_params->of[i].n_min);
+		param_get(_of_param_handles[i].n_max, &_params->of[i].n_max);
+		param_get(_of_param_handles[i].qmin, &_params->of[i].qmin);
+		param_get(_of_param_handles[i].qmin_gnd, &_params->of[i].qmin_gnd);
+		param_get(_of_param_handles[i].gate, &_params->of[i].gate);
+		param_get(_of_param_handles[i].pos_x, &_params->of[i].pos_body(0));
+		param_get(_of_param_handles[i].pos_y, &_params->of[i].pos_body(1));
+		param_get(_of_param_handles[i].pos_z, &_params->of[i].pos_body(2));
+	}
+}
+
+int EKF2::LowestConfiguredFlowSlot() const
+{
+	for (uint8_t slot = 0; slot < MAX_OF_INSTANCES; slot++) {
+		if (_params->of[slot].ctrl != 0) {
+			return slot;
+		}
+	}
+
+	return -1;
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 

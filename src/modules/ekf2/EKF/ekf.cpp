@@ -555,7 +555,11 @@ void Ekf::print_status()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	printRingBuffer("flow buffer", _flow_buffer);
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		printRingBuffer("flow buffer", _flow_src[i].buffer);
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
