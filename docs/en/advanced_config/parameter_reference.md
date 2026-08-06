@@ -26686,13 +26686,23 @@ Not available on MTK.
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### GPS_UBX_BAUD1 (`INT32`) {#GPS_UBX_BAUD1}
+
+u-blox UART1 target baudrate.
+
+Baudrate applied to the receiver UART1 after the link is auto-detected.
+0 keeps the driver default (115200). Modes that share UART1 with RTCM
+(GPS_UBX_MODE 3/4) may need a higher rate on short/reliable links.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 3000000  |           | 0       | B/s  | &nbsp;    |
+
 ### GPS_UBX_BAUD2 (`INT32`) {#GPS_UBX_BAUD2}
 
-u-blox F9P UART2 Baudrate.
+u-blox UART2 baudrate.
 
-Select a baudrate for the F9P's UART2 port.
-In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
-Set this to 57600 if you want to attach a telemetry radio on UART2.
+Baudrate for the receiver UART2 port.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26805,8 +26815,8 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 - `0`: Default
 - `1`: Heading (Rover With Moving Base UART1 Connected To Autopilot, UART2 Connected To Moving Base)
 - `2`: Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
-- `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
-- `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+- `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node)
+- `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node)
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 
