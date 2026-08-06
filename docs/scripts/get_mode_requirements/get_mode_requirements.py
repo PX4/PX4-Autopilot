@@ -424,7 +424,7 @@ This allows PX4 automatic flight modes that require a global position to be used
         with open(filename, 'w', encoding='utf-8') as f:
             # 'w' stands for 'write' mode, which creates the file or overwrites an existing one.
             f.write(mode_requirements_markdown)
-        
+
         print(f"✅ Successfully wrote content to {filename}")
 
     except Exception as e:
@@ -491,9 +491,3 @@ The following requirements must be met to arm in this mode, or to switch to this
                         f"({vehicle_type}, {flight_mode})\n"
                         f"    • Re-running with --suppress_warnings to silence this warning"
                     )
-
-
-
-
-
-
