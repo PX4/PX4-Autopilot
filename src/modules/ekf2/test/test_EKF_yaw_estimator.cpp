@@ -113,3 +113,124 @@ TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 }
+
+class EKFYawEmergencyResetTest : public ::testing::Test
+{
+public:
+
+	EKFYawEmergencyResetTest(): ::testing::Test(),
+		_ekf{std::make_shared<Ekf>()},
+		_sensor_simulator(_ekf),
+		_ekf_wrapper(_ekf) {};
+
+	std::shared_ptr<Ekf> _ekf;
+	SensorSimulator _sensor_simulator;
+	EkfWrapper _ekf_wrapper;
+
+	// Setup with mag heading aiding and GNSS fusion
+	void SetUp() override
+	{
+		_ekf->init(0);
+		_ekf->getParamHandle()->ekf2_mag_type = MagFuseType::HEADING;
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+		_sensor_simulator.runSeconds(2);
+		_ekf_wrapper.enableGpsFusion();
+		_sensor_simulator.startGps();
+		_sensor_simulator.runSeconds(11);
+	}
+};
+
+TEST_F(EKFYawEmergencyResetTest, noYawResetOnGnssPositionOnlyRejection)
+{
+	// GIVEN: an in-air vehicle with mag + GNSS vel/pos aiding and a converged EKF-GSF
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(5.f, 0.f, 0.f));
+	_sensor_simulator.runTrajectorySeconds(5.f);
+
+	float gsf_yaw{};
+	float gsf_yaw_var{};
+	float dummy[5];
+	ASSERT_TRUE(_ekf->getDataEKFGSF(&gsf_yaw, &gsf_yaw_var, dummy, dummy, dummy, dummy));
+	EXPECT_LT(gsf_yaw_var, sq(math::radians(15.f)));
+
+	// switch to steady flight with manually controlled sensors (trajectory mode would
+	// overwrite the magnetometer data)
+	const Vector3f vel{_ekf->getVelocity()};
+	_sensor_simulator._gps.setVelocity(vel);
+	_sensor_simulator._gps.setPositionRateNED(vel);
+	_sensor_simulator._imu.setData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G), Vector3f(0.f, 0.f, 0.f));
+	_sensor_simulator.runSeconds(1.f);
+
+	// WHEN: the measured acceleration direction is inconsistent with the GNSS velocity
+	// change (e.g. after uncompensated centripetal acceleration or an AHRS tilt error in
+	// the yaw estimator): the EKF-GSF infers yaw from this correlation and converges to a
+	// wrong estimate, while the EKF heading stays anchored to the magnetometer
+	// the GNSS aiding interruption resets the yaw estimator (as when temporarily disabling
+	// GNSS fusion in a GNSS-denied environment); it then has to re-converge from scratch
+	_ekf_wrapper.disableGpsFusion();
+	_sensor_simulator.runSeconds(1.f);
+	ASSERT_FALSE(_ekf->getDataEKFGSF(&gsf_yaw, &gsf_yaw_var, dummy, dummy, dummy, dummy));
+	_ekf_wrapper.enableGpsFusion();
+
+	// let GNSS vel/pos fusion fully re-establish before the yaw estimator gets misleading
+	// data, to keep velocity fusion healthy during the whole scenario
+	_sensor_simulator.runSeconds(2.f);
+	ASSERT_TRUE(_ekf->control_status_flags().gnss_vel);
+	ASSERT_TRUE(_ekf->control_status_flags().gnss_pos);
+
+	const float accel = 1.f;
+	const float wrong_yaw = math::radians(120.f);
+	const Vector2f accel_dir_world{cosf(wrong_yaw), sinf(wrong_yaw)};
+	const int steps = 60;
+	const float dt = 0.1f;
+	Vector3f vel_gps{vel};
+
+	_sensor_simulator._imu.setData(Vector3f(accel, 0.f, -CONSTANTS_ONE_G), Vector3f(0.f, 0.f, 0.f));
+
+	for (int i = 1; i <= steps; i++) {
+		vel_gps += Vector3f(accel_dir_world(0), accel_dir_world(1), 0.f) * accel * dt;
+		_sensor_simulator._gps.setVelocity(vel_gps);
+		_sensor_simulator._gps.setPositionRateNED(vel_gps);
+		_sensor_simulator.runSeconds(dt);
+	}
+
+	// back to steady flight
+	_sensor_simulator._imu.setData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G), Vector3f(0.f, 0.f, 0.f));
+	_sensor_simulator.runSeconds(0.5f);
+
+	// verify the disagreement is large enough to arm the emergency yaw reset (isYawFailure)
+	ASSERT_TRUE(_ekf->getDataEKFGSF(&gsf_yaw, &gsf_yaw_var, dummy, dummy, dummy, dummy));
+	EXPECT_LT(gsf_yaw_var, sq(math::radians(15.f)));
+	const float yaw_before = _ekf_wrapper.getYawAngle();
+	ASSERT_GT(fabsf(matrix::wrap_pi(yaw_before - gsf_yaw)), math::radians(28.f));
+	EXPECT_FALSE(_ekf->control_status_flags().mag_fault);
+
+	// AND WHEN: the GNSS position jumps while GNSS velocity stays consistent
+	// (equivalent to a dead-reckoning drift or map-matched-position-to-GNSS datum offset
+	// becoming visible, as during an INS-to-GNSS source switch)
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(0.f, 25.f));
+	_sensor_simulator.runSeconds(0.5f);
+
+	// THEN: only position fusion is failing, velocity is healthy
+	EXPECT_GT(math::max(_ekf->aid_src_gnss_pos().test_ratio[0],
+			    _ekf->aid_src_gnss_pos().test_ratio[1]), 1.f);
+	EXPECT_LT(_ekf->aid_src_gnss_vel().test_ratio[0], 1.f);
+	EXPECT_LT(_ekf->aid_src_gnss_vel().test_ratio[1], 1.f);
+
+	// keep rejecting position beyond the emergency yaw reset delay
+	_sensor_simulator.runSeconds(1.f);
+
+	// AND: a GNSS-position-only rejection must not trigger an emergency yaw reset to the
+	// EKF-GSF estimate and must not fault the mag: the velocity-aided EKF-GSF yaw is not
+	// supported by a velocity fusion failure
+	EXPECT_FALSE(_ekf->control_status_flags().mag_fault);
+	const float yaw_after = _ekf_wrapper.getYawAngle();
+	EXPECT_LT(fabsf(matrix::wrap_pi(yaw_after - yaw_before)), math::radians(10.f));
+}
