@@ -650,9 +650,8 @@ void UavcanGnssBridge::drainRtcmCorrections()
 	bool have_msg = already_copied;
 	size_t num_injections = 0;
 
-	// The budget is checked before reading, never after: a message taken off the queue and then
-	// left behind by the loop exit is gone, and one missing frame can invalidate a whole
-	// assistance burst.
+	// Budget checked before reading, never after: a message taken off the queue
+	// and left behind is gone.
 	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
 		if (!have_msg) {
 			auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];

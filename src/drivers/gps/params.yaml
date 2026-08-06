@@ -132,11 +132,10 @@ parameters:
       description:
         short: u-blox UART1 target baudrate
         long: |-
-          Baudrate the receiver's UART1 is configured to after the driver
-          connects. The link is auto-detected first, so unlike a fixed
-          baudrate (gps start -b) this cannot lock the driver out of a
-          receiver at its power-on default. 0 keeps the driver default
-          (115200; heading modes use 921600).
+          Baudrate the receiver's UART1 is moved to after the link is
+          auto-detected, so a receiver at its power-on default always connects
+          (unlike a fixed baudrate). 0 keeps the driver default (115200;
+          heading modes use 921600).
       type: int32
       default: 0
       min: 0

@@ -62,9 +62,8 @@ static constexpr uint8_t  UBX_SYNC1            = 0xB5;
 static constexpr uint8_t  UBX_SYNC2            = 0x62;
 static constexpr size_t   UBX_HEADER_LEN       = 6;   // sync1, sync2, class, id, len_lo, len_hi
 static constexpr size_t   UBX_CK_LEN           = 2;
-// Protocol allows up to 65535 payload bytes; cap for correction injection so the
-// shared framer buffer stays comparable to RTCM3/SPARTN. AssistNow MGA ephemeris
-// messages are well under this.
+// Cap below the protocol's 65535 payload bytes so a garbage length cannot pin
+// the shared framer buffer; MGA messages are well under this.
 static constexpr size_t   UBX_MAX_PAYLOAD_LEN  = 1024;
 static constexpr size_t   UBX_MAX_FRAME_LEN    = UBX_HEADER_LEN + UBX_MAX_PAYLOAD_LEN + UBX_CK_LEN;
 

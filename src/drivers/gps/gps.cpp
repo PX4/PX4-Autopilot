@@ -677,10 +677,8 @@ void GPS::drainRtcmCorrections(bool inject)
 	bool have_msg = already_copied;
 	size_t num_injections = 0;
 
-	// Limit maximum number of injections per call so a burst can't starve the driver loop. The
-	// budget is checked before reading, never after: a message taken off the queue and then left
-	// behind by the loop exit is gone, and one missing frame can invalidate a whole assistance
-	// burst.
+	// Cap injections per call so a burst can't starve the loop. Checked before
+	// reading, never after: a message taken off the queue and left behind is gone.
 	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
 		if (!have_msg) {
 			auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
@@ -743,11 +741,9 @@ void GPS::drainMovingBaseline()
 
 void GPS::handleInjectDataTopic()
 {
-	// receiverReady() is false until the receiver is configured, which keeps us from writing to the
-	// device mid-configuration. Keep draining regardless: rtcm_corrections is queued, and letting
-	// a burst pile up deeper than the queue means the first read after it silently discards the
-	// oldest messages. That is fatal for a one-shot AssistNow burst, whose leading UBX-MGA-INI
-	// carries the time base the ephemeris behind it is useless without.
+	// receiverReady() is false mid-configuration, so no writing to the device —
+	// but keep draining: a burst piling past the uORB queue depth silently
+	// drops the oldest messages.
 	const bool receiver_ready = _helper->receiverReady();
 
 	drainRtcmCorrections(receiver_ready);
@@ -809,8 +805,7 @@ void GPS::injectRtcmFrames(gnss::CorrectionFramer &framer, perf_counter_t inject
 			}
 
 		} else if (protocol == gnss::CorrectionProtocol::Ubx && frame_len >= 4) {
-			// AssistNow (MGA) arrives once per caster connection and a single missing
-			// message can invalidate the rest, so name each one as it goes to the receiver.
+			// One-shot billed burst: name each message as it goes to the receiver.
 			PX4_INFO("injected UBX-%02X-%02X, %u bytes", frame_ptr[2], frame_ptr[3], (unsigned)frame_len);
 		}
 	}
@@ -1420,8 +1415,7 @@ GPS::run()
 		}
 
 		// Dropping out of the receive loop normally means the protocol guess was
-		// wrong, but a reset we issued is a receiver we already had talking:
-		// keep the mode and wait for it to come back on it.
+		// wrong; after a reset we issued, keep the known-good mode.
 		const bool keep_mode = _reset_performed;
 		_reset_performed = false;
 
