@@ -97,6 +97,16 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
+    GPS_UBX_SPECTRUM:
+      description:
+        short: Enable spectrum analyzer (if available)
+        long: |-
+          Enable publication of basic spectrum analyzer, (ORB_ID(sensor_gnss_spectrum_block*)) if possible.
+          Only available on newer u-blox modules.
+      type: boolean
+      default: 0
+      reboot_required: true
+
     GPS_UBX_MODE:
       description:
         short: u-blox GPS Mode

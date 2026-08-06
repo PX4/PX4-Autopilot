@@ -68,6 +68,7 @@
 #include <uORB/topics/rtcm_data.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
+#include <uORB/topics/sensor_gnss_spectrum.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/gnss/correction_framer.h>
@@ -148,7 +149,7 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
-static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2040);
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2300);
 
 
 class GPS : public ModuleBase, public device::Device
@@ -241,6 +242,8 @@ private:
 
 	uORB::PublicationMulti<sensor_gps_s>	_sensor_gps_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
+	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block0_pub{ORB_ID(sensor_gnss_spectrum_block0)};
+	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block1_pub{ORB_ID(sensor_gnss_spectrum_block1)};
 
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
@@ -283,9 +286,11 @@ private:
 	perf_counter_t _rtcm_corrections_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm corrections injected")};
 	perf_counter_t _rtcm_moving_baseline_injection_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm moving baseline injected")};
 
-	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
-	static px4::atomic_bool _is_sat_info_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
-	/// and thus we wait until the first one publishes at least one message.
+	// For the second gps we want to make sure that it gets instance 1 and thus we wait until the first one publishes at least one message.
+	static px4::atomic_bool _is_gps_main_advertised;
+	static px4::atomic_bool _is_sat_info_main_advertised;
+	static px4::atomic_bool _is_spectrum_block0_main_advertised;
+	static px4::atomic_bool _is_spectrum_block1_main_advertised;
 
 	static px4::atomic<GPS *> _secondary_instance;
 
@@ -307,9 +312,16 @@ private:
 	void 				publishRTCMCorrections(uint8_t *data, size_t len);
 
 	/**
-	 * Publish RTCM corrections
+	 * Publish relative position
 	 */
 	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
+
+	/**
+	 * Publish spectrum
+	 */
+	void 				publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum);
+	void 				publishSpectrumBlock0(sensor_gnss_spectrum_s &gnss_spectrum);
+	void 				publishSpectrumBlock1(sensor_gnss_spectrum_s &gnss_spectrum);
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -382,6 +394,8 @@ private:
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
 px4::atomic_bool GPS::_is_sat_info_main_advertised{false};
+px4::atomic_bool GPS::_is_spectrum_block0_main_advertised{false};
+px4::atomic_bool GPS::_is_spectrum_block1_main_advertised{false};
 px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
 ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
@@ -552,6 +566,13 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	case GPSCallbackType::gotRelativePositionMessage:
 		if (data1 && data2 == sizeof(sensor_gnss_relative_s)) {
 			gps->publishRelativePosition(*static_cast<sensor_gnss_relative_s *>(data1));
+		}
+
+		break;
+
+	case GPSCallbackType::gotSpectrumMessage:
+		if (data1 && data2 == sizeof(sensor_gnss_spectrum_s)) {
+			gps->publishSpectrum(*static_cast<sensor_gnss_spectrum_s *>(data1));
 		}
 
 		break;
@@ -1018,6 +1039,13 @@ GPS::run()
 		param_get(handle, &jam_det_sensitivity_hi);
 	}
 
+	handle = param_find("GPS_UBX_SPECTRUM");
+	int32_t gps_ubx_spectrum = 0;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_spectrum);
+	}
+
 #endif // CONFIG_GPS_UBX
 
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
@@ -1123,6 +1151,7 @@ GPS::run()
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
 					.jam_det_sensitivity_hi = jam_det_sensitivity_hi > 0,
+					.spectrum_analyzer = gps_ubx_spectrum > 0,
 					.mode = ubx_mode,
 				};
 
@@ -1633,6 +1662,44 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
 	_sensor_gnss_relative_pub.publish(gnss_relative);
+}
+
+void
+GPS::publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum)
+{
+	if (gnss_spectrum.block_id == 0) {
+		publishSpectrumBlock0(gnss_spectrum);
+	}
+
+	else if (gnss_spectrum.block_id == 1) {
+		publishSpectrumBlock1(gnss_spectrum);
+	}
+}
+
+void
+GPS::publishSpectrumBlock0(sensor_gnss_spectrum_s &gnss_spectrum)
+{
+	if (_instance == Instance::Main || _is_spectrum_block0_main_advertised.load()) {
+		gnss_spectrum.device_id = get_device_id();
+		gnss_spectrum.timestamp = hrt_absolute_time();
+		_sensor_gnss_spectrum_block0_pub.publish(gnss_spectrum);
+
+		// impose Main instance to publish sat_info first to assign first index
+		_is_spectrum_block0_main_advertised.store(true);
+	}
+}
+
+void
+GPS::publishSpectrumBlock1(sensor_gnss_spectrum_s &gnss_spectrum)
+{
+	if (_instance == Instance::Main || _is_spectrum_block1_main_advertised.load()) {
+		gnss_spectrum.device_id = get_device_id();
+		gnss_spectrum.timestamp = hrt_absolute_time();
+		_sensor_gnss_spectrum_block1_pub.publish(gnss_spectrum);
+
+		// impose Main instance to publish sat_info first to assign first index
+		_is_spectrum_block1_main_advertised.store(true);
+	}
 }
 
 int
