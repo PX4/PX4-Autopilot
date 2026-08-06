@@ -806,7 +806,7 @@ void GPS::injectRtcmFrames(gnss::CorrectionFramer &framer, perf_counter_t inject
 
 		} else if (protocol == gnss::CorrectionProtocol::Ubx && frame_len >= 4) {
 			// One-shot billed burst: name each message as it goes to the receiver.
-			PX4_INFO("injected UBX-%02X-%02X, %u bytes", frame_ptr[2], frame_ptr[3], (unsigned)frame_len);
+			PX4_DEBUG("injected UBX-%02X-%02X, %u bytes", frame_ptr[2], frame_ptr[3], (unsigned)frame_len);
 		}
 	}
 }
