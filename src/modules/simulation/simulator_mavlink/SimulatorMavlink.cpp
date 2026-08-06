@@ -1535,7 +1535,6 @@ int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *di
 			rangefinder->set_rangefinder_type(dist_mavlink->type);
 			rangefinder->set_hfov(dist_mavlink->horizontal_fov);
 			rangefinder->set_vfov(dist_mavlink->vertical_fov);
-			rangefinder->set_variance(dist_mavlink->covariance * 1e-4f); // cm^2 to m^2
 			_dist_sensor_ids[i] = device_id.devid;
 			break;
 		}
@@ -1548,9 +1547,9 @@ int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *di
 
 	// MAVLink signal_quality: 0 means unknown (-1 in uORB) and 1..100 remaps to 0..100.
 	const int8_t signal_quality = dist_mavlink->signal_quality == 0 ? -1 : 100 * (dist_mavlink->signal_quality - 1) / 99;
-
+	rangefinder->set_variance(dist_mavlink->covariance * 1e-4f); // cm^2 to m^2
 	// update() applies distance-sensor failure injection internally before publishing.
-	rangefinder->update(hrt_absolute_time(), dist_mavlink->current_distance / 100.0f, signal_quality,
+	rangefinder->update(hrt_absolute_time(), dist_mavlink->current_distance * 0.01f, signal_quality,
 			    dist_mavlink->quaternion);
 
 	return PX4_OK;

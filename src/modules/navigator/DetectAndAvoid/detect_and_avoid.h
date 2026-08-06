@@ -204,7 +204,6 @@ private:
 	AdsbConflict _adsb_conflict_detector;
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<transponder_report_s> _traffic_stuck;
 
 	daa_ownship_ids_s _ownship_ids{};
 

@@ -202,9 +202,9 @@ private:
 		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
 	};
 
-	static constexpr uint8_t DIST_SENSOR_COUNT_MAX = 4;
+	static constexpr uint8_t DIST_SENSOR_COUNT_MAX = 10;
 	PX4Rangefinder _px4_rangefinder[DIST_SENSOR_COUNT_MAX] {
-		{0}, {0}, {0}, {0}
+		{0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}
 	};
 	uint32_t _dist_sensor_ids[DIST_SENSOR_COUNT_MAX] {};
 

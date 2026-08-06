@@ -276,8 +276,7 @@ bool DetectAndAvoid::process_transponder_queue(daa_input_s &daa_input)
 			break;
 		}
 
-		if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE,
-						0, transponder_report, _traffic_stuck)) {
+		if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0)) {
 			continue;
 		}
 

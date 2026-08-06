@@ -72,9 +72,10 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
-	// Traffic avoidance supports OFF (blind) and STUCK (frozen), but not WRONG.
+	// Traffic avoidance supports OFF (blind)
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OK));
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));
-	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, WRONG));
 	// Unimplemented units.
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL, OFF));

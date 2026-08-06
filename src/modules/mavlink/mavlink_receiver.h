@@ -414,7 +414,6 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	failure_injection::Config _failure_config;
-	failure_injection::Stuck<transponder_report_s> _adsb_stuck;
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
