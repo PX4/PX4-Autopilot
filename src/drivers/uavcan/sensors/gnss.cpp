@@ -76,7 +76,9 @@ UavcanGnssBridge::~UavcanGnssBridge()
 {
 	delete [] _channel_using_fix2;
 	perf_free(_rtcm_stream_pub_perf);
+	perf_free(_rtcm_stream_pub_failed_perf);
 	perf_free(_moving_baseline_data_pub_perf);
+	perf_free(_moving_baseline_data_pub_failed_perf);
 	perf_free(_moving_baseline_data_sub_perf);
 }
 
@@ -119,6 +121,7 @@ UavcanGnssBridge::init()
 		_publish_rtcm_stream = true;
 		_pub_rtcm_stream.setPriority(uavcan::TransferPriority::NumericallyMax);
 		_rtcm_stream_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: rtcm stream pub");
+		_rtcm_stream_pub_failed_perf = perf_alloc(PC_COUNT, "uavcan: gnss: rtcm stream pub failed");
 	}
 
 	// UAVCAN_PUB_MBD
@@ -129,6 +132,7 @@ UavcanGnssBridge::init()
 		_publish_moving_baseline_data = true;
 		_pub_moving_baseline_data.setPriority(uavcan::TransferPriority::NumericallyMax);
 		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
+		_moving_baseline_data_pub_failed_perf = perf_alloc(PC_COUNT, "uavcan: gnss: moving baseline data rtcm stream pub failed");
 	}
 
 	// UAVCAN_SUB_MBD
@@ -749,6 +753,13 @@ bool UavcanGnssBridge::PublishRTCMStream(const uint8_t *const data, const size_t
 
 		result = _pub_rtcm_stream.broadcast(msg) >= 0;
 		perf_count(_rtcm_stream_pub_perf);
+
+		if (!result) {
+			// TX queue / pool exhaustion drops the rest of this message silently -
+			// the receiver-side framer sees a partial frame and fails its CRC.
+			perf_count(_rtcm_stream_pub_failed_perf);
+		}
+
 		msg.data.clear();
 	}
 
@@ -777,6 +788,11 @@ bool UavcanGnssBridge::PublishMovingBaselineData(const uint8_t *data, size_t dat
 
 		result = _pub_moving_baseline_data.broadcast(msg) >= 0;
 		perf_count(_moving_baseline_data_pub_perf);
+
+		if (!result) {
+			perf_count(_moving_baseline_data_pub_failed_perf);
+		}
+
 		msg.data.clear();
 	}
 
@@ -787,6 +803,8 @@ void UavcanGnssBridge::print_status() const
 {
 	UavcanSensorBridgeBase::print_status();
 	perf_print_counter(_rtcm_stream_pub_perf);
+	perf_print_counter(_rtcm_stream_pub_failed_perf);
 	perf_print_counter(_moving_baseline_data_pub_perf);
+	perf_print_counter(_moving_baseline_data_pub_failed_perf);
 	perf_print_counter(_moving_baseline_data_sub_perf);
 }
