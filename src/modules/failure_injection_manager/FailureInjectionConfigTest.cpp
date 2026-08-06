@@ -106,6 +106,7 @@ constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
 constexpr uint8_t BATTERY = failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY;
+constexpr uint8_t TRAFFIC = failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE;
 
 constexpr uint8_t OK    = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF   = failure_injection_s::FAILURE_TYPE_OFF;
@@ -488,6 +489,41 @@ TEST(FailureInjectionConfig, ProcessEscWrongScalesTelemetryButStaysOnline)
 	EXPECT_FLOAT_EQ(status.esc[0].esc_current, 0.5f); // 5 * 0.1
 	EXPECT_EQ(status.esc[0].esc_rpm, 40000);          // 4000 * 10
 	EXPECT_FLOAT_EQ(status.esc[1].esc_voltage, 16.f); // other ESCs untouched
+}
+
+// ===========================================================================
+// Traffic avoidance (ADS-B): OFF-only, message-less consumers
+// ===========================================================================
+
+TEST(FailureInjectionConfig, TrafficOffSuppressesAtBothConsumers)
+{
+	Config config;
+	config.set(make_config(TRAFFIC, 0xFFFF, OFF));
+
+	// Both consumers (MavlinkReceiver ADS-B ingestion, DetectAndAvoid queue drain)
+	// and the ADS-B/FLARM heartbeat check call the message-less overload with
+	// uORB instance 0, which maps to failure instance 1.
+	EXPECT_FALSE(process(config, TRAFFIC, 0));
+	EXPECT_EQ(config.mode(TRAFFIC, 1), Mode::Off);
+}
+
+TEST(FailureInjectionConfig, TrafficOkLetsReportsThrough)
+{
+	Config config;
+	EXPECT_TRUE(process(config, TRAFFIC, 0));
+
+	config.set(make_config(TRAFFIC, 0xFFFF, OK));
+	EXPECT_TRUE(process(config, TRAFFIC, 0));
+	EXPECT_EQ(config.mode(TRAFFIC, 1), Mode::Ok);
+}
+
+TEST(FailureInjectionConfig, TrafficOffLeavesOtherUnitsUntouched)
+{
+	Config config;
+	config.set(make_config(TRAFFIC, 0xFFFF, OFF));
+
+	EXPECT_EQ(config.mode(GYRO, 1), Mode::Ok);
+	EXPECT_TRUE(process(config, GYRO, 0));
 }
 
 // ===========================================================================
