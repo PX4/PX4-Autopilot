@@ -24,6 +24,14 @@ parameters:
         0: Keep parameters
         1: Reset parameters to airframe defaults
       default: 0
+    SYS_AUTOCFG_CAL:
+      description:
+        short: Sensor calibration in SYS_AUTOCONFIG reset
+        long: |-
+          If enabled, a SYS_AUTOCONFIG reset overwrites stored sensor calibration with the airframe's built-in defaults.
+          Enable when the airframe ships its own calibration.
+      type: boolean
+      default: 0
     SYS_HITL:
       description:
         short: Enable HITL/SIH mode on next boot

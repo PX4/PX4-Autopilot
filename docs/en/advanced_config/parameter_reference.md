@@ -21798,19 +21798,16 @@ Warning only warns without preventing arming. Actions other than Warning also pr
 
 ### COM_POS_FS_ACT (`INT32`) {#COM_POS_FS_ACT}
 
-Loss of position autonomous failsafe action.
+Loss of position failsafe action.
 
-If no autonomous horizontal navigation is possible anymore should the vehicle attempt to
-descend blindly and land or terminate which can be preferable if there's a parachute and no pilot.
+Final fallback failsafe action for loss of horizontal position in autonomous modes:
 
-Action to take when autonomous horizontal navigation is lost:
-
-- "Descend if possible" blind with potential drift and uncontrolled landing (risk of hitting obstacles)
-- "Terminate" can be preferred for unpiloted use with emergency parachute
+- Descend (potential for horizontal drift on landing)
+- Flight termination (allows parachute landing)
 
 **Values:**
 
-- `0`: Descend if possible
+- `0`: Descend mode
 - `1`: Terminate
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -44346,6 +44343,22 @@ Number of voltage pulses per one rotor revolution on the capturing pin.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 1        | 50       |           | 1       |      | &nbsp;    |
+
+### SYS_AUTOCFG_CAL (`INT32`) {#SYS_AUTOCFG_CAL}
+
+Sensor calibration in SYS_AUTOCONFIG reset.
+
+If enabled, a SYS_AUTOCONFIG reset overwrites stored sensor calibration with the airframe's built-in defaults.
+Enable when the airframe ships its own calibration.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SYS_AUTOCONFIG (`INT32`) {#SYS_AUTOCONFIG}
 
