@@ -32,7 +32,7 @@ The free tier includes the **F450** multicopter, which is covered by the setup s
 | ------- | ----------- | --------------------------------- |
 | F450    | Multicopter | `make px4_sitl_default none_iris` |
 
-Paid licenses also include fixed-wing, VTOL, helicopter, and tailsitter templates with PX4 SITL support.
+Paid licenses additionally include fixed-wing, VTOL, helicopter templates with PX4 SITL support.
 See [pterolabs.ai](https://pterolabs.ai/#pricing) for licensing details.
 
 ## Network Setup
