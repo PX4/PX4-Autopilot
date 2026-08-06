@@ -112,7 +112,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   12
-#define DIRECT_INPUT_TIMER_CHANNELS  12
 
 
 /* Spare GPIO */

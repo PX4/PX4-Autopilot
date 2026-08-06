@@ -107,7 +107,6 @@
  * 8 PWM outputs for motors + 1 for LED strip
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
-#define DIRECT_INPUT_TIMER_CHANNELS  9
 
 
 /* Tone alarm output (directly connected to transistor switch of external buzzer)
