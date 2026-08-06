@@ -284,6 +284,14 @@ if __name__ == "__main__":
 
     print(json.dumps(vehicle_modes_sorted, indent=4))
 
+    # Vehicle-type render order: keyed off mode_nav_state_defns.json's top-level key order so
+    # it doesn't depend on set/dict iteration order (which is randomized per-process and was
+    # previously causing the Fixed-wing/Multicopter sections to swap between runs).
+    _vtype_order = list(mode_nav_state_defns.keys())
+    ordered_vtypes = [vt for vt in _vtype_order if vt in vehicle_modes_sorted] + sorted(
+        vt for vt in vehicle_modes_sorted if vt not in _vtype_order
+    )
+
     # Warn about requirements defined in the JSON but absent from the parsed C++ file.
     all_found_flags = {
         req
@@ -347,7 +355,7 @@ This allows PX4 automatic flight modes that require a global position to be used
 
 
 
-    for vehicle_type in vehicle_modes_sorted:
+    for vehicle_type in ordered_vtypes:
         if vehicle_type == 'VEHICLE_TYPE_ROTARY_WING':
             mode_requirements_markdown += f"\n## Multicopter ({vehicle_type})\n"
         elif vehicle_type == 'VEHICLE_TYPE_FIXED_WING':
@@ -433,7 +441,7 @@ This allows PX4 automatic flight modes that require a global position to be used
         "VEHICLE_TYPE_ROTARY_WING": "Multicopter",
     }
 
-    for vehicle_type in vehicle_modes_sorted:
+    for vehicle_type in ordered_vtypes:
         for flight_mode in vehicle_modes_sorted[vehicle_type]:
             vehicle_part = vehicle_type.split("VEHICLE_TYPE_")[-1]
             mode_part = flight_mode.split("NAVIGATION_STATE_")[-1]

@@ -50,6 +50,113 @@ Similarly, if the vehicle has `mode_req_local_position_relaxed`, then you can ma
 This allows PX4 automatic flight modes that require a global position to be used locally, such as Mission and Return.
 
 
+## Fixed-wing (VEHICLE_TYPE_FIXED_WING)
+
+### [Manual Mode](../flight_modes_fw/manual.md) (NAVIGATION_STATE_MANUAL)
+
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Stabilized Mode](../flight_modes_fw/stabilized.md) (NAVIGATION_STATE_STAB)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Acro Mode](../flight_modes_fw/acro.md) (NAVIGATION_STATE_ACRO)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Altitude Mode](../flight_modes_fw/altitude.md) (NAVIGATION_STATE_ALTCTL)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Cruise Mode](../flight_modes_fw/cruise.md) (NAVIGATION_STATE_POSCTL)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_manual_control`](#mode_req_manual_control)
+
+### [Guided Course Mode](../flight_modes_fw/guided_course.md) (NAVIGATION_STATE_GUIDED_COURSE)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
+
+### [Hold Mode](../flight_modes_fw/hold.md) (NAVIGATION_STATE_AUTO_LOITER)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
+
+### [Takeoff Mode](../flight_modes_fw/takeoff.md) (NAVIGATION_STATE_AUTO_TAKEOFF)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+
+### [Descend Mode](../flight_modes_fw/descend.md) (NAVIGATION_STATE_DESCEND)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
+
+### [Land Mode](../flight_modes_fw/land.md) (NAVIGATION_STATE_AUTO_LAND)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
+
+### [Return Mode](../flight_modes_fw/return.md) (NAVIGATION_STATE_AUTO_RTL)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
+- [`mode_req_home_position`](#mode_req_home_position)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
+
+### [Mission Mode](../flight_modes_fw/mission.md) (NAVIGATION_STATE_AUTO_MISSION)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
+- [`mode_req_local_alt`](#mode_req_local_alt)
+- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
+- [`mode_req_mission`](#mode_req_mission)
+- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
+
+### [Offboard Mode](../flight_modes_fw/offboard.md) (NAVIGATION_STATE_OFFBOARD)
+
+- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
+- [`mode_req_attitude`](#mode_req_attitude)
+- [`mode_req_offboard_signal`](#mode_req_offboard_signal)
+
+### Modes Without a Dedicated Page
+
+The following internal navigation states have no distinct user-facing behaviour or documentation page on this frame type:
+
+- **NAVIGATION_STATE_ALTITUDE_CRUISE** — Behaves identically to [Altitude Mode](../flight_modes_fw/altitude.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation.
+- **NAVIGATION_STATE_POSITION_SLOW** — Behaves identically to [Position Mode](../flight_modes_fw/position.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation.
+- **NAVIGATION_STATE_ORBIT** — Not implemented for fixed-wing frames; [Hold Mode](../flight_modes_fw/hold.md) is used instead for orbiting a point.
+- **NAVIGATION_STATE_AUTO_VTOL_TAKEOFF** — VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain fixed-wing frames.
+- **NAVIGATION_STATE_AUTO_PRECLAND** — Not implemented for fixed-wing frames (precision landing requires hover capability).
+- **NAVIGATION_STATE_AUTO_FOLLOW_TARGET** — Not implemented for fixed-wing frames (Follow Me is a multicopter-only flight task).
+- **NAVIGATION_STATE_TERMINATION** — Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination.
+
 ## Multicopter (VEHICLE_TYPE_ROTARY_WING)
 
 ### [Manual/Stabilized Mode](../flight_modes_mc/manual_stabilized.md) (NAVIGATION_STATE_MANUAL)
@@ -185,111 +292,4 @@ The following internal navigation states have no distinct user-facing behaviour 
 
 - **NAVIGATION_STATE_GUIDED_COURSE** — Not implemented for multicopters (course-hold is a fixed-wing-only flight task).
 - **NAVIGATION_STATE_AUTO_VTOL_TAKEOFF** — VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain multicopter frames.
-- **NAVIGATION_STATE_TERMINATION** — Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination.
-
-## Fixed-wing (VEHICLE_TYPE_FIXED_WING)
-
-### [Manual Mode](../flight_modes_fw/manual.md) (NAVIGATION_STATE_MANUAL)
-
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Stabilized Mode](../flight_modes_fw/stabilized.md) (NAVIGATION_STATE_STAB)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Acro Mode](../flight_modes_fw/acro.md) (NAVIGATION_STATE_ACRO)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Altitude Mode](../flight_modes_fw/altitude.md) (NAVIGATION_STATE_ALTCTL)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Cruise Mode](../flight_modes_fw/cruise.md) (NAVIGATION_STATE_POSCTL)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_manual_control`](#mode_req_manual_control)
-
-### [Guided Course Mode](../flight_modes_fw/guided_course.md) (NAVIGATION_STATE_GUIDED_COURSE)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### [Hold Mode](../flight_modes_fw/hold.md) (NAVIGATION_STATE_AUTO_LOITER)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### [Takeoff Mode](../flight_modes_fw/takeoff.md) (NAVIGATION_STATE_AUTO_TAKEOFF)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-
-### [Descend Mode](../flight_modes_fw/descend.md) (NAVIGATION_STATE_DESCEND)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### [Land Mode](../flight_modes_fw/land.md) (NAVIGATION_STATE_AUTO_LAND)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### [Return Mode](../flight_modes_fw/return.md) (NAVIGATION_STATE_AUTO_RTL)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
-- [`mode_req_home_position`](#mode_req_home_position)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_prevent_arming`](#mode_req_prevent_arming)
-
-### [Mission Mode](../flight_modes_fw/mission.md) (NAVIGATION_STATE_AUTO_MISSION)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_global_position_relaxed`](#mode_req_global_position_relaxed)
-- [`mode_req_local_alt`](#mode_req_local_alt)
-- [`mode_req_local_position_relaxed`](#mode_req_local_position_relaxed)
-- [`mode_req_mission`](#mode_req_mission)
-- [`mode_req_wind_and_flight_time_compliance`](#mode_req_wind_and_flight_time_compliance)
-
-### [Offboard Mode](../flight_modes_fw/offboard.md) (NAVIGATION_STATE_OFFBOARD)
-
-- [`mode_req_angular_velocity`](#mode_req_angular_velocity)
-- [`mode_req_attitude`](#mode_req_attitude)
-- [`mode_req_offboard_signal`](#mode_req_offboard_signal)
-
-### Modes Without a Dedicated Page
-
-The following internal navigation states have no distinct user-facing behaviour or documentation page on this frame type:
-
-- **NAVIGATION_STATE_ALTITUDE_CRUISE** — Behaves identically to [Altitude Mode](../flight_modes_fw/altitude.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation.
-- **NAVIGATION_STATE_POSITION_SLOW** — Behaves identically to [Position Mode](../flight_modes_fw/position.md) on fixed-wing frames — the control-mode flags are the same and there is no separate implementation.
-- **NAVIGATION_STATE_ORBIT** — Not implemented for fixed-wing frames; [Hold Mode](../flight_modes_fw/hold.md) is used instead for orbiting a point.
-- **NAVIGATION_STATE_AUTO_VTOL_TAKEOFF** — VTOL-specific transition state used for vertical takeoff before transitioning to forward flight; not applicable to plain fixed-wing frames.
-- **NAVIGATION_STATE_AUTO_PRECLAND** — Not implemented for fixed-wing frames (precision landing requires hover capability).
-- **NAVIGATION_STATE_AUTO_FOLLOW_TARGET** — Not implemented for fixed-wing frames (Follow Me is a multicopter-only flight task).
 - **NAVIGATION_STATE_TERMINATION** — Internal flight-termination failsafe state. Not user-selectable; entered automatically when a failsafe action escalates to termination.

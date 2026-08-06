@@ -139,6 +139,15 @@ their key order in sync manually when adding or reordering a mode. Any nav_state
 finds that has no entry at all in `mode_nav_state_defns.json` is appended after all
 JSON-ordered modes (in addition to the existing "no entry" warning).
 
+The same principle applies one level up: the **top-level** key order of
+`mode_nav_state_defns.json` (currently `VEHICLE_TYPE_FIXED_WING` before
+`VEHICLE_TYPE_ROTARY_WING`) determines the order the `## Fixed-wing` / `## Multicopter`
+sections are rendered in `mode_requirements.md`. This is deliberate — vehicle types are
+discovered from `mode_requirements.cpp` into a Python `set`, whose iteration order is
+randomized per-process, so the render loops must never iterate that set/dict directly or the
+section order will vary between runs for no code reason. Any vehicle type found in the C++ but
+absent from the JSON is appended afterwards in sorted order.
+
 ## Parser design
 
 `parse_requirements()` uses a single-pass token scanner.  A single compiled regex (`_TOKEN`)
