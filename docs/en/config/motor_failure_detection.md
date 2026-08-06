@@ -1,12 +1,12 @@
 # Motor Failure Detection
 
-<Badge type="tip" text="main (PX4 v2.0)" /> <Badge type="tip" text="Multicopter" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
 PX4 can detect a motor that has stopped producing the thrust it was commanded to give, as caused by a stalled motor, a lost or broken propeller, a seized bearing, a rubbing blade, and so on.
 
 The mechanism works by comparing the current each ESC reports against the current expected for the command that motor was given.
 A motor whose current stays too far from that expectation for long enough is flagged as failed.
-The failure is reported to the ground station, and can be [acted on](#failure-response) by removing the motor from the control allocation or by running a failsafe action.
+The failure is reported to the ground station, and can be [acted on](#failure-action) by removing the motor from the control allocation or by running a failsafe action.
 
 Failure detection is supported for DShot and DroneCAN ESC provided the following [requirements](#requirements) are met.
 It is disabled by default ([FD_ACT_EN](#FD_ACT_EN)).
@@ -26,6 +26,8 @@ Always calibrate on logs from the vehicle you are configuring: see [Choosing Par
   ESC that report no current, or only report RPM, cannot be checked.
 
 - Motors, not servos: only outputs assigned to a motor function are checked.
+- Any vehicle type: the check is not restricted to multicopters, so a VTOL's multirotor motors and its forward-flight motor are both checked, in every flight mode.
+  The [failure actions](#failure-action) are the multirotor-specific part, as they assume the vehicle has rotors to spare.
 - Recorded flight logs from the vehicle, to calibrate the model and the thresholds.
 
 ## How Detection Works
@@ -114,9 +116,15 @@ The parameters are fitted from the vehicle's own logs, in two stages: the curren
 Both stages need logs from _healthy_ flights that cover the throttle range the vehicle really uses, including climbs and aggressive manoeuvres.
 Those flights are what set the achievable thresholds.
 
-1. **Fit the model.**
+1. **Find how command maps to current.**
 
-   Regress reported ESC current against the commanded value, over all motors and all healthy logs, and use the result for [MOTFAIL_C2T](#MOTFAIL_C2T) and [MOTFAIL_IDLE](#MOTFAIL_IDLE).
+   The model has to say what current a healthy motor draws for a given command, so what you need is the relationship between the commanded value `u` and the reported ESC current, collected over all motors and all logs.
+   Use only flights in which every motor was healthy: a log from failure testing, or one with a real fault in it, describes the fault rather than the vehicle and shifts the model away from the rest of the fleet.
+
+   Plotting the two against each other shows that relationship, and fitting a straight line through the points is a convenient way to reduce it to the two numbers the detector wants: the slope of the line goes into [MOTFAIL_C2T](#MOTFAIL_C2T), and its value at zero command into [MOTFAIL_IDLE](#MOTFAIL_IDLE).
+
+   The [`mfd_fit` tool](../debug/motor_failure_replay.md#fitting-the-current-model) does this directly from the logs and prints the two values to set.
+
    One model is shared by all motors.
    Per-motor fitting is not worth the calibration effort, because the spread between motors is small compared with the trip bands.
 
