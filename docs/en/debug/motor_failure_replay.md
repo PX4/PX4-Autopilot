@@ -1,11 +1,15 @@
 # Offline Motor Failure Replay
 
-<Badge type="tip" text="main (PX4 v1.19)" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
-`mfd_replay` runs the flight code's own [motor failure detector](../config/motor_failure_detection.md) over a recorded flight log on your development computer, and prints what it would have decided for each motor.
+The Offline Motor Failure Replay tool (`mfd_replay`) is a command line tool that you can run on your development computer to calibrate and verify the [motor failure detector](../config/motor_failure_detection.md)'s [threshold parameters](../config/motor_failure_detection.md#choosing-parameter-values) (`MOTFAIL_*`) against a vehicle's own flight logs.
+It allows users to determine the tightest failure detection thresholds that still don't trip on healthy flight from log data.
 
-It exists because the detector's thresholds have to be fitted per airframe, and the only honest source for them is flight data.
-The tool links the detector library directly, so a replay runs the same code that runs in flight, and its verdicts describe the firmware rather than a re-implementation of it.
+`mfd_replay` replays recorded logs through exactly the same detector code that runs on the firmware, and prints what the detector would have decided for each motor (this matters because the thresholds are airframe-specific and can only be derived from the vehicle's own flight data).
+
+Thresholds usually have to be calculated from a set of flights, as a single flight is unlikely to fully test the vehicle.
+As a result, calibration work is usually done via `batch_replay.sh`, a wrapper that runs `mfd_replay` over every log in a directory.
+For more information see [Replaying a Folder of Logs](#replaying-a-folder-of-logs).
 
 Typical uses:
 
@@ -15,16 +19,21 @@ Typical uses:
 
 ## Building
 
-The tool is host-only and off by default, so a normal build never compiles it or fetches its ULog parsing dependency.
-Enable it in an already configured SITL build directory:
+To build the tool:
 
-```bash
-make px4_sitl_default              # once, if the build directory does not exist yet
-cmake -DMFD_REPLAY_TOOL=ON build/px4_sitl_default
-ninja -C build/px4_sitl_default mfd_replay
-```
+1. Build PX4 SITL (to populate the build directory)
 
-The first build fetches the `ulog_cpp` submodule.
+   ```bash
+   make px4_sitl_default # once, if the build directory does not exist yet
+   ```
+
+2. Build the `mfd_replay` binary:
+
+   ```bash
+   cmake -DMFD_REPLAY_TOOL=ON build/px4_sitl_default
+   ninja -C build/px4_sitl_default mfd_replay
+   ```
+
 The resulting binary is `build/px4_sitl_default/mfd_replay`.
 
 ## Running
@@ -103,7 +112,7 @@ The accepted names are [MOTFAIL_C2T](../config/motor_failure_detection.md#MOTFAI
 
 ### Replaying a Folder of Logs
 
-Thresholds are meaningless from a single flight, so the usual unit of work is a corpus.
+A single flight doesn't usually contain enough information to calculate thresholds, so the usual unit of work is a set of flight logs.
 `batch_replay.sh` runs the tool over every `.ulg` in a directory and summarizes the verdicts:
 
 ```bash
@@ -126,7 +135,7 @@ Anything after the directory is passed straight through to `mfd_replay`.
 Run it from the repository root, or set `MFD_REPLAY` to the path of the binary.
 
 `batch_replay.sh` works through the logs one at a time, which is fine for tens of them and slow for thousands.
-For a large corpus, run `mfd_replay` itself with one process per log, and give each its own output file so the verdict tables do not interleave:
+For a large set of flight logs, run `mfd_replay` itself with one process per log, and give each its own output file so the verdict tables do not interleave:
 
 ```bash
 mkdir -p /tmp/verdicts
@@ -167,7 +176,7 @@ Every motor on a healthy vehicle is now a failure.
 
 **2. Read the healthy residual.**
 
-Replay the corpus with the fitted model and the bands set out of the way, so nothing trips and the peak column reports the full excursion:
+Replay the set of flight logs with the fitted model and the bands set out of the way, so nothing trips and the peak column reports the full excursion:
 
 ```bash
 src/lib/motor_failure_detector/tools/batch_replay.sh ~/logs/healthy \
@@ -183,7 +192,7 @@ Sweep one direction at a time.
 There is no switch to disable a single direction, so park the other one at a value nothing will reach, such as `999`.
 Do not use `0` for this: [MOTFAIL_OVER](../config/motor_failure_detection.md#MOTFAIL_OVER)`=0` switches off the whole check rather than one side of it.
 
-For each hold time, the value you are looking for is the lowest band at which the whole corpus still comes back with `FAIL=0`:
+For each hold time, the value you are looking for is the lowest band at which the whole set of flight logs still comes back with `FAIL=0`:
 
 ```bash
 #!/usr/bin/env bash
@@ -220,7 +229,7 @@ Make the loop assert that a table was actually produced, as the `grep -q` guard 
 
 **4. Verify.**
 
-Re-run the whole corpus with the chosen configuration, including logs that were not used for the fit, and confirm every motor is `ok` with no phase-dependent verdicts.
+Re-run the whole set of flight logs with the chosen configuration, including logs that were not used for the fit, and confirm every motor is `ok` with no phase-dependent verdicts.
 Then check the detection floor the configuration implies: the undercurrent band divided by the per-motor hover current is the smallest current loss that can be seen at hover.
 
 ## What the Replay Does Not Reproduce
