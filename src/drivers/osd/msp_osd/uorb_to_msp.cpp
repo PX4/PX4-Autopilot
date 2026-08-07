@@ -214,6 +214,7 @@ msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
 	rssi.screenYPosition = 0x02;
 	rssi.screenXPosition = 0x02;
 
+	memset(&rssi.str[0], 0, sizeof(rssi.str));
 	snprintf(&rssi.str[0], sizeof(rssi.str), "%3d", input_rc.link_quality);
 	rssi.str[3] = '%';
 
@@ -405,6 +406,18 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 	return num;
 }
 
+msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const sensor_gps_s &vehicle_gps_position)
+{
+	msp_rendor_gps_speed_t speed;
+
+	speed.screenYPosition = 0x08;
+	speed.screenXPosition = 0x02;
+
+	memset(&speed.str[0], 0, sizeof(speed.str));
+	snprintf(&speed.str[0], sizeof(speed.str), "%.2f", (double)(vehicle_gps_position.vel_m_s));
+
+	return speed;
+}
 
 msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 				  const vehicle_global_position_s &vehicle_global_position,

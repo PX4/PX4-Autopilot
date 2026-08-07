@@ -400,6 +400,11 @@ void MspOsd::Run()
 			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_satellites_used_t));
 		}
+
+		if (enabled(SymbolIndex::GPS_SPEED)) {
+			const auto msg = msp_osd::construct_rendor_GPS_SPEED(vehicle_gps_position);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_gps_speed_t));
+		}
 	}
 
 	// MSP_COMP_GPS
@@ -412,7 +417,6 @@ void MspOsd::Run()
 
 		if (enabled(SymbolIndex::HOME_DIST)) {
 			const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
-
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
 		}
 	}
