@@ -26,8 +26,8 @@ Always calibrate on logs from the vehicle you are configuring: see [Choosing Par
   ESC that report no current, or only report RPM, cannot be checked.
 
 - Motors, not servos: only outputs assigned to a motor function are checked.
-- Any vehicle type: the check is not restricted to multicopters, so a VTOL's multirotor motors and its forward-flight motor are both checked, in every flight mode.
-  The [failure actions](#failure-action) are the multirotor-specific part, as they assume the vehicle has rotors to spare.
+- No vehicle-type restriction: a VTOL's multirotor motors and its forward-flight motor are both checked, in every flight mode.
+  Only the [failure actions](#failure-action) are multirotor-specific, since they assume the vehicle has rotors to spare.
 - Recorded flight logs from the vehicle, to calibrate the model and the thresholds.
 
 ## How Detection Works
@@ -52,22 +52,20 @@ For every armed motor, the check runs the following four steps at 10 Hz in [comm
 
 3. **Compute two trip bands.**
 
-   The filtered residual is expected to fluctuate within a band around zero even on a healthy motor, from noise and model error.
-   A trip happens when it leaves that band and stays out:
-   - below `-MOTFAIL_UNDER` in the **undercurrent** direction (the motor draws less than expected, as a stalled or damaged motor would), or
-   - above `MOTFAIL_OVER` in the **overcurrent** direction (it draws more than expected, possibly from benign throttle transients).
-
-   Each direction has its own band width and its own hold time:
+   The filtered residual fluctuates around zero even on a healthy motor, from noise and model error.
+   A trip happens when it leaves that band and stays out, with a separate width and hold time per direction:
 
    ```text
    undercurrent: LPF(I_measured - I_expected) < -MOTFAIL_UNDER   held for MOTFAIL_UND_TIME
    overcurrent:  LPF(I_measured - I_expected) >  MOTFAIL_OVER    held for MOTFAIL_OVR_TIME
    ```
 
-   A motor that satisfies either condition is flagged as failed, and reported as `Motor N undercurrent detected` or `Motor N overcurrent detected`.
+   Undercurrent means the motor drew less than expected, as a stalled or damaged one would.
+   Overcurrent means it drew more, which healthy motors also do during sharp throttle increases.
 
 4. **Latch the fail flag if either band trips.**
 
+   A motor that satisfies either condition is flagged as failed, and reported as `Motor N undercurrent detected` or `Motor N overcurrent detected`.
    The flag is held until the vehicle disarms.
    It is not cleared in flight, because reacting to a motor failure changes what that motor is commanded to do, which removes the evidence the check runs on: a motor that has been switched off would immediately look healthy again.
 
@@ -99,21 +97,21 @@ Splitting the bands lets the undercurrent side sit where the faults are, while t
 
 ## Failure Action
 
-The action that is triggered if a failure is detected is configured using the following parameters:
+Two parameters configure what happens when a failure is detected:
 
 - [CA_FAILURE_MODE](#CA_FAILURE_MODE) selects what the [control allocator](../concept/control_allocation.md) does, such as removing the failed motor from the allocation.
 - [COM_ACT_FAIL_ACT](#COM_ACT_FAIL_ACT) selects a failsafe action, in the same way as the other [failsafes](../config/safety.md#motor-failure-trigger).
 
-A multicopter that loses one of four rotors cannot hold yaw, so on a quadrotor the realistic responses are landing or termination.
+A quadrotor that loses a rotor cannot hold yaw, so the realistic responses there are landing or termination.
 Vehicles with more rotors than the minimum can keep flying with one removed.
 
 ## Choosing Parameter Values
 
-We choose [MOTFAIL_C2T](#MOTFAIL_C2T) and [MOTFAIL_IDLE](#MOTFAIL_IDLE) (the current model), then [MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) (the two bands and their hold times), seeking the smallest bands and shortest hold times that still produce zero trips across a set of healthy flights.
-Selecting the parameters is a tradeoff: a wider band held longer is more robust against false positives, a narrower band held for less time reacts sooner when a motor really does fail.
+There are two things to calibrate, in this order: the current model ([MOTFAIL_C2T](#MOTFAIL_C2T) and [MOTFAIL_IDLE](#MOTFAIL_IDLE)), then the two bands and their hold times ([MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME)).
+The goal is the smallest bands and shortest hold times that still never trip across a set of healthy flights.
+That is a tradeoff: a wider band held longer is more robust against false positives; a narrower band held for less time reacts sooner when a motor really does fail.
 
-The parameters are fitted from the vehicle's own logs, in two stages: the current model first, then the bands.
-Both stages need logs from _healthy_ flights that cover the throttle range the vehicle really uses, including climbs and aggressive manoeuvres.
+Both stages are fitted from the vehicle's own logs, which have to come from _healthy_ flights covering the throttle range it really uses, including climbs and aggressive manoeuvres.
 Those flights are what set the achievable thresholds.
 
 1. **Find how command maps to current.**
@@ -126,14 +124,13 @@ Those flights are what set the achievable thresholds.
    The [`mfd_fit` tool](../debug/motor_failure_replay.md#fitting-the-current-model) does this directly from the logs and prints the two values to set.
 
    One model is shared by all motors.
-   Per-motor fitting is not worth the calibration effort, because the spread between motors is small compared with the trip bands.
+   The spread between them is small compared with the trip bands, so nothing is lost by it.
 
 2. **Set the bands from the healthy residual.**
 
    Use the [Offline Motor Failure Replay Tool](../debug/motor_failure_replay.md) to replay the logs through the detector and find the lowest band that produces no trips anywhere in the set, then add margin on top.
 
    Around 30% above the lowest false-positive-free value is a reasonable starting point, so a set that first stays clean at 3.0 A might be configured at 4.0 A.
-   How much margin to use is ultimately a personal choice.
 
 3. **Check the hold time as well as the band.**
 
@@ -142,13 +139,25 @@ Those flights are what set the achievable thresholds.
 
    The table below is from 6 healthy flights of one 6-rotor vehicle drawing about 8 A per motor in hover, and gives the lowest band that never trips on any motor of any of those flights:
 
-   | [MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) | Lowest [MOTFAIL_UNDER](#MOTFAIL_UNDER) | [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) | Lowest [MOTFAIL_OVER](#MOTFAIL_OVER) |
-   | ------------------------------------- | -------------------------------------- | ------------------------------------- | ------------------------------------ |
-   | 0.1 s                                 | 3.5 A                                  | 0.4 s                                 | 6.0 A                                |
-   | 0.3 s                                 | 3.0 A                                  | 0.7 s                                 | 3.0 A                                |
-   | 0.5 s                                 | 3.0 A                                  | 1.0 s                                 | 2.0 A                                |
-   | 0.7 s                                 | 3.0 A                                  | 1.5 s                                 | 1.5 A                                |
-   | 1.0 s                                 | 2.5 A                                  | 2.5 s                                 | 1.0 A                                |
+   Undercurrent:
+
+   | [MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) | Lowest [MOTFAIL_UNDER](#MOTFAIL_UNDER) |
+   | ------------------------------------- | -------------------------------------- |
+   | 0.1 s                                 | 3.5 A                                  |
+   | 0.3 s                                 | 3.0 A                                  |
+   | 0.5 s                                 | 3.0 A                                  |
+   | 0.7 s                                 | 3.0 A                                  |
+   | 1.0 s                                 | 2.5 A                                  |
+
+   Overcurrent:
+
+   | [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) | Lowest [MOTFAIL_OVER](#MOTFAIL_OVER) |
+   | ------------------------------------- | ------------------------------------ |
+   | 0.4 s                                 | 6.0 A                                |
+   | 0.7 s                                 | 3.0 A                                |
+   | 1.0 s                                 | 2.0 A                                |
+   | 1.5 s                                 | 1.5 A                                |
+   | 2.5 s                                 | 1.0 A                                |
 
    The values are specific to that vehicle, but the pattern is general.
    The overcurrent band gains a lot from waiting longer, from 6.0 A at 0.4 s down to 1.0 A at 2.5 s, because the healthy current transients that set it are large but brief.
@@ -157,15 +166,15 @@ Those flights are what set the achievable thresholds.
 
 4. **Work out what the configuration can detect.**
 
-   A fault is only visible once it moves the current further than the band, so the undercurrent band and the expected current together set the smallest loss that can be seen:
+   A fault is only visible once it moves the current further than the band, so the undercurrent band and the expected current together set the smallest loss that can be seen, as a fraction of what the motor was drawing:
 
    ```text
-   smallest detectable current loss = MOTFAIL_UNDER / I_expected
+   smallest detectable loss = MOTFAIL_UNDER / I_expected
    ```
 
    Continuing the example, the 4.0 A band chosen in step 2 against 8 A of hover current is 50%: a rotor losing less than roughly half its current still looks healthy at hover.
    The fraction gets worse as throttle drops, because `I_expected` shrinks with it.
-   A complete stop is the same sum with the whole current missing, so it is detectable wherever `I_expected` on its own exceeds the band — for these numbers, any command above about half the hover command.
+   A complete stop is the same sum with the whole current missing, so it is detectable wherever `I_expected` on its own exceeds the band, which for these numbers is any command above about half the hover command.
 
    If that floor is too high for the faults you care about, the only way to lower it is a better current model, not a smaller band: the band is already at the smallest width that avoids false trips on healthy motors, so it can't be reduced further.
 
@@ -179,7 +188,7 @@ A _total_ failure is caught far more easily than the floor in step 4 suggests, b
 When a rotor stops producing thrust, the controller commands it harder to recover the missing lift, usually until it saturates.
 `I_expected` follows the command up while the real current stays near zero, so the residual keeps growing rather than settling at the value it had at hover.
 
-On a 6-rotor test vehicle, a rotor that lost its propeller in hover was commanded to full throttle within about 200 ms, which took its residual to nearly 3x the trip band; the failure was flagged 1 s after it happened.
+In one flight test, a rotor that lost its propeller in hover was commanded to full throttle within about 200 ms, which took its residual to nearly 3x the trip band; the failure was flagged 1 s after it happened.
 
 A _partial_ loss gets none of this.
 The vehicle still flies, so the command stays near hover and the residual stays small, which is why the floor in step 4 governs partial faults and not total ones.
@@ -215,10 +224,12 @@ The vehicle still flies, so the command stays near hover and the residual stays 
 
 In PX4 v1.18 and earlier, the check compared the _instantaneous_ current residual against a single symmetric threshold, `±MOTFAIL_OFF`, held for `MOTFAIL_TIME`.
 
-From PX4 main (v2.0), the residual is low-pass filtered before it's compared, so a sustained deviation is needed rather than isolated samples, and the single threshold is replaced by two independent bands: [MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) for undercurrent and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) for overcurrent.
+From PX4 main (v2.0), the residual is low-pass filtered before it is compared, so a sustained deviation is needed rather than isolated samples.
+The single threshold is also replaced by two independent bands: [MOTFAIL_UNDER](#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](#MOTFAIL_UND_TIME) for undercurrent and [MOTFAIL_OVER](#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) for overcurrent.
 The current model also gains an offset term ([MOTFAIL_IDLE](#MOTFAIL_IDLE)), and the [offline replay tool](../debug/motor_failure_replay.md) is available to calibrate the new parameters from logs.
 
-None of that changes behaviour on an upgraded vehicle by default: `MOTFAIL_OFF` is renamed to [MOTFAIL_OVER](#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) on import, and [MOTFAIL_UNDER](#MOTFAIL_UNDER) defaults to 0 — which selects the single symmetric band, the v1.18 shape of the check, until reconfigured.
+None of that changes behaviour on an upgraded vehicle by default: `MOTFAIL_OFF` is renamed to [MOTFAIL_OVER](#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](#MOTFAIL_OVR_TIME) on import, and [MOTFAIL_UNDER](#MOTFAIL_UNDER) defaults to 0.
+That selects the single symmetric band, the v1.18 shape of the check, until it is reconfigured.
 
 The thresholds are still worth re-deriving: see [Choosing Parameter Values](#choosing-parameter-values).
 
