@@ -278,7 +278,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 		// Obstacle message arrives in body frame (front aligned)
 		// corresponding data index (shift by msg offset)
 		for (int i = 0; i < BIN_COUNT; i++) {
-			for (int j = 0; j < 360 / obstacle.increment; j++) {
+			for (int j = 0; (j < 360 / obstacle.increment) && (j < BIN_COUNT); j++) {
 				float bin_lower_angle = ObstacleMath::get_lower_bound_angle(i, _obstacle_map_body_frame.increment,
 							_obstacle_map_body_frame.angle_offset);
 				float bin_upper_angle = ObstacleMath::get_lower_bound_angle(i + 1, _obstacle_map_body_frame.increment,
