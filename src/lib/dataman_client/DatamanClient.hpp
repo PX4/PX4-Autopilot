@@ -258,6 +258,16 @@ public:
 	bool writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 5000_ms);
 
 	/**
+	 * @brief Update a cached item in-place without issuing a new dataman request.
+	 *
+	 * Intended for callers that already wrote the authoritative value through another
+	 * path and need to keep a second DatamanCache instance coherent.
+	 *
+	 * @return true if the item was fully cached and has been updated.
+	 */
+	bool updateCachedItem(dm_item_t item, uint32_t index, const uint8_t *buffer, uint32_t length);
+
+	/**
 	 * @brief Updates the dataman cache by checking for responses from the DatamanClient and processing them.
 	 *
 	 * If there are items in the cache, this function will call the DatamanClient's 'update()' function to check for responses.
@@ -273,7 +283,7 @@ public:
 	 *
 	 * @return true if there are items to be processed.
 	 */
-	bool isLoading() { return (_item_counter > 0); }
+	bool isLoading() const { return (_item_counter > 0); }
 
 	/**
 	 * @brief Returns a reference to the DatamanClient instance used by the DatamanCache.
