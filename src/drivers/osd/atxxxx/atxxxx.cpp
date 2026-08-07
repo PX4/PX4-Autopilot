@@ -46,6 +46,7 @@
 #include <matrix/math.hpp>
 
 #include <ctype.h>
+#include <string.h>
 
 using namespace time_literals;
 
@@ -325,16 +326,24 @@ OSDatxxxx::add_element_to_screen(const char *str, PositionParam element, int wid
 }
 
 void
+OSDatxxxx::add_centered_element_to_screen(const char *str, PositionParam element, int width)
+{
+	// these elements hold variable-length text, so their X entry is the centre
+	// column rather than the left edge. The start column is clamped while still
+	// signed: add_string_to_screen() takes an unsigned column, and a negative one
+	// would wrap far past the row and drop or misplace the text.
+	const int len = math::min(static_cast<int>(strlen(str)), width);
+	const int pos_x = math::max(0, position(element) - len / 2);
+	add_string_to_screen(str, pos_x, _position[element + 1], width);
+}
+
+void
 OSDatxxxx::add_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width)
 {
-	int i = 0;
-
-	for (; i < width && str[i] != '\0'; ++i) {
+	// width only clips the string: update_screen() blanks the whole buffer before
+	// drawing, so padding the remainder would erase elements sharing the row
+	for (int i = 0; i < width && str[i] != '\0'; ++i) {
 		add_character_to_screen(str[i], pos_x + i, pos_y);
-	}
-
-	for (; i < width; ++i) {
-		add_character_to_screen(' ', pos_x + i, pos_y);
 	}
 }
 
@@ -593,7 +602,7 @@ OSDatxxxx::update_screen()
 			mav_state = "MAVSTB";
 		}
 
-		add_element_to_screen(mav_state, POS_MAV_STATE_X, 6);
+		add_centered_element_to_screen(mav_state, POS_MAV_STATE_X, 6);
 	}
 
 	if (enabled(osd::Symbol::Rssi)) {
@@ -688,24 +697,36 @@ OSDatxxxx::update_screen()
 	}
 
 	if (enabled(osd::Symbol::MissionState)) {
-		const mission_result_s &mission = telemetry.mission_result;
+		const mission_s &mission = telemetry.mission;
+		const mission_result_s &result = telemetry.mission_result;
+		const bool stored = mission.timestamp != 0 && mission.count > 0;
+		// the feasibility check runs only once home, global position and the geofence are
+		// ready, and stamps the mission it ran against. An id mismatch means the uploaded
+		// mission has not been checked yet, which is not the same as it having been rejected
+		const bool checked = result.timestamp != 0 && result.mission_id == mission.mission_id;
 
-		if (mission.timestamp == 0 || !mission.valid) {
+		if (!stored) {
 			strncpy(buf, "MISNONE", sizeof(buf));
 
-		} else if (mission.failure) {
+		} else if (!checked) {
+			strncpy(buf, "MISWAIT", sizeof(buf));
+
+		} else if (result.failure) {
 			strncpy(buf, "MISFAIL", sizeof(buf));
 
-		} else if (mission.finished) {
+		} else if (!result.valid) {
+			strncpy(buf, "MISINVAL", sizeof(buf));
+
+		} else if (result.finished) {
 			strncpy(buf, "MISDONE", sizeof(buf));
 
-		} else if (mission.warning) {
+		} else if (result.warning) {
 			strncpy(buf, "MISWARN", sizeof(buf));
 
 		} else {
 			snprintf(buf, sizeof(buf), "MIS%02u/%02u",
-				 static_cast<unsigned>(math::min(mission.seq_current, static_cast<uint16_t>(99))),
-				 static_cast<unsigned>(math::min(mission.seq_total, static_cast<uint16_t>(99))));
+				 static_cast<unsigned>(math::min(result.seq_current, static_cast<uint16_t>(99))),
+				 static_cast<unsigned>(math::min(result.seq_total, static_cast<uint16_t>(99))));
 		}
 
 		add_element_to_screen(buf, POS_MISSION_X, 8);
@@ -731,13 +752,13 @@ OSDatxxxx::update_screen()
 			buf[i] = toupper(static_cast<unsigned char>(buf[i]));
 		}
 
-		add_element_to_screen(buf, POS_MODE_X, 14);
+		add_centered_element_to_screen(buf, POS_MODE_X, 14);
 	}
 
 	if (enabled(osd::Symbol::Disarmed)) {
 		const char *arming_state = telemetry.status.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 					   ? "ARMED" : "DISARMED";
-		add_element_to_screen(arming_state, POS_ARM_X, 8);
+		add_centered_element_to_screen(arming_state, POS_ARM_X, 8);
 	}
 
 	if (enabled(osd::Symbol::Heading)) {
@@ -845,7 +866,7 @@ OSDatxxxx::update_screen()
 			}
 		}
 
-		add_element_to_screen(message, POS_STATUS_X, FULL_MSG_LENGTH);
+		add_centered_element_to_screen(message, POS_STATUS_X, FULL_MSG_LENGTH);
 	}
 
 	return flush_screen(OSD_MAX_UPDATES_PER_CYCLE);

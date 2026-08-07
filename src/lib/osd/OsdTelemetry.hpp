@@ -43,6 +43,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/radio_status.h>
@@ -103,6 +104,7 @@ struct TelemetryData {
 	input_rc_s input_rc{};
 	log_message_s log_message{};
 	manual_control_setpoint_s manual_control{};
+	mission_s mission{};
 	mission_result_s mission_result{};
 	radio_status_s radio_status{};
 	sensor_gps_s gps{};
@@ -142,6 +144,7 @@ private:
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
 	uORB::Subscription _log_message_sub{ORB_ID(log_message)};
 	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _mission_sub{ORB_ID(mission)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
 	uORB::Subscription _radio_status_sub{ORB_ID(radio_status)};
 	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
