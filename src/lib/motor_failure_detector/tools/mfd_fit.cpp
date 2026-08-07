@@ -346,7 +346,8 @@ int main(int argc, char **argv)
 
 		const Sums &s = per_motor[m];
 		const double bias = s.i / s.n - (slope * (s.u / s.n) + idle);
-		std::printf("#   motor %d: %+.2f  (sigma %.2f, n %.0f)\n", m, bias, s.residualStdDev(slope, idle), s.n);
+		// 1-based, matching the "Motor N ..." the vehicle reports; the arrays stay 0-based.
+		std::printf("#   motor %d: %+.2f  (sigma %.2f, n %.0f)\n", m + 1, bias, s.residualStdDev(slope, idle), s.n);
 		worst = std::fmax(worst, std::fabs(bias));
 	}
 
