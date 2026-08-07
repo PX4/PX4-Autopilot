@@ -214,6 +214,7 @@ msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
 	rssi.screenYPosition = 0x02;
 	rssi.screenXPosition = 0x02;
 
+	memset(&rssi.str[0], 0, sizeof(rssi.str));
 	snprintf(&rssi.str[0], sizeof(rssi.str), "%3d", input_rc.link_quality);
 	rssi.str[3] = '%';
 
@@ -247,7 +248,7 @@ msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_stat
 msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status)
 {
 	// initialize result
-	msp_rendor_battery_state_t battery_state = {0};
+	msp_rendor_battery_state_t battery_state;
 
 	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
 	battery_state.screenYPosition = 0x04;
@@ -269,8 +270,35 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 		battery_state.iconIndex = 0x96; // Dead battery Icon
 	}
 
+	memset(&battery_state.str[0], 0, sizeof(battery_state.str));
 	snprintf(&battery_state.str[0], sizeof(battery_state.str), "%.1fV", (double)sigle_cell_v);
 	return battery_state;
+}
+
+msp_rendor_current_draw_t construct_rendor_CURRENT_DRAW(const battery_status_s &battery_status)
+{
+	// initialize result
+	msp_rendor_current_draw_t current_draw;
+
+	current_draw.screenYPosition = 0x05;
+	current_draw.screenXPosition = 0x02;
+
+	memset(&current_draw.str[0], 0, sizeof(current_draw.str));
+	snprintf(&current_draw.str[0], sizeof(current_draw.str), "%.2f", (double)battery_status.current_a);
+	return current_draw;
+}
+
+msp_rendor_mah_drawn_t construct_rendor_MAH_DRAWN(const battery_status_s &battery_status)
+{
+	// initialize result
+	msp_rendor_mah_drawn_t mah_drawn;
+
+	mah_drawn.screenYPosition = 0x06;
+	mah_drawn.screenXPosition = 0x02;
+
+	memset(&mah_drawn.str[0], 0, sizeof(mah_drawn.str));
+	snprintf(&mah_drawn.str[0], sizeof(mah_drawn.str), "%.0f", (double)battery_status.discharged_mah);
+	return mah_drawn;
 }
 
 
@@ -378,6 +406,18 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 	return num;
 }
 
+msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const sensor_gps_s &vehicle_gps_position)
+{
+	msp_rendor_gps_speed_t speed;
+
+	speed.screenYPosition = 0x08;
+	speed.screenXPosition = 0x02;
+
+	memset(&speed.str[0], 0, sizeof(speed.str));
+	snprintf(&speed.str[0], sizeof(speed.str), "%.2f", (double)(vehicle_gps_position.vel_m_s));
+
+	return speed;
+}
 
 msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 				  const vehicle_global_position_s &vehicle_global_position,
@@ -420,7 +460,7 @@ msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_
 {
 	msp_rendor_distanceToHome_t distance;
 
-	distance.screenYPosition = 0x08;
+	distance.screenYPosition = 0x0A;
 	distance.screenXPosition = 0x02;
 
 	int16_t dist_i = 0;
@@ -534,7 +574,7 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 {
 	msp_rendor_altitude_t altitude;
 
-	altitude.screenYPosition = 0x06;
+	altitude.screenYPosition = 0x09;
 	altitude.screenXPosition = 0x02;
 
 	double alt;
@@ -585,6 +625,17 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
 	}
 
 	return status;
+}
+
+msp_rendor_crosshairs_t construct_rendor_CROSSHAIRS(const int pos_vertical_offset, const int pos_horizontal_offset)
+{
+	// initialize result
+	msp_rendor_crosshairs_t crosshairs;
+
+	crosshairs.screenYPosition = 0x0A - pos_vertical_offset;
+	crosshairs.screenXPosition = 0x1A + pos_horizontal_offset;
+
+	return crosshairs;
 }
 
 
