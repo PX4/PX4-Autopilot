@@ -35,10 +35,25 @@
 
 #include <cmath>
 
+using namespace time_literals;
+
+void MotorFailureDetector::configure(const Config &cfg)
+{
+	_cfg = cfg;
+
+	// An unset undercurrent band mirrors the overcurrent one, so update() only ever runs two bands.
+	if (_cfg.undercurrent_threshold_a <= 0.f) {
+		_cfg.undercurrent_threshold_a = _cfg.overcurrent_threshold_a;
+		_cfg.undercurrent_persistence_s = _cfg.overcurrent_persistence_s;
+	}
+
+	reset();
+}
+
 void MotorFailureDetector::reset()
 {
-	const hrt_abstime overcurrent_persistence_us = (hrt_abstime)(_cfg.overcurrent_persistence_s * 1e6f);
-	const hrt_abstime undercurrent_persistence_us = (hrt_abstime)(fmaxf(_cfg.undercurrent_persistence_s, 0.f) * 1e6f);
+	const hrt_abstime overcurrent_persistence_us = (hrt_abstime)(_cfg.overcurrent_persistence_s * 1_s);
+	const hrt_abstime undercurrent_persistence_us = (hrt_abstime)(fmaxf(_cfg.undercurrent_persistence_s, 0.f) * 1_s);
 
 	for (int i = 0; i < kMaxMotors; ++i) {
 		_status[i] = MotorStatus{};
@@ -78,16 +93,12 @@ void MotorFailureDetector::update(int num_motors, hrt_abstime now_us,
 
 	for (int i = 0; i < num_motors; ++i) {
 		MotorStatus &s = _status[i];
-
 		const float u = command[i];
 
 		// Cannot evaluate -> exclude and reset (re-entry starts clean; latch kept).
-		const bool excluded = std::isnan(u)
-				      || reversible[i];
+		s.excluded = std::isnan(u) || reversible[i];
 
-		s.excluded = excluded;
-
-		if (excluded) {
+		if (s.excluded) {
 			s.residual_lpf = 0.f;
 			_residual_lpf[i].reset(0.f);
 			_hyst_over[i].set_state_and_update(false, now_us);  // cancel pending; keep any latch
@@ -109,20 +120,11 @@ void MotorFailureDetector::update(int num_motors, hrt_abstime now_us,
 		// else: dropout -- residual held; the debounce keeps running on it (fault + dropout still latches).
 
 		// Each band must hold for its persistence time (Hysteresis); the decision is then latched.
-		if (_cfg.undercurrent_threshold_a > 0.f) {
-			_hyst_over[i].set_state_and_update(s.residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
-			_hyst_under[i].set_state_and_update(-s.residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
+		_hyst_over[i].set_state_and_update(s.residual_lpf >= _cfg.overcurrent_threshold_a, now_us);
+		_hyst_under[i].set_state_and_update(-s.residual_lpf >= _cfg.undercurrent_threshold_a, now_us);
 
-			if (_hyst_over[i].get_state() || _hyst_under[i].get_state()) {
-				s.failed = true;
-			}
-
-		} else {
-			_hyst_over[i].set_state_and_update(std::fabs(s.residual_lpf) >= _cfg.overcurrent_threshold_a, now_us);
-
-			if (_hyst_over[i].get_state()) {
-				s.failed = true;
-			}
+		if (_hyst_over[i].get_state() || _hyst_under[i].get_state()) {
+			s.failed = true;
 		}
 	}
 }
