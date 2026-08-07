@@ -592,7 +592,7 @@ The lines below create a publisher to the `SensorCombined` uORB topic, which can
 private:
  rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr subscription_;
 };
-```s
+```
 
 The instantiation of the `SensorCombinedListener` class as a ROS node is done on the `main` function.
 
