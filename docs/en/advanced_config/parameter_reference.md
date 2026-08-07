@@ -44711,6 +44711,25 @@ Enable stack checking.
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
 
+### SYS_TIME_SRC (`INT32`) {#SYS_TIME_SRC}
+
+Select the source of the system time.
+
+This parameter selects the source allowed to set the system time.
+The default value enables all sources.
+
+**Bitmask:**
+
+- `0`: GPS time
+- `1`: MAVLink time
+- `2`: Software RTC time
+- `3`: DDS time
+- `4`: Input simulation time
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 31       |           | 31      |      | &nbsp;    |
+
 ## Telemetry
 
 ### TEL_BST_EN (`INT32`) {#TEL_BST_EN}
