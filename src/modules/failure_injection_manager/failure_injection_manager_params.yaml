@@ -72,14 +72,31 @@ parameters:
           7: Intermittent
       SYS_FAIL_RC_INST:
         description:
-          short: Instance failed by the RC switch
+          short: Instances failed by the RC switch
           long: |-
-            Which instance of SYS_FAIL_RC_UNIT the SYS_FAIL_RC_SRC trigger affects.
-            1-based, or 0 for all instances (motor number for motors).
-        type: int32
-        min: 0
-        max: 16
+            Bitmask of instances of SYS_FAIL_RC_UNIT that the SYS_FAIL_RC_SRC trigger
+            affects (bit 0 = instance 1, motor number for motors). 0 = all instances.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+          8: Instance 9
+          9: Instance 10
+          10: Instance 11
+          11: Instance 12
+          12: Instance 13
+          13: Instance 14
+          14: Instance 15
+          15: Instance 16
         default: 1
+        min: 0
+        max: 65535
         reboot_required: true
       SYS_FAIL_BAT_LVL:
         description:
