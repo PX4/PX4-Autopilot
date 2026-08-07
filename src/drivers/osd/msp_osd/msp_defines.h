@@ -884,6 +884,16 @@ struct msp_rendor_battery_state_t {
 	char str[5];
 } __attribute__((packed));
 
+struct msp_rendor_crosshairs_t {
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x72; //SYM_AH_CENTER_LINE
+	uint8_t iconIndex2 = 0x73; //SYM_AH_CENTER
+	uint8_t iconIndex3 = 0x74; //SYM_AH_CENTER_LINE_RIGHT
+} __attribute__((packed));
+
 // MSP_STATUS reply customized for BF/DJI
 struct msp_status_BF_t {
 	uint16_t task_delta_time;

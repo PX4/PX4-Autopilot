@@ -193,7 +193,7 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
 
 	if (enabled(SymbolIndex::CROSSHAIRS)) {
-		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_height.get();
+		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_pos_ver.get();
 	}
 
 	// possibly available, but not currently used
@@ -469,6 +469,15 @@ void MspOsd::Run()
 
 		const auto msg = msp_osd::construct_MSP_STATUS(vehicle_status);
 		this->Send(MSP_STATUS, &msg, sizeof(msp_status_t));
+	}
+
+	// MSP_CROSSHAIRS
+	{
+		if (enabled(SymbolIndex::CROSSHAIRS)) {
+			const auto msg = msp_osd::construct_rendor_CROSSHAIRS(_param_osd_ch_pos_ver.get(), _param_osd_ch_pos_hor.get());
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_crosshairs_t));
+		}
 	}
 
 	subcmd = MSP_DP_DRAW_SCREEN;
