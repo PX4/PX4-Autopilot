@@ -27025,13 +27025,17 @@ If actuator launch lock is enabled, this surface is kept at the disarmed value.
 
 Motor failure handling mode.
 
-This is used to specify how to handle motor failures
-reported by failure detector.
+What to do on a single motor failure. Ignore disables this feature entirely. Otherwise
+the failed motor is removed from the allocation, and on a hexarotor its geometric-opposite
+motor is additionally stopped (mode 1) or reversed (mode 2) to recover the lost
+yaw/roll/pitch authority; on other airframes only the failed motor is removed. Mode 2
+needs a reverse-capable ESC on the opposite motor.
 
 **Values:**
 
 - `0`: Ignore
-- `1`: Remove first failed motor from effectiveness
+- `1`: Remove failed motor and stop its opposite
+- `2`: Remove failed motor and reverse its opposite
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -27435,6 +27439,17 @@ Zero means that slew rate limiting is disabled.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 10       | 0.01      | 0.0     | s    | &nbsp;    |
+
+### CA_REV_THR_FRAC (`FLOAT`) {#CA_REV_THR_FRAC}
+
+Reverse thrust fraction for reversible motors.
+
+Fraction of forward thrust a reversible motor produces in reverse (e.g. 0.4 = 40%).
+This is mostly a property of the propeller.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 1.0      |           | 0.4     |      | &nbsp;    |
 
 ### CA_ROTOR0_AX (`FLOAT`) {#CA_ROTOR0_AX}
 
