@@ -3023,6 +3023,23 @@ void Commander::dataLinkCheck()
 		}
 	}
 
+	open_drone_id_arm_status_s open_drone_id_arm_status;
+
+	if (_open_drone_id_arm_status_sub.update(&open_drone_id_arm_status)) {
+		if (_open_drone_id_system_lost) {
+			_open_drone_id_system_lost = false;
+
+			if (_datalink_last_heartbeat_open_drone_id_system != 0) {
+				mavlink_log_info(&_mavlink_log_pub, "Remote ID system regained\t");
+			}
+		}
+
+		bool healthy = open_drone_id_arm_status.status == 0;
+
+		_datalink_last_heartbeat_open_drone_id_system = open_drone_id_arm_status.timestamp;
+		_vehicle_status.open_drone_id_system_present = true;
+		_vehicle_status.open_drone_id_system_healthy = healthy;
+	}
 
 	// GCS data link loss failsafe
 	if (!_vehicle_status.gcs_connection_lost) {
