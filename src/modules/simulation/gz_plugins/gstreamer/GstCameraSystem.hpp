@@ -81,11 +81,11 @@ private:
 	std::atomic<bool> _newFrameAvailable{};
 
 	// GStreamer elements
-	GMainLoop *_gstLoop{};
 	GstElement *_pipeline{};
 	GstElement *_source{};
 	std::thread _gstThread;
 	std::atomic<bool> _running{};
+	std::atomic<bool> _stopRequested{};
 
 	// stream params
 	int _width{0};
@@ -101,6 +101,9 @@ private:
 	void onImage(const gz::msgs::Image &msg);
 
 	void gstThreadFunc();
+
+	// Returns true on error, false on a normal stop.
+	bool runPipeline(bool useCuda);
 };
 
 
@@ -139,9 +142,7 @@ private:
 	std::string _rtmpLocation;
 	bool _useCuda = true;
 
-	// methods below are used to maintain consistency in udp ports when restarting instances. For example, if we have
-	// instance 1 streaming on port 5601 we also want it to stream to the same port if we shutdown and restart the
-	// instance
+	// methods below are used to maintain consistency in udp ports when restarting instances.
 	std::unordered_set<int> _usedUdpPorts;
 
 	int getAvailableUdpPort()

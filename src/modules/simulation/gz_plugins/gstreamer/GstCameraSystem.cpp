@@ -176,8 +176,7 @@ void GstCameraSystem::PostUpdate(const gz::sim::UpdateInfo &_info,
 		return;
 	}
 
-	// New cameras appeared (for example, spawned new vehicle instance in
-	// multi-vehicle simulation)
+	// New cameras appeared
 	_ecm.EachNew<gz::sim::components::Camera, gz::sim::components::Name,
 		     gz::sim::components::ParentEntity>(
 			     [&](const gz::sim::Entity & entity, const gz::sim::components::Camera *,
@@ -249,11 +248,8 @@ void CameraStream::start()
 /////////////////////////////////////////////////
 void CameraStream::stop()
 {
+	_stopRequested = true;
 	_running = false;
-
-	if (_gstLoop) {
-		g_main_loop_quit(_gstLoop);
-	}
 
 	if (_gstThread.joinable()) {
 		_gstThread.join();
@@ -267,9 +263,8 @@ void CameraStream::stop()
 
 CameraStream::~CameraStream()
 {
-	if (_running) {
-		stop();
-	}
+	// Always stop: a failed pipeline can leave the thread joinable, and destroying a joinable std::thread terminates the process.
+	stop();
 }
 
 //////////////////////////////////////////////////
@@ -315,20 +310,32 @@ void CameraStream::gstThreadFunc()
 {
 	gzdbg << "Starting GStreamer thread" << std::endl;
 
-	_gstLoop = g_main_loop_new(nullptr, FALSE);
+	bool tryCuda = _useCuda;
 
-	if (!_gstLoop) {
-		gzerr << "Failed to create GStreamer main loop" << std::endl;
-		return;
+	while (!_stopRequested) {
+		bool error = runPipeline(tryCuda);
+
+		if (error && tryCuda && !_stopRequested) {
+			// NVENC can fail at runtime
+			gzwarn << "GStreamer pipeline failed with NVIDIA encoder; retrying with software (x264) encoder" << std::endl;
+			tryCuda = false;
+			continue;
+		}
+
+		break;
 	}
 
+	gzdbg << "GStreamer thread stopped" << std::endl;
+}
+
+//////////////////////////////////////////////////
+bool CameraStream::runPipeline(bool useCuda)
+{
 	_pipeline = gst_pipeline_new(nullptr);
 
 	if (!_pipeline) {
 		gzerr << "Failed to create GStreamer pipeline" << std::endl;
-		g_main_loop_unref(_gstLoop);
-		_gstLoop = nullptr;
-		return;
+		return true;
 	}
 
 	// Create elements
@@ -351,17 +358,13 @@ void CameraStream::gstThreadFunc()
 
 	GstElement *encoder;
 
-	if (_useCuda) {
+	if (useCuda) {
 		encoder = gst_element_factory_make("nvh264enc", nullptr);
 
 		if (encoder) {
-			// Higher quality NVIDIA encoder settings
-			g_object_set(G_OBJECT(encoder), "bitrate",
-				     4000,                // Increased bitrate for higher quality
-				     "preset", 2,         // Higher quality preset (HP)
-				     "rc-mode", 1,        // Constant bitrate mode
-				     "zerolatency", TRUE, // Reduce latency
-				     "qp-const", 20,      // Lower QP (higher quality)
+			// set only the widely-supported bitrate.
+			g_object_set(G_OBJECT(encoder),
+				     "bitrate", 4000,
 				     NULL);
 
 		} else {
@@ -419,10 +422,8 @@ void CameraStream::gstThreadFunc()
 	    !payloader || !sink) {
 		gzerr << "Failed to create one or more GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
-		g_main_loop_unref(_gstLoop);
 		_pipeline = nullptr;
-		_gstLoop = nullptr;
-		return;
+		return true;
 	}
 
 	// Configure source
@@ -431,10 +432,16 @@ void CameraStream::gstThreadFunc()
 				      _width, "height", G_TYPE_INT, _height, "framerate", GST_TYPE_FRACTION,
 				      (unsigned int)_rate, 1, NULL);
 
+	// Bound the appsrc queue so a stalled pipeline drops frames instead of
+	// buffering every one (~110 MB/s at 1280x960@30) until the host OOMs.
 	g_object_set(G_OBJECT(_source), "caps", sourceCaps, "is-live", TRUE,
 		     "do-timestamp", TRUE, "stream-type", GST_APP_STREAM_TYPE_STREAM,
 		     "format", GST_FORMAT_TIME, "min-latency", 0, "max-latency", 0,
-		     "emit-signals", TRUE, NULL);
+		     "emit-signals", TRUE,
+		     "max-bytes", (guint64)0,
+		     "max-buffers", (guint64)3,
+		     "leaky-type", GST_APP_LEAKY_TYPE_DOWNSTREAM,
+		     NULL);
 
 	gst_caps_unref(sourceCaps);
 
@@ -455,21 +462,29 @@ void CameraStream::gstThreadFunc()
 				   queue2, encoder, payloader, sink, nullptr)) {
 		gzerr << "Failed to link GStreamer elements" << std::endl;
 		gst_object_unref(_pipeline);
-		g_main_loop_unref(_gstLoop);
 		_pipeline = nullptr;
-		_gstLoop = nullptr;
-		return;
+		return true;
 	}
 
 	// Start pipeline
 	if (gst_element_set_state(_pipeline, GST_STATE_PLAYING) ==
 	    GST_STATE_CHANGE_FAILURE) {
 		gzerr << "Failed to set GStreamer pipeline to playing state" << std::endl;
+		gst_element_set_state(_pipeline, GST_STATE_NULL);
 		gst_object_unref(_pipeline);
-		g_main_loop_unref(_gstLoop);
 		_pipeline = nullptr;
-		_gstLoop = nullptr;
-		return;
+		return true;
+	}
+
+	// A pipeline with sinks changes state asynchronously; verify it completes.
+	GstStateChangeReturn scr = gst_element_get_state(_pipeline, nullptr, nullptr, 5 * GST_SECOND);
+
+	if (scr == GST_STATE_CHANGE_FAILURE) {
+		gzerr << "GStreamer pipeline failed to reach PLAYING state" << std::endl;
+		gst_element_set_state(_pipeline, GST_STATE_NULL);
+		gst_object_unref(_pipeline);
+		_pipeline = nullptr;
+		return true;
 	}
 
 	gzdbg << "GStreamer pipeline started, streaming to "
@@ -477,15 +492,65 @@ void CameraStream::gstThreadFunc()
 		  : (_udpHost + ":" + std::to_string(_udpPort)))
 	      << std::endl;
 
+	// Watch the bus so async pipeline errors are surfaced, not dropped.
+	GstBus *bus = gst_element_get_bus(_pipeline);
+
 	_running = true;
+	bool pipelineError = false;
 
 	// Process frames
-	while (_running) {
+	while (_running && !pipelineError) {
+		// Drain pending bus messages
+		if (bus) {
+			GstMessage *busMsg;
+
+			while ((busMsg = gst_bus_pop_filtered(bus,
+							      (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_WARNING))) != nullptr) {
+				GError *gerr = nullptr;
+				gchar *dbgInfo = nullptr;
+
+				if (GST_MESSAGE_TYPE(busMsg) == GST_MESSAGE_ERROR) {
+					gst_message_parse_error(busMsg, &gerr, &dbgInfo);
+					gzerr << "GStreamer pipeline error from ["
+					      << GST_OBJECT_NAME(busMsg->src) << "]: "
+					      << (gerr ? gerr->message : "unknown")
+					      << (dbgInfo ? (std::string(" (") + dbgInfo + ")") : "")
+					      << std::endl;
+					pipelineError = true;
+
+				} else {
+					gst_message_parse_warning(busMsg, &gerr, &dbgInfo);
+					gzwarn << "GStreamer warning from ["
+					       << GST_OBJECT_NAME(busMsg->src) << "]: "
+					       << (gerr ? gerr->message : "unknown")
+					       << std::endl;
+				}
+
+				if (gerr) {
+					g_error_free(gerr);
+				}
+
+				g_free(dbgInfo);
+				gst_message_unref(busMsg);
+			}
+		}
+
 		std::unique_lock<std::mutex> lock(_frameMutex);
 
-		if (_newFrameAvailable) {
+		if (_newFrameAvailable && !pipelineError) {
 			// Push RGB data directly - we configured the caps to accept RGB
 			const guint size = _width * _height * 3; // RGB is 3 bytes per pixel
+
+			// Skip undersized frames: the memcpy below would read OOB.
+			if (_currentFrame.data().size() < size) {
+				gzwarn << "Skipping camera frame: got " << _currentFrame.data().size()
+				       << " bytes, expected " << size << std::endl;
+				_newFrameAvailable = false;
+				lock.unlock();
+				std::this_thread::sleep_for(std::chrono::milliseconds(5));
+				continue;
+			}
+
 			GstBuffer *buffer = gst_buffer_new_allocate(nullptr, size, nullptr);
 
 			if (buffer) {
@@ -532,13 +597,17 @@ void CameraStream::gstThreadFunc()
 	}
 
 	// Cleanup
+	_running = false;
+
+	if (bus) {
+		gst_object_unref(bus);
+	}
+
 	gst_element_set_state(_pipeline, GST_STATE_NULL);
 	gst_object_unref(_pipeline);
-	g_main_loop_unref(_gstLoop);
 	_pipeline = nullptr;
-	_gstLoop = nullptr;
 
-	gzdbg << "GStreamer thread stopped" << std::endl;
+	return pipelineError;
 }
 
 // Register this plugin
