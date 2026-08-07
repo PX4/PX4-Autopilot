@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# Lectron Pi5 Autopilot board MAVLink startup script.
+#------------------------------------------------------------------------------
+if ifconfig eth0 up
+then
+    udhcpc -i eth0 -t 3 &
+fi
