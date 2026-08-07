@@ -308,5 +308,20 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-07-27: translate MOTFAIL_OFF to MOTFAIL_OVER and MOTFAIL_TIME to MOTFAIL_OVR_TIME
+	{
+		if (strcmp("MOTFAIL_OFF", node->name) == 0) {
+			strcpy(node->name, "MOTFAIL_OVER");
+			PX4_INFO("migrating %s -> %s", "MOTFAIL_OFF", "MOTFAIL_OVER");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("MOTFAIL_TIME", node->name) == 0) {
+			strcpy(node->name, "MOTFAIL_OVR_TIME");
+			PX4_INFO("migrating %s -> %s", "MOTFAIL_TIME", "MOTFAIL_OVR_TIME");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

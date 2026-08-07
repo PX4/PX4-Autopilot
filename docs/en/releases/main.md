@@ -31,6 +31,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ## Upgrade Guide
 
 - `COM_ARM_TRAFF` has been replaced by `COM_TRAFF_AVOID`. The old value 3 ("enforce for mission modes only") is migrated to `COM_TRAFF_AVOID=2`, which blocks arming in all modes, not just mission modes. If you relied on being able to arm manually with traffic detected, set `COM_TRAFF_AVOID=1` (warning only) instead.
+- **Re-check the motor failure trigger thresholds.**
+  `MOTFAIL_OFF` has been renamed to [MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER) and `MOTFAIL_TIME` to [MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME), and both are migrated on parameter import. The check now compares a low-pass filtered current residual instead of the instantaneous value, and can use a separate band and hold time per direction. Detection behaviour is unchanged until [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER) is set, but the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ## Other changes
 
@@ -51,6 +53,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
+- [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and hold time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ### Estimation
 
@@ -66,7 +69,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Debug & Logging
 
-- TBD
+- [Offline motor failure replay](../debug/motor_failure_replay.md): a host tool that runs the real motor failure detector over a recorded `.ulg`, for calibrating and verifying the [motor failure detection](../config/motor_failure_detection.md) thresholds against a vehicle's own flights. ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 
 ### Ethernet
 

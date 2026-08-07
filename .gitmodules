@@ -122,3 +122,6 @@
 [submodule "src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow"]
 	path = src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow
 	url = https://github.com/PX4/PX4-OpticalFlow.git
+[submodule "src/lib/ulog_cpp"]
+	path = src/lib/ulog_cpp
+	url = https://github.com/PX4/ulog_cpp.git
