@@ -76,6 +76,7 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_tecs_status_pub.advertise();
 	_flight_phase_estimation_pub.advertise();
 	_fixed_wing_lateral_status_pub.advertise();
+	_spoilers_setpoint_pub.advertise();
 	parameters_update();
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
@@ -112,6 +113,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+	_tecs.set_spoiler_max(_param_fw_t_spoiler_max.get());
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 
@@ -231,6 +233,11 @@ void FwLateralLongitudinalControl::Run()
 
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
+
+			normalized_unsigned_setpoint_s spoilers_sp{};
+			spoilers_sp.timestamp = now;
+			spoilers_sp.normalized_setpoint = _tecs.get_spoiler_setpoint();
+			_spoilers_setpoint_pub.publish(spoilers_sp);
 
 			// ----- Lateral ------
 			float roll_sp {NAN};
