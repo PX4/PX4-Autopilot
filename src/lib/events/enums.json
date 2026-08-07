@@ -612,6 +612,10 @@
                             "name": "descend",
                             "description": "Descend"
                         },
+                        "33": {
+                            "name": "my_new_mode",
+                            "description": "My New Mode"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
