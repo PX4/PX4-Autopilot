@@ -365,9 +365,20 @@ void MspOsd::Run()
 		const auto msg_original = msp_osd::construct_BATTERY_STATE(battery_status);
 		this->Send(MSP_BATTERY_STATE, &msg_original);
 
-		const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
-		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
+		if (enabled(SymbolIndex::AVG_CELL_VOLTAGE)) {
+			const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
+		}
 
+		if (enabled(SymbolIndex::CURRENT_DRAW)) {
+			const auto msg = msp_osd::construct_rendor_CURRENT_DRAW(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_current_draw_t));
+		}
+
+		if (enabled(SymbolIndex::MAH_DRAWN)) {
+			const auto msg = msp_osd::construct_rendor_MAH_DRAWN(battery_status);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_mah_drawn_t));
+		}
 	}
 
 	// MSP_RAW_GPS

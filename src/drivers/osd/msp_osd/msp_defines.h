@@ -876,12 +876,30 @@ struct msp_battery_state_t {
 } __attribute__((packed));
 
 struct msp_rendor_battery_state_t {
-	uint8_t subCommand; // 0x03 write string. fixed
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
-	uint8_t iconAttrs;
+	uint8_t iconAttrs = 0x00;
 	uint8_t iconIndex;
 	char str[5];
+} __attribute__((packed));
+
+struct msp_rendor_current_draw_t {
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x9A;
+	char str[7]; // 100.00
+} __attribute__((packed));
+
+struct msp_rendor_mah_drawn_t {
+	uint8_t subCommand = 0x03; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x07;
+	char str[8]; // 10000.0
 } __attribute__((packed));
 
 struct msp_rendor_crosshairs_t {
