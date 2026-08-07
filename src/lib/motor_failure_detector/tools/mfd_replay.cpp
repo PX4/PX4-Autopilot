@@ -41,8 +41,8 @@
  * (per-field fallback to a built-in calibration), with --set NAME=value overrides for what-if retuning.
  *
  * The runtime's exact 10 Hz sample phase can't be reconstructed offline, so in a single pass over the
- * log it runs kNumPhases detector instances on different grid offsets and reports a per-motor peak
- * BAND + trip fraction -- a single-phase verdict is only a lower bound.
+ * log it runs kNumPhases detector instances on different grid offsets and reports each motor's
+ * residual extremes + trip fraction -- a single-phase verdict is only a lower bound.
  */
 
 #include "MotorFailureDetector.hpp"
@@ -125,6 +125,10 @@ public:
 		  _cli_cfg(cli_cfg), _cli_set(cli_set)
 	{
 		for (auto &phase : _trip_time) { phase.fill(-1.0); }
+
+		for (auto &phase : _rmin) { phase.fill(0.f); }
+
+		for (auto &phase : _rmax) { phase.fill(0.f); }
 	}
 
 	void addLoggedMessage(const ulog_cpp::AddLoggedMessage &msg) override
@@ -283,9 +287,12 @@ public:
 			for (int m = 0; m < kMM; ++m) {
 				if (!_seen[m]) { continue; }
 
-				const float abs_residual_lpf = std::fabs(_det[p].status(m).residual_lpf);
+				const float residual_lpf = _det[p].status(m).residual_lpf;
 
-				if (!std::isnan(abs_residual_lpf) && abs_residual_lpf > _peak[p][m]) { _peak[p][m] = abs_residual_lpf; }
+				if (!std::isnan(residual_lpf)) {
+					_rmin[p][m] = std::min(_rmin[p][m], residual_lpf);
+					_rmax[p][m] = std::max(_rmax[p][m], residual_lpf);
+				}
 
 				if (_det[p].status(m).failed && _trip_time[p][m] < 0) { _trip_time[p][m] = elapsed_s; }
 			}
@@ -296,7 +303,8 @@ public:
 
 	// Results, read after the whole log has been parsed.
 	bool seen(int m) const { return _seen[m]; }
-	float peak(int phase, int m) const { return _peak[phase][m]; }
+	float residualMin(int phase, int m) const { return _rmin[phase][m]; }
+	float residualMax(int phase, int m) const { return _rmax[phase][m]; }
 	double tripTime(int phase, int m) const { return _trip_time[phase][m]; }
 	bool haveStatus() const { return _have_status; }
 	int paramsFromLog() const { return _params_from_log; }
@@ -318,7 +326,8 @@ private:
 	bool _have_status = false;
 	std::array<float, kMM> _command_latest {};
 	std::array<bool, kMM> _reversible_latest {};
-	std::array<std::array<float, kMM>, kNumPhases> _peak {};
+	std::array<std::array<float, kMM>, kNumPhases> _rmin;
+	std::array<std::array<float, kMM>, kNumPhases> _rmax;
 	std::array<std::array<double, kMM>, kNumPhases> _trip_time;   // -1 until a trip (filled in the ctor)
 	std::array<bool, kMM> _seen {};
 	double _start_us = -1.0;
@@ -427,14 +436,20 @@ int main(int argc, char **argv)
 
 	if (!replay) { return 2; }
 
-	// Aggregate the per-phase results into a peak band + trip fraction per motor.
+	// Aggregate the per-phase results into each motor's residual extremes + trip fraction. The
+	// envelope (deepest and highest any phase saw) is reported; the per-phase spread of each extreme
+	// is what says whether the answer depends on sampling.
 	std::array<bool, kMM> seen_any{};
-	std::array<float, kMM> peak_min;
-	std::array<float, kMM> peak_max;
+	std::array<float, kMM> res_min;
+	std::array<float, kMM> res_max;
+	std::array<float, kMM> res_min_shallowest;
+	std::array<float, kMM> res_max_lowest;
 	std::array<int, kMM> trip_count{};
 
-	peak_min.fill(FLT_MAX);
-	peak_max.fill(0.f);
+	res_min.fill(0.f);
+	res_max.fill(0.f);
+	res_min_shallowest.fill(-FLT_MAX);
+	res_max_lowest.fill(FLT_MAX);
 
 	for (int m = 0; m < kMM; ++m) {
 		if (!replay->seen(m)) { continue; }
@@ -442,8 +457,10 @@ int main(int argc, char **argv)
 		seen_any[m] = true;
 
 		for (int p = 0; p < kNumPhases; ++p) {
-			peak_min[m] = std::min(peak_min[m], replay->peak(p, m));
-			peak_max[m] = std::max(peak_max[m], replay->peak(p, m));
+			res_min[m] = std::min(res_min[m], replay->residualMin(p, m));
+			res_max[m] = std::max(res_max[m], replay->residualMax(p, m));
+			res_min_shallowest[m] = std::max(res_min_shallowest[m], replay->residualMin(p, m));
+			res_max_lowest[m] = std::min(res_max_lowest[m], replay->residualMax(p, m));
 
 			if (replay->tripTime(p, m) >= 0) { ++trip_count[m]; }
 		}
@@ -496,7 +513,7 @@ int main(int argc, char **argv)
 		    "# config (%s):  I_exp = %.2f*u + %.2f A,  trip if LPF(I-I_exp) %s\n",
 		    ulog_path, kNumPhases, replay->evaluated(), count_label, config_source.data(),
 		    (double)cfg.current_slope_a, (double)cfg.current_idle_a, band_desc.data());
-	std::printf("# %-5s  %-15s  %-5s  %s\n", "motor", "peak|LPF(r)|[A]", "trips", "verdict");
+	std::printf("# %-5s  %8s  %8s  %-5s  %s\n", "motor", "min[A]", "max[A]", "trips", "verdict");
 
 	bool any_failed = false;
 	bool phase_dependent = false;
@@ -519,12 +536,17 @@ int main(int argc, char **argv)
 			verdict = "ok";
 		}
 
-		if (peak_max[m] > 1.3f * peak_min[m]) { phase_dependent = true; }   // wide band => phase-sensitive
+		// One side moving by >30% between phases means the sampling grid, not the flight, picked the answer.
+		if (std::fabs(res_min[m]) > 1.3f * std::fabs(res_min_shallowest[m])
+		    || res_max[m] > 1.3f * res_max_lowest[m]) {
+			phase_dependent = true;
+		}
 
 		std::array<char, 16> trips_str {};
 		std::snprintf(trips_str.data(), trips_str.size(), "%d/%d", trip_count[m], kNumPhases);
-		std::printf("  %5d  %6.2f - %-6.2f  %-5s  %s\n",
-			    m, (double)peak_min[m], (double)peak_max[m], trips_str.data(), verdict);
+		// 1-based, matching the "Motor N ..." the vehicle reports; the arrays stay 0-based.
+		std::printf("  %5d  %+8.2f  %+8.2f  %-5s  %s\n",
+			    m + 1, (double)res_min[m], (double)res_max[m], trips_str.data(), verdict);
 	}
 
 	if (phase_dependent) {
