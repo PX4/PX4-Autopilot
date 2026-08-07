@@ -425,6 +425,7 @@ FailsafeBase::ActionOptions Failsafe::fromParachuteActParam(int param_value)
 		break;
 
 	case parachute_unhealthy_failsafe_mode::Warning:
+	case parachute_unhealthy_failsafe_mode::Error:
 		options.action = Action::Warn;
 		options.clear_condition = ClearCondition::WhenConditionClears;
 		break;

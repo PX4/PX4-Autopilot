@@ -482,12 +482,15 @@ parameters:
         short: Parachute requirement and failsafe
         long: |-
           Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
+
+          Warning only warns without preventing arming. Actions other than Warning also prevent arming.
       type: enum
       values:
         0: Disabled
         1: Warning
-        2: Return
-        3: Land
+        2: Error
+        3: Return
+        4: Land
       default: 0
     COM_ARM_CHK_ESCS:
       description:
@@ -606,8 +609,8 @@ parameters:
       description:
         short: Companion computer high-temperature warning threshold
         long: |-
-          
-          
+
+
           Arming is not prevented as the temperature typically drops in flight.
 
           Set to -1 to disable.
