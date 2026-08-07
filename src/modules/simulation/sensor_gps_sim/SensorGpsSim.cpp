@@ -143,7 +143,17 @@ void SensorGpsSim::Run()
 		_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
 				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-		const Vector3f gps_vel = Vector3f{lpos.vx + _gps_vel_noise_n, lpos.vy + _gps_vel_noise_e, lpos.vz + _gps_vel_noise_d};
+		Vector3f gps_vel = Vector3f{lpos.vx + _gps_vel_noise_n, lpos.vy + _gps_vel_noise_e, lpos.vz + _gps_vel_noise_d};
+
+		const float vel_yaw_offset = math::radians(_sim_gps_ofs_yaw.get());
+
+		if (fabsf(vel_yaw_offset) > FLT_EPSILON) {
+			const float cy = cosf(vel_yaw_offset);
+			const float sy = sinf(vel_yaw_offset);
+			gps_vel = Vector3f{gps_vel(0) *cy - gps_vel(1) *sy,
+					   gps_vel(0) *sy + gps_vel(1) *cy,
+					   gps_vel(2)};
+		}
 
 		// device id
 		device::Device::DeviceId device_id;

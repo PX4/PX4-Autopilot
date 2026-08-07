@@ -46,3 +46,15 @@ parameters:
       default: 0.0
       min: -10000
       max: 10000
+    SIM_GPS_OFS_YAW:
+      description:
+        short: simulated GPS velocity direction offset
+        long: |
+          Rotates the simulated GPS velocity vector by this angle, emulating a
+          spoofed or otherwise direction-inconsistent GNSS velocity while the
+          IMU keeps reporting the true motion. Runtime-settable.
+      type: float
+      unit: deg
+      default: 0.0
+      min: -180
+      max: 180
