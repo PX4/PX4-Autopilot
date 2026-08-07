@@ -37,6 +37,8 @@
 
 #include "FlightTaskManualAcceleration.hpp"
 
+#include <lib/hagl_limits/hagl_limits.hpp>
+
 using namespace matrix;
 
 bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_setpoint)
@@ -65,13 +67,14 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 bool FlightTaskManualAcceleration::update()
 {
 	const vehicle_local_position_s vehicle_local_pos = _sub_vehicle_local_position.get();
-	setMaxDistanceToGround(vehicle_local_pos.hagl_max_xy);
+	const float max_hagl = hagl_limits::withMarginXY(vehicle_local_pos.hagl_max_xy);
+	setMaxDistanceToGround(max_hagl);
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 
 	float max_hagl_ratio = 0.0f;
 
-	if (PX4_ISFINITE(vehicle_local_pos.hagl_max_xy) && vehicle_local_pos.hagl_max_xy > FLT_EPSILON) {
-		max_hagl_ratio = (vehicle_local_pos.dist_bottom) / vehicle_local_pos.hagl_max_xy;
+	if (PX4_ISFINITE(max_hagl) && max_hagl > FLT_EPSILON) {
+		max_hagl_ratio = (vehicle_local_pos.dist_bottom) / max_hagl;
 	}
 
 	// limit horizontal velocity near max hagl to decrease chance of larger gound distance jumps

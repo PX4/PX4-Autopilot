@@ -48,6 +48,7 @@
 #include <float.h>
 
 #include <lib/geo/geo.h>
+#include <lib/hagl_limits/hagl_limits.hpp>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 
 using matrix::wrap_pi;
+using namespace time_literals;
 
 MissionBlock::MissionBlock(Navigator *navigator, uint8_t navigator_state_id) :
 	NavigatorMode(navigator, navigator_state_id)
@@ -1050,10 +1052,22 @@ void MissionBlock::updateFailsafeChecks()
 
 void MissionBlock::updateMaxHaglFailsafe()
 {
-	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
-	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
-	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
-	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
+	const vehicle_local_position_s *local_pos = _navigator->get_local_position();
+	const float max_hagl = hagl_limits::combineMax(local_pos->hagl_max_z, local_pos->hagl_max_xy);
+
+	// While climbing out of a takeoff we expect to get close to the maximum hagl and we don't want to trigger the
+	// failsafe in that case. Instead limit the setpoint to not exceed the maximum hagl. Note that the VTOL takeoff
+	// mode also uses NAV_CMD_TAKEOFF for its climb, NAV_CMD_VTOL_TAKEOFF only appears for a takeoff item inside a
+	// mission.
+	const bool in_takeoff_climb = (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+				       || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
+				      && !_navigator->get_land_detected()->landed;
+
+	if (!in_takeoff_climb) {
+		// The latched limit is only valid within a single takeoff climb. Resetting it here rather than on mode
+		// activation also covers modes which never run this check while landed.
+		_max_hagl_limited_alt_amsl = -INFINITY;
+	}
 
 	// If the HAGL failsafe is declared during front transition, we enter a
 	// FW hold at the current low altitude while not having finished the
@@ -1062,7 +1076,23 @@ void MissionBlock::updateMaxHaglFailsafe()
 	// failsafe here.
 	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
 
-	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
+	if (in_transition_to_fw) {
+		return;
+	}
+
+	if (in_takeoff_climb) {
+		if (PX4_ISFINITE(max_hagl) && local_pos->dist_bottom_valid) {
+			limitAltitudeToMaxHagl(max_hagl);
+		}
+
+		return;
+	}
+
+	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
+	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
+
+	if (terrain_alt_valid && (target_alt - terrain_alt) > max_hagl) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");
@@ -1075,5 +1105,55 @@ void MissionBlock::updateMaxHaglFailsafe()
 		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 
 		_navigator->set_position_setpoint_triplet_updated();
+	}
+}
+
+void MissionBlock::limitAltitudeToMaxHagl(const float max_hagl)
+{
+	// The limit is applied on the measured height above the ground and the remaining commanded climb, both taken
+	// at the same instant, such that an error in the estimated absolute altitude cancels.
+	position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+
+	if (!curr_sp->valid || !PX4_ISFINITE(curr_sp->alt)) {
+		return;
+	}
+
+	const float vehicle_alt_amsl = _navigator->get_global_position()->alt;
+	const float hagl_limit = hagl_limits::withMargin(max_hagl);
+	const float limit_alt_amsl = vehicle_alt_amsl + (hagl_limit - _navigator->get_local_position()->dist_bottom);
+
+	// Latch the highest limit derived during this climb so that a single spurious ground distance measurement
+	// cannot walk the takeoff altitude down. Only the derived limit is latched, not the altitude floor applied
+	// below, otherwise an overshoot above the limited setpoint would raise the latch to the overshoot altitude
+	// and the margin would be eroded with every overshoot.
+	_max_hagl_limited_alt_amsl = math::max(_max_hagl_limited_alt_amsl, limit_alt_amsl);
+
+	// Never command a descent: a spurious measurement must not pull the setpoint below the altitude already
+	// reached. This floor is applied per iteration and deliberately not latched.
+	const float max_altitude_amsl = math::max(_max_hagl_limited_alt_amsl, vehicle_alt_amsl);
+
+	// The threshold prevents re-publishing the triplet on every iteration while tracking the limited altitude.
+	static constexpr float kAltitudeDifferenceForLimiting = 0.5f;
+
+	// Minimum time between two altitude limiting warnings
+	static constexpr hrt_abstime kMaxHaglWarningInterval = 5_s;
+
+	if (curr_sp->alt - max_altitude_amsl > kAltitudeDifferenceForLimiting) {
+		if (hrt_elapsed_time(&_time_last_max_hagl_warning) > kMaxHaglWarningInterval) {
+			_time_last_max_hagl_warning = hrt_absolute_time();
+
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Climb limited to %.1f m above ground\t",
+					     (double)hagl_limit);
+			events::send<float>(events::ID("navigator_max_hagl_alt_limited"), events::Log::Critical,
+					    "Climb limited to {1:.1m} above ground", hagl_limit);
+		}
+
+		curr_sp->alt = max_altitude_amsl;
+		_navigator->set_position_setpoint_triplet_updated();
+
+		// Also limit the mission item altitude used for the acceptance calculation, otherwise the item
+		// would never be considered reached.
+		_mission_item.altitude = max_altitude_amsl;
+		_mission_item.altitude_is_relative = false;
 	}
 }

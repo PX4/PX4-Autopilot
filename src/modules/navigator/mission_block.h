@@ -45,6 +45,7 @@
 #include "navigation.h"
 
 #include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/mission.h>
@@ -227,5 +228,25 @@ protected:
 	float _command_timeout{0.f}; ///< Time in seconds any item_has_timeout() command should be waited for before continuing the mission
 
 private:
+	/**
+	 * Trigger the HAGL failsafe if the altitude setpoint is above the maximum height above the ground
+	 * reported by the estimator. While climbing out of a takeoff the altitude setpoint is limited instead.
+	 */
 	void updateMaxHaglFailsafe();
+
+	/**
+	 * Limit the current altitude setpoint such that the vehicle stays within the maximum height above the
+	 * ground reported by the estimator. The limit only ever stops the climb, it never commands a descent.
+	 * @param max_hagl maximum height above the ground reported by the estimator [m]
+	 */
+	void limitAltitudeToMaxHagl(float max_hagl);
+
+	hrt_abstime _time_last_max_hagl_warning{0}; ///< time of the last altitude limiting warning
+
+	/**
+	 * Highest altitude limit derived during the current takeoff climb [m AMSL]. Latched so that a single
+	 * spurious ground distance measurement cannot walk the takeoff altitude down. -INFINITY while no takeoff
+	 * climb is in progress.
+	 */
+	float _max_hagl_limited_alt_amsl{-INFINITY};
 };
