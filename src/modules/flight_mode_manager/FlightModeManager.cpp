@@ -263,6 +263,15 @@ void FlightModeManager::start_flight_task()
 		matching_task_running = matching_task_running && !task_failure;
 	}
 
+	// My New Mode
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_MY_NEW_MODE) {
+		found_some_task = true;
+		FlightTaskError error = FlightTaskError::NoError;
+		error = switchTask(FlightTaskIndex::MyMode);
+		task_failure = (error != FlightTaskError::NoError);
+		matching_task_running = matching_task_running && !task_failure;
+	}
+
 	// Emergency descend
 	if (nav_state_descend || task_failure) {
 		found_some_task = true;
