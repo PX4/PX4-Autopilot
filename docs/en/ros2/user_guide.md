@@ -588,7 +588,7 @@ For more information see: [ROS 2 Subscriber QoS Settings](#ros-2-subscriber-qos-
 
 The lines below create a publisher to the `SensorCombined` uORB topic, which can be matched with one or more compatible ROS 2 subscribers to the `fmu/sensor_combined/out` ROS 2 topic.
 
-````cpp
+```cpp
 private:
  rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr subscription_;
 };
@@ -607,7 +607,7 @@ int main(int argc, char *argv[])
   rclcpp::shutdown();
   return 0;
 }
-````
+```
 
 This particular example has an associated launch file at [launch/sensor_combined_listener.launch.py](https://github.com/PX4/px4_ros_com/blob/main/launch/sensor_combined_listener.launch.py).
 This allows it to be launched using the [`ros2 launch`](#ros2-launch) command.
