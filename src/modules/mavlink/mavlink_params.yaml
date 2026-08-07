@@ -176,7 +176,7 @@ parameters:
       unit: deg * 1e7
       min: -900000000
       max: 900000000
-  RNG_2_AMSL:
+    RNG_2_AMSL:
       description:
         short: Ranging beacon 2 altitude (m AMSL)
         long: |-
