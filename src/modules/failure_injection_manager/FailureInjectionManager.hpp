@@ -98,6 +98,9 @@ private:
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
-		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst
+		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
+		// Consumed via param_find() in failure_injection::process_battery(); registered
+		// here so it is marked used and shows up in the GCS parameter list.
+		(ParamInt<px4::params::SYS_FAIL_BAT_LVL>) _param_sys_fail_bat_lvl
 	)
 };

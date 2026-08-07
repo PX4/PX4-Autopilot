@@ -1,11 +1,48 @@
 # System Failure Injection
 
-System failure injection allows you to induce different types of sensor and system failures, either programmatically using the [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html), or "manually" via a PX4 console like the [MAVLink shell](../debug/mavlink_shell.md#mavlink-shell).
+System failure injection allows you to induce different types of sensor and system failures, either via MAVLink (using [MAV_CMD_INJECT_FAILURE](https://mavlink.io/en/messages/common.html#MAV_CMD_INJECT_FAILURE) or via the [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html)), or "manually" via a PX4 console like the [MAVLink shell](../debug/mavlink_shell.md#mavlink-shell).
 This enables easier testing of [safety failsafe](../config/safety.md) behaviour, and more generally, of how PX4 behaves when systems and sensors stop working correctly.
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe).
+Failures can be injected both in simulation and on real hardware; this requires firmware built with the failure-injection module.
+The command always goes through the same firmware failure-injection module — whether it arrives over MAVLink or from the console, the accepted combinations are identical.
+What differs is whether a _consumer_ applies the failure, and that depends on the environment.
+
+## Supported Failure Types
+
+The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
+A `—` means the module still accepts the command, but no consumer applies it in that environment.
+
+| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware       |
+| ----------------- | ----------------------- | ----------------------- | -------------------------------------------- | -------------- |
+| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
+| `gps`             | —                       | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck` |
+| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —              |
+| `vio`             | —                       | —                       | `off`                                        | —              |
+| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong` |
+| `traffic`         | `off`                   | `off`                   | `off`                                        | `off`          |
+| `motor`           | `off`                   | `off`                   | `off`                                        | `off`          |
+
+[SIH]: ../sim_sih/index.md
+[Gazebo]: ../sim_gazebo_gz/index.md
+
+> [!INFO]
+>
+> - `gps off | stuck | wrong` on Gazebo (Gz): only available if [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) is set to `0` to use the injectable simulated-GPS module.
+>   By default Gazebo publishes GPS from the simulator's own GNSS sensor (`SIM_GZ_EN_GPS` = 1), which is not injectable.
+> - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+> - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
+> - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
+> - `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+
+Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
+The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see footnotes 1–2), SIH does not simulate an injectable airspeed.
+Components not listed (`optical_flow`, `servo`, `avoidance`, `rc_signal`, `mavlink_signal`) are rejected everywhere (`MAV_RESULT_UNSUPPORTED`); see the note below on NACK behaviour.
 
 ::: info
 PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
@@ -44,7 +81,8 @@ where:
     - `battery`: Battery
     - `motor`: Motor
     - `servo`: Servo
-    - `avoidance`: Avoidance
+    - `avoidance`: Obstacle/collision avoidance system
+    - `traffic`: Traffic avoidance (ADS-B/transponder)
     - `rc_signal`: RC Signal
     - `mavlink_signal`: MAVLink data telemetry connection
 - _failure_type_:
@@ -58,7 +96,8 @@ where:
   - `intermittent`: Publish intermittently
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
-- _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted. Example: `-m 0x5` targets instances 1 and 3.
+- _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted.
+  Example: `-m 0x5` targets instances 1 and 3.
 
 ::: info
 The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
@@ -118,10 +157,14 @@ To stop a motor mid-flight without the system anticipating it or excluding it fr
 To trigger the battery failsafe by reporting a depleted pack:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
-2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+2. Optionally select the injected warning level with [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL): Warn, Critical (default) or Emergency. The reported remaining charge is set just below the matching threshold ([BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR), [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR) or [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)).
+3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
-   # Report the battery as depleted (warning EMERGENCY) -> battery failsafe
+   # Report the battery as depleted at the SYS_FAIL_BAT_LVL warning level -> battery failsafe
+   failure battery wrong
+
+   # Stop publishing the battery status entirely
    failure battery off
 
    # Stop injecting the failure

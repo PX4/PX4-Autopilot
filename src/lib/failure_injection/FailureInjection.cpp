@@ -35,6 +35,7 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
 
 namespace failure_injection
@@ -72,7 +73,7 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 
 		// instance == 0 matches any instance of the unit; otherwise match the
 		// 1-based instance against the bitmask (0xFFFF covers all instances).
-		if (instance == 0 || (_instance_mask[i] & (1u << (instance - 1)))) {
+		if (instance == 0 || (instance <= 16 && (_instance_mask[i] & (1u << (instance - 1))))) {
 			return _failure_type[i];
 		}
 	}
@@ -80,15 +81,56 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 	return Mode::Ok;
 }
 
-void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
+bool process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
 {
-	if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance) != Mode::Off) {
-		return;
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance);
+	static constexpr float trigger_margin = 0.01f; // report remaining charge just below the threshold
+
+	if (mode == Mode::Off) {
+		// Suppress the publication so the pack reads disconnected.
+		return false;
 	}
 
-	// Report a depleted pack so the low-battery failsafe triggers.
-	battery_status.remaining = 0.f;
-	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+	if (mode != Mode::Wrong) {
+		return true;
+	}
+
+	static const param_t level_handle = param_find("SYS_FAIL_BAT_LVL");
+	static const param_t low_thr_handle = param_find("BAT_LOW_THR");
+	static const param_t crit_thr_handle = param_find("BAT_CRIT_THR");
+	static const param_t emergen_thr_handle = param_find("BAT_EMERGEN_THR");
+
+	int32_t level = battery_status_s::WARNING_CRITICAL;
+	param_get(level_handle, &level);
+
+	param_t threshold_handle = crit_thr_handle;
+
+	switch (level) {
+	case battery_status_s::WARNING_LOW:
+		threshold_handle = low_thr_handle;
+		break;
+
+	case battery_status_s::WARNING_EMERGENCY:
+		threshold_handle = emergen_thr_handle;
+		break;
+
+	case battery_status_s::WARNING_CRITICAL:
+	default:
+		level = battery_status_s::WARNING_CRITICAL;
+		threshold_handle = crit_thr_handle;
+		break;
+	}
+
+	battery_status.warning = level;
+
+
+	// Report the remaining charge just below the selected threshold so the
+	// matching stage of the low-battery failsafe triggers.
+	float threshold = 0.f;
+	param_get(threshold_handle, &threshold);
+	battery_status.remaining = (threshold > trigger_margin) ? (threshold - trigger_margin) : 0.f;
+
+	return true;
 }
 
 esc_status_s process_esc(const Config &config, const esc_status_s &status)
