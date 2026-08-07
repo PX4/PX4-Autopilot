@@ -52,6 +52,7 @@
 class MotorFailureDetector
 {
 public:
+	// Same as esc_status CONNECTED_ESC_MAX, hardcoded to keep the library uORB-free.
 	static constexpr int kMaxMotors = 12;
 
 	// Step longer than this [s] => data gap (resets filters + debounce).
@@ -65,7 +66,7 @@ public:
 		float residual_lpf_tau_s;          ///< residual LPF time constant [s]
 		float overcurrent_threshold_a;     ///< trip band above expected current [A]; <= 0 => check disabled
 		float overcurrent_persistence_s;   ///< time above the overcurrent band before latching [s]
-		float undercurrent_threshold_a;    ///< same, below expected current; <= 0 => one symmetric band
+		float undercurrent_threshold_a;    ///< same, below expected current; <= 0 => mirrors the overcurrent band
 		float undercurrent_persistence_s;  ///< same, below expected current
 	};
 
@@ -78,7 +79,8 @@ public:
 
 	MotorFailureDetector() { reset(); }
 
-	void configure(const Config &cfg) { _cfg = cfg; reset(); }
+	/** Set the model, bands and persistence times, and reset all state. */
+	void configure(const Config &cfg);
 
 	/** Reset all per-motor state (filters, debounce, latch). */
 	void reset();
@@ -102,6 +104,6 @@ private:
 	MotorStatus           _status[kMaxMotors] {};
 	AlphaFilter<float>    _residual_lpf[kMaxMotors];
 	systemlib::Hysteresis _hyst_over[kMaxMotors];
-	systemlib::Hysteresis _hyst_under[kMaxMotors];   // only used in the asymmetric case
+	systemlib::Hysteresis _hyst_under[kMaxMotors];
 	hrt_abstime           _last_us{0};
 };
