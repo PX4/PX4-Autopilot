@@ -26,6 +26,48 @@ parameters:
       min: 0.0
       decimal: 1
       increment: 0.5
+    FW_LND_PARA_EN:
+      description:
+        short: Enable parachute landing on mission landing approach
+        long: |-
+          If enabled, the vehicle follows the mission landing approach down to the release
+          altitude (FW_LND_PARA_ALT) and releases the parachute by triggering flight
+          termination, such that the predicted touchdown point under canopy lies on the
+          landing point, accounting for ground speed, estimated wind drift during the descent
+          (FW_LND_PARA_SINK) and the forward carry while the parachute deploys.
+
+          The parachute is released through the flight termination failsafe outputs, or an
+          external parachute system (COM_PARACHUTE). Not supported on VTOL.
+      type: boolean
+      default: 0
+    FW_LND_PARA_ALT:
+      description:
+        short: Parachute landing release altitude above ground
+        long: |-
+          Altitude above the landing point at which the parachute is released. Lower reduces the
+          wind drift of the touchdown point, but must leave enough altitude for the parachute to
+          fully open and stabilize the descent.
+
+          The release altitude is never below 3 seconds of descent at FW_LND_PARA_SINK, so that
+          the canopy has room to open.
+      type: float
+      default: 20.0
+      unit: m
+      min: 1.0
+      decimal: 1
+      increment: 0.5
+    FW_LND_PARA_SINK:
+      description:
+        short: Sink rate under the deployed parachute
+        long: |-
+          Expected steady-state sink rate under canopy. Used to predict the descent duration and
+          therewith the wind drift of the touchdown point.
+      type: float
+      default: 5.0
+      unit: m/s
+      min: 0.1
+      decimal: 1
+      increment: 0.1
     FW_LND_USETER:
       description:
         short: Use terrain estimation during landing
