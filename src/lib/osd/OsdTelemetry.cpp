@@ -55,6 +55,7 @@ void Telemetry::update()
 	_input_rc_sub.update(&_data.input_rc);
 	_log_message_sub.update(&_data.log_message);
 	_manual_control_sub.update(&_data.manual_control);
+	_mission_sub.update(&_data.mission);
 	_mission_result_sub.update(&_data.mission_result);
 	_radio_status_sub.update(&_data.radio_status);
 	_global_position_sub.update(&_data.global_position);
@@ -136,8 +137,8 @@ void Telemetry::update_message_display(int log_level, MessageDisplay &display)
 const char *Telemetry::flight_mode() const
 {
 	return _data.status.nav_state < vehicle_status_s::NAVIGATION_STATE_MAX
-	       ? mode_util::nav_state_names[_data.status.nav_state]
-	       : "Unknown";
+	       ? mode_util::nav_state_short_names[_data.status.nav_state]
+	       : "UNKNOWN";
 }
 
 float Telemetry::flight_time_s() const

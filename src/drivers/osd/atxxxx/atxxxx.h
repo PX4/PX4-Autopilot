@@ -197,6 +197,7 @@ private:
 	};
 
 	void add_element_to_screen(const char *str, PositionParam element, int width);
+	void add_centered_element_to_screen(const char *str, PositionParam element, int width);
 	void mark_position_params_used();
 	void update_position_params();
 	int position(PositionParam p) const { return _position[p]; }

@@ -20,7 +20,7 @@ parameters:
             short: Analog OSD battery voltage X position
         type: int32
         min: 0
-        max: 23
+        max: 29
         default: 1
 
     OSD_BAT_VOLT_Y:
@@ -36,7 +36,7 @@ parameters:
             short: Analog OSD consumed capacity X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 2
 
     OSD_MAH_Y:
@@ -52,7 +52,7 @@ parameters:
             short: Analog OSD average cell voltage X position
         type: int32
         min: 0
-        max: 23
+        max: 29
         default: 12
 
     OSD_CELL_V_Y:
@@ -68,7 +68,7 @@ parameters:
             short: Analog OSD MAVLink system ID X position
         type: int32
         min: 0
-        max: 26
+        max: 29
         default: 1
 
     OSD_SYSID_Y:
@@ -84,7 +84,7 @@ parameters:
             short: Analog OSD mission state X position
         type: int32
         min: 0
-        max: 22
+        max: 29
         default: 6
 
     OSD_MISSION_Y:
@@ -98,10 +98,13 @@ parameters:
     OSD_MAV_STATE_X:
         description:
             short: Analog OSD MAVLink state X position
+            long: |
+              Centre column of the text, which is centred here rather than
+              starting here: the state name varies in length.
         type: int32
         min: 0
-        max: 24
-        default: 15
+        max: 29
+        default: 18
 
     OSD_MAV_STATE_Y:
         description:
@@ -116,7 +119,7 @@ parameters:
             short: Analog OSD RSSI X position
         type: int32
         min: 0
-        max: 25
+        max: 29
         default: 23
 
     OSD_RSSI_Y:
@@ -132,7 +135,7 @@ parameters:
             short: Analog OSD link quality X position
         type: int32
         min: 0
-        max: 25
+        max: 29
         default: 23
 
     OSD_LQ_Y:
@@ -148,7 +151,7 @@ parameters:
             short: Analog OSD GPS satellites X position
         type: int32
         min: 0
-        max: 26
+        max: 29
         default: 20
 
     OSD_GPS_SAT_Y:
@@ -164,7 +167,7 @@ parameters:
             short: Analog OSD GPS speed X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 24
 
     OSD_GPS_SPD_Y:
@@ -180,7 +183,7 @@ parameters:
             short: Analog OSD GPS quality X position
         type: int32
         min: 0
-        max: 18
+        max: 29
         default: 8
 
     OSD_GPS_INFO_Y:
@@ -196,7 +199,7 @@ parameters:
             short: Analog OSD altitude X position
         type: int32
         min: 0
-        max: 21
+        max: 29
         default: 1
 
     OSD_ALT_Y:
@@ -212,7 +215,7 @@ parameters:
             short: Analog OSD home distance X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 23
 
     OSD_HOME_DST_Y:
@@ -227,8 +230,8 @@ parameters:
         description:
             short: Analog OSD horizon center X position
         type: int32
-        min: 4
-        max: 25
+        min: 0
+        max: 29
         default: 15
 
     OSD_AH_Y:
@@ -242,10 +245,13 @@ parameters:
     OSD_MODE_X:
         description:
             short: Analog OSD flight mode X position
+            long: |
+              Centre column of the text, which is centred here rather than
+              starting here: the mode name varies in length.
         type: int32
         min: 0
-        max: 16
-        default: 9
+        max: 29
+        default: 16
 
     OSD_MODE_Y:
         description:
@@ -260,7 +266,7 @@ parameters:
             short: Analog OSD flight time X position
         type: int32
         min: 0
-        max: 23
+        max: 29
         default: 1
 
     OSD_FTIME_Y:
@@ -274,10 +280,13 @@ parameters:
     OSD_STATUS_X:
         description:
             short: Analog OSD status message X position
+            long: |
+              Centre column of the text, which is centred here rather than
+              starting here: the status message varies in length.
         type: int32
         min: 0
-        max: 18
-        default: 17
+        max: 29
+        default: 23
 
     OSD_STATUS_Y:
         description:
@@ -290,10 +299,13 @@ parameters:
     OSD_ARM_X:
         description:
             short: Analog OSD arming state X position
+            long: |
+              Centre column of the text, which is centred here rather than
+              starting here: ARMED and DISARMED differ in length.
         type: int32
         min: 0
-        max: 22
-        default: 1
+        max: 29
+        default: 5
 
     OSD_ARM_Y:
         description:
@@ -308,7 +320,7 @@ parameters:
             short: Analog OSD heading X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 24
 
     OSD_HEAD_Y:
@@ -340,7 +352,7 @@ parameters:
             short: Analog OSD current X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 1
 
     OSD_CURRENT_Y:
@@ -356,7 +368,7 @@ parameters:
             short: Analog OSD power X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 1
 
     OSD_POWER_Y:
@@ -372,7 +384,7 @@ parameters:
             short: Analog OSD throttle X position
         type: int32
         min: 0
-        max: 26
+        max: 29
         default: 24
 
     OSD_THROT_Y:
@@ -388,7 +400,7 @@ parameters:
             short: Analog OSD vertical speed X position
         type: int32
         min: 0
-        max: 23
+        max: 29
         default: 23
 
     OSD_VARIO_Y:
@@ -404,7 +416,7 @@ parameters:
             short: Analog OSD pitch angle X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 1
 
     OSD_PITCH_Y:
@@ -420,7 +432,7 @@ parameters:
             short: Analog OSD roll angle X position
         type: int32
         min: 0
-        max: 24
+        max: 29
         default: 1
 
     OSD_ROLL_Y:
@@ -436,7 +448,7 @@ parameters:
             short: Analog OSD GPS latitude X position
         type: int32
         min: 0
-        max: 17
+        max: 29
         default: 1
 
     OSD_GPS_LAT_Y:
@@ -452,7 +464,7 @@ parameters:
             short: Analog OSD GPS longitude X position
         type: int32
         min: 0
-        max: 16
+        max: 29
         default: 1
 
     OSD_GPS_LON_Y:
@@ -468,7 +480,7 @@ parameters:
             short: Analog OSD VTX info X position
         type: int32
         min: 0
-        max: 19
+        max: 29
         default: 19
 
     OSD_VTX_INFO_Y:
@@ -484,7 +496,7 @@ parameters:
             short: Analog OSD VTX frequency X position
         type: int32
         min: 0
-        max: 19
+        max: 29
         default: 19
 
     OSD_VTX_FREQ_Y:
@@ -500,7 +512,7 @@ parameters:
             short: Analog OSD VTX power X position
         type: int32
         min: 0
-        max: 18
+        max: 29
         default: 18
 
     OSD_VTX_POWER_Y:
