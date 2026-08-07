@@ -76,6 +76,12 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE,
 		       flags.mode_req_manual_control); // COM_RCL_EXCEPT can override this
 
+	// NAVIGATION_STATE_MY_NEW_MODE
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MY_NEW_MODE, flags.mode_req_angular_velocity);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MY_NEW_MODE, flags.mode_req_attitude);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MY_NEW_MODE, flags.mode_req_local_position); // Position mode needs this, Altitude mode doesn't
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MY_NEW_MODE, flags.mode_req_manual_control);
+
 	// NAVIGATION_STATE_POSCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_attitude);
