@@ -15,9 +15,9 @@
 // subclasses FlightTaskManualAltitudeSmoothVel -- except here nothing is
 // overridden yet. Add overrides here later once this confirmed builds and
 // switches correctly.
-class FlightTaskMyMode : public FlightTaskManualPosition
+class FlightTaskMyNewMode : public FlightTaskManualPosition
 {
 public:
 	using FlightTaskManualPosition::FlightTaskManualPosition;
-	virtual ~FlightTaskMyMode() = default;
+	virtual ~FlightTaskMyNewMode() = default;
 };
