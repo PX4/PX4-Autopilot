@@ -77,6 +77,13 @@ public:
 
 	bool guessIfAllDynamicNodesAreAllocated() { return _server_instance.guessIfAllDynamicNodesAreAllocated(); }
 
+	void setArmed(bool armed) { _fw_version_checker.setArmed(armed); }
+
+	bool hasPendingFirmwareUpdates() const
+	{
+		return _fw_version_checker.hasUpdatingNodes();
+	}
+
 private:
 
 	void unpackFwFromROMFS(const char *sd_path, const char *romfs_path);
