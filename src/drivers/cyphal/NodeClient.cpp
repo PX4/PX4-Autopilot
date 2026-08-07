@@ -41,7 +41,7 @@
 
 #define PNP_UNIQUE_ID_SIZE 16 // 128 bit unique id
 
-#include <crc64.h>
+#include <nuttx/crc64.h>
 #include "NodeClient.hpp"
 
 void NodeClient::callback(const CanardRxTransfer &receive)
