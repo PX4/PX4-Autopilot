@@ -31,18 +31,18 @@
  *
  ****************************************************************************/
 
-#ifndef MANUAL_CONTROL_STATUS_HPP
-#define MANUAL_CONTROL_STATUS_HPP
+#ifndef MANUAL_INPUT_STATUS_HPP
+#define MANUAL_INPUT_STATUS_HPP
 
 #include <uORB/topics/manual_control_setpoint.h>
 
-class MavlinkStreamManualControlStatus : public MavlinkStream
+class MavlinkStreamManualInputStatus : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamManualControlStatus(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamManualInputStatus(mavlink); }
 
-	static constexpr const char *get_name_static() { return "MANUAL_CONTROL_STATUS"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_MANUAL_CONTROL_STATUS; }
+	static constexpr const char *get_name_static() { return "MANUAL_INPUT_STATUS"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_MANUAL_INPUT_STATUS; }
 
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
@@ -50,11 +50,11 @@ public:
 	unsigned get_size() override
 	{
 		return _manual_control_setpoint_sub.advertised() ?
-		       (MAVLINK_MSG_ID_MANUAL_CONTROL_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		       (MAVLINK_MSG_ID_MANUAL_INPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	explicit MavlinkStreamManualControlStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamManualInputStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
@@ -63,14 +63,22 @@ private:
 		manual_control_setpoint_s manual_control_setpoint;
 
 		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-			mavlink_manual_control_status_t msg{};
+			mavlink_manual_input_status_t msg{};
 
-			msg.source = manual_control_setpoint.data_source;
-			msg.sender_system_id = manual_control_setpoint.sender_system_id;
-			msg.sender_component_id = manual_control_setpoint.sender_component_id;
-			msg.valid = manual_control_setpoint.valid ? 1 : 0;
+			msg.source = MAV_MANUAL_INPUT_SOURCE_NONE;
 
-			mavlink_msg_manual_control_status_send_struct(_mavlink->get_channel(), &msg);
+			if (manual_control_setpoint.valid) {
+				if (manual_control_setpoint.data_source == manual_control_setpoint_s::SOURCE_RC) {
+					msg.source = MAV_MANUAL_INPUT_SOURCE_RC;
+
+				} else if (manual_control_setpoint.data_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0) {
+					msg.source = MAV_MANUAL_INPUT_SOURCE_MAVLINK;
+					msg.sender_system_id = manual_control_setpoint.sender_system_id;
+					msg.sender_component_id = manual_control_setpoint.sender_component_id;
+				}
+			}
+
+			mavlink_msg_manual_input_status_send_struct(_mavlink->get_channel(), &msg);
 			return true;
 		}
 
@@ -78,4 +86,4 @@ private:
 	}
 };
 
-#endif // MANUAL_CONTROL_STATUS_HPP
+#endif // MANUAL_INPUT_STATUS_HPP
