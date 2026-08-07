@@ -415,7 +415,7 @@ The relevant parameters are shown below:
 ### Motor Failure Trigger
 
 The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) if the ESC current falls outside expected threshold for more than [MOTFAIL_TIME](#MOTFAIL_TIME) seconds.
-Motor failures are non-latching: if the failure condition clears, the failure is cleared.
+A motor flagged by this current check stays flagged until the vehicle disarms, because the reaction to a failure may stop the motor and thereby make it look healthy again.
 
 The undercurrent and overcurrent conditions are defined by:
 
@@ -424,14 +424,17 @@ undercurrent: {esc current} < {MOTFAIL_C2T} * {motor command [0,1]} - {MOTFAIL_O
 overcurrent:  {esc current} > {MOTFAIL_C2T} * {motor command [0,1]} + {MOTFAIL_OFF}
 ```
 
-| Parameter                                                                                                | Description                                                                                                                                                                                                                               |
-| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
-| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)             | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%).                                                                                                                            |
-| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)             | Under/over-current detection threshold offset (A). Added to the expected current to form the upper bound. Subtracted from the expected current to form the lower bound.                                                                   |
-|                                                                                                          |
-| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)          | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                                                                                                                             |
-| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
+The action on motor failure is set with [CA_FAILURE_MODE](#CA_FAILURE_MODE).
+Actions depend on the vehicle type, and might include warning the user, removing failed motors from control allocation, disabling symmetrically opposite motors, and so on.
+For more information see [Motor Failure Recovery](motor_failure_recovery.md).
+
+| Parameter                                                                                                | Description                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                            |
+| <a id="MOTFAIL_C2T"></a>[MOTFAIL_C2T](../advanced_config/parameter_reference.md#MOTFAIL_C2T)             | Slope between normalized motor command [0–1] and expected steady-state current (FD_ACT_MOT_C2T at 100%) (A/%).                  |
+| <a id="MOTFAIL_OFF"></a>[MOTFAIL_OFF](../advanced_config/parameter_reference.md#MOTFAIL_OFF)             | Under/over-current detection threshold offset (A). Added/subtracted to the expected current to form the upper and lower bounds. |
+| <a id="MOTFAIL_TIME"></a>[MOTFAIL_TIME](../advanced_config/parameter_reference.md#MOTFAIL_TIME)          | Hysteresis time (s) for which the current threshold must remain exceeded before a motor failure is triggered.                   |
+| <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Failure mode. See [Motor Failure Recovery](motor_failure_recovery.md).                                                          |
 
 ### External Automatic Trigger System (ATS)
 

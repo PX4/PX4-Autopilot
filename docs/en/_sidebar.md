@@ -308,6 +308,7 @@
     - [Sensor Thermal Compensation](/advanced_config/sensor_thermal_calibration.md)
   - [Actuators](/actuators/index.md)
     - [Actuator Allocation](/config/actuators.md)
+    - [Motor Failure Recovery](/config/motor_failure_recovery.md)
     - [ESC Calibration](/advanced_config/esc_calibration.md)
     - [ESCs & Motors](/peripherals/esc_motors.md)
       - [ESC Protocols](/esc/esc_protocols.md)
