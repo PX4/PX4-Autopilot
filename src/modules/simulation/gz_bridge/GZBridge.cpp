@@ -166,6 +166,9 @@ int GZBridge::init()
 
 #endif // CONFIG_MODULES_GIMBAL
 
+	// forward the flight termination state to the simulation to trigger the parachute plugin
+	_parachute_gz_pub = _node.Advertise<gz::msgs::Boolean>("/model/" + _model_name + "/parachute");
+
 	ScheduleNow();
 	return OK;
 }
@@ -194,6 +197,21 @@ void GZBridge::Run()
 		_mixing_interface_servo.updateParams();
 		_mixing_interface_wheel.updateParams();
 		_gimbal.updateParams();
+	}
+
+	actuator_armed_s actuator_armed;
+
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		if (actuator_armed.termination) {
+			_parachute_released = true;
+		}
+	}
+
+	if (_parachute_released && hrt_elapsed_time(&_last_parachute_publish) > 100_ms) {
+		_last_parachute_publish = hrt_absolute_time();
+		gz::msgs::Boolean release;
+		release.set_data(true);
+		_parachute_gz_pub.Publish(release);
 	}
 
 	ScheduleDelayed(10_ms);
