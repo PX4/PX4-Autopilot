@@ -154,7 +154,11 @@
                         "1073741824": {
                             "name": "external8",
                             "description": "External 8"
-                        }
+                        },
+                        "2147483648": {
+                            "name": "my_new_mode",
+                            "description": "My New Mode"
+                        },
                     }
                 },
                 "health_component_t": {
