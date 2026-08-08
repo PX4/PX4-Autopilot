@@ -18,6 +18,7 @@
 #ifndef SG_H
 #define SG_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -880,11 +881,12 @@ bool sgDecodeFlightId(uint8_t *buffer, sg_flightid_t *id);
  * Process the state vector report message.
  *
  * @param[in]  buffer The raw SVR message buffer.
+ * @param[in]  len    Total length of the buffer in bytes (including header).
  * @param[out] svr    The parsed SVR message.
  *
- * @return true if successful or false on failure.
+ * @return true if successful or false on failure / truncated input.
  */
-bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr);
+bool sgDecodeSVR(uint8_t *buffer, size_t len, sg_svr_t *svr);
 
 /**
  * Process the mode status report message.
