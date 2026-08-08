@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal SPI bus ICM-42688P
+icm42688p -R 12 -b 1 -s start
+
+# Internal baro
+dps310 -I start -a 118
+
+# External mag
+qmc5883l -X start -a 13
