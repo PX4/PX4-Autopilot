@@ -131,10 +131,7 @@ void CdcAcmAutostart::run_state_machine()
 
 #endif
 
-	// Do not reconfigure USB while flying. Zero-initialised because copy() leaves the destination
-	// untouched when actuator_armed has never been advertised — commander not (yet) running, in which
-	// case the vehicle is certainly not flying. Read uninitialised there, stack garbage can latch
-	// armed and stall the state machine for good, so USB never comes up.
+	// Do not reconfigure USB while flying
 	actuator_armed_s report{};
 	_actuator_armed_sub.copy(&report);
 
