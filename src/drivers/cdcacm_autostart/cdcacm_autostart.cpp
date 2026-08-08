@@ -197,8 +197,6 @@ void CdcAcmAutostart::state_connected()
 
 	// SYS_USB_AUTO=2 (and autodetect→mavlink): if the mavlink task exited after a
 	// successful spawn (e.g. failed to open the UART after retries), restart it.
-	// Production listen-first hosts (ark-bench USB MAVLink) never TX first — they
-	// only wait for FC heartbeats — so a dead mavlink instance looks like a brick.
 	if (_active_protocol == UsbProtocol::mavlink && !process_running(_mavlink_pid)) {
 		PX4_WARN("mavlink on %s exited, restarting", USB_DEVICE_PATH);
 		_mavlink_pid = -1;
