@@ -709,7 +709,6 @@ Manages the USB CDC/ACM serial device (`/dev/ttyACM0`).
 - `0` Disabled: bring up the USB serial device only.
 - `1` Auto-detect: wait for host bytes and start MAVLink, nsh, or u-blox passthrough.
 - `2` MAVLink (default): start MAVLink immediately so the autopilot transmits first
-  (listen-first hosts such as production benches do not need to send a heartbeat).
 
 )DESCR_STR");
 
