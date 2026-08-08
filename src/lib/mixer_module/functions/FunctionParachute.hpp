@@ -35,6 +35,8 @@
 
 #include "FunctionProviderBase.hpp"
 
+#include <uORB/topics/parachute.h>
+
 /**
  * Functions: Parachute
  */
@@ -44,7 +46,22 @@ public:
 	FunctionParachute() = default;
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionParachute(); }
 
-	void update() override {}
-	float value(OutputFunction func) override { return -1.f; }
+	void update() override
+	{
+		parachute_s parachute;
+
+		if (_parachute_sub.update(&parachute)) {
+			if (parachute.command == parachute_s::COMMAND_RELEASE) {
+				// Latching: a released parachute cannot be restowed in flight
+				_data = 1.f;
+			}
+		}
+	}
+
+	float value(OutputFunction func) override { return _data; }
 	float defaultFailsafeValue(OutputFunction func) const override { return 1.f; }
+
+private:
+	uORB::Subscription _parachute_sub{ORB_ID(parachute)};
+	float _data{-1.f};
 };
