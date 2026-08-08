@@ -80,3 +80,21 @@ parameters:
         max: 16
         default: 1
         reboot_required: true
+      SYS_FAIL_GPS_WRG:
+        description:
+          short: GPS Wrong-failure fix type
+          long: |-
+            GNSS fix type reported by the addressed receiver while a GPS 'wrong'
+            failure injection is active. The reported position is left untouched.
+            The default 2D fix is rejected by the estimator, which requires a 3D
+            fix, and makes the GNSS redundancy check report a lost fix, while the
+            receiver stays eligible for GPS blending. Values above 3D fix report a
+            better solution than the receiver really has.
+        type: enum
+        default: 2
+        values:
+          1: "Fix: None"
+          2: "Fix: 2D"
+          3: "Fix: 3D"
+          5: "Fix: RTK float"
+          6: "Fix: RTK fixed"

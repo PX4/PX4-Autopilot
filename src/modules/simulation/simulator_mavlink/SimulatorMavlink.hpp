@@ -311,11 +311,10 @@ private:
 	hrt_abstime _last_accel_fifo_timestamp{0};
 	hrt_abstime _last_gyro_fifo_timestamp{0};
 
-	// GPS, airspeed and VIO failure injection (no PX4* helper class applies these).
-	bool _gps_blocked{false};
-	bool _gps_stuck{false};
-	bool _gps_wrong{false};
-	sensor_gps_s _gps_prev{};
+	// Per-HIL_GPS-instance last-good sample, for the Stuck failure.
+	failure_injection::Stuck<sensor_gps_s> _gps_stuck[MAX_GPS];
+
+	// airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _airspeed_disconnected{false};
 	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};

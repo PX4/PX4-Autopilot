@@ -1609,8 +1609,7 @@ GPS::publish()
 
 		_failure_config.update();
 
-		if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
-						_sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
+		if (!failure_injection::process_gnss(_failure_config, _sensor_gps_pub.get_instance(), _sensor_gps, _stuck)) {
 			return;
 		}
 
