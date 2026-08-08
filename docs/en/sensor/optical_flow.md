@@ -63,6 +63,11 @@ It has a PAW3902 optical flow sensor, Broadcom AFBR-S50LV85D 30 meter distance s
 [ARK Flow MR](../dronecan/ark_flow_mr.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU, for mid-range applications.
 It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LX85D 50 meter distance sensor, and Invensense IIM-42653 6-Axis IMU.
 
+### Agam Flo Range Sensor
+
+The [Agam Flo Range Sensor](../dronecan/agam_flo-range.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU module.
+It has a PixArt PAA3905E1 optical flow sensor, Broadcom AFBR-S50LV85D time-of-flight distance sensor, and TDK InvenSense ICM-42688-P 6-axis IMU.
+
 ### Holybro H-Flow
 
 The [Holybro H-Flow](https://holybro.com/products/h-flow) is a compact [DroneCAN](../dronecan/index.md) optical flow and [distance sensor](../sensor/rangefinders.md) module.
