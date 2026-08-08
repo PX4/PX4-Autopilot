@@ -41,16 +41,16 @@
  */
 #include <drivers/device/spi.h>
 #include <drivers/drv_hrt.h>
+#include <lib/osd/MessageDisplay.hpp>
+#include <lib/osd/OsdTelemetry.hpp>
 #include <parameters/param.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
 
 #define OSD_SPI_BUS_SPEED (2000000L) /*  2 MHz  */
 
@@ -60,8 +60,18 @@
 #define OSD_CHARS_PER_ROW	30
 #define OSD_NUM_ROWS_PAL	16
 #define OSD_NUM_ROWS_NTSC	13
-#define OSD_ZERO_BYTE 0x00
-#define OSD_PAL_TX_MODE 0x40
+static constexpr uint8_t OSD_VM0 {0x00};
+static constexpr uint8_t OSD_DMM{0x04};
+static constexpr uint8_t OSD_DMAH{0x05};
+static constexpr uint8_t OSD_DMAL{0x06};
+static constexpr uint8_t OSD_DMDI{0x07};
+
+static constexpr uint8_t OSD_VM0_PAL{1 << 6};
+static constexpr uint8_t OSD_VM0_ENABLE_DISPLAY{1 << 3};
+static constexpr uint8_t OSD_VM0_SOFTWARE_RESET{1 << 1};
+static constexpr uint8_t OSD_VM0_DISABLE_VIDEO_BUFFER{1 << 0};
+static constexpr uint8_t OSD_VM0_CONFIGURATION_MASK{OSD_VM0_PAL | OSD_VM0_ENABLE_DISPLAY |
+	OSD_VM0_SOFTWARE_RESET | OSD_VM0_DISABLE_VIDEO_BUFFER};
 
 extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
 
@@ -90,44 +100,117 @@ private:
 	int readRegister(unsigned reg, uint8_t *data, unsigned count);
 	int writeRegister(unsigned reg, uint8_t data);
 
-	int add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y);
-	void add_string_to_screen_centered(const char *str, uint8_t pos_y, int max_length);
-	void clear_line(uint8_t pos_x, uint8_t pos_y, int length);
+	int write_character_to_screen(uint8_t c, uint8_t pos_x, uint8_t pos_y);
+	void add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y);
+	void add_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width);
+	int flush_screen(int max_updates);
 
-	int add_battery_info(uint8_t pos_x, uint8_t pos_y);
-	int add_altitude(uint8_t pos_x, uint8_t pos_y);
-	int add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
-
-	static const char *get_flight_mode(uint8_t nav_state);
+	void add_battery_voltage(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
+	void add_consumed_mah(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
+	void add_altitude(const vehicle_local_position_s &local_position, uint8_t pos_x, uint8_t pos_y);
+	void add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
+	bool enabled(osd::Symbol symbol) const;
 
 	int enable_screen();
 	int disable_screen();
 
-	int update_topics();
 	int update_screen();
 
-	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
-	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	osd::MessageDisplay _display{};
+	osd::Telemetry _telemetry{};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
+	uint8_t _screen[OSD_CHARS_PER_ROW * OSD_NUM_ROWS_PAL] {};
+	uint8_t _displayed_screen[OSD_CHARS_PER_ROW * OSD_NUM_ROWS_PAL] {};
+	int _num_rows{OSD_NUM_ROWS_NTSC};	// rows of the active video standard, the smaller of the two until configured
+	int _flush_position{};
+	bool _keep_running{false};
+	bool _spi_initialized{false};
+	bool _initialized{false};
 
-	// battery
-	float _battery_voltage_v{0.f};
-	float _battery_discharge_mah{0.f};
-	float _battery_remaining{-1.f};
-	bool _battery_valid{false};
 
-	// altitude
-	float _local_position_z{0.f};
-	bool _local_position_valid{false};
+	// Element positions are looked up by name instead of being declared as individual
+	// ParamInt members: one loop costs far less flash than 62 generated param_find calls.
+	enum PositionParam : uint8_t {
+		POS_BAT_VOLT_X,
+		POS_BAT_VOLT_Y,
+		POS_MAH_X,
+		POS_MAH_Y,
+		POS_CELL_V_X,
+		POS_CELL_V_Y,
+		POS_SYSID_X,
+		POS_SYSID_Y,
+		POS_MISSION_X,
+		POS_MISSION_Y,
+		POS_MAV_STATE_X,
+		POS_MAV_STATE_Y,
+		POS_RSSI_X,
+		POS_RSSI_Y,
+		POS_LQ_X,
+		POS_LQ_Y,
+		POS_GPS_SAT_X,
+		POS_GPS_SAT_Y,
+		POS_GPS_SPD_X,
+		POS_GPS_SPD_Y,
+		POS_GPS_INFO_X,
+		POS_GPS_INFO_Y,
+		POS_ALT_X,
+		POS_ALT_Y,
+		POS_HOME_DST_X,
+		POS_HOME_DST_Y,
+		POS_AH_X,
+		POS_AH_Y,
+		POS_MODE_X,
+		POS_MODE_Y,
+		POS_FTIME_X,
+		POS_FTIME_Y,
+		POS_STATUS_X,
+		POS_STATUS_Y,
+		POS_ARM_X,
+		POS_ARM_Y,
+		POS_HEAD_X,
+		POS_HEAD_Y,
+		POS_CROSS_X,
+		POS_CROSS_Y,
+		POS_CURRENT_X,
+		POS_CURRENT_Y,
+		POS_POWER_X,
+		POS_POWER_Y,
+		POS_THROT_X,
+		POS_THROT_Y,
+		POS_VARIO_X,
+		POS_VARIO_Y,
+		POS_PITCH_X,
+		POS_PITCH_Y,
+		POS_ROLL_X,
+		POS_ROLL_Y,
+		POS_GPS_LAT_X,
+		POS_GPS_LAT_Y,
+		POS_GPS_LON_X,
+		POS_GPS_LON_Y,
+		POS_VTX_INFO_X,
+		POS_VTX_INFO_Y,
+		POS_VTX_FREQ_X,
+		POS_VTX_FREQ_Y,
+		POS_VTX_POWER_X,
+		POS_VTX_POWER_Y,
+		POS_COUNT
+	};
 
-	// flight time
-	uint8_t _arming_state{0};
-	uint64_t _arming_timestamp{0};
+	void add_element_to_screen(const char *str, PositionParam element, int width);
+	void mark_position_params_used();
+	void update_position_params();
+	int position(PositionParam p) const { return _position[p]; }
 
-	// flight mode
-	uint8_t _nav_state{0};
+	int32_t _position[POS_COUNT] {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg
+		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg,
+		(ParamInt<px4::params::OSD_SYMBOLS>) _param_osd_symbols,
+		(ParamInt<px4::params::OSD_LOG_LEVEL>) _param_osd_log_level,
+		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_osd_scroll_rate,
+		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_osd_dwell_time,
+		(ParamInt<px4::params::OSD_CAM_VFOV>) _param_osd_cam_vfov,
+		(ParamInt<px4::params::OSD_CAM_HFOV>) _param_osd_cam_hfov,
+		(ParamInt<px4::params::OSD_CAM_UPT>) _param_osd_cam_upt
 	)
 };
