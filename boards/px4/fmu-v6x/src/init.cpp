@@ -75,6 +75,8 @@
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 
+using namespace time_literals;
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -221,6 +223,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_HIPOWER_EN(true);
 	VDD_3V3_SENSORS_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
+
+	usleep(1_s);
 
 	/* Need hrt running before using the ADC */
 
