@@ -37,45 +37,44 @@
  * @author Todd Stellanova
  */
 
+#include <gtest/gtest.h>
+
 #include <stdint.h>
-#include <cassert>
 #include <cstdlib>
 #include <stdio.h>
 #include <math.h>
-#include <validation/data_validator.h>
-#include <validation/tests/tests_common.h>
+#include "DataValidator.hpp"
+#include "tests_common.h"
 
 
-void test_init()
+TEST(DataValidatorTest, Init)
 {
-	printf("\n--- test_init ---\n");
-
 	uint64_t fake_timestamp = 666;
 	const uint32_t timeout_usec = 2000;//from original private value
 
 	DataValidator *validator = new DataValidator;
 	// initially there should be no siblings
-	assert(nullptr == validator->sibling());
+	ASSERT_EQ(nullptr, validator->sibling());
 	// initially we should have zero confidence
-	assert(0.0f == validator->confidence(fake_timestamp));
+	ASSERT_FLOAT_EQ(0.0f, validator->confidence(fake_timestamp));
 	// initially the error count should be zero
-	assert(0 == validator->error_count());
+	ASSERT_EQ(0u, validator->error_count());
 	// initially unused
-	assert(!validator->used());
+	ASSERT_FALSE(validator->used());
 	// initially no priority
-	assert(0 == validator->priority());
+	ASSERT_EQ(0, validator->priority());
 	validator->set_timeout(timeout_usec);
-	assert(validator->get_timeout() == timeout_usec);
+	ASSERT_EQ(validator->get_timeout(), timeout_usec);
 
 
 	DataValidator *sibling_validator = new DataValidator;
 	validator->setSibling(sibling_validator);
-	assert(sibling_validator == validator->sibling());
+	ASSERT_EQ(sibling_validator, validator->sibling());
 
 	//verify that with no data, confidence is zero and error mask is set
-	assert(0.0f == validator->confidence(fake_timestamp + 1));
+	ASSERT_FLOAT_EQ(0.0f, validator->confidence(fake_timestamp + 1));
 	uint32_t state = validator->state();
-	assert(DataValidator::ERROR_FLAG_NO_DATA == (DataValidator::ERROR_FLAG_NO_DATA & state));
+	ASSERT_EQ(DataValidator::ERROR_FLAG_NO_DATA, (DataValidator::ERROR_FLAG_NO_DATA & state));
 
 	//verify that calling print doesn't crash tests
 	validator->print();
@@ -83,10 +82,8 @@ void test_init()
 	delete validator; //force delete
 }
 
-void test_put()
+TEST(DataValidatorTest, Put)
 {
-	printf("\n--- test_put ---\n");
-
 	uint64_t timestamp = 500;
 	const uint32_t timeout_usec = 2000;//derived from class-private value
 	float val = 3.14159f;
@@ -96,33 +93,33 @@ void test_put()
 	DataValidator *validator = new DataValidator;
 	fill_validator_with_samples(validator, sufficient_incr_value, &val, &timestamp);
 
-	assert(validator->used());
+	ASSERT_TRUE(validator->used());
 	//verify that the last value we inserted is the current validator value
 	float last_val = val - sufficient_incr_value;
-	assert(validator->value()[0] == last_val);
+	ASSERT_FLOAT_EQ(validator->value()[0], last_val);
 
 	// we've just provided a bunch of valid data: should be fully confident
 	float conf = validator->confidence(timestamp);
 
-	if (1.0f != conf) {
+	if (fabsf(1.0f - conf) > 1e-6f) {
 		printf("conf: %f\n", (double)conf);
 		dump_validator_state(validator);
 	}
 
-	assert(1.0f == conf);
+	ASSERT_FLOAT_EQ(1.0f, conf);
 	// should be no errors
-	assert(0 == validator->state());
+	ASSERT_EQ(0u, validator->state());
 
 	//now check confidence much beyond the timeout window-- should timeout
-	conf = validator->confidence(timestamp + (1.1 * timeout_usec));
+	conf = validator->confidence(timestamp + (1.1f * timeout_usec));
 
-	if (0.0f != conf) {
+	if (fabsf(0.0f - conf) > 1e-6f) {
 		printf("conf: %f\n", (double)conf);
 		dump_validator_state(validator);
 	}
 
-	assert(0.0f == conf);
-	assert(DataValidator::ERROR_FLAG_TIMEOUT == (DataValidator::ERROR_FLAG_TIMEOUT & validator->state()));
+	ASSERT_FLOAT_EQ(0.0f, conf);
+	ASSERT_EQ(DataValidator::ERROR_FLAG_TIMEOUT, (DataValidator::ERROR_FLAG_TIMEOUT & validator->state()));
 
 	delete validator; //force delete
 }
@@ -130,20 +127,18 @@ void test_put()
 /**
  * Verify that the DataValidator detects sensor data that does not vary sufficiently
  */
-void test_stale_detector()
+TEST(DataValidatorTest, StaleDetector)
 {
-	printf("\n--- test_stale_detector ---\n");
-
 	uint64_t timestamp = 500;
 	float val = 3.14159f;
 	//derived from class-private value, this is insufficient to avoid stale detection:
-	const float insufficient_incr_value = (0.99 * 1E-6f);
+	const float insufficient_incr_value = (0.99f * 1E-6f);
 
 	DataValidator *validator = new DataValidator;
 	fill_validator_with_samples(validator, insufficient_incr_value, &val, &timestamp);
 
 	// data is stale: should have no confidence
-	assert(0.0f == validator->confidence(timestamp));
+	ASSERT_FLOAT_EQ(0.0f, validator->confidence(timestamp));
 
 	// should be a stale error
 	uint32_t state = validator->state();
@@ -152,7 +147,7 @@ void test_stale_detector()
 		dump_validator_state(validator);
 	}
 
-	assert(DataValidator::ERROR_FLAG_STALE_DATA == (DataValidator::ERROR_FLAG_STALE_DATA & state));
+	ASSERT_EQ(DataValidator::ERROR_FLAG_STALE_DATA, (DataValidator::ERROR_FLAG_STALE_DATA & state));
 
 	delete validator; //force delete
 }
@@ -160,9 +155,8 @@ void test_stale_detector()
 /**
  * Verify the RMS error calculated by the DataValidator for a series of samples
  */
-void test_rms_calculation()
+TEST(DataValidatorTest, RmsCalculation)
 {
-	printf("\n--- test_rms_calculation ---\n");
 	const int equal_value_count = 100; //default is private VALUE_EQUAL_COUNT_DEFAULT
 	const float mean_value = 3.14159f;
 	const uint32_t sample_count = 1000;
@@ -174,13 +168,13 @@ void test_rms_calculation()
 
 	insert_values_around_mean(validator, mean_value, sample_count, &expected_rms_err, &timestamp);
 	float *rms = validator->rms();
-	assert(nullptr != rms);
+	ASSERT_NE(nullptr, rms);
 	float calc_rms_err = rms[0];
 	float diff = fabsf(calc_rms_err - expected_rms_err);
 	float diff_frac = (diff / expected_rms_err);
 	printf("rms: %f expect: %f diff: %f frac: %f\n", (double)calc_rms_err, (double)expected_rms_err,
 	       (double)diff, (double)diff_frac);
-	assert(diff_frac < 0.03f);
+	ASSERT_LT(diff_frac, 0.03f);
 
 	delete validator; //force delete
 }
@@ -188,9 +182,9 @@ void test_rms_calculation()
 /**
  * Verify error tracking performed by DataValidator::put
  */
-void test_error_tracking()
+TEST(DataValidatorTest, ErrorTracking)
 {
-	printf("\n--- test_error_tracking ---\n");
+	srand(666);
 	uint64_t timestamp = 500;
 	uint64_t timestamp_incr = 5;
 	const uint32_t timeout_usec = 2000;//from original private value
@@ -225,31 +219,31 @@ void test_error_tracking()
 		validator->put(timestamp, val, error_count, priority);
 	}
 
-	assert(validator->used());
+	ASSERT_TRUE(validator->used());
 	//at this point, error_count should be less than NORETURN_ERRCOUNT
-	assert(validator->error_count() == error_count);
+	ASSERT_EQ(validator->error_count(), error_count);
 
 	// we've just provided a bunch of valid data with some errors:
 	// confidence should be reduced by the number of errors
 	float conf = validator->confidence(timestamp);
 	printf("error_count: %u validator confidence: %f\n", (uint32_t)error_count, (double)conf);
-	assert(1.0f != conf);  //we should not be fully confident
-	assert(0.0f != conf);  //neither should we be completely unconfident
+	ASSERT_NE(1.0f, conf);  //we should not be fully confident
+	ASSERT_NE(0.0f, conf);  //neither should we be completely unconfident
 	// should be no errors, even if confidence is reduced, since we didn't exceed NORETURN_ERRCOUNT
-	assert(0 == validator->state());
+	ASSERT_EQ(0u, validator->state());
 
 	// the error density will reduce the confidence by 1 - (error_density / ERROR_DENSITY_WINDOW)
 	// ERROR_DENSITY_WINDOW is currently private, but == 100.0f
 	float reduced_conf = 1.0f - ((float)expected_error_density / 100.0f);
 	double diff = fabs(reduced_conf - conf);
 
-	if (reduced_conf != conf) {
+	if (fabsf(reduced_conf - conf) > 1e-6f) {
 		printf("conf: %f reduced_conf: %f diff: %f\n",
 		       (double)conf, (double)reduced_conf, diff);
 		dump_validator_state(validator);
 	}
 
-	assert(diff < 1E-6f);
+	ASSERT_LT(diff, 1E-6f);
 
 	//Now, insert a series of errors and ensure we trip the error detector
 	for (int i = 0; i < 250;  i++, val += sufficient_incr_value) {
@@ -261,9 +255,9 @@ void test_error_tracking()
 	}
 
 	conf = validator->confidence(timestamp);
-	assert(0.0f == conf);  // should we be completely unconfident
+	ASSERT_FLOAT_EQ(0.0f, conf);  // should we be completely unconfident
 	// we should have triggered the high error density detector
-	assert(DataValidator::ERROR_FLAG_HIGH_ERRDENSITY == (DataValidator::ERROR_FLAG_HIGH_ERRDENSITY & validator->state()));
+	ASSERT_EQ(DataValidator::ERROR_FLAG_HIGH_ERRDENSITY, (DataValidator::ERROR_FLAG_HIGH_ERRDENSITY & validator->state()));
 
 
 	validator->reset_state();
@@ -278,25 +272,97 @@ void test_error_tracking()
 	}
 
 	conf = validator->confidence(timestamp);
-	assert(0.0f == conf);  // should we be completely unconfident
+	ASSERT_FLOAT_EQ(0.0f, conf);  // should we be completely unconfident
 	// we should have triggered the high error count detector
-	assert(DataValidator::ERROR_FLAG_HIGH_ERRCOUNT == (DataValidator::ERROR_FLAG_HIGH_ERRCOUNT & validator->state()));
+	ASSERT_EQ(DataValidator::ERROR_FLAG_HIGH_ERRCOUNT, (DataValidator::ERROR_FLAG_HIGH_ERRCOUNT & validator->state()));
 
 	delete validator; //force delete
-
 }
 
-int main(int argc, char *argv[])
+/**
+ * Verify that the stale detector counts once per put() call, not once per axis.
+ *
+ * Before the fix for the cross-axis accumulation bug, _value_equal_count was
+ * incremented inside the per-dimension loop, causing it to accumulate up to
+ * dimensions (3) times per put() call. This test uses the 3D put() overload
+ * to ensure the counter increments exactly once per call.
+ *
+ * Note: the existing StaleDetector test uses the single-float put() overload
+ * (which internally wraps to 3D with zeros for axes 1,2), and thus never
+ * exposed this bug because only axis 0 varied while axes 1,2 were always 0.
+ */
+TEST(DataValidatorTest, StaleDetector3D)
 {
-	(void)argc; // unused
-	(void)argv; // unused
+	const uint32_t timeout_usec = 2000;
+	const unsigned equal_value_threshold = 100; // VALUE_EQUAL_COUNT_DEFAULT
+	uint64_t timestamp = 500;
+	const uint64_t timestamp_incr = 5;
+	const uint32_t error_count = 0;
+	const uint8_t priority = 50;
 
-	srand(666);
-	test_init();
-	test_put();
-	test_stale_detector();
-	test_rms_calculation();
-	test_error_tracking();
+	DataValidator *validator = new DataValidator;
+	validator->set_timeout(timeout_usec);
+	validator->set_equal_value_threshold(equal_value_threshold);
 
-	return 0; //passed
+	// First, prime the validator with one distinct sample so _time_last != 0
+	float initial_data[DataValidator::dimensions] = {1.0f, 2.0f, 3.0f};
+	timestamp += timestamp_incr;
+	validator->put(timestamp, initial_data, error_count, priority);
+
+	// Now feed a different value once to establish a baseline in _value[]
+	float stale_data[DataValidator::dimensions] = {4.0f, 5.0f, 6.0f};
+	timestamp += timestamp_incr;
+	validator->put(timestamp, stale_data, error_count, priority);
+
+	// At this point _value_equal_count should be 0 (value just changed)
+	// Now feed the exact same 3D value repeatedly.
+	// With the bug, staleness would trigger at ~threshold/3 calls (~33).
+	// With the fix, staleness should NOT trigger until > threshold calls.
+	//
+	// confidence() checks (_value_equal_count > threshold), strictly greater,
+	// so counter must reach (threshold + 1) to trip the flag.
+
+	// Feed exactly threshold identical samples — counter reaches threshold,
+	// but threshold > threshold is false, so NOT stale yet.
+	for (unsigned i = 0; i < equal_value_threshold; i++) {
+		timestamp += timestamp_incr;
+		validator->put(timestamp, stale_data, error_count, priority);
+	}
+
+	// Confidence should still be positive (not stale yet)
+	float conf = validator->confidence(timestamp);
+
+	if (conf <= 0.0f) {
+		printf("FAIL: stale detected after %u identical 3D put() calls, "
+		       "expected threshold of >%u\n",
+		       equal_value_threshold, equal_value_threshold);
+		dump_validator_state(validator);
+	}
+
+	ASSERT_GT(conf, 0.0f); // must NOT be stale yet (counter == threshold, not >)
+
+	// One more identical sample pushes counter to (threshold + 1) — NOW stale
+	timestamp += timestamp_incr;
+	validator->put(timestamp, stale_data, error_count, priority);
+
+	conf = validator->confidence(timestamp);
+	ASSERT_FLOAT_EQ(0.0f, conf); // NOW it should be stale
+
+	uint32_t state = validator->state();
+
+	if (DataValidator::ERROR_FLAG_STALE_DATA !=
+	    (DataValidator::ERROR_FLAG_STALE_DATA & state)) {
+		printf("FAIL: expected STALE_DATA flag after %u identical 3D put() calls\n",
+		       equal_value_threshold + 1);
+		dump_validator_state(validator);
+	}
+
+	ASSERT_EQ(DataValidator::ERROR_FLAG_STALE_DATA,
+		  (DataValidator::ERROR_FLAG_STALE_DATA & state));
+
+	printf("PASS: stale detector triggers at exactly %u 3D put() calls (not %u)\n",
+	       equal_value_threshold + 1,
+	       (equal_value_threshold / DataValidator::dimensions) + 1);
+
+	delete validator; // force delete
 }

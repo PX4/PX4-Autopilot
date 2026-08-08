@@ -43,14 +43,14 @@ void insert_values_around_mean(DataValidator *validator, const float mean, uint3
 	const uint32_t error_count = 0;
 	const uint8_t priority = 50;
 	const float swing = 1E-2f;
-	double sum_dev_squares = 0.0f;
+	double sum_dev_squares = 0.0;
 
 	//insert a series of values that swing around the mean
 	for (uint32_t i = 0; i < count;  i++) {
 		float iter_swing = (0 == (i % 2)) ? swing : -swing;
 		float iter_val = mean + iter_swing;
 		float iter_dev = iter_val - mean;
-		sum_dev_squares += (iter_dev * iter_dev);
+		sum_dev_squares += (double)(iter_dev * iter_dev);
 		timestamp += timestamp_incr;
 		validator->put(timestamp, iter_val, error_count, priority);
 	}
@@ -92,7 +92,7 @@ void fill_validator_with_samples(DataValidator *validator,
 	validator->set_timeout(timeout_usec);
 
 	//put a bunch of values that are all different
-	for (int i = 0; i < equal_value_count; i++, val += incr_value) {
+	for (int i = 0; i < equal_value_count + 2; i++, val += incr_value) {
 		timestamp += timestamp_incr;
 		validator->put(timestamp, val, error_count, priority);
 	}
