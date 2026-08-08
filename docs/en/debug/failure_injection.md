@@ -5,7 +5,7 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe).
+Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe), and on fmu-v6x-class hardware the `can` component supports `off` (take a CAN bus completely offline).
 
 ::: info
 PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
@@ -47,6 +47,7 @@ where:
     - `avoidance`: Avoidance
     - `rc_signal`: RC Signal
     - `mavlink_signal`: MAVLink data telemetry connection
+    - `can`: CAN bus. The instance selects the bus. Supported on fmu-v6x-class hardware.
 - _failure_type_:
   - `ok`: Publish as normal (Disable failure injection)
   - `off`: Stop publishing
