@@ -264,13 +264,13 @@ void RCUpdate::rc_parameter_map_poll(bool forced)
 	}
 }
 
-float RCUpdate::get_rc_value(uint8_t func, float min_value, float max_value) const
+float RCUpdate::get_rc_value(uint8_t func, float min_value, float max_value, float default_value) const
 {
 	if (_rc.function[func] >= 0) {
 		return math::constrain(_rc.channels[_rc.function[func]], min_value, max_value);
 	}
 
-	return 0.f;
+	return default_value;
 }
 
 void RCUpdate::set_params_from_rc()
@@ -674,12 +674,12 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	manual_control_input.yaw = get_rc_value(rc_channels_s::FUNCTION_YAW,     -1.f, 1.f);
 	manual_control_input.throttle = get_rc_value(rc_channels_s::FUNCTION_THROTTLE, -1.f, 1.f);
 	manual_control_input.flaps = get_rc_value(rc_channels_s::FUNCTION_FLAPS,   -1.f, 1.f);
-	manual_control_input.aux1  = get_rc_value(rc_channels_s::FUNCTION_AUX_1,   -1.f, 1.f);
-	manual_control_input.aux2  = get_rc_value(rc_channels_s::FUNCTION_AUX_2,   -1.f, 1.f);
-	manual_control_input.aux3  = get_rc_value(rc_channels_s::FUNCTION_AUX_3,   -1.f, 1.f);
-	manual_control_input.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,   -1.f, 1.f);
-	manual_control_input.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,   -1.f, 1.f);
-	manual_control_input.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,   -1.f, 1.f);
+	manual_control_input.aux1  = get_rc_value(rc_channels_s::FUNCTION_AUX_1,   -1.f, 1.f, NAN);
+	manual_control_input.aux2  = get_rc_value(rc_channels_s::FUNCTION_AUX_2,   -1.f, 1.f, NAN);
+	manual_control_input.aux3  = get_rc_value(rc_channels_s::FUNCTION_AUX_3,   -1.f, 1.f, NAN);
+	manual_control_input.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,   -1.f, 1.f, NAN);
+	manual_control_input.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,   -1.f, 1.f, NAN);
+	manual_control_input.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,   -1.f, 1.f, NAN);
 	manual_control_input.valid = _rc_calibrated;
 
 	// publish manual_control_input topic

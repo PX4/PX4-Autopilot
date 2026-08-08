@@ -2319,6 +2319,15 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 	manual_control_setpoint_s manual_control_setpoint{};
 
+	// aux1-6 are only valid if the sender explicitly marks them as such via enabled_extensions;
+	// default to NaN so an unset channel is distinguishable from one centered at 0.
+	manual_control_setpoint.aux1 = NAN;
+	manual_control_setpoint.aux2 = NAN;
+	manual_control_setpoint.aux3 = NAN;
+	manual_control_setpoint.aux4 = NAN;
+	manual_control_setpoint.aux5 = NAN;
+	manual_control_setpoint.aux6 = NAN;
+
 	if (math::isInRange((int)mavlink_manual_control.x, -1000, 1000)) { manual_control_setpoint.pitch = mavlink_manual_control.x / 1000.f; }
 
 	if (math::isInRange((int)mavlink_manual_control.y, -1000, 1000)) { manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f; }
