@@ -46,6 +46,7 @@
 
 #include <math.h>
 #include <poll.h>
+#include <string.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
@@ -3634,15 +3635,47 @@ void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *m
 		return;
 	}
 
-	open_drone_id_basic_id_s odid_basic_id {};
+	if (_param_odid_bid_src.get() != open_drone_id::UAS_ID_MODE_LOCK_FIRST_BASIC_ID) {
+		return;
+	}
 
-	odid_basic_id.timestamp = hrt_absolute_time();
-	memcpy(odid_basic_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_basic_id.id_or_mac));
-	odid_basic_id.id_type = odid_module.id_type;
-	odid_basic_id.ua_type = odid_module.ua_type;
-	memcpy(odid_basic_id.uas_id, odid_module.uas_id, sizeof(odid_basic_id.uas_id));
+	open_drone_id_basic_id_s odid_bid {};
+	odid_bid.timestamp = hrt_absolute_time();
+	memcpy(odid_bid.id_or_mac, odid_module.id_or_mac, sizeof(odid_bid.id_or_mac));
 
-	_open_drone_id_basic_id_pub.publish(odid_basic_id);
+	open_drone_id::UasId locked_id{};
+	const open_drone_id::BidStoreResult result = _odid_bid_lock.resolve(odid_module.id_type, odid_module.ua_type, odid_module.uas_id,
+			locked_id);
+
+	switch (result) {
+	case open_drone_id::BidStoreResult::Stored:
+		mavlink_log_info(&_mavlink_log_pub, "OpenDroneID BID locked");
+		break;
+
+	case open_drone_id::BidStoreResult::AlreadyLocked:
+	case open_drone_id::BidStoreResult::AlreadyLockedDifferent:
+		break;
+
+	case open_drone_id::BidStoreResult::InvalidBasicId:
+		return;
+
+	case open_drone_id::BidStoreResult::StorageUnavailable:
+	case open_drone_id::BidStoreResult::InvalidRecord:
+	case open_drone_id::BidStoreResult::WriteError:
+	case open_drone_id::BidStoreResult::Unsupported:
+		if (!_odid_bid_lock_warning_reported) {
+			mavlink_log_warning(&_mavlink_log_pub, "OpenDroneID BID lock unavailable");
+			_odid_bid_lock_warning_reported = true;
+		}
+
+		return;
+	}
+
+	odid_bid.id_type = MAV_ODID_ID_TYPE_SERIAL_NUMBER;
+	odid_bid.ua_type = locked_id.ua_type;
+	memcpy(odid_bid.uas_id, locked_id.uas_id, sizeof(odid_bid.uas_id));
+
+	_open_drone_id_basic_id_pub.publish(odid_bid);
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_operator_id(
