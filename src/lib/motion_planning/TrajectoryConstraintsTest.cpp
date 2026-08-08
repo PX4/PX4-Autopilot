@@ -218,3 +218,297 @@ TEST_F(TrajectoryConstraintsTest, test10AngleCloseNext)
 
 	EXPECT_LT(close_speed, normal_speed);
 }
+
+TEST(TrajectoryConstraintsClamp, clampToXYNormNoEffectLarge)
+{
+	// GIVEN: a short vector
+	Vector3f vec(1, 2, 3);
+
+	// WHEN: we clamp it on XY with a long cutoff
+	clampToXYNorm(vec, 1000.f);
+
+	// THEN: it shouldn't change
+	EXPECT_EQ(vec, Vector3f(1, 2, 3));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToZNormNoEffect)
+{
+	// GIVEN: a short vector
+	Vector3f vec(1, 2, 3);
+
+	// WHEN: we clamp it on XY with a long cutoff
+	clampToZNorm(vec, 1000.f);
+
+	// THEN: it shouldn't change
+	EXPECT_EQ(vec, Vector3f(1, 2, 3));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToXYNormNoEffectExact)
+{
+	// GIVEN: a vector
+	Vector3f vec(3, 4, 1);
+
+	// WHEN: we clamp it on XY with exact cutoff
+	clampToXYNorm(vec, 5.f);
+
+	// THEN: it shouldn't change
+	EXPECT_EQ(vec, Vector3f(3, 4, 1));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToZNormNoEffectExact)
+{
+	// GIVEN: a vector
+	Vector3f vec(3, 4, -1);
+
+	// WHEN: we clamp it on Z with exact cutoff
+	clampToZNorm(vec, 1.f);
+
+	// THEN: it shouldn't change
+	EXPECT_EQ(vec, Vector3f(3, 4, -1));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToXYNormHalf)
+{
+	// GIVEN: a vector
+	Vector3f vec(3, 4, 1);
+
+	// WHEN: we clamp it on XY with half hypot length
+	clampToXYNorm(vec, 2.5f);
+
+	// THEN: it should be half length
+	EXPECT_TRUE(vec == Vector3f(1.5f, 2.f, 0.5f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToZNormHalf)
+{
+	// GIVEN: a vector
+	Vector3f vec(3, 4, 10);
+
+	// WHEN: we clamp it on Z with half length
+	clampToZNorm(vec, 5.f);
+
+	// THEN: it should be half length
+	EXPECT_TRUE(vec == Vector3f(1.5f, 2.f, 5.f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToXYNormZero)
+{
+	// GIVEN: a vector
+	Vector3f vec(3, 4, 1);
+
+	// WHEN: we clamp it on XY with half hypot length
+	clampToXYNorm(vec, 0.f);
+
+	// THEN: it should be 0
+	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToZNormZero)
+{
+	// GIVEN: a vector
+	Vector3f vec(3, 4, 1);
+
+	// WHEN: we clamp it on Z with half hypot length
+	clampToZNorm(vec, 0.f);
+
+	// THEN: it should be 0
+	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToXYNormVecZero)
+{
+	// GIVEN: a vector
+	Vector3f vec(0, 0, 0);
+
+	// WHEN: we clamp it on XY
+	clampToXYNorm(vec, 1.f);
+
+	// THEN: it should be 0 still
+	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToZNormVecZero)
+{
+	// GIVEN: a vector
+	Vector3f vec(0, 0, 0);
+
+	// WHEN: we clamp it on Z
+	clampToZNorm(vec, 1.f);
+
+	// THEN: it should be 0 still
+	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToXYNormVecZeroToZero)
+{
+	// GIVEN: a vector
+	Vector3f vec(0, 0, 0);
+
+	// WHEN: we clamp it on XY
+	clampToXYNorm(vec, 0.f);
+
+	// THEN: it should be 0 still
+	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
+}
+
+TEST(TrajectoryConstraintsClamp, clampToZNormVecZeroToZero)
+{
+	// GIVEN: a vector
+	Vector3f vec(0, 0, 0);
+
+	// WHEN: we clamp it on XY
+	clampToZNorm(vec, 0.f);
+
+	// THEN: it should be 0 still
+	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
+}
+
+class TrajectoryConstraints3DTest : public ::testing::Test
+{
+public:
+	VehicleDynamicLimits config;
+
+	void SetUp() override
+	{
+		config.z_accept_rad = 0.8f;
+		config.xy_accept_rad = 10.f;
+
+		config.max_acc_xy = 3.f;
+		config.max_acc_z_up = 4.f;
+		config.max_acc_z_down = 3.f;
+		config.max_jerk = 10.f;
+
+		config.max_speed_xy = 10.f;
+		config.max_speed_z_up = 3.f;
+		config.max_speed_z_down = 1.5f;
+
+		config.max_acc_xy_radius_scale = 0.8f;
+	}
+};
+
+TEST_F(TrajectoryConstraints3DTest, testLevelToClimbCorner)
+{
+	// GIVEN: a level segment turning into a diagonal climb
+	Vector3f start(0, 0, -5);
+	Vector3f target(20, 0, -5);
+	Vector3f next(40, 10, -15);
+
+	// WHEN: we compute the speed at the corner waypoint
+	float xy_speed, z_speed;
+	computeTarget3DSpeedFromWaypoints(start, target, next, 5.f, 2.f, config, xy_speed, z_speed);
+
+	// THEN: neither axis is forced to a full stop
+	EXPECT_GT(xy_speed, 0.f);
+	EXPECT_GT(z_speed, 0.f);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testZDirectionChangeForcesStop)
+{
+	// GIVEN: a climb reaching an apex at the target, descending afterwards
+	Vector3f start(0, 0, 0);
+	Vector3f target(20, 0, -10);
+	Vector3f next(40, 0, 0);
+
+	// WHEN: we compute the speed at the apex waypoint
+	float xy_speed, z_speed;
+	computeTarget3DSpeedFromWaypoints(start, target, next, 5.f, 2.f, config, xy_speed, z_speed);
+
+	// THEN: the vertical speed at the apex is zero
+	EXPECT_FLOAT_EQ(z_speed, 0.f);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testZOvershootDoesNotForceStop)
+{
+	// GIVEN: a monotonic climb where the trajectory overshot the target altitude by a centimeter
+	Vector3f start(19.9f, 0, -10.01f);
+	Vector3f target(20, 0, -10);
+	Vector3f next(40, 0, -20);
+
+	// WHEN: we compute the speed at the target waypoint
+	float xy_speed, z_speed;
+	computeTarget3DSpeedFromWaypoints(start, target, next, 5.f, 2.f, config, xy_speed, z_speed);
+
+	// THEN: the overshoot is not treated as a direction change
+	EXPECT_GT(z_speed, 0.f);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testShortSegmentsLimitCornerSpeed)
+{
+	// GIVEN: two 90 degree corners, one with 3 m legs and one with 20 m legs
+	float xy_short, z_short, xy_long, z_long;
+
+	// WHEN: we compute the speed in each corner
+	computeTarget3DSpeedFromWaypoints(Vector3f(0, 0, 0), Vector3f(3, 0, 0), Vector3f(3, 3, 0),
+					  10.f, 0.f, config, xy_short, z_short);
+	computeTarget3DSpeedFromWaypoints(Vector3f(0, 0, 0), Vector3f(20, 0, 0), Vector3f(20, 20, 0),
+					  10.f, 0.f, config, xy_long, z_long);
+
+	// THEN: the corner with short legs is taken slower, since the turn arc has to fit into them
+	EXPECT_GT(xy_short, 0.f);
+	EXPECT_LT(xy_short, xy_long);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testDuplicateWaypoints)
+{
+	// GIVEN: target and next waypoint at the same location
+	Vector3f start(0, 0, 0);
+	Vector3f target(10, 0, -2);
+	Vector3f next(10, 0, -2);
+
+	// WHEN: we compute the speed at the duplicated waypoint
+	float xy_speed, z_speed;
+	computeTarget3DSpeedFromWaypoints(start, target, next, 5.f, 2.f, config, xy_speed, z_speed);
+
+	// THEN: it is a clean full stop without numerical issues
+	EXPECT_TRUE(PX4_ISFINITE(xy_speed) && PX4_ISFINITE(z_speed));
+	EXPECT_FLOAT_EQ(xy_speed, 0.f);
+	EXPECT_FLOAT_EQ(z_speed, 0.f);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testSingleWaypointGoto)
+{
+	// GIVEN: only the current position and a single target (goto-style)
+	Vector3f waypoints[2] = {Vector3f(0, 0, 0), Vector3f(20, 10, -10)};
+
+	// WHEN: we compute the allowed speed at the current position
+	float xy_speed = 0.f;
+	float z_speed = 0.f;
+	compute3DSpeedFromWaypoints<2>(waypoints, config, xy_speed, z_speed);
+
+	// THEN: the vehicle is allowed to move in both axes
+	EXPECT_GT(xy_speed, 0.f);
+	EXPECT_GT(z_speed, 0.f);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testPureVerticalGoto)
+{
+	// GIVEN: a target straight above the current position
+	Vector3f waypoints[2] = {Vector3f(0, 0, 0), Vector3f(0, 0, -20)};
+
+	// WHEN: we compute the allowed speed at the current position
+	float xy_speed = 0.f;
+	float z_speed = 0.f;
+	compute3DSpeedFromWaypoints<2>(waypoints, config, xy_speed, z_speed);
+
+	// THEN: vertical speed is allowed up to the configured climb limit
+	EXPECT_GT(z_speed, 0.f);
+	EXPECT_LE(z_speed, config.max_speed_z_up);
+}
+
+TEST_F(TrajectoryConstraints3DTest, testVerticalGotoRequiresZLimits)
+{
+	// GIVEN: a consumer that never configured the vertical limits
+	config.max_speed_z_up = 0.f;
+	config.max_speed_z_down = 0.f;
+	config.max_acc_z_up = 0.f;
+	config.max_acc_z_down = 0.f;
+	Vector3f waypoints[2] = {Vector3f(0, 0, 0), Vector3f(0, 0, -20)};
+
+	// WHEN: we compute the allowed speed at the current position
+	float xy_speed = 0.f;
+	float z_speed = 0.f;
+	compute3DSpeedFromWaypoints<2>(waypoints, config, xy_speed, z_speed);
+
+	// THEN: no vertical motion is allowed — callers of the 3D planner must set the Z limits
+	EXPECT_FLOAT_EQ(z_speed, 0.f);
+}
