@@ -120,6 +120,25 @@ The Pixhawk®​ 6X-RT is perfect for developers at corporate research labs, sta
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 12 FMU PWM outputs (AUX) and 8 IO PWM outputs (MAIN).
+
+FMU Outputs:
+
+- Outputs 1-8 support [DShot](../peripherals/dshot.md).
+- Outputs 9-12 do not support DShot.
+- Outputs 1-8 support [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+
+The 12 outputs are in 4 groups:
+
+- Outputs 1-3 in group1 (PWM1)
+- Outputs 4-7 in group2 (PWM2)
+- Outputs 8-10 in group3 (PWM3)
+- Outputs 11-12 in group4 (PWM4)
+
+All outputs within the same group must use the same output protocol and rate.
+
 ## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6x-rt).
