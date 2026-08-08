@@ -85,8 +85,8 @@ uint8_t DaaCrosstrack::calculate_daa_stats(const aircraft_state_s &uav_state, co
 
 	float d_hor{0.f};
 	float d_vert{0.f};
-	get_distance_to_point_global_wgs84(uav_state.lat_lon(0), uav_state.lat_lon(1), uav_state.altitude,
-					   traffic_state.lat_lon(0), traffic_state.lat_lon(1), traffic_state.altitude, &d_hor, &d_vert);
+	get_distance_to_point_global_spherical(uav_state.lat_lon(0), uav_state.lat_lon(1), uav_state.altitude,
+					       traffic_state.lat_lon(0), traffic_state.lat_lon(1), traffic_state.altitude, &d_hor, &d_vert);
 
 	const float relative_uav_traffic_speed = calculate_relative_uav_traffic_speed(uav_state, traffic_state);
 
