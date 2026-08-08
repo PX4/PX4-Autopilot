@@ -64,11 +64,15 @@ MessageFormatReader::State MessageFormatReader::readMore()
 	for (unsigned iteration = 0; iteration < max_num_iterations; ++iteration) {
 		switch (_state) {
 		case State::ReadOrbIDs: {
-				int num_orb_ids = _buffer[0];
+				if (_buffer_length < 1) {
+					break; // continue decompressing more data
+				}
+
+				int num_orb_ids = static_cast<uint8_t>(_buffer[0]);
 				const unsigned orb_ids_size = 1 + num_orb_ids * sizeof(orb_id_size_t);
 
 				if (_buffer_length > orb_ids_size) {
-					int num_dependent_orb_ids = _buffer[orb_ids_size];
+					int num_dependent_orb_ids = static_cast<uint8_t>(_buffer[orb_ids_size]);
 					const unsigned orb_ids_dependent_size = 1 + num_dependent_orb_ids * sizeof(orb_id_size_t);
 
 					if (_buffer_length >= orb_ids_size + orb_ids_dependent_size) {
