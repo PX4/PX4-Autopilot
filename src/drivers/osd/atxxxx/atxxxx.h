@@ -103,6 +103,7 @@ private:
 	int write_character_to_screen(uint8_t c, uint8_t pos_x, uint8_t pos_y);
 	void add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y);
 	void add_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width);
+	void add_centered_string_to_screen(const char *str, uint8_t pos_x, uint8_t pos_y, int width);
 	int flush_screen(int max_updates);
 
 	void add_battery_voltage(const battery_status_s &battery, uint8_t pos_x, uint8_t pos_y);
@@ -128,82 +129,6 @@ private:
 	bool _initialized{false};
 
 
-	// Element positions are looked up by name instead of being declared as individual
-	// ParamInt members: one loop costs far less flash than 62 generated param_find calls.
-	enum PositionParam : uint8_t {
-		POS_BAT_VOLT_X,
-		POS_BAT_VOLT_Y,
-		POS_MAH_X,
-		POS_MAH_Y,
-		POS_CELL_V_X,
-		POS_CELL_V_Y,
-		POS_SYSID_X,
-		POS_SYSID_Y,
-		POS_MISSION_X,
-		POS_MISSION_Y,
-		POS_MAV_STATE_X,
-		POS_MAV_STATE_Y,
-		POS_RSSI_X,
-		POS_RSSI_Y,
-		POS_LQ_X,
-		POS_LQ_Y,
-		POS_GPS_SAT_X,
-		POS_GPS_SAT_Y,
-		POS_GPS_SPD_X,
-		POS_GPS_SPD_Y,
-		POS_GPS_INFO_X,
-		POS_GPS_INFO_Y,
-		POS_ALT_X,
-		POS_ALT_Y,
-		POS_HOME_DST_X,
-		POS_HOME_DST_Y,
-		POS_AH_X,
-		POS_AH_Y,
-		POS_MODE_X,
-		POS_MODE_Y,
-		POS_FTIME_X,
-		POS_FTIME_Y,
-		POS_STATUS_X,
-		POS_STATUS_Y,
-		POS_ARM_X,
-		POS_ARM_Y,
-		POS_HEAD_X,
-		POS_HEAD_Y,
-		POS_CROSS_X,
-		POS_CROSS_Y,
-		POS_CURRENT_X,
-		POS_CURRENT_Y,
-		POS_POWER_X,
-		POS_POWER_Y,
-		POS_THROT_X,
-		POS_THROT_Y,
-		POS_VARIO_X,
-		POS_VARIO_Y,
-		POS_PITCH_X,
-		POS_PITCH_Y,
-		POS_ROLL_X,
-		POS_ROLL_Y,
-		POS_GPS_LAT_X,
-		POS_GPS_LAT_Y,
-		POS_GPS_LON_X,
-		POS_GPS_LON_Y,
-		POS_VTX_INFO_X,
-		POS_VTX_INFO_Y,
-		POS_VTX_FREQ_X,
-		POS_VTX_FREQ_Y,
-		POS_VTX_POWER_X,
-		POS_VTX_POWER_Y,
-		POS_COUNT
-	};
-
-	void add_element_to_screen(const char *str, PositionParam element, int width);
-	void add_centered_element_to_screen(const char *str, PositionParam element, int width);
-	void mark_position_params_used();
-	void update_position_params();
-	int position(PositionParam p) const { return _position[p]; }
-
-	int32_t _position[POS_COUNT] {};
-
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg,
 		(ParamInt<px4::params::OSD_SYMBOLS>) _param_osd_symbols,
@@ -212,6 +137,68 @@ private:
 		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_osd_dwell_time,
 		(ParamInt<px4::params::OSD_CAM_VFOV>) _param_osd_cam_vfov,
 		(ParamInt<px4::params::OSD_CAM_HFOV>) _param_osd_cam_hfov,
-		(ParamInt<px4::params::OSD_CAM_UPT>) _param_osd_cam_upt
+		(ParamInt<px4::params::OSD_CAM_UPT>) _param_osd_cam_upt,
+		(ParamInt<px4::params::OSD_BAT_VOLT_X>) _param_osd_bat_volt_x,
+		(ParamInt<px4::params::OSD_BAT_VOLT_Y>) _param_osd_bat_volt_y,
+		(ParamInt<px4::params::OSD_MAH_X>) _param_osd_mah_x,
+		(ParamInt<px4::params::OSD_MAH_Y>) _param_osd_mah_y,
+		(ParamInt<px4::params::OSD_CELL_V_X>) _param_osd_cell_v_x,
+		(ParamInt<px4::params::OSD_CELL_V_Y>) _param_osd_cell_v_y,
+		(ParamInt<px4::params::OSD_SYSID_X>) _param_osd_sysid_x,
+		(ParamInt<px4::params::OSD_SYSID_Y>) _param_osd_sysid_y,
+		(ParamInt<px4::params::OSD_MISSION_X>) _param_osd_mission_x,
+		(ParamInt<px4::params::OSD_MISSION_Y>) _param_osd_mission_y,
+		(ParamInt<px4::params::OSD_MAV_STATE_X>) _param_osd_mav_state_x,
+		(ParamInt<px4::params::OSD_MAV_STATE_Y>) _param_osd_mav_state_y,
+		(ParamInt<px4::params::OSD_RSSI_X>) _param_osd_rssi_x,
+		(ParamInt<px4::params::OSD_RSSI_Y>) _param_osd_rssi_y,
+		(ParamInt<px4::params::OSD_LQ_X>) _param_osd_lq_x,
+		(ParamInt<px4::params::OSD_LQ_Y>) _param_osd_lq_y,
+		(ParamInt<px4::params::OSD_GPS_SAT_X>) _param_osd_gps_sat_x,
+		(ParamInt<px4::params::OSD_GPS_SAT_Y>) _param_osd_gps_sat_y,
+		(ParamInt<px4::params::OSD_GPS_SPD_X>) _param_osd_gps_spd_x,
+		(ParamInt<px4::params::OSD_GPS_SPD_Y>) _param_osd_gps_spd_y,
+		(ParamInt<px4::params::OSD_GPS_INFO_X>) _param_osd_gps_info_x,
+		(ParamInt<px4::params::OSD_GPS_INFO_Y>) _param_osd_gps_info_y,
+		(ParamInt<px4::params::OSD_ALT_X>) _param_osd_alt_x,
+		(ParamInt<px4::params::OSD_ALT_Y>) _param_osd_alt_y,
+		(ParamInt<px4::params::OSD_HOME_DST_X>) _param_osd_home_dst_x,
+		(ParamInt<px4::params::OSD_HOME_DST_Y>) _param_osd_home_dst_y,
+		(ParamInt<px4::params::OSD_AH_X>) _param_osd_ah_x,
+		(ParamInt<px4::params::OSD_AH_Y>) _param_osd_ah_y,
+		(ParamInt<px4::params::OSD_MODE_X>) _param_osd_mode_x,
+		(ParamInt<px4::params::OSD_MODE_Y>) _param_osd_mode_y,
+		(ParamInt<px4::params::OSD_FTIME_X>) _param_osd_ftime_x,
+		(ParamInt<px4::params::OSD_FTIME_Y>) _param_osd_ftime_y,
+		(ParamInt<px4::params::OSD_STATUS_X>) _param_osd_status_x,
+		(ParamInt<px4::params::OSD_STATUS_Y>) _param_osd_status_y,
+		(ParamInt<px4::params::OSD_ARM_X>) _param_osd_arm_x,
+		(ParamInt<px4::params::OSD_ARM_Y>) _param_osd_arm_y,
+		(ParamInt<px4::params::OSD_HEAD_X>) _param_osd_head_x,
+		(ParamInt<px4::params::OSD_HEAD_Y>) _param_osd_head_y,
+		(ParamInt<px4::params::OSD_CROSS_X>) _param_osd_cross_x,
+		(ParamInt<px4::params::OSD_CROSS_Y>) _param_osd_cross_y,
+		(ParamInt<px4::params::OSD_CURRENT_X>) _param_osd_current_x,
+		(ParamInt<px4::params::OSD_CURRENT_Y>) _param_osd_current_y,
+		(ParamInt<px4::params::OSD_POWER_X>) _param_osd_power_x,
+		(ParamInt<px4::params::OSD_POWER_Y>) _param_osd_power_y,
+		(ParamInt<px4::params::OSD_THROT_X>) _param_osd_throt_x,
+		(ParamInt<px4::params::OSD_THROT_Y>) _param_osd_throt_y,
+		(ParamInt<px4::params::OSD_VARIO_X>) _param_osd_vario_x,
+		(ParamInt<px4::params::OSD_VARIO_Y>) _param_osd_vario_y,
+		(ParamInt<px4::params::OSD_PITCH_X>) _param_osd_pitch_x,
+		(ParamInt<px4::params::OSD_PITCH_Y>) _param_osd_pitch_y,
+		(ParamInt<px4::params::OSD_ROLL_X>) _param_osd_roll_x,
+		(ParamInt<px4::params::OSD_ROLL_Y>) _param_osd_roll_y,
+		(ParamInt<px4::params::OSD_GPS_LAT_X>) _param_osd_gps_lat_x,
+		(ParamInt<px4::params::OSD_GPS_LAT_Y>) _param_osd_gps_lat_y,
+		(ParamInt<px4::params::OSD_GPS_LON_X>) _param_osd_gps_lon_x,
+		(ParamInt<px4::params::OSD_GPS_LON_Y>) _param_osd_gps_lon_y,
+		(ParamInt<px4::params::OSD_VTX_INFO_X>) _param_osd_vtx_info_x,
+		(ParamInt<px4::params::OSD_VTX_INFO_Y>) _param_osd_vtx_info_y,
+		(ParamInt<px4::params::OSD_VTX_FREQ_X>) _param_osd_vtx_freq_x,
+		(ParamInt<px4::params::OSD_VTX_FREQ_Y>) _param_osd_vtx_freq_y,
+		(ParamInt<px4::params::OSD_VTX_POWER_X>) _param_osd_vtx_power_x,
+		(ParamInt<px4::params::OSD_VTX_POWER_Y>) _param_osd_vtx_power_y
 	)
 };
