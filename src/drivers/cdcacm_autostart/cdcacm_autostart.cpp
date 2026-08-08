@@ -195,7 +195,7 @@ void CdcAcmAutostart::state_connected()
 		return;
 	}
 
-	// SYS_USB_AUTO=2 (and autodetect→mavlink): if the mavlink task exited after a
+	// SYS_USB_AUTO=2 (and autodetect mavlink): if the mavlink task exited after a
 	// successful spawn (e.g. failed to open the UART after retries), restart it.
 	if (_active_protocol == UsbProtocol::mavlink && !process_running(_mavlink_pid)) {
 		PX4_WARN("mavlink on %s exited, restarting", USB_DEVICE_PATH);
