@@ -40,6 +40,8 @@ Ideally the two antennas should be identical, on the same level/horizontal plane
   - Головний GPS = Ровер
   - Допоміжний GPS = Рухома База
 - Set [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `Heading` (1)
+- Set [GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1) if a UART1 rate other than the default is required (0 keeps 115200). Use a higher rate for high update rates or when RTCM is sent on UART1 ([GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) 3/4), and a lower rate on long serial cables.
+- Set [GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2) if a UART2 rate other than the default (230400) is required. UART2 carries RTCM between the modules in this setup.
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter bit 3 must be set (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 - [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) may need to be set (see [RTK GPS > GPS as Yaw/Heading Source](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
 - Перезавантажте та зачекайте, доки обидва пристрої отримають сигнал GPS.
