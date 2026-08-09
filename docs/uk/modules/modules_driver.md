@@ -1110,6 +1110,30 @@ rgbled <command> [arguments...]
    status        print status info
 ```
 
+## rgbled_apa102
+
+Source: [drivers/lights/rgbled_apa102](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_apa102)
+
+### Usage {#rgbled_apa102_usage}
+
+```
+rgbled_apa102 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es)
+     [-S]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+
+   stop
+
+   status        print status info
+```
+
 ## rgbled_aw2023
 
 Source: [drivers/lights/rgbled_aw2023](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_aw2023)

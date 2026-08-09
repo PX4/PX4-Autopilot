@@ -39,6 +39,22 @@ Multicopters use the [home/rally point return type](../flight_modes/return.md#rt
 - Він чекає протягом налаштованого часу ([RTL_LAND_DELAY](#RTL_LAND_DELAY)), який може бути використаний для розгортання шасі посадки.
 - Потім сідає на землю.
 
+<!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_rtl -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position`](../flight_modes/mode_requirements.md#mode_req_global_position) — Position measurement updates in a global coordinate frame
+- [`mode_req_home_position`](../flight_modes/mode_requirements.md#mode_req_home_position) — Global home reference must be set
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position`](../flight_modes/mode_requirements.md#mode_req_local_position) — Position relative to EKF2 origin ('0') point
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_rotary_wing_auto_rtl -->
+
 ### Мінімальна висота повернення
 
 За замовчуванням _мінімальна висота повернення_ встановлюється за допомогою [RTL_RETURN_ALT](#RTL_RETURN_ALT), і транспортний засіб просто повернеться на вищу з висоти `RTL_RETURN_ALT` або початкової висоти транспортного засобу.

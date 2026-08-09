@@ -13,7 +13,7 @@ This section discusses the _param_ subsystem in detail.
 
 [Системна консоль PX4](../debug/system_console.md) пропонує інструмент [param](../modules/modules_command.md#param), за допомогою якого можна встановлювати параметри, зчитувати їх значення, зберігати їх, а також експортувати й зберігати у файлах та відновлювати з них.
 
-### Отримання та встановлення параметрів
+### Getting Parameters
 
 Команда `param show` виводить усі параметри системи:
 
@@ -41,6 +41,22 @@ param show -c
 ```
 
 Ви можете використати `param show-for-airframe`, щоб показати всі параметри, які було змінено від значень за замовчуванням лише для поточного файлу літального апарату (та значень за замовчуванням, які він імпортує).
+
+### Setting Parameters
+
+Use `param set` to change a specific parameter:
+
+```sh
+param set SYS_AUTOSTART 1103   # Load airframe 1103 on next boot if SYS_AUTOCONFIG==1
+param set FW_T_F_ALT_ERR 20    # Enable TECS fast descend if >20m above altitude setpoint
+```
+
+Use `param bitset` and `param bitclear` to modify individual bits of a parameter (only for `INT32`):
+
+```sh
+param bitclear EKF2_SENS_EN 3  # Disable GPS fusion (lowest 2 bits -> 0b11), leaving other settings intact
+param bitset PWM_MAIN_REV 24   # Set output range for main PWM 4 and 5 to reversed (0b11000), leaving others intact
+```
 
 ### Параметри експорту та завантаження
 
