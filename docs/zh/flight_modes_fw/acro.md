@@ -16,6 +16,17 @@ When sticks are centered the vehicle will stop rotating, but remain in its curre
 RPY摇杆输入被转换为角速度命令，通过自动驾驶仪稳定。
 Throttle is passed directly to control allocation.
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_acro -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_acro -->
+
 ## 参数
 
 | Parameter                                                                                                                                                            | 描述                                                                                                                                                                                                                                  |

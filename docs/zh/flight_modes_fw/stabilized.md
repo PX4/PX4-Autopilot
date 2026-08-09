@@ -37,6 +37,18 @@ The vehicle course and altitude are not maintained, and can drift due to wind.
   这和<a href="../flight_modes/stabilized_fw.md">稳定模式</a>一样。
 - Manual control input is required (such as RC control, joystick).
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_manual_control`](../flight_modes/mode_requirements.md#mode_req_manual_control) — Requires stick input
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_stab -->
+
 ## 参数
 
 该模式受以下参数影响：
