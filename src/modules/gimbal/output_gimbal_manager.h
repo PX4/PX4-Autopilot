@@ -68,6 +68,7 @@ private:
 
 	void _update_manager_status();
 	bool _have_primary_control() const;
+	bool _someone_else_in_control() const;
 	void _send_configure(bool acquire);
 	void _publish_set_pitchyaw();
 
@@ -84,6 +85,7 @@ private:
 	bool _status_valid{false};
 
 	ControlState _control_state{ControlState::Released};
+	bool _prev_want_control{false};
 	hrt_abstime _last_acquire_request{0};
 
 	static constexpr hrt_abstime kAcquireRetryInterval{3000000};	// 3 s
