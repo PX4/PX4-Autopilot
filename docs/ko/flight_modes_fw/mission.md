@@ -8,11 +8,27 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 ::: info
 
 - This mode requires a global 3d position estimate (from GPS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
-- The vehicle must be armed before this mode can be engaged.
+- The mission will start once the vehicle is armed.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
-- RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
+- Sticks/switches can be used to switch out of mission mode on any vehicle.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_mission`](../flight_modes/mode_requirements.md#mode_req_mission) — Valid mission in autopilot's storage
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
 
 ## 설명
 
@@ -57,7 +73,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 
 :::
 
-Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Position mode](../flight_modes_fw/position.md)), and resumed by switching back to mission mode.
+Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
@@ -374,7 +390,7 @@ Note that if the wheel controller is enabled ([FW_W_EN](#FW_W_EN)), the controll
 
 :::info
 Nudging should not be used to supplement poor position control tuning.
-If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/cruise.md) for instruction.
 :::
 
 | Parameter                                                                                                                                                         | 설명                                                                                                 |

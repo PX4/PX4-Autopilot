@@ -26,11 +26,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Major Changes
 
-- TBD
+- **[Motor failure recovery for hexarotors](../config/motor_failure_recovery.md).** On a detected single motor failure the control allocator removes the failed motor and, on a hexarotor, additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it, recovering the yaw authority that is otherwise lost. Reversing keeps the opposite motor in the allocation and needs a reverse-capable ESC; the reverse thrust the allocator expects from a forward propeller is set with [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Disabled by default. ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
 
 ## Upgrade Guide
 
 - `COM_ARM_TRAFF` has been replaced by `COM_TRAFF_AVOID`. The old value 3 ("enforce for mission modes only") is migrated to `COM_TRAFF_AVOID=2`, which blocks arming in all modes, not just mission modes. If you relied on being able to arm manually with traffic detected, set `COM_TRAFF_AVOID=1` (warning only) instead.
+- **Re-check motor failure handling on hexarotors.** [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1` now also stops the motor opposite the failed one on a hexarotor (previously only the failed motor was removed from the allocation). Other airframes are unaffected, and `CA_FAILURE_MODE=0` (the default) is unchanged. See [Motor Failure Recovery](../config/motor_failure_recovery.md). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
 
 ## Other changes
 
@@ -51,6 +52,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### 안전 설정
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
+- [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
+  See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).
+- [Motor failure recovery](../config/motor_failure_recovery.md) for hexarotors: on a single motor failure the control allocator removes the failed motor and additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it to recover the lost yaw authority. Mode `2` requires a reverse-capable ESC and models the reverse thrust of a forward propeller with the new [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Reversible motor outputs on DroneCAN are now sent as signed `RawCommand` values (negative is reverse). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
 
 ### Estimation
 
