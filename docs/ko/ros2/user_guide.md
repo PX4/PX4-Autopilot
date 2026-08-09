@@ -118,7 +118,7 @@ To install ROS 2 and its dependencies:
    source /opt/ros/humble/setup.bash && echo "source /opt/ros/humble/setup.bash" >> .bashrc
    ```
 
-   The instructions above are reproduced from the official installation guide: [Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html).
+   The instructions above are reproduced from the official installation guide: [Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html).
    You can install _either_ the desktop (`ros-humble-desktop`) _or_ bare-bones versions (`ros-humble-ros-base`), _and_ the development tools (`ros-dev-tools`).
 
 :::
@@ -605,11 +605,11 @@ For more information see: [ROS 2 Subscriber QoS Settings](#ros-2-subscriber-qos-
 
 The lines below create a publisher to the `SensorCombined` uORB topic, which can be matched with one or more compatible ROS 2 subscribers to the `fmu/sensor_combined/out` ROS 2 topic.
 
-````cpp
+```cpp
 private:
  rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr subscription_;
 };
-```s
+```
 
 The instantiation of the `SensorCombinedListener` class as a ROS node is done on the `main` function.
 
@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
   rclcpp::shutdown();
   return 0;
 }
-````
+```
 
 This particular example has an associated launch file at [launch/sensor_combined_listener.launch.py](https://github.com/PX4/px4_ros_com/blob/main/launch/sensor_combined_listener.launch.py).
 This allows it to be launched using the [`ros2 launch`](#ros2-launch) command.
