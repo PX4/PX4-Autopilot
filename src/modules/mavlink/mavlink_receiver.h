@@ -350,6 +350,12 @@ private:
 	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
 	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Publication<external_gimbal_manager_status_s>	_external_gimbal_manager_status_pub{ORB_ID(external_gimbal_manager_status)};
+
+	// Component ids known to be external gimbal managers, so we don't treat their
+	// gimbal device information as our own. One bit per component id (0-255).
+	uint32_t _external_gimbal_manager_compid_bits[8] {};
+	void _markExternalGimbalManager(uint8_t compid) { _external_gimbal_manager_compid_bits[compid >> 5] |= (1u << (compid & 31)); }
+	bool _isExternalGimbalManager(uint8_t compid) const { return (_external_gimbal_manager_compid_bits[compid >> 5] & (1u << (compid & 31))) != 0; }
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};

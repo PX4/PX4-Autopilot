@@ -3564,6 +3564,14 @@ MavlinkReceiver::handle_message_gimbal_manager_set_attitude(mavlink_message_t *m
 void
 MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg)
 {
+	// Don't ingest device information from a component we know to be an external
+	// gimbal manager: that gimbal is not ours to manage, and treating its device
+	// info as our own would corrupt our own gimbal device discovery (our
+	// OutputMavlinkV2 would latch onto the foreign device id). The message is
+	// still forwarded to the ground station by the mavlink message forwarding.
+	if (_isExternalGimbalManager(msg->compid)) {
+		return;
+	}
 
 	mavlink_gimbal_device_information_t gimbal_device_info_msg;
 	mavlink_msg_gimbal_device_information_decode(msg, &gimbal_device_info_msg);
@@ -3636,6 +3644,11 @@ MavlinkReceiver::handle_message_gimbal_manager_status(mavlink_message_t *msg)
 	if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
 		return;
 	}
+
+	// Remember that this component is an external gimbal manager, so we don't
+	// mistake its gimbal device information for our own (see
+	// handle_message_gimbal_device_information).
+	_markExternalGimbalManager(msg->compid);
 
 	mavlink_gimbal_manager_status_t status_msg;
 	mavlink_msg_gimbal_manager_status_decode(msg, &status_msg);
