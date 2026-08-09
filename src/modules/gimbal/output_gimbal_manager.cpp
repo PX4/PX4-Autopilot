@@ -60,57 +60,76 @@ void OutputToGimbalManager::update(const ControlData &control_data, bool new_set
 		return;
 	}
 
-	// We want control whenever there is an active setpoint to forward.
-	const bool want_control = (control_data.type != ControlData::Type::Neutral);
+	// Only forward intent that originated onboard (RC, ROI, mission), i.e. where
+	// the autopilot itself holds primary control. A ground station commands an
+	// external manager directly, so we must not relay its commands here -
+	// otherwise we would fight it for control.
+	const bool onboard_originated =
+		control_data.sysid_primary_control == (uint8_t)_parameters.mav_sysid &&
+		control_data.compid_primary_control == (uint8_t)_parameters.mav_compid;
 
-	if (want_control) {
-		switch (_control_state) {
-		case ControlState::Released:
+	const bool want_control = onboard_originated && (control_data.type != ControlData::Type::Neutral);
+
+	// Acquire only on a fresh edge of onboard intent, never continuously. This
+	// gives "assert once, then yield if overridden" rather than fighting whoever
+	// took control (a moved RC stick or a new ROI re-triggers the edge).
+	const bool want_control_edge = want_control && !_prev_want_control;
+	_prev_want_control = want_control;
+
+	switch (_control_state) {
+	case ControlState::Released:
+		if (want_control_edge) {
 			_send_configure(true);
 			_last_acquire_request = now;
 			_control_state = ControlState::Acquiring;
-			break;
-
-		case ControlState::Acquiring:
-			if (_have_primary_control()) {
-				_control_state = ControlState::InControl;
-
-			} else if (now - _last_acquire_request > kAcquireRetryInterval) {
-				_send_configure(true);
-				_last_acquire_request = now;
-			}
-
-			break;
-
-		case ControlState::InControl:
-			if (!_have_primary_control()) {
-				// Someone took control from us. Try to reacquire.
-				_send_configure(true);
-				_last_acquire_request = now;
-				_control_state = ControlState::Acquiring;
-			}
-
-			break;
 		}
 
-		if (_control_state == ControlState::InControl) {
-			if (new_setpoints) {
-				_set_angle_setpoints(control_data);
-			}
+		break;
 
-			// Keep pointing updated as the vehicle moves relative to a location target.
-			_handle_position_update(control_data);
-			_publish_set_pitchyaw();
-			_last_update = now;
+	case ControlState::Acquiring:
+		if (_have_primary_control()) {
+			_control_state = ControlState::InControl;
+
+		} else if (!want_control) {
+			_control_state = ControlState::Released;
+
+		} else if (_someone_else_in_control()) {
+			// We lost the race for control; yield instead of fighting.
+			_control_state = ControlState::Released;
+
+		} else if (now - _last_acquire_request > kAcquireRetryInterval) {
+			// No one holds control yet, our request may have been lost: retry.
+			_send_configure(true);
+			_last_acquire_request = now;
 		}
 
-	} else {
-		// No active setpoint: release control so other components (e.g. a
-		// ground station) can command the manager.
-		if (_control_state != ControlState::Released) {
+		break;
+
+	case ControlState::InControl:
+		if (!want_control) {
+			// Our intent ended: release so a ground station can take over.
 			_send_configure(false);
 			_control_state = ControlState::Released;
+
+		} else if (!_have_primary_control()) {
+			// Someone took control from us: yield, don't fight. A new onboard
+			// intent edge is required to reclaim.
+			_control_state = ControlState::Released;
 		}
+
+		break;
+	}
+
+	if (_control_state == ControlState::InControl) {
+		// Apply the current setpoint every cycle, not just on new_setpoints.
+		// Unlike a direct device output we can reach InControl several cycles
+		// after new_setpoints (after the control handshake), so gating on it
+		// could miss the setpoint entirely and stream NaN. control_data always
+		// holds the latest setpoint, and for a location target _set_angle_setpoints
+		// re-runs the geo pointing so it keeps tracking as the vehicle moves.
+		_set_angle_setpoints(control_data);
+		_publish_set_pitchyaw();
+		_last_update = now;
 	}
 }
 
@@ -138,6 +157,14 @@ bool OutputToGimbalManager::_have_primary_control() const
 	return _status_valid
 	       && _status.primary_control_sysid == (uint8_t)_parameters.mav_sysid
 	       && _status.primary_control_compid == (uint8_t)_parameters.mav_compid;
+}
+
+bool OutputToGimbalManager::_someone_else_in_control() const
+{
+	// A non-zero primary control that isn't us means another component holds it.
+	return _status_valid
+	       && (_status.primary_control_sysid != 0 || _status.primary_control_compid != 0)
+	       && !_have_primary_control();
 }
 
 void OutputToGimbalManager::_send_configure(bool acquire)
