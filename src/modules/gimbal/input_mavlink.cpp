@@ -673,12 +673,20 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_vehicle_roi(Co
 		control_data.type_data.lonlat.pitch_offset = vehicle_roi.pitch_offset;
 		control_data.type_data.lonlat.yaw_offset = vehicle_roi.yaw_offset;
 
+		// ROI is autopilot-driven, so the autopilot is the one in control.
+		control_data.sysid_primary_control = _parameters.mav_sysid;
+		control_data.compid_primary_control = _parameters.mav_compid;
+
 		_cur_roi_mode = vehicle_roi.mode;
 
 		return UpdateResult::UpdatedActive;
 
 	} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 		control_data_set_lon_lat(control_data, vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt, vehicle_roi.timestamp);
+
+		// ROI is autopilot-driven, so the autopilot is the one in control.
+		control_data.sysid_primary_control = _parameters.mav_sysid;
+		control_data.compid_primary_control = _parameters.mav_compid;
 
 		_cur_roi_mode = vehicle_roi.mode;
 
