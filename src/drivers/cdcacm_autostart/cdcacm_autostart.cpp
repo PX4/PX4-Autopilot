@@ -47,7 +47,6 @@ __END_DECLS
 #include <px4_platform_common/posix.h>
 
 #include <errno.h>
-#include <signal.h>
 
 ModuleBase::Descriptor CdcAcmAutostart::desc{task_spawn, custom_command, print_usage};
 
@@ -171,16 +170,6 @@ void CdcAcmAutostart::close_ttyacm()
 	}
 }
 
-bool CdcAcmAutostart::process_running(int pid) const
-{
-	if (pid <= 0) {
-		return false;
-	}
-
-	// kill(pid, 0) succeeds when the task exists (NuttX/POSIX).
-	return kill(pid, 0) == 0;
-}
-
 void CdcAcmAutostart::state_connected()
 {
 	// Lost VBUS for two consecutive samples: tear down.
@@ -192,22 +181,11 @@ void CdcAcmAutostart::state_connected()
 		}
 
 		_state = UsbAutoStartState::disconnecting;
-		return;
 	}
 
-	// SYS_USB_AUTO=2 (and autodetect mavlink): if the mavlink task exited after a
-	// successful spawn (e.g. failed to open the UART after retries), restart it.
-	if (_active_protocol == UsbProtocol::mavlink && !process_running(_mavlink_pid)) {
-		PX4_WARN("mavlink on %s exited, restarting", USB_DEVICE_PATH);
-		_mavlink_pid = -1;
-
-		if (start_mavlink()) {
-			// Stay connected; next tick re-checks the new PID.
-		} else {
-			_state = UsbAutoStartState::disconnecting;
-			_reschedule_time = 100_ms;
-		}
-	}
+	// Deliberately no supervision of the mavlink instance here. mavlink is not
+	// expected to exit on its own, so if it does, leaving the USB link dead makes
+	// that visible instead of papering over it with a restart.
 }
 
 void CdcAcmAutostart::state_disconnected()
@@ -218,8 +196,6 @@ void CdcAcmAutostart::state_disconnected()
 		if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
 			_state = UsbAutoStartState::connecting;
 			PX4_DEBUG("state connecting");
-			// Give CDC/ACM time to create /dev/ttyACM0 before mavlink open retries.
-			_reschedule_time = 1_s;
 		}
 
 	} else if (_vbus_present && !_vbus_present_prev) {
@@ -241,10 +217,20 @@ void CdcAcmAutostart::state_connecting()
 		goto fail;
 	}
 
-	// SYS_USB_AUTO=2: always start MAVLink. Do not open/hold the port here —
-	// mavlink opens it itself (with open retries). Holding O_RDONLY previously
-	// was unnecessary and left a second open on the device for the life of the link.
+	// SYS_USB_AUTO=2: always start MAVLink. Probe the port first — CDC/ACM registers
+	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
+	// enumerated. mavlink exits if its own open retries run out, so only spawn it
+	// once the port is known to be openable, then release the probe.
 	if (_sys_usb_auto.get() == 2) {
+		if (_ttyacm_fd < 0) {
+			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+		}
+
+		if (_ttyacm_fd < 0) {
+			PX4_DEBUG("%s not ready", USB_DEVICE_PATH);
+			return;
+		}
+
 		close_ttyacm();
 		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
 
@@ -383,7 +369,6 @@ void CdcAcmAutostart::state_disconnecting()
 	PX4_DEBUG("state_disconnecting");
 
 	close_ttyacm();
-	_mavlink_pid = -1;
 
 	// Disconnect serial
 	serdis_main(0, NULL);
@@ -534,11 +519,6 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 
 bool CdcAcmAutostart::start_mavlink()
 {
-	// Do not double-start if a prior instance is still alive.
-	if (process_running(_mavlink_pid)) {
-		return true;
-	}
-
 	char mavlink_mode_string[16];
 	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _usb_mav_mode.get());
 
@@ -547,22 +527,13 @@ bool CdcAcmAutostart::start_mavlink()
 		       (char *)"-m", mavlink_mode_string, nullptr
 		     };
 
-	const int pid = execute_process(argv);
-
-	if (pid > 0) {
-		_mavlink_pid = pid;
-		return true;
-	}
-
-	_mavlink_pid = -1;
-	return false;
+	return execute_process(argv) > 0;
 }
 
 void CdcAcmAutostart::stop_mavlink()
 {
 	char *stop_argv[] { (char *)"mavlink", (char *)"stop", (char *)"-d", (char *)USB_DEVICE_PATH, nullptr };
 	execute_process(stop_argv);
-	_mavlink_pid = -1;
 }
 
 bool CdcAcmAutostart::start_nsh()
@@ -686,10 +657,6 @@ int CdcAcmAutostart::print_status()
 	PX4_INFO("Protocol: %s", protocol);
 	PX4_INFO("VBUS: %s", _vbus_present ? "present" : "absent");
 	PX4_INFO("SYS_USB_AUTO: %ld", _sys_usb_auto.get());
-
-	if (_active_protocol == UsbProtocol::mavlink) {
-		PX4_INFO("mavlink pid: %d (%s)", _mavlink_pid, process_running(_mavlink_pid) ? "running" : "not running");
-	}
 
 	return PX4_OK;
 }
