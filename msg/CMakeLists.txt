@@ -228,6 +228,7 @@ set(msg_files
 	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
+	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
 	UlogStream.msg
