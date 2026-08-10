@@ -56,7 +56,7 @@
 // gives a result bit-identical to the dense P*H (the skipped entries are exactly 0.f, contributing
 // exactly +0 either way).
 static inline void sparseMatVec(const Ekf::SquareMatrixState &P, const Ekf::VectorState &H,
-				 const uint8_t *nz, const uint8_t nnz, Ekf::VectorState &PH)
+				const uint8_t *nz, const uint8_t nnz, Ekf::VectorState &PH)
 {
 	for (unsigned j = 0; j < State::size; j++) {
 		float s = 0.f;
