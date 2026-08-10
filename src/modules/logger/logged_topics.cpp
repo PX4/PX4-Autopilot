@@ -175,7 +175,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_temp", 100, 4);
 	add_optional_topic_multi("rpm", 200);
 	add_topic_multi("timesync_status", 1000, 3);
-	add_optional_topic_multi("telemetry_status", 1000, 4);
+	add_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics
 	{
