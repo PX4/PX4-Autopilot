@@ -244,9 +244,10 @@ bool GL40IIDriver::sendBenchGuardDisables()
 
 	// GL40II feedback is command-response, not periodic. Keep every unselected
 	// drive fresh and explicitly disabled while the selected rotor executes its
-	// trajectory. Never send this guard frame to the selected rotor because a
-	// disable would interrupt its bench motion.
-	const uint8_t guard_mask = gl40ii::benchGuardMask(activeMask(), _bench_rotor);
+	// trajectory. During the inter-motor dwell, no drive is selected yet, so
+	// poll and disable all six until the next enable is actually transmitted.
+	const bool selected_commanded = _bench_state != BenchState::InterMotorDwell;
+	const uint8_t guard_mask = gl40ii::benchGuardMask(activeMask(), _bench_rotor, selected_commanded);
 
 	for (uint8_t rotor = 0; rotor < gl40ii::NUM_MOTORS; ++rotor) {
 		if ((guard_mask & (1u << rotor))

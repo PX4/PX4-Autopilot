@@ -44,9 +44,16 @@ TEST(GL40IIBench, BidirectionalMoveChecksBothEndpoints)
 
 TEST(GL40IIBench, GuardMaskPollsEveryUnselectedDrive)
 {
-	EXPECT_EQ(benchGuardMask(0x3f, 0), 0x3e);
-	EXPECT_EQ(benchGuardMask(0x3f, 4), 0x2f);
-	EXPECT_EQ(benchGuardMask(0x3f, 5), 0x1f);
-	EXPECT_EQ(benchGuardMask(0x01, 0), 0x00);
-	EXPECT_EQ(benchGuardMask(0x3f, 8), 0x3f);
+	EXPECT_EQ(benchGuardMask(0x3f, 0, true), 0x3e);
+	EXPECT_EQ(benchGuardMask(0x3f, 4, true), 0x2f);
+	EXPECT_EQ(benchGuardMask(0x3f, 5, true), 0x1f);
+	EXPECT_EQ(benchGuardMask(0x01, 0, true), 0x00);
+	EXPECT_EQ(benchGuardMask(0x3f, 8, true), 0x3f);
+}
+
+TEST(GL40IIBench, GuardMaskPollsEveryDriveDuringInterMotorDwell)
+{
+	EXPECT_EQ(benchGuardMask(0x3f, 0, false), 0x3f);
+	EXPECT_EQ(benchGuardMask(0x3f, 1, false), 0x3f);
+	EXPECT_EQ(benchGuardMask(0x3f, 5, false), 0x3f);
 }
