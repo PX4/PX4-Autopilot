@@ -12,4 +12,7 @@ float minimumJerkDuration(float distance, float peak_rate, float minimum_duratio
 // Validate the complete relative move without relying on command clamping.
 bool benchRangeValid(float start, float delta, float position_limit, float margin);
 
+// Validate positive and negative moves about one captured start position.
+bool benchBidirectionalRangeValid(float start, float amplitude, float position_limit, float margin);
+
 } // namespace gl40ii

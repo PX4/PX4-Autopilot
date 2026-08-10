@@ -43,4 +43,14 @@ bool benchRangeValid(float start, float delta, float position_limit, float margi
 	return fabsf(start) <= usable_limit && fabsf(start + delta) <= usable_limit;
 }
 
+bool benchBidirectionalRangeValid(float start, float amplitude, float position_limit, float margin)
+{
+	if (!std::isfinite(amplitude) || amplitude < 0.f) {
+		return false;
+	}
+
+	return benchRangeValid(start, amplitude, position_limit, margin)
+	       && benchRangeValid(start, -amplitude, position_limit, margin);
+}
+
 } // namespace gl40ii

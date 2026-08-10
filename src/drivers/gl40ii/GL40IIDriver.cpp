@@ -172,11 +172,16 @@ bool GL40IIDriver::enabledFeedback() const
 	return (_enabled_mask & activeMask()) == activeMask();
 }
 
+bool GL40IIDriver::rotorEnabledFeedback(uint8_t rotor) const
+{
+	return rotor < gl40ii::NUM_MOTORS && (_enabled_mask & (1u << rotor));
+}
+
 bool GL40IIDriver::benchSafetyValid() const
 {
 	return _vehicle_status_received && !_armed
 	       && !_param_enable.get() && !_param_vola_enable.get() && !_param_vctrl_enable.get()
-	       && activeMask() == 0x01
+	       && _bench_required_mask != 0 && activeMask() == _bench_required_mask
 	       && configurationValid() && feedbackFresh() && _fault_mask == 0;
 }
 
@@ -222,11 +227,15 @@ bool GL40IIDriver::sendSpecialAll(gl40ii::SpecialCommand command)
 	return success;
 }
 
-bool GL40IIDriver::sendSpecialRotor1(gl40ii::SpecialCommand command)
+bool GL40IIDriver::sendSpecialRotor(uint8_t rotor, gl40ii::SpecialCommand command)
 {
+	if (rotor >= gl40ii::NUM_MOTORS) {
+		return false;
+	}
+
 	gl40ii::Frame frame{};
-	return gl40ii::packSpecial(gl40ii::Mode::MIT, 1, command, frame)
-	       && sendFrame(gl40ii::busIndex(0), frame);
+	return gl40ii::packSpecial(gl40ii::Mode::MIT, rotor + 1, command, frame)
+	       && sendFrame(gl40ii::busIndex(rotor), frame);
 }
 
 bool GL40IIDriver::sendMotorCommands()
@@ -246,14 +255,18 @@ bool GL40IIDriver::sendMotorCommands()
 	return success;
 }
 
-bool GL40IIDriver::sendBenchCommand(float motor_position)
+bool GL40IIDriver::sendBenchCommand(uint8_t rotor, float motor_position)
 {
+	if (rotor >= gl40ii::NUM_MOTORS) {
+		return false;
+	}
+
 	gl40ii::Frame frame{};
 	const float kp = fminf(_param_kp.get(), BENCH_KP_MAX);
 	const float kd = fminf(_param_kd.get(), BENCH_KD_MAX);
 
-	return gl40ii::packMit(1, _limits, motor_position, 0.f, kp, kd, 0.f, frame)
-	       && sendFrame(gl40ii::busIndex(0), frame);
+	return gl40ii::packMit(rotor + 1, _limits, motor_position, 0.f, kp, kd, 0.f, frame)
+	       && sendFrame(gl40ii::busIndex(rotor), frame);
 }
 
 void GL40IIDriver::updateSubscriptions(hrt_abstime now)
@@ -427,22 +440,68 @@ void GL40IIDriver::enterDisabled(hrt_abstime now)
 
 void GL40IIDriver::finishBenchTest(hrt_abstime now, bool success, const char *reason)
 {
-	// Address rotor 1 directly so a runtime GL40_MASK change cannot suppress
-	// the disable frame for the motor that this bench mode enabled.
-	sendSpecialRotor1(gl40ii::SpecialCommand::Disable);
+	// Address the selected rotor directly so a runtime GL40_MASK change cannot
+	// suppress its disable frame. Follow with a best-effort disable to every
+	// currently configured drive as an additional sequence-mode safeguard.
+	sendSpecialRotor(_bench_rotor, gl40ii::SpecialCommand::Disable);
+	sendSpecialAll(gl40ii::SpecialCommand::Disable);
 	_control_state = ControlState::Disabled;
 	_last_disable_tx = now;
 	_bench_state = BenchState::Idle;
 	_bench_state_start = 0;
 	_bench_test_start = 0;
 	_bench_target_position = NAN;
+	_bench_required_mask = 0;
+	_bench_active.store(false);
 
 	if (success) {
-		PX4_INFO("bench complete and disabled: %s", reason);
+		PX4_INFO("bench complete and all configured drives disabled: %s", reason);
 
 	} else {
-		PX4_ERR("bench aborted and disabled: %s", reason);
+		PX4_ERR("bench aborted and all configured drives disabled: %s", reason);
 	}
+}
+
+bool GL40IIDriver::startBenchRotor(hrt_abstime now)
+{
+	if (_bench_rotor >= gl40ii::NUM_MOTORS || !benchSafetyValid() || _enabled_mask != 0
+	    || _motor_state[_bench_rotor] != voliro_tilt_feedback_s::STATE_DISABLED
+	    || !PX4_ISFINITE(_motor_position[_bench_rotor])) {
+		return false;
+	}
+
+	_bench_delta = _bench_all_sequence ? static_cast<float>(_bench_leg) * _bench_amplitude : _bench_delta;
+	const bool range_valid = _bench_all_sequence
+				 ? gl40ii::benchBidirectionalRangeValid(_motor_position[_bench_rotor], _bench_amplitude,
+						 _limits.position, BENCH_RANGE_MARGIN_RAD)
+				 : gl40ii::benchRangeValid(_motor_position[_bench_rotor], _bench_delta,
+						 _limits.position, BENCH_RANGE_MARGIN_RAD);
+
+	if (!range_valid) {
+		return false;
+	}
+
+	_bench_start_position = _motor_position[_bench_rotor];
+	_bench_target_position = _bench_start_position;
+	_bench_phase_duration_s = gl40ii::minimumJerkDuration(
+					  fabsf(_bench_delta), BENCH_PEAK_RATE_RAD_S, BENCH_MIN_PHASE_DURATION_S);
+
+	if (!PX4_ISFINITE(_bench_phase_duration_s)) {
+		return false;
+	}
+
+	_bench_state = BenchState::AwaitEnable;
+	_bench_state_start = now;
+	_last_tx = now;
+
+	if (!sendSpecialRotor(_bench_rotor, gl40ii::SpecialCommand::Enable)) {
+		return false;
+	}
+
+	PX4_WARN("BENCH START rotor %u: start=%.3f delta=%+.3f rad (%+.3f rev), phase=%.2f s; keep cutoff ready",
+		 static_cast<unsigned>(_bench_rotor + 1), (double)_bench_start_position, (double)_bench_delta,
+		 (double)(_bench_delta / TWO_PI_F), (double)_bench_phase_duration_s);
+	return true;
 }
 
 void GL40IIDriver::processBenchRequest(hrt_abstime now)
@@ -463,9 +522,6 @@ void GL40IIDriver::processBenchRequest(hrt_abstime now)
 	}
 
 	_bench_request_pending.store(false);
-	const int32_t millirevolutions = _bench_request_millirevolutions.load();
-	const float turns = static_cast<float>(millirevolutions) * 0.001f;
-	const float delta = turns * TWO_PI_F;
 
 	if (_bench_state != BenchState::Idle) {
 		PX4_ERR("bench rejected: another bench test is active");
@@ -477,47 +533,62 @@ void GL40IIDriver::processBenchRequest(hrt_abstime now)
 		return;
 	}
 
+	_bench_all_sequence = _bench_request_all.load();
+	_bench_required_mask = _bench_all_sequence ? 0x3Fu : 0x01u;
+	_bench_rotor = 0;
+	_bench_leg = 1;
+	const int32_t millirevolutions = _bench_request_millirevolutions.load();
+	const float turns = static_cast<float>(millirevolutions) * 0.001f;
+	_bench_amplitude = fabsf(turns * TWO_PI_F);
+	_bench_delta = turns * TWO_PI_F;
+
 	if (!benchSafetyValid()) {
-		PX4_ERR("bench rejected: require disarmed, GL40/VOLA/VCTRL off, mask=1, fresh fault-free feedback");
+		PX4_ERR("bench rejected: require disarmed, GL40/VOLA/VCTRL off, expected mask, fresh fault-free feedback");
 		return;
 	}
 
-	if (_motor_state[0] != voliro_tilt_feedback_s::STATE_DISABLED) {
-		PX4_ERR("bench rejected: rotor 1 does not report disabled");
+	if (_enabled_mask != 0) {
+		PX4_ERR("bench rejected: one or more drives already report enabled (mask=0x%02x)", _enabled_mask);
 		return;
 	}
 
-	if (!PX4_ISFINITE(_motor_position[0])
-	    || !gl40ii::benchRangeValid(_motor_position[0], delta, _limits.position, BENCH_RANGE_MARGIN_RAD)) {
-		PX4_ERR("bench rejected: start %.3f + delta %.3f exceeds Pmax %.3f with %.2f rad margin",
-			(double)_motor_position[0], (double)delta, (double)_limits.position, (double)BENCH_RANGE_MARGIN_RAD);
-		return;
+	for (uint8_t rotor = 0; rotor < gl40ii::NUM_MOTORS; ++rotor) {
+		if (!(_bench_required_mask & (1u << rotor))) {
+			continue;
+		}
+
+		if (_motor_state[rotor] != voliro_tilt_feedback_s::STATE_DISABLED
+		    || !PX4_ISFINITE(_motor_position[rotor])) {
+			PX4_ERR("bench rejected: rotor %u is not disabled with finite feedback",
+				static_cast<unsigned>(rotor + 1));
+			return;
+		}
+
+		const bool range_valid = _bench_all_sequence
+					 ? gl40ii::benchBidirectionalRangeValid(_motor_position[rotor], _bench_amplitude,
+							 _limits.position, BENCH_RANGE_MARGIN_RAD)
+					 : gl40ii::benchRangeValid(_motor_position[rotor], _bench_delta,
+							 _limits.position, BENCH_RANGE_MARGIN_RAD);
+
+		if (!range_valid) {
+			PX4_ERR("bench rejected: rotor %u start %.3f cannot fit requested path within Pmax %.3f and %.2f margin",
+				static_cast<unsigned>(rotor + 1), (double)_motor_position[rotor],
+				(double)_limits.position, (double)BENCH_RANGE_MARGIN_RAD);
+			return;
+		}
 	}
 
-	const float duration = gl40ii::minimumJerkDuration(delta, BENCH_PEAK_RATE_RAD_S,
-			       BENCH_MIN_PHASE_DURATION_S);
-
-	if (!PX4_ISFINITE(duration)) {
-		PX4_ERR("bench rejected: invalid trajectory duration");
-		return;
-	}
-
-	_bench_start_position = _motor_position[0];
-	_bench_delta = delta;
-	_bench_target_position = _bench_start_position;
-	_bench_phase_duration_s = duration;
-	_bench_state = BenchState::AwaitEnable;
-	_bench_state_start = now;
 	_bench_test_start = now;
-	_last_tx = now;
+	_bench_active.store(true);
 
-	if (!sendSpecialRotor1(gl40ii::SpecialCommand::Enable)) {
-		finishBenchTest(now, false, "enable transmission failed");
+	if (!startBenchRotor(now)) {
+		finishBenchTest(now, false, "initial rotor enable or preflight failed");
 		return;
 	}
 
-	PX4_WARN("BENCH START rotor 1: start=%.3f delta=%+.3f rad (%+.3f rev), phase=%.2f s; keep power cutoff ready",
-		 (double)_bench_start_position, (double)_bench_delta, (double)turns, (double)_bench_phase_duration_s);
+	if (_bench_all_sequence) {
+		PX4_WARN("SIX-MOTOR BENCH sequence accepted: each rotor +1 rev/back then -1 rev/back, one at a time");
+	}
 }
 
 void GL40IIDriver::runBenchTest(hrt_abstime now)
@@ -531,13 +602,71 @@ void GL40IIDriver::runBenchTest(hrt_abstime now)
 		return;
 	}
 
-	if (now - _bench_test_start > BENCH_TOTAL_TIMEOUT_US) {
+	const hrt_abstime timeout = _bench_all_sequence ? BENCH_SEQUENCE_TIMEOUT_US : BENCH_SINGLE_TIMEOUT_US;
+
+	if (now - _bench_test_start > timeout) {
 		finishBenchTest(now, false, "total timeout");
 		return;
 	}
 
+	const uint8_t selected_bit = 1u << _bench_rotor;
+
+	if (_enabled_mask & ~selected_bit) {
+		finishBenchTest(now, false, "an unselected drive reported enabled");
+		return;
+	}
+
+	if (_bench_state == BenchState::AwaitDisable) {
+		if (!rotorEnabledFeedback(_bench_rotor)) {
+			PX4_INFO("bench rotor %u complete and disabled", static_cast<unsigned>(_bench_rotor + 1));
+
+			if (!_bench_all_sequence || _bench_rotor + 1 >= gl40ii::NUM_MOTORS) {
+				finishBenchTest(now, true, _bench_all_sequence ? "six-motor bidirectional sequence finished"
+						: "out-and-back trajectory finished");
+				return;
+			}
+
+			++_bench_rotor;
+			_bench_leg = 1;
+			_bench_delta = _bench_amplitude;
+			_bench_target_position = NAN;
+			_bench_state = BenchState::InterMotorDwell;
+			_bench_state_start = now;
+			return;
+		}
+
+		if (now - _bench_state_start > BENCH_DISABLE_TIMEOUT_US) {
+			finishBenchTest(now, false, "disable feedback timeout");
+			return;
+		}
+
+		if (now - _last_tx >= DISABLE_INTERVAL_US) {
+			if (!sendSpecialRotor(_bench_rotor, gl40ii::SpecialCommand::Disable)) {
+				finishBenchTest(now, false, "disable retransmission failed");
+				return;
+			}
+
+			_last_tx = now;
+		}
+
+		return;
+	}
+
+	if (_bench_state == BenchState::InterMotorDwell) {
+		if (_enabled_mask != 0) {
+			finishBenchTest(now, false, "drive enabled during inter-motor dwell");
+			return;
+		}
+
+		if (now - _bench_state_start >= BENCH_INTER_MOTOR_DWELL_US && !startBenchRotor(now)) {
+			finishBenchTest(now, false, "next rotor enable or preflight failed");
+		}
+
+		return;
+	}
+
 	if (_bench_state == BenchState::AwaitEnable) {
-		if (enabledFeedback()) {
+		if (rotorEnabledFeedback(_bench_rotor)) {
 			_bench_state = BenchState::Settle;
 			_bench_state_start = now;
 			_bench_target_position = _bench_start_position;
@@ -548,7 +677,7 @@ void GL40IIDriver::runBenchTest(hrt_abstime now)
 			return;
 
 		} else if (now - _last_tx >= ENABLE_INTERVAL_US) {
-			if (!sendSpecialRotor1(gl40ii::SpecialCommand::Enable)) {
+			if (!sendSpecialRotor(_bench_rotor, gl40ii::SpecialCommand::Enable)) {
 				finishBenchTest(now, false, "enable retransmission failed");
 				return;
 			}
@@ -561,13 +690,13 @@ void GL40IIDriver::runBenchTest(hrt_abstime now)
 		}
 	}
 
-	if (!enabledFeedback()) {
+	if (!rotorEnabledFeedback(_bench_rotor)) {
 		finishBenchTest(now, false, "drive left enabled state");
 		return;
 	}
 
-	if (!PX4_ISFINITE(_motor_position[0])
-	    || fabsf(_motor_position[0] - _bench_target_position) > BENCH_MAX_TRACKING_ERROR_RAD) {
+	if (!PX4_ISFINITE(_motor_position[_bench_rotor])
+	    || fabsf(_motor_position[_bench_rotor] - _bench_target_position) > BENCH_MAX_TRACKING_ERROR_RAD) {
 		finishBenchTest(now, false, "tracking error exceeded 0.5 motor rad");
 		return;
 	}
@@ -625,21 +754,40 @@ void GL40IIDriver::runBenchTest(hrt_abstime now)
 		_bench_target_position = _bench_start_position;
 
 		if (state_elapsed >= BENCH_DWELL_US) {
-			finishBenchTest(now, true, "out-and-back trajectory finished");
-			return;
+			if (_bench_all_sequence && _bench_leg > 0) {
+				_bench_leg = -1;
+				_bench_delta = -_bench_amplitude;
+				_bench_state = BenchState::Outbound;
+				_bench_state_start = now;
+				PX4_WARN("bench rotor %u starting negative one-revolution leg",
+					 static_cast<unsigned>(_bench_rotor + 1));
+
+			} else {
+				if (!sendSpecialRotor(_bench_rotor, gl40ii::SpecialCommand::Disable)) {
+					finishBenchTest(now, false, "final disable transmission failed");
+					return;
+				}
+
+				_bench_state = BenchState::AwaitDisable;
+				_bench_state_start = now;
+				_last_tx = now;
+				return;
+			}
 		}
 
 		break;
 
 	case BenchState::Idle:
 	case BenchState::AwaitEnable:
+	case BenchState::AwaitDisable:
+	case BenchState::InterMotorDwell:
 		return;
 	}
 
 	const hrt_abstime command_interval_us = 1'000'000u / _param_command_rate.get();
 
 	if (now - _last_tx >= command_interval_us) {
-		if (!sendBenchCommand(_bench_target_position)) {
+		if (!sendBenchCommand(_bench_rotor, _bench_target_position)) {
 			finishBenchTest(now, false, "position command transmission failed");
 			return;
 		}
@@ -759,6 +907,10 @@ const char *GL40IIDriver::benchStateName() const
 	case BenchState::Return: return "return";
 
 	case BenchState::ReturnDwell: return "return-dwell";
+
+	case BenchState::AwaitDisable: return "await-disable";
+
+	case BenchState::InterMotorDwell: return "inter-motor-dwell";
 	}
 
 	return "unknown";
@@ -777,8 +929,10 @@ int GL40IIDriver::print_status()
 		 static_cast<double>(_limits.torque), static_cast<unsigned>(_param_reverse_mask.get() & 0x3F));
 	PX4_INFO("tx errors=%" PRIu32 ", rx errors=%" PRIu32 ", invalid rx=%" PRIu32,
 		 _tx_error_count, _rx_error_count, _invalid_rx_count);
-	PX4_INFO("bench=%s start=%.3f target=%.3f delta=%+.3f motor rad",
-		 benchStateName(), (double)_bench_start_position, (double)_bench_target_position, (double)_bench_delta);
+	PX4_INFO("bench=%s mode=%s rotor=%u leg=%s start=%.3f target=%.3f delta=%+.3f motor rad",
+		 benchStateName(), _bench_all_sequence ? "all-bidirectional" : "single",
+		 static_cast<unsigned>(_bench_rotor + 1), _bench_leg > 0 ? "positive" : "negative",
+		 (double)_bench_start_position, (double)_bench_target_position, (double)_bench_delta);
 
 	for (uint8_t rotor = 0; rotor < gl40ii::NUM_MOTORS; ++rotor) {
 		if (activeMask() & (1u << rotor)) {
@@ -837,8 +991,22 @@ int GL40IIDriver::custom_command(int argc, char *argv[])
 			return PX4_OK;
 		}
 
+		if (argc == 2 && strcmp(argv[1], "all") == 0) {
+			if (instance->_bench_request_pending.load() || instance->_bench_active.load()) {
+				PX4_ERR("a bench request or test is already active");
+				return PX4_ERROR;
+			}
+
+			instance->_bench_request_all.store(true);
+			instance->_bench_request_millirevolutions.store(1000);
+			instance->_bench_request_pending.store(true);
+			PX4_WARN("queued six-motor sequence: each rotor +1 rev/back then -1 rev/back; about 5 minutes");
+			PX4_WARN("only one drive moves at a time; keep the physical power cutoff ready");
+			return PX4_OK;
+		}
+
 		if (argc != 2) {
-			return print_usage("test requires signed motor revolutions or 'stop'");
+			return print_usage("test requires signed rotor-1 revolutions, 'all', or 'stop'");
 		}
 
 		char *end = nullptr;
@@ -849,11 +1017,12 @@ int GL40IIDriver::custom_command(int argc, char *argv[])
 			return print_usage("test turns must be in [-2.0,-0.01] or [0.01,2.0]");
 		}
 
-		if (instance->_bench_request_pending.load()) {
-			PX4_ERR("a bench request is already pending");
+		if (instance->_bench_request_pending.load() || instance->_bench_active.load()) {
+			PX4_ERR("a bench request or test is already active");
 			return PX4_ERROR;
 		}
 
+		instance->_bench_request_all.store(false);
 		instance->_bench_request_millirevolutions.store(static_cast<int32_t>(lroundf(turns * 1000.f)));
 		instance->_bench_request_pending.store(true);
 		PX4_WARN("queued relative rotor-1 bare-motor sweep: %+.3f rev out, then return; keep power cutoff ready",
@@ -879,11 +1048,14 @@ It always polls configured drives with disable frames while GL40_EN is false or
 the vehicle is disarmed. Motion additionally requires fresh typed setpoints,
 fresh feedback, enabled-state feedback, and no drive faults.
 
-The `test` command is a deliberately restricted rotor-1 bare-motor bench mode.
-It requires PX4 disarmed, GL40_EN/VOLA_EN/VCTRL_EN zero, GL40_MASK=1, fresh
-fault-free feedback, and a drive that reports disabled. It follows a smooth
-relative raw-motor trajectory, returns to the captured start, and disables.
-The signed argument is motor revolutions in the encoder-positive direction.
+The signed `test` command is a deliberately restricted rotor-1 bare-motor
+bench mode requiring GL40_MASK=1. `gl40ii test all` instead requires
+GL40_MASK=63 and preflights all six drives before moving rotor 1 through rotor
+6 sequentially. Each rotor moves +1 raw motor revolution and returns, then -1
+revolution and returns, before it is disabled and the next rotor is enabled.
+Only one drive is enabled at a time. Both modes require PX4 disarmed,
+GL40_EN/VOLA_EN/VCTRL_EN zero, fresh fault-free feedback, disabled-state
+feedback, and complete trajectories inside the configured raw position range.
 Use `gl40ii test stop` to request an immediate disable, but retain a physical
 motor-power cutoff.
 
@@ -892,8 +1064,8 @@ Slave IDs are 1..6 and persistent master response IDs are 0x011..0x016.
 )DESCR_STR");
 	PRINT_MODULE_USAGE_NAME("gl40ii", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Run a bounded rotor-1 relative bare-motor out-and-back sweep");
-	PRINT_MODULE_USAGE_ARG("<turns|stop>", "Signed motor revolutions (0.01 to 2.0), or stop an active test", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Run a bounded bare-motor bench trajectory");
+	PRINT_MODULE_USAGE_ARG("<turns|all|stop>", "Rotor-1 signed revolutions, six-motor +/-1-rev sequence, or stop", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }

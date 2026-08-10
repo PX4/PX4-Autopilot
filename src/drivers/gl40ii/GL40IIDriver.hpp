@@ -47,6 +47,8 @@ private:
 		EndpointDwell,
 		Return,
 		ReturnDwell,
+		AwaitDisable,
+		InterMotorDwell,
 	};
 
 	static constexpr hrt_abstime RUN_INTERVAL_US = 1'000;
@@ -54,9 +56,12 @@ private:
 	static constexpr hrt_abstime ENABLE_INTERVAL_US = 20'000;
 	static constexpr hrt_abstime FEEDBACK_PUBLISH_INTERVAL_US = 20'000;
 	static constexpr hrt_abstime BENCH_ENABLE_TIMEOUT_US = 1'000'000;
+	static constexpr hrt_abstime BENCH_DISABLE_TIMEOUT_US = 1'000'000;
 	static constexpr hrt_abstime BENCH_SETTLE_US = 500'000;
 	static constexpr hrt_abstime BENCH_DWELL_US = 500'000;
-	static constexpr hrt_abstime BENCH_TOTAL_TIMEOUT_US = 120'000'000;
+	static constexpr hrt_abstime BENCH_INTER_MOTOR_DWELL_US = 500'000;
+	static constexpr hrt_abstime BENCH_SINGLE_TIMEOUT_US = 120'000'000;
+	static constexpr hrt_abstime BENCH_SEQUENCE_TIMEOUT_US = 420'000'000;
 	static constexpr float BENCH_MIN_TURNS = 0.01f;
 	static constexpr float BENCH_MAX_TURNS = 2.f;
 	static constexpr float BENCH_RANGE_MARGIN_RAD = 0.5f;
@@ -75,17 +80,19 @@ private:
 	void enterDisabled(hrt_abstime now);
 	void processBenchRequest(hrt_abstime now);
 	void runBenchTest(hrt_abstime now);
+	bool startBenchRotor(hrt_abstime now);
 	void finishBenchTest(hrt_abstime now, bool success, const char *reason);
 
 	bool sendFrame(uint8_t bus, const gl40ii::Frame &frame);
-	bool sendSpecialRotor1(gl40ii::SpecialCommand command);
+	bool sendSpecialRotor(uint8_t rotor, gl40ii::SpecialCommand command);
 	bool sendSpecialAll(gl40ii::SpecialCommand command);
 	bool sendMotorCommands();
-	bool sendBenchCommand(float motor_position);
+	bool sendBenchCommand(uint8_t rotor, float motor_position);
 	bool configurationValid() const;
 	bool commandValid() const;
 	bool feedbackFresh() const;
 	bool enabledFeedback() const;
+	bool rotorEnabledFeedback(uint8_t rotor) const;
 	bool benchSafetyValid() const;
 	uint8_t activeMask() const;
 	float motorSign(uint8_t rotor) const;
@@ -128,13 +135,20 @@ private:
 	bool _feedback_dirty{false};
 	ControlState _control_state{ControlState::Disabled};
 	BenchState _bench_state{BenchState::Idle};
+	bool _bench_all_sequence{false};
+	uint8_t _bench_required_mask{0};
+	uint8_t _bench_rotor{0};
+	int8_t _bench_leg{1};
 	float _bench_start_position{NAN};
+	float _bench_amplitude{NAN};
 	float _bench_delta{NAN};
 	float _bench_target_position{NAN};
 	float _bench_phase_duration_s{NAN};
 	px4::atomic<int32_t> _bench_request_millirevolutions{0};
+	px4::atomic<bool> _bench_request_all{false};
 	px4::atomic<bool> _bench_request_pending{false};
 	px4::atomic<bool> _bench_abort_requested{false};
+	px4::atomic<bool> _bench_active{false};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 
 	DEFINE_PARAMETERS(

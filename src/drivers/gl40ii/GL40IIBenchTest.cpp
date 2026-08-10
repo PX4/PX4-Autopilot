@@ -32,3 +32,12 @@ TEST(GL40IIBench, RelativeMoveMustFitWithMargin)
 	EXPECT_FALSE(benchRangeValid(12.1f, -1.f, 12.5f, 0.5f));
 	EXPECT_FALSE(benchRangeValid(0.f, 1.f, 0.f, 0.5f));
 }
+
+TEST(GL40IIBench, BidirectionalMoveChecksBothEndpoints)
+{
+	EXPECT_TRUE(benchBidirectionalRangeValid(0.f, 6.283185f, 12.5f, 0.5f));
+	EXPECT_TRUE(benchBidirectionalRangeValid(5.7f, 6.283185f, 12.5f, 0.5f));
+	EXPECT_FALSE(benchBidirectionalRangeValid(5.8f, 6.283185f, 12.5f, 0.5f));
+	EXPECT_FALSE(benchBidirectionalRangeValid(-5.8f, 6.283185f, 12.5f, 0.5f));
+	EXPECT_FALSE(benchBidirectionalRangeValid(0.f, -1.f, 12.5f, 0.5f));
+}
