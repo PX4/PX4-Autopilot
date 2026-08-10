@@ -1051,6 +1051,7 @@ bootloader(unsigned timeout)
 		// one for this opcode, so the uploader's unconditional probe never
 		// disturbs the command stream before BOOT.
 		case PROTO_VERIFY_SIG:
+#	ifndef BOOTLOADER_SKIP_VERIFY_SIG
 			if (!wait_for_eoc(2)) {
 				goto cmd_bad;
 			}
@@ -1095,6 +1096,7 @@ bootloader(unsigned timeout)
 				crypto_deinit();
 			}
 
+#	endif //BOOTLOADER_SKIP_VERIFY_SIG
 			break;
 #endif
 
