@@ -53,4 +53,9 @@ bool benchBidirectionalRangeValid(float start, float amplitude, float position_l
 	       && benchRangeValid(start, -amplitude, position_limit, margin);
 }
 
+uint8_t benchGuardMask(uint8_t active_mask, uint8_t selected_rotor)
+{
+	return selected_rotor < 8 ? active_mask & ~(1u << selected_rotor) : active_mask;
+}
+
 } // namespace gl40ii

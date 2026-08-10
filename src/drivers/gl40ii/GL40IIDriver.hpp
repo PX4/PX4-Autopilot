@@ -86,6 +86,7 @@ private:
 	bool sendFrame(uint8_t bus, const gl40ii::Frame &frame);
 	bool sendSpecialRotor(uint8_t rotor, gl40ii::SpecialCommand command);
 	bool sendSpecialAll(gl40ii::SpecialCommand command);
+	bool sendBenchGuardDisables();
 	bool sendMotorCommands();
 	bool sendBenchCommand(uint8_t rotor, float motor_position);
 	bool configurationValid() const;
@@ -120,6 +121,7 @@ private:
 	hrt_abstime _last_setpoint_rx{0};
 	hrt_abstime _last_tx{0};
 	hrt_abstime _last_disable_tx{0};
+	hrt_abstime _last_bench_guard_tx{0};
 	hrt_abstime _last_feedback_publish{0};
 	hrt_abstime _bench_state_start{0};
 	hrt_abstime _bench_test_start{0};

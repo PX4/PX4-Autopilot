@@ -238,6 +238,26 @@ bool GL40IIDriver::sendSpecialRotor(uint8_t rotor, gl40ii::SpecialCommand comman
 	       && sendFrame(gl40ii::busIndex(rotor), frame);
 }
 
+bool GL40IIDriver::sendBenchGuardDisables()
+{
+	bool success = true;
+
+	// GL40II feedback is command-response, not periodic. Keep every unselected
+	// drive fresh and explicitly disabled while the selected rotor executes its
+	// trajectory. Never send this guard frame to the selected rotor because a
+	// disable would interrupt its bench motion.
+	const uint8_t guard_mask = gl40ii::benchGuardMask(activeMask(), _bench_rotor);
+
+	for (uint8_t rotor = 0; rotor < gl40ii::NUM_MOTORS; ++rotor) {
+		if ((guard_mask & (1u << rotor))
+		    && !sendSpecialRotor(rotor, gl40ii::SpecialCommand::Disable)) {
+			success = false;
+		}
+	}
+
+	return success;
+}
+
 bool GL40IIDriver::sendMotorCommands()
 {
 	bool success = true;
@@ -450,6 +470,7 @@ void GL40IIDriver::finishBenchTest(hrt_abstime now, bool success, const char *re
 	_bench_state = BenchState::Idle;
 	_bench_state_start = 0;
 	_bench_test_start = 0;
+	_last_bench_guard_tx = 0;
 	_bench_target_position = NAN;
 	_bench_required_mask = 0;
 	_bench_active.store(false);
@@ -579,6 +600,7 @@ void GL40IIDriver::processBenchRequest(hrt_abstime now)
 	}
 
 	_bench_test_start = now;
+	_last_bench_guard_tx = 0;
 	_bench_active.store(true);
 
 	if (!startBenchRotor(now)) {
@@ -607,6 +629,15 @@ void GL40IIDriver::runBenchTest(hrt_abstime now)
 	if (now - _bench_test_start > timeout) {
 		finishBenchTest(now, false, "total timeout");
 		return;
+	}
+
+	if (now - _last_bench_guard_tx >= DISABLE_INTERVAL_US) {
+		if (!sendBenchGuardDisables()) {
+			finishBenchTest(now, false, "unselected-drive guard transmission failed");
+			return;
+		}
+
+		_last_bench_guard_tx = now;
 	}
 
 	const uint8_t selected_bit = 1u << _bench_rotor;

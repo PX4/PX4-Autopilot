@@ -41,3 +41,12 @@ TEST(GL40IIBench, BidirectionalMoveChecksBothEndpoints)
 	EXPECT_FALSE(benchBidirectionalRangeValid(-5.8f, 6.283185f, 12.5f, 0.5f));
 	EXPECT_FALSE(benchBidirectionalRangeValid(0.f, -1.f, 12.5f, 0.5f));
 }
+
+TEST(GL40IIBench, GuardMaskPollsEveryUnselectedDrive)
+{
+	EXPECT_EQ(benchGuardMask(0x3f, 0), 0x3e);
+	EXPECT_EQ(benchGuardMask(0x3f, 4), 0x2f);
+	EXPECT_EQ(benchGuardMask(0x3f, 5), 0x1f);
+	EXPECT_EQ(benchGuardMask(0x01, 0), 0x00);
+	EXPECT_EQ(benchGuardMask(0x3f, 8), 0x3f);
+}
