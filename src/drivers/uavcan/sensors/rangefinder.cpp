@@ -36,11 +36,59 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <matrix/math.hpp>
 #include <parameters/param.h>
 #include "rangefinder.hpp"
 #include <math.h>
 
 const char *const UavcanRangefinderBridge::NAME = "rangefinder";
+
+namespace
+{
+static constexpr float COARSE_ORIENTATION_LSB_RAD = M_PI_F / 12.f;
+static constexpr float ORIENTATION_TOLERANCE = 1e-5f;
+
+matrix::Eulerf uavcan_orientation_to_euler(const uavcan::CoarseOrientation &orientation)
+{
+	return {
+		orientation.fixed_axis_roll_pitch_yaw[0] *COARSE_ORIENTATION_LSB_RAD,
+		orientation.fixed_axis_roll_pitch_yaw[1] *COARSE_ORIENTATION_LSB_RAD,
+		orientation.fixed_axis_roll_pitch_yaw[2] *COARSE_ORIENTATION_LSB_RAD
+	};
+}
+
+uint8_t uavcan_orientation_to_distance_sensor_orientation(const uavcan::CoarseOrientation &orientation)
+{
+	if (!orientation.orientation_defined) {
+		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	}
+
+	// PX4 distance_sensor supports exact up/down orientations, but horizontal directions are limited
+	// to 45-degree increments. Classify the beam direction, not the full sensor attitude,
+	// because roll is about the beam and does not change its direction.
+	const matrix::Eulerf euler = uavcan_orientation_to_euler(orientation);
+	const matrix::Vector3f dir = matrix::Dcmf{euler} * matrix::Vector3f{1.f, 0.f, 0.f};
+
+	if (dir(2) < -1.f + ORIENTATION_TOLERANCE) {
+		return distance_sensor_s::ROTATION_UPWARD_FACING;
+	}
+
+	if (dir(2) > 1.f - ORIENTATION_TOLERANCE) {
+		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	}
+
+	if (fabsf(dir(2)) < ORIENTATION_TOLERANCE) {
+		const float sector = matrix::wrap(atan2f(dir(1), dir(0)), 0.f, 2.f * M_PI_F) / (M_PI_F / 4.f);
+		const float nearest_sector = roundf(sector);
+
+		if (fabsf(sector - nearest_sector) < ORIENTATION_TOLERANCE) {
+			return static_cast<uint8_t>(static_cast<int>(lroundf(sector)) % 8);
+		}
+	}
+
+	return distance_sensor_s::ROTATION_CUSTOM;
+}
+} // namespace
 
 UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor), node_info_publisher),
@@ -112,6 +160,9 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		_channel_initialized[channel_idx] = true;
 	}
 
+	const uint8_t orientation = uavcan_orientation_to_distance_sensor_orientation(msg.beam_orientation_in_body_frame);
+	rangefinder->set_orientation(orientation);
+
 	// TOO_CLOSE, TOO_FAR and UNDEFINED readings do not carry a usable range
 	// value: publish them as invalid (0) rather than unknown (-1), which
 	// consumers like the EKF would otherwise accept and fuse.
@@ -122,7 +173,15 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	}
 
 	const hrt_abstime timestamp_sample = (msg.timestamp.usec > 0) ? msg.timestamp.usec : hrt_absolute_time();
-	rangefinder->update(timestamp_sample, msg.range, quality);
+
+	if (orientation == distance_sensor_s::ROTATION_CUSTOM) {
+		float q[4];
+		matrix::Quatf{uavcan_orientation_to_euler(msg.beam_orientation_in_body_frame)} .copyTo(q);
+		rangefinder->update(timestamp_sample, msg.range, quality, q);
+
+	} else {
+		rangefinder->update(timestamp_sample, msg.range, quality);
+	}
 
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
