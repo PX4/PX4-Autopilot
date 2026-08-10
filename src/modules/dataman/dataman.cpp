@@ -68,7 +68,7 @@ __END_DECLS
 #ifdef CONFIG_FS_LITTLEFS
 static constexpr int TASK_STACK_SIZE = 2000;  /* littlefs needs more stack */
 #else
-static constexpr int TASK_STACK_SIZE = 1800;  /* 64-bit off_t (FS_LARGEFILE) widened the FAT/SD path */
+static constexpr int TASK_STACK_SIZE = 1800; 
 #endif
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
