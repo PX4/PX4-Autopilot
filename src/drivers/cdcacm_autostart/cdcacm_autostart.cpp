@@ -196,8 +196,6 @@ void CdcAcmAutostart::state_disconnected()
 		if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
 			_state = UsbAutoStartState::connecting;
 			PX4_DEBUG("state connecting");
-			// Give CDC/ACM time to create /dev/ttyACM0 before mavlink open retries.
-			_reschedule_time = 1_s;
 		}
 
 	} else if (_vbus_present && !_vbus_present_prev) {
@@ -219,10 +217,20 @@ void CdcAcmAutostart::state_connecting()
 		goto fail;
 	}
 
-	// SYS_USB_AUTO=2: always start MAVLink. Do not open/hold the port here —
-	// mavlink opens it itself (with open retries). Holding O_RDONLY previously
-	// was unnecessary and left a second open on the device for the life of the link.
+	// SYS_USB_AUTO=2: always start MAVLink. Probe the port first — CDC/ACM registers
+	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
+	// enumerated. mavlink exits if its own open retries run out, so only spawn it
+	// once the port is known to be openable, then release the probe.
 	if (_sys_usb_auto.get() == 2) {
+		if (_ttyacm_fd < 0) {
+			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+		}
+
+		if (_ttyacm_fd < 0) {
+			PX4_DEBUG("%s not ready", USB_DEVICE_PATH);
+			return;
+		}
+
 		close_ttyacm();
 		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
 
