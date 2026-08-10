@@ -133,7 +133,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 		uint8_t nnz = 0;
 
 		for (uint8_t k = 0; k < State::size; k++) {
-			if (H(k) != 0.f) { nz[nnz++] = k; }
+			if (!(fabsf(H(k)) <= 0.f)) { nz[nnz++] = k; }
 		}
 
 		// PH == P * H (bit-identical to the dense product; the skipped columns are exactly 0)
@@ -190,7 +190,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			for (unsigned i = 0; i < State::size; i++) {
 				const float Ki = K(i);
 
-				if (Ki == 0.f) { continue; }
+				if (fabsf(Ki) <= 0.f) { continue; }
 
 				for (unsigned j = 0; j < State::size; j++) {
 					P(i, j) -= Ki * PH(j);
