@@ -70,7 +70,7 @@ static constexpr FailureUnit failure_units[] = {
 	{ "rc_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL},
 	{ "mavlink_signal", vehicle_command_s::FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL},
 	{ "traffic", vehicle_command_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE},
-	{ "can", vehicle_command_s::FAILURE_UNIT_SYSTEM_BUS},
+	{ "can", vehicle_command_s::FAILURE_UNIT_SYSTEM_BUS_CAN},
 };
 
 struct FailureType {

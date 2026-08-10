@@ -243,7 +243,7 @@ private:
 	void publish_can_interface_statuses();
 	void publish_node_statuses();
 
-	void apply_bus_failure_injection();
+	void apply_can_failure_injection();
 
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
@@ -305,7 +305,7 @@ private:
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
 	failure_injection::Config	_failure_config;			///< active failure-injection config
-	bool				_bus_blackout[UAVCAN_NUM_IFACES] {};	///< per-iface blackout state (BUS failure)
+	bool				_can_blackout[UAVCAN_NUM_IFACES] {};	///< per-iface blackout state (BUS_CAN failure)
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 
