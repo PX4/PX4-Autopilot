@@ -184,8 +184,11 @@ protected:
 		if (rv) {
 			if (!existing) {
 				UpdatingNode *new_node = new UpdatingNode();
-				memcpy(new_node->unique_id, uid, 16);
-				_updating_nodes.add(new_node);
+
+				if (new_node) {
+					memcpy(new_node->unique_id, uid, 16);
+					_updating_nodes.add(new_node);
+				}
 			}
 
 		} else {

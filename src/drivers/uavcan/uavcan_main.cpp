@@ -755,7 +755,7 @@ UavcanNode::Run()
 	if (_actuator_armed_sub.updated() && _servers != nullptr) {
 		actuator_armed_s actuator_armed{};
 		_actuator_armed_sub.copy(&actuator_armed);
-		_servers->setArmed(actuator_armed.armed);
+		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
 	}
 
 #ifdef CONFIG_MODULES_NFS_MOUNT
