@@ -94,7 +94,6 @@ private:
 	void state_disconnecting();
 
 	void close_ttyacm();
-	bool process_running(int pid) const;
 
 	bool scan_buffer_for_mavlink_reboot();
 	bool scan_buffer_for_mavlink_heartbeat();
@@ -117,7 +116,6 @@ private:
 	bool _vbus_present{false};
 	bool _vbus_present_prev{false};
 	int _ttyacm_fd{-1};
-	int _mavlink_pid{-1};
 
 	char _buffer[80] {};
 	int _bytes_read{0};
