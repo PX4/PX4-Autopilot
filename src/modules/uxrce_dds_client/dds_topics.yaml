@@ -34,7 +34,7 @@ publications:
 
 - topic: /fmu/out/sensor_combined
   type: px4_msgs::msg::SensorCombined
-  #       - topic: /fmu/out/timesync_status
+  #- topic: /fmu/out/timesync_status
   # type: px4_msgs::msg::TimesyncStatus
   # rate_limit: 10
 
@@ -133,6 +133,18 @@ publications:
   type: px4_msgs::msg::FormicEvStateMachine
   rate_limit: 10
 
+- topic: /fmu/out/sensor_baro
+  type: px4_msgs::msg::SensorBaro
+
+- topic: /fmu/out/vehicle_air_data
+  type: px4_msgs::msg::VehicleAirData
+
+- topic: /fmu/out/sensor_mag
+  type: px4_msgs::msg::SensorMag
+
+- topic: /fmu/out/distance_sensor
+  type: px4_msgs::msg::DistanceSensor
+
 # Create uORB::Publication
 subscriptions:
 # - topic: /fmu/in/register_ext_component_request
@@ -140,6 +152,13 @@ subscriptions:
 
 # - topic: /fmu/in/unregister_ext_component
 #   type: px4_msgs::msg::UnregisterExtComponent
+
+# - topic: /fmu/in/mode_completed
+#   type: px4_msgs::msg::ModeCompleted
+
+
+# - topic: /fmu/in/goto_setpoint
+# type: px4_msgs::msg::GotoSetpoint
 
 - topic: /fmu/in/config_overrides_request
   type: px4_msgs::msg::ConfigOverrides
@@ -150,14 +169,8 @@ subscriptions:
 - topic: /fmu/in/message_format_request
   type: px4_msgs::msg::MessageFormatRequest
 
-# - topic: /fmu/in/mode_completed
-#   type: px4_msgs::msg::ModeCompleted
-
 - topic: /fmu/in/config_control_setpoints
   type: px4_msgs::msg::VehicleControlMode
-
-- topic: /fmu/in/distance_sensor
-  type: px4_msgs::msg::DistanceSensor
 
 - topic: /fmu/in/manual_control_input
   type: px4_msgs::msg::ManualControlSetpoint
@@ -173,9 +186,6 @@ subscriptions:
 
 - topic: /fmu/in/sensor_optical_flow
   type: px4_msgs::msg::SensorOpticalFlow
-
-- topic: /fmu/in/goto_setpoint
-  type: px4_msgs::msg::GotoSetpoint
 
 - topic: /fmu/in/telemetry_status
   type: px4_msgs::msg::TelemetryStatus
@@ -225,3 +235,5 @@ subscriptions:
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
+- topic: /fmu/in/distance_sensor
+  type: px4_msgs::msg::DistanceSensor

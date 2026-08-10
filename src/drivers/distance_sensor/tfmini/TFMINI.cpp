@@ -99,6 +99,11 @@ TFMINI::init()
 		_px4_rangefinder.set_max_distance(100.0f);
 		_px4_rangefinder.set_fov(math::radians(20));
 		break;
+	case 4: // TF-Luna (8m, 100 Hz) - same protocol as TFMINI, shorter range
+		_px4_rangefinder.set_min_distance(0.3f);
+		_px4_rangefinder.set_max_distance(8.0f);
+		_px4_rangefinder.set_fov(math::radians(2.3f));
+		break;
 
 	default:
 		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
