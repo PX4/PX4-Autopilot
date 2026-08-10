@@ -17,6 +17,7 @@
 #include <dirent.h>
 
 #include <uavcan/protocol/firmware_update_trigger.hpp>
+#include <containers/List.hpp>
 
 // TODO Get rid of the macro
 #if !defined(DIRENT_ISFILE) && defined(DT_REG)
@@ -51,6 +52,17 @@ class FirmwareVersionChecker : public uavcan::IFirmwareVersionChecker
 	 * This type is used internally for the full path to file
 	 */
 	typedef uavcan::MakeString<MaxPathLength>::Type PathString;
+
+	struct UpdatingNode : public ListNode<UpdatingNode *> {
+		uint8_t unique_id[16];
+	};
+
+	// Dynamic allocation is acceptable here: firmware updates only occur before arming
+	// (shouldRequestFirmwareUpdate returns false when armed), so nodes are added and
+	// removed only during the pre-arm phase. The list is cleared in the destructor.
+	List<UpdatingNode *> _updating_nodes;
+
+	bool _armed = false;
 
 	BasePathString base_path_;
 	BasePathString alt_base_path_;
@@ -101,6 +113,17 @@ protected:
 	{
 		using namespace std;
 
+		if (_armed) {
+			return false;
+		}
+
+		// per spec: all-zeros unique_id is undefined; node cannot be reliably identified
+		const uint8_t zero_uid[16] {};
+
+		if (memcmp(node_info.hardware_version.unique_id.begin(), zero_uid, 16) == 0) {
+			return false;
+		}
+
 		/* This is a work  around for two issues.
 		 *  1) FirmwareFilePath is 40
 		 *  2) OK using is using 32 for max file names.
@@ -150,6 +173,27 @@ protected:
 				      descriptor.image_crc != node_info.software_version.image_crc)) {
 				rv = true;
 				out_firmware_file_path = bin_file_name;
+			}
+		}
+
+		const auto *uid = node_info.hardware_version.unique_id.begin();
+		UpdatingNode *existing = _updating_nodes.find([uid](UpdatingNode * node) {
+			return memcmp(node->unique_id, uid, 16) == 0;
+		});
+
+		if (rv) {
+			if (!existing) {
+				UpdatingNode *new_node = new UpdatingNode();
+
+				if (new_node) {
+					memcpy(new_node->unique_id, uid, 16);
+					_updating_nodes.add(new_node);
+				}
+			}
+
+		} else {
+			if (existing) {
+				_updating_nodes.deleteNode(existing);
 			}
 		}
 
@@ -259,6 +303,18 @@ out_close:
 	const BasePathString &getFirmwareBasePath() const { return base_path_; }
 
 	const BasePathString &getFirmwareAltBasePath() const { return alt_base_path_; }
+
+	void setArmed(bool armed) { _armed = armed; }
+
+	~FirmwareVersionChecker()
+	{
+		_updating_nodes.clear();
+	}
+
+	bool hasUpdatingNodes() const
+	{
+		return !_updating_nodes.empty();
+	}
 
 	const BasePathString &getFirmwareNfsBasePath() const { return nfs_base_path_; }
 

@@ -102,7 +102,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/can_interface_status.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/dronecan_node_status.h>
+#include <uORB/topics/uavcan_firmware_update.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
@@ -320,9 +322,12 @@ private:
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _param_request_sub{ORB_ID(uavcan_parameter_request)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<uavcan_firmware_update_s> _fw_update_pub{ORB_ID(uavcan_firmware_update)};
+	bool _fw_update_pending_last{false};
 
 	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
 
