@@ -129,12 +129,14 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew trust osrf/simulation
 	fi
 
+	# opencv@4: the unversioned formula is OpenCV 5, which PX4-OpticalFlow
+	# does not build against.
 	PX4_SIM_BREW_PACKAGES=(
 		exiftool
 		glog
 		graphviz
 		gstreamer
-		opencv
+		opencv@4
 		osrf/simulation/gz-harmonic
 		protobuf
 	)
