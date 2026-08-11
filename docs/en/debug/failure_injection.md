@@ -148,11 +148,14 @@ To test the GPS failsafe by stopping GPS:
 
 ## Example: Motor
 
-To stop a motor mid-flight without the system anticipating it or excluding it from allocation effectiveness:
+To fail a motor mid-flight:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enable [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) parameter to allow turning off motors.
-3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+3. Select the failure behavior with [SYS_FAIL_MOT_OFF](../advanced_config/parameter_reference.md#SYS_FAIL_MOT_OFF):
+   - `0` Soft (default): the motor is reported as a failed motor and removed from the control allocation, so the allocator knows about the failure and compensates with the remaining motors (according to `CA_FAILURE_MODE`).
+   - `1` Hard: the motor output is stopped without the system anticipating it or excluding it from allocation effectiveness (no-feedback case, e.g. PWM ESCs).
+4. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
    # Turn off first motor

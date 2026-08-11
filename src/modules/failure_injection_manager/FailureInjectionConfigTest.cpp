@@ -597,3 +597,39 @@ TEST(FailureInjectionConfig, ProcessBatteryLeavesUnselectedInstanceUntouched)
 	EXPECT_FLOAT_EQ(status.remaining, 0.8f);
 	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
 }
+
+// ===========================================================================
+// process_motor(): motor Off -> soft failure_mask (default) / hard stop_mask
+// ===========================================================================
+
+TEST(FailureInjectionConfig, ProcessMotorDefaultsToSoftFailureMask)
+{
+	Config config;
+	config.set(make_config(MOTOR, 0x5, OFF)); // motors 1 and 3
+
+	const MotorFailureMasks masks = process_motor(config);
+	EXPECT_EQ(masks.failure_mask, 0x5u);
+	EXPECT_EQ(masks.stop_mask, 0u);
+}
+
+TEST(FailureInjectionConfig, ProcessMotorNoFailureYieldsEmptyMasks)
+{
+	Config config;
+
+	const MotorFailureMasks masks = process_motor(config);
+	EXPECT_EQ(masks.failure_mask, 0u);
+	EXPECT_EQ(masks.stop_mask, 0u);
+}
+
+TEST(FailureInjectionConfig, ProcessMotorIgnoresOtherUnitsAndTypes)
+{
+	Config config;
+	config.set(make_config(ESC, 0x1, OFF)); // ESC unit, not MOTOR
+	EXPECT_EQ(process_motor(config).failure_mask, 0u);
+
+	config.set(make_config(MOTOR, 0x1, WRONG)); // unsupported type for motors
+	EXPECT_EQ(process_motor(config).failure_mask, 0u);
+
+	config.set(make_config(MOTOR, 0xFFFF, OFF)); // all instances
+	EXPECT_EQ(process_motor(config).failure_mask, 0xFFFu); // clamped to CONNECTED_ESC_MAX (12)
+}
