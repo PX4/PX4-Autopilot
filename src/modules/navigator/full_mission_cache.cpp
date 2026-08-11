@@ -59,8 +59,7 @@ FullMissionCache::FullMissionCache(orb_advert_t *mavlink_log_pub)
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	_mavlink_log_pub = mavlink_log_pub;
 
-	// Allocated once at Navigator start and kept for the module lifetime. Intentionally
-	// not zero-filled: no index is exposed before a successful dataman read fills it.
+	// No zero-fill is needed because items are exposed only after a successful read.
 	_mission_items = new mission_item_s[kMaxMissionCacheSize];
 
 	if (_mission_items == nullptr) {
@@ -100,19 +99,20 @@ void FullMissionCache::invalidate()
 	_mission = {};
 }
 
-// Start the load for a new source, which must be valid and loadable.
-// Read failures do not restart here, they resume at the failed index.
 void FullMissionCache::startMissionLoad()
 {
-	// A rebuild immediately hides the old generation. An active older request
-	// is allowed to finish, and its result is discarded before this generation
-	// starts writing the shared typed buffer.
 	_mission.ready = false;
 	_mission.next_index = 0;
 	_mission.validation_pending = true;
 	_mission.retry.retry_at = 0;
-	// Keep this running across retries to measure the actual time until the cache is ready.
 	perf_begin(_load_perf);
+}
+
+// Retry from the load front without clearing the prefix or retry count.
+void FullMissionCache::resumeMissionLoad()
+{
+	_mission.validation_pending = true;
+	_mission.retry.retry_at = 0;
 }
 
 bool FullMissionCache::missionCacheAvailable() const
@@ -156,8 +156,7 @@ bool FullMissionCache::getMissionView(const mission_s &mission, MissionView &vie
 
 bool FullMissionCache::missionViewStillValid(const MissionView &view) const
 {
-	// Generation equality pins source and content: every source change, invalidate(),
-	// reload, and patch advances it, and it is only observable while ready.
+	// Pre-ready retries and patches can keep the generation because no view is exposed.
 	return view.generation != 0 && view.generation == _mission_generation && _mission.ready;
 }
 
@@ -176,20 +175,17 @@ FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &
 	}
 
 	if (index < _mission.next_index) {
-		// Indices below the load front are stable, patch in place. Deferring would
-		// lose the write: a resumed load does not re-read the prefix.
+		// Loaded items are not re-read, so patch the prefix in place.
 		_mission_items[index] = mission_item;
 		return SyncResult::kPatched;
 	}
 
 	if (_mission_request.pending && _mission_request.index == index) {
-		// This read sampled the index before the write, so its response would store the
-		// old item. Advance the generation to discard it and read the index again.
+		// Discard the read started before the write and queue this index again.
 		advanceMissionGeneration();
 	}
 
-	// Any other index is still unread and dataman already holds the new item, so the
-	// pending load picks it up on its own.
+	// Unread items pick up the Dataman write.
 	return SyncResult::kDeferred;
 }
 
@@ -198,9 +194,7 @@ void FullMissionCache::update(const mission_s &mission)
 	MissionCacheState &state = _mission;
 
 	if (!missionMatchesCache(mission)) {
-		// A new source immediately invalidates the published view. Do not abort
-		// an older request: it must be consumed and discarded before the same
-		// Dataman key can safely be requested for this generation.
+		// Invalidate now, but drain any older read before issuing a new one.
 		perf_cancel(_load_perf);
 		advanceMissionGeneration();
 		state = {};
@@ -217,7 +211,6 @@ void FullMissionCache::update(const mission_s &mission)
 		}
 
 		if (state.source_valid && state.too_large) {
-			// Runs once per source change; the route cache stays unavailable for this mission.
 			if (_mavlink_log_pub != nullptr) {
 				mavlink_log_warning(_mavlink_log_pub, "Mission with %u items exceeds route cache capacity %d\t",
 						    mission.count, static_cast<int>(kMaxMissionCacheSize));
@@ -229,7 +222,6 @@ void FullMissionCache::update(const mission_s &mission)
 			mission.count, kMaxMissionCacheSize);
 		}
 
-		// The boot-time allocation failed, no recovery is possible for a non-empty mission.
 		if (state.source_valid && !state.too_large && mission.count > 0 && _mission_items == nullptr) {
 			PX4_ERR("Mission cache unavailable: boot-time allocation failed");
 			state.too_large = true;
@@ -299,17 +291,13 @@ void FullMissionCache::update(const mission_s &mission)
 			return;
 		}
 
-		// Every failure path clears validation_pending, so reaching the end of the
-		// sequential load means the complete generation was read successfully.
 		state.validation_pending = false;
 		state.ready = true;
 		state.retry.clear();
 		perf_end(_load_perf);
 
 	} else if (state.retry.due(now)) {
-		// Resume at the failed index, the loaded prefix is still valid.
-		state.validation_pending = true;
-		state.retry.retry_at = 0;
+		resumeMissionLoad();
 	}
 }
 

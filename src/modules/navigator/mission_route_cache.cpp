@@ -222,16 +222,14 @@ bool MissionRouteCache::loadMissionItem(const mission_s &mission, int32_t index,
 MissionRouteCache::SyncResult MissionRouteCache::syncMissionItem(const mission_s &mission, int32_t index,
 		const mission_item_s &mission_item)
 {
-	// The land-item cache exists on every board and validates against the published
-	// mission, so keep it coherent independently of the full-mission cache outcome.
+	// Update the land cache even if the full cache is unavailable.
 	syncMissionLandItem(mission, index, mission_item);
 	return _full_mission_cache.syncMissionItem(mission, index, mission_item);
 }
 
 void MissionRouteCache::syncMissionLandItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item)
 {
-	// Only the published land item of the mission the land cache tracks is relevant.
-	// If source mismatch: skip, update() rebuilds the land cache on the next source change.
+	// Ignore writes outside the tracked mission land item.
 	if (index < 0 || index != _mission_land.index || !missionLandMatchesCache(mission)) {
 		return;
 	}

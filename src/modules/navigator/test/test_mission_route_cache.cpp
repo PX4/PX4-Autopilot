@@ -107,6 +107,24 @@ protected:
 		}
 	}
 
+	// Load item 0, fail item 1, and wait for retry backoff.
+	bool enterRetryBackoffAfterFirstItem(const mission_s &mission)
+	{
+		if (!MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
+		return MissionRouteCacheTestPeer::missionNextIndex(_cache) == 1
+			&& MissionRouteCacheTestPeer::missionLoadInProgress(_cache);
+		})) {
+			return false;
+		}
+
+		if (!MissionRouteCacheTestPeer::failPendingMissionLoad(_cache)) {
+			return false;
+		}
+
+		return MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
+				[&] { return MissionRouteCacheTestPeer::missionRetryScheduled(_cache); });
+	}
+
 	void writeSafePointItems(const std::vector<mission_item_s> &items, uint16_t num_items,
 				 uint32_t opaque_id, dm_item_t dataman_id = DM_KEY_SAFE_POINTS_0)
 	{
@@ -217,19 +235,13 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	const mission_s mission = makeMission(18, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
 
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
-		return MissionRouteCacheTestPeer::missionNextIndex(_cache) == 1
-		&& MissionRouteCacheTestPeer::missionLoadInProgress(_cache);
-	}));
-	ASSERT_TRUE(MissionRouteCacheTestPeer::failPendingMissionLoad(_cache));
-
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
-			[&] { return MissionRouteCacheTestPeer::missionRetryScheduled(_cache); }))
+	ASSERT_TRUE(enterRetryBackoffAfterFirstItem(mission))
 			<< "mission cache retry was not scheduled after a read failure";
 
 	// The load front stopped at the failed second item and nothing is in flight.
 	EXPECT_EQ(MissionRouteCacheTestPeer::missionNextIndex(_cache), 1);
 	EXPECT_FALSE(MissionRouteCacheTestPeer::missionLoadInProgress(_cache));
+	EXPECT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 
 	// The failed generation stays unavailable.
 	EXPECT_FALSE(_cache.missionItemsReady(mission));
@@ -242,7 +254,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	mission_item_s cached_item{};
 	EXPECT_FALSE(_cache.loadMissionItem(mission, 0, cached_item));
 
-	// The next generation can still publish in full.
+	// The resumed load completes the same generation from the failed index.
 	MissionRouteCacheTestPeer::expireMissionRetryBackoff(_cache);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 	ASSERT_TRUE(_cache.getMissionView(mission, view));
@@ -913,7 +925,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemWithoutDatamanWriteKeepsStoredItem)
 	expectMissionItemMatches(cached_item, mission_items[sync_index]);
 }
 
-// A write during the retry backoff patches the loaded prefix; the retry resumes at the failed index.
+// A sync during the retry backoff patches the loaded prefix in place; the retry resumes at the failed index.
 TEST_F(MissionRouteCacheTest, SyncMissionItemDuringRetryBackoffPatchesLoadedPrefix)
 {
 	const std::vector<mission_item_s> mission_items{
@@ -923,18 +935,10 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemDuringRetryBackoffPatchesLoadedPref
 	const mission_s mission = makeMission(50, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
 
-	// Load the first item, then fail the read of the second to enter the backoff window.
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] {
-		return MissionRouteCacheTestPeer::missionNextIndex(_cache) == 1
-		&& MissionRouteCacheTestPeer::missionLoadInProgress(_cache);
-	}));
-	ASSERT_TRUE(MissionRouteCacheTestPeer::failPendingMissionLoad(_cache));
-	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission,
-			[&] { return MissionRouteCacheTestPeer::missionRetryScheduled(_cache); }));
+	ASSERT_TRUE(enterRetryBackoffAfterFirstItem(mission));
 
-	// Patched in place: the resumed load never re-reads the prefix.
+	// Leave Dataman unchanged so a prefix re-read would overwrite the patch.
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
-	writeMissionItem(updated, 0);
 	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kPatched);
 
 	// The retry resumes at the failed index.
@@ -1159,7 +1163,7 @@ TEST_F(MissionRouteCacheTest, MissionViewStillValidTracksGeneration)
 // Each Dataman completion wakes the cache and immediately chains the next async read.
 TEST_F(MissionRouteCacheTest, FullMissionCachePollsPendingResponses)
 {
-	static constexpr int kDatamanResponsePollTimeoutMs{5'000};
+	static constexpr int kDatamanResponsePollTimeoutMs{5000};
 
 	const std::vector<mission_item_s> mission_items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt + 5.f),

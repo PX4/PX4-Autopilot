@@ -259,8 +259,7 @@ void Navigator::run()
 
 	while (!should_exit()) {
 
-		// Dataman responses are shared between clients. Poll this subscription only
-		// while the full-mission cache has a request that will consume the wakeup.
+		// Poll Dataman only while the full-mission cache has a pending read.
 		fds[3].fd = _mission_route_cache.fullMissionResponseSubscription();
 
 		/* wait for up to 1000ms for data */

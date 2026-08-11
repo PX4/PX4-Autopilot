@@ -125,10 +125,7 @@ public:
 	 */
 	bool getMissionView(const mission_s &mission, MissionView &view) const;
 
-	/**
-	 * @brief True while a borrowed view still matches the cached mission. Source changes,
-	 *        invalidate(), reloads and syncMissionItem() advance the generation.
-	 */
+	/** True while a borrowed view belongs to the current ready cache generation. */
 	bool missionViewStillValid(const MissionView &view) const;
 
 	/**
@@ -149,10 +146,10 @@ public:
 	bool loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const;
 
 	/**
-	 * @brief Apply a mission item write to the cached copies, once it reached dataman.
+	 * @brief Apply a successful in-place Dataman write to the cached mission data.
 	 *
-	 * SyncResult describes the full-mission cache only. The land-item cache is refreshed
-	 * alongside on every board when index is the published land index, retrying async.
+	 * Active-mission writes must be synced because loaded items are not re-read.
+	 * SyncResult describes only the full cache; land-cache updates are independent.
 	 */
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 

@@ -154,6 +154,11 @@ public:
 			if (!progressOneEvent(cache, mission, timeout - elapsed)) {
 				break;
 			}
+
+			// Check before another update consumes a newly queued read.
+			if (predicate()) {
+				return true;
+			}
 		}
 
 		cache.update(mission);

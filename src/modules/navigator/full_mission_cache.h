@@ -81,12 +81,13 @@ public:
 	bool loadMissionItem(int index, mission_item_s &mission_item) const;
 	bool getMissionView(const mission_s &mission, MissionView &view) const;
 	bool missionViewStillValid(const MissionView &view) const;
+
+	/** Apply a successful Dataman item write to the cache. */
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 	/**
-	 * The Dataman response subscription while this cache has an outstanding read.
-	 * Dataman responses are shared between clients, so the subscription must not be
-	 * polled while idle: an unrelated response would otherwise remain unread.
+	 * Response subscription while a read is pending. Polling it while idle can spin
+	 * on another client's response.
 	 */
 	orb_sub_t responseSubscription() const;
 
@@ -123,7 +124,7 @@ private:
 		uint32_t id{0};
 		int32_t count{0};
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
-		int32_t next_index{0}; ///< Sequential load front; items below it are loaded.
+		int32_t next_index{0}; ///< First unread item; retries resume here.
 		bool initialized{false};
 		bool source_valid{false};
 		bool ready{false};
@@ -141,12 +142,13 @@ private:
 	bool missionMatchesCache(const mission_s &mission) const;
 	bool missionCacheAvailable() const;
 	void startMissionLoad();
+	void resumeMissionLoad();
 	void advanceMissionGeneration();
 
 	mission_item_s *_mission_items{nullptr};
 	DatamanClient _dataman_client_mission{};
 	orb_advert_t *_mavlink_log_pub{nullptr};
-	// End-to-end wall time for successfully completed non-empty cache loads.
+	// Wall time for successful non-empty loads.
 	perf_counter_t _load_perf{perf_alloc(PC_ELAPSED, "navigator: full mission cache load")};
 	// Keep outside of MissionCacheState: it must survive `_mission = {}` reset.
 	uint32_t _mission_generation{0};

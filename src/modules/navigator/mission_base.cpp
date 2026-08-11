@@ -1041,6 +1041,9 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
 							     "DO JUMP waypoint could not be written");
 						// Still continue searching for next non jump item.
+
+					} else {
+						syncMissionRouteCacheItem(new_mission_index, new_mission);
 					}
 
 					report_do_jump_mission_changed(new_mission_index, new_mission.do_jump_repeat_count - new_mission.do_jump_current_count);
@@ -1105,6 +1108,13 @@ bool MissionBase::loadMissionItemFromCache(int32_t index, mission_item_s &missio
 	       && _dataman_cache.loadWait(static_cast<dm_item_t>(_mission.mission_dataman_id), index,
 					  reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item),
 					  MAX_DATAMAN_LOAD_WAIT);
+}
+
+void MissionBase::syncMissionRouteCacheItem(int32_t index, const mission_item_s &mission_item)
+{
+	if (_navigator != nullptr) {
+		_navigator->get_mission_route_cache().syncMissionItem(_mission, index, mission_item);
+	}
 }
 
 bool MissionBase::findNextPositionIndex(int32_t start_index, int32_t &next_index,
@@ -1391,6 +1401,8 @@ void MissionBase::resetMissionJumpCounter()
 				PX4_ERR("Could not write mission item for jump count reset.");
 				break;
 			}
+
+			syncMissionRouteCacheItem(static_cast<int32_t>(mission_index), mission_item);
 		}
 	}
 }
