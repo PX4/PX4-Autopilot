@@ -76,6 +76,8 @@ FullMissionCache::~FullMissionCache()
 {
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	_dataman_client_mission.abortCurrentOperation();
+	perf_cancel(_load_perf);
+	perf_free(_load_perf);
 	delete[] _mission_items;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
@@ -93,6 +95,7 @@ void FullMissionCache::advanceMissionGeneration()
 
 void FullMissionCache::invalidate()
 {
+	perf_cancel(_load_perf);
 	advanceMissionGeneration();
 	_mission = {};
 }
@@ -108,6 +111,8 @@ void FullMissionCache::startMissionLoad()
 	_mission.next_index = 0;
 	_mission.validation_pending = true;
 	_mission.retry.retry_at = 0;
+	// Keep this running across retries to measure the actual time until the cache is ready.
+	perf_begin(_load_perf);
 }
 
 bool FullMissionCache::missionCacheAvailable() const
@@ -196,6 +201,7 @@ void FullMissionCache::update(const mission_s &mission)
 		// A new source immediately invalidates the published view. Do not abort
 		// an older request: it must be consumed and discarded before the same
 		// Dataman key can safely be requested for this generation.
+		perf_cancel(_load_perf);
 		advanceMissionGeneration();
 		state = {};
 		state.id = mission.mission_id;
@@ -298,6 +304,7 @@ void FullMissionCache::update(const mission_s &mission)
 		state.validation_pending = false;
 		state.ready = true;
 		state.retry.clear();
+		perf_end(_load_perf);
 
 	} else if (state.retry.due(now)) {
 		// Resume at the failed index, the loaded prefix is still valid.

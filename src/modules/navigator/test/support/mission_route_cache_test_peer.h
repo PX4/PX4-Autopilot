@@ -72,6 +72,11 @@ public:
 		       && cache._full_mission_cache._mission_request.pending;
 	}
 
+	static uint64_t missionLoadPerfEventCount(const MissionRouteCache &cache)
+	{
+		return perf_event_count(cache._full_mission_cache._load_perf);
+	}
+
 	static bool failPendingMissionLoad(MissionRouteCache &cache)
 	{
 		return cache._full_mission_cache._mission_request.pending

@@ -42,6 +42,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <dataman_client/DatamanClient.hpp>
+#include <lib/perf/perf_counter.h>
 #include <uORB/topics/mission.h>
 
 #include "navigation.h"
@@ -145,6 +146,8 @@ private:
 	mission_item_s *_mission_items{nullptr};
 	DatamanClient _dataman_client_mission{};
 	orb_advert_t *_mavlink_log_pub{nullptr};
+	// End-to-end wall time for successfully completed non-empty cache loads.
+	perf_counter_t _load_perf{perf_alloc(PC_ELAPSED, "navigator: full mission cache load")};
 	// Keep outside of MissionCacheState: it must survive `_mission = {}` reset.
 	uint32_t _mission_generation{0};
 	MissionRequest _mission_request{};

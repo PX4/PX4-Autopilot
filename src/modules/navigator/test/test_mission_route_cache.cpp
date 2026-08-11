@@ -235,6 +235,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	EXPECT_FALSE(_cache.missionItemsReady(mission));
 	EXPECT_EQ(_cache.missionCount(), 0);
 	EXPECT_GT(MissionRouteCacheTestPeer::missionRetryCount(_cache), 0U);
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 0U);
 	MissionRouteCache::MissionView view{};
 	EXPECT_FALSE(_cache.getMissionView(mission, view));
 
@@ -245,6 +246,7 @@ TEST_F(MissionRouteCacheTest, MissionCacheSchedulesRetryWhenReadFails)
 	MissionRouteCacheTestPeer::expireMissionRetryBackoff(_cache);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission, [&] { return _cache.missionItemsReady(mission); }));
 	ASSERT_TRUE(_cache.getMissionView(mission, view));
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 1U);
 	expectMissionItemMatches(view.items[0], mission_items[0]);
 	expectMissionItemMatches(view.items[1], mission_items[1]);
 }
@@ -641,6 +643,7 @@ TEST_F(MissionRouteCacheTest, MissionSourceChangeDuringReadDoesNotPublishOldGene
 	_cache.update(mission_a);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::missionLoadInProgress(_cache));
 	ASSERT_NE(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 0U);
 
 	// Replace the contents without changing the Dataman bank or item indices.
 	writeMissionItems(mission_items_b);
@@ -657,6 +660,7 @@ TEST_F(MissionRouteCacheTest, MissionSourceChangeDuringReadDoesNotPublishOldGene
 	EXPECT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 	ASSERT_TRUE(_cache.getMissionView(mission_b, view));
 	ASSERT_EQ(view.count, static_cast<int32_t>(mission_items_b.size()));
+	EXPECT_EQ(MissionRouteCacheTestPeer::missionLoadPerfEventCount(_cache), 1U);
 
 	for (size_t i = 0; i < mission_items_b.size(); ++i) {
 		expectMissionItemMatches(view.items[i], mission_items_b[i]);
@@ -1155,6 +1159,8 @@ TEST_F(MissionRouteCacheTest, MissionViewStillValidTracksGeneration)
 // Each Dataman completion wakes the cache and immediately chains the next async read.
 TEST_F(MissionRouteCacheTest, FullMissionCachePollsPendingResponses)
 {
+	static constexpr int kDatamanResponsePollTimeoutMs{5'000};
+
 	const std::vector<mission_item_s> mission_items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt + 5.f),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt + 6.f),
@@ -1172,7 +1178,7 @@ TEST_F(MissionRouteCacheTest, FullMissionCachePollsPendingResponses)
 	px4_pollfd_struct_t response_fd{};
 	response_fd.fd = full_cache.responseSubscription();
 	response_fd.events = POLLIN;
-	ASSERT_GT(px4_poll(&response_fd, 1, 5000), 0);
+	ASSERT_GT(px4_poll(&response_fd, 1, kDatamanResponsePollTimeoutMs), 0);
 	ASSERT_NE(response_fd.revents & POLLIN, 0);
 
 	// Consuming item zero queues item one in this same call, keeping the fd armed.
@@ -1183,7 +1189,7 @@ TEST_F(MissionRouteCacheTest, FullMissionCachePollsPendingResponses)
 	response_fd = {};
 	response_fd.fd = full_cache.responseSubscription();
 	response_fd.events = POLLIN;
-	ASSERT_GT(px4_poll(&response_fd, 1, 5000), 0);
+	ASSERT_GT(px4_poll(&response_fd, 1, kDatamanResponsePollTimeoutMs), 0);
 	ASSERT_NE(response_fd.revents & POLLIN, 0);
 	full_cache.update(mission);
 
