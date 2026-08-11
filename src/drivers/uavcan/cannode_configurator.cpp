@@ -154,6 +154,17 @@ void *CanNodeConfigurator::threadEntry(void *arg)
 void CanNodeConfigurator::threadMain()
 {
 	while (!_should_exit) {
+		uavcan_firmware_update_s fw_update{};
+
+		if (_fw_update_sub.copy(&fw_update)) {
+			_fw_update_pending = fw_update.pending_updates;
+		}
+
+		if (_fw_update_pending) {
+			sleep(1);
+			continue;
+		}
+
 		pthread_mutex_lock(&_queue_mutex);
 		QueueEntry *entry = _queue.getHead();
 		if (entry != nullptr) { _queue.remove(entry); }
