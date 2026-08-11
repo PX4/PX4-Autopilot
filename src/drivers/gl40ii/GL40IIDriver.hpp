@@ -12,7 +12,9 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/voliro_tilt_feedback.h>
 #include <uORB/topics/voliro_tilt_setpoint.h>
@@ -49,6 +51,10 @@ private:
 		ReturnDwell,
 		AwaitDisable,
 		InterMotorDwell,
+		ZeroAwaitEnable,
+		ZeroSettle,
+		ZeroTransition,
+		ZeroHold,
 	};
 
 	static constexpr hrt_abstime RUN_INTERVAL_US = 1'000;
@@ -60,6 +66,7 @@ private:
 	static constexpr hrt_abstime BENCH_SETTLE_US = 500'000;
 	static constexpr hrt_abstime BENCH_DWELL_US = 500'000;
 	static constexpr hrt_abstime BENCH_INTER_MOTOR_DWELL_US = 500'000;
+	static constexpr hrt_abstime BENCH_ZERO_HOLD_US = 30'000'000;
 	static constexpr hrt_abstime BENCH_SINGLE_TIMEOUT_US = 120'000'000;
 	static constexpr hrt_abstime BENCH_SEQUENCE_TIMEOUT_US = 420'000'000;
 	static constexpr float BENCH_MIN_TURNS = 0.01f;
@@ -70,6 +77,11 @@ private:
 	static constexpr float BENCH_MIN_PHASE_DURATION_S = 1.f;
 	static constexpr float BENCH_KP_MAX = 0.123f;
 	static constexpr float BENCH_KD_MAX = 0.005f;
+	static constexpr hrt_abstime RC_ZERO_GESTURE_HOLD_US = 3'000'000;
+	static constexpr hrt_abstime RC_INPUT_TIMEOUT_US = 250'000;
+	static constexpr hrt_abstime LAND_STATUS_TIMEOUT_US = 1'000'000;
+	static constexpr float RC_ZERO_GESTURE_THRESHOLD = 0.9f;
+	static constexpr float RC_ZERO_RELEASE_THRESHOLD = 0.8f;
 	static constexpr float TWO_PI_F = 6.28318530718f;
 
 	void Run() override;
@@ -79,7 +91,9 @@ private:
 	void publishFeedback(hrt_abstime now, bool force = false);
 	void enterDisabled(hrt_abstime now);
 	void processBenchRequest(hrt_abstime now);
+	void processRcZeroGesture(hrt_abstime now);
 	void runBenchTest(hrt_abstime now);
+	void runBenchZeroHold(hrt_abstime now);
 	bool startBenchRotor(hrt_abstime now);
 	void finishBenchTest(hrt_abstime now, bool success, const char *reason);
 
@@ -89,23 +103,28 @@ private:
 	bool sendBenchGuardDisables();
 	bool sendMotorCommands();
 	bool sendBenchCommand(uint8_t rotor, float motor_position);
+	bool sendBenchZeroCommands();
 	bool configurationValid() const;
 	bool commandValid() const;
 	bool feedbackFresh() const;
 	bool enabledFeedback() const;
 	bool rotorEnabledFeedback(uint8_t rotor) const;
 	bool benchSafetyValid() const;
+	bool rcZeroGestureReady(hrt_abstime now) const;
 	uint8_t activeMask() const;
 	float motorSign(uint8_t rotor) const;
 	const char *stateName() const;
 	const char *benchStateName() const;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1'000'000};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _tilt_setpoint_sub{ORB_ID(voliro_tilt_setpoint)};
 	uORB::Publication<voliro_tilt_feedback_s> _tilt_feedback_pub{ORB_ID(voliro_tilt_feedback)};
 
 	voliro_tilt_setpoint_s _tilt_setpoint{};
+	manual_control_setpoint_s _manual_control_setpoint{};
 	gl40ii::Limits _limits{};
 
 	float _joint_angle[gl40ii::NUM_MOTORS] {};
@@ -119,6 +138,9 @@ private:
 	hrt_abstime _last_rx[gl40ii::NUM_MOTORS] {};
 
 	hrt_abstime _last_setpoint_rx{0};
+	hrt_abstime _last_manual_control_rx{0};
+	hrt_abstime _last_land_status_rx{0};
+	hrt_abstime _rc_zero_gesture_start{0};
 	hrt_abstime _last_tx{0};
 	hrt_abstime _last_disable_tx{0};
 	hrt_abstime _last_bench_guard_tx{0};
@@ -133,11 +155,15 @@ private:
 	uint8_t _fault_mask{0};
 	uint8_t _stale_mask{0};
 	bool _armed{false};
+	bool _landed{false};
+	bool _land_status_received{false};
 	bool _vehicle_status_received{false};
 	bool _feedback_dirty{false};
+	bool _rc_zero_gesture_latched{false};
 	ControlState _control_state{ControlState::Disabled};
 	BenchState _bench_state{BenchState::Idle};
 	bool _bench_all_sequence{false};
+	bool _bench_zero_hold{false};
 	uint8_t _bench_required_mask{0};
 	uint8_t _bench_rotor{0};
 	int8_t _bench_leg{1};
@@ -146,8 +172,11 @@ private:
 	float _bench_delta{NAN};
 	float _bench_target_position{NAN};
 	float _bench_phase_duration_s{NAN};
+	float _bench_zero_start[gl40ii::NUM_MOTORS] {};
+	float _bench_zero_target[gl40ii::NUM_MOTORS] {};
 	px4::atomic<int32_t> _bench_request_millirevolutions{0};
 	px4::atomic<bool> _bench_request_all{false};
+	px4::atomic<bool> _bench_request_zero_hold{false};
 	px4::atomic<bool> _bench_request_pending{false};
 	px4::atomic<bool> _bench_abort_requested{false};
 	px4::atomic<bool> _bench_active{false};
@@ -155,6 +184,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::GL40_EN>) _param_enable,
+		(ParamBool<px4::params::GL40_RC_ZERO>) _param_rc_zero_enable,
 		(ParamInt<px4::params::GL40_MASK>) _param_active_mask,
 		(ParamInt<px4::params::GL40_RATE>) _param_command_rate,
 		(ParamFloat<px4::params::GL40_PMAX>) _param_position_limit,
@@ -166,6 +196,7 @@ private:
 		(ParamFloat<px4::params::GL40_SP_TMO>) _param_setpoint_timeout,
 		(ParamFloat<px4::params::GL40_FB_TMO>) _param_feedback_timeout,
 		(ParamInt<px4::params::GL40_REV>) _param_reverse_mask,
+		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
 		(ParamBool<px4::params::VOLA_EN>) _param_vola_enable,
 		(ParamBool<px4::params::VCTRL_EN>) _param_vctrl_enable
 	)

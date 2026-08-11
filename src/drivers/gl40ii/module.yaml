@@ -13,6 +13,18 @@ parameters:
         type: boolean
         default: 0
 
+      GL40_RC_ZERO:
+        description:
+          short: Enable disarmed RC stored-zero gesture
+          long: |
+            Allows fresh real-RC input to request the bounded all-six stored-zero
+            bench trajectory while landed and disarmed. Hold throttle/yaw/roll/pitch
+            at -/+/-/- beyond 90 percent for three seconds. MAN_ARM_GESTURE must be
+            disabled. The gesture never writes the zero stored by a drive and does
+            not enable the normal armed allocator/controller path.
+        type: boolean
+        default: 0
+
       GL40_MASK:
         description:
           short: Active GL40II motor mask

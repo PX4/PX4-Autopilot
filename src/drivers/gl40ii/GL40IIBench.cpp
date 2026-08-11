@@ -53,6 +53,35 @@ bool benchBidirectionalRangeValid(float start, float amplitude, float position_l
 	       && benchRangeValid(start, -amplitude, position_limit, margin);
 }
 
+bool benchTargetRangeValid(float start, float target, float position_limit, float margin)
+{
+	if (!std::isfinite(target)) {
+		return false;
+	}
+
+	return benchRangeValid(start, target - start, position_limit, margin);
+}
+
+bool rcZeroGestureActive(float throttle, float yaw, float roll, float pitch, float threshold)
+{
+	if (!std::isfinite(throttle) || !std::isfinite(yaw) || !std::isfinite(roll) || !std::isfinite(pitch)
+	    || !std::isfinite(threshold) || threshold <= 0.f || threshold >= 1.f) {
+		return false;
+	}
+
+	return throttle <= -threshold && yaw >= threshold && roll <= -threshold && pitch <= -threshold;
+}
+
+bool rcZeroGestureReleased(float throttle, float yaw, float roll, float pitch, float threshold)
+{
+	if (!std::isfinite(throttle) || !std::isfinite(yaw) || !std::isfinite(roll) || !std::isfinite(pitch)
+	    || !std::isfinite(threshold) || threshold <= 0.f || threshold >= 1.f) {
+		return false;
+	}
+
+	return throttle > -threshold || yaw < threshold || roll > -threshold || pitch > -threshold;
+}
+
 uint8_t benchGuardMask(uint8_t active_mask, uint8_t selected_rotor, bool selected_commanded)
 {
 	return selected_commanded && selected_rotor < 8 ? active_mask & ~(1u << selected_rotor) : active_mask;

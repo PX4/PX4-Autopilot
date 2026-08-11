@@ -42,6 +42,34 @@ TEST(GL40IIBench, BidirectionalMoveChecksBothEndpoints)
 	EXPECT_FALSE(benchBidirectionalRangeValid(0.f, -1.f, 12.5f, 0.5f));
 }
 
+TEST(GL40IIBench, AbsoluteStoredZeroMoveChecksBothEndpoints)
+{
+	EXPECT_TRUE(benchTargetRangeValid(6.f, 0.f, 12.5f, 0.5f));
+	EXPECT_TRUE(benchTargetRangeValid(-6.f, 0.f, 12.5f, 0.5f));
+	EXPECT_FALSE(benchTargetRangeValid(12.1f, 0.f, 12.5f, 0.5f));
+	EXPECT_FALSE(benchTargetRangeValid(0.f, 12.1f, 12.5f, 0.5f));
+	EXPECT_FALSE(benchTargetRangeValid(0.f, NAN, 12.5f, 0.5f));
+}
+
+TEST(GL40IIBench, RcStoredZeroGestureUsesCorrectFourCorners)
+{
+	EXPECT_TRUE(rcZeroGestureActive(-1.f, 1.f, -1.f, -1.f, 0.9f));
+	EXPECT_TRUE(rcZeroGestureActive(-0.9f, 0.9f, -0.9f, -0.9f, 0.9f));
+	EXPECT_FALSE(rcZeroGestureActive(-1.f, 1.f, -1.f, 1.f, 0.9f));
+	EXPECT_FALSE(rcZeroGestureActive(-1.f, 1.f, 0.f, -1.f, 0.9f));
+	EXPECT_FALSE(rcZeroGestureActive(-1.f, 0.89f, -1.f, -1.f, 0.9f));
+	EXPECT_FALSE(rcZeroGestureActive(NAN, 1.f, -1.f, -1.f, 0.9f));
+}
+
+TEST(GL40IIBench, RcStoredZeroGestureRequiresReleaseBeforeRetrigger)
+{
+	EXPECT_FALSE(rcZeroGestureReleased(-1.f, 1.f, -1.f, -1.f, 0.8f));
+	EXPECT_TRUE(rcZeroGestureReleased(-1.f, 0.f, -1.f, -1.f, 0.8f));
+	EXPECT_TRUE(rcZeroGestureReleased(-1.f, 1.f, 0.f, -1.f, 0.8f));
+	EXPECT_TRUE(rcZeroGestureReleased(-1.f, 1.f, -1.f, 0.f, 0.8f));
+	EXPECT_FALSE(rcZeroGestureReleased(NAN, 0.f, 0.f, 0.f, 0.8f));
+}
+
 TEST(GL40IIBench, GuardMaskPollsEveryUnselectedDrive)
 {
 	EXPECT_EQ(benchGuardMask(0x3f, 0, true), 0x3e);
