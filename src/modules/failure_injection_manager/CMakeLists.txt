@@ -37,6 +37,7 @@ px4_add_module(
 	SRCS
 		FailureInjectionManager.cpp
 		FailureInjectionManager.hpp
+		FailureStrings.hpp
 		FailureTable.cpp
 		FailureTable.hpp
 	MODULE_CONFIG

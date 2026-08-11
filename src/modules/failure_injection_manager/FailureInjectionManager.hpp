@@ -48,6 +48,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/failure_injection.h>
@@ -79,6 +80,7 @@ private:
 
 	void handleCommand(const vehicle_command_s &cmd);
 	void publishAck(const vehicle_command_s &cmd, uint8_t result);
+	void announceFailure(uint8_t unit, uint8_t type, uint16_t mask);
 
 	void evaluateRcInjection();
 
@@ -89,6 +91,8 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	failure_injection::FailureTable _table;
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	bool    _rc_active{false};
 	uint8_t _rc_active_unit{0};
