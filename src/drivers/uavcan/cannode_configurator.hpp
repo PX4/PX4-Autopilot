@@ -43,6 +43,8 @@
 #include <uavcan/protocol/node_info_retriever.hpp>
 #include <containers/List.hpp>
 #include <pthread.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/uavcan_firmware_update.h>
 
 class CanNodeConfigurator : private uavcan::INodeInfoListener
 {
@@ -73,6 +75,9 @@ private:
 	};
 
 	uavcan::NodeInfoRetriever &_retriever;
+
+	uORB::Subscription _fw_update_sub{ORB_ID::uavcan_firmware_update};
+	bool             _fw_update_pending{false};
 
 	pthread_t        _thread{};
 	pthread_mutex_t  _queue_mutex{};
