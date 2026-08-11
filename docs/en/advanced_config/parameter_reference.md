@@ -20829,6 +20829,18 @@ WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 894281   |           | 0       |      | &nbsp;    |
 
+### CBRK_UAVCAN_FW (`INT32`) {#CBRK_UAVCAN_FW}
+
+Circuit breaker for UAVCAN firmware update arming check.
+
+Setting this parameter to 5318008 will allow arming even when a UAVCAN
+node firmware update is pending or a node went offline mid-update.
+WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5318008  |           | 0       |      | &nbsp;    |
+
 ### CBRK_USB_CHK (`INT32`) {#CBRK_USB_CHK}
 
 Circuit breaker for USB link check.
