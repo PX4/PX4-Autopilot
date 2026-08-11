@@ -36,7 +36,7 @@
  *
  * Applies airframe-style parameter defaults to UAVCAN peripheral nodes.
  * Config files live at /etc/init.d/cannode_airframes/<node_name> in ROMFS.
- * Format: PARAM_NAME=type:value per line; type is i(nteger), f(loat), b(oolean), s(tring).
+ * Format: PARAM_NAME=value per line; type is inferred via a GetSet GET before each SET.
  * Lines starting with # are comments.
  */
 
