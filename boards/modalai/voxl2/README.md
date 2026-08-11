@@ -83,7 +83,7 @@ ______  __   __    ___
 px4 starting.
 
 INFO  [px4] Calling startup script: /bin/sh /etc/modalai/voxl-px4.config 0
-INFO  [muorb] muorb protobuf initalize method succeeded
+INFO  [muorb] muorb protobuf initialize method succeeded
 INFO  [px4] Startup script returned successfully
 pxh>
 ```
