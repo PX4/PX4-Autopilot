@@ -5,21 +5,21 @@ This infrastructure might be used for:
 - **[Smart mission rejoin](#smart-mission-rejoin)**: Finding the best branch-in point to rejoin a mission (for example after moving to a GoTo point).
 - **[Route-following Return](#route-following-return)**: Choosing the best [safe point](../flying/plan_safety_points.md) exit point when using the mission route as a [Return mode](../flight_modes/return.md): branching off close to the selected point instead of cutting straight across terrain.
 
-The infrastructure is included in the Navigator, and provides a non-blocking full-route cache for quick access to the whole uploaded mission.
+Navigator provides an optional non-blocking full-route cache for quick access to the whole uploaded mission.
 It also includes a planner that projects the vehicle and safe-point positions perpendicularly onto each mission segment, then selects the best candidate using that projection (along with additional criteria such as the last segment flown).
 
 The planner computes geometry and scoring only.
 It does not publish setpoints, change the mission index, or decide when a flight mode should use the result.
 
 ::: info
-This page documents the algorithms and features (such as mission cache) used for smart route planning.
-At time of writing this infrastructure is not yet used.
+The route-planning entry points do not yet have a production caller.
+Navigator already maintains `MissionRouteCache`, which also supplies the safe-point and mission-land lookups used by the existing Return implementation.
 :::
 
 ::: warning
-The planner can only project against a mission that fits in the cache: `CONFIG_RTL_MISSION_CACHE_SIZE`.
-A mission with more items than `CONFIG_RTL_MISSION_CACHE_SIZE` cannot be route-planned, and a planning pass against it fails (the consuming feature is expected to fall back to another behavior in that case).
-Because the default is `0` on non-testing boards, route planning is disabled until a board explicitly sizes the cache for its RAM budget.
+The planner can only project against a mission that fits in `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE`.
+A larger mission is not partially cached, so a consuming feature must use its normal fallback behavior.
+The default is `500` on POSIX and `0` otherwise; hardware boards must explicitly size the cache for their RAM budget before the full planner is built.
 :::
 
 ::: warning
@@ -37,7 +37,8 @@ The planner exposes two top-level entry points, one for each consumer feature li
 Both take the current vehicle state and mission index, compose the building blocks documented in the rest of this page, and return plain data for the caller to execute.
 
 ::: info
-They are the public API the planned consumers will call. At time of writing, neither has a production caller yet.
+They are the public API the planned consumers will call.
+Before calling them, a consumer must satisfy the [cache readiness contract](#readiness-and-mission-views).
 :::
 
 ### Smart Mission Rejoin {#smart-mission-rejoin}
@@ -202,7 +203,7 @@ Each candidate branch-off is scored by total path cost, and the lowest wins. The
 
 As the planner gathers the safe points to consider, it filters out the ones it cannot use:
 
-- Safe points are read from the dataman store through the provider.
+- Safe points are read through the provider. `MissionRouteCache` serves only a fully loaded RAM generation, so planning never reads Dataman directly.
 - Invalid coordinates, unsupported frames, or filtered safe points are skipped.
 - Every remaining safe point gets up to three projections.
 
@@ -229,9 +230,11 @@ If a new Return is requested, the vehicle flies straight to the rally point (`R`
 
 ### Safe-Point Batching {#safe-point-batching}
 
-The planner scores eligible safe points using a single fixed-size projection batch buffer, sized by `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` (default **1**, **32** on testing builds).
+The planner scores eligible safe points using a single fixed-size projection batch buffer, sized by `CONFIG_RTL_SAFE_POINT_BATCH_SIZE`.
 The batch buffer is reused for every planning pass and is allocated in static RAM, costing roughly `sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE` bytes (about 380 bytes per slot).
-The default of **1** keeps that cost negligible on boards that leave route planning disabled (`CONFIG_RTL_MISSION_CACHE_SIZE=0`); boards that enable route planning should raise it.
+The default is **1** (**32** on `BOARD_TESTING`).
+The planner and this buffer are built only when `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` is greater than zero, so disabled builds reserve no planner batch buffer.
+Boards that enable route planning should choose a batch size that fits their RAM budget.
 
 
 ::: warning
@@ -248,43 +251,95 @@ CONFIG_RTL_SAFE_POINT_BATCH_SIZE=32
 ## Route Cache
 
 `MissionRouteCache` is the production data source (provider) for the planner.
-Normal mission execution only keeps a small sliding window of mission items in RAM, but route planning needs random, non-blocking access to the whole mission to project points against every segment.
-The cache provides that: it mirrors the full mission, the safe points, and the mission-land item into RAM, and is maintained from Navigator's work loop.
+Normal mission execution keeps only a small sliding window of mission items in RAM, but route planning needs random, non-blocking access to the whole mission.
+The cache composes an optional `FullMissionCache` with the safe-point and mission-land caches already used by Return, and Navigator advances all three from its work loop.
 
 ```text
-MissionRouteCache
-|-- full mission route cache      [0 ... CONFIG_RTL_MISSION_CACHE_SIZE - 1]
-|-- safe-point cache              [all uploaded safe-point dataman items]
-|-- mission-land item cache       [published mission land index]
-`-- safe-point stats reader       [DM_KEY_SAFE_POINTS_STATE async state machine]
+MissionRouteCache (planner Provider)
+|-- FullMissionCache              [0 ... CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE - 1]
+|     |-- complete mission array
+|     `-- Dataman client + request generation, retry, and load timing state
+|-- safe-point DatamanCache       [all uploaded safe-point items]
+|-- mission-land DatamanCache     [published mission land index]
+`-- safe-point stats reader       [DM_KEY_SAFE_POINTS_STATE state machine]
 ```
 
-Planner reads use a zero wait timeout, so a cache miss returns failure instead of blocking Navigator while dataman or the SD card catches up.
-The cache tracks mission identity and reloads when the mission changes; if an item is missing it schedules a retry with bounded exponential backoff.
-Safe points have their own asynchronous state machine, are reloaded when their source identity changes, and are never exposed as stale data while a reload is in progress.
+Provider reads are cache-only.
+Full-mission items are copied directly from `FullMissionCache` RAM, while safe-point and mission-land lookups use a zero wait timeout.
+A miss therefore returns failure instead of blocking Navigator on Dataman or the SD card.
+
+### Loading Workflow
+
+Full-mission loading is fully asynchronous and identical while armed and disarmed.
+`FullMissionCache` keeps one item read outstanding at a time, and Navigator temporarily adds that client's response subscription as its fourth poll entry.
+A Dataman response wakes the same Navigator task; `DatamanClient::update()` copies and validates the response, and a successful match queues the next item in that same loop.
+There is no cache thread, and loading is not paced by Navigator's 20 Hz local-position update.
+
+Poll readiness means only that _a_ response exists because `dataman_response` is shared by all clients.
+The response fd is therefore enabled only while this cache has a pending request; leaving it enabled while idle could repeatedly wake Navigator on another client's unread response.
+Navigator still calls `MissionRouteCache::update()` after every wake rather than treating `POLLIN` as a successful read.
+
+If a read fails, the cache keeps the successfully loaded prefix and retries the first unread item after a bounded 0.5, 1, 2, then 4 second backoff.
+The same 4 second delay is used for subsequent failures.
+No partial mission is exposed while loading or retrying.
+
+### Readiness and Mission Views
+
+The full cache identifies a source by its mission id, item count, and Dataman bank.
+`missionItemsReady(mission)` becomes true only after every item for that exact source has loaded.
+A source replacement hides the old generation immediately; a response from an older request is consumed but discarded.
+
+Consumers must check readiness explicitly:
+
+- `missionCount() == 0` can mean pending, disabled, oversized, or ready and empty.
+- `safePointCount() == 0` can mean pending or ready and empty, so safe-point scoring also requires `safePointsReady()`.
+- A route-planning consumer must require `missionItemsReady(active_mission)`, and `planRouteToGoal()` also requires `safePointsReady()`.
+
+`getMissionView()` provides the complete mission as a zero-copy view tied to the source identity and cache generation.
+The view is borrowed for one synchronous call in Navigator's serialized task and should be checked afterward with `missionViewStillValid()`.
+The current planner provider still exposes count/item reads; a production integration should adapt one validated view for each planning pass so all reads use the same generation.
 
 ### Cache Size
 
-`CONFIG_RTL_MISSION_CACHE_SIZE` sets the maximum number of mission items reserved for full-route planning.
-The default is `100` for `BOARD_TESTING` builds and `0` otherwise.
-A value of `0` disables the cache and reserves no entries, so boards that enable a route-planning consumer must size it for their RAM budget.
-Each reserved item uses roughly 76 bytes of heap for the lifetime of Navigator.
+`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` sets the maximum number of mission items reserved for full-route planning.
+The default is `500` on POSIX and `0` otherwise unless a board overrides it.
+The array is allocated once when Navigator starts and currently costs 56 bytes per configured item: 28,000 bytes at 500 items or 16,800 bytes at 300 items.
 
 ```ini
-CONFIG_RTL_MISSION_CACHE_SIZE=300
+CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
 ```
 
 ::: warning
-The planner can only project against a mission that fits in the cache: `CONFIG_RTL_MISSION_CACHE_SIZE`.
-A mission with more items than `CONFIG_RTL_MISSION_CACHE_SIZE` cannot be route-planned, and a planning pass against it fails (the consuming feature is expected to fall back to another behavior in that case).
-Because the default is `0` on non-testing boards, route planning is disabled until a board explicitly sizes the cache for its RAM budget.
+The planner can only project against a mission that fits in `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE`.
+An oversized mission produces a warning and is not partially cached; the consuming feature must use its normal fallback behavior.
 :::
+
+At a value of `0`, the complete-mission array, its dedicated Dataman client, and the full planner library are omitted.
+The `MissionRouteCache` facade and its independent safe-point and mission-land caches remain available to the existing Return implementation.
 
 ### Cache Coherency
 
-Navigator can hold more than one cache view of the same mission item.
-`DatamanCache::updateCachedItem()` lets a caller mirror an already-written, stable value into another cache without issuing a second dataman request.
-`MissionRouteCache::syncMissionItem()` uses it to keep the planner-facing caches coherent after a mission item was written through another path; it does not patch entries that are still waiting for an asynchronous read.
+Every successful in-place mission-item write must be followed by `MissionRouteCache::syncMissionItem()` because already-loaded items are not read again automatically.
+A ready full cache is patched directly and its generation advances, invalidating borrowed views.
+During a load, an already-read prefix is patched in place, an in-flight read for the same index is discarded and queued again, and an unread item is picked up by the normal load.
+The mission-land cache is synchronized independently.
+
+Mission execution follows this rule after successful `DO_JUMP` counter increments and resets.
+This prevents a later route-planning pass from using stale loop counts.
+
+### Measuring Load Time
+
+`FullMissionCache` records successful, non-empty load time with the `navigator: full mission cache load` elapsed perf counter.
+It measures wall time from starting a source until the complete generation is ready, including response scheduling and retry delays.
+Replaced, invalidated, empty, or never-completed loads do not add a sample.
+
+On hardware, reset the counters before changing the mission, then inspect them after the cache finishes:
+
+```sh
+perf reset
+# Upload or change the mission.
+perf
+```
 
 ## Code Architecture
 
@@ -296,16 +351,19 @@ mission_route_planner.*           runs one planning pass, returns the result (st
  `-- mission_route_goal.*         scores safe points, picks the goal and route direction
 
 mission_route_provider.*          interface for reading mission and safe-point data
-mission_route_cache.*             caches the mission in RAM for non-blocking access
+mission_route_cache.*             composes full-mission, safe-point, and land caches
+full_mission_cache.*              optional complete-mission buffer and async loader
 mission_route_types.*             shared structs, constants, and parsing helpers used by all
 ```
 
-The unit tests live in `src/modules/navigator/test/` (`test_mission_route_*.cpp`, with shared fixtures under `test/support/`). They use an in-memory `VectorMissionRouteProvider`, so the geometry is exercised without dataman or SD-card access:
+The unit tests live in `src/modules/navigator/test/` (`test_mission_route_*.cpp`, with shared fixtures under `test/support/`).
+The geometry tests use an in-memory `VectorMissionRouteProvider`; the cache and MissionBase tests exercise the Dataman-backed integration:
 
-- `functional-test_mission_route_cache`: cache loading, oversized-mission rejection, safe-point retry/identity, and stale-data protection.
-- `functional-test_mission_route_projection_candidates`: candidate-buffer ordering, pruning, validation, and local-minimum corner rules.
-- `functional-test_mission_route_projection`: vehicle branch-in selection, current-segment preference, loop anchors, and edge cases.
+- `functional-test_mission_route_cache`: async loading and polling, oversized-mission rejection, retry/identity, synchronization, views, and stale-data protection.
+- `functional-test_mission_base`: successful `DO_JUMP` increments and resets remain coherent with the full cache.
+- `functional-test_mission_route_projection`: candidate ordering and pruning, local-minimum corner rules, vehicle branch-in selection, loop anchors, and edge cases.
 - `functional-test_mission_route_goal`: safe-point scoring, U-turn penalty, VTOL approach eligibility, endpoint fallback, and skip policy.
+- `functional-test_RTL`: existing safe-point, mission-land, and VTOL-approach behavior through the combined cache facade.
 
 Because the test geometry is defined directly in C++, it can be hard to picture. To inspect a test case visually, paste its C++ into the Streamlit helper at `Tools/navigator_mission_planner_visualizer/` (`mission_planner_tools.py`), which plots the missions, fences, rally/safe points, vehicle positions, and projections on a map. The same tool can generate C++ snippets for new test data drawn on the map. See its [README](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/navigator_mission_planner_visualizer/AddAndVisualizeUnitTests.md) for the supported syntax and setup.
 

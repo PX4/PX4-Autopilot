@@ -2,7 +2,7 @@
 
 This tool visualizes PX4 navigator unit-test data by pasting C++ code directly. It also includes a creator tab for adding new mission, fence, rally, and path-check data on the map and generating C++ snippets for the new items.
 
-It follows the helper functions defined in `test_RTL_helpers.h`.
+Its syntax examples follow the helpers in `src/modules/navigator/test/support/mission_route_test_helpers.h`.
 
 ## Setup & Running
 
@@ -19,10 +19,10 @@ pip install streamlit folium streamlit-folium pydeck
 
 
 ### Running the App
-Navigate to the directory containing the `mission_tools.py` script and run:
+Navigate to `Tools/navigator_mission_planner_visualizer/` and run:
 
 ```bash
-streamlit run mission_tools.py
+streamlit run mission_planner_tools.py
 ```
 
 This will open the tool in your default web browser (usually at `http://localhost:8501`).
@@ -156,23 +156,17 @@ static const VehicleLocation kLocations[] = {
 * The struct definition is optional (the parser only needs the array).
 * Velocity values can reference `constexpr float` variables (e.g., `kVel`).
 
-### 6. Positions (MissionRoutePlanner)
+### 6. Mission-Route Positions
 
-These are visualized as standalone map markers.
+These helpers return `mission_route::Position` values and are visualized as standalone map markers.
 
-#### 6a. `MissionRoutePlanner::Position{lat, lon, alt}`
-
-```cpp
-MissionRoutePlanner::Position vehicle_pos{47.0000, 8.0015, 500.f};
-```
-
-#### 6b. `makePositionAbsolute(lat, lon, alt)`
+#### 6a. `makePositionAbsolute(lat, lon, alt)`
 
 ```cpp
 makePositionAbsolute(47.0000, 8.0000, 500.f)
 ```
 
-#### 6c. `makePositionFromOffset(base_lat, base_lon, north_m, east_m, alt)`
+#### 6b. `makePositionFromOffset(base_lat, base_lon, north_m, east_m, alt)`
 
 ```cpp
 makePositionFromOffset(base_lat, base_lon, 100.0, 200.0, 500.f)
@@ -215,7 +209,7 @@ When using the **Creator** tab to click on the map and generate C++ code, the to
 
 - **Mission items**: `makeTakeoffItem(lat, lon, alt)` for the first waypoint, `makeLandItem(lat, lon, alt)` for the last, and `makePositionItem(lat, lon, alt)` for all others, wrapped in a `std::vector<mission_item_s>`.
 - **Rally/Safe points**: `makeSafePointAbsolute(lat, lon, alt)` in a `std::vector<mission_item_s>`.
-- **Vehicle positions**: `makePositionAbsolute(lat, lon, alt)` for `MissionRoutePlanner::Position`.
+- **Vehicle positions**: `makePositionAbsolute(lat, lon, alt)` for `mission_route::Position`.
 - **Fences and Paths**: Same format as before.
 
 ---
