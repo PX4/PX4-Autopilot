@@ -41,6 +41,8 @@
 
 #include "FixedwingLandDetector.h"
 
+#include <lib/geo/geo.h>
+
 namespace land_detector
 {
 
@@ -121,10 +123,19 @@ bool FixedwingLandDetector::_get_landed_state()
 			_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
 		}
 
-		// A leaking lowpass prevents biases from building up, but
-		// gives a mostly correct response for short impulses.
-		const float acc_hor = matrix::Vector2f(_acceleration).norm();
-		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
+		// rotate the body-frame specific force to the earth frame and add gravity back,
+		// such that a stationary vehicle measures ~0 at any attitude.
+		vehicle_attitude_s vehicle_attitude;
+
+		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			const matrix::Vector3f accel_earth = matrix::Quatf(vehicle_attitude.q).rotateVector(_acceleration)
+							     + matrix::Vector3f(0.f, 0.f, CONSTANTS_ONE_G);
+			const float acc_hor = matrix::Vector2f(accel_earth.xy()).norm();
+
+			// A leaking lowpass prevents biases from building up, but
+			// gives a mostly correct response for short impulses.
+			_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
+		}
 
 		// Check for angular velocity
 		const float rot_vel_hor = _angular_velocity.norm();
