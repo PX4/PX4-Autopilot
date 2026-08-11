@@ -84,13 +84,13 @@ void AutopilotTesterFailure::enable_actuator_output_status()
 	CHECK(getTelemetry()->set_rate_actuator_output_status(20.f) == Telemetry::Result::Success);
 }
 
-void AutopilotTesterFailure::ensure_motor_stopped(unsigned index, unsigned num_motors)
+void AutopilotTesterFailure::ensure_motors_stopped(uint32_t stopped_mask, unsigned num_motors)
 {
 	const Telemetry::ActuatorOutputStatus &status = getTelemetry()->actuator_output_status();
 	CHECK(status.active >= num_motors);
 
 	for (unsigned i = 0; i < num_motors; ++i) {
-		if (i == index) {
+		if (stopped_mask & (1u << i)) {
 			CHECK(status.actuator[i] <= 901.f);
 
 		} else { // ensure all others are still running
