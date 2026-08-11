@@ -238,7 +238,7 @@ void Navigator::run()
 	reset_position_setpoint(_reposition_triplet.next);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3] {};
+	px4_pollfd_struct_t fds[4] {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
@@ -247,6 +247,8 @@ void Navigator::run()
 	fds[1].events = POLLIN;
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
+	fds[3].fd = ORB_SUB_INVALID;
+	fds[3].events = POLLIN;
 
 	uint32_t geofence_id{0};
 	mission_s mission{};
@@ -256,6 +258,10 @@ void Navigator::run()
 	orb_set_interval(_local_pos_sub, 50);
 
 	while (!should_exit()) {
+
+		// Dataman responses are shared between clients. Poll this subscription only
+		// while the full-mission cache has a request that will consume the wakeup.
+		fds[3].fd = _mission_route_cache.fullMissionResponseSubscription();
 
 		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
@@ -288,9 +294,7 @@ void Navigator::run()
 		}
 
 		if (mission_received) {
-			// Blocking dataman reads only while disarmed, in flight the cache fills asynchronously.
-			const bool blocking_load_allowed = _vstatus.arming_state == vehicle_status_s::ARMING_STATE_DISARMED;
-			_mission_route_cache.update(mission, blocking_load_allowed);
+			_mission_route_cache.update(mission);
 		}
 
 		/* gps updated */

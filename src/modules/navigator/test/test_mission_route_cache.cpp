@@ -42,7 +42,9 @@
 #include <gtest/gtest.h>
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/posix.h>
 
+#include "full_mission_cache.h"
 #include "mission_route_cache.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/mission_route_test_helpers.h"
@@ -638,16 +640,21 @@ TEST_F(MissionRouteCacheTest, MissionSourceChangeDuringReadDoesNotPublishOldGene
 
 	_cache.update(mission_a);
 	ASSERT_TRUE(MissionRouteCacheTestPeer::missionLoadInProgress(_cache));
+	ASSERT_NE(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 
 	// Replace the contents without changing the Dataman bank or item indices.
 	writeMissionItems(mission_items_b);
 	_cache.update(mission_b);
+	// The old request is either still pending or was consumed and replaced in this
+	// call. In both cases the replacement load remains response-driven.
+	EXPECT_NE(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 
 	MissionRouteCache::MissionView view{};
 	EXPECT_FALSE(_cache.getMissionView(mission_a, view));
 	EXPECT_FALSE(_cache.getMissionView(mission_b, view));
 
 	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(_cache, mission_b, [&] { return _cache.missionItemsReady(mission_b); }));
+	EXPECT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 	ASSERT_TRUE(_cache.getMissionView(mission_b, view));
 	ASSERT_EQ(view.count, static_cast<int32_t>(mission_items_b.size()));
 
@@ -1145,30 +1152,48 @@ TEST_F(MissionRouteCacheTest, MissionViewStillValidTracksGeneration)
 	EXPECT_FALSE(_cache.missionViewStillValid(refreshed));
 }
 
-// Disarmed updates may use bounded blocking reads and become ready without the async pump.
-TEST_F(MissionRouteCacheTest, BlockingLoadFillsMissionCacheWithoutAsyncPump)
+// Each Dataman completion wakes the cache and immediately chains the next async read.
+TEST_F(MissionRouteCacheTest, FullMissionCachePollsPendingResponses)
 {
-	std::vector<mission_item_s> mission_items;
-
-	for (int i = 0; i < 12; ++i) {
-		mission_items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, 10.f * i, 0.f, kAlt + 5.f));
-	}
+	const std::vector<mission_item_s> mission_items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt + 5.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 20.f, 0.f, kAlt + 6.f),
+	};
 
 	const mission_s mission = makeMission(47, static_cast<uint16_t>(mission_items.size()));
 	writeMissionItems(mission_items);
+	FullMissionCache full_cache;
 
-	// Every blocking update() call loads at least one item before checking its budget,
-	// so the cache must become ready within count calls even on a slow machine.
-	for (size_t i = 0; i < mission_items.size() && !_cache.missionItemsReady(mission); ++i) {
-		_cache.update(mission, true);
-	}
+	EXPECT_EQ(full_cache.responseSubscription(), ORB_SUB_INVALID);
+	full_cache.update(mission);
+	ASSERT_NE(full_cache.responseSubscription(), ORB_SUB_INVALID);
+	EXPECT_FALSE(full_cache.missionItemsReady(mission));
 
-	ASSERT_TRUE(_cache.missionItemsReady(mission));
-	EXPECT_EQ(_cache.missionCount(), static_cast<int>(mission_items.size()));
+	px4_pollfd_struct_t response_fd{};
+	response_fd.fd = full_cache.responseSubscription();
+	response_fd.events = POLLIN;
+	ASSERT_GT(px4_poll(&response_fd, 1, 5000), 0);
+	ASSERT_NE(response_fd.revents & POLLIN, 0);
+
+	// Consuming item zero queues item one in this same call, keeping the fd armed.
+	full_cache.update(mission);
+	ASSERT_NE(full_cache.responseSubscription(), ORB_SUB_INVALID);
+	EXPECT_FALSE(full_cache.missionItemsReady(mission));
+
+	response_fd = {};
+	response_fd.fd = full_cache.responseSubscription();
+	response_fd.events = POLLIN;
+	ASSERT_GT(px4_poll(&response_fd, 1, 5000), 0);
+	ASSERT_NE(response_fd.revents & POLLIN, 0);
+	full_cache.update(mission);
+
+	ASSERT_TRUE(full_cache.missionItemsReady(mission));
+	EXPECT_EQ(full_cache.responseSubscription(), ORB_SUB_INVALID);
+	EXPECT_EQ(full_cache.missionCount(), static_cast<int>(mission_items.size()));
 
 	mission_item_s cached_item{};
-	ASSERT_TRUE(_cache.loadMissionItem(mission, 0, cached_item));
+	ASSERT_TRUE(full_cache.loadMissionItem(0, cached_item));
 	expectMissionItemMatches(cached_item, mission_items.front());
-	ASSERT_TRUE(_cache.loadMissionItem(mission, static_cast<int32_t>(mission_items.size()) - 1, cached_item));
+	ASSERT_TRUE(full_cache.loadMissionItem(static_cast<int32_t>(mission_items.size()) - 1, cached_item));
 	expectMissionItemMatches(cached_item, mission_items.back());
 }

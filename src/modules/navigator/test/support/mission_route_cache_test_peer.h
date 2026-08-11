@@ -53,34 +53,35 @@ public:
 
 	static bool missionRetryScheduled(const MissionRouteCache &cache)
 	{
-		return cache._mission.retry.retry_at != 0;
+		return cache._full_mission_cache._mission.retry.retry_at != 0;
 	}
 
 	static uint8_t missionRetryCount(const MissionRouteCache &cache)
 	{
-		return cache._mission.retry.retry_count;
+		return cache._full_mission_cache._mission.retry.retry_count;
 	}
 
 	static int32_t missionNextIndex(const MissionRouteCache &cache)
 	{
-		return cache._mission.next_index;
+		return cache._full_mission_cache._mission.next_index;
 	}
 
 	static bool missionLoadInProgress(const MissionRouteCache &cache)
 	{
-		return cache._mission.validation_pending && cache._mission_request.pending;
+		return cache._full_mission_cache._mission.validation_pending
+		       && cache._full_mission_cache._mission_request.pending;
 	}
 
 	static bool failPendingMissionLoad(MissionRouteCache &cache)
 	{
-		return cache._mission_request.pending
-		       && DatamanClientTestPeer::completeOperationWithFailure(cache._dataman_client_mission);
+		return cache._full_mission_cache._mission_request.pending
+		       && DatamanClientTestPeer::completeOperationWithFailure(cache._full_mission_cache._dataman_client_mission);
 	}
 
 	static void expireMissionRetryBackoff(MissionRouteCache &cache)
 	{
-		if (cache._mission.retry.retry_at != 0) {
-			cache._mission.retry.retry_at = hrt_absolute_time();
+		if (cache._full_mission_cache._mission.retry.retry_at != 0) {
+			cache._full_mission_cache._mission.retry.retry_at = hrt_absolute_time();
 		}
 	}
 
@@ -159,8 +160,8 @@ private:
 	// Returns false when nothing can progress without waiting on a scheduled retry backoff.
 	static bool progressOneEvent(MissionRouteCache &cache, const mission_s &mission, hrt_abstime timeout)
 	{
-		if (cache._mission_request.pending) {
-			if (!DatamanClientTestPeer::waitForOperation(cache._dataman_client_mission, timeout)) {
+		if (cache._full_mission_cache._mission_request.pending) {
+			if (!DatamanClientTestPeer::waitForOperation(cache._full_mission_cache._dataman_client_mission, timeout)) {
 				return false;
 			}
 
@@ -168,7 +169,7 @@ private:
 			return true;
 		}
 
-		if (cache._mission.validation_pending) {
+		if (cache._full_mission_cache._mission.validation_pending) {
 			cache.update(mission);
 			return true;
 		}

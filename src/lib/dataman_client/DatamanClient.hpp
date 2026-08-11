@@ -157,6 +157,15 @@ public:
 	 */
 	void abortCurrentOperation();
 
+	/**
+	 * @brief Get the subscription fd used for Dataman responses.
+	 *
+	 * Dataman responses are published on a shared topic. Callers that add this fd
+	 * to a poll set must only do so while they have an outstanding operation whose
+	 * update() path will consume the notification.
+	 */
+	orb_sub_t responseSubscription() const { return _dataman_response_sub; }
+
 private:
 	friend class DatamanClientTestPeer;
 
