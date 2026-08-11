@@ -319,6 +319,12 @@ bool ICM45686::Configure()
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
 
+	// The watermark latches only when FIFO_WM[15:8] is written, and the MSByte is 0 for every
+	// rate this driver can pick, so the read-modify-write above skips it and the threshold stays
+	// at 0 -- which the datasheet defines as watermark disabled. Write it unconditionally, after
+	// the LSByte, or FIFO_THS never fires and INT1 never pulses.
+	RegisterWrite(Register::BANK_0::FIFO_CONFIG1_1, (uint8_t)((_fifo_gyro_samples >> 8) & 0xFF));
+
 	// now check that all are configured
 	bool success = true;
 
