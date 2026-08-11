@@ -44,7 +44,7 @@
 #include "uavcan_main.hpp"
 
 #include <cstdio>
-#include <sys/stat.h>
+#include <dirent.h>
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
@@ -52,7 +52,49 @@
 
 #include <px4_platform_common/log.h>
 
-static constexpr char CANNODE_AIRFRAMES_DIR[] = "/etc/init.d/cannode_airframes/";
+static constexpr char CANNODE_AIRFRAMES_DIR[] = "/fs/microsd/ext_autostart/cannode_airframes/";
+
+// Scans CANNODE_AIRFRAMES_DIR for a file whose @name tag matches node_name.
+static bool findConfigForNode(const char *node_name, char *out_path, size_t path_size)
+{
+	DIR *dir = opendir(CANNODE_AIRFRAMES_DIR);
+
+	if (!dir) { return false; }
+
+	bool found = false;
+	struct dirent *de;
+
+	while (!found && (de = readdir(dir)) != nullptr) {
+		if (de->d_name[0] == '.') { continue; }
+
+		const int n = snprintf(out_path, path_size, "%s%s", CANNODE_AIRFRAMES_DIR, de->d_name);
+
+		if (n <= 0 || static_cast<size_t>(n) >= path_size) { continue; }
+
+		FILE *fp = fopen(out_path, "r");
+
+		if (!fp) { continue; }
+
+		char line[128];
+
+		while (fgets(line, sizeof(line), fp) != nullptr) {
+			line[strcspn(line, "\r\n")] = '\0';
+			const char *p = line;
+
+			while (*p == ' ' || *p == '\t') { ++p; }
+
+			if (strncmp(p, "@name ", 6) == 0) {
+				found = (strcmp(p + 6, node_name) == 0);
+				break;
+			}
+		}
+
+		fclose(fp);
+	}
+
+	closedir(dir);
+	return found;
+}
 
 CanNodeConfigurator::CanNodeConfigurator(uavcan::NodeInfoRetriever &retriever)
 	: _retriever(retriever)
@@ -107,16 +149,9 @@ void CanNodeConfigurator::handleNodeInfoRetrieved(uavcan::NodeID node_id,
 		return;
 	}
 
-	char path[sizeof(CANNODE_AIRFRAMES_DIR) + MaxNodeNameLen];
-	const int n = snprintf(path, sizeof(path), "%s%s", CANNODE_AIRFRAMES_DIR, node_info.name.c_str());
+	char path[MaxPathLen];
 
-	if (n <= 0 || static_cast<size_t>(n) >= sizeof(path)) {
-		return;
-	}
-
-	struct stat sb;
-
-	if (stat(path, &sb) != 0) {
+	if (!findConfigForNode(node_info.name.c_str(), path, sizeof(path))) {
 		return;
 	}
 
