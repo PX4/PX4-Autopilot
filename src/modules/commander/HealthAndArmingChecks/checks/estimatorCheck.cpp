@@ -527,6 +527,11 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, NavModes required_groups)
 {
+	// Skip the check to avoid warnings during calibration
+	if (context.status().calibration_enabled) {
+		return;
+	}
+
 	// _estimator_sensor_bias_sub instance got changed above already
 	estimator_sensor_bias_s bias;
 
