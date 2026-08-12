@@ -1,18 +1,22 @@
-# GNSS spectrum
+# GNSS spectrum analysis
+#
+# Reports a basic RF spectrum analysis for a GNSS receiver, decoded from the u-blox UBX-MON-SPAN
+# message (enabled via the GPS_UBX_SPECTRUM parameter).
+# Published by the `gps` driver (UBX protocol only), once per RF block, via the block-specific topics below.
+# The center frequency of bin i is: f(i) = center_frequency + spectrum_span * (i - 127) / 256
 
-uint64 timestamp # time since system start (microseconds)
-uint64 timestamp_sample # time since system start (microseconds)
+uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Timestamp of the raw data
 
-uint32 device_id # unique device ID for the sensor that does not change between power cycles
-uint8 block_id # RF block ID (0 = L1, 1 = L2 or L5)
+uint32 device_id # Unique device ID for the sensor that does not change between power cycles
 
-# The center frequency at each bin: f(i) = center + span * (i - 127) / 256
-uint8[256] spectrum # dB Spectrum data (number of points = span/res)
-uint32 spectrum_span_hz # Hz Spectrum span
-uint32 resolution_hz # Hz Resolution of the spectrum
-uint32 center_frequency_hz # Hz Center of spectrum span
+uint8 block_id # [-] only used for multi-topic publishing. Use center_frequency to determine which RF band it is.
 
-uint8 programmable_gain_amplifier_db # dB Programmable gain amplifier
+uint8[256] spectrum # [(2^-2)dB] Spectrum magnitude per bin (number of points = spectrum_span / resolution)
+uint32 spectrum_span # [Hz] Frequency span covered by the spectrum
+uint32 resolution # [Hz] Frequency resolution of the spectrum (bin width)
+uint32 center_frequency # [Hz] Center frequency of the spectrum span
+uint8 programmable_gain_amplifier # [dB] Programmable gain amplifier setting
 
 # One topic per RF block ID
 # TOPICS sensor_gnss_spectrum_block0 sensor_gnss_spectrum_block1
