@@ -54,8 +54,8 @@
 
 using namespace time_literals;
 
-static constexpr char PRIMARY_CANNODE_AIRFRAMES_DIR[] = "/fs/microsd/ext_autostart/cannode_airframes/";
-static constexpr char SECONDARY_CANNODE_AIRFRAMES_DIR[] = "/etc/init.d/cannode_airframes/";
+static constexpr char PRIMARY_CANNODE_AIRFRAMES_DIR[] = "/etc/init.d/cannode_airframes/";
+static constexpr char SECONDARY_CANNODE_AIRFRAMES_DIR[] = "/fs/microsd/ext_autostart/cannode_airframes/";
 
 // Scans CANNODE_AIRFRAMES_DIR for a file whose @name tag matches node_name.
 static bool findConfigForNode(const char *dir, const char *node_name, char *out_path, size_t path_size)
