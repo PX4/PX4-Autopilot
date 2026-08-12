@@ -54,22 +54,23 @@
 
 using namespace time_literals;
 
-static constexpr char CANNODE_AIRFRAMES_DIR[] = "/fs/microsd/ext_autostart/cannode_airframes/";
+static constexpr char PRIMARY_CANNODE_AIRFRAMES_DIR[] = "/fs/microsd/ext_autostart/cannode_airframes/";
+static constexpr char SECONDARY_CANNODE_AIRFRAMES_DIR[] = "/etc/init.d/cannode_airframes/";
 
 // Scans CANNODE_AIRFRAMES_DIR for a file whose @name tag matches node_name.
-static bool findConfigForNode(const char *node_name, char *out_path, size_t path_size)
+static bool findConfigForNode(const char *dir, const char *node_name, char *out_path, size_t path_size)
 {
-	DIR *dir = opendir(CANNODE_AIRFRAMES_DIR);
+	DIR *dirp = opendir(dir);
 
-	if (!dir) { return false; }
+	if (!dirp) { return false; }
 
 	bool found = false;
 	struct dirent *de;
 
-	while (!found && (de = readdir(dir)) != nullptr) {
+	while (!found && (de = readdir(dirp)) != nullptr) {
 		if (de->d_name[0] == '.') { continue; }
 
-		const int n = snprintf(out_path, path_size, "%s%s", CANNODE_AIRFRAMES_DIR, de->d_name);
+		const int n = snprintf(out_path, path_size, "%s%s", dir, de->d_name);
 
 		if (n <= 0 || static_cast<size_t>(n) >= path_size) { continue; }
 
@@ -94,7 +95,7 @@ static bool findConfigForNode(const char *node_name, char *out_path, size_t path
 		fclose(fp);
 	}
 
-	closedir(dir);
+	closedir(dirp);
 	return found;
 }
 
@@ -211,7 +212,11 @@ void CanNodeConfigurator::threadMain()
 		if (entry != nullptr) {
 			char path[MaxPathLen];
 
-			if (findConfigForNode(entry->node_name, path, sizeof(path))) {
+			if (findConfigForNode(PRIMARY_CANNODE_AIRFRAMES_DIR, entry->node_name, path, sizeof(path))) {
+				applyConfig(entry->node_id, path);
+			}
+
+			if (findConfigForNode(SECONDARY_CANNODE_AIRFRAMES_DIR, entry->node_name, path, sizeof(path))) {
 				applyConfig(entry->node_id, path);
 			}
 
