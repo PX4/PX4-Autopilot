@@ -57,8 +57,8 @@ TEST(VoliroControl, LevelHover)
 	ASSERT_TRUE(output.valid);
 	EXPECT_NEAR(output.force_frd(0), 0.f, 1e-6f);
 	EXPECT_NEAR(output.force_frd(1), 0.f, 1e-6f);
-	EXPECT_NEAR(output.force_frd(2), -41.9868f, 1e-4f);
-	EXPECT_NEAR(output.thrust_normalized(2), -41.9868f / 147.f, 1e-6f);
+	EXPECT_NEAR(output.force_frd(2), -28.8414f, 1e-4f);
+	EXPECT_NEAR(output.thrust_normalized(2), -28.8414f / (6.f * 22.67f), 1e-6f);
 	EXPECT_NEAR(output.moment_frd.norm(), 0.f, 1e-6f);
 	EXPECT_FALSE(output.force_limited);
 	EXPECT_EQ(output.torque_limited_mask, 0);
@@ -95,10 +95,10 @@ TEST(VoliroControl, MatchesPythonNedFrdReference)
 
 	const auto output = controller.calculate(state, setpoint);
 	ASSERT_TRUE(output.valid);
-	const Vector3f expected_force{-10.31753502f, -14.34495901f, -40.31553485f};
-	const Vector3f expected_moment{1.39122199f, -1.42981111f, -0.78156912f};
-	const Vector3f expected_thrust{-0.07018731f, -0.09758476f, -0.27425534f};
-	const Vector3f expected_torque{0.07359430f, -0.07563563f, -0.35445312f};
+	const Vector3f expected_force{-7.17876974f, -9.88538967f, -28.79405849f};
+	const Vector3f expected_moment{1.39102414f, -1.42866418f, -0.77546112f};
+	const Vector3f expected_thrust{-0.05277731f, -0.07267600f, -0.21168989f};
+	const Vector3f expected_torque{0.07952377f, -0.08167562f, -0.39701125f};
 
 	for (int axis = 0; axis < 3; ++axis) {
 		EXPECT_NEAR(output.force_frd(axis), expected_force(axis), 2e-5f);

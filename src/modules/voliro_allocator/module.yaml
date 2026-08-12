@@ -13,11 +13,12 @@ parameters:
         VOLA_TMAX:
             description:
                 short: Maximum thrust per rotor
+                long: Measured 2026-08-12 short-duration static peak for the F100 1350 KV and Gemfan Flash 7040-3 setup. This is not a validated continuous rating.
             type: float
             unit: N
             min: 0.1
             max: 200
-            default: 24.5
+            default: 22.67
         VOLA_ARM:
             description:
                 short: Rotor arm radius
@@ -29,11 +30,12 @@ parameters:
         VOLA_KAPPA:
             description:
                 short: Reaction torque to thrust ratio
+                long: Ratio fitted from the 2026-08-12 static propulsion sweep above 30 percent command.
             type: float
             unit: m
             min: 0
             max: 1
-            default: 0.015
+            default: 0.01436
         VOLA_TILT_MIN:
             description:
                 short: Minimum finite radial tilt angle

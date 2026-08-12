@@ -10,5 +10,29 @@ then
 	if param compare VCTRL_EN 1
 	then
 		voliro_control start
+
+		if param compare VHOV_EN 1
+		then
+			voliro_hover start
+
+			# POSIX-only regression hook. It is impossible to enable on the
+			# flight target and remains off for normal interactive SITL runs.
+			if [ "${PX4_VHOV_AUTOTEST:-0}" = "1" ]
+			then
+				sleep 1
+				commander mode ext1
+				commander arm -f
+				# Allow vehicle_status to publish the armed transition before
+				# the module evaluates its explicit takeoff request.
+				sleep 1
+				voliro_hover takeoff
+
+				if [ "${PX4_VHOV_AUTOLAND:-0}" = "1" ]
+				then
+					sleep 10
+					voliro_hover land
+				fi
+			fi
+		fi
 	fi
 fi

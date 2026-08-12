@@ -8,16 +8,18 @@ class VoliroControl
 {
 public:
 	struct Configuration {
-		float mass{4.28f};
+		float mass{2.94f};
 		float gravity{9.81f};
-		matrix::Vector3f inertia{0.11290823f, 0.11290823f, 0.203963f};
+		// Provisional uniformly scaled simulation inertia. Replace it with a
+		// measured/CAD value before aggressive physical all-attitude flight.
+		matrix::Vector3f inertia{0.07755846f, 0.07755846f, 0.14010543f};
 		matrix::Vector3f position_gain{1.5f, 1.5f, 6.f};
 		matrix::Vector3f velocity_gain{2.5f, 2.5f, 3.f};
 		matrix::Vector3f attitude_gain{4.f, 4.f, 3.f};
 		matrix::Vector3f angular_rate_gain{1.5f, 1.5f, 0.5f};
-		float max_rotor_thrust{24.5f};
+		float max_rotor_thrust{22.67f};
 		float arm_radius{0.315f};
-		float kappa{0.015f};
+		float kappa{0.01436f};
 	};
 
 	struct State {

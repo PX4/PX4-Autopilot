@@ -61,8 +61,8 @@ private:
 	matrix::Matrix<float, NUM_WRENCH_AXES, NUM_COMPONENTS> _effectiveness;
 	matrix::Matrix<float, NUM_COMPONENTS, NUM_WRENCH_AXES> _pseudo_inverse;
 	float _arm_radius{0.315f};
-	float _max_thrust{24.5f};
-	float _kappa{0.015f};
+	float _max_thrust{22.67f};
+	float _kappa{0.01436f};
 	float _regularization{1e-10f};
 	float _tolerance{1e-6f};
 	float _lipschitz{6.f};

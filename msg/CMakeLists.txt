@@ -245,6 +245,7 @@ set(msg_files
 	VehicleThrustSetpoint.msg
 	VehicleTorqueSetpoint.msg
 	VoliroAllocatorStatus.msg
+	VoliroHoverStatus.msg
 	VoliroTiltFeedback.msg
 	VoliroTiltSetpoint.msg
 	VelocityLimits.msg

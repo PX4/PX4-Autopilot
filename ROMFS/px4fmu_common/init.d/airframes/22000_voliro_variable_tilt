@@ -29,22 +29,22 @@ param set-default CA_METHOD 0
 # allocator uses this geometry whenever VOLA_EN is zero.
 param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 0
-param set-default CA_ROTOR0_KM -0.0476190476
+param set-default CA_ROTOR0_KM -0.0455873016
 param set-default CA_ROTOR1_PX 0.5
 param set-default CA_ROTOR1_PY -0.866025404
-param set-default CA_ROTOR1_KM 0.0476190476
+param set-default CA_ROTOR1_KM 0.0455873016
 param set-default CA_ROTOR2_PX -0.5
 param set-default CA_ROTOR2_PY -0.866025404
-param set-default CA_ROTOR2_KM -0.0476190476
+param set-default CA_ROTOR2_KM -0.0455873016
 param set-default CA_ROTOR3_PX -1
 param set-default CA_ROTOR3_PY 0
-param set-default CA_ROTOR3_KM 0.0476190476
+param set-default CA_ROTOR3_KM 0.0455873016
 param set-default CA_ROTOR4_PX -0.5
 param set-default CA_ROTOR4_PY 0.866025404
-param set-default CA_ROTOR4_KM -0.0476190476
+param set-default CA_ROTOR4_KM -0.0455873016
 param set-default CA_ROTOR5_PX 0.5
 param set-default CA_ROTOR5_PY 0.866025404
-param set-default CA_ROTOR5_KM 0.0476190476
+param set-default CA_ROTOR5_KM 0.0455873016
 
 # Pixhawk 6X FMU outputs support the propulsion bank; the I/O MAIN bank
 # provides six conventional PWM channels for the first GL40II prototype.
@@ -73,11 +73,16 @@ param set GL40_EN 0
 # Keep the dedicated allocator off until the GL40II reply-only and restrained
 # motion tests validate IDs, range scaling, sign, timing, and disable behavior.
 param set-default VOLA_EN 0
-# F100 rounded 2.5 kgf peak target. This is a provisional peak value, not a
-# validated continuous-flight limit; replace it with propulsion-bench data.
-param set-default VOLA_TMAX 24.5
+# 2026-08-12 F100 1350 KV/Gemfan Flash 7040-3 static calibration. The thrust
+# value is a short-duration measured peak, not a continuous-flight rating.
+param set-default THR_MDL_FAC 0.56
+# 2.940 kg / six rotors / 22.67 N measured peak = 0.212 relative thrust.
+# Keep the hover feed-forward in thrust space; THR_MDL_FAC converts it to the
+# approximately 0.337 motor signal expected by the fitted propulsion curve.
+param set-default MPC_THR_HOVER 0.21
+param set-default VOLA_TMAX 22.67
 param set-default VOLA_ARM 0.315
-param set-default VOLA_KAPPA 0.015
+param set-default VOLA_KAPPA 0.01436
 # The mechanism has 450 degrees total travel: one full thrust-direction
 # revolution plus 45 degrees of finite over-travel at either end.
 param set-default VOLA_TILT_MIN -3.9269908
@@ -88,9 +93,23 @@ param set-default VOLA_TILT_RATE 7.85
 param set-default VOLA_TILT_TAU 0.05
 param set-default VOLA_FB_TMO 0.1
 
-# Keep the onboard pose controller disabled until estimator/mocap input,
-# setpoint timeout behavior, and no-propeller output behavior are validated.
+# Keep the onboard pose controller and hover-mode registration opt-in. They
+# are started only when their enable parameters are set before reboot.
 param set-default VCTRL_EN 0
+param set-default VCTRL_MASS 2.94
+param set-default VCTRL_IXX 0.07755846
+param set-default VCTRL_IYY 0.07755846
+param set-default VCTRL_IZZ 0.14010543
+param set-default VHOV_EN 0
+param set-default VHOV_ALT 0.5
+param set-default VHOV_LCH_ACC 0.8
+param set-default VHOV_LCH_TMO 2
+param set-default VHOV_TD_ACC 9.81
+param set-default VHOV_TKO_T 5
+param set-default VHOV_LND_T 5
+param set-default VHOV_ODOM_TMO 0.15
+param set-default VHOV_FB_TMO 0.15
+param set-default VHOV_ZERO_TOL 0.174533
 
 # Use the full body-frame thrust vector for land detection. Keep PX4's stock
 # attitude-failure angles on hardware until the Voliro tracking/rate/authority

@@ -1,0 +1,5 @@
+menuconfig MODULES_VOLIRO_HOVER
+	bool "voliro_hover"
+	default n
+	---help---
+		Fully onboard Voliro hover flight mode and minimum-jerk reference generator.

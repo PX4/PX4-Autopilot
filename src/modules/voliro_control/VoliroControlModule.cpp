@@ -97,12 +97,19 @@ bool VoliroControlModule::updateSetpoint()
 	return true;
 }
 
-bool VoliroControlModule::controlEnabled() const
+bool VoliroControlModule::controlEnabled(hrt_abstime now) const
 {
-	return _param_enable.get()
-	       && _vehicle_control_mode.flag_control_offboard_enabled
-	       && _vehicle_control_mode.flag_control_allocation_enabled
-	       && _offboard_control_mode.thrust_and_torque;
+	const bool offboard_enabled = _vehicle_control_mode.flag_control_offboard_enabled
+				      && _offboard_control_mode.thrust_and_torque;
+	const hrt_abstime hover_timeout =
+		static_cast<hrt_abstime>(math::max(_param_setpoint_timeout.get(), 0.01f) * 1e6f);
+	const bool onboard_hover_enabled = _voliro_hover_status.active
+					   && _voliro_hover_status.timestamp != 0
+					   && now >= _voliro_hover_status.timestamp
+					   && now - _voliro_hover_status.timestamp <= hover_timeout;
+
+	return _param_enable.get() && _vehicle_control_mode.flag_control_allocation_enabled
+	       && (offboard_enabled || onboard_hover_enabled);
 }
 
 bool VoliroControlModule::setpointValid(hrt_abstime now) const
@@ -192,6 +199,7 @@ void VoliroControlModule::Run()
 
 	_offboard_control_mode_sub.update(&_offboard_control_mode);
 	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+	_voliro_hover_status_sub.update(&_voliro_hover_status);
 	updateSetpoint();
 
 	vehicle_odometry_s odometry{};
@@ -203,7 +211,7 @@ void VoliroControlModule::Run()
 
 	const hrt_abstime now = hrt_absolute_time();
 	VoliroControl::State state{};
-	_active = controlEnabled() && setpointValid(now) && stateFromOdometry(odometry, state);
+	_active = controlEnabled(now) && setpointValid(now) && stateFromOdometry(odometry, state);
 
 	if (_active) {
 		VoliroControl::Setpoint setpoint{};

@@ -15,5 +15,10 @@ then
 	if param compare VCTRL_EN 1
 	then
 		voliro_control start
+
+		if param compare VHOV_EN 1
+		then
+			voliro_hover start
+		fi
 	fi
 fi

@@ -18,6 +18,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/voliro_hover_status.h>
 
 class VoliroControlModule : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -36,7 +37,7 @@ private:
 	void Run() override;
 	bool updateConfiguration();
 	bool updateSetpoint();
-	bool controlEnabled() const;
+	bool controlEnabled(hrt_abstime now) const;
 	bool setpointValid(hrt_abstime now) const;
 	bool stateFromOdometry(const vehicle_odometry_s &odometry, VoliroControl::State &state) const;
 	void publishWrench(const VoliroControl::Output &output, uint64_t timestamp_sample);
@@ -45,6 +46,7 @@ private:
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint6dof)};
 	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _voliro_hover_status_sub{ORB_ID(voliro_hover_status)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1'000'000};
 	uORB::Publication<vehicle_thrust_setpoint_s> _thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s> _torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
@@ -53,6 +55,7 @@ private:
 	trajectory_setpoint6dof_s _setpoint{};
 	offboard_control_mode_s _offboard_control_mode{};
 	vehicle_control_mode_s _vehicle_control_mode{};
+	voliro_hover_status_s _voliro_hover_status{};
 	matrix::Vector3f _setpoint_angular_acceleration;
 	matrix::Vector3f _previous_setpoint_angular_velocity;
 	uint64_t _previous_setpoint_timestamp{0};
