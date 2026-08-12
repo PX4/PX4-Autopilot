@@ -146,9 +146,10 @@ public:
 	bool loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const;
 
 	/**
-	 * @brief Apply a successful in-place Dataman write to the cached mission data.
+	 * @brief Apply a successful Dataman write to the cached mission data.
 	 *
-	 * Active-mission writes must be synced because loaded items are not re-read.
+	 * Call this from Navigator's serialized task after every successful active-mission write.
+	 * Loaded items are not re-read.
 	 * SyncResult describes only the full cache; land-cache updates are independent.
 	 */
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);

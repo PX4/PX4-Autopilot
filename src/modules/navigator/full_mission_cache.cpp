@@ -169,6 +169,7 @@ FullMissionCache::SyncResult FullMissionCache::syncMissionItem(const mission_s &
 	}
 
 	if (_mission.ready) {
+		// A ready cache has no pending read. Patch it and invalidate borrowed views.
 		_mission_items[index] = mission_item;
 		advanceMissionGeneration();
 		return SyncResult::kPatched;

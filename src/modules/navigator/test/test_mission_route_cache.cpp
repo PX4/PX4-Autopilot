@@ -796,8 +796,8 @@ TEST_F(MissionRouteCacheTest, SafePointCacheRejectsInvalidDatamanId)
 	EXPECT_EQ(_cache.safePointCount(), 0);
 }
 
-// Patching a non-land item keeps the mission cache coherent.
-TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionCache)
+// A successful write patches a ready cache without starting another load.
+TEST_F(MissionRouteCacheTest, SyncMissionItemPatchesReadyMissionCache)
 {
 	const std::vector<mission_item_s> mission_items{
 		makeTakeoffItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt + 10.f),
@@ -810,9 +810,14 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionCache)
 			<< "mission cache did not become ready";
 	MissionRouteCache::MissionView before_sync{};
 	ASSERT_TRUE(_cache.getMissionView(mission, before_sync));
+	ASSERT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
 
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
+	writeMissionItem(updated, 1);
 	ASSERT_EQ(_cache.syncMissionItem(mission, 1, updated), MissionRouteCache::SyncResult::kPatched);
+	EXPECT_TRUE(_cache.missionItemsReady(mission));
+	EXPECT_EQ(_cache.fullMissionResponseSubscription(), ORB_SUB_INVALID);
+	EXPECT_FALSE(_cache.missionViewStillValid(before_sync));
 
 	MissionRouteCache::MissionView after_sync{};
 	ASSERT_TRUE(_cache.getMissionView(mission, after_sync));
@@ -937,8 +942,8 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemDuringRetryBackoffPatchesLoadedPref
 
 	ASSERT_TRUE(enterRetryBackoffAfterFirstItem(mission));
 
-	// Leave Dataman unchanged so a prefix re-read would overwrite the patch.
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 150.f, 25.f, kAlt + 33.f);
+	writeMissionItem(updated, 0);
 	EXPECT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kPatched);
 
 	// The retry resumes at the failed index.
@@ -974,6 +979,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemUpdatesMissionLandCache)
 			<< "mission land item did not become ready";
 
 	const mission_item_s updated_land = makeLandItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
+	writeMissionItem(updated_land, land_index);
 	ASSERT_EQ(_cache.syncMissionItem(mission, land_index, updated_land), MissionRouteCache::SyncResult::kPatched);
 
 	int32_t out_index = -1;
@@ -1007,6 +1013,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemInvalidatesMissionLandCacheForNonLa
 			<< "mission land item did not become ready";
 
 	const mission_item_s updated_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
+	writeMissionItem(updated_item, land_index);
 	ASSERT_EQ(_cache.syncMissionItem(mission, land_index, updated_item), MissionRouteCache::SyncResult::kPatched);
 
 	EXPECT_FALSE(_cache.missionLandItemReady());
@@ -1113,6 +1120,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemMaintainsLandCacheWithoutMissionCac
 
 	// The mission cache rejects the write, the land cache still applies it.
 	const mission_item_s updated_land = makeLandItemFromOffset(kBaseLat, kBaseLon, 222.f, 11.f, kAlt + 1.f);
+	writeMissionItem(updated_land, land_index);
 	EXPECT_EQ(_cache.syncMissionItem(mission, land_index, updated_land), MissionRouteCache::SyncResult::kRejected);
 
 	int32_t out_index = -1;
@@ -1123,6 +1131,7 @@ TEST_F(MissionRouteCacheTest, SyncMissionItemMaintainsLandCacheWithoutMissionCac
 
 	// A non-land replacement invalidates the land cache through the same path.
 	const mission_item_s non_land = makePositionItemFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 5.f);
+	writeMissionItem(non_land, land_index);
 	EXPECT_EQ(_cache.syncMissionItem(mission, land_index, non_land), MissionRouteCache::SyncResult::kRejected);
 	EXPECT_FALSE(_cache.missionLandItemReady());
 	EXPECT_TRUE(_cache.missionLandItemUpdatePending());
@@ -1149,6 +1158,7 @@ TEST_F(MissionRouteCacheTest, MissionViewStillValidTracksGeneration)
 
 	// An authoritative in-place patch advances the generation and stales older views.
 	const mission_item_s updated = makePositionItemFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 5.f);
+	writeMissionItem(updated, 0);
 	ASSERT_EQ(_cache.syncMissionItem(mission, 0, updated), MissionRouteCache::SyncResult::kPatched);
 	EXPECT_FALSE(_cache.missionViewStillValid(view));
 

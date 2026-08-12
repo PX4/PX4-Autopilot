@@ -64,7 +64,7 @@ public:
 
 	enum class SyncResult : uint8_t {
 		kRejected,  ///< Source mismatch, index out of range, or the cache is compiled out.
-		kPatched,   ///< The item was applied in place; any previously borrowed view is stale.
+		kPatched,   ///< A loaded item was updated in place; a published view becomes stale.
 		kDeferred   ///< The item is not loaded yet; the pending load reads it from dataman.
 	};
 
@@ -82,7 +82,7 @@ public:
 	bool getMissionView(const mission_s &mission, MissionView &view) const;
 	bool missionViewStillValid(const MissionView &view) const;
 
-	/** Apply a successful Dataman item write to the cache. */
+	/** Apply a successful Dataman item write from Navigator's serialized task. */
 	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 	/**
