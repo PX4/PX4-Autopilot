@@ -61,6 +61,11 @@ else()
 		set(cxx_flags_with_includes "${cxx_flags_with_includes} -I${dir}")
 	endforeach()
 
+	# GCC 14 promotes implicit function declarations to hard errors; the
+	# client's POSIX UDP transport (compiled but never linked on NuttX)
+	# trips this via getaddrinfo/freeaddrinfo
+	set(c_flags_with_includes "${c_flags_with_includes} -Wno-error=implicit-function-declaration")
+
 	set(lib_dir ${CMAKE_INSTALL_LIBDIR})
 	if("${lib_dir}" STREQUAL "")
 		set(lib_dir "lib")
