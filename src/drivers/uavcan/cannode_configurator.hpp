@@ -43,8 +43,10 @@
 #include <uavcan/protocol/node_info_retriever.hpp>
 #include <containers/List.hpp>
 #include <pthread.h>
+#include <px4_platform_common/atomic.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/uavcan_firmware_update.h>
+#include <px4_platform_common/time.h>
 
 class CanNodeConfigurator : private uavcan::INodeInfoListener
 {
@@ -67,11 +69,12 @@ private:
 
 	// --- Constants ---
 	static constexpr size_t MaxNodeNameLen = uavcan::protocol::GetNodeInfo_::Response::FieldTypes::name::MaxSize;
-	static constexpr size_t MaxPathLen     = 40 + MaxNodeNameLen;
+	static constexpr size_t MaxPathLen     = 64 + MaxNodeNameLen;
 
 	struct QueueEntry : public ListNode<QueueEntry *> {
-		uint8_t node_id;
-		char    path[MaxPathLen];
+		uint8_t     node_id;
+		char        node_name[MaxNodeNameLen];
+		hrt_abstime queued_at;
 	};
 
 	uavcan::NodeInfoRetriever &_retriever;
@@ -81,7 +84,7 @@ private:
 
 	pthread_t        _thread{};
 	pthread_mutex_t  _queue_mutex{};
-	volatile bool    _should_exit{false};
+	px4::atomic_bool _should_exit{false};
 
 	List<QueueEntry *> _queue{};
 };
