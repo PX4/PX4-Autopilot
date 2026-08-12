@@ -52,6 +52,8 @@
 
 #include <px4_platform_common/log.h>
 
+using namespace time_literals;
+
 static constexpr char CANNODE_AIRFRAMES_DIR[] = "/fs/microsd/ext_autostart/cannode_airframes/";
 
 // Scans CANNODE_AIRFRAMES_DIR for a file whose @name tag matches node_name.
@@ -115,7 +117,7 @@ void CanNodeConfigurator::init()
 CanNodeConfigurator::~CanNodeConfigurator()
 {
 	_retriever.removeListener(this);
-	_should_exit = true;
+	_should_exit.store(true);
 	pthread_join(_thread, nullptr);
 	_queue.clear();
 	pthread_mutex_destroy(&_queue_mutex);
@@ -149,12 +151,6 @@ void CanNodeConfigurator::handleNodeInfoRetrieved(uavcan::NodeID node_id,
 		return;
 	}
 
-	char path[MaxPathLen];
-
-	if (!findConfigForNode(node_info.name.c_str(), path, sizeof(path))) {
-		return;
-	}
-
 	QueueEntry *entry = new QueueEntry();
 
 	if (entry == nullptr) {
@@ -162,9 +158,10 @@ void CanNodeConfigurator::handleNodeInfoRetrieved(uavcan::NodeID node_id,
 		return;
 	}
 
-	entry->node_id = node_id.get();
-	strncpy(entry->path, path, MaxPathLen - 1);
-	entry->path[MaxPathLen - 1] = '\0';
+	entry->node_id   = node_id.get();
+	entry->queued_at = hrt_absolute_time();
+	strncpy(entry->node_name, node_info.name.c_str(), MaxNodeNameLen - 1);
+	entry->node_name[MaxNodeNameLen - 1] = '\0';
 
 	pthread_mutex_lock(&_queue_mutex);
 
@@ -188,7 +185,7 @@ void *CanNodeConfigurator::threadEntry(void *arg)
 
 void CanNodeConfigurator::threadMain()
 {
-	while (!_should_exit) {
+	while (!_should_exit.load()) {
 		uavcan_firmware_update_s fw_update{};
 
 		if (_fw_update_sub.copy(&fw_update)) {
@@ -202,15 +199,25 @@ void CanNodeConfigurator::threadMain()
 
 		pthread_mutex_lock(&_queue_mutex);
 		QueueEntry *entry = _queue.getHead();
-		if (entry != nullptr) { _queue.remove(entry); }
+		if (entry != nullptr) {
+			if(hrt_elapsed_time(&entry->queued_at) < 3_s){
+				entry = nullptr;
+			}else{
+				_queue.remove(entry);
+			}
+		}
 		pthread_mutex_unlock(&_queue_mutex);
 
 		if (entry != nullptr) {
-			applyConfig(entry->node_id, entry->path);
-			delete entry;
+			char path[MaxPathLen];
 
+			if (findConfigForNode(entry->node_name, path, sizeof(path))) {
+				applyConfig(entry->node_id, path);
+			}
+
+			delete entry;
 		} else {
-			sleep(10);
+			sleep(3);
 		}
 	}
 }
