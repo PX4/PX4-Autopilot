@@ -30446,7 +30446,7 @@ Maximum vertical velocity allowed in the landed state.
 
 Fixed-wing land detector: Max horizontal acceleration.
 
-Maximum horizontal (x,y body axes) acceleration allowed in the landed state
+Maximum gravity-compensated horizontal (earth frame) acceleration allowed in the landed state.
 
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
