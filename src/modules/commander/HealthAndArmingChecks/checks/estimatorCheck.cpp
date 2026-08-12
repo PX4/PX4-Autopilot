@@ -144,7 +144,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.failsafeFlags().mode_req_local_position_relaxed |
 				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
-	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
+	// Skip the checks to avoid warnings during calibration (they recover once the vehicle is still again)
+	const bool report_innovation_failures = !context.isArmed() && !context.status().calibration_enabled;
+
+	if (report_innovation_failures && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 * @description
 		 * Recalibrate compass or perform manual heading reset.
@@ -157,7 +160,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate invalid");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_vel_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -168,7 +171,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_vert) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_vel_vert) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -179,7 +182,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_pos_horiz) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_pos_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -190,7 +193,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal position unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
+	} else if (report_innovation_failures && estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
