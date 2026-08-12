@@ -231,6 +231,7 @@ public:
 	int			 list_params(int remote_node_id);
 	int			 save_params(int remote_node_id);
 	int			 set_param(int remote_node_id, const char *name, char *value);
+	int			 set_param_if_changed(int remote_node_id, const char *name, char *value);
 	int			 get_param(int remote_node_id, const char *name);
 	int			 reset_node(int remote_node_id);
 
