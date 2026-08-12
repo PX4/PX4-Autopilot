@@ -873,6 +873,7 @@
   - [Advanced Topics](advanced/index.md)
     - [PX4 Metadata](advanced/px4_metadata.md)
     - [Detect and Avoid](advanced_features/detect_and_avoid.md)
+    - [Mission Route Cache](advanced/mission_route_cache.md)
     - [Package Delivery Architecture](advanced/package_delivery.md)
     - [Camera Integration/Architecture](camera/camera_architecture.md)
     - [Computer Vision](advanced/computer_vision.md)
