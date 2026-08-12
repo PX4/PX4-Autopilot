@@ -7,7 +7,7 @@ The mission route cache provides this data without reading Dataman or the SD car
 
 ```text
 MissionRouteCache
-|-- full mission route           [optional, configured capacity]
+|-- full mission route (optional) [0, ..., CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE - 1]
 |-- safe points                  [all uploaded safe points]
 `-- published mission-land item  [one item]
 ```
