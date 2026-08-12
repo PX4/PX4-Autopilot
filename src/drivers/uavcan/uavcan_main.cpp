@@ -1027,7 +1027,7 @@ UavcanNode::Run()
 
 void UavcanNode::apply_can_failure_injection()
 {
-	// FAILURE_UNIT_SYSTEM_BUS_CAN: instance i+1 selects CAN interface i. FAILURE_TYPE_OFF holds
+	// FAILURE_UNIT_BUS_CAN: instance i+1 selects CAN interface i. FAILURE_TYPE_OFF holds
 	// the FDCAN peripheral in Init mode so the node leaves the bus entirely (no TX/RX/ACK);
 	// FAILURE_TYPE_OK rejoins it. No-op unless the failure-injection manager is built.
 	_failure_config.update();
@@ -1035,7 +1035,7 @@ void UavcanNode::apply_can_failure_injection()
 #if defined(UAVCAN_STM32H7_NUTTX)
 
 	for (uint8_t i = 0; i < can->driver.getNumIfaces() && i < UAVCAN_NUM_IFACES; i++) {
-		const bool off = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BUS_CAN, i + 1)
+		const bool off = _failure_config.mode(failure_injection_s::FAILURE_UNIT_BUS_CAN, i + 1)
 				 == failure_injection::Mode::Off;
 
 		if (off != _can_blackout[i]) {
