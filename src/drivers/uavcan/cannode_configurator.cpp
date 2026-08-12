@@ -279,15 +279,30 @@ void CanNodeConfigurator::applyConfig(uint8_t node_id, const char *path)
 	char line[kNameSize + kValueSize + 2];
 	char name[kNameSize];
 	char value[kValueSize];
+	bool any_changed = false;
 
 	while (readNextLine(fp, line, sizeof(line))) {
 		if (!parseNameValue(line, name, sizeof(name), value, sizeof(value))) { continue; }
 
-		PX4_INFO("cannode_cfg: node %u  SET %s = %s", node_id, name, value);
-		UavcanNode::instance()->set_param(static_cast<int>(node_id), name, value);
+		int rv = UavcanNode::instance()->set_param_if_changed(static_cast<int>(node_id), name, value);
+
+		if (rv > 0) {
+			PX4_INFO("cannode_cfg: node %u  SET %s = %s", node_id, name, value);
+			any_changed = true;
+
+		} else if (rv < 0) {
+			PX4_WARN("cannode_cfg: node %u  failed to set %s = %s", node_id, name, value);
+		}
 	}
 
 	fclose(fp);
-	PX4_INFO("cannode_cfg: configuration complete for node %u", node_id);
+
+	if (any_changed) {
+		PX4_INFO("cannode_cfg: saving node %u (will reboot)", node_id);
+		UavcanNode::instance()->save_params(static_cast<int>(node_id));
+
+	} else {
+		PX4_INFO("cannode_cfg: node %u already configured, no reboot needed", node_id);
+	}
 }
 
