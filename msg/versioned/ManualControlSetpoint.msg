@@ -1,3 +1,10 @@
+# Manual control input
+#
+# This is the manual control input currently in charge of the vehicle.
+# It is selected from all available sources: RC (input_rc) or one of several
+# MAVLINK manual_control sources based on param COM_RC_IN_MODE
+# and published to the controllers.
+
 uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp                        # time since system start (microseconds)
