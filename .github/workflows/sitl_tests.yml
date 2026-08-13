@@ -33,6 +33,7 @@ jobs:
       matrix:
         config:
           - {model: "quadx",         latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
+          - {model: "hex",           latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "RelWithDebInfo" } # Zurich
           - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
           - {model: "xvert",         latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "RelWithDebInfo" } # Zurich
     env:

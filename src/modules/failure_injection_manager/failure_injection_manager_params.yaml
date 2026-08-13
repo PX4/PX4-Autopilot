@@ -80,3 +80,19 @@ parameters:
         max: 16
         default: 1
         reboot_required: true
+      SYS_FAIL_MOT_OFF:
+        description:
+          short: Behavior of injected motor "Off" failures
+          long: |-
+            Selects how an injected motor "Off" failure is applied.
+            Soft: the motor is reported as failed and removed from control
+            allocation; the allocator knows about the failure and compensates
+            (requires CA_FAILURE_MODE).
+            Hard: the motor output is stopped without informing the allocator
+            (no-feedback case, e.g. PWM ESCs).
+        type: enum
+        default: 0
+        reboot_required: true
+        values:
+          0: Soft (detected motor failure)
+          1: Hard (no motor/esc telemetry)

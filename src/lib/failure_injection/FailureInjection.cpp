@@ -35,6 +35,7 @@
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
+#include <parameters/param.h>
 #include <uORB/topics/battery_status.h>
 
 namespace failure_injection
@@ -124,6 +125,39 @@ esc_status_s process_esc(const Config &config, const esc_status_s &status)
 	}
 
 	return result;
+}
+
+MotorFailureMasks process_motor(const Config &config)
+{
+	static int32_t motor_off_behavior = -1;
+
+	if (motor_off_behavior < 0) {
+		motor_off_behavior = 0;
+		int32_t value{0};
+
+		if (param_get(param_find("SYS_FAIL_MOT_OFF"), &value) == PX4_OK) {
+			motor_off_behavior = value;
+		}
+	}
+
+	uint16_t motors_off = 0;
+
+	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == Mode::Off) {
+			motors_off |= 1u << i;
+		}
+	}
+
+	MotorFailureMasks masks{};
+
+	if (motor_off_behavior == 1) {
+		masks.stop_mask = motors_off;
+
+	} else {
+		masks.failure_mask = motors_off;
+	}
+
+	return masks;
 }
 
 } // namespace failure_injection

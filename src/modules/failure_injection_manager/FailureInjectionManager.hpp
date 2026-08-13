@@ -102,6 +102,9 @@ private:
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
-		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst
+		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
+		// Consumed via param_find() in the FailureInjection lib; declared here so
+		// it is marked used at boot and shows up in the GCS parameter list
+		(ParamInt<px4::params::SYS_FAIL_MOT_OFF>) _param_sys_fail_mot_off
 	)
 };

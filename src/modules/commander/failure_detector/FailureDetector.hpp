@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include "FailureInjector.hpp"
+#include <lib/failure_injection/FailureInjection.hpp>
 
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
@@ -121,7 +121,8 @@ private:
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
-	FailureInjector _failure_injector;
+	failure_injection::Config _failure_injection_config;
+	failure_injection::MotorFailureMasks _injected_motor_masks{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
