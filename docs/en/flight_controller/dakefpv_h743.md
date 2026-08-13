@@ -87,7 +87,17 @@ For CRSF/ELRS, connect to the RX5/TX5 pads — TX is required for telemetry back
 
 ## OSD
 
-The AT7456E OSD is enabled by default on SPI2. Simultaneous analog OSD and digital HD OSD (via UART4 DisplayPort) are supported.
+The AT7456E analog OSD is on SPI2. It is disabled by default and is enabled by setting
+[OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to the video
+standard in use (`1` = NTSC, `2` = PAL); a reboot is required. Analog OSD and digital HD OSD
+can run at the same time.
+
+::: warning
+Enabling the analog OSD is currently untested on this hardware. On the H743 Pro, starting the
+`atxxxx` driver at boot has been observed to prevent the USB CDC interface from coming up, leaving
+the board unreachable over USB until firmware is re-flashed via the bootloader. Leave
+`OSD_ATXXXX_CFG` at `0` unless you are able to recover the board.
+:::
 
 The digital VTX (DJI/HDZero/OpenIPC) connects to the `T4`/`R4` pads — UART4, PX4 TELEM3 (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
 
