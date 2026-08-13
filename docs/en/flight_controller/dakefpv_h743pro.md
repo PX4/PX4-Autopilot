@@ -84,17 +84,10 @@ RC input is on UART5 (`/dev/ttyS4`). Supported: CRSF/ELRS, SBUS, DSM, SRXL2.
 
 ## OSD
 
-The AT7456E analog OSD is on SPI2. It is disabled by default and is enabled by setting
-[OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to the video
-standard in use (`1` = NTSC, `2` = PAL); a reboot is required. Analog OSD and digital HD OSD
-can run at the same time.
-
-::: warning
-Enabling the analog OSD is currently untested on this hardware. On the H743 Pro, starting the
-`atxxxx` driver at boot has been observed to prevent the USB CDC interface from coming up, leaving
-the board unreachable over USB until firmware is re-flashed via the bootloader. Leave
-`OSD_ATXXXX_CFG` at `0` unless you are able to recover the board.
-:::
+The AT7456E analog OSD is on SPI2 and is enabled by default for PAL
+([OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) = `2`).
+Set it to `1` for NTSC, or `0` to disable the analog OSD; a reboot is required.
+Analog OSD and digital HD OSD can run at the same time.
 
 The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads, which is UART4 — PX4 TELEM3 (`/dev/ttyS3`).
 This is the default: `MSP_OSD_CONFIG` is set to `103` (TELEM3).
