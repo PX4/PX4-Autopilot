@@ -72,7 +72,7 @@ public:
 		bool home_has_land_approach{false};
 		bool any_safe_point_has_land_approach{false};
 		Goal goal{Goal::None};
-		PositionYawSetpoint destination{NAN, NAN, NAN, NAN};
+		PositionYawSetpoint destination{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
 		uint8_t safe_point_index{UINT8_MAX};
 	};
 

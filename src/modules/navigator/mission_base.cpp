@@ -1411,9 +1411,9 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-bool MissionBase::findAttachedPositionIndex(int32_t start_index, int32_t &attached_index)
+bool MissionBase::findAttachedPositionIndex(int32_t from_index, int32_t &attached_index)
 {
-	for (int32_t index = start_index; index >= 0; --index) {
+	for (int32_t index = from_index; index >= 0; --index) {
 		mission_item_s mission_item{};
 
 		if (!loadMissionItemFromCache(index, mission_item)) {

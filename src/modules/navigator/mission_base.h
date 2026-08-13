@@ -473,8 +473,8 @@ protected:
 				       MissionTraversalType traversal_type);
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Find the nearest position item at or before @p start_index. */
-	bool findAttachedPositionIndex(int32_t start_index, int32_t &attached_index);
+	/** Find the nearest position item at or before @p from_index. */
+	bool findAttachedPositionIndex(int32_t from_index, int32_t &attached_index);
 
 	/** Reconstruct the expected VTOL state at a mission position anchor. */
 	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);

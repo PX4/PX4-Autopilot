@@ -507,7 +507,7 @@ TEST_F(MissionRouteGoalTest, DefaultMissionInvalidRallyPointSkipped)
 {
 	// Default mission with rally[0].lat set to NAN (corrupted).
 	auto safe_points = default_dataset::safePoints();
-	safe_points[0].lat = NAN;
+	safe_points[0].lat = static_cast<double>(NAN);
 
 	VectorProvider provider{default_dataset::mission(), safe_points};
 	MissionRoutePlanner planner{provider};

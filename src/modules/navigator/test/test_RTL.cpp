@@ -67,6 +67,7 @@ constexpr double kBaseLat = 47.397742;
 constexpr double kBaseLon = 8.545594;
 constexpr float kAlt = 500.f;
 constexpr float kApproachRadius = 50.f;
+constexpr double kNanDouble = static_cast<double>(NAN);
 
 mission_item_s makeSafePointItem(double lat, double lon, float altitude, NAV_FRAME frame,
 				 NAV_CMD nav_cmd = NAV_CMD_RALLY_POINT)
@@ -1278,8 +1279,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, kBaseLon, 25.f, NAV_FRAME_GLOBAL_RELATIVE_ALT),
 	NAN,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -1287,8 +1288,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, kBaseLon, 510.f, NAV_FRAME_MISSION),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -1296,17 +1297,17 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, kBaseLon, 510.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
 	"NanLatitude",
-	makeSafePointItem(NAN, kBaseLon, 510.f, NAV_FRAME_GLOBAL),
+	makeSafePointItem(kNanDouble, kBaseLon, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -1314,8 +1315,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(0.0, 0.0, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -1323,8 +1324,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(91.0, kBaseLon, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 },
 ExtractValidSafePointPositionCase{
@@ -1332,8 +1333,8 @@ ExtractValidSafePointPositionCase{
 	makeSafePointItem(kBaseLat, 181.0, 510.f, NAV_FRAME_GLOBAL),
 	kAlt,
 	false,
-	NAN,
-	NAN,
+	kNanDouble,
+	kNanDouble,
 	NAN,
 }),
 [](const ::testing::TestParamInfo<ExtractValidSafePointPositionTest::ParamType> &param_info)
