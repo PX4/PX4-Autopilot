@@ -23,6 +23,8 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Christian Friedrich | Rover | [@chfriedrich98](https://github.com/chfriedrich98) | christian982564 |
 | Pedro Roque | Spacecraft | [@Pedro-Roque](https://github.com/Pedro-Roque) | .pedroroque | <roque@caltech.edu>
 | Jacob Dahl | Simulation | [@dakejahl](https://github.com/dakejahl) | dakejahl | <dahl.jakejacob@gmail.com>
+| Balduin Dettling | VTOL | [@mbjd](https://github.com/mbjd) | m_balduin_jd |
+| Mahima Yoga | Fixed-Wing | [@mahima-yoga](https://github.com/mahima-yoga) | myoga_78681 |
 
 
 **Reviewers**

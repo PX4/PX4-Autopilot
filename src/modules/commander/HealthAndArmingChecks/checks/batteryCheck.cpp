@@ -314,8 +314,13 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 			&& rtl_time_estimate.safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
 
 
-	if (reporter.failsafeFlags().battery_low_remaining_time) {
+	// Only report if the failsafe action is enabled, otherwise the condition has no effect
+	if (reporter.failsafeFlags().battery_low_remaining_time && _param_com_fltt_low_act.get() > 0) {
 		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_FLTT_LOW_ACT</param> parameter.
+		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_rem_flight_time_low"),
 					    events::Log::Error, "Remaining flight time low");

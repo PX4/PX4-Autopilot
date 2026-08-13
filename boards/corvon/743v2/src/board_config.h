@@ -113,7 +113,7 @@
 #define ADC_BATTERY2_CURRENT_CHANNEL    8     /* PC5 - ADC12_INP8 */
 
 /* Airspeed (analog) */
-#define ADC_AIRSPEED_IN_CHANNEL         18    /* PA4 - ADC12_INP18 */
+#define ADC_AIRSPEED_VOLTAGE_CHANNEL    18    /* PA4 - ADC12_INP18 */
 
 /* RSSI (analog) */
 #define ADC_RSSI_IN_CHANNEL             3     /* PA6 - ADC12_INP3 */
@@ -123,7 +123,7 @@
 	 (1 << ADC_BATTERY1_CURRENT_CHANNEL) | \
 	 (1 << ADC_BATTERY2_VOLTAGE_CHANNEL) | \
 	 (1 << ADC_BATTERY2_CURRENT_CHANNEL) | \
-	 (1 << ADC_AIRSPEED_IN_CHANNEL)      | \
+	 (1 << ADC_AIRSPEED_VOLTAGE_CHANNEL) | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
 
 /* Battery voltage divider R82=20K (top) / R62=1K (bottom), V_IN = V_ADC * 21.2 */
@@ -190,8 +190,8 @@
  * GPIO_OTGFS_VBUS unconditionally:
  *   - bootloader common main.c (skipped via BOARD_USB_VBUS_SENSE_DISABLED)
  *   - platforms/nuttx/src/px4/common/board_ctrl.c (board_read_VBUS_state())
- *   - platforms/nuttx/src/px4/common/cdc_acm_check.cpp gates sercon_main()
- *     on board_read_VBUS_state() returning PX4_OK
+ *   - src/drivers/cdcacm_autostart gates sercon_main() on
+ *     board_read_VBUS_state() returning PX4_OK
  *
  * So GPIO_OTGFS_VBUS must read HIGH for the application's CDC/ACM auto-start
  * logic to ever fire and register /dev/ttyACM0.  We point it at PE3 (an

@@ -48,7 +48,7 @@ Then pass in the appropriate device using the `--gdbdev` argument like this:
 ### Running
 
 在火焰图上，水平水平表示堆叠帧，而每个帧的宽度与采样次数成正比。
-For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching \_FlameGraph_ and adding it to the path as needed).
+For example, the following command builds and profiles px&#x34;_&#x66;mu-v4pro target with 10000 samples (fetching \_FlameGraph_ and adding it to the path as needed).
 
 ```sh
 ./poor-mans-profiler.sh --elf=build/px4_fmu-v4_default/px4_fmu-v4_default.elf --nsamples=30000 --append

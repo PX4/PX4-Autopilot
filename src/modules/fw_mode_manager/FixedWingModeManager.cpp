@@ -272,20 +272,19 @@ void FixedWingModeManager::vehicle_attitude_setpoint_poll()
 float
 FixedWingModeManager::get_manual_airspeed_setpoint()
 {
-	float manual_airspeed_setpoint = NAN;
-
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
-		// neutral throttle corresponds to trim airspeed
-		manual_airspeed_setpoint = math::interpolateNXY(_manual_control_setpoint_for_airspeed,
+		// neutral throttle corresponds to last MAV_CMD_DO_CHANGE_SPEED, or trim airspeed if none received
+		const float base_airspeed = PX4_ISFINITE(_commanded_manual_airspeed_setpoint)
+					    ? math::constrain(_commanded_manual_airspeed_setpoint,
+							    _param_fw_airspd_min.get(),
+							    _param_fw_airspd_max.get())
+					    : _param_fw_airspd_trim.get();
+		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
 		{-1.f, 0.f, 1.f},
-		{_param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_airspd_max.get()});
-
-	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
-		// override stick by commanded airspeed
-		manual_airspeed_setpoint = _commanded_manual_airspeed_setpoint;
+		{_param_fw_airspd_min.get(), base_airspeed, _param_fw_airspd_max.get()});
 	}
 
-	return manual_airspeed_setpoint;
+	return _commanded_manual_airspeed_setpoint;
 }
 
 void
@@ -387,8 +386,8 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
-		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)
-		    && PX4_ISFINITE(_pos_sp_triplet.current.vz)) {
+		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) && PX4_ISFINITE(_pos_sp_triplet.current.lon) && PX4_ISFINITE(_pos_sp_triplet.current.vx)
+		    && PX4_ISFINITE(_pos_sp_triplet.current.vy)) {
 			// Offboard position with velocity setpoints
 			_control_mode_current = FW_POSCTRL_MODE_AUTO_PATH;
 			return;
@@ -518,6 +517,10 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 	} else {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 	}
+
+	if (_control_mode_current != previous_position_control_mode) {
+		_commanded_manual_airspeed_setpoint = NAN;
+	}
 }
 
 void
@@ -571,8 +574,7 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 	move_position_setpoint_for_vtol_transition(current_sp);
 
 	// Course setpoints are handled directly to avoid entering hold mode
-	if (PX4_ISFINITE(current_sp.course)
-	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
+	if (PX4_ISFINITE(current_sp.course)) {
 		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		return;
 	}
@@ -776,8 +778,7 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	// Course Hold: if a course is explicitly set, navigate along that bearing (ground track)
-	if (PX4_ISFINITE(pos_sp_curr.course)
-	    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE) {
+	if (PX4_ISFINITE(pos_sp_curr.course)) {
 		const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
 		const Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
@@ -806,39 +807,9 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
 	// waypoint is a plain navigation waypoint
-	float position_sp_alt = pos_sp_curr.alt;
-
-	// Altitude first order hold (FOH)
-	if (_position_setpoint_previous_valid &&
-	    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
-	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
-	   ) {
-		const float d_curr_prev = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_prev.lat,
-					  pos_sp_prev.lon);
-
-		// Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one
-		if (d_curr_prev > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
-			// Calculate distance to current waypoint
-			const float d_curr = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, _current_latitude,
-					     _current_longitude);
-
-			// Save distance to waypoint if it is the smallest ever achieved, however make sure that
-			// _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp
-			_min_current_sp_distance_xy = math::min(d_curr, _min_current_sp_distance_xy, d_curr_prev);
-
-			// if the minimal distance is smaller than the acceptance radius, we should be at waypoint alt
-			// navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude
-			if (_min_current_sp_distance_xy > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
-				// The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
-				// radius around the current waypoint
-				const float delta_alt = (pos_sp_curr.alt - pos_sp_prev.alt);
-				const float grad = -delta_alt / (d_curr_prev - math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)));
-				const float a = pos_sp_prev.alt - grad * d_curr_prev;
-
-				position_sp_alt = a + grad * _min_current_sp_distance_xy;
-			}
-		}
-	}
+	_foh_altitude_active = true;
+	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
+				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
@@ -937,6 +908,13 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
+	// Smoothly ramp the altitude setpoint from the current altitude such that the loiter altitude is reached
+	// by the time the vehicle arrives at the loiter circle.
+	const float acc_rad = math::max(_directional_guidance.switchDistance(500.0f), loiter_radius);
+	_foh_altitude_active = true;
+	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
+				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
+
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
@@ -998,7 +976,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.altitude = pos_sp_curr.alt,
+		.altitude = position_sp_alt,
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
@@ -1217,6 +1195,8 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		fw_runway_control.timestamp = now;
 		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
+		// keep the nose aligned with the runway bearing towards the takeoff waypoint during the ground roll
+		fw_runway_control.wheel_steering_yaw_setpoint = takeoff_bearing;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
@@ -1395,6 +1375,8 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		fw_runway_control.timestamp = now;
 		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
+		// no navigation reference available: hold the heading captured when steering engaged
+		fw_runway_control.wheel_steering_yaw_setpoint = NAN;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
@@ -1644,6 +1626,8 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	fw_runway_control.timestamp = now;
 	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
+	// during landing rollout hold the heading captured at touchdown
+	fw_runway_control.wheel_steering_yaw_setpoint = NAN;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
 
@@ -1817,6 +1801,8 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	fw_runway_control.timestamp = now;
 	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
+	// during landing rollout hold the heading captured at touchdown
+	fw_runway_control.wheel_steering_yaw_setpoint = NAN;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
 
@@ -2045,6 +2031,10 @@ FixedWingModeManager::Run()
 		// mode is active
 		_ctrl_configuration_handler.resetLastPublishTime();
 
+		// The controller (and thus the altitude FOH) does not run while an external mode is active. Mark the FOH
+		// as inactive so that returning to an internal auto mode starts a fresh ramp instead of resuming stale state.
+		_foh_altitude_active = false;
+
 	} else if (_local_pos_sub.update(&_local_pos)) {
 
 		const hrt_abstime now = _local_pos.timestamp;
@@ -2107,6 +2097,16 @@ FixedWingModeManager::Run()
 							     _local_pos.ref_timestamp);
 		}
 
+		const float max_reset_dist = _param_fw_wp_rst_dist.get();
+
+		if (_control_mode.flag_control_auto_enabled
+		    && (_local_pos.xy_reset_counter != _xy_reset_counter)
+		    && (max_reset_dist > FLT_EPSILON)
+		    && (Vector2f(_local_pos.delta_xy).longerThan(max_reset_dist))) {
+			// Large position reset, directly go to destination to avoid strange path corrections
+			_go_direct_to_destination = true;
+		}
+
 		if (_control_mode.flag_control_offboard_enabled) {
 			trajectory_setpoint_s trajectory_setpoint;
 
@@ -2123,8 +2123,9 @@ FixedWingModeManager::Run()
 				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
+				_pos_sp_triplet.current.gliding_enabled = false;
 
-				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
+				if (PX4_ISFINITE(trajectory_setpoint.position[0]) && PX4_ISFINITE(trajectory_setpoint.position[1])) {
 					if (_global_local_proj_ref.isInitialized()) {
 						double lat;
 						double lon;
@@ -2133,17 +2134,15 @@ FixedWingModeManager::Run()
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
 					}
 
 				}
 
-				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[0]) && PX4_ISFINITE(trajectory_setpoint.velocity[1])) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
 					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
-					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
 
 					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
 						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
@@ -2158,6 +2157,20 @@ FixedWingModeManager::Run()
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
+				}
+
+				if (PX4_ISFINITE(trajectory_setpoint.position[2])) {
+					if (_global_local_proj_ref.isInitialized()) {
+						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
+					}
+				}
+
+				if (PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
+				}
+
+				if (!PX4_ISFINITE(trajectory_setpoint.position[2]) && !PX4_ISFINITE(trajectory_setpoint.velocity[2])) {
+					_pos_sp_triplet.current.gliding_enabled = true;
 				}
 
 				_position_setpoint_current_valid = valid_setpoint;
@@ -2178,8 +2191,11 @@ FixedWingModeManager::Run()
 								&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
 								&& PX4_ISFINITE(_pos_sp_triplet.next.alt);
 
-				// reset the altitude foh (first order hold) logic
-				_min_current_sp_distance_xy = FLT_MAX;
+				// The altitude first order hold (FOH) restarts its ramp itself whenever the target altitude
+				// changes, so it must not be reset here: a new triplet that keeps the same target altitude
+				// (e.g. a lat/lon-only update) has to leave the ongoing ramp progressing.
+
+				_go_direct_to_destination = false;
 			}
 		}
 
@@ -2234,6 +2250,17 @@ FixedWingModeManager::Run()
 		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV) {
 			reset_takeoff_state();
 		}
+
+		if (!_foh_altitude_active) {
+			// The altitude first order hold only runs for AUTO position/loiter waypoints. Whenever it did not run
+			// on the previous cycle (any other mode, but also AUTO sub-types like velocity/idle/course-hold that
+			// skip it) its ramp state is stale, so reset it here. (Re-)engaging FOH then starts a fresh ramp from
+			// the current altitude instead of a last-commanded setpoint that went stale while it was not running.
+			_foh_altitude_state = FirstOrderHoldAltitudeState{};
+		}
+
+		// Cleared here every cycle and set again by the FOH call sites when they actually run this cycle.
+		_foh_altitude_active = false;
 
 		int8_t old_landing_gear_position = _new_landing_gear_position;
 		_new_landing_gear_position = landing_gear_s::GEAR_KEEP; // is overwritten in Takeoff and Land
@@ -2627,6 +2654,10 @@ DirectionalGuidanceOutput FixedWingModeManager::navigateWaypoints(const Vector2f
 		// end waypoint. however this included here as a safety precaution if any navigator (module) switch condition
 		// is missed for any reason. in the future this logic should all be handled in one place in a dedicated
 		// flight mode state machine.
+		return navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
+	}
+
+	if (_go_direct_to_destination) {
 		return navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
 	}
 

@@ -39,21 +39,19 @@ using namespace time_literals;
 ADIS16607::ADIS16607(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio),
 	_px4_accel(get_device_id(), config.rotation),
 	_px4_gyro(get_device_id(), config.rotation)
 {
-	if (_drdy_gpio != 0) {
-		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
-	}
+	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }
 
 ADIS16607::~ADIS16607()
 {
 	perf_free(_reset_perf);
 	perf_free(_bad_transfer_perf);
-	perf_free(_perf_crc_bad);
-	perf_free(_drdy_missed_perf);
+	perf_free(_fifo_empty_perf);
+	perf_free(_fifo_overflow_perf);
+	perf_free(_fifo_reset_perf);
 }
 
 int ADIS16607::init()
@@ -71,7 +69,6 @@ int ADIS16607::init()
 bool ADIS16607::Reset()
 {
 	_state = STATE::RESET;
-	DataReadyInterruptDisable();
 	ScheduleClear();
 	ScheduleNow();
 	return true;
@@ -79,7 +76,6 @@ bool ADIS16607::Reset()
 
 void ADIS16607::exit_and_cleanup()
 {
-	DataReadyInterruptDisable();
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
@@ -87,10 +83,13 @@ void ADIS16607::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
+	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
+
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_transfer_perf);
-	perf_print_counter(_perf_crc_bad);
-	perf_print_counter(_drdy_missed_perf);
+	perf_print_counter(_fifo_empty_perf);
+	perf_print_counter(_fifo_overflow_perf);
+	perf_print_counter(_fifo_reset_perf);
 }
 
 int ADIS16607::probe()
@@ -181,18 +180,11 @@ void ADIS16607::RunImpl()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading
-			_state = STATE::READ;
+			_state = STATE::FIFO_READ;
+			FIFOReset();
 
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
-			}
+			// The DR interrupt configuration does not support FIFO triggering
+			ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
 
 		} else {
 			// CONFIGURE not complete
@@ -209,99 +201,57 @@ void ADIS16607::RunImpl()
 
 		break;
 
-	case STATE::READ: {
+	case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
+			uint8_t samples = 0;
 
-			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
-				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+			//  Read status
+			const uint16_t diag_stat = RegisterRead(Register::DIAG_STAT);
 
-				if ((now - drdy_timestamp_sample) < SAMPLE_INTERVAL_US) {
-					timestamp_sample = drdy_timestamp_sample;
+			if ((diag_stat & ~DIAG_STAT_BIT::FIFO_Threshold_Met) != 0) {
+				// Reset the sensor if any error other than FIFO overflow occurs.
+				Reset();
+				return;
+			}
 
-				} else {
-					perf_count(_drdy_missed_perf);
+			// check current FIFO count
+			const uint16_t fifo_count_bytes = RegisterRead(Register::FIFO_WORD_CNT) * 2;
+
+			if (fifo_count_bytes >= FIFO::SIZE) {
+				FIFOReset();
+				perf_count(_fifo_overflow_perf);
+
+			} else if (fifo_count_bytes == 0) {
+				perf_count(_fifo_empty_perf);
+
+			} else {
+				// FIFO count (size in bytes)
+				samples = (fifo_count_bytes / sizeof(FIFO::DATA));
+
+				// tolerate minor jitter, leave sample to next iteration if behind by only 1
+				if (samples == _fifo_samples + 1) {
+					timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
+					samples--;
 				}
 
-				// push backup schedule back
-				ScheduleDelayed(SAMPLE_INTERVAL_US * 2);
+				if (samples > FIFO_MAX_SAMPLES) {
+					// not technically an overflow, but more samples than we expected or can publish
+					FIFOReset();
+					perf_count(_fifo_overflow_perf);
+					samples = 0;
+				}
 			}
 
 			bool success = false;
-			struct BurstRead {
-				uint16_t cmd;
-				uint16_t DIAG_STAT;
-				int16_t X_ACCL_HIGH_OUT;
-				int16_t X_ACCL_LOW_OUT;
-				int16_t Y_ACCL_HIGH_OUT;
-				int16_t Y_ACCL_LOW_OUT;
-				int16_t Z_ACCL_HIGH_OUT;
-				int16_t Z_ACCL_LOW_OUT;
-				int16_t X_GYRO_HIGH_OUT;
-				int16_t X_GYRO_LOW_OUT;
-				int16_t Y_GYRO_HIGH_OUT;
-				int16_t Y_GYRO_LOW_OUT;
-				int16_t Z_GYRO_HIGH_OUT;
-				int16_t Z_GYRO_LOW_OUT;
-				int16_t TEMP_OUT;
-				uint16_t COUNT;
-				uint16_t checksum;
-			} buffer{};
 
-			// ADIS16607 burst report should be 272 bits
-			static_assert(sizeof(BurstRead) == (272 / 8), "ADIS16607 report not 272 bits");
+			if (samples >= 1) {
+				if (FIFORead(timestamp_sample, samples)) {
+					success = true;
 
-			buffer.cmd = static_cast<uint8_t>(Register::DIAG_STAT) | DIR_READ;
-
-			if (transfer((uint8_t *)&buffer, ((uint8_t *)&buffer), sizeof(buffer) / sizeof(uint8_t)) == PX4_OK) {
-
-				// Calculate checksum and compare
-				uint16_t *checksum_helper = &buffer.DIAG_STAT;
-
-				uint16_t checksum = 0;
-
-				for (int i = 0; i < 15; i++) {
-					checksum += be16toh(checksum_helper[i]);
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
 				}
-
-				if (be16toh(buffer.checksum) != checksum) {
-					perf_count(_bad_transfer_perf);
-					perf_count(_perf_crc_bad);
-				}
-
-				// Check all Status/Error Flag Indicators (DIAG_STAT)
-				if (be16toh(buffer.DIAG_STAT) != 0) {
-					perf_count(_bad_transfer_perf);
-				}
-
-				buffer.TEMP_OUT = (int16_t)be16toh(buffer.TEMP_OUT);
-
-				float temperature = (float)(buffer.TEMP_OUT) * 0.005f + 25.0f;
-
-				_px4_accel.set_temperature(temperature);
-				_px4_gyro.set_temperature(temperature);
-
-				// sensor's frame is +x forward, +y left, +z up
-				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				float accel_x = (be16toh(buffer.X_ACCL_HIGH_OUT) << 16 | be16toh(buffer.X_ACCL_LOW_OUT)) >> 8;
-				float accel_y = -1 * ((be16toh(buffer.Y_ACCL_HIGH_OUT) << 16 | be16toh(buffer.Y_ACCL_LOW_OUT)) >> 8);
-				float accel_z = -1 * ((be16toh(buffer.Z_ACCL_HIGH_OUT) << 16 | be16toh(buffer.Z_ACCL_LOW_OUT)) >> 8);
-
-				float gyro_x = (be16toh(buffer.X_GYRO_HIGH_OUT) << 16 | be16toh(buffer.X_GYRO_LOW_OUT)) >> 8;
-				float gyro_y = -1 * ((be16toh(buffer.Y_GYRO_HIGH_OUT) << 16 | be16toh(buffer.Y_GYRO_LOW_OUT)) >> 8);
-				float gyro_z = -1 * ((be16toh(buffer.Z_GYRO_HIGH_OUT) << 16 | be16toh(buffer.Z_GYRO_LOW_OUT)) >> 8);
-
-				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
-				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
-
-				success = true;
-
-				if (_failure_count > 0) {
-					_failure_count--;
-				}
-
-			} else {
-				perf_count(_bad_transfer_perf);
 			}
 
 			if (!success) {
@@ -316,6 +266,30 @@ void ADIS16607::RunImpl()
 		}
 
 		break;
+	}
+}
+
+void ADIS16607::ConfigureSampleRate(int sample_rate)
+{
+	const float min_interval = FIFO_SAMPLE_DT;
+	_fifo_empty_interval_us = math::max(roundf((1e6f / (float)sample_rate) / min_interval) * min_interval, min_interval);
+
+	_fifo_samples = roundf(math::min((float)_fifo_empty_interval_us / (1e6f / RATE), (float)FIFO_MAX_SAMPLES));
+
+	_fifo_empty_interval_us = _fifo_samples * (1e6f / RATE);
+
+	ConfigureFIFOWatermark(_fifo_samples);
+}
+
+void ADIS16607::ConfigureFIFOWatermark(uint8_t samples)
+{
+	// FIFO watermark threshold in number of word
+	const uint16_t fifo_watermark_threshold = samples * (sizeof(FIFO::DATA) / sizeof(uint16_t));
+
+	for (auto &r : _register_cfg) {
+		if (r.reg == Register::USER_FIFO_CFG) {
+			r.set_bits = r.set_bits | fifo_watermark_threshold;
+		}
 	}
 }
 
@@ -335,48 +309,16 @@ bool ADIS16607::Configure()
 		}
 	}
 
-	RegisterWrite(Register::USER_FIFO_CFG, USER_FIFO_CFG_BIT::CLEAR_FIFOB);
-
-	// accel: ±40 g, 200000 LSB/g (24-bit format)
+	// The updateFIFO() function only supports 16-bit resolution configuration
+	// accel: ±40 g, 781.25 LSB/g (16-bit format)
 	_px4_accel.set_range(40.f * CONSTANTS_ONE_G);
-	_px4_accel.set_scale(CONSTANTS_ONE_G / 200000.f); // scaling 200000 LSB/g -> m/s^2 per LSB
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 781.25f); // scaling 781.25 LSB/g -> m/s^2 per LSB
 
-	// gyro: ±2000 °/sec, 4000 LSB/°/sec (24-bit format)
+	// gyro: ±2000 °/sec, 15.625 LSB/°/sec (16-bit format)
 	_px4_gyro.set_range(math::radians(2000.f));
-	_px4_gyro.set_scale(math::radians(1.f / 4000.f)); // scaling 4000 LSB/°/sec -> rad/s per LSB
+	_px4_gyro.set_scale(math::radians(1.f / 15.625f)); // scaling 15.625 LSB/°/sec -> rad/s per LSB
 
 	return success;
-}
-
-int ADIS16607::DataReadyInterruptCallback(int irq, void *context, void *arg)
-{
-	static_cast<ADIS16607 *>(arg)->DataReady();
-	return 0;
-}
-
-void ADIS16607::DataReady()
-{
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
-}
-
-bool ADIS16607::DataReadyInterruptConfigure()
-{
-	if (_drdy_gpio == 0) {
-		return false;
-	}
-
-	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, false, &DataReadyInterruptCallback, this) == 0;
-}
-
-bool ADIS16607::DataReadyInterruptDisable()
-{
-	if (_drdy_gpio == 0) {
-		return false;
-	}
-
-	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }
 
 bool ADIS16607::RegisterCheck(const register_config_t &reg_cfg)
@@ -427,4 +369,127 @@ void ADIS16607::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t
 	if (orig_val != val) {
 		RegisterWrite(reg, val);
 	}
+}
+
+void ADIS16607::FIFOReset()
+{
+	perf_count(_fifo_reset_perf);
+
+	// Clear FIFO data
+	for (auto &r : _register_cfg) {
+		if (r.reg == Register::USER_FIFO_CFG) {
+			RegisterWrite(r.reg, r.set_bits | USER_FIFO_CFG_BIT::CLEAR_FIFOB);
+		}
+	}
+}
+
+bool ADIS16607::FIFORead(const hrt_abstime &timestamp_sample, const uint8_t samples)
+{
+	FIFOTransferBuffer buffer{};
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 2, (static_cast<uint8_t>(FIFO_MAX_SAMPLES) * sizeof(FIFO::DATA) + 2));
+
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
+
+	if (ProcessTemperature(buffer.f, samples)) {
+		ProcessAccel(timestamp_sample, buffer.f, samples);
+		ProcessGyro(timestamp_sample, buffer.f, samples);
+		return true;
+	}
+
+	return false;
+}
+
+void ADIS16607::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+{
+	sensor_accel_fifo_s accel{};
+	accel.timestamp_sample = timestamp_sample;
+	accel.samples = samples;
+	accel.dt = FIFO_SAMPLE_DT;
+
+	for (uint8_t i = 0; i < samples; i++) {
+		// sensor's frame is +x forward, +y left, +z up
+		//  flip y & z to publish right handed with z down (x forward, y right, z down)
+		accel.x[i] = be16toh(fifo[i].ACCEL_DATA_X);
+		accel.y[i] = -1 * static_cast<int16_t>(be16toh(fifo[i].ACCEL_DATA_Y));
+		accel.z[i] = -1 * static_cast<int16_t>(be16toh(fifo[i].ACCEL_DATA_Z));
+
+	}
+
+	_px4_accel.set_error_count(perf_event_count(_bad_transfer_perf) +
+				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+
+	if (accel.samples > 0) {
+		_px4_accel.updateFIFO(accel);
+	}
+}
+
+void ADIS16607::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+{
+	sensor_gyro_fifo_s gyro{};
+	gyro.timestamp_sample = timestamp_sample;
+	gyro.samples = samples;
+	gyro.dt = FIFO_SAMPLE_DT;
+
+	for (uint8_t i = 0; i < samples; i++) {
+		// sensor's frame is +x forward, +y left, +z up
+		//  flip y & z to publish right handed with z down (x forward, y right, z down)
+		gyro.x[i] = be16toh(fifo[i].GYRO_DATA_X);
+		gyro.y[i] = -1 * static_cast<int16_t>(be16toh(fifo[i].GYRO_DATA_Y));
+		gyro.z[i] = -1 * static_cast<int16_t>(be16toh(fifo[i].GYRO_DATA_Z));
+	}
+
+	_px4_gyro.set_error_count(perf_event_count(_bad_transfer_perf) +
+				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+
+	if (gyro.samples > 0) {
+		_px4_gyro.updateFIFO(gyro);
+	}
+}
+
+bool ADIS16607::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples)
+{
+	int16_t temperature[FIFO_MAX_SAMPLES];
+	float temperature_sum{0};
+
+	int valid_samples = 0;
+
+	for (int i = 0; i < samples; i++) {
+		const int16_t t = (int16_t)be16toh(fifo[i].TEMP);
+
+		// sample invalid if -32768
+		if (t != -32768) {
+			temperature_sum += t;
+			temperature[valid_samples] = t;
+			valid_samples++;
+		}
+	}
+
+	if (valid_samples > 0) {
+		const float temperature_avg = temperature_sum / valid_samples;
+
+		for (int i = 0; i < valid_samples; i++) {
+			// temperature changing wildly is an indication of a transfer error
+			if (fabsf(temperature[i] - temperature_avg) > TEMPERATURE_WILDLY_THRESHOLD) {
+				perf_count(_bad_transfer_perf);
+				return false;
+			}
+		}
+
+		// use average temperature reading
+		const float temp_c = (temperature_avg * TEMPERATURE_SCALE_FACTOR) + TEMPERATURE_OFFSET;
+
+		if (PX4_ISFINITE(temp_c)) {
+			_px4_accel.set_temperature(temp_c);
+			_px4_gyro.set_temperature(temp_c);
+			return true;
+
+		} else {
+			perf_count(_bad_transfer_perf);
+		}
+	}
+
+	return false;
 }

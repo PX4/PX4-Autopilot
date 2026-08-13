@@ -41,6 +41,15 @@ At time of writing PX4 allows you to use the [Lanbao PSK-CM8JL65-CC5](../sensor/
 
 PX4 v1.14 (and later) supports the [LightWare LiDAR SF45](../sensor/sf45_rotating_lidar.md) rotating lidar which provides 320 degree sensing.
 
+### Sony AS-DT1 LiDAR
+
+PX4 supports the [Sony AS-DT1](../sensor/sony_asdt1.md) multipoint LiDAR as a directly connected UART sensor for collision prevention.
+The driver publishes measurements to `obstacle_distance` with 5 degree bins, using the configured sensor yaw offset.
+
+The AS-DT1 covers a forward horizontal field of view of about 35 degrees.
+Only the covered sectors are populated; other directions remain no-data unless covered by another sensor.
+Configure the sensor as described in the [Sony AS-DT1](../sensor/sony_asdt1.md) guide, then enable collision prevention with [CP_DIST](#CP_DIST).
+
 ### Other Rangefinders
 
 Інші датчики можуть бути активовані, але це вимагає модифікації коду драйвера для встановлення орієнтації датчика та поля зору.
@@ -54,7 +63,7 @@ PX4 v1.14 (and later) supports the [LightWare LiDAR SF45](../sensor/sf45_rotatin
 
 Configure collision prevention by [setting the following parameters](../advanced_config/parameters.md) in _QGroundControl_:
 
-| Параметр                                                                                                                                                          | Опис                                                                                                                                                                                                                                                                                                                                                               |
+| Parameter                                                                                                                                                         | Опис                                                                                                                                                                                                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="CP_DIST"></a>[CP_DIST](../advanced_config/parameter_reference.md#CP_DIST)                                                             | Set the minimum allowed distance (the closest distance that the vehicle can approach the obstacle). Set negative to disable _collision prevention_. <br>> **Warning** This value is the distance to the sensors, not the outside of your vehicle or propellers. Be sure to leave a safe margin! |
 | <a id="CP_DELAY"></a>[CP_DELAY](../advanced_config/parameter_reference.md#CP_DELAY)                                                          | Set the sensor and velocity setpoint tracking delay. See [Delay Tuning](#delay_tuning) below.                                                                                                                                                                                                                                      |

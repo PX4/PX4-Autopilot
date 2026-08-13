@@ -37,6 +37,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
 
 #include <sys/types.h>
 
@@ -59,7 +60,7 @@
 
 int test_rc(int argc, char *argv[])
 {
-	int _rc_sub = orb_subscribe(ORB_ID(input_rc));
+	orb_sub_t _rc_sub = orb_subscribe(ORB_ID(input_rc));
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	struct input_rc_s rc_input;
@@ -85,7 +86,7 @@ int test_rc(int argc, char *argv[])
 		rc_last.channel_count = rc_input.channel_count;
 
 		/* poll descriptor */
-		struct pollfd fds[2];
+		px4_pollfd_struct_t fds[2];
 		fds[0].fd = _rc_sub;
 		fds[0].events = POLLIN;
 		fds[1].fd = 0;
@@ -93,7 +94,7 @@ int test_rc(int argc, char *argv[])
 
 		while (true) {
 
-			int ret = poll(fds, 2, 200);
+			int ret = px4_poll(fds, 2, 200);
 
 			if (ret > 0) {
 

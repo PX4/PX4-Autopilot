@@ -58,6 +58,7 @@ private:
 		if (_mavlink->get_free_tx_buf() >= get_size()) {
 			mavlink_link_node_status_t link_node_status{};
 
+			_mavlink->lock_telemetry_status();
 			const telemetry_status_s &tstatus = _mavlink->telemetry_status();
 			link_node_status.tx_buf = 0; // % TODO
 			link_node_status.rx_buf = 0; // % TODO
@@ -69,6 +70,7 @@ private:
 			link_node_status.messages_sent = tstatus.tx_message_count;
 			link_node_status.messages_received = tstatus.rx_message_count;
 			link_node_status.messages_lost = tstatus.rx_message_lost_count;
+			_mavlink->unlock_telemetry_status();
 
 			link_node_status.timestamp = hrt_absolute_time();
 

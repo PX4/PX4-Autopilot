@@ -46,7 +46,8 @@ enum MntModeIn {
 	MNT_MODE_IN_RC,
 	MNT_MODE_IN_MAVLINK_ROI,			// MAVLink gimbal protocol v1 (to be deprecated)
 	MNT_MODE_IN_MAVLINK_DO_MOUNT,		// MAVLink gimbal protocol v1 (to be deprecated)
-	MNT_MODE_IN_MAVLINK_V2			// MAVLink gimbal protocol v2
+	MNT_MODE_IN_MAVLINK_V2,			// MAVLink gimbal protocol v2
+	MNT_MODE_IN_FIXED			// Fixed world-frame attitude, not user controllable
 };
 
 enum MntModeOut {
@@ -76,6 +77,7 @@ struct Parameters {
 	float mnt_lnd_p_min;
 	float mnt_lnd_p_max;
 	float mnt_tau;
+	float mnt_fixed_pitch;
 };
 
 struct ParameterHandles {
@@ -99,6 +101,7 @@ struct ParameterHandles {
 	param_t mnt_lnd_p_min;
 	param_t mnt_lnd_p_max;
 	param_t mnt_tau;
+	param_t mnt_fixed_pitch;
 };
 
 } /* namespace gimbal */

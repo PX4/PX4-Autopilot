@@ -41,9 +41,9 @@ using namespace time_literals;
 
 struct FunctionProvider {
 	using Constructor = FunctionProviderBase * (*)(const FunctionProviderBase::Context &context);
-	FunctionProvider(OutputFunction min_func_, OutputFunction max_func_, Constructor constructor_)
+	constexpr FunctionProvider(OutputFunction min_func_, OutputFunction max_func_, Constructor constructor_)
 		: min_func(min_func_), max_func(max_func_), constructor(constructor_) {}
-	FunctionProvider(OutputFunction func, Constructor constructor_)
+	constexpr FunctionProvider(OutputFunction func, Constructor constructor_)
 		: min_func(func), max_func(func), constructor(constructor_) {}
 
 	OutputFunction min_func;
@@ -51,7 +51,7 @@ struct FunctionProvider {
 	Constructor constructor;
 };
 
-static const FunctionProvider all_function_providers[] = {
+static constexpr FunctionProvider all_function_providers[] = {
 	// Providers higher up take precedence for subscription callback in case there are multiple
 	{OutputFunction::Constant_Min, &FunctionConstantMin::allocate},
 	{OutputFunction::Constant_Max, &FunctionConstantMax::allocate},
@@ -451,6 +451,7 @@ bool MixingOutput::update()
 	// get output values
 	float outputs[MAX_ACTUATORS];
 	bool all_disabled = true;
+	const uint32_t reversible_mask_prev = _reversible_mask;
 	_reversible_mask = 0;
 
 	for (int i = 0; i < _max_num_outputs; ++i) {
@@ -469,6 +470,10 @@ bool MixingOutput::update()
 		} else {
 			outputs[i] = NAN;
 		}
+	}
+
+	if (_reversible_mask != reversible_mask_prev) {
+		_interface.reversibleMaskChanged(_reversible_mask);
 	}
 
 	// Send output if any function mapped or one last disabling sample

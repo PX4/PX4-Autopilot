@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The board uses an STM32H743II and has 2048Kb of main FLASH memory.
+/* The board uses an STM32H743VI and has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
@@ -50,7 +50,7 @@
  *
  *   3) User option bytes for user configuration, only in Bank 1.
  *
- * In the STM32H743II, two different boot spaces can be selected through
+ * In the STM32H743VI, two different boot spaces can be selected through
  * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
  * BOOT_ADD1 option bytes:
  *
@@ -59,11 +59,10 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * There's a switch on board, the BOOT0 pin is at ground so by default,
- * the STM32 will boot to address 0x0800:0000 in FLASH unless the switch is
- * drepresed, then the boot will be from 0x1FF0:0000
+ * On the 743V2 the BOOT0 pin is tied to ground, so the STM32 always boots
+ * from address 0x0800:0000 in FLASH.
  *
- * The STM32H743ZI also has 1024Kb of data SRAM.
+ * The STM32H743VI also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:
  *
  *   1) TCM SRAMs are dedicated to the Cortex-M7 and are accessible with

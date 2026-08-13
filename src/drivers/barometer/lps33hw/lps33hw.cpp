@@ -49,6 +49,7 @@ static void getTwosComplement(T &raw, uint8_t length)
 
 LPS33HW::LPS33HW(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
+	_px4_baro{interface->get_device_id()},
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors")),
@@ -179,14 +180,9 @@ LPS33HW::RunImpl()
 		float pressure_pa = pressure_hPa * 100.f;
 
 		// publish
-		sensor_baro_s sensor_baro{};
-		sensor_baro.timestamp_sample = timestamp_sample;
-		sensor_baro.device_id = _interface->get_device_id();
-		sensor_baro.pressure = pressure_pa;
-		sensor_baro.temperature = temp;
-		sensor_baro.error_count = perf_event_count(_comms_errors);
-		sensor_baro.timestamp = hrt_absolute_time();
-		_sensor_baro_pub.publish(sensor_baro);
+		_px4_baro.set_error_count(perf_event_count(_comms_errors));
+		_px4_baro.set_temperature(temp);
+		_px4_baro.update(timestamp_sample, pressure_pa);
 
 		perf_end(_sample_perf);
 		ScheduleDelayed(1000000 / SAMPLE_RATE);

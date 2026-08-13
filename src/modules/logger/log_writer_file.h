@@ -198,9 +198,13 @@ private:
 
 		inline void fsync() const;
 
-		void mark_read(size_t n) { _count -= n; _total_written += n; }
+		// _count is protected by LogWriterFile::_mtx (callers must hold it).
+		// _total_written is also written under that lock, but read without it
+		// from the logger main thread (log-rotation check), so use an atomic
+		// to make the unlocked read race-free.
+		void mark_read(size_t n) { _count -= n; _total_written.fetch_add(n); }
 
-		size_t total_written() const { return _total_written; }
+		size_t total_written() const { return _total_written.load(); }
 		size_t buffer_size() const { return _buffer_size; }
 		size_t count() const { return _count; }
 
@@ -213,7 +217,7 @@ private:
 		uint8_t *_buffer = nullptr;
 		size_t _head = 0; ///< next position to write to
 		size_t _count = 0; ///< number of bytes in _buffer to be written
-		size_t _total_written = 0;
+		px4::atomic<size_t> _total_written{0};
 		perf_counter_t _perf_write;
 		perf_counter_t _perf_fsync;
 	};

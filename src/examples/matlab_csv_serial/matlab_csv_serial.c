@@ -42,6 +42,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -190,22 +191,22 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	struct sensor_gyro_s gyro1;
 
 	/* subscribe to parameter changes */
-	int accel0_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
-	int accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
-	int gyro0_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
-	int gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
+	orb_sub_t accel0_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 0);
+	orb_sub_t accel1_sub = orb_subscribe_multi(ORB_ID(sensor_accel), 1);
+	orb_sub_t gyro0_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 0);
+	orb_sub_t gyro1_sub = orb_subscribe_multi(ORB_ID(sensor_gyro), 1);
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
 
 		/*This runs at the rate of the sensors */
-		struct pollfd fds[] = {
+		px4_pollfd_struct_t fds[] = {
 			{ .fd = accel0_sub, .events = POLLIN }
 		};
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), 500);
+		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 500);
 
 		if (ret < 0) {
 			/* poll error, ignore */

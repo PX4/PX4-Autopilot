@@ -4,7 +4,7 @@
 
 Режим _повернення_ використовується для _політів засобом перевезення до безпечного місця_ при наявності вільного шляху до безпечного пункту призначення, де він може зачекати (зависнути або обійти колом) або сісти.
 
-Літальні апарати типу VTOL за замовчуванням використовують тип повернення до призначення [місії посадки/точка збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1).
+VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default.
 У цьому типі повернення апарат піднімається на мінімальну безпечну висоту над перешкодами (за необхідності), а потім напряму летить до точки збору або початкової точки призначення місії (яка є найближчою), або додому, якщо жодна з точок збору або місійний маршрут посадки не визначені.
 Якщо призначенням є місійний маршрут посадки, апарат потім дотримуватиметься маршруту для посадки.
 If the destination is a rally point or the home location, the vehicle will fly to that destination and land.
@@ -12,7 +12,7 @@ If the destination is a rally point or the home location, the vehicle will fly t
 Літальний апарат повернеться за допомогою режиму польоту (MC або FW), який він використовував у той момент, коли був активований режим повернення.
 Загалом, він буде дотримуватися того ж поведінкового зразка режиму повернення, що й відповідний тип транспортного засобу, але завжди перейде до режиму MC (якщо потрібно) перед посадкою.
 
-VTOL підтримує [інші типи повернення PX4](../flight_modes/return.md#return-types-rtl-type), включаючи повернення до дому / точки збору, маршрут місії і найближче безпечне місце призначення. Рекомендується використовувати тип за замовчуванням.
+VTOL supports the [other PX4 return types](../flight_modes/return.md#return_types), including home/rally point return, mission path and closest safe destination.
 За замовчуванням рекомендується використовувати цей тип.
 
 ::: info
@@ -22,7 +22,7 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
   - Літаючі транспортні засоби не можуть переключатися на цей режим без глобального положення.
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
 - Режим вимагає встановленої домашньої позиції.
-- Режим перешкоджає зброюванню (транспортний засіб повинен бути зброєний при переході на цей режим).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
 - Рух стіків радіокерування ігнорується.
 
@@ -32,7 +32,7 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
 
 ## Технічний підсумок
 
-Літальні апарати типу VTOL за замовчуванням використовують тип повернення до призначення [місії посадки/ точки збору](../flight_modes/return.md#mission-landing-rally-point-return-type-rtl-type-1), і повертаються, використовуючи режим польоту (MC або FW), який вони використовували в момент активації режиму повернення.
+VTOL vehicles use the [Mission Landing/Rally Point](../flight_modes/return.md#rtl_type_1) return type by default, and return using the flying mode (MC or FW) it was using at the point when return mode was triggered.
 
 ### Повернення режиму фіксованого крила (FW)
 
@@ -42,7 +42,8 @@ VTOL підтримує [інші типи повернення PX4](../flight_m
   Транспортний засіб підтримує свою початкову висоту, якщо вона вище, ніж мінімальна висота повернення.
   <!-- Note that return altitude cannot be configured using the "cone" parameter in fixed-wing vehicles. -->
 
-- Летить прямим шляхом на постійній висоті до призначення, яким буде найближча з точки старту місійного маршруту посадки та будь-яка точка збору, або домашня локація, якщо місійний маршрут посадки або точки збору не визначені.
+- Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
+  The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
 
 - Якщо призначенням є місійний маршрут посадки, апарат буде дотримуватися маршруту для посадки.
 
@@ -107,7 +108,7 @@ If the selected approach loiter is far from the rally point or home location, th
 Якщо використовується місійна посадка, значення [RTL_RETURN_ALT](#RTL_RETURN_ALT) та [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) є важливими.
 Інші параметри стають актуальними, якщо призначенням є точка збору або домашня локація.
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RTL_TYPE"></a>[RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE)                                                                   | Тип повернення.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)                            | [VTOL FW only] If set, PX4 only considers home or rally-point RTL destinations when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                                                                                                                                                                                   |

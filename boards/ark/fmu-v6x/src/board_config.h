@@ -324,11 +324,6 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER                  1
-#define INPUT_CAP1_CHANNEL     /* T1C2 */ 2
-#define GPIO_INPUT_CAP1        /*  PE11 */ GPIO_TIM1_CH2IN
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
@@ -477,9 +472,6 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-
-#define PX4_I2C_BUS_MTD      4,5
-
 
 #define BOARD_NUM_IO_TIMERS  4
 #define BOARD_SPIX_SYNC_FREQ 32000

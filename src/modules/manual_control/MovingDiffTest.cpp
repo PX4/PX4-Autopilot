@@ -34,16 +34,86 @@
 #include "MovingDiff.hpp"
 #include <gtest/gtest.h>
 
-TEST(MovingDiffTest, RcInputContinuous)
+// Sustained movement in one direction: filter converges to true velocity
+// and consecutiveSameSign accumulates past the override threshold (3).
+TEST(MovingDiffTest, ConsistentMovement)
 {
-	MovingDiff _diff;
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 0.0f), 0.f); // 0,0,0
-	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f); // 1*,0,0
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 1,-1*,0
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0,-1,0*
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0*,-1,0
-	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f); // 0,1*,0
-	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0,1,-1*
-	EXPECT_FLOAT_EQ(_diff.update(2.0f, 1.0f), 1.f); // 2*,1,-1
-	EXPECT_FLOAT_EQ(_diff.update(4.0f, 1.0f), 2.f); // 2,2*,-1
+	MovingDiff diff;
+	diff.update(0.f, 1.f); // first sample, no diff yet
+	EXPECT_NEAR(diff.update(1.f, 1.f), 1.f, .1f); // diff=+1, ~0.952
+	EXPECT_NEAR(diff.update(2.f, 1.f), 1.f, .01f); // ~0.998
+	EXPECT_NEAR(diff.update(3.f, 1.f), 1.f, .001f); // ~0.9999
+	EXPECT_NEAR(diff.update(4.f, 1.f), 1.f, .001f);
+	EXPECT_NEAR(diff.update(5.f, 1.f), 1.f, .001f);
+	EXPECT_FLOAT_EQ(diff.update(6.f, 1.f), 1.f); // fully settled
+	EXPECT_GE(diff.consecutiveSameSign(), 6);
+}
+
+// Erratic same-sign signal at realistic RC rate (50 Hz): every 3rd sample
+// spikes to +3/s, the rest are near-zero (+0.05/s), all positive. Raw diff
+// peaks above the override threshold (1/s) yet the filter never crosses it,
+// which shows the magnitude check adds necessary protection over sign alone.
+TEST(MovingDiffTest, ErraticSameSignFilterStaysBelowThreshold)
+{
+	MovingDiff diff;
+	const float dt = 0.02f; // 50 Hz
+	diff.update(0.f, dt); // first sample
+
+	float val = 0.f;
+
+	for (int i = 0; i < 100; i++) {
+		val += (i % 3 == 0) ? 0.04f : 0.001f; // diffs sometimes exceed with +2/s but are usually +0.05/s
+		EXPECT_LT(diff.update(val, dt), 1.f); // filter never reaches override threshold
+	}
+
+	EXPECT_GT(diff.consecutiveSameSign(), 3); // consistently same sign throughout
+}
+
+// A single-sample outlier (spike up, immediately returns) must not build up
+// consecutiveSameSign past 1, so it cannot trigger the override gate (threshold = 3).
+TEST(MovingDiffTest, SingleSampleOutlier)
+{
+	MovingDiff diff;
+	diff.update(0.f, 1.f); // first sample, no diff yet
+	EXPECT_EQ(diff.consecutiveSameSign(), 0);
+
+	diff.update(0.f, 1.f); // diff=0, sign=0, no update
+	EXPECT_EQ(diff.consecutiveSameSign(), 0);
+
+	diff.update(1.f, 1.f); // outlier spike: diff=+1, consecutive=1
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
+
+	diff.update(0.f, 1.f); // returns: diff=-1, opposite sign resets consecutive to 1
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
+
+	diff.update(0.f, 1.f); // diff=0, no update
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
+}
+
+// Switching RC source to a joystick held at a different position produces a single large
+// diff followed by zero-diffs (static hold). consecutiveSameSign must stay at 1 so the
+// step does not trigger the override gate (threshold = 3).
+TEST(MovingDiffTest, SignalStepOnSourceSwitch)
+{
+	MovingDiff diff;
+	diff.update(0.2f, 1.f); // first sample, no diff yet
+	EXPECT_EQ(diff.consecutiveSameSign(), 0);
+
+	diff.update(0.2f, 1.f); // diff=0
+	EXPECT_EQ(diff.consecutiveSameSign(), 0);
+
+	diff.update(0.2f, 1.f); // diff=0
+	EXPECT_EQ(diff.consecutiveSameSign(), 0);
+
+	diff.update(-0.8f, 1.f); // source switch: single large step diff=-1.0, consecutive=1
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
+
+	diff.update(-0.8f, 1.f); // joystick static: diff=0, no sign update
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
+
+	diff.update(-0.8f, 1.f); // diff=0
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
+
+	diff.update(-0.8f, 1.f); // diff=0
+	EXPECT_EQ(diff.consecutiveSameSign(), 1);
 }

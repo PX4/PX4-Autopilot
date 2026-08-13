@@ -73,6 +73,7 @@ void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint
 bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw, const float deltatime)
 {
 	if (!PX4_ISFINITE(unaided_yaw)) {
+		_unaided_yaw_was_invalid = true;
 		// If unaided yaw is not available we leave yaw_correction_ unchanged
 		// Meaning yaw_setpoint - yaw_correction_prev + _yaw_correction = yaw_setpoint
 		return false;
@@ -81,6 +82,15 @@ bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw, con
 	// Detect the convergence phase of the yaw estimate by monitoring its relative
 	// distance from an unaided yaw source.
 	const float yaw_error = wrap_pi(yaw - unaided_yaw);
+
+	if (_unaided_yaw_was_invalid) {
+		_unaided_yaw_was_invalid = false;
+		_yaw_error_lpf.reset(yaw_error);
+		_yaw_error_ref = yaw_error;
+		_yaw_correction = 0.f;
+		_yaw_estimate_converging = false;
+		return true;
+	}
 
 	// Run it through a high-pass filter to detect transients
 	const float yaw_error_hpf = wrap_pi(yaw_error - _yaw_error_lpf.getState());

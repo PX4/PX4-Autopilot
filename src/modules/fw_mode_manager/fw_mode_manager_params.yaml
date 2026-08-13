@@ -517,3 +517,17 @@ parameters:
       max: 10.0
       decimal: 1
       increment: 0.1
+    FW_WP_RST_DIST:
+      description:
+        short: Max position reset distance
+        long: |-
+          If a horizontal position reset larger than this occurs while flying between two
+          waypoints, fly directly to the current waypoint instead of rejoining the line.
+          -1 to disable.
+      type: float
+      default: -1.0
+      unit: m
+      min: -1.0
+      max: 10000.0
+      decimal: 0
+      increment: 1

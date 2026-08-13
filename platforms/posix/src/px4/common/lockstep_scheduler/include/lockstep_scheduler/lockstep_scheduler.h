@@ -86,11 +86,12 @@ private:
 		pthread_cond_t *passed_cond{nullptr};
 		pthread_mutex_t *passed_lock{nullptr};
 		uint64_t time_us{0};
-		bool timeout{false};
+		std::atomic<bool> timeout{false};
 		std::atomic<bool> done{false};
 		std::atomic<bool> removed{true};
 
 		TimedWait *next{nullptr}; ///< linked list
+		TimedWait *signal_next{nullptr}; ///< temporary list used by set_absolute_time() to signal outside _timed_waits_mutex
 	};
 
 	LockstepComponents _components;
@@ -99,5 +100,7 @@ private:
 
 	TimedWait *_timed_waits{nullptr}; ///< head of linked list
 	std::mutex _timed_waits_mutex;
+	std::mutex
+	_signaling_mutex; ///< held by set_absolute_time() across its signal phase; waiters block on it during the dance to prevent use-after-free of their stack-local passed_lock/passed_cond
 	std::atomic<bool> _setting_time{false}; ///< true if set_absolute_time() is currently being executed
 };

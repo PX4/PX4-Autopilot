@@ -39,13 +39,15 @@
 
 #define PACKED __attribute__((packed))
 
-namespace InertialLabs {
+namespace InertialLabs
+{
 
 // NOLINTBEGIN(clang-analyzer-optin.performance.Padding, altera-struct-pack-align, misc-non-private-member-variables-in-classes)
 struct PACKED vec3_16_t {
 	int16_t x, y, z;
 
-	matrix::Vector3f toFloat() const {
+	matrix::Vector3f toFloat() const
+	{
 		return matrix::Vector3f(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 	}
 };
@@ -53,7 +55,8 @@ struct PACKED vec3_16_t {
 struct PACKED vec3_32_t {
 	int32_t x, y, z;
 
-	matrix::Vector3f toFloat() const {
+	matrix::Vector3f toFloat() const
+	{
 		return matrix::Vector3f(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 	}
 };
@@ -104,7 +107,7 @@ enum DataType : uint8_t {
 };
 
 // Ins Solutiob Status
-enum InsSolution {
+enum InsSolution : uint8_t {
 	GOOD                       = 0,
 	KF_CONVERGENCE_IN_PROGRESS = 1,
 	GNSS_ABSENCE               = 2,
@@ -117,7 +120,7 @@ enum InsSolution {
 };
 
 // Unit Status Word bits
-enum USW {
+enum USW : uint16_t {
 	INITIAL_ALIGNMENT_FAIL = (1U << 0),
 	OPERATION_FAIL         = (1U << 1),
 	GYRO_FAIL              = (1U << 2),
@@ -137,7 +140,7 @@ enum USW {
 };
 
 // Unit Status Word2 bits
-enum USW2 {
+enum USW2 : uint16_t {
 	ACCEL_X_HIGH            = (1U << 0),
 	ACCEL_Y_HIGH            = (1U << 1),
 	ACCEL_Z_HIGH            = (1U << 2),
@@ -151,7 +154,7 @@ enum USW2 {
 };
 
 // Air Data Status bits
-enum ADU {
+enum ADU : uint16_t {
 	BARO_INIT_FAIL           = (1U << 0),
 	DIFF_PRESS_INIT_FAIL     = (1U << 1),
 	BARO_FAIL                = (1U << 2),
@@ -164,7 +167,7 @@ enum ADU {
 };
 
 // New GPS indicator
-enum NewGpsData {
+enum NewGpsData : uint8_t {
 	NEW_GNSS_POSITION    = (1U << 0),
 	NEW_GNSS_VELOCITY    = (1U << 1),
 	NEW_GNSS_HEADING     = (1U << 2),
@@ -175,7 +178,7 @@ enum NewGpsData {
 	NEW_RANGE_LOG        = (1U << 7),
 };
 
-enum NewAidingData {
+enum NewAidingData : uint16_t {
 	NEW_AIRSPEED    = (1U << 1),
 	NEW_WIND        = (1U << 2),
 	NEW_EXT_POS     = (1U << 3),
@@ -187,38 +190,24 @@ enum NewAidingData {
 };
 
 enum JammingStatus : uint8_t {
-	UNKOWN_OR_DISABLED = 0,
-	NO_SIGNIFICANT     = 1,  // No significant jamming
-	WARNING            = 2,  // Interference visible but fix ok
-	CRITICAL           = 3,  // Interference visible and no fix
+	UNKNOWN_OR_DISABLED = 0,
+	NO_SIGNIFICANT      = 1,  // No significant jamming
+	WARNING             = 2,  // Interference visible but fix ok
+	CRITICAL            = 3,  // Interference visible and no fix
 };
 
 enum SpoofingStatus : uint8_t {
-	UNKOWN_OR_DEACTIVATED = 0,
-	NO                    = 1,
-	INDICATED             = 2,
-	MULTIPLE_INCIDATIONS  = 3,
+	UNKNOWN_OR_DEACTIVATED = 0,
+	NO                     = 1,
+	INDICATED              = 2,
+	MULTIPLE_INCIDATIONS   = 3,
 };
 
-/*
-	Every data package consist of:
-		MessageHeader (6 bytes)
-		Payload
-		Checksum (2 bytes)
-
-	Whole data package size = MessageHeader->msgLen + 2(0x55AA)
-
-	User Defined Data payload consist of:
-		Number of data structures
-		List of data structures ID
-		List of data structures Values
-
-*/
-struct PACKED MessageHeader {
-	uint16_t packageHeader;  // 0x55AA
-	uint8_t  msgType;        // always 1 for INS data
-	uint8_t  msgId;          // always 0x95
-	uint16_t msgLen;         // payload + 6(msgType + msgId + msgLen + checksum). Not included packageHeader
+enum GnssFixType : uint8_t {
+	NO_FIX = 0,
+	FIX_2D = 1,
+	FIX_3D = 2,
+	OTHER  = 3,
 };
 
 struct PACKED SensorBias {
@@ -419,6 +408,12 @@ struct AverageSensorsData {
 	float            pressure;              // Pa
 	float            temperature;           // degC
 	uint8_t          count;                 // number of samples
+};
+
+struct ReferencePositionData {
+	float alt{0.f};  // deg
+	double lat{0.};  // deg
+	double lon{0.};  // m, can be WGS84 or AMSL
 };
 
 // NOLINTEND(clang-analyzer-optin.performance.Padding, altera-struct-pack-align, misc-non-private-member-variables-in-classes)

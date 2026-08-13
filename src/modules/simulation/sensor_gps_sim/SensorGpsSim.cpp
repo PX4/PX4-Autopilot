@@ -108,7 +108,7 @@ void SensorGpsSim::Run()
 		updateParams();
 	}
 
-	check_failure_injection();
+	updateFailureConfig();
 
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
@@ -241,84 +241,9 @@ void SensorGpsSim::publishWithFailures(int instance, sensor_gps_s gps, sensor_gp
 	}
 }
 
-void SensorGpsSim::check_failure_injection()
+void SensorGpsSim::updateFailureConfig()
 {
-	vehicle_command_s vehicle_command;
-
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		const int failure_unit = static_cast<int>(lroundf(vehicle_command.param1));
-		const int failure_type = static_cast<int>(lroundf(vehicle_command.param2));
-
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE
-		    || failure_unit != vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
-			continue;
-		}
-
-		// param3: 0 = all instances, otherwise 1-based instance index
-		const int requested_instance = static_cast<int>(lroundf(vehicle_command.param3));
-
-		if (requested_instance < 0 || requested_instance > GPS_MAX_INSTANCES) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-			continue;
-		}
-
-		const uint8_t target_mask = (requested_instance == 0)
-					    ? static_cast<uint8_t>((1u << GPS_MAX_INSTANCES) - 1u)
-					    : static_cast<uint8_t>(1u << (requested_instance - 1));
-
-		bool supported = true;
-		const char *action = nullptr;
-
-		switch (failure_type) {
-		case vehicle_command_s::FAILURE_TYPE_OK:
-			_gps_blocked_mask &= ~target_mask;
-			_gps_stuck_mask   &= ~target_mask;
-			_gps_wrong_mask   &= ~target_mask;
-			action = "ok";
-			break;
-
-		case vehicle_command_s::FAILURE_TYPE_OFF:
-			_gps_blocked_mask |= target_mask;
-			action = "off";
-			break;
-
-		case vehicle_command_s::FAILURE_TYPE_STUCK:
-			_gps_stuck_mask |= target_mask;
-			action = "stuck";
-			break;
-
-		case vehicle_command_s::FAILURE_TYPE_WRONG:
-			_gps_wrong_mask |= target_mask;
-			action = "wrong";
-			break;
-
-		default:
-			supported = false;
-			break;
-		}
-
-		if (action != nullptr) {
-			for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
-				if (target_mask & (1u << i)) {
-					PX4_INFO("CMD_INJECT_FAILURE, GPS %d %s", i + 1, action);
-				}
-			}
-		}
-
-		vehicle_command_ack_s ack{};
-		ack.command = vehicle_command.command;
-		ack.from_external = false;
-		ack.result = supported ?
-			     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-			     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-		ack.timestamp = hrt_absolute_time();
-		_command_ack_pub.publish(ack);
-	}
+	_failure_config.update();
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

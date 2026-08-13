@@ -172,13 +172,23 @@ Sets GPS longitudinal offset encoding
 
 ### ADSB_ICAO_ID (`INT32`) {#ADSB_ICAO_ID}
 
-ADSB-Out ICAO configuration.
+ADSB-Out ICAO ID.
 
-Defines the ICAO ID of the vehicle
+Vehicle ICAO ID. Use -1 to disable.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | -1       | 16777215 |           | 1194684 |      | &nbsp;    |
+| &check; | -1       | 16777215 |           | -1      |      | &nbsp;    |
+
+### ADSB_ICAO_ID_2 (`INT32`) {#ADSB_ICAO_ID_2}
+
+Secondary ownship ICAO ID.
+
+Optional second ownship ICAO ID used to filter self-detections. Use -1 to disable.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -1       | 16777215 |           | -1      |      | &nbsp;    |
 
 ### ADSB_ICAO_SPECL (`INT32`) {#ADSB_ICAO_SPECL}
 
@@ -20640,6 +20650,27 @@ Change time measurement
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
+### CAM_CAP_REPORT (`INT32`) {#CAM_CAP_REPORT}
+
+Report captures to the ground station.
+
+Whether the autopilot reports captures to the ground station by emitting
+CAMERA_IMAGE_CAPTURED.
+
+Disable for cameras that report captures themselves (e.g. cameras
+implementing the MAVLink Camera Protocol) to avoid duplicate
+CAMERA_IMAGE_CAPTURED messages. Capture events are still published on the
+camera_capture topic and logged for geotagging regardless of this setting.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
 ## Camera trigger
 
 ### TRIG_ACT_TIME (`FLOAT`) {#TRIG_ACT_TIME}
@@ -20797,6 +20828,18 @@ WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 894281   |           | 0       |      | &nbsp;    |
+
+### CBRK_UAVCAN_FW (`INT32`) {#CBRK_UAVCAN_FW}
+
+Circuit breaker for UAVCAN firmware update arming check.
+
+Setting this parameter to 5318008 will allow arming even when a UAVCAN
+node firmware update is pending or a node went offline mid-update.
+WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5318008  |           | 0       |      | &nbsp;    |
 
 ### CBRK_USB_CHK (`INT32`) {#CBRK_USB_CHK}
 
@@ -21079,25 +21122,6 @@ Arm switch is a momentary button.
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
-### COM_ARM_TRAFF (`INT32`) {#COM_ARM_TRAFF}
-
-Enable Traffic Avoidance system detection check.
-
-This check detects if a traffic avoidance system (ADSB/FLARM transponder)
-is missing. Depending on the value of the parameter, the check can be
-disabled, warn only, or deny arming.
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Warning only
-- `2`: Enforce for all modes
-- `3`: Enforce for mission modes only
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          |           | 0       |      | &nbsp;    |
-
 ### COM_ARM_WO_GPS (`INT32`) {#COM_ARM_WO_GPS}
 
 Arming without GNSS configuration.
@@ -21115,6 +21139,18 @@ The settings deny arming and warn, allow arming and warn, or silently allow armi
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 1       |      | &nbsp;    |
+
+### COM_CC_TEMP_WARN (`FLOAT`) {#COM_CC_TEMP_WARN}
+
+Companion computer high-temperature warning threshold.
+
+Arming is not prevented as the temperature typically drops in flight.
+
+Set to -1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 127      | 1         | 80.0    | celcius | &nbsp;    |
 
 ### COM_CPU_MAX (`FLOAT`) {#COM_CPU_MAX}
 
@@ -21190,8 +21226,8 @@ Delay between failsafe condition triggered and failsafe reaction.
 
 Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
 for the user to realize.
-During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-Afterwards the configured failsafe action is triggered and the user may use stick override.
+During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
+Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
 A zero value disables the delay.
 
@@ -21223,7 +21259,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21261,7 +21297,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21299,7 +21335,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21337,7 +21373,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21375,7 +21411,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21413,7 +21449,7 @@ selected flight mode will be applied.
 - `-1`: Unassigned
 - `0`: Manual
 - `1`: Altitude
-- `2`: Position
+- `2`: Position / Cruise
 - `3`: Mission
 - `4`: Hold
 - `5`: Return
@@ -21438,6 +21474,39 @@ selected flight mode will be applied.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | -1      |      | &nbsp;    |
+
+### COM_FLTMODE_BOOT (`INT32`) {#COM_FLTMODE_BOOT}
+
+Flight mode on boot.
+
+Flight mode set on boot and after a power cycle, before any RC input or
+mode command is received.
+
+**Values:**
+
+- `0`: Manual
+- `1`: Altitude
+- `2`: Position / Cruise
+- `3`: Mission
+- `4`: Hold
+- `6`: Position Slow
+- `8`: Altitude Cruise
+- `10`: Acro
+- `14`: Offboard
+- `15`: Stabilized
+- `17`: Takeoff
+- `23`: External 1
+- `24`: External 2
+- `25`: External 3
+- `26`: External 4
+- `27`: External 5
+- `28`: External 6
+- `29`: External 7
+- `30`: External 8
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 4       |      | &nbsp;    |
 
 ### COM_FLTT_LOW_ACT (`INT32`) {#COM_FLTT_LOW_ACT}
 
@@ -21568,6 +21637,7 @@ for definition of battery states.
 - `0`: Warning
 - `2`: Land mode
 - `3`: Return at critical level, land at emergency level
+- `4`: Return at critical level, terminate at emergency level
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -21724,12 +21794,33 @@ Parachute requirement and failsafe.
 
 Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
 
+Warning only warns without preventing arming. Actions other than Warning also prevent arming.
+
 **Values:**
 
 - `0`: Disabled
 - `1`: Warning
-- `2`: Return
-- `3`: Land
+- `2`: Error
+- `3`: Return
+- `4`: Land
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### COM_POS_FS_ACT (`INT32`) {#COM_POS_FS_ACT}
+
+Loss of position failsafe action.
+
+Final fallback failsafe action for loss of horizontal position in autonomous modes:
+
+- Descend (potential for horizontal drift on landing)
+- Flight termination (allows parachute landing)
+
+**Values:**
+
+- `0`: Descend mode
+- `1`: Terminate
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -21909,35 +22000,6 @@ Ensure the value is not set lower than the update interval of the RC or Joystick
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 35       | 0.1       | 0.5     | s    | &nbsp;    |
 
-### COM_RC_OVERRIDE (`INT32`) {#COM_RC_OVERRIDE}
-
-Enable manual control stick override.
-
-When enabled, moving the sticks more than COM_RC_STICK_OV
-immediately gives control back to the pilot by switching to Position mode and
-if position is unavailable Altitude mode.
-Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-
-**Bitmask:**
-
-- `0`: Enable override during auto modes (except for in critical battery reaction)
-- `1`: Enable override during offboard mode
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 3        |           | 1       |      | &nbsp;    |
-
-### COM_RC_STICK_OV (`FLOAT`) {#COM_RC_STICK_OV}
-
-Stick override threshold.
-
-If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-the pilot takes over control.
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 5        | 80       | 0.05      | 30.0    | %    | &nbsp;    |
-
 ### COM_SPOOLUP_TIME (`FLOAT`) {#COM_SPOOLUP_TIME}
 
 Enforced delay between arming and further navigation.
@@ -21981,6 +22043,26 @@ Set to 0 to disable.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        |          | 0.1       | 5       | m/s  | &nbsp;    |
+
+### COM_TRAFF_AVOID (`INT32`) {#COM_TRAFF_AVOID}
+
+Traffic avoidance system requirement and failsafe.
+
+Warn about, and optionally require, a traffic avoidance system (ADS-B/FLARM
+transponder, detected via MAVLink heartbeats with a 3 second timeout), and
+trigger a failsafe action when it is missing or lost in flight.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warning
+- `2`: Error
+- `3`: Return
+- `4`: Land
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### COM_VEL_FS_EVH (`FLOAT`) {#COM_VEL_FS_EVH}
 
@@ -22070,6 +22152,12 @@ Set manual control loss failsafe mode.
 The manual control loss failsafe will only be entered after a timeout,
 set by COM_RC_LOSS_T in seconds.
 
+"Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+(e.g. without a valid position estimate), the normal failsafe takes over and escalates
+from there (Return/Land/Descend/Terminate as applicable).
+
 **Values:**
 
 - `1`: Hold mode
@@ -22077,6 +22165,7 @@ set by COM_RC_LOSS_T in seconds.
 - `3`: Land mode
 - `5`: Terminate
 - `6`: Disarm
+- `7`: Hold mode (no failsafe)
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -22575,6 +22664,212 @@ Configure on which serial port to run DShot Driver.
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
+
+## Detect and Avoid
+
+### DAA_EN (`INT32`) {#DAA_EN}
+
+Enable DAA.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### DAA_NOTIF_STATE (`INT32`) {#DAA_NOTIF_STATE}
+
+DAA status notification period.
+
+Time between notifications for the most urgent conflict. Set to 0 to disable the periodic status notification.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 600      |           | 20      | s    | &nbsp;    |
+
+### DAA_TRAFF_TOUT (`INT32`) {#DAA_TRAFF_TOUT}
+
+DAA stale conflict timeout.
+
+Conflict age before removal.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 1        | 120      |           | 20      | s    | &nbsp;    |
+
+## Detect and Avoid F3442 Standard
+
+### DAA_DFLT_VEL (`FLOAT`) {#DAA_DFLT_VEL}
+
+Default vertical speed of other aircraft.
+
+Used when DAA_EN_DFLT_VEL is enabled. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        |          |           | 10.0    | m/s  | &nbsp;    |
+
+### DAA_EN_DFLT_VEL (`INT32`) {#DAA_EN_DFLT_VEL}
+
+Ignore reported vertical speed of other aircraft.
+
+Use DAA_DFLT_VEL instead of reported traffic vertical speed. Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
+| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### DAA_LVL_CRIT_ACT (`INT32`) {#DAA_LVL_CRIT_ACT}
+
+Critical conflict action.
+
+Action requested when the critical conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_CRIT_HGT (`FLOAT`) {#DAA_LVL_CRIT_HGT}
+
+Critical conflict zone cylinder height (NMAC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 16.0    | m    | &nbsp;    |
+
+### DAA_LVL_CRIT_RAD (`FLOAT`) {#DAA_LVL_CRIT_RAD}
+
+Critical conflict zone cylinder radius (NMAC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 77.0    | m    | &nbsp;    |
+
+### DAA_LVL_HIGH_ACT (`INT32`) {#DAA_LVL_HIGH_ACT}
+
+High conflict action.
+
+Action requested when the high conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_HIGH_HGT (`FLOAT`) {#DAA_LVL_HIGH_HGT}
+
+High conflict zone cylinder height (WC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 39.0    | m    | &nbsp;    |
+
+### DAA_LVL_HIGH_RAD (`FLOAT`) {#DAA_LVL_HIGH_RAD}
+
+High conflict zone cylinder radius (WC).
+
+Per-aircraft half-zone. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 10       |          |           | 305.0   | m    | &nbsp;    |
+
+### DAA_LVL_LOW_ACT (`INT32`) {#DAA_LVL_LOW_ACT}
+
+Low conflict action.
+
+Action requested when the low conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_LOW_TIME (`INT32`) {#DAA_LVL_LOW_TIME}
+
+Low conflict latency time.
+
+Expands well-clear bounds by aircraft speed times this value. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        |          |           | 33      | s    | &nbsp;    |
+
+### DAA_LVL_MED_ACT (`INT32`) {#DAA_LVL_MED_ACT}
+
+Medium conflict action.
+
+Action requested when the medium conflict level is reached.
+Runtime changes apply on later conflict level transitions.
+Specific to the F3442 DAA standard.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warn only
+- `2`: Return mode
+- `3`: Land mode
+- `4`: Position Hold mode
+- `5`: Terminate
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
+
+### DAA_LVL_MED_TIME (`INT32`) {#DAA_LVL_MED_TIME}
+
+Medium conflict latency time.
+
+Expands NMAC bounds by aircraft speed times this value. Specific to the F3442 DAA standard.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        |          |           | 33      | s    | &nbsp;    |
 
 ## EKF2
 
@@ -23634,7 +23929,7 @@ Measurement noise for magnetometer 3-axis fusion.
 
 Type of magnetometer fusion.
 
-Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field. If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight. If set to 'Magnetic heading' magnetic heading fusion is used at all times. If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GNSS velocity measurements to align the yaw angle. If set to 'Init' the magnetometer is only used to initalize the heading.
+Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field. If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight. If set to 'Magnetic heading' magnetic heading fusion is used at all times. If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GNSS velocity measurements to align the yaw angle. If set to 'Init' the magnetometer is only used to initialize the heading.
 
 **Values:**
 
@@ -24151,7 +24446,7 @@ Forward axis with origin relative to vehicle centre of gravity
 
 ### EKF2_RNG_QLTY_T (`FLOAT`) {#EKF2_RNG_QLTY_T}
 
-Minumum range validity period.
+Minimum range validity period.
 
 Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 
@@ -24347,6 +24642,17 @@ Required esc hardware version.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 65535    |           | 0       |      | &nbsp;    |
+
+### ESC_TEMP_WARN_TH (`FLOAT`) {#ESC_TEMP_WARN_TH}
+
+ESC temperature warning threshold.
+
+Warning only, no failsafe or arming blocked.
+-1 disables the check.
+
+| Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ------- | --------- |
+| &nbsp; | -1       | 150      | 1         | 90.0    | celcius | &nbsp;    |
 
 ## Events
 
@@ -25203,6 +25509,18 @@ system more robust against disturbances (turbulence) in high wind.
 
 ## FW NPFG Control
 
+### FW_WP_RST_DIST (`FLOAT`) {#FW_WP_RST_DIST}
+
+Max position reset distance.
+
+If a horizontal position reset larger than this occurs while flying between two
+waypoints, fly directly to the current waypoint instead of rejoining the line.
+-1 to disable.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1.0     | 10000.0  | 1         | -1.0    | m    | &nbsp;    |
+
 ### NPFG_DAMPING (`FLOAT`) {#NPFG_DAMPING}
 
 NPFG damping ratio.
@@ -25673,11 +25991,13 @@ Pitch rate differential gain.
 
 Pitch rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_PR_I (`FLOAT`) {#FW_PR_I}
 
@@ -25727,11 +26047,13 @@ Roll rate derivative gain.
 
 Roll rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output.
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.5     | %/rad/s | &nbsp;    |
 
 ### FW_RR_I (`FLOAT`) {#FW_RR_I}
 
@@ -25809,11 +26131,13 @@ Yaw rate derivative gain.
 
 Yaw rate feed forward.
 
-Direct feed forward from rate setpoint to control surface output
+Direct feed forward from rate setpoint to torque setpoint.
+Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
 
 | Reboot | minValue | maxValue | increment | default | unit    | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ------- | --------- |
-| &nbsp; | 0.0      | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
+| &nbsp; | -10.0    | 10.0     | 0.05      | 0.3     | %/rad/s | &nbsp;    |
 
 ### FW_YR_I (`FLOAT`) {#FW_YR_I}
 
@@ -25955,6 +26279,103 @@ Setting this value to 0 disables the feature.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 1000     | 1         | 30      |      | &nbsp;    |
+
+## Failure Injection
+
+### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
+
+Enable failure injection.
+
+If enabled allows Injection of Failures.
+
+WARNING: the failures can easily cause crashes and are to be used with caution!
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
+
+Instance failed by the RC switch.
+
+Which instance of SYS_FAIL_RC_UNIT the SYS_FAIL_RC_SRC trigger affects.
+1-based, or 0 for all instances (motor number for motors).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 16       |           | 1       |      | &nbsp;    |
+
+### SYS_FAIL_RC_MODE (`INT32`) {#SYS_FAIL_RC_MODE}
+
+Failure type applied by the RC switch.
+
+How SYS_FAIL_RC_UNIT fails when the SYS_FAIL_RC_SRC trigger fires, on SYS_FAIL_RC_INST.
+unsupported (unit, type) pairs are ignored.
+
+**Values:**
+
+- `0`: Ok (no failure)
+- `1`: Off
+- `2`: Stuck
+- `3`: Garbage
+- `4`: Wrong
+- `5`: Slow
+- `6`: Delayed
+- `7`: Intermittent
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SYS_FAIL_RC_SRC (`INT32`) {#SYS_FAIL_RC_SRC}
+
+RC aux input that triggers failure injection.
+
+Defines the aux switch which injects the failure defined by SYS_FAIL_RC_UNIT,
+SYS_FAIL_RC_MODE and SYS_FAIL_RC_INST;
+Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: AUX1
+- `2`: AUX2
+- `3`: AUX3
+- `4`: AUX4
+- `5`: AUX5
+- `6`: AUX6
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 6        |           | 0       |      | &nbsp;    |
+
+### SYS_FAIL_RC_UNIT (`INT32`) {#SYS_FAIL_RC_UNIT}
+
+Component failed by the RC switch.
+
+Which component the SYS_FAIL_RC_SRC trigger fails, with SYS_FAIL_RC_MODE on
+SYS_FAIL_RC_INST.
+
+**Values:**
+
+- `0`: Gyro
+- `1`: Accel
+- `2`: Mag
+- `3`: Baro
+- `4`: GPS
+- `7`: Distance sensor
+- `8`: Airspeed
+- `100`: Battery
+- `101`: Motor
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 101     |      | &nbsp;    |
 
 ## Flight Task Orbit
 
@@ -26227,7 +26648,7 @@ Wipes the flash config of UBX modules.
 
 Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
 PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
-However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+However, configuration parameters that are not overridden by PX4 can still cause unexpected problems during flight.
 To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
 
 Note: Currently only supported on UBX.
@@ -26277,13 +26698,23 @@ Not available on MTK.
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### GPS_UBX_BAUD1 (`INT32`) {#GPS_UBX_BAUD1}
+
+u-blox UART1 target baudrate.
+
+Baudrate applied to the receiver UART1 after the link is auto-detected.
+0 keeps the driver default (115200). Modes that share UART1 with RTCM
+(GPS_UBX_MODE 3/4) may need a higher rate on short/reliable links.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 3000000  |           | 0       | B/s  | &nbsp;    |
+
 ### GPS_UBX_BAUD2 (`INT32`) {#GPS_UBX_BAUD2}
 
-u-blox F9P UART2 Baudrate.
+u-blox UART2 baudrate.
 
-Select a baudrate for the F9P's UART2 port.
-In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
-Set this to 57600 if you want to attach a telemetry radio on UART2.
+Baudrate for the receiver UART2 port.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26396,8 +26827,8 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 - `0`: Default
 - `1`: Heading (Rover With Moving Base UART1 Connected To Autopilot, UART2 Connected To Moving Base)
 - `2`: Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
-- `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
-- `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+- `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node)
+- `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node)
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 
@@ -26606,13 +27037,17 @@ If actuator launch lock is enabled, this surface is kept at the disarmed value.
 
 Motor failure handling mode.
 
-This is used to specify how to handle motor failures
-reported by failure detector.
+What to do on a single motor failure. Ignore disables this feature entirely. Otherwise
+the failed motor is removed from the allocation, and on a hexarotor its geometric-opposite
+motor is additionally stopped (mode 1) or reversed (mode 2) to recover the lost
+yaw/roll/pitch authority; on other airframes only the failed motor is removed. Mode 2
+needs a reverse-capable ESC on the opposite motor.
 
 **Values:**
 
 - `0`: Ignore
-- `1`: Remove first failed motor from effectiveness
+- `1`: Remove failed motor and stop its opposite
+- `2`: Remove failed motor and reverse its opposite
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -27016,6 +27451,17 @@ Zero means that slew rate limiting is disabled.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 10       | 0.01      | 0.0     | s    | &nbsp;    |
+
+### CA_REV_THR_FRAC (`FLOAT`) {#CA_REV_THR_FRAC}
+
+Reverse thrust fraction for reversible motors.
+
+Fraction of forward thrust a reversible motor produces in reverse (e.g. 0.4 = 40%).
+This is mostly a property of the propeller.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 1.0      |           | 0.4     |      | &nbsp;    |
 
 ### CA_ROTOR0_AX (`FLOAT`) {#CA_ROTOR0_AX}
 
@@ -29659,8 +30105,9 @@ by the innovation consistency test.
 
 1-sigma initial hover thrust uncertainty.
 
-Sets the number of standard deviations used
-by the innovation consistency test.
+Initial standard deviation of the hover thrust state estimate.
+Larger values allow the estimate to move farther from the initial
+hover thrust before process noise takes over.
 
 | Reboot | minValue | maxValue | increment | default | unit              | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----------------- | --------- |
@@ -29740,6 +30187,46 @@ Enable internal combustion engine.
 | Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### ICE_IDLE_RPM (`FLOAT`) {#ICE_IDLE_RPM}
+
+Idle RPM setpoint for the engine.
+
+Applies a controller to prevent the RPM do drop below this value.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10000    | 1         | 0.0     | rpm  | &nbsp;    |
+
+### ICE_IDLE_RPM_I (`FLOAT`) {#ICE_IDLE_RPM_I}
+
+Integral gain for idle RPM control.
+
+Ratio between integrated RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_RPM_P (`FLOAT`) {#ICE_IDLE_RPM_P}
+
+Proportional gain for idle RPM control.
+
+Ratio between RPM error devided by 1000 to how much normalized output gets added to correct for it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 0.0     |      | &nbsp;    |
+
+### ICE_IDLE_THR_FF (`FLOAT`) {#ICE_IDLE_THR_FF}
+
+Idle RPM throttle for feed-forward.
+
+Used as feed-forward. Should match approximately the throttle required to maintain the ICE_IDLE_RPM.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        | 0.01      | 0.0     |      | &nbsp;    |
 
 ### ICE_IGN_DELAY (`FLOAT`) {#ICE_IGN_DELAY}
 
@@ -29959,7 +30446,7 @@ Maximum vertical velocity allowed in the landed state.
 
 Fixed-wing land detector: Max horizontal acceleration.
 
-Maximum horizontal (x,y body axes) acceleration allowed in the landed state
+Maximum gravity-compensated horizontal (earth frame) acceleration allowed in the landed state.
 
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
@@ -31364,6 +31851,16 @@ A negative value disables the feature.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       | 15       |           | -1.0    | s    | &nbsp;    |
 
+### MAN_OVERRIDE_SPD (`FLOAT`) {#MAN_OVERRIDE_SPD}
+
+Manual control override speed threshold.
+
+Stick velocity above which the pilot regains control by switching to Position mode (or Altitude if position is unavailable). Unit: normalized stick travel per second — at 1.0, moving a stick half its range in ~0.5s triggers it. A negative value disables the feature. Only applies to multicopters and VTOLs in MC mode.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -1       | 10.0     | 0.5       | 1       | 1/s  | &nbsp;    |
+
 ## Mission
 
 ### MIS_COMMAND_TOUT (`FLOAT`) {#MIS_COMMAND_TOUT}
@@ -31613,10 +32110,10 @@ Set to a negative value to disable.
 
 ### NAV_TRAFF_AVOID (`INT32`) {#NAV_TRAFF_AVOID}
 
-Set traffic avoidance mode.
+Set traffic avoidance action.
 
-Enabling this will allow the system to respond
-to transponder data from e.g. ADSB transponders
+Action requested for a crosstrack traffic conflict.
+Runtime changes apply on later conflict level transitions.
 
 **Values:**
 
@@ -31625,16 +32122,17 @@ to transponder data from e.g. ADSB transponders
 - `2`: Return mode
 - `3`: Land mode
 - `4`: Position Hold mode
+- `5`: Terminate
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; |          |          |           | 1       |      | &nbsp;    |
+| &nbsp; | 0        | 5        |           | 1       |      | &nbsp;    |
 
 ### NAV_TRAFF_A_HOR (`FLOAT`) {#NAV_TRAFF_A_HOR}
 
-Set NAV TRAFFIC AVOID horizontal distance.
+Crosstrack conflict distance threshold.
 
-Defines a crosstrack horizontal distance
+Maximum absolute distance from the projected traffic track.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -31642,7 +32140,7 @@ Defines a crosstrack horizontal distance
 
 ### NAV_TRAFF_A_VER (`FLOAT`) {#NAV_TRAFF_A_VER}
 
-Set NAV TRAFFIC AVOID vertical distance.
+Crosstrack vertical separation threshold.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -31650,10 +32148,10 @@ Set NAV TRAFFIC AVOID vertical distance.
 
 ### NAV_TRAFF_COLL_T (`INT32`) {#NAV_TRAFF_COLL_T}
 
-Estimated time until collision.
+Crosstrack collision time threshold.
 
-Minimum acceptable time until collsion.
-Assumes constant speed over 3d distance.
+A conflict is raised when the time estimate is below this threshold.
+The estimate is the current 3D separation divided by the sum of the ownship and traffic speed magnitudes.
 
 | Reboot | minValue | maxValue  | increment | default | unit | Read-Only |
 | ------ | -------- | --------- | --------- | ------- | ---- | --------- |
@@ -31768,6 +32266,14 @@ and relies on the IMU's attitude estimation.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### MNT_FIXED_PITCH (`FLOAT`) {#MNT_FIXED_PITCH}
+
+Tracked pitch angle when in fixed mode (MNT_MODE_IN=5).
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -90      | 90       |           | 0.0     | deg  | &nbsp;    |
 
 ### MNT_LND_P_MAX (`FLOAT`) {#MNT_LND_P_MAX}
 
@@ -31896,10 +32402,11 @@ The rest will be deprecated.
 - `2`: MAVLINK_ROI (protocol v1, to be deprecated)
 - `3`: MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
 - `4`: MAVlink gimbal protocol v2
+- `5`: Fixed world-frame attitude, not user controllable
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | -1       | 4        |           | -1      |      | &nbsp;    |
+| &check; | -1       | 5        |           | -1      |      | &nbsp;    |
 
 ### MNT_MODE_OUT (`INT32`) {#MNT_MODE_OUT}
 
@@ -31908,6 +32415,11 @@ Mount output mode.
 This is the protocol used between the autopilot and a connected gimbal.
 
 Recommended is the MAVLink gimbal protocol v2 if the gimbal supports it.
+
+In AUX mode, the gimbal (and hence the gimbal manager) is only made
+available if at least one output channel is assigned a gimbal
+roll/pitch/yaw output function (checked once at startup, so newly
+assigned output functions require a reboot).
 
 **Values:**
 
@@ -32099,6 +32611,38 @@ Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      | 12       | 0.1       | 4.0     |      | &nbsp;    |
 
+### MC_REF_FF (`FLOAT`) {#MC_REF_FF}
+
+Attitude reference-model feed-forward gain.
+
+Scale on the reference-model rate feed-forward. 0 disables it.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 1.0      | 0.01      | 0.0     |      | &nbsp;    |
+
+### MC_REF_FF_MAX (`FLOAT`) {#MC_REF_FF_MAX}
+
+Feed-forward angular-rate cap; 0 = disabled.
+
+Per-axis cap on the rate feed-forward.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 100.0   | deg/s | &nbsp;    |
+
+### MC_REF_W_N (`FLOAT`) {#MC_REF_W_N}
+
+Attitude reference-model natural frequency.
+
+Bandwidth of the reference model that smooths the attitude setpoint
+and generates the rate feed-forward. Higher = less lag, more peak
+rate demand.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 1.0      | 200.0    | 1         | 50.0    | rad/s | &nbsp;    |
+
 ### MC_ROLLRATE_MAX (`FLOAT`) {#MC_ROLLRATE_MAX}
 
 Max roll rate.
@@ -32281,9 +32825,8 @@ When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration
 
 Maximum horizontal acceleration.
 
-MPC_POS_MODE
-1 just deceleration
-4 not used, use MPC_ACC_HOR instead
+With MPC_POS_MODE=0 it limits deceleration.
+With MPC_POS_MODE=4 it is unused (see MPC_ACC_HOR).
 
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
@@ -32318,6 +32861,32 @@ The speed threshold is MPC_HOLD_MAX_XY
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 2       |      | &nbsp;    |
+
+### MPC_AUTO_NUDGING (`INT32`) {#MPC_AUTO_NUDGING}
+
+Enable stick nudging in autonomous modes.
+
+Bitmask to enable pilot override of heading and position during auto modes.
+
+Bit 0 - Yaw nudging: yaw stick rotates the heading in all auto types
+(takeoff, mission, RTL, hold, landing). The new heading is held until a
+mode switch resets it.
+
+Bit 1 - Land nudging: during autonomous landing the pitch/roll sticks move
+the vehicle horizontally, the throttle stick amends the descent speed
+(stick full up: 0, centered: MPC_LAND_SPEED, full down: 2 \* MPC_LAND_SPEED),
+and the yaw stick rotates the heading.
+
+Stick override must be disabled (set MAN_OVERRIDE_SPD = -1).
+
+**Bitmask:**
+
+- `0`: Yaw nudging
+- `1`: Landing nudging
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 3        |           | 0       |      | &nbsp;    |
 
 ### MPC_HOLD_MAX_XY (`FLOAT`) {#MPC_HOLD_MAX_XY}
 
@@ -32418,7 +32987,7 @@ Used below MPC_LAND_ALT3 if distance sensor data is availabe.
 
 User assisted landing radius.
 
-When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
+When landing nudging is enabled (MPC_AUTO_NUDGING bit 1), this defines the maximum
 allowed horizontal displacement from the original landing point.
 
 - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
@@ -32429,27 +32998,6 @@ Set it to -1 for infinite radius.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | -1       |          | 1         | -1.0    | m    | &nbsp;    |
-
-### MPC_LAND_RC_HELP (`INT32`) {#MPC_LAND_RC_HELP}
-
-Enable nudging based on user input during autonomous land routine.
-
-Using stick input the vehicle can be moved horizontally and yawed.
-The descend speed is amended:
-stick full up - 0
-stick centered - MPC_LAND_SPEED
-stick full down - 2 \* MPC_LAND_SPEED
-
-Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
-
-**Values:**
-
-- `0`: Nudging disabled
-- `1`: Nudging enabled
-
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 1        |           | 0       |      | &nbsp;    |
 
 ### MPC_LAND_SPEED (`FLOAT`) {#MPC_LAND_SPEED}
 
@@ -32606,7 +33154,7 @@ Any higher value is truncated.
 
 ### MPC_TILTMAX_LND (`FLOAT`) {#MPC_TILTMAX_LND}
 
-Maximum tilt during inital takeoff ramp.
+Maximum tilt during initial takeoff ramp.
 
 Tighter tilt limit during takeoff to avoid tip over.
 
@@ -32730,11 +33278,12 @@ error is above this parameter, the integration of the
 trajectory is stopped to wait for the drone.
 
 This value can be adjusted depending on the tracking
-capabilities of the vehicle.
+capabilities of the vehicle. Set to 0 to disable the horizontal
+time-stretch.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0.1      | 10       | 1         | 2.0     |      | &nbsp;    |
+| &nbsp; | 0        | 10       | 1         | 2.0     |      | &nbsp;    |
 
 ### MPC_XY_P (`FLOAT`) {#MPC_XY_P}
 
@@ -32807,6 +33356,22 @@ Defined as corrective acceleration in m/s^2 per m/s velocity error
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1.2      | 5        | 0.1       | 1.8     |      | &nbsp;    |
+
+### MPC_Z_ERR_MAX (`FLOAT`) {#MPC_Z_ERR_MAX}
+
+Maximum vertical error allowed by the trajectory generator.
+
+Vertical analog of MPC_XY_ERR_MAX. When the smoothed trajectory z
+leads the drone by more than this value, trajectory integration is
+slowed down so the virtual setpoint can't walk away from the drone.
+This suppresses altitude overshoots caused by a noisy altitude
+reference (e.g. mission setpoint jittering as the home altitude
+estimate is refined in flight). Set to 0 to disable the vertical
+time-stretch.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.1       | 1.0     |      | &nbsp;    |
 
 ### MPC_Z_P (`FLOAT`) {#MPC_Z_P}
 
@@ -33403,6 +33968,35 @@ Can be set to increase the amount of integrator available to counteract disturba
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.0      |          | 0.01      | 0.3     |      | &nbsp;    |
 
+## NFS
+
+### NFS_EN (`INT32`) {#NFS_EN}
+
+Enable NFS mount.
+
+When enabled, mounts the NFS export at the configured mount point.
+Retries every 2 s until the server is reachable or the system is armed.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### NFS_IP (`INT32`) {#NFS_IP}
+
+NFS server IP address.
+
+IP address of the NFS server in int32 format.
+Same encoding as UXRCE_DDS_AG_IP: 10.41.10.1 maps to 170461697.
+
+| Reboot  | minValue | maxValue | increment | default   | unit | Read-Only |
+| ------- | -------- | -------- | --------- | --------- | ---- | --------- |
+| &check; |          |          |           | 170461697 |      | &nbsp;    |
+
 ## Neural Control
 
 ### MC_NN_EN (`INT32`) {#MC_NN_EN}
@@ -33647,12 +34241,14 @@ this time before considering gripper actuation successful and publish a
 
 ### PD_GRIPPER_TYPE (`INT32`) {#PD_GRIPPER_TYPE}
 
-Type of Gripper (Servo, etc.).
+Gripper control type.
+
+Selects the types of control actions the gripper accepts.
 
 **Values:**
 
 - `-1`: Undefined
-- `0`: Servo
+- `0`: Binary Grab/Release
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -36014,7 +36610,7 @@ Proportional gain for closed loop yaw controller.
 
 ### RD_TRANS_DRV_TRN (`FLOAT`) {#RD_TRANS_DRV_TRN}
 
-Yaw error threshhold to switch from driving to spot turning.
+Yaw error threshold to switch from driving to spot turning.
 
 This threshold is used for the state machine to switch from driving to turning based on the
 error between the desired and actual yaw. It is also used as the threshold whether the rover should come
@@ -36027,7 +36623,7 @@ line segments from prevWP-currWP and currWP-nextWP is smaller then 180 - RD_TRAN
 
 ### RD_TRANS_TRN_DRV (`FLOAT`) {#RD_TRANS_TRN_DRV}
 
-Yaw error threshhold to switch from spot turning to driving.
+Yaw error threshold to switch from spot turning to driving.
 
 This threshold is used for the state machine to switch from turning to driving based on the
 error between the desired and actual yaw.
@@ -38865,19 +39461,6 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
-### HEATER1_IMU_ID (`INT32`) {#HEATER1_IMU_ID}
-
-The ID of the IMU controlled by heater 1.
-
-Specifies the sensor device ID (DEVID) that this heater instance controls.
--1 disables this heater instance.
-If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; |          |          |           | 0       |      | &nbsp;    |
-
 ### HEATER1_NOM_V (`FLOAT`) {#HEATER1_NOM_V}
 
 Nominal supply voltage for heater 1.
@@ -38889,11 +39472,25 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
+### HEATER1_SENS_ID (`INT32`) {#HEATER1_SENS_ID}
+
+Device ID of the temperature sensor read by heater 1.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 1 uses for thermal control.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### HEATER1_TEMP (`FLOAT`) {#HEATER1_TEMP}
 
 Target temperature for heater 1.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 1.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -38901,9 +39498,25 @@ which must be higher than the maximum ambient temperature.
 | ------- | -------- | -------- | --------- | ------- | ------- | --------- |
 | &check; | 0        | 85.0     |           | 55.0    | celcius | &nbsp;    |
 
+### HEATER1_TEMP_ACT (`FLOAT`) {#HEATER1_TEMP_ACT}
+
+If temperature drops below Activation_Threshold, it starts heating.
+
+The heater starts heating once the temperature drops below this activation threshold, and keeps
+heating until reset.
+
+The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+is always below the activation threshold and thus turn on the heater immediately.
+Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+e.g. 5 to only start heating once the temperature drops below 5°C.
+
+| Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------- | --------- |
+| &check; | -100.0   | 200.0    |           | 200.0   | celcius | &nbsp;    |
+
 ### HEATER1_TEMP_FF (`FLOAT`) {#HEATER1_TEMP_FF}
 
-IMU heater controller 1 feedforward value.
+Heater 1 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -38914,7 +39527,7 @@ helping to reduce adjustment time.
 
 ### HEATER1_TEMP_I (`FLOAT`) {#HEATER1_TEMP_I}
 
-IMU heater controller 1 integrator gain value.
+Heater 1 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -38925,7 +39538,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER1_TEMP_P (`FLOAT`) {#HEATER1_TEMP_P}
 
-IMU heater controller 1 proportional gain value.
+Heater 1 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -38938,7 +39551,7 @@ The proportional gain determines how quickly the controller responds to temperat
 Temperature source for heater 1.
 
 Selects the sensor used as the temperature input for heater control.
-0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -38954,19 +39567,6 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
-### HEATER2_IMU_ID (`INT32`) {#HEATER2_IMU_ID}
-
-The ID of the IMU controlled by heater 2.
-
-Specifies the sensor device ID (DEVID) that this heater instance controls.
--1 disables this heater instance.
-If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; |          |          |           | 0       |      | &nbsp;    |
-
 ### HEATER2_NOM_V (`FLOAT`) {#HEATER2_NOM_V}
 
 Nominal supply voltage for heater 2.
@@ -38978,11 +39578,25 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
+### HEATER2_SENS_ID (`INT32`) {#HEATER2_SENS_ID}
+
+Device ID of the temperature sensor read by heater 2.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 2 uses for thermal control.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### HEATER2_TEMP (`FLOAT`) {#HEATER2_TEMP}
 
 Target temperature for heater 2.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 2.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -38990,9 +39604,25 @@ which must be higher than the maximum ambient temperature.
 | ------- | -------- | -------- | --------- | ------- | ------- | --------- |
 | &check; | 0        | 85.0     |           | 55.0    | celcius | &nbsp;    |
 
+### HEATER2_TEMP_ACT (`FLOAT`) {#HEATER2_TEMP_ACT}
+
+If temperature drops below Activation_Threshold, it starts heating.
+
+The heater starts heating once the temperature drops below this activation threshold, and keeps
+heating until reset.
+
+The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+is always below the activation threshold and thus turn on the heater immediately.
+Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+e.g. 5 to only start heating once the temperature drops below 5°C.
+
+| Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------- | --------- |
+| &check; | -100.0   | 200.0    |           | 200.0   | celcius | &nbsp;    |
+
 ### HEATER2_TEMP_FF (`FLOAT`) {#HEATER2_TEMP_FF}
 
-IMU heater controller 2 feedforward value.
+Heater 2 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -39003,7 +39633,7 @@ helping to reduce adjustment time.
 
 ### HEATER2_TEMP_I (`FLOAT`) {#HEATER2_TEMP_I}
 
-IMU heater controller 2 integrator gain value.
+Heater 2 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -39014,7 +39644,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER2_TEMP_P (`FLOAT`) {#HEATER2_TEMP_P}
 
-IMU heater controller 2 proportional gain value.
+Heater 2 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -39027,7 +39657,7 @@ The proportional gain determines how quickly the controller responds to temperat
 Temperature source for heater 2.
 
 Selects the sensor used as the temperature input for heater control.
-0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -39043,19 +39673,6 @@ Limits the maximum (and minimum) contribution of the integrator term to the cont
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0.0      | 0.25     |           | 0.25    |      | &nbsp;    |
 
-### HEATER3_IMU_ID (`INT32`) {#HEATER3_IMU_ID}
-
-The ID of the IMU controlled by heater 3.
-
-Specifies the sensor device ID (DEVID) that this heater instance controls.
--1 disables this heater instance.
-If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
-a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
-
-| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
-| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; |          |          |           | 0       |      | &nbsp;    |
-
 ### HEATER3_NOM_V (`FLOAT`) {#HEATER3_NOM_V}
 
 Nominal supply voltage for heater 3.
@@ -39067,11 +39684,25 @@ to prevent excess power dissipation. Set to 0 to disable voltage-based limiting.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 100.0    |           | 0.0     | V    | &nbsp;    |
 
+### HEATER3_SENS_ID (`INT32`) {#HEATER3_SENS_ID}
+
+Device ID of the temperature sensor read by heater 3.
+
+Specifies the device ID of the temperature sensor whose readings
+heater 3 uses for thermal control.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and temperature sensor.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### HEATER3_TEMP (`FLOAT`) {#HEATER3_TEMP}
 
 Target temperature for heater 3.
 
-Specify the target stable temperature (in degrees Celsius) for the IMU.
+Specify the target stable temperature (in degrees Celsius) for the sensor controlled by heater 3.
 It is generally recommended to set this between 40°C and 60°C,
 which must be higher than the maximum ambient temperature.
 
@@ -39079,9 +39710,25 @@ which must be higher than the maximum ambient temperature.
 | ------- | -------- | -------- | --------- | ------- | ------- | --------- |
 | &check; | 0        | 85.0     |           | 55.0    | celcius | &nbsp;    |
 
+### HEATER3_TEMP_ACT (`FLOAT`) {#HEATER3_TEMP_ACT}
+
+If temperature drops below Activation_Threshold, it starts heating.
+
+The heater starts heating once the temperature drops below this activation threshold, and keeps
+heating until reset.
+
+The default (200): Since ambient temperature never reaches that high, on heater-start the temperature
+is always below the activation threshold and thus turn on the heater immediately.
+Lower this for heaters that should only run when actually needed (e.g. a pitot-tube heater to save power)
+e.g. 5 to only start heating once the temperature drops below 5°C.
+
+| Reboot  | minValue | maxValue | increment | default | unit    | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------- | --------- |
+| &check; | -100.0   | 200.0    |           | 200.0   | celcius | &nbsp;    |
+
 ### HEATER3_TEMP_FF (`FLOAT`) {#HEATER3_TEMP_FF}
 
-IMU heater controller 3 feedforward value.
+Heater 3 controller feedforward value.
 
 Used to predict the baseline power consumption required to maintain temperature,
 helping to reduce adjustment time.
@@ -39092,7 +39739,7 @@ helping to reduce adjustment time.
 
 ### HEATER3_TEMP_I (`FLOAT`) {#HEATER3_TEMP_I}
 
-IMU heater controller 3 integrator gain value.
+Heater 3 controller integrator gain value.
 
 Integral gain is used to eliminate steady-state error,
 ensuring that the temperature ultimately reaches the setpoint target.
@@ -39103,7 +39750,7 @@ ensuring that the temperature ultimately reaches the setpoint target.
 
 ### HEATER3_TEMP_P (`FLOAT`) {#HEATER3_TEMP_P}
 
-IMU heater controller 3 proportional gain value.
+Heater 3 controller proportional gain value.
 
 The proportional gain determines how quickly the controller responds to temperature deviations.
 
@@ -39116,7 +39763,7 @@ The proportional gain determines how quickly the controller responds to temperat
 Temperature source for heater 3.
 
 Selects the sensor used as the temperature input for heater control.
-0 = IMU (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
+0 = Accel (sensor_accel temperature), 1 = Hygrometer (sensor_hygrometer temperature).
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -40067,6 +40714,62 @@ The mode will switch from long to short range when the distance is less than the
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 1        | 50       |           | 4       | m    | &nbsp;    |
 
+### SENS_ASDT1_CFG (`INT32`) {#SENS_ASDT1_CFG}
+
+Serial Configuration for Sony AS-DT1 Rangefinder.
+
+Configure on which serial port to run Sony AS-DT1 Rangefinder.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_MODE (`INT32`) {#SENS_ASDT1_MODE}
+
+Distance measurement range.
+
+Sony AS-DT1 distance measurement range mode. The driver uses
+this mode to configure the sensor and publish matching
+obstacle_distance metadata.
+
+**Values:**
+
+- `0`: 30MSTD
+- `1`: 30M15F
+- `2`: 30M30F
+- `3`: 20M
+- `4`: 40M
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 4        |           | 0       |      | &nbsp;    |
+
+### SENS_ASDT1_ROT (`FLOAT`) {#SENS_ASDT1_ROT}
+
+Sensor yaw offset.
+
+Yaw angle offset of the Sony AS-DT1 sensor relative to the
+vehicle forward direction. Positive values are clockwise.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | -360     | 360      |           | 0       | deg  | &nbsp;    |
+
 ### SENS_BAHRS_CFG (`INT32`) {#SENS_BAHRS_CFG}
 
 Serial Configuration for EULER-NAV BAHRS.
@@ -40381,7 +41084,7 @@ Eagle Tree airspeed sensor (external I2C).
 
 ### SENS_EN_GPSSIM (`INT32`) {#SENS_EN_GPSSIM}
 
-Enable simulated GPS sinstance.
+Enable simulated GPS instance.
 
 **Values:**
 
@@ -41129,7 +41832,11 @@ The secondary instance is then only used if the primary one times out.
 
 To select a DroneCAN GPS, set this to the node ID.
 
-This parameter has no effect if blending is active.
+The primary receiver is reported in the GPS_RAW_INT MAVLink
+message and the secondary in GPS2_RAW.
+
+This parameter has no effect on the EKF GPS selection if
+blending is active.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -41259,16 +41966,16 @@ Configure on which serial port to run LeddarOne Rangefinder.
 
 Magnetometer auto calibration.
 
-Automatically initialize magnetometer calibration from bias estimate if available.
+Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended. Mainly intended for remote nodes (e.g. CAN GPS units) that cannot be calibrated from a ground station.
 
 **Values:**
 
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
-| &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SENS_MAG_AUTOROT (`INT32`) {#SENS_MAG_AUTOROT}
 
@@ -43065,6 +43772,25 @@ Note: certain drivers such as the GPS can determine the Baudrate automatically.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
+## Serial Passthrough
+
+### PASSTHRU_EN (`INT32`) {#PASSTHRU_EN}
+
+Serial passthrough enable.
+
+When enabled, the serial passthrough mode is active and the
+normal motor output drivers (dshot, pwm_out) are not started
+at boot.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ## Simulation
 
 ### SIM_GZ_EN_ASPD (`INT32`) {#SIM_GZ_EN_ASPD}
@@ -43119,9 +43845,35 @@ Enable GPS/NavSat sensor in Gazebo bridge.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 1       |      | &nbsp;    |
 
+### SIM_GZ_EN_IMU (`INT32`) {#SIM_GZ_EN_IMU}
+
+Enable IMU sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
 ### SIM_GZ_EN_LIDAR (`INT32`) {#SIM_GZ_EN_LIDAR}
 
 Enable laser/lidar sensors in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 1       |      | &nbsp;    |
+
+### SIM_GZ_EN_MAG (`INT32`) {#SIM_GZ_EN_MAG}
+
+Enable magnetometer sensor in Gazebo bridge.
 
 **Values:**
 
@@ -43341,7 +44093,7 @@ It represents the difficulty of the vehicle to modify its angular rate.
 
 First order drag coefficient.
 
-Physical coefficient representing the friction with air particules.
+Physical coefficient representing the friction with air particles.
 The greater this value, the slower the quad will move.
 
 Drag force function of velocity: D=-KDV*V.
@@ -43355,7 +44107,7 @@ The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]
 
 First order angular damper coefficient.
 
-Physical coefficient representing the friction with air particules during rotations.
+Physical coefficient representing the friction with air particles during rotations.
 The greater this value, the slower the quad will rotate.
 
 Aerodynamic moment function of body rate: Ma=-KDW\*W_B.
@@ -43406,6 +44158,16 @@ to represent a physical ground location on Earth.
 | Reboot | minValue | maxValue | increment | default  | unit | Read-Only |
 | ------ | -------- | -------- | --------- | -------- | ---- | --------- |
 | &nbsp; | -180     | 180      |           | 8.545594 | deg  | &nbsp;    |
+
+### SIH_LOC_YAW0 (`FLOAT`) {#SIH_LOC_YAW0}
+
+Initial heading (yaw) of the simulated vehicle.
+
+This value represents the initial heading (yaw) of the simulated vehicle at the start of the simulation.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -3.14159 | 3.14159  | 0.01      | 0.0     | rad  | &nbsp;    |
 
 ### SIH_L_PITCH (`FLOAT`) {#SIH_L_PITCH}
 
@@ -43619,6 +44381,22 @@ Number of voltage pulses per one rotor revolution on the capturing pin.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 1        | 50       |           | 1       |      | &nbsp;    |
 
+### SYS_AUTOCFG_CAL (`INT32`) {#SYS_AUTOCFG_CAL}
+
+Sensor calibration in SYS_AUTOCONFIG reset.
+
+If enabled, a SYS_AUTOCONFIG reset overwrites stored sensor calibration with the airframe's built-in defaults.
+Enable when the airframe ships its own calibration.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ### SYS_AUTOCONFIG (`INT32`) {#SYS_AUTOCONFIG}
 
 Automatically configure default values.
@@ -43788,23 +44566,6 @@ Note: this is only supported on boards with a separate calibration storage
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
-
-### SYS_FAILURE_EN (`INT32`) {#SYS_FAILURE_EN}
-
-Enable failure injection.
-
-If enabled allows MAVLink INJECT_FAILURE commands.
-
-WARNING: the failures can easily cause crashes and are to be used with caution!
-
-**Values:**
-
-- `0`: Disabled
-- `1`: Enabled
-
-| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
-| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
 
 ### SYS_HAS_BARO (`INT32`) {#SYS_HAS_BARO}
 
@@ -43976,6 +44737,25 @@ Enable stack checking.
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### SYS_TIME_SRC (`INT32`) {#SYS_TIME_SRC}
+
+Select the source of the system time.
+
+This parameter selects the source allowed to set the system time.
+The default value enables all sources.
+
+**Bitmask:**
+
+- `0`: GPS time
+- `1`: MAVLink time
+- `2`: Software RTC time
+- `3`: DDS time
+- `4`: Input simulation time
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 31       |           | 31      |      | &nbsp;    |
 
 ## Telemetry
 
@@ -46141,9 +46921,24 @@ UAVCAN CAN bus bitrate.
 
 UAVCAN CAN node ID (0 for dynamic allocation).
 
-| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
-| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
-| &nbsp; | 0        | 127      |           | 0       |      | &nbsp;    |
+Set to 0 (default) to use dynamic node ID allocation (DNA).
+Set to 1-125 to use a static node ID, which must be unique on the bus.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 125      |           | 0       |      | &nbsp;    |
+
+### CANNODE_PT_SENS (`INT32`) {#CANNODE_PT_SENS}
+
+Temperature sensor device ID for pitot temperature.
+
+Device ID of the temperature sensor (HEATER\*\_SENS_ID) whose value
+is published as pitot_temperature in uavcan::equipment::air_data::RawAirData.
+Set to 0 to disable (RawAirData.pitot_temperature set to NaN).
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### CANNODE_PUB_BAR (`INT32`) {#CANNODE_PUB_BAR}
 
@@ -47026,7 +47821,7 @@ Yaw differential gain.
 
 ### UUV_YAW_P (`FLOAT`) {#UUV_YAW_P}
 
-Yawh proportional gain.
+Yaw proportional gain.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -47972,6 +48767,8 @@ Time in seconds used for a transition
 ### VT_F_TRANS_THR (`FLOAT`) {#VT_F_TRANS_THR}
 
 Target throttle value for the transition to fixed-wing flight.
+
+Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |

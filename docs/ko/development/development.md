@@ -16,7 +16,8 @@ This section is for software developers and (new) hardware integrators.
   - Support new [airframes](../dev_airframes/index.md).
 - PX4에 새 하드웨어를 조합하는 방법을 배웁니다:
   - 카메라, 거리 센서 등과 같은 신규 센서와 액츄에이터를 지원합니다.
-  - 신규 자동조종장치에서 실행하도록 PX4 수정합니다.
+  - Modify PX4 to run on [new autopilot hardware](../hardware/porting_guide.md).
+  - As a manufacturer, [get your board officially supported by PX4](../hardware/board_support_guide.md).
 - [Simulate](../simulation/index.md), [test](../test_and_ci/index.md) and [debug/log](../debug/index.md) PX4.
 - 외부 로보틱스 API와 통신/통합합니다.
 

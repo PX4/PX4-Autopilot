@@ -49,3 +49,18 @@ parameters:
       max: 10
       decimal: 2
       increment: 1
+- group: ESC
+  definitions:
+    ESC_TEMP_WARN_TH:
+      description:
+        short: ESC temperature warning threshold
+        long: |-
+          Warning only, no failsafe or arming blocked.
+          -1 disables the check.
+      type: float
+      default: 90.0
+      min: -1
+      max: 150
+      unit: celcius
+      decimal: 1
+      increment: 1

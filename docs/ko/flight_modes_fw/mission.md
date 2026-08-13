@@ -8,11 +8,27 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 ::: info
 
 - This mode requires a global 3d position estimate (from GPS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
-- The vehicle must be armed before this mode can be engaged.
+- The mission will start once the vehicle is armed.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
-- RC 제어 스위치는 기체의 비행 모드를 변경할 수 있습니다.
+- Sticks/switches can be used to switch out of mission mode on any vehicle.
 
 :::
+
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_global_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_global_position_relaxed) — Position measurement updates in a global coordinate frame but accepts poor accuracy
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_mission`](../flight_modes/mode_requirements.md#mode_req_mission) — Valid mission in autopilot's storage
+- [`mode_req_wind_and_flight_time_compliance`](../flight_modes/mode_requirements.md#mode_req_wind_and_flight_time_compliance) — Safety compliance limits on wind and flight time.
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_mission -->
 
 ## 설명
 
@@ -57,7 +73,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 
 :::
 
-Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Position mode](../flight_modes_fw/position.md)), and resumed by switching back to mission mode.
+Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.
@@ -110,14 +126,14 @@ A very small subset are listed below.
 
 General parameters:
 
-| 매개변수                                                                                                                                         | 설명                                                                                                                                                                                                 |
+| Parameter                                                                                                                                    | 설명                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_RCL_ACT"></a>[NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT)       | RC loss failsafe mode (what the vehicle will do if it looses RC connection) - e.g. enter hold mode, return mode, terminate etc. |
 | <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_RCL_ACT) | Fixed-wing loiter radius.                                                                                                                                                          |
 
 Parameters related to [mission feasibility checks](#mission-feasibility-checks):
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                                                                                                                                 |
+| Parameter                                                                                                                                                                  | 설명                                                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="MIS_DIST_1WP"></a>[MIS_DIST_1WP](../advanced_config/parameter_reference.md#MIS_DIST_1WP)                                  | There is a warning message if the distance of the first waypoint to Home is more than this value. Disabled if value is 0 or less.                                  |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Maximum landing slope angle.                                                                                                                                                       |
@@ -222,6 +238,23 @@ The equation is:
 
 $$L_{1_{distance}}=\frac{1}{\pi}L_{1_{damping}}L_{1_{period}}\left \| \vec{v}_{ {xy}_{ground} } \right \|$$
 
+## Altitude Changes Between Waypoints
+
+When the target altitude changes from one waypoint to the next, PX4 does not change the altitude setpoint in a single step.
+Instead it ramps the altitude setpoint linearly (a first order hold, FOH) from the vehicle's **current altitude** to the new target altitude, reaching the target by the time the vehicle arrives at the acceptance radius of the current waypoint.
+The result is a smooth diagonal climb or descent along the leg, rather than an immediate climb/descent followed by level flight.
+
+![Fixed-wing altitude profile for a climbing mission leg](../../assets/flight_modes/fw_waypoint_altitude_foh.png)
+
+The ramp is anchored at the altitude the vehicle is at when the new target is received, and its progress is measured by the vehicle's horizontal approach to the waypoint (not by time).
+
+If the vehicle cannot follow the ramp (for example when the required climb or sink rate exceeds what the aircraft can achieve), the altitude setpoint still reaches the full target altitude at the acceptance radius.
+Any remaining altitude error is then removed by climbing or sinking once the vehicle reaches the horizontal position of the waypoint.
+
+:::info
+The ramp is (re)started whenever the target altitude changes; consecutive waypoints at the same altitude are held level.
+:::
+
 ## Mission Takeoff
 
 Starting flights with mission takeoff (and landing using a mission landing) is the recommended way of operating a plane autonomously.
@@ -278,7 +311,7 @@ Note that the glide slope is calculated from the 3D positions of the loiter and 
 
 The parameters that affect the landing approach are listed below.
 
-| 매개변수                                                                                                                                          | 설명                                                                                                                                                                                    |
+| Parameter                                                                                                                                     | 설명                                                                                                                                                                                    |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)           | The maximum achievable landing approach slope angle. Note that smaller angles may still be commanded via the landing pattern mission item.            |
 | [FW_LND_EARLYCFG](../advanced_config/parameter_reference.md#FW_LND_EARLYCFG)                        | Optionally deploy landing configuration during the landing descent orbit (e.g. flaps, spoilers, landing airspeed). |
@@ -297,7 +330,7 @@ If belly landing, the vehicle will continue in the flaring state until touchdown
 
 The parameters that affect flaring are listed below.
 
-| 매개변수                                                                                                                                                                 | 설명                                                                                                                                                                                                     |
+| Parameter                                                                                                                                                            | 설명                                                                                                                                                                                                     |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | <a id="FW_LND_FL_TIME"></a>[FW_LND_FL_TIME](../advanced_config/parameter_reference.md#FW_LND_FL_TIME) | Time before impact (at current descent rate) at which the vehicle should flare.                                                                                     |
 | <a id="FW_LND_FL_SINK"></a>[FW_LND_FL_SINK](../advanced_config/parameter_reference.md#FW_LND_FL_SINK) | A shallow sink rate the aircraft will track during the flare.                                                                                                                          |
@@ -333,7 +366,7 @@ Landing without a distance sensor is **strongly** discouraged.
 Disabling terrain estimation with [FW_LND_USETER](#FW_LND_USETER) and select bits of [FW_LND_ABORT](#FW_LND_ABORT) will remove the default distance sensor requirement, but consequently falls back to GNSS altitude to determine the flaring altitude, which may be several meters too high or too low, potentially resulting in damage to the airframe.
 :::
 
-| 매개변수                                                                                                                                                                       | 설명                                                                                         |
+| Parameter                                                                                                                                                                  | 설명                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | <a id="MIS_LND_ABRT_ALT"></a>[MIS_LND_ABRT_ALT](../advanced_config/parameter_reference.md#MIS_LND_ABRT_ALT) | The minimum altitude above the land point an abort orbit can be commanded. |
 | <a id="FW_LND_ABORT"></a>[FW_LND_ABORT](../advanced_config/parameter_reference.md#FW_LND_ABORT)                                  | Determines which automatic abort criteria are enabled.                     |
@@ -357,10 +390,10 @@ Note that if the wheel controller is enabled ([FW_W_EN](#FW_W_EN)), the controll
 
 :::info
 Nudging should not be used to supplement poor position control tuning.
-If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/position.md) for instruction.
+If the vehicle is regularly showing poor tracking performance on a defined path, please refer to the [fixed-wing control tuning guide](../flight_modes_fw/cruise.md) for instruction.
 :::
 
-| 매개변수                                                                                                                                                              | 설명                                                                                                 |
+| Parameter                                                                                                                                                         | 설명                                                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | <a id="FW_LND_NUDGE"></a>[FW_LND_NUDGE](../advanced_config/parameter_reference.md#FW_LND_NUDGE)                         | Enable nudging behavior for fixed-wing landing.                                    |
 | <a id="FW_LND_TD_OFF"></a>[FW_LND_TD_OFF](../advanced_config/parameter_reference.md#FW_LND_TD_OFF) | Configure the allowable touchdown lateral offset from the commanded landing point. |
@@ -372,7 +405,7 @@ In landing mode, the distance sensor is used to determine proximity to the groun
 
 ![Fixed-wing landing nudging](../../assets/flying/wing_geometry.png)
 
-| 매개변수                                                                                                                 | 설명                                                                                           |
+| Parameter                                                                                                            | 설명                                                                                           |
 | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | [FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)     | Wing span of the airframe.                                                   |
 | [FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT) | Height of wing from bottom of gear (or belly if no gear). |

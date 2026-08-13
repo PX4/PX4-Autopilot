@@ -33,6 +33,7 @@ public:
 
     IFileServerBackend::Path root_path_;
     IFileServerBackend::Path alt_root_path_;
+    IFileServerBackend::Path nfs_root_path_;
 
     /**
      * All read operations must return this number of bytes, unless end of file is reached.
@@ -73,6 +74,19 @@ public:
       }
     }
 
+    void setNfsRootPath(const char * path)
+    {
+      if (path)
+      {
+          nfs_root_path_.clear();
+          nfs_root_path_ = path;
+          if (nfs_root_path_.back() != getPathSeparator())
+          {
+              nfs_root_path_.push_back(getPathSeparator());
+          }
+      }
+    }
+
     /**
      * Get a base path to the files.
      */
@@ -87,6 +101,11 @@ public:
     Path&  getAltRootPath()
     {
       return alt_root_path_;
+    }
+
+    Path&  getNfsRootPath()
+    {
+      return nfs_root_path_;
     }
 
     /**

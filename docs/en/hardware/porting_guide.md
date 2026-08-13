@@ -4,7 +4,8 @@ This topic is for developers who want to port PX4 to work with _new_ flight cont
 
 ## PX4 Architecture
 
-PX4 consists of two main layers: The [board support and middleware layer](../middleware/index.md) on top of the host OS (NuttX, Linux or any other POSIX platform like Mac OS), and the applications (Flight Stack in [src/modules](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules)\). Please reference the [PX4 Architectural Overview](../concept/architecture.md) for more information.
+PX4 consists of two main layers: The [board support and middleware layer](../middleware/index.md) on top of the host OS (NuttX, Linux or any other POSIX platform like Mac OS), and the applications (Flight Stack in [src/modules](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules)\).
+Please reference the [PX4 Architectural Overview](../concept/architecture.md) for more information.
 
 This guide is focused only on the host OS and middleware as the applications/flight stack will run on any board target.
 
@@ -54,39 +55,25 @@ If however RX and TX are connected together, the UART has to be put into singlew
 This is done via board config and manifest files.
 One example is [px4fmu-v5](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/src/manifest.c). <!-- NEED px4_version -->
 
-## Officially Supported Hardware
+## Getting Your Board Supported
 
-The PX4 project supports and maintains the [FMU standard reference hardware](../hardware/reference_design.md) and any boards that are compatible with the standard.
-This includes the [Pixhawk-series](../flight_controller/pixhawk_series.md) (see the user guide for a [full list of officially supported hardware](../flight_controller/index.md)).
+This page covers the _technical_ work of porting PX4 to new hardware.
+The _process_ for getting that port reviewed, merged, and listed on the PX4 website, including board IDs, USB VID/PID, flight-test evidence, and maintenance expectations, is documented separately:
 
-Every officially supported board benefits from:
+- [Manufacturer's PX4 Board Support Guide](../hardware/board_support_guide.md)
 
-- PX4 Port available in the PX4 repository
-- Automatic firmware builds that are accessible from _QGroundControl_
-- Compatibility with the rest of the ecosystem
-- Automated checks via CI - safety remains paramount to this community
-- [Flight testing](../test_and_ci/test_flights.md)
+In short: build your own firmware target based on PX4, demonstrate stable flight on the current release, and open a pull request with your board support code, documentation, and flight logs.
+The board support guide explains each step.
 
-We encourage board manufacturers to aim for full compatibility with the [FMU spec](https://pixhawk.org/).
-With full compatibility you benefit from the ongoing day-to-day development of PX4, but have none of the maintenance costs that come from supporting deviations from the specification.
+The PX4 project supports and maintains the [FMU standard reference hardware](../hardware/reference_design.md) and any boards compatible with the standard, including the [Pixhawk series](../flight_controller/pixhawk_series.md) (see the [full list of supported hardware](../flight_controller/index.md)). Boards merged into PX4 benefit from a port in the repository, firmware builds accessible from _QGroundControl_, compatibility with the rest of the ecosystem, and automated CI checks.
 
 :::tip
-Manufacturers should carefully consider the cost of maintenance before deviating from the specification (the cost to the manufacturer is proportional to the level of divergence).
+The cost of maintaining a port is proportional to how far it diverges from the standard.
+Consider that cost before deviating: staying close to the reference design lets you benefit from day-to-day PX4 development with minimal maintenance burden.
 :::
 
-We welcome any individual or company to submit their port for inclusion in our supported hardware, provided they are willing to follow our [Code of Conduct](https://github.com/PX4/PX4-Autopilot/blob/main/CODE_OF_CONDUCT.md) and work with the Dev Team to provide a safe and fulfilling PX4 experience to their customers.
-
-It's also important to note that the PX4 dev team has a responsibility to release safe software, and as such we require any board manufacturer to commit any resources necessary to keep their port up-to-date, and in a working state.
-
-If you want to have your board officially supported in PX4:
-
-- Your hardware must be available in the market (i.e. it can be purchased by any developer without restriction).
-- Hardware must be made available to the PX4 Dev Team so that they can validate the port (contact [lorenz@px4.io](mailto:lorenz@px4.io) for guidance on where to ship hardware for testing).
-- The board must pass full [test suite](../test_and_ci/index.md) and [flight testing](../test_and_ci/test_flights.md).
-
-**The PX4 project reserves the right to refuse acceptance of new ports (or remove current ports) for failure to meet the requirements set by the project.**
-
-You can reach out to the core developer team and community on the [official support channels](../contribute/support.md).
+Manufacturers are responsible for keeping their port up to date and working across PX4 releases.
+The PX4 project reserves the right to refuse or remove ports that do not meet the project's requirements, and all contributors are expected to follow the [Code of Conduct](https://github.com/PX4/PX4-Autopilot/blob/main/CODE_OF_CONDUCT.md).
 
 ## Related Information
 

@@ -88,6 +88,7 @@ void AUAV_Differential::publish_pressure(const float pressure_p, const float tem
 	}
 
 	differential_pressure.temperature = temperature_c;
+	differential_pressure.pitot_temperature = NAN;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
 	_differential_pressure_pub.publish(differential_pressure);
 }

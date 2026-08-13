@@ -39,8 +39,12 @@
 #include <uORB/topics/dataman_response.h>
 #include <dataman/dataman.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/posix.h>
 
 using namespace time_literals;
+
+class DatamanClientTestPeer;
+class DatamanCacheTestPeer;
 
 class DatamanClient
 {
@@ -154,6 +158,7 @@ public:
 	void abortCurrentOperation();
 
 private:
+	friend class DatamanClientTestPeer;
 
 	enum class State {
 		Idle,
@@ -173,12 +178,14 @@ private:
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
+	/* Drain any queued stale replies before a new request starts. */
+	void clearPendingResponse();
 
 	State _state{State::Idle};
 	Request _active_request{};
 	uint8_t _response_status{};
 
-	int32_t _dataman_response_sub{};
+	orb_sub_t _dataman_response_sub{ORB_SUB_INVALID};
 	uORB::Publication<dataman_request_s> _dataman_request_pub{ORB_ID(dataman_request)};
 
 	px4_pollfd_struct_t _fds;
@@ -278,6 +285,7 @@ public:
 	int size() const { return _num_items; }
 
 private:
+	friend class DatamanCacheTestPeer;
 
 	enum class State {
 		Idle,
@@ -292,6 +300,7 @@ private:
 		State cache_state;
 	};
 
+	void resetCacheState();
 	inline void changeUpdateIndex();
 
 	Item *_items{nullptr};

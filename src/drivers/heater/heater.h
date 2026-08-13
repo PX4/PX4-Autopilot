@@ -171,29 +171,31 @@ private:
 	float _temperature_last{NAN};
 	float _supply_voltage{NAN};
 	float _heater_current{NAN};
-
+	bool _temperature_activation_threshold_met{false};
 	const uint8_t _instance; //! 1-based
 
 	volatile bool _should_exit{false};
 	struct {
-		param_t imu_id;
+		param_t sens_id;
 		param_t temp;
 		param_t temp_p;
 		param_t temp_i;
 		param_t temp_ff;
 		param_t temp_imax;
 		param_t temp_src;
+		param_t temp_activation_threshold;
 		param_t nom_v;
 	} _param_handles;
 
 	struct {
-		int32_t imu_id;   // HEATER<i>_IMU_ID: <0 disable, 0 auto, >0 match device_id
+		int32_t sens_id;  // HEATER<i>_SENS_ID: <0 disable, 0 auto, >0 match device_id
 		float   temp;     // target temperature
 		float   temp_p;
 		float   temp_i;
 		float   temp_ff;
 		float   temp_imax;
 		int32_t temp_src; // 0 = IMU, 1 = hygrometer
+		float   temp_activation_threshold; // start heating once the temperature drops below this value
 		float   nom_v;    // nominal supply voltage for power limiting (0 = disabled)
 	} _params;
 

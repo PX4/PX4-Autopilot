@@ -1,0 +1,3 @@
+# Build artifacts from brick_ecc.sh
+*.elf
+*.bin

@@ -34,6 +34,12 @@
 #include <gtest/gtest.h>
 
 #include "Common.hpp"
+#if CONFIG_NAVIGATOR_ADSB
+#include "checks/daaCheck.hpp"
+#include <parameters/param.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/detect_and_avoid_most_urgent.h>
+#endif // CONFIG_NAVIGATOR_ADSB
 #include <uORB/topics/event.h>
 #include <uORB/Subscription.hpp>
 
@@ -285,3 +291,119 @@ TEST_F(ReporterTest, reporting_multiple)
 		}
 	}
 }
+
+#if CONFIG_NAVIGATOR_ADSB
+TEST_F(ReporterTest, daaCheckIgnoresStaleConflict)
+{
+	param_control_autosave(false);
+	param_reset_all();
+
+	const int32_t daa_enabled = 1;
+	const int32_t daa_timeout_s = 1;
+	param_set(param_handle(px4::params::DAA_EN), &daa_enabled);
+	param_set(param_handle(px4::params::DAA_TRAFF_TOUT), &daa_timeout_s);
+
+	uORB::Publication<detect_and_avoid_most_urgent_s> daa_pub{ORB_ID(detect_and_avoid_most_urgent)};
+	DaaChecks daa_checks;
+
+	vehicle_status_s status{};
+	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	Context context{status};
+
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
+	uORB::Subscription event_sub{ORB_ID(event)};
+	event_s event{};
+
+	while (event_sub.update(&event)) {}
+
+	detect_and_avoid_most_urgent_s daa_status{};
+	daa_status.timestamp = hrt_absolute_time();
+	daa_status.has_action = true;
+	daa_pub.publish(daa_status);
+
+	reporter.reset();
+	daa_checks.checkAndReport(context, reporter);
+	reporter.finalize();
+	reporter.report(false);
+	EXPECT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
+
+	bool saw_daa_conflict_event = false;
+
+	while (event_sub.update(&event)) {
+		if (event.id == events::ID("check_daa_conflict")) {
+			saw_daa_conflict_event = true;
+		}
+	}
+
+	EXPECT_TRUE(saw_daa_conflict_event);
+
+	const hrt_abstime now = hrt_absolute_time();
+	daa_status.timestamp = now > 2_s ? now - 2_s : 0;
+	daa_pub.publish(daa_status);
+
+	reporter.reset();
+	daa_checks.checkAndReport(context, reporter);
+	reporter.finalize();
+	reporter.report(false);
+	EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
+
+	saw_daa_conflict_event = false;
+
+	while (event_sub.update(&event)) {
+		if (event.id == events::ID("check_daa_conflict")) {
+			saw_daa_conflict_event = true;
+		}
+	}
+
+	EXPECT_FALSE(saw_daa_conflict_event);
+}
+
+TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
+{
+	param_control_autosave(false);
+	param_reset_all();
+
+	const int32_t daa_enabled = 1;
+	const int32_t daa_timeout_s = 1;
+	param_set(param_handle(px4::params::DAA_EN), &daa_enabled);
+	param_set(param_handle(px4::params::DAA_TRAFF_TOUT), &daa_timeout_s);
+
+	uORB::Publication<detect_and_avoid_most_urgent_s> daa_pub{ORB_ID(detect_and_avoid_most_urgent)};
+	DaaChecks daa_checks;
+
+	vehicle_status_s status{};
+	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
+	Context context{status};
+
+	failsafe_flags_s failsafe_flags{};
+	Report reporter{failsafe_flags, 0_s};
+	uORB::Subscription event_sub{ORB_ID(event)};
+	event_s event{};
+
+	while (event_sub.update(&event)) {}
+
+	detect_and_avoid_most_urgent_s daa_status{};
+	daa_status.timestamp = hrt_absolute_time();
+	daa_status.has_action = true;
+	daa_pub.publish(daa_status);
+
+	reporter.reset();
+	daa_checks.checkAndReport(context, reporter);
+	reporter.finalize();
+	reporter.report(false);
+	EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
+
+	bool saw_daa_conflict_event = false;
+
+	while (event_sub.update(&event)) {
+		if (event.id == events::ID("check_daa_conflict")) {
+			saw_daa_conflict_event = true;
+		}
+	}
+
+	EXPECT_FALSE(saw_daa_conflict_event);
+}
+
+#endif // CONFIG_NAVIGATOR_ADSB

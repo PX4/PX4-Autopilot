@@ -139,7 +139,7 @@ At time of writing triggering only works on FMU pins:
 
 ### 其他参数
 
-| 参数                                                                                                                 | 描述                                                                                                                                                                                                                                                                      |
+| Parameter                                                                                                          | 描述                                                                                                                                                                                                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [TRIG_POLARITY](../advanced_config/parameter_reference.md#TRIG_POLARITY)                      | Relevant only while using the GPIO interface. Sets the polarity of the trigger pin. Active high means that the pin is pulled low normally and pulled high on a trigger event. Active low is vice-versa. |
 | [TRIG_INTERVAL](../advanced_config/parameter_reference.md#TRIG_INTERVAL)                      | Defines the time between two consecutive trigger events in milliseconds.                                                                                                                                                                                |
@@ -179,6 +179,10 @@ The red and black ouptputs are connected to the servo rail/ground and the white 
 PX4 emits the MAVLink [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message on both camera trigger and camera capture.
 If camera capture is configured, the timestamp from the camera capture driver is used, otherwise the triggering timestamp.
 :::
+
+PX4 also reports each capture to the ground station as a [CAMERA_IMAGE_CAPTURED](https://mavlink.io/en/messages/common.html#CAMERA_IMAGE_CAPTURED) message.
+This is controlled by [CAM_CAP_REPORT](../advanced_config/parameter_reference.md#CAM_CAP_REPORT), which is enabled by default and only needs to be disabled for cameras that report captures themselves (see [Capture Reporting](../camera/mavlink_v1_camera.md#capture-reporting)).
+Captures are logged for geotagging either way.
 
 ## Testing Trigger Functionality
 

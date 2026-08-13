@@ -179,26 +179,31 @@ else
 	# Load param file location from kconfig
 	. ${R}etc/init.d/rc.filepaths
 
-	# Check if /fs/mtd_params is a valid BSON file
-	if ! bsondump docsize /fs/mtd_caldata
-	then
-		echo "New /fs/mtd_caldata size is:"
-		bsondump docsize /fs/mtd_caldata
-	fi
-
 	#
 	# Load parameters.
 	#
 	# if the board has a storage for (factory) calibration data
 	if mft query -q -k MTD -s MTD_CALDATA -v /fs/mtd_caldata
 	then
+		# repair the caldata BSON document size field if it was left zeroed
+		if ! bsondump docsize /fs/mtd_caldata
+		then
+			echo "New /fs/mtd_caldata size is:"
+			bsondump docsize /fs/mtd_caldata
+		fi
+
 		param load /fs/mtd_caldata
 	fi
 
+	# Load parameters from storage. A blank store (first boot, or after
+	# switching firmware) is seeded from the backup or defaults and persisted
+	# by 'load-or-init' itself - that is not an error and does not beep. A
+	# corrupt or unwritable store, or a backup that fails to import, returns
+	# failure.
 	param select $PARAM_FILE
-	if ! param import
+	if ! param load-or-init $PARAM_BACKUP_FILE
 	then
-		echo "ERROR [init] param import failed"
+		echo "ERROR [init] param load-or-init failed"
 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 
 		bsondump $PARAM_FILE
@@ -219,10 +224,13 @@ else
 				# dump current backup file contents for comparison
 				bsondump $PARAM_BACKUP_FILE
 
-				param import $PARAM_BACKUP_FILE
-
-				# overwrite invalid $PARAM_FILE with backup
-				cp $PARAM_BACKUP_FILE $PARAM_FILE
+				# only persist when the backup actually imported, so a
+				# corrupt backup keeps the storage invalid and the
+				# operator keeps being alerted on the next boot
+				if param import $PARAM_BACKUP_FILE
+				then
+					param save
+				fi
 			fi
 
 			param status
@@ -245,10 +253,12 @@ else
 	fi
 
 	# To trigger a parameter reset during boot SYS_AUTOCONFIG was set to 1 before
+	set PARAM_RESET_DONE no
 	if param greater SYS_AUTOCONFIG 0
 	then
 		# Reset parameters except airframe, parameter version, sensor calibration, total flight time, flight UUID
-		param reset_all SYS_AUTOSTART SYS_PARAM_VER CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER SYS_AUTOCFG_CAL CAL_* LND_FLIGHT* TC_* COM_FLIGHT*
+		set PARAM_RESET_DONE yes
 	fi
 
 	#
@@ -304,6 +314,15 @@ else
 		echo "ERROR [init] No airframe file found for SYS_AUTOSTART value"
 		param set SYS_AUTOSTART 0
 		tune_control play error
+	fi
+
+	# Calibration defaults
+	if param greater SYS_AUTOCFG_CAL 0
+	then
+		if [ ${PARAM_RESET_DONE} = yes ]
+		then
+			param reset CAL_* SYS_AUTOCFG_CAL
+		fi
 	fi
 
 	# Check parameter version and reset upon airframe configuration version mismatch.
@@ -531,8 +550,15 @@ else
 	else
 		commander start
 
-		dshot start
-		pwm_out start
+		if param greater -s PASSTHRU_EN 0
+		then
+			# serial passthrough requested: leave the ESC lines free and
+			# reset so the next boot starts the outputs normally
+			param set PASSTHRU_EN 0
+		else
+			dshot start
+			pwm_out start
+		fi
 	fi
 
 	#
@@ -656,6 +682,11 @@ else
 		internal_combustion_engine_control start
 	fi
 
+	if param compare -s NFS_EN 1
+	then
+		nfs_mount start &
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
@@ -700,6 +731,14 @@ else
 	fi
 
 	#
+	# Start the failure injection manager. SYS_FAILURE_EN only exists when the module is built
+	#
+	if param compare -s SYS_FAILURE_EN 1
+	then
+		failure_injection_manager start
+	fi
+
+	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
@@ -737,6 +776,7 @@ unset LOGGER_BUF
 unset PARAM_FILE
 unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
+unset PARAM_RESET_DONE
 unset RC_INPUT_ARGS
 unset STORAGE_AVAILABLE
 unset STORAGE_CHECK

@@ -189,6 +189,7 @@ px4_add_module(
 		px4_uavcan_dsdlc
 
 		button_publisher
+		clock_offset_estimator
 		drivers_rangefinder
 		led
 		mixer_module
@@ -202,4 +203,6 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
+
+		failure_injection
 	)

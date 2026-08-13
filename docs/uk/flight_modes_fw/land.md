@@ -18,7 +18,7 @@ Where possible, instead use [Return mode](../flight_modes_fw/return.md) with a p
 - Режим потребує принаймні дійсної локальної оцінки позиції (не потребує глобальної позиції).
   - Літаючі транспортні засоби не можуть переключатися на цей режим без глобального положення.
   - Літаючі транспортні засоби перейдуть в режим аварійної безпеки, якщо втратять оцінку положення.
-- Режим перешкоджає зброюванню (транспортний засіб повинен бути зброєний при переході на цей режим).
+- Mode prevents arming (vehicle cannot be armed while this mode is selected).
 - Перемикачі керування RC можуть використовуватися для зміни режимів польоту на будь-якому транспортному засобі.
 - Рух стіків радіокерування ігнорується.
 - The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
@@ -37,11 +37,25 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 [Manual nudging](../flight_modes_fw/mission.md#automatic-abort) and [automatic land abort](../flight_modes_fw/mission.md#nudging) are not available in land mode.
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_land -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+- [`mode_req_local_position_relaxed`](../flight_modes/mode_requirements.md#mode_req_local_position_relaxed) — Position relative to EKF2 origin ('0') point but accepts poor accuracy
+- [`mode_req_prevent_arming`](../flight_modes/mode_requirements.md#mode_req_prevent_arming) — Mode prevents arming
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_land -->
+
 ### Параметри
 
 Поведінку режиму приземлення можна налаштувати за допомогою наведених нижче параметрів.
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                         |
+| Parameter                                                                                                                                                                  | Опис                                                                                                                                                                                                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)                            | Радіус блукання, який контролер відстежує протягом усієї послідовності посадки.                                                                                                                                              |
 | <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Виставте кут шляху пункту налаштувань.                                                                                                                                                                                       |

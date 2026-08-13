@@ -83,15 +83,19 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (!subscribeImu(true)) {
-		return PX4_ERROR;
-	}
-
-	if (!subscribeMag(true)) {
-		return PX4_ERROR;
-	}
-
 	// OPTIONAL:
+	if (_sim_gz_en_imu.get()) {
+		if (!subscribeImu(false)) {
+			return PX4_ERROR;
+		}
+	}
+
+	if (_sim_gz_en_mag.get()) {
+		if (!subscribeMag(false)) {
+			return PX4_ERROR;
+		}
+	}
+
 	if (_sim_gz_en_gps.get()) {
 		if (!subscribeNavsat(false)) {
 			return PX4_ERROR;
@@ -343,7 +347,10 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 
 	if (!_realtime_clock_set) {
 		// Set initial real time clock at startup
-		px4_clock_settime(CLOCK_REALTIME, &ts);
+		if (_param_sys_time_src.get() & SYS_TIME_SRC_SIMULATOR) {
+			px4_clock_settime(CLOCK_REALTIME, &ts);
+		}
+
 		_realtime_clock_set = true;
 
 	} else {
@@ -400,21 +407,8 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 
 void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
-	const uint64_t timestamp = hrt_absolute_time();
-
-	device::Device::DeviceId id{};
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.devtype = DRV_BARO_DEVTYPE_BAROSIM;
-	id.devid_s.bus = 1;
-	id.devid_s.address = 1;
-
-	sensor_baro_s report{};
-	report.timestamp = timestamp;
-	report.timestamp_sample = timestamp;
-	report.device_id = id.devid;
-	report.pressure = msg.pressure();
-	report.temperature = _temperature; // this will be static if no airspeed sensor is on the model.
-	_sensor_baro_pub.publish(report);
+	_px4_baro.set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
+	_px4_baro.update(hrt_absolute_time(), msg.pressure());
 }
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
@@ -434,6 +428,7 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	report.differential_pressure_pa = msg.diff_pressure(); // hPa to Pa;
 	_temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
 	report.temperature = _temperature;
+	report.pitot_temperature = NAN;
 	_differential_pressure_pub.publish(report);
 }
 

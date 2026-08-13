@@ -738,10 +738,19 @@ int EstimatorInterface::getNumberOfActiveVerticalVelocityAidingSources() const
 
 bool EstimatorInterface::isNorthEastAidingActive() const
 {
+	bool ev_pos_ned = false;
+	bool ev_vel_ned = false;
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	ev_pos_ned = _ev_sample_prev.pos_frame == PositionFrame::LOCAL_FRAME_NED;
+	ev_vel_ned = _ev_sample_prev.vel_frame == VelocityFrame::LOCAL_FRAME_NED;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
 	return _control_status.flags.gnss_pos
 	       || _control_status.flags.gnss_vel
 	       || _control_status.flags.aux_gpos
-	       || (_control_status.flags.ev_pos && _control_status.flags.yaw_align);
+	       || (_control_status.flags.ev_pos && ev_pos_ned)
+	       || (_control_status.flags.ev_vel && ev_vel_ned);
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)

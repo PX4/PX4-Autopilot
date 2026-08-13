@@ -411,9 +411,9 @@ bool IIM42653::Configure()
 	}
 
 	// 20-bits data format used
-	//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_range(math::radians(2000.f));
+	//  IIM-42653 FSR: ±4000 dps gyroscope and ±32 g accelerometer (default full-scale)
+	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
+	_px4_gyro.set_range(math::radians(4000.f));
 
 	return success;
 }
@@ -778,8 +778,9 @@ void IIM42653::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	}
 
 	if (!scale_20bit) {
-		// if highres enabled gyro data is always 65.5 LSB/dps
-		_px4_gyro.set_scale(math::radians(1.f / 65.5f));
+		// published data is the 20 bit value shifted right by 1, so it spans the full range in
+		// 2^18 counts: 65.536 LSB/dps
+		_px4_gyro.set_scale(math::radians(4000.f / 262144.f));
 
 	} else {
 		// 20 bit data scaled to 16 bit (2^4)

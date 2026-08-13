@@ -47,6 +47,12 @@ namespace px4
 WorkQueue::WorkQueue(const wq_config_t &config) :
 	_config(config)
 {
+	// WorkQueue is constructed on its own worker thread (see
+	// WorkQueueRunner in WorkQueueManager.cpp), so pthread_self() here
+	// captures the worker's tid for later self-wait checks in
+	// WorkItem::Deinit.
+	_runner_tid = pthread_self();
+
 	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np(_config.name);
@@ -144,6 +150,17 @@ void WorkQueue::Add(WorkItem *item)
 	SignalWorkerThread();
 }
 
+void WorkQueue::request_stop()
+{
+	_should_exit.store(true);
+	// Wake the worker so Run() re-checks should_exit() and returns. Without
+	// this, a queue parked in px4_sem_wait() (no pending work) never notices
+	// the stop request — e.g. when WorkQueueManagerStop() asks every queue to
+	// stop while WorkItems are still attached (so the Detach self-stop path
+	// never ran). The worker would block forever and shutdown would hang.
+	SignalWorkerThread();
+}
+
 void WorkQueue::SignalWorkerThread()
 {
 	int sem_val;
@@ -183,10 +200,17 @@ void WorkQueue::Run()
 		while (!_q.empty()) {
 			WorkItem *work = _q.pop();
 
+			// Mark as in-flight so ~WorkItem / Deinit on another thread
+			// can wait for us to return before the item's memory is torn
+			// down. Without this, a Run() executing after Deinit has
+			// popped the item will call Schedule* on dead memory,
+			// corrupting the hrt callout queue.
+			work->_run_in_progress.store(true);
+
 			work_unlock(); // unlock work queue to run (item may requeue itself)
 			work->RunPreamble();
 			work->Run();
-			// Note: after Run() we cannot access work anymore, as it might have been deleted
+			work->_run_in_progress.store(false);
 			work_lock(); // re-lock
 		}
 

@@ -371,6 +371,7 @@ bootloaders_update: \
 	cuav_fmu-v6x_bootloader \
 	cuav_x25-evo_bootloader \
 	cuav_x25-super_bootloader \
+	cuav_x25-mega_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
@@ -444,7 +445,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_vtest_moving tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -453,6 +454,16 @@ tests:
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_test)
+
+# The default px4_sitl_test board builds the F3442 DAA standard.
+# This target builds the crosstrack DAA standard (CONFIG_NAVIGATOR_ADSB_F3442=n).
+tests_daa_crosstrack:
+	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),'detect_and_avoid|DaaCrosstrack|AdsbConflict|DaaActionPolicy|DaaEncodedId'))
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test-daa-crosstrack)
 
 tests_vtest_moving:
 	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),VTE))
@@ -480,16 +491,14 @@ rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
 
 tests_integration: px4_sitl_default
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
 	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
-	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sih-sitl.json
 
 tests_integration_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
 	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
-	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sih-sitl.json
 	@mkdir -p coverage
 	@lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
 
@@ -657,6 +666,7 @@ help:
 list_config_targets:
 	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
 
+.PHONY: check_nuttx check_linux check_px4 check_nxp
 check_nuttx : $(call make_list,nuttx) \
 	sizes
 

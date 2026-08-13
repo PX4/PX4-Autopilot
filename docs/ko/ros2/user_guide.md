@@ -118,7 +118,7 @@ To install ROS 2 and its dependencies:
    source /opt/ros/humble/setup.bash && echo "source /opt/ros/humble/setup.bash" >> .bashrc
    ```
 
-   The instructions above are reproduced from the official installation guide: [Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html).
+   The instructions above are reproduced from the official installation guide: [Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html).
    You can install _either_ the desktop (`ros-humble-desktop`) _or_ bare-bones versions (`ros-humble-ros-base`), _and_ the development tools (`ros-dev-tools`).
 
 :::
@@ -244,7 +244,7 @@ This section shows how to create a ROS 2 workspace hosted in your home directory
 The [px4_ros_com](https://github.com/PX4/px4_ros_com) and [px4_msgs](https://github.com/PX4/px4_msgs) packages are cloned to a workspace folder, and then the `colcon` tool is used to build the workspace.
 The example is run using `ros2 launch`.
 
-You should use a version of the px4_msgs package with the \_same_ message definitions as the PX4 firmware you have installed in the step above.
+You should use a version of the px&#x34;_&#x6D;sgs package with the \_same_ message definitions as the PX4 firmware you have installed in the step above.
 Branches in the px4_msgs repo are named to correspond to the message definitions for different PX4 releases.
 If for any reason you cannot ensure the same message definitions between your PX4 firmware and ROS 2 px4_msgs package, you will additionally need to [start the message translation node](#optional-starting-the-translation-node) as part of your setup process.
 
@@ -605,11 +605,11 @@ For more information see: [ROS 2 Subscriber QoS Settings](#ros-2-subscriber-qos-
 
 The lines below create a publisher to the `SensorCombined` uORB topic, which can be matched with one or more compatible ROS 2 subscribers to the `fmu/sensor_combined/out` ROS 2 topic.
 
-````cpp
+```cpp
 private:
  rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr subscription_;
 };
-```s
+```
 
 The instantiation of the `SensorCombinedListener` class as a ROS node is done on the `main` function.
 
@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
   rclcpp::shutdown();
   return 0;
 }
-````
+```
 
 This particular example has an associated launch file at [launch/sensor_combined_listener.launch.py](https://github.com/PX4/px4_ros_com/blob/main/launch/sensor_combined_listener.launch.py).
 This allows it to be launched using the [`ros2 launch`](#ros2-launch) command.

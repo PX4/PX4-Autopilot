@@ -27,7 +27,7 @@ In [Mission mode](../flight_modes_vtol/mission.md) the weather vane feature will
 
 This functionality is configured using the [WV\_\* parameters](../advanced_config/parameter_reference.md#WV_EN).
 
-| Параметр                                                                                                         | Опис                                                                                                           |
+| Parameter                                                                                                        | Опис                                                                                                           |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [WV_EN](../advanced_config/parameter_reference.md#WV_EN)                                    | Увімкнути флюгер.                                                                              |
 | [WV_ROLL_MIN](../advanced_config/parameter_reference.md#WV_ROLL_MIN)   | Мінімальне задане значення кута крену для контролера флюгера, щоб вимагати швидкості повороту. |

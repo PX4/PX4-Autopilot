@@ -47,6 +47,7 @@ extern int test_microbench_hrt(int argc, char *argv[]);
 extern int test_microbench_math(int argc, char *argv[]);
 extern int test_microbench_matrix(int argc, char *argv[]);
 extern int test_microbench_uorb(int argc, char *argv[]);
+extern int test_microbench_perf(int argc, char *argv[]);
 
 __END_DECLS
 
@@ -70,6 +71,7 @@ const struct {
 	{"microbench_math",	test_microbench_math,	0},
 	{"microbench_matrix",	test_microbench_matrix,	0},
 	{"microbench_uorb",	test_microbench_uorb,	0},
+	{"microbench_perf",	test_microbench_perf,	0},
 
 	{"null",			nullptr, 		0}
 };

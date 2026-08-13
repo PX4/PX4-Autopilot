@@ -272,14 +272,14 @@ static inline uint16_t get_latency_bucket_count(void) { return LATENCY_BUCKET_CO
 
 static inline latency_info_t get_latency(uint16_t bucket_idx, uint16_t counter_idx)
 {
-	latency_info_t ret = {latency_buckets[bucket_idx], latency_counters[counter_idx]};
+	latency_info_t ret = {latency_buckets[bucket_idx], __atomic_load_n(&latency_counters[counter_idx], __ATOMIC_RELAXED)};
 	return ret;
 }
 
 static inline void reset_latency_counters(void)
 {
 	for (int i = 0; i <= get_latency_bucket_count(); i++) {
-		latency_counters[i] = 0;
+		__atomic_store_n(&latency_counters[i], 0, __ATOMIC_RELAXED);
 	}
 }
 

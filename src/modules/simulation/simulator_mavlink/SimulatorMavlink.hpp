@@ -44,8 +44,10 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
@@ -59,6 +61,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/failure_injection.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
@@ -71,7 +74,6 @@
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -80,8 +82,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/rpm.h>
 
 #include <random>
@@ -172,7 +172,7 @@ public:
 private:
 	SimulatorMavlink();
 
-	void check_failure_injections();
+	void updateFailureConfig();
 
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
@@ -199,7 +199,11 @@ private:
 		{197644, ROTATION_NONE},
 	};
 
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
+	static constexpr uint8_t BARO_COUNT_MAX = 2;
+	PX4Barometer _px4_baro[BARO_COUNT_MAX] {
+		{6620172}, // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		{6620428}, // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+	};
 
 	float _sensors_temperature{0};
 
@@ -213,8 +217,6 @@ private:
 	uORB::Publication<esc_status_s>			_esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
-
-	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
 	uint32_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
@@ -288,11 +290,10 @@ private:
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub{-1};
+	orb_sub_t _actuator_outputs_sub{ORB_SUB_INVALID};
 	actuator_outputs_s _actuator_outputs{};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -304,22 +305,13 @@ private:
 	vehicle_status_s _vehicle_status{};
 	battery_status_s _battery_status{};
 
-	bool _accel_blocked[ACCEL_COUNT_MAX] {};
-	bool _accel_stuck[ACCEL_COUNT_MAX] {};
-	sensor_accel_fifo_s _last_accel_fifo{};
-	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
+	failure_injection::Config _failure_config;
 
-	bool _gyro_blocked[GYRO_COUNT_MAX] {};
-	bool _gyro_stuck[GYRO_COUNT_MAX] {};
-	sensor_gyro_fifo_s _last_gyro_fifo{};
-	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
+	// Previous accel/gyro 0 FIFO sample timestamp, kept so the per-sample dt can be computed.
+	hrt_abstime _last_accel_fifo_timestamp{0};
+	hrt_abstime _last_gyro_fifo_timestamp{0};
 
-	bool _baro_blocked{false};
-	bool _baro_stuck{false};
-
-	bool _mag_blocked[MAG_COUNT_MAX] {};
-	bool _mag_stuck[MAG_COUNT_MAX] {};
-
+	// GPS, airspeed and VIO failure injection (no PX4* helper class applies these).
 	bool _gps_blocked{false};
 	bool _gps_stuck{false};
 	bool _gps_wrong{false};
@@ -327,13 +319,6 @@ private:
 	bool _airspeed_disconnected{false};
 	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};
-
-	float _last_magx[MAG_COUNT_MAX] {};
-	float _last_magy[MAG_COUNT_MAX] {};
-	float _last_magz[MAG_COUNT_MAX] {};
-
-	float _last_baro_pressure{0.0f};
-	float _last_baro_temperature{0.0f};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 

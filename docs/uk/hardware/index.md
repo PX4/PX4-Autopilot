@@ -3,7 +3,7 @@
 This section contains topics about integrating PX4 with _new_ autopilot and peripheral hardware, including:
 
 - [Flight Controller Reference Design](../hardware/reference_design.md)
-- [Manufacturer’s Board Support Guide](../hardware/board_support_guide.md)
+- [Manufacturers](../hardware/manufacturers.md) - board support guide and developer kit program
 - [Flight Controller Porting Guide](../hardware/porting_guide.md)
 - [Serial Port Mapping](../hardware/serial_port_mapping.md)
 - [Airframes](../dev_airframes/index.md)
