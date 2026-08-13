@@ -10,7 +10,7 @@ uint64 timestamp_sample # [us] Timestamp of the raw data
 
 uint32 device_id # Unique device ID for the sensor that does not change between power cycles
 
-uint8 block_id  # [-] Only used for multi-topic publishing. Receiver-dependent to know which band this corresponds to.
+uint8 block_id  # [-] Only used for multi-topic publishing
 
 uint8 antenna_status # [@enum ANTENNA_STATUS] Status of the antenna supervisor state machine
 uint8 ANTENNA_STATUS_INIT = 0 # Initializing
@@ -40,6 +40,13 @@ int8 i_offset # [-] [@range -128, 127] Imbalance of the I-part of the complex si
 uint8 i_magnitude # [-] [@range 0, 255] Magnitude of the I-part of the complex signal (0 = no signal, 255 = max magnitude)
 int8 q_offset # [-] [@range -128, 127] Imbalance of the Q-part of the complex signal (0 = no imbalance)
 uint8 q_magnitude # [-] [@range 0, 255] Magnitude of the Q-part of the complex signal (0 = no signal, 255 = max magnitude)
+
+uint8 rf_band # [@enum RF_BAND] GNSS band associated with the reported RF block (block_id)
+uint8 RF_BAND_UNKNOWN = 0 # unknown band or unsupported field
+uint8 RF_BAND_L1 = 1 # L1 band
+uint8 RF_BAND_L2 = 2 # L2 band
+uint8 RF_BAND_L3 = 3 # L3 band
+uint8 RF_BAND_L5 = 4 # L5 band
 
 # One topic per RF block ID
 # TOPICS sensor_gnss_rf_block0 sensor_gnss_rf_block1
