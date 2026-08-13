@@ -26299,6 +26299,29 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SYS_FAIL_GPS_WRG (`INT32`) {#SYS_FAIL_GPS_WRG}
+
+GPS Wrong-failure fix type.
+
+GNSS fix type reported by the addressed receiver while a GPS 'wrong'
+failure injection is active. The reported position is left untouched.
+The default 2D fix is rejected by the estimator, which requires a 3D
+fix, and makes the GNSS redundancy check report a lost fix, while the
+receiver stays eligible for GPS blending. Values above 3D fix report a
+better solution than the receiver really has.
+
+**Values:**
+
+- `1`: Fix: None
+- `2`: Fix: 2D
+- `3`: Fix: 3D
+- `5`: Fix: RTK float
+- `6`: Fix: RTK fixed
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
+
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
 Instance failed by the RC switch.
