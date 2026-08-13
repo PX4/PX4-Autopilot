@@ -88,7 +88,6 @@ The AT7456E analog OSD is enabled by default on SPI2. Analog OSD and digital HD 
 
 The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads, which is UART4 — PX4 TELEM3 (`/dev/ttyS3`).
 This is the default: `MSP_OSD_CONFIG` is set to `103` (TELEM3).
-Connect the VTX elsewhere and set the parameter to match, for example `104` for TELEM4 (`T6`/`R6`).
 
 ## CAN
 

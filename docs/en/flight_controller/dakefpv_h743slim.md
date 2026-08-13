@@ -112,7 +112,6 @@ RC input is on UART5 (`/dev/ttyS4`). Supported: CRSF/ELRS, SBUS, DSM, SRXL2.
 The AT7456E analog OSD is enabled by default on SPI2. Analog OSD and digital HD OSD can run at the same time.
 
 The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads — UART4, PX4 TELEM3 (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
-Connect the VTX elsewhere and set the parameter to match, for example `104` for TELEM4 (`T6`/`R6`).
 
 ## CAN
 
