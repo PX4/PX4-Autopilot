@@ -878,6 +878,7 @@ private:
 		// Launch detection parameters
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
 		(ParamFloat<px4::params::FW_LAUN_CS_LK_DY>) _param_fw_laun_cs_lk_dy,
+		(ParamFloat<px4::params::FW_LAUN_CLR_ALT>) _param_fw_laun_clr_alt,
 
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
