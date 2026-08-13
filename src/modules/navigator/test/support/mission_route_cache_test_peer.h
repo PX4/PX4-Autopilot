@@ -51,6 +51,45 @@ class MissionRouteCacheTestPeer
 public:
 	static constexpr hrt_abstime kDefaultCacheTestTimeoutUs{5'000'000}; // 5 s
 
+	static bool missionRetryScheduled(const MissionRouteCache &cache)
+	{
+		return cache._full_mission_cache._mission.retry.retry_at != 0;
+	}
+
+	static uint8_t missionRetryCount(const MissionRouteCache &cache)
+	{
+		return cache._full_mission_cache._mission.retry.retry_count;
+	}
+
+	static int32_t missionNextIndex(const MissionRouteCache &cache)
+	{
+		return cache._full_mission_cache._mission.next_index;
+	}
+
+	static bool missionLoadInProgress(const MissionRouteCache &cache)
+	{
+		return cache._full_mission_cache._mission.validation_pending
+		       && cache._full_mission_cache._mission_request.pending;
+	}
+
+	static uint64_t missionLoadPerfEventCount(const MissionRouteCache &cache)
+	{
+		return perf_event_count(cache._full_mission_cache._load_perf);
+	}
+
+	static bool failPendingMissionLoad(MissionRouteCache &cache)
+	{
+		return cache._full_mission_cache._mission_request.pending
+		       && DatamanClientTestPeer::completeOperationWithFailure(cache._full_mission_cache._dataman_client_mission);
+	}
+
+	static void expireMissionRetryBackoff(MissionRouteCache &cache)
+	{
+		if (cache._full_mission_cache._mission.retry.retry_at != 0) {
+			cache._full_mission_cache._mission.retry.retry_at = hrt_absolute_time();
+		}
+	}
+
 	static bool missionLandRetryScheduled(const MissionRouteCache &cache)
 	{
 		return cache._mission_land.retry.retry_at != 0;
@@ -59,6 +98,13 @@ public:
 	static uint8_t missionLandRetryCount(const MissionRouteCache &cache)
 	{
 		return cache._mission_land.retry.retry_count;
+	}
+
+	static void expireMissionLandRetryBackoff(MissionRouteCache &cache)
+	{
+		if (cache._mission_land.retry.retry_at != 0) {
+			cache._mission_land.retry.retry_at = hrt_absolute_time();
+		}
 	}
 
 	static bool safePointRetryScheduled(const MissionRouteCache &cache)
@@ -108,6 +154,11 @@ public:
 			if (!progressOneEvent(cache, mission, timeout - elapsed)) {
 				break;
 			}
+
+			// Check before another update consumes a newly queued read.
+			if (predicate()) {
+				return true;
+			}
 		}
 
 		cache.update(mission);
@@ -119,6 +170,20 @@ private:
 	// Returns false when nothing can progress without waiting on a scheduled retry backoff.
 	static bool progressOneEvent(MissionRouteCache &cache, const mission_s &mission, hrt_abstime timeout)
 	{
+		if (cache._full_mission_cache._mission_request.pending) {
+			if (!DatamanClientTestPeer::waitForOperation(cache._full_mission_cache._dataman_client_mission, timeout)) {
+				return false;
+			}
+
+			cache.update(mission);
+			return true;
+		}
+
+		if (cache._full_mission_cache._mission.validation_pending) {
+			cache.update(mission);
+			return true;
+		}
+
 		if (cache._mission_land.index >= 0 && cache._dataman_cache_land_item.isLoading()) {
 			return DatamanCacheTestPeer::processNextBlocking(cache._dataman_cache_land_item, timeout);
 		}
