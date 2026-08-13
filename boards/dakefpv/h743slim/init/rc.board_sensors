@@ -11,12 +11,5 @@ icm42688p -s -b 1 -R 4 start
 # Internal SPI bus ICM-42688P (SPI4), YAW_270 (14)
 icm42688p -s -b 4 -R 14 start
 
-# Analog OSD (AT7456E). Only started when the user selects a video standard:
-# OSD_ATXXXX_CFG 1 = NTSC, 2 = PAL (0 = disabled, the default).
-if ! param compare OSD_ATXXXX_CFG 0
-then
-	atxxxx start -s
-fi
-
 # Internal baro SPL06 on I2C2
 spl06 start -X -b 2
