@@ -88,7 +88,9 @@ static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static void	do_show_print_for_airframe(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
+#if !defined(CONSTRAINED_FLASH)
 static int	do_bitop(const char *name, const char *mask_str, bool set_bits, bool fail_on_not_found);
+#endif // !CONSTRAINED_FLASH
 static int	do_set_custom_default(const char *name, const char *val, bool silent_fail = false);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op,
 			   enum COMPARE_ERROR_LEVEL err_level);
@@ -156,6 +158,7 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to set", false);
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
 
+#if !defined(CONSTRAINED_FLASH)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bitset", "Set bits of an int32 parameter (param |= mask)");
 	PRINT_MODULE_USAGE_ARG("<param_name> <mask>", "Parameter name and bitmask (decimal or 0x hex)", false);
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
@@ -163,6 +166,7 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bitclear", "Clear bits of an int32 parameter (param &= ~mask)");
 	PRINT_MODULE_USAGE_ARG("<param_name> <mask>", "Parameter name and bitmask (decimal or 0x hex)", false);
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
+#endif // !CONSTRAINED_FLASH
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set-default", "Set parameter default to a value");
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "If provided, silent errors if parameter doesn't exists", true);
@@ -337,6 +341,7 @@ param_main(int argc, char *argv[])
 			}
 		}
 
+#if !defined(CONSTRAINED_FLASH)
 		if (!strcmp(argv[1], "bitset") || !strcmp(argv[1], "bitclear")) {
 			bool set_bits = !strcmp(argv[1], "bitset");
 
@@ -350,6 +355,7 @@ param_main(int argc, char *argv[])
 				return 1;
 			}
 		}
+#endif // !CONSTRAINED_FLASH
 
 		if (!strcmp(argv[1], "set-default")) {
 			if (argc >= 5 && !strcmp(argv[2], "-s")) {
@@ -997,6 +1003,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 	return 0;
 }
 
+#if !defined(CONSTRAINED_FLASH)
 static int
 do_bitop(const char *name, const char *mask_str, bool set_bits, bool fail_on_not_found)
 {
@@ -1041,6 +1048,7 @@ do_bitop(const char *name, const char *mask_str, bool set_bits, bool fail_on_not
 
 	return 0;
 }
+#endif // !CONSTRAINED_FLASH
 
 static int
 do_set_custom_default(const char *name, const char *val, bool silent_fail)
