@@ -49,8 +49,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return _manual_control_setpoint_sub.advertised() ?
-		       (MAVLINK_MSG_ID_MANUAL_INPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return MAVLINK_MSG_ID_MANUAL_INPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
 
 private:
@@ -60,29 +59,26 @@ private:
 
 	bool send() override
 	{
-		manual_control_setpoint_s manual_control_setpoint;
+		manual_control_setpoint_s manual_control_setpoint{};
+		_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-			mavlink_manual_input_status_t msg{};
+		mavlink_manual_input_status_t msg{};
 
-			msg.source = MAV_MANUAL_INPUT_SOURCE_NONE;
+		msg.source = MAV_MANUAL_INPUT_SOURCE_NONE;
 
-			if (manual_control_setpoint.valid) {
-				if (manual_control_setpoint.data_source == manual_control_setpoint_s::SOURCE_RC) {
-					msg.source = MAV_MANUAL_INPUT_SOURCE_RC;
+		if (manual_control_setpoint.valid) {
+			if (manual_control_setpoint.data_source == manual_control_setpoint_s::SOURCE_RC) {
+				msg.source = MAV_MANUAL_INPUT_SOURCE_RC;
 
-				} else if (manual_control_setpoint.data_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0) {
-					msg.source = MAV_MANUAL_INPUT_SOURCE_MAVLINK;
-					msg.sender_system_id = manual_control_setpoint.sender_system_id;
-					msg.sender_component_id = manual_control_setpoint.sender_component_id;
-				}
+			} else if (manual_control_setpoint.data_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0) {
+				msg.source = MAV_MANUAL_INPUT_SOURCE_MAVLINK;
+				msg.sender_system_id = manual_control_setpoint.sender_system_id;
+				msg.sender_component_id = manual_control_setpoint.sender_component_id;
 			}
-
-			mavlink_msg_manual_input_status_send_struct(_mavlink->get_channel(), &msg);
-			return true;
 		}
 
-		return false;
+		mavlink_msg_manual_input_status_send_struct(_mavlink->get_channel(), &msg);
+		return true;
 	}
 };
 
