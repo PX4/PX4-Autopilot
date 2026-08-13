@@ -1700,7 +1700,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MISSION_CURRENT:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
-	case vehicle_command_s::VEHICLE_CMD_NAV_DELAY:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
 	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
