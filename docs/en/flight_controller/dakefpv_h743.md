@@ -49,18 +49,22 @@ It features dual ICM-42688P IMUs, an SPL06 barometer, an AT7456E OSD, 16 MB onbo
 
 ## Serial Port Mapping
 
-| UART   | Device     | PX4 default    | DMA   |
-| ------ | ---------- | -------------- | ----- |
-| USART1 | /dev/ttyS0 | GPS1           | RX+TX |
-| USART2 | /dev/ttyS1 | TELEM1         | —     |
-| USART3 | /dev/ttyS2 | TELEM2         | —     |
-| UART4  | /dev/ttyS3 | TELEM3         | RX+TX |
-| UART5  | /dev/ttyS4 | RC input       | RX+TX |
-| USART6 | /dev/ttyS5 | TELEM4         | RX+TX |
-| UART7  | /dev/ttyS6 | System console | —     |
-| UART8  | /dev/ttyS7 | GPS2           | —     |
+| UART   | Board pads | Device     | PX4 default    | DMA   |
+| ------ | ---------- | ---------- | -------------- | ----- |
+| USART1 | T1/R1      | /dev/ttyS0 | GPS1           | RX+TX |
+| USART2 | T2/R2      | /dev/ttyS1 | TELEM1         | —     |
+| USART3 | T3/R3      | /dev/ttyS2 | TELEM2         | —     |
+| UART4  | T4/R4      | /dev/ttyS3 | TELEM3         | RX+TX |
+| UART5  | T5/R5      | /dev/ttyS4 | RC input       | RX+TX |
+| USART6 | T6/R6      | /dev/ttyS5 | TELEM4         | RX+TX |
+| UART7  | T7/R7      | /dev/ttyS6 | System console | —     |
+| UART8  | T8/R8      | /dev/ttyS7 | GPS2           | —     |
 
-TELEM3 (UART4, `/dev/ttyS3`) is on PD0/PD1 and is the default MSP DisplayPort / digital-VTX port. DMA (DMA2) is allocated to the always-active links — GPS1, TELEM3, RC input and TELEM4; TELEM1, TELEM2, GPS2 and the system console are interrupt-driven.
+::: warning
+The pads are silkscreened by UART number, so `T4`/`R4` is UART4 — which PX4 exposes as **TELEM3**, not TELEM4.
+:::
+
+TELEM3 (UART4, `/dev/ttyS3`) is on PD0/PD1 and is the default MSP DisplayPort / digital-VTX port (`MSP_OSD_CONFIG 103`). DMA (DMA2) is allocated to the always-active links — GPS1, TELEM3, RC input and TELEM4; TELEM1, TELEM2, GPS2 and the system console are interrupt-driven.
 
 ## PWM Output Groups
 
@@ -84,6 +88,9 @@ For CRSF/ELRS, connect to the RX5/TX5 pads — TX is required for telemetry back
 ## OSD
 
 The AT7456E OSD is enabled by default on SPI2. Simultaneous analog OSD and digital HD OSD (via UART4 DisplayPort) are supported.
+
+The digital VTX (DJI/HDZero/OpenIPC) connects to the `T4`/`R4` pads — UART4, PX4 TELEM3 (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
+Connect the VTX elsewhere and set the parameter to match, for example `104` for TELEM4 (`T6`/`R6`).
 
 ## Camera Switching and VTX Power
 
