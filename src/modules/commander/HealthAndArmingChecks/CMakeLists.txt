@@ -40,7 +40,6 @@ set(health_and_arming_checks_srcs
 	checks/armPermissionCheck.cpp
 	checks/baroCheck.cpp
 	checks/batteryCheck.cpp
-	checks/companionComputerCheck.cpp
 	checks/cpuResourceCheck.cpp
 	checks/distanceSensorChecks.cpp
 	checks/opticalFlowCheck.cpp
@@ -77,6 +76,10 @@ set(health_and_arming_checks_srcs
 
 if(CONFIG_NAVIGATOR_ADSB)
 	list(APPEND health_and_arming_checks_srcs checks/daaCheck.cpp)
+endif()
+
+if(NOT CONSTRAINED_FLASH)
+	list(APPEND health_and_arming_checks_srcs checks/companionComputerCheck.cpp)
 endif()
 
 px4_add_library(health_and_arming_checks ${health_and_arming_checks_srcs})
