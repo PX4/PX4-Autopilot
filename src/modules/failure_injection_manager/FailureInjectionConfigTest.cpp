@@ -39,7 +39,9 @@
 #include <gtest/gtest.h>
 
 #include <lib/failure_injection/FailureInjection.hpp>
+#include <parameters/param.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/sensor_gps.h>
 
 // FailureInjection.hpp transitively pulls in px4_platform_common/defines.h (via
 // uORB Subscription), which defines an OK macro that would clash with the local
@@ -74,6 +76,28 @@ failure_injection_s make_config(uint8_t unit, uint16_t instance_mask, uint8_t fa
 	cfg.instance_mask[0] = instance_mask;
 	cfg.failure_type[0] = failure_type;
 	return cfg;
+}
+
+// Healthy 3D-fix sample, as a GNSS driver would publish it.
+sensor_gps_s clean_gps()
+{
+	sensor_gps_s gps{};
+	gps.timestamp = 1000;
+	gps.timestamp_sample = 900;
+	gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
+	gps.latitude_deg = 47.0;
+	gps.longitude_deg = 8.0;
+	gps.altitude_msl_m = 500.0;
+	gps.altitude_ellipsoid_m = 500.0;
+	gps.eph = 0.9f;
+	gps.epv = 1.78f;
+	gps.satellites_used = 25;
+	gps.vel_n_m_s = 1.f;
+	gps.vel_e_m_s = 2.f;
+	gps.vel_d_m_s = 0.5f;
+	gps.vel_m_s = 2.236f;
+	gps.vel_ned_valid = true;
+	return gps;
 }
 
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
@@ -267,6 +291,132 @@ TEST(FailureInjectionConfig, ProcessMessageLessSuppressesOnlyOff)
 	// Convenience overload maps the 0-based uORB instance to the 1-based failure instance.
 	EXPECT_FALSE(process(config, GYRO, 1));
 	EXPECT_TRUE(process(config, GYRO, 0));
+}
+
+// ===========================================================================
+// process_gnss()
+// ===========================================================================
+
+TEST(FailureInjectionConfig, ProcessGnssWrongSetsConfiguredFixType)
+{
+	// The test runner has no work queue for the autosave param_set would schedule.
+	param_control_autosave(false);
+
+	Config config;
+	config.set(make_config(GPS, 0x1, WRONG)); // uORB instance 0 -> failure instance 1
+
+	const int32_t fix_types[] = {
+		sensor_gps_s::FIX_TYPE_2D,
+		sensor_gps_s::FIX_TYPE_NONE,
+		sensor_gps_s::FIX_TYPE_RTK_FLOAT,
+		sensor_gps_s::FIX_TYPE_RTK_FIXED,
+	};
+
+	for (const int32_t expected : fix_types) {
+		ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &expected), 0);
+
+		Stuck<sensor_gps_s> stuck;
+		sensor_gps_s gps = clean_gps();
+
+		EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+		EXPECT_EQ(gps.fix_type, (uint8_t)expected);
+	}
+
+	const int32_t default_fix_type = sensor_gps_s::FIX_TYPE_2D;
+	param_set(param_find("SYS_FAIL_GPS_WRG"), &default_fix_type);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssWrongLeavesPositionUntouched)
+{
+	param_control_autosave(false);
+
+	const int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &fix_type), 0);
+
+	Config config;
+	config.set(make_config(GPS, 0x1, WRONG));
+
+	Stuck<sensor_gps_s> stuck;
+	const sensor_gps_s truth = clean_gps();
+	sensor_gps_s gps = truth;
+
+	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+
+	// Only the fix type changes: the reported solution stays coherent with the truth.
+	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_2D);
+	EXPECT_DOUBLE_EQ(gps.latitude_deg, truth.latitude_deg);
+	EXPECT_DOUBLE_EQ(gps.longitude_deg, truth.longitude_deg);
+	EXPECT_DOUBLE_EQ(gps.altitude_msl_m, truth.altitude_msl_m);
+	EXPECT_DOUBLE_EQ(gps.altitude_ellipsoid_m, truth.altitude_ellipsoid_m);
+	EXPECT_FLOAT_EQ(gps.vel_n_m_s, truth.vel_n_m_s);
+	EXPECT_FLOAT_EQ(gps.vel_e_m_s, truth.vel_e_m_s);
+	EXPECT_FLOAT_EQ(gps.vel_d_m_s, truth.vel_d_m_s);
+	EXPECT_FLOAT_EQ(gps.vel_m_s, truth.vel_m_s);
+	EXPECT_FLOAT_EQ(gps.eph, truth.eph);
+	EXPECT_EQ(gps.satellites_used, truth.satellites_used);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssWrongLeavesUnselectedInstanceUntouched)
+{
+	param_control_autosave(false);
+
+	const int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &fix_type), 0);
+
+	Config config;
+	config.set(make_config(GPS, 0x2, WRONG)); // failure instance 2 -> uORB instance 1
+
+	Stuck<sensor_gps_s> stuck;
+	sensor_gps_s gps = clean_gps();
+
+	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_3D);
+
+	// The addressed instance is degraded.
+	Stuck<sensor_gps_s> stuck_1;
+	sensor_gps_s gps_1 = clean_gps();
+
+	EXPECT_TRUE(process_gnss(config, 1, gps_1, stuck_1));
+	EXPECT_EQ(gps_1.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_2D);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssOffSuppressesPublication)
+{
+	Config config;
+	config.set(make_config(GPS, 0x1, OFF));
+
+	Stuck<sensor_gps_s> stuck;
+	sensor_gps_s gps = clean_gps();
+
+	EXPECT_FALSE(process_gnss(config, 0, gps, stuck));
+	// Off suppresses instead of mutating.
+	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_3D);
+}
+
+TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
+{
+	Config config;
+	Stuck<sensor_gps_s> stuck;
+
+	// A healthy cycle records the last good sample.
+	sensor_gps_s good = clean_gps();
+	EXPECT_TRUE(process_gnss(config, 0, good, stuck));
+
+	config.set(make_config(GPS, 0x1, STUCK));
+
+	sensor_gps_s moved = clean_gps();
+	moved.timestamp = 2000;
+	moved.timestamp_sample = 1900;
+	moved.latitude_deg = 48.0;
+	moved.longitude_deg = 9.0;
+
+	EXPECT_TRUE(process_gnss(config, 0, moved, stuck));
+
+	// The frozen position comes back, with the live timestamps.
+	EXPECT_DOUBLE_EQ(moved.latitude_deg, good.latitude_deg);
+	EXPECT_DOUBLE_EQ(moved.longitude_deg, good.longitude_deg);
+	EXPECT_EQ(moved.timestamp, 2000u);
+	EXPECT_EQ(moved.timestamp_sample, 1900u);
 }
 
 // ===========================================================================
