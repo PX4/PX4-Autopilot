@@ -10,7 +10,7 @@ uint64 timestamp_sample # [us] Timestamp of the raw data
 
 uint32 device_id # Unique device ID for the sensor that does not change between power cycles
 
-uint8 block_id  # [-] only used for multi-topic publishing. Receiver-dependent to know which band this corresponds to.
+uint8 block_id  # [-] Only used for multi-topic publishing. Receiver-dependent to know which band this corresponds to.
 
 uint8 antenna_status # [@enum ANTENNA_STATUS] Status of the antenna supervisor state machine
 uint8 ANTENNA_STATUS_INIT = 0 # Initializing

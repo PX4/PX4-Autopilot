@@ -10,7 +10,7 @@ uint64 timestamp_sample # [us] Timestamp of the raw data
 
 uint32 device_id # Unique device ID for the sensor that does not change between power cycles
 
-uint8 block_id # [-] only used for multi-topic publishing. Use center_frequency to determine which RF band it is.
+uint8 block_id # [-] Only used for multi-topic publishing. Use center_frequency to determine which RF band it is.
 
 uint8[256] spectrum # [(2^-2)dB] Spectrum magnitude per bin (number of points = spectrum_span / resolution)
 uint32 spectrum_span # [Hz] Frequency span covered by the spectrum
