@@ -49,4 +49,4 @@ uint8 RF_BAND_L3 = 3 # L3 band
 uint8 RF_BAND_L5 = 4 # L5 band
 
 # One topic per RF block ID
-# TOPICS sensor_gnss_rf_block0 sensor_gnss_rf_block1
+# TOPICS sensor_gnss_rf_block0 sensor_gnss_rf_block1 sensor_gnss_rf_block2

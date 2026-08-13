@@ -150,7 +150,7 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
-static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2300);
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2750);
 
 
 class GPS : public ModuleBase, public device::Device
@@ -245,8 +245,10 @@ private:
 	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
 	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block0_pub{ORB_ID(sensor_gnss_rf_block0)};
 	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block1_pub{ORB_ID(sensor_gnss_rf_block1)};
+	uORB::PublicationMulti<sensor_gnss_rf_s> _sensor_gnss_rf_block2_pub{ORB_ID(sensor_gnss_rf_block2)};
 	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block0_pub{ORB_ID(sensor_gnss_spectrum_block0)};
 	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block1_pub{ORB_ID(sensor_gnss_spectrum_block1)};
+	uORB::PublicationMulti<sensor_gnss_spectrum_s> _sensor_gnss_spectrum_block2_pub{ORB_ID(sensor_gnss_spectrum_block2)};
 
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
@@ -294,8 +296,10 @@ private:
 	static px4::atomic_bool _is_sat_info_main_advertised;
 	static px4::atomic_bool _is_rf_block0_main_advertised;
 	static px4::atomic_bool _is_rf_block1_main_advertised;
+	static px4::atomic_bool _is_rf_block2_main_advertised;
 	static px4::atomic_bool _is_spectrum_block0_main_advertised;
 	static px4::atomic_bool _is_spectrum_block1_main_advertised;
+	static px4::atomic_bool _is_spectrum_block2_main_advertised;
 
 	static px4::atomic<GPS *> _secondary_instance;
 
@@ -327,6 +331,7 @@ private:
 	void 				publishRF(sensor_gnss_rf_s &gnss_rf);
 	void 				publishRFBlock0(sensor_gnss_rf_s &gnss_rf);
 	void 				publishRFBlock1(sensor_gnss_rf_s &gnss_rf);
+	void 				publishRFBlock2(sensor_gnss_rf_s &gnss_rf);
 
 	/**
 	 * Publish spectrum
@@ -334,6 +339,7 @@ private:
 	void 				publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum);
 	void 				publishSpectrumBlock0(sensor_gnss_spectrum_s &gnss_spectrum);
 	void 				publishSpectrumBlock1(sensor_gnss_spectrum_s &gnss_spectrum);
+	void 				publishSpectrumBlock2(sensor_gnss_spectrum_s &gnss_spectrum);
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -408,8 +414,10 @@ px4::atomic_bool GPS::_is_gps_main_advertised{false};
 px4::atomic_bool GPS::_is_sat_info_main_advertised{false};
 px4::atomic_bool GPS::_is_rf_block0_main_advertised{false};
 px4::atomic_bool GPS::_is_rf_block1_main_advertised{false};
+px4::atomic_bool GPS::_is_rf_block2_main_advertised{false};
 px4::atomic_bool GPS::_is_spectrum_block0_main_advertised{false};
 px4::atomic_bool GPS::_is_spectrum_block1_main_advertised{false};
+px4::atomic_bool GPS::_is_spectrum_block2_main_advertised{false};
 px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
 ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
@@ -1696,6 +1704,10 @@ GPS::publishRF(sensor_gnss_rf_s &gnss_rf)
 	else if (gnss_rf.block_id == 1) {
 		publishRFBlock1(gnss_rf);
 	}
+
+	else if (gnss_rf.block_id == 2) {
+		publishRFBlock2(gnss_rf);
+	}
 }
 
 void
@@ -1725,6 +1737,19 @@ GPS::publishRFBlock1(sensor_gnss_rf_s &gnss_rf)
 }
 
 void
+GPS::publishRFBlock2(sensor_gnss_rf_s &gnss_rf)
+{
+	if (_instance == Instance::Main || _is_rf_block2_main_advertised.load()) {
+		gnss_rf.device_id = get_device_id();
+		gnss_rf.timestamp = hrt_absolute_time();
+
+		_sensor_gnss_rf_block2_pub.publish(gnss_rf);
+		// impose Main instance to publish sat_info first to assign first index
+		_is_rf_block2_main_advertised.store(true);
+	}
+}
+
+void
 GPS::publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum)
 {
 	if (gnss_spectrum.block_id == 0) {
@@ -1733,6 +1758,10 @@ GPS::publishSpectrum(sensor_gnss_spectrum_s &gnss_spectrum)
 
 	else if (gnss_spectrum.block_id == 1) {
 		publishSpectrumBlock1(gnss_spectrum);
+	}
+
+	else if (gnss_spectrum.block_id == 2) {
+		publishSpectrumBlock2(gnss_spectrum);
 	}
 }
 
@@ -1759,6 +1788,19 @@ GPS::publishSpectrumBlock1(sensor_gnss_spectrum_s &gnss_spectrum)
 
 		// impose Main instance to publish sat_info first to assign first index
 		_is_spectrum_block1_main_advertised.store(true);
+	}
+}
+
+void
+GPS::publishSpectrumBlock2(sensor_gnss_spectrum_s &gnss_spectrum)
+{
+	if (_instance == Instance::Main || _is_spectrum_block2_main_advertised.load()) {
+		gnss_spectrum.device_id = get_device_id();
+		gnss_spectrum.timestamp = hrt_absolute_time();
+		_sensor_gnss_spectrum_block2_pub.publish(gnss_spectrum);
+
+		// impose Main instance to publish sat_info first to assign first index
+		_is_spectrum_block2_main_advertised.store(true);
 	}
 }
 

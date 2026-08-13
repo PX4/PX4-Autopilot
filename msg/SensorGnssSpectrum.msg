@@ -19,4 +19,4 @@ uint32 center_frequency # [Hz] Center frequency of the spectrum span
 uint8 programmable_gain_amplifier # [dB] Programmable gain amplifier setting
 
 # One topic per RF block ID
-# TOPICS sensor_gnss_spectrum_block0 sensor_gnss_spectrum_block1
+# TOPICS sensor_gnss_spectrum_block0 sensor_gnss_spectrum_block1 sensor_gnss_spectrum_block2
