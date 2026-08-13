@@ -90,7 +90,6 @@ For CRSF/ELRS, connect to the RX5/TX5 pads — TX is required for telemetry back
 The AT7456E OSD is enabled by default on SPI2. Simultaneous analog OSD and digital HD OSD (via UART4 DisplayPort) are supported.
 
 The digital VTX (DJI/HDZero/OpenIPC) connects to the `T4`/`R4` pads — UART4, PX4 TELEM3 (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
-Connect the VTX elsewhere and set the parameter to match, for example `104` for TELEM4 (`T6`/`R6`).
 
 ## Camera Switching and VTX Power
 
