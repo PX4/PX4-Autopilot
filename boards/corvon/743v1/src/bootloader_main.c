@@ -48,7 +48,9 @@
 #include "arm_internal.h"
 #include <px4_platform_common/init.h>
 
-extern int sercon_main(int c, char **argv);
+#include <sys/boardctl.h>
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/cdcacm.h>
 
 __EXPORT void board_on_reset(int status) {}
 
@@ -65,7 +67,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 void board_late_initialize(void)
 {
-	sercon_main(0, NULL);
+	/* Inlined sercon_main() minus printf() calls to save flash. */
+	struct boardioc_usbdev_ctrl_s ctrl;
+	ctrl.usbdev = BOARDIOC_USBDEV_CDCACM;
+	ctrl.action = BOARDIOC_USBDEV_CONNECT;
+	ctrl.instance = 0;
+	ctrl.handle = NULL;
+	boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
 }
 
 extern void sys_tick_handler(void);
