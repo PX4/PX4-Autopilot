@@ -50,6 +50,14 @@ using navigator_test::route_test_reference::kBaseLon;
 
 class MissionRouteGoalTest : public MissionRouteTestBase {};
 
+static mission_item_s makeVtolApproachFromOffset(float north_m, float east_m, float altitude)
+{
+	mission_item_s item = makePositionItemFromOffset(kBaseLat, kBaseLon, north_m, east_m, altitude,
+			      NAV_CMD_LOITER_TO_ALT);
+	item.loiter_radius = 30.f;
+	return item;
+}
+
 // Cost includes the branch-off leg, so the near-route safe point beats the near-along one.
 TEST_F(MissionRouteGoalTest, SelectsSafePointWithLowestTotalCostIncludingBranchOffLeg)
 {
@@ -148,6 +156,136 @@ TEST_F(MissionRouteGoalTest, ReturnsEmptyWhenAllSafePointsInvalid)
 	EXPECT_FALSE(selection.found);
 }
 
+// A closer rally cannot borrow the landing approach belonging to the next rally block.
+TEST_F(MissionRouteGoalTest, RequiredVtolApproachSelectsFartherEligibleSafePoint)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 30.f, 15.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 80.f, 20.f, kAlt),
+		makeVtolApproachFromOffset(95.f, 20.f, kAlt + 20.f),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	config.state.require_vtol_approach = true;
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+	ASSERT_TRUE(collectVehicleProjection(planner, vehicle_position, 1, config, ctx, reason))
+			<< mission_route::failureReasonString(reason);
+	const mission_route::GoalSelection selection = planner.selectSafePoint(ctx, config);
+
+	ASSERT_TRUE(selection.found);
+	EXPECT_TRUE(selection.safe_point_found);
+	EXPECT_EQ(selection.safe_point_index, 1);
+}
+
+// If no rally has the required approach, normal endpoint fallback remains available.
+TEST_F(MissionRouteGoalTest, RequiredVtolApproachFallsBackToMissionEndpoint)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 250.f, 15.f, kAlt),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 320.f, 20.f, kAlt),
+	};
+	const int32_t land_index = 2;
+
+	VectorProvider provider{mission, safe_points, {}, {}, land_index};
+	MissionRoutePlanner planner{provider};
+	config.state.require_vtol_approach = true;
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+
+	ASSERT_TRUE(collectVehicleProjection(planner, vehicle_position, 1, config, ctx, reason))
+			<< mission_route::failureReasonString(reason);
+	EXPECT_FALSE(planner.selectSafePoint(ctx, config).found);
+
+	const mission_route::GoalSelection selection = planner.selectBestGoal(ctx, config);
+	ASSERT_TRUE(selection.found);
+	EXPECT_FALSE(selection.safe_point_found);
+	EXPECT_EQ(selection.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_NEAR(selection.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(selection.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
+}
+
+// Invalid approach records do not end a rally block when a valid approach follows.
+TEST_F(MissionRouteGoalTest, RequiredVtolApproachScansTheWholeRallyBlock)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+
+	mission_item_s invalid_relative_approach = makeVtolApproachFromOffset(45.f, 15.f, 20.f);
+	invalid_relative_approach.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
+	invalid_relative_approach.altitude_is_relative = true;
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 30.f, 15.f, kAlt),
+		invalid_relative_approach,
+		makeVtolApproachFromOffset(55.f, 20.f, kAlt + 20.f),
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 120.f, 10.f, kAlt),
+	};
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	config.state.require_vtol_approach = true;
+	config.parameters.home_altitude_amsl = NAN;
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+	ASSERT_TRUE(collectVehicleProjection(planner, vehicle_position, 1, config, ctx, reason))
+			<< mission_route::failureReasonString(reason);
+	provider.resetCounters();
+	const mission_route::GoalSelection selection = planner.selectSafePoint(ctx, config);
+
+	ASSERT_TRUE(selection.found);
+	EXPECT_EQ(selection.safe_point_index, 0);
+	EXPECT_LE(provider.safePointLoadCount(), 2 * provider.safePointCount());
+}
+
+// Approach records do not split one eligible-rally batch into extra mission scans.
+TEST_F(MissionRouteGoalTest, ApproachRecordsDoNotConsumeSafePointBatchCapacity)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points;
+	const int eligible_safe_point_count = static_cast<int>(mission_route::kMaxSafePointBatch);
+	safe_points.reserve(2 * static_cast<size_t>(eligible_safe_point_count));
+
+	for (int i = 0; i < eligible_safe_point_count; ++i) {
+		safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 20.f + i, 20.f, kAlt));
+		safe_points.push_back(makeVtolApproachFromOffset(20.f + i, 30.f, kAlt + 20.f));
+	}
+
+	VectorProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	config.state.require_vtol_approach = true;
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+
+	ASSERT_TRUE(collectVehicleProjection(planner, vehicle_position, 1, config, ctx, reason))
+			<< mission_route::failureReasonString(reason);
+	provider.resetCounters();
+	const mission_route::GoalSelection selection = planner.selectSafePoint(ctx, config);
+
+	ASSERT_TRUE(selection.found);
+	EXPECT_TRUE(selection.safe_point_found);
+	EXPECT_LE(provider.missionLoadCount(), 2 * static_cast<int>(mission.size()));
+}
+
 // No safe points are available, so selectBestGoal falls back to the configured mission land item.
 TEST_F(MissionRouteGoalTest, MissionEndpointFallbackUsesConfiguredLandIndex)
 {
@@ -173,6 +311,87 @@ TEST_F(MissionRouteGoalTest, MissionEndpointFallbackUsesConfiguredLandIndex)
 	EXPECT_NEAR(plan.selection.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.selection.goal_position.alt, mission[land_index].altitude, kAltitudeTolerance);
+}
+
+// The published land item can precede other position items. Score it at its own route location,
+// not at the end of the complete route.
+TEST_F(MissionRouteGoalTest, MissionEndpointFallbackUsesLandRouteDistance)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+	};
+	const int32_t land_index = 3;
+
+	VectorProvider provider{mission, {}, {}, {}, land_index};
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+
+	mission_route::RoutePlan plan{};
+	ASSERT_TRUE(planRouteToGoal(planner, vehicle_position, 2, config, plan, reason))
+			<< mission_route::failureReasonString(reason);
+
+	ASSERT_TRUE(plan.selection.found);
+	EXPECT_EQ(plan.selection.goal_type, mission_route::GoalType::kMissionLand);
+	EXPECT_FALSE(plan.selection.path.direction_reversed);
+	EXPECT_NEAR(plan.selection.path.total_cost_m, 50.f, kDistanceTolerance);
+}
+
+// A route ending at its first position has no segment to join. The RTL caller uses its direct fallback.
+TEST_F(MissionRouteGoalTest, MissionLandAsFirstPositionHasNoRouteSegment)
+{
+	std::vector<mission_item_s> mission{
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt),
+	};
+	const int32_t land_index = 1;
+
+	VectorProvider provider{mission, {}, {}, {}, land_index};
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+
+	mission_route::RoutePlan plan{};
+	EXPECT_FALSE(planRouteToGoal(planner, vehicle_position, land_index, config, plan, reason));
+	EXPECT_EQ(reason, mission_route::FailureReason::kNoSegmentsFound);
+}
+
+// Position items after LAND are not part of the flyable mission route.
+TEST_F(MissionRouteGoalTest, SafePointAfterMissionLandBranchesFromLandEndpoint)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 900.f, 10.f, kAlt, NAV_FRAME_GLOBAL),
+	};
+	const int32_t land_index = 2;
+
+	VectorProvider provider{mission, safe_points, {}, {}, land_index};
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+
+	mission_route::RoutePlan plan{};
+	ASSERT_TRUE(planRouteToGoal(planner, vehicle_position, 1, config, plan, reason))
+			<< mission_route::failureReasonString(reason);
+
+	ASSERT_TRUE(plan.selection.found);
+	EXPECT_TRUE(plan.selection.safe_point_found);
+	EXPECT_EQ(plan.selection.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.selection.branch_off_segment.start.idx, 1);
+	EXPECT_EQ(plan.selection.branch_off_segment.end.idx, land_index);
+	EXPECT_NEAR(plan.selection.branch_off_projection.lat, mission[land_index].lat, 1e-7);
+	EXPECT_NEAR(plan.selection.branch_off_projection.lon, mission[land_index].lon, 1e-7);
+	EXPECT_NEAR(plan.projection_context.route_length, 400.f, kDistanceTolerance);
 }
 
 // A relative-altitude safe point is converted to AMSL using home altitude.

@@ -1,25 +1,25 @@
-# Mission Route Planning Infrastructure
+# Mission Route Planning
 
-PX4 includes mission-route planning infrastructure in Navigator for intelligently joining, following, and completing a planned route.
-This infrastructure might be used for:
-- **[Smart mission rejoin](#smart-mission-rejoin)**: Finding the best branch-in point to rejoin a mission (for example after moving to a GoTo point).
-- **[Route-following Return](#route-following-return)**: Choosing the best [safe point](../flying/plan_safety_points.md) exit point when using the mission route as a [Return mode](../flight_modes/return.md): branching off close to the selected point instead of cutting straight across terrain.
+PX4 includes mission-route planning infrastructure in Navigator for intelligently joining, following, and leaving an uploaded mission route.
+It provides:
 
-Navigator provides an optional non-blocking full-route cache for quick access to the whole uploaded mission.
+- **[Smart route join](#smart-mission-rejoin)**: Finding a suitable branch-in point after the vehicle has left the route.
+- **[Route-following Return](#route-following-return)**: Choosing the best [safe point](../flying/plan_safety_points.md) and branch-off point, then using the mission route as a [Return path](../flight_modes/return.md#rtl_type_6).
+
+Navigator provides non-blocking access to the complete mission, safe points, and mission-land item through the [mission route cache](../advanced/mission_route_cache.md).
 It also includes a planner that projects the vehicle and safe-point positions perpendicularly onto each mission segment, then selects the best candidate using that projection (along with additional criteria such as the last segment flown).
 
 The planner computes geometry and scoring only.
-It does not publish setpoints, change the mission index, or decide when a flight mode should use the result.
+The Route Safe Point Return executor uses the result to join and follow the route, branch off, and land.
 
 ::: info
-The route-planning entry points do not yet have a production caller.
-Navigator already maintains `MissionRouteCache`, which also supplies the safe-point and mission-land lookups used by the existing Return implementation.
+Route Safe Point Return (`RTL_TYPE=6`) is the production caller.
+Its initial route join uses the smart-join building blocks described below; there is no separate setting that enables smart rejoin during normal Mission mode.
 :::
 
 ::: warning
-The planner can only project against a mission that fits in `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE`.
-A larger mission is not partially cached, so a consuming feature must use its normal fallback behavior.
-The default is `500` on POSIX and `0` otherwise; hardware boards must explicitly size the cache for their RAM budget before the full planner is built.
+The planner requires a complete mission from the [mission route cache](../advanced/mission_route_cache.md).
+If the cache or planning result is unavailable, Route Safe Point Return falls back to the direct destination selection used by `RTL_TYPE=3`.
 :::
 
 ::: warning
@@ -28,34 +28,37 @@ When more rally points are configured than fit in one batch the planner re-scans
 :::
 
 ::: warning
-At time of writing, no geofence check is applied to the projection candidates.
+No geofence check is applied to a planned join, route, or branch-off leg.
 :::
 
 ## Planning Entry Points
 
-The planner exposes two top-level entry points, one for each consumer feature listed above.
-Both take the current vehicle state and mission index, compose the building blocks documented in the rest of this page, and return plain data for the caller to execute.
+The planner exposes a route-to-goal entry point used by Route Safe Point Return and a reusable mission-resume entry point.
+Both take the current vehicle state and mission index, compose the building blocks documented below, and return plain data for the caller to execute.
 
 ::: info
-They are the public API the planned consumers will call.
-Before calling them, a consumer must satisfy the [cache readiness contract](#readiness-and-mission-views).
+A consumer must first acquire a complete view of the active mission.
+Route-following Return must also wait until safe-point loading is complete; a zero safe-point count alone can mean either pending or ready and empty.
+See [Mission Route Cache](../advanced/mission_route_cache.md#availability).
 :::
 
 ### Smart Mission Rejoin {#smart-mission-rejoin}
 
-`MissionRoutePlanner::planMissionResumeJoin()` plans how to resume a mission after the vehicle has left the planned route (for example after a GoTo, a manual reposition, or branching off for a Return). It works as follows:
+The mission-resume entry point plans how to resume a mission after the vehicle has left the route (for example after a GoTo or manual reposition). It works as follows:
 
 1. Runs [Vehicle Projection](#vehicle-projection) to find the branch-in point.
 2. Solves the shortest valid path **in the nominal mission direction** toward the mission end.
 3. Fills the join context (the branch-in waypoint and its altitude).
 
 If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection), the loop's repeat count is preserved:
+
 - while repeats remain the resumed path continues to the jump target so the loop is still flown
 - once repeats are exhausted, the planner picks whichever loop exit gives the shorter **total** path on to the mission end: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the mission end lies near the loop start it may rewind most of the loop rather than finish it.
 
 ### Route-Following Return {#route-following-return}
 
-`MissionRoutePlanner::planRouteToGoal()` plans a Return that uses the mission route as the return corridor instead of cutting straight across terrain. It works as follows:
+The route-to-goal entry point plans a Return that uses the mission route as the return corridor instead of cutting straight across terrain. It works as follows:
+
 1. Runs the [Vehicle Projection](#vehicle-projection) to find the branch-in point.
 2. Runs [Safe-Point Scoring](#safe-point-scoring) against that projection and selects the lowest-cost safe point (or falls back to the closer mission endpoint when none is usable).
 3. Returns the vehicle projection, the join context, and the selected goal: branch-off point, goal position, and route direction.
@@ -63,11 +66,6 @@ If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection
 The vehicle is projected first; the safe points are then scored in a separate scan (or scans, see [Safe-Point Batching](#safe-point-batching)) that reuses the vehicle projection rather than recomputing it.
 
 The planner-owned [route-skip shortcuts](#route-skip-shortcuts) are applied to the selected goal so the caller can skip route join/follow when the vehicle is already close to it.
-
-::: warning
-The mission-endpoint fallback assumes the mission **land** item is the last position item on the route: it targets the land goal using the full route length.
-If the land item is not the last valid route position (for example if waypoints follow it), the returned route path and the land goal position can disagree.
-:::
 
 Here an active [`DO_JUMP` loop segment](#vehicle-projection) is used as return geometry only: the loop repeat count is forced to zero (unlike [Smart Mission Rejoin](#smart-mission-rejoin)). The planner then picks whichever loop exit gives the shorter **total** return path to the goal: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the goal lies near the loop start the planner may rewind most of the loop instead of finishing it.
 
@@ -83,10 +81,6 @@ When more than three projections fall within the margin, only the three with the
 
 The mission route planner supports [`DO_JUMP`](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP) mission loop commands. The active jump segment is the segment running from the waypoint before the jump command to the first position waypoint at the jump target.
 A point projects onto a loop segment using the same crosstrack and margin rule as any other segment. How that candidate is then used differs for the vehicle branch-in ([Vehicle Projection](#vehicle-projection)) and for safe-point branch-offs ([Safe-Point Scoring](#safe-point-scoring)).
-
-::: warning
-At time of writing, no geofence check is applied to the projection candidates.
-:::
 
 ::: details Click here for more detail on how projections land on segments and corners
 
@@ -142,8 +136,7 @@ The best candidate is chosen with a priority system:
 - Priority 2: if no candidate matches Priority 1, the planner scores each candidate by summing the following distances, and keeps the lowest:
   - Crosstrack distance: from the vehicle to the projection on the route.
   - Distance along the route to the last-flown segment: from the projection, following the mission path to whichever end of the last-flown segment is closer.
-This selects the candidate that gets the vehicle back to where it was last flying if available, or the best match for a close in-sequence segment if it is not.
-
+    This selects the candidate that gets the vehicle back to where it was last flying if available, or the best match for a close in-sequence segment if it is not.
 
 **Example 1:**
 
@@ -236,7 +229,6 @@ The default is **1** (**32** on `BOARD_TESTING`).
 The planner and this buffer are built only when `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` is greater than zero, so disabled builds reserve no planner batch buffer.
 Boards that enable route planning should choose a batch size that fits their RAM budget.
 
-
 ::: warning
 If the number of eligible rally points exceeds `CONFIG_RTL_SAFE_POINT_BATCH_SIZE`, each planning pass loops over the full mission route multiple times (once per batch of rally points).
 To keep every rally point in a single mission scan, raise `CONFIG_RTL_SAFE_POINT_BATCH_SIZE` on boards that have the RAM budget for it.
@@ -246,99 +238,6 @@ To keep every rally point in a single mission scan, raise `CONFIG_RTL_SAFE_POINT
 
 ```ini
 CONFIG_RTL_SAFE_POINT_BATCH_SIZE=32
-```
-
-## Route Cache
-
-`MissionRouteCache` is the production data source (provider) for the planner.
-Normal mission execution keeps only a small sliding window of mission items in RAM, but route planning needs random, non-blocking access to the whole mission.
-The cache composes an optional `FullMissionCache` with the safe-point and mission-land caches already used by Return, and Navigator advances all three from its work loop.
-
-```text
-MissionRouteCache (planner Provider)
-|-- FullMissionCache              [0 ... CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE - 1]
-|     |-- complete mission array
-|     `-- Dataman client + request generation, retry, and load timing state
-|-- safe-point DatamanCache       [all uploaded safe-point items]
-|-- mission-land DatamanCache     [published mission land index]
-`-- safe-point stats reader       [DM_KEY_SAFE_POINTS_STATE state machine]
-```
-
-Provider reads are cache-only.
-Full-mission items are copied directly from `FullMissionCache` RAM, while safe-point and mission-land lookups use a zero wait timeout.
-A miss therefore returns failure instead of blocking Navigator on Dataman or the SD card.
-
-### Loading Workflow
-
-Full-mission loading is fully asynchronous and identical while armed and disarmed.
-`FullMissionCache` keeps one item read outstanding at a time, and Navigator temporarily adds that client's response subscription as its fourth poll entry.
-A Dataman response wakes the same Navigator task; `DatamanClient::update()` copies and validates the response, and a successful match queues the next item in that same loop.
-There is no cache thread, and loading is not paced by Navigator's 20 Hz local-position update.
-
-Poll readiness means only that _a_ response exists because `dataman_response` is shared by all clients.
-The response fd is therefore enabled only while this cache has a pending request; leaving it enabled while idle could repeatedly wake Navigator on another client's unread response.
-Navigator still calls `MissionRouteCache::update()` after every wake rather than treating `POLLIN` as a successful read.
-
-If a read fails, the cache keeps the successfully loaded prefix and retries the first unread item after a bounded 0.5, 1, 2, then 4 second backoff.
-The same 4 second delay is used for subsequent failures.
-No partial mission is exposed while loading or retrying.
-
-### Readiness and Mission Views
-
-The full cache identifies a source by its mission id, item count, and Dataman bank.
-`missionItemsReady(mission)` becomes true only after every item for that exact source has loaded.
-A source replacement hides the old generation immediately; a response from an older request is consumed but discarded.
-
-Consumers must check readiness explicitly:
-
-- `missionCount() == 0` can mean pending, disabled, oversized, or ready and empty.
-- `safePointCount() == 0` can mean pending or ready and empty, so safe-point scoring also requires `safePointsReady()`.
-- A route-planning consumer must require `missionItemsReady(active_mission)`, and `planRouteToGoal()` also requires `safePointsReady()`.
-
-`getMissionView()` provides the complete mission as a zero-copy view tied to the source identity and cache generation.
-The view is borrowed for one synchronous call in Navigator's serialized task and should be checked afterward with `missionViewStillValid()`.
-The current planner provider still exposes count/item reads; a production integration should adapt one validated view for each planning pass so all reads use the same generation.
-
-### Cache Size
-
-`CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE` sets the maximum number of mission items reserved for full-route planning.
-The default is `500` on POSIX and `0` otherwise unless a board overrides it.
-The array is allocated once when Navigator starts and currently costs 56 bytes per configured item: 28,000 bytes at 500 items or 16,800 bytes at 300 items.
-
-```ini
-CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
-```
-
-::: warning
-The planner can only project against a mission that fits in `CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE`.
-An oversized mission produces a warning and is not partially cached; the consuming feature must use its normal fallback behavior.
-:::
-
-At a value of `0`, the complete-mission array, its dedicated Dataman client, and the full planner library are omitted.
-The `MissionRouteCache` facade and its independent safe-point and mission-land caches remain available to the existing Return implementation.
-
-### Cache Coherency
-
-Every successful in-place mission-item write must be followed by `MissionRouteCache::syncMissionItem()` because already-loaded items are not read again automatically.
-A ready full cache is patched directly and its generation advances, invalidating borrowed views.
-During a load, an already-read prefix is patched in place, an in-flight read for the same index is discarded and queued again, and an unread item is picked up by the normal load.
-The mission-land cache is synchronized independently.
-
-Mission execution follows this rule after successful `DO_JUMP` counter increments and resets.
-This prevents a later route-planning pass from using stale loop counts.
-
-### Measuring Load Time
-
-`FullMissionCache` records successful, non-empty load time with the `navigator: full mission cache load` elapsed perf counter.
-It measures wall time from starting a source until the complete generation is ready, including response scheduling and retry delays.
-Replaced, invalidated, empty, or never-completed loads do not add a sample.
-
-On hardware, reset the counters before changing the mission, then inspect them after the cache finishes:
-
-```sh
-perf reset
-# Upload or change the mission.
-perf
 ```
 
 ## Code Architecture
@@ -354,6 +253,11 @@ mission_route_provider.*          interface for reading mission and safe-point d
 mission_route_cache.*             composes full-mission, safe-point, and land caches
 full_mission_cache.*              optional complete-mission buffer and async loader
 mission_route_types.*             shared structs, constants, and parsing helpers used by all
+
+rtl.*                             requests a plan and selects the direct fallback
+rtl_route_safe_point.*            owns optional planning, source identity, and route continuity
+rtl_mission_safe_point_follow.*   executes the join, route, branch-off, and landing stages
+mission_base.*                    provides shared route-join and VTOL-transition handling
 ```
 
 The unit tests live in `src/modules/navigator/test/` (`test_mission_route_*.cpp`, with shared fixtures under `test/support/`).
@@ -364,6 +268,7 @@ The geometry tests use an in-memory `VectorMissionRouteProvider`; the cache and 
 - `functional-test_mission_route_projection`: candidate ordering and pruning, local-minimum corner rules, vehicle branch-in selection, loop anchors, and edge cases.
 - `functional-test_mission_route_goal`: safe-point scoring, U-turn penalty, VTOL approach eligibility, endpoint fallback, and skip policy.
 - `functional-test_RTL`: existing safe-point, mission-land, and VTOL-approach behavior through the combined cache facade.
+- `functional-test_RTL_mission_safe_point_follow`: route joining and following, branch-off and endpoint handling, VTOL transitions, and landing stages.
 
 Because the test geometry is defined directly in C++, it can be hard to picture. To inspect a test case visually, paste its C++ into the Streamlit helper at `Tools/navigator_mission_planner_visualizer/` (`mission_planner_tools.py`), which plots the missions, fences, rally/safe points, vehicle positions, and projections on a map. The same tool can generate C++ snippets for new test data drawn on the map. See its [README](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/navigator_mission_planner_visualizer/AddAndVisualizeUnitTests.md) for the supported syntax and setup.
 

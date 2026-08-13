@@ -112,8 +112,8 @@ public:
 	 * pending and for a ready empty mission. These reads carry no mission identity, use
 	 * getMissionView() for consistency across reads or update() cycles.
 	 */
-	int missionCount() const;
-	bool loadMissionItem(int index, mission_item_s &mission_item) const;
+	int missionCount() const override;
+	bool loadMissionItem(int index, mission_item_s &mission_item) const override;
 
 	/**
 	 * @brief Borrow the mission items without copying them.
@@ -141,7 +141,7 @@ public:
 	 * This lookup is cache-only and never waits for Dataman. While the asynchronous load or a source replacement is
 	 * pending, it returns false and leaves both output parameters unchanged.
 	 */
-	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const;
+	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override;
 
 	bool loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const;
 

@@ -579,6 +579,11 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 			have_previous = true;
 			segment.start = segment.end;
 			segment_positions.start = segment_positions.end;
+
+			if (isLandingCmd(segment.end.nav_cmd)) {
+				break;
+			}
+
 			continue;
 		}
 
@@ -595,7 +600,8 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 		segment_view.segment = segment;
 		segment_view.positions = segment_positions;
 		segment_view.route_along_start_m = total_dist;
-		segment_view.last_segment = (segment.end.idx == last_position_index);
+		segment_view.last_segment = (segment.end.idx == last_position_index)
+					    || isLandingCmd(segment.end.nav_cmd);
 		segment_view.zero_length_xy =
 			fabs(segment_positions.start.lat - segment_positions.end.lat) <= kCornerLatLonTolDeg
 			&& fabs(segment_positions.start.lon - segment_positions.end.lon) <= kCornerLatLonTolDeg;

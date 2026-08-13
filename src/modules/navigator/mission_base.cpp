@@ -67,7 +67,27 @@ MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed
 	_mission.safe_points_id = 0;
 
 	_mission_pub.advertise();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	captureMissionStartVtolState();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+bool MissionBase::vehicleInFwLikeState(const vehicle_status_s &vehicle_status)
+{
+	return vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	       || vehicle_status.in_transition_to_fw;
+}
+
+void MissionBase::captureMissionStartVtolState()
+{
+	_vehicle_status_sub.update();
+	_mission_start_vtol_state = vehicleInFwLikeState(_vehicle_status_sub.get())
+				    ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+				    : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 void
 MissionBase::updateDatamanCache()
@@ -95,13 +115,11 @@ void MissionBase::updateMavlinkMission()
 		mission_s new_mission;
 		_mission_sub.update(&new_mission);
 
-		const bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
+		new_mission.current_seq = getIncomingMissionCurrentSeq(new_mission, _mission);
+		const bool mission_items_changed = (new_mission.mission_dataman_id != _mission.mission_dataman_id)
+						   || (new_mission.mission_id != _mission.mission_id)
+						   || (new_mission.count != _mission.count);
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
-
-		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::constrain(_mission.current_seq, int32_t{0},
-						  static_cast<int32_t>(new_mission.count) - 1);
-		}
 
 		if (new_mission.geofence_id != _mission.geofence_id) {
 			// New geofence data, need to check mission again.
@@ -120,11 +138,40 @@ void MissionBase::updateMavlinkMission()
 	}
 }
 
+int32_t MissionBase::getIncomingMissionCurrentSeq(const mission_s &incoming_mission,
+		const mission_s &current_mission)
+{
+	if (incoming_mission.current_seq >= 0) {
+		return incoming_mission.current_seq;
+	}
+
+	const bool mission_definition_changed = (incoming_mission.mission_dataman_id != current_mission.mission_dataman_id)
+						|| (incoming_mission.mission_id != current_mission.mission_id)
+						|| (incoming_mission.count != current_mission.count);
+
+	if (mission_definition_changed || incoming_mission.count <= 0) {
+		return 0;
+	}
+
+	return math::constrain(current_mission.current_seq, int32_t{0},
+			       static_cast<int32_t>(incoming_mission.count) - 1);
+}
+
 void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 {
 	if (has_mission_items_changed) {
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		captureMissionStartVtolState();
+
+		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+		    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+			resetJoinRouteState();
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 		if (canRunMissionFeasibility()) {
 			_mission_checked = true;
@@ -161,7 +208,9 @@ MissionBase::on_inactive()
 
 	parameters_update();
 
-	updateMavlinkMission();
+	if (shouldAcceptMissionUpdates()) {
+		updateMavlinkMission();
+	}
 
 	/* Check the mission */
 	if (!_mission_checked && canRunMissionFeasibility()) {
@@ -192,6 +241,9 @@ MissionBase::on_inactivation()
 
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	resetJoinRouteState();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/* reset so MISSION_ITEM_REACHED isn't published */
 	_navigator->get_mission_result()->seq_reached = -1;
@@ -215,18 +267,20 @@ MissionBase::on_activation()
 
 	update_mission();
 
-	// reset the cache and fill it with the items up to the previous item. The cache contains
-	// commands that are valid for the whole mission, not just a single waypoint.
-	if (_mission.current_seq > 0) {
+	// Restore commands that remain active across normal Mission waypoints.
+	if (shouldReplayMissionActionItems() && _mission.current_seq > 0) {
 		resetItemCache();
 		updateCachedItemsUpToIndex(_mission.current_seq - 1);
+
+	} else if (!shouldReplayMissionActionItems()) {
+		resetItemCache();
 	}
 
 	int32_t resume_index = _inactivation_index > 0 ? _inactivation_index : 0;
 
 	bool resume_mission_on_previous = false;
 
-	if (_inactivation_index > 0 && cameraWasTriggering()) {
+	if (shouldReplayMissionActionItems() && _inactivation_index > 0 && cameraWasTriggering()) {
 		size_t num_found_items{0U};
 		getPreviousPositionItems(_inactivation_index, &resume_index, num_found_items, 1U);
 
@@ -241,7 +295,7 @@ MissionBase::on_activation()
 		}
 	}
 
-	if (!resume_mission_on_previous) {
+	if (shouldReplayMissionActionItems() && !resume_mission_on_previous) {
 		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
 		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
 		replayCachedSpeedChangeItems();
@@ -271,7 +325,10 @@ MissionBase::on_active()
 
 	parameters_update();
 
-	updateMavlinkMission();
+	if (shouldAcceptMissionUpdates()) {
+		updateMavlinkMission();
+	}
+
 	updateDatamanCache();
 	updateMissionAltAfterHomeChanged();
 
@@ -311,34 +368,38 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
-	// Replay camera mode commands immediately upon mission resume
-	if (haveCachedCameraModeItems()) {
-		replayCachedCameraModeItems();
-	}
+	if (shouldReplayMissionActionItems()) {
+		// Replay camera mode commands immediately upon mission resume.
+		if (haveCachedCameraModeItems()) {
+			replayCachedCameraModeItems();
+		}
 
-	// Replay cached gimbal commands immediately upon mission resume, but only after the vehicle has reached the final target altitude
-	if (haveCachedGimbalItems() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
-		replayCachedGimbalItems();
-	}
+		// Replay gimbal commands after the vehicle reaches the final target altitude.
+		if (haveCachedGimbalItems() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+			replayCachedGimbalItems();
+		}
 
-	// Replay cached trigger commands once the last mission waypoint is re-reached after the mission resume
-	if (_mission.current_seq > _mission_activation_index) {
-		// replay trigger commands
-		if (cameraWasTriggering()) {
+		// Replay trigger commands once the previous mission waypoint is reached again.
+		if (_mission.current_seq > _mission_activation_index && cameraWasTriggering()) {
 			replayCachedTriggerItems();
 		}
-	}
 
-	if (!_speed_replayed_on_activation && _mission.current_seq > _mission_activation_index) {
-		// replay speed change items if not already done on mission (re-)activation
-		replayCachedSpeedChangeItems();
+		if (!_speed_replayed_on_activation && _mission.current_seq > _mission_activation_index) {
+			replayCachedSpeedChangeItems();
+		}
 	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		if (shouldReportMissionItemReached()) {
+#else
+
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 			set_mission_item_reached();
 		}
 
@@ -459,8 +520,19 @@ void MissionBase::update_mission()
 			checkClimbRequired(_mission.current_seq);
 		}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		// Route joining is armed before activation reaches update_mission(). Keep it until
+		// it completes; an actual mission definition change clears it in onMissionUpdate().
+		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE
+		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		}
+
+#else
 		/* reset work item if new mission has been accepted */
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->failure = false;
@@ -610,6 +682,21 @@ MissionBase::set_mission_item_reached()
 	reset_mission_item_reached();
 }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+bool MissionBase::shouldReportMissionItemReached() const
+{
+	switch (_work_item_type) {
+	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
+	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
+	case WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN:
+		return false;
+
+	default:
+		return true;
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 void
 MissionBase::set_mission_result()
 {
@@ -755,6 +842,165 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 
 }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void MissionBase::setupJoinRoute(mission_route::JoinContext &join_context,
+				 const mission_route::RoutePath &path)
+{
+	join_context.transition_action = vtolTransitionActionForTarget(path.first_item_index, path.direction_reversed);
+	_route_join_context = join_context;
+	_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+}
+
+void MissionBase::resetJoinRouteState()
+{
+	_route_join_context = {};
+}
+
+bool MissionBase::handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
+		const position_setpoint_s &current_setpoint_copy)
+{
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		if (!(_waypoint_position_reached && _waypoint_yaw_reached)) {
+			return handleJoinRouteWaypoint(pos_sp_triplet, current_setpoint_copy);
+		}
+
+		if (!joinRouteTransitionStillRequired()) {
+			PX4_INFO("Join route reached, resuming route");
+			resetJoinRouteState();
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+			return false;
+		}
+
+		PX4_INFO("Route join reached, starting transition");
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN;
+	}
+
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN) {
+		return handleTransitionAfterJoin(pos_sp_triplet);
+	}
+
+	return false;
+}
+
+bool MissionBase::handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
+		const position_setpoint_s &current_setpoint_copy)
+{
+	if (!_route_join_context.valid()) {
+		PX4_ERR("Route join active without a valid context");
+		resetJoinRouteState();
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		return false;
+	}
+
+	mission_item_s join_item{};
+	join_item.nav_cmd = NAV_CMD_WAYPOINT;
+	join_item.lat = _route_join_context.projection.lat;
+	join_item.lon = _route_join_context.projection.lon;
+	join_item.altitude = _route_join_context.projection.alt;
+	join_item.altitude_is_relative = false;
+	join_item.acceptance_radius = _navigator->get_acceptance_radius();
+	join_item.yaw = NAN;
+	join_item.autocontinue = true;
+	join_item.origin = ORIGIN_ONBOARD;
+
+	if (_route_join_context.skip_altitude_requirement && _navigator->get_global_position() != nullptr) {
+		join_item.altitude = _navigator->get_global_position()->alt;
+	}
+
+	if (_route_join_context.transition_action == VtolTransitionAction::kBackTransition) {
+		join_item.vtol_back_transition = true;
+
+	} else if (_route_join_context.transition_action == VtolTransitionAction::kNone
+		   && vehicleInFwLikeState(_vehicle_status_sub.get())) {
+		join_item.acceptance_radius = kJoinRouteFlyByAcceptanceRadiusScale * _navigator->get_acceptance_radius();
+	}
+
+	mission_item_to_position_setpoint(join_item, &pos_sp_triplet->current);
+	_navigator->reset_position_setpoint(pos_sp_triplet->next);
+
+	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+		pos_sp_triplet->previous = current_setpoint_copy;
+	}
+
+	issue_command(join_item);
+	_mission_item = join_item;
+	reset_mission_item_reached();
+
+	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+		set_mission_result();
+	}
+
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+	return true;
+}
+
+bool MissionBase::handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_triplet)
+{
+	if (!joinRouteTransitionStillRequired()) {
+		PX4_INFO("Route join complete");
+		resetJoinRouteState();
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		return false;
+	}
+
+	const uint8_t target_state = _route_join_context.transition_action == VtolTransitionAction::kFrontTransition
+				     ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+				     : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	set_vtol_transition_item(&_mission_item, target_state);
+	_mission_item.yaw = NAN;
+
+	if (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition) {
+		_mission_item.yaw = computeFrontTransitionAlignmentYaw(_mission.current_seq);
+	}
+
+	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	pos_sp_triplet->previous.valid = false;
+	issue_command(_mission_item);
+	reset_mission_item_reached();
+
+	if (_mission_type == MissionType::MISSION_TYPE_MISSION) {
+		set_mission_result();
+	}
+
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+	return true;
+}
+
+bool MissionBase::joinRouteTransitionStillRequired() const
+{
+	const bool landed = _land_detected_sub.get().landed;
+	const bool currently_fw = vehicleInFwLikeState(_vehicle_status_sub.get());
+
+	return !landed && ((_route_join_context.transition_action == VtolTransitionAction::kBackTransition && currently_fw)
+			   || (_route_join_context.transition_action == VtolTransitionAction::kFrontTransition && !currently_fw));
+}
+
+float MissionBase::computeFrontTransitionAlignmentYaw(int32_t current_target_index)
+{
+	if (_navigator == nullptr) {
+		return NAN;
+	}
+
+	const auto *global_position = _navigator->get_global_position();
+
+	if (global_position == nullptr || !PX4_ISFINITE(global_position->lat) || !PX4_ISFINITE(global_position->lon)) {
+		return NAN;
+	}
+
+	mission_item_s alignment_target{};
+
+	if (!loadMissionItemFromCache(current_target_index, alignment_target)
+	    || !mission_item_contains_position(alignment_target)) {
+		return NAN;
+	}
+
+	return get_bearing_to_next_waypoint(global_position->lat, global_position->lon,
+					    alignment_target.lat, alignment_target.lon);
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 void
 MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 {
@@ -769,8 +1015,11 @@ MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 void
 MissionBase::checkMissionRestart()
 {
+	const bool reached_mission_end = ((_mission.current_seq + 1) == _mission.count);
+	const bool mission_finished = _navigator->get_mission_result()->finished;
+
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
-	    && ((_mission.current_seq + 1) == _mission.count)) {
+	    && (reached_mission_end || mission_finished)) {
 		setMissionIndex(0);
 		_inactivation_index = -1; // reset
 		_is_current_planned_mission_item_valid = isMissionValid();
@@ -1160,6 +1409,197 @@ bool MissionBase::findPreviousPositionIndex(int32_t start_index, int32_t &previo
 
 	return false;
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+bool MissionBase::findAttachedPositionIndex(int32_t start_index, int32_t &attached_index)
+{
+	for (int32_t index = start_index; index >= 0; --index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return false;
+		}
+
+		if (mission_item_contains_position(mission_item)) {
+			attached_index = index;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+uint8_t MissionBase::getVtolStateAtMissionIndex(int32_t anchor_index)
+{
+	uint8_t vtol_state = _mission_start_vtol_state;
+
+	for (int32_t index = anchor_index; index >= 0; --index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			PX4_ERR("Failed to read mission item %d for VTOL state", static_cast<int>(index));
+			continue;
+		}
+
+		if (mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+			const int transition_mode = static_cast<int>(roundf(mission_item.params[0]));
+
+			if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
+				vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+
+			} else if (transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+				vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			}
+
+			break;
+
+		} else if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+			vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			break;
+		}
+	}
+
+	return vtol_state;
+}
+
+MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionForTarget(int32_t target_index,
+		bool direction_reversed)
+{
+	const auto &vehicle_status = _vehicle_status_sub.get();
+
+	if (!vehicle_status.is_vtol || target_index < 0 || target_index >= _mission.count) {
+		return VtolTransitionAction::kNone;
+	}
+
+	// In reverse, the target is the start of the segment. Find the following position
+	// anchor so transitions attached between the two endpoints remain part of that segment.
+	const int32_t anchor_search_start = direction_reversed ? target_index + 1 : target_index;
+
+	if (anchor_search_start >= _mission.count) {
+		return VtolTransitionAction::kNone;
+	}
+
+	int32_t segment_anchor_index = -1;
+
+	if (!findNextPositionIndex(anchor_search_start, segment_anchor_index, MissionTraversalType::IgnoreDoJump)) {
+		return VtolTransitionAction::kNone;
+	}
+
+	const uint8_t target_segment_state = getVtolStateAtMissionIndex(segment_anchor_index);
+	const bool currently_fw = vehicleInFwLikeState(vehicle_status);
+
+	if (target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && currently_fw) {
+		return VtolTransitionAction::kBackTransition;
+	}
+
+	if (target_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !currently_fw) {
+		return VtolTransitionAction::kFrontTransition;
+	}
+
+	return VtolTransitionAction::kNone;
+}
+
+MissionBase::VtolTransitionAction MissionBase::vtolTransitionActionAfterReachingReverseTarget(
+	int32_t reached_target_index)
+{
+	const auto &vehicle_status = _vehicle_status_sub.get();
+
+	if (!vehicle_status.is_vtol || reached_target_index < 0 || reached_target_index >= _mission.count) {
+		return VtolTransitionAction::kNone;
+	}
+
+	bool attached_transition_found = false;
+
+	for (int32_t index = reached_target_index + 1; index < _mission.count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			PX4_ERR("Failed to read mission item %d for reverse VTOL state", static_cast<int>(index));
+			break;
+		}
+
+		if (mission_item_contains_position(mission_item)) {
+			break;
+		}
+
+		if (mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+			const int transition_mode = static_cast<int>(roundf(mission_item.params[0]));
+			attached_transition_found = transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+						    || transition_mode == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+			break;
+		}
+	}
+
+	if (!attached_transition_found) {
+		return VtolTransitionAction::kNone;
+	}
+
+	const uint8_t next_reverse_segment_state = reached_target_index <= 0
+			? _mission_start_vtol_state
+			: getVtolStateAtMissionIndex(reached_target_index - 1);
+	const bool currently_fw = vehicleInFwLikeState(vehicle_status);
+
+	if (next_reverse_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && currently_fw) {
+		return VtolTransitionAction::kBackTransition;
+	}
+
+	if (next_reverse_segment_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !currently_fw) {
+		return VtolTransitionAction::kFrontTransition;
+	}
+
+	return VtolTransitionAction::kNone;
+}
+
+void MissionBase::updateLastFlownLoopSegmentForNominalAdvance(mission_route::Segment &last_flown_loop_segment)
+{
+	last_flown_loop_segment = {};
+
+	// Only inspect commands consumed before the next position target. A later DO_JUMP
+	// belongs to a future advance and must not become the current continuity anchor.
+	for (int32_t index = _mission.current_seq + 1; index < _mission.count; ++index) {
+		mission_item_s mission_item{};
+
+		if (!loadMissionItemFromCache(index, mission_item)) {
+			return;
+		}
+
+		const bool active_do_jump = mission_item.nav_cmd == NAV_CMD_DO_JUMP
+					    && mission_item.do_jump_current_count < mission_item.do_jump_repeat_count;
+
+		if (active_do_jump) {
+			int32_t loop_start_index = -1;
+			int32_t loop_end_index = -1;
+
+			if (!findAttachedPositionIndex(index, loop_start_index)
+			    || !findNextPositionIndex(mission_item.do_jump_mission_index, loop_end_index,
+						      MissionTraversalType::IgnoreDoJump)) {
+				return;
+			}
+
+			mission_item_s loop_start_item{};
+			mission_item_s loop_end_item{};
+
+			if (!loadMissionItemFromCache(loop_start_index, loop_start_item)
+			    || !loadMissionItemFromCache(loop_end_index, loop_end_item)) {
+				return;
+			}
+
+			last_flown_loop_segment.start.idx = loop_start_index;
+			last_flown_loop_segment.start.nav_cmd = loop_start_item.nav_cmd;
+			last_flown_loop_segment.end.idx = loop_end_index;
+			last_flown_loop_segment.end.nav_cmd = loop_end_item.nav_cmd;
+			last_flown_loop_segment.is_loop = true;
+			last_flown_loop_segment.loops_remaining = static_cast<uint8_t>(mission_item.do_jump_repeat_count
+					- mission_item.do_jump_current_count);
+			return;
+		}
+
+		if (mission_item_contains_position(mission_item)) {
+			break;
+		}
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 bool MissionBase::loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 				    MissionTraversalType traversal_type, bool direction_backward)
@@ -1563,9 +2003,9 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 
 bool MissionBase::checkMissionDataChanged(const mission_s &new_mission)
 {
-	/* count and land_index are the same if the mission_id did not change. We do not care about changes in geofence or rally counters.*/
 	return ((new_mission.mission_dataman_id != _mission.mission_dataman_id) ||
 		(new_mission.mission_id != _mission.mission_id) ||
+		(new_mission.count != _mission.count) ||
 		(new_mission.current_seq != _mission.current_seq));
 }
 

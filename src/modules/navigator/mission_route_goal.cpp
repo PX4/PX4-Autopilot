@@ -58,15 +58,15 @@ namespace
 
 void loadSafePointBatch(const Provider &provider,
 			const PlannerConfig &config,
-			int offset,
+			int &safe_point_cursor,
 			ProjectionReferenceBatch &batch)
 {
 	batch.count = 0;
 
 	const int safe_point_item_count = provider.safePointCount();
-	const int batch_end = math::min(offset + static_cast<int>(kMaxSafePointBatch), safe_point_item_count);
 
-	for (int safe_point_index = offset; safe_point_index < batch_end; ++safe_point_index) {
+	while (safe_point_cursor < safe_point_item_count && batch.count < kMaxSafePointBatch) {
+		const int safe_point_index = safe_point_cursor++;
 		mission_item_s safe_point_item{};
 
 		if (!provider.loadSafePointItem(safe_point_index, safe_point_item)) {
@@ -568,10 +568,12 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 
 	GoalSelection best{};
 	FailureReason scan_failure_reason = FailureReason::kNone;
+	int safe_point_cursor = 0;
 
 	// The full mission route is scanned once per batch.
-	for (int offset = 0; offset < safe_point_count; offset += kMaxSafePointBatch) {
-		loadSafePointBatch(_provider, config, offset, batch);
+	while (safe_point_cursor < safe_point_count) {
+		const int batch_start_index = safe_point_cursor;
+		loadSafePointBatch(_provider, config, safe_point_cursor, batch);
 
 		if (batch.count == 0) {
 			continue;
@@ -580,7 +582,7 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 		const ProjectionScanResult scan_result = _projection.findProjectionCandidates(scan_request, batch);
 
 		if (!scan_result.success) {
-			PX4_DEBUG("RTL safe point batch scan failed at offset %d: %s", offset,
+			PX4_DEBUG("RTL safe point batch scan failed at offset %d: %s", batch_start_index,
 				  failureReasonString(scan_result.failure_reason));
 			scan_failure_reason = scan_result.failure_reason;
 			continue;
@@ -633,14 +635,19 @@ GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const Proj
 	int32_t land_index{-1};
 	mission_item_s land_item{};
 	bool have_land = _provider.getMissionLandItem(land_index, land_item);
+	const float land_route_along = have_land
+				       ? _projection.accumulateRouteDistance(0, land_index,
+						       config.parameters.home_altitude_amsl)
+				       : NAN;
 
 	RoutePath path_to_land{};
 	Position land_position{};
 	const bool path_to_land_valid = have_land
+					&& PX4_ISFINITE(land_route_along)
 					&& extractMissionPosition(land_item, config.parameters.home_altitude_amsl,
 							land_position)
 					&& (path_to_land = findShortestPathAlongRoute(
-							projection_context.route_length,
+							land_route_along,
 							projection_context, config,
 							PathDirectionMode::kForceNominal)).valid();
 

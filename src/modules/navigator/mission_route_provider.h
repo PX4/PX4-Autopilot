@@ -50,18 +50,30 @@ namespace mission_route
 {
 
 /**
- * @brief Safe-point data source for the RTL landing-approach scans.
+ * @brief Data source used by the planner.
  *
- * Navigator passes MissionRouteCache here. Tests can pass an in-memory provider,
- * which keeps the scan logic independent from dataman and uORB.
+ * Navigator can adapt one validated cache view for a planning pass. Tests can pass
+ * an in-memory provider, keeping route geometry independent from Dataman and uORB.
  */
 class Provider
 {
 public:
 	virtual ~Provider() = default;
 
+	virtual int missionCount() const = 0;
+	virtual bool loadMissionItem(int index, mission_item_s &mission_item) const = 0;
 	virtual int safePointCount() const = 0;
 	virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
+
+	/** @brief Load the mission item referenced by the active mission's published land_index. */
+	virtual bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const = 0;
+	/**
+	 * @brief Find the mission takeoff item.
+	 *
+	 * The default implementation skips leading non-position setup commands but stops as soon as the
+	 * mission reaches its first other position-bearing item.
+	 */
+	virtual bool getMissionTakeoffItem(int32_t &index, mission_item_s &takeoff_item) const;
 
 	/**
 	 * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
@@ -70,11 +82,15 @@ public:
 	 * items that follow it. The next rally point starts a new block.
 	 * Invalid rally points are skipped so a later nearby valid rally point can still be considered.
 	 */
-	land_approaches_s getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
+	virtual land_approaches_s getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
 			float home_altitude_amsl) const;
-	bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
-					       float home_altitude_amsl) const;
-	bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
+	/** @brief Read the landing-approach block attached to one exact rally-point item. */
+	virtual land_approaches_s getVtolLandApproachesAtSafePointIndex(int safe_point_index,
+			float home_altitude_amsl) const;
+	virtual bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
+			float home_altitude_amsl) const;
+	virtual bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
+	virtual bool anySafePointHasVtolLandApproach(float home_altitude_amsl) const;
 
 protected:
 	/**

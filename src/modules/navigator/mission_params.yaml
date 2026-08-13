@@ -115,3 +115,27 @@ parameters:
       unit: s
       min: 0
       decimal: 1
+    MIS_MC_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for multicopter route projections
+        long: |-
+          When projecting the vehicle onto the uploaded mission route for RTL_TYPE = 6,
+          accept candidates within this distance of the closest route segment.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+    MIS_FW_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for fixed-wing route projections
+        long: |-
+          When projecting the vehicle onto the uploaded mission route for RTL_TYPE = 6,
+          accept candidates within this distance of the closest route segment.
+      type: float
+      default: 150.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
