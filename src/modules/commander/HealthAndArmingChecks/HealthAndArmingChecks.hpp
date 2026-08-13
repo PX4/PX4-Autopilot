@@ -44,7 +44,9 @@
 #include "checks/airspeedCheck.hpp"
 #include "checks/armPermissionCheck.hpp"
 #include "checks/baroCheck.hpp"
+#ifndef CONSTRAINED_FLASH
 #include "checks/companionComputerCheck.hpp"
+#endif // !CONSTRAINED_FLASH
 #include "checks/cpuResourceCheck.hpp"
 #if CONFIG_NAVIGATOR_ADSB
 #include "checks/daaCheck.hpp"
@@ -139,7 +141,9 @@ private:
 	AirspeedChecks _airspeed_checks;
 	ArmPermissionChecks _arm_permission_checks;
 	BaroChecks _baro_checks;
+#ifndef CONSTRAINED_FLASH
 	CompanionComputerChecks _companion_computer_checks;
+#endif // !CONSTRAINED_FLASH
 	CpuResourceChecks _cpu_resource_checks;
 #if CONFIG_NAVIGATOR_ADSB
 	DaaChecks _daa_checks;
@@ -186,7 +190,9 @@ private:
 		&_airspeed_checks,
 		&_arm_permission_checks,
 		&_baro_checks,
+#ifndef CONSTRAINED_FLASH
 		&_companion_computer_checks,
+#endif // !CONSTRAINED_FLASH
 		&_cpu_resource_checks,
 #if CONFIG_NAVIGATOR_ADSB
 		&_daa_checks,

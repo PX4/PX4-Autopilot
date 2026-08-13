@@ -87,3 +87,7 @@ px4_add_module(
 		gnss
 		failure_injection
 	)
+
+if(NOT CONFIG_GPS_RTK)
+	target_compile_definitions(drivers__gps PRIVATE GPS_NO_RTK)
+endif()
