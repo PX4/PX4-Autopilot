@@ -232,24 +232,25 @@ EKF2::~EKF2()
 
 void EKF2::AdvertiseTopics()
 {
-	// advertise expected minimal topic set immediately for logging
+	// Advertise the expected minimal topic set immediately. These are uORB::PublicationMulti,
+	// so the instance is decided by whoever advertises first: if another module gets there
+	// before us it takes instance 0, and subscribers reading the default instance see an empty
+	// topic while the estimate goes to instance 1. Advertising up front keeps the assignment
+	// deterministic instead of a boot race. In multi mode these handles point at estimator_*
+	// and ekf2_selector owns (and already unconditionally advertises) the vehicle_* topics.
 	_attitude_pub.advertise();
 	_local_position_pub.advertise();
+	_global_position_pub.advertise();
+	_odometry_pub.advertise();
 	_estimator_event_flags_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_fc_pub.advertise();
 
-	if (_multi_mode) {
-		// only force advertise these in multi mode to ensure consistent uORB instance numbering
-		_global_position_pub.advertise();
-		_odometry_pub.advertise();
-
 #if defined(CONFIG_EKF2_WIND)
-		_wind_pub.advertise();
+	_wind_pub.advertise();
 #endif // CONFIG_EKF2_WIND
-	}
 
 #if defined(CONFIG_EKF2_GNSS)
 
