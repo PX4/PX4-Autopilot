@@ -37,7 +37,6 @@
 
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 
-#include <mathlib/mathlib.h>
 #include <float.h>
 
 using namespace matrix;
@@ -53,9 +52,6 @@ bool FlightTaskManualAltitudeSmoothVel::activate(const trajectory_setpoint_s &la
 
 	// If the velocity setpoint is unknown, set to the current velocity
 	float vz_sp_last = PX4_ISFINITE(last_setpoint.velocity[2]) ? last_setpoint.velocity[2] : _velocity(2);
-
-	// Seed trajectory within the limits enforced by the position controller to avoid velocity error inversion on braking.
-	vz_sp_last = math::constrain(vz_sp_last, -_constraints.speed_up, _constraints.speed_down);
 
 	// If accel setpoint unknown, set to the current accel
 	float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : _acceleration(2);

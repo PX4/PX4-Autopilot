@@ -192,14 +192,6 @@ bool FlightTaskAuto::update()
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
 
-	// Clamp trajectory to the ascent limit the position controller enforces, to avoid velocity error
-	// inversion on braking. Must stay after _checkEmergencyBraking(), which reads this velocity.
-	if (_type != WaypointType::takeoff
-	    && _position_smoothing.getCurrentVelocityZ() < -_param_mpc_z_vel_max_up.get()) {
-		_position_smoothing.forceSetVelocity({NAN, NAN, -_param_mpc_z_vel_max_up.get()});
-		_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
-	}
-
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
 		_position,
