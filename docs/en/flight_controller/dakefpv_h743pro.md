@@ -43,16 +43,21 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Serial Port Mapping
 
-| UART   | Device     | PX4 default    |
-| ------ | ---------- | -------------- |
-| USART1 | /dev/ttyS0 | GPS1           |
-| USART2 | /dev/ttyS1 | TELEM1         |
-| USART3 | /dev/ttyS2 | TELEM2         |
-| UART4  | /dev/ttyS3 | TELEM3         |
-| UART5  | /dev/ttyS4 | RC input       |
-| USART6 | /dev/ttyS5 | TELEM4         |
-| UART7  | /dev/ttyS6 | System console |
-| UART8  | /dev/ttyS7 | GPS2           |
+| UART   | Board pads | Device     | PX4 default    |
+| ------ | ---------- | ---------- | -------------- |
+| USART1 | T1/R1      | /dev/ttyS0 | GPS1           |
+| USART2 | T2/R2      | /dev/ttyS1 | TELEM1         |
+| USART3 | T3/R3      | /dev/ttyS2 | TELEM2         |
+| UART4  | T4/R4      | /dev/ttyS3 | TELEM3         |
+| UART5  | T5/R5      | /dev/ttyS4 | RC input       |
+| USART6 | T6/R6      | /dev/ttyS5 | TELEM4         |
+| UART7  | T7/R7      | /dev/ttyS6 | System console |
+| UART8  | T8/R8      | /dev/ttyS7 | GPS2           |
+
+::: warning
+The pads are silkscreened by UART number, so `T4`/`R4` is UART4 — which PX4 exposes as **TELEM3**, not TELEM4.
+The wiring diagram connects the digital VTX (DJI/HDZero/OpenIPC) to `T4`, so its PX4 port is TELEM3 (`MSP_OSD_CONFIG 103`).
+:::
 
 ::: info
 UART4 (TELEM3) is on PB8/PB9 — PD0/PD1 are used by CAN1 on the Pro (on the non-Pro, UART4/TELEM3 is on PD0/PD1).
@@ -76,6 +81,14 @@ On the non-Pro they share one group (TIM4).
 ## RC Input
 
 RC input is on UART5 (`/dev/ttyS4`). Supported: CRSF/ELRS, SBUS, DSM, SRXL2.
+
+## OSD
+
+The AT7456E analog OSD is enabled by default on SPI2. Analog OSD and digital HD OSD can run at the same time.
+
+The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads, which is UART4 — PX4 TELEM3 (`/dev/ttyS3`).
+This is the default: `MSP_OSD_CONFIG` is set to `103` (TELEM3).
+Connect the VTX elsewhere and set the parameter to match, for example `104` for TELEM4 (`T6`/`R6`).
 
 ## CAN
 
