@@ -156,7 +156,7 @@ int uORB::DeviceNode::fillStatistics(DeviceNodeStatisticsData **first_node, int 
 		last_node = last_node->next;
 	}
 
-#if defined(POSIX_SHM_DISABLED)
+#if defined(POSIX_SHM_DISABLED) || defined(CONFIG_BUILD_FLAT)
 	MappingCache::lock();
 	MappingCache::MappingCacheListItem *cache_item = MappingCache::list_head();
 
@@ -284,7 +284,7 @@ void uORB::DeviceNode::cleanupStatisticsData(DeviceNodeStatisticsData *first_nod
 	while (cur_node) {
 		DeviceNodeStatisticsData *next_node = cur_node->next;
 
-#if !defined(POSIX_SHM_DISABLED)
+#if !defined(POSIX_SHM_DISABLED) && !defined(CONFIG_BUILD_FLAT)
 		px4_munmap(cur_node->node, sizeof(DeviceNode));
 #endif
 
