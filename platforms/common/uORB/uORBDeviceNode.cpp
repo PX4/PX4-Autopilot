@@ -440,7 +440,7 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 	handle = ptr;
 
 	// construct the new node in the allocated region
-	new (node(handle)) uORB::DeviceNode(id, instance, nodepath);
+	new (node(handle)) uORB::DeviceNode(id, instance);
 
 	// cache mapping for this process
 	if (!MappingCache::add(handle)) {
@@ -494,7 +494,7 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 
 	if (orb_advert_valid(handle) && created) {
 		// construct the new node in the region
-		new (node(handle)) uORB::DeviceNode(id, instance, nodepath);
+		new (node(handle)) uORB::DeviceNode(id, instance);
 	}
 
 	return handle;
@@ -517,7 +517,9 @@ int uORB::DeviceNode::nodeClose(orb_advert_t &handle)
 			// Close the Node object
 
 #if !defined(POSIX_SHM_DISABLED)
-			shm_unlink(node(handle)->get_devname());
+			char unlink_path[orb_maxpath];
+			node(handle)->mkpath(unlink_path);
+			shm_unlink(unlink_path);
 #endif
 
 			// Uninitialize the node
@@ -586,7 +588,7 @@ int uORB::DeviceNode::unadvertise(bool publisher)
 	return ret;
 }
 
-uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char *path) :
+uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance) :
 	_orb_id(id),
 	_instance(instance)
 {
@@ -596,18 +598,6 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 	if (ret != 0 || ret2 != 0) {
 		PX4_DEBUG("SEM INIT FAIL: _lock %d, _cb_lock %d", ret, ret2);
 	}
-
-#if defined(CONFIG_BUILD_FLAT)
-	_devname = strdup(path);
-#else
-
-	if (strlen(path) >= sizeof(_devname)) {
-		PX4_ERR("node path too long %s", path);
-	}
-
-	strncpy(_devname, path, sizeof(_devname) - 1);
-	_devname[sizeof(_devname) - 1] = '\0';
-#endif
 }
 
 uORB::DeviceNode::~DeviceNode()
@@ -626,23 +616,28 @@ uORB::DeviceNode::~DeviceNode()
 		handle = callbacks.pop_free();
 	}
 
-	free(_devname);
 #endif
 	px4_sem_destroy(&_lock);
 	px4_sem_destroy(&_cb_lock);
 }
 
+int uORB::DeviceNode::mkpath(char *buf) const
+{
+	int inst = _instance;
+	return uORB::Utils::node_mkpath(buf, get_orb_meta(_orb_id), &inst, uORB::Manager::namespace_prefix());
+}
+
 /**
-        * Copies data and the corresponding generation
-        * from a node to the buffer provided.
-        *
-        * @param dst
-        *   The buffer into which the data is copied.
-        * @param generation
-        *   The generation that was copied.
-        * @return bool
-        *   Returns true if the data was copied.
-        */
+ * Copies data and the corresponding generation
+ * from a node to the buffer provided.
+ *
+ * @param dst
+ *   The buffer into which the data is copied.
+ * @param generation
+ *   The generation that was copied.
+ * @return bool
+ *   Returns true if the data was copied.
+ */
 bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generation)
 {
 	if (dst == nullptr || !_data_valid) {
@@ -823,8 +818,10 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 	const uint8_t queue_size = get_queue_size();
 	const orb_metadata *meta = get_meta();
 
+	char devpath[orb_maxpath];
+	mkpath(devpath);
 	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, meta->o_name, (int)instance, (int)sub_count,
-		     queue_size, meta->o_size, get_devname());
+		     queue_size, meta->o_size, devpath);
 
 	return true;
 }

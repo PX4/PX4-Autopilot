@@ -114,7 +114,11 @@ public:
 	DeviceNode(DeviceNode &&) = delete;
 	DeviceNode &operator=(DeviceNode &&) = delete;
 
-	bool operator<=(const DeviceNode &rhs) const { return (strcmp(get_devname(), rhs.get_devname()) <= 0); }
+	bool operator<=(const DeviceNode &rhs) const
+	{
+		return (_orb_id < rhs._orb_id) ||
+		       (_orb_id == rhs._orb_id && _instance <= rhs._instance);
+	}
 
 	/**
 	 * Method to publish a data to this node.
@@ -260,7 +264,11 @@ public:
 	{
 	}
 
-	const char *get_devname() const {return _devname;}
+	/**
+	 * Build the shmfs path for this node into caller-provided buffer.
+	 * Buffer must be at least orb_maxpath bytes.
+	 */
+	int mkpath(char *buf) const;
 
 #ifndef CONFIG_BUILD_FLAT
 	static bool cb_dequeue(orb_advert_t &node_handle, uorb_cb_handle_t cb)
@@ -333,7 +341,7 @@ private:
 	int8_t _publisher_count{0}; /**< how many publishers have advertised this topic */
 	int8_t _advertiser_count{0}; /**< how many total advertisers this topic has */
 
-	DeviceNode(const ORB_ID id, const uint8_t instance, const char *path);
+	DeviceNode(const ORB_ID id, const uint8_t instance);
 
 	int advertise(bool publisher);
 	int unadvertise(bool publisher);
@@ -365,11 +373,6 @@ private:
 	px4_sem_t	_lock;     /**< lock to protect access to uORB data */
 	px4_sem_t	_cb_lock;  /**< lock to protect access to callback queue */
 
-#ifdef CONFIG_BUILD_FLAT
-	char *_devname;
-#else
-	char _devname[orb_maxpath];
-#endif
 	static constexpr unsigned data_alignment_padding()
 	{
 		return sizeof(DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT != 0 ?
