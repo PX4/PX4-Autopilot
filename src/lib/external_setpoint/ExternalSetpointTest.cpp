@@ -89,9 +89,12 @@ public:
 		msg.yawspeed = NAN;
 		msg.valid = valid;
 
-		uORB::Publication<external_setpoint_s> pub{ORB_ID(external_setpoint)};
-		pub.publish(msg);
+		_ext_sp_pub.publish(msg);
 	}
+
+	// Must outlive each publish(): ~PublicationBase() unadvertises the topic,
+	// which would leave the subscriber unable to copy it.
+	uORB::Publication<external_setpoint_s> _ext_sp_pub{ORB_ID(external_setpoint)};
 
 	/** A trajectory setpoint representing a mission leg: position and velocity commanded. */
 	static trajectory_setpoint_s missionSetpoint()
