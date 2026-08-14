@@ -1,0 +1,35 @@
+module_name: external_setpoint
+parameters:
+- group: Multicopter Position Control
+  definitions:
+    EXT_SP_EN:
+      description:
+        short: Enable external setpoint fusion
+        long: |-
+          When enabled, velocity/acceleration setpoints streamed from an external
+          source (via MAVLink SET_POSITION_TARGET_LOCAL_NED) are fused into Position
+          and Mission mode as a temporary deviation from the underlying setpoint.
+
+          The external source is responsible for all decision making; PX4 only
+          accepts and blends the resulting setpoint, and retains ownership of the
+          flight mode, the mission state and the failsafes. When the external stream
+          stops (see EXT_SP_TIMEOUT) the normal Position/Mission setpoint resumes
+          automatically.
+
+          Obstacle avoidance is the motivating use case, but the mechanism is
+          application-agnostic.
+      type: boolean
+      default: 0
+    EXT_SP_TIMEOUT:
+      description:
+        short: External setpoint timeout
+        long: |-
+          Maximum age of an external setpoint before it is ignored. If no fresh
+          setpoint is received within this time, fusion stops and the vehicle resumes
+          its normal Position/Mission setpoint.
+      type: float
+      default: 0.5
+      min: 0.1
+      max: 5.0
+      unit: s
+      decimal: 2

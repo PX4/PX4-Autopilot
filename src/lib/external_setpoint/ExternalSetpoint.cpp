@@ -31,21 +31,21 @@
  *
  ****************************************************************************/
 
-#include "ExternalAvoidance.hpp"
+#include "ExternalSetpoint.hpp"
 
 #include <mathlib/mathlib.h>
 
-ExternalAvoidance::ExternalAvoidance(ModuleParams *parent) :
+ExternalSetpoint::ExternalSetpoint(ModuleParams *parent) :
 	ModuleParams(parent)
 {
 }
 
-void ExternalAvoidance::modifySetpoint(trajectory_setpoint_s &setpoint, uint8_t nav_state)
+void ExternalSetpoint::modifySetpoint(trajectory_setpoint_s &setpoint, uint8_t nav_state)
 {
 	_active = false;
 
 	// Feature must be explicitly enabled.
-	if (!_param_eav_en.get()) {
+	if (!_param_ext_sp_en.get()) {
 		return;
 	}
 
@@ -58,14 +58,14 @@ void ExternalAvoidance::modifySetpoint(trajectory_setpoint_s &setpoint, uint8_t 
 		return;
 	}
 
-	external_avoidance_setpoint_s ext;
+	external_setpoint_s ext;
 
-	if (!_external_avoidance_setpoint_sub.copy(&ext) || !ext.valid) {
+	if (!_external_setpoint_sub.copy(&ext) || !ext.valid) {
 		return;
 	}
 
 	// Stale stream -> stop deviating so the underlying mission/position setpoint resumes.
-	const hrt_abstime timeout = (hrt_abstime)(_param_eav_timeout.get() * 1e6f);
+	const hrt_abstime timeout = (hrt_abstime)(_param_ext_sp_timeout.get() * 1e6f);
 
 	if ((hrt_absolute_time() - ext.timestamp) > timeout) {
 		return;

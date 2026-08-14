@@ -36,7 +36,7 @@
 #include "FlightTask.hpp"
 #include "FlightTasks_generated.hpp"
 
-#include <ExternalAvoidance.hpp>
+#include <ExternalSetpoint.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
@@ -153,10 +153,11 @@ private:
 
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	// Fuses externally-computed avoidance setpoints (from a companion computer,
-	// via MAVLink) into the Position/Mission trajectory setpoint. No planning logic
-	// lives here; the companion owns avoidance and PX4 only accepts and blends.
-	ExternalAvoidance _external_avoidance{this};
+	// Fuses externally-computed setpoints (from a companion computer, via MAVLink)
+	// into the Position/Mission trajectory setpoint as a temporary deviation. No
+	// planning logic lives here; the external source owns the behaviour and PX4
+	// only accepts and blends the result.
+	ExternalSetpoint _external_setpoint{this};
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};

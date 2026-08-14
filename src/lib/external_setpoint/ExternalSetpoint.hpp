@@ -32,17 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file ExternalAvoidance.hpp
+ * @file ExternalSetpoint.hpp
  *
- * Fuses an externally-computed avoidance setpoint (streamed by a companion
- * computer via MAVLink SET_POSITION_TARGET_LOCAL_NED) into the active
- * Position/Mission trajectory setpoint.
+ * Fuses an externally-computed setpoint (streamed by a companion computer via
+ * MAVLink SET_POSITION_TARGET_LOCAL_NED) into the active Position/Mission
+ * trajectory setpoint as a temporary deviation.
  *
- * This class contains NO obstacle-detection or path-planning logic. The external
- * companion owns all of that and simply streams the desired velocity/acceleration
- * deviation. PX4's only job here is to *accept and fuse* that setpoint while in
- * Position or Mission mode, then automatically resume the underlying setpoint when
- * the external stream goes stale.
+ * This class contains NO planning logic of any kind. The external source owns the
+ * behaviour and simply streams the desired velocity/acceleration deviation. PX4's
+ * only job here is to *accept and fuse* that setpoint while in Position or Mission
+ * mode, then automatically resume the underlying setpoint when the external stream
+ * goes stale.
+ *
+ * The mechanism is application-agnostic: obstacle avoidance is the motivating use
+ * case, but terrain following, target tracking or any other onboard behaviour can
+ * use the same seam without taking over the vehicle the way Offboard does.
  */
 
 #pragma once
@@ -50,22 +54,22 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/external_avoidance_setpoint.h>
+#include <uORB/topics/external_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
-class ExternalAvoidance : public ModuleParams
+class ExternalSetpoint : public ModuleParams
 {
 public:
-	ExternalAvoidance(ModuleParams *parent);
-	~ExternalAvoidance() = default;
+	ExternalSetpoint(ModuleParams *parent);
+	~ExternalSetpoint() = default;
 
 	/**
-	 * Fuse a fresh external avoidance setpoint into @p setpoint, in place.
+	 * Fuse a fresh external setpoint into @p setpoint, in place.
 	 *
 	 * No-op (leaves @p setpoint untouched, so the mission/position setpoint is
 	 * "resumed") when the feature is disabled, the vehicle is not in Position or
-	 * Mission mode, or no fresh external setpoint has arrived within EAV_TIMEOUT.
+	 * Mission mode, or no fresh external setpoint has arrived within EXT_SP_TIMEOUT.
 	 *
 	 * @param setpoint  active trajectory setpoint from the flight task, modified in place
 	 * @param nav_state current navigation state (vehicle_status_s::NAVIGATION_STATE_*)
@@ -76,12 +80,12 @@ public:
 	bool isActive() const { return _active; }
 
 private:
-	uORB::Subscription _external_avoidance_setpoint_sub{ORB_ID(external_avoidance_setpoint)};
+	uORB::Subscription _external_setpoint_sub{ORB_ID(external_setpoint)};
 
 	bool _active{false};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::EAV_EN>) _param_eav_en,
-		(ParamFloat<px4::params::EAV_TIMEOUT>) _param_eav_timeout
+		(ParamBool<px4::params::EXT_SP_EN>) _param_ext_sp_en,
+		(ParamFloat<px4::params::EXT_SP_TIMEOUT>) _param_ext_sp_timeout
 	)
 };

@@ -31,9 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(ExternalAvoidance
-	ExternalAvoidance.cpp
+px4_add_library(ExternalSetpoint
+	ExternalSetpoint.cpp
 )
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/external_avoidance_params.yaml)
-target_include_directories(ExternalAvoidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ExternalAvoidance PRIVATE mathlib)
+set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/external_setpoint_params.yaml)
+target_include_directories(ExternalSetpoint PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ExternalSetpoint PRIVATE mathlib)
+
+px4_add_functional_gtest(SRC ExternalSetpointTest.cpp LINKLIBS ExternalSetpoint)

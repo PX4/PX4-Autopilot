@@ -120,5 +120,5 @@ foreach(task ${flight_tasks_all})
 	target_link_libraries(modules__flight_mode_manager PUBLIC FlightTask${task})
 endforeach()
 
-# External avoidance setpoint fusion (accepts companion-computed setpoints)
-target_link_libraries(modules__flight_mode_manager PRIVATE ExternalAvoidance)
+# External setpoint fusion (accepts companion-computed setpoint deviations)
+target_link_libraries(modules__flight_mode_manager PRIVATE ExternalSetpoint)

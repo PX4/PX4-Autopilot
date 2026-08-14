@@ -1259,26 +1259,26 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_local_ned.yaw_rate;
 
 		// Mirror the (already NED-converted) velocity/acceleration setpoint onto the
-		// external avoidance topic so Position and Mission mode can fuse it as a temporary
-		// obstacle-avoidance deviation. A companion computer streams SET_POSITION_TARGET_LOCAL_NED
-		// with velocity (and optionally acceleration) set and position ignored. This mirror is
-		// cheap and always published; actual fusion is gated by EAV_EN on the consumer side, so
-		// it does not interfere with normal Offboard use of this message.
+		// external setpoint topic so Position and Mission mode can fuse it as a temporary
+		// deviation. A companion computer streams SET_POSITION_TARGET_LOCAL_NED with
+		// velocity (and optionally acceleration) set and position ignored. This mirror is
+		// cheap and always published; actual fusion is gated by EXT_SP_EN on the consumer
+		// side, so it does not interfere with normal Offboard use of this message.
 		{
-			external_avoidance_setpoint_s eav{};
-			eav.timestamp = hrt_absolute_time();
-			eav.velocity[0] = setpoint.velocity[0];
-			eav.velocity[1] = setpoint.velocity[1];
-			eav.velocity[2] = setpoint.velocity[2];
-			eav.acceleration[0] = setpoint.acceleration[0];
-			eav.acceleration[1] = setpoint.acceleration[1];
-			eav.acceleration[2] = setpoint.acceleration[2];
-			eav.yaw = setpoint.yaw;
-			eav.yawspeed = setpoint.yawspeed;
-			eav.valid = PX4_ISFINITE(setpoint.velocity[0]) || PX4_ISFINITE(setpoint.velocity[1])
-				    || PX4_ISFINITE(setpoint.velocity[2]) || PX4_ISFINITE(setpoint.acceleration[0])
-				    || PX4_ISFINITE(setpoint.acceleration[1]) || PX4_ISFINITE(setpoint.acceleration[2]);
-			_external_avoidance_setpoint_pub.publish(eav);
+			external_setpoint_s ext_sp{};
+			ext_sp.timestamp = hrt_absolute_time();
+			ext_sp.velocity[0] = setpoint.velocity[0];
+			ext_sp.velocity[1] = setpoint.velocity[1];
+			ext_sp.velocity[2] = setpoint.velocity[2];
+			ext_sp.acceleration[0] = setpoint.acceleration[0];
+			ext_sp.acceleration[1] = setpoint.acceleration[1];
+			ext_sp.acceleration[2] = setpoint.acceleration[2];
+			ext_sp.yaw = setpoint.yaw;
+			ext_sp.yawspeed = setpoint.yawspeed;
+			ext_sp.valid = PX4_ISFINITE(setpoint.velocity[0]) || PX4_ISFINITE(setpoint.velocity[1])
+				       || PX4_ISFINITE(setpoint.velocity[2]) || PX4_ISFINITE(setpoint.acceleration[0])
+				       || PX4_ISFINITE(setpoint.acceleration[1]) || PX4_ISFINITE(setpoint.acceleration[2]);
+			_external_setpoint_pub.publish(ext_sp);
 		}
 
 		offboard_control_mode_s ocm = fill_offboard_control_mode(setpoint);
