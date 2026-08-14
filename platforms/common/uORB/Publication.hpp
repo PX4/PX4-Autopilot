@@ -52,25 +52,25 @@ class PublicationBase
 {
 public:
 
-	bool advertised() const { return _handle != nullptr; }
+	bool advertised() const { return orb_advert_valid(_handle); }
 
 	bool advertise();
 
 	bool unadvertise() { return (Manager::orb_unadvertise(_handle) == PX4_OK); }
 
-	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
+	orb_id_t get_topic() const { return _meta; }
 
 protected:
 
-	PublicationBase(ORB_ID id) : _orb_id(id) {}
+	PublicationBase(ORB_ID id) : _meta(get_orb_meta(id)) {}
 
 	~PublicationBase();
 
 	// type-independent publish; data points to a message of the topic's type
 	bool publish(const void *data);
 
-	orb_advert_t _handle{nullptr};
-	const ORB_ID _orb_id;
+	orb_advert_t _handle{ORB_ADVERT_INVALID};
+	const orb_id_t _meta;
 };
 
 /**

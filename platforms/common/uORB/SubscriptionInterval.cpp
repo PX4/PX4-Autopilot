@@ -33,8 +33,6 @@
 
 #include "SubscriptionInterval.hpp"
 
-#include <drivers/drv_hrt.h>
-
 namespace uORB
 {
 
