@@ -318,7 +318,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return ORB_ADVERT_INVALID;
 	}
 
-	orb_advert_t handle = uORB::DeviceNode::orb_advertise(static_cast<ORB_ID>(meta->o_id), group_tries, true);
+	orb_advert_t handle = uORB::DeviceNode::add_publisher(static_cast<ORB_ID>(meta->o_id), group_tries);
 
 	if (instance != nullptr) {
 		*instance = group_tries;
@@ -368,7 +368,7 @@ int uORB::Manager::orb_unadvertise(orb_advert_t &handle)
 
 	// Teardown invalidates the handle and may delete the node.
 	const bool last_publisher = node(handle)->publisher_count() == 1;
-	const bool unadvertised = uORB::DeviceNode::orb_unadvertise(handle, true) >= 0;
+	const bool unadvertised = uORB::DeviceNode::remove_publisher(handle) >= 0;
 
 	if (unadvertised && last_publisher) {
 		manager->unset_has_publisher(id, instance);
