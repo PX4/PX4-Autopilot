@@ -69,6 +69,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
    :::
 
 Missions can be paused by switching out of mission mode to any other mode (such as [Hold mode](../flight_modes_fw/hold.md) or [Cruise mode](../flight_modes_fw/cruise.md)), and resumed by switching back to mission mode.
+If [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) is enabled and the vehicle is away from the route when the mission is resumed, it first flies to the closest point on the planned route and rejoins there, instead of heading straight to the current mission item (see [Mission Route Planning](../concept/mission_route_planning.md#smart-mission-rejoin)).
 If the vehicle was not capturing images when it was paused, on resuming it will head from its _current position_ towards the same waypoint as it as was heading towards originally.
 If the vehicle was capturing images (has camera trigger items) it will instead head from its current position towards the last waypoint it traveled through (before pausing), and then retrace its path at the same speed and with the same camera triggering behaviour.
 This ensures that in survey/camera missions the planned path is captured.

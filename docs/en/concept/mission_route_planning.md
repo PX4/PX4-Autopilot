@@ -13,8 +13,8 @@ The planner computes geometry and scoring only.
 The Route Safe Point Return executor uses the result to join and follow the route, branch off, and land.
 
 ::: info
-Route Safe Point Return (`RTL_TYPE=6`) is the production caller.
-Its initial route join uses the smart-join building blocks described below; there is no separate setting that enables smart rejoin during normal Mission mode.
+Smart rejoin has two callers.
+Route Safe Point Return (`RTL_TYPE=6`) uses it for its initial route join, and Mission mode uses it on activation when [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) is enabled (off by default).
 :::
 
 ::: warning
@@ -54,6 +54,11 @@ If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection
 
 - while repeats remain the resumed path continues to the jump target so the loop is still flown
 - once repeats are exhausted, the planner picks whichever loop exit gives the shorter **total** path on to the mission end: continuing forward to the jump target, or rewinding back to the waypoint before the jump command (each including any fixed-wing U-turn penalty). The comparison is over the full path, so if the mission end lies near the loop start it may rewind most of the loop rather than finish it.
+
+Mission mode runs this entry point on activation when [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) is enabled.
+The vehicle first flies to a temporary branch-in waypoint on the route, then resumes the mission from there.
+The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) (multicopter) and [MIS_FW_SEG_DIST](../advanced_config/parameter_reference.md#MIS_FW_SEG_DIST) (fixed-wing).
+If planning is not possible (for example the route cache is not ready), Mission mode falls back to flying directly to the current mission item.
 
 ### Route-Following Return {#route-following-return}
 
