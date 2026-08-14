@@ -41,17 +41,17 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/posix.h>
 #include <drivers/drv_hrt.h>
 
 namespace uORB
 {
 
 // Subscription wrapper class with callbacks on new publications
-//
-// Uses SubscriptionIntervalAtomic because call() runs on the publishing thread
-// (synchronously from orb_publish) while the subscriber thread updates the
-// interval / last-update fields.
-class SubscriptionCallback : public SubscriptionIntervalAtomic, public ListNode<SubscriptionCallback *>
+class SubscriptionCallback : public SubscriptionIntervalAtomic
+#ifndef CONFIG_BUILD_FLAT
+	, public ListNode<SubscriptionCallback *>
+#endif
 {
 public:
 	/**
@@ -75,6 +75,10 @@ public:
 
 	void unregisterCallback();
 
+	// Callback notification intervals are independent of subscriber copy timing.
+	void set_interval_us(uint32_t interval);
+	void set_interval_ms(uint32_t interval) { set_interval_us(interval * 1000); }
+
 	/**
 	 * Change subscription instance
 	 * @param instance The new multi-Subscription instance
@@ -84,9 +88,9 @@ public:
 		bool ret = false;
 
 		if (instance != get_instance()) {
-			const bool registered = _registered;
+			const bool reg = registered();
 
-			if (registered) {
+			if (reg) {
 				unregisterCallback();
 			}
 
@@ -94,7 +98,7 @@ public:
 				ret = true;
 			}
 
-			if (registered) {
+			if (reg) {
 				registerCallback();
 			}
 
@@ -106,18 +110,30 @@ public:
 		return ret;
 	}
 
+	// Called after publisher-side notification throttling, independently of copy timing.
 	virtual void call(unsigned generation) = 0;
 
-	bool registered() const { return _registered; }
+#ifndef CONFIG_BUILD_FLAT
+	bool do_call()
+	{
+		unsigned generation;
+		bool dequeued = DeviceNode::cb_dequeue(_subscription.get_node(), _cb_handle, generation);
+
+		if (dequeued) {
+			call(generation);
+		}
+
+		return dequeued;
+	}
+#endif
+
+	bool registered() const { return uorb_cb_handle_valid(_cb_handle); }
 
 protected:
 
-	bool _registered{false};
-	// Node generation at our last ScheduleNow(), used by the count gate. Only ever
-	// touched from call() (which runs under the publishing node's lock, so it is
-	// serialized) - do NOT write it from the subscriber thread (e.g. in
-	// registerCallback()), or it becomes a cross-thread race. It self-initializes:
-	// the first call() sees a large delta and schedules once, then tracks normally.
+	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};
+
+	// Publisher generation at last scheduling; accessed only by serialized call() invocations.
 	unsigned _last_scheduled_generation{0};
 };
 
@@ -142,14 +158,9 @@ public:
 
 	void call(unsigned generation) override
 	{
-		// 'generation' is the publishing node's generation, handed in by the
-		// publisher - so unlike before we never read the subscriber's own cursor
-		// (_last_generation, mutated on the subscriber's thread) from here.
-		// Schedule once enough new samples have accrued since our last schedule
-		// (count gate), respecting the optional interval (interval gate).
-		const uint8_t req = _required_updates.load();
+		const uint8_t req = _required_updates;
 
-		if (((generation - _last_scheduled_generation) >= req) && interval_elapsed()) {
+		if ((generation - _last_scheduled_generation) >= req) {
 			_last_scheduled_generation = generation;
 			_work_item->ScheduleNow();
 		}
@@ -163,13 +174,46 @@ public:
 	void set_required_updates(uint8_t required_updates)
 	{
 		// TODO: constrain to queue depth?
-		_required_updates.store(required_updates);
+		_required_updates = required_updates;
 	}
 
 private:
 	px4::WorkItem *_work_item;
 
-	px4::atomic<uint8_t> _required_updates{0};
+	uint8_t _required_updates{0};
+};
+
+class SubscriptionPollable : public SubscriptionInterval
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param interval The requested maximum update interval in microseconds.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionPollable(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
+		SubscriptionInterval(meta, interval_us, instance)
+	{
+	}
+
+	~SubscriptionPollable() = default;
+
+	void registerPoll(int8_t lock_idx)
+	{
+		DeviceNode::register_callback(_subscription.get_node(), nullptr, lock_idx, _last_update.load(), _interval_us.load(), _cb_handle);
+	}
+
+	void unregisterPoll()
+	{
+		// Calling this while a poll is not registered is a no-op
+		if (uorb_cb_handle_valid(_cb_handle)) {
+			DeviceNode::unregister_callback(_subscription.get_node(), _cb_handle);
+		}
+	}
+private:
+	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};
 };
 
 } // namespace uORB
