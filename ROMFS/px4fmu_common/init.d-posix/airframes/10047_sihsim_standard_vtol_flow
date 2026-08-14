@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# @name SIH Standard VTOL with optical flow
+#
+# @type Simulation
+# @class VTOL
+#
+# @output Motor1 MC motor front right
+# @output Motor2 MC motor back left
+# @output Motor3 MC motor front left
+# @output Motor4 MC motor back right
+# @output Motor5 Forward thrust motor
+# @output Servo1 Ailerons (single channel)
+# @output Servo2 Elevator
+# @output Servo3 Rudder
+#
+# @board px4_fmu-v2 exclude
+#
+
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=standard_vtol_flow}
+
+. ${R}etc/init.d-posix/airframes/10043_sihsim_standard_vtol
+
+# Simulated optical flow and downward facing distance sensor.
+# The flow sensor reports the integrated flow only, the distance sensor is
+# required to scale it.
+param set-default SIH_OF_EN 1
+param set-default SIH_OF_H_MAX 30
+param set-default SIH_DISTSNSR_EN 1
+param set-default SIH_DISTSNSR_MAX 30
+
+param set-default EKF2_OF_CTRL 1
+param set-default EKF2_RNG_CTRL 1
+param bitclear EKF2_SENS_EN 3 # disable gps fusion
