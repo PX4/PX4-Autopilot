@@ -125,9 +125,9 @@ public:
 	 */
 	static ssize_t    publish(const orb_metadata *meta, orb_advert_t &handle, const void *data);
 
-	static orb_advert_t orb_advertise(const ORB_ID id, int instance, bool publisher);
+	static orb_advert_t add_publisher(const ORB_ID id, int instance);
 
-	static int        orb_unadvertise(orb_advert_t &handle, bool publisher);
+	static int        remove_publisher(orb_advert_t &handle);
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	static const char *get_name(orb_advert_t handle)
@@ -189,7 +189,7 @@ public:
 	 *   the handle to the orb from which the subscriber is removed
 	 *   the handle is invalidated after a succesful removal
 	 */
-	int8_t remove_subscriber(orb_advert_t &handle, bool advertiser);
+	static int8_t remove_subscriber(orb_advert_t &handle);
 
 	/**
 	 * Print statistics
@@ -339,12 +339,8 @@ private:
 	uint8_t _queue_size{0}; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0}; /**< how many subscriptions there are */
 	int8_t _publisher_count{0}; /**< how many publishers have advertised this topic */
-	int8_t _advertiser_count{0}; /**< how many total advertisers this topic has */
 
 	DeviceNode(const ORB_ID id, const uint8_t instance);
-
-	int advertise(bool publisher);
-	int unadvertise(bool publisher);
 
 	/**
 	 * Change the size of the queue.
