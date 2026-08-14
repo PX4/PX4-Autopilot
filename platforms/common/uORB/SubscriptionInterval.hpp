@@ -122,7 +122,7 @@ public:
 
 	~SubscriptionIntervalBase() = default;
 
-	bool subscribe() { return _subscription.subscribe(); }
+	bool subscribe(bool create = false) { return _subscription.subscribe(create); }
 	void unsubscribe() { _subscription.unsubscribe(); }
 
 	bool advertised() { return _subscription.advertised(); }
@@ -157,7 +157,7 @@ public:
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.
 	 */
-	void		set_interval_us(uint32_t interval) { _interval_us.store(interval); }
+	void		set_interval_us(uint32_t interval) { _interval_us.store(interval); _last_update.store(hrt_absolute_time() - interval); }
 
 	/**
 	 * Set the interval in milliseconds
