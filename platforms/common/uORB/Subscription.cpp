@@ -53,7 +53,6 @@ bool Subscription::subscribe(bool advertise)
 		_node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &_last_generation, advertise);
 
 		if (orb_advert_valid(_node)) {
-			_advertiser = advertise;
 			return true;
 		}
 	}
@@ -64,7 +63,7 @@ bool Subscription::subscribe(bool advertise)
 void Subscription::unsubscribe()
 {
 	if (orb_advert_valid(_node)) {
-		uORB::Manager::orb_remove_internal_subscriber(_node, _advertiser);
+		uORB::Manager::orb_remove_internal_subscriber(_node);
 	}
 
 	_last_generation = 0;

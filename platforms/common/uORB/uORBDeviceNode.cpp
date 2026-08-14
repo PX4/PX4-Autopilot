@@ -535,8 +535,7 @@ int uORB::DeviceNode::nodeClose(orb_advert_t &handle)
 	return PX4_OK;
 }
 
-orb_advert_t uORB::DeviceNode::orb_advertise(const ORB_ID id, int instance,
-		bool publisher)
+orb_advert_t uORB::DeviceNode::add_publisher(const ORB_ID id, int instance)
 {
 	/* Open the node, if it exists or create a new one */
 
@@ -544,45 +543,20 @@ orb_advert_t uORB::DeviceNode::orb_advertise(const ORB_ID id, int instance,
 	handle = nodeOpen(id, instance, true);
 
 	if (orb_advert_valid(handle)) {
-		node(handle)->advertise(publisher);
+		++node(handle)->_publisher_count;
 	}
 
 	return handle;
 }
 
-int uORB::DeviceNode::advertise(bool publisher)
-{
-	int ret = -1;
-
-	ret = ++_advertiser_count;
-
-	if (publisher) {
-		ret = ++_publisher_count;
-	}
-
-	return ret;
-}
-
-int uORB::DeviceNode::orb_unadvertise(orb_advert_t &handle, bool publisher)
+int uORB::DeviceNode::remove_publisher(orb_advert_t &handle)
 {
 	int ret = -1;
 
 	if (orb_advert_valid(handle)) {
-		ret = node(handle)->unadvertise(publisher);
+		--node(handle)->_publisher_count;
 		nodeClose(handle);
-	}
-
-	return ret;
-}
-
-int uORB::DeviceNode::unadvertise(bool publisher)
-{
-	int ret = -1;
-
-	ret = --_advertiser_count;
-
-	if (publisher) {
-		--_publisher_count;
+		ret = 0;
 	}
 
 	return ret;
@@ -829,14 +803,9 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 orb_advert_t uORB::DeviceNode::add_subscriber(ORB_ID orb_id, uint8_t instance,
 		unsigned *initial_generation, bool advertise)
 {
-	orb_advert_t handle;
-
-	if (advertise) {
-		handle = orb_advertise(orb_id, instance, false);
-
-	} else {
-		handle = nodeOpen(orb_id, instance, false);
-	}
+	// If the caller allows advertising, create the node if it doesn't exist yet.
+	// Otherwise only open an existing node.
+	orb_advert_t handle = nodeOpen(orb_id, instance, advertise);
 
 	if (orb_advert_valid(handle)) {
 		node(handle)->_add_subscriber(initial_generation);
@@ -866,23 +835,18 @@ void uORB::DeviceNode::_add_subscriber(unsigned *initial_generation)
 }
 
 
-int8_t uORB::DeviceNode::remove_subscriber(orb_advert_t &handle, bool advertiser)
+int8_t uORB::DeviceNode::remove_subscriber(orb_advert_t &handle)
 {
-	int8_t ret = _subscriber_count--;
+	DeviceNode *n = node(handle);
+	int8_t ret = n->_subscriber_count--;
 
-	if (advertiser) {
-		orb_unadvertise(handle, false);
-
-	} else {
-		nodeClose(handle);
-
-	}
+	nodeClose(handle);
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && ret == 0) {
-		ch->remove_subscription(get_meta()->o_name);
+		ch->remove_subscription(n->get_meta()->o_name);
 
 	}
 

@@ -358,10 +358,10 @@ public:
 		return handle;
 	}
 
-	static void orb_remove_internal_subscriber(orb_advert_t &node_handle, bool advertiser)
+	static void orb_remove_internal_subscriber(orb_advert_t &node_handle)
 	{
 		instance_ref()->lock();
-		node(node_handle)->remove_subscriber(node_handle, advertiser);
+		uORB::DeviceNode::remove_subscriber(node_handle);
 		instance_ref()->unlock();
 	}
 
