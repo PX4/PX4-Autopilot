@@ -34,18 +34,21 @@
 /**
  * @file mission_route_types.cpp
  *
- * Implementations for the shared mission-route data types and helpers declared in
- * mission_route_types.h.
+ * Public mission-route types and shared item helpers.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
 #include "mission_route_types.h"
 
+#include "mission_item_utils.h"
+
 #include <px4_platform_common/log.h>
 
 namespace mission_route
 {
+
+static constexpr double kNullIslandThresholdDeg{1e-7};
 
 bool Position::valid() const
 {
@@ -54,9 +57,57 @@ bool Position::valid() const
 	       && (fabs(lat) <= 90.0) && (fabs(lon) <= 180.0);
 }
 
+bool ActiveJumpAnchor::empty() const
+{
+	return jump_item_index == -1;
+}
+
+bool ActiveJumpAnchor::valid() const
+{
+	return jump_item_index >= 0;
+}
+
+bool ActiveJumpAnchor::validForMission(int mission_count) const
+{
+	return empty() || (valid() && jump_item_index < mission_count);
+}
+
+bool MissionResumePlan::valid() const
+{
+	return join_position.valid() && first_mission_item_index >= 0
+	       && (active_jump_anchor.empty() || active_jump_anchor.valid());
+}
+
+bool RtlRoutePlan::valid() const
+{
+	if (!join_position.valid() || first_mission_item_index < 0 || goal_type == GoalType::kNone
+	    || !goal_position.valid() || (!active_jump_anchor.empty() && !active_jump_anchor.valid())) {
+		return false;
+	}
+
+	switch (goal_type) {
+	case GoalType::kNone:
+		return false;
+
+	case GoalType::kSafePoint:
+		return safe_point_index >= 0 && branch_off_position.valid() && branch_off_mission_item_index >= 0;
+
+	case GoalType::kMissionLand:
+	case GoalType::kMissionTakeoff:
+		return safe_point_index < 0 && !branch_off_position.valid() && branch_off_mission_item_index < 0;
+	}
+
+	return false;
+}
+
 bool isLandingCmd(uint16_t nav_cmd)
 {
 	return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;
+}
+
+bool isTakeoffCmd(uint16_t nav_cmd)
+{
+	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
 }
 
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
@@ -66,6 +117,18 @@ float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, floa
 	}
 
 	return mission_item.altitude;
+}
+
+bool extractMissionPosition(const mission_item_s &mission_item, float home_altitude_amsl, Position &position)
+{
+	if (!mission_item_contains_position(mission_item)) {
+		return false;
+	}
+
+	position.lat = mission_item.lat;
+	position.lon = mission_item.lon;
+	position.alt = getAbsoluteAltitudeForMissionItem(mission_item, home_altitude_amsl);
+	return position.valid();
 }
 
 bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl, Position &position)
@@ -91,13 +154,26 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 		break;
 
 	default:
-		PX4_WARN("RTL: unsupported rally frame");
+		PX4_WARN("Route: unsupported rally frame");
 		return false;
 	}
 
 	position.lat = safe_point_item.lat;
 	position.lon = safe_point_item.lon;
 	return position.valid();
+}
+
+bool copyPositionToYawSetpoint(const Position &position, PositionYawSetpoint &setpoint)
+{
+	if (!position.valid()) {
+		return false;
+	}
+
+	setpoint.lat = position.lat;
+	setpoint.lon = position.lon;
+	setpoint.alt = position.alt;
+	setpoint.yaw = NAN;
+	return true;
 }
 
 loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl)
@@ -115,6 +191,72 @@ loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, flo
 	approach.height_m = position.alt;
 	approach.loiter_radius_m = mission_item.loiter_radius;
 	return approach;
+}
+
+const char *failureReasonString(FailureReason failure_reason)
+{
+	switch (failure_reason) {
+	case FailureReason::kNone:
+		return "None";
+
+	case FailureReason::kNoValidGlobalPos:
+		return "NoValidGlobalPos";
+
+	case FailureReason::kInvalidRequest:
+		return "InvalidRequest";
+
+	case FailureReason::kNoValidWaypoints:
+		return "NoValidWaypoints";
+
+	case FailureReason::kNoValidSafePoints:
+		return "NoValidSafePoints";
+
+	case FailureReason::kNoValidPath:
+		return "NoValidPath";
+
+	case FailureReason::kNoSegmentsFound:
+		return "NoSegmentsFound";
+
+	case FailureReason::kInternalError:
+		return "InternalError";
+
+	case FailureReason::kLoadFailed:
+		return "LoadFailed";
+
+	case FailureReason::kInvalidProjectionContext:
+		return "InvalidProjectionContext";
+
+	case FailureReason::kNoLocalMinFound:
+		return "NoLocalMinFound";
+
+	case FailureReason::kPositionItemInvalid:
+		return "PositionItemInvalid";
+
+	case FailureReason::kNoValidCandidateFound:
+		return "NoValidCandidateFound";
+
+	case FailureReason::kUnknown:
+	default:
+		return "Unknown";
+	}
+}
+
+const char *goalTypeString(GoalType goal_type)
+{
+	switch (goal_type) {
+	case GoalType::kSafePoint:
+		return "safe_point";
+
+	case GoalType::kMissionLand:
+		return "mission_land";
+
+	case GoalType::kMissionTakeoff:
+		return "mission_takeoff";
+
+	case GoalType::kNone:
+	default:
+		return "none";
+	}
 }
 
 } // namespace mission_route

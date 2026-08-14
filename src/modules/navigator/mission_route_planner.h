@@ -32,36 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file mission_route_provider.h
+ * @file mission_route_planner.h
  *
- * Mission-route planner data-source interface.
- * Mission and safe-point counts and item reads belong here; route policy belongs elsewhere.
+ * Mission-route planner interface for Navigator features that need the uploaded
+ * mission as route geometry. The planner projects positions onto the mission path,
+ * ranks candidate paths, and returns plain data for the caller to execute.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
 #pragma once
 
-#include "navigation.h"
+#include "mission_route_types.h"
+
+#include <stdint.h>
 
 namespace mission_route
 {
+class Provider;
+}
 
-/**
- * @brief Data source used by the planner.
- *
- * Navigator can adapt one validated cache view for a planning pass. Tests can pass
- * an in-memory provider, keeping route geometry independent from Dataman and uORB.
- */
-class Provider
+class MissionRoutePlanner
 {
 public:
-	virtual ~Provider() = default;
+	/**
+	 * @brief Construct a planner over one read-only data provider.
+	 *
+	 * The provider must outlive the planner.
+	 *
+	 * Planning calls use shared fixed-memory scratch and must run serially on the Navigator task.
+	 */
+	explicit MissionRoutePlanner(const mission_route::Provider &provider);
+	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
+	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;
+	MissionRoutePlanner(MissionRoutePlanner &&) = delete;
+	MissionRoutePlanner &operator=(MissionRoutePlanner &&) = delete;
 
-	virtual int missionCount() const = 0;
-	virtual bool loadMissionItem(int index, mission_item_s &mission_item) const = 0;
-	virtual int safePointCount() const = 0;
-	virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
+	/** @brief Build the Mission-mode smart-rejoin plan back to the mission end using the nominal route direction. */
+	mission_route::FailureReason planMissionResumeJoin(const mission_route::MissionResumeRequest &request,
+			mission_route::MissionResumePlan &plan) const;
+	/** @brief Build the execution-oriented RTL route-following plan to the selected goal. */
+	mission_route::FailureReason planRtlRoute(const mission_route::RtlRouteRequest &request,
+			mission_route::RtlRoutePlan &plan) const;
+
+private:
+	const mission_route::Provider &_provider;
 };
-
-} // namespace mission_route
