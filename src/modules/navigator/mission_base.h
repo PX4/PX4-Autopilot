@@ -51,11 +51,17 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include <uORB/topics/vtol_vehicle_status.h>
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
 
 #include "mission_block.h"
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_types.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 #include "navigation.h"
 
 using namespace time_literals;
@@ -87,6 +93,10 @@ protected:
 	enum class WorkItemType {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the route */
+		WORK_ITEM_TYPE_TRANSITION_AFTER_JOIN,	/**< perform the VTOL transition required after joining */
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
@@ -103,6 +113,13 @@ protected:
 		FollowMissionControlFlow = 0,
 		IgnoreDoJump,
 	};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	using VtolTransitionAction = mission_route::VtolTransitionAction;
+
+	mission_route::JoinContext _route_join_context{};
+	static constexpr float kJoinRouteFlyByAcceptanceRadiusScale{2.f};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.
@@ -288,7 +305,29 @@ protected:
 	 * Change behaviour after external mission update.
 	 * @param[in] has_mission_items_changed flag if the mission items have been changed.
 	 */
-	void onMissionUpdate(bool has_mission_items_changed);
+	virtual void onMissionUpdate(bool has_mission_items_changed);
+
+	/**
+	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
+	 */
+	void checkMissionRestart();
+
+	/**
+	 * @brief Check if the camera was triggering
+	 *
+	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
+	 */
+	bool cameraWasTriggering();
+
+	/** Allow modes with external mission ownership to ignore subscription updates. */
+	virtual bool shouldAcceptMissionUpdates() { return true; }
+
+	/** Allow normal Mission modes to restore persistent action commands on activation. */
+	virtual bool shouldReplayMissionActionItems() const { return true; }
+
+	/** Resolve an unspecified sequence without carrying progress into a replacement mission. */
+	static int32_t getIncomingMissionCurrentSeq(const mission_s &incoming_mission,
+			const mission_s &current_mission);
 
 	/**
 	 * Update mission topic
@@ -376,6 +415,21 @@ protected:
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Arm the virtual route-join waypoint and its optional VTOL transition. */
+	void setupJoinRoute(mission_route::JoinContext &join_context, const mission_route::RoutePath &path);
+
+	/** Clear a pending route-join work item. */
+	void resetJoinRouteState();
+
+	/** Publish or advance an active route-join work item. */
+	bool handleJoinRouteWorkItems(position_setpoint_triplet_s *pos_sp_triplet,
+				      const position_setpoint_s &current_setpoint_copy);
+
+	/** Bearing used to align a front transition with the selected route target. */
+	float computeFrontTransitionAlignmentYaw(int32_t current_target_index);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
 	 *
@@ -430,6 +484,24 @@ protected:
 	bool findPreviousPositionIndex(int32_t start_index, int32_t &previous_index,
 				       MissionTraversalType traversal_type);
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Find the nearest position item at or before @p from_index. */
+	bool findAttachedPositionIndex(int32_t from_index, int32_t &attached_index);
+
+	/** Reconstruct the expected VTOL state at a mission position anchor. */
+	uint8_t getVtolStateAtMissionIndex(int32_t anchor_index);
+
+	static bool vehicleInFwLikeState(const vehicle_status_s &vehicle_status);
+	void captureMissionStartVtolState();
+
+	VtolTransitionAction vtolTransitionActionForTarget(int32_t target_index, bool direction_reversed);
+
+	VtolTransitionAction vtolTransitionActionAfterReachingReverseTarget(int32_t reached_target_index);
+
+	/** Save the active DO_JUMP edge traversed by the next nominal advance. */
+	void updateLastFlownLoopSegmentForNominalAdvance(mission_route::Segment &last_flown_loop_segment);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
@@ -475,15 +547,23 @@ private:
 	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 			       MissionTraversalType traversal_type, bool direction_backward);
 
-	/**
-	 * Reset mission
-	 */
-	void checkMissionRestart();
 
 	/**
 	 * Set a mission item as reached
 	 */
 	void set_mission_item_reached();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Synthetic helper work items must not mark an uploaded mission item reached. */
+	bool shouldReportMissionItemReached() const;
+
+	bool handleJoinRouteWaypoint(position_setpoint_triplet_s *pos_sp_triplet,
+				     const position_setpoint_s &current_setpoint_copy);
+
+	bool handleTransitionAfterJoin(position_setpoint_triplet_s *pos_sp_triplet);
+
+	bool joinRouteTransitionStillRequired() const;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
@@ -554,13 +634,6 @@ private:
 	bool haveCachedCameraModeItems();
 
 	/**
-	 * @brief Check if the camera was triggering
-	 *
-	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
-	 */
-	bool cameraWasTriggering();
-
-	/**
 	 * @brief Parameters update
 	 *
 	 * Check for parameter changes and update them if needed.
@@ -598,6 +671,9 @@ private:
 	mission_item_s _last_camera_mode_item {};
 	mission_item_s _last_camera_trigger_item {};
 	mission_item_s _last_speed_change_item {};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	uint8_t _mission_start_vtol_state {vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,

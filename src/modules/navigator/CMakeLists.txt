@@ -45,6 +45,16 @@ px4_add_library(navigator_mission_route
 
 target_link_libraries(navigator_mission_route PUBLIC geo)
 
+if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	px4_add_library(navigator_mission_route_planner
+		mission_route_projection.cpp
+		mission_route_goal.cpp
+		mission_route_planner.cpp
+	)
+
+	target_link_libraries(navigator_mission_route_planner PUBLIC navigator_mission_route)
+endif()
+
 if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()
@@ -64,6 +74,7 @@ set(NAVIGATOR_SOURCES
 	rtl_direct_mission_land.cpp
 	rtl_mission_fast.cpp
 	rtl_mission_fast_reverse.cpp
+	rtl_route_safe_point.cpp
 	takeoff.cpp
 	land.cpp
 	precland.cpp
@@ -77,6 +88,11 @@ set(NAVIGATOR_DEPENDS
 	mission_feasibility_checker
 	navigator_mission_route
 	rtl_time_estimator)
+
+if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
+	list(APPEND NAVIGATOR_DEPENDS navigator_mission_route_planner)
+	list(APPEND NAVIGATOR_SOURCES rtl_mission_safe_point_follow.cpp)
+endif()
 
 if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
 	list(APPEND NAVIGATOR_SOURCES rtl_geofence_avoidance_helper.cpp)

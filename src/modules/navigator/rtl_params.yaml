@@ -79,6 +79,10 @@ parameters:
           mission path. Do not consider rally points.
         5: Return directly to safe landing point (do not consider mission landing
           and Home)
+        6: Return to the closest safe point by rejoining and following the uploaded
+          mission route to an optimal branch-off point. If no safe point is usable,
+          use the closer mission takeoff or landing endpoint. If route planning is
+          unavailable, or for VTOL vehicles, fall back to direct RTL destination selection.
       default: 0
     RTL_CONE_ANG:
       description:
@@ -120,6 +124,30 @@ parameters:
       min: 25
       decimal: 1
       increment: 0.5
+    RTL_RP_SEG_DIST:
+      description:
+        short: Extra cross-track search distance for safe-point route projections
+        long: |-
+          When projecting a safe point onto the uploaded mission route for RTL_TYPE = 6,
+          accept candidates within this distance of the closest route segment.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+    RTL_FW_UTURN_PEN:
+      description:
+        short: Fixed-wing U-turn distance penalty
+        long: |-
+          Virtual distance added when RTL_TYPE = 6 would require a fixed-wing
+          vehicle to reverse direction on the mission route.
+      type: float
+      default: 4000.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 100
 - group: Return To Land
   definitions:
     RTL_TIME_FACTOR:
