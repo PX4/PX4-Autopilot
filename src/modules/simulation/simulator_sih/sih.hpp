@@ -79,6 +79,7 @@
 #include <uORB/topics/failure_injection.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -133,9 +134,10 @@ private:
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
-	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
-	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
-	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<airspeed_s>            _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<ranging_beacon_s>      _ranging_beacon_pub{ORB_ID(ranging_beacon)};
+	uORB::Publication<esc_status_s>          _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -149,6 +151,7 @@ private:
 
 	bool _airspeed_blocked{false};
 	bool _distance_sensor_blocked{false};
+	bool _optical_flow_blocked{false};
 	bool _accel_blocked{false};
 	bool _gyro_blocked{false};
 
@@ -184,6 +187,10 @@ private:
 	// out of range reading, this is based on lightware lw20 behaviour
 	static constexpr float DISTSNSR_OUT_OF_RANGE = UINT16_MAX / 100.f;
 
+	// Optical flow simulation constants, the values are taken from the PAW3902
+	static constexpr float FLOW_MAX_RATE = 7.4f;   // maximum measurable angular flow rate [rad/s]
+	static constexpr float FLOW_MIN_DISTANCE = 0.1f; // lower bound on the range scaling the flow [m]
+
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -209,6 +216,8 @@ private:
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
+	void accumulate_optical_flow(const float dt);
+	void send_optical_flow(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
 
 	// distance from the vehicle to the ground measured along the body down axis, NAN if the
@@ -243,6 +252,13 @@ private:
 	hrt_abstime _dist_snsr_time{0};
 	hrt_abstime _ranging_beacon_time{0};
 	uint8_t _ranging_beacon_idx{0};
+
+	// optical flow accumulation over one integration interval
+	hrt_abstime _optical_flow_time{0};
+	matrix::Vector2f _optical_flow_integral{};
+	float _optical_flow_dt{0.f};
+	bool _optical_flow_tracking{true};
+	uint32_t _optical_flow_device_id{0};
 
 	bool _grounded{true}; // whether the vehicle is on the ground
 
@@ -322,6 +338,7 @@ private:
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override, _distance_snsr_noise;
+	hrt_abstime _optical_flow_interval_us{20_ms};
 
 	esc_status_s _esc_status{};
 
@@ -351,6 +368,10 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_DISTSNSR_NOI>) _sih_distance_snsr_noise,
+		(ParamInt<px4::params::SIH_OF_EN>) _sih_optical_flow_en,
+		(ParamFloat<px4::params::SIH_OF_RATE>) _sih_optical_flow_rate,
+		(ParamFloat<px4::params::SIH_OF_NOISE>) _sih_optical_flow_noise,
+		(ParamFloat<px4::params::SIH_OF_H_MAX>) _sih_optical_flow_h_max,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
