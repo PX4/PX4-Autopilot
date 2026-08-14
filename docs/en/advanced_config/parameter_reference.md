@@ -36458,7 +36458,8 @@ Return mode destination and flight path (home location, rally point, mission lan
 - `2`: Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
 - `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
-- `5`: Return directly to safe landing point (do not consider mission landing and Home)
+- `5`: Return directly to safe landing point (do not consider mission landing and Home).
+- `6`: Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
