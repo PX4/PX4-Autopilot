@@ -227,9 +227,20 @@ parameters:
       max: 3.14159
       decimal: 3
       increment: 0.01
+    SIH_DISTSNSR_EN:
+      description:
+        short: Enable the simulated downward facing distance sensor
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 1
     SIH_DISTSNSR_MIN:
       description:
         short: distance sensor minimum range
+        long: |-
+          Readings closer than this saturate at the minimum range
+          and are reported with a zero signal quality.
       type: float
       default: 0.0
       unit: m
@@ -240,6 +251,9 @@ parameters:
     SIH_DISTSNSR_MAX:
       description:
         short: distance sensor maximum range
+        long: |-
+          The signal quality degrades over the last 20% of the range. Beyond the maximum range
+          the sensor reports a saturated reading with a zero signal quality.
       type: float
       default: 100.0
       unit: m
@@ -250,10 +264,22 @@ parameters:
     SIH_DISTSNSR_OVR:
       description:
         short: if >= 0 the distance sensor measures will be overridden by this value
-        long: Absolute value superior to 10000 will disable distance sensor
+        long: Set SIH_DISTSNSR_EN to 0 to disable the distance sensor.
       type: float
       default: -1.0
       unit: m
+    SIH_DISTSNSR_NOI:
+      description:
+        short: Distance sensor measurement noise standard deviation
+        long: |-
+          Gaussian noise added to the simulated distance sensor measurements.
+          Set to 0 to disable noise.
+      type: float
+      default: 0.01
+      unit: m
+      min: 0.0
+      max: 10.0
+      decimal: 3
     SIH_T_TAU:
       description:
         short: thruster time constant tau

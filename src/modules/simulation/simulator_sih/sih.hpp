@@ -178,6 +178,12 @@ private:
 	};
 	RangingBeaconConfig _ranging_beacons[NUM_RANGING_BEACONS] {};
 
+	// Distance sensor simulation constants
+	// fraction of the measurement range above which the returned signal starts to get weaker
+	static constexpr float DISTSNSR_QUALITY_DERATE = 0.8f;
+	// out of range reading, this is based on lightware lw20 behaviour
+	static constexpr float DISTSNSR_OUT_OF_RANGE = UINT16_MAX / 100.f;
+
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -204,6 +210,11 @@ private:
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
+
+	// distance from the vehicle to the ground measured along the body down axis, NAN if the
+	// body down axis does not point at the ground anymore
+	float ground_distance() const;
+
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
@@ -310,7 +321,7 @@ private:
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
-	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
+	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override, _distance_snsr_noise;
 
 	esc_status_s _esc_status{};
 
@@ -335,9 +346,11 @@ private:
 		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
 		(ParamFloat<px4::params::SIH_LOC_YAW0>) _sih_yaw0,
+		(ParamInt<px4::params::SIH_DISTSNSR_EN>) _sih_distance_snsr_en,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
+		(ParamFloat<px4::params::SIH_DISTSNSR_NOI>) _sih_distance_snsr_noise,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
