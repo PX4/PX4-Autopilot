@@ -306,8 +306,7 @@ protected:
 	}
 };
 
-// WHY: TransitionDuringRoute is a one-shot state used only to issue a VTOL transition.
-// WHAT: setNextMissionItem returns to FollowRoute and clears the remembered transition target.
+// TransitionDuringRoute is one-shot: the next advance returns to FollowRoute and clears the target.
 TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRoute)
 {
 	// GIVEN: An executor paused in the transition stage with a remembered target index.
@@ -329,8 +328,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesFollowRou
 	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
-// WHY: A transition may now protect the final route segment before branch-off.
-// WHAT: Completing that transition hands control to BranchOff instead of back to FollowRoute.
+// A transition on the final route segment hands over to BranchOff, not back to FollowRoute.
 TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesBranchOffWhenTargetIsBranchOff)
 {
 	executor.loadTestMission({
@@ -352,9 +350,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, TransitionDuringRouteResumesBranchOff
 	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
-// WHY: In reverse route following, reaching a waypoint with an attached transition must hold
-//      the current route target and enter TransitionDuringRoute instead of advancing immediately.
-// WHAT: setNextMissionItem arms the transition on the reached reverse target and leaves current_seq unchanged.
+// Reverse: reaching a waypoint with an attached transition arms it and holds current_seq.
 TEST_F(RtlMissionSafePointFollowStageTest, ReverseReachedWaypointArmsTransitionBeforeAdvancing)
 {
 	executor.loadTestMission({
@@ -381,9 +377,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseReachedWaypointArmsTransitionB
 	EXPECT_TRUE(executor.advanceRouteAfterTransitionForTest());
 }
 
-// WHY: Once the reverse transition is armed, the controller must track the next reverse target
-//      during the transition instead of flying back toward the waypoint that was already reached.
-// WHAT: TransitionDuringRoute publishes the previous route target as current setpoint for reverse post-reach transitions.
+// A reverse post-reach transition tracks the next reverse target, not the waypoint already reached.
 TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionPublishesPreviousTargetDuringTransition)
 {
 	Navigator navigator;
@@ -424,9 +418,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionPublishesPrevio
 	EXPECT_EQ(triplet->current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
 }
 
-// WHY: Once a reverse reached-waypoint transition completes, the executor should advance the route
-//      immediately instead of waiting to "re-reach" the same waypoint on the next cycle.
-// WHAT: Completing a reverse route transition advances current_seq to the previous route target.
+// Completing a reverse route transition advances current_seq right away, no re-reach needed.
 TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionCompletionAdvancesToPreviousTarget)
 {
 	executor.loadTestMission({
@@ -449,8 +441,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteTransitionCompletionAdvan
 	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
-// WHY: After the virtual branch-off waypoint is reached, the executor must commit to the final landing stage.
-// WHAT: setNextMissionItem moves BranchOff to LandAtGoal.
+// Reaching the virtual branch-off waypoint moves BranchOff to LandAtGoal.
 TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToLandAtGoal)
 {
 	// GIVEN: An executor that has already reached the branch-off waypoint.
@@ -468,9 +459,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToLandAtGoal)
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 }
 
-// WHY: Route-safe-point RTL should use the same wind-selected VTOL approach behavior as direct RTL
-//      once the safe point has already been chosen, instead of going straight from branch-off to land.
-// WHAT: With a valid goal approach configured, setNextMissionItem moves BranchOff to ApproachAtGoal.
+// With a valid goal approach, BranchOff moves to ApproachAtGoal instead of landing directly.
 TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToApproachAtGoalWhenGoalApproachValid)
 {
 	// GIVEN: An executor that has reached the branch-off waypoint for a safe point with a chosen approach.
@@ -496,9 +485,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, BranchOffTransitionsToApproachAtGoalW
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
 }
 
-// WHY: Once the goal approach loiter has been completed, the executor must hand over to the
-//      shared MissionBase landing pipeline instead of staying in the loiter stage.
-// WHAT: setNextMissionItem moves ApproachAtGoal to LandAtGoal.
+// A completed goal-approach loiter moves ApproachAtGoal to LandAtGoal.
 TEST_F(RtlMissionSafePointFollowStageTest, ApproachAtGoalTransitionsToLandAtGoal)
 {
 	// GIVEN: An executor already flying the selected safe-point landing approach.
@@ -649,9 +636,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, LandAtGoalIgnoresReplacementMission)
 	EXPECT_EQ(setpoint.type, expected_setpoint.type);
 }
 
-// WHY: The final branch-off segment now stays in FollowRoute so handleFollowRouteStage can still
-//      evaluate a pending VTOL transition before the virtual branch-off waypoint is published.
-// WHAT: Advancing forward onto the branch-off index updates current_seq but leaves the stage in FollowRoute.
+// Advancing onto the branch-off index stays in FollowRoute so a pending transition can still run.
 TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
 {
 	// GIVEN: A forward route with the next position item equal to the cached branch-off index.
@@ -673,9 +658,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteAdvanceKeepsFollowRouteUn
 	EXPECT_EQ(executor.currentSequenceForTest(), 2);
 }
 
-// WHY: Reverse route following also keeps FollowRoute active on the branch-off anchor so the
-//      final segment can still stage a VTOL transition before BranchOff takes over.
-// WHAT: Advancing backward onto the branch-off index updates current_seq but leaves the stage unchanged.
+// Same in reverse: the branch-off anchor keeps FollowRoute active for a possible transition.
 TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceKeepsFollowRouteUntilBranchOffPublication)
 {
 	// GIVEN: A reverse route whose previous position item is the cached branch-off index.
@@ -697,9 +680,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteAdvanceKeepsFollowRouteUn
 	EXPECT_EQ(executor.currentSequenceForTest(), 1);
 }
 
-// WHY: Once the branch-off anchor becomes the active route target, the virtual branch-off waypoint
-//      must be published immediately so MissionBase no longer tracks the raw mission waypoint.
-// WHAT: Nominal route following publishes the branch-off projection as the current setpoint in the same pass.
+// When the branch-off anchor becomes the target, the virtual waypoint is published in the same pass.
 TEST_F(RtlMissionSafePointFollowStageTest, ForwardBranchOffAnchorPublishesVirtualBranchOffImmediately)
 {
 	Navigator navigator;
@@ -742,9 +723,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardBranchOffAnchorPublishesVirtua
 	EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
 }
 
-// WHY: Reverse route following uses the same branch-off handoff and must also publish the virtual
-//      branch-off waypoint immediately instead of leaving the raw mission waypoint active.
-// WHAT: Reverse route following publishes the branch-off projection as the current setpoint in the same pass.
+// Same in reverse: the virtual branch-off waypoint replaces the raw mission waypoint immediately.
 TEST_F(RtlMissionSafePointFollowStageTest, ReverseBranchOffAnchorPublishesVirtualBranchOffImmediately)
 {
 	Navigator navigator;
@@ -787,8 +766,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseBranchOffAnchorPublishesVirtua
 	EXPECT_FALSE(executor_with_nav.missionItemReachedForTest());
 }
 
-// WHY: Route-follow exhaustion should continue RTL toward the selected goal.
-// WHAT: When forward traversal is already at the last route item, advancing from FollowRoute moves to LandAtGoal.
+// Forward traversal exhausted at the last route item: FollowRoute moves to LandAtGoal.
 TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToLandAtGoal)
 {
 	// GIVEN: A forward route whose current sequence is already the final position item.
@@ -807,9 +785,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToLa
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 }
 
-// WHY: When route traversal exhausts before reaching a chosen safe point, the executor should
-//      still fly the selected VTOL approach before landing instead of dropping straight into land.
-// WHAT: With a valid goal approach configured, forward route exhaustion moves FollowRoute to ApproachAtGoal.
+// Route exhausted with a goal approach set: fly the approach first, FollowRoute moves to ApproachAtGoal.
 TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToApproachAtGoalWhenGoalApproachValid)
 {
 	// GIVEN: A forward route whose current sequence is already the last position item, plus a chosen goal approach.
@@ -836,8 +812,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ForwardRouteExhaustionTransitionsToAp
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::ApproachAtGoal);
 }
 
-// WHY: Reverse route exhaustion should also continue RTL toward the selected goal.
-// WHAT: When reverse traversal is already at the first route item, advancing from FollowRoute moves to LandAtGoal.
+// Reverse traversal exhausted at the first route item: FollowRoute moves to LandAtGoal.
 TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToLandAtGoal)
 {
 	// GIVEN: A reverse route whose current sequence is already the first position item.
@@ -857,8 +832,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ReverseRouteExhaustionTransitionsToLa
 	EXPECT_EQ(executor.stageForTest(), RtlMissionSafePointFollowTestPeer::Stage::LandAtGoal);
 }
 
-// WHY: Inactive executors should not keep reporting a landing stage from a previous run.
-// WHAT: Resetting transient executor progress clears the stage and remembered transition target.
+// Resetting executor progress clears the stage and the remembered transition target.
 TEST_F(RtlMissionSafePointFollowStageTest, ResetExecutorProgressClearsStageAndTransitionTarget)
 {
 	executor.loadTestMission({
@@ -874,9 +848,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, ResetExecutorProgressClearsStageAndTr
 	EXPECT_EQ(executor.transitionTargetIndexForTest(), -1);
 }
 
-// WHY: Route-safe-point RTL follows mission geometry, but takeoff commands carry altitude semantics
-//      that differ from a plain waypoint and must not be silently rewritten.
-// WHAT: normalizeRouteMissionItem leaves NAV_CMD_TAKEOFF unchanged.
+// Takeoff commands carry their own altitude semantics: normalizeRouteMissionItem keeps them unchanged.
 TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesTakeoffCommand)
 {
 	mission_item_s takeoff_item = makeTakeoffItem(kBaseLat, kBaseLon, kAlt + 30.f);
@@ -889,9 +861,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesTak
 	EXPECT_FALSE(takeoff_item.autocontinue);
 }
 
-// WHY: Mission-endpoint fallback keys off the actual endpoint command encountered on the route,
-//      so landing commands must remain intact instead of being flattened into route waypoints.
-// WHAT: normalizeRouteMissionItem leaves NAV_CMD_LAND unchanged.
+// Endpoint fallback needs the real land command: normalizeRouteMissionItem keeps NAV_CMD_LAND.
 TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesLandingCommand)
 {
 	mission_item_s landing_item = makeLandItem(kBaseLat, kBaseLon, kAlt - 5.f);
@@ -904,9 +874,7 @@ TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemPreservesLan
 	EXPECT_FALSE(landing_item.autocontinue);
 }
 
-// WHY: Loiter-style position items should still be flattened into geometry-only route waypoints
-//      so RTL does not stop and wait at intermediate loiter commands while following the route.
-// WHAT: normalizeRouteMissionItem converts NAV_CMD_LOITER_TO_ALT into NAV_CMD_WAYPOINT.
+// RTL must not stop at intermediate loiters: NAV_CMD_LOITER_TO_ALT is flattened to a plain waypoint.
 TEST_F(RtlMissionSafePointFollowStageTest, NormalizeRouteMissionItemFlattensLoiterCommand)
 {
 	mission_item_s loiter_item = makePositionItem(kBaseLat, kBaseLon, kAlt + 20.f, NAV_CMD_LOITER_TO_ALT);

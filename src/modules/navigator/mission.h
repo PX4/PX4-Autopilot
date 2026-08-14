@@ -82,6 +82,8 @@ private:
 	bool setNextMissionItem() override;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	friend class MissionTestPeer;
+
 	void onMissionUpdate(bool has_mission_items_changed) override;
 
 	/**
