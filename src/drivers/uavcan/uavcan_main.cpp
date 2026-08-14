@@ -759,6 +759,10 @@ UavcanNode::Run()
 		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
 	}
 
+	if (_servers != nullptr) {
+		_servers->warn_if_node_id_allocation_table_full();
+	}
+
 #ifdef CONFIG_MODULES_NFS_MOUNT
 
 	if (_servers != nullptr) {
