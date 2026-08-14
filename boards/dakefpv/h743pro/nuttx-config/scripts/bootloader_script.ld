@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The DAKEFPV H743 uses an STM32H743VI which has 2048Kb of main FLASH memory.
+/* The DAKEFPV H743 Pro uses an STM32H743VI which has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
