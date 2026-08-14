@@ -326,31 +326,77 @@ int uORBTest::UnitTest::test_single()
 		return test_fail("orb_unadvertise failed: %i", ret);
 	}
 
-	uORB::Publication<orb_test_s> surviving_pub{ORB_ID::orb_test};
 	uORB::Subscription sub{ORB_ID::orb_test};
-	t.val = 3;
-
-	if (!surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
-		return test_fail("initial publication failed");
-	}
 
 	{
-		uORB::Publication<orb_test_s> temporary_pub{ORB_ID::orb_test};
-		t.val = 4;
+		uORB::Publication<orb_test_s> surviving_pub{ORB_ID::orb_test};
+		t.val = 3;
 
-		if (!temporary_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
-			return test_fail("second publication failed");
+		if (!surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+			return test_fail("initial publication failed");
+		}
+
+		{
+			uORB::Publication<orb_test_s> temporary_pub{ORB_ID::orb_test};
+			t.val = 4;
+
+			if (!temporary_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+				return test_fail("second publication failed");
+			}
+		}
+
+		t.val = 5;
+
+		if (orb_exists(ORB_ID(orb_test), 0) != PX4_OK || !sub.advertised()
+		    || !surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+			return test_fail("publication lost after another publisher was destroyed");
+		}
+
+		{
+			uORB::Publication<orb_test_s> temporary_pub{ORB_ID::orb_test};
+
+			if (!temporary_pub.advertise() || !temporary_pub.unadvertise() || temporary_pub.advertised()) {
+				return test_fail("explicit unadvertise failed");
+			}
+		}
+
+		t.val = 6;
+
+		if (orb_exists(ORB_ID(orb_test), 0) != PX4_OK || !sub.advertised()
+		    || !surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+			return test_fail("publication lost after another publisher unadvertised");
+		}
+
+		orb_advert_t handle = uORB::DeviceNode::nodeOpen(ORB_ID::orb_test, 0, false);
+
+		if (!orb_advert_valid(handle) || static_cast<uORB::DeviceNode *>(handle)->publisher_count() != 1) {
+			return test_fail("publisher reference count mismatch");
+		}
+
+		uORB::PublicationMulti<orb_test_s> multi_pub{ORB_ID::orb_test};
+
+		if (!multi_pub.advertise() || multi_pub.get_instance() != 1) {
+			return test_fail("instance reused while a publisher still owns it");
 		}
 	}
 
-	t.val = 5;
-
-	if (!surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
-		return test_fail("publication lost after another publisher was destroyed");
+	if (orb_exists(ORB_ID(orb_test), 0) == PX4_OK || sub.advertised() || sub.updated()) {
+		return test_fail("topic still advertised or updated after last publisher destruction");
 	}
 
-	// Leave the topic unadvertised for the multi-instance tests.
-	surviving_pub.unadvertise();
+	{
+		uORB::PublicationMulti<orb_test_s> multi_pub{ORB_ID::orb_test};
+
+		if (!multi_pub.advertise() || multi_pub.get_instance() != 0) {
+			return test_fail("instance not released after last publisher destruction");
+		}
+	}
+
+	sub.unsubscribe();
+
+	if (orb_advert_valid(uORB::DeviceNode::nodeOpen(ORB_ID::orb_test, 0, false))) {
+		return test_fail("node retained without publishers or subscribers");
+	}
 
 	return test_note("PASS single-topic test");
 }
@@ -626,9 +672,10 @@ int uORBTest::UnitTest::test_wrap_around()
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	auto node = uORB::Manager::get_instance()->get_device_master()->getDeviceNode(ORB_ID(orb_test_medium_wrap_around), 0);
+	orb_advert_t handle = uORB::DeviceNode::nodeOpen(ORB_ID::orb_test_medium_wrap_around, 0, false);
+	auto node = static_cast<uORB::DeviceNode *>(handle);
 
-	if (node == nullptr) {
+	if (!orb_advert_valid(handle)) {
 		return test_fail("get device node failed.");
 	}
 
@@ -862,6 +909,37 @@ int uORBTest::UnitTest::test_SubscriptionMulti()
 int uORBTest::UnitTest::test_queue()
 {
 	test_note("Testing orb queuing");
+
+	{
+		uORB::Subscription sub{ORB_ID::orb_test_medium_queue};
+		orb_advert_t retained_handle = ORB_ADVERT_INVALID;
+		orb_test_medium_s retained_data{};
+		retained_data.val = 42;
+
+		{
+			uORB::Publication<orb_test_medium_s> pub{ORB_ID::orb_test_medium_queue};
+
+			if (!pub.publish(retained_data)) {
+				return test_fail("queued publication failed");
+			}
+
+			// Save the retained publisher reference so this test can release it.
+			retained_handle = uORB::DeviceNode::nodeOpen(ORB_ID::orb_test_medium_queue, 0, false);
+		}
+
+		orb_test_medium_s copy{};
+		const bool retained = orb_advert_valid(retained_handle)
+				      && orb_exists(ORB_ID(orb_test_medium_queue), 0) == PX4_OK
+				      && sub.update(&copy) && copy.val == retained_data.val;
+
+		if (!retained) {
+			return test_fail("queued publication not retained after publisher destruction");
+		}
+
+		if (uORB::Manager::orb_unadvertise(retained_handle) != PX4_OK) {
+			return test_fail("retained queued publication cleanup failed");
+		}
+	}
 
 	orb_test_medium_s u{};
 	orb_advert_t ptopic{nullptr};

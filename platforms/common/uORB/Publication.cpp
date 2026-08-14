@@ -45,10 +45,10 @@
 namespace uORB
 {
 
-PublicationMultiBase::~PublicationMultiBase()
+PublicationBase::~PublicationBase()
 {
-	if (_handle != nullptr) {
-		// free the instance for the next advertiser, but keep queued publications advertised
+	if (orb_advert_valid(_handle)) {
+		// Keep queued publications available after publisher destruction.
 		if (Manager::orb_get_queue_size(_handle) == 1) {
 			unadvertise();
 		}
@@ -70,11 +70,7 @@ bool PublicationBase::publish(const void *data)
 		advertise();
 	}
 
-#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
-	return (Manager::orb_publish_node(_handle, data) == PX4_OK);
-#else
 	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
-#endif
 }
 
 bool PublicationMultiBase::advertise()
@@ -93,11 +89,7 @@ bool PublicationMultiBase::publish(const void *data)
 		advertise();
 	}
 
-#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
-	return (Manager::orb_publish_node(_handle, data) == PX4_OK);
-#else
-	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
-#endif
+	return (orb_publish(get_topic(), _handle, data) == PX4_OK);
 }
 
 int PublicationMultiBase::get_instance()

@@ -36,6 +36,4 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		reboot.cpp
-	DEPENDS
-		px4_platform
 	)

@@ -45,7 +45,6 @@
 #include <lib/mathlib/mathlib.h>
 
 #include "uORBManager.hpp"
-#include "uORBUtils.hpp"
 
 namespace uORB
 {
@@ -87,10 +86,10 @@ public:
 
 	~Subscription();
 
-	bool subscribe();
+	bool subscribe(bool advertise = false);
 	void unsubscribe();
 
-	bool valid() const { return _node != nullptr; }
+	bool valid() const { return orb_advert_valid(_node); }
 	bool advertised();
 
 	/**
@@ -117,7 +116,7 @@ public:
 	bool ChangeInstance(uint8_t instance);
 
 	uint8_t  get_instance() const { return _instance; }
-	unsigned get_last_generation() const;
+	unsigned get_last_generation() const { return _last_generation; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
 
 	ORB_ID orb_id() const { return _orb_id; }
@@ -125,16 +124,18 @@ public:
 protected:
 
 	friend class SubscriptionCallback;
+	friend class SubscriptionPollable;
 	friend class SubscriptionCallbackWorkItem;
 
-	void *get_node() { return _node; }
+	orb_advert_t &get_node() { return _node; }
 
-	void *_node{nullptr};
+	orb_advert_t _node{ORB_ADVERT_INVALID};
 
-	unsigned _last_generation{0}; /**< last generation the subscriber has seen, or while unsubscribed the node generation of the last failed lookup */
+	unsigned _last_generation{0}; /**< last generation the subscriber has seen */
 
 	ORB_ID _orb_id{ORB_ID::INVALID};
 	uint8_t _instance{0};
+	bool _advertiser{false};
 };
 
 // Subscription wrapper class with data
