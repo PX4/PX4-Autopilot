@@ -259,8 +259,7 @@ void Sih::sensor_step()
 	}
 
 	// distance sensor published at 50 Hz
-	if (now - _dist_snsr_time >= 20_ms
-	    && fabs(_distance_snsr_override) < 10000) {
+	if (_sih_distance_snsr_en.get() && now - _dist_snsr_time >= 20_ms) {
 		_dist_snsr_time = now;
 		send_dist_snsr(now);
 	}
@@ -350,6 +349,7 @@ void Sih::parameters_updated()
 	_distance_snsr_min = _sih_distance_snsr_min.get();
 	_distance_snsr_max = _sih_distance_snsr_max.get();
 	_distance_snsr_override = _sih_distance_snsr_override.get();
+	_distance_snsr_noise = _sih_distance_snsr_noise.get();
 	_px4_rangefinder.set_min_distance(_distance_snsr_min);
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
@@ -775,6 +775,21 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	_airspeed_pub.publish(airspeed);
 }
 
+float Sih::ground_distance() const
+{
+	// the ground is assumed flat at the altitude of the simulation reference (SIH_LOC_H0)
+	const float cos_tilt = _q.dcm_z()(2);
+
+	if (cos_tilt < FLT_EPSILON) {
+		// the body down axis points away from the ground
+		return NAN;
+	}
+
+	// the fake ground lets the vehicle settle marginally below the reference altitude, clamp it
+	// so that a landed vehicle reads zero instead of dropping out of range
+	return math::max(-_lpos(2), 0.f) / cos_tilt;
+}
+
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
 	if (_distance_sensor_blocked) {
@@ -782,20 +797,46 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 	}
 
 	float current_distance;
+	int8_t signal_quality;
 
 	if (_distance_snsr_override >= 0.f) {
+		// forced reading, let the driver flag it if it falls outside of the configured range
 		current_distance = _distance_snsr_override;
+		signal_quality = -1;
 
 	} else {
-		current_distance = -_lpos(2) / _q.dcm_z()(2);
+		// the quality is decided on the true distance rather than on the noisy reading, so
+		// that a measurement sitting at a range limit does not flicker in and out of validity
+		const float true_distance = ground_distance();
 
-		if (current_distance > _distance_snsr_max) {
-			// this is based on lightware lw20 behaviour
-			current_distance = UINT16_MAX / 100.f;
+		if (!PX4_ISFINITE(true_distance) || true_distance > _distance_snsr_max) {
+			// nothing within reach, the sensor reports its saturated raw reading
+			current_distance = DISTSNSR_OUT_OF_RANGE;
+			signal_quality = 0;
+
+		} else if (true_distance < _distance_snsr_min) {
+			// closer than the minimum range: the reading saturates and cannot be trusted
+			current_distance = _distance_snsr_min;
+			signal_quality = 0;
+
+		} else {
+			current_distance = math::max(true_distance + generate_wgn() * _distance_snsr_noise, 0.f);
+
+			// the returned signal gets weaker as the target moves away
+			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;
+			const float derate_span = _distance_snsr_max - derate_start;
+
+			if (true_distance > derate_start && derate_span > FLT_EPSILON) {
+				const float derated = (true_distance - derate_start) / derate_span;
+				signal_quality = static_cast<int8_t>(constrain(roundf(100.f - 99.f * derated), 1.f, 100.f));
+
+			} else {
+				signal_quality = 100;
+			}
 		}
 	}
 
-	_px4_rangefinder.update(hrt_absolute_time(), current_distance);
+	_px4_rangefinder.update(time_now_us, current_distance, signal_quality);
 }
 
 void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
