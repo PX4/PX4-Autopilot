@@ -280,6 +280,51 @@ parameters:
       min: 0.0
       max: 10.0
       decimal: 3
+    SIH_OF_EN:
+      description:
+        short: Enable the simulated optical flow sensor
+        long: |-
+          The simulated sensor reports the integrated flow only. The flow module completes the
+          sample with the vehicle gyro and the downward facing distance sensor, which therefore
+          has to be enabled as well (SIH_DISTSNSR_EN) for the flow to be usable by the estimator.
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+    SIH_OF_RATE:
+      description:
+        short: Optical flow publication rate
+        long: The simulated sensor integrates the flow over one publication interval.
+      type: float
+      default: 12.0
+      unit: Hz
+      min: 1.0
+      max: 100.0
+      decimal: 1
+    SIH_OF_NOISE:
+      description:
+        short: Optical flow measurement noise standard deviation
+        long: |-
+          Gaussian noise added to the simulated flow rate.
+          Set to 0 to disable noise.
+      type: float
+      default: 0.05
+      unit: rad/s
+      min: 0.0
+      max: 5.0
+      decimal: 3
+    SIH_OF_H_MAX:
+      description:
+        short: Optical flow maximum ground distance
+        long: |-
+          Above this distance to the ground the simulated sensor cannot track the ground image
+          anymore and reports a zero quality.
+      type: float
+      default: 30.0
+      unit: m
+      min: 1.0
+      decimal: 1
     SIH_T_TAU:
       description:
         short: thruster time constant tau
