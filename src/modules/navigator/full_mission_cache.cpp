@@ -63,7 +63,7 @@ FullMissionCache::FullMissionCache(orb_advert_t *mavlink_log_pub)
 	_mission_items = new mission_item_s[kMaxMissionCacheSize];
 
 	if (_mission_items == nullptr) {
-		PX4_ERR("Mission cache allocation failed");
+		PX4_ERR("Mission cache alloc failed boot");
 	}
 
 #else
@@ -208,7 +208,7 @@ void FullMissionCache::update(const mission_s &mission)
 		state.too_large = mission.count > kMaxMissionCacheSize;
 
 		if (!state.source_valid) {
-			PX4_ERR("Mission cache: invalid dataman id");
+			PX4_ERR("Mission cache: bad dataman id");
 		}
 
 		if (state.source_valid && state.too_large) {
@@ -224,7 +224,7 @@ void FullMissionCache::update(const mission_s &mission)
 		}
 
 		if (state.source_valid && !state.too_large && mission.count > 0 && _mission_items == nullptr) {
-			PX4_ERR("Mission cache unavailable: boot-time allocation failed");
+			PX4_ERR("Mission cache alloc failed");
 			state.too_large = true;
 		}
 
@@ -285,7 +285,7 @@ void FullMissionCache::update(const mission_s &mission)
 
 			} else {
 				state.validation_pending = false;
-				PX4_WARN("Mission cache read start failed");
+				PX4_WARN("Mission cache read failed");
 				state.retry.scheduleRetry(now);
 			}
 

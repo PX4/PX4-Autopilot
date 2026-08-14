@@ -32,36 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file mission_route_provider.h
- *
- * Mission-route planner data-source interface.
- * Mission and safe-point counts and item reads belong here; route policy belongs elsewhere.
+ * @file mission_route_land_approaches.h
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
 #pragma once
 
-#include "navigation.h"
+#include "mission_route_provider.h"
+#include "safe_point_land.hpp"
 
 namespace mission_route
 {
 
 /**
- * @brief Data source used by the planner.
+ * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
  *
- * Navigator can adapt one validated cache view for a planning pass. Tests can pass
- * an in-memory provider, keeping route geometry independent from Dataman and uORB.
+ * A block starts at the associated rally point and contains the consecutive NAV_CMD_LOITER_TO_ALT
+ * items that follow it. The next rally point starts a new block.
+ * Invalid rally points are skipped so a later nearby valid rally point can still be considered.
  */
-class Provider
-{
-public:
-	virtual ~Provider() = default;
+land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
+		const PositionYawSetpoint &rtl_position, float home_altitude_amsl);
 
-	virtual int missionCount() const = 0;
-	virtual bool loadMissionItem(int index, mission_item_s &mission_item) const = 0;
-	virtual int safePointCount() const = 0;
-	virtual bool loadSafePointItem(int index, mission_item_s &safe_point_item) const = 0;
-};
+/** @brief Read the landing-approach block attached to one exact rally-point item. */
+land_approaches_s getVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
+		float home_altitude_amsl);
+
+bool hasVtolLandApproachesNearLocation(const Provider &provider, const PositionYawSetpoint &rtl_position,
+				       float home_altitude_amsl);
+
+bool hasVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
+		float home_altitude_amsl);
+
+bool anySafePointHasVtolLandApproach(const Provider &provider, float home_altitude_amsl);
 
 } // namespace mission_route
