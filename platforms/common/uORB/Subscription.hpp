@@ -135,7 +135,6 @@ protected:
 
 	ORB_ID _orb_id{ORB_ID::INVALID};
 	uint8_t _instance{0};
-	bool _advertiser{false};
 };
 
 // Subscription wrapper class with data
