@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# Internal SPI bus ICM-42688P
+icm45686 -R 2 -b 2 -s start
+
+# Internal Baro
+bmp388 -I -b 2 start
+
+# External barometer on GPS/I2C1 connector
+if ! bmp280 -X -b 1 start
+then
+	spa06 -X -b 1 start
+fi
+
+# External compass on GPS/I2C1 connector
+if ! ist8310 -X -b 1 start
+then
+  if ! bmm350 -X -b 1 start
+  then
+	  bmm150 -X -b 1 start
+  fi
+fi
+
+# External compass on I2C connector
+if ! ist8310 -X -b 4 start
+then
+  if ! bmm350 -X -b 4 start
+  then
+	  bmm150 -X -b 4 start
+  fi
+fi
