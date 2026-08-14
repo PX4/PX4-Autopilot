@@ -183,7 +183,15 @@ private:
 	 *
 	 * 2. Corner projection is a local minimum when both the previous and the current segment
 	 *    project onto the same shared corner. This happens when two consecutive segments form
-	 *    a V-shape and the reference point is closest to the apex.
+	 *    a V-shape and the reference point is closest to the apex:
+	 *
+	 *     prev seg  curr seg
+	 *       A \    / C        The reference point P projects onto corner B
+	 *          \  /           from both segments, so
+	 *         B \/            prev_proj_on_end && proj_on_start -> local minimum.
+	 *
+	 *            ^
+	 *            P
 	 *
 	 *    The terminal route endpoint (last segment, projection on end) is also accepted because
 	 *    there is no following segment to compare against.

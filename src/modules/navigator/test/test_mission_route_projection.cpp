@@ -65,7 +65,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersCurrentMissionSegment)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
-	VectorProvider provider(mission, {});
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner(provider);
 
 	mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 90.f, 10.f, kAlt);
@@ -92,7 +92,7 @@ TEST_P(MissionRouteProjectionInvalidIndexTest, RejectsOutOfRangeMissionIndex)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
-	VectorProvider provider(mission, {});
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner(provider);
 
 	mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 60.f, kAlt);
@@ -134,7 +134,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurren
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
-	VectorProvider provider(mission, {});
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner(provider);
 	config.state.is_flying_reverse = true;
 
@@ -158,7 +158,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 		makeDoJump(0, 2, 0),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt),
 	};
-	VectorProvider provider(mission, {});
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner(provider);
 
 	// Set the stored loop anchor to segment [2->0]
@@ -212,7 +212,7 @@ TEST_P(MissionRouteProjectionDatasetTest, SelectsExpectedSegment)
 	const ProjectionDatasetCase &scenario = GetParam();
 	const auto mission = scenario.use_corner_dataset ? corner_dataset::mission() : default_dataset::mission();
 	const auto safe_points = scenario.use_corner_dataset ? corner_dataset::safePoints() : default_dataset::safePoints();
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 	const mission_route::Position vehicle = makePositionAbsolute(scenario.lat, scenario.lon, scenario.alt);
 
@@ -252,7 +252,7 @@ class MissionRouteProjectionEndpointLocalMinimumTest : public MissionRouteProjec
 TEST_P(MissionRouteProjectionEndpointLocalMinimumTest, ExposesBranchOffAtEndpoint)
 {
 	const EndpointLocalMinimumCase &scenario = GetParam();
-	VectorProvider provider(scenario.mission, scenario.safe_points);
+	VectorProvider provider = makeRouteProvider(scenario.mission, scenario.safe_points);
 	MissionRoutePlanner planner(provider);
 	mission_route::ProjectionContext proj_ctx{};
 
@@ -338,7 +338,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, StraightLineIgnoresNonMinCo
 	std::vector<mission_item_s> safe_points = {
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 450.f, 50.f, kAlt),
 	};
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 450.f, 0.f, kAlt);
@@ -371,7 +371,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, RectangleKeepsThreeClosestS
 	std::vector<mission_item_s> safe_points = {
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 500.f, -50.f, kAlt),
 	};
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	config.parameters.vehicle_projection_search_dist = 2000.f;
@@ -412,7 +412,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoN
 	std::vector<mission_item_s> safe_points = {
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 250.f, kAlt),
 	};
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	config.parameters.vehicle_projection_search_dist = 500.f;
@@ -446,7 +446,7 @@ TEST_P(MissionRouteProjectionInvalidVehiclePositionTest, RejectsInvalidVehiclePo
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
-	VectorProvider provider(mission, {});
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner(provider);
 
 	mission_route::Position vehicle{};
@@ -481,7 +481,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, SingleWaypointMissionFails)
 	std::vector<mission_item_s> mission = {
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
 	};
-	VectorProvider provider(mission, {});
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner(provider);
 
 	mission_route::Position vehicle = makePositionAbsolute(kBaseLat, kBaseLon, kAlt);
@@ -507,7 +507,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 	std::vector<mission_item_s> safe_points = {
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 680.f, kAlt),
 	};
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	config.parameters.vehicle_projection_search_dist = 500.f;
@@ -630,7 +630,7 @@ protected:
 		return ids;
 	}
 
-	VectorMissionRouteProvider provider{makeMissionItems(), {}};
+	VectorMissionRouteProvider provider = makeRouteProvider(makeMissionItems());
 	MissionRouteProjectionCandidateBufferTestPeer planner{provider};
 };
 

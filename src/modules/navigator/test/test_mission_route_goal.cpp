@@ -72,7 +72,7 @@ TEST_F(MissionRouteGoalTest, SelectsSafePointWithLowestTotalCostIncludingBranchO
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 60.f, 5.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
@@ -104,7 +104,7 @@ TEST_F(MissionRouteGoalTest, DirectShortcutUsesSelectedSafePointNotUploadOrder)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 12.f, 1.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
@@ -141,7 +141,7 @@ TEST_F(MissionRouteGoalTest, ReturnsEmptyWhenAllSafePointsInvalid)
 		invalid_safe_points.push_back(item);
 	}
 
-	VectorProvider provider{mission, invalid_safe_points};
+	VectorProvider provider = makeRouteProvider(mission, invalid_safe_points);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
@@ -170,7 +170,7 @@ TEST_F(MissionRouteGoalTest, RequiredVtolApproachSelectsFartherEligibleSafePoint
 		makeVtolApproachFromOffset(95.f, 20.f, kAlt + 20.f),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	config.state.require_vtol_approach = true;
 	const mission_route::Position vehicle_position =
@@ -199,7 +199,8 @@ TEST_F(MissionRouteGoalTest, RequiredVtolApproachFallsBackToMissionEndpoint)
 	};
 	const int32_t land_index = 2;
 
-	VectorProvider provider{mission, safe_points, {}, {}, land_index};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	config.state.require_vtol_approach = true;
 	const mission_route::Position vehicle_position =
@@ -236,7 +237,7 @@ TEST_F(MissionRouteGoalTest, RequiredVtolApproachScansTheWholeRallyBlock)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 120.f, 10.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	config.state.require_vtol_approach = true;
 	config.parameters.home_altitude_amsl = NAN;
@@ -270,7 +271,7 @@ TEST_F(MissionRouteGoalTest, ApproachRecordsDoNotConsumeSafePointBatchCapacity)
 		safe_points.push_back(makeVtolApproachFromOffset(20.f + i, 30.f, kAlt + 20.f));
 	}
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	config.state.require_vtol_approach = true;
 	const mission_route::Position vehicle_position =
@@ -296,7 +297,8 @@ TEST_F(MissionRouteGoalTest, MissionEndpointFallbackUsesConfiguredLandIndex)
 	};
 	const int32_t land_index = 2;
 
-	VectorProvider provider{mission, {}, {}, {}, land_index};
+	VectorProvider provider = makeRouteProvider(mission);
+	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
@@ -326,7 +328,8 @@ TEST_F(MissionRouteGoalTest, MissionEndpointFallbackUsesLandRouteDistance)
 	};
 	const int32_t land_index = 3;
 
-	VectorProvider provider{mission, {}, {}, {}, land_index};
+	VectorProvider provider = makeRouteProvider(mission);
+	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
@@ -351,7 +354,8 @@ TEST_F(MissionRouteGoalTest, MissionLandAsFirstPositionHasNoRouteSegment)
 	};
 	const int32_t land_index = 1;
 
-	VectorProvider provider{mission, {}, {}, {}, land_index};
+	VectorProvider provider = makeRouteProvider(mission);
+	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
@@ -375,7 +379,8 @@ TEST_F(MissionRouteGoalTest, SafePointAfterMissionLandBranchesFromLandEndpoint)
 	};
 	const int32_t land_index = 2;
 
-	VectorProvider provider{mission, safe_points, {}, {}, land_index};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
@@ -408,7 +413,7 @@ TEST_F(MissionRouteGoalTest, RelativeAltitudeSafePointUsesHomeAltitude)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 90.f, 15.f, 40.f, NAV_FRAME_GLOBAL_RELATIVE_ALT),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	config.parameters.home_altitude_amsl = 620.f;
 	const mission_route::Position vehicle_position =
@@ -432,7 +437,7 @@ TEST_F(MissionRouteGoalTest, RelativeAltitudeSafePointUsesHomeAltitude)
 TEST_F(MissionRouteGoalTest, DefaultMissionClosestBehindReverseMC)
 {
 	// Default 16-item mission with 7 rally points, MC config.
-	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(default_dataset::mission(), default_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = 15.f;
@@ -457,7 +462,7 @@ TEST_F(MissionRouteGoalTest, DefaultMissionClosestBehindReverseMC)
 TEST_F(MissionRouteGoalTest, DefaultMissionClosestForwardAheadMC)
 {
 	// Default mission, MC config, vehicle flying with velocity (15,-15).
-	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(default_dataset::mission(), default_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = 15.f;
@@ -481,7 +486,7 @@ TEST_F(MissionRouteGoalTest, DefaultMissionClosestForwardAheadMC)
 TEST_F(MissionRouteGoalTest, DefaultMissionAllBehindMC)
 {
 	// Default mission, MC config. Vehicle near mission_index=15 (end of route).
-	VectorProvider provider{default_dataset::mission(), default_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(default_dataset::mission(), default_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = 15.f;
@@ -509,7 +514,7 @@ TEST_F(MissionRouteGoalTest, DefaultMissionInvalidRallyPointSkipped)
 	auto safe_points = default_dataset::safePoints();
 	safe_points[0].lat = static_cast<double>(NAN);
 
-	VectorProvider provider{default_dataset::mission(), safe_points};
+	VectorProvider provider = makeRouteProvider(default_dataset::mission(), safe_points);
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = -15.f;
@@ -549,7 +554,7 @@ class MissionRouteGoalUturnPenaltyTest : public MissionRouteTestBase,
 TEST_P(MissionRouteGoalUturnPenaltyTest, SelectsRallyAccordingToUturnPenalty)
 {
 	const UturnPenaltyCase &scenario = GetParam();
-	VectorProvider provider{uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(uturn_penalty_dataset::mission(), uturn_penalty_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 
 	config = scenario.vehicle == UturnVehicle::FixedWing ? fwConfig() : defaultConfig();
@@ -611,7 +616,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(MissionRouteGoalTest, CornerMissionRallyOnCornerMC)
 {
 	// Corner 16-item mission with 8 rally points, MC config.
-	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = -corner_dataset::kVelDiag;
@@ -636,7 +641,7 @@ TEST_F(MissionRouteGoalTest, CornerMissionRallyOnCornerMC)
 TEST_F(MissionRouteGoalTest, CornerMissionCornerProjectionHandledFW)
 {
 	// Corner mission, FW config. Same vehicle position as CornerMissionRallyOnCornerMC.
-	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config = fwConfig();
 	config.state.velocity_valid = true;
@@ -667,7 +672,7 @@ TEST_F(MissionRouteGoalTest, CornerMissionCornerProjectionHandledFW)
 TEST_F(MissionRouteGoalTest, CornerMissionBackNoTransitionMC)
 {
 	// Corner mission, MC config. Vehicle at index 7 near a transition boundary.
-	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = corner_dataset::kVelDiag;
@@ -691,7 +696,7 @@ TEST_F(MissionRouteGoalTest, CornerMissionBackNoTransitionMC)
 TEST_F(MissionRouteGoalTest, CornerMissionSmallSegmentFrontMC)
 {
 	// Corner mission, MC config. Vehicle near small segments at mission_index=13.
-	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = corner_dataset::kVelDiag;
@@ -715,7 +720,7 @@ TEST_F(MissionRouteGoalTest, CornerMissionSmallSegmentFrontMC)
 TEST_F(MissionRouteGoalTest, CornerMissionReverseCornerScenarioSelectsRally2OnSegment5To7)
 {
 	// Corner mission, MC config. Vehicle at mission_index=5 flying reverse.
-	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config.state.velocity_valid = true;
 	config.state.velocity_ne(0) = -corner_dataset::kVelDiag;
@@ -744,7 +749,7 @@ TEST_F(MissionRouteGoalTest, CornerMissionReverseCornerScenarioSelectsRally2OnSe
 TEST_F(MissionRouteGoalTest, CornerMissionLandCornerScenarioSelectsRally6OnSegment14To15)
 {
 	// Corner mission, FW config. Vehicle near stacked landing at mission_index=13.
-	VectorProvider provider{corner_dataset::mission(), corner_dataset::safePoints()};
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
 	MissionRoutePlanner planner{provider};
 	config = fwConfig();
 	config.state.velocity_valid = true;
@@ -790,7 +795,7 @@ TEST_F(MissionRouteGoalTest, ScansMissionOnceForBatchSimple)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 10.f, 110.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 20.f, 5.f, kAlt);
@@ -834,7 +839,7 @@ TEST_F(MissionRouteGoalTest, SelectsBestSafePointBeyondFirstBatch)
 	const int32_t best_index = static_cast<int32_t>(mission_route::kMaxSafePointBatch);
 	safe_points.push_back(best_safe_point);
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
@@ -880,7 +885,7 @@ TEST_F(MissionRouteGoalTest, HandlesLoopProjectionAndReverseJumpChoice)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 205.f, 100.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 
 	// Anchor the projection to the active loop edge [2->0] and put the vehicle on its midpoint.
@@ -926,7 +931,7 @@ TEST_F(MissionRouteGoalTest, HandlesLoopWithRemainingIterations)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 50.f, 50.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 	mission_route::RoutePlan plan{};
 	mission_route::FailureReason failure_reason{mission_route::FailureReason::kUnknown};
@@ -949,7 +954,7 @@ TEST_F(MissionRouteGoalTest, VehicleInsideDoJumpLoopGetsValidPlan)
 	// The vehicle is inside the active DO_JUMP loop and the planner knows the last flown loop edge.
 	auto items = corner_dataset::mission();
 	auto safe_points = corner_dataset::safePoints();
-	VectorProvider provider(items, safe_points);
+	VectorProvider provider = makeRouteProvider(items, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_position = makePositionAbsolute(46.10214, 2.31760, kAlt + 150.f);
@@ -987,7 +992,7 @@ TEST_F(MissionRouteGoalTest, LoopScenarioSelectsRally3OnSegment7To9)
 	// A safe point lies on the active jump segment 7->2 while the vehicle is inside that loop.
 	auto items = corner_dataset::mission();
 	auto safe_points = corner_dataset::safePoints();
-	VectorProvider provider(items, safe_points);
+	VectorProvider provider = makeRouteProvider(items, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_position = makePositionAbsolute(46.10225, 2.31670, kAlt + 150.f);
@@ -1040,7 +1045,7 @@ TEST_F(MissionRouteGoalTest, ExhaustedDoJumpTreatedAsStraightThrough)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
 	};
 
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_position = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
@@ -1078,7 +1083,7 @@ TEST_F(MissionRouteGoalTest, CloseToBranchOffSegmentChecksCrosstrackAndAltitude)
 	std::vector<mission_item_s> safe_points{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt + 10.f),
 	};
-	VectorProvider provider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_position = makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt + 10.f);
@@ -1119,7 +1124,7 @@ TEST_F(MissionRouteGoalTest, SelectedBranchLegShortcutSkipsRouteForSelectedGoal)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
 	};
 
-	VectorProvider provider{mission, safe_points};
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
 	MissionRoutePlanner planner{provider};
 
 	auto vehicle_position = makePositionFromOffset(kBaseLat, kBaseLon, 300.f, 10.f, kAlt);
@@ -1153,7 +1158,7 @@ class MissionRouteGoalDirectShortcutTest : public MissionRouteTestBase,
 TEST_P(MissionRouteGoalDirectShortcutTest, PlansDirectShortcutForSelectedSafePoint)
 {
 	const DirectToSafePointCase &scenario = GetParam();
-	VectorProvider provider(direct_to_safe_point_dataset::mission(), direct_to_safe_point_dataset::safePoints());
+	VectorProvider provider = makeRouteProvider(direct_to_safe_point_dataset::mission(), direct_to_safe_point_dataset::safePoints());
 	MissionRoutePlanner planner(provider);
 
 	auto vehicle_position = direct_to_safe_point_dataset::vehiclePosition();

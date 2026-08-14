@@ -72,53 +72,6 @@ static ProjectionReferenceBatch &projectionReferenceBatch()
 	return *batch;
 }
 
-namespace
-{
-
-VehicleProjectionResult vehicleProjectionFailure(FailureReason reason)
-{
-	VehicleProjectionResult result{};
-	result.success = false;
-	result.failure_reason = reason;
-	return result;
-}
-
-JoinPlanResult joinPlanFailure(FailureReason reason)
-{
-	JoinPlanResult result{};
-	result.success = false;
-	result.failure_reason = reason;
-	return result;
-}
-
-JoinPlanResult joinPlanSuccess(const JoinPlan &plan)
-{
-	JoinPlanResult result{};
-	result.success = true;
-	result.failure_reason = FailureReason::kNone;
-	result.plan = plan;
-	return result;
-}
-
-RoutePlanResult routePlanFailure(FailureReason reason)
-{
-	RoutePlanResult result{};
-	result.success = false;
-	result.failure_reason = reason;
-	return result;
-}
-
-RoutePlanResult routePlanSuccess(const RoutePlan &plan)
-{
-	RoutePlanResult result{};
-	result.success = true;
-	result.failure_reason = FailureReason::kNone;
-	result.plan = plan;
-	return result;
-}
-
-} // namespace
-
 MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
 	_projection(provider),
 	_goal_selector(provider, _projection),
@@ -136,7 +89,9 @@ VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const Posi
 		int32_t mission_index, const PlannerConfig &config) const
 {
 	if (!config.parameters.validForVehicleProjection()) {
-		return vehicleProjectionFailure(FailureReason::kInvalidRequest);
+		VehicleProjectionResult result{};
+		result.failure_reason = FailureReason::kInvalidRequest;
+		return result;
 	}
 
 	perf_begin(_collect_vehicle_projection_perf);
@@ -170,14 +125,18 @@ bool MissionRoutePlanner::closeToBranchOffSegment(const Position &position, cons
 JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const Position &vehicle_position,
 		int32_t mission_index, const PlannerConfig &config) const
 {
+	JoinPlanResult result{};
+
 	if (!vehicle_position.valid()) {
-		return joinPlanFailure(FailureReason::kNoValidGlobalPos);
+		result.failure_reason = FailureReason::kNoValidGlobalPos;
+		return result;
 	}
 
 	const VehicleProjectionResult projection = collectVehicleProjection(vehicle_position, mission_index, config);
 
 	if (!projection.success) {
-		return joinPlanFailure(projection.failure_reason);
+		result.failure_reason = projection.failure_reason;
+		return result;
 	}
 
 	JoinPlan plan{};
@@ -188,23 +147,31 @@ JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const Position &vehicl
 	plan.join_context = _goal_selector.buildJoinContext(vehicle_position, plan.projection_context, plan.path);
 
 	if (!plan.valid()) {
-		return joinPlanFailure(FailureReason::kNoValidPath);
+		result.failure_reason = FailureReason::kNoValidPath;
+		return result;
 	}
 
-	return joinPlanSuccess(plan);
+	result.success = true;
+	result.failure_reason = FailureReason::kNone;
+	result.plan = plan;
+	return result;
 }
 
 RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position,
 		int32_t mission_index, const PlannerConfig &config) const
 {
+	RoutePlanResult result{};
+
 	if (!config.parameters.validForRouteToGoal()) {
-		return routePlanFailure(FailureReason::kInvalidRequest);
+		result.failure_reason = FailureReason::kInvalidRequest;
+		return result;
 	}
 
 	const VehicleProjectionResult projection = collectVehicleProjection(vehicle_position, mission_index, config);
 
 	if (!projection.success) {
-		return routePlanFailure(projection.failure_reason);
+		result.failure_reason = projection.failure_reason;
+		return result;
 	}
 
 	RoutePlan plan{};
@@ -221,7 +188,8 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_pos
 	perf_end(_select_best_goal_perf);
 
 	if (!selection.success) {
-		return routePlanFailure(selection.failure_reason);
+		result.failure_reason = selection.failure_reason;
+		return result;
 	}
 
 	plan.selection = selection.selection;
@@ -232,10 +200,11 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_pos
 			    plan.selection.path);
 
 	if (!plan.valid()) {
-		return routePlanFailure(FailureReason::kNoValidPath);
+		result.failure_reason = FailureReason::kNoValidPath;
+		return result;
 	}
 
-	PX4_DEBUG("RTL plan to %s target=%d rev=%u direct=%u skip_alt=%u branch_off=%d->%d",
+	PX4_DEBUG("Route plan to %s target=%d rev=%u direct=%u skip_alt=%u branch_off=%d->%d",
 		  goalTypeString(plan.selection.goal_type),
 		  static_cast<int>(plan.selection.path.first_item_index),
 		  static_cast<unsigned>(plan.selection.path.direction_reversed),
@@ -244,5 +213,8 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_pos
 		  static_cast<int>(plan.selection.branch_off_segment.start.idx),
 		  static_cast<int>(plan.selection.branch_off_segment.end.idx));
 
-	return routePlanSuccess(plan);
+	result.success = true;
+	result.failure_reason = FailureReason::kNone;
+	result.plan = plan;
+	return result;
 }

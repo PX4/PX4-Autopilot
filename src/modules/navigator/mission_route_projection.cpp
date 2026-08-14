@@ -252,7 +252,7 @@ bool MissionRouteProjection::prepareNextSegment(int32_t index, Segment &segment,
 					  static_cast<int32_t>(UINT8_MAX)));
 
 		if (mission_item.do_jump_mission_index < 0) {
-			PX4_ERR("RTL invalid DO_JUMP target index %d", static_cast<int>(mission_item.do_jump_mission_index));
+			PX4_ERR("Route invalid DO_JUMP target index %d", static_cast<int>(mission_item.do_jump_mission_index));
 			failure_reason = FailureReason::kInternalError;
 			return false;
 		}
@@ -291,37 +291,20 @@ bool MissionRouteProjection::prepareNextSegment(int32_t index, Segment &segment,
 bool MissionRouteProjection::localMinimumOnSegment(bool proj_on_start, bool proj_on_end,
 		bool prev_proj_on_end, bool jumping, bool last_segment) const
 {
+	// The full local-minimum rules are documented on the declaration.
 	const bool proj_on_corner = proj_on_start || proj_on_end;
 
-	// DO_JUMP loop-edge corner projections are rejected because those corners
-	// already belong to their nominal route segments, so only
-	// interior projections on the loop jump segment are kept:
+	// Loop-edge corners already belong to their nominal route segments.
 	if (jumping) {
 		return !proj_on_corner;
 	}
 
-	// The terminal route endpoint (last segment, proj_on_end) is accepted
-	// because there is no following segment to compare against.
+	// The terminal route endpoint has no following segment to compare against.
 	if (last_segment && proj_on_end) {
 		return true;
 	}
 
-	/** Nominal case:
-
-	 1. Interior projection (!proj_on_corner) are always a local minimum.
-
-	 2. Corner projection is a local minimum when both the previous and the current segment
-	    project onto the same shared corner. This happens when two consecutive segments form
-	    a V-shape and the reference point is closest to the apex:
-
-	     prev seg  curr seg
-	       A \    / C        The reference point P projects onto corner B
-	          \  /           from both segments. Both projections land on B,
-	         B \/            so prev_proj_on_end && proj_on_start -> local min.
-
-	            ^
-	            P
-	*/
+	// Interior projection, or a V-corner shared with the previous segment.
 	return !proj_on_corner || (proj_on_start && prev_proj_on_end);
 }
 
@@ -393,12 +376,12 @@ bool MissionRouteProjection::fillCurrentSegmentAlongIfNeeded(int32_t mission_ind
 	if (last_flown_loop_segment.validLoop()) {
 		if (segment_to_consider.start.idx == last_flown_loop_segment.start.idx) {
 			current_segment_along.start = route_along;
-			PX4_DEBUG("RTL fill current_segment_along.start on loop: %.1f",
+			PX4_DEBUG("Route fill current_segment_along.start on loop: %.1f",
 				  static_cast<double>(current_segment_along.start));
 
 		} else if (segment_to_consider.start.idx == last_flown_loop_segment.end.idx) {
 			current_segment_along.end = route_along;
-			PX4_DEBUG("RTL fill current_segment_along.end on loop: %.1f",
+			PX4_DEBUG("Route fill current_segment_along.end on loop: %.1f",
 				  static_cast<double>(current_segment_along.end));
 		}
 
@@ -408,14 +391,14 @@ bool MissionRouteProjection::fillCurrentSegmentAlongIfNeeded(int32_t mission_ind
 	if (mission_index == 0 && !is_flying_reverse) {
 		current_segment_along.start = 0.f;
 		current_segment_along.end = 0.f;
-		PX4_DEBUG("RTL fill current_segment_along with zeros for first mission item");
+		PX4_DEBUG("Route fill current_segment_along with zeros for first mission item");
 		return true;
 	}
 
 	if (isIndexInProjectionSegment(segment_to_consider, mission_index, is_flying_reverse)) {
 		current_segment_along.start = route_along;
 		current_segment_along.end = route_along + segment_length;
-		PX4_DEBUG("RTL fill current_segment_along nominal case: [%.3f, %.3f]",
+		PX4_DEBUG("Route fill current_segment_along nominal case: [%.3f, %.3f]",
 			  static_cast<double>(current_segment_along.start),
 			  static_cast<double>(current_segment_along.end));
 		return true;
@@ -519,8 +502,8 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 	}
 
 	SegmentDistanceAlong current_segment_along{};
-	// For branch-in selection, we need to know where the segment the vehicle is currently flying lies along the route
-	// The flag is cleared once the bounds have been filled so we stop re-checking it on the remaining segments.
+	// Branch-in selection needs the along-route bounds of the segment the vehicle is currently
+	// flying. The flag is cleared once the bounds are filled.
 	bool need_current_segment_bounds = request.compute_current_segment_bounds;
 
 	if (need_current_segment_bounds) {
@@ -530,10 +513,8 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 					      current_segment_along);
 	}
 
-	// First and last mission indices need special handling.
-	// A zero-length (stacked) segment is normally skipped, but at the very
-	// first or very last position it is the only projection available there, so it must still be evaluated.
-	// The last_position_index is also accepted as a local minimum because there is no next segment to compare it to.
+	// Zero-length (stacked) segments are normally skipped, but at the route ends they are the only
+	// projection available, so the first and last position indices are looked up to keep them.
 	int32_t first_position_index{0};
 	int32_t last_position_index{0};
 
@@ -656,10 +637,8 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 		segment.start = segment.end;
 		segment_positions.start = segment_positions.end;
 
-		// Carry this segment's end-corner projection into the next iteration as its "previous", so the next
-		// segment can detect a shared V-corner (prev_projection_on_end && projection_on_start -> local
-		// minimum at the apex, see localMinimumOnSegment).
-		// A zero-length-XY segment cannot form a V apex, so it never seeds a shared-corner match.
+		// Carry this segment's end-corner state so the next segment can detect a shared V-corner
+		// (see localMinimumOnSegment). A zero-length segment cannot form a V apex.
 		for (uint8_t i = 0; i < batch.count; ++i) {
 			CandidateSearchState &search_state = batch.items[i].search_state;
 			search_state.prev_projection_on_end =
@@ -683,7 +662,7 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 		}
 	}
 
-	PX4_DEBUG("RTL batch items: %u, segs: %u, mins: %u, valid: %u",
+	PX4_DEBUG("Route batch items: %u, segs: %u, mins: %u, valid: %u",
 		  static_cast<unsigned>(batch.count),
 		  static_cast<unsigned>(stats.segments_processed),
 		  static_cast<unsigned>(stats.local_min_found),
@@ -732,7 +711,7 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 	SegmentDistanceAlong segment_along = current_segment_along;
 
 	if (!segment_along.valid()) {
-		PX4_ERR("RTL select UAV proj: invalid current segment (mission_idx=%d), setting to zero",
+		PX4_ERR("Route select UAV proj: invalid current segment (mission_idx=%d), setting to zero",
 			static_cast<int>(mission_index));
 		segment_along.start = 0.f;
 		segment_along.end = 0.f;
@@ -746,12 +725,12 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 		const float candidate_path_distance = candidate.dist.xtrack + projection_to_segment_dist;
 
 		if (!PX4_ISFINITE(candidate_path_distance)) {
-			PX4_DEBUG("RTL UAV proj cand %u skipped, non-finite path distance",
+			PX4_DEBUG("Route UAV proj cand %u skipped, non-finite path distance",
 				  static_cast<unsigned>(i));
 			continue;
 		}
 
-		PX4_DEBUG("RTL UAV proj cand %u on seg [%u->%u], path_dist=%.1f, along=%.1f xtrack=%.1f on_seg=%.1f",
+		PX4_DEBUG("Route UAV proj cand %u on seg [%u->%u], path_dist=%.1f, along=%.1f xtrack=%.1f on_seg=%.1f",
 			  static_cast<unsigned>(i),
 			  static_cast<unsigned>(candidate.segment.start.idx),
 			  static_cast<unsigned>(candidate.segment.end.idx),
@@ -767,14 +746,14 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 					 && last_flown_loop_segment.end.idx == candidate.segment.end.idx;
 
 			if (priority_match) {
-				PX4_DEBUG("RTL UAV proj prioritizing cand %u (loop segment match)", static_cast<unsigned>(i));
+				PX4_DEBUG("Route UAV proj prioritizing cand %u (loop segment match)", static_cast<unsigned>(i));
 			}
 
 		} else {
 			priority_match = isIndexInProjectionSegment(candidate.segment, mission_index, is_flying_reverse);
 
 			if (priority_match) {
-				PX4_DEBUG("RTL UAV proj prioritizing cand %u (segment match)", static_cast<unsigned>(i));
+				PX4_DEBUG("Route UAV proj prioritizing cand %u (segment match)", static_cast<unsigned>(i));
 			}
 		}
 
@@ -791,7 +770,7 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 	}
 
 	if (best_candidate_index < 0) {
-		PX4_ERR("RTL UAV proj failed, no valid candidate selected");
+		PX4_ERR("Route UAV proj failed, no valid candidate selected");
 		result.failure_reason = FailureReason::kNoValidCandidateFound;
 		return result;
 	}
@@ -820,7 +799,7 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 	}
 
 	if (mission_index < 0 || mission_index >= _provider.missionCount()) {
-		PX4_ERR("RTL invalid mission index: %d (mission count: %d)",
+		PX4_ERR("Route invalid mission index: %d (mission count: %d)",
 			static_cast<int>(mission_index), static_cast<int>(_provider.missionCount()));
 		result.failure_reason = FailureReason::kInvalidRequest;
 		return result;
@@ -847,7 +826,7 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 
 	const ProjectionCandidateBuffer &candidate_buffer = batch.items[0].candidate_buffer;
 
-	PX4_DEBUG("RTL vehicle projection: cands=%u current_segment[%.1f, %.1f] idx=%d",
+	PX4_DEBUG("Route vehicle projection: cands=%u current_segment[%.1f, %.1f] idx=%d",
 		  static_cast<unsigned>(candidate_buffer.count),
 		  static_cast<double>(scan_result.current_segment_along.start),
 		  static_cast<double>(scan_result.current_segment_along.end),
@@ -876,7 +855,7 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 	projection_context.mission_loops_remaining = projection_context.route_projection.segment.validLoop()
 			? projection_context.route_projection.segment.loops_remaining : 0;
 
-	PX4_DEBUG("RTL UAV proj selected cand %d (of %u) on seg [%u->%u], path_dist=%.1f",
+	PX4_DEBUG("Route UAV proj selected cand %d (of %u) on seg [%u->%u], path_dist=%.1f",
 		  branch_in.candidate_index,
 		  static_cast<unsigned>(candidate_buffer.count),
 		  static_cast<unsigned>(projection_context.route_projection.segment.start.idx),
@@ -960,7 +939,7 @@ LoopContext MissionRouteProjection::buildLoopContext(const RouteProjectionCandid
 	loop_context.along.start = vehicle_projection.dist.route_along - vehicle_projection.dist.segment_along;
 	loop_context.along.end = accumulateRouteDistance(0, vehicle_projection.segment.end.idx, home_altitude_amsl);
 
-	PX4_DEBUG("RTL loop ctx: seg[%u-%u], along[%.1f, %.1f], loops remaining: %u",
+	PX4_DEBUG("Route loop ctx: seg[%u-%u], along[%.1f, %.1f], loops remaining: %u",
 		  static_cast<unsigned>(loop_context.segment.start.idx),
 		  static_cast<unsigned>(loop_context.segment.end.idx),
 		  static_cast<double>(loop_context.along.start),

@@ -70,7 +70,7 @@ void loadSafePointBatch(const Provider &provider,
 		mission_item_s safe_point_item{};
 
 		if (!provider.loadSafePointItem(safe_point_index, safe_point_item)) {
-			PX4_WARN("RTL safe point %d read failed", safe_point_index);
+			PX4_WARN("Route safe point %d read failed", safe_point_index);
 			continue;
 		}
 
@@ -78,14 +78,14 @@ void loadSafePointBatch(const Provider &provider,
 
 		if (!extractSafePointPosition(safe_point_item, config.parameters.home_altitude_amsl,
 					      safe_point_position)) {
-			PX4_DEBUG("RTL safe point %d skipped, invalid position or frame", safe_point_index);
+			PX4_DEBUG("Route safe point %d skipped, invalid position or frame", safe_point_index);
 			continue;
 		}
 
 		if (config.state.require_vtol_approach
 		    && !provider.hasVtolLandApproachesAtSafePointIndex(safe_point_index,
 				    config.parameters.home_altitude_amsl)) {
-			PX4_DEBUG("RTL safe point %d skipped, no VTOL approach", safe_point_index);
+			PX4_DEBUG("Route safe point %d skipped, no VTOL approach", safe_point_index);
 			continue;
 		}
 
@@ -100,21 +100,17 @@ void loadSafePointBatch(const Provider &provider,
 bool MissionRouteGoalSelector::mustFlyReverse(float goal_route_along, float projection_route_along,
 		PathDirectionMode direction_mode) const
 {
+	// The forced modes exist for the mission endpoints, where goal and projection can sit
+	// on the same item and the along-route comparison is ambiguous.
 	switch (direction_mode) {
 	case PathDirectionMode::kForceNominal:
-		// If we target the mission end item and if the vehicle is also projected onto
-		// the mission end item, goal_route_along < projection_route_along is ambiguous.
 		return false;
 
 	case PathDirectionMode::kForceReverse:
-		// If we target the mission start item and if the vehicle is also projected onto
-		// the mission start item, goal_route_along < projection_route_along is ambiguous.
 		return true;
 
 	case PathDirectionMode::kAuto:
 	default:
-		// If the goal is closer to the mission start than the vehicle projection,
-		// must fly reverse to reach the goal.
 		return goal_route_along < projection_route_along;
 	}
 }
@@ -171,8 +167,7 @@ bool MissionRouteGoalSelector::uTurnRequired(const ProjectionContext &projection
 		return false;
 	}
 
-	// Dot product > 0 means angle < 90 (aligned)
-	// Dot product < 0 means angle > 90 (opposed, U-turn required)
+	// Velocity opposing the desired course requires a u-turn.
 	return projection_context.vehicle_vel_ne.dot(desired_course) < 0.f;
 }
 
@@ -228,61 +223,49 @@ RoutePath MissionRouteGoalSelector::solveShortestRoutePathFromActiveLoop(float g
 		const ProjectionContext &projection_context, const PlannerConfig &config,
 		PathDirectionMode direction_mode) const
 {
-	RoutePath path{};
+	// The u-turn check uses the direction flown on the loop jump itself, not the direction
+	// after leaving it.
 
-	// RoutePath A: complete the remaining loop distance then continue to the goal.
-	const bool path_a_loop_reverse = false;
+	// Path A: complete the remaining loop distance, then continue to the goal.
 	const float dist_jump_remaining = fabsf(projection_context.route_projection.dist.segment_length
 						- projection_context.route_projection.dist.segment_along);
-	const float path_a_raw_cost = dist_jump_remaining
-				      + fabsf(goal_route_along - projection_context.loop_context.along.end);
-	// U-turn requirement depends on the direction for the loop jump, not after leaving the jump
-	const bool is_rev_from_loop_end =
-		mustFlyReverse(goal_route_along, projection_context.loop_context.along.end, direction_mode);
-	const bool path_a_u_turn_required = uTurnRequired(projection_context, config, path_a_loop_reverse);
-	const float path_a_cost = path_a_raw_cost + (path_a_u_turn_required ? config.parameters.u_turn_penalty_m : 0.f);
+	const bool path_a_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ false);
+	const float path_a_cost = dist_jump_remaining
+				  + fabsf(goal_route_along - projection_context.loop_context.along.end)
+				  + (path_a_u_turn ? config.parameters.u_turn_penalty_m : 0.f);
 
-	// If loops remain, we must complete the current iteration: force RoutePath A.
-	if (projection_context.mission_loops_remaining > 0) {
+	// Path B: backtrack the already-travelled loop distance, then continue to the goal.
+	const float dist_jump_travelled = projection_context.route_projection.dist.segment_along;
+	const bool path_b_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ true);
+	const float path_b_cost = dist_jump_travelled
+				  + fabsf(goal_route_along - projection_context.loop_context.along.start)
+				  + (path_b_u_turn ? config.parameters.u_turn_penalty_m : 0.f);
+
+	// While loop iterations remain the current one must be completed: force path A.
+	const bool use_path_a = projection_context.mission_loops_remaining > 0 || path_a_cost < path_b_cost;
+
+	RoutePath path{};
+
+	if (use_path_a) {
 		path.first_item_index = projection_context.loop_context.segment.end.idx;
 		path.first_item_cmd = projection_context.loop_context.segment.end.nav_cmd;
-		path.direction_reversed = is_rev_from_loop_end;
-		path.u_turn_required = path_a_u_turn_required;
-		path.total_cost_m = path_a_cost;
 		path.first_item_position = projection_context.route_projection.segment_positions.end;
+		path.direction_reversed = mustFlyReverse(goal_route_along, projection_context.loop_context.along.end,
+					  direction_mode);
+		path.u_turn_required = path_a_u_turn;
+		path.total_cost_m = path_a_cost;
 
 	} else {
-		// RoutePath B: backtrack the already-travelled loop distance then continue to the goal.
-		const bool path_b_loop_reverse = true;
-		const float dist_jump_travelled = projection_context.route_projection.dist.segment_along;
-		const float path_b_raw_cost = dist_jump_travelled
-					      + fabsf(goal_route_along - projection_context.loop_context.along.start);
-		const bool is_rev_from_loop_start =
-			mustFlyReverse(goal_route_along, projection_context.loop_context.along.start, direction_mode);
-		// U-turn requirement depends on the direction for the loop jump, not after leaving the jump
-		const bool path_b_u_turn_required = uTurnRequired(projection_context, config, path_b_loop_reverse);
-		const float path_b_cost = path_b_raw_cost + (path_b_u_turn_required ? config.parameters.u_turn_penalty_m : 0.f);
-
-		// Select the cheaper of RoutePath A (complete loop) vs RoutePath B (reverse loop).
-		if (path_a_cost < path_b_cost) {
-			path.first_item_index = projection_context.loop_context.segment.end.idx;
-			path.first_item_cmd = projection_context.loop_context.segment.end.nav_cmd;
-			path.direction_reversed = is_rev_from_loop_end;
-			path.u_turn_required = path_a_u_turn_required;
-			path.total_cost_m = path_a_cost;
-			path.first_item_position = projection_context.route_projection.segment_positions.end;
-
-		} else {
-			path.first_item_index = projection_context.loop_context.segment.start.idx;
-			path.first_item_cmd = projection_context.loop_context.segment.start.nav_cmd;
-			path.direction_reversed = is_rev_from_loop_start;
-			path.u_turn_required = path_b_u_turn_required;
-			path.total_cost_m = path_b_cost;
-			path.first_item_position = projection_context.route_projection.segment_positions.start;
-		}
+		path.first_item_index = projection_context.loop_context.segment.start.idx;
+		path.first_item_cmd = projection_context.loop_context.segment.start.nav_cmd;
+		path.first_item_position = projection_context.route_projection.segment_positions.start;
+		path.direction_reversed = mustFlyReverse(goal_route_along, projection_context.loop_context.along.start,
+					  direction_mode);
+		path.u_turn_required = path_b_u_turn;
+		path.total_cost_m = path_b_cost;
 	}
 
-	PX4_DEBUG("RTL path on loop jump [A,B], loop_along[%.1f, %.1f], loops remaining: %u",
+	PX4_DEBUG("Route path on loop jump [A,B], loop_along[%.1f, %.1f], loops remaining: %u",
 		  static_cast<double>(projection_context.loop_context.along.start),
 		  static_cast<double>(projection_context.loop_context.along.end),
 		  static_cast<unsigned>(projection_context.mission_loops_remaining));
@@ -305,7 +288,7 @@ RoutePath MissionRouteGoalSelector::findShortestPathAlongRoute(float goal_route_
 	const bool valid_path = path.valid();
 
 	if (valid_path && path.first_item_index >= _provider.missionCount()) {
-		PX4_ERR("RTL route path targets out-of-bounds index %d (mission count %d)",
+		PX4_ERR("Route route path targets out-of-bounds index %d (mission count %d)",
 			static_cast<int>(path.first_item_index), static_cast<int>(_provider.missionCount()));
 		return {};
 	}
@@ -320,14 +303,14 @@ RoutePath MissionRouteGoalSelector::findShortestPathAlongRoute(float goal_route_
 					     && dist_to_first_item < config.parameters.acceptance_radius;
 	}
 
-	PX4_DEBUG("RTL path: trgt=%d cmd=%u rev=%u uturn=%u dist=%.1f in_acc=%u",
+	PX4_DEBUG("Route path: trgt=%d cmd=%u rev=%u uturn=%u dist=%.1f in_acc=%u",
 		  static_cast<int>(path.first_item_index),
 		  static_cast<unsigned>(path.first_item_cmd),
 		  static_cast<unsigned>(path.direction_reversed),
 		  static_cast<unsigned>(path.u_turn_required),
 		  static_cast<double>(path.total_cost_m),
 		  static_cast<unsigned>(path.in_first_item_acc_rad));
-	PX4_DEBUG("RTL path detail: first=%.1f vehicle=%.1f goal=%.1f",
+	PX4_DEBUG("Route path detail: first=%.1f vehicle=%.1f goal=%.1f",
 		  static_cast<double>(dist_to_first_item),
 		  static_cast<double>(projection_context.route_projection.dist.route_along),
 		  static_cast<double>(goal_route_along));
@@ -352,7 +335,7 @@ bool MissionRouteGoalSelector::closeToBranchOffSegment(const Position &position,
 	if (!position.valid() || !selection.branch_off_projection.valid() || !selection.goal_position.valid()
 	    || !PX4_ISFINITE(acceptance_radius) || acceptance_radius <= 0.f
 	    || !PX4_ISFINITE(altitude_acceptance_radius) || altitude_acceptance_radius <= 0.f) {
-		PX4_ERR("RTL invalid inputs to determine distance to branch-off segment");
+		PX4_ERR("Route invalid inputs to determine distance to branch-off segment");
 		return false;
 	}
 
@@ -441,7 +424,7 @@ RoutePath MissionRouteGoalSelector::scoreBranchOffCandidate(const ProjectionCont
 		&& branch_off.segment.end.idx == projection_context.loop_context.segment.end.idx;
 
 	if (branch_off.segment.is_loop && !same_active_loop) {
-		PX4_DEBUG("RTL safe point loop candidate skipped, not on the active loop jump");
+		PX4_DEBUG("Route safe point loop candidate skipped, not on the active loop jump");
 		return {};
 	}
 
@@ -483,7 +466,7 @@ GoalSelection MissionRouteGoalSelector::selectLowestCostSafePoint(const Projecti
 		for (uint8_t candidate_index = 0; candidate_index < candidate_buffer.count; ++candidate_index) {
 			const RouteProjectionCandidate &branch_off = candidate_buffer.candidates[candidate_index];
 
-			PX4_DEBUG("RTL safe point %d cand %u branch_off[%u,%u]",
+			PX4_DEBUG("Route safe point %d cand %u branch_off[%u,%u]",
 				  static_cast<int>(safe_point_index),
 				  static_cast<unsigned>(candidate_index),
 				  static_cast<unsigned>(branch_off.segment.start.idx),
@@ -502,7 +485,7 @@ GoalSelection MissionRouteGoalSelector::selectLowestCostSafePoint(const Projecti
 		}
 
 		if (best_projection_index < 0) {
-			PX4_DEBUG("RTL safe point %d: no valid projection (nb cand: %u)",
+			PX4_DEBUG("Route safe point %d: no valid projection (nb cand: %u)",
 				  static_cast<int>(safe_point_index),
 				  static_cast<unsigned>(candidate_buffer.count));
 			continue;
@@ -523,11 +506,11 @@ GoalSelection MissionRouteGoalSelector::selectLowestCostSafePoint(const Projecti
 
 	if (selection.found) {
 		if (!selection.valid()) {
-			PX4_ERR("RTL selected safe point is not valid");
+			PX4_ERR("Route selected safe point is not valid");
 			return {};
 		}
 
-		PX4_DEBUG("RTL safe point %d selected: trgt=%d rev=%u branch_off=%u->%u",
+		PX4_DEBUG("Route safe point %d selected: trgt=%d rev=%u branch_off=%u->%u",
 			  static_cast<int>(selection.safe_point_index),
 			  static_cast<int>(selection.path.first_item_index),
 			  static_cast<unsigned>(selection.path.direction_reversed),
@@ -556,7 +539,7 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 	const int safe_point_count = _provider.safePointCount();
 
 	if (safe_point_count <= 0) {
-		PX4_DEBUG("RTL search: no safe points available");
+		PX4_DEBUG("Route search: no safe points available");
 		result.failure_reason = FailureReason::kNoValidSafePoints;
 		return result;
 	}
@@ -582,7 +565,7 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 		const ProjectionScanResult scan_result = _projection.findProjectionCandidates(scan_request, batch);
 
 		if (!scan_result.success) {
-			PX4_DEBUG("RTL safe point batch scan failed at offset %d: %s", batch_start_index,
+			PX4_DEBUG("Route safe point batch scan failed at offset %d: %s", batch_start_index,
 				  failureReasonString(scan_result.failure_reason));
 			scan_failure_reason = scan_result.failure_reason;
 			continue;
@@ -618,15 +601,16 @@ GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const Proj
 
 	int32_t takeoff_index{-1};
 	mission_item_s takeoff_item{};
-	bool have_takeoff = _provider.getMissionTakeoffItem(takeoff_index, takeoff_item);
-
 	RoutePath path_to_takeoff{};
 	Position takeoff_position{};
-	const bool path_to_takeoff_valid = have_takeoff
-					   && extractMissionPosition(takeoff_item, config.parameters.home_altitude_amsl,
-							   takeoff_position)
-					   && (path_to_takeoff = findShortestPathAlongRoute(0.f, projection_context,
-							   config, PathDirectionMode::kForceReverse)).valid();
+
+	if (_provider.getMissionTakeoffItem(takeoff_index, takeoff_item)
+	    && extractMissionPosition(takeoff_item, config.parameters.home_altitude_amsl, takeoff_position)) {
+		path_to_takeoff = findShortestPathAlongRoute(0.f, projection_context, config,
+				  PathDirectionMode::kForceReverse);
+	}
+
+	const bool path_to_takeoff_valid = path_to_takeoff.valid();
 
 	if (path_to_takeoff_valid && PX4_ISFINITE(config.parameters.home_altitude_amsl)) {
 		takeoff_position.alt = config.parameters.home_altitude_amsl;
@@ -634,22 +618,21 @@ GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const Proj
 
 	int32_t land_index{-1};
 	mission_item_s land_item{};
-	bool have_land = _provider.getMissionLandItem(land_index, land_item);
-	const float land_route_along = have_land
-				       ? _projection.accumulateRouteDistance(0, land_index,
-						       config.parameters.home_altitude_amsl)
-				       : NAN;
-
 	RoutePath path_to_land{};
 	Position land_position{};
-	const bool path_to_land_valid = have_land
-					&& PX4_ISFINITE(land_route_along)
-					&& extractMissionPosition(land_item, config.parameters.home_altitude_amsl,
-							land_position)
-					&& (path_to_land = findShortestPathAlongRoute(
-							land_route_along,
-							projection_context, config,
-							PathDirectionMode::kForceNominal)).valid();
+
+	if (_provider.getMissionLandItem(land_index, land_item)
+	    && extractMissionPosition(land_item, config.parameters.home_altitude_amsl, land_position)) {
+		const float land_route_along = _projection.accumulateRouteDistance(0, land_index,
+					       config.parameters.home_altitude_amsl);
+
+		if (PX4_ISFINITE(land_route_along)) {
+			path_to_land = findShortestPathAlongRoute(land_route_along, projection_context, config,
+					PathDirectionMode::kForceNominal);
+		}
+	}
+
+	const bool path_to_land_valid = path_to_land.valid();
 
 	if (!path_to_takeoff_valid && !path_to_land_valid) {
 		return selection;
@@ -670,11 +653,11 @@ GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const Proj
 	}
 
 	if (!selection.valid()) {
-		PX4_ERR("RTL fallback selection is not valid");
+		PX4_ERR("Route fallback selection is not valid");
 		return {};
 	}
 
-	PX4_DEBUG("RTL fallback %s target=%d rev=%u",
+	PX4_DEBUG("Route fallback %s target=%d rev=%u",
 		  goalTypeString(selection.goal_type),
 		  static_cast<int>(selection.path.first_item_index),
 		  static_cast<unsigned>(selection.path.direction_reversed));
