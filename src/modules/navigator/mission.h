@@ -81,6 +81,19 @@ private:
 
 	bool setNextMissionItem() override;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	void onMissionUpdate(bool has_mission_items_changed) override;
+
+	/**
+	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 *
+	 * @param resume_mission_on_previous True when the camera-trigger resume logic will rewind the
+	 *                                   mission index, in which case joining must not interfere.
+	 * @return true if a join route was armed, false to fall back to the legacy direct-to-item behavior.
+	 */
+	bool trySetRouteJoinOnActivation(bool resume_mission_on_previous);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
@@ -104,4 +117,18 @@ private:
 				  size_t &num_found_items);
 
 	bool _need_mission_save{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/**
+	 * The last DO_JUMP edge flown in normal mission execution. Nominal progress is already implied
+	 * by current_seq; only an active loop must survive the jump so rejoin replans stay anchored on it.
+	 */
+	mission_route::Segment _last_flown_loop_segment{};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist,
+		(ParamFloat<px4::params::MIS_FW_SEG_DIST>) _param_mis_fw_seg_dist
+	)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };

@@ -305,7 +305,19 @@ protected:
 	 * Change behaviour after external mission update.
 	 * @param[in] has_mission_items_changed flag if the mission items have been changed.
 	 */
-	void onMissionUpdate(bool has_mission_items_changed);
+	virtual void onMissionUpdate(bool has_mission_items_changed);
+
+	/**
+	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
+	 */
+	void checkMissionRestart();
+
+	/**
+	 * @brief Check if the camera was triggering
+	 *
+	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
+	 */
+	bool cameraWasTriggering();
 
 	/** Allow modes with external mission ownership to ignore subscription updates. */
 	virtual bool shouldAcceptMissionUpdates() { return true; }
@@ -535,10 +547,6 @@ private:
 	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 			       MissionTraversalType traversal_type, bool direction_backward);
 
-	/**
-	 * Reset mission
-	 */
-	void checkMissionRestart();
 
 	/**
 	 * Set a mission item as reached
@@ -624,13 +632,6 @@ private:
 	 * @return true if there are cached items
 	 */
 	bool haveCachedCameraModeItems();
-
-	/**
-	 * @brief Check if the camera was triggering
-	 *
-	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
-	 */
-	bool cameraWasTriggering();
 
 	/**
 	 * @brief Parameters update
