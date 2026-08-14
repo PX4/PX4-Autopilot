@@ -37,6 +37,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [LightWare SF10/B] _(disc.)_                | ToF (IR laser)  | ~50 m                    | UART, I2C              | ~    | Discontinued                        |
 | [LightWare SF10/C] _(disc.)_                | ToF (IR laser)  | ~100 m                   | UART, I2C              | ~    | Discontinued                        |
 | [Lanbao PSK-CM8JL65-CC5] _(disc.)_          | ToF (IR)        | 0.17 m – 8 m             | UART                   | ✖️   | Discontinued                        |
+| [Smartmicro_Drone_Altimeter]                | Microwave radar | 1 m to 175 m             | DroneCAN               | ~    |                                     |
 | [TeraRanger One] _(disc.)_                  | ToF (IR)        | ~0.2 m – ~14 m (typical) | I2C (adapter required) | ~    | Discontinued                        |
 
 [Ainstein US-D1 Standard Radar Altimeter]: ../sensor/ulanding_radar.md
@@ -56,6 +57,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 [LightWare SF10/B]: ../sensor/sfxx_lidar.md
 [LightWare SF10/C]: ../sensor/sfxx_lidar.md
 [MaxBotix I2CXL-MaxSonar-EZ]: #maxbotix-i2cxl-maxsonar-ez
+[Smartmicro_Drone_Altimeter]: ../dronecan/smartmicro_T132.md
 [Sony AS-DT1]: ../sensor/sony_asdt1.md
 [TeraRanger Evo 60 m]: ../sensor/teraranger.md
 [TeraRanger Evo 600Hz]: ../sensor/teraranger.md
