@@ -371,8 +371,15 @@ private:
 
 	static constexpr unsigned data_alignment_padding()
 	{
+#ifdef CONFIG_FS_SHMFS_NO_ALIGN
+		/* shm object is not cache-line aligned; padding here would not
+		 * produce a cache-line aligned _data[] anyway. Save the bytes.
+		 */
+		return 0;
+#else
 		return sizeof(DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT != 0 ?
 		       PX4_ARCH_DCACHE_ALIGNMENT - (sizeof(DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT) : 0;
+#endif
 	}
 	uint8_t _data[];
 };

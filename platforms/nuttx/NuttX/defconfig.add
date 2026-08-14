@@ -1,3 +1,4 @@
 # Collect all configuration options which are common for ALL the NuttX boards
 CONFIG_FS_SHMFS=y
+CONFIG_FS_SHMFS_NO_ALIGN=y
 CONFIG_LIBC_MEMFD_ERROR=y
