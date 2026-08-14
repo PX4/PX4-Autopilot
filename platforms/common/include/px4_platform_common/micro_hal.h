@@ -38,3 +38,7 @@
 
 // include arch-specific header
 #include <px4_arch/micro_hal.h>
+
+#ifndef PX4_ARCH_DCACHE_ALIGNMENT
+#define PX4_ARCH_DCACHE_ALIGNMENT 1
+#endif

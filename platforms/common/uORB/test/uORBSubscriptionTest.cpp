@@ -125,7 +125,9 @@ TEST_F(uORBSubscriptionTest, subscribeAfterFailedLookupsOnceTopicIsAdvertised)
 	orb_advert_t pub = orb_advertise(ORB_ID(orb_test_medium), &message);
 	ASSERT_NE(pub, nullptr);
 
-	EXPECT_TRUE(sub.advertised()) << "Adding the device node must make the next lookup succeed";
+	// advertised() only checks for a publisher here, subscribing is a separate step
+	EXPECT_TRUE(sub.advertised()) << "Advertising the topic must make the next lookup succeed";
+	EXPECT_TRUE(sub.subscribe());
 	EXPECT_TRUE(sub.valid());
 
 	orb_unadvertise(pub);
