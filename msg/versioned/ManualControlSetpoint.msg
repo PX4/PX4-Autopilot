@@ -1,9 +1,14 @@
 # Manual control input
 #
-# This is the manual control input currently in charge of the vehicle.
-# It is selected from all available sources: RC (input_rc) or one of several
-# MAVLINK manual_control sources based on param COM_RC_IN_MODE
-# and published to the controllers.
+# This message provides a representation of manual control input sources, 
+# such as RC controllers and MAVLink controller (Joystick).
+#
+# It defines the `manual_control_input` topic to represent each configured input, 
+# and the `manual_control_setpoint` topic to represent the input that is currently 
+# in charge of the vehicle (based on parameter COM_RC_IN_MODE).
+# `manual_control_setpoint` is the topic that is published to the controllers.
+#
+# The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
 
 uint32 MESSAGE_VERSION = 1
 
