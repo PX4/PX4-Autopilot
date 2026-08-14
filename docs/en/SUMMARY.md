@@ -24,7 +24,7 @@
       - [Return Mode (MC)](flight_modes_mc/return.md)
       - [Offboard Mode (MC)](flight_modes_mc/offboard.md)
     - [Collision Prevention](computer_vision/collision_prevention.md)
-    - [External Setpoints](computer_vision/external_setpoint.md)
+    - [External Setpoints](advanced_features/external_setpoint.md)
     - [Precision Landing](advanced_features/precland.md)
     - [Vision Target Estimator](advanced_features/vision_target_estimator.md)
       - [Vision Target Estimator Deep Dive](advanced_features/vision_target_estimator_advanced.md)
