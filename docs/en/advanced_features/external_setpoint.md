@@ -54,6 +54,82 @@ The mission itself is not modified. Once the external stream stops, the vehicle 
 | <a id="EXT_SP_EN"></a>[EXT_SP_EN](../advanced_config/parameter_reference.md#EXT_SP_EN)              | Enable external setpoint fusion. Default: Disabled.                                          |
 | <a id="EXT_SP_TIMEOUT"></a>[EXT_SP_TIMEOUT](../advanced_config/parameter_reference.md#EXT_SP_TIMEOUT) | Maximum age of an external setpoint before it is ignored, in seconds. Default: 0.5. |
 
+## Interface Specification
+
+This section is normative. The key words "MUST", "MUST NOT", "SHOULD" and "MAY" are to be interpreted as described in [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt).
+
+It defines what an external source may send and what PX4 guarantees in response, so that independent implementations behave the same way. It deliberately says nothing about *how* a sender decides what to send.
+
+### Mode-dependent interpretation
+
+`SET_POSITION_TARGET_LOCAL_NED` is interpreted differently depending on the active flight mode:
+
+| Mode | Interpretation |
+| --- | --- |
+| Offboard | The setpoint commands the vehicle directly. Unchanged pre-existing behaviour. |
+| Position, Mission | The velocity/acceleration content is fused as a temporary deviation, subject to this specification. |
+| All other modes | Ignored. |
+
+Senders MUST NOT assume a given stream produces the same vehicle response in every mode. This overloading is a known limitation of reusing an existing message rather than introducing a new one.
+
+### Transport
+
+- The sender MUST use `SET_POSITION_TARGET_LOCAL_NED`.
+- The `coordinate_frame` MUST be `MAV_FRAME_LOCAL_NED` or `MAV_FRAME_BODY_NED`. Any other frame is rejected and reported to the operator.
+- In `MAV_FRAME_BODY_NED` the velocity is rotated into NED by vehicle yaw before use.
+- The `x`, `y`, `z` position fields are never consumed by this path, in any mode covered by this specification.
+
+### Preconditions
+
+PX4 applies the setpoint only when all of the following hold. If any fails, the underlying setpoint is passed through unmodified.
+
+- `EXT_SP_EN` is enabled.
+- The navigation state is Position (`POSCTL`) or Mission (`AUTO_MISSION`).
+- The most recent setpoint is marked valid, which requires at least one finite velocity or acceleration axis.
+- The most recent setpoint is not stale (see [Timing](#timing)).
+
+### Field semantics
+
+- An axis set to `NaN`, or masked off via `type_mask`, is uncommanded and MUST be left under PX4 control.
+- For each axis with a finite velocity, PX4 overrides that velocity axis **and** releases the corresponding position axis. This is required so the position controller does not steer back toward the waypoint and fight the deviation.
+- For each axis with a finite acceleration, PX4 overrides that acceleration axis. Position is not released.
+- Finite `yaw` and `yaw_rate` override their respective setpoints.
+- In `MAV_FRAME_LOCAL_NED`, velocity axes MAY be masked individually. In `MAV_FRAME_BODY_NED`, masking any velocity axis discards all three; senders needing per-axis control MUST use `MAV_FRAME_LOCAL_NED`.
+
+### Timing
+
+- The sender MUST publish more frequently than `EXT_SP_TIMEOUT` (default 0.5 s).
+- A setpoint older than `EXT_SP_TIMEOUT` MUST be ignored. PX4 does not extrapolate, hold, or decay a stale setpoint.
+
+### Resumption
+
+- When fusion stops for any reason — timeout, `EXT_SP_EN` cleared, or a mode change — PX4 resumes the underlying Position or Mission setpoint on the next iteration.
+- PX4 retains no state across the deviation. The mission is not modified and the active waypoint does not change; the vehicle resumes navigating to it from wherever the deviation ended.
+
+### Non-guarantees
+
+Implementers MUST NOT rely on any of the following, none of which PX4 provides:
+
+- **No validation.** PX4 holds no obstacle representation on this path and does not check the setpoint against the environment. The sender is solely responsible for the safety of what it commands.
+- **No deviation bound.** The excursion is limited only by the active mode's own velocity and acceleration limits. There is no maximum displacement from the mission track.
+- **No arbitration with Collision Prevention.** Where both are active in Position mode, this is applied after Collision Prevention and takes precedence over its output.
+- **No delivery guarantee.** The transport is unacknowledged. A sender that stops transmitting is indistinguishable from one that never started.
+
+### Conformance
+
+Each requirement above is enforced by a test in `src/lib/external_setpoint/ExternalSetpointTest.cpp`, so the specification cannot drift from the implementation:
+
+| Requirement | Test |
+| --- | --- |
+| Disabled by default | `disabledByDefaultIsNoOp` |
+| Applied only in Position and Mission | `unsupportedModeIsNoOp` |
+| Stale setpoints ignored | `staleSetpointIsNoOp` |
+| Invalid setpoints ignored | `invalidSetpointIsNoOp` |
+| Velocity override releases the position axis | `fusesVelocityAndReleasesPositionInMission` |
+| Applied in Position mode | `fusesInPositionMode` |
+| Uncommanded axes left untouched | `uncommandedAxesAreLeftUntouched` |
+| Baseline resumes when fusion stops | `disablingMidStreamRestoresBaseline` |
+
 ## Implementation
 
 The fusion is implemented in `ExternalSetpoint` (`src/lib/external_setpoint/`) and applied in `FlightModeManager::generateTrajectorySetpoint()`, the single point where the manual and autonomous flight tasks converge, immediately before the trajectory setpoint is published.
