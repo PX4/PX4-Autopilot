@@ -50,12 +50,10 @@ This repo is no longer needed, but does contain useful examples.
 
 ## Installation & Setup
 
-The supported and recommended ROS 2 platform for working with PX4 is ROS 2 "Humble" LTS on Ubuntu 22.04.
+The supported and recommended ROS 2 platform for working with PX4 is ROS 2 "Jazzy" LTS on Ubuntu 24.04.
 
 ::: tip
-If you're working on Ubuntu 20.04 we recommend you update to Ubuntu 22.04.
-In the meantime you can use ROS 2 "Foxy" with [Gazebo Classic](../sim_gazebo_classic/index.md) on Ubuntu 20.04.
-Note that ROS 2 "Foxy" reached end-of-life in May 2023, but is (at time of writing) still stable and works with PX4.
+If you're working on Ubuntu 22.04 you can use ROS 2 "Humble" LTS instead.
 :::
 
 To setup ROS 2 for use with PX4:
@@ -99,6 +97,30 @@ To install ROS 2 and its dependencies:
 
    :::: tabs
 
+   ::: tab jazzy
+   To install ROS 2 "Jazzy" on Ubuntu 24.04:
+
+   ```sh
+   sudo apt update && sudo apt install locales
+   sudo locale-gen en_US en_US.UTF-8
+   sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+   export LANG=en_US.UTF-8
+   sudo apt install software-properties-common
+   sudo add-apt-repository universe
+   sudo apt update && sudo apt install curl -y
+   export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F'"' '{print $4}')
+   curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+   sudo dpkg -i /tmp/ros2-apt-source.deb
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install ros-jazzy-desktop
+   sudo apt install ros-dev-tools
+   source /opt/ros/jazzy/setup.bash && echo "source /opt/ros/jazzy/setup.bash" >> .bashrc
+   ```
+
+   The instructions above are reproduced from the official installation guide: [Install ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html).
+   You can install _either_ the desktop (`ros-jazzy-desktop`) _or_ bare-bones versions (`ros-jazzy-ros-base`), _and_ the development tools (`ros-dev-tools`).
+   :::
+
    ::: tab humble
    To install ROS 2 "Humble" on Ubuntu 22.04:
 
@@ -120,13 +142,6 @@ To install ROS 2 and its dependencies:
 
    The instructions above are reproduced from the official installation guide: [Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html).
    You can install _either_ the desktop (`ros-humble-desktop`) _or_ bare-bones versions (`ros-humble-ros-base`), _and_ the development tools (`ros-dev-tools`).
-   :::
-
-   ::: tab foxy
-   To install ROS 2 "Foxy" on Ubuntu 20.04:
-   - Follow the official installation guide: [Install ROS 2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html).
-
-   You can install _either_ the desktop (`ros-foxy-desktop`) _or_ bare-bones versions (`ros-foxy-ros-base`), _and_ the development tools (`ros-dev-tools`).
    :::
 
    ::::
@@ -183,27 +198,11 @@ To start the simulator (and client):
 
 1. Open a new terminal in the root of the **PX4 Autopilot** repo that was installed above.
 
-   :::: tabs
+   Start a PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation using:
 
-   ::: tab humble
-   - Start a PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation using:
-
-     ```sh
-     make px4_sitl gz_x500
-     ```
-
-     :::
-
-   ::: tab foxy
-   - Start a PX4 [Gazebo Classic](../sim_gazebo_classic/index.md) simulation using:
-
-     ```sh
-     make px4_sitl gazebo-classic
-     ```
-
-     :::
-
-   ::::
+   ```sh
+   make px4_sitl gz_x500
+   ```
 
 The agent and client are now running they should connect.
 
@@ -272,21 +271,21 @@ To create and build the workspace:
 
    :::: tabs
 
-   ::: tab humble
+   ::: tab jazzy
 
    ```sh
    cd ..
-   source /opt/ros/humble/setup.bash
+   source /opt/ros/jazzy/setup.bash
    colcon build
    ```
 
    :::
 
-   ::: tab foxy
+   ::: tab humble
 
    ```sh
    cd ..
-   source /opt/ros/foxy/setup.bash
+   source /opt/ros/humble/setup.bash
    colcon build
    ```
 
@@ -308,24 +307,24 @@ The [ROS2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner-
 
 In a new terminal:
 
-1. Navigate into the top level of your workspace directory and source the ROS 2 environment (in this case "Humble"):
+1. Navigate into the top level of your workspace directory and source the ROS 2 environment (in this case "Jazzy"):
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   cd ~/ws_sensor_combined/
+   source /opt/ros/jazzy/setup.bash
+   ```
+
+   :::
 
    ::: tab humble
 
    ```sh
    cd ~/ws_sensor_combined/
    source /opt/ros/humble/setup.bash
-   ```
-
-   :::
-
-   ::: tab foxy
-
-   ```sh
-   cd ~/ws_sensor_combined/
-   source /opt/ros/foxy/setup.bash
    ```
 
    :::
@@ -486,22 +485,20 @@ Use the following commands to install the correct ROS 2/gz interface packages (n
 
 :::: tabs
 
+::: tab jazzy
+To install the bridge for use with ROS 2 "Jazzy" and Gazebo Harmonic (on Ubuntu 24.04):
+
+```sh
+sudo apt install ros-jazzy-ros-gzharmonic
+```
+
+:::
+
 ::: tab humble
 To install the bridge for use with ROS 2 "Humble" and Gazebo Harmonic (on Ubuntu 22.04):
 
 ```sh
 sudo apt install ros-humble-ros-gzharmonic
-```
-
-:::
-
-::: tab foxy
-First you will need to [install Gazebo Garden](../sim_gazebo_gz/index.md#installation-ubuntu-linux), as by default Foxy comes with Gazebo Classic 11. <!-- note, garden is EOL Nov 2024 -->
-
-Then to install the interface packages for use with ROS 2 "Foxy" and Gazebo (Ubuntu 20.04):
-
-```sh
-sudo apt install ros-foxy-ros-gzgarden
 ```
 
 :::
@@ -965,18 +962,18 @@ If any are missing, they can be added separately:
 
   :::: tabs
 
-  ::: tab humble
+  ::: tab jazzy
 
   ```sh
-  sudo apt install ros-humble-eigen3-cmake-module
+  sudo apt install ros-jazzy-eigen3-cmake-module
   ```
 
   :::
 
-  ::: tab foxy
+  ::: tab humble
 
   ```sh
-  sudo apt install ros-foxy-eigen3-cmake-module
+  sudo apt install ros-humble-eigen3-cmake-module
   ```
 
   :::
