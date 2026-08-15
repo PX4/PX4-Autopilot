@@ -55,6 +55,18 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 :::
 
+<!-- AUTO-GENERATED: mode_requirements_fixed_wing_auto_takeoff -->
+
+### Mode Requirements
+
+The following requirements must be met to arm in this mode, or to switch to this mode when it is armed.
+
+- [`mode_req_angular_velocity`](../flight_modes/mode_requirements.md#mode_req_angular_velocity) — Angular velocity
+- [`mode_req_attitude`](../flight_modes/mode_requirements.md#mode_req_attitude) — Attitude/pose
+- [`mode_req_local_alt`](../flight_modes/mode_requirements.md#mode_req_local_alt) — Local altitude relative to EKF2 origin ('0') position
+
+<!-- END AUTO-GENERATED: mode_requirements_fixed_wing_auto_takeoff -->
+
 ### 매개변수
 
 Parameters that affect both catapult/hand-launch and runway takeoffs:
@@ -123,9 +135,38 @@ The _runway takeoff mode_ has the following phases:
 2. **Clamped to runway**: Pitch fixed, no roll and takeoff path controlled until the rotation airspeed ([RWTO_ROT_AIRSPD](../advanced_config/parameter_reference.md#RWTO_ROT_AIRSPD)) is reached. The operator is able to nudge the vehicle left/right via yaw stick.
 3. **Climbout**: Increase pitch setpoint and climb to takeoff altitude. To prevent wingstrikes, the controller will keep the roll setpoint locked to 0 when close to the ground, and then gradually allow more roll while climbing. It is based on the vehicle geometry as configured in [FW_WING_SPAN](#FW_WING_SPAN) and [FW_WING_HEIGHT](#FW_WING_HEIGHT).
 
+### Wheel Controller {#wheel_controller}
+
+The wheel controller steers the vehicle on the ground using the steerable nose/tail wheel.
+It is enabled with [FW_W_EN](#FW_W_EN) and only runs in automatic modes during runway takeoff and during the landing rollout.
+Whenever it is not active (in all manual modes, or if it is disabled), the yaw stick is mapped directly to the wheel.
+
+The controller is cascaded:
+
+1. **Heading controller**: The heading (yaw) error is converted into a yaw rate setpoint with a fixed time constant of 0.1s, limited to [FW_W_RMAX](#FW_W_RMAX).
+2. **Rate controller**: A P-I-FF controller ([FW_WR_P](#FW_WR_P), [FW_WR_I](#FW_WR_I), [FW_WR_FF](#FW_WR_FF), integrator limited by [FW_WR_IMAX](#FW_WR_IMAX)) turns the yaw rate setpoint into a normalized wheel steering command in the range [-1, 1].
+
+The heading setpoint during the ground roll is the bearing from the takeoff position to the takeoff waypoint, so the nose is kept aligned with the intended runway direction.
+If no navigation reference is available (takeoff without takeoff waypoint), and during the landing rollout, the controller instead holds the heading that was captured at the moment the wheel steering engaged.
+
+![Wheel steering heading setpoint during the ground roll](../../assets/flight_modes/fw_runway_takeoff_wheel_steering.svg)
+
+Operator yaw stick input is added on top of the controller output to "nudge" the vehicle (enabled with [RWTO_NUDGE](#RWTO_NUDGE) for takeoff, and [FW_LND_NUDGE](../advanced_config/parameter_reference.md#FW_LND_NUDGE) for landing).
+
 :::info
-For a smooth takeoff, the runway wheel controller possibly needs to be tuned.
-It consists of a rate controller (P-I-FF-controller with the parameters [FW_WR_P](../advanced_config/parameter_reference.md#FW_WR_P), [FW_WR_I](../advanced_config/parameter_reference.md#FW_WR_I), [FW_WR_FF](../advanced_config/parameter_reference.md#FW_WR_FF)).
+The gains are scaled with groundspeed (using [FW_AIRSPD_STALL](../advanced_config/parameter_reference.md#FW_AIRSPD_STALL) as the reference speed) so that the steering becomes less aggressive as the vehicle accelerates.
+This means the controller should be tuned at low speed, around stall airspeed.
+:::
+
+For a smooth takeoff the wheel controller usually needs to be tuned:
+
+1. Start with [FW_WR_P](#FW_WR_P) and [FW_WR_FF](#FW_WR_FF) only (set [FW_WR_I](#FW_WR_I) to 0) and taxi/roll the vehicle in _Mission mode_ with active Takeoff waypoint item at low speed.
+2. Increase the gains until the vehicle tracks the runway heading without noticeable oscillation of the nose.
+3. Add [FW_WR_I](#FW_WR_I) to remove a remaining constant heading offset (e.g. caused by wheel misalignment or crosswind).
+
+:::warning
+Excessive gains lead to oscillations of the nose during the ground roll, which can quickly become dangerous at higher groundspeed.
+Always test with increasing speed step by step.
 :::
 
 ### Parameters (Runway Takeoff)
@@ -144,6 +185,19 @@ Runway takeoff is affected by the following parameters:
 | <a id="RWTO_NUDGE"></a>[RWTO_NUDGE](../advanced_config/parameter_reference.md#RWTO_NUDGE)                                     | Enable wheel controller nudging while on the runway                                                                                                                                                                          |
 | <a id="FW_WING_SPAN"></a>[FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)          | The wingspan of the vehicle. Used to prevent wingstrikes.                                                                                                                                    |
 | <a id="FW_WING_HEIGHT"></a>[FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT)    | The height of the wings above ground (ground clearance). Used to prevent wingstrikes.                                                                                     |
+
+### Parameters (Wheel Controller)
+
+The [wheel controller](#wheel_controller) is affected by the following parameters:
+
+| Parameter                                                                                                                           | 설명                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [FW_W_EN](#FW_W_EN)                                                                       | Enable wheel controller                                                                 |
+| <a id="FW_W_RMAX"></a>[FW_W_RMAX](../advanced_config/parameter_reference.md#FW_W_RMAX)    | Maximum yaw rate setpoint the heading controller outputs                                |
+| <a id="FW_WR_P"></a>[FW_WR_P](../advanced_config/parameter_reference.md#FW_WR_P)          | Yaw rate controller proportional gain                                                   |
+| <a id="FW_WR_I"></a>[FW_WR_I](../advanced_config/parameter_reference.md#FW_WR_I)          | Yaw rate controller integrator gain (trims a constant heading error) |
+| <a id="FW_WR_IMAX"></a>[FW_WR_IMAX](../advanced_config/parameter_reference.md#FW_WR_IMAX) | Yaw rate controller integrator limit                                                    |
+| <a id="FW_WR_FF"></a>[FW_WR_FF](../advanced_config/parameter_reference.md#FW_WR_FF)       | Yaw rate controller feed forward gain                                                   |
 
 ## See Also
 

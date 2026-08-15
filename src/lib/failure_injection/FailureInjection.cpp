@@ -33,6 +33,12 @@
 
 #include "FailureInjection.hpp"
 
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
+#include <parameters/param.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_gps.h>
+
 namespace failure_injection
 {
 
@@ -76,4 +82,74 @@ Mode Config::mode(uint8_t unit, uint8_t instance) const
 	return Mode::Ok;
 }
 
+void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status)
+{
+	if (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY, instance) != Mode::Off) {
+		return;
+	}
+
+	// Report a depleted pack so the low-battery failsafe triggers.
+	battery_status.remaining = 0.f;
+	battery_status.warning = battery_status_s::WARNING_EMERGENCY;
+}
+
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
+		  Stuck<sensor_gps_s> &stuck)
+{
+	const Mode mode = config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, uorb_instance + 1);
+
+	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
+	// uncorrupted sample and a later Stuck replays a healthy fix.
+	if (!process(mode, sensor_gps, stuck)) {
+		return false;
+	}
+
+	if (mode == Mode::Wrong) {
+		static const param_t fix_type_handle = param_find("SYS_FAIL_GPS_WRG");
+
+		int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+		param_get(fix_type_handle, &fix_type);
+		sensor_gps.fix_type = (uint8_t)fix_type;
+	}
+
+	return true;
+}
+
+esc_status_s process_esc(const Config &config, const esc_status_s &status)
+{
+	esc_status_s result = status;
+
+	for (int i = 0; i < result.esc_count && i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		const uint8_t function = result.esc[i].actuator_function;
+
+		if (function < esc_report_s::ACTUATOR_FUNCTION_MOTOR1 || function > esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX) {
+			continue; // not a motor output
+		}
+
+		const uint8_t instance = function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 1; // 1-based ESC instance
+
+		switch (config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_ESC, instance)) {
+		case Mode::Off:
+			result.esc_online_flags &= ~(1u << i);
+			result.esc_armed_flags &= ~(1u << i);
+			result.esc[i] = esc_report_s{};
+			result.esc[i].actuator_function = function;
+			break;
+
+		case Mode::Wrong:
+			result.esc[i].esc_voltage *= 0.1f;
+			result.esc[i].esc_current *= 0.1f;
+			result.esc[i].esc_rpm *= 10;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return result;
+}
+
 } // namespace failure_injection
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER

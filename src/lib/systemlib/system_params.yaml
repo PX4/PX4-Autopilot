@@ -24,6 +24,14 @@ parameters:
         0: Keep parameters
         1: Reset parameters to airframe defaults
       default: 0
+    SYS_AUTOCFG_CAL:
+      description:
+        short: Sensor calibration in SYS_AUTOCONFIG reset
+        long: |-
+          If enabled, a SYS_AUTOCONFIG reset overwrites stored sensor calibration with the airframe's built-in defaults.
+          Enable when the airframe ships its own calibration.
+      type: boolean
+      default: 0
     SYS_HITL:
       description:
         short: Enable HITL/SIH mode on next boot
@@ -232,4 +240,19 @@ parameters:
           - If it does not come back, check the file bootlog.txt on the SD card
       type: boolean
       default: 0
+      reboot_required: true
+    SYS_TIME_SRC:
+      description:
+        short: Select the source of the system time.
+        long: |-
+          This parameter selects the source allowed to set the system time.
+          The default value enables all sources.
+      type: bitmask
+      bit:
+        0: GPS time
+        1: MAVLink time
+        2: Software RTC time
+        3: DDS time
+        4: Input simulation time
+      default: 31
       reboot_required: true

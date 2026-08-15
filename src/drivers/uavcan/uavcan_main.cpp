@@ -58,6 +58,7 @@
 #include <uORB/topics/esc_status.h>
 
 #include <drivers/drv_hrt.h>
+#include <mathlib/math/Functions.hpp>
 
 #include "uavcan_module.hpp"
 #include "uavcan_main.hpp"
@@ -751,11 +752,42 @@ UavcanNode::Run()
 		_node_info_retriever.invalidateAll();
 	}
 
+	// propagate armed state to firmware version checker
+	if (_actuator_armed_sub.updated() && _servers != nullptr) {
+		actuator_armed_s actuator_armed{};
+		_actuator_armed_sub.copy(&actuator_armed);
+		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
+	}
+
+	if (_servers != nullptr) {
+		_servers->warn_if_node_id_allocation_table_full();
+	}
+
+#ifdef CONFIG_MODULES_NFS_MOUNT
+
+	if (_servers != nullptr) {
+		_servers->check_nfs();
+	}
+
+#endif
+
 	_node.spinOnce(); // expected to be non-blocking
 
 	publish_can_interface_statuses();
 
 	publish_node_statuses();
+
+	if (_servers != nullptr) {
+		const bool pending = _servers->hasPendingFirmwareUpdates();
+
+		if (pending != _fw_update_pending_last) {
+			_fw_update_pending_last = pending;
+			uavcan_firmware_update_s fw_update{};
+			fw_update.timestamp = hrt_absolute_time();
+			fw_update.pending_updates = pending;
+			_fw_update_pub.publish(fw_update);
+		}
+	}
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -1102,6 +1134,22 @@ bool UavcanMixingInterfaceESC::updateOutputs(float outputs[MAX_ACTUATORS], unsig
 			if (mixingOutput().isFunctionSet(i)) {
 				output_array_size = i + 1;
 				break;
+			}
+		}
+
+		// Reversible motors: send reverse as a signed RawCommand (negative = reverse). Encoded in
+		// place so actuator_outputs reflects the actual wire value sent to the ESC. Done here rather
+		// than via minValue()/maxValue() (as DShot does for its 3D range) because those are uint16_t
+		// and can't hold the negative bound a signed RawCommand would need.
+		const uint32_t reversible = mixingOutput().reversibleOutputs();
+
+		for (unsigned i = 0; i < output_array_size; i++) {
+			// Encode armed outputs only; a stopped channel sits at the disarmed value and must
+			// not be inverted to full reverse (the disarmed < min invariant is not guaranteed).
+			if ((reversible & (1u << i)) && outputs[i] > (float)mixingOutput().disarmedValue(i)) {
+				const float min_i = (float)mixingOutput().minValue(i);
+				const float max_i = (float)mixingOutput().maxValue(i);
+				outputs[i] = math::interpolate(outputs[i], min_i, max_i, -max_i, max_i);
 			}
 		}
 

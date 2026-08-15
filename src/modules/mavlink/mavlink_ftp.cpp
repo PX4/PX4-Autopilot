@@ -1079,6 +1079,7 @@ void MavlinkFTP::send()
 		payload->opcode = kRspAck;
 		payload->req_opcode = kCmdBurstReadFile;
 		payload->offset = _session_info.stream_offset;
+		payload->burst_complete = false;
 		_session_info.stream_seq_number++;
 
 		PX4_DEBUG("stream send: offset %" PRIu32, _session_info.stream_offset);
@@ -1137,7 +1138,6 @@ void MavlinkFTP::send()
 
 			} else {
 				more_data = true;
-				payload->burst_complete = false;
 				max_bytes_to_send -= get_size();
 			}
 		}

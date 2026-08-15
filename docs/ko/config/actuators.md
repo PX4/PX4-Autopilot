@@ -132,7 +132,9 @@ If bidiectional motors are used, make sure to select the **Reversible** checkbox
 
 ![Reversible](../../assets/config/actuators/qgc_geometry_reversible_marked.png)
 
-Note that you will need to also ensure that the ESC associated with bidirectional motors is configured appropriately (e.g. 3D mode enabled for DShot ESCs, which can be achieved via [DShot commands](../peripherals/dshot.md#commands)).
+Note that you will also need to ensure that the ESC associated with bidirectional motors is configured appropriately.
+For DShot ESC you will need to enable 3D mode using [DShot commands](../peripherals/dshot.md#commands).
+For DroneCAN ESC you will need [firmware that supports reversal](../dronecan/escs.md#reversible-motors) and an appropriate configuration.
 
 ### 조종면 지오메트리
 

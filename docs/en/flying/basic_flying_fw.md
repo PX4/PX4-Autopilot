@@ -41,7 +41,7 @@ We recommend using with the automatic modes instead, especially for inexperience
 :::
 
 [Stabilized mode](../flight_modes_fw/stabilized.md), [Acro mode](../flight_modes_fw/acro.md) or [Manual mode](../flight_modes_fw/manual.md) mode are recommended for manual takeoff.
-[Position mode](../flight_modes_fw/position.md) and [Altitude mode](../flight_modes_fw/altitude.md) can also be used, but it is important to accelerate the vehicle sufficiently before bringing them airborne — strong thrust if hand-launched, long runway phase for runway takeoff (this is required because the controller in these modes can prioritize airspeed over altitude tracking).
+[Cruise mode](../flight_modes_fw/cruise.md) and [Altitude mode](../flight_modes_fw/altitude.md) can also be used, but it is important to accelerate the vehicle sufficiently before bringing them airborne — strong thrust if hand-launched, long runway phase for runway takeoff (this is required because the controller in these modes can prioritize airspeed over altitude tracking).
 
 Manual takeoffs with hand-launched planes:
 
@@ -106,7 +106,7 @@ The following three modes are highly recommended for new users:
 
 - [Stabilized Mode](../flight_modes_fw/stabilized.md) - Vehicle hard to flip, and will level-out if the sticks are released (but not hold position)
 - [Altitude Mode)](../flight_modes_fw/altitude.md) - Climb and drop are controlled to have a maximum rate.
-- [Position Mode](../flight_modes_fw/position.md) - When sticks are released the vehicle will stop (and hold position against wind drift)
+- [Cruise Mode](../flight_modes_fw/cruise.md) - When sticks are released the vehicle will stop (and hold position against wind drift)
 
 ::: info
 You can also engage automatic modes through the _QGroundControl_ main flight screen.

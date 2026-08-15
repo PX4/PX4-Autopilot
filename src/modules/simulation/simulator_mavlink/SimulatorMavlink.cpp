@@ -169,7 +169,8 @@ void SimulatorMavlink::send_esc_telemetry(mavlink_hil_actuator_controls_t hil_ac
 	esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
 	esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
 
-	_esc_status_pub.publish(esc_status);
+	// _failure_config refreshed in updateFailureConfig(), called each loop before send_controls()
+	_esc_status_pub.publish(failure_injection::process_esc(_failure_config, esc_status));
 }
 
 void SimulatorMavlink::send_controls()
@@ -214,32 +215,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 			_px4_accel[sensors.id].set_scale(ACCEL_FIFO_SCALE);
 			_px4_accel[sensors.id].set_range(ACCEL_FIFO_RANGE);
+			_px4_accel[sensors.id].set_temperature(_sensors_temperature);
 
-			if (_accel_stuck[sensors.id]) {
-				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
+			sensor_accel_fifo_s accel_fifo{};
+			accel_fifo.samples = 1;
+			accel_fifo.dt = time - _last_accel_fifo_timestamp;
+			accel_fifo.timestamp_sample = time;
+			accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
+			accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
+			accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
+			_last_accel_fifo_timestamp = time;
 
-			} else if (!_accel_blocked[sensors.id]) {
-				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
-
-				_last_accel_fifo.samples = 1;
-				_last_accel_fifo.dt = time - _last_accel_fifo.timestamp_sample;
-				_last_accel_fifo.timestamp_sample = time;
-				_last_accel_fifo.x[0] = sensors.xacc / ACCEL_FIFO_SCALE;
-				_last_accel_fifo.y[0] = sensors.yacc / ACCEL_FIFO_SCALE;
-				_last_accel_fifo.z[0] = sensors.zacc / ACCEL_FIFO_SCALE;
-
-				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
-			}
+			_px4_accel[sensors.id].updateFIFO(accel_fifo);
 
 		} else {
-			if (_accel_stuck[sensors.id]) {
-				_px4_accel[sensors.id].update(time, _last_accel[sensors.id](0), _last_accel[sensors.id](1), _last_accel[sensors.id](2));
-
-			} else if (!_accel_blocked[sensors.id]) {
-				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
-				_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
-				_last_accel[sensors.id] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
-			}
+			_px4_accel[sensors.id].set_temperature(_sensors_temperature);
+			_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 		}
 	}
 
@@ -257,32 +248,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 			_px4_gyro[sensors.id].set_scale(GYRO_FIFO_SCALE);
 			_px4_gyro[sensors.id].set_range(GYRO_FIFO_RANGE);
+			_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
 
-			if (_gyro_stuck[sensors.id]) {
-				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
+			sensor_gyro_fifo_s gyro_fifo{};
+			gyro_fifo.samples = 1;
+			gyro_fifo.dt = time - _last_gyro_fifo_timestamp;
+			gyro_fifo.timestamp_sample = time;
+			gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
+			gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
+			gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
+			_last_gyro_fifo_timestamp = time;
 
-			} else if (!_gyro_blocked[sensors.id]) {
-				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
-
-				_last_gyro_fifo.samples = 1;
-				_last_gyro_fifo.dt = time - _last_gyro_fifo.timestamp_sample;
-				_last_gyro_fifo.timestamp_sample = time;
-				_last_gyro_fifo.x[0] = sensors.xgyro / GYRO_FIFO_SCALE;
-				_last_gyro_fifo.y[0] = sensors.ygyro / GYRO_FIFO_SCALE;
-				_last_gyro_fifo.z[0] = sensors.zgyro / GYRO_FIFO_SCALE;
-
-				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
-			}
+			_px4_gyro[sensors.id].updateFIFO(gyro_fifo);
 
 		} else {
-			if (_gyro_stuck[sensors.id]) {
-				_px4_gyro[sensors.id].update(time, _last_gyro[sensors.id](0), _last_gyro[sensors.id](1), _last_gyro[sensors.id](2));
-
-			} else if (!_gyro_blocked[sensors.id]) {
-				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
-				_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
-				_last_gyro[sensors.id] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
-			}
+			_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
+			_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 		}
 	}
 
@@ -293,16 +274,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			return;
 		}
 
-		if (_mag_stuck[sensors.id]) {
-			_px4_mag[sensors.id].update(time, _last_magx[sensors.id], _last_magy[sensors.id], _last_magz[sensors.id]);
-
-		} else if (!_mag_blocked[sensors.id]) {
-			_px4_mag[sensors.id].set_temperature(_sensors_temperature);
-			_px4_mag[sensors.id].update(time, sensors.xmag, sensors.ymag, sensors.zmag);
-			_last_magx[sensors.id] = sensors.xmag;
-			_last_magy[sensors.id] = sensors.ymag;
-			_last_magz[sensors.id] = sensors.zmag;
-		}
+		_px4_mag[sensors.id].set_temperature(_sensors_temperature);
+		_px4_mag[sensors.id].update(time, sensors.xmag, sensors.ymag, sensors.zmag);
 	}
 
 	// baro
@@ -312,16 +285,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			return;
 		}
 
-		if (_baro_stuck[sensors.id]) {
-			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
-			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
-
-		} else if (!_baro_blocked[sensors.id]) {
-			_last_baro_pressure[sensors.id] = sensors.abs_pressure * 100.f; // hPa to Pa
-			_last_baro_temperature[sensors.id] = sensors.temperature;
-			_px4_baro[sensors.id].set_temperature(_last_baro_temperature[sensors.id]);
-			_px4_baro[sensors.id].update(time, _last_baro_pressure[sensors.id]);
-		}
+		_px4_baro[sensors.id].set_temperature(sensors.temperature);
+		_px4_baro[sensors.id].update(time, sensors.abs_pressure * 100.f); // hPa to Pa
 	}
 
 	// differential pressure
@@ -426,99 +391,87 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	if (!_gps_blocked) {
-		sensor_gps_s gps{};
+	sensor_gps_s gps{};
 
-		if (!_gps_stuck) {
-			if (!_gps_wrong) {
-				gps.latitude_deg = hil_gps.lat / 1e7;
-				gps.longitude_deg = hil_gps.lon / 1e7;
-				gps.altitude_msl_m = hil_gps.alt / 1e3;
-				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
+	gps.latitude_deg = hil_gps.lat / 1e7;
+	gps.longitude_deg = hil_gps.lon / 1e7;
+	gps.altitude_msl_m = hil_gps.alt / 1e3;
+	gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
 
-			} else {
-				gps.latitude_deg = hil_gps.lat / 1e7 + 1.0;
-				gps.longitude_deg = hil_gps.lon / 1e7 + 1.0;
-				gps.altitude_msl_m = hil_gps.alt / 1e3 + 100.0;
-				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3 - 100.0;
-			}
+	gps.s_variance_m_s = 0.25f;
+	gps.c_variance_rad = 0.5f;
+	gps.fix_type = hil_gps.fix_type;
 
-			gps.s_variance_m_s = 0.25f;
-			gps.c_variance_rad = 0.5f;
-			gps.fix_type = hil_gps.fix_type;
+	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-			gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
-			gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+	gps.hdop = 0; // TODO
+	gps.vdop = 0; // TODO
 
-			gps.hdop = 0; // TODO
-			gps.vdop = 0; // TODO
+	gps.noise_per_ms = 0;
+	gps.automatic_gain_control = 0;
+	gps.jamming_indicator = 0;
+	gps.jamming_state = 0;
+	gps.spoofing_state = 0;
 
-			gps.noise_per_ms = 0;
-			gps.automatic_gain_control = 0;
-			gps.jamming_indicator = 0;
-			gps.jamming_state = 0;
-			gps.spoofing_state = 0;
+	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
 
-			if (!_gps_wrong) {
-				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+	gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+	gps.vel_ned_valid = true;
 
-			} else {
-				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f - 1.f; // cm/s -> m/s
-				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f + 5.f; // cm/s -> m/s
-				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f - 8.f; // cm/s -> m/s
-				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f + 2.f; // cm/s -> m/s
-			}
+	gps.timestamp_time_relative = 0;
+	gps.time_utc_usec = hil_gps.time_usec;
 
-			gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
-			gps.vel_ned_valid = true;
+	gps.satellites_used = hil_gps.satellites_visible;
 
-			gps.timestamp_time_relative = 0;
-			gps.time_utc_usec = hil_gps.time_usec;
+	gps.heading = NAN;
+	gps.heading_offset = NAN;
 
-			gps.satellites_used = hil_gps.satellites_visible;
+	gps.timestamp = hrt_absolute_time();
 
-			gps.heading = NAN;
-			gps.heading_offset = NAN;
+	// Resolve the uORB instance for this HIL_GPS id first, so the failure injection state can be
+	// kept per instance. New publishers are created based on the HIL_GPS ID's being different or not.
+	int instance = -1;
 
-			_gps_prev = gps;
-
-		} else {
-			gps = _gps_prev;
+	for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
+		if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
+			instance = i;
+			break;
 		}
 
-		gps.timestamp = hrt_absolute_time();
-
-		// New publishers will be created based on the HIL_GPS ID's being different or not
-		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
-			if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
-				_sensor_gps_pubs[i]->publish(gps);
-				break;
-			}
+		if (_sensor_gps_pubs[i] == nullptr) {
+			_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
 
 			if (_sensor_gps_pubs[i] == nullptr) {
-				_sensor_gps_pubs[i] = new uORB::PublicationMulti<sensor_gps_s> {ORB_ID(sensor_gps)};
-
-				if (_sensor_gps_pubs[i] == nullptr) {
-					break;
-				}
-
-				_gps_ids[i] = hil_gps.id;
-
-				device::Device::DeviceId device_id;
-				device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-				device_id.devid_s.bus = 0;
-				device_id.devid_s.address = i;
-				device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-				gps.device_id = device_id.devid;
-
-				_sensor_gps_pubs[i]->publish(gps);
-				break;
+				return;
 			}
+
+			_gps_ids[i] = hil_gps.id;
+
+			device::Device::DeviceId device_id;
+			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+			device_id.devid_s.bus = 0;
+			device_id.devid_s.address = i;
+			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+			gps.device_id = device_id.devid;
+
+			instance = i;
+			break;
 		}
 	}
+
+	if (instance < 0) {
+		return;
+	}
+
+	if (!failure_injection::process_gnss(_failure_config, (uint8_t)instance, gps, _gps_stuck[instance])) {
+		return;
+	}
+
+	_sensor_gps_pubs[instance]->publish(gps);
 }
 
 void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
@@ -1497,35 +1450,6 @@ void SimulatorMavlink::run()
 void SimulatorMavlink::updateFailureConfig()
 {
 	_failure_config.update();
-
-	for (int i = 0; i < ACCEL_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, i + 1);
-		_accel_blocked[i] = (mode == failure_injection::Mode::Off);
-		_accel_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, i + 1);
-		_gyro_blocked[i] = (mode == failure_injection::Mode::Off);
-		_gyro_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	for (int i = 0; i < MAG_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_MAG, i + 1);
-		_mag_blocked[i] = (mode == failure_injection::Mode::Off);
-		_mag_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	for (int i = 0; i < BARO_COUNT_MAX; i++) {
-		const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, i + 1);
-		_baro_blocked[i] = (mode == failure_injection::Mode::Off);
-		_baro_stuck[i] = (mode == failure_injection::Mode::Stuck);
-	}
-
-	const failure_injection::Mode gps_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, 1);
-	_gps_blocked = (gps_mode == failure_injection::Mode::Off);
-	_gps_stuck = (gps_mode == failure_injection::Mode::Stuck);
-	_gps_wrong = (gps_mode == failure_injection::Mode::Wrong);
 
 	const failure_injection::Mode airspeed_mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1);
 	_airspeed_disconnected = (airspeed_mode == failure_injection::Mode::Off);

@@ -55,7 +55,7 @@ class Navigator;
 class RtlDirectMissionLand : public RtlBase
 {
 public:
-	RtlDirectMissionLand(Navigator *navigator);
+	RtlDirectMissionLand(Navigator *navigator, const mission_s &mission);
 	~RtlDirectMissionLand() = default;
 
 	void on_activation() override;
@@ -83,6 +83,7 @@ private:
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
+	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 
 	RtlTimeEstimator _rtl_time_estimator;
 };

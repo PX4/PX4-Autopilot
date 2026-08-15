@@ -118,7 +118,7 @@ This ensures that stale logs from a different time mode are cleaned up before cu
 ## File size limitations
 
 The maximum file size depends on the file system and OS.
-The size limit on NuttX is currently around 2GB.
+The size limit on NuttX is currently around 4GB.
 
 ## Dropouts
 

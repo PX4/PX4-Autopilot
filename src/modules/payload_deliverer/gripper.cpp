@@ -36,7 +36,7 @@
 void Gripper::init(const GripperConfig &config)
 {
 	switch (config.type) {
-	case GripperConfig::GripperType::SERVO:
+	case GripperConfig::GripperType::GRAB_RELEASE:
 		break;
 
 	case GripperConfig::GripperType::UNDEFINED:

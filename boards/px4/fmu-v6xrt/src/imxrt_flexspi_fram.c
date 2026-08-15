@@ -26,9 +26,11 @@
 
 #include <stdbool.h>
 #include <errno.h>
+#include <string.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/mutex.h>
 #include <nuttx/signal.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/mtd/mtd.h>
@@ -111,6 +113,12 @@ struct imxrt_flexspi_fram_dev_s {
 	uint8_t *ahb_base;
 	enum flexspi_port_e port;
 	struct flexspi_device_config_s *config;
+	mutex_t lock;                    /* Serializes access to page_buffer */
+	/* Bounce buffer for callers that pass a non word-aligned buffer. Kept
+	 * here rather than on the stack so that write() on this device does not
+	 * add a page worth of stack usage to every caller.
+	 */
+	uint32_t page_buffer[FRAM_PAGE_SIZE / sizeof(uint32_t)];
 };
 
 /****************************************************************************
@@ -178,7 +186,8 @@ static struct imxrt_flexspi_fram_dev_s g_flexspi_nor = {
 	.flexspi = (void *)0,
 	.ahb_base = (uint8_t *) IMXRT_FLEXSPI2_CIPHER_BASE,
 	.port = FLEXSPI_PORT_A1,
-	.config = &g_flexspi_device_config
+	.config = &g_flexspi_device_config,
+	.lock = NXMUTEX_INITIALIZER
 };
 
 /****************************************************************************
@@ -488,23 +497,50 @@ static ssize_t imxrt_flexspi_fram_bwrite(struct mtd_dev_s *dev,
 		(struct imxrt_flexspi_fram_dev_s *)dev;
 	size_t len = nblocks * FRAM_PAGE_SIZE;
 	off_t offset = startblock * FRAM_PAGE_SIZE;
-	uint8_t *src = (uint8_t *) buffer;
+	const uint8_t *src = (const uint8_t *) buffer;
 #ifdef CONFIG_ARMV7M_DCACHE
 	uint8_t *dst = priv->ahb_base + startblock * FRAM_PAGE_SIZE;
 #endif
 	int i;
+	int ret;
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
+	/* priv->page_buffer is shared, and the partitions layered on this device
+	 * do not serialize their callers.
+	 */
+
+	ret = nxmutex_lock(&priv->lock);
+
+	if (ret < 0) {
+		return ret;
+	}
+
 	while (len) {
+		const uint8_t *page_src = src;
 		i = MIN(FRAM_PAGE_SIZE, len);
+
+		/* imxrt_flexspi_fram_page_program() casts this buffer to uint32_t *
+		 * and imxrt_flexspi_write_blocking() reads through it one word at a
+		 * time, but the MTD interface makes no alignment guarantee and the
+		 * block layer above does pass byte-aligned buffers. Copy the page to
+		 * a word-aligned buffer when needed.
+		 */
+		if (((uintptr_t)src & 3u) != 0u) {
+			memcpy(priv->page_buffer, src, i);
+			page_src = (const uint8_t *)priv->page_buffer;
+		}
+
 		imxrt_flexspi_fram_write_enable(priv);
-		imxrt_flexspi_fram_page_program(priv, offset, src, i);
+		imxrt_flexspi_fram_page_program(priv, offset, page_src, i);
 		imxrt_flexspi_fram_wait_bus_busy(priv);
 		FLEXSPI_SOFTWARE_RESET(priv->flexspi);
 		offset += i;
+		src += i;
 		len -= i;
 	}
+
+	nxmutex_unlock(&priv->lock);
 
 #ifdef CONFIG_ARMV7M_DCACHE
 	up_invalidate_dcache((uintptr_t)dst,

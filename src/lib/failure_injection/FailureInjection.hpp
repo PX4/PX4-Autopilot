@@ -40,7 +40,8 @@
  * topic. Each producer caches it in a Config (update() per loop), looks up the
  * Mode for its (unit, instance), and applies it: process<MsgT>() covers the
  * generic Off (suppress) / Stuck (replay last sample) for single-message
- * producers; value-mutating and multi-instance cases are driver-specific.
+ * producers, the message-less process() the payload-less Off-only units;
+ * value-mutating and multi-instance cases are driver-specific.
  */
 
 #pragma once
@@ -48,7 +49,11 @@
 #include <cstdint>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_injection.h>
+
+struct battery_status_s;
+struct sensor_gps_s;
 
 namespace failure_injection
 {
@@ -63,6 +68,8 @@ enum class Mode : uint8_t {
 	Delayed      = failure_injection_s::FAILURE_TYPE_DELAYED,
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
 };
+
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 
 class Config
 {
@@ -107,6 +114,18 @@ struct Stuck {
 	MsgT value{};
 };
 
+template<typename...>
+using void_t = void;
+
+template<typename T, typename = void>
+struct has_timestamp_sample {
+	static constexpr bool value = false;
+};
+template<typename T>
+struct has_timestamp_sample<T, void_t<decltype(T::timestamp_sample)>> {
+	static constexpr bool value = true;
+};
+
 /**
  * Generic whole-message processor for the Ok / Off / Stuck mechanics, for consumers
  * that publish a single message and want the message-agnostic behaviour.
@@ -124,7 +143,16 @@ bool process(Mode mode, MsgT &msg, Stuck<MsgT> &stuck)
 	case Mode::Stuck:
 		if (stuck.valid) {
 			const uint64_t timestamp = msg.timestamp;
-			msg = stuck.value;
+
+			if constexpr(has_timestamp_sample<MsgT>::value) {
+				const uint64_t timestamp_sample = msg.timestamp_sample;
+				msg = stuck.value;
+				msg.timestamp_sample = timestamp_sample;
+
+			} else {
+				msg = stuck.value;
+			}
+
 			msg.timestamp = timestamp;
 		}
 
@@ -145,5 +173,82 @@ bool process(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &ms
 {
 	return process(config.mode(unit, uorb_instance + 1), msg, stuck);
 }
+
+/**
+ * Message-less variant for producers with no payload to replay (e.g. a heartbeat)
+ *
+ * @return false if the signal must be treated as failed/suppressed (Off), true otherwise.
+ */
+inline bool process(Mode mode)
+{
+	return mode != Mode::Off;
+}
+
+/** Convenience overload, same 0-based to 1-based instance mapping as the generic process(). */
+inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
+{
+	return process(config.mode(unit, uorb_instance + 1));
+}
+
+/**
+ * Battery counterpart to process(): on FAILURE_UNIT_SYSTEM_BATTERY Off for the given 1-based
+ * instance, report a depleted pack (zero remaining, emergency warning) so the low-battery
+ * failsafe triggers. Mutates rather than suppresses, so the pack reads empty not disconnected.
+ */
+void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
+
+/**
+ * GNSS counterpart to process(): on FAILURE_UNIT_SENSOR_GPS for the receiver publishing on the
+ * given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong reports
+ * the fix type selected by SYS_FAIL_GPS_WRG while leaving the position untouched.
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the sensor_gps publication must be suppressed (Off), true otherwise.
+ */
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
+		  Stuck<sensor_gps_s> &stuck);
+
+/**
+ * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
+ * status (matched per ESC by actuator_function). Off zeroes the ESC's telemetry (keeping only
+ * actuator_function) and reports it offline and unarmed; Wrong keeps it online but reports
+ * consistently wrong values. Takes status by const reference and returns the mutated copy so callers
+ * can't accidentally apply it in place to a persistent status, which would compound Wrong across
+ * calls. Call after Config::update().
+ */
+esc_status_s process_esc(const Config &config, const esc_status_s &status);
+
+#else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
+
+class Config
+{
+public:
+	bool update() { return false; }
+	void set(const failure_injection_s &) {}
+	Mode mode(uint8_t, uint8_t) const { return Mode::Ok; }
+	bool any_active() const { return false; }
+};
+
+template<typename MsgT>
+struct Stuck {
+};
+
+template<typename MsgT>
+bool process(Mode, MsgT &, Stuck<MsgT> &) { return true; }
+
+template<typename MsgT>
+bool process(const Config &, uint8_t, uint8_t, MsgT &, Stuck<MsgT> &) { return true; }
+
+inline bool process(Mode) { return true; }
+
+inline bool process(const Config &, uint8_t, uint8_t) { return true; }
+
+inline void process_battery(const Config &, uint8_t, battery_status_s &) {}
+
+inline bool process_gnss(const Config &, uint8_t, sensor_gps_s &, Stuck<sensor_gps_s> &) { return true; }
+
+inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 } // namespace failure_injection

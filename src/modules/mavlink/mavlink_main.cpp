@@ -1572,6 +1572,13 @@ Mavlink::update_rate_mult()
 	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
 }
 
+bool
+Mavlink::radio_status_critical() const
+{
+	LockGuard lg{_radio_status_mutex};
+	return _radio_status_critical;
+}
+
 void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
@@ -2006,6 +2013,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GLOBAL_POSITION_SENSOR", 10.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
@@ -2073,6 +2083,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", 2.0f);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
+#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+		configure_stream_local("ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f);
+#endif
 		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
 		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
 		configure_stream_local("GLOBAL_POSITION_SENSOR", 2.0f);
@@ -3321,18 +3334,26 @@ Mavlink::display_status()
 	printf("\tmavlink chan: #%u\n", static_cast<unsigned>(_channel));
 
 	if (_tstatus.timestamp > 0) {
+		radio_status_s radio_status{};
+		bool radio_status_available = false;
+
+		{
+			LockGuard lg{_radio_status_mutex};
+			radio_status_available = _radio_status_available;
+			radio_status = _rstatus;
+		}
 
 		printf("\ttype:\t\t");
 
-		if (_radio_status_available) {
+		if (radio_status_available) {
 			printf("RADIO Link\n");
-			printf("\t  rssi:\t\t%" PRIu8 "\n", _rstatus.rssi);
-			printf("\t  remote rssi:\t%" PRIu8 "\n", _rstatus.remote_rssi);
-			printf("\t  txbuf:\t%" PRIu8 "\n", _rstatus.txbuf);
-			printf("\t  noise:\t%" PRIu8 "\n", _rstatus.noise);
-			printf("\t  remote noise:\t%" PRIu8 "\n", _rstatus.remote_noise);
-			printf("\t  rx errors:\t%" PRIu16 "\n", _rstatus.rxerrors);
-			printf("\t  fixed:\t%" PRIu16 "\n", _rstatus.fix);
+			printf("\t  rssi:\t\t%" PRIu8 "\n", radio_status.rssi);
+			printf("\t  remote rssi:\t%" PRIu8 "\n", radio_status.remote_rssi);
+			printf("\t  txbuf:\t%" PRIu8 "\n", radio_status.txbuf);
+			printf("\t  noise:\t%" PRIu8 "\n", radio_status.noise);
+			printf("\t  remote noise:\t%" PRIu8 "\n", radio_status.remote_noise);
+			printf("\t  rx errors:\t%" PRIu16 "\n", radio_status.rxerrors);
+			printf("\t  fixed:\t%" PRIu16 "\n", radio_status.fix);
 
 		} else if (_tstatus.type == telemetry_status_s::LINK_TYPE_USB) {
 			printf("USB CDC\n");

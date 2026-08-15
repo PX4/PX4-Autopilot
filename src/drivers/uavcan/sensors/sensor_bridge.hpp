@@ -175,5 +175,7 @@ public:
 
 	int8_t get_channel_index_for_node(int node_id);
 
+	int get_orb_instance_for_node(int node_id);
+
 	void print_status() const override;
 };

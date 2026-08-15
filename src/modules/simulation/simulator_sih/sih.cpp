@@ -149,6 +149,22 @@ void Sih::lockstep_loop()
 
 		} else {
 			px4_lockstep_wait_for_components();
+
+			// Wait for the control pipeline to produce new actuator outputs.
+			// Without this, under CPU load the controllers may not run between
+			// SIH iterations, causing stale actuator data and sluggish response.
+			uint64_t wait_start_us = micros();
+			constexpr uint64_t actuator_wait_timeout_us = 10'000'000; // 10s wall time
+
+			while (!_actuator_out_sub.updated() && !should_exit()) {
+				if (micros() - wait_start_us > actuator_wait_timeout_us) {
+					PX4_WARN("SIH lockstep: timed out waiting for actuator_outputs_sim");
+					break;
+				}
+
+				usleep(100);
+			}
+
 			current_wall_time_us = micros();
 			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 		}
@@ -191,6 +207,20 @@ void Sih::realtime_loop()
 	px4_sem_destroy(&_data_semaphore);
 }
 
+void Sih::updateFailureConfig()
+{
+	_failure_config.update();
+
+	_airspeed_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1)
+			     == failure_injection::Mode::Off);
+	_distance_sensor_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, 1)
+				    == failure_injection::Mode::Off);
+	_accel_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, 1)
+			  == failure_injection::Mode::Off);
+	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
+			 == failure_injection::Mode::Off);
+}
+
 void Sih::sensor_step()
 {
 	// check for parameter updates
@@ -203,6 +233,8 @@ void Sih::sensor_step()
 		updateParams();
 		parameters_updated();
 	}
+
+	updateFailureConfig();
 
 	perf_begin(_loop_perf);
 
@@ -300,7 +332,7 @@ void Sih::parameters_updated()
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
-
+		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
 		_q_E.normalize();
 	}
@@ -405,7 +437,7 @@ void Sih::publish_esc_status()
 		_esc_status.esc_armed_flags = (1u << motor_idx) - 1;
 	}
 
-	_esc_status_pub.publish(_esc_status);
+	_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
 }
 
 void Sih::generate_force_and_torques(const float dt)
@@ -434,7 +466,7 @@ void Sih::generate_force_and_torques(const float dt)
 		float u_sq[6];
 
 		for (int i = 0; i < 6; ++i) {
-			u_sq[i] = _u[i] * _u[i]; // quadratic thrust model, keep _u[i] intact for the filter
+			u_sq[i] = _u[i] * fabsf(_u[i]);
 		}
 
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+u_sq[0] + u_sq[1] + u_sq[2] + u_sq[3] + u_sq[4] + u_sq[5]));
@@ -698,7 +730,7 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f accel_noise;
 	Vector3f gyro_noise;
 
-	if (_T_B.longerThan(FLT_EPSILON)) {
+	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
 		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
 		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
 
@@ -715,19 +747,28 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
 	// update IMU every iteration
-	_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
-	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	if (!_accel_blocked) {
+		_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
+	}
+
+	if (!_gyro_blocked) {
+		_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	}
 }
 
 void Sih::send_airspeed(const hrt_abstime &time_now_us)
 {
+	if (_airspeed_blocked) {
+		return;
+	}
+
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// pitot tube measures forward (body-x) airspeed
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_apparent_B(0) + generate_wgn() * 0.2f);
+	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
@@ -736,6 +777,10 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
+	if (_distance_sensor_blocked) {
+		return;
+	}
+
 	float current_distance;
 
 	if (_distance_snsr_override >= 0.f) {

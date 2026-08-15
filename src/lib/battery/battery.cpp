@@ -208,7 +208,13 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 {
 	updateBatteryStatus(timestamp);
-	publishBatteryStatus(getBatteryStatus());
+
+	battery_status_s battery_status = getBatteryStatus();
+
+	_failure_config.update();
+	failure_injection::process_battery(_failure_config, battery_status.id, battery_status);
+
+	publishBatteryStatus(battery_status);
 }
 void Battery::updateDt(const hrt_abstime &timestamp)
 {

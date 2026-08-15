@@ -155,7 +155,7 @@ __EXPORT extern int up_bdshot_num_errors(uint8_t channel);
  * Get bidrectional dshot erpm for a channel
  * @param channel	Dshot channel
  * @param erpm		pointer to write the erpm value
- * @return <0 on error, OK on succes
+ * @return <0 on error, OK on success
  */
 __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
 
@@ -164,7 +164,7 @@ __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
  * @param channel	Dshot channel
  * @param type		The type of telemetry value to get
  * @param value		pointer to write the telemetry value
- * @return <0 on error, OK on succes
+ * @return <0 on error, OK on success
  */
 __EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value);
 

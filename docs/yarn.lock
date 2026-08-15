@@ -1211,9 +1211,9 @@ line-column-path@^3.0.0:
     type-fest "^2.0.0"
 
 linkify-it@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/linkify-it/-/linkify-it-5.0.1.tgz#10c4cecbb5c6828eabf81d3c801adc4a542dfb55"
-  integrity sha512-wVoTjP4Q6R0NW5hiZkVJaFZPWgtXfoGF+6LucL3/FtiNjmcHhYjEr5f1Kqjirc1nBW07J/ZuRFumqr2oqccEWg==
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/linkify-it/-/linkify-it-5.0.2.tgz#d3be0a693af3da9df3883f1e346a0e97461a8c19"
+  integrity sha512-ONTm2jCMAVZjgQa/Fy1kScXsuOoF5NPTsoFBdE1KVIZ2vAh/r9+Bqo+0jINCBYnavTPQZz38QzFTme79ENoN3Q==
   dependencies:
     uc.micro "^2.0.0"
 
@@ -1785,10 +1785,10 @@ vitepress@^1.6.3:
     vite "^5.4.14"
     vue "^3.5.13"
 
-vp-dynamic-nav@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.npmjs.org/vp-dynamic-nav/-/vp-dynamic-nav-0.0.3.tgz"
-  integrity sha512-qkDeki7TA21bhA12uiR0kEWZHVqeFusza3/XsGjD75Ht6qUoDOS/+YrCPyw9+6Zm+5/BvzK7j0jpDXPwW20m3g==
+vp-dynamic-nav@0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/vp-dynamic-nav/-/vp-dynamic-nav-0.1.0.tgz#7f0136edfe2c7d2eaa0e8a75b99d8dd5b409e7c5"
+  integrity sha512-AXGT1uYpjngEqtRSVWsJu/8O08uxqyYb84glF31w3ozTlp1TiBWVLELCPKIhj0ukX/x6J7lfaQNDS2R/8DNO9Q==
 
 vue3-tabs-component@^1.3.7:
   version "1.3.7"

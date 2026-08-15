@@ -43,7 +43,8 @@
  *   bits 4–6: params 5–7  (bit 4 = param5, bit 5 = param6, bit 6 = param7)
  *
  * For global-frame MISSION_ITEM_INT, check_params_int_for_vehicle() is used so
- * that p5/p6 are validated as int32 (INT32_MAX = unset) and p7 as float.
+ * that p5/p6 are validated as int32 (INT32_MAX or INT32_MIN = not used) and p7
+ * as float.
  *
  * A secondary VehicleParamOverrides table holds per-airframe additions (e.g.
  * NAV_TAKEOFF pitch angle on FW); use check_params_for_vehicle() for callers
@@ -88,7 +89,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{   31, 0x7B, 0x7B }, // NAV_LOITER_TO_ALT:           p1:hdg,p2:radius,p4:xtrack; p5-7:lat/lon/alt
 	{   80, 0x77, 0x77 }, // NAV_ROI:                     p1:mode,p2:wp_idx,p3:roi_idx; p5-7:lat/lon/alt
 	{   84, 0x78, 0x7C }, // NAV_VTOL_TAKEOFF:            mission:p4:yaw only (p3 unused by mission_block); cmd:p3:approach_hdg,p4:yaw; p5-7:lat/lon/alt
-	{   85, 0x78, 0x7F }, // NAV_VTOL_LAND:               mission:p4:yaw only (p1-3 unused by mission_block); cmd:p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
+	{   85, 0x7C, 0x7F }, // NAV_VTOL_LAND:               mission:p3:approach_alt (QGC sets it; unused by mission_block),p4:yaw; cmd:p1:options,p2:approach_hdg,p3:loiter_r,p4:yaw; p5-7:lat/lon/alt
 	{   93, 0x0F, 0x0F }, // NAV_DELAY:                   p1:delay,p2:hour,p3:min,p4:sec
 	{  112, 0x01, 0x01 }, // CONDITION_DELAY:             p1:seconds
 	{  114, 0x01, 0x01 }, // CONDITION_DISTANCE:          p1:distance
@@ -96,7 +97,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  177, 0x03, 0x03 }, // DO_JUMP:                     p1:index,p2:count
 	{  178, 0x07, 0x07 }, // DO_CHANGE_SPEED:             p1:type,p2:speed,p3:throttle
 	{  179, 0x7F, 0x7F }, // DO_SET_HOME:                 p1:use_current,p2:roll,p3:pitch,p4:yaw; p5-7:lat/lon/alt
-	{  189, 0x00, 0x00 }, // DO_LAND_START:               no params
+	{  189, 0x70, 0x70 }, // DO_LAND_START:               p5-7:lat/lon/alt (optional marker position per spec; QGC sets it)
 	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
 	{  196, 0x01, 0x01 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id
 	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
@@ -105,8 +106,9 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
 	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
 	{  214, 0x07, 0x07 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
+	{  224, 0x00, 0x03 }, // DO_SET_MISSION_CURRENT:      cmd:p1:seq,p2:reset_jump_counters
 	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
-	{  420, 0x07, 0x07 }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance
+	{  420, 0x0F, 0x0F }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance,p4:instance bitmask
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
 	{  532, 0x07, 0x07 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
 	{  534, 0x07, 0x07 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary
@@ -157,10 +159,14 @@ static inline bool param_is_zero(float v)
 	return !std::isnan(v) && (bits & 0x7FFFFFFFu) == 0u;
 }
 
-// INT32_MAX is the MAVLink sentinel for "int32 param not provided".
+// INT32_MAX is the value the MAVLink spec defines to mean "this int32 param is
+// not used". Ground stations also convert unused NaN float params straight into
+// the int32 x/y fields of MISSION_ITEM_INT (QGC does this for camera items in
+// MAV_FRAME_MISSION), and converting NaN to int32 gives INT32_MIN on most
+// hardware — so treat that as "not used" too.
 static inline bool int_param_is_unset(int32_t v)
 {
-	return v == INT32_MAX;
+	return v == INT32_MAX || v == INT32_MIN;
 }
 
 // Vehicle type bitmask for per-vehicle parameter support.
@@ -197,8 +203,9 @@ struct VehicleOverride {
 
 // When adding vehicle-specific param differences, add entries here.
 static constexpr VehicleOverride VehicleParamOverrides[] = {
-	// NAV_TAKEOFF: p1 (minimum pitch angle) is used by FW and VTOL-FW; not applicable to MC.
-	{ 22, VEHICLE_FW | VEHICLE_VTOL, 0x01, 0x01 },
+	// NAV_TAKEOFF: p1 (minimum pitch angle) is used by FW and VTOL-FW; MC ignores it, but
+	// GCS (e.g. QGC) send p1=-1 on MC takeoff, so accept p1 for MC too instead of denying.
+	{ 22, VEHICLE_FW | VEHICLE_VTOL | VEHICLE_MC, 0x01, 0x01 },
 };
 
 // Binary search + vehicle override lookup. Returns the adjusted mask, or -1 if cmd not in table.

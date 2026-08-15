@@ -88,6 +88,16 @@ float SensorBaroSim::generate_wgn()
 	return X;
 }
 
+void SensorBaroSim::updateFailureConfig()
+{
+	_failure_config.update();
+
+	const failure_injection::Mode mode = _failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, 1);
+
+	_baro_blocked = (mode == failure_injection::Mode::Off);
+	_baro_stuck = (mode == failure_injection::Mode::Stuck);
+}
+
 void SensorBaroSim::Run()
 {
 	if (should_exit()) {
@@ -105,6 +115,22 @@ void SensorBaroSim::Run()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+	}
+
+	updateFailureConfig();
+
+	if (_baro_blocked) {
+		perf_end(_loop_perf);
+		return;
+	}
+
+	if (_baro_stuck) {
+		// Publish stuck (last known) values
+		_px4_baro.set_temperature(_last_temperature);
+		_px4_baro.update(hrt_absolute_time(), _last_pressure);
+
+		perf_end(_loop_perf);
+		return;
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
@@ -135,6 +161,10 @@ void SensorBaroSim::Run()
 
 			// calculate temperature in Celsius
 			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
+
+			// Store values for stuck mode
+			_last_pressure = pressure;
+			_last_temperature = temperature;
 
 			// publish
 			_px4_baro.set_temperature(temperature);
