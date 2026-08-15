@@ -66,7 +66,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersCurrentMissionSegment)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 90.f, 10.f, kAlt);
 
@@ -93,7 +93,7 @@ TEST_P(MissionRouteProjectionInvalidIndexTest, RejectsOutOfRangeMissionIndex)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 60.f, kAlt);
 
@@ -135,7 +135,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, ReverseFlightPrefersReverseCurren
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 	config.state.is_flying_reverse = true;
 
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 10.f, kAlt);
@@ -159,7 +159,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	// Set the stored loop anchor to segment [2->0]
 	config.last_flown_loop_segment.start.idx = 2;
@@ -213,7 +213,7 @@ TEST_P(MissionRouteProjectionDatasetTest, SelectsExpectedSegment)
 	const auto mission = scenario.use_corner_dataset ? corner_dataset::mission() : default_dataset::mission();
 	const auto safe_points = scenario.use_corner_dataset ? corner_dataset::safePoints() : default_dataset::safePoints();
 	VectorProvider provider = makeRouteProvider(mission, safe_points);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 	const mission_route::Position vehicle = makePositionAbsolute(scenario.lat, scenario.lon, scenario.alt);
 
 	bool ok = collectVehicleProjection(planner, vehicle, scenario.mission_index, config, ctx, reason);
@@ -253,7 +253,7 @@ TEST_P(MissionRouteProjectionEndpointLocalMinimumTest, ExposesBranchOffAtEndpoin
 {
 	const EndpointLocalMinimumCase &scenario = GetParam();
 	VectorProvider provider = makeRouteProvider(scenario.mission, scenario.safe_points);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 	mission_route::ProjectionContext proj_ctx{};
 
 	ASSERT_TRUE(collectVehicleProjection(planner, scenario.vehicle, scenario.mission_index, config, proj_ctx, reason))
@@ -261,16 +261,16 @@ TEST_P(MissionRouteProjectionEndpointLocalMinimumTest, ExposesBranchOffAtEndpoin
 
 	const mission_route::GoalSelection selection = planner.selectSafePoint(proj_ctx, config);
 
-	ASSERT_TRUE(selection.found);
-	EXPECT_NEAR(selection.branch_off_projection.lat, scenario.expected_projection_lat, kLatLonToleranceDeg);
-	EXPECT_NEAR(selection.branch_off_projection.lon, scenario.expected_projection_lon, kLatLonToleranceDeg);
+	ASSERT_TRUE(selection.found());
+	EXPECT_NEAR(selection.branch_off.projection.lat, scenario.expected_projection_lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(selection.branch_off.projection.lon, scenario.expected_projection_lon, kLatLonToleranceDeg);
 
 	if (scenario.expected_branch_start >= 0) {
-		EXPECT_EQ(selection.branch_off_segment.start.idx, scenario.expected_branch_start);
+		EXPECT_EQ(selection.branch_off.segment.start.idx, scenario.expected_branch_start);
 	}
 
 	if (scenario.expected_branch_end >= 0) {
-		EXPECT_EQ(selection.branch_off_segment.end.idx, scenario.expected_branch_end);
+		EXPECT_EQ(selection.branch_off.segment.end.idx, scenario.expected_branch_end);
 	}
 }
 
@@ -339,7 +339,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, StraightLineIgnoresNonMinCo
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 450.f, 50.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission, safe_points);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 450.f, 0.f, kAlt);
 	mission_route::ProjectionContext proj_ctx{};
@@ -348,9 +348,9 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, StraightLineIgnoresNonMinCo
 	ASSERT_TRUE(ok) << mission_route::failureReasonString(reason);
 	mission_route::GoalSelection selection = planner.selectSafePoint(proj_ctx, config);
 
-	ASSERT_TRUE(selection.found);
-	EXPECT_EQ(selection.branch_off_segment.start.idx, 4);
-	EXPECT_EQ(selection.branch_off_segment.end.idx, 5);
+	ASSERT_TRUE(selection.found());
+	EXPECT_EQ(selection.branch_off.segment.start.idx, 4);
+	EXPECT_EQ(selection.branch_off.segment.end.idx, 5);
 }
 
 // Four side candidates fit into a three-slot buffer by dropping the far side.
@@ -372,7 +372,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, RectangleKeepsThreeClosestS
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 500.f, -50.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission, safe_points);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	config.parameters.vehicle_projection_search_dist = 2000.f;
 	config.parameters.safe_point_projection_search_dist = 2000.f;
@@ -383,13 +383,13 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, RectangleKeepsThreeClosestS
 	ASSERT_TRUE(ok) << mission_route::failureReasonString(reason);
 	mission_route::GoalSelection selection = planner.selectSafePoint(proj_ctx, config);
 
-	ASSERT_TRUE(selection.found);
-	EXPECT_TRUE(selection.safe_point_found);
+	ASSERT_TRUE(selection.found());
+	EXPECT_EQ(selection.goal_type, mission_route::GoalType::kSafePoint);
 	EXPECT_EQ(selection.safe_point_index, 0);
-	EXPECT_EQ(selection.branch_off_segment.start.idx, 3);
-	EXPECT_EQ(selection.branch_off_segment.end.idx, 4);
-	EXPECT_NE(selection.branch_off_segment.start.idx, 1);
-	EXPECT_TRUE(selection.branch_off_projection.valid());
+	EXPECT_EQ(selection.branch_off.segment.start.idx, 3);
+	EXPECT_EQ(selection.branch_off.segment.end.idx, 4);
+	EXPECT_NE(selection.branch_off.segment.start.idx, 1);
+	EXPECT_TRUE(selection.branch_off.projection.valid());
 }
 
 // Duplicate corner waypoints must not evict the real branch-off candidate.
@@ -413,7 +413,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoN
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 250.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission, safe_points);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	config.parameters.vehicle_projection_search_dist = 500.f;
 	config.parameters.safe_point_projection_search_dist = 500.f;
@@ -424,12 +424,11 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoN
 	ASSERT_TRUE(ok) << mission_route::failureReasonString(reason);
 	mission_route::GoalSelection selection = planner.selectSafePoint(proj_ctx, config);
 
-	ASSERT_TRUE(selection.found);
-	EXPECT_TRUE(selection.safe_point_found);
+	ASSERT_TRUE(selection.found());
 	EXPECT_EQ(selection.goal_type, mission_route::GoalType::kSafePoint);
 	EXPECT_EQ(selection.safe_point_index, 0);
-	EXPECT_EQ(selection.branch_off_segment.start.idx, 9);
-	EXPECT_EQ(selection.branch_off_segment.end.idx, 10);
+	EXPECT_EQ(selection.branch_off.segment.start.idx, 9);
+	EXPECT_EQ(selection.branch_off.segment.end.idx, 10);
 }
 
 class MissionRouteProjectionInvalidVehiclePositionTest : public MissionRouteProjectionEdgeCaseTest,
@@ -447,7 +446,7 @@ TEST_P(MissionRouteProjectionInvalidVehiclePositionTest, RejectsInvalidVehiclePo
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	mission_route::Position vehicle{};
 	vehicle.lat = lat;
@@ -482,7 +481,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, SingleWaypointMissionFails)
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	mission_route::Position vehicle = makePositionAbsolute(kBaseLat, kBaseLon, kAlt);
 
@@ -508,7 +507,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 680.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission, safe_points);
-	MissionRoutePlanner planner(provider);
+	MissionRoutePlanner planner(provider, mission_route::sharedProjectionReferenceBatch());
 
 	config.parameters.vehicle_projection_search_dist = 500.f;
 	config.parameters.safe_point_projection_search_dist = 500.f;
@@ -519,11 +518,11 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, ZigzagMissionStressesCandidateBuffer)
 	ASSERT_TRUE(ok) << mission_route::failureReasonString(reason);
 	mission_route::GoalSelection selection = planner.selectSafePoint(proj_ctx, config);
 
-	ASSERT_TRUE(selection.found);
-	EXPECT_TRUE(selection.safe_point_found);
+	ASSERT_TRUE(selection.found());
+	EXPECT_EQ(selection.goal_type, mission_route::GoalType::kSafePoint);
 	EXPECT_EQ(selection.safe_point_index, 0);
-	EXPECT_EQ(selection.branch_off_segment.start.idx, 4);
-	EXPECT_EQ(selection.branch_off_segment.end.idx, 5);
+	EXPECT_EQ(selection.branch_off.segment.start.idx, 4);
+	EXPECT_EQ(selection.branch_off.segment.end.idx, 5);
 }
 
 class MissionRouteProjectionCandidateBufferTestPeer : public mission_route::MissionRouteProjection

@@ -63,11 +63,7 @@ enum class RouteGoalSegmentType : uint8_t {
 	kOnActiveLoopJump
 };
 
-struct GoalSelectionResult {
-	bool success{false};
-	FailureReason failure_reason{FailureReason::kUnknown};
-	GoalSelection selection{};
-};
+using GoalSelectionResult = PlanResult<GoalSelection>;
 
 class MissionRouteGoalSelector
 {

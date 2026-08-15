@@ -152,7 +152,9 @@ bool MissionRouteGoalSelector::uTurnRequired(const ProjectionContext &projection
 		return false;
 	}
 
-	if (!projection_context.velocity_valid || !projection_context.vehicle_vel_ne.isAllFinite()) {
+	const VehicleStateContext &vehicle_state = projection_context.vehicle_state;
+
+	if (!vehicle_state.velocity_valid || !vehicle_state.velocity_ne.isAllFinite()) {
 		return false; // If no velocity, no need for a u-turn
 	}
 
@@ -163,12 +165,12 @@ bool MissionRouteGoalSelector::uTurnRequired(const ProjectionContext &projection
 		return false; // Can't execute a proper u-turn without a desired course
 	}
 
-	if (projection_context.vehicle_vel_ne.norm_squared() <= FLT_EPSILON || desired_course.norm_squared() <= FLT_EPSILON) {
+	if (vehicle_state.velocity_ne.norm_squared() <= FLT_EPSILON || desired_course.norm_squared() <= FLT_EPSILON) {
 		return false;
 	}
 
 	// Velocity opposing the desired course requires a u-turn.
-	return projection_context.vehicle_vel_ne.dot(desired_course) < 0.f;
+	return vehicle_state.velocity_ne.dot(desired_course) < 0.f;
 }
 
 RoutePath MissionRouteGoalSelector::solveShortestRoutePath(float goal_route_along,
@@ -189,12 +191,12 @@ RoutePath MissionRouteGoalSelector::solveShortestRoutePath(float goal_route_alon
 
 	// Choose which segment endpoint becomes the first target for route following.
 	bool choose_item_start = false;
-	const bool direction_change = (projection_context.is_flying_reverse != will_fly_reverse);
+	const bool direction_change = (projection_context.vehicle_state.is_flying_reverse != will_fly_reverse);
 
 	if (!direction_change
 	    && isIndexInProjectionSegment(projection_context.route_projection.segment,
 					  projection_context.mission_index,
-					  projection_context.is_flying_reverse)) {
+					  projection_context.vehicle_state.is_flying_reverse)) {
 
 		// E.g. seg [2,4] where 3 is a front transition, if we're targeting the FT (3),
 		// chose item start (2) to ensure the FT is not skipped
@@ -332,20 +334,22 @@ bool MissionRouteGoalSelector::closeToBranchOffSegment(const Position &position,
 		float acceptance_radius,
 		float altitude_acceptance_radius) const
 {
-	if (!position.valid() || !selection.branch_off_projection.valid() || !selection.goal_position.valid()
+	if (!position.valid() || !selection.branch_off.projection.valid() || !selection.goal_position.valid()
 	    || !PX4_ISFINITE(acceptance_radius) || acceptance_radius <= 0.f
 	    || !PX4_ISFINITE(altitude_acceptance_radius) || altitude_acceptance_radius <= 0.f) {
 		PX4_ERR("Route invalid inputs to determine distance to branch-off segment");
 		return false;
 	}
 
+	const Position &branch_off_projection = selection.branch_off.projection;
+
 	// NED vectors avoid extra trigonometry (matching processCandidateForSegment).
 	matrix::Vector2f branch_vector{};   // branch-off projection -> goal (safe point)
 	matrix::Vector2f position_vector{}; // branch-off projection -> vehicle position
-	get_vector_to_next_waypoint(selection.branch_off_projection.lat, selection.branch_off_projection.lon,
+	get_vector_to_next_waypoint(branch_off_projection.lat, branch_off_projection.lon,
 				    selection.goal_position.lat, selection.goal_position.lon,
 				    &branch_vector(0), &branch_vector(1));
-	get_vector_to_next_waypoint(selection.branch_off_projection.lat, selection.branch_off_projection.lon,
+	get_vector_to_next_waypoint(branch_off_projection.lat, branch_off_projection.lon,
 				    position.lat, position.lon,
 				    &position_vector(0), &position_vector(1));
 
@@ -363,8 +367,8 @@ bool MissionRouteGoalSelector::closeToBranchOffSegment(const Position &position,
 	// Altitude check avoids flying diagonally toward the safe point when the vehicle is horizontally close to
 	// the branch-off leg but at the wrong altitude (e.g. already descending to land while a far-away safe point
 	// is projected onto the land point); in that case we first want to rejoin the branch-in vertically.
-	const float expected_alt = selection.branch_off_projection.alt
-				   + t * (selection.goal_position.alt - selection.branch_off_projection.alt);
+	const float expected_alt = branch_off_projection.alt
+				   + t * (selection.goal_position.alt - branch_off_projection.alt);
 	const float alt_error = fabsf(position.alt - expected_alt);
 
 	return PX4_ISFINITE(alt_error) && alt_error < altitude_acceptance_radius;
@@ -387,12 +391,12 @@ bool MissionRouteGoalSelector::canSkipRouteFollowToSelectedGoal(const Position &
 		return false;
 	}
 
-	if (!selection.safe_point_found) {
+	if (selection.goal_type != GoalType::kSafePoint) {
 		return canUseCurrentAltitudeForJoinTarget(selection.path);
 	}
 
 	// Safe-point goals only skip when the selected destination or branch-off leg is already close.
-	return closeToSafePointDirect(vehicle_position, selection.safe_point_position, config)
+	return closeToSafePointDirect(vehicle_position, selection.goal_position, config)
 	       || closeToBranchOffSegment(vehicle_position, selection, config.parameters.acceptance_radius,
 					  config.parameters.altitude_acceptance_radius);
 }
@@ -491,20 +495,17 @@ GoalSelection MissionRouteGoalSelector::selectLowestCostSafePoint(const Projecti
 			continue;
 		}
 
-		if (!selection.found || best_path.total_cost_m < selection.path.total_cost_m) {
-			selection.found = true;
-			selection.safe_point_found = true;
+		if (!selection.found() || best_path.total_cost_m < selection.path.total_cost_m) {
 			selection.goal_type = GoalType::kSafePoint;
 			selection.path = best_path;
 			selection.safe_point_index = safe_point_index;
-			selection.safe_point_position = safe_point_position;
 			selection.goal_position = safe_point_position;
-			selection.branch_off_segment = candidate_buffer.candidates[best_projection_index].segment;
-			selection.branch_off_projection = candidate_buffer.candidates[best_projection_index].projection;
+			selection.branch_off.segment = candidate_buffer.candidates[best_projection_index].segment;
+			selection.branch_off.projection = candidate_buffer.candidates[best_projection_index].projection;
 		}
 	}
 
-	if (selection.found) {
+	if (selection.found()) {
 		if (!selection.valid()) {
 			PX4_ERR("Route selected safe point is not valid");
 			return {};
@@ -514,8 +515,8 @@ GoalSelection MissionRouteGoalSelector::selectLowestCostSafePoint(const Projecti
 			  static_cast<int>(selection.safe_point_index),
 			  static_cast<int>(selection.path.first_item_index),
 			  static_cast<unsigned>(selection.path.direction_reversed),
-			  static_cast<unsigned>(selection.branch_off_segment.start.idx),
-			  static_cast<unsigned>(selection.branch_off_segment.end.idx));
+			  static_cast<unsigned>(selection.branch_off.segment.start.idx),
+			  static_cast<unsigned>(selection.branch_off.segment.end.idx));
 	}
 
 	return selection;
@@ -573,15 +574,15 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 
 		const GoalSelection batch_best = selectLowestCostSafePoint(projection_context, config, batch);
 
-		if (batch_best.found && (!best.found || batch_best.path.total_cost_m < best.path.total_cost_m)) {
+		if (batch_best.found() && (!best.found() || batch_best.path.total_cost_m < best.path.total_cost_m)) {
 			best = batch_best;
 		}
 	}
 
-	if (best.found && best.valid()) {
+	if (best.valid()) {
 		result.success = true;
 		result.failure_reason = FailureReason::kNone;
-		result.selection = best;
+		result.value = best;
 		return result;
 	}
 
@@ -638,9 +639,6 @@ GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const Proj
 		return selection;
 	}
 
-	selection.found = true;
-	selection.safe_point_found = false;
-
 	if (!path_to_land_valid || (path_to_takeoff_valid && path_to_takeoff.total_cost_m < path_to_land.total_cost_m)) {
 		selection.goal_type = GoalType::kMissionTakeoff;
 		selection.goal_position = takeoff_position;
@@ -678,11 +676,11 @@ GoalSelectionResult MissionRouteGoalSelector::selectBestGoal(const ProjectionCon
 	// No reachable safe point: fall back to the mission end points.
 	const GoalSelection fallback = selectMissionEndpointFallback(projection_context, config);
 
-	if (fallback.found && fallback.valid()) {
+	if (fallback.valid()) {
 		GoalSelectionResult result{};
 		result.success = true;
 		result.failure_reason = FailureReason::kNone;
-		result.selection = fallback;
+		result.value = fallback;
 		return result;
 	}
 

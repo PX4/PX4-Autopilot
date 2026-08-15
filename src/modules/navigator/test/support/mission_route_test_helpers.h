@@ -282,7 +282,7 @@ static inline bool collectVehicleProjection(const MissionRoutePlanner &planner,
 {
 	const mission_route::VehicleProjectionResult result =
 		planner.collectVehicleProjection(vehicle_position, mission_index, config);
-	projection_context = result.projection_context;
+	projection_context = result.value;
 	failure_reason = result.failure_reason;
 	return result.success;
 }
@@ -294,7 +294,7 @@ static inline bool planRouteToGoal(const MissionRoutePlanner &planner,
 {
 	const mission_route::RoutePlanResult result =
 		planner.planRouteToGoal(vehicle_position, mission_index, config);
-	plan = result.plan;
+	plan = result.value;
 	failure_reason = result.failure_reason;
 	return result.success;
 }

@@ -82,18 +82,10 @@ struct ProjectionScanResult {
 
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
 struct CandidateSearchState {
-	bool prev_projection_on_end{false};
+	bool prev_projection_on_end{true};
 	bool projection_on_end_for_segment{false};
-	float min_xtrack{0.f};
-	float xtrack_limit{0.f};
-
-	void reset()
-	{
-		prev_projection_on_end = true;
-		projection_on_end_for_segment = false;
-		min_xtrack = FLT_MAX;
-		xtrack_limit = FLT_MAX;
-	}
+	float min_xtrack{FLT_MAX};
+	float xtrack_limit{FLT_MAX};
 };
 
 struct ProjectionReference {

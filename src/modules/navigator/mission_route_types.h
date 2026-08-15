@@ -70,11 +70,11 @@ static constexpr uint8_t kMaxSegmentCandidates{3};
  * Stored in uint8_t batch counters/indices. The Kconfig range caps it at 32 to match
  * DM_KEY_SAFE_POINTS_MAX.
  */
-static constexpr uint8_t kMaxSafePointBatch{CONFIG_RTL_SAFE_POINT_BATCH_SIZE};
-static_assert(CONFIG_RTL_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_RTL_SAFE_POINT_BATCH_SIZE <= 255,
-	      "CONFIG_RTL_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
+static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};
+static_assert(CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE <= 255,
+	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
 static_assert(kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
-	      "CONFIG_RTL_SAFE_POINT_BATCH_SIZE must not exceed DM_KEY_SAFE_POINTS_MAX");
+	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must not exceed DM_KEY_SAFE_POINTS_MAX");
 
 enum class GoalType : uint8_t {
 	kNone = 0,
@@ -187,14 +187,22 @@ struct LoopContext {
 	bool valid() const;
 };
 
+/** @brief Live vehicle kinematics and mode flags relevant to route planning. */
+struct VehicleStateContext {
+	bool is_flying_reverse{false};
+	matrix::Vector2f velocity_ne{NAN, NAN};
+	bool velocity_valid{false};
+	bool is_fixed_wing{false};
+	bool in_transition_to_fw{false};
+	bool require_vtol_approach{false};
+};
+
 /** @brief The vehicle's projected state on the route at the time planning starts. */
 struct ProjectionContext {
 	Position vehicle_position{};
 	int32_t mission_index{-1};
 	RouteProjectionCandidate route_projection{};
-	bool is_flying_reverse{false};
-	matrix::Vector2f vehicle_vel_ne{NAN, NAN};
-	bool velocity_valid{false};
+	VehicleStateContext vehicle_state{};
 	float route_length{0.f};
 	uint8_t mission_loops_remaining{0};
 	LoopContext loop_context{};
@@ -225,19 +233,24 @@ struct RoutePath {
 	bool valid() const;
 };
 
-/** @brief The winning goal selection, including route, branch-off point, and goal position. */
-struct GoalSelection {
-	RoutePath path{};
-	bool found{false};
-	bool safe_point_found{false};
-	bool skip_route_to_safe_point{false}; /**< Go straight to the selected goal. */
-	int32_t safe_point_index{-1};
-	GoalType goal_type{GoalType::kNone};
-	Segment branch_off_segment{};
-	Position branch_off_projection{};
-	Position safe_point_position{};
-	Position goal_position{};
+/** @brief Where the route is left towards a safe point: the exit segment and the projected exit point. */
+struct BranchOff {
+	Segment segment{};
+	Position projection{};
 
+	bool valid() const;
+};
+
+/** @brief The winning goal: its identity, the route path to it, and (for safe points) the branch-off geometry. */
+struct GoalSelection {
+	GoalType goal_type{GoalType::kNone};
+	Position goal_position{};
+	int32_t safe_point_index{-1}; /**< Rally-point index; only meaningful for kSafePoint goals. */
+	RoutePath path{};
+	BranchOff branch_off{}; /**< Only populated for kSafePoint goals. */
+	bool skip_route_to_safe_point{false}; /**< Go straight to the selected goal. */
+
+	bool found() const { return goal_type != GoalType::kNone; }
 	bool valid() const;
 
 	int32_t branchOffIndex() const;
@@ -255,16 +268,6 @@ struct PlannerParameters {
 
 	bool validForVehicleProjection() const;
 	bool validForRouteToGoal() const;
-};
-
-/** @brief Live vehicle kinematics and mode flags relevant to route planning. */
-struct VehicleStateContext {
-	bool is_flying_reverse{false};
-	matrix::Vector2f velocity_ne{NAN, NAN};
-	bool velocity_valid{false};
-	bool is_fixed_wing{false};
-	bool in_transition_to_fw{false};
-	bool require_vtol_approach{false};
 };
 
 /** @brief One self-contained planner input bundle combining parameters, state, and persisted loop context. */
@@ -292,26 +295,17 @@ struct RoutePlan {
 	bool valid() const;
 };
 
-/** @brief Result of a vehicle-projection pass: status plus the projected context. */
-struct VehicleProjectionResult {
+/** @brief Outcome of one planner pass: status plus the produced payload. */
+template <typename T>
+struct PlanResult {
 	bool success{false};
 	FailureReason failure_reason{FailureReason::kUnknown};
-	ProjectionContext projection_context{};
+	T value{};
 };
 
-/** @brief Result of a mission-resume join pass: status plus the join plan. */
-struct JoinPlanResult {
-	bool success{false};
-	FailureReason failure_reason{FailureReason::kUnknown};
-	JoinPlan plan{};
-};
-
-/** @brief Result of a route-to-goal pass: status plus the full route plan. */
-struct RoutePlanResult {
-	bool success{false};
-	FailureReason failure_reason{FailureReason::kUnknown};
-	RoutePlan plan{};
-};
+using VehicleProjectionResult = PlanResult<ProjectionContext>;
+using JoinPlanResult = PlanResult<JoinPlan>;
+using RoutePlanResult = PlanResult<RoutePlan>;
 
 bool isLandingCmd(uint16_t nav_cmd);
 bool isTakeoffCmd(uint16_t nav_cmd);

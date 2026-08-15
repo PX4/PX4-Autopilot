@@ -55,7 +55,7 @@ using namespace mission_route;
 
 /**
  * Shared scratch buffer reused by collectVehicleProjection and selectSafePoint, kept off the
- * navigator task stack because it scales with CONFIG_RTL_SAFE_POINT_BATCH_SIZE (~380 bytes per slot).
+ * navigator task stack because it scales with CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE (~380 bytes per slot).
  *
  * The buffer must not be a plain static object: ProjectionReferenceBatch has non-zero member
  * defaults (NAN/-1/NAV_CMD_INVALID), so a static instance would be initialized into
@@ -64,7 +64,7 @@ using namespace mission_route;
  * constructed in place on first use. Placement new on static storage cannot fail, so the
  * returned reference is always valid.
  */
-static ProjectionReferenceBatch &projectionReferenceBatch()
+ProjectionReferenceBatch &mission_route::sharedProjectionReferenceBatch()
 {
 	alignas(ProjectionReferenceBatch) static uint8_t storage[sizeof(ProjectionReferenceBatch)];
 	static ProjectionReferenceBatch *batch = new (storage) ProjectionReferenceBatch{};
@@ -72,10 +72,10 @@ static ProjectionReferenceBatch &projectionReferenceBatch()
 	return *batch;
 }
 
-MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
+MissionRoutePlanner::MissionRoutePlanner(const Provider &provider, ProjectionReferenceBatch &reference_batch) :
 	_projection(provider),
 	_goal_selector(provider, _projection),
-	_reference_batch(projectionReferenceBatch())
+	_reference_batch(reference_batch)
 {
 }
 
@@ -104,7 +104,7 @@ VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const Posi
 GoalSelection MissionRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
 		const PlannerConfig &config) const
 {
-	return _goal_selector.selectSafePoint(projection_context, config, _reference_batch).selection;
+	return _goal_selector.selectSafePoint(projection_context, config, _reference_batch).value;
 }
 
 GoalSelection MissionRoutePlanner::selectBestGoal(const ProjectionContext &projection_context,
@@ -113,7 +113,7 @@ GoalSelection MissionRoutePlanner::selectBestGoal(const ProjectionContext &proje
 	perf_begin(_select_best_goal_perf);
 	const GoalSelectionResult result = _goal_selector.selectBestGoal(projection_context, config, _reference_batch);
 	perf_end(_select_best_goal_perf);
-	return result.selection;
+	return result.value;
 }
 
 bool MissionRoutePlanner::closeToBranchOffSegment(const Position &position, const GoalSelection &selection,
@@ -140,7 +140,7 @@ JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const Position &vehicl
 	}
 
 	JoinPlan plan{};
-	plan.projection_context = projection.projection_context;
+	plan.projection_context = projection.value;
 
 	plan.path = _goal_selector.findShortestPathAlongRoute(plan.projection_context.route_length,
 			plan.projection_context, config, PathDirectionMode::kForceNominal);
@@ -153,7 +153,7 @@ JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const Position &vehicl
 
 	result.success = true;
 	result.failure_reason = FailureReason::kNone;
-	result.plan = plan;
+	result.value = plan;
 	return result;
 }
 
@@ -175,7 +175,7 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_pos
 	}
 
 	RoutePlan plan{};
-	plan.projection_context = projection.projection_context;
+	plan.projection_context = projection.value;
 
 	// RTL skips DO_JUMP segments. Remaining loop counts from normal mission
 	// execution must not force the return path to finish the current loop iteration.
@@ -192,7 +192,7 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_pos
 		return result;
 	}
 
-	plan.selection = selection.selection;
+	plan.selection = selection.value;
 	plan.selection.skip_route_to_safe_point =
 		_goal_selector.canSkipRouteFollowToSelectedGoal(vehicle_position, plan.selection, config);
 
@@ -210,11 +210,11 @@ RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_pos
 		  static_cast<unsigned>(plan.selection.path.direction_reversed),
 		  static_cast<unsigned>(plan.selection.skip_route_to_safe_point),
 		  static_cast<unsigned>(plan.join_context.skip_altitude_requirement),
-		  static_cast<int>(plan.selection.branch_off_segment.start.idx),
-		  static_cast<int>(plan.selection.branch_off_segment.end.idx));
+		  static_cast<int>(plan.selection.branch_off.segment.start.idx),
+		  static_cast<int>(plan.selection.branch_off.segment.end.idx));
 
 	result.success = true;
 	result.failure_reason = FailureReason::kNone;
-	result.plan = plan;
+	result.value = plan;
 	return result;
 }

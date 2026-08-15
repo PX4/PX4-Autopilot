@@ -52,10 +52,18 @@
 
 #include <lib/perf/perf_counter.h>
 
+namespace mission_route
+{
+/** @brief Shared flight-side scratch batch, stored in .bss (see the definition for why). */
+ProjectionReferenceBatch &sharedProjectionReferenceBatch();
+} // namespace mission_route
+
 class MissionRoutePlanner
 {
 public:
-	explicit MissionRoutePlanner(const mission_route::Provider &provider);
+	/** @brief The reference batch is caller-owned scratch; flight code passes sharedProjectionReferenceBatch(). */
+	MissionRoutePlanner(const mission_route::Provider &provider,
+			    mission_route::ProjectionReferenceBatch &reference_batch);
 	~MissionRoutePlanner();
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;

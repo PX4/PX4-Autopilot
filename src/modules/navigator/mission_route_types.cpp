@@ -119,27 +119,28 @@ bool RoutePath::valid() const
 	       && PX4_ISFINITE(total_cost_m) && total_cost_m >= 0.f;
 }
 
+bool BranchOff::valid() const
+{
+	return segment.valid() && projection.valid();
+}
+
 bool GoalSelection::valid() const
 {
-	if (!found || !path.valid() || goal_type == GoalType::kNone || !goal_position.valid()) {
+	if (goal_type == GoalType::kNone || !path.valid() || !goal_position.valid()) {
 		return false;
 	}
 
-	if (!safe_point_found) {
-		return goal_type == GoalType::kMissionLand || goal_type == GoalType::kMissionTakeoff;
+	if (goal_type == GoalType::kSafePoint) {
+		return safe_point_index >= 0 && branch_off.valid();
 	}
 
-	return goal_type == GoalType::kSafePoint
-	       && safe_point_index >= 0
-	       && branch_off_segment.valid()
-	       && branch_off_projection.valid()
-	       && safe_point_position.valid();
+	return goal_type == GoalType::kMissionLand || goal_type == GoalType::kMissionTakeoff;
 }
 
 int32_t GoalSelection::branchOffIndex() const
 {
-	if (branch_off_segment.valid()) {
-		return path.direction_reversed ? branch_off_segment.start.idx : branch_off_segment.end.idx;
+	if (branch_off.segment.valid()) {
+		return path.direction_reversed ? branch_off.segment.start.idx : branch_off.segment.end.idx;
 	}
 
 	return path.first_item_index;

@@ -75,7 +75,7 @@ config NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		Dataman response subscription while each read is pending, then immediately
 		queues the next item without blocking its main loop.
 
-config RTL_SAFE_POINT_BATCH_SIZE
+config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 	int "Maximum rally points scored per mission-route planning batch"
 	default 32 if BOARD_TESTING
 	default 1
@@ -91,9 +91,9 @@ config RTL_SAFE_POINT_BATCH_SIZE
 		A larger value trades RAM for fewer mission passes when many rally points are configured;
 		boards with spare RAM can raise it so all rally points fit in a single pass.
 
-		The projection batch is allocated in static RAM and is the larger hidden cost: it reserves
-		roughly sizeof(ProjectionReference) * CONFIG_RTL_SAFE_POINT_BATCH_SIZE bytes (about 380 bytes
-		per slot, i.e. ~12 KB at the maximum batch size of 32).
+		The projection batch is allocated in static RAM: it reserves roughly
+		sizeof(ProjectionReference) * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE bytes
+		(about 380 bytes per slot, i.e. ~12 KB at the maximum batch size of 32).
 
 		The default is 1 so that boards which leave route planning disabled
 		(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0) do not pay the full batch RAM cost; boards

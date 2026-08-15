@@ -614,7 +614,7 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
 		batch.items[i].candidate_buffer.count = 0;
-		batch.items[i].search_state.reset();
+		batch.items[i].search_state = {};
 	}
 
 	CurrentSegmentBoundsTracker bounds_tracker(request);
@@ -860,9 +860,7 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 	projection_context.vehicle_position = vehicle_position;
 	projection_context.mission_index = mission_index;
 	projection_context.route_projection = branch_in.candidate;
-	projection_context.is_flying_reverse = config.state.is_flying_reverse;
-	projection_context.vehicle_vel_ne = config.state.velocity_ne;
-	projection_context.velocity_valid = config.state.velocity_valid;
+	projection_context.vehicle_state = config.state;
 	projection_context.route_length = scan_result.route_length;
 	// Use the repeat count from the selected projection loop itself. A later DO_JUMP elsewhere
 	// in the mission must not overwrite the active loop state carried by this projection.
@@ -888,7 +886,7 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 
 	result.success = true;
 	result.failure_reason = FailureReason::kNone;
-	result.projection_context = projection_context;
+	result.value = projection_context;
 	return result;
 }
 
