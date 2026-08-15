@@ -109,6 +109,68 @@ struct ProjectionReferenceBatch {
 	ProjectionReference items[kMaxSafePointBatch] {};
 };
 
+/** @brief One ready-to-project segment of the mission route, yielded by RouteSegmentCursor. */
+struct RouteSegmentView {
+	Segment segment{};
+	SegmentPositions positions{};
+	matrix::Vector2f segment_vector{0.f, 0.f}; /**< Cached start->end NED vector; zero for zero-length segments. */
+
+	float route_along_start_m{0.f}; /**< Along-route distance accumulated up to this segment's start. */
+	float length_m{0.f};
+
+	bool first_segment{false};
+	bool last_segment{false};
+	bool zero_length_xy{false};
+};
+
+/**
+ * @brief Forward walk over the segments of the uploaded mission route.
+ *
+ * next() yields one ready-to-project RouteSegmentView per call, so consumers
+ * iterate complete segments without touching mission items or walk rules.
+ */
+class RouteSegmentCursor
+{
+public:
+	RouteSegmentCursor(const Provider &provider, float home_altitude_amsl) :
+		_provider(provider), _home_altitude_amsl(home_altitude_amsl) {}
+
+	/** @brief Locate the route endpoints and the first segment start. False on failure (see failureReason()). */
+	bool init();
+
+	/** @brief Advance to the next segment. False once the walk is over or has failed(). */
+	bool next(RouteSegmentView &view);
+
+	bool failed() const { return _failure_reason != FailureReason::kNone; }
+	FailureReason failureReason() const { return _failure_reason; }
+
+	/** @brief Along-route distance walked so far; the route length once the walk is over. */
+	float routeLength() const { return _route_along_m; }
+
+private:
+	PositionLookupStatus findNextValidPositionIndex(int32_t start_index, int32_t &next_position_index) const;
+
+	bool findAttachedValidPositionIndex(int32_t start_index, int32_t &attached_position_index) const;
+
+	/** @brief Load the segment end at the given mission index, resolving DO_JUMP loop edges. */
+	bool prepareNextSegment(int32_t index, FailureReason &failure_reason);
+
+	const Provider &_provider;
+	const float _home_altitude_amsl;
+
+	Segment _segment{};
+	SegmentPositions _positions{};
+	int32_t _index{0};
+	int32_t _first_position_index{0};
+	int32_t _last_position_index{0};
+	float _route_along_m{0.f};
+	bool _done{false};
+	FailureReason _failure_reason{FailureReason::kNone};
+};
+
+/** @brief True when the vehicle targeting mission_index is flying on the given segment. */
+bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index, bool is_flying_reverse);
+
 class MissionRouteProjection
 {
 public:
@@ -122,9 +184,6 @@ public:
 	VehicleProjectionResult collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
 			const PlannerConfig &config, ProjectionReferenceBatch &batch) const;
 
-	bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index,
-					bool is_flying_reverse) const;
-
 	float accumulateRouteDistance(int32_t from_index, int32_t to_index,
 				      float home_altitude_amsl) const;
 
@@ -136,43 +195,11 @@ private:
 
 	struct BranchInSelectionResult;
 
-	struct RouteSegmentView {
-		Segment segment{};
-		SegmentPositions positions{};
-		matrix::Vector2f segment_vector{0.f, 0.f}; /**< Cached start->end NED vector; zero for zero-length segments. */
-
-		float route_along_start_m{0.f}; /**< Along-route distance accumulated up to this segment's start. */
-		float length_m{0.f};
-
-		bool last_segment{false};
-		bool zero_length_xy{false};
-	};
-
 	struct ProjectionScanStats {
 		uint32_t segments_processed{0};
 		uint32_t local_min_found{0};
 		uint32_t valid_candidate_found{0};
 	};
-
-	PositionLookupStatus findNextValidPositionIndex(int32_t start_index, float home_altitude_amsl,
-			int32_t &next_position_index) const;
-
-	bool findAttachedValidPositionIndex(int32_t start_index, float home_altitude_amsl,
-					    int32_t &attached_position_index) const;
-
-	bool prepareNextSegment(int32_t index, Segment &segment,
-				SegmentPositions &segment_positions,
-				float home_altitude_amsl,
-				FailureReason &failure_reason) const;
-
-	/** @brief Fill the along-track bounds of the current segment once they are reached during scanning. */
-	bool fillCurrentSegmentAlongIfNeeded(int32_t mission_index,
-					     const Segment &segment,
-					     bool is_flying_reverse,
-					     float route_along,
-					     float segment_length,
-					     const Segment &last_flown_loop_segment,
-					     SegmentDistanceAlong &current_segment_along) const;
 
 	/**
 	 * @brief Return true when the segment projection is a local minimum.

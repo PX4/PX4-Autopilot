@@ -192,9 +192,9 @@ RoutePath MissionRouteGoalSelector::solveShortestRoutePath(float goal_route_alon
 	const bool direction_change = (projection_context.is_flying_reverse != will_fly_reverse);
 
 	if (!direction_change
-	    && _projection.isIndexInProjectionSegment(projection_context.route_projection.segment,
-			    projection_context.mission_index,
-			    projection_context.is_flying_reverse)) {
+	    && isIndexInProjectionSegment(projection_context.route_projection.segment,
+					  projection_context.mission_index,
+					  projection_context.is_flying_reverse)) {
 
 		// E.g. seg [2,4] where 3 is a front transition, if we're targeting the FT (3),
 		// chose item start (2) to ensure the FT is not skipped
