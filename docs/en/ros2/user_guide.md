@@ -21,6 +21,12 @@ PX4 supports two middleware options for bridging uORB topics to ROS 2: [uXRCE-DD
 You must select which middleware to use and build your firmware accordingly (see [Installation & Setup](#installation-setup)).
 DDS is currently recommended for most users, as it is more established and has been more thoroughly tested with PX4.
 
+::: info
+The instructions below target simulation using Gazebo.
+The same concepts translate directly to real hardware: the middleware client, which bridges the uORB topics, runs on the flight controller, while the agent/router runs on your companion computer.
+See [Using Flight Controller Hardware](#using-flight-controller-hardware) for the hardware-specific differences.
+:::
+
 ### DDS
 
 The application pipeline for ROS 2 is very straightforward, thanks to the use of the [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware.
