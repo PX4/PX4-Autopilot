@@ -190,8 +190,8 @@
  * GPIO_OTGFS_VBUS unconditionally:
  *   - bootloader common main.c (skipped via BOARD_USB_VBUS_SENSE_DISABLED)
  *   - platforms/nuttx/src/px4/common/board_ctrl.c (board_read_VBUS_state())
- *   - platforms/nuttx/src/px4/common/cdc_acm_check.cpp gates sercon_main()
- *     on board_read_VBUS_state() returning PX4_OK
+ *   - src/drivers/cdcacm_autostart gates sercon_main() on
+ *     board_read_VBUS_state() returning PX4_OK
  *
  * So GPIO_OTGFS_VBUS must read HIGH for the application's CDC/ACM auto-start
  * logic to ever fire and register /dev/ttyACM0.  We point it at PE3 (an
