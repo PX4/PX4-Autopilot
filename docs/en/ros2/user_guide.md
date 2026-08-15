@@ -27,6 +27,8 @@ The same concepts translate directly to real hardware: the middleware client, wh
 See [Using Flight Controller Hardware](#using-flight-controller-hardware) for the hardware-specific differences.
 :::
 
+If you want to command the vehicle and create custom flight behaviours using ROS 2 (rather than just reading telemetry), you can create external modes using the [PX4 ROS 2 Interface Library](./px4_ros2_interface_lib.md), a ROS 2 native C++ library that works on top of either middleware.
+
 ### DDS
 
 The application pipeline for ROS 2 is very straightforward, thanks to the use of the [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware.
