@@ -27,14 +27,17 @@ parameters:
           the expected application environment.
       type: enum
       values:
+        0: portable
         2: stationary
+        3: pedestrian
         4: automotive
+        5: sea
         6: airborne with <1g acceleration
         7: airborne with <2g acceleration
         8: airborne with <4g acceleration
       default: 7
       min: 0
-      max: 9
+      max: 8
       reboot_required: true
     GPS_UBX_DGNSS_TO:
       description:
