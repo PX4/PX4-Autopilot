@@ -37,9 +37,7 @@ add_subdirectory(failure_detector)
 add_subdirectory(HealthAndArmingChecks)
 add_subdirectory(ModeUtil)
 add_subdirectory(MulticopterThrowLaunch)
-add_subdirectory(MulticopterTurtle)
 
-# Conditionally add dshot dependency if the target exists (not available in all builds, e.g. SITL)
 set(commander_depends
 	ArmAuthorization
 	circuit_breaker
@@ -50,16 +48,10 @@ set(commander_depends
 	hysteresis
 	mode_util
 	MulticopterThrowLaunch
-	MulticopterTurtleMode
 	sensor_calibration
 	world_magnetic_model
 	atmosphere
 )
-
-# Add dshot dependency if available (needed for MulticopterTurtleMode)
-if(TARGET drivers__dshot)
-	list(APPEND commander_depends drivers__dshot)
-endif()
 
 px4_add_module(
 	MODULE modules__commander

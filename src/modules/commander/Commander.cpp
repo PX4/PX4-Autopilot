@@ -570,16 +570,6 @@
  
  transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
  {
-	 // Prevent double arming if already armed in turtle mode (check before general isArmed() check)
-	 // if armeng at the turtle moode it cuse a problem with the 3d_off command
-	 if (isArmed() && _multicopter_turtle.isInTurtleMode() && calling_reason != arm_disarm_reason_t::command_internal) {
-		 mavlink_log_critical(&_mavlink_log_pub, "Arming denied: already armed in turtle mode\t");
-		 events::send(events::ID("commander_arm_denied_turtle_armed"), {events::Log::Critical, events::LogInternal::Info},
-			      "Arming denied: already armed in turtle mode");
-		 tune_negative(true);
-		 return TRANSITION_DENIED;
-	 }
-
 	 if (isArmed()) {
 		 return TRANSITION_NOT_CHANGED;
 	 }
@@ -1895,10 +1885,6 @@
  
 		 _multicopter_throw_launch.update(isArmed());
 
-
-		 turtleModeUpdate();
-		 
- 
 		 vtolStatusUpdate();
  
 		 _mission_in_progress = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
@@ -3152,25 +3138,3 @@ void Commander::updateTotalArmTime(hrt_abstime arm_time_us)
 }
 
 
-void Commander::turtleModeUpdate()
-{
-	_multicopter_turtle.update(isArmed()); 
-			
-	// Handle turtle mode arming/disarming (bypass preflight checks for turtle mode)
-	if (_multicopter_turtle.shouldArm() && !isArmed()) {
-		arm(arm_disarm_reason_t::command_internal, false); // Bypass preflight checks
-	} else if (_multicopter_turtle.shouldDisarm() && isArmed()) {
-		disarm(arm_disarm_reason_t::command_internal, false);
-		_multicopter_turtle.clearDisarmFlag(); // Clear the flag after disarming
-	}
-
-	// Handle turtle mode nav_state changes (only when ACTIVE or leaving ACTIVE)
-	const uint8_t turtle_desired_nav_state = _multicopter_turtle.getDesiredNavState();
-	if (turtle_desired_nav_state != vehicle_status_s::NAVIGATION_STATE_MAX && 
-	_user_mode_intention.get() != turtle_desired_nav_state) {
-		if (_user_mode_intention.change(turtle_desired_nav_state, ModeChangeSource::User, false, true)) {
-			// Mark that we've requested the nav_state change to prevent repeated requests
-			_multicopter_turtle.markNavStateChangeRequested();
-		}
-	}
-}
