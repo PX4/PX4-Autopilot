@@ -57,9 +57,15 @@ bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
 	if (!aid_src.innovation_rejected) {
+		const LatLonAlt gpos_prev = _gpos;
+
 		for (unsigned i = 0; i < 2; i++) {
-			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
-						   State::pos.idx + i);
+			// recalculate using the updated state and variance
+			aid_src.innovation[i] += (_gpos - gpos_prev)(i);
+			aid_src.innovation_variance[i] = P(State::pos.idx + i, State::pos.idx + i) + aid_src.observation_variance[i];
+
+			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
+						   aid_src.observation_variance[i], State::pos.idx + i);
 		}
 
 		aid_src.fused = true;
