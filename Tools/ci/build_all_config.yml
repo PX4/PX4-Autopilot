@@ -7,7 +7,7 @@
 
 # Container images
 containers:
-  default: "ghcr.io/px4/px4-dev:v1.17.0-rc2"
+  default: "ghcr.io/px4/px4-dev:v1.18.0-beta2"
   voxl2: "ghcr.io/px4/px4-dev-voxl2:v1.7"
 
 # Runner specs
