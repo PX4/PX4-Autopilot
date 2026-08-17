@@ -176,6 +176,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_control_status.flags.mag_fault = false;
 		}
 
+		const bool no_ne_aiding_or_not_moving = !isNorthEastAidingActive() || _control_status.flags.vehicle_at_rest;
+
 		{
 
 			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !isNorthEastAidingActive();
@@ -196,6 +198,10 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_control_status.flags.mag_hdg = common_conditions_passing
 							&& ((_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::HEADING))
 							    || (_params.ekf2_mag_type == static_cast<int32_t>(MagFuseType::AUTO) && !_control_status.flags.mag_3D));
+
+			// if we are using 3-axis magnetometer fusion, but without external NE aiding,
+			// then the declination must be fused as an observation to prevent long term heading drift
+			_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_not_moving;
 		}
 
 		if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
@@ -204,11 +210,6 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		} else if (!_control_status.flags.mag_3D && _control_status_prev.flags.mag_3D) {
 			ECL_INFO("stopping mag 3D fusion");
 		}
-
-		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
-		// then the declination must be fused as an observation to prevent long term heading drift
-		const bool no_ne_aiding_or_not_moving = !isNorthEastAidingActive() || _control_status.flags.vehicle_at_rest;
-		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_not_moving;
 
 		if (_control_status.flags.mag) {
 
