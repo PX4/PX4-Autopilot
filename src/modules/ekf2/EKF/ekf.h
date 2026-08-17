@@ -537,6 +537,7 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
+	uint64_t _time_heading_fusion_start{0};	///< start of the current uninterrupted period of heading observation fusion, while yaw was set manually (uSec)
 	uint64_t _time_last_terrain_fuse{0};
 
 	LatLonAlt _last_known_gpos{};
@@ -883,6 +884,8 @@ private:
 	// Control the filter fusion modes
 	void controlFusionModes(const imuSample &imu_delayed);
 
+	void updateYawManualValidity();
+
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
 	void controlExternalVisionFusion(const imuSample &imu_sample);
@@ -979,6 +982,7 @@ private:
 	void controlMagFusion(const imuSample &imu_sample);
 
 	bool checkHaglYawResetReq() const;
+	bool isHeadingResetToMagAllowed() const;
 
 	void resetMagHeading(const Vector3f &mag);
 	void resetMagStates(const Vector3f &mag, bool reset_heading = true);
