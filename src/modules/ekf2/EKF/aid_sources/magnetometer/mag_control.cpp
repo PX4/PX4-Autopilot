@@ -77,7 +77,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_mag_lpf.reset(mag_sample.mag);
 			_mag_counter = 1;
 
-			if (!_control_status.flags.in_air) {
+			if (!_control_status.flags.in_air && !_control_status.flags.yaw_manual) {
 				// Assume that a reset on the ground is caused by a change in mag calibration
 				// Clear alignment to force a clean reset
 				_control_status.flags.yaw_align = false;
@@ -139,8 +139,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		Vector3f mag_innov;
 		Vector3f innov_var;
 
-		// Observation jacobian and Kalman gain vectors
-		VectorState H;
+		VectorState H; // Observation jacobian
 		sym::ComputeMagInnovInnovVarAndHx(_state.vector(), P, mag_sample.mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
 		updateAidSourceStatus(aid_src,
@@ -218,7 +217,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				if (checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
 							       || _control_status.flags.yaw_manual)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
-					const bool reset_heading = ((_control_status.flags.mag_hdg || _control_status.flags.mag_3D) && !isNorthEastAidingActive());
+					const bool reset_heading = isHeadingResetToMagAllowed()
+								   && !isNorthEastAidingActive(); // NE aiding makes heading observable
+
 					resetMagStates(_mag_lpf.getState(), reset_heading);
 
 					// record the start time for the magnetic field alignment
@@ -227,7 +228,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else if (wmm_updated && no_ne_aiding_or_not_moving) {
-					const bool reset_heading = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
+					const bool reset_heading = isHeadingResetToMagAllowed();
 					resetMagStates(_mag_lpf.getState(), reset_heading);
 					aid_src.time_last_fuse = imu_sample.time_us;
 
@@ -277,7 +278,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				if (is_fusion_failing) {
 					if (no_ne_aiding_or_not_moving) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
-						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
+						const bool reset_heading = isHeadingResetToMagAllowed();
+						resetMagStates(_mag_lpf.getState(), reset_heading);
 						aid_src.time_last_fuse = imu_sample.time_us;
 
 					} else {
@@ -388,6 +390,12 @@ bool Ekf::checkHaglYawResetReq() const
 #endif // CONFIG_EKF2_TERRAIN
 
 	return false;
+}
+
+bool Ekf::isHeadingResetToMagAllowed() const
+{
+	return (_control_status.flags.mag_hdg || _control_status.flags.mag_3D)
+	       && !_control_status.flags.yaw_manual; // do not override manual reset
 }
 
 void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
