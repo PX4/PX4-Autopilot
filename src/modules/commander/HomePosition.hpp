@@ -53,6 +53,7 @@ static constexpr float kHomePositionGPSRequiredEPH = 5.f;
 static constexpr float kHomePositionGPSRequiredEPV = 10.f;
 static constexpr float kHomePositionGPSRequiredEVH = 1.f;
 static constexpr int32_t kGpsCtrlHorizontalAndAltitude = (1 << 0) | (1 << 1);
+static constexpr int32_t kHeightReferenceGnss = 1;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
 static constexpr float kLpfBaroTimeConst = 5.f;
@@ -118,4 +119,5 @@ private:
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en
 	)
 	param_t _param_ekf2_gps_ctrl_handle{PARAM_INVALID};
+	bool _gnss_height_reference{true};
 };
