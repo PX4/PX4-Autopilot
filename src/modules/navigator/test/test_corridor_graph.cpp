@@ -332,3 +332,65 @@ TEST(RtlIsWithinBatteryBudgetTest, NotWithinBudgetWhenBatteryRemainingIsNan)
 	estimate.safe_time_estimate = 10.f;
 	EXPECT_FALSE(RTL::isWithinBatteryBudget(estimate, std::nanf("")));
 }
+
+// RTL::shouldRestoreNestPath() decides, after the nest path has already failed the battery
+// budget and a rally diversion path has been computed, whether the diversion stands (rally
+// affordable) or the vehicle should fly whichever candidate is quicker when nothing fits.
+// Pure decision, covered directly like isWithinBatteryBudget() above.
+
+static rtl_time_estimate_s makeEstimate(bool valid, float safe_time_estimate)
+{
+	rtl_time_estimate_s estimate{};
+	estimate.valid = valid;
+	estimate.safe_time_estimate = safe_time_estimate;
+	return estimate;
+}
+
+TEST(RtlShouldRestoreNestPathTest, DiversionStandsWhenRallyWithinBudget)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(true, 200.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(true, 100.f);
+	EXPECT_FALSE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}
+
+TEST(RtlShouldRestoreNestPathTest, RestoresNestWhenBothOverBudgetAndNestQuicker)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(true, 200.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(true, 300.f);
+	EXPECT_TRUE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}
+
+TEST(RtlShouldRestoreNestPathTest, KeepsRallyWhenBothOverBudgetAndRallyQuicker)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(true, 300.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(true, 200.f);
+	EXPECT_FALSE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}
+
+TEST(RtlShouldRestoreNestPathTest, RestoresNestOnTieAsPreferredGoal)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(true, 200.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(true, 200.f);
+	EXPECT_TRUE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}
+
+TEST(RtlShouldRestoreNestPathTest, RestoresNestWhenRallyEstimateInvalid)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(true, 200.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(false, 10.f);
+	EXPECT_TRUE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}
+
+TEST(RtlShouldRestoreNestPathTest, KeepsRallyWhenOnlyNestEstimateInvalid)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(false, 10.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(true, 200.f);
+	EXPECT_FALSE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}
+
+TEST(RtlShouldRestoreNestPathTest, RestoresNestWhenBothEstimatesInvalid)
+{
+	const rtl_time_estimate_s time_to_nest = makeEstimate(false, 10.f);
+	const rtl_time_estimate_s time_to_rally = makeEstimate(false, 10.f);
+	EXPECT_TRUE(RTL::shouldRestoreNestPath(time_to_nest, time_to_rally, 150.f));
+}

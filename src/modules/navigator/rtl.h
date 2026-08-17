@@ -100,6 +100,20 @@ public:
 	 */
 	static bool isWithinBatteryBudget(const rtl_time_estimate_s &estimate, float battery_remaining_s);
 
+	/**
+	 * @brief Decide whether a battery-driven rally point diversion should be abandoned and
+	 * the nest path restored, given that the nest path has already failed the battery budget.
+	 *
+	 * The diversion stands whenever the rally path fits the budget. When neither candidate
+	 * fits, keep whichever is quicker to reach (best odds of arriving at a designated
+	 * landing site at all): an invalid estimate loses to a valid one, and the nest wins
+	 * ties as the graph's preferred goal.
+	 *
+	 * @return true if the nest path should be restored.
+	 */
+	static bool shouldRestoreNestPath(const rtl_time_estimate_s &time_to_nest,
+					  const rtl_time_estimate_s &time_to_rally, float battery_remaining_s);
+
 private:
 	friend class RTLTestPeer;
 

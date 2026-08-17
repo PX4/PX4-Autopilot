@@ -489,6 +489,24 @@ bool RTL::isWithinBatteryBudget(const rtl_time_estimate_s &estimate, float batte
 	return estimate.valid && PX4_ISFINITE(battery_remaining_s) && (estimate.safe_time_estimate < battery_remaining_s);
 }
 
+bool RTL::shouldRestoreNestPath(const rtl_time_estimate_s &time_to_nest, const rtl_time_estimate_s &time_to_rally,
+				float battery_remaining_s)
+{
+	if (isWithinBatteryBudget(time_to_rally, battery_remaining_s)) {
+		// The diversion achieves what it exists for: a landing site within the budget.
+		return false;
+	}
+
+	// Neither the nest nor the rally point fits the remaining battery: fly whichever is
+	// quicker to reach. An invalid estimate loses to a valid one; the nest wins ties as
+	// the graph's preferred goal.
+	if (!time_to_rally.valid) {
+		return true;
+	}
+
+	return time_to_nest.valid && (time_to_nest.safe_time_estimate <= time_to_rally.safe_time_estimate);
+}
+
 bool RTL::tryFindCorridorPath()
 {
 	mission_corridor_node_s waypoints[DM_KEY_CORRIDOR_NODES_MAX];
@@ -522,9 +540,17 @@ bool RTL::tryFindCorridorPath()
 					_global_pos_sub.get().alt, rally_waypoints, num_rally_waypoints, DM_KEY_CORRIDOR_NODES_MAX)
 			    && num_rally_waypoints > 0) {
 				_rtl_corridor.setPath(rally_waypoints, num_rally_waypoints);
+
+				// The diversion only helps if the rally point is itself affordable. If
+				// nothing fits the budget, fly whichever candidate is quicker to reach.
+				const rtl_time_estimate_s time_to_rally = _rtl_corridor.calc_rtl_time_estimate();
+
+				if (shouldRestoreNestPath(time_to_nest, time_to_rally, battery_remaining_s)) {
+					_rtl_corridor.setPath(waypoints, num_waypoints);
+				}
 			}
 
-			// If no rally point is reachable either, keep flying to the nest (already set above).
+			// If no rally point is graph-reachable, keep flying to the nest (already set above).
 		}
 	}
 
