@@ -463,7 +463,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": comma_targets(all_targets),
                     "arch": arch,
-                    "chip_family": "native",
+                    "chip_family": "voxl2",
                     "runner": runner,
                     "group": "voxl2-0",
                     "len": len(all_targets),
@@ -519,11 +519,7 @@ if (args.group):
         # Determine which chip families actually have groups
         active_families = set()
         for g in final_groups:
-            cf = g['chip_family']
-            active_families.add(cf)
-            # voxl2 gets its own seeder with a different container
-            if g['group'].startswith('voxl2'):
-                active_families.add('voxl2')
+            active_families.add(g['chip_family'])
 
         seeders = []
         for cf in sorted(active_families):
@@ -537,11 +533,10 @@ if (args.group):
                     'runner': 'x64',
                 })
             elif cf == 'native':
-                # One seeder per runner arch that has native groups (exclude voxl2
-                # which has its own seeder with a different container)
+                # One seeder per runner arch that has native groups
                 native_runners = set()
                 for g in final_groups:
-                    if g['chip_family'] == 'native' and not g['group'].startswith('voxl2'):
+                    if g['chip_family'] == 'native':
                         native_runners.add(g['runner'])
                 for r in sorted(native_runners):
                     seeders.append({
