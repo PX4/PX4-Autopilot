@@ -1462,9 +1462,10 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	const bool parachute_landing_active = _param_fw_lnd_para_en.get() && !_parachute_release_commanded
 					      && !_vehicle_status.is_vtol;
 
-	const float parachute_release_floor = _param_fw_lnd_para_sink.get() * kParachuteCanopyOpenTime;
+	const float parachute_release_floor = parachuteReleaseFloor(_param_fw_lnd_para_sink.get());
 
-	const float parachute_release_alt = math::max(_param_fw_lnd_para_alt.get(), parachute_release_floor);
+	const float parachute_release_alt = parachuteReleaseAltitude(_param_fw_lnd_para_alt.get(),
+					    _param_fw_lnd_para_sink.get());
 
 	// calculate the altitude setpoint based on the landing glide slope
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
@@ -1489,15 +1490,10 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 						TerrainEstimateUseOnLanding::kFollowTerrainRelativeLandingGlideSlope) ? terrain_alt : pos_sp_curr.alt;
 
 	if (parachute_landing_active && _wind_valid) {
-		// compensate the crosswind drift under canopy by aiming upwind of the landing point.
-		// the drift is predicted from the altitude the release is expected to happen at: the
-		// release altitude, or lower if the vehicle cannot hold it (e.g. a motor-less glider).
-		const float release_alt_predicted = math::constrain(_current_altitude - terrain_alt,
-						    parachute_release_floor, parachute_release_alt);
-		const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
-		const Vector2f drift = _wind_vel * release_alt_predicted / math::max(_param_fw_lnd_para_sink.get(), 0.1f);
-		const Vector2f cross_drift = drift - approach_direction * drift.dot(approach_direction);
-		local_land_point -= cross_drift;
+		// compensate the crosswind drift under canopy by aiming upwind of the landing point
+		local_land_point -= parachuteCrosswindAimShift(_wind_vel, landing_approach_vector.unit_or_zero(),
+				    _current_altitude - terrain_alt, parachute_release_alt, parachute_release_floor,
+				    _param_fw_lnd_para_sink.get());
 	}
 
 	float altitude_setpoint;
@@ -1525,19 +1521,12 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
 
-		const bool at_release_altitude = altitude_above_ground < parachute_release_alt + kParachuteReleaseAltitudeMargin
-						 && altitude_above_ground > parachute_release_floor;
-
-		if (at_release_altitude) {
+		if (inParachuteReleaseBand(altitude_above_ground, parachute_release_alt, parachute_release_floor)) {
 			_parachute_release_band_entered = true;
 
-			const Vector2f approach_direction = landing_approach_vector.unit_or_zero();
-			const float ground_speed_along_track = math::max(ground_speed.dot(approach_direction), 0.f);
-			const float wind_along_track = _wind_valid ? _wind_vel.dot(approach_direction) : 0.f;
-			const float descent_time = altitude_above_ground / math::max(_param_fw_lnd_para_sink.get(), 0.1f);
-
-			const float release_distance = ground_speed_along_track * kParachuteDeploymentTime
-						       + wind_along_track * descent_time;
+			const float release_distance = parachuteReleaseDistance(ground_speed, _wind_vel, _wind_valid,
+						       landing_approach_vector.unit_or_zero(), altitude_above_ground,
+						       _param_fw_lnd_para_sink.get());
 
 			if (along_track_dist_to_touchdown <= release_distance) {
 				terminateForParachuteLanding(now);

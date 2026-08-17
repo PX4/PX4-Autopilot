@@ -44,6 +44,7 @@
 #include "runway_takeoff/RunwayTakeoff.h"
 #include "ControllerConfigurationHandler.hpp"
 #include "FirstOrderHoldAltitude.hpp"
+#include "ParachuteRelease.hpp"
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -150,17 +151,6 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
-
-// [m] altitude margin above the parachute release altitude within which the release is allowed
-static constexpr float kParachuteReleaseAltitudeMargin = 5.0f;
-
-// [s] nominal time from the release command until the canopy decelerates the vehicle, used to
-// predict the forward carry of the touchdown point
-static constexpr float kParachuteDeploymentTime = 1.0f;
-
-// [s] conservative time for the canopy to fully open: the release is never triggered below
-// FW_LND_PARA_SINK times this, so that the canopy has room to open before touchdown
-static constexpr float kParachuteCanopyOpenTime = 3.0f;
 
 class FixedWingModeManager final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
