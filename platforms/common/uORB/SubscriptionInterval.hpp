@@ -101,10 +101,7 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
-		_subscription{id, instance},
-		_interval_us(interval_us)
-	{}
+	SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0);
 
 	/**
 	 * Constructor
@@ -113,12 +110,9 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		_subscription{meta, instance},
-		_interval_us(interval_us)
-	{}
+	SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0);
 
-	SubscriptionIntervalBase() : _subscription{nullptr} {}
+	SubscriptionIntervalBase();
 
 	~SubscriptionIntervalBase() = default;
 
@@ -189,11 +183,7 @@ using SubscriptionIntervalAtomic = SubscriptionIntervalBase<true>;
 // Declaring them extern here keeps other translation units from emitting their own
 // weak copies, so the single strong definition can be pinned into ITCM by name on
 // the boards that do so (see boards/*/nuttx-config/scripts/itcm_*.ld).
-extern template bool SubscriptionIntervalBase<false>::updated();
-extern template bool SubscriptionIntervalBase<false>::update(void *dst);
-extern template bool SubscriptionIntervalBase<false>::copy(void *dst);
-extern template bool SubscriptionIntervalBase<true>::updated();
-extern template bool SubscriptionIntervalBase<true>::update(void *dst);
-extern template bool SubscriptionIntervalBase<true>::copy(void *dst);
+extern template class SubscriptionIntervalBase<false>;
+extern template class SubscriptionIntervalBase<true>;
 
 } // namespace uORB

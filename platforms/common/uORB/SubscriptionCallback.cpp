@@ -44,6 +44,43 @@
 namespace uORB
 {
 
+SubscriptionCallback::SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us, uint8_t instance) :
+	SubscriptionIntervalAtomic(meta, interval_us, instance)
+{
+}
+
+SubscriptionCallback::~SubscriptionCallback()
+{
+	unregisterCallback();
+}
+
+bool SubscriptionCallback::ChangeInstance(uint8_t instance)
+{
+	bool ret = false;
+
+	if (instance != get_instance()) {
+		const bool reg = registered();
+
+		if (reg) {
+			unregisterCallback();
+		}
+
+		if (_subscription.ChangeInstance(instance)) {
+			ret = true;
+		}
+
+		if (reg) {
+			registerCallback();
+		}
+
+	} else {
+		// already on desired index
+		return true;
+	}
+
+	return ret;
+}
+
 bool SubscriptionCallback::registerCallback()
 {
 	if (!orb_advert_valid(_subscription.get_node())) {
@@ -59,6 +96,18 @@ bool SubscriptionCallback::registerCallback()
 void SubscriptionCallback::unregisterCallback()
 {
 	Manager::unregisterCallback(_subscription.get_node(), this, _cb_handle);
+}
+
+SubscriptionCallbackWorkItem::SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta,
+		uint8_t instance) :
+	SubscriptionCallback(meta, 0, instance),	// interval 0
+	_work_item(work_item)
+{
+}
+
+SubscriptionPollable::SubscriptionPollable(const orb_metadata *meta, uint32_t interval_us, uint8_t instance) :
+	SubscriptionInterval(meta, interval_us, instance)
+{
 }
 
 } // namespace uORB

@@ -65,15 +65,9 @@ public:
 	 * @param interval_us The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		SubscriptionIntervalAtomic(meta, interval_us, instance)
-	{
-	}
+	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0);
 
-	virtual ~SubscriptionCallback()
-	{
-		unregisterCallback();
-	};
+	virtual ~SubscriptionCallback();
 
 	bool registerCallback();
 
@@ -83,32 +77,7 @@ public:
 	 * Change subscription instance
 	 * @param instance The new multi-Subscription instance
 	 */
-	bool ChangeInstance(uint8_t instance)
-	{
-		bool ret = false;
-
-		if (instance != get_instance()) {
-			const bool reg = registered();
-
-			if (reg) {
-				unregisterCallback();
-			}
-
-			if (_subscription.ChangeInstance(instance)) {
-				ret = true;
-			}
-
-			if (reg) {
-				registerCallback();
-			}
-
-		} else {
-			// already on desired index
-			return true;
-		}
-
-		return ret;
-	}
+	bool ChangeInstance(uint8_t instance);
 
 	virtual void call(unsigned generation) = 0;
 
@@ -150,11 +119,7 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta, uint8_t instance = 0) :
-		SubscriptionCallback(meta, 0, instance),	// interval 0
-		_work_item(work_item)
-	{
-	}
+	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta, uint8_t instance = 0);
 
 	virtual ~SubscriptionCallbackWorkItem() = default;
 
@@ -205,10 +170,7 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionPollable(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		SubscriptionInterval(meta, interval_us, instance)
-	{
-	}
+	SubscriptionPollable(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0);
 
 	~SubscriptionPollable() = default;
 
