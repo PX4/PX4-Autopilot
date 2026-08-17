@@ -35,15 +35,47 @@
 
 #include "SubscriptionCallback.hpp"
 
-#include <containers/LockGuard.hpp>
-#include <px4_time.h>
+#include <pthread.h>
 
 namespace uORB
 {
 
+// Type-independent part of SubscriptionBlocking, kept out-of-line so it is
+// emitted once instead of once per topic type.
+class SubscriptionBlockingBase : public SubscriptionCallback
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param interval_us The requested maximum update interval in microseconds.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionBlockingBase(const orb_metadata *meta, uint32_t interval_us, uint8_t instance);
+
+	virtual ~SubscriptionBlockingBase();
+
+	void call(unsigned generation) override;
+
+	/**
+	 * Block until updated.
+	 * @param timeout_us The requested timeout in microseconds, or 0 to wait indefinitely.
+	 *
+	 * @return true only if topic was updated
+	 */
+	bool updatedBlocking(uint32_t timeout_us = 0);
+
+private:
+
+	pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t	_cv = PTHREAD_COND_INITIALIZER;
+
+};
+
 // Subscription with callback that schedules a WorkItem
 template<typename T>
-class SubscriptionBlocking : public SubscriptionCallback
+class SubscriptionBlocking : public SubscriptionBlockingBase
 {
 public:
 	/**
@@ -54,73 +86,8 @@ public:
 	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionBlocking(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		SubscriptionCallback(meta, interval_us, instance)
+		SubscriptionBlockingBase(meta, interval_us, instance)
 	{
-	}
-
-	virtual ~SubscriptionBlocking()
-	{
-		pthread_mutex_destroy(&_mutex);
-		pthread_cond_destroy(&_cv);
-	}
-
-	void call(unsigned generation) override
-	{
-		// signal immediately if no interval, otherwise only if interval has elapsed
-		hrt_abstime last_update = _last_update.load();
-		const uint32_t interval_us = _interval_us.load();
-
-		if ((interval_us == 0) || (hrt_elapsed_time(&last_update) >= interval_us)) {
-			pthread_cond_signal(&_cv);
-		}
-	}
-
-	/**
-	 * Block until updated.
-	 * @param timeout_us The requested timeout in microseconds, or 0 to wait indefinitely.
-	 *
-	 * @return true only if topic was updated
-	 */
-	bool updatedBlocking(uint32_t timeout_us = 0)
-	{
-		if (!registered()) {
-			registerCallback();
-		}
-
-		if (updated()) {
-			// return immediately if updated
-			return true;
-
-		} else {
-			// otherwise wait
-
-			LockGuard lg{_mutex};
-
-			if (timeout_us == 0) {
-				// wait with no timeout
-				if (pthread_cond_wait(&_cv, &_mutex) == 0) {
-					return updated();
-				}
-
-			} else {
-				// otherwise wait with timeout based on interval
-
-				// Calculate an absolute time in the future
-				struct timespec ts;
-				px4_clock_gettime(CLOCK_REALTIME, &ts);
-				uint64_t nsecs = ts.tv_nsec + (timeout_us * 1000);
-				static constexpr unsigned billion = (1000 * 1000 * 1000);
-				ts.tv_sec += nsecs / billion;
-				nsecs -= (nsecs / billion) * billion;
-				ts.tv_nsec = nsecs;
-
-				if (px4_pthread_cond_timedwait(&_cv, &_mutex, &ts) == 0) {
-					return updated();
-				}
-			}
-		}
-
-		return false;
 	}
 
 	/**
@@ -138,12 +105,6 @@ public:
 
 		return false;
 	}
-
-private:
-
-	pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t	_cv = PTHREAD_COND_INITIALIZER;
-
 };
 
 } // namespace uORB
