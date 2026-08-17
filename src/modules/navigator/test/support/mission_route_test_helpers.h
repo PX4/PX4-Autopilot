@@ -77,7 +77,6 @@ public:
 
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override
 	{
-		++_mission_load_count;
 		return _mission_items.loadItem(index, mission_item);
 	}
 
@@ -85,7 +84,6 @@ public:
 
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
 	{
-		++_safe_point_load_count;
 		return _safe_point_items.loadItem(index, safe_point_item);
 	}
 
@@ -116,21 +114,10 @@ public:
 		return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, result);
 	}
 
-	void resetCounters() const
-	{
-		_mission_load_count = 0;
-		_safe_point_load_count = 0;
-	}
-
-	int missionLoadCount() const { return _mission_load_count; }
-	int safePointLoadCount() const { return _safe_point_load_count; }
-
 private:
 	VectorMissionItemStore _mission_items{};
 	VectorMissionItemStore _safe_point_items{};
 	int32_t _land_index{-1};
-	mutable int _mission_load_count{0};
-	mutable int _safe_point_load_count{0};
 };
 
 // Provider over a mission route with optional safe points, the common planner-test setup.
@@ -274,39 +261,12 @@ static constexpr double kLatLonToleranceDeg = 1e-7;
 static constexpr float kAltitudeTolerance = 2.0f;
 static constexpr float kDistanceTolerance = 5.0f;
 
-// Test-only adapters
-static inline bool collectVehicleProjection(const MissionRoutePlanner &planner,
-		const mission_route::Position &vehicle_position, int32_t mission_index,
-		const mission_route::PlannerConfig &config, mission_route::ProjectionContext &projection_context,
-		mission_route::FailureReason &failure_reason)
-{
-	const mission_route::VehicleProjectionResult result =
-		planner.collectVehicleProjection(vehicle_position, mission_index, config);
-	projection_context = result.value;
-	failure_reason = result.failure_reason;
-	return result.success;
-}
-
-static inline bool planRouteToGoal(const MissionRoutePlanner &planner,
-				   const mission_route::Position &vehicle_position, int32_t mission_index,
-				   const mission_route::PlannerConfig &config, mission_route::RoutePlan &plan,
-				   mission_route::FailureReason &failure_reason)
-{
-	const mission_route::RoutePlanResult result =
-		planner.planRouteToGoal(vehicle_position, mission_index, config);
-	plan = result.value;
-	failure_reason = result.failure_reason;
-	return result.success;
-}
-
 } // namespace navigator_test
 
 using navigator_test::VectorMissionRouteProvider;
 using VectorProvider = navigator_test::VectorMissionRouteProvider;
-using navigator_test::collectVehicleProjection;
 using navigator_test::defaultConfig;
 using navigator_test::fwConfig;
-using navigator_test::planRouteToGoal;
 using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
@@ -328,6 +288,4 @@ class MissionRouteTestBase : public ::testing::Test
 {
 protected:
 	mission_route::PlannerConfig config = defaultConfig();
-	mission_route::ProjectionContext ctx{};
-	mission_route::FailureReason reason{};
 };

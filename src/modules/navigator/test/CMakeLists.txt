@@ -39,5 +39,5 @@ px4_add_functional_gtest(SRC test_mission_route_cache.cpp LINKLIBS modules__navi
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
 	px4_add_functional_gtest(SRC test_mission_route_projection.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
-	px4_add_functional_gtest(SRC test_mission_route_goal.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
+	px4_add_functional_gtest(SRC test_mission_route_planner.cpp LINKLIBS modules__navigator navigator_mission_route_planner)
 endif()

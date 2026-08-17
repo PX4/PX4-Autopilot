@@ -50,8 +50,6 @@
 
 #include <matrix/math.hpp>
 
-class MissionRouteProjectionCandidateBufferTestPeer;
-
 namespace mission_route
 {
 
@@ -183,8 +181,6 @@ public:
 				     float home_altitude_amsl) const;
 
 private:
-	friend class ::MissionRouteProjectionCandidateBufferTestPeer;
-
 	struct BranchInSelectionResult;
 
 	struct ProjectionScanStats {
