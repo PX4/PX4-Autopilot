@@ -52,6 +52,8 @@ px4_add_library(uORB
 	PublicationMulti.hpp
 	Subscription.cpp
 	Subscription.hpp
+	SubscriptionBlocking.cpp
+	SubscriptionBlocking.hpp
 	SubscriptionCallback.cpp
 	SubscriptionCallback.hpp
 	SubscriptionInterval.cpp
