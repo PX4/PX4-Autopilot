@@ -36,6 +36,22 @@
 namespace uORB
 {
 
+template <bool ATOMIC>
+SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us, uint8_t instance) :
+	_subscription{id, instance},
+	_interval_us(interval_us)
+{}
+
+template <bool ATOMIC>
+SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us,
+		uint8_t instance) :
+	_subscription{meta, instance},
+	_interval_us(interval_us)
+{}
+
+template <bool ATOMIC>
+SubscriptionIntervalBase<ATOMIC>::SubscriptionIntervalBase() : _subscription{nullptr} {}
+
 // The bodies are defined out-of-line and explicitly instantiated below (rather
 // than inline in the header) to keep them from being emitted at every call site
 // - they are shared by many subscribers, so the flash cost matters on target.
@@ -85,12 +101,7 @@ bool SubscriptionIntervalBase<ATOMIC>::copy(void *dst)
 }
 
 // Only these two variants exist, so instantiate them here once each.
-template bool SubscriptionIntervalBase<false>::updated();
-template bool SubscriptionIntervalBase<false>::update(void *dst);
-template bool SubscriptionIntervalBase<false>::copy(void *dst);
-
-template bool SubscriptionIntervalBase<true>::updated();
-template bool SubscriptionIntervalBase<true>::update(void *dst);
-template bool SubscriptionIntervalBase<true>::copy(void *dst);
+template class SubscriptionIntervalBase<false>;
+template class SubscriptionIntervalBase<true>;
 
 } // namespace uORB
