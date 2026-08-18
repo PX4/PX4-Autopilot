@@ -469,6 +469,15 @@ struct msp_rendor_satellites_used_t {
 	char str[3]; // 99
 } __attribute__((packed));
 
+struct msp_rendor_gps_speed_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x9F; //mps icon
+
+	char str[7]; // 115.25
+} __attribute__((packed));
 
 // MSP_COMP_GPS reply
 struct msp_comp_gps_t {

@@ -110,6 +110,8 @@ msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_
 
 msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position);
 
+msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const sensor_gps_s &vehicle_gps_position);
+
 // construct an MSP_ATTITUDE struct
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
 
