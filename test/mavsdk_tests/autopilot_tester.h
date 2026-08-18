@@ -163,6 +163,8 @@ public:
 	mavlink_home_position_t get_home_position(std::chrono::seconds timeout = std::chrono::seconds(10));
 
 	Telemetry::EulerAngle get_attitude_euler();
+	Telemetry::RawGps get_raw_gps();
+	void set_rate_raw_gps(double rate_hz);
 
 	void enable_fixedwing_mectrics();
 	void check_airspeed_is_valid();

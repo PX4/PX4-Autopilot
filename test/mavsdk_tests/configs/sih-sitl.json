@@ -36,6 +36,20 @@
             "model": "xvert",
             "test_filter": "[sih_xvert_transition]",
             "timeout_min": 5
+        },
+        {
+            "model": "airplane",
+            "test_filter": "[sih_catapult_launch]",
+            "timeout_min": 10,
+            "env": {
+                "PX4_HOME_YAW": "0.7854",
+                "PX4_PARAM_RWTO_TKOFF": 0,
+                "PX4_PARAM_FW_LAUN_DETCN_ON": 1,
+                "PX4_PARAM_EKF2_MAG_TYPE": 6,
+                "PX4_PARAM_SIH_CAT_ACC": 50.0,
+                "PX4_PARAM_SIH_CAT_VEL": 15.0,
+                "PX4_PARAM_SIM_GPS_ACC_MAX": 15.0
+            }
         }
     ]
 }

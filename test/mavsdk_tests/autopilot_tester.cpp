@@ -899,6 +899,16 @@ Telemetry::EulerAngle AutopilotTester::get_attitude_euler()
 	return _telemetry->attitude_euler();
 }
 
+Telemetry::RawGps AutopilotTester::get_raw_gps()
+{
+	return _telemetry->raw_gps();
+}
+
+void AutopilotTester::set_rate_raw_gps(double rate_hz)
+{
+	CHECK(_telemetry->set_rate_raw_gps(rate_hz) == Telemetry::Result::Success);
+}
+
 std::array<float, 3> AutopilotTester::get_current_position_ned()
 {
 	mavsdk::Telemetry::PositionVelocityNed position_velocity_ned = _telemetry->position_velocity_ned();
