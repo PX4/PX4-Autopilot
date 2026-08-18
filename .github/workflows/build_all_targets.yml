@@ -124,7 +124,7 @@ jobs:
           ALL_SEEDERS: ${{ steps.set-seeders.outputs.seeders }}
         run: |
           cold=$(./Tools/ci/filter_cold_seeders.py <<< "$ALL_SEEDERS") || cold="$ALL_SEEDERS"
-          has_cold=$(python3 -c 'import json,sys; print(str(bool(json.load(sys.stdin)["include"])).lower())' <<< "$cold")
+          has_cold=$(python3 -c 'import json,sys; print(str(bool(json.load(sys.stdin)["include"])).lower())' <<< "$cold") || { cold="$ALL_SEEDERS"; has_cold=true; }
           {
             echo "cold_seeders<<EOF"
             echo "$cold"
