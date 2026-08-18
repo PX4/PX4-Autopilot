@@ -59,8 +59,8 @@ static constexpr uint8_t kMaxSegmentCandidates{3};
 /**
  * Number of safe points projected during one mission scan pass.
  *
- * Larger batches trade RAM for fewer complete mission scans. The value remains an implementation detail until
- * sequential safe-point evaluation is benchmarked in the memory-ownership step.
+ * Batching trades fixed RAM for fewer complete mission-route walks. This lets all references in a
+ * batch share route loading and future expensive route checks instead of repeating that work for every safe point.
  */
 static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};
 static_assert(CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE <= 255,

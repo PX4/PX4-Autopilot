@@ -105,6 +105,33 @@ class MissionRouteProjectionCandidateSelectionTest : public MissionRouteProjecti
 class MissionRouteProjectionEdgeCaseTest : public MissionRouteProjectionTestBase {};
 class RouteSegmentCursorTest : public MissionRouteProjectionTestBase {};
 
+class MissionLoadCountingProvider : public mission_route::Provider
+{
+public:
+	explicit MissionLoadCountingProvider(const mission_route::Provider &delegate) : _delegate(delegate) {}
+
+	int missionCount() const override { return _delegate.missionCount(); }
+
+	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	{
+		++_mission_item_load_count;
+		return _delegate.loadMissionItem(index, mission_item);
+	}
+
+	int safePointCount() const override { return _delegate.safePointCount(); }
+
+	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
+	{
+		return _delegate.loadSafePointItem(index, safe_point_item);
+	}
+
+	int missionItemLoadCount() const { return _mission_item_load_count; }
+
+private:
+	const mission_route::Provider &_delegate;
+	mutable int _mission_item_load_count{0};
+};
+
 // When two route legs are nearby, prefer the one that owns mission_index over the geometrically closer leg.
 TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersCurrentMissionSegmentOverCloserAlternative)
 {
@@ -446,6 +473,58 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, StraightLineIgnoresNonMinCo
 	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1U);
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 4);
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.end.idx, 5);
+}
+
+// References in one batch share the route walk instead of loading the mission once per reference.
+TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedReferencesShareMissionItemReads)
+{
+	static constexpr uint8_t kReferenceCount{2};
+
+	if (mission_route::kMaxSafePointBatch < kReferenceCount) {
+		GTEST_SKIP() << "batching contract requires at least two reference slots";
+	}
+
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission);
+	MissionLoadCountingProvider single_reference_provider(provider);
+	MissionLoadCountingProvider batched_reference_provider(provider);
+	mission_route::MissionRouteProjection single_reference_projection(single_reference_provider);
+	mission_route::MissionRouteProjection batched_reference_projection(batched_reference_provider);
+
+	const mission_route::Position first_reference =
+		makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt);
+	auto single_reference_batch = singleReferenceBatch(first_reference);
+	mission_route::ProjectionReferenceBatch batched_references{};
+	batched_references.count = kReferenceCount;
+	batched_references.items[0].position = first_reference;
+	batched_references.items[1].position = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, -15.f, kAlt);
+
+	mission_route::RouteDistanceSummary single_reference_summary{};
+	mission_route::RouteDistanceSummary batched_reference_summary{};
+	const mission_route::FailureReason single_reference_status =
+		single_reference_projection.findProjectionCandidates(scanRequest(60.f), single_reference_batch,
+				single_reference_summary);
+	const mission_route::FailureReason batched_reference_status =
+		batched_reference_projection.findProjectionCandidates(scanRequest(60.f), batched_references,
+				batched_reference_summary);
+
+	ASSERT_EQ(single_reference_status, mission_route::FailureReason::kNone)
+			<< mission_route::failureReasonString(single_reference_status);
+	ASSERT_GT(single_reference_batch.items[0].candidate_buffer.count, 0U);
+	ASSERT_EQ(batched_reference_status, mission_route::FailureReason::kNone)
+			<< mission_route::failureReasonString(batched_reference_status);
+
+	for (uint8_t i = 0; i < batched_references.count; ++i) {
+		ASSERT_GT(batched_references.items[i].candidate_buffer.count, 0U) << "reference " << static_cast<int>(i);
+	}
+
+	EXPECT_GT(single_reference_provider.missionItemLoadCount(), 0);
+	EXPECT_EQ(batched_reference_provider.missionItemLoadCount(), single_reference_provider.missionItemLoadCount());
 }
 
 // The scanner retains the three route segments with the smallest cross-track distance.

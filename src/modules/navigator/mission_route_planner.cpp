@@ -54,7 +54,6 @@
 #include <new>
 
 #include <lib/geo/geo.h>
-#include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
@@ -863,12 +862,6 @@ MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
 {
 }
 
-MissionRoutePlanner::~MissionRoutePlanner()
-{
-	perf_free(_collect_vehicle_projection_perf);
-	perf_free(_select_best_goal_perf);
-}
-
 FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequest &request,
 		MissionResumePlan &plan) const
 {
@@ -894,10 +887,8 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 	MissionRouteProjection projection{_provider};
 
 	ProjectionContext projection_context{};
-	perf_begin(_collect_vehicle_projection_perf);
 	const FailureReason projection_status = projection.collectVehicleProjection(request.vehicle_position,
 						request.mission_index, config, reference_batch, projection_context);
-	perf_end(_collect_vehicle_projection_perf);
 
 	if (projection_status != FailureReason::kNone) {
 		return projection_status;
@@ -938,10 +929,8 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 	MissionRouteProjection projection{_provider};
 
 	ProjectionContext projection_context{};
-	perf_begin(_collect_vehicle_projection_perf);
 	const FailureReason projection_status = projection.collectVehicleProjection(request.vehicle_position,
 						request.mission_index, config, reference_batch, projection_context);
-	perf_end(_collect_vehicle_projection_perf);
 
 	if (projection_status != FailureReason::kNone) {
 		return projection_status;
@@ -953,11 +942,9 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 
 	// Find closest safe point, falling back to mission end points if none found
 	GoalSelection selection{};
-	perf_begin(_select_best_goal_perf);
 	const FailureReason selection_status = selectBestGoal(_provider, projection, mission_count,
 					       request.mission_land_index, projection_context, config,
 					       reference_batch, selection);
-	perf_end(_select_best_goal_perf);
 
 	if (selection_status != FailureReason::kNone) {
 		return selection_status;

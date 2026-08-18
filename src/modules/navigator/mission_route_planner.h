@@ -47,8 +47,6 @@
 
 #include <stdint.h>
 
-#include <lib/perf/perf_counter.h>
-
 namespace mission_route
 {
 class Provider;
@@ -60,10 +58,11 @@ public:
 	/**
 	 * @brief Construct a planner over one read-only data provider.
 	 *
+	 * The provider must outlive the planner.
+	 *
 	 * Planning calls use shared fixed-memory scratch and must run serially on the Navigator task.
 	 */
 	explicit MissionRoutePlanner(const mission_route::Provider &provider);
-	~MissionRoutePlanner();
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner(MissionRoutePlanner &&) = delete;
@@ -78,6 +77,4 @@ public:
 
 private:
 	const mission_route::Provider &_provider;
-	perf_counter_t _collect_vehicle_projection_perf{perf_alloc(PC_ELAPSED, "rtl_route_collect_vehicle_proj")};
-	perf_counter_t _select_best_goal_perf{perf_alloc(PC_ELAPSED, "rtl_route_select_best_goal")};
 };
