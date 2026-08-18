@@ -4,7 +4,6 @@
 #
 # @type Quadrotor
 #
-# @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
 #
 
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=quadx_flow}
