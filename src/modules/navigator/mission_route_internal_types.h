@@ -204,7 +204,7 @@ struct GoalSelection {
 	int32_t branchOffIndex() const;
 };
 
-/** @brief Internal superset used while the goal-selector layer still exists. */
+/** @brief Normalized parameters shared by projection and goal-selection helpers during one planning pass. */
 struct PlannerParameters {
 	float vehicle_projection_search_dist{0.f};
 	float safe_point_projection_search_dist{0.f};
