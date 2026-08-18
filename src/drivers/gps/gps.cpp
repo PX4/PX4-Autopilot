@@ -1012,6 +1012,10 @@ GPS::run()
 			ubx_mode = GPSDriverUBX::UBXMode::GroundControlStation;
 			break;
 
+		case 7:
+			ubx_mode = GPSDriverUBX::UBXMode::UCenterUART2;
+			break;
+
 		default:
 			break;
 
