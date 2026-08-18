@@ -20,25 +20,36 @@ import subprocess
 import sys
 
 
-def is_warm(bucket, prefix):
+def scope_key_basenames(bucket, scope):
+    """Cache-key basenames in one ref scope of the magic-cache bucket.
+
+    The magic cache stores GitHub cache entries as
+    cache/v1/{org}/{repo}/{ref}/{version-hash}/{cache-key}; the version
+    hash is the actions/cache path+compression digest and not knowable
+    here, so list the whole ref scope (auto-paginated) and match on the
+    final path component.
+    """
+    prefix = f"cache/v1/{os.environ['GITHUB_REPOSITORY']}/{scope}/"
     result = subprocess.run(
-        ["aws", "s3api", "list-objects-v2", "--bucket", bucket,
-         "--prefix", prefix, "--max-items", "1", "--output", "json"],
-        capture_output=True, text=True, timeout=30)
+        ["aws", "s3", "ls", f"s3://{bucket}/{prefix}", "--recursive"],
+        capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip())
-    return bool(result.stdout.strip()) and "Contents" in json.loads(result.stdout)
+    return [line.split()[-1].rsplit("/", 1)[-1]
+            for line in result.stdout.splitlines() if line.strip()]
 
 
 def filter_cold(matrix):
     bucket = os.environ["RUNS_ON_S3_BUCKET_CACHE"]
+    # Default-branch caches are visible to every ref, so main-scope
+    # warmth is what the build jobs' last restore-keys fallback can
+    # always reach regardless of the branch being built.
+    scope = os.environ.get("SEEDER_PROBE_SCOPE", "refs/heads/main")
+    basenames = scope_key_basenames(bucket, scope)
     cold = []
     for entry in matrix["include"]:
-        # The same namespace the build jobs search as their last
-        # restore-keys fallback; the magic cache stores GitHub cache
-        # entries under the cache/ prefix of the bucket.
-        prefix = f"cache/ccache-{entry['chip_family']}-{entry['runner']}-"
-        warm = is_warm(bucket, prefix)
+        prefix = f"ccache-{entry['chip_family']}-{entry['runner']}-"
+        warm = any(name.startswith(prefix) for name in basenames)
         print(f"::notice title=seeder probe::{entry['chip_family']}/"
               f"{entry['runner']}: {'warm' if warm else 'COLD'}", file=sys.stderr)
         if not warm:
