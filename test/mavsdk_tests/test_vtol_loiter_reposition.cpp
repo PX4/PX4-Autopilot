@@ -88,7 +88,7 @@ void establish_work_orbit(AutopilotTesterLoiter &tester)
 
 } // namespace
 
-TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[loiter]")
+TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -105,7 +105,7 @@ TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[lo
 				      kAltitudeTolerance, 180s);
 }
 
-TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the current altitude", "[loiter]")
+TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the current altitude", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -132,7 +132,7 @@ TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the
 	tester.check_stays_on_loiter(kWorkCenter, kNonDefaultRadius, kRadiusTolerance, 40s);
 }
 
-TEST_CASE("Loiter: Hold while transiting creates a new loiter at the current position", "[loiter]")
+TEST_CASE("Loiter: Hold while transiting creates a new loiter at the current position", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -155,7 +155,7 @@ TEST_CASE("Loiter: Hold while transiting creates a new loiter at the current pos
 	tester.check_never_reaches(far_center, 150.f, 40s);
 }
 
-TEST_CASE("Loiter: Hold on a figure-eight reverts to a plain circular loiter", "[loiter]")
+TEST_CASE("Loiter: Hold on a figure-eight reverts to a plain circular loiter", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
@@ -176,7 +176,7 @@ TEST_CASE("Loiter: Hold on a figure-eight reverts to a plain circular loiter", "
 	tester.check_stays_within(hold_position, default_radius + 70.f, 40s);
 }
 
-TEST_CASE("Loiter: altitude-only reposition keeps the loiter and only changes altitude", "[loiter]")
+TEST_CASE("Loiter: altitude-only reposition keeps the loiter and only changes altitude", "[vtol]")
 {
 	AutopilotTesterLoiter tester;
 	arm_takeoff_transition_hold(tester);
