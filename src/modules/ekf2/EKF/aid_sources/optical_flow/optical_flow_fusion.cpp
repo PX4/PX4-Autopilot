@@ -51,6 +51,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 		return false;
 	}
 
+	VectorState state_correction;
+
 	// fuse observation axes sequentially
 	for (uint8_t index = 0; index <= 1; index++) {
 		if (index == 0) {
@@ -61,11 +63,6 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			const float R_LOS = _aid_src_optical_flow.observation_variance[1];
 			const float epsilon = 1e-3f;
 			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &_aid_src_optical_flow.innovation_variance[1], &H);
-
-			// recalculate the innovation using the updated state
-			const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
-			_aid_src_optical_flow.innovation[1] = predictFlow(flow_gyro_corrected)(1) - static_cast<float>
-							      (_aid_src_optical_flow.observation[1]);
 
 			// recalculate the test ratio as the measurement jacobian is highly non linear
 			// when close to the ground (singularity at 0) and the innovation can suddenly become really
@@ -92,8 +89,10 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 		}
 
 		measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index],
-				  _aid_src_optical_flow.innovation[index]);
+				  _aid_src_optical_flow.innovation[index], state_correction);
 	}
+
+	applyStateCorrection(state_correction);
 
 	_fault_status.flags.bad_optflow_X = false;
 	_fault_status.flags.bad_optflow_Y = false;

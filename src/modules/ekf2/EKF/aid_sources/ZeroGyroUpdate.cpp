@@ -63,11 +63,15 @@ bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 			const float obs_var = sq(math::constrain(ekf.getGyroNoise(), 0.f, 1.f));
 
+			Ekf::VectorState state_correction;
+
 			for (unsigned i = 0; i < 3; i++) {
 				const float innovation = ekf.state().gyro_bias(i) - gyro_bias(i);
 				const float innov_var = ekf.getGyroBiasVariance()(i) + obs_var;
-				ekf.fuseDirectStateMeasurement(innovation, innov_var, obs_var, State::gyro_bias.idx + i);
+				ekf.fuseDirectStateMeasurement(innovation, innov_var, obs_var, State::gyro_bias.idx + i, state_correction);
 			}
+
+			ekf.applyStateCorrection(state_correction);
 
 			// Reset the integrators
 			_zgup_delta_ang.setZero();
