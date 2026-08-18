@@ -50,7 +50,7 @@
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
+bool Ekf::fuseMag(const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
 		  bool update_all_states, bool update_tilt)
 {
 	// if any axis failed, abort the mag fusion
@@ -65,6 +65,8 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 				 : 0.f;
 	float delta_heading_max = math::radians(1.f) * dt_heading;
 
+	VectorState state_correction;
+
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
@@ -75,10 +77,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeMagYInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src.innovation_variance[index], &H);
 
-			// recalculate innovation using the updated state
-			aid_src.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(
-							    index);
-
 		} else if (index == 2) {
 			// we do not fuse synthesized magnetomter measurements when doing 3D fusion
 			if (_control_status.flags.synthetic_mag_z) {
@@ -87,10 +85,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeMagZInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src.innovation_variance[index], &H);
-
-			// recalculate innovation using the updated state
-			aid_src.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(
-							    index);
 		}
 
 		if (aid_src.innovation_variance[index] < R_MAG) {
@@ -144,8 +138,10 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			delta_heading_max -= delta_heading_abs;
 		}
 
-		measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index]);
+		measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index], state_correction);
 	}
+
+	applyStateCorrection(state_correction);
 
 	_fault_status.flags.bad_mag_x = false;
 	_fault_status.flags.bad_mag_y = false;
