@@ -35,8 +35,6 @@
  * @file test_mission_route_data.h
  *
  * Reusable mission-route test datasets.
- * To visualize data, use Tools/navigator_mission_planner_visualizer/mission_planner_tools.py
- *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
