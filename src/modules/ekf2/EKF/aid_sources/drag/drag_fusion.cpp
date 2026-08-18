@@ -92,8 +92,9 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		return;
 	}
 
-	const Vector3f rel_wind_body_prev = getRelativeWindBody();
-	const auto state_vector_prev = _state.vector();
+	const Vector3f rel_wind_body = getRelativeWindBody();
+	const float rel_wind_speed = rel_wind_body.norm();
+	const auto state_vector = _state.vector();
 
 	Vector2f bcoef_inv{0.f, 0.f};
 
@@ -109,8 +110,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		// Interpolate between the X and Y bluff body drag coefficients using current relative velocity
 		// This creates an elliptic drag distribution around the XY plane
-		// this is part of the drag model, so it must stay frozen at the linearisation point used for H
-		bcoef_inv(0) = Vector2f(bcoef_inv.emult(rel_wind_body_prev.xy()) / rel_wind_body_prev.xy().norm()).norm();
+		bcoef_inv(0) = Vector2f(bcoef_inv.emult(rel_wind_body.xy()) / rel_wind_body.xy().norm()).norm();
 		bcoef_inv(1) = bcoef_inv(0);
 	}
 
@@ -123,13 +123,10 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	const float innov_gate = 5.f;
 
 	VectorState H;
+	VectorState state_correction;
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
-		// recalculate innovation using the updated state
-		const Vector3f rel_wind_body = getRelativeWindBody();
-		const float rel_wind_speed = rel_wind_body.norm();
-
 		// measured drag acceleration corrected for sensor bias
 		const float mea_acc = drag_sample.accelXY(axis_index) - _state.accel_bias(axis_index);
 
@@ -143,7 +140,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		innovation(axis_index) = pred_acc - mea_acc;
 
 		if (axis_index == 0) {
-			sym::ComputeDragXInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
+			sym::ComputeDragXInnovVarAndH(state_vector, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
 						      &innovation_variance(axis_index), &H);
 
 			if (!using_bcoef_x && !using_mcoef) {
@@ -151,7 +148,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 			}
 
 		} else if (axis_index == 1) {
-			sym::ComputeDragYInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
+			sym::ComputeDragYInnovVarAndH(state_vector, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
 						      &innovation_variance(axis_index), &H);
 
 			if (!using_bcoef_y && !using_mcoef) {
@@ -173,9 +170,11 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			VectorState K = P * H / innovation_variance(axis_index);
 
-			measurementUpdate(K, H, R_ACC, innovation(axis_index));
+			measurementUpdate(K, H, R_ACC, innovation(axis_index), state_correction);
 		}
 	}
+
+	applyStateCorrection(state_correction);
 
 	updateAidSourceStatus(_aid_src_drag,
 			      drag_sample.time_us,  // sample timestamp
