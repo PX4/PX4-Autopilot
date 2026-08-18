@@ -1,3 +1,5 @@
+uint8 MAX_INSTANCES = 3
+
 uint64 timestamp                        # time since system start (microseconds)
 
 float32 maximum_fuel_capacity       	# maximum fuel capacity. Must always be provided, either from the driver or a parameter

@@ -58,10 +58,15 @@ int UavcanFuelTankStatusBridge::init()
 	}
 
 	// Fetch maximum fuel capacity (in liters)
-	param_get(param_find("UAVCAN_ECU_MAXF"), &_max_fuel_capacity);
+	for (uint8_t i = 0; i < MAX_INSTANCES; i++) {
+		char param_name[17];
 
-	// Fetching fuel type
-	param_get(param_find("UAVCAN_ECU_FUELT"), &_fuel_type);
+		snprintf(param_name, sizeof(param_name), "UAVCAN_ECU_MAXF%u", i + 1);
+		param_get(param_find(param_name), &_max_fuel_capacity[i]);
+
+		snprintf(param_name, sizeof(param_name), "UAVCAN_ECU_FT%u", i + 1);
+		param_get(param_find(param_name), &_fuel_type[i]);
+	}
 
 	return 0;
 }
@@ -69,10 +74,14 @@ int UavcanFuelTankStatusBridge::init()
 void UavcanFuelTankStatusBridge::fuel_tank_status_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::ice::FuelTankStatus> &msg)
 {
-	auto report = ::fuel_tank_status_s();
+	if (msg.fuel_tank_id >= MAX_INSTANCES) {
+		return;
+	}
+
+	fuel_tank_status_s &report = _fuel_tank_status[msg.fuel_tank_id];
 	report.timestamp = hrt_absolute_time();
-	report.maximum_fuel_capacity = _max_fuel_capacity * 1000.0f; // convert to ml
-	report.fuel_type = static_cast<uint8_t>(_fuel_type);
+	report.maximum_fuel_capacity = _max_fuel_capacity[msg.fuel_tank_id] * 1000.0f; // convert to ml
+	report.fuel_type = static_cast<uint8_t>(_fuel_type[msg.fuel_tank_id]);
 	report.consumed_fuel = NAN; // only the remaining fuel is measured
 	report.fuel_consumption_rate = msg.fuel_consumption_rate_cm3pm / 60.0f; // convert to ml/s
 	report.percent_remaining = msg.available_fuel_volume_percent;
@@ -82,7 +91,9 @@ void UavcanFuelTankStatusBridge::fuel_tank_status_sub_cb(const
 	// Optional temperature field, in Kelvin, set to NaN if not provided.
 	report.temperature = !PX4_ISFINITE(msg.fuel_temperature) ? NAN : msg.fuel_temperature;
 
-	publish(msg.getSrcNodeID().get(), &report);
+	// Use fuel_tank_id as the channel key so each tank gets its own uORB instance,
+	// independent of which CAN node sent the message.
+	publish(msg.fuel_tank_id, &report);
 }
 
 int UavcanFuelTankStatusBridge::init_driver(uavcan_bridge::Channel *channel)
