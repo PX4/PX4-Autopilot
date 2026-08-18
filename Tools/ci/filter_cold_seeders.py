@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Filter the seeder matrix to chip families with no warm ccache.
+"""Emit the seeder matrix filtered to chip families with no warm ccache.
 
-Reads the full seeder matrix JSON on stdin and prints a matrix containing
-only the families with no cache entry under their ccache namespace in the
-RunsOn magic-cache S3 bucket. Exits non-zero when probing is impossible
-(missing bucket env, aws cli error) so the caller can fail open and seed
-every family, which is the pre-probe behavior.
+Reads the full seeder matrix JSON on stdin and writes two GitHub Actions
+outputs (to $GITHUB_OUTPUT, or stdout when unset for local runs):
+
+  cold_seeders  matrix containing only the families with no cache entry
+                under their ccache namespace in the RunsOn magic-cache
+                S3 bucket
+  has_cold      "true"/"false", whether cold_seeders has any entries
+
+Fails open, never non-zero: on any probe problem (missing bucket env,
+aws cli error, unexpected input) the full input matrix is emitted with
+has_cold=true, reproducing unconditional seeding. The probe can only
+skip work, never leave a truly cold family unseeded.
 """
 import json
 import os
@@ -13,7 +20,7 @@ import subprocess
 import sys
 
 
-def has_cache(bucket, prefix):
+def is_warm(bucket, prefix):
     result = subprocess.run(
         ["aws", "s3api", "list-objects-v2", "--bucket", bucket,
          "--prefix", prefix, "--max-items", "1", "--output", "json"],
@@ -23,29 +30,51 @@ def has_cache(bucket, prefix):
     return bool(result.stdout.strip()) and "Contents" in json.loads(result.stdout)
 
 
-def main():
-    bucket = os.environ.get("RUNS_ON_S3_BUCKET_CACHE")
-    if not bucket:
-        print("RUNS_ON_S3_BUCKET_CACHE not set, cannot probe", file=sys.stderr)
-        return 1
-    matrix = json.load(sys.stdin)
+def filter_cold(matrix):
+    bucket = os.environ["RUNS_ON_S3_BUCKET_CACHE"]
     cold = []
     for entry in matrix["include"]:
         # The same namespace the build jobs search as their last
         # restore-keys fallback; the magic cache stores GitHub cache
         # entries under the cache/ prefix of the bucket.
         prefix = f"cache/ccache-{entry['chip_family']}-{entry['runner']}-"
-        try:
-            warm = has_cache(bucket, prefix)
-        except Exception as exc:
-            print(f"probe failed for {prefix}: {exc}", file=sys.stderr)
-            return 1
-        state = "warm" if warm else "COLD"
+        warm = is_warm(bucket, prefix)
         print(f"::notice title=seeder probe::{entry['chip_family']}/"
-              f"{entry['runner']}: {state}", file=sys.stderr)
+              f"{entry['runner']}: {'warm' if warm else 'COLD'}", file=sys.stderr)
         if not warm:
             cold.append(entry)
-    json.dump({"include": cold}, sys.stdout)
+    return {"include": cold}
+
+
+def write_outputs(cold_json, has_cold):
+    payload = (f"cold_seeders<<EOF\n{cold_json}\nEOF\n"
+               f"has_cold={'true' if has_cold else 'false'}\n")
+    path = os.environ.get("GITHUB_OUTPUT")
+    if path:
+        with open(path, "a") as out:
+            out.write(payload)
+    else:
+        sys.stdout.write(payload)
+
+
+def main():
+    raw = sys.stdin.read()
+    try:
+        matrix = json.loads(raw)
+    except ValueError as exc:
+        # Unparseable input passes through verbatim so the seed matrix
+        # fails loudly downstream instead of being silently skipped.
+        print(f"::notice title=seeder probe::fail-open, bad input: {exc}",
+              file=sys.stderr)
+        write_outputs(raw, True)
+        return 0
+    try:
+        cold = filter_cold(matrix)
+    except Exception as exc:
+        print(f"::notice title=seeder probe::fail-open, seeding all "
+              f"families: {exc}", file=sys.stderr)
+        cold = matrix
+    write_outputs(json.dumps(cold), bool(cold["include"]))
     return 0
 
 

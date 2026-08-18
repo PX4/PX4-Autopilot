@@ -112,25 +112,14 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # Probe the RunsOn cache bucket for each chip family's ccache
-      # namespace and seed only the families with no warm cache. Fail-open:
-      # if the bucket env or the listing is unavailable, or the assumed
-      # object layout is wrong, every family reads as cold and gets seeded,
-      # which is exactly the pre-probe behavior. The probe can only skip
-      # work, never leave a truly cold family unseeded.
+      # Seed only chip families whose ccache namespace has no warm cache.
+      # Fail-open semantics live in the script: any probe problem emits
+      # the full matrix, reproducing unconditional seeding.
       - id: filter-seeders
         name: Probe Family Caches
         env:
           ALL_SEEDERS: ${{ steps.set-seeders.outputs.seeders }}
-        run: |
-          cold=$(./Tools/ci/filter_cold_seeders.py <<< "$ALL_SEEDERS") || cold="$ALL_SEEDERS"
-          has_cold=$(python3 -c 'import json,sys; print(str(bool(json.load(sys.stdin)["include"])).lower())' <<< "$cold") || { cold="$ALL_SEEDERS"; has_cold=true; }
-          {
-            echo "cold_seeders<<EOF"
-            echo "$cold"
-            echo "EOF"
-            echo "has_cold=$has_cold"
-          } >> "$GITHUB_OUTPUT"
+        run: ./Tools/ci/filter_cold_seeders.py <<< "$ALL_SEEDERS"
 
       - id: set-timestamp
         name: Save Current Timestamp
