@@ -20,3 +20,4 @@ param set-default SIH_DISTSNSR_MAX 30
 param set-default EKF2_OF_CTRL 1
 param set-default EKF2_RNG_CTRL 1
 param bitclear EKF2_SENS_EN 3 # disable gps fusion
+param set-default EKF2_HGT_REF 0
