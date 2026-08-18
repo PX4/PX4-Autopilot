@@ -21,3 +21,8 @@ Questions about these tools should be raised on the [discussion forums](../contr
 - IDEs
   - [Qt Creator IDE](../dev_setup/qtcreator.md)
 - [Simulators](../simulation/community_supported_simulators.md) — [Simulation-In-Hardware](../sim_sih/index.md), [FlightGear](../sim_flightgear/index.md), [JSBSim](../sim_jsbsim/index.md), [AirSim](../sim_airsim/index.md), [HITL](../simulation/hitl.md)
+
+## PID tuning cockpit
+- [Genius Tools](https://www.altitude-rd.com/genius-tools) is a commercial web app for interactive multicopter tuning from a flight log.
+  
+<img width="500" alt="Genius_Tools" src="https://github.com/user-attachments/assets/2e891577-38b7-420b-9346-a87bd2c89f5b" />
