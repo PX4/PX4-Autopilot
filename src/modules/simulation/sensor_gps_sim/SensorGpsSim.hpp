@@ -98,6 +98,13 @@ private:
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gps_s> _stuck[GPS_MAX_INSTANCES];
 
+	// GNSS receiver dynamic model: reported velocity, rate-limited towards the true one, and the
+	// position offset it accumulates while it lags behind
+	matrix::Vector3f _vel_dynamic_model{};
+	matrix::Vector3f _pos_dynamic_model_offset{};
+	hrt_abstime _last_run{0};
+	static constexpr float kDynamicModelRecoveryTau{2.f}; // s
+
 	// GPS Markov process noise state
 	float _gps_pos_noise_n{0.0f};
 	float _gps_pos_noise_e{0.0f};
@@ -116,6 +123,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
+		(ParamFloat<px4::params::SIM_GPS_ACC_MAX>) _sim_gps_acc_max,
 		(ParamFloat<px4::params::SENS_GPS1_OFFX>)  _param_gps1_offx,
 		(ParamFloat<px4::params::SENS_GPS1_OFFY>)  _param_gps1_offy
 	)

@@ -128,9 +128,34 @@ void SensorGpsSim::Run()
 		_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
 				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
 
-		const double latitude = gpos.lat + math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-		const double longitude = gpos.lon + math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
-		const double altitude = (double)(gpos.alt + _gps_pos_noise_d);
+		Vector3f vel_reported{lpos.vx, lpos.vy, lpos.vz};
+
+		if (_sim_gps_acc_max.get() > FLT_EPSILON) {
+			// A GNSS receiver reports the state of its internal dynamic model, which cannot follow
+			// accelerations larger than the ones it is tuned for. During a catapult launch this makes the
+			// reported velocity lag the true one, producing a large innovation along the launch direction.
+			const hrt_abstime now = hrt_absolute_time();
+			const float dt = (_last_run > 0) ? math::constrain((now - _last_run) * 1e-6f, 1e-3f, 1.f) : 0.f;
+			_last_run = now;
+
+			const Vector3f error = vel_reported - _vel_dynamic_model;
+			const float max_delta = _sim_gps_acc_max.get() * dt;
+
+			_vel_dynamic_model += (error.norm() > max_delta) ? Vector3f(error.unit() * max_delta) : error;
+
+			// the reported position lags consistently with the reported velocity, and recovers once the
+			// dynamic model has caught up again
+			_pos_dynamic_model_offset += (_vel_dynamic_model - vel_reported) * dt;
+			_pos_dynamic_model_offset *= expf(-dt / kDynamicModelRecoveryTau);
+
+			vel_reported = _vel_dynamic_model;
+		}
+
+		const double latitude = gpos.lat + math::degrees((double)(_gps_pos_noise_n + _pos_dynamic_model_offset(
+						0)) / CONSTANTS_RADIUS_OF_EARTH);
+		const double longitude = gpos.lon + math::degrees((double)(_gps_pos_noise_e + _pos_dynamic_model_offset(
+						 1)) / CONSTANTS_RADIUS_OF_EARTH);
+		const double altitude = (double)(gpos.alt + _gps_pos_noise_d - _pos_dynamic_model_offset(2));
 
 		_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
 				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
@@ -141,7 +166,7 @@ void SensorGpsSim::Run()
 		_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
 				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-		const Vector3f gps_vel = Vector3f{lpos.vx + _gps_vel_noise_n, lpos.vy + _gps_vel_noise_e, lpos.vz + _gps_vel_noise_d};
+		const Vector3f gps_vel = vel_reported + Vector3f{_gps_vel_noise_n, _gps_vel_noise_e, _gps_vel_noise_d};
 
 		// device id
 		device::Device::DeviceId device_id;

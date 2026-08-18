@@ -22,3 +22,14 @@ parameters:
       default: 10
       min: 0
       max: 50
+    SIM_GPS_ACC_MAX:
+      description:
+        short: simulated GNSS receiver dynamic model acceleration limit
+        long: Rate at which the reported GNSS velocity is allowed to follow the true
+          velocity. This emulates the internal dynamic model of a GNSS receiver, which
+          makes the reported velocity lag the true one during high-g maneuvers such
+          as a catapult launch. Set to 0 to report the true velocity.
+      type: float
+      default: 0.0
+      min: 0.0
+      unit: m/s^2
