@@ -30,7 +30,7 @@ parameters:
                 10: MAH_DRAWN
                 11: RSSI_VALUE
                 12: ALTITUDE
-                13: NUMERICAL_VARIO
+                13: (unused) NUMERICAL_VARIO
                 # the following are reserved but not currently functional
                 14: (unused) FLYMODE
                 15: (unused) ESC_TMP
