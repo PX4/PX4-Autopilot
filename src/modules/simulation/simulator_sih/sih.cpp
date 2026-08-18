@@ -480,7 +480,7 @@ void Sih::generate_force_and_torques(const float dt)
 
 		_T[0] = _thruster[0].compute_thrust_from_throttle(_u[3], _v_B(0));
 		_Q[0] = _thruster[0].compute_torque_from_throttle(_u[3], _v_B(0));
-		_T_B = Vector3f(_T[0], 0.0f, 0.0f); 	// forward thruster
+		_T_B = Vector3f(_T[0] + catapult_force(), 0.0f, 0.0f); 	// forward thruster and catapult
 		_Mt_B = Vector3f(_Q[0], 0.0f, 0.0f);	// thruster torque
 		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _T[0]);
 
@@ -510,6 +510,34 @@ void Sih::generate_force_and_torques(const float dt)
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
 	}
+}
+
+float Sih::catapult_force()
+{
+	actuator_armed_s actuator_armed;
+
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		if (actuator_armed.armed && !_armed) {
+			// the catapult is triggered by arming and re-cocked on disarm
+			_catapult_released = false;
+		}
+
+		_armed = actuator_armed.armed;
+	}
+
+	if (_catapult_released || (_sih_catapult_acc.get() < FLT_EPSILON)) {
+		_catapult_engaged = false;
+		return 0.f;
+	}
+
+	if (_v_B(0) >= _sih_catapult_vel.get()) {
+		_catapult_released = true;
+		_catapult_engaged = false;
+		return 0.f;
+	}
+
+	_catapult_engaged = true;
+	return _MASS * _sih_catapult_acc.get();
 }
 
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
@@ -697,6 +725,10 @@ void Sih::equations_of_motion(const float dt)
 
 	const Vector3f w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
 	_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
+
+	if (_catapult_engaged) {
+		_w_B.setZero(); // the catapult rail holds the attitude until release
+	}
 
 	ecefToNed();
 

@@ -73,6 +73,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <uORB/topics/distance_sensor.h>
@@ -145,6 +146,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	failure_injection::Config _failure_config;
 
 	bool _airspeed_blocked{false};
@@ -210,6 +212,9 @@ private:
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
 
+	// force applied by a catapult along the body x axis, 0 when the catapult is disabled or released
+	float catapult_force();
+
 	void ecefToNed();
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -234,6 +239,9 @@ private:
 	uint8_t _ranging_beacon_idx{0};
 
 	bool _grounded{true}; // whether the vehicle is on the ground
+	bool _armed{false};
+	bool _catapult_released{true}; // the catapult only fires once per arming
+	bool _catapult_engaged{false}; // the rail constrains the attitude while the catapult accelerates
 
 	// Quantities in body frame (FRD)
 	matrix::Vector3f _T_B{};  // thrust force [N]
@@ -339,6 +347,8 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamFloat<px4::params::SIH_CAT_ACC>) _sih_catapult_acc,
+		(ParamFloat<px4::params::SIH_CAT_VEL>) _sih_catapult_vel,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
 		(ParamFloat<px4::params::SIH_F_Q_MAX>) _sih_f_torque_max,

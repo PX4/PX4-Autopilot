@@ -17,6 +17,19 @@ param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
 param set-default SIH_T_MAX 6
+
+# forward propeller model with advance ratio, model from UIUC APC 8x6"
+param set-default SIH_F_T_MAX 6
+param set-default SIH_F_Q_MAX 0.03
+# if SIH_F_CT0 > 0, SIH_F_T_MAX and SIH_F_Q_MAX are overridden
+param set-default SIH_F_CT0 0.131
+param set-default SIH_F_CT1 0.004
+param set-default SIH_F_CT2 -0.146
+param set-default SIH_F_CP0 0.0777
+param set-default SIH_F_CP1 0.0498
+param set-default SIH_F_CP2 -0.11
+param set-default SIH_F_DIA_INCH 8
+param set-default SIH_F_RPM_MAX 9000
 param set-default SIH_MASS 0.3
 param set-default SIH_IXX 0.00402
 param set-default SIH_IYY 0.0144

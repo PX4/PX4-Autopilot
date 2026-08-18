@@ -262,6 +262,24 @@ parameters:
       type: float
       default: 0.05
       unit: s
+    SIH_CAT_ACC:
+      description:
+        short: Catapult acceleration (fixed-wing only)
+        long: Acceleration applied along the body x axis when the vehicle is armed,
+          until SIH_CAT_VEL is reached. Set to 0 to disable the catapult.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 200.0
+      unit: m/s^2
+    SIH_CAT_VEL:
+      description:
+        short: Catapult release speed (fixed-wing only)
+        long: Body x velocity at which the vehicle leaves the catapult.
+      type: float
+      default: 15.0
+      min: 0.0
+      unit: m/s
     SIH_VEHICLE_TYPE:
       description:
         short: Vehicle type
