@@ -587,6 +587,17 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
 	return status;
 }
 
+msp_rendor_crosshairs_t construct_rendor_CROSSHAIRS(const int pos_vertical_offset, const int pos_horizontal_offset)
+{
+	// initialize result
+	msp_rendor_crosshairs_t crosshairs;
+
+	crosshairs.screenYPosition = 0x0A - pos_vertical_offset;
+	crosshairs.screenXPosition = 0x1A + pos_horizontal_offset;
+
+	return crosshairs;
+}
+
 
 
 } // namespace msp_osd
