@@ -13,6 +13,7 @@ on:
       - '.github/workflows/dev_container.yml'
       - 'Tools/setup/ubuntu.sh'
       - 'Tools/setup/requirements.txt'
+      - 'Tools/setup/optional-requirements.txt'
       - 'Tools/setup/Dockerfile'
       - 'Tools/setup/docker-entrypoint.sh'
   workflow_dispatch:
