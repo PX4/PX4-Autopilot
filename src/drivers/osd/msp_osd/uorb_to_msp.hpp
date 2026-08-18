@@ -91,6 +91,10 @@ msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_stat
 
 msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status);
 
+msp_rendor_current_draw_t construct_rendor_CURRENT_DRAW(const battery_status_s &battery_status);
+
+msp_rendor_mah_drawn_t construct_rendor_MAH_DRAWN(const battery_status_s &battery_status);
+
 // construct an MSP_RAW_GPS struct
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 				const airspeed_validated_s &airspeed_validated);
