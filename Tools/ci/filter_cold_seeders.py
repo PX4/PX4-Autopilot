@@ -48,7 +48,9 @@ def filter_cold(matrix):
     basenames = scope_key_basenames(bucket, scope)
     cold = []
     for entry in matrix["include"]:
-        prefix = f"ccache-{entry['chip_family']}-{entry['runner']}-"
+        # The namespace root is minted by generate_board_targets_json.py
+        # and arrives on every matrix entry; no key format knowledge here.
+        prefix = entry["cache_prefix"] + "-"
         warm = any(name.startswith(prefix) for name in basenames)
         print(f"::notice title=seeder probe::{entry['chip_family']}/"
               f"{entry['runner']}: {'warm' if warm else 'COLD'}", file=sys.stderr)

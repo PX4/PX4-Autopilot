@@ -180,7 +180,7 @@ jobs:
       - uses: ./.github/actions/setup-ccache
         id: ccache
         with:
-          cache-key-prefix: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-seeder
+          cache-key-prefix: ${{ matrix.cache_prefix }}-${{ matrix.group }}
           max-size: 400M
       - name: Build seed target
         run: make ${{ matrix.target }}
@@ -216,12 +216,12 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
-          key: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.ref_name }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-
+            ${{ matrix.cache_prefix }}-
 
       - name: Cache - Configure ccache
         run: |
