@@ -98,8 +98,6 @@ public:
 		_delegate.setSafePointItems(safe_point_items);
 	}
 
-	void setLandIndex(int32_t land_index) { _delegate.setLandIndex(land_index); }
-
 	int missionCount() const override { return _delegate.missionCount(); }
 
 	bool loadMissionItem(int index, mission_item_s &mission_item) const override
@@ -119,11 +117,6 @@ public:
 		const bool success = _delegate.loadSafePointItem(index, safe_point_item);
 		_failure_armed = true;
 		return success;
-	}
-
-	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override
-	{
-		return _delegate.getMissionLandItem(index, land_item);
 	}
 
 	bool failureInjected() const { return _failure_injected; }
@@ -282,11 +275,11 @@ TEST_F(MissionRoutePlannerTest, RequiredVtolApproachFallsBackToMissionEndpoint)
 	const int32_t land_index = 2;
 
 	VectorProvider provider = makeRouteProvider(mission, safe_points);
-	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
 	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	request.mission_land_index = land_index;
 	request.require_vtol_approach = true;
 	mission_route::RouteToGoalPlan plan{};
 
@@ -333,31 +326,32 @@ TEST_F(MissionRoutePlannerTest, RequiredVtolApproachScansTheWholeRallyBlock)
 	EXPECT_EQ(plan.safe_point_index, 0);
 }
 
-// No safe points are available, so route planning falls back to the configured mission land item.
-TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesConfiguredLandIndex)
+// The published index points to a waypoint even though a later LAND exists. The planner must
+// reject that exact item and use takeoff fallback instead of rescanning the mission for LAND.
+TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackDoesNotRescanNonLandConfiguredIndex)
 {
 	std::vector<mission_item_s> mission{
 		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
 		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
 	};
-	const int32_t land_index = 2;
+	const int32_t non_land_index = 2;
 
 	VectorProvider provider = makeRouteProvider(mission);
-	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
-	const mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 2);
+	request.mission_land_index = non_land_index;
 	mission_route::RouteToGoalPlan plan{};
 
 	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionLand);
-	EXPECT_NEAR(plan.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
-	EXPECT_NEAR(plan.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
-	EXPECT_NEAR(plan.goal_position.alt, mission[land_index].altitude, kAltitudeTolerance);
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kMissionTakeoff);
+	EXPECT_NEAR(plan.goal_position.lat, mission[0].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.goal_position.lon, mission[0].lon, kLatLonToleranceDeg);
 }
 
 // The published land item can precede other position items. Score it at its own route location,
@@ -374,11 +368,11 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	const int32_t land_index = 3;
 
 	VectorProvider provider = makeRouteProvider(mission);
-	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
-	const mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 2);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 2);
+	request.mission_land_index = land_index;
 	mission_route::RouteToGoalPlan plan{};
 
 	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
@@ -750,11 +744,11 @@ TEST_F(MissionRoutePlannerTest, SafePointScanFailureFallsBackToMissionEndpoint)
 	};
 	const int32_t land_index = 2;
 	OneShotSafePointScanFailureProvider provider{mission, safe_points, 1};
-	provider.setLandIndex(land_index);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
-	const mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	request.mission_land_index = land_index;
 	mission_route::RouteToGoalPlan plan{};
 
 	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);

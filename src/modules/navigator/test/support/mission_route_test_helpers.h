@@ -72,7 +72,6 @@ public:
 	void setSafePointItems(const std::vector<mission_item_s> &items) { _safe_point_items.setItems(items); }
 	void setMissionLoadFailures(const std::vector<int32_t> &indices) { _mission_items.setLoadFailureIndices(indices); }
 	void setSafePointLoadFailures(const std::vector<int32_t> &indices) { _safe_point_items.setLoadFailureIndices(indices); }
-	void setLandIndex(int32_t land_index) { _land_index = land_index; }
 
 	int missionCount() const override { return static_cast<int>(_mission_items.itemCount()); }
 
@@ -88,37 +87,9 @@ public:
 		return _safe_point_items.loadItem(index, safe_point_item);
 	}
 
-	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override
-	{
-		if (_land_index < 0 || _land_index >= missionCount()) {
-			return false;
-		}
-
-		mission_item_s item{};
-
-		if (!loadMissionItem(_land_index, item)) {
-			return false;
-		}
-
-		if (item.nav_cmd != NAV_CMD_LAND && item.nav_cmd != NAV_CMD_VTOL_LAND) {
-			return false;
-		}
-
-		index = _land_index;
-		land_item = item;
-		return true;
-	}
-
-	bool scanVtolLandApproachBlockForTest(int safe_point_index, float home_altitude_amsl,
-					      land_approaches_s *result) const
-	{
-		return scanVtolLandApproachBlock(safe_point_index, home_altitude_amsl, result);
-	}
-
 private:
 	VectorMissionItemStore _mission_items{};
 	VectorMissionItemStore _safe_point_items{};
-	int32_t _land_index{-1};
 };
 
 // Provider over a mission route with optional safe points, the common planner-test setup.

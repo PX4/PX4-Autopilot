@@ -44,6 +44,7 @@
 #include "navigator.h"
 #include "mission_block.h"
 #include "mission_route_cache.h"
+#include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 
 #include <drivers/drv_hrt.h>
@@ -420,7 +421,8 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 			const bool current_safe_point_has_approaches {
-				mission_route_cache.hasVtolLandApproachesAtSafePointIndex(current_seq, _home_pos_sub.get().alt)
+				mission_route::hasVtolLandApproachesAtSafePointIndex(mission_route_cache, current_seq,
+						_home_pos_sub.get().alt)
 			};
 
 			_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
@@ -453,7 +455,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 		const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 					     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-		_home_has_land_approach = mission_route_cache.hasVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+		_home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(mission_route_cache, destination,
+					  _home_pos_sub.get().alt);
 #endif
 
 		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
@@ -680,7 +683,8 @@ loiter_point_s RTL::selectLandingApproach(const PositionYawSetpoint &destination
 	}
 
 	const land_approaches_s vtol_land_approaches =
-		_navigator->get_mission_route_cache().getVtolLandApproachesNearLocation(destination, _home_pos_sub.get().alt);
+		mission_route::getVtolLandApproachesNearLocation(_navigator->get_mission_route_cache(), destination,
+				_home_pos_sub.get().alt);
 
 	if (vtol_land_approaches.isAnyApproachValid()) {
 		landing_approach = chooseBestLandingApproach(vtol_land_approaches);

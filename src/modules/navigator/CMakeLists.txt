@@ -40,7 +40,7 @@ endif()
 
 px4_add_library(navigator_mission_route
 	mission_route_types.cpp
-	mission_route_provider.cpp
+	mission_route_land_approaches.cpp
 )
 
 target_link_libraries(navigator_mission_route PUBLIC geo)

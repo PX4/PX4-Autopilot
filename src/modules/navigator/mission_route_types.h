@@ -116,6 +116,8 @@ struct MissionResumeRequest {
 struct RouteToGoalRequest {
 	Position vehicle_position{};
 	int32_t mission_index{-1};
+	/** LAND/VTOL_LAND index in the same validated mission source; -1 if unavailable. */
+	int32_t mission_land_index{-1};
 	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
 	ActiveJumpAnchor active_jump_anchor{};
 	float home_altitude_amsl{NAN}; /**< May be NAN when every relevant item uses absolute altitude. */

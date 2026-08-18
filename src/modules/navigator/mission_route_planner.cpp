@@ -45,6 +45,8 @@
 
 #include "mission_route_planner.h"
 
+#include "mission_item_utils.h"
+#include "mission_route_land_approaches.h"
 #include "mission_route_projection.h"
 #include "mission_route_provider.h"
 
@@ -97,6 +99,30 @@ bool activeJumpAnchorValidForMission(const ActiveJumpAnchor &anchor, int mission
 {
 	return anchor.empty()
 	       || (anchor.valid() && anchor.start_index < mission_count && anchor.target_index < mission_count);
+}
+
+bool findMissionTakeoffItem(const Provider &provider, int mission_count, int32_t &index,
+			    mission_item_s &takeoff_item)
+{
+	for (int i = 0; i < mission_count; ++i) {
+		mission_item_s item{};
+
+		if (!provider.loadMissionItem(i, item)) {
+			break;
+		}
+
+		if (item.nav_cmd == NAV_CMD_TAKEOFF || item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+			index = i;
+			takeoff_item = item;
+			return true;
+		}
+
+		if (mission_item_contains_position(item)) {
+			break;
+		}
+	}
+
+	return false;
 }
 
 void setVehicleState(PlannerConfig &config, bool current_route_direction_reversed,
@@ -214,7 +240,7 @@ void loadSafePointBatch(const Provider &provider,
 		}
 
 		if (config.state.require_vtol_approach
-		    && !provider.hasVtolLandApproachesAtSafePointIndex(safe_point_index,
+		    && !hasVtolLandApproachesAtSafePointIndex(provider, safe_point_index,
 				    config.parameters.home_altitude_amsl)) {
 			PX4_DEBUG("Route safe point %d skipped, no VTOL approach", safe_point_index);
 			continue;
@@ -725,6 +751,7 @@ FailureReason selectSafePoint(const Provider &provider,
 GoalSelection selectMissionEndpointFallback(const Provider &provider,
 		const MissionRouteProjection &projection,
 		int mission_count,
+		int32_t mission_land_index,
 		const ProjectionContext &projection_context,
 		const PlannerConfig &config)
 {
@@ -739,7 +766,7 @@ GoalSelection selectMissionEndpointFallback(const Provider &provider,
 	RoutePath path_to_takeoff{};
 	Position takeoff_position{};
 
-	if (provider.getMissionTakeoffItem(takeoff_index, takeoff_item)
+	if (findMissionTakeoffItem(provider, mission_count, takeoff_index, takeoff_item)
 	    && extractMissionPosition(takeoff_item, config.parameters.home_altitude_amsl, takeoff_position)) {
 		path_to_takeoff = findShortestPathAlongRoute(mission_count, 0.f, projection_context, config,
 				  PathDirectionMode::kForceReverse, RouteGoalSegmentType::kOutsideActiveLoopJump);
@@ -751,14 +778,15 @@ GoalSelection selectMissionEndpointFallback(const Provider &provider,
 		takeoff_position.alt = config.parameters.home_altitude_amsl;
 	}
 
-	int32_t land_index{-1};
 	mission_item_s land_item{};
 	RoutePath path_to_land{};
 	Position land_position{};
 
-	if (provider.getMissionLandItem(land_index, land_item)
+	if (mission_land_index >= 0 && mission_land_index < mission_count
+	    && provider.loadMissionItem(mission_land_index, land_item)
+	    && isLandingCmd(land_item.nav_cmd)
 	    && extractMissionPosition(land_item, config.parameters.home_altitude_amsl, land_position)) {
-		const float land_route_along = projection.accumulateRouteDistance(0, land_index,
+		const float land_route_along = projection.accumulateRouteDistance(0, mission_land_index,
 					       config.parameters.home_altitude_amsl);
 
 		if (PX4_ISFINITE(land_route_along)) {
@@ -800,6 +828,7 @@ GoalSelection selectMissionEndpointFallback(const Provider &provider,
 FailureReason selectBestGoal(const Provider &provider,
 			     const MissionRouteProjection &projection,
 			     int mission_count,
+			     int32_t mission_land_index,
 			     const ProjectionContext &projection_context,
 			     const PlannerConfig &config,
 			     ProjectionReferenceBatch &batch,
@@ -816,7 +845,7 @@ FailureReason selectBestGoal(const Provider &provider,
 	}
 
 	// No reachable safe point: fall back to the mission end points.
-	const GoalSelection fallback = selectMissionEndpointFallback(provider, projection, mission_count,
+	const GoalSelection fallback = selectMissionEndpointFallback(provider, projection, mission_count, mission_land_index,
 				       projection_context, config);
 
 	if (fallback.valid()) {
@@ -925,8 +954,9 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 	// Find closest safe point, falling back to mission end points if none found
 	GoalSelection selection{};
 	perf_begin(_select_best_goal_perf);
-	const FailureReason selection_status = selectBestGoal(_provider, projection, mission_count, projection_context,
-					       config, reference_batch, selection);
+	const FailureReason selection_status = selectBestGoal(_provider, projection, mission_count,
+					       request.mission_land_index, projection_context, config,
+					       reference_batch, selection);
 	perf_end(_select_best_goal_perf);
 
 	if (selection_status != FailureReason::kNone) {

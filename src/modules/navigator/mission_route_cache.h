@@ -141,7 +141,7 @@ public:
 	 * This lookup is cache-only and never waits for Dataman. While the asynchronous load or a source replacement is
 	 * pending, it returns false and leaves both output parameters unchanged.
 	 */
-	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const override;
+	bool getMissionLandItem(int32_t &index, mission_item_s &land_item) const;
 
 	bool loadMissionItem(const mission_s &mission, int32_t index, mission_item_s &mission_item) const;
 
