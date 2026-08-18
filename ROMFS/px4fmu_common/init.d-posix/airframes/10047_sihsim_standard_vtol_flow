@@ -12,9 +12,6 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=standard_vtol_flow}
 
 . ${R}etc/init.d-posix/airframes/10043_sihsim_standard_vtol
 
-# Simulated optical flow and downward facing distance sensor.
-# The flow sensor reports the integrated flow only, the distance sensor is
-# required to scale it.
 param set-default SIH_OF_EN 1
 param set-default SIH_OF_H_MAX 30
 param set-default SIH_DISTSNSR_EN 1
