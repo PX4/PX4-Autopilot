@@ -42,8 +42,8 @@
 
 #pragma once
 
+#include "mission_route_internal_types.h"
 #include "mission_route_provider.h"
-#include "mission_route_types.h"
 
 #include <float.h>
 #include <stdint.h>
@@ -67,13 +67,10 @@ struct ProjectionScanRequest {
 	bool compute_current_segment_bounds{false};
 	int32_t mission_index{-1};
 	bool is_flying_reverse{false};
-	Segment last_flown_loop_segment{};
+	ActiveJumpAnchor active_jump_anchor{};
 };
 
-struct ProjectionScanResult {
-	bool success{false};
-	FailureReason failure_reason{FailureReason::kUnknown};
-
+struct RouteDistanceSummary {
 	SegmentDistanceAlong current_segment_along{};
 	float route_length{0.f};
 };
@@ -166,13 +163,22 @@ class MissionRouteProjection
 public:
 	explicit MissionRouteProjection(const Provider &provider) : _provider(provider) {}
 
-	/** @brief Scan the mission once and collect projection candidates for every reference point in the batch. */
-	ProjectionScanResult findProjectionCandidates(const ProjectionScanRequest &request,
-			ProjectionReferenceBatch &batch) const;
+	/**
+	 * @brief Scan the mission once and collect projection candidates for every reference point in the batch.
+	 *
+	 * distance_summary is cleared on entry and populated only when kNone is returned.
+	 */
+	FailureReason findProjectionCandidates(const ProjectionScanRequest &request,
+					       ProjectionReferenceBatch &batch, RouteDistanceSummary &distance_summary) const;
 
-	/** @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate. */
-	VehicleProjectionResult collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
-			const PlannerConfig &config, ProjectionReferenceBatch &batch) const;
+	/**
+	 * @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate.
+	 *
+	 * projection_context is cleared on entry and populated only when kNone is returned.
+	 */
+	FailureReason collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
+					       const PlannerConfig &config, ProjectionReferenceBatch &batch,
+					       ProjectionContext &projection_context) const;
 
 	float accumulateRouteDistance(int32_t from_index, int32_t to_index,
 				      float home_altitude_amsl) const;
@@ -181,7 +187,7 @@ public:
 				     float home_altitude_amsl) const;
 
 private:
-	struct BranchInSelectionResult;
+	struct BranchInSelection;
 
 	struct ProjectionScanStats {
 		uint32_t segments_processed{0};
@@ -239,11 +245,12 @@ private:
 					ProjectionCandidateBuffer &candidate_buffer,
 					ProjectionScanStats &stats) const;
 
-	BranchInSelectionResult selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_buffer,
-			const SegmentDistanceAlong &current_segment_along,
-			int32_t mission_index,
-			bool is_flying_reverse,
-			const Segment &last_flown_loop_segment) const;
+	FailureReason selectBranchInCandidate(const ProjectionCandidateBuffer &candidate_buffer,
+					      const SegmentDistanceAlong &current_segment_along,
+					      int32_t mission_index,
+					      bool is_flying_reverse,
+					      const ActiveJumpAnchor &active_jump_anchor,
+					      BranchInSelection &selection) const;
 
 	const Provider &_provider;
 };

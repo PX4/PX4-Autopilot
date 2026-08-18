@@ -181,7 +181,7 @@ public:
 		_wanted = request.compute_current_segment_bounds;
 
 		// On the first mission item (flying nominal) the vehicle has not entered the route yet.
-		if (_wanted && !request.last_flown_loop_segment.validLoop()
+		if (_wanted && !request.active_jump_anchor.valid()
 		    && request.mission_index == 0 && !request.is_flying_reverse) {
 			_bounds.start = 0.f;
 			_bounds.end = 0.f;
@@ -203,15 +203,15 @@ private:
 	bool fill(const RouteSegmentView &segment_view)
 	{
 		const Segment &segment = segment_view.segment;
-		const Segment &loop = _request.last_flown_loop_segment;
+		const ActiveJumpAnchor &active_jump = _request.active_jump_anchor;
 
-		if (loop.validLoop()) {
+		if (active_jump.valid()) {
 			// The loop interval spans from the jump target back to the jump item,
 			// so its ends are collected from two different walk steps.
-			if (segment.start.idx == loop.start.idx) {
+			if (segment.start.idx == active_jump.start_index) {
 				_bounds.start = segment_view.route_along_start_m;
 
-			} else if (segment.start.idx == loop.end.idx) {
+			} else if (segment.start.idx == active_jump.target_index) {
 				_bounds.end = segment_view.route_along_start_m;
 			}
 
@@ -601,15 +601,13 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 	insertCandidateSorted(candidate_buffer, candidate);
 }
 
-ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const ProjectionScanRequest &request,
-		ProjectionReferenceBatch &batch) const
+FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionScanRequest &request,
+		ProjectionReferenceBatch &batch, RouteDistanceSummary &distance_summary) const
 {
-	ProjectionScanResult result{};
-	result.failure_reason = FailureReason::kUnknown;
+	distance_summary = {};
 
 	if (batch.count == 0 || batch.count > kMaxSafePointBatch || !(request.xtrack_margin_m >= 0.f)) {
-		result.failure_reason = FailureReason::kInvalidRequest;
-		return result;
+		return FailureReason::kInvalidRequest;
 	}
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
@@ -621,8 +619,7 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 	RouteSegmentCursor cursor(_provider, request.home_altitude_amsl);
 
 	if (!cursor.init()) {
-		result.failure_reason = cursor.failureReason();
-		return result;
+		return cursor.failureReason();
 	}
 
 	ProjectionScanStats stats{};
@@ -660,12 +657,11 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 	}
 
 	if (cursor.failed()) {
-		result.failure_reason = cursor.failureReason();
-		return result;
+		return cursor.failureReason();
 	}
 
-	result.current_segment_along = bounds_tracker.bounds();
-	result.route_length = cursor.routeLength();
+	const SegmentDistanceAlong current_segment_along = bounds_tracker.bounds();
+	const float route_length = cursor.routeLength();
 
 	bool any_candidate_found = false;
 
@@ -683,43 +679,39 @@ ProjectionScanResult MissionRouteProjection::findProjectionCandidates(const Proj
 		  static_cast<unsigned>(stats.valid_candidate_found));
 
 	if (any_candidate_found) {
-		result.success = true;
-		result.failure_reason = FailureReason::kNone;
-		return result;
+		distance_summary.current_segment_along = current_segment_along;
+		distance_summary.route_length = route_length;
+		return FailureReason::kNone;
 	}
 
 	if (stats.segments_processed == 0) {
-		result.failure_reason = FailureReason::kNoSegmentsFound;
+		return FailureReason::kNoSegmentsFound;
 
 	} else if (stats.local_min_found == 0) {
-		result.failure_reason = FailureReason::kNoLocalMinFound;
+		return FailureReason::kNoLocalMinFound;
 
 	} else if (stats.valid_candidate_found == 0) {
-		result.failure_reason = FailureReason::kNoValidCandidateFound;
-
-	} else {
-		result.failure_reason = FailureReason::kUnknown;
+		return FailureReason::kNoValidCandidateFound;
 	}
 
-	return result;
+	return FailureReason::kUnknown;
 }
 
-struct MissionRouteProjection::BranchInSelectionResult {
-	bool success{false};
-	FailureReason failure_reason{FailureReason::kUnknown};
+struct MissionRouteProjection::BranchInSelection {
 	RouteProjectionCandidate candidate{};
 	int candidate_index{-1};
 	float score_m{FLT_MAX};
 };
 
-MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBranchInCandidate(
+FailureReason MissionRouteProjection::selectBranchInCandidate(
 	const ProjectionCandidateBuffer &candidate_buffer,
 	const SegmentDistanceAlong &current_segment_along,
 	int32_t mission_index,
 	bool is_flying_reverse,
-	const Segment &last_flown_loop_segment) const
+	const ActiveJumpAnchor &active_jump_anchor,
+	BranchInSelection &selection) const
 {
-	BranchInSelectionResult result{};
+	selection = {};
 	int best_candidate_index = -1;
 	float min_path_distance = FLT_MAX;
 	SegmentDistanceAlong segment_along = current_segment_along;
@@ -755,9 +747,9 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 
 		bool priority_match = false;
 
-		if (last_flown_loop_segment.validLoop()) {
-			priority_match = last_flown_loop_segment.start.idx == candidate.segment.start.idx
-					 && last_flown_loop_segment.end.idx == candidate.segment.end.idx;
+		if (active_jump_anchor.valid()) {
+			priority_match = active_jump_anchor.start_index == candidate.segment.start.idx
+					 && active_jump_anchor.target_index == candidate.segment.end.idx;
 
 			if (priority_match) {
 				PX4_DEBUG("Route UAV proj prioritizing cand %u (loop segment match)", static_cast<unsigned>(i));
@@ -785,43 +777,39 @@ MissionRouteProjection::BranchInSelectionResult MissionRouteProjection::selectBr
 
 	if (best_candidate_index < 0) {
 		PX4_ERR("Route UAV proj failed, no valid candidate selected");
-		result.failure_reason = FailureReason::kNoValidCandidateFound;
-		return result;
+		return FailureReason::kNoValidCandidateFound;
 	}
 
-	result.success = true;
-	result.failure_reason = FailureReason::kNone;
-	result.candidate = candidate_buffer.candidates[best_candidate_index];
-	result.candidate_index = best_candidate_index;
-	result.score_m = min_path_distance;
-	return result;
+	selection.candidate = candidate_buffer.candidates[best_candidate_index];
+	selection.candidate_index = best_candidate_index;
+	selection.score_m = min_path_distance;
+	return FailureReason::kNone;
 }
 
-VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const Position &vehicle_position,
-		int32_t mission_index, const PlannerConfig &config, ProjectionReferenceBatch &batch) const
+FailureReason MissionRouteProjection::collectVehicleProjection(const Position &vehicle_position,
+		int32_t mission_index, const PlannerConfig &config, ProjectionReferenceBatch &batch,
+		ProjectionContext &projection_context) const
 {
-	VehicleProjectionResult result{};
+	const Position input_vehicle_position = vehicle_position;
+	projection_context = {};
 
-	if (!vehicle_position.valid()) {
-		result.failure_reason = FailureReason::kNoValidGlobalPos;
-		return result;
+	if (!input_vehicle_position.valid()) {
+		return FailureReason::kNoValidGlobalPos;
 	}
 
 	if (_provider.missionCount() <= 0) {
-		result.failure_reason = FailureReason::kNoValidWaypoints;
-		return result;
+		return FailureReason::kNoValidWaypoints;
 	}
 
 	if (mission_index < 0 || mission_index >= _provider.missionCount()) {
 		PX4_ERR("Route invalid mission index: %d (mission count: %d)",
 			static_cast<int>(mission_index), static_cast<int>(_provider.missionCount()));
-		result.failure_reason = FailureReason::kInvalidRequest;
-		return result;
+		return FailureReason::kInvalidRequest;
 	}
 
 	batch.items[0] = {};
 	batch.count = 1;
-	batch.items[0].position = vehicle_position;
+	batch.items[0].position = input_vehicle_position;
 
 	ProjectionScanRequest scan_request{};
 	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
@@ -829,39 +817,38 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 	scan_request.compute_current_segment_bounds = true;
 	scan_request.mission_index = mission_index;
 	scan_request.is_flying_reverse = config.state.is_flying_reverse;
-	scan_request.last_flown_loop_segment = config.last_flown_loop_segment;
+	scan_request.active_jump_anchor = config.active_jump_anchor;
 
-	const ProjectionScanResult scan_result = findProjectionCandidates(scan_request, batch);
+	RouteDistanceSummary distance_summary{};
+	const FailureReason scan_status = findProjectionCandidates(scan_request, batch, distance_summary);
 
-	if (!scan_result.success) {
-		result.failure_reason = scan_result.failure_reason;
-		return result;
+	if (scan_status != FailureReason::kNone) {
+		return scan_status;
 	}
 
 	const ProjectionCandidateBuffer &candidate_buffer = batch.items[0].candidate_buffer;
 
 	PX4_DEBUG("Route vehicle projection: cands=%u current_segment[%.1f, %.1f] idx=%d",
 		  static_cast<unsigned>(candidate_buffer.count),
-		  static_cast<double>(scan_result.current_segment_along.start),
-		  static_cast<double>(scan_result.current_segment_along.end),
+		  static_cast<double>(distance_summary.current_segment_along.start),
+		  static_cast<double>(distance_summary.current_segment_along.end),
 		  static_cast<int>(mission_index));
 
-	const BranchInSelectionResult branch_in = selectBranchInCandidate(candidate_buffer,
-			scan_result.current_segment_along, mission_index,
-			config.state.is_flying_reverse,
-			config.last_flown_loop_segment);
+	BranchInSelection branch_in{};
+	const FailureReason branch_in_status = selectBranchInCandidate(candidate_buffer,
+					       distance_summary.current_segment_along, mission_index,
+					       config.state.is_flying_reverse,
+					       config.active_jump_anchor, branch_in);
 
-	if (!branch_in.success) {
-		result.failure_reason = branch_in.failure_reason;
-		return result;
+	if (branch_in_status != FailureReason::kNone) {
+		return branch_in_status;
 	}
 
-	ProjectionContext projection_context{};
-	projection_context.vehicle_position = vehicle_position;
+	projection_context.vehicle_position = input_vehicle_position;
 	projection_context.mission_index = mission_index;
 	projection_context.route_projection = branch_in.candidate;
 	projection_context.vehicle_state = config.state;
-	projection_context.route_length = scan_result.route_length;
+	projection_context.route_length = distance_summary.route_length;
 	// Use the repeat count from the selected projection loop itself. A later DO_JUMP elsewhere
 	// in the mission must not overwrite the active loop state carried by this projection.
 	projection_context.mission_loops_remaining = projection_context.route_projection.segment.validLoop()
@@ -880,14 +867,11 @@ VehicleProjectionResult MissionRouteProjection::collectVehicleProjection(const P
 	}
 
 	if (!projection_context.valid()) {
-		result.failure_reason = FailureReason::kInvalidProjectionContext;
-		return result;
+		projection_context = {};
+		return FailureReason::kInvalidProjectionContext;
 	}
 
-	result.success = true;
-	result.failure_reason = FailureReason::kNone;
-	result.value = projection_context;
-	return result;
+	return FailureReason::kNone;
 }
 
 float MissionRouteProjection::accumulateRouteDistance(int32_t from_index, int32_t to_index,

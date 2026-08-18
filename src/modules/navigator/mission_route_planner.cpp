@@ -45,6 +45,10 @@
 
 #include "mission_route_planner.h"
 
+#include "mission_route_goal.h"
+#include "mission_route_projection.h"
+#include "mission_route_provider.h"
+
 #include <new>
 
 #include <lib/perf/perf_counter.h>
@@ -53,8 +57,11 @@
 
 using namespace mission_route;
 
+namespace
+{
+
 /**
- * Shared scratch buffer reused by collectVehicleProjection and selectSafePoint, kept off the
+ * Shared scratch buffer reused by vehicle projection and safe-point selection, kept off the
  * navigator task stack because it scales with CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE (~380 bytes per slot).
  *
  * The buffer must not be a plain static object: ProjectionReferenceBatch has non-zero member
@@ -64,7 +71,7 @@ using namespace mission_route;
  * constructed in place on first use. Placement new on static storage cannot fail, so the
  * returned reference is always valid.
  */
-ProjectionReferenceBatch &mission_route::sharedProjectionReferenceBatch()
+ProjectionReferenceBatch &plannerScratchBatch()
 {
 	alignas(ProjectionReferenceBatch) static uint8_t storage[sizeof(ProjectionReferenceBatch)];
 	static ProjectionReferenceBatch *batch = new (storage) ProjectionReferenceBatch{};
@@ -72,10 +79,104 @@ ProjectionReferenceBatch &mission_route::sharedProjectionReferenceBatch()
 	return *batch;
 }
 
-MissionRoutePlanner::MissionRoutePlanner(const Provider &provider, ProjectionReferenceBatch &reference_batch) :
-	_projection(provider),
-	_goal_selector(provider, _projection),
-	_reference_batch(reference_batch)
+bool activeJumpAnchorValidForMission(const ActiveJumpAnchor &anchor, int mission_count)
+{
+	return anchor.empty()
+	       || (anchor.valid() && anchor.start_index < mission_count && anchor.target_index < mission_count);
+}
+
+void setVehicleState(PlannerConfig &config, bool current_route_direction_reversed,
+		     bool is_fixed_wing, bool in_transition_to_fw, bool require_vtol_approach,
+		     float velocity_north_m_s, float velocity_east_m_s)
+{
+	config.state.is_flying_reverse = current_route_direction_reversed;
+	config.state.is_fixed_wing = is_fixed_wing;
+	config.state.in_transition_to_fw = in_transition_to_fw;
+	config.state.require_vtol_approach = require_vtol_approach;
+	config.state.velocity_ne(0) = velocity_north_m_s;
+	config.state.velocity_ne(1) = velocity_east_m_s;
+	config.state.velocity_valid = config.state.velocity_ne.isAllFinite();
+}
+
+PlannerConfig makePlannerConfig(const MissionResumeRequest &request)
+{
+	PlannerConfig config{};
+	config.parameters.vehicle_projection_search_dist = request.projection_search_distance_m;
+	config.parameters.acceptance_radius = request.acceptance_radius_m;
+	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
+	config.parameters.u_turn_penalty_m = request.u_turn_penalty_m;
+	config.active_jump_anchor = request.active_jump_anchor;
+	setVehicleState(config, request.current_route_direction_reversed, request.is_fixed_wing,
+			request.in_transition_to_fw, false, request.velocity_north_m_s, request.velocity_east_m_s);
+	return config;
+}
+
+PlannerConfig makePlannerConfig(const RouteToGoalRequest &request)
+{
+	PlannerConfig config{};
+	config.parameters.vehicle_projection_search_dist = request.projection_search_distance_m;
+	config.parameters.safe_point_projection_search_dist = request.safe_point_projection_search_distance_m;
+	config.parameters.acceptance_radius = request.acceptance_radius_m;
+	config.parameters.direct_acceptance_radius = request.direct_goal_acceptance_radius_m;
+	config.parameters.altitude_acceptance_radius = request.altitude_acceptance_radius_m;
+	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
+	config.parameters.u_turn_penalty_m = request.u_turn_penalty_m;
+	config.active_jump_anchor = request.active_jump_anchor;
+	setVehicleState(config, request.current_route_direction_reversed, request.is_fixed_wing,
+			request.in_transition_to_fw, request.require_vtol_approach,
+			request.velocity_north_m_s, request.velocity_east_m_s);
+	return config;
+}
+
+ActiveJumpAnchor activeJumpAnchor(const ProjectionContext &projection_context)
+{
+	const Segment &segment = projection_context.route_projection.segment;
+
+	if (segment.validLoop()) {
+		return {segment.start.idx, segment.end.idx};
+	}
+
+	return {};
+}
+
+MissionResumePlan makeMissionResumePlan(const ProjectionContext &projection_context, const RoutePath &path,
+					const JoinContext &join_context)
+{
+	MissionResumePlan plan{};
+	plan.join_position = join_context.projection;
+	plan.first_mission_item_index = path.first_item_index;
+	plan.direction_reversed = path.direction_reversed;
+	plan.use_current_altitude = join_context.use_current_altitude;
+	plan.active_jump_anchor = activeJumpAnchor(projection_context);
+	return plan;
+}
+
+RouteToGoalPlan makeRouteToGoalPlan(const ProjectionContext &projection_context, const JoinContext &join_context,
+				    const GoalSelection &selection)
+{
+	RouteToGoalPlan plan{};
+	plan.join_position = join_context.projection;
+	plan.first_mission_item_index = selection.path.first_item_index;
+	plan.direction_reversed = selection.path.direction_reversed;
+	plan.use_current_altitude = join_context.use_current_altitude;
+	plan.active_jump_anchor = activeJumpAnchor(projection_context);
+	plan.goal_type = selection.goal_type;
+	plan.goal_position = selection.goal_position;
+	plan.safe_point_index = selection.safe_point_index;
+	plan.fly_direct_to_goal = selection.fly_direct_to_goal;
+
+	if (selection.goal_type == GoalType::kSafePoint) {
+		plan.branch_off_position = selection.branch_off.projection;
+		plan.branch_off_mission_item_index = selection.branchOffIndex();
+	}
+
+	return plan;
+}
+
+} // namespace
+
+MissionRoutePlanner::MissionRoutePlanner(const Provider &provider) :
+	_provider(provider)
 {
 }
 
@@ -85,136 +186,110 @@ MissionRoutePlanner::~MissionRoutePlanner()
 	perf_free(_select_best_goal_perf);
 }
 
-VehicleProjectionResult MissionRoutePlanner::collectVehicleProjection(const Position &vehicle_position,
-		int32_t mission_index, const PlannerConfig &config) const
+FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequest &request,
+		MissionResumePlan &plan) const
 {
-	if (!config.parameters.validForVehicleProjection()) {
-		VehicleProjectionResult result{};
-		result.failure_reason = FailureReason::kInvalidRequest;
-		return result;
+	plan = {};
+
+	if (!request.vehicle_position.valid()) {
+		return FailureReason::kNoValidGlobalPos;
 	}
 
+	const PlannerConfig config = makePlannerConfig(request);
+
+	if (!config.parameters.validForVehicleProjection()
+	    || !activeJumpAnchorValidForMission(request.active_jump_anchor, _provider.missionCount())) {
+		return FailureReason::kInvalidRequest;
+	}
+
+	ProjectionReferenceBatch &reference_batch = plannerScratchBatch();
+	MissionRouteProjection projection{_provider};
+	MissionRouteGoalSelector goal_selector{_provider, projection};
+
+	ProjectionContext projection_context{};
 	perf_begin(_collect_vehicle_projection_perf);
-	const VehicleProjectionResult result = _projection.collectVehicleProjection(vehicle_position, mission_index,
-					       config, _reference_batch);
+	const FailureReason projection_status = projection.collectVehicleProjection(request.vehicle_position,
+						request.mission_index, config, reference_batch, projection_context);
 	perf_end(_collect_vehicle_projection_perf);
-	return result;
-}
 
-GoalSelection MissionRoutePlanner::selectSafePoint(const ProjectionContext &projection_context,
-		const PlannerConfig &config) const
-{
-	return _goal_selector.selectSafePoint(projection_context, config, _reference_batch).value;
-}
-
-GoalSelection MissionRoutePlanner::selectBestGoal(const ProjectionContext &projection_context,
-		const PlannerConfig &config) const
-{
-	perf_begin(_select_best_goal_perf);
-	const GoalSelectionResult result = _goal_selector.selectBestGoal(projection_context, config, _reference_batch);
-	perf_end(_select_best_goal_perf);
-	return result.value;
-}
-
-bool MissionRoutePlanner::closeToBranchOffSegment(const Position &position, const GoalSelection &selection,
-		float acceptance_radius, float altitude_acceptance_radius) const
-{
-	return _goal_selector.closeToBranchOffSegment(position, selection, acceptance_radius, altitude_acceptance_radius);
-}
-
-JoinPlanResult MissionRoutePlanner::planMissionResumeJoin(const Position &vehicle_position,
-		int32_t mission_index, const PlannerConfig &config) const
-{
-	JoinPlanResult result{};
-
-	if (!vehicle_position.valid()) {
-		result.failure_reason = FailureReason::kNoValidGlobalPos;
-		return result;
+	if (projection_status != FailureReason::kNone) {
+		return projection_status;
 	}
 
-	const VehicleProjectionResult projection = collectVehicleProjection(vehicle_position, mission_index, config);
+	const RoutePath path = goal_selector.findShortestPathAlongRoute(projection_context.route_length,
+			       projection_context, config, PathDirectionMode::kForceNominal);
+	const JoinContext join_context = goal_selector.buildJoinContext(request.vehicle_position, projection_context, path);
+	const MissionResumePlan candidate = makeMissionResumePlan(projection_context, path, join_context);
 
-	if (!projection.success) {
-		result.failure_reason = projection.failure_reason;
-		return result;
+	if (!projection_context.valid() || !path.valid() || !join_context.valid() || !candidate.valid()) {
+		return FailureReason::kNoValidPath;
 	}
 
-	JoinPlan plan{};
-	plan.projection_context = projection.value;
-
-	plan.path = _goal_selector.findShortestPathAlongRoute(plan.projection_context.route_length,
-			plan.projection_context, config, PathDirectionMode::kForceNominal);
-	plan.join_context = _goal_selector.buildJoinContext(vehicle_position, plan.projection_context, plan.path);
-
-	if (!plan.valid()) {
-		result.failure_reason = FailureReason::kNoValidPath;
-		return result;
-	}
-
-	result.success = true;
-	result.failure_reason = FailureReason::kNone;
-	result.value = plan;
-	return result;
+	plan = candidate;
+	return FailureReason::kNone;
 }
 
-RoutePlanResult MissionRoutePlanner::planRouteToGoal(const Position &vehicle_position,
-		int32_t mission_index, const PlannerConfig &config) const
+FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &request,
+		RouteToGoalPlan &plan) const
 {
-	RoutePlanResult result{};
+	plan = {};
+	const PlannerConfig config = makePlannerConfig(request);
 
-	if (!config.parameters.validForRouteToGoal()) {
-		result.failure_reason = FailureReason::kInvalidRequest;
-		return result;
+	// Preserve the existing failure precedence: invalid route settings are rejected before vehicle projection.
+	if (!config.parameters.validForRouteToGoal()
+	    || !activeJumpAnchorValidForMission(request.active_jump_anchor, _provider.missionCount())) {
+		return FailureReason::kInvalidRequest;
 	}
 
-	const VehicleProjectionResult projection = collectVehicleProjection(vehicle_position, mission_index, config);
+	ProjectionReferenceBatch &reference_batch = plannerScratchBatch();
+	MissionRouteProjection projection{_provider};
+	MissionRouteGoalSelector goal_selector{_provider, projection};
 
-	if (!projection.success) {
-		result.failure_reason = projection.failure_reason;
-		return result;
+	ProjectionContext projection_context{};
+	perf_begin(_collect_vehicle_projection_perf);
+	const FailureReason projection_status = projection.collectVehicleProjection(request.vehicle_position,
+						request.mission_index, config, reference_batch, projection_context);
+	perf_end(_collect_vehicle_projection_perf);
+
+	if (projection_status != FailureReason::kNone) {
+		return projection_status;
 	}
-
-	RoutePlan plan{};
-	plan.projection_context = projection.value;
 
 	// RTL skips DO_JUMP segments. Remaining loop counts from normal mission
 	// execution must not force the return path to finish the current loop iteration.
-	plan.projection_context.mission_loops_remaining = 0;
+	projection_context.mission_loops_remaining = 0;
 
 	// Find closest safe point, falling back to mission end points if none found
+	GoalSelection selection{};
 	perf_begin(_select_best_goal_perf);
-	const GoalSelectionResult selection = _goal_selector.selectBestGoal(plan.projection_context, config,
-					      _reference_batch);
+	const FailureReason selection_status = goal_selector.selectBestGoal(projection_context, config,
+					       reference_batch, selection);
 	perf_end(_select_best_goal_perf);
 
-	if (!selection.success) {
-		result.failure_reason = selection.failure_reason;
-		return result;
+	if (selection_status != FailureReason::kNone) {
+		return selection_status;
 	}
 
-	plan.selection = selection.value;
-	plan.selection.skip_route_to_safe_point =
-		_goal_selector.canSkipRouteFollowToSelectedGoal(vehicle_position, plan.selection, config);
+	selection.fly_direct_to_goal =
+		goal_selector.canSkipRouteFollowToSelectedGoal(request.vehicle_position, selection, config);
 
-	plan.join_context = _goal_selector.buildJoinContext(vehicle_position, plan.projection_context,
-			    plan.selection.path);
+	const JoinContext join_context = goal_selector.buildJoinContext(request.vehicle_position, projection_context,
+					 selection.path);
+	const RouteToGoalPlan candidate = makeRouteToGoalPlan(projection_context, join_context, selection);
 
-	if (!plan.valid()) {
-		result.failure_reason = FailureReason::kNoValidPath;
-		return result;
+	if (!projection_context.valid() || !join_context.valid() || !selection.valid() || !candidate.valid()) {
+		return FailureReason::kNoValidPath;
 	}
 
 	PX4_DEBUG("Route plan to %s target=%d rev=%u direct=%u skip_alt=%u branch_off=%d->%d",
-		  goalTypeString(plan.selection.goal_type),
-		  static_cast<int>(plan.selection.path.first_item_index),
-		  static_cast<unsigned>(plan.selection.path.direction_reversed),
-		  static_cast<unsigned>(plan.selection.skip_route_to_safe_point),
-		  static_cast<unsigned>(plan.join_context.skip_altitude_requirement),
-		  static_cast<int>(plan.selection.branch_off.segment.start.idx),
-		  static_cast<int>(plan.selection.branch_off.segment.end.idx));
+		  goalTypeString(candidate.goal_type),
+		  static_cast<int>(candidate.first_mission_item_index),
+		  static_cast<unsigned>(candidate.direction_reversed),
+		  static_cast<unsigned>(candidate.fly_direct_to_goal),
+		  static_cast<unsigned>(candidate.use_current_altitude),
+		  static_cast<int>(selection.branch_off.segment.start.idx),
+		  static_cast<int>(selection.branch_off.segment.end.idx));
 
-	result.success = true;
-	result.failure_reason = FailureReason::kNone;
-	result.value = plan;
-	return result;
+	plan = candidate;
+	return FailureReason::kNone;
 }

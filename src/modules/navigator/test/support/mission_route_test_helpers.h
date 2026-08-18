@@ -43,7 +43,8 @@
 
 #include <gtest/gtest.h>
 
-#include "mission_route_planner.h"
+#include "mission_route_provider.h"
+#include "mission_route_types.h"
 #include "vector_mission_item_store.h"
 
 #include <lib/geo/geo.h>
@@ -230,26 +231,6 @@ static inline mission_route::Position makePositionAbsolute(double lat, double lo
 	return mission_route::Position{lat, lon, alt};
 }
 
-static inline mission_route::PlannerConfig defaultConfig()
-{
-	mission_route::PlannerConfig config{};
-	config.parameters.vehicle_projection_search_dist = 60.f;
-	config.parameters.safe_point_projection_search_dist = 60.f;
-	config.parameters.acceptance_radius = 10.f;
-	config.parameters.direct_acceptance_radius = 10.f;
-	config.parameters.altitude_acceptance_radius = 10.f;
-	config.parameters.home_altitude_amsl = 500.f;
-	return config;
-}
-
-static inline mission_route::PlannerConfig fwConfig()
-{
-	mission_route::PlannerConfig config = defaultConfig();
-	config.state.is_fixed_wing = true;
-	config.parameters.u_turn_penalty_m = 4000.f;
-	return config;
-}
-
 namespace route_test_reference
 {
 static constexpr double kBaseLat = 47.397742;
@@ -265,8 +246,6 @@ static constexpr float kDistanceTolerance = 5.0f;
 
 using navigator_test::VectorMissionRouteProvider;
 using VectorProvider = navigator_test::VectorMissionRouteProvider;
-using navigator_test::defaultConfig;
-using navigator_test::fwConfig;
 using navigator_test::kAltitudeTolerance;
 using navigator_test::kDistanceTolerance;
 using navigator_test::kLatLonToleranceDeg;
@@ -283,9 +262,3 @@ using navigator_test::makeSafePointFromOffset;
 using navigator_test::makeTakeoffItem;
 using navigator_test::makeTakeoffItemFromOffset;
 using navigator_test::makeVtolTransitionItem;
-
-class MissionRouteTestBase : public ::testing::Test
-{
-protected:
-	mission_route::PlannerConfig config = defaultConfig();
-};

@@ -34,7 +34,7 @@
 /**
  * @file mission_route_types.h
  *
- * Mission-route planner data types.
+ * Public MissionRoutePlanner requests, plans, status, and shared value types.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
@@ -44,37 +44,15 @@
 #include "navigation.h"
 #include "safe_point_land.hpp"
 
-#include <float.h>
 #include <math.h>
 #include <stdint.h>
 
-#include <dataman/dataman.h>
-#include <matrix/math.hpp>
 #include <px4_platform_common/defines.h>
 
 namespace mission_route
 {
 
-static constexpr float kRoundingToleranceM{0.1f};
-static constexpr double kNullIslandThresholdDeg{1e-7};
-static constexpr double kCornerLatLonTolDeg{1e-5};
 static constexpr float kLandApproachAssociationDistanceM{10.f};
-static constexpr uint8_t kMaxSegmentCandidates{3};
-/**
- * Number of rally (safe) points evaluated per mission-route scan pass.
- *
- * The planner scores rally points using a fixed-size projection batch buffer of this size. When more
- * eligible rally points are configured than fit in one batch, they are processed in successive batches:
- * the full mission route is re-scanned once per batch. A larger value trades RAM for fewer mission passes.
- *
- * Stored in uint8_t batch counters/indices. The Kconfig range caps it at 32 to match
- * DM_KEY_SAFE_POINTS_MAX.
- */
-static constexpr uint8_t kMaxSafePointBatch{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE};
-static_assert(CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE >= 1 && CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE <= 255,
-	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must fit the uint8_t batch counters");
-static_assert(kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
-	      "CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE must not exceed DM_KEY_SAFE_POINTS_MAX");
 
 enum class GoalType : uint8_t {
 	kNone = 0,
@@ -100,12 +78,6 @@ enum class FailureReason : uint8_t {
 	kUnknown
 };
 
-enum class VtolTransitionAction : uint8_t {
-	kNone = 0,
-	kFrontTransition = 1,
-	kBackTransition = 2
-};
-
 /** @brief A global geographic coordinate used by the route planner. */
 struct Position {
 	double lat{static_cast<double>(NAN)};
@@ -115,197 +87,79 @@ struct Position {
 	bool valid() const;
 };
 
-/** @brief Key distances for a point projected onto one segment. */
-struct ProjectionDistance {
-	float xtrack{NAN};        /**< Cross-track distance from the reference point to the projection. */
-	float route_along{NAN};   /**< Along-route distance from the route start to the projection. */
-	float segment_length{NAN};
-	float segment_along{NAN};  /**< Along-segment distance from the segment start to the projection. */
+/** @brief Index-only identity of the active synthetic DO_JUMP edge. */
+struct ActiveJumpAnchor {
+	int32_t start_index{-1}; /**< Position attached immediately before the DO_JUMP command. */
+	int32_t target_index{-1}; /**< Resolved position at or after the command's jump target. */
 
+	bool empty() const;
 	bool valid() const;
 };
 
-/** @brief One mission endpoint used to build route segments. */
-struct SegmentEndpoint {
-	int32_t idx{-1};
-	uint16_t nav_cmd{NAV_CMD_INVALID};
-
-	bool valid() const;
+/** @brief Inputs used only when planning a join back into Mission execution. */
+struct MissionResumeRequest {
+	Position vehicle_position{};
+	int32_t mission_index{-1};
+	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
+	ActiveJumpAnchor active_jump_anchor{};
+	float home_altitude_amsl{NAN}; /**< May be NAN when every relevant mission item uses absolute altitude. */
+	float projection_search_distance_m{0.f};
+	float acceptance_radius_m{0.f};
+	bool is_fixed_wing{false};
+	bool in_transition_to_fw{false};
+	float velocity_north_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
+	float velocity_east_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
+	float u_turn_penalty_m{4000.f};
 };
 
-/** @brief The start and end world positions corresponding to one route segment. */
-struct SegmentPositions {
-	Position start{};
-	Position end{};
-
-	bool valid() const;
-};
-
-/**
- * @brief One mission segment, optionally representing a DO_JUMP loop.
- */
-struct Segment {
-	SegmentEndpoint start{};
-	SegmentEndpoint end{};
-	bool is_loop{false}; /**< True when this is the synthetic DO_JUMP edge from the attached position to the jump target. */
-	uint8_t loops_remaining{0}; /**< Remaining repeats on the DO_JUMP that created this segment; zero for nominal segments. */
-
-	bool valid() const;
-	bool validLoop() const;
-};
-
-/** @brief The along-track distance of one segment within the full route. */
-struct SegmentDistanceAlong {
-	float start{NAN};
-	float end{NAN};
-
-	bool valid() const;
-};
-
-/** @brief One projected route candidate. */
-struct RouteProjectionCandidate {
-	Segment segment{};
-	SegmentPositions segment_positions{};
-	Position projection{};
-	ProjectionDistance dist{};
-
-	bool valid() const;
-};
-
-/** @brief Fixed-size xtrack-sorted buffer of the best projection candidates for one point. */
-struct ProjectionCandidateBuffer {
-	RouteProjectionCandidate candidates[kMaxSegmentCandidates] {};
-	uint8_t count{0};
-};
-
-/** @brief Active DO_JUMP loop state carried across replans to preserve mission continuity. */
-struct LoopContext {
-	Segment segment{};
-	SegmentPositions segment_positions{};
-	SegmentDistanceAlong along{};
-
-	bool valid() const;
-};
-
-/** @brief Live vehicle kinematics and mode flags relevant to route planning. */
-struct VehicleStateContext {
-	bool is_flying_reverse{false};
-	matrix::Vector2f velocity_ne{NAN, NAN};
-	bool velocity_valid{false};
+/** @brief Inputs used only when planning a route-following return to a goal. */
+struct RouteToGoalRequest {
+	Position vehicle_position{};
+	int32_t mission_index{-1};
+	bool current_route_direction_reversed{false}; /**< Route direction being flown before replanning. */
+	ActiveJumpAnchor active_jump_anchor{};
+	float home_altitude_amsl{NAN}; /**< May be NAN when every relevant item uses absolute altitude. */
+	float projection_search_distance_m{0.f};
+	float safe_point_projection_search_distance_m{0.f};
+	float acceptance_radius_m{0.f};
+	float direct_goal_acceptance_radius_m{0.f};
+	float altitude_acceptance_radius_m{0.f};
 	bool is_fixed_wing{false};
 	bool in_transition_to_fw{false};
 	bool require_vtol_approach{false};
+	float velocity_north_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
+	float velocity_east_m_s{NAN}; /**< NAN when horizontal velocity is unavailable. */
+	float u_turn_penalty_m{4000.f};
 };
 
-/** @brief The vehicle's projected state on the route at the time planning starts. */
-struct ProjectionContext {
-	Position vehicle_position{};
-	int32_t mission_index{-1};
-	RouteProjectionCandidate route_projection{};
-	VehicleStateContext vehicle_state{};
-	float route_length{0.f};
-	uint8_t mission_loops_remaining{0};
-	LoopContext loop_context{};
-
-	bool valid() const;
-};
-
-/** @brief How the executor should join the nominal route from the current vehicle state. */
-struct JoinContext {
-	Position projection{};
+/** @brief Execution-oriented Mission join produced by the planner. */
+struct MissionResumePlan {
+	Position join_position{};
+	int32_t first_mission_item_index{-1};
 	bool direction_reversed{false};
-	bool skip_altitude_requirement{false}; /**< Keep the join waypoint at live vehicle altitude. */
-	VtolTransitionAction transition_action{VtolTransitionAction::kNone};
+	bool use_current_altitude{false}; /**< Use live altitude when publishing the virtual join item. */
+	ActiveJumpAnchor active_jump_anchor{};
 
 	bool valid() const;
 };
 
-/** @brief One computed route to a goal: direction, the first route item to target, and its location. */
-struct RoutePath {
+/** @brief Execution-oriented route-following return plan produced by the planner. */
+struct RouteToGoalPlan {
+	Position join_position{};
+	int32_t first_mission_item_index{-1};
 	bool direction_reversed{false};
-	bool u_turn_required{false};
-	bool in_first_item_acc_rad{false};
-	int32_t first_item_index{-1};
-	uint16_t first_item_cmd{NAV_CMD_INVALID};
-	Position first_item_position{};
-	float total_cost_m{FLT_MAX};
-
-	bool valid() const;
-};
-
-/** @brief Where the route is left towards a safe point: the exit segment and the projected exit point. */
-struct BranchOff {
-	Segment segment{};
-	Position projection{};
-
-	bool valid() const;
-};
-
-/** @brief The winning goal: its identity, the route path to it, and (for safe points) the branch-off geometry. */
-struct GoalSelection {
+	bool use_current_altitude{false}; /**< Use live altitude when publishing the virtual join item. */
+	ActiveJumpAnchor active_jump_anchor{};
 	GoalType goal_type{GoalType::kNone};
 	Position goal_position{};
-	int32_t safe_point_index{-1}; /**< Rally-point index; only meaningful for kSafePoint goals. */
-	RoutePath path{};
-	BranchOff branch_off{}; /**< Only populated for kSafePoint goals. */
-	bool skip_route_to_safe_point{false}; /**< Go straight to the selected goal. */
-
-	bool found() const { return goal_type != GoalType::kNone; }
-	bool valid() const;
-
-	int32_t branchOffIndex() const;
-};
-
-/** @brief Planner tuning values and mission-global inputs used during one planning pass. */
-struct PlannerParameters {
-	float vehicle_projection_search_dist{0.f};
-	float safe_point_projection_search_dist{0.f};
-	float acceptance_radius{0.f};
-	float direct_acceptance_radius{0.f};
-	float altitude_acceptance_radius{0.f};
-	float home_altitude_amsl{NAN};
-	float u_turn_penalty_m{4000.f};
-
-	bool validForVehicleProjection() const;
-	bool validForRouteToGoal() const;
-};
-
-/** @brief One self-contained planner input bundle combining parameters, state, and persisted loop context. */
-struct PlannerConfig {
-	PlannerParameters parameters{};
-	VehicleStateContext state{};
-	Segment last_flown_loop_segment{}; /**< Cached DO_JUMP edge anchor when preserving an active loop. */
-};
-
-/** @brief A mission-resume join plan composed of projection, route path, and join details. */
-struct JoinPlan {
-	ProjectionContext projection_context{};
-	RoutePath path{};
-	JoinContext join_context{};
+	int32_t safe_point_index{-1}; /**< Set only when goal_type is kSafePoint. */
+	Position branch_off_position{}; /**< Set only when goal_type is kSafePoint. */
+	/** Mission item replaced by branch_off_position: segment end nominally, segment start in reverse. */
+	int32_t branch_off_mission_item_index{-1};
+	bool fly_direct_to_goal{false}; /**< Bypass route following for either a safe point or endpoint goal. */
 
 	bool valid() const;
 };
-
-/** @brief The full planner output returned for route safe point RTL. */
-struct RoutePlan {
-	ProjectionContext projection_context{};
-	JoinContext join_context{};
-	GoalSelection selection{};
-
-	bool valid() const;
-};
-
-/** @brief Outcome of one planner pass: status plus the produced payload. */
-template <typename T>
-struct PlanResult {
-	bool success{false};
-	FailureReason failure_reason{FailureReason::kUnknown};
-	T value{};
-};
-
-using VehicleProjectionResult = PlanResult<ProjectionContext>;
-using JoinPlanResult = PlanResult<JoinPlan>;
-using RoutePlanResult = PlanResult<RoutePlan>;
 
 bool isLandingCmd(uint16_t nav_cmd);
 bool isTakeoffCmd(uint16_t nav_cmd);

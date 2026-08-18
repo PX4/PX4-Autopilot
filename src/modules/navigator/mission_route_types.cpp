@@ -41,7 +41,7 @@
  * @author Jonas Perolini <jonspero@me.com>
  */
 
-#include "mission_route_types.h"
+#include "mission_route_internal_types.h"
 
 #include "mission_item_utils.h"
 
@@ -55,6 +55,37 @@ bool Position::valid() const
 	return PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)
 	       && !((fabs(lat) < kNullIslandThresholdDeg) && (fabs(lon) < kNullIslandThresholdDeg))
 	       && (fabs(lat) <= 90.0) && (fabs(lon) <= 180.0);
+}
+
+bool ActiveJumpAnchor::empty() const
+{
+	return start_index == -1 && target_index == -1;
+}
+
+bool ActiveJumpAnchor::valid() const
+{
+	return start_index >= 0 && target_index >= 0 && start_index != target_index;
+}
+
+bool MissionResumePlan::valid() const
+{
+	return join_position.valid() && first_mission_item_index >= 0
+	       && (active_jump_anchor.empty() || active_jump_anchor.valid());
+}
+
+bool RouteToGoalPlan::valid() const
+{
+	if (!join_position.valid() || first_mission_item_index < 0 || goal_type == GoalType::kNone
+	    || !goal_position.valid() || (!active_jump_anchor.empty() && !active_jump_anchor.valid())) {
+		return false;
+	}
+
+	if (goal_type == GoalType::kSafePoint) {
+		return safe_point_index >= 0 && branch_off_position.valid() && branch_off_mission_item_index >= 0;
+	}
+
+	return (goal_type == GoalType::kMissionLand || goal_type == GoalType::kMissionTakeoff)
+	       && safe_point_index < 0 && !branch_off_position.valid() && branch_off_mission_item_index < 0;
 }
 
 bool ProjectionDistance::valid() const
@@ -144,16 +175,6 @@ int32_t GoalSelection::branchOffIndex() const
 	}
 
 	return path.first_item_index;
-}
-
-bool JoinPlan::valid() const
-{
-	return projection_context.valid() && path.valid() && join_context.valid();
-}
-
-bool RoutePlan::valid() const
-{
-	return projection_context.valid() && join_context.valid() && selection.valid();
 }
 
 bool PlannerParameters::validForVehicleProjection() const

@@ -43,9 +43,6 @@
 
 #pragma once
 
-#include "mission_route_goal.h"
-#include "mission_route_projection.h"
-#include "mission_route_provider.h"
 #include "mission_route_types.h"
 
 #include <stdint.h>
@@ -54,46 +51,33 @@
 
 namespace mission_route
 {
-/** @brief Shared flight-side scratch batch, stored in .bss (see the definition for why). */
-ProjectionReferenceBatch &sharedProjectionReferenceBatch();
-} // namespace mission_route
+class Provider;
+}
 
 class MissionRoutePlanner
 {
 public:
-	/** @brief The reference batch is caller-owned scratch; flight code passes sharedProjectionReferenceBatch(). */
-	MissionRoutePlanner(const mission_route::Provider &provider,
-			    mission_route::ProjectionReferenceBatch &reference_batch);
+	/**
+	 * @brief Construct a planner over one read-only data provider.
+	 *
+	 * Planning calls use shared fixed-memory scratch and must run serially on the Navigator task.
+	 */
+	explicit MissionRoutePlanner(const mission_route::Provider &provider);
 	~MissionRoutePlanner();
 	MissionRoutePlanner(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner &operator=(const MissionRoutePlanner &) = delete;
 	MissionRoutePlanner(MissionRoutePlanner &&) = delete;
 	MissionRoutePlanner &operator=(MissionRoutePlanner &&) = delete;
 
-	/** @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate. */
-	mission_route::VehicleProjectionResult collectVehicleProjection(const mission_route::Position &vehicle_position,
-			int32_t mission_index, const mission_route::PlannerConfig &config) const;
-
-	/** @brief Evaluate all valid safe points and choose the best route-follow return target. */
-	mission_route::GoalSelection selectSafePoint(const mission_route::ProjectionContext &projection_context,
-			const mission_route::PlannerConfig &config) const;
-	/** @brief Choose the RTL goal, preferring a safe point and falling back to a mission endpoint when needed. */
-	mission_route::GoalSelection selectBestGoal(const mission_route::ProjectionContext &projection_context,
-			const mission_route::PlannerConfig &config) const;
 	/** @brief Build the Mission-mode smart-rejoin plan back to the mission end using the nominal route direction. */
-	mission_route::JoinPlanResult planMissionResumeJoin(const mission_route::Position &vehicle_position,
-			int32_t mission_index, const mission_route::PlannerConfig &config) const;
-	/** @brief Build the full RTL plan: vehicle projection, join context, and selected goal. */
-	mission_route::RoutePlanResult planRouteToGoal(const mission_route::Position &vehicle_position,
-			int32_t mission_index, const mission_route::PlannerConfig &config) const;
-	/** @brief Check whether the vehicle is still close enough to the selected branch-off leg to skip route following. */
-	bool closeToBranchOffSegment(const mission_route::Position &position, const mission_route::GoalSelection &selection,
-				     float acceptance_radius, float altitude_acceptance_radius) const;
+	mission_route::FailureReason planMissionResumeJoin(const mission_route::MissionResumeRequest &request,
+			mission_route::MissionResumePlan &plan) const;
+	/** @brief Build the execution-oriented route-following return plan to the selected goal. */
+	mission_route::FailureReason planRouteToGoal(const mission_route::RouteToGoalRequest &request,
+			mission_route::RouteToGoalPlan &plan) const;
 
 private:
-	mission_route::MissionRouteProjection _projection;
-	mission_route::MissionRouteGoalSelector _goal_selector;
-	mission_route::ProjectionReferenceBatch &_reference_batch;
+	const mission_route::Provider &_provider;
 	perf_counter_t _collect_vehicle_projection_perf{perf_alloc(PC_ELAPSED, "rtl_route_collect_vehicle_proj")};
 	perf_counter_t _select_best_goal_perf{perf_alloc(PC_ELAPSED, "rtl_route_select_best_goal")};
 };

@@ -43,7 +43,6 @@
 #pragma once
 
 #include "mission_route_projection.h"
-#include "mission_route_types.h"
 
 #include <stdint.h>
 
@@ -63,8 +62,6 @@ enum class RouteGoalSegmentType : uint8_t {
 	kOnActiveLoopJump
 };
 
-using GoalSelectionResult = PlanResult<GoalSelection>;
-
 class MissionRouteGoalSelector
 {
 public:
@@ -77,13 +74,15 @@ public:
 					     PathDirectionMode direction_mode = PathDirectionMode::kAuto,
 					     RouteGoalSegmentType goal_seg_type = RouteGoalSegmentType::kOutsideActiveLoopJump) const;
 
-	GoalSelectionResult selectSafePoint(const ProjectionContext &projection_context,
-					    const PlannerConfig &config,
-					    ProjectionReferenceBatch &batch) const;
+	FailureReason selectSafePoint(const ProjectionContext &projection_context,
+				      const PlannerConfig &config,
+				      ProjectionReferenceBatch &batch,
+				      GoalSelection &selection) const;
 
-	GoalSelectionResult selectBestGoal(const ProjectionContext &projection_context,
-					   const PlannerConfig &config,
-					   ProjectionReferenceBatch &batch) const;
+	FailureReason selectBestGoal(const ProjectionContext &projection_context,
+				     const PlannerConfig &config,
+				     ProjectionReferenceBatch &batch,
+				     GoalSelection &selection) const;
 
 	JoinContext buildJoinContext(const Position &vehicle_position,
 				     const ProjectionContext &projection_context,

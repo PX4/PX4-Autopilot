@@ -407,10 +407,9 @@ JoinContext MissionRouteGoalSelector::buildJoinContext(const Position &vehicle_p
 {
 	JoinContext join_context{};
 	join_context.projection = projection_context.route_projection.projection;
-	join_context.direction_reversed = path.direction_reversed;
-	join_context.skip_altitude_requirement = canUseCurrentAltitudeForJoinTarget(path);
+	join_context.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path);
 
-	if (join_context.skip_altitude_requirement) {
+	if (join_context.use_current_altitude) {
 		join_context.projection.alt = vehicle_position.alt;
 	}
 
@@ -522,15 +521,15 @@ GoalSelection MissionRouteGoalSelector::selectLowestCostSafePoint(const Projecti
 	return selection;
 }
 
-GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionContext &projection_context,
+FailureReason MissionRouteGoalSelector::selectSafePoint(const ProjectionContext &projection_context,
 		const PlannerConfig &config,
-		ProjectionReferenceBatch &batch) const
+		ProjectionReferenceBatch &batch,
+		GoalSelection &selection) const
 {
-	GoalSelectionResult result{};
+	selection = {};
 
 	if (!projection_context.valid()) {
-		result.failure_reason = FailureReason::kInvalidProjectionContext;
-		return result;
+		return FailureReason::kInvalidProjectionContext;
 	}
 
 	batch.count = 0;
@@ -541,8 +540,7 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 
 	if (safe_point_count <= 0) {
 		PX4_DEBUG("Route search: no safe points available");
-		result.failure_reason = FailureReason::kNoValidSafePoints;
-		return result;
+		return FailureReason::kNoValidSafePoints;
 	}
 
 	ProjectionScanRequest scan_request{};
@@ -563,12 +561,13 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 			continue;
 		}
 
-		const ProjectionScanResult scan_result = _projection.findProjectionCandidates(scan_request, batch);
+		RouteDistanceSummary distance_summary{};
+		const FailureReason scan_status = _projection.findProjectionCandidates(scan_request, batch, distance_summary);
 
-		if (!scan_result.success) {
+		if (scan_status != FailureReason::kNone) {
 			PX4_DEBUG("Route safe point batch scan failed at offset %d: %s", batch_start_index,
-				  failureReasonString(scan_result.failure_reason));
-			scan_failure_reason = scan_result.failure_reason;
+				  failureReasonString(scan_status));
+			scan_failure_reason = scan_status;
 			continue;
 		}
 
@@ -580,15 +579,12 @@ GoalSelectionResult MissionRouteGoalSelector::selectSafePoint(const ProjectionCo
 	}
 
 	if (best.valid()) {
-		result.success = true;
-		result.failure_reason = FailureReason::kNone;
-		result.value = best;
-		return result;
+		selection = best;
+		return FailureReason::kNone;
 	}
 
-	result.failure_reason = (scan_failure_reason != FailureReason::kNone)
-				? scan_failure_reason : FailureReason::kNoValidCandidateFound;
-	return result;
+	return (scan_failure_reason != FailureReason::kNone)
+	       ? scan_failure_reason : FailureReason::kNoValidCandidateFound;
 }
 
 GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const ProjectionContext &projection_context,
@@ -663,30 +659,29 @@ GoalSelection MissionRouteGoalSelector::selectMissionEndpointFallback(const Proj
 	return selection;
 }
 
-GoalSelectionResult MissionRouteGoalSelector::selectBestGoal(const ProjectionContext &projection_context,
+FailureReason MissionRouteGoalSelector::selectBestGoal(const ProjectionContext &projection_context,
 		const PlannerConfig &config,
-		ProjectionReferenceBatch &batch) const
+		ProjectionReferenceBatch &batch,
+		GoalSelection &selection) const
 {
-	const GoalSelectionResult safe_point = selectSafePoint(projection_context, config, batch);
+	selection = {};
+	GoalSelection safe_point{};
+	const FailureReason safe_point_status = selectSafePoint(projection_context, config, batch, safe_point);
 
-	if (safe_point.success) {
-		return safe_point;
+	if (safe_point_status == FailureReason::kNone) {
+		selection = safe_point;
+		return FailureReason::kNone;
 	}
 
 	// No reachable safe point: fall back to the mission end points.
 	const GoalSelection fallback = selectMissionEndpointFallback(projection_context, config);
 
 	if (fallback.valid()) {
-		GoalSelectionResult result{};
-		result.success = true;
-		result.failure_reason = FailureReason::kNone;
-		result.value = fallback;
-		return result;
+		selection = fallback;
+		return FailureReason::kNone;
 	}
 
-	GoalSelectionResult result{};
-	result.failure_reason = safe_point.failure_reason;
-	return result;
+	return safe_point_status;
 }
 
 } // namespace mission_route
