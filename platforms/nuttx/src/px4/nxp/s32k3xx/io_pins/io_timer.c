@@ -430,17 +430,14 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 	return rv;
 }
 
-static int timer_set_rate(unsigned channel, unsigned rate)
+static int timer_set_prediv4_and_b(unsigned channel, bool prediv4, uint16_t b)
 {
 
 	irqstate_t flags = px4_enter_critical_section();
 
-	int prediv = 1;
-
-	if (rate < 500) {
+	if (prediv4) {
 		rC(channels_timer(channel), channel) = (rC(channels_timer(channel), channel) & ~EMIOS_C_UCPRE_MASK)
 						       | EMIOS_C_UCPRE_DIV4;
-		prediv = 4;
 
 	} else {
 		rC(channels_timer(channel), channel) = (rC(channels_timer(channel), channel) & ~EMIOS_C_UCPRE_MASK)
@@ -449,11 +446,22 @@ static int timer_set_rate(unsigned channel, unsigned rate)
 
 
 	/* configure the timer to update at the desired rate */
-	rB(channels_timer(channel), channel) = ((BOARD_PWM_FREQ / prediv) / rate) - 1;
+	rB(channels_timer(channel), channel) = b;
 
 	px4_leave_critical_section(flags);
 
 	return 0;
+}
+
+static int timer_set_max_timer_rate(unsigned channel)
+{
+	return timer_set_prediv4_and_b(channel, true, UINT16_MAX);
+}
+
+static int timer_set_rate(unsigned channel, unsigned rate)
+{
+	int prediv = rate < 500 ? 4 : 1;
+	return timer_set_prediv4_and_b(channel, 4 == prediv, ((BOARD_PWM_FREQ / prediv) / rate) - 1);
 }
 
 static inline uint32_t div2psc(int div)
@@ -661,7 +669,12 @@ int io_timer_set_pwm_rate(unsigned timer, unsigned rate)
 			io_timer_set_PWM_mode(timer);
 		}
 
-		timer_set_rate(timer, rate);
+		if (PWM_RATE_TIMER_MAX == rate) {
+			timer_set_max_timer_rate(timer);
+
+		} else {
+			timer_set_rate(timer, rate);
+		}
 	}
 
 	return OK;
