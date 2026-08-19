@@ -99,10 +99,13 @@ TEST_CASE("Loiter: RTL climbs on an established non-default-radius loiter", "[vt
 	tester.set_rtl_altitude(rtl_altitude);
 	tester.execute_rtl();
 
+	// Accept the altitude the controller itself considers "reached", with 20% margin on top.
+	const float altitude_tolerance = 1.2f * tester.fw_altitude_acceptance_radius();
+
 	// RTL must climb to the return altitude while continuing to circle the very same loiter
 	// (same center and non-default radius), not re-center a new circle.
 	tester.check_climbs_on_loiter(kWorkCenter, kNonDefaultRadius, kRadiusTolerance, rtl_altitude,
-				      kAltitudeTolerance, 180s);
+				      altitude_tolerance, 180s);
 }
 
 TEST_CASE("Loiter: Hold during an altitude change keeps the loiter and locks the current altitude", "[vtol]")
