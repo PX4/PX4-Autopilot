@@ -35,15 +35,9 @@
 
 #include <mathlib/mathlib.h>
 
-namespace
-{
-// [m/s] guard against division by a zero or negative sink rate
-constexpr float kMinSinkRate = 0.1f;
-} // namespace
-
 float parachuteReleaseFloor(const float sink_rate)
 {
-	return math::max(sink_rate, kMinSinkRate) * kParachuteCanopyOpenTime;
+	return math::max(sink_rate, kParachuteMinSinkRate) * kParachuteCanopyOpenTime;
 }
 
 float parachuteReleaseAltitude(const float release_alt_param, const float sink_rate)
@@ -62,7 +56,7 @@ matrix::Vector2f parachuteCrosswindAimShift(const matrix::Vector2f &wind_vel,
 		const float release_floor, const float sink_rate)
 {
 	const float release_alt_expected = math::constrain(altitude_above_ground, release_floor, release_alt);
-	const matrix::Vector2f drift = wind_vel * release_alt_expected / math::max(sink_rate, kMinSinkRate);
+	const matrix::Vector2f drift = wind_vel * release_alt_expected / math::max(sink_rate, kParachuteMinSinkRate);
 
 	return drift - approach_direction * drift.dot(approach_direction);
 }
@@ -73,7 +67,7 @@ float parachuteReleaseDistance(const matrix::Vector2f &ground_speed, const matri
 {
 	const float ground_speed_along_track = math::max(ground_speed.dot(approach_direction), 0.f);
 	const float wind_along_track = wind_valid ? wind_vel.dot(approach_direction) : 0.f;
-	const float descent_time = altitude_above_ground / math::max(sink_rate, kMinSinkRate);
+	const float descent_time = altitude_above_ground / math::max(sink_rate, kParachuteMinSinkRate);
 
 	return ground_speed_along_track * kParachuteDeploymentTime + wind_along_track * descent_time;
 }

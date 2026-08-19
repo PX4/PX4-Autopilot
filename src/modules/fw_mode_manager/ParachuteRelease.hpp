@@ -51,6 +51,9 @@ static constexpr float kParachuteCanopyOpenTime = 3.0f;
 // [m] altitude margin above the parachute release altitude within which the release is allowed
 static constexpr float kParachuteReleaseAltitudeMargin = 5.0f;
 
+// [m/s] guard against division by a zero or negative sink rate
+static constexpr float kParachuteMinSinkRate = 0.1f;
+
 /**
  * @brief Minimum release altitude, below which the canopy cannot fully open before touchdown.
  *
