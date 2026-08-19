@@ -85,4 +85,10 @@ typedef struct dshot_conf_t {
 	uint32_t			dma_base;
 	uint32_t			dma_map_up;
 	uint32_t			dma_map_ch[4];
+	// True when dma_map_ch was allocated from a DMA pool distinct from dma_map_up's
+	// (board opted in via a separate capture_dma argument to initIOTimer()). This is
+	// the signal that up to 4 capture DMA streams can coexist on this timer at once,
+	// so bidirectional DShot can capture all channels concurrently instead of
+	// round-robining a single shared stream.
+	bool				concurrent_capture;
 } dshot_conf_t;
