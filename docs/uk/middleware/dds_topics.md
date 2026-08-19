@@ -287,6 +287,7 @@ See messages
 - [TiltrotorExtraControls](../msg_docs/TiltrotorExtraControls.md)
 - [TrajectorySetpoint6dof](../msg_docs/TrajectorySetpoint6dof.md)
 - [TuneControl](../msg_docs/TuneControl.md)
+- [UavcanFirmwareUpdate](../msg_docs/UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](../msg_docs/UavcanParameterRequest.md)
 - [UavcanParameterValue](../msg_docs/UavcanParameterValue.md)
 - [UlogStream](../msg_docs/UlogStream.md)
