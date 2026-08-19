@@ -276,6 +276,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [TrajectorySetpoint6dof](TrajectorySetpoint6dof.md) — Trajectory setpoint in NED frame. Input to position controller.
 - [TransponderReport](TransponderReport.md) — Transponder report.
 - [TuneControl](TuneControl.md) — This message is used to control the tunes, when the tune_id is set to CUSTOM. then the frequency, duration are used otherwise those values are ignored.
+- [UavcanFirmwareUpdate](UavcanFirmwareUpdate.md)
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type.
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type.
 - [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Corresponds to the LOGGING_DATA. mavlink message.
