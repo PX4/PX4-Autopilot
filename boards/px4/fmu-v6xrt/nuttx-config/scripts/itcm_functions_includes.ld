@@ -368,7 +368,7 @@
 *(.text.imxrt_epsubmit)
 *(.text._ZN15PositionControl6updateEf)
 *(.text._ZN23MavlinkStreamScaledIMU24sendEv)
-*(.text._ZN5PX4IO10io_reg_getEhhPtj)
+*(.text._ZN5PX4IO11io_regs_getEhhPtj)
 *(.text.imxrt_dma_send)
 *(.text._ZN20MavlinkStreamWindCov4sendEv)
 *(.text._ZN7sensors18VotedSensorsUpdate13checkFailoverERNS0_10SensorDataEPKcN6events3px45enums13sensor_type_tE)
@@ -566,7 +566,7 @@
 *(.text._ZN8Failsafe21fromQuadchuteActParamEi)
 *(.text._ZN24VariableLengthRingbuffer9pop_frontEPhj)
 *(.text._ZN7control15BlockDerivative6updateEf) /* itcm-check-ignore */
-*(.text._ZN5PX4IO10io_reg_getEhh)
+*(.text._ZN5PX4IO10io_reg_getEhhRt)
 *(.text._ZN9Commander18safetyButtonUpdateEv)
 *(.text._ZN13BatteryChecks14checkAndReportERK7ContextR6Report)
 *(.text._ZN18DataValidatorGroup16get_sensor_stateEj)
