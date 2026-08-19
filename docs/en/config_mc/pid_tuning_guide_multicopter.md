@@ -10,10 +10,6 @@ This is all that is required for many vehicles.
 Use this topic when tuning around the hover thrust point is not sufficient (e.g. on vehicles where there are non-linearities and oscillations at higher thrusts).
 It is also useful for a deeper understanding of how the basic tuning works, and to understand how to use the [airmode](#airmode-mixer-saturation) setting.
 
-::: info
-[Community Supported Developer Tools > PID Tuning Tools](../advanced/community_supported_dev_env.md#pid-tuning-cockpit) lists other tools that you may find useful for tuning.
-:::
-
 ## Tuning Steps
 
 ::: info
