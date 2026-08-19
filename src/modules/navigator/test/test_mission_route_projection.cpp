@@ -475,6 +475,37 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, StraightLineIgnoresNonMinCo
 	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.end.idx, 5);
 }
 
+// Zero margin keeps the first closest candidate; exhausted jumps remain route geometry.
+TEST_F(MissionRouteProjectionCandidateSelectionTest, ZeroMarginKeepsFirstExactClosestCandidate)
+{
+	// Identical jump edges make the scan-order tie visible.
+	const std::vector<mission_item_s> mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt),
+		makeDoJump(0, 3, 3), // exhausted, scanned first
+		makeDoJump(0, 3, 1), // active, identical geometry scanned second
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 100.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission);
+	mission_route::MissionRouteProjection projection(provider);
+	auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt));
+
+	mission_route::RouteDistanceSummary distance_summary{};
+	const mission_route::FailureReason status =
+		projection.findProjectionCandidates(scanRequest(0.f), batch, distance_summary);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	const mission_route::ProjectionCandidateBuffer &candidates = batch.items[0].candidate_buffer;
+	ASSERT_EQ(candidates.count, 1U);
+	const mission_route::RouteProjectionCandidate &candidate = candidates.candidates[0];
+	EXPECT_TRUE(candidate.segment.validLoop());
+	EXPECT_EQ(candidate.segment.start.idx, 2);
+	EXPECT_EQ(candidate.segment.end.idx, 0);
+	EXPECT_EQ(candidate.segment.loops_remaining, 0U);
+	EXPECT_NEAR(candidate.dist.xtrack, 0.f, kDistanceTolerance);
+}
+
 // References in one batch share the route walk instead of loading the mission once per reference.
 TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedReferencesShareMissionItemReads)
 {

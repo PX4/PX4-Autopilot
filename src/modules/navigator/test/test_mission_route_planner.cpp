@@ -51,6 +51,28 @@ static constexpr uint16_t kSafePointBatchSize{CONFIG_NAVIGATOR_SAFE_POINT_BATCH_
 
 class MissionRoutePlannerTest : public ::testing::Test {};
 
+class MissionLoadCountingProvider : public VectorProvider
+{
+public:
+	MissionLoadCountingProvider(const std::vector<mission_item_s> &mission_items,
+				    const std::vector<mission_item_s> &safe_point_items)
+	{
+		setMissionItems(mission_items);
+		setSafePointItems(safe_point_items);
+	}
+
+	bool loadMissionItem(int index, mission_item_s &mission_item) const override
+	{
+		_mission_load_count++;
+		return VectorProvider::loadMissionItem(index, mission_item);
+	}
+
+	int missionLoadCount() const { return _mission_load_count; }
+
+private:
+	mutable int _mission_load_count{0};
+};
+
 static mission_route::MissionResumeRequest makeMissionResumeRequest(const mission_route::Position &vehicle_position,
 		int32_t mission_index)
 {
@@ -78,19 +100,16 @@ static mission_route::RouteToGoalRequest makeRouteToGoalRequest(const mission_ro
 	return request;
 }
 
-/**
- * Provider that injects one mission-item read failure after safe-point selection starts.
- *
- * The vehicle projection therefore succeeds, the first safe-point route scan observes the
- * failure, and all later route scans and endpoint reads can proceed normally.
- */
+// Injects one mission read failure after a chosen safe-point record is loaded.
 class OneShotSafePointScanFailureProvider : public mission_route::Provider
 {
 public:
 	OneShotSafePointScanFailureProvider(const std::vector<mission_item_s> &mission_items,
 					    const std::vector<mission_item_s> &safe_point_items,
-					    int32_t failed_mission_index) :
-		_failed_mission_index(failed_mission_index)
+					    int32_t failed_mission_index,
+					    int32_t arm_at_safe_point_index = 0) :
+		_failed_mission_index(failed_mission_index),
+		_arm_at_safe_point_index(arm_at_safe_point_index)
 	{
 		_delegate.setMissionItems(mission_items);
 		_delegate.setSafePointItems(safe_point_items);
@@ -113,7 +132,11 @@ public:
 	bool loadSafePointItem(int index, mission_item_s &safe_point_item) const override
 	{
 		const bool success = _delegate.loadSafePointItem(index, safe_point_item);
-		_failure_armed = true;
+
+		if (success && index >= _arm_at_safe_point_index) {
+			_failure_armed = true;
+		}
+
 		return success;
 	}
 
@@ -122,6 +145,7 @@ public:
 private:
 	VectorProvider _delegate{};
 	int32_t _failed_mission_index{-1};
+	int32_t _arm_at_safe_point_index{0};
 	mutable bool _failure_armed{false};
 	mutable bool _failure_injected{false};
 };
@@ -380,6 +404,64 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	EXPECT_FALSE(plan.direction_reversed);
 	EXPECT_NEAR(plan.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
+}
+
+// LAND as the first position leaves no route segment to plan.
+TEST_F(MissionRoutePlannerTest, MissionLandAsFirstPositionHasNoRouteSegment)
+{
+	std::vector<mission_item_s> mission{
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt),
+	};
+	const int32_t land_index = 1;
+
+	VectorProvider provider = makeRouteProvider(mission);
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, land_index);
+	request.mission_land_index = land_index;
+	mission_route::RouteToGoalPlan plan{};
+	plan.goal_type = mission_route::GoalType::kMissionLand;
+
+	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+
+	EXPECT_EQ(status, mission_route::FailureReason::kNoSegmentsFound);
+	EXPECT_FALSE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kNone);
+}
+
+// Items after LAND cannot move a safe-point branch beyond the LAND endpoint.
+TEST_F(MissionRoutePlannerTest, SafePointAfterMissionLandBranchesFromLandEndpoint)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt - 10.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 900.f, 10.f, kAlt),
+	};
+	const int32_t land_index = 2;
+
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	request.mission_land_index = land_index;
+	mission_route::RouteToGoalPlan plan{};
+
+	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_EQ(plan.branch_off_mission_item_index, land_index);
+	EXPECT_NEAR(plan.branch_off_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
+	EXPECT_NEAR(plan.branch_off_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
 }
 
 // A relative-altitude safe point is converted to AMSL using home altitude.
@@ -677,6 +759,7 @@ TEST_F(MissionRoutePlannerTest, CornerMissionReverseCornerScenarioSelectsRally2O
 	const mission_route::Position vehicle_position =
 		makePositionAbsolute(46.10205080248656, 2.318838207366314, 650.f);
 	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 5);
+	request.current_route_direction_reversed = true;
 	request.velocity_north_m_s = -corner_dataset::kVelDiag;
 	request.velocity_east_m_s = -corner_dataset::kVelDiag;
 	mission_route::RouteToGoalPlan plan{};
@@ -689,6 +772,59 @@ TEST_F(MissionRoutePlannerTest, CornerMissionReverseCornerScenarioSelectsRally2O
 	EXPECT_EQ(plan.safe_point_index, 2);
 	EXPECT_EQ(plan.branch_off_mission_item_index, 7);
 	EXPECT_TRUE(plan.branch_off_position.valid());
+}
+
+// A rally can branch from a stacked zero-length LAND segment.
+TEST_F(MissionRoutePlannerTest, CornerMissionLandCornerScenarioSelectsRally6OnSegment14To15)
+{
+	VectorProvider provider = makeRouteProvider(corner_dataset::mission(), corner_dataset::safePoints());
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionAbsolute(46.10368934085859, 2.3183612137416754, 510.f);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 13);
+	request.is_fixed_wing = true;
+	request.velocity_north_m_s = corner_dataset::kVelDiag;
+	request.velocity_east_m_s = corner_dataset::kVelDiag;
+	mission_route::RouteToGoalPlan plan{};
+
+	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 6);
+	EXPECT_EQ(plan.branch_off_mission_item_index, 15);
+	EXPECT_TRUE(plan.branch_off_position.valid());
+}
+
+// Approach records do not consume rally-point slots in a projection batch.
+TEST_F(MissionRoutePlannerTest, ApproachRecordsDoNotConsumeSafePointBatchCapacity)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points;
+	safe_points.reserve(2 * static_cast<size_t>(kSafePointBatchSize));
+
+	for (uint16_t i = 0; i < kSafePointBatchSize; ++i) {
+		safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 20.f + i, 20.f, kAlt));
+		safe_points.push_back(makeVtolApproachFromOffset(20.f + i, 30.f, kAlt + 20.f));
+	}
+
+	MissionLoadCountingProvider provider{mission, safe_points};
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 0.f, kAlt);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	request.require_vtol_approach = true;
+	mission_route::RouteToGoalPlan plan{};
+
+	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_LE(provider.missionLoadCount(), 4 * static_cast<int>(mission.size()));
 }
 
 // A lower-cost safe point in a later scan batch must beat valid candidates from the first batch.
@@ -787,6 +923,36 @@ TEST_F(MissionRoutePlannerTest, LaterSafePointWinnerSurvivesEarlierScanFailure)
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
 	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
 	EXPECT_EQ(plan.safe_point_index, winner_index);
+}
+
+// A valid first-batch winner survives a later batch scan failure.
+TEST_F(MissionRoutePlannerTest, EarlierSafePointWinnerSurvivesLaterScanFailure)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 1000.f, 0.f, kAlt),
+	};
+	std::vector<mission_item_s> safe_points;
+	safe_points.reserve(static_cast<size_t>(kSafePointBatchSize) + 1);
+	safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 5.f, kAlt));
+
+	for (uint16_t i = 1; i <= kSafePointBatchSize; ++i) {
+		safe_points.push_back(makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f + i, 500.f, kAlt));
+	}
+
+	OneShotSafePointScanFailureProvider provider{mission, safe_points, 1, kSafePointBatchSize};
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	const mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 1);
+	mission_route::RouteToGoalPlan plan{};
+
+	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+
+	ASSERT_TRUE(provider.failureInjected());
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
 }
 
 // Mission resume follows the route in nominal direction toward the mission endpoint.
@@ -959,6 +1125,39 @@ TEST_F(MissionRoutePlannerTest, LoopScenarioSelectsRally3OnSegment7To9)
 	EXPECT_TRUE(plan.goal_position.valid());
 	EXPECT_TRUE(plan.branch_off_position.valid());
 	EXPECT_EQ(plan.branch_off_mission_item_index, 9);
+}
+
+// An exhausted jump has no active repeat obligation in the returned plan.
+TEST_F(MissionRoutePlannerTest, ExhaustedDoJumpDoesNotCreateActivePlanAnchor)
+{
+	std::vector<mission_item_s> mission{
+		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 20.f),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 30.f),
+		makeDoJump(1, 3, 3),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt + 40.f),
+		makeLandItemFromOffset(kBaseLat, kBaseLon, 800.f, 0.f, kAlt - 10.f),
+	};
+	std::vector<mission_item_s> safe_points{
+		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
+	};
+
+	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
+	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 0);
+	request.velocity_north_m_s = 10.f;
+	request.velocity_east_m_s = 0.f;
+	mission_route::RouteToGoalPlan plan{};
+
+	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+
+	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+	EXPECT_TRUE(plan.valid());
+	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
+	EXPECT_EQ(plan.safe_point_index, 0);
+	EXPECT_TRUE(plan.active_jump_anchor.empty());
 }
 
 // Route following is skipped only when the vehicle is close to the selected branch leg
