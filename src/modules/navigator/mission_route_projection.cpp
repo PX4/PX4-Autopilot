@@ -57,6 +57,13 @@ namespace mission_route
 namespace
 {
 
+enum class PositionLookupStatus : uint8_t {
+	kFound,
+	kNoPositionFound,
+	kLoadFailed,
+	kInvalidPosition
+};
+
 /** @brief Raw local projection of a reference point onto one route segment. */
 struct RawSegmentProjection {
 	bool valid{false};
@@ -151,6 +158,37 @@ bool buildProjectionCandidate(const Segment &segment,
 	return candidate.valid();
 }
 
+PositionLookupStatus findNextValidPositionIndex(const Provider &provider, float home_altitude_amsl,
+		int32_t start_index, int32_t &next_position_index)
+{
+	if (start_index < 0) {
+		return PositionLookupStatus::kNoPositionFound;
+	}
+
+	for (int32_t index = start_index; index < provider.missionCount(); ++index) {
+		mission_item_s mission_item{};
+
+		if (!provider.loadMissionItem(index, mission_item)) {
+			return PositionLookupStatus::kLoadFailed;
+		}
+
+		if (!mission_item_contains_position(mission_item)) {
+			continue;
+		}
+
+		Position position{};
+
+		if (!extractMissionPosition(mission_item, home_altitude_amsl, position)) {
+			return PositionLookupStatus::kInvalidPosition;
+		}
+
+		next_position_index = index;
+		return PositionLookupStatus::kFound;
+	}
+
+	return PositionLookupStatus::kNoPositionFound;
+}
+
 FailureReason positionLookupFailureReason(PositionLookupStatus status, FailureReason not_found_reason)
 {
 	switch (status) {
@@ -166,22 +204,70 @@ FailureReason positionLookupFailureReason(PositionLookupStatus status, FailureRe
 	}
 }
 
+struct ActiveJumpContext {
+	int32_t jump_item_index{-1};
+	int32_t target_index{-1};
+
+	bool valid() const { return jump_item_index >= 0 && target_index >= 0; }
+};
+
+FailureReason resolveActiveJump(const Provider &provider, float home_altitude_amsl,
+				const ActiveJumpAnchor &anchor, ActiveJumpContext &context)
+{
+	context = {};
+
+	if (anchor.empty()) {
+		return FailureReason::kNone;
+	}
+
+	if (!anchor.valid() || anchor.jump_item_index >= provider.missionCount()) {
+		return FailureReason::kInvalidRequest;
+	}
+
+	mission_item_s jump_item{};
+
+	if (!provider.loadMissionItem(anchor.jump_item_index, jump_item)) {
+		return FailureReason::kLoadFailed;
+	}
+
+	if (jump_item.nav_cmd != NAV_CMD_DO_JUMP) {
+		return FailureReason::kInvalidRequest;
+	}
+
+	if (jump_item.do_jump_mission_index < 0) {
+		return FailureReason::kInternalError;
+	}
+
+	int32_t target_index{-1};
+	const PositionLookupStatus target_status = findNextValidPositionIndex(provider, home_altitude_amsl,
+			jump_item.do_jump_mission_index, target_index);
+
+	if (target_status != PositionLookupStatus::kFound) {
+		return positionLookupFailureReason(target_status, FailureReason::kInternalError);
+	}
+
+	context.jump_item_index = anchor.jump_item_index;
+	context.target_index = target_index;
+	return FailureReason::kNone;
+}
+
 /**
  * @brief Locates the along-route interval of the segment the vehicle is currently flying.
  *
  * Branch-in selection prefers the candidate closest along the route to where the vehicle
  * already is (mission continuity over raw distance), and that position is only known once
- * the scan has walked past the vehicle's segment. Feed every nominal segment to observe().
+ * the scan has walked past the vehicle's segment. Feed every emitted segment to observe().
  */
 class CurrentSegmentBoundsTracker
 {
 public:
-	explicit CurrentSegmentBoundsTracker(const ProjectionScanRequest &request) : _request(request)
+	CurrentSegmentBoundsTracker(const ProjectionScanRequest &request, const ActiveJumpContext &active_jump) :
+		_request(request), _active_jump(active_jump)
 	{
 		_wanted = request.compute_current_segment_bounds;
 
 		// On the first mission item (flying nominal) the vehicle has not entered the route yet.
-		if (_wanted && !request.active_jump_anchor.valid()
+		if (_wanted && !_active_jump.valid()
 		    && request.mission_index == 0 && !request.is_flying_reverse) {
 			_bounds.start = 0.f;
 			_bounds.end = 0.f;
@@ -203,22 +289,23 @@ private:
 	bool fill(const RouteSegmentView &segment_view)
 	{
 		const Segment &segment = segment_view.segment;
-		const ActiveJumpAnchor &active_jump = _request.active_jump_anchor;
 
-		if (active_jump.valid()) {
-			// The loop interval spans from the jump target back to the jump item,
-			// so its ends are collected from two different walk steps.
-			if (segment.start.idx == active_jump.start_index) {
+		if (_active_jump.valid()) {
+			if (segment.isLoop() && segment.jump_item_index == _active_jump.jump_item_index) {
 				_bounds.start = segment_view.route_along_start_m;
 
-			} else if (segment.start.idx == active_jump.target_index) {
+			} else if (!segment.isLoop() && segment.start.idx == _active_jump.target_index) {
 				_bounds.end = segment_view.route_along_start_m;
+
+			} else if (!segment.isLoop() && segment.end.idx == _active_jump.target_index) {
+				_bounds.end = segment_view.route_along_start_m + segment_view.length_m;
 			}
 
 			return _bounds.valid();
 		}
 
-		if (isIndexInProjectionSegment(segment, _request.mission_index, _request.is_flying_reverse)) {
+		if (!segment.isLoop()
+		    && isIndexInProjectionSegment(segment, _request.mission_index, _request.is_flying_reverse)) {
 			_bounds.start = segment_view.route_along_start_m;
 			_bounds.end = segment_view.route_along_start_m + segment_view.length_m;
 			PX4_DEBUG("Route current_segment_along: [%.3f, %.3f]",
@@ -230,43 +317,13 @@ private:
 	}
 
 	const ProjectionScanRequest &_request;
+	const ActiveJumpContext &_active_jump;
 	SegmentDistanceAlong _bounds{};
 	bool _wanted{false};
 	bool _located{false};
 };
 
 } // namespace
-
-PositionLookupStatus RouteSegmentCursor::findNextValidPositionIndex(int32_t start_index,
-		int32_t &next_position_index) const
-{
-	if (start_index < 0) {
-		return PositionLookupStatus::kNoPositionFound;
-	}
-
-	for (int32_t index = start_index; index < _provider.missionCount(); ++index) {
-		mission_item_s mission_item{};
-
-		if (!_provider.loadMissionItem(index, mission_item)) {
-			return PositionLookupStatus::kLoadFailed;
-		}
-
-		if (!mission_item_contains_position(mission_item)) {
-			continue;
-		}
-
-		Position position{};
-
-		if (!extractMissionPosition(mission_item, _home_altitude_amsl, position)) {
-			return PositionLookupStatus::kInvalidPosition;
-		}
-
-		next_position_index = index;
-		return PositionLookupStatus::kFound;
-	}
-
-	return PositionLookupStatus::kNoPositionFound;
-}
 
 bool RouteSegmentCursor::findAttachedValidPositionIndex(int32_t start_index,
 		int32_t &attached_position_index) const
@@ -308,14 +365,12 @@ bool RouteSegmentCursor::prepareNextSegment(int32_t index, FailureReason &failur
 
 	_segment.end.idx = index;
 	_segment.end.nav_cmd = mission_item.nav_cmd;
-	_segment.loops_remaining = 0;
-	_segment.is_loop = (mission_item.nav_cmd == NAV_CMD_DO_JUMP);
+	_segment.jump_item_index = -1;
+	_segment.has_remaining_repeats = false;
 
-	if (_segment.is_loop) {
-		const int32_t remaining_loops = static_cast<int32_t>(mission_item.do_jump_repeat_count)
-						- static_cast<int32_t>(mission_item.do_jump_current_count);
-		_segment.loops_remaining = static_cast<uint8_t>(constrain(remaining_loops, static_cast<int32_t>(0),
-					   static_cast<int32_t>(UINT8_MAX)));
+	if (mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
+		_segment.jump_item_index = index;
+		_segment.has_remaining_repeats = mission_item.do_jump_current_count < mission_item.do_jump_repeat_count;
 
 		if (mission_item.do_jump_mission_index < 0) {
 			PX4_ERR("Route invalid DO_JUMP target index %d", static_cast<int>(mission_item.do_jump_mission_index));
@@ -326,7 +381,8 @@ bool RouteSegmentCursor::prepareNextSegment(int32_t index, FailureReason &failur
 		int32_t jump_to_index{0};
 
 		const PositionLookupStatus jump_status =
-			findNextValidPositionIndex(mission_item.do_jump_mission_index, jump_to_index);
+			findNextValidPositionIndex(_provider, _home_altitude_amsl,
+						   mission_item.do_jump_mission_index, jump_to_index);
 
 		if (jump_status != PositionLookupStatus::kFound) {
 			failure_reason = positionLookupFailureReason(jump_status, FailureReason::kInternalError);
@@ -362,7 +418,8 @@ bool RouteSegmentCursor::init()
 	}
 
 	// Zero-length segments are only projectable at the route ends, so locate both ends up front.
-	const PositionLookupStatus first_status = findNextValidPositionIndex(0, _first_position_index);
+	const PositionLookupStatus first_status =
+		findNextValidPositionIndex(_provider, _home_altitude_amsl, 0, _first_position_index);
 
 	if (first_status != PositionLookupStatus::kFound) {
 		_failure_reason = positionLookupFailureReason(first_status, FailureReason::kNoValidWaypoints);
@@ -446,7 +503,7 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		}
 
 		// Loop edges are detours off the nominal route: the walk continues from the same start.
-		if (!_segment.is_loop) {
+		if (!_segment.isLoop()) {
 			_route_along_m += view.length_m;
 			_segment.start = _segment.end;
 			_positions.start = _positions.end;
@@ -486,7 +543,8 @@ bool MissionRouteProjection::validateCandidate(const RouteProjectionCandidate &c
 	}
 
 	if (candidate.segment.start.idx >= _provider.missionCount()
-	    || candidate.segment.end.idx >= _provider.missionCount()) {
+	    || candidate.segment.end.idx >= _provider.missionCount()
+	    || (candidate.segment.isLoop() && candidate.segment.jump_item_index >= _provider.missionCount())) {
 		return false;
 	}
 
@@ -567,7 +625,7 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 	state.projection_on_end_for_segment = projection.projection_on_end;
 
 	if (!localMinimumOnSegment(projection.projection_on_start, projection.projection_on_end,
-				   state.prev_projection_on_end, segment.segment.is_loop, segment.last_segment)) {
+				   state.prev_projection_on_end, segment.segment.isLoop(), segment.last_segment)) {
 		return;
 	}
 
@@ -615,7 +673,15 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 		batch.items[i].search_state = {};
 	}
 
-	CurrentSegmentBoundsTracker bounds_tracker(request);
+	ActiveJumpContext active_jump{};
+	const FailureReason active_jump_status = resolveActiveJump(_provider, request.home_altitude_amsl,
+			request.active_jump_anchor, active_jump);
+
+	if (active_jump_status != FailureReason::kNone) {
+		return active_jump_status;
+	}
+
+	CurrentSegmentBoundsTracker bounds_tracker(request, active_jump);
 	RouteSegmentCursor cursor(_provider, request.home_altitude_amsl);
 
 	if (!cursor.init()) {
@@ -640,12 +706,12 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 						   stats);
 		}
 
-		if (segment_view.segment.is_loop) {
+		bounds_tracker.observe(segment_view);
+
+		if (segment_view.segment.isLoop()) {
 			// Loop edges are not part of the nominal route.
 			continue;
 		}
-
-		bounds_tracker.observe(segment_view);
 
 		// Carry the end-corner state for V-corner detection (see localMinimumOnSegment);
 		// a zero-length segment cannot form a V apex.
@@ -748,8 +814,8 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 		bool priority_match = false;
 
 		if (active_jump_anchor.valid()) {
-			priority_match = active_jump_anchor.start_index == candidate.segment.start.idx
-					 && active_jump_anchor.target_index == candidate.segment.end.idx;
+			priority_match = candidate.segment.validLoop()
+					 && active_jump_anchor.jump_item_index == candidate.segment.jump_item_index;
 
 			if (priority_match) {
 				PX4_DEBUG("Route UAV proj prioritizing cand %u (loop segment match)", static_cast<unsigned>(i));
@@ -849,10 +915,6 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 	projection_context.route_projection = branch_in.candidate;
 	projection_context.vehicle_state = config.state;
 	projection_context.route_length = distance_summary.route_length;
-	// Use the repeat count from the selected projection loop itself. A later DO_JUMP elsewhere
-	// in the mission must not overwrite the active loop state carried by this projection.
-	projection_context.mission_loops_remaining = projection_context.route_projection.segment.validLoop()
-			? projection_context.route_projection.segment.loops_remaining : 0;
 
 	PX4_DEBUG("Route UAV proj selected cand %d (of %u) on seg [%u->%u], path_dist=%.1f",
 		  branch_in.candidate_index,
@@ -935,12 +997,12 @@ LoopContext MissionRouteProjection::buildLoopContext(const RouteProjectionCandid
 	loop_context.along.start = vehicle_projection.dist.route_along - vehicle_projection.dist.segment_along;
 	loop_context.along.end = accumulateRouteDistance(0, vehicle_projection.segment.end.idx, home_altitude_amsl);
 
-	PX4_DEBUG("Route loop ctx: seg[%u-%u], along[%.1f, %.1f], loops remaining: %u",
+	PX4_DEBUG("Route loop ctx: seg[%u-%u], along[%.1f, %.1f], repeat pending: %u",
 		  static_cast<unsigned>(loop_context.segment.start.idx),
 		  static_cast<unsigned>(loop_context.segment.end.idx),
 		  static_cast<double>(loop_context.along.start),
 		  static_cast<double>(loop_context.along.end),
-		  static_cast<unsigned>(loop_context.segment.loops_remaining));
+		  static_cast<unsigned>(loop_context.segment.has_remaining_repeats));
 
 	return loop_context;
 }

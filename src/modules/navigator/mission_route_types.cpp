@@ -59,12 +59,12 @@ bool Position::valid() const
 
 bool ActiveJumpAnchor::empty() const
 {
-	return start_index == -1 && target_index == -1;
+	return jump_item_index == -1;
 }
 
 bool ActiveJumpAnchor::valid() const
 {
-	return start_index >= 0 && target_index >= 0 && start_index != target_index;
+	return jump_item_index >= 0;
 }
 
 bool MissionResumePlan::valid() const
@@ -109,13 +109,17 @@ bool SegmentPositions::valid() const
 
 bool Segment::valid() const
 {
-	return start.valid() && end.valid() && start.idx != end.idx
-	       && (is_loop || start.idx < end.idx);
+	const bool valid_jump = jump_item_index >= 0
+				&& jump_item_index != start.idx
+				&& jump_item_index != end.idx;
+	const bool valid_nominal = jump_item_index == -1 && !has_remaining_repeats && start.idx < end.idx;
+
+	return start.valid() && end.valid() && start.idx != end.idx && (valid_jump || valid_nominal);
 }
 
 bool Segment::validLoop() const
 {
-	return is_loop && valid();
+	return isLoop() && valid();
 }
 
 bool SegmentDistanceAlong::valid() const

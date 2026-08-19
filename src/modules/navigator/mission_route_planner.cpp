@@ -97,7 +97,7 @@ ProjectionReferenceBatch &plannerScratchBatch()
 bool activeJumpAnchorValidForMission(const ActiveJumpAnchor &anchor, int mission_count)
 {
 	return anchor.empty()
-	       || (anchor.valid() && anchor.start_index < mission_count && anchor.target_index < mission_count);
+	       || (anchor.valid() && anchor.jump_item_index < mission_count);
 }
 
 bool findMissionTakeoffItem(const Provider &provider, int mission_count, int32_t &index,
@@ -145,6 +145,7 @@ PlannerConfig makePlannerConfig(const MissionResumeRequest &request)
 	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
 	config.parameters.u_turn_penalty_m = request.u_turn_penalty_m;
 	config.active_jump_anchor = request.active_jump_anchor;
+	config.respect_jump_repeats = true;
 	setVehicleState(config, request.current_route_direction_reversed, request.is_fixed_wing,
 			request.in_transition_to_fw, false, request.velocity_north_m_s, request.velocity_east_m_s);
 	return config;
@@ -161,6 +162,8 @@ PlannerConfig makePlannerConfig(const RouteToGoalRequest &request)
 	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
 	config.parameters.u_turn_penalty_m = request.u_turn_penalty_m;
 	config.active_jump_anchor = request.active_jump_anchor;
+	// Return-to-goal uses jump geometry without replaying mission repeats.
+	config.respect_jump_repeats = false;
 	setVehicleState(config, request.current_route_direction_reversed, request.is_fixed_wing,
 			request.in_transition_to_fw, request.require_vtol_approach,
 			request.velocity_north_m_s, request.velocity_east_m_s);
@@ -172,7 +175,7 @@ ActiveJumpAnchor activeJumpAnchor(const ProjectionContext &projection_context)
 	const Segment &segment = projection_context.route_projection.segment;
 
 	if (segment.validLoop()) {
-		return {segment.start.idx, segment.end.idx};
+		return {segment.jump_item_index};
 	}
 
 	return {};
@@ -397,8 +400,10 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
 				  + fabsf(goal_route_along - projection_context.loop_context.along.start)
 				  + (path_b_u_turn ? config.parameters.u_turn_penalty_m : 0.f);
 
-	// While loop iterations remain the current one must be completed: force path A.
-	const bool use_path_a = projection_context.mission_loops_remaining > 0 || path_a_cost < path_b_cost;
+	// Mission finishes the current repeat before leaving the loop.
+	const bool use_path_a = (config.respect_jump_repeats
+				 && projection_context.route_projection.segment.has_remaining_repeats)
+				|| path_a_cost < path_b_cost;
 
 	RoutePath path{};
 
@@ -421,10 +426,11 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
 		path.total_cost_m = path_b_cost;
 	}
 
-	PX4_DEBUG("Route path on loop jump [A,B], loop_along[%.1f, %.1f], loops remaining: %u",
+	PX4_DEBUG("Route path on loop jump [A,B], loop_along[%.1f, %.1f], force repeat: %u",
 		  static_cast<double>(projection_context.loop_context.along.start),
 		  static_cast<double>(projection_context.loop_context.along.end),
-		  static_cast<unsigned>(projection_context.mission_loops_remaining));
+		  static_cast<unsigned>(config.respect_jump_repeats
+					&& projection_context.route_projection.segment.has_remaining_repeats));
 
 	return path;
 }
@@ -578,11 +584,10 @@ RoutePath scoreBranchOffCandidate(int mission_count,
 {
 	const bool same_active_loop =
 		projection_context.loop_context.valid()
-		&& branch_off.segment.is_loop
-		&& branch_off.segment.start.idx == projection_context.loop_context.segment.start.idx
-		&& branch_off.segment.end.idx == projection_context.loop_context.segment.end.idx;
+		&& branch_off.segment.isLoop()
+		&& branch_off.segment.jump_item_index == projection_context.loop_context.segment.jump_item_index;
 
-	if (branch_off.segment.is_loop && !same_active_loop) {
+	if (branch_off.segment.isLoop() && !same_active_loop) {
 		PX4_DEBUG("Route safe point loop candidate skipped, not on the active loop jump");
 		return {};
 	}
@@ -935,10 +940,6 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 	if (projection_status != FailureReason::kNone) {
 		return projection_status;
 	}
-
-	// RTL skips DO_JUMP segments. Remaining loop counts from normal mission
-	// execution must not force the return path to finish the current loop iteration.
-	projection_context.mission_loops_remaining = 0;
 
 	// Find closest safe point, falling back to mission end points if none found
 	GoalSelection selection{};

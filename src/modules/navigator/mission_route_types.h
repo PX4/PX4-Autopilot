@@ -87,10 +87,9 @@ struct Position {
 	bool valid() const;
 };
 
-/** @brief Index-only identity of the active synthetic DO_JUMP edge. */
+/** @brief Current/selected DO_JUMP identity, valid while the mission index space is unchanged. */
 struct ActiveJumpAnchor {
-	int32_t start_index{-1}; /**< Position attached immediately before the DO_JUMP command. */
-	int32_t target_index{-1}; /**< Resolved position at or after the command's jump target. */
+	int32_t jump_item_index{-1}; /**< Index of the DO_JUMP mission item. */
 
 	bool empty() const;
 	bool valid() const;

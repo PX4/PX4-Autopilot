@@ -1003,7 +1003,7 @@ TEST_F(MissionRoutePlannerTest, MissionResumeNearLandUsesCurrentAltitudeForJoin)
 	EXPECT_FLOAT_EQ(plan.join_position.alt, vehicle_position.alt);
 }
 
-// Active jump identity must either be absent or name two distinct in-range mission positions.
+// Active jump identity must be empty or a valid mission item index.
 TEST_F(MissionRoutePlannerTest, RejectsInvalidActiveJumpAnchorsAndClearsPlans)
 {
 	std::vector<mission_item_s> mission{
@@ -1015,7 +1015,7 @@ TEST_F(MissionRoutePlannerTest, RejectsInvalidActiveJumpAnchorsAndClearsPlans)
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 0.f, kAlt);
-	const mission_route::ActiveJumpAnchor invalid_anchors[] {{0, -1}, {1, 1}, {0, 3}};
+	const mission_route::ActiveJumpAnchor invalid_anchors[] {{-2}, {3}};
 
 	for (const mission_route::ActiveJumpAnchor &anchor : invalid_anchors) {
 		mission_route::MissionResumeRequest mission_request = makeMissionResumeRequest(vehicle_position, 1);
@@ -1031,6 +1031,7 @@ TEST_F(MissionRoutePlannerTest, RejectsInvalidActiveJumpAnchorsAndClearsPlans)
 		EXPECT_EQ(mission_status, mission_route::FailureReason::kInvalidRequest);
 		EXPECT_FALSE(mission_plan.valid());
 		EXPECT_EQ(mission_plan.first_mission_item_index, -1);
+		EXPECT_TRUE(mission_plan.active_jump_anchor.empty());
 
 		mission_route::RouteToGoalRequest route_request = makeRouteToGoalRequest(vehicle_position, 1);
 		route_request.active_jump_anchor = anchor;
@@ -1045,12 +1046,62 @@ TEST_F(MissionRoutePlannerTest, RejectsInvalidActiveJumpAnchorsAndClearsPlans)
 
 		EXPECT_EQ(route_status, mission_route::FailureReason::kInvalidRequest);
 		EXPECT_FALSE(route_plan.valid());
+		EXPECT_EQ(route_plan.first_mission_item_index, -1);
+		EXPECT_TRUE(route_plan.active_jump_anchor.empty());
 		EXPECT_EQ(route_plan.goal_type, mission_route::GoalType::kNone);
 	}
 }
 
-// Mission resumes finish the active loop iteration while RTL deliberately ignores pending repeats.
-TEST_F(MissionRoutePlannerTest, MissionPreservesAndRtlClearsActiveLoopState)
+// A stored jump index is rejected if that mission command has changed.
+TEST_F(MissionRoutePlannerTest, RejectsStaleJumpAnchorAfterCommandChanges)
+{
+	std::vector<mission_item_s> mission{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kAlt),
+		makeDoJump(0, 3, 0),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kAlt),
+	};
+	VectorProvider provider = makeRouteProvider(mission);
+	MissionRoutePlanner planner{provider};
+	const mission_route::Position vehicle_position =
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt);
+	mission_route::MissionResumeRequest mission_request = makeMissionResumeRequest(vehicle_position, 0);
+	mission_request.active_jump_anchor = {3};
+	mission_route::RouteToGoalRequest route_request = makeRouteToGoalRequest(vehicle_position, 0);
+	route_request.active_jump_anchor = {3};
+
+	mission[3].nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	provider.setMissionItems(mission);
+
+	mission_route::MissionResumePlan mission_plan{};
+	mission_plan.join_position = vehicle_position;
+	mission_plan.first_mission_item_index = 1;
+	ASSERT_TRUE(mission_plan.valid());
+	mission_route::RouteToGoalPlan route_plan{};
+	route_plan.join_position = vehicle_position;
+	route_plan.first_mission_item_index = 1;
+	route_plan.goal_type = mission_route::GoalType::kMissionTakeoff;
+	route_plan.goal_position = vehicle_position;
+	ASSERT_TRUE(route_plan.valid());
+
+	const mission_route::FailureReason mission_status =
+		planner.planMissionResumeJoin(mission_request, mission_plan);
+	const mission_route::FailureReason route_status = planner.planRouteToGoal(route_request, route_plan);
+
+	EXPECT_EQ(mission_status, mission_route::FailureReason::kInvalidRequest);
+	EXPECT_FALSE(mission_plan.valid());
+	EXPECT_EQ(mission_plan.first_mission_item_index, -1);
+	EXPECT_TRUE(mission_plan.active_jump_anchor.empty());
+	EXPECT_EQ(route_status, mission_route::FailureReason::kInvalidRequest);
+	EXPECT_FALSE(route_plan.valid());
+	EXPECT_EQ(route_plan.first_mission_item_index, -1);
+	EXPECT_TRUE(route_plan.active_jump_anchor.empty());
+	EXPECT_EQ(route_plan.goal_type, mission_route::GoalType::kNone);
+}
+
+// Mission honors active repeats while RTL ignores their path.
+TEST_F(MissionRoutePlannerTest, MissionHonorsAndRtlIgnoresActiveJumpRepeats)
 {
 	std::vector<mission_item_s> mission{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),     // 0
@@ -1068,9 +1119,9 @@ TEST_F(MissionRoutePlannerTest, MissionPreservesAndRtlClearsActiveLoopState)
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt);
 	mission_route::MissionResumeRequest mission_request = makeMissionResumeRequest(vehicle_position, 0);
-	mission_request.active_jump_anchor = {2, 0};
+	mission_request.active_jump_anchor = {3};
 	mission_route::RouteToGoalRequest rtl_request = makeRouteToGoalRequest(vehicle_position, 0);
-	rtl_request.active_jump_anchor = {2, 0};
+	rtl_request.active_jump_anchor = {3};
 	mission_route::MissionResumePlan mission_plan{};
 	mission_route::RouteToGoalPlan rtl_plan{};
 
@@ -1081,11 +1132,9 @@ TEST_F(MissionRoutePlannerTest, MissionPreservesAndRtlClearsActiveLoopState)
 			<< mission_route::failureReasonString(mission_status);
 	ASSERT_EQ(rtl_status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(rtl_status);
 	ASSERT_TRUE(mission_plan.active_jump_anchor.valid());
-	EXPECT_EQ(mission_plan.active_jump_anchor.start_index, 2);
-	EXPECT_EQ(mission_plan.active_jump_anchor.target_index, 0);
+	EXPECT_EQ(mission_plan.active_jump_anchor.jump_item_index, 3);
 	ASSERT_TRUE(rtl_plan.active_jump_anchor.valid());
-	EXPECT_EQ(rtl_plan.active_jump_anchor.start_index, 2);
-	EXPECT_EQ(rtl_plan.active_jump_anchor.target_index, 0);
+	EXPECT_EQ(rtl_plan.active_jump_anchor.jump_item_index, 3);
 
 	// Mission completes the active [2->0] jump before continuing toward the route end.
 	EXPECT_EQ(mission_plan.first_mission_item_index, 0);
@@ -1111,15 +1160,14 @@ TEST_F(MissionRoutePlannerTest, LoopScenarioSelectsRally3OnSegment7To9)
 	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 7);
 	request.velocity_north_m_s = corner_dataset::kVelDiag;
 	request.velocity_east_m_s = corner_dataset::kVelDiag;
-	request.active_jump_anchor = {7, 2};
+	request.active_jump_anchor = {8};
 	mission_route::RouteToGoalPlan plan{};
 
 	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
 	ASSERT_TRUE(plan.active_jump_anchor.valid());
-	EXPECT_EQ(plan.active_jump_anchor.start_index, 7);
-	EXPECT_EQ(plan.active_jump_anchor.target_index, 2);
+	EXPECT_EQ(plan.active_jump_anchor.jump_item_index, 8);
 	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
 	EXPECT_EQ(plan.safe_point_index, 3);
 	EXPECT_TRUE(plan.goal_position.valid());
@@ -1127,37 +1175,32 @@ TEST_F(MissionRoutePlannerTest, LoopScenarioSelectsRally3OnSegment7To9)
 	EXPECT_EQ(plan.branch_off_mission_item_index, 9);
 }
 
-// An exhausted jump has no active repeat obligation in the returned plan.
-TEST_F(MissionRoutePlannerTest, ExhaustedDoJumpDoesNotCreateActivePlanAnchor)
+// An exhausted selected jump keeps its identity without forcing another repeat.
+TEST_F(MissionRoutePlannerTest, ExhaustedJumpKeepsIdentityWithoutForcingRepeat)
 {
 	std::vector<mission_item_s> mission{
-		makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 20.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 30.f),
-		makeDoJump(1, 3, 3),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt + 40.f),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 800.f, 0.f, kAlt - 10.f),
-	};
-	std::vector<mission_item_s> safe_points{
-		makeSafePointFromOffset(kBaseLat, kBaseLon, 300.f, 50.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 200.f, kAlt),
+		makeDoJump(0, 3, 3),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 200.f, kAlt),
 	};
 
-	VectorProvider provider = makeRouteProvider(mission, safe_points);
+	VectorProvider provider = makeRouteProvider(mission);
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
-		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 15.f);
-	mission_route::RouteToGoalRequest request = makeRouteToGoalRequest(vehicle_position, 0);
-	request.velocity_north_m_s = 10.f;
-	request.velocity_east_m_s = 0.f;
-	mission_route::RouteToGoalPlan plan{};
+		makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt);
+	mission_route::MissionResumeRequest request = makeMissionResumeRequest(vehicle_position, 0);
+	request.active_jump_anchor = {3};
+	mission_route::MissionResumePlan plan{};
 
-	const mission_route::FailureReason status = planner.planRouteToGoal(request, plan);
+	const mission_route::FailureReason status = planner.planMissionResumeJoin(request, plan);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	EXPECT_TRUE(plan.valid());
-	EXPECT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
-	EXPECT_EQ(plan.safe_point_index, 0);
-	EXPECT_TRUE(plan.active_jump_anchor.empty());
+	ASSERT_TRUE(plan.valid());
+	EXPECT_EQ(plan.active_jump_anchor.jump_item_index, 3);
+	EXPECT_EQ(plan.first_mission_item_index, 2);
+	EXPECT_FALSE(plan.direction_reversed);
 }
 
 // Route following is skipped only when the vehicle is close to the selected branch leg

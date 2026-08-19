@@ -53,13 +53,6 @@
 namespace mission_route
 {
 
-enum class PositionLookupStatus : uint8_t {
-	kFound,
-	kNoPositionFound,
-	kLoadFailed,
-	kInvalidPosition
-};
-
 struct ProjectionScanRequest {
 	float home_altitude_amsl{NAN};
 	float xtrack_margin_m{0.f};
@@ -135,8 +128,6 @@ public:
 	float routeLength() const { return _route_along_m; }
 
 private:
-	PositionLookupStatus findNextValidPositionIndex(int32_t start_index, int32_t &next_position_index) const;
-
 	bool findAttachedValidPositionIndex(int32_t start_index, int32_t &attached_position_index) const;
 
 	/** @brief Load the segment end at the given mission index, resolving DO_JUMP loop edges. */

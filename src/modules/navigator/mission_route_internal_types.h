@@ -98,9 +98,10 @@ struct SegmentPositions {
 struct Segment {
 	SegmentEndpoint start{};
 	SegmentEndpoint end{};
-	bool is_loop{false};
-	uint8_t loops_remaining{0}; /**< Remaining repeats loaded from the DO_JUMP; zero for nominal segments. */
+	int32_t jump_item_index{-1}; /**< DO_JUMP command index; -1 for a nominal segment. */
+	bool has_remaining_repeats{false};
 
+	bool isLoop() const { return jump_item_index >= 0; }
 	bool valid() const;
 	bool validLoop() const;
 };
@@ -155,7 +156,6 @@ struct ProjectionContext {
 	RouteProjectionCandidate route_projection{};
 	VehicleStateContext vehicle_state{};
 	float route_length{0.f};
-	uint8_t mission_loops_remaining{0};
 	LoopContext loop_context{};
 
 	bool valid() const;
@@ -222,6 +222,7 @@ struct PlannerConfig {
 	PlannerParameters parameters{};
 	VehicleStateContext state{};
 	ActiveJumpAnchor active_jump_anchor{};
+	bool respect_jump_repeats{false};
 };
 
 } // namespace mission_route

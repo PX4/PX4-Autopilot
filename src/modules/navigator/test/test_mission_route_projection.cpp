@@ -261,8 +261,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 	mission_route::MissionRouteProjection projection(provider);
 	auto batch = singleReferenceBatch({});
 
-	config.active_jump_anchor.start_index = 2;
-	config.active_jump_anchor.target_index = 0;
+	config.active_jump_anchor.jump_item_index = 3;
 
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 75.f, 10.f, kAlt);
 	mission_route::ProjectionContext projection_context{};
@@ -270,7 +269,9 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 		projection.collectVehicleProjection(vehicle, 0, config, batch, projection_context);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
-	EXPECT_TRUE(projection_context.route_projection.segment.is_loop);
+	EXPECT_TRUE(projection_context.route_projection.segment.validLoop());
+	EXPECT_EQ(projection_context.route_projection.segment.jump_item_index, 3);
+	EXPECT_TRUE(projection_context.route_projection.segment.has_remaining_repeats);
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 0);
 }
@@ -500,9 +501,10 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, ZeroMarginKeepsFirstExactCl
 	ASSERT_EQ(candidates.count, 1U);
 	const mission_route::RouteProjectionCandidate &candidate = candidates.candidates[0];
 	EXPECT_TRUE(candidate.segment.validLoop());
+	EXPECT_EQ(candidate.segment.jump_item_index, 3);
 	EXPECT_EQ(candidate.segment.start.idx, 2);
 	EXPECT_EQ(candidate.segment.end.idx, 0);
-	EXPECT_EQ(candidate.segment.loops_remaining, 0U);
+	EXPECT_FALSE(candidate.segment.has_remaining_repeats);
 	EXPECT_NEAR(candidate.dist.xtrack, 0.f, kDistanceTolerance);
 }
 
@@ -754,13 +756,13 @@ TEST_F(RouteSegmentCursorTest, StopsAtFirstLandBeforePostLandPositions)
 struct DoJumpEdgeCase {
 	const char *name;
 	uint16_t current_count;
-	uint8_t expected_loops_remaining;
+	bool expected_remaining_repeats;
 };
 
 class RouteSegmentCursorDoJumpTest : public MissionRouteProjectionTestBase,
 	public ::testing::WithParamInterface<DoJumpEdgeCase> {};
 
-// Active and exhausted DO_JUMPs both emit the synthetic edge; only the remaining count differs.
+// Active and exhausted DO_JUMPs both emit the edge; only the repeat obligation differs.
 TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 {
 	const DoJumpEdgeCase &scenario = GetParam();
@@ -785,22 +787,27 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 	ASSERT_EQ(segments.size(), 3U);
 	EXPECT_EQ(segments[0].segment.start.idx, 0);
 	EXPECT_EQ(segments[0].segment.end.idx, 1);
-	EXPECT_FALSE(segments[0].segment.is_loop);
+	EXPECT_FALSE(segments[0].segment.isLoop());
+	EXPECT_EQ(segments[0].segment.jump_item_index, -1);
+	EXPECT_FALSE(segments[0].segment.has_remaining_repeats);
 	EXPECT_EQ(segments[1].segment.start.idx, 1);
 	EXPECT_EQ(segments[1].segment.end.idx, 0);
 	EXPECT_TRUE(segments[1].segment.validLoop());
-	EXPECT_EQ(segments[1].segment.loops_remaining, scenario.expected_loops_remaining);
+	EXPECT_EQ(segments[1].segment.jump_item_index, 2);
+	EXPECT_EQ(segments[1].segment.has_remaining_repeats, scenario.expected_remaining_repeats);
 	EXPECT_EQ(segments[2].segment.start.idx, 1);
 	EXPECT_EQ(segments[2].segment.end.idx, 3);
-	EXPECT_FALSE(segments[2].segment.is_loop);
+	EXPECT_FALSE(segments[2].segment.isLoop());
+	EXPECT_EQ(segments[2].segment.jump_item_index, -1);
+	EXPECT_FALSE(segments[2].segment.has_remaining_repeats);
 }
 
 INSTANTIATE_TEST_SUITE_P(
 	DoJumpState,
 	RouteSegmentCursorDoJumpTest,
 	::testing::Values(
-		DoJumpEdgeCase{"Active", 1, 2},
-		DoJumpEdgeCase{"Exhausted", 3, 0}
+		DoJumpEdgeCase{"Active", 1, true},
+		DoJumpEdgeCase{"Exhausted", 3, false}
 	),
 	[](const ::testing::TestParamInfo<DoJumpEdgeCase> &param_info)
 {
