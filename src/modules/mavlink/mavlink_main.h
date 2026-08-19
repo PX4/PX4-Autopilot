@@ -506,7 +506,7 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-	bool radio_status_critical() const { return _radio_status_critical; }
+	bool radio_status_critical() const;
 
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
@@ -656,7 +656,7 @@ private:
 	pthread_mutex_t		_message_buffer_mutex{};
 	VariableLengthRingbuffer _message_buffer{};
 
-	pthread_mutex_t         _radio_status_mutex {};
+	mutable pthread_mutex_t _radio_status_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,

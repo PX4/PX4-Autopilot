@@ -108,7 +108,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  214, 0x07, 0x07 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
 	{  224, 0x00, 0x03 }, // DO_SET_MISSION_CURRENT:      cmd:p1:seq,p2:reset_jump_counters
 	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
-	{  420, 0x07, 0x07 }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance
+	{  420, 0x0F, 0x0F }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance,p4:instance bitmask
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
 	{  532, 0x07, 0x07 }, // SET_CAMERA_FOCUS:            p1:focus_type,p2:value,p3:camera_id
 	{  534, 0x07, 0x07 }, // SET_CAMERA_SOURCE:           p1:camera_id,p2:primary,p3:secondary

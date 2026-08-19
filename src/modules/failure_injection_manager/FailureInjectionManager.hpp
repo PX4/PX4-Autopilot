@@ -48,6 +48,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/failure_injection.h>
@@ -79,6 +80,7 @@ private:
 
 	void handleCommand(const vehicle_command_s &cmd);
 	void publishAck(const vehicle_command_s &cmd, uint8_t result);
+	void announceFailure(uint8_t unit, uint8_t type, uint16_t mask);
 
 	void evaluateRcInjection();
 
@@ -90,6 +92,8 @@ private:
 
 	failure_injection::FailureTable _table;
 
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 	bool    _rc_active{false};
 	uint8_t _rc_active_unit{0};
 	uint8_t _rc_active_instance{0};
@@ -98,6 +102,9 @@ private:
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
-		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst
+		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
+		// Consumed via param_find() in failure_injection::process_gnss(); registered
+		// here so it is marked used and shows up in the GCS parameter list.
+		(ParamInt<px4::params::SYS_FAIL_GPS_WRG>) _param_sys_fail_gps_wrg
 	)
 };

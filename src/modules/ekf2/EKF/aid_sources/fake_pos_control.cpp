@@ -109,9 +109,15 @@ bool Ekf::runFakePosStateMachine(const bool enable_conditions_passing, bool stat
 	if (status_flag) {
 		if (enable_conditions_passing) {
 			if (!aid_src.innovation_rejected) {
+				const LatLonAlt gpos_prev = _gpos;
+
 				for (unsigned i = 0; i < 2; i++) {
-					fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
-								   State::pos.idx + i);
+					// recalculate using the updated state and variance
+					aid_src.innovation[i] += (_gpos - gpos_prev)(i);
+					aid_src.innovation_variance[i] = P(State::pos.idx + i, State::pos.idx + i) + aid_src.observation_variance[i];
+
+					fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i],
+								   aid_src.observation_variance[i], State::pos.idx + i);
 				}
 
 				aid_src.fused = true;

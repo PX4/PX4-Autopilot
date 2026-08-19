@@ -347,7 +347,10 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 
 	if (!_realtime_clock_set) {
 		// Set initial real time clock at startup
-		px4_clock_settime(CLOCK_REALTIME, &ts);
+		if (_param_sys_time_src.get() & SYS_TIME_SRC_SIMULATOR) {
+			px4_clock_settime(CLOCK_REALTIME, &ts);
+		}
+
 		_realtime_clock_set = true;
 
 	} else {

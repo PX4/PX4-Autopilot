@@ -45,6 +45,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
+#include <systemlib/system_time_source.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <lib/parameters/param.h>
@@ -76,7 +77,9 @@ UavcanGnssBridge::~UavcanGnssBridge()
 {
 	delete [] _channel_using_fix2;
 	perf_free(_rtcm_stream_pub_perf);
+	perf_free(_rtcm_stream_pub_failed_perf);
 	perf_free(_moving_baseline_data_pub_perf);
+	perf_free(_moving_baseline_data_pub_failed_perf);
 	perf_free(_moving_baseline_data_sub_perf);
 }
 
@@ -119,6 +122,7 @@ UavcanGnssBridge::init()
 		_publish_rtcm_stream = true;
 		_pub_rtcm_stream.setPriority(uavcan::TransferPriority::NumericallyMax);
 		_rtcm_stream_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: rtcm stream pub");
+		_rtcm_stream_pub_failed_perf = perf_alloc(PC_COUNT, "uavcan: gnss: rtcm stream pub failed");
 	}
 
 	// UAVCAN_PUB_MBD
@@ -129,6 +133,7 @@ UavcanGnssBridge::init()
 		_publish_moving_baseline_data = true;
 		_pub_moving_baseline_data.setPriority(uavcan::TransferPriority::NumericallyMax);
 		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
+		_moving_baseline_data_pub_failed_perf = perf_alloc(PC_COUNT, "uavcan: gnss: moving baseline data rtcm stream pub failed");
 	}
 
 	// UAVCAN_SUB_MBD
@@ -556,15 +561,20 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	// If we haven't already done so, set the system clock using GPS data
 	if (sensor_gps.time_utc_usec != 0 && (fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
-		timespec ts{};
+		int32_t sys_time_src = 0;
+		param_get(param_find("SYS_TIME_SRC"), &sys_time_src);
 
-		// get the whole microseconds
-		ts.tv_sec = sensor_gps.time_utc_usec / 1000000ULL;
+		if (sys_time_src & SYS_TIME_SRC_GPS) {
+			timespec ts{};
 
-		// get the remainder microseconds and convert to nanoseconds
-		ts.tv_nsec = (sensor_gps.time_utc_usec % 1000000ULL) * 1000;
+			// get the whole microseconds
+			ts.tv_sec = sensor_gps.time_utc_usec / 1000000ULL;
 
-		px4_clock_settime(CLOCK_REALTIME, &ts);
+			// get the remainder microseconds and convert to nanoseconds
+			ts.tv_nsec = (sensor_gps.time_utc_usec % 1000000ULL) * 1000;
+
+			px4_clock_settime(CLOCK_REALTIME, &ts);
+		}
 
 		_system_clock_set = true;
 	}
@@ -612,8 +622,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	const int instance = get_orb_instance_for_node(node_id);
 
 	if (channel >= 0 && instance >= 0
-	    && !failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
-					   instance, sensor_gps, _stuck[channel])) {
+	    && !failure_injection::process_gnss(_failure_config, instance, sensor_gps, _stuck[channel])) {
 		return;
 	}
 
@@ -647,27 +656,32 @@ void UavcanGnssBridge::drainRtcmCorrections()
 		}
 	}
 
-	bool updated = already_copied;
+	bool have_msg = already_copied;
 	size_t num_injections = 0;
 
-	do {
-		if (updated) {
-			num_injections++;
-			PublishRTCMStream(msg.data, msg.len);
-			_rtcm_injection_rate_message_count++;
-			_last_rtcm_injection_time = hrt_absolute_time();
+	// Budget checked before reading, never after: a message taken off the queue
+	// and left behind is gone.
+	while (num_injections < rtcm_data_s::ORB_QUEUE_LENGTH) {
+		if (!have_msg) {
+			auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
+			const unsigned last_generation = sub.get_last_generation();
+
+			if (!sub.update(&msg)) {
+				break;
+			}
+
+			if (sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
+					 last_generation, sub.get_last_generation());
+			}
 		}
 
-		auto &sub = _rtcm_corrections_sub[_selected_rtcm_instance];
-		const unsigned last_generation = sub.get_last_generation();
-
-		updated = sub.update(&msg);
-
-		if (updated && sub.get_last_generation() != last_generation + 1) {
-			PX4_WARN("%s lost, generation %u -> %u", sub.get_topic()->o_name,
-				 last_generation, sub.get_last_generation());
-		}
-	} while (updated && num_injections < rtcm_data_s::ORB_QUEUE_LENGTH);
+		have_msg = false;
+		num_injections++;
+		PublishRTCMStream(msg.data, msg.len);
+		_rtcm_injection_rate_message_count++;
+		_last_rtcm_injection_time = hrt_absolute_time();
+	}
 }
 
 // Drains rtcm_moving_baseline (moving-base RTCM 4072 from a peer GPS) to
@@ -744,6 +758,13 @@ bool UavcanGnssBridge::PublishRTCMStream(const uint8_t *const data, const size_t
 
 		result = _pub_rtcm_stream.broadcast(msg) >= 0;
 		perf_count(_rtcm_stream_pub_perf);
+
+		if (!result) {
+			// TX queue / pool exhaustion drops the rest of this message silently -
+			// the receiver-side framer sees a partial frame and fails its CRC.
+			perf_count(_rtcm_stream_pub_failed_perf);
+		}
+
 		msg.data.clear();
 	}
 
@@ -772,6 +793,11 @@ bool UavcanGnssBridge::PublishMovingBaselineData(const uint8_t *data, size_t dat
 
 		result = _pub_moving_baseline_data.broadcast(msg) >= 0;
 		perf_count(_moving_baseline_data_pub_perf);
+
+		if (!result) {
+			perf_count(_moving_baseline_data_pub_failed_perf);
+		}
+
 		msg.data.clear();
 	}
 
@@ -782,6 +808,8 @@ void UavcanGnssBridge::print_status() const
 {
 	UavcanSensorBridgeBase::print_status();
 	perf_print_counter(_rtcm_stream_pub_perf);
+	perf_print_counter(_rtcm_stream_pub_failed_perf);
 	perf_print_counter(_moving_baseline_data_pub_perf);
+	perf_print_counter(_moving_baseline_data_pub_failed_perf);
 	perf_print_counter(_moving_baseline_data_sub_perf);
 }

@@ -96,6 +96,8 @@ You may need to [configure the following parameters](../dronecan/index.md#qgc-ca
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-125 to use a static node ID. |
 | <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination. Set to `1` if this is the last node on the CAN bus.                                                     |
+| <a id="GPS_UBX_BAUD1"></a>[GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1)       | UART1 baudrate after the link is auto-detected. Board default is `921600`.                                                            |
+| <a id="GPS_UBX_BAUD2"></a>[GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2)       | UART2 baudrate (default `230400`).                                                                                                    |
 
 ### Setting Up Rover and Fixed Base
 

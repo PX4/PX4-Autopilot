@@ -238,7 +238,7 @@ void Navigator::run()
 	reset_position_setpoint(_reposition_triplet.next);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3] {};
+	px4_pollfd_struct_t fds[4] {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
@@ -247,15 +247,22 @@ void Navigator::run()
 	fds[1].events = POLLIN;
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
+	fds[3].fd = ORB_SUB_INVALID;
+	fds[3].events = POLLIN;
 
 	uint32_t geofence_id{0};
 	mission_s mission{};
 	bool mission_received{false};
+	hrt_abstime last_navigator_update{0};
 
-	/* rate-limit position subscription to 20 Hz / 50 ms */
-	orb_set_interval(_local_pos_sub, 50);
+	// Keep normal Navigator work at the existing 20 Hz local-position cadence.
+	static constexpr hrt_abstime kNavigatorUpdatePeriod{50_ms};
+	orb_set_interval(_local_pos_sub, static_cast<unsigned>(kNavigatorUpdatePeriod / 1_ms));
 
 	while (!should_exit()) {
+
+		// Poll Dataman only while the full-mission cache has a pending read.
+		fds[3].fd = _mission_route_cache.fullMissionResponseSubscription();
 
 		/* wait for up to 1000ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
@@ -272,8 +279,17 @@ void Navigator::run()
 
 		perf_begin(_loop_perf);
 
-		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+		const bool navigator_input_updated = (fds[0].revents & POLLIN)
+						     || (fds[1].revents & POLLIN)
+						     || (fds[2].revents & POLLIN);
+		const bool minimum_update_due = hrt_elapsed_time(&last_navigator_update) >= kNavigatorUpdatePeriod;
+		const bool run_navigator_update = navigator_input_updated || minimum_update_due;
+
+		if (run_navigator_update) {
+			last_navigator_update = hrt_absolute_time();
+			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+		}
 
 		if (fds[2].revents & POLLIN) {
 			if (orb_copy(ORB_ID(mission), _mission_sub, &mission) == PX4_OK) {
@@ -289,6 +305,12 @@ void Navigator::run()
 
 		if (mission_received) {
 			_mission_route_cache.update(mission);
+		}
+
+		// Cache-only wakeups advance the load without running Navigator at Dataman rate.
+		if (!run_navigator_update) {
+			perf_end(_loop_perf);
+			continue;
 		}
 
 		/* gps updated */

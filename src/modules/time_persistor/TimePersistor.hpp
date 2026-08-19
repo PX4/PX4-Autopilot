@@ -37,6 +37,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/time.h>
+#include <systemlib/system_time_source.h>
 
 static constexpr const auto TIME_FILE_PATH = PX4_STORAGEDIR "/time_save.bin";
 
@@ -70,4 +71,8 @@ private:
 	int write_time(const time_t time);
 
 	FILE *_file = 0;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SYS_TIME_SRC>) _param_sys_time_src
+	)
 };

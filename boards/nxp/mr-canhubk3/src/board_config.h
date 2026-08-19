@@ -81,10 +81,6 @@ __BEGIN_DECLS
 #define PX4_I2C_BUS_ONBOARD_HZ      400000
 #define PX4_I2C_BUS_EXPANSION_HZ      400000
 
-#define PX4_I2C_BUS_MTD	1
-
-#define BOARD_NUMBER_I2C_BUSES  2
-
 /* Timer I/O PWM and capture */
 
 #define DIRECT_PWM_OUTPUT_CHANNELS  8

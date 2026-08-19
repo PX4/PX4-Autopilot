@@ -90,10 +90,13 @@ Source: [drivers/cdcacm_autostart](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 ### Description
 
-This module listens on USB and auto-configures the protocol depending on the bytes received.
-The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2
-the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
-and continue to check for VBUS and start mavlink once it is detected.
+Manages the USB CDC/ACM serial device (`/dev/ttyACM0`).
+
+`SYS_USB_AUTO` selects the protocol policy once USB VBUS is detected:
+
+- `0` Disabled: bring up the USB serial device only.
+- `1` Auto-detect: wait for host bytes and start MAVLink, nsh, or u-blox passthrough.
+- `2` MAVLink (default): start MAVLink immediately so the autopilot transmits first
 
 ### Usage {#cdcacm_autostart_usage}
 

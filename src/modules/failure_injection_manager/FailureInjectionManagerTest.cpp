@@ -34,6 +34,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstring>
+
+#include "FailureStrings.hpp"
 #include "FailureTable.hpp"
 
 using namespace failure_injection;
@@ -234,4 +237,55 @@ TEST(FailureTable, InjectMaskUnsupportedIsRejected)
 	FailureTable table;
 	EXPECT_EQ(table.injectMask(GYRO, WRONG, 0x1), AckResult::Unsupported);
 	EXPECT_EQ(table.count(), 0);
+}
+
+TEST(FailureStrings, UnitAndTypeNames)
+{
+	EXPECT_STREQ(unitName(GYRO), "gyro");
+	EXPECT_STREQ(unitName(MOTOR), "motor");
+	EXPECT_STREQ(unitName(ESC), "esc");
+	EXPECT_STREQ(unitName(42), "unknown");
+
+	EXPECT_STREQ(typeName(OK), "ok");
+	EXPECT_STREQ(typeName(OFF), "off");
+	EXPECT_STREQ(typeName(STUCK), "stuck");
+	EXPECT_STREQ(typeName(0xFF), "unknown");
+}
+
+TEST(FailureStrings, InstancePhraseSingleInstance)
+{
+	char buf[64];
+	instancePhrase(0x0004, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "instances 3");
+
+	instancePhrase(0x8000, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "instances 16");
+}
+
+TEST(FailureStrings, InstancePhraseListsMultipleInstances)
+{
+	char buf[64];
+	instancePhrase(0x000B, buf, sizeof(buf)); // bits 0, 1, 3 -> instances 1, 2, 4
+	EXPECT_STREQ(buf, "instances 1,2,4");
+
+	instancePhrase(0x0003, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "instances 1,2");
+}
+
+TEST(FailureStrings, InstancePhraseSpecialMasks)
+{
+	char buf[64];
+	instancePhrase(0xFFFF, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "all instances");
+
+	instancePhrase(0, buf, sizeof(buf));
+	EXPECT_STREQ(buf, "no instances");
+}
+
+TEST(FailureStrings, InstancePhraseTruncatesSafely)
+{
+	char buf[8];
+	instancePhrase(0x7FFF, buf, sizeof(buf)); // needs far more than 8 bytes
+	EXPECT_EQ(buf[sizeof(buf) - 1], '\0');
+	EXPECT_LT(strlen(buf), sizeof(buf));
 }

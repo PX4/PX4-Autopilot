@@ -20829,6 +20829,18 @@ WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 894281   |           | 0       |      | &nbsp;    |
 
+### CBRK_UAVCAN_FW (`INT32`) {#CBRK_UAVCAN_FW}
+
+Circuit breaker for UAVCAN firmware update arming check.
+
+Setting this parameter to 5318008 will allow arming even when a UAVCAN
+node firmware update is pending or a node went offline mid-update.
+WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5318008  |           | 0       |      | &nbsp;    |
+
 ### CBRK_USB_CHK (`INT32`) {#CBRK_USB_CHK}
 
 Circuit breaker for USB link check.
@@ -21798,19 +21810,16 @@ Warning only warns without preventing arming. Actions other than Warning also pr
 
 ### COM_POS_FS_ACT (`INT32`) {#COM_POS_FS_ACT}
 
-Loss of position autonomous failsafe action.
+Loss of position failsafe action.
 
-If no autonomous horizontal navigation is possible anymore should the vehicle attempt to
-descend blindly and land or terminate which can be preferable if there's a parachute and no pilot.
+Final fallback failsafe action for loss of horizontal position in autonomous modes:
 
-Action to take when autonomous horizontal navigation is lost:
-
-- "Descend if possible" blind with potential drift and uncontrolled landing (risk of hitting obstacles)
-- "Terminate" can be preferred for unpiloted use with emergency parachute
+- Descend (potential for horizontal drift on landing)
+- Flight termination (allows parachute landing)
 
 **Values:**
 
-- `0`: Descend if possible
+- `0`: Descend mode
 - `1`: Terminate
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
@@ -26290,6 +26299,29 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SYS_FAIL_GPS_WRG (`INT32`) {#SYS_FAIL_GPS_WRG}
+
+GPS Wrong-failure fix type.
+
+GNSS fix type reported by the addressed receiver while a GPS 'wrong'
+failure injection is active. The reported position is left untouched.
+The default 2D fix is rejected by the estimator, which requires a 3D
+fix, and makes the GNSS redundancy check report a lost fix, while the
+receiver stays eligible for GPS blending. Values above 3D fix report a
+better solution than the receiver really has.
+
+**Values:**
+
+- `1`: Fix: None
+- `2`: Fix: 2D
+- `3`: Fix: 3D
+- `5`: Fix: RTK float
+- `6`: Fix: RTK fixed
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
+
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
 Instance failed by the RC switch.
@@ -26689,13 +26721,23 @@ Not available on MTK.
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### GPS_UBX_BAUD1 (`INT32`) {#GPS_UBX_BAUD1}
+
+u-blox UART1 target baudrate.
+
+Baudrate applied to the receiver UART1 after the link is auto-detected.
+0 keeps the driver default (115200). Modes that share UART1 with RTCM
+(GPS_UBX_MODE 3/4) may need a higher rate on short/reliable links.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 3000000  |           | 0       | B/s  | &nbsp;    |
+
 ### GPS_UBX_BAUD2 (`INT32`) {#GPS_UBX_BAUD2}
 
-u-blox F9P UART2 Baudrate.
+u-blox UART2 baudrate.
 
-Select a baudrate for the F9P's UART2 port.
-In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
-Set this to 57600 if you want to attach a telemetry radio on UART2.
+Baudrate for the receiver UART2 port.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26808,8 +26850,8 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 - `0`: Default
 - `1`: Heading (Rover With Moving Base UART1 Connected To Autopilot, UART2 Connected To Moving Base)
 - `2`: Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
-- `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
-- `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+- `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node)
+- `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node)
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
 
@@ -27018,13 +27060,17 @@ If actuator launch lock is enabled, this surface is kept at the disarmed value.
 
 Motor failure handling mode.
 
-This is used to specify how to handle motor failures
-reported by failure detector.
+What to do on a single motor failure. Ignore disables this feature entirely. Otherwise
+the failed motor is removed from the allocation, and on a hexarotor its geometric-opposite
+motor is additionally stopped (mode 1) or reversed (mode 2) to recover the lost
+yaw/roll/pitch authority; on other airframes only the failed motor is removed. Mode 2
+needs a reverse-capable ESC on the opposite motor.
 
 **Values:**
 
 - `0`: Ignore
-- `1`: Remove first failed motor from effectiveness
+- `1`: Remove failed motor and stop its opposite
+- `2`: Remove failed motor and reverse its opposite
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -27428,6 +27474,17 @@ Zero means that slew rate limiting is disabled.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 10       | 0.01      | 0.0     | s    | &nbsp;    |
+
+### CA_REV_THR_FRAC (`FLOAT`) {#CA_REV_THR_FRAC}
+
+Reverse thrust fraction for reversible motors.
+
+Fraction of forward thrust a reversible motor produces in reverse (e.g. 0.4 = 40%).
+This is mostly a property of the propeller.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.1      | 1.0      |           | 0.4     |      | &nbsp;    |
 
 ### CA_ROTOR0_AX (`FLOAT`) {#CA_ROTOR0_AX}
 
@@ -30412,7 +30469,7 @@ Maximum vertical velocity allowed in the landed state.
 
 Fixed-wing land detector: Max horizontal acceleration.
 
-Maximum horizontal (x,y body axes) acceleration allowed in the landed state
+Maximum gravity-compensated horizontal (earth frame) acceleration allowed in the landed state.
 
 | Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
@@ -36401,7 +36458,8 @@ Return mode destination and flight path (home location, rally point, mission lan
 - `2`: Return to a planned mission landing, if available, using the mission path while skipping DO_JUMP and other non-position mission items, else return to home via the reverse mission path with the same traversal rules. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
 - `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is estimated to be closer using mission item indices. Skip DO_JUMP and other non-position mission items while following either mission path. Do not consider rally points.
-- `5`: Return directly to safe landing point (do not consider mission landing and Home)
+- `5`: Return directly to safe landing point (do not consider mission landing and Home).
+- `6`: Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -44347,6 +44405,22 @@ Number of voltage pulses per one rotor revolution on the capturing pin.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 1        | 50       |           | 1       |      | &nbsp;    |
 
+### SYS_AUTOCFG_CAL (`INT32`) {#SYS_AUTOCFG_CAL}
+
+Sensor calibration in SYS_AUTOCONFIG reset.
+
+If enabled, a SYS_AUTOCONFIG reset overwrites stored sensor calibration with the airframe's built-in defaults.
+Enable when the airframe ships its own calibration.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
 ### SYS_AUTOCONFIG (`INT32`) {#SYS_AUTOCONFIG}
 
 Automatically configure default values.
@@ -44687,6 +44761,25 @@ Enable stack checking.
 | Reboot | minValue | maxValue | increment | default     | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ----------- | ---- | --------- |
 | &nbsp; |          |          |           | Enabled (1) |      | &nbsp;    |
+
+### SYS_TIME_SRC (`INT32`) {#SYS_TIME_SRC}
+
+Select the source of the system time.
+
+This parameter selects the source allowed to set the system time.
+The default value enables all sources.
+
+**Bitmask:**
+
+- `0`: GPS time
+- `1`: MAVLink time
+- `2`: Software RTC time
+- `3`: DDS time
+- `4`: Input simulation time
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 0        | 31       |           | 31      |      | &nbsp;    |
 
 ## Telemetry
 

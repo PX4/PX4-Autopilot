@@ -53,6 +53,7 @@
 #include <uORB/topics/failure_injection.h>
 
 struct battery_status_s;
+struct sensor_gps_s;
 
 namespace failure_injection
 {
@@ -197,6 +198,17 @@ inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
 void process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
 
 /**
+ * GNSS counterpart to process(): on FAILURE_UNIT_SENSOR_GPS for the receiver publishing on the
+ * given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong reports
+ * the fix type selected by SYS_FAIL_GPS_WRG while leaving the position untouched.
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the sensor_gps publication must be suppressed (Off), true otherwise.
+ */
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
+		  Stuck<sensor_gps_s> &stuck);
+
+/**
  * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
  * status (matched per ESC by actuator_function). Off zeroes the ESC's telemetry (keeping only
  * actuator_function) and reports it offline and unarmed; Wrong keeps it online but reports
@@ -232,6 +244,8 @@ inline bool process(Mode) { return true; }
 inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
 inline void process_battery(const Config &, uint8_t, battery_status_s &) {}
+
+inline bool process_gnss(const Config &, uint8_t, sensor_gps_s &, Stuck<sensor_gps_s> &) { return true; }
 
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
 

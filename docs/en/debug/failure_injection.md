@@ -5,7 +5,7 @@ This enables easier testing of [safety failsafe](../config/safety.md) behaviour,
 
 Failure injection is disabled by default, and can be enabled using the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 
-Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe).
+Failures can be injected both in simulation and on real hardware. In simulation the available failures depend on the simulator. On hardware the `off` (stop publishing) and `stuck` (freeze the last value) types are supported for the `gyro`, `accel`, `mag`, `baro`, `distance_sensor` and `gps` components; this requires firmware built with the failure-injection module. In addition, the `battery` component supports `off` (report a depleted pack, triggering the battery failsafe), and the `gps` component supports `wrong` (report the fix type selected by [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG), leaving the reported position untouched).
 
 ::: info
 PX4 may accept a command to set a particular failure mode even it that mode is not supported by your simulator.
@@ -61,7 +61,8 @@ where:
 - _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted. Example: `-m 0x5` targets instances 1 and 3.
 
 ::: info
-The simulated GPS (SITL) implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+GPS implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
+`gps wrong` makes the addressed receiver report the fix type selected by [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG) and leaves the reported position untouched.
 :::
 
 ## RC Switch Trigger

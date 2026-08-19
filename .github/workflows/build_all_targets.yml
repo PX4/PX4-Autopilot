@@ -66,13 +66,16 @@ jobs:
   group_targets:
     name: Scan for Board Targets
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       seeders: ${{ steps.set-seeders.outputs.seeders }}
+      cold_seeders: ${{ steps.filter-seeders.outputs.cold_seeders }}
+      has_cold: ${{ steps.filter-seeders.outputs.has_cold }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
       branchname: ${{ steps.set-branch.outputs.branchname }}
     steps:
+      - uses: runs-on/action@v2
       - uses: actions/checkout@v6
 
       - name: Cache Python pip
@@ -109,6 +112,15 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      # Seed only chip families whose ccache namespace has no warm cache.
+      # Fail-open semantics live in the script: any probe problem emits
+      # the full matrix, reproducing unconditional seeding.
+      - id: filter-seeders
+        name: Probe Family Caches
+        env:
+          ALL_SEEDERS: ${{ steps.set-seeders.outputs.seeders }}
+        run: ./Tools/ci/filter_cold_seeders.py <<< "$ALL_SEEDERS"
+
       - id: set-timestamp
         name: Save Current Timestamp
         run: |
@@ -133,20 +145,25 @@ jobs:
           echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
 
   # ===========================================================================
-  # CACHE SEEDER JOBS
+  # CACHE SEEDER JOBS (conditional)
   # ===========================================================================
-  # Build one representative target per chip family to warm the ccache.
-  # Matrix jobs fall back to these caches via restore-keys when no
-  # group-specific cache exists yet. If any seeder fails, the build matrix
-  # does not start, catching common build errors early.
+  # Build one representative target per chip family to warm the ccache,
+  # but only for families whose cache namespace came up cold in the
+  # group_targets probe. Measured steady state is zero seeder restores
+  # (group jobs live on their own rolling caches), so on warm runs the
+  # whole stage skips and the build matrix starts immediately. When a
+  # family IS cold (matrix regrouping, cache expiry, new chip family),
+  # its seeder runs and still gates the matrix, which is the only case
+  # where the warmup is worth waiting for.
   # ===========================================================================
 
   seed:
     name: Seed [${{ matrix.chip_family }}]
     needs: group_targets
+    if: needs.group_targets.outputs.has_cold == 'true'
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     strategy:
-      matrix: ${{ fromJson(needs.group_targets.outputs.seeders) }}
+      matrix: ${{ fromJson(needs.group_targets.outputs.cold_seeders) }}
       fail-fast: false
     container:
       image: ${{ matrix.container }}
@@ -163,7 +180,7 @@ jobs:
       - uses: ./.github/actions/setup-ccache
         id: ccache
         with:
-          cache-key-prefix: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-seeder
+          cache-key-prefix: ${{ matrix.cache_prefix }}-${{ matrix.group }}
           max-size: 400M
       - name: Build seed target
         run: make ${{ matrix.target }}
@@ -199,12 +216,12 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
-          key: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.ref_name }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-
+            ${{ matrix.cache_prefix }}-
 
       - name: Cache - Configure ccache
         run: |
@@ -217,14 +234,6 @@ jobs:
           echo "compiler_check = content" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
-
-      - name: Install pynacl for secure-boot signing
-        # TODO: drop once the build container ships with pynacl preinstalled
-        # (currently pinned to v1.17.0-rc2 in Tools/ci/build_all_config.yml).
-        # Modern containers enforce PEP 668 and need --break-system-packages;
-        # older ones (e.g. voxl2) ship a pip that doesn't know the flag and
-        # don't need it either, so fall back to plain pip install.
-        run: pip install pynacl --break-system-packages || pip install pynacl
 
       - name: Building Artifacts for [${{ matrix.targets }}]
         run: |

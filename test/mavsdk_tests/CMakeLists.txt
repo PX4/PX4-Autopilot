@@ -29,6 +29,7 @@ if(MAVSDK_FOUND)
         test_multicopter_failsafe.cpp
         test_multicopter_mission.cpp
         test_multicopter_mission_do_jump.cpp
+        test_multicopter_rtl.cpp
         test_multicopter_offboard.cpp
         test_multicopter_manual.cpp
         test_multicopter_rtl_with_geofence.cpp

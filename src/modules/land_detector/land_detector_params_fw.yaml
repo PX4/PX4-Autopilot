@@ -28,8 +28,8 @@ parameters:
     LNDFW_XYACC_MAX:
       description:
         short: 'Fixed-wing land detector: Max horizontal acceleration'
-        long: Maximum horizontal (x,y body axes) acceleration allowed in the landed
-          state
+        long: Maximum gravity-compensated horizontal (earth frame) acceleration allowed
+          in the landed state.
       type: float
       default: 8.0
       unit: m/s^2
