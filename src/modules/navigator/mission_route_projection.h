@@ -66,6 +66,7 @@ struct ProjectionScanRequest {
 struct RouteDistanceSummary {
 	SegmentDistanceAlong current_segment_along{};
 	float route_length{0.f};
+	int32_t route_end_index{-1};
 };
 
 /** @brief Per-reference scan scratch maintained while walking the mission segments. */
@@ -127,6 +128,9 @@ public:
 	/** @brief Along-route distance walked so far; the route length once the walk is over. */
 	float routeLength() const { return _route_along_m; }
 
+	/** @brief Current nominal position; route end after a successful walk. */
+	int32_t nominalPositionIndex() const { return _segment.start.idx; }
+
 private:
 	enum class SegmentBoundary : uint8_t {
 		kIntermediate,
@@ -178,12 +182,6 @@ public:
 	FailureReason collectVehicleProjection(const Position &vehicle_position, int32_t mission_index,
 					       const PlannerConfig &config, ProjectionReferenceBatch &batch,
 					       ProjectionContext &projection_context) const;
-
-	float accumulateRouteDistance(int32_t from_index, int32_t to_index,
-				      float home_altitude_amsl) const;
-
-	LoopContext buildLoopContext(const RouteProjectionCandidate &vehicle_projection,
-				     float home_altitude_amsl) const;
 
 private:
 	struct BranchInSelection;
@@ -250,6 +248,11 @@ private:
 					      bool is_flying_reverse,
 					      const ActiveJumpAnchor &active_jump_anchor,
 					      BranchInSelection &selection) const;
+
+	FailureReason nominalRouteDistanceToItem(int32_t target_index, float home_altitude_amsl,
+			float &distance_m) const;
+	FailureReason buildLoopContext(const RouteProjectionCandidate &vehicle_projection,
+				       float home_altitude_amsl, LoopContext &loop_context) const;
 
 	const Provider &_provider;
 };

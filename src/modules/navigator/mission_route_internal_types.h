@@ -156,6 +156,7 @@ struct ProjectionContext {
 	RouteProjectionCandidate route_projection{};
 	VehicleStateContext vehicle_state{};
 	float route_length{0.f};
+	int32_t route_end_index{-1};
 	LoopContext loop_context{};
 
 	bool valid() const;

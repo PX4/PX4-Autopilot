@@ -753,6 +753,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 
 	const SegmentDistanceAlong current_segment_along = bounds_tracker.bounds();
 	const float route_length = cursor.routeLength();
+	const int32_t route_end_index = cursor.nominalPositionIndex();
 
 	bool any_candidate_found = false;
 
@@ -772,6 +773,7 @@ FailureReason MissionRouteProjection::findProjectionCandidates(const ProjectionS
 	if (any_candidate_found) {
 		distance_summary.current_segment_along = current_segment_along;
 		distance_summary.route_length = route_length;
+		distance_summary.route_end_index = route_end_index;
 		return FailureReason::kNone;
 	}
 
@@ -940,6 +942,7 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 	projection_context.route_projection = branch_in.candidate;
 	projection_context.vehicle_state = config.state;
 	projection_context.route_length = distance_summary.route_length;
+	projection_context.route_end_index = distance_summary.route_end_index;
 
 	PX4_DEBUG("Route UAV proj selected cand %d (of %u) on seg [%u->%u], path_dist=%.1f",
 		  branch_in.candidate_index,
@@ -949,8 +952,14 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 		  static_cast<double>(branch_in.score_m));
 
 	if (projection_context.route_projection.segment.validLoop()) {
-		projection_context.loop_context = buildLoopContext(projection_context.route_projection,
-						  config.parameters.home_altitude_amsl);
+		const FailureReason loop_status = buildLoopContext(projection_context.route_projection,
+						  config.parameters.home_altitude_amsl,
+						  projection_context.loop_context);
+
+		if (loop_status != FailureReason::kNone) {
+			projection_context = {};
+			return loop_status;
+		}
 	}
 
 	if (!projection_context.valid()) {
@@ -961,66 +970,67 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 	return FailureReason::kNone;
 }
 
-float MissionRouteProjection::accumulateRouteDistance(int32_t from_index, int32_t to_index,
-		float home_altitude_amsl) const
+FailureReason MissionRouteProjection::nominalRouteDistanceToItem(int32_t target_index,
+		float home_altitude_amsl, float &distance_m) const
 {
-	if (from_index < 0 || to_index < 0 || from_index > to_index || to_index >= _provider.missionCount()) {
-		return NAN;
+	distance_m = NAN;
+
+	if (target_index < 0 || target_index >= _provider.missionCount()) {
+		return FailureReason::kInvalidRequest;
 	}
 
-	if (from_index == to_index) {
-		return 0.f;
+	RouteSegmentCursor cursor(_provider, home_altitude_amsl);
+
+	if (!cursor.init()) {
+		return cursor.failureReason();
 	}
 
-	Position previous_position{};
-	bool have_previous = false;
-	float accumulated = 0.f;
+	RouteSegmentView segment_view{};
 
-	for (int32_t index = from_index; index <= to_index; ++index) {
-		mission_item_s mission_item{};
-
-		if (!_provider.loadMissionItem(index, mission_item)) {
-			return NAN;
+	while (cursor.nominalPositionIndex() != target_index) {
+		if (!cursor.next(segment_view)) {
+			break;
 		}
-
-		Position current_position{};
-
-		if (!extractMissionPosition(mission_item, home_altitude_amsl, current_position)) {
-			continue;
-		}
-
-		if (!have_previous) {
-			previous_position = current_position;
-			have_previous = true;
-			continue;
-		}
-
-		const float segment_length = get_distance_to_next_waypoint(previous_position.lat, previous_position.lon,
-					     current_position.lat, current_position.lon);
-
-		if (PX4_ISFINITE(segment_length)) {
-			accumulated += segment_length;
-		}
-
-		previous_position = current_position;
 	}
 
-	return accumulated;
+	if (cursor.failed()) {
+		return cursor.failureReason();
+	}
+
+	if (cursor.nominalPositionIndex() != target_index) {
+		return FailureReason::kNoValidPath;
+	}
+
+	distance_m = cursor.routeLength();
+	return FailureReason::kNone;
 }
 
-LoopContext MissionRouteProjection::buildLoopContext(const RouteProjectionCandidate &vehicle_projection,
-		float home_altitude_amsl) const
+FailureReason MissionRouteProjection::buildLoopContext(const RouteProjectionCandidate &vehicle_projection,
+		float home_altitude_amsl, LoopContext &loop_context) const
 {
-	LoopContext loop_context{};
+	loop_context = {};
 
 	if (!vehicle_projection.segment.validLoop()) {
-		return loop_context;
+		return FailureReason::kInvalidProjectionContext;
+	}
+
+	float loop_end_route_along_m{NAN};
+	const FailureReason distance_status = nominalRouteDistanceToItem(vehicle_projection.segment.end.idx,
+					      home_altitude_amsl, loop_end_route_along_m);
+
+	if (distance_status != FailureReason::kNone) {
+		return distance_status;
 	}
 
 	loop_context.segment = vehicle_projection.segment;
 	loop_context.segment_positions = vehicle_projection.segment_positions;
 	loop_context.along.start = vehicle_projection.dist.route_along - vehicle_projection.dist.segment_along;
-	loop_context.along.end = accumulateRouteDistance(0, vehicle_projection.segment.end.idx, home_altitude_amsl);
+	loop_context.along.end = loop_end_route_along_m;
+
+	if (!loop_context.valid()) {
+		loop_context = {};
+		return FailureReason::kInvalidProjectionContext;
+	}
 
 	PX4_DEBUG("Route loop ctx: seg[%u-%u], along[%.1f, %.1f], repeat pending: %u",
 		  static_cast<unsigned>(loop_context.segment.start.idx),
@@ -1029,7 +1039,7 @@ LoopContext MissionRouteProjection::buildLoopContext(const RouteProjectionCandid
 		  static_cast<double>(loop_context.along.end),
 		  static_cast<unsigned>(loop_context.segment.has_remaining_repeats));
 
-	return loop_context;
+	return FailureReason::kNone;
 }
 
 } // namespace mission_route

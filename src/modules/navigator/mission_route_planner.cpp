@@ -753,7 +753,6 @@ FailureReason selectSafePoint(const Provider &provider,
 }
 
 GoalSelection selectMissionEndpointFallback(const Provider &provider,
-		const MissionRouteProjection &projection,
 		int mission_count,
 		int32_t mission_land_index,
 		const ProjectionContext &projection_context,
@@ -787,16 +786,13 @@ GoalSelection selectMissionEndpointFallback(const Provider &provider,
 	Position land_position{};
 
 	if (mission_land_index >= 0 && mission_land_index < mission_count
+	    && mission_land_index == projection_context.route_end_index
 	    && provider.loadMissionItem(mission_land_index, land_item)
 	    && isLandingCmd(land_item.nav_cmd)
 	    && extractMissionPosition(land_item, config.parameters.home_altitude_amsl, land_position)) {
-		const float land_route_along = projection.accumulateRouteDistance(0, mission_land_index,
-					       config.parameters.home_altitude_amsl);
-
-		if (PX4_ISFINITE(land_route_along)) {
-			path_to_land = findShortestPathAlongRoute(mission_count, land_route_along, projection_context, config,
-					PathDirectionMode::kForceNominal, RouteGoalSegmentType::kOutsideActiveLoopJump);
-		}
+		path_to_land = findShortestPathAlongRoute(mission_count, projection_context.route_length,
+				projection_context, config, PathDirectionMode::kForceNominal,
+				RouteGoalSegmentType::kOutsideActiveLoopJump);
 	}
 
 	const bool path_to_land_valid = path_to_land.valid();
@@ -849,7 +845,7 @@ FailureReason selectBestGoal(const Provider &provider,
 	}
 
 	// No reachable safe point: fall back to the mission end points.
-	const GoalSelection fallback = selectMissionEndpointFallback(provider, projection, mission_count, mission_land_index,
+	const GoalSelection fallback = selectMissionEndpointFallback(provider, mission_count, mission_land_index,
 				       projection_context, config);
 
 	if (fallback.valid()) {

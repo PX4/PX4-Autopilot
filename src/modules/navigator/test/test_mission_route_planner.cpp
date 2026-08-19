@@ -376,8 +376,7 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackDoesNotRescanNonLandConfi
 	EXPECT_NEAR(plan.goal_position.lon, mission[0].lon, kLatLonToleranceDeg);
 }
 
-// The published land item can precede other position items. Score it at its own route location,
-// not at the end of the complete route.
+// The configured LAND reuses the scanned route end even when uploaded positions follow it.
 TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 {
 	std::vector<mission_item_s> mission{
@@ -389,7 +388,7 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	};
 	const int32_t land_index = 3;
 
-	VectorProvider provider = makeRouteProvider(mission);
+	MissionLoadCountingProvider provider{mission, {}};
 	MissionRoutePlanner planner{provider};
 	const mission_route::Position vehicle_position =
 		makePositionFromOffset(kBaseLat, kBaseLon, 350.f, 0.f, kAlt);
@@ -404,6 +403,7 @@ TEST_F(MissionRoutePlannerTest, MissionEndpointFallbackUsesLandRouteDistance)
 	EXPECT_FALSE(plan.direction_reversed);
 	EXPECT_NEAR(plan.goal_position.lat, mission[land_index].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(plan.goal_position.lon, mission[land_index].lon, kLatLonToleranceDeg);
+	EXPECT_EQ(provider.missionLoadCount(), 6);
 }
 
 // LAND as the first position leaves no route segment to plan.

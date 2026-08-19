@@ -275,6 +275,9 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 	EXPECT_TRUE(projection_context.route_projection.segment.has_remaining_repeats);
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 0);
+	ASSERT_TRUE(projection_context.loop_context.valid());
+	EXPECT_NEAR(projection_context.loop_context.along.start, 200.f, kDistanceTolerance);
+	EXPECT_NEAR(projection_context.loop_context.along.end, 0.f, kDistanceTolerance);
 }
 
 struct ProjectionDatasetCase {
@@ -557,6 +560,10 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedReferencesShareMissi
 		ASSERT_GT(batched_references.items[i].candidate_buffer.count, 0U) << "reference " << static_cast<int>(i);
 	}
 
+	EXPECT_EQ(single_reference_summary.route_end_index, 3);
+	EXPECT_EQ(batched_reference_summary.route_end_index, 3);
+	EXPECT_NEAR(single_reference_summary.route_length, 300.f, kDistanceTolerance);
+	EXPECT_NEAR(batched_reference_summary.route_length, 300.f, kDistanceTolerance);
 	EXPECT_EQ(single_reference_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
 	EXPECT_EQ(batched_reference_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
 }
@@ -813,7 +820,8 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	mission_route::RouteSegmentCursor cursor(provider, config.parameters.home_altitude_amsl);
+	MissionLoadCountingProvider counting_provider(provider);
+	mission_route::RouteSegmentCursor cursor(counting_provider, config.parameters.home_altitude_amsl);
 	std::vector<mission_route::RouteSegmentView> segments;
 	mission_route::RouteSegmentView segment{};
 
@@ -840,6 +848,8 @@ TEST_P(RouteSegmentCursorDoJumpTest, EmitsSyntheticLoopEdge)
 	EXPECT_FALSE(segments[2].segment.isLoop());
 	EXPECT_EQ(segments[2].segment.jump_item_index, -1);
 	EXPECT_FALSE(segments[2].segment.has_remaining_repeats);
+	EXPECT_NEAR(cursor.routeLength(), 200.f, kDistanceTolerance);
+	EXPECT_EQ(counting_provider.missionItemLoadCount(), 6);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -870,30 +880,13 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, MissionLoadFailureIsFatal)
 
 	mission_route::RouteDistanceSummary distance_summary{};
 	distance_summary.route_length = 42.f;
+	distance_summary.route_end_index = 42;
 	const mission_route::FailureReason status =
 		projection.findProjectionCandidates(scanRequest(60.f), batch, distance_summary);
 
 	EXPECT_EQ(status, mission_route::FailureReason::kLoadFailed);
 	EXPECT_FLOAT_EQ(distance_summary.route_length, 0.f);
-}
-
-// Accumulation of route distance skips malformed position items.
-TEST_F(MissionRouteProjectionEdgeCaseTest, AccumulateRouteDistanceSkipsMalformedPosition)
-{
-	mission_item_s malformed = makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
-	malformed.lat = NAN;
-	const std::vector<mission_item_s> mission = {
-		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
-		malformed,
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-	};
-	VectorProvider provider = makeRouteProvider(mission);
-	mission_route::MissionRouteProjection projection(provider);
-
-	const float distance = projection.accumulateRouteDistance(0, 2, config.parameters.home_altitude_amsl);
-
-	ASSERT_TRUE(PX4_ISFINITE(distance));
-	EXPECT_NEAR(distance, 200.f, kDistanceTolerance);
+	EXPECT_EQ(distance_summary.route_end_index, -1);
 }
 
 // Segment ownership differs at nominal and reverse boundaries.
