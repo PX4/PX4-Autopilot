@@ -197,16 +197,18 @@ INSTANTIATE_TEST_SUITE_P(
 // Relative mission altitudes need a finite home altitude to become AMSL.
 TEST_F(MissionRouteProjectionLocalSegmentTest, RelativeAltitudeRequiresFiniteHomeAltitude)
 {
-	mission_item_s relative_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, 50.f);
+	mission_item_s relative_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, 50.f);
 	relative_item.altitude_is_relative = true;
 	const std::vector<mission_item_s> relative_mission = {
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		relative_item,
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
 	};
 	VectorProvider relative_provider = makeRouteProvider(relative_mission);
 	mission_route::RouteSegmentCursor relative_cursor(relative_provider, NAN);
+	mission_route::RouteSegmentView segment{};
 
-	EXPECT_FALSE(relative_cursor.init());
+	ASSERT_TRUE(relative_cursor.init()) << mission_route::failureReasonString(relative_cursor.failureReason());
+	EXPECT_FALSE(relative_cursor.next(segment));
 	EXPECT_TRUE(relative_cursor.failed());
 	EXPECT_EQ(relative_cursor.failureReason(), mission_route::FailureReason::kPositionItemInvalid);
 
@@ -217,7 +219,6 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, RelativeAltitudeRequiresFiniteHom
 	};
 	VectorProvider absolute_provider = makeRouteProvider(absolute_mission);
 	mission_route::RouteSegmentCursor absolute_cursor(absolute_provider, NAN);
-	mission_route::RouteSegmentView segment{};
 
 	ASSERT_TRUE(absolute_cursor.init()) << mission_route::failureReasonString(absolute_cursor.failureReason());
 	EXPECT_TRUE(absolute_cursor.next(segment));
@@ -556,8 +557,8 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedReferencesShareMissi
 		ASSERT_GT(batched_references.items[i].candidate_buffer.count, 0U) << "reference " << static_cast<int>(i);
 	}
 
-	EXPECT_GT(single_reference_provider.missionItemLoadCount(), 0);
-	EXPECT_EQ(batched_reference_provider.missionItemLoadCount(), single_reference_provider.missionItemLoadCount());
+	EXPECT_EQ(single_reference_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
+	EXPECT_EQ(batched_reference_provider.missionItemLoadCount(), static_cast<int>(mission.size()));
 }
 
 // The scanner retains the three route segments with the smallest cross-track distance.
@@ -666,8 +667,8 @@ INSTANTIATE_TEST_SUITE_P(
 }
 );
 
-// Single-item mission: no start/end segment pair exists.
-TEST_F(MissionRouteProjectionEdgeCaseTest, SingleWaypointMissionFails)
+// A single waypoint has no start/end segment pair.
+TEST_F(MissionRouteProjectionEdgeCaseTest, SingleWaypointMissionHasNoSegments)
 {
 	const std::vector<mission_item_s> mission = {
 		makePositionItem(kBaseLat, kBaseLon, kAlt),
@@ -681,7 +682,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, SingleWaypointMissionFails)
 	const mission_route::FailureReason status =
 		projection.collectVehicleProjection(vehicle, 0, config, batch, projection_context);
 
-	EXPECT_EQ(status, mission_route::FailureReason::kNoValidWaypoints);
+	EXPECT_EQ(status, mission_route::FailureReason::kNoSegmentsFound);
 }
 
 // Keep this dense zigzag as a regression for finding the right local minimum among many turns.
@@ -750,6 +751,45 @@ TEST_F(RouteSegmentCursorTest, StopsAtFirstLandBeforePostLandPositions)
 		EXPECT_EQ(segments[1].segment.end.nav_cmd, landing_command);
 		EXPECT_TRUE(segments[1].last_segment);
 		EXPECT_NEAR(cursor.routeLength(), 200.f, kDistanceTolerance);
+	}
+}
+
+// Invalid or unreadable items after LAND are outside the route and are never loaded.
+TEST_F(RouteSegmentCursorTest, IgnoresInvalidAndUnreadableItemsAfterLand)
+{
+	for (const bool fail_tail_load : {false, true}) {
+		SCOPED_TRACE(::testing::Message() << "fail tail load " << fail_tail_load);
+		std::vector<mission_item_s> mission = {
+			makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+			makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt - 50.f),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+		};
+
+		if (!fail_tail_load) {
+			mission[3].lat = NAN;
+		}
+
+		VectorProvider provider = makeRouteProvider(mission);
+
+		if (fail_tail_load) {
+			provider.setMissionLoadFailures({3});
+		}
+
+		MissionLoadCountingProvider counting_provider(provider);
+		mission_route::RouteSegmentCursor cursor(counting_provider, config.parameters.home_altitude_amsl);
+		mission_route::RouteSegmentView segment{};
+		int segment_count = 0;
+
+		ASSERT_TRUE(cursor.init()) << mission_route::failureReasonString(cursor.failureReason());
+
+		while (cursor.next(segment)) {
+			++segment_count;
+		}
+
+		EXPECT_FALSE(cursor.failed()) << mission_route::failureReasonString(cursor.failureReason());
+		EXPECT_EQ(segment_count, 2);
+		EXPECT_EQ(counting_provider.missionItemLoadCount(), 3);
 	}
 }
 
@@ -824,7 +864,7 @@ TEST_F(MissionRouteProjectionEdgeCaseTest, MissionLoadFailureIsFatal)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
 	};
 	VectorProvider provider = makeRouteProvider(mission);
-	provider.setMissionLoadFailures({0});
+	provider.setMissionLoadFailures({2});
 	mission_route::MissionRouteProjection projection(provider);
 	auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt));
 

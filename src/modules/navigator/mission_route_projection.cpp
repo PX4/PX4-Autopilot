@@ -64,6 +64,24 @@ enum class PositionLookupStatus : uint8_t {
 	kInvalidPosition
 };
 
+struct LoadedPosition {
+	SegmentEndpoint endpoint{};
+	Position position{};
+};
+
+enum class CursorItemType : uint8_t {
+	kEnd,
+	kPosition,
+	kJump
+};
+
+struct CursorItem {
+	CursorItemType type{CursorItemType::kEnd};
+	int32_t index{-1};
+	mission_item_s mission_item{};
+	LoadedPosition loaded_position{};
+};
+
 /** @brief Raw local projection of a reference point onto one route segment. */
 struct RawSegmentProjection {
 	bool valid{false};
@@ -158,9 +176,50 @@ bool buildProjectionCandidate(const Segment &segment,
 	return candidate.valid();
 }
 
-PositionLookupStatus findNextValidPositionIndex(const Provider &provider, float home_altitude_amsl,
-		int32_t start_index, int32_t &next_position_index)
+bool extractIndexedPosition(int32_t index, const mission_item_s &mission_item, float home_altitude_amsl,
+			    LoadedPosition &loaded_position)
 {
+	loaded_position = {};
+	loaded_position.endpoint.idx = index;
+	loaded_position.endpoint.nav_cmd = mission_item.nav_cmd;
+	return extractMissionPosition(mission_item, home_altitude_amsl, loaded_position.position);
+}
+
+FailureReason scanNextCursorItem(const Provider &provider, float home_altitude_amsl,
+				 int32_t &next_index, CursorItem &item)
+{
+	item = {};
+
+	while (next_index < provider.missionCount()) {
+		item.index = next_index++;
+
+		if (!provider.loadMissionItem(item.index, item.mission_item)) {
+			return FailureReason::kLoadFailed;
+		}
+
+		if (mission_item_contains_position(item.mission_item)) {
+			if (!extractIndexedPosition(item.index, item.mission_item, home_altitude_amsl, item.loaded_position)) {
+				return FailureReason::kPositionItemInvalid;
+			}
+
+			item.type = CursorItemType::kPosition;
+			return FailureReason::kNone;
+		}
+
+		if (item.mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
+			item.type = CursorItemType::kJump;
+			return FailureReason::kNone;
+		}
+	}
+
+	return FailureReason::kNone;
+}
+
+PositionLookupStatus findNextMissionPosition(const Provider &provider, float home_altitude_amsl,
+		int32_t start_index, LoadedPosition &loaded_position)
+{
+	loaded_position = {};
+
 	if (start_index < 0) {
 		return PositionLookupStatus::kNoPositionFound;
 	}
@@ -176,13 +235,10 @@ PositionLookupStatus findNextValidPositionIndex(const Provider &provider, float 
 			continue;
 		}
 
-		Position position{};
-
-		if (!extractMissionPosition(mission_item, home_altitude_amsl, position)) {
+		if (!extractIndexedPosition(index, mission_item, home_altitude_amsl, loaded_position)) {
 			return PositionLookupStatus::kInvalidPosition;
 		}
 
-		next_position_index = index;
 		return PositionLookupStatus::kFound;
 	}
 
@@ -238,16 +294,16 @@ FailureReason resolveActiveJump(const Provider &provider, float home_altitude_am
 		return FailureReason::kInternalError;
 	}
 
-	int32_t target_index{-1};
-	const PositionLookupStatus target_status = findNextValidPositionIndex(provider, home_altitude_amsl,
-			jump_item.do_jump_mission_index, target_index);
+	LoadedPosition target{};
+	const PositionLookupStatus target_status = findNextMissionPosition(provider, home_altitude_amsl,
+			jump_item.do_jump_mission_index, target);
 
 	if (target_status != PositionLookupStatus::kFound) {
 		return positionLookupFailureReason(target_status, FailureReason::kInternalError);
 	}
 
 	context.jump_item_index = anchor.jump_item_index;
-	context.target_index = target_index;
+	context.target_index = target.endpoint.idx;
 	return FailureReason::kNone;
 }
 
@@ -325,136 +381,91 @@ private:
 
 } // namespace
 
-bool RouteSegmentCursor::findAttachedValidPositionIndex(int32_t start_index,
-		int32_t &attached_position_index) const
+bool RouteSegmentCursor::fail(FailureReason failure_reason)
 {
-	if (start_index < 0 || _provider.missionCount() <= 0 || start_index >= _provider.missionCount()) {
-		return false;
-	}
-
-	for (int32_t index = start_index; index >= 0; --index) {
-		mission_item_s mission_item{};
-
-		if (!_provider.loadMissionItem(index, mission_item)) {
-			return false;
-		}
-
-		if (mission_item_contains_position(mission_item)) {
-			Position position{};
-
-			if (extractMissionPosition(mission_item, _home_altitude_amsl, position)) {
-				attached_position_index = index;
-				return true;
-			}
-
-			return false;
-		}
-	}
-
+	_failure_reason = failure_reason;
+	_done = true;
 	return false;
 }
 
-bool RouteSegmentCursor::prepareNextSegment(int32_t index, FailureReason &failure_reason)
+void RouteSegmentCursor::prepareSegmentView(SegmentBoundary boundary, RouteSegmentView &view)
 {
-	mission_item_s mission_item{};
-
-	if (!_provider.loadMissionItem(index, mission_item)) {
-		failure_reason = FailureReason::kLoadFailed;
-		return false;
+	if (isLandingCmd(_segment.end.nav_cmd)) {
+		// Landing descent starts after reaching the waypoint.
+		_positions.end.alt = _positions.start.alt;
 	}
 
-	_segment.end.idx = index;
-	_segment.end.nav_cmd = mission_item.nav_cmd;
+	view = {};
+	view.segment = _segment;
+	view.positions = _positions;
+	view.route_along_start_m = _route_along_m;
+	view.first_segment = (_segment.start.idx == _first_position_index);
+	view.last_segment = (boundary == SegmentBoundary::kFinal);
+	view.zero_length_xy =
+		fabs(_positions.start.lat - _positions.end.lat) <= kCornerLatLonTolDeg
+		&& fabs(_positions.start.lon - _positions.end.lon) <= kCornerLatLonTolDeg;
+
+	if (!view.zero_length_xy) {
+		view.length_m = get_distance_to_next_waypoint(_positions.start.lat, _positions.start.lon,
+				_positions.end.lat, _positions.end.lon);
+		get_vector_to_next_waypoint(_positions.start.lat, _positions.start.lon,
+					    _positions.end.lat, _positions.end.lon,
+					    &view.segment_vector(0), &view.segment_vector(1));
+	}
+}
+
+void RouteSegmentCursor::prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position,
+		SegmentBoundary boundary, RouteSegmentView &view)
+{
+	_segment.end = end;
 	_segment.jump_item_index = -1;
 	_segment.has_remaining_repeats = false;
+	_positions.end = end_position;
+	prepareSegmentView(boundary, view);
 
-	if (mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
-		_segment.jump_item_index = index;
-		_segment.has_remaining_repeats = mission_item.do_jump_current_count < mission_item.do_jump_repeat_count;
+	_route_along_m += view.length_m;
+	_segment.start = _segment.end;
+	_positions.start = _positions.end;
+}
 
-		if (mission_item.do_jump_mission_index < 0) {
-			PX4_ERR("Route invalid DO_JUMP target index %d", static_cast<int>(mission_item.do_jump_mission_index));
-			failure_reason = FailureReason::kInternalError;
-			return false;
-		}
-
-		int32_t jump_to_index{0};
-
-		const PositionLookupStatus jump_status =
-			findNextValidPositionIndex(_provider, _home_altitude_amsl,
-						   mission_item.do_jump_mission_index, jump_to_index);
-
-		if (jump_status != PositionLookupStatus::kFound) {
-			failure_reason = positionLookupFailureReason(jump_status, FailureReason::kInternalError);
-			return false;
-		}
-
-		if (!_provider.loadMissionItem(jump_to_index, mission_item)) {
-			failure_reason = FailureReason::kLoadFailed;
-			return false;
-		}
-
-		_segment.end.idx = jump_to_index;
-		_segment.end.nav_cmd = mission_item.nav_cmd;
+bool RouteSegmentCursor::prepareJumpSegment(int32_t index, const mission_item_s &jump_item,
+		RouteSegmentView &view)
+{
+	if (jump_item.do_jump_mission_index < 0) {
+		PX4_ERR("Route invalid DO_JUMP target index %d", static_cast<int>(jump_item.do_jump_mission_index));
+		return fail(FailureReason::kInternalError);
 	}
 
-	if (!mission_item_contains_position(mission_item)) {
-		return false;
+	LoadedPosition target{};
+	const PositionLookupStatus target_status = findNextMissionPosition(_provider, _home_altitude_amsl,
+			jump_item.do_jump_mission_index, target);
+
+	if (target_status != PositionLookupStatus::kFound) {
+		return fail(positionLookupFailureReason(target_status, FailureReason::kInternalError));
 	}
 
-	if (!extractMissionPosition(mission_item, _home_altitude_amsl, _positions.end)) {
-		failure_reason = FailureReason::kPositionItemInvalid;
-		return false;
-	}
-
+	_segment.end = target.endpoint;
+	_segment.jump_item_index = index;
+	_segment.has_remaining_repeats = jump_item.do_jump_current_count < jump_item.do_jump_repeat_count;
+	_positions.end = target.position;
+	prepareSegmentView(SegmentBoundary::kIntermediate, view);
 	return true;
 }
 
 bool RouteSegmentCursor::init()
 {
-	if (_provider.missionCount() < 2) {
-		_failure_reason = FailureReason::kNoValidWaypoints;
-		return false;
-	}
-
-	// Zero-length segments are only projectable at the route ends, so locate both ends up front.
-	const PositionLookupStatus first_status =
-		findNextValidPositionIndex(_provider, _home_altitude_amsl, 0, _first_position_index);
+	LoadedPosition first{};
+	const PositionLookupStatus first_status = findNextMissionPosition(_provider, _home_altitude_amsl, 0, first);
 
 	if (first_status != PositionLookupStatus::kFound) {
-		_failure_reason = positionLookupFailureReason(first_status, FailureReason::kNoValidWaypoints);
-		return false;
+		return fail(positionLookupFailureReason(first_status, FailureReason::kNoValidWaypoints));
 	}
 
-	if (!findAttachedValidPositionIndex(_provider.missionCount() - 1, _last_position_index)) {
-		_failure_reason = FailureReason::kNoValidWaypoints;
-		return false;
-	}
-
-	// a segment only exists once a second endpoint (or loop edge) has been processed.
-	_index = _first_position_index;
-
-	while (_index < _provider.missionCount()) {
-		FailureReason failure_reason = FailureReason::kUnknown;
-
-		if (!prepareNextSegment(_index++, failure_reason)) {
-			if (failure_reason != FailureReason::kUnknown) {
-				_failure_reason = failure_reason;
-				return false;
-			}
-
-			continue;
-		}
-
-		_segment.start = _segment.end;
-		_positions.start = _positions.end;
-		// A route that starts with a landing has no segments to walk.
-		_done = isLandingCmd(_segment.end.nav_cmd);
-		return true;
-	}
-
-	// No position items: the walk is empty.
-	_done = true;
+	_segment.start = first.endpoint;
+	_positions.start = first.position;
+	_first_position_index = first.endpoint.idx;
+	_index = first.endpoint.idx + 1;
+	_done = isLandingCmd(first.endpoint.nav_cmd);
 	return true;
 }
 
@@ -464,56 +475,70 @@ bool RouteSegmentCursor::next(RouteSegmentView &view)
 		return false;
 	}
 
-	while (_index < _provider.missionCount()) {
-		FailureReason failure_reason = FailureReason::kUnknown;
+	LoadedPosition segment_end{};
+	CursorItem item{};
 
-		if (!prepareNextSegment(_index++, failure_reason)) {
-			if (failure_reason != FailureReason::kUnknown) {
-				_failure_reason = failure_reason;
-				_done = true;
-				return false;
-			}
+	if (_next_position_cached) {
+		segment_end.endpoint = _next_endpoint;
+		segment_end.position = _next_position;
+		_next_position_cached = false;
 
-			continue;
+	} else {
+		const FailureReason scan_failure = scanNextCursorItem(_provider, _home_altitude_amsl, _index, item);
+
+		if (scan_failure != FailureReason::kNone) {
+			return fail(scan_failure);
 		}
 
-		if (isLandingCmd(_segment.end.nav_cmd)) {
-			// The vehicle flies to a landing waypoint at the previous altitude and only
-			// descends at the point itself, so the segment keeps the start altitude.
-			_positions.end.alt = _positions.start.alt;
+		switch (item.type) {
+		case CursorItemType::kEnd:
+			_done = true;
+			return false;
+
+		case CursorItemType::kPosition:
+			segment_end = item.loaded_position;
+			break;
+
+		case CursorItemType::kJump:
+			return prepareJumpSegment(item.index, item.mission_item, view);
 		}
+	}
 
-		view = {};
-		view.segment = _segment;
-		view.positions = _positions;
-		view.route_along_start_m = _route_along_m;
-		view.first_segment = (_segment.start.idx == _first_position_index);
-		view.last_segment = (_segment.end.idx == _last_position_index) || isLandingCmd(_segment.end.nav_cmd);
-		view.zero_length_xy =
-			fabs(_positions.start.lat - _positions.end.lat) <= kCornerLatLonTolDeg
-			&& fabs(_positions.start.lon - _positions.end.lon) <= kCornerLatLonTolDeg;
-
-		// Computed once per segment; every batch reference reuses them.
-		if (!view.zero_length_xy) {
-			view.length_m = get_distance_to_next_waypoint(_positions.start.lat, _positions.start.lon,
-					_positions.end.lat, _positions.end.lon);
-			get_vector_to_next_waypoint(_positions.start.lat, _positions.start.lon,
-						    _positions.end.lat, _positions.end.lon,
-						    &view.segment_vector(0), &view.segment_vector(1));
-		}
-
-		// Loop edges are detours off the nominal route: the walk continues from the same start.
-		if (!_segment.isLoop()) {
-			_route_along_m += view.length_m;
-			_segment.start = _segment.end;
-			_positions.start = _positions.end;
-			_done = view.last_segment;
-		}
-
+	if (isLandingCmd(segment_end.endpoint.nav_cmd)) {
+		prepareNominalSegment(segment_end.endpoint, segment_end.position, SegmentBoundary::kFinal, view);
+		_done = true;
 		return true;
 	}
 
-	return false;
+	// Look ahead so the route endpoint can be marked as a local minimum.
+	SegmentBoundary boundary{SegmentBoundary::kFinal};
+	const FailureReason scan_failure = scanNextCursorItem(_provider, _home_altitude_amsl, _index, item);
+
+	if (scan_failure != FailureReason::kNone) {
+		return fail(scan_failure);
+	}
+
+	switch (item.type) {
+	case CursorItemType::kEnd:
+		break;
+
+	case CursorItemType::kPosition:
+		_next_endpoint = item.loaded_position.endpoint;
+		_next_position = item.loaded_position.position;
+		_next_position_cached = true;
+		boundary = SegmentBoundary::kIntermediate;
+		break;
+
+	case CursorItemType::kJump:
+		// Process the jump on the next call, after the nominal segment.
+		_index = item.index;
+		boundary = SegmentBoundary::kIntermediate;
+		break;
+	}
+
+	prepareNominalSegment(segment_end.endpoint, segment_end.position, boundary, view);
+	_done = boundary == SegmentBoundary::kFinal;
+	return true;
 }
 
 bool MissionRouteProjection::localMinimumOnSegment(bool proj_on_start, bool proj_on_end,

@@ -115,7 +115,7 @@ public:
 	RouteSegmentCursor(const Provider &provider, float home_altitude_amsl) :
 		_provider(provider), _home_altitude_amsl(home_altitude_amsl) {}
 
-	/** @brief Locate the route endpoints and the first segment start. False on failure (see failureReason()). */
+	/** @brief Locate the first route position. False on failure (see failureReason()). */
 	bool init();
 
 	/** @brief Advance to the next segment. False once the walk is over or has failed(). */
@@ -128,20 +128,28 @@ public:
 	float routeLength() const { return _route_along_m; }
 
 private:
-	bool findAttachedValidPositionIndex(int32_t start_index, int32_t &attached_position_index) const;
+	enum class SegmentBoundary : uint8_t {
+		kIntermediate,
+		kFinal
+	};
 
-	/** @brief Load the segment end at the given mission index, resolving DO_JUMP loop edges. */
-	bool prepareNextSegment(int32_t index, FailureReason &failure_reason);
+	bool prepareJumpSegment(int32_t index, const mission_item_s &jump_item, RouteSegmentView &view);
+	void prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position,
+				   SegmentBoundary boundary, RouteSegmentView &view);
+	void prepareSegmentView(SegmentBoundary boundary, RouteSegmentView &view);
+	bool fail(FailureReason failure_reason);
 
 	const Provider &_provider;
 	const float _home_altitude_amsl;
 
 	Segment _segment{};
 	SegmentPositions _positions{};
+	SegmentEndpoint _next_endpoint{};
+	Position _next_position{};
 	int32_t _index{0};
 	int32_t _first_position_index{0};
-	int32_t _last_position_index{0};
 	float _route_along_m{0.f};
+	bool _next_position_cached{false};
 	bool _done{false};
 	FailureReason _failure_reason{FailureReason::kNone};
 };
