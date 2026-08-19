@@ -252,6 +252,7 @@
       - [✘ Lanbao PSK-CM8JL65-CC5](sensor/cm8jl65_ir_distance_sensor.md)
       - [Avionics Anonymous Laser Altimeter UAVCAN Interface (CAN)](dronecan/avanon_laser_interface.md)
     - [GNSS (GPS)](gps_compass/index.md)
+      - [u-blox Diagnostics with u-center](gps_compass/u-center.md)
       - [ARK GPS (CAN)](dronecan/ark_gps.md)
       - [ARK DAN GPS](gps_compass/ark_dan_gps.md)
       - [ARK SAM GPS](gps_compass/ark_sam_gps.md)
