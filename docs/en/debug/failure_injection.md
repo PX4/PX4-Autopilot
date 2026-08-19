@@ -31,14 +31,16 @@ A `—` means the module still accepts the command, but no consumer applies it i
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
 
-> [!INFO]
->
-> - `gps off | stuck | wrong` on Gazebo (Gz): only available if [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) is set to `0` to use the injectable simulated-GPS module.
->   By default Gazebo publishes GPS from the simulator's own GNSS sensor (`SIM_GZ_EN_GPS` = 1), which is not injectable.
-> - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
-> - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
-> - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
-> - `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+::: info
+
+- `gps off | stuck | wrong` on Gazebo (Gz): only available if [SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) is set to `0` to use the injectable simulated-GPS module.
+  By default Gazebo publishes GPS from the simulator's own GNSS sensor (`SIM_GZ_EN_GPS` = 1), which is not injectable.
+- `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+- `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
+- `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
+- `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+
+:::
 
 Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
 The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see footnotes 1–2), SIH does not simulate an injectable airspeed.
