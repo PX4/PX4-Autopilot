@@ -47,6 +47,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/rpm.h>
 
 using namespace time_literals;
 
@@ -83,6 +85,7 @@ private:
 
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
+	void DisableDynamicNotchRotorRpm();
 	void ParametersUpdate(bool force = false);
 
 	void ResetFilters(const hrt_abstime &time_now_us);
@@ -90,6 +93,7 @@ private:
 	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
 	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
 	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchRotorRpm(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current sensor
@@ -105,6 +109,7 @@ private:
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
+	uORB::SubscriptionMultiArray<rpm_s> _rpm_sub{ORB_ID::rpm};
 #endif // !CONSTRAINED_FLASH
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -136,8 +141,10 @@ private:
 #if !defined(CONSTRAINED_FLASH)
 
 	enum DynamicNotch {
+		// Power of two for bitwise comparison
 		EscRpm = 1,
 		FFT    = 2,
+		RotorRpm = 4,
 	};
 
 	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
@@ -166,6 +173,21 @@ private:
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
 
 	bool _dynamic_notch_fft_available{false};
+
+	// Rotor RPM (dedicated tachometer, eg autorotating gyrocopter main rotor)
+	static constexpr int MAX_NUM_ROTOR_RPM_SENSORS = ORB_MULTI_MAX_INSTANCES;
+
+	using NotchFilterRotorRpmHarmonic = math::NotchFilter<float>[3][MAX_NUM_ROTOR_RPM_SENSORS];
+	NotchFilterRotorRpmHarmonic *_dynamic_notch_filter_rotor_rpm{nullptr};
+
+	int _rotor_rpm_harmonics{0};
+	px4::Bitset<MAX_NUM_ROTOR_RPM_SENSORS> _rotor_rpm_available{};
+	hrt_abstime _last_rotor_rpm_notch_update[MAX_NUM_ROTOR_RPM_SENSORS] {};
+
+	perf_counter_t _dynamic_notch_filter_rotor_rpm_disable_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_rotor_rpm_init_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_rotor_rpm_update_perf{nullptr};
+
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
