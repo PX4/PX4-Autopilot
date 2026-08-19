@@ -55,6 +55,10 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/wind.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/sensor_gps.h>
 
@@ -89,6 +93,20 @@ private:
 	void UpdateStatus();
 	bool UpdateRelativeCalibrations(hrt_abstime time_now_us);
 	bool BaroGNSSAltitudeOffset();
+	float dynamicPressureCompensation(float air_density);
+	float thrustCompensation(hrt_abstime timestamp_sample);
+	void updateThrustBuffer();
+
+	static constexpr int THRUST_BUFFER_SIZE = 8;
+
+	struct ThrustSample {
+		hrt_abstime timestamp{0};
+		float thrust_z{0.f};
+	};
+
+	ThrustSample _thrust_buffer[THRUST_BUFFER_SIZE] {};
+	int _thrust_buffer_head{0};
+	int _thrust_buffer_count{0};
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -109,7 +127,11 @@ private:
 		{this, ORB_ID(sensor_baro), 3},
 	};
 
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Subscription _wind_sub{ORB_ID(wind)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
@@ -148,7 +170,14 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
 		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
-		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
+		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal,
+		(ParamFloat<px4::params::SENS_BARO_K_XP>) _param_sens_baro_k_xp,
+		(ParamFloat<px4::params::SENS_BARO_K_XN>) _param_sens_baro_k_xn,
+		(ParamFloat<px4::params::SENS_BARO_K_YP>) _param_sens_baro_k_yp,
+		(ParamFloat<px4::params::SENS_BARO_K_YN>) _param_sens_baro_k_yn,
+		(ParamFloat<px4::params::SENS_BARO_K_Z>) _param_sens_baro_k_z,
+		(ParamFloat<px4::params::SENS_BARO_VMAX>) _param_sens_baro_vmax,
+		(ParamFloat<px4::params::SENS_BARO_K_T>) _param_sens_baro_k_t
 	)
 };
 }; // namespace sensors

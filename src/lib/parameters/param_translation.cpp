@@ -233,6 +233,45 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-04-03: translate EKF2_PCOEF_*/EKF2_ASPD_MAX -> SENS_BARO_K_*/SENS_BARO_VMAX
+	{
+		if (strcmp("EKF2_PCOEF_XP", node->name) == 0) {
+			strcpy(node->name, "SENS_BARO_K_XP");
+			PX4_INFO("migrating %s -> %s", "EKF2_PCOEF_XP", "SENS_BARO_K_XP");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_PCOEF_XN", node->name) == 0) {
+			strcpy(node->name, "SENS_BARO_K_XN");
+			PX4_INFO("migrating %s -> %s", "EKF2_PCOEF_XN", "SENS_BARO_K_XN");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_PCOEF_YP", node->name) == 0) {
+			strcpy(node->name, "SENS_BARO_K_YP");
+			PX4_INFO("migrating %s -> %s", "EKF2_PCOEF_YP", "SENS_BARO_K_YP");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_PCOEF_YN", node->name) == 0) {
+			strcpy(node->name, "SENS_BARO_K_YN");
+			PX4_INFO("migrating %s -> %s", "EKF2_PCOEF_YN", "SENS_BARO_K_YN");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_PCOEF_Z", node->name) == 0) {
+			strcpy(node->name, "SENS_BARO_K_Z");
+			PX4_INFO("migrating %s -> %s", "EKF2_PCOEF_Z", "SENS_BARO_K_Z");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("EKF2_ASPD_MAX", node->name) == 0) {
+			strcpy(node->name, "SENS_BARO_VMAX");
+			PX4_INFO("migrating %s -> %s", "EKF2_ASPD_MAX", "SENS_BARO_VMAX");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	// 2026-03-19: translate RC*_REV from float to int32
 	{
 		if ((node->type == bson_type_t::BSON_DOUBLE) && (strncmp("RC", node->name, 2) == 0)

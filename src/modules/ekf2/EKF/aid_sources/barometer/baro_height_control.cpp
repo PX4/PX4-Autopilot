@@ -53,11 +53,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 	if (_baro_buffer && _baro_buffer->pop_first_older_than(imu_sample.time_us, &baro_sample)) {
 
-#if defined(CONFIG_EKF2_BARO_COMPENSATION)
-		const float measurement = compensateBaroForDynamicPressure(imu_sample, baro_sample.hgt);
-#else
 		const float measurement = baro_sample.hgt;
-#endif
 
 		const float measurement_var = sq(_params.ekf2_baro_noise);
 
@@ -203,40 +199,3 @@ void Ekf::stopBaroHgtFusion()
 		_control_status.flags.baro_hgt = false;
 	}
 }
-
-#if defined(CONFIG_EKF2_BARO_COMPENSATION)
-float Ekf::compensateBaroForDynamicPressure(const imuSample &imu_sample, const float baro_alt_uncompensated) const
-{
-	if (_control_status.flags.wind && isLocalHorizontalPositionValid()) {
-		// calculate static pressure error = Pmeas - Ptruth
-		// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
-		// negative X and Y directions. Used to correct baro data for positional errors
-
-		// Calculate airspeed in body frame
-		const Vector3f angular_velocity = (imu_sample.delta_ang / imu_sample.delta_ang_dt) - _state.gyro_bias;
-		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (angular_velocity % _params.imu_pos_body);
-		const Vector3f velocity_earth = _state.vel - vel_imu_rel_body_ned;
-
-		const Vector3f wind_velocity_earth(_state.wind_vel(0), _state.wind_vel(1), 0.0f);
-
-		const Vector3f airspeed_earth = velocity_earth - wind_velocity_earth;
-
-		const Vector3f airspeed_body = _state.quat_nominal.rotateVectorInverse(airspeed_earth);
-
-		const Vector3f K_pstatic_coef(
-			airspeed_body(0) >= 0.f ? _params.ekf2_pcoef_xp : _params.ekf2_pcoef_xn,
-			airspeed_body(1) >= 0.f ? _params.ekf2_pcoef_yp : _params.ekf2_pcoef_yn,
-			_params.ekf2_pcoef_z);
-
-		const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), sq(_params.ekf2_aspd_max));
-
-		const float pstatic_err = 0.5f * _air_density * (airspeed_squared.dot(K_pstatic_coef));
-
-		// correct baro measurement using pressure error estimate and assuming sea level gravity
-		return baro_alt_uncompensated + pstatic_err / (_air_density * CONSTANTS_ONE_G);
-	}
-
-	// otherwise return the uncorrected baro measurement
-	return baro_alt_uncompensated;
-}
-#endif // CONFIG_EKF2_BARO_COMPENSATION
