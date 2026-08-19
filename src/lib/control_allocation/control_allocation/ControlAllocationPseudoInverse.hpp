@@ -59,6 +59,8 @@ public:
 				    bool update_normalization_scale) override;
 	void setMetricAllocation(bool metric_allocation) { _metric_allocation = metric_allocation; }
 
+	void printMixingMatrix() const override;
+
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
 

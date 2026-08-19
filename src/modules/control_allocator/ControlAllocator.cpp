@@ -948,19 +948,7 @@ int ControlAllocator::print_status()
 			printf("%2s|", row_labels[row]);
 
 			for (int col = 0; col < num_configured; col++) {
-				double d = static_cast<double>(effectiveness(row, col));
-
-				// avoid -0.0 for display
-				if (fabs(d - 0.0) < 1e-9) {
-					// print fixed width zero
-					printf(" 0       ");
-
-				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
-					printf("% .1e ", d);
-
-				} else {
-					printf("% 6.5f ", d);
-				}
+				ControlAllocation::printMatrixCell(static_cast<double>(effectiveness(row, col)));
 			}
 
 			printf("\n");
@@ -982,19 +970,7 @@ int ControlAllocator::print_status()
 		printf("  |");
 
 		for (int col = 0; col < num_configured; col++) {
-			double d = static_cast<double>(_control_allocation[i]->getActuatorMin()(col));
-
-			// avoid -0.0 for display
-			if (fabs(d - 0.0) < 1e-9) {
-				// print fixed width zero
-				printf(" 0       ");
-
-			} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
-				printf("% .1e ", d);
-
-			} else {
-				printf("% 6.5f ", d);
-			}
+			ControlAllocation::printMatrixCell(static_cast<double>(_control_allocation[i]->getActuatorMin()(col)));
 		}
 
 		printf("\n");
@@ -1014,19 +990,7 @@ int ControlAllocator::print_status()
 		printf("  |");
 
 		for (int col = 0; col < num_configured; col++) {
-			double d = static_cast<double>(_control_allocation[i]->getActuatorMax()(col));
-
-			// avoid -0.0 for display
-			if (fabs(d - 0.0) < 1e-9) {
-				// print fixed width zero
-				printf(" 0       ");
-
-			} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
-				printf("% .1e ", d);
-
-			} else {
-				printf("% 6.5f ", d);
-			}
+			ControlAllocation::printMatrixCell(static_cast<double>(_control_allocation[i]->getActuatorMax()(col)));
 		}
 
 		printf("\n");
@@ -1044,8 +1008,30 @@ int ControlAllocator::print_status()
 	return 0;
 }
 
+int ControlAllocator::print_mixer()
+{
+	for (int i = 0; i < _num_control_allocation; ++i) {
+		if (_num_control_allocation > 1) {
+			PX4_INFO("Instance: %i", i);
+		}
+
+		_control_allocation[i]->printMixingMatrix();
+	}
+
+	return 0;
+}
+
 int ControlAllocator::custom_command(int argc, char *argv[])
 {
+	if (argc >= 1 && !strcmp(argv[0], "mixer")) {
+		if (!is_running(desc)) {
+			print_usage("not running");
+			return 1;
+		}
+
+		return get_instance<ControlAllocator>(desc)->print_mixer();
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -1064,6 +1050,7 @@ as inputs and outputs actuator setpoint messages.
 
 	PRINT_MODULE_USAGE_NAME("control_allocator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mixer", "Print mixing matrix (raw pseudo-inverse + normalization scale + normalized form)");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
