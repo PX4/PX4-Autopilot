@@ -126,6 +126,11 @@ private:
 
 	uint8_t		_rotor_count{0};
 
+	// bitmask of ESC indices seen since the last publish; a repeat marks a new round
+	uint16_t	_seen_status_mask{0};
+	static_assert(esc_status_s::CONNECTED_ESC_MAX <= 8 * sizeof(_seen_status_mask),
+		      "_seen_status_mask cannot hold CONNECTED_ESC_MAX bits");
+
 	failure_injection::Config _failure_config;
 
 	/*

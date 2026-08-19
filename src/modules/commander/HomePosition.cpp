@@ -42,7 +42,16 @@
 HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags): ModuleParams(nullptr),
 	_failsafe_flags(failsafe_flags),
 	_param_ekf2_gps_ctrl_handle(param_find("EKF2_GPS_CTRL"))
-{}
+{
+	int32_t ekf2_hgt_ref = kHeightReferenceGnss;
+	const param_t param_ekf2_hgt_ref_handle = param_find("EKF2_HGT_REF");
+
+	if (param_ekf2_hgt_ref_handle != PARAM_INVALID) {
+		param_get(param_ekf2_hgt_ref_handle, &ekf2_hgt_ref);
+	}
+
+	_gnss_height_reference = (ekf2_hgt_ref == kHeightReferenceGnss);
+}
 
 bool HomePosition::hasMovedFromCurrentHomeLocation()
 {
@@ -386,7 +395,8 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 					       && isGpsPositionFusionEnabled();
 
 		if (_param_com_home_en.get() && _gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
-		    && _takeoff_time != 0 && now < _takeoff_time + kHomePositionCorrectionTimeWindow) {
+		    && _takeoff_time != 0 && now < _takeoff_time + kHomePositionCorrectionTimeWindow
+		    && _gnss_height_reference) {
 
 			const float gps_alt = static_cast<float>(_gps_alt);
 

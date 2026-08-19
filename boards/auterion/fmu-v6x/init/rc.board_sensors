@@ -68,23 +68,41 @@ bmi088 -G -R 6 -s start
 # Internal SPI bus ICM42688p
 icm42688p -R 12 -s start
 
-# Internal SPI bus ICM20602
-icm20602 -R 6 -s start
+if ver hwtypecmp V6X010
+then
+	# Internal SPI bus ICM20602
+	icm20602 -R 6 -s start
 
-# Internal magnetometer on I2C
-bmm150 -I -R 0 start
+	# Internal magnetometer (BMM150) on I2C
+	bmm150 -I -R 0 start
+
+	# Possible internal Baro
+	if param compare SENS_INT_BARO_EN 1
+	then
+		bmp388 -I -a 0x77 start
+	fi
+
+	# External baro
+	bmp388 -X start
+else
+	# Internal SPI bus ICM45686
+	icm45686 -R 0 -s start
+
+	# Internal magnetometer (BMM350) on I2C
+	bmm350 -I -R 4 start
+
+	# Possible internal Baro
+	if param compare SENS_INT_BARO_EN 1
+	then
+		bmp581 -I -a 0x47 start
+	fi
+
+	# External baro
+	bmp581 -X start
+fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
-
-# Possible internal Baro
-if param compare SENS_INT_BARO_EN 1
-then
-	bmp388 -I -a 0x77 start
-fi
-
-#external baro
-bmp388 -X start
 
 unset INA_CONFIGURED
 unset HAVE_PM2
