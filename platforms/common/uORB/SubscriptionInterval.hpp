@@ -101,10 +101,7 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
-		_subscription{id, instance},
-		_interval_us(interval_us)
-	{}
+	SubscriptionIntervalBase(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0);
 
 	/**
 	 * Constructor
@@ -113,16 +110,13 @@ public:
 	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		_subscription{meta, instance},
-		_interval_us(interval_us)
-	{}
+	SubscriptionIntervalBase(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0);
 
-	SubscriptionIntervalBase() : _subscription{nullptr} {}
+	SubscriptionIntervalBase();
 
 	~SubscriptionIntervalBase() = default;
 
-	bool subscribe() { return _subscription.subscribe(); }
+	bool subscribe(bool create = false) { return _subscription.subscribe(create); }
 	void unsubscribe() { _subscription.unsubscribe(); }
 
 	bool advertised() { return _subscription.advertised(); }
@@ -157,7 +151,7 @@ public:
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.
 	 */
-	void		set_interval_us(uint32_t interval) { _interval_us.store(interval); }
+	void		set_interval_us(uint32_t interval) { _interval_us.store(interval); _last_update.store(hrt_absolute_time() - interval); }
 
 	/**
 	 * Set the interval in milliseconds
@@ -189,11 +183,7 @@ using SubscriptionIntervalAtomic = SubscriptionIntervalBase<true>;
 // Declaring them extern here keeps other translation units from emitting their own
 // weak copies, so the single strong definition can be pinned into ITCM by name on
 // the boards that do so (see boards/*/nuttx-config/scripts/itcm_*.ld).
-extern template bool SubscriptionIntervalBase<false>::updated();
-extern template bool SubscriptionIntervalBase<false>::update(void *dst);
-extern template bool SubscriptionIntervalBase<false>::copy(void *dst);
-extern template bool SubscriptionIntervalBase<true>::updated();
-extern template bool SubscriptionIntervalBase<true>::update(void *dst);
-extern template bool SubscriptionIntervalBase<true>::copy(void *dst);
+extern template class SubscriptionIntervalBase<false>;
+extern template class SubscriptionIntervalBase<true>;
 
 } // namespace uORB

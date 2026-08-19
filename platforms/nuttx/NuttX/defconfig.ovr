@@ -1,0 +1,2 @@
+# Collect all configuration options which are common for ALL the NuttX boards
+CONFIG_NAME_MAX=64

@@ -80,6 +80,8 @@
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
 
+#include <uORB/uORBManager.hpp>
+
 #define MODULE_NAME "px4"
 
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
@@ -257,6 +259,11 @@ int main(int argc, char **argv)
 
 		if (instance_provided) {
 			PX4_INFO("instance: %i", instance);
+		}
+
+		if (instance_provided) {
+			const std::string instance_namespace = std::to_string(instance);
+			uorb_set_namespace(instance_namespace.c_str());
 		}
 
 #if defined(PX4_INSTALL_PREFIX)
