@@ -46,7 +46,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <termios.h>
 
 #define DEFAULT_DEVNAME "/dev/ttyS0"
 
@@ -77,7 +76,11 @@ ModuleBase::Descriptor SbgEcom::desc{task_spawn, custom_command, print_usage};
 
 SbgEcom::SbgEcom(const char *device_name, uint32_t baudrate, const char *config_file, const char *config_string):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device_name)),
+	// The sbgECom library allocates SBG_ECOM_MAX_BUFFER_SIZE (4096) bytes on the
+	// stack when sending a frame, which overflows the TTY work queue stack
+	// (CONFIG_WQ_TTY_STACKSIZE, 1728 bytes by default). Run on the larger INS
+	// work queue instead (CONFIG_WQ_INS_STACKSIZE, 6000 bytes by default).
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::INS0),
 	_baudrate(baudrate),
 	_config_file(config_file),
 	_config_string(config_string)
@@ -227,7 +230,7 @@ void SbgEcom::handleLogMag(const SbgEComLogUnion *ref_sbg_data, void *user_arg)
 	SbgEcom *instance = static_cast<SbgEcom *>(user_arg);
 
 	// publish sensor_mag
-	instance->_px4_mag.update(ref_sbg_data->magData.timeStamp,
+	instance->_px4_mag.update(hrt_absolute_time(),
 				  (ref_sbg_data->magData.magnetometers[0]),
 				  (ref_sbg_data->magData.magnetometers[1]),
 				  (ref_sbg_data->magData.magnetometers[2]));
@@ -711,16 +714,22 @@ SbgErrorCode SbgEcom::handleOneLog(SbgEComHandle *handle)
 				perf_end(_sample_perf);
 
 			} else {
+				perf_cancel(_sample_perf);
 				perf_count(_comms_errors);
 			}
 
 		} else {
+			perf_cancel(_sample_perf);
 			PX4_ERR("command received %d", error_code);
 		}
 
-	} else if (error_code != SBG_NOT_READY) {
-		PX4_WARN("Invalid frame received %d", error_code);
-		perf_count(_comms_errors);
+	} else {
+		perf_cancel(_sample_perf);
+
+		if (error_code != SBG_NOT_READY) {
+			PX4_WARN("Invalid frame received %d", error_code);
+			perf_count(_comms_errors);
+		}
 	}
 
 	sbgEComProtocolPayloadDestroy(&payload);
@@ -780,6 +789,7 @@ SbgErrorCode SbgEcom::sendAirDataLog(SbgEComHandle *handle, SbgEcom *instance)
 							 sbgStreamBufferGetLinkedBuffer(&output_stream), sbgStreamBufferGetLength(&output_stream));
 
 			if (error_code != SBG_NO_ERROR) {
+				perf_cancel(_write_perf);
 				PX4_ERR("Unable to send the AirData log %d", error_code);
 
 			} else {
@@ -787,6 +797,7 @@ SbgErrorCode SbgEcom::sendAirDataLog(SbgEComHandle *handle, SbgEcom *instance)
 			}
 
 		} else {
+			perf_cancel(_write_perf);
 			PX4_ERR("Unable to write the AirData payload. %d", error_code);
 		}
 	}
@@ -809,8 +820,16 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 	if (instance->_mag_sub.update(&mag)) {
 		memset(&mag_log, 0x00, sizeof(mag_log));
 
-		mag_log.timeStamp = mag.timestamp_sample;
-		// mag_log.status = 0; // STO: don't know how to set it
+		// PX4 time cannot be expressed in the INS timebase and, unlike
+		// SbgEComLogAirData, this log has no time-is-delay convention.
+		// Send 0 and let the INS timestamp the measurement on arrival.
+		mag_log.timeStamp = 0;
+
+		// vehicle_magnetometer is calibrated data: report the magnetometers as
+		// passing BIT, in range and calibrated. The accelerometer bits are left
+		// cleared as no accelerometer data is sent with this log.
+		mag_log.status = SBG_ECOM_MAG_MAG_X_BIT | SBG_ECOM_MAG_MAG_Y_BIT | SBG_ECOM_MAG_MAG_Z_BIT |
+				 SBG_ECOM_MAG_MAGS_IN_RANGE | SBG_ECOM_MAG_CALIBRATION_OK;
 
 		mag_log.magnetometers[0] = mag.magnetometer_ga[0];
 		mag_log.magnetometers[1] = mag.magnetometer_ga[1];
@@ -827,6 +846,7 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 							 sbgStreamBufferGetLinkedBuffer(&output_stream), sbgStreamBufferGetLength(&output_stream));
 
 			if (error_code != SBG_NO_ERROR) {
+				perf_cancel(_write_perf);
 				PX4_ERR("Unable to send the Mag log %d", error_code);
 
 			} else {
@@ -834,6 +854,7 @@ SbgErrorCode SbgEcom::sendMagLog(SbgEComHandle *handle, SbgEcom *instance)
 			}
 
 		} else {
+			perf_cancel(_write_perf);
 			PX4_ERR("Unable to write the Mag payload. %d", error_code);
 		}
 	}
@@ -932,8 +953,6 @@ void SbgEcom::send_config_file(SbgEComHandle *pHandle, const char *file_path)
 int SbgEcom::init()
 {
 	SbgErrorCode error_code;
-	struct termios options;
-	int *pSerialHandle;
 
 	error_code = sbgInterfaceSerialCreate(&_sbg_interface, _device_name, _baudrate);
 
@@ -941,26 +960,6 @@ int SbgEcom::init()
 		PX4_INFO("Serial interface created successfully on port: %s, baudrate: %ld",
 			 _device_name,
 			 static_cast<long int>(_baudrate));
-	}
-
-	pSerialHandle = (int *)_sbg_interface.handle;
-
-	if (tcgetattr((*pSerialHandle), &options) != -1) {
-		// add custom options
-		options.c_cflag &= CSIZE;
-		options.c_iflag &= ~(IXON | IXOFF | IXANY);
-		options.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | ICRNL | INPCK);
-		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG | ECHONL | IEXTEN);
-
-		if (tcsetattr((*pSerialHandle), TCSANOW, &options) != -1) {
-			error_code = sbgInterfaceFlush(&_sbg_interface, SBG_IF_FLUSH_ALL);
-
-		} else {
-			error_code = SBG_ERROR;
-		}
-
-	} else {
-		error_code = SBG_ERROR;
 	}
 
 	error_code = sbgEComInit(&_com_handle, &_sbg_interface);
@@ -1030,17 +1029,9 @@ void SbgEcom::Run()
 			failure = true;
 		}
 
-		error_code = sendAirDataLog(&_com_handle, this);
-
-		if (error_code != SBG_NO_ERROR) {
-			PX4_WARN("Unable to send AirData log %d", error_code);
-		}
-
-		error_code = sendMagLog(&_com_handle, this);
-
-		if (error_code != SBG_NO_ERROR) {
-			PX4_WARN("Unable to send Mag log %d", error_code);
-		}
+		// send failures are already reported by the send functions
+		sendAirDataLog(&_com_handle, this);
+		sendMagLog(&_com_handle, this);
 	}
 }
 
