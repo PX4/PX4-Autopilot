@@ -327,36 +327,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow, uint8_t inst
 		return;
 	}
 
-	OpticalFlowSource &src = _flow_src[instance];
-
-	// Allocate the required buffer size if not previously done
-	if (src.buffer == nullptr) {
-		src.buffer = new TimestampedRingBuffer<flowSample>(_imu_buffer_length);
-
-		if (src.buffer == nullptr || !src.buffer->valid()) {
-			delete src.buffer;
-			src.buffer = nullptr;
-			printBufferAllocationFailed("flow");
-			return;
-		}
-	}
-
-	const int64_t time_us = flow.time_us
-				- static_cast<int64_t>(_params.of[instance].delay * 1000)
-				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
-	// limit data rate to prevent data being lost
-	if (time_us >= static_cast<int64_t>(src.buffer->get_newest().time_us + _min_obs_interval_us)) {
-
-		flowSample optflow_sample_new{flow};
-		optflow_sample_new.time_us = time_us;
-
-		src.buffer->push(optflow_sample_new);
-
-	} else {
-		ECL_WARN("optical flow %d data too fast %" PRIi64 " < %" PRIu64 " + %d", instance, time_us,
-			 src.buffer->get_newest().time_us, _min_obs_interval_us);
-	}
+	_flow_src[instance].setData(flow, _min_obs_interval_us, _dt_ekf_avg);
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 

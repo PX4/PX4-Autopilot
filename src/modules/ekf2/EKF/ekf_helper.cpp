@@ -302,8 +302,8 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 			float flow_innov_norm = 0.f;
 
 			for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-				if (_flow_src[i].active) {
-					flow_innov_norm = math::max(flow_innov_norm, Vector2f(_flow_src[i].aid_src.innovation).norm());
+				if (_flow_src[i]._active) {
+					flow_innov_norm = math::max(flow_innov_norm, Vector2f(_flow_src[i]._aid_src.innovation).norm());
 				}
 			}
 
@@ -381,11 +381,11 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		bool any_flow_source = false;
 
 		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			if (isFlowSlotIntended(i) && (_flow_src[i].buffer != nullptr)
-			    && isRecent(_flow_src[i].buffer->get_newest().time_us, (uint64_t)1e6)) {
-				flow_hagl_min = math::min(flow_hagl_min, _flow_src[i].min_distance);
-				flow_hagl_max = math::max(flow_hagl_max, _flow_src[i].max_distance);
-				flow_max_rate = math::max(flow_max_rate, _flow_src[i].max_rate);
+			if (isFlowSlotIntended(i) && (_flow_src[i]._buffer != nullptr)
+			    && isRecent(_flow_src[i]._buffer->get_newest().time_us, (uint64_t)1e6)) {
+				flow_hagl_min = math::min(flow_hagl_min, _flow_src[i]._min_distance);
+				flow_hagl_max = math::max(flow_hagl_max, _flow_src[i]._max_distance);
+				flow_max_rate = math::max(flow_max_rate, _flow_src[i]._max_rate);
 				any_flow_source = true;
 			}
 		}
@@ -393,9 +393,9 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		if (!any_flow_source) {
 			// no flow source delivering data, fall back to the primary slot's limits
 			const uint8_t slot = getPrimaryFlowSlot();
-			flow_hagl_min = _flow_src[slot].min_distance;
-			flow_hagl_max = _flow_src[slot].max_distance;
-			flow_max_rate = _flow_src[slot].max_rate;
+			flow_hagl_min = _flow_src[slot]._min_distance;
+			flow_hagl_max = _flow_src[slot]._max_distance;
+			flow_max_rate = _flow_src[slot]._max_rate;
 		}
 
 		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
@@ -505,8 +505,8 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
 		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			if (_flow_src[i].active) {
-				for (auto &test_ratio_filtered : _flow_src[i].aid_src.test_ratio_filtered) {
+			if (_flow_src[i]._active) {
+				for (auto &test_ratio_filtered : _flow_src[i]._aid_src.test_ratio_filtered) {
 					test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
 				}
 			}
@@ -678,9 +678,9 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		if (_flow_src[i].terrain) {
-			hagl_sum += sqrtf(math::max(fabsf(_flow_src[i].aid_src.test_ratio_filtered[0]),
-						    _flow_src[i].aid_src.test_ratio_filtered[1]));
+		if (_flow_src[i]._terrain) {
+			hagl_sum += sqrtf(math::max(fabsf(_flow_src[i]._aid_src.test_ratio_filtered[0]),
+						    _flow_src[i]._aid_src.test_ratio_filtered[1]));
 			n_hagl_sources++;
 		}
 	}

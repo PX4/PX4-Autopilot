@@ -58,10 +58,10 @@ param set-default EKF2_MAG_NOISE 0.1
 
 param set-default EKF2_MIN_RNG 0.15
 
-param set-default EKF2_OF0_DELAY 38
+param set-default SENS_FLOW0_DELAY 38
 param set-default EKF2_OF0_GATE 2
-param set-default EKF2_OF0_POS_X -0.035
-param set-default EKF2_OF0_POS_Z 0.033
+param set-default SENS_FLOW0_POS_X -0.035
+param set-default SENS_FLOW0_POS_Z 0.033
 param set-default EKF2_OF_MIN_RNG 0.01
 param set-default EKF2_OF_A_HMAX 7
 param set-default EKF2_OF0_QMIN 30

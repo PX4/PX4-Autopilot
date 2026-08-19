@@ -43,15 +43,13 @@ using namespace time_literals;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
-VehicleOpticalFlow::VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder) :
+VehicleOpticalFlow::VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder, Publications &pubs) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	_pubs(pubs),
+	_sensor_flow_sub(this, ORB_ID(sensor_optical_flow), instance),
 	_instance(instance),
 	_slot_binder(slot_binder)
 {
-	_sensor_flow_sub.ChangeInstance(instance);
-
-	_vehicle_optical_flow_pub.advertise();
-
 	_gyro_integrator.set_reset_samples(1);
 }
 
@@ -96,18 +94,22 @@ void VehicleOpticalFlow::ParametersUpdate()
 	}
 }
 
-void VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
+bool VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
 {
-	// map the sensor to its SENS_FLOW<i> parameter slot by device ID, falling back
-	// to the uORB instance for sensors that do not report a device ID
+	// map the sensor to its SENS_FLOW<i> parameter slot by device ID; a sensor without a
+	// device ID may only fall back to its uORB instance if that slot is not bound to another sensor
 	int8_t slot = _slot_binder.slotForInstance(_instance, device_id);
 
 	if (slot < 0) {
+		if (_slot_binder.isSlotBound(_instance)) {
+			return false;
+		}
+
 		slot = _instance;
 	}
 
 	if (slot == _param_slot) {
-		return;
+		return true;
 	}
 
 	_param_slot = slot;
@@ -132,7 +134,21 @@ void VehicleOpticalFlow::UpdateParamSlot(uint32_t device_id)
 	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_RATE", slot);
 	_param_handles.rate = param_find(param_name);
 
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_DELAY", slot);
+	_param_handles.delay = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_POS_X", slot);
+	_param_handles.pos_x = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_POS_Y", slot);
+	_param_handles.pos_y = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "SENS_FLOW%d_POS_Z", slot);
+	_param_handles.pos_z = param_find(param_name);
+
 	UpdateParameters();
+
+	return true;
 }
 
 void VehicleOpticalFlow::UpdateParameters()
@@ -147,6 +163,10 @@ void VehicleOpticalFlow::UpdateParameters()
 	param_get(_param_handles.hmax, &_params.hmax);
 	param_get(_param_handles.maxr, &_params.maxr);
 	param_get(_param_handles.rate, &_params.rate);
+	param_get(_param_handles.delay, &_params.delay);
+	param_get(_param_handles.pos_x, &_params.pos(0));
+	param_get(_param_handles.pos_y, &_params.pos(1));
+	param_get(_param_handles.pos_z, &_params.pos(2));
 
 	_flow_rotation = get_rot_matrix((enum Rotation)_params.rot);
 }
@@ -165,9 +185,8 @@ void VehicleOpticalFlow::Run()
 
 	sensor_optical_flow_s sensor_optical_flow;
 
-	if (_sensor_flow_sub.update(&sensor_optical_flow)) {
-
-		UpdateParamSlot(sensor_optical_flow.device_id);
+	if (_sensor_flow_sub.update(&sensor_optical_flow)
+	    && UpdateParamSlot(sensor_optical_flow.device_id)) {
 
 		// clear data accumulation if there's a gap in data
 		const uint64_t integration_gap_threshold_us = sensor_optical_flow.integration_timespan_us * 2;
@@ -284,6 +303,16 @@ void VehicleOpticalFlow::Run()
 			vehicle_optical_flow.timestamp_sample = sensor_optical_flow.timestamp_sample;
 			vehicle_optical_flow.device_id = sensor_optical_flow.device_id;
 
+			// SENS_FLOW<i>_DELAY
+			const hrt_abstime delay_us = static_cast<hrt_abstime>(_params.delay * 1000.f);
+
+			if (vehicle_optical_flow.timestamp_sample > delay_us) {
+				vehicle_optical_flow.timestamp_sample -= delay_us;
+			}
+
+			// SENS_FLOW<i>_POS_*
+			_params.pos.copyTo(vehicle_optical_flow.position_offset);
+
 			_flow_integral *= _params.scale;
 			_flow_integral.copyTo(vehicle_optical_flow.pixel_flow);
 			_delta_angle.copyTo(vehicle_optical_flow.delta_angle);
@@ -336,7 +365,7 @@ void VehicleOpticalFlow::Run()
 				  vehicle_optical_flow.pixel_flow[1], zeroval);
 
 			vehicle_optical_flow.timestamp = hrt_absolute_time();
-			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
+			_pubs.flow[_param_slot].publish(vehicle_optical_flow);
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
@@ -394,7 +423,7 @@ void VehicleOpticalFlow::Run()
 
 				flow_vel.timestamp = hrt_absolute_time();
 
-				_vehicle_optical_flow_vel_pub.publish(flow_vel);
+				_pubs.flow_vel[_param_slot].publish(flow_vel);
 			}
 
 			ClearAccumulatedData();
