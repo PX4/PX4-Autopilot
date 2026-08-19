@@ -249,10 +249,11 @@ public:
 		float integrator_gain_pitch;				///< Integrator gain used by the pitch demand calculation.
 		float pitch_damping_gain;				///< Damping gain of the pitch demand calculation [s].
 
-		// Throttle control param
+		// Throttle/spoiler control param
 		float integrator_gain_throttle;				///< Integrator gain used by the throttle demand calculation.
 		float throttle_damping_gain;				///< Damping gain of the throttle demand calculation [s].
 		float throttle_slewrate;				///< Throttle demand slew rate limit [1/s].
+		float spoiler_max;					///< Maximum spoiler setpoint upper limit [0,1].
 
 		float load_factor_correction;				///< Gain from normal load factor increase to total energy rate demand [m²/s³].
 		float load_factor;					///< Additional normal load factor.
@@ -339,6 +340,14 @@ public:
 	 * @return throttle setpoint.
 	 */
 	float getThrottleSetpoint() const {return _throttle_setpoint;};
+	/**
+	 * @brief Get the spoiler setpoint.
+	 * Non-zero only when the unconstrained STE rate setpoint falls below the min-throttle dissipation limit,
+	 * i.e. when excess energy cannot be shed by reducing throttle alone.
+	 *
+	 * @return Spoiler setpoint in [0, 1].
+	 */
+	float getSpoilerSetpoint() const {return _spoiler_setpoint;};
 	/**
 	 * @brief Get the pitch setpoint.
 	 *
@@ -521,12 +530,14 @@ private:
 				  const Flag &flag);
 
 	/**
-	 * @brief Calculate throttle control specific total energy
+	 * @brief Calculate throttle control specific total energy rate.
+	 * Returns the unconstrained STE rate setpoint (load-factor-corrected sum of SPE and SKE rate setpoints).
+	 * Callers are responsible for applying [STE_rate_min, STE_rate_max] before using the setpoint for throttle.
 	 *
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
 	 * @param param is the control parameters.
-	 * @return specific total energy rate values in [m²/s³]
+	 * @return specific total energy rate values in [m²/s³] with unconstrained setpoint.
 	 */
 	ControlValues _calcThrottleControlSteRate(const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rate,
 			const Param &param) const;
@@ -566,6 +577,7 @@ private:
 	DebugOutput _debug_output;				///< Debug output.
 	float _pitch_setpoint{0.0f};				///< Controlled pitch setpoint above trim [rad].
 	float _throttle_setpoint{0.0f};				///< Controlled throttle setpoint [0,1].
+	float _spoiler_setpoint{0.0f};				///< Controlled spoiler setpoint [0,1].
 	float _ratio_undersped{0.0f};				///< A continuous representation of how "undersped" the TAS is [0,1]
 };
 
@@ -672,6 +684,9 @@ public:
 
 	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
 	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
+	float get_spoiler_setpoint() {return _control.getSpoilerSetpoint();}
+
+	void set_spoiler_max(float spoiler_max) { _control_param.spoiler_max = math::constrain(spoiler_max, 0.0f, 1.0f); };
 
 	/**
 	 * Returns the altitude tracking time constant
@@ -768,6 +783,7 @@ private:
 		.integrator_gain_throttle = 0.0f,
 		.throttle_damping_gain = 0.0f,
 		.throttle_slewrate = 0.0f,
+		.spoiler_max = 1.0f,
 		.load_factor_correction = 0.0f,
 		.load_factor = 1.0f,
 		.fast_descend = 0.f
