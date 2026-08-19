@@ -109,6 +109,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node_status_monitor(_node),
 	_node_info_retriever(_node),
 	_node_info_publisher(_node, _node_info_retriever),
+#if defined(CONFIG_UAVCAN_CANNODE_CONFIGURATOR)
+	_node_configurator(_node_info_retriever),
+#endif
 	_master_timer(_node),
 	_param_getset_client(_node),
 	_param_opcode_client(_node),
@@ -391,6 +394,65 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 }
 
 int
+UavcanNode::set_param_if_changed(int remote_node_id, const char *name, char *value)
+{
+	uavcan::protocol::param::GetSet::Request req;
+	uavcan::protocol::param::GetSet::Response resp;
+	set_setget_response(&resp);
+	int rv = get_set_param(remote_node_id, name, req);
+
+	if (rv < 0 || resp.name.empty()) {
+		std::printf("Failed to retrieve param: %s\n", name);
+		free_setget_response();
+		return -1;
+	}
+
+	// Compare current value against desired; skip the SET if already correct.
+	bool needs_write = false;
+	req = {};
+
+	if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
+		int64_t desired = std::strtoull(value, nullptr, 10);
+		int64_t current = resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>();
+		needs_write = (desired != current);
+		req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = desired;
+
+	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
+		float desired = static_cast<float>(std::atof(value));
+		float current = resp.value.to<uavcan::protocol::param::Value::Tag::real_value>();
+		needs_write = (fabsf(desired - current) > 1e-6f * fabsf(current) + 1e-9f);
+		req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = desired;
+
+	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
+		int8_t desired = (value[0] == '1' || value[0] == 't') ? 1 : 0;
+		int8_t current = resp.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
+		needs_write = (desired != current);
+		req.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = desired;
+
+	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::string_value)) {
+		const char *current = resp.value.to<uavcan::protocol::param::Value::Tag::string_value>().c_str();
+		needs_write = (strcmp(value, current) != 0);
+		req.value.to<uavcan::protocol::param::Value::Tag::string_value>() = value;
+	}
+
+	if (!needs_write) {
+		free_setget_response();
+		return 0;
+	}
+
+	rv = get_set_param(remote_node_id, name, req);
+
+	if (rv < 0 || resp.name.empty()) {
+		std::printf("Failed to set param: %s\n", name);
+		free_setget_response();
+		return -1;
+	}
+
+	free_setget_response();
+	return 1;
+}
+
+int
 UavcanNode::get_param(int remote_node_id, const char *name)
 {
 	uavcan::protocol::param::GetSet::Request req;
@@ -632,6 +694,9 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	// Start the Node
+#if defined(CONFIG_UAVCAN_CANNODE_CONFIGURATOR)
+	_node_configurator.init();
+#endif
 	return _node.start();
 }
 

@@ -45,6 +45,9 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#if defined(CONFIG_UAVCAN_CANNODE_CONFIGURATOR)
+#include "cannode_configurator.hpp"
+#endif
 #include "node_info.hpp"
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
@@ -228,6 +231,7 @@ public:
 	int			 list_params(int remote_node_id);
 	int			 save_params(int remote_node_id);
 	int			 set_param(int remote_node_id, const char *name, char *value);
+	int			 set_param_if_changed(int remote_node_id, const char *name, char *value);
 	int			 get_param(int remote_node_id, const char *name);
 	int			 reset_node(int remote_node_id);
 
@@ -295,6 +299,9 @@ private:
 
 	uavcan::NodeInfoRetriever   _node_info_retriever;
 	NodeInfoPublisher           _node_info_publisher;
+#if defined(CONFIG_UAVCAN_CANNODE_CONFIGURATOR)
+	CanNodeConfigurator         _node_configurator;
+#endif
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
