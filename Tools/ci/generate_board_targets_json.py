@@ -493,9 +493,14 @@ if (args.group):
                     })
                     chunk_counter += 1
 
-    # Add cache_size to each group based on chip family
+    # Add cache_size and the shared ccache namespace root to each group.
+    # cache_prefix is the single source of the cache key convention: the
+    # workflow composes keys as {cache_prefix}-{group}-{ref}-{sha} with a
+    # final restore fallback of {cache_prefix}-, and the seeder probe
+    # (Tools/ci/filter_cold_seeders.py) greps the bucket for the same root.
     for g in final_groups:
         g['cache_size'] = CHIP_CACHE_SIZES.get(g['chip_family'], DEFAULT_CACHE_SIZE)
+        g['cache_prefix'] = f"ccache-{g['chip_family']}-{g['runner']}"
 
     if(verbose):
         import pprint
@@ -552,6 +557,13 @@ if (args.group):
                     'container': seeder_containers.get(cf, default_container),
                     'runner': 'x64',
                 })
+
+        # Seeders share the family namespace root with the build groups and
+        # occupy the reserved "seeder" group inside it, so seeder caches are
+        # always reachable from the build jobs' {cache_prefix}- fallback.
+        for s in seeders:
+            s['group'] = 'seeder'
+            s['cache_prefix'] = f"ccache-{s['chip_family']}-{s['runner']}"
 
         print(json.dumps({ "include": seeders }, **extra_args))
     else:
