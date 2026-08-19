@@ -68,6 +68,16 @@ fi
 unset BOARD_RC_ADDITIONAL_INIT
 
 #
+# Optional bootloader update: rc.board_bootloader_upgrade
+#
+set BOARD_BOOTLOADER_UPGRADE ${R}etc/init.d/rc.board_bootloader_upgrade
+if [ -f $BOARD_BOOTLOADER_UPGRADE ]
+then
+	sh $BOARD_BOOTLOADER_UPGRADE
+fi
+unset BOARD_BOOTLOADER_UPGRADE
+
+#
 # Start system state indicator.
 #
 rgbled start -X -q
