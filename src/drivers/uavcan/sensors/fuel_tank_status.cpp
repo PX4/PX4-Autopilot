@@ -63,10 +63,9 @@ int UavcanFuelTankStatusBridge::init()
 
 		snprintf(param_name, sizeof(param_name), "UAVCAN_ECU_MAXF%u", i + 1);
 		param_get(param_find(param_name), &_max_fuel_capacity[i]);
-
-		snprintf(param_name, sizeof(param_name), "UAVCAN_ECU_FT%u", i + 1);
-		param_get(param_find(param_name), &_fuel_type[i]);
 	}
+
+	param_get(param_find("UAVCAN_ECU_FUELT"), &_fuel_type);
 
 	return 0;
 }
@@ -78,10 +77,10 @@ void UavcanFuelTankStatusBridge::fuel_tank_status_sub_cb(const
 		return;
 	}
 
-	fuel_tank_status_s &report = _fuel_tank_status[msg.fuel_tank_id];
+	fuel_tank_status_s report{};
 	report.timestamp = hrt_absolute_time();
 	report.maximum_fuel_capacity = _max_fuel_capacity[msg.fuel_tank_id] * 1000.0f; // convert to ml
-	report.fuel_type = static_cast<uint8_t>(_fuel_type[msg.fuel_tank_id]);
+	report.fuel_type = _fuel_type;
 	report.consumed_fuel = NAN; // only the remaining fuel is measured
 	report.fuel_consumption_rate = msg.fuel_consumption_rate_cm3pm / 60.0f; // convert to ml/s
 	report.percent_remaining = msg.available_fuel_volume_percent;

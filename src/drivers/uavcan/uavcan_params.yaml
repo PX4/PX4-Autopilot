@@ -77,12 +77,11 @@ parameters:
       decimal: 1
       increment: 0.1
       reboot_required: true
-    UAVCAN_ECU_FT${i}:
+    UAVCAN_ECU_FUELT:
       description:
-        short: Fuel tank ${i} fuel type
+        short: UAVCAN fuel tank fuel type
         long: |-
-          This parameter defines the type of fuel used in fuel tank ${i},
-          matched by fuel_tank_id.
+          This parameter defines the type of fuel used in the vehicle's fuel tanks.
 
           0: Unknown
           1: Liquid (e.g., gasoline, diesel)
@@ -92,9 +91,7 @@ parameters:
         0: Unknown
         1: Liquid
         2: Gas
-      num_instances: 3
-      instance_start: 1
-      default: [1, 1, 1]
+      default: 1
       min: 0
       max: 2
       reboot_required: true

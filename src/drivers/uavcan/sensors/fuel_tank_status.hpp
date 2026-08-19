@@ -70,6 +70,5 @@ private:
 
 	static constexpr uint8_t MAX_INSTANCES = fuel_tank_status_s::MAX_INSTANCES;
 	float _max_fuel_capacity[MAX_INSTANCES] {};
-	int32_t _fuel_type[MAX_INSTANCES] {};
-	fuel_tank_status_s _fuel_tank_status[MAX_INSTANCES] {};
+	int32_t _fuel_type{fuel_tank_status_s::MAV_FUEL_TYPE_UNKNOWN};
 };
