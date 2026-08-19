@@ -42,6 +42,11 @@
 #include <errno.h>
 #include <cstring>
 
+#ifndef __PX4_NUTTX
+#include <stdlib.h>
+#include <limits.h>
+#endif
+
 #include "mavlink_ftp.h"
 #include "mavlink_main.h"
 
@@ -517,6 +522,12 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		return kErrFailFileProtected;
 	}
 
+	const bool is_write_open = (oflag & (O_WRONLY | O_RDWR)) != 0;
+
+	if (is_write_open && !_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("FTP: open '%s'", _work_buffer1);
 
 	uint32_t fileSize = 0;
@@ -539,8 +550,16 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 	fileSize = st.st_size;
 
 	PX4_DEBUG("open: %s", _work_buffer1);
-	// Set mode to 666 incase oflag has O_CREAT
-	int fd = ::open(_work_buffer1, oflag, PX4_O_MODE_666);
+	// Set mode to 666 incase oflag has O_CREAT. On POSIX use O_NOFOLLOW so a
+	// TOCTOU race cannot redirect the leaf through a symlink between
+	// validation and open(2). NuttX has a flat VFS with no symlink support
+	// in the FAT driver and PSEUDOFS_SOFTLINKS off by default, so the flag
+	// is unnecessary there.
+	int leaf_oflag = oflag;
+#if !defined(__PX4_NUTTX) && defined(O_NOFOLLOW)
+	leaf_oflag |= O_NOFOLLOW;
+#endif
+	int fd = ::open(_work_buffer1, leaf_oflag, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		_our_errno = errno;
@@ -627,7 +646,7 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 		return kErrInvalidSession;
 	}
 
-	if (!_validatePathIsWritable(_work_buffer1)) {
+	if (!_validatePath(_work_buffer1) || !_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
 	}
 
@@ -1179,18 +1198,101 @@ bool MavlinkFTP::_validatePath(const char *path)
 	return true;
 }
 
+#ifndef __PX4_NUTTX
+/**
+ * Canonicalize `path` into `out` (an absolute, symlink-free path).
+ *
+ * For paths whose leaf does not yet exist (CreateFile, CreateDirectory)
+ * realpath() on the full path would fail, so the parent directory is
+ * resolved instead and the leaf name is reattached. The output is always
+ * an absolute path produced by realpath() on either the full path or
+ * its parent directory.
+ *
+ * Returns true on success, false on any error (caller should reject the
+ * request in that case).
+ */
+static bool canonicalize_path(const char *path, char *out, size_t out_len)
+{
+	if (realpath(path, out) != nullptr) {
+		return true;
+	}
+
+	// Split into parent and leaf, resolve the parent, reattach the leaf.
+	char parent_buf[PATH_MAX];
+	strncpy(parent_buf, path, sizeof(parent_buf) - 1);
+	parent_buf[sizeof(parent_buf) - 1] = '\0';
+
+	char *slash = strrchr(parent_buf, '/');
+	const char *leaf = nullptr;
+
+	if (slash != nullptr) {
+		*slash = '\0';
+		leaf = slash + 1;
+
+	} else {
+		// No slash: parent is current directory, leaf is the whole path.
+		parent_buf[0] = '.';
+		parent_buf[1] = '\0';
+		leaf = path;
+	}
+
+	char canonical_parent[PATH_MAX];
+
+	if (realpath(parent_buf, canonical_parent) == nullptr) {
+		return false;
+	}
+
+	const int n = snprintf(out, out_len, "%s/%s", canonical_parent, leaf);
+	return (n > 0) && ((size_t)n < out_len);
+}
+#endif // !__PX4_NUTTX
+
 bool MavlinkFTP::_validatePathIsWritable(const char *path)
 {
-#ifdef __PX4_NUTTX
+#ifndef __PX4_NUTTX
+	// POSIX/SITL: resolve symlinks and verify the canonical path stays
+	// inside PX4_STORAGEDIR. Defence against symlink-resolution bypasses
+	// where _validatePath() accepts a string that does not contain ".."
+	// but the underlying open()/mkdir() follows a symlink to a target
+	// outside the intended FTP root (GHSA-93v7-287q-qx4g).
+	//
+	// NuttX is not affected: it has a flat VFS, the FAT driver used for
+	// /fs/microsd does not support symlinks, and CONFIG_PSEUDOFS_SOFTLINKS
+	// is off by default.
+	char canonical_root[PATH_MAX];
 
-	// Don't allow writes to system paths as they are in RAM
-	// Ideally we'd canonicalize the path (with 'realpath'), but it might not exist, so realpath() would fail.
-	// The next simpler thing is to check there's no reference to a parent dir.
-	if (strncmp(path, CONFIG_BOARD_ROOT_PATH "/", 12) != 0 || strstr(path, "/../") != nullptr) {
+	if (realpath(PX4_STORAGEDIR, canonical_root) == nullptr) {
+		PX4_ERR("FTP: realpath(root) failed: %s", strerror(errno));
+		return false;
+	}
+
+	char canonical[PATH_MAX];
+
+	if (!canonicalize_path(path, canonical, sizeof(canonical))) {
+		PX4_ERR("FTP: cannot canonicalize %s: %s", path, strerror(errno));
+		return false;
+	}
+
+	// The canonical path must start with the canonical root and either
+	// equal it or be followed by a path separator.
+	const size_t canonical_root_len = strlen(canonical_root);
+
+	if (strncmp(canonical, canonical_root, canonical_root_len) != 0
+	    || (canonical[canonical_root_len] != '\0' && canonical[canonical_root_len] != '/')) {
+		PX4_ERR("FTP: rejecting path outside FTP root: %s -> %s", path, canonical);
+		return false;
+	}
+
+	return true;
+#else
+
+	// NuttX: simple string-based check. Original behavior, unchanged.
+	if (strncmp(path, CONFIG_BOARD_ROOT_PATH "/", strlen(CONFIG_BOARD_ROOT_PATH "/")) != 0
+	    || strstr(path, "/../") != nullptr) {
 		PX4_ERR("Disallowing write to %s", path);
 		return false;
 	}
 
-#endif
 	return true;
+#endif
 }
