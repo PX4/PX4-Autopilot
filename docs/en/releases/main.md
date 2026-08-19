@@ -65,7 +65,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Sensors
 
-- TBD
+- Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
 
 ### Simulation
 
