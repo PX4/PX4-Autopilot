@@ -188,9 +188,9 @@ TEST_F(EkfTerrainTest, testRngForTerrainFusion)
 	EXPECT_NEAR(estimated_distance_to_ground, rng_height, 0.01f);
 }
 
-TEST_F(EkfTerrainTest, testHeightReset)
+TEST_F(EkfTerrainTest, testRangeHeightFusionPreventsReset)
 {
-	// GIVEN: rng for terrain but not flow
+	// GIVEN: range height fusion is active as a secondary height source
 	_ekf_wrapper.disableFlowFusion();
 	_ekf_wrapper.enableRangeHeightFusion();
 
@@ -203,15 +203,15 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
 
-	// WHEN: the baro height is suddenly changed to trigger a height reset
+	// WHEN: the baro height is suddenly changed and GNSS height aiding is stopped
 	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
 	_sensor_simulator._baro.setData(new_baro_height);
 	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
 	_sensor_simulator.runSeconds(10);
 
-	// THEN: a height reset occurred and the estimated distance to the ground remains constant
+	// THEN: the healthy range height fusion prevents a height reset
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(0));
 	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getHagl(), 1e-3f);
 }
 

@@ -93,6 +93,30 @@ TEST_F(EkfHeightFusionTest, noAiding)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 }
 
+TEST_F(EkfHeightFusionTest, rangeRefNoRecurringHeightReset)
+{
+	// GIVEN: range finder is the only height source
+	_ekf_wrapper.setRangeHeightRef();
+	_ekf_wrapper.enableConditionalRangeHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	ASSERT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
+	ASSERT_EQ(_ekf->getHeightSensorRef(), HeightSensor::RANGE);
+	ASSERT_TRUE(_ekf->aid_src_rng_hgt().fused);
+
+	const uint8_t height_reset_count = _ekf->get_posD_reset_count();
+
+	// WHEN: healthy range height fusion continues beyond the height fusion timeout
+	_sensor_simulator.runSeconds(6);
+
+	// THEN: the height estimate is not reset again
+	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
+	EXPECT_EQ(_ekf->get_posD_reset_count(), height_reset_count);
+}
+
 TEST_F(EkfHeightFusionTest, baroRef)
 {
 	// GIVEN: baro reference with GPS and range height fusion

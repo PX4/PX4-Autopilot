@@ -60,6 +60,7 @@ public:
 	bool isIntendingGpsHeightFusion() const;
 
 	void setRangeHeightRef();
+	void enableConditionalRangeHeightFusion();
 	void enableRangeHeightFusion();
 	void disableRangeHeightFusion();
 	bool isIntendingRangeHeightFusion() const;

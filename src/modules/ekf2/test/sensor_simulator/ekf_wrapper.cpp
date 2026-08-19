@@ -71,6 +71,12 @@ void EkfWrapper::setRangeHeightRef()
 	_ekf_params->ekf2_hgt_ref = static_cast<int32_t>(HeightSensor::RANGE);
 }
 
+void EkfWrapper::enableConditionalRangeHeightFusion()
+{
+	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::CONDITIONAL);
+	_fc->rng.enabled = true;
+}
+
 void EkfWrapper::enableRangeHeightFusion()
 {
 	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::ENABLED);
