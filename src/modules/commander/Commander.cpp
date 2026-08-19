@@ -919,12 +919,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_GUIDED_CHANGE_HEADING: {
-			// Navigator handles this command: it acks ACCEPTED when
-			// the vehicle is in course mode with a valid position, DENIED otherwise.
-		}
-		break;
-
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
 			uint8_t base_mode = (uint8_t)cmd.param1;
 			uint8_t custom_main_mode = (uint8_t)cmd.param2;
@@ -1679,6 +1673,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 		return true;
 
+	// VEHICLE_CMD_GUIDED_CHANGE_HEADING is handled by navigator: it acks ACCEPTED when
+	// the vehicle is in course mode with a valid position, DENIED otherwise.
+	case vehicle_command_s::VEHICLE_CMD_GUIDED_CHANGE_HEADING:
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
