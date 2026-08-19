@@ -12,17 +12,28 @@ See [Toolchain Installation](../dev_setup/dev_env.md) for information about the 
 The tools have variable levels of support from their communities (some are well supported and others are not).
 Questions about these tools should be raised on the [discussion forums](../contribute/support.md#forums-and-chat)
 
-- Development Platforms/Setups
-  - [CentOS Linux](../dev_setup/dev_env_linux_centos.md)
-  - [Arch Linux](../dev_setup/dev_env_linux_arch.md)
-  - [Windows VM Toolchain](../dev_setup/dev_env_windows_vm.md) — Ubuntu setup running in VM on Windows.
-  - [Windows Cygwin Toolchain](../dev_setup/dev_env_windows_cygwin.md) — Windows setup only works to PX4 v1.12
-    - [Windows Cygwin Toolchain Maintenance](../dev_setup/dev_env_windows_cygwin_packager_setup.md)
-- IDEs
-  - [Qt Creator IDE](../dev_setup/qtcreator.md)
-- [Simulators](../simulation/community_supported_simulators.md) — [Simulation-In-Hardware](../sim_sih/index.md), [FlightGear](../sim_flightgear/index.md), [JSBSim](../sim_jsbsim/index.md), [AirSim](../sim_airsim/index.md), [HITL](../simulation/hitl.md)
+## Development Platforms/Setups
 
-## PID tuning cockpit
+- [CentOS Linux](../dev_setup/dev_env_linux_centos.md)
+- [Arch Linux](../dev_setup/dev_env_linux_arch.md)
+- [Windows VM Toolchain](../dev_setup/dev_env_windows_vm.md) — Ubuntu setup running in VM on Windows.
+- [Windows Cygwin Toolchain](../dev_setup/dev_env_windows_cygwin.md) — Windows setup only works to PX4 v1.12
+- [Windows Cygwin Toolchain Maintenance](../dev_setup/dev_env_windows_cygwin_packager_setup.md)
+
+## IDEs
+
+- [Qt Creator IDE](../dev_setup/qtcreator.md)
+
+## Simulators
+
+- [Simulation-In-Hardware](../sim_sih/index.md)
+- [FlightGear](../sim_flightgear/index.md)
+- [JSBSim](../sim_jsbsim/index.md)
+- [AirSim](../sim_airsim/index.md)
+- [HITL](../simulation/hitl.md)
+
+## PID Tuning Tools
+
 - [Genius Tools](https://www.altitude-rd.com/genius-tools) is a commercial web app for interactive multicopter tuning from a flight log.
-  
-<img width="500" alt="Genius_Tools" src="https://github.com/user-attachments/assets/2e891577-38b7-420b-9346-a87bd2c89f5b" />
+
+  ![Genius Tools](../../assets/config/mc/genius_tools.webp)
