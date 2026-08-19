@@ -136,11 +136,12 @@ public:
 	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance, uint8_t instance = 0)
 	{
 		if (instance < MAX_OF_INSTANCES) {
-			_flow_src[instance].max_rate = max_flow_rate;
-			_flow_src[instance].min_distance = min_distance;
-			_flow_src[instance].max_distance = max_distance;
+			_flow_src[instance].setLimits(max_flow_rate, min_distance, max_distance);
 		}
 	}
+
+	OpticalFlowSource &flowSource(uint8_t instance) { return _flow_src[instance]; }
+	const OpticalFlowSource &flowSource(uint8_t instance) const { return _flow_src[instance]; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -337,7 +338,17 @@ public:
 
 protected:
 
-	EstimatorInterface() = default;
+	EstimatorInterface()
+	{
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+			_flow_src[i].setSlot(i);
+		}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+	}
+
 	virtual ~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;

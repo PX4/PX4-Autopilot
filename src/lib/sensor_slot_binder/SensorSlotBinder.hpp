@@ -39,20 +39,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/**
- * Maps uORB topic instances to fixed sensor slots by device/sensor ID.
- *
- * Each slot is associated with an ID parameter (e.g. EKF2_OF0_ID). An incoming
- * sensor is matched against the slot IDs; an unknown sensor is bound to the first free
- * slot (ID parameter 0) and the assignment is persisted so that it remains stable
- * across reboots.
- */
+// Maps uORB instances to fixed sensor slots by device ID: an unknown sensor is bound to the
+// first free slot (ID param 0) and the assignment is persisted so it stays stable across reboots.
 class SensorSlotBinder
 {
 public:
 	static constexpr uint8_t kMaxSlots = 4;
 
-	// id_param_format: printf-style format for the per-slot ID parameter name, e.g. "EKF2_OF%u_ID"
 	void init(const char *id_param_format, uint8_t num_slots)
 	{
 		_num_slots = (num_slots <= kMaxSlots) ? num_slots : kMaxSlots;
@@ -67,6 +60,8 @@ public:
 			}
 		}
 	}
+
+	bool isSlotBound(uint8_t slot) const { return (slot < _num_slots) && (_ids[slot] != 0); }
 
 	// map a uORB instance to a sensor slot given the instance's current device/sensor ID,
 	// returns -1 if the ID is invalid (0) or no free slot is available

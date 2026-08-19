@@ -15,6 +15,51 @@ parameters:
       reboot_required: true
       num_instances: *max_num_flow_instances
       instance_start: 0
+    SENS_FLOW${i}_DELAY:
+      description:
+        short: Optical flow sensor ${i} measurement delay relative to IMU
+        long: 'Delay of the optical flow measurement pipeline. Assumes the
+          measurement is timestamped at the trailing edge of the integration
+          period. Applied to timestamp_sample of the published data.'
+      type: float
+      default: 20.0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+      num_instances: *max_num_flow_instances
+      instance_start: 0
+    SENS_FLOW${i}_POS_X:
+      description:
+        short: X position of optical flow sensor ${i} focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+      num_instances: *max_num_flow_instances
+      instance_start: 0
+    SENS_FLOW${i}_POS_Y:
+      description:
+        short: Y position of optical flow sensor ${i} focal point in body frame
+        long: Right axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+      num_instances: *max_num_flow_instances
+      instance_start: 0
+    SENS_FLOW${i}_POS_Z:
+      description:
+        short: Z position of optical flow sensor ${i} focal point in body frame
+        long: Down axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+      num_instances: *max_num_flow_instances
+      instance_start: 0
     SENS_FLOW${i}_HMIN:
       description:
         short: Minimum height above ground when reliant on optical flow ${i}

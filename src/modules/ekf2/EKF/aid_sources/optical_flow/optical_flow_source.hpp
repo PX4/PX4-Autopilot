@@ -42,29 +42,77 @@
 #include <mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/topics/estimator_aid_source2d.h>
 
-// Per-sensor optical flow state (one instance per configured flow sensor slot)
-struct OpticalFlowSource {
-	TimestampedRingBuffer<estimator::flowSample> *buffer{nullptr};
-	estimator::flowSample sample_delayed{};
+class Ekf;
 
-	estimator_aid_source2d_s aid_src{};
+class OpticalFlowSource
+{
+public:
+	struct Params {
+		int32_t ctrl{0};
+		int32_t gyr_src{static_cast<int32_t>(estimator::FlowGyroSource::Auto)};
+		float n_min{0.15f};	///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
+		float n_max{0.5f};	///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
+		int32_t qmin{1};	///< minimum acceptable quality integer from the flow sensor when in air
+		int32_t qmin_gnd{0};	///< minimum acceptable quality integer from the flow sensor when on ground
+		float gate{3.0f};	///< optical flow fusion innovation consistency gate size (STD)
+	};
 
-	matrix::Vector3f gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
-	matrix::Vector2f vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<matrix::Vector2f> vel_body_lpf{};	///< filtered velocity from corrected flow measurement (body frame)(m/s)
-	matrix::Vector2f rate_compensated{};	///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-	AlphaFilter<matrix::Vector2f> rate_compensated_lpf{};
-	uint32_t counter{0};	///< number of flow samples read for initialization
+	Params params{};
 
-	// Sensor limits reported by the optical flow sensor
-	float max_rate{1.0f};		///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
-	float min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
-	float max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
+	~OpticalFlowSource() { delete _buffer; }
 
-	bool active{false};	///< true when flow fusion from this sensor is active
-	bool terrain{false};	///< true when flow fusion from this sensor is updating the terrain state
+	void setSlot(uint8_t slot) { _slot = slot; }
 
-	~OpticalFlowSource() { delete buffer; }
+	bool allocate(uint8_t buffer_length);
+
+	void setData(const estimator::flowSample &sample, uint64_t min_obs_interval_us, float dt_ekf_avg);
+
+	void setLimits(float max_flow_rate, float min_dist, float max_dist)
+	{
+		_max_rate = max_flow_rate;
+		_min_distance = min_dist;
+		_max_distance = max_dist;
+	}
+
+	void setPositionBody(const matrix::Vector3f &pos) { _pos_body = pos; }
+
+	bool update(Ekf &ekf, const estimator::imuSample &imu_delayed, bool allow_fusion);
+
+	void stop();
+
+private:
+	friend class Ekf;
+
+	void reset(Ekf &ekf);
+	void resetTerrain(Ekf &ekf);
+
+	void calcBodyRateComp(const matrix::Vector3f &ref_body_rate);
+
+	float calcOptFlowMeasVar(const estimator::flowSample &flow_sample) const;
+
+	TimestampedRingBuffer<estimator::flowSample> *_buffer{nullptr};
+	estimator::flowSample _sample_delayed{};
+
+	estimator_aid_source2d_s _aid_src{};
+
+	matrix::Vector3f _pos_body{};	///< xyz position of the sensor focal point in body frame (m)
+
+	matrix::Vector3f _gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
+	matrix::Vector2f _vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<matrix::Vector2f> _vel_body_lpf{};	///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	matrix::Vector2f _rate_compensated{};	///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
+	AlphaFilter<matrix::Vector2f> _rate_compensated_lpf{};
+	uint32_t _counter{0};	///< number of flow samples read for initialization
+
+	// Sensor limitations
+	float _max_rate{1.0f};		///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
+	float _min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
+	float _max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
+
+	bool _active{false};
+	bool _terrain{false};
+
+	uint8_t _slot{0};
 };
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW

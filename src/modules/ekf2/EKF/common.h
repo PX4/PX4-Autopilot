@@ -486,24 +486,6 @@ struct parameters {
 	float ekf2_grav_noise{1.0f};            ///< accelerometer measurement gaussian noise (m/s**2)
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// optical flow fusion (one set per sensor slot)
-	struct OpticalFlowParams {
-		int32_t ctrl {0};
-		int32_t gyr_src {static_cast<int32_t>(FlowGyroSource::Auto)};
-		float delay{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
-		float n_min{0.15f};             ///< observation noise for optical flow LOS rate measurements (rad/sec)
-		float n_max{0.5f};              ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
-		int32_t qmin{1};                ///< minimum acceptable quality integer from  the flow sensor
-		int32_t qmin_gnd{0};            ///< minimum acceptable quality integer from  the flow sensor when on ground
-		float gate{3.0f};               ///< optical flow fusion innovation consistency gate size (STD)
-
-		Vector3f pos_body{};            ///< xyz position of the optical flow focal point in body frame (m)
-	};
-
-	OpticalFlowParams of[MAX_OF_INSTANCES] {};
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 	// XYZ offset of sensors in body axes (m)
 	Vector3f imu_pos_body{};                ///< xyz position of IMU in body frame (m)
 

@@ -4,35 +4,13 @@ module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
-    EKF2_OF${i}_ID:
-      description:
-        short: Optical flow sensor ${i} ID
-        long: 'Device ID of the flow sensor bound to slot ${i}. Set to 0 to
-          automatically bind the first unbound sensor reporting data.'
-      type: int32
-      default: 0
-      reboot_required: true
-      num_instances: *max_num_of_instances
-      instance_start: 0
     EKF2_OF${i}_CTRL:
       description:
         short: Optical flow sensor ${i} aiding
-        long: Enable optical flow fusion for sensor slot ${i}.
+        long: Enable optical flow fusion for sensor slot ${i}. Enabling a slot
+          that was disabled at boot only takes effect after a reboot.
       type: boolean
       default: [1, 0]
-      num_instances: *max_num_of_instances
-      instance_start: 0
-    EKF2_OF${i}_DELAY:
-      description:
-        short: Optical flow sensor ${i} measurement delay relative to IMU
-        long: Assumes measurement is timestamped at trailing edge of integration period
-      type: float
-      default: 20
-      min: 0
-      max: 300
-      unit: ms
-      reboot_required: true
-      decimal: 1
       num_instances: *max_num_of_instances
       instance_start: 0
     EKF2_OF${i}_GATE:
@@ -103,35 +81,5 @@ parameters:
         0: Auto
         1: Internal
       default: 0
-      num_instances: *max_num_of_instances
-      instance_start: 0
-    EKF2_OF${i}_POS_X:
-      description:
-        short: X position of optical flow sensor ${i} focal point in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
-      num_instances: *max_num_of_instances
-      instance_start: 0
-    EKF2_OF${i}_POS_Y:
-      description:
-        short: Y position of optical flow sensor ${i} focal point in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
-      num_instances: *max_num_of_instances
-      instance_start: 0
-    EKF2_OF${i}_POS_Z:
-      description:
-        short: Z position of optical flow sensor ${i} focal point in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
-      type: float
-      default: 0.0
-      unit: m
-      decimal: 3
       num_instances: *max_num_of_instances
       instance_start: 0

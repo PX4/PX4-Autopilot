@@ -493,7 +493,17 @@ void Sensors::InitializeVehicleOpticalFlow()
 			uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow), i};
 
 			if (sensor_optical_flow_sub.advertised()) {
-				_vehicle_optical_flow[i] = new VehicleOpticalFlow(i, _flow_slot_binder);
+				// advertise all instances in index order so that uORB instance == SENS_FLOW<i> slot
+				if (!_vehicle_optical_flow_pubs_advertised) {
+					for (uint8_t slot = 0; slot < VehicleOpticalFlow::MAX_FLOW_INSTANCES; slot++) {
+						_vehicle_optical_flow_pubs.flow[slot].advertise();
+						_vehicle_optical_flow_pubs.flow_vel[slot].advertise();
+					}
+
+					_vehicle_optical_flow_pubs_advertised = true;
+				}
+
+				_vehicle_optical_flow[i] = new VehicleOpticalFlow(i, _flow_slot_binder, _vehicle_optical_flow_pubs);
 
 				if (_vehicle_optical_flow[i]) {
 					_vehicle_optical_flow[i]->Start();

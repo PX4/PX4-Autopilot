@@ -69,7 +69,19 @@ class VehicleOpticalFlow : public px4::ScheduledWorkItem
 public:
 	static constexpr uint8_t MAX_FLOW_INSTANCES = 2;
 
-	VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder);
+	// indexed by SENS_FLOW<i> slot, advertised in index order so that uORB instance == slot
+	struct Publications {
+		uORB::PublicationMulti<vehicle_optical_flow_s> flow[MAX_FLOW_INSTANCES] {
+			{ORB_ID(vehicle_optical_flow)},
+			{ORB_ID(vehicle_optical_flow)},
+		};
+		uORB::PublicationMulti<vehicle_optical_flow_vel_s> flow_vel[MAX_FLOW_INSTANCES] {
+			{ORB_ID(vehicle_optical_flow_vel)},
+			{ORB_ID(vehicle_optical_flow_vel)},
+		};
+	};
+
+	VehicleOpticalFlow(uint8_t instance, SensorSlotBinder &slot_binder, Publications &pubs);
 	~VehicleOpticalFlow() override;
 
 	bool Start();
@@ -92,8 +104,7 @@ private:
 
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
-	uORB::PublicationMulti<vehicle_optical_flow_s> _vehicle_optical_flow_pub{ORB_ID(vehicle_optical_flow)};
-	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _vehicle_optical_flow_vel_pub{ORB_ID(vehicle_optical_flow_vel)};
+	Publications &_pubs;
 
 	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 
@@ -101,7 +112,7 @@ private:
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
-	uORB::SubscriptionCallbackWorkItem _sensor_flow_sub{this, ORB_ID(sensor_optical_flow)};
+	uORB::SubscriptionCallbackWorkItem _sensor_flow_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub{this, ORB_ID(sensor_gyro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 
@@ -156,6 +167,10 @@ private:
 		param_t hmax{PARAM_INVALID};
 		param_t maxr{PARAM_INVALID};
 		param_t rate{PARAM_INVALID};
+		param_t delay{PARAM_INVALID};
+		param_t pos_x{PARAM_INVALID};
+		param_t pos_y{PARAM_INVALID};
+		param_t pos_z{PARAM_INVALID};
 	} _param_handles;
 
 	struct Params {
@@ -165,9 +180,11 @@ private:
 		float hmax{100.f};
 		float maxr{8.f};
 		float rate{70.f};
+		float delay{20.f};
+		matrix::Vector3f pos{};
 	} _params;
 
-	void UpdateParamSlot(uint32_t device_id);
+	bool UpdateParamSlot(uint32_t device_id);
 	void UpdateParameters();
 };
 }; // namespace sensors

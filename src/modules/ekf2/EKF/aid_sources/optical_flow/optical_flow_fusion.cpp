@@ -42,15 +42,14 @@
 #include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
 #include <ekf_derivation/generated/compute_flow_y_innov_var_and_h.h>
 
-bool Ekf::fuseOptFlow(const uint8_t slot, VectorState &H, const bool update_terrain)
+bool Ekf::fuseOptFlow(OpticalFlowSource &src, VectorState &H, const bool update_terrain)
 {
-	OpticalFlowSource &src = _flow_src[slot];
-	estimator_aid_source2d_s &aid_src = src.aid_src;
+	estimator_aid_source2d_s &_aid_src = src._aid_src;
 
 	const auto state_vector = _state.vector();
 
 	// if either axis fails we abort the fusion
-	if (aid_src.innovation_rejected) {
+	if (_aid_src.innovation_rejected) {
 		return false;
 	}
 
@@ -61,48 +60,48 @@ bool Ekf::fuseOptFlow(const uint8_t slot, VectorState &H, const bool update_terr
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
-			const float R_LOS = aid_src.observation_variance[1];
+			const float R_LOS = _aid_src.observation_variance[1];
 			const float epsilon = 1e-3f;
-			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &aid_src.innovation_variance[1], &H);
+			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &_aid_src.innovation_variance[1], &H);
 
 			// recalculate the innovation using the updated state
-			const Vector3f flow_gyro_corrected = src.sample_delayed.gyro_rate - src.gyro_bias;
-			aid_src.innovation[1] = predictFlow(slot, flow_gyro_corrected)(1) - static_cast<float>
-						(aid_src.observation[1]);
+			const Vector3f flow_gyro_corrected = src._sample_delayed.gyro_rate - src._gyro_bias;
+			_aid_src.innovation[1] = predictFlow(src._pos_body, flow_gyro_corrected)(1) - static_cast<float>
+						 (_aid_src.observation[1]);
 
 			// recalculate the test ratio as the measurement jacobian is highly non linear
 			// when close to the ground (singularity at 0) and the innovation can suddenly become really
 			// large and destabilize the filter
-			aid_src.test_ratio[1] = sq(aid_src.innovation[1]) / (sq(
-							_params.of[slot].gate) * aid_src.innovation_variance[1]);
+			_aid_src.test_ratio[1] = sq(_aid_src.innovation[1]) / (sq(
+							 src.params.gate) * _aid_src.innovation_variance[1]);
 
-			if (aid_src.test_ratio[1] > 1.f) {
+			if (_aid_src.test_ratio[1] > 1.f) {
 				continue;
 			}
 		}
 
-		if (aid_src.innovation_variance[index] < aid_src.observation_variance[index]) {
+		if (_aid_src.innovation_variance[index] < _aid_src.observation_variance[index]) {
 			// we need to reinitialise the covariance matrix and abort this fusion step
 			ECL_ERR("Opt flow error - covariance reset");
 			initialiseCovariance();
 			return false;
 		}
 
-		VectorState Kfusion = P * H / aid_src.innovation_variance[index];
+		VectorState Kfusion = P * H / _aid_src.innovation_variance[index];
 
 		if (!update_terrain) {
 			Kfusion(State::terrain.idx) = 0.f;
 		}
 
-		measurementUpdate(Kfusion, H, aid_src.observation_variance[index],
-				  aid_src.innovation[index]);
+		measurementUpdate(Kfusion, H, _aid_src.observation_variance[index],
+				  _aid_src.innovation[index]);
 	}
 
 	_fault_status.flags.bad_optflow_X = false;
 	_fault_status.flags.bad_optflow_Y = false;
 
-	aid_src.time_last_fuse = _time_delayed_us;
-	aid_src.fused = true;
+	_aid_src.time_last_fuse = _time_delayed_us;
+	_aid_src.fused = true;
 
 	_time_last_hor_vel_fuse = _time_delayed_us;
 
@@ -113,10 +112,10 @@ bool Ekf::fuseOptFlow(const uint8_t slot, VectorState &H, const bool update_terr
 	return true;
 }
 
-float Ekf::predictFlowHagl(const uint8_t slot) const
+float Ekf::predictFlowHagl(const Vector3f &sensor_pos_body) const
 {
 	// calculate the sensor position relative to the IMU
-	const Vector3f pos_offset_body = _params.of[slot].pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = sensor_pos_body - _params.imu_pos_body;
 
 	// calculate the sensor position relative to the IMU in earth frame
 	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
@@ -131,17 +130,17 @@ float Ekf::predictFlowHagl(const uint8_t slot) const
 
 	return fmaxf(height_above_gnd_est, min_hagl);
 }
-float Ekf::predictFlowRange(const uint8_t slot) const
+float Ekf::predictFlowRange(const Vector3f &sensor_pos_body) const
 {
 	// calculate range from focal point to centre of image
 	// absolute distance to the frame region in view
-	return predictFlowHagl(slot) / _R_to_earth(2, 2);
+	return predictFlowHagl(sensor_pos_body) / _R_to_earth(2, 2);
 }
 
-Vector2f Ekf::predictFlow(const uint8_t slot, const Vector3f &flow_gyro) const
+Vector2f Ekf::predictFlow(const Vector3f &sensor_pos_body, const Vector3f &flow_gyro) const
 {
 	// calculate the sensor position relative to the IMU
-	const Vector3f pos_offset_body = _params.of[slot].pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = sensor_pos_body - _params.imu_pos_body;
 
 	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: flow gyro is the negative of the body angular velocity, thus use minus sign
@@ -154,22 +153,22 @@ Vector2f Ekf::predictFlow(const uint8_t slot, const Vector3f &flow_gyro) const
 	const Vector2f vel_body = _state.quat_nominal.rotateVectorInverse(vel_rel_earth).xy();
 
 	// calculate range from focal point to centre of image
-	const float scale = _R_to_earth(2, 2) / predictFlowHagl(slot);
+	const float scale = _R_to_earth(2, 2) / predictFlowHagl(sensor_pos_body);
 
 	return Vector2f(vel_body(1) * scale, -vel_body(0) * scale);
 }
 
-float Ekf::calcOptFlowMeasVar(const uint8_t slot, const flowSample &flow_sample) const
+float OpticalFlowSource::calcOptFlowMeasVar(const flowSample &flow_sample) const
 {
 	// calculate the observation noise variance - scaling noise linearly across flow quality range
-	const float R_LOS_best = fmaxf(_params.of[slot].n_min, 0.05f);
-	const float R_LOS_worst = fmaxf(_params.of[slot].n_max, 0.05f);
+	const float R_LOS_best = fmaxf(params.n_min, 0.05f);
+	const float R_LOS_worst = fmaxf(params.n_max, 0.05f);
 
 	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
-	float weighting = (255.f - (float)_params.of[slot].qmin);
+	float weighting = (255.f - (float)params.qmin);
 
 	if (weighting >= 1.f) {
-		weighting = math::constrain((float)(flow_sample.quality - _params.of[slot].qmin) / weighting, 0.f, 1.f);
+		weighting = math::constrain((float)(flow_sample.quality - params.qmin) / weighting, 0.f, 1.f);
 
 	} else {
 		weighting = 0.0f;

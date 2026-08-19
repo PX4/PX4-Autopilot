@@ -99,7 +99,7 @@ Set the following parameters in _QGroundControl_:
 - Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) to `0.08`.
 - Set [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX) to `25`.
 - Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) to `7.4` to match the PAW3902 maximum angular flow rate.
-- The parameters [EKF2_OF0_POS_X](../advanced_config/parameter_reference.md#EKF2_OF0_POS_X), [EKF2_OF0_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF0_POS_Y) and [EKF2_OF0_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF0_POS_Z) can be set to account for the offset of the Ark Flow MR from the vehicle centre of gravity.
+- The parameters [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) and [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z) can be set to account for the offset of the Ark Flow MR from the vehicle centre of gravity.
 
 ## Ark Flow MR Configuration
 

@@ -262,7 +262,7 @@ Other PX4 parameters:
 - Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) the maximum angular flow rate of the sensor.
 - Enable optical flow fusion by setting [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL).
 - To disable GPS aiding (optional), set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
-- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [EKF2_OF0_POS_X](../advanced_config/parameter_reference.md#EKF2_OF0_POS_X), [EKF2_OF0_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF0_POS_Y) and [EKF2_OF0_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF0_POS_Z).
+- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) and [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z).
 
 Optical flow sensors require rangefinder data.
 However the rangefinder need not be part of the same module, and if not, may not be connected via DroneCAN.
