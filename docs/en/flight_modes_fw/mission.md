@@ -338,14 +338,14 @@ The parameters that affect flaring are listed below.
 
 ### Parachute Landing
 
-A mission landing can end in a parachute descent, releasing the parachute such that the vehicle touches down on the land waypoint.
+A mission landing can end in a parachute descent, releasing the parachute such that the vehicle touches down on the land waypoint ([MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND)).
 This allows recovery in areas where a rollout or belly landing is not possible.
 
-The feature is enabled with [FW_LND_PARA_EN](../advanced_config/parameter_reference.md#FW_LND_PARA_EN) and requires a [parachute](../peripherals/parachute.md), either on a flight controller output (_Parachute_ output function) or as an external MAVLink parachute system ([COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
+The feature is enabled with [FW_LND_PARA_EN](#FW_LND_PARA_EN) and requires a [parachute](../peripherals/parachute.md), either on a flight controller output (_Parachute_ output function) or as an external MAVLink parachute system ([COM_PARACHUTE](../advanced_config/parameter_reference.md#COM_PARACHUTE)).
 
-The vehicle follows the normal landing approach down to the release altitude ([FW_LND_PARA_ALT](../advanced_config/parameter_reference.md#FW_LND_PARA_ALT)), then continues level towards the land waypoint.
+The vehicle follows the normal landing approach down to the release altitude ([FW_LND_PARA_ALT](#FW_LND_PARA_ALT)), then continues level towards the land waypoint.
 The parachute is released by triggering [flight termination](../advanced_config/flight_termination.md) once the predicted touchdown point under canopy lies on the land waypoint.
-The prediction accounts for the forward carry while the parachute deploys, and the drift with the estimated wind while the vehicle sinks at [FW_LND_PARA_SINK](../advanced_config/parameter_reference.md#FW_LND_PARA_SINK).
+The prediction accounts for the forward carry while the parachute deploys, and the drift with the estimated wind while the vehicle sinks at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK).
 Crosswind is compensated by aiming upwind of the land waypoint.
 
 :::warning
@@ -357,7 +357,8 @@ Notes:
 
 - The touchdown point drifts with the wind, and the horizontal touchdown speed matches the wind speed.
   Accuracy and touchdown quality degrade as the wind approaches the landing airspeed ([COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX) can enforce a wind limit).
-- Lowering the release altitude reduces the wind drift, but the release never happens below 3 seconds of descent at [FW_LND_PARA_SINK](../advanced_config/parameter_reference.md#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
+- Lowering the release altitude reduces the wind drift.
+  For safety reasons, the release altitude is clamped to 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
 - A vehicle that cannot hold the release altitude (for example a motor-less glider) releases below the configured altitude, short of the land waypoint.
 - Not supported on VTOL.
 
