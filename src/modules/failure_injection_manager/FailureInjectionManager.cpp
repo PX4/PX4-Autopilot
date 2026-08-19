@@ -125,7 +125,7 @@ void FailureInjectionManager::evaluateRcInjection()
 			}
 		}
 
-		const bool triggered = value > 0.5f;
+		const bool triggered = PX4_ISFINITE(value) && value > 0.5f;
 
 		if (triggered && !_rc_active) {
 			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());

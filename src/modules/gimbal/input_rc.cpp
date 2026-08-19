@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2026 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -41,6 +41,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
+#include <lib/sticks/Sticks.hpp>
 
 namespace gimbal
 {
@@ -194,29 +195,9 @@ float InputRC::_get_aux_value(const manual_control_setpoint_s &manual_control_se
 		}
 	}();
 
-	switch (aux_channel) {
+	const float value = Sticks::getAuxValue(manual_control_setpoint, aux_channel);
 
-	case 1:
-		return manual_control_setpoint.aux1;
-
-	case 2:
-		return manual_control_setpoint.aux2;
-
-	case 3:
-		return manual_control_setpoint.aux3;
-
-	case 4:
-		return manual_control_setpoint.aux4;
-
-	case 5:
-		return manual_control_setpoint.aux5;
-
-	case 6:
-		return manual_control_setpoint.aux6;
-
-	default:
-		return 0.0f;
-	}
+	return PX4_ISFINITE(value) ? value : 0.0f;
 }
 
 void InputRC::print_status() const
