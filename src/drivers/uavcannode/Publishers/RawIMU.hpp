@@ -76,11 +76,16 @@ public:
 
 			uavcan::equipment::ahrs::RawIMU raw_imu{};
 
-			raw_imu.timestamp.usec = getNode().getUtcTime().toUSec() - (hrt_absolute_time() -
-						 vehicle_imu.timestamp_sample);
+			// Acquisition time in the bus shared time base. getUtcTime() is 0 until the
+			// time-sync master disciplines our clock, and the subtraction is unsigned, so
+			// publish UNKNOWN rather than underflow the truncated uint56 field.
+			const uint64_t bus_time_us = getNode().getUtcTime().toUSec();
+			const uint64_t sample_age_us = hrt_absolute_time() - vehicle_imu.timestamp_sample;
+			raw_imu.timestamp.usec = (bus_time_us > sample_age_us) ? (bus_time_us - sample_age_us) : 0;
 
-			raw_imu.integration_interval = vehicle_imu.delta_angle_dt;
-			// raw_imu.integration_interval = vehicle_imu.delta_velocity_dt;
+			// integration_interval is in seconds; vehicle_imu.delta_*_dt is in microseconds.
+			raw_imu.integration_interval = vehicle_imu.delta_angle_dt * 1e-6f;
+			// raw_imu.integration_interval = vehicle_imu.delta_velocity_dt * 1e-6f;
 
 			raw_imu.rate_gyro_latest[0] = (vehicle_imu.delta_angle[0] / vehicle_imu.delta_angle_dt) * 1000000;
 			raw_imu.rate_gyro_latest[1] = (vehicle_imu.delta_angle[1] / vehicle_imu.delta_angle_dt) * 1000000;

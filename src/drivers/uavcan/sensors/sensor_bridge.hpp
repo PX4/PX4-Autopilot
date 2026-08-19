@@ -39,6 +39,7 @@
 
 #include <containers/List.hpp>
 #include <uavcan/uavcan.hpp>
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_orb_dev.h>
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/uORB.h>
@@ -94,6 +95,23 @@ struct Channel {
 	void *h_driver{nullptr};
 	uint8_t iface_index{0};
 };
+
+// Nodes stamp their acquisition time in the bus shared time base, which the FC
+// seeds with its own HRT and then disciplines as time-sync master, so a synced
+// stamp is directly usable. A node whose clock is not yet disciplined, or one
+// stamping a foreign epoch, lands outside any plausible transport window; use
+// the receive time there rather than feeding a bogus sample time downstream.
+inline hrt_abstime sample_timestamp(uint64_t node_timestamp_us, hrt_abstime rx_time)
+{
+	static constexpr hrt_abstime kMaxTransportDelay = 100_ms;
+
+	if (node_timestamp_us > 0 && node_timestamp_us <= rx_time
+	    && (rx_time - node_timestamp_us) < kMaxTransportDelay) {
+		return static_cast<hrt_abstime>(node_timestamp_us);
+	}
+
+	return rx_time;
+}
 } // namespace uavcan_bridge
 
 /**
