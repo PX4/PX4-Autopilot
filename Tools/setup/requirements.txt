@@ -17,7 +17,7 @@ pkgconfig
 psutil
 pycryptodome
 pygments
-pymavlink
+pymavlink>=2.4.42
 pynacl
 pyros-genmsg
 pyserial

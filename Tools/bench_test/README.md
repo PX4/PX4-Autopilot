@@ -70,7 +70,8 @@ pip install -e "Tools/bench_test[ulog]"  # + pyulog for deep ULog verification
 ## Requirements
 
 - Python 3.8+.
-- Required: `pymavlink`, `pyserial` (`pip3 install --user pymavlink pyserial`).
+- Required: `pymavlink` >= 2.4.42 (ships the `mavftp` module), `pyserial`
+  (`pip3 install --user 'pymavlink>=2.4.42' pyserial`).
 - Optional: `pyulog` (deep .ulg verification; a magic-byte check is the
   fallback).
 
