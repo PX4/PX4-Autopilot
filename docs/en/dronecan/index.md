@@ -68,6 +68,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [Ark Dist MR](ark_dist_mr.md)
   - [ARK Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
+  - [Agam Flo Range Sensor](agam_flo-range.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
 - Grippers
@@ -75,6 +76,7 @@ Supported hardware includes (this is not an exhaustive list):
 - Optical Flow
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
+  - [Agam Flo Range Sensor](agam_flo-range.md)
 
 - Generic CAN Node (enables use of I2C, SPI, UART sensors on the CAN bus).
   - [ARK CANnode](../dronecan/ark_cannode.md)

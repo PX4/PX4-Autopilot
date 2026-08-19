@@ -72,7 +72,7 @@ Note that the range depends on the connected rangefinder
 [RaccoonLab Cyphal & DroneCAN µRANGEFINDER]: #raccoonlab-cyphal-and-dronecan-μrangefinder
 [RaccoonLab Cyphal & DroneCAN Rangefinder Adapter]: #raccoonlab-cyphal-and-dronecan-rangefinder-adapter
 
-Note that some [Optical Flow](../sensor/optical_flow.md) sensors also include a rangefinder, such as [ARK Flow](../dronecan/ark_flow.md) and [ARK Flow MR](../dronecan/ark_flow_mr.md).
+Note that some [Optical Flow](../sensor/optical_flow.md) sensors also include a rangefinder, such as [ARK Flow](../dronecan/ark_flow.md), [ARK Flow MR](../dronecan/ark_flow_mr.md), and [Agam Flo Range Sensor](../dronecan/agam_flo-range.md).
 
 ### ARK DIST SR & ARK DIST MR
 
