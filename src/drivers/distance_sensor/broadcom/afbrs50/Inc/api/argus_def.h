@@ -215,7 +215,6 @@ typedef enum argus_chip_version_t {
 
 } argus_chip_version_t;
 
-
 /*!***************************************************************************
  * @brief   The measurement mode flags.
  * @details The measurement mode flags that can be combined to a measurement
@@ -225,12 +224,17 @@ typedef enum argus_chip_version_t {
  *          - Bit 0: Short Range Mode
  *          - Bit 1: Long Range Mode
  *          - Bit 2: High Speed Mode
+ *          - Bit 3: High Precision Mode
+ *          - Bit 7: Laser Class 2 Mode
  *
  *          Note that the Long and Short Range Flags are mutual exclusive but
  *          any of those 2 must be set. Thus the value 0 is invalid!
- *          All other flags enhance the base configurations, e.g. the High
- *          Speed flag create the high speed mode of the selected base
- *          measurement mode.
+ *
+ *          All other flags enhance the base configurations, e.g.
+ *          - the High Speed flag create the high speed mode,
+ *          - the High Precision flag create the high precision mode and
+ *          - the Laser Class 2 flag extends the laser output to laser class 2
+ *          of the selected base measurement mode.
  *****************************************************************************/
 typedef enum argus_mode_flags_t {
 	/*! Measurement Mode Flag for Short Range Base Mode. */
@@ -240,7 +244,13 @@ typedef enum argus_mode_flags_t {
 	ARGUS_MODE_FLAG_LONG_RANGE = 0x01 << 1,
 
 	/*! Measurement Mode Flag for High Speed Mode. */
-	ARGUS_MODE_FLAG_HIGH_SPEED = 0x01 << 2
+	ARGUS_MODE_FLAG_HIGH_SPEED = 0x01 << 2,
+
+	/*! Measurement Mode Flag for High Precision Mode. */
+	ARGUS_MODE_FLAG_HIGH_PRECISION = 0x01 << 3,
+
+	/*! Measurement Mode Flag for Laser Class 2. */
+	ARGUS_MODE_FLAG_LASER_CLASS_2 = 0x01 << 7,
 
 } argus_mode_flags_t;
 
@@ -252,26 +262,52 @@ typedef enum argus_mode_flags_t {
  *          - Bit 0: Short Range Mode
  *          - Bit 1: Long Range Mode
  *          - Bit 2: High Speed Mode
+ *          - Bit 3: High Precision Mode (Short Range Mode only)
+ *          - Bit 7: Laser Class 2 (Type-B devices only)
  *
  *          Note that the Long and Short Range Bits are mutual exclusive but any
  *          of those 2 must be set. Thus the value 0 is invalid!
  *****************************************************************************/
 typedef enum argus_mode_t {
 	/*! Measurement Mode: Short Range Mode. */
-	ARGUS_MODE_SHORT_RANGE =                                // = 0x01 = 0b0001
+	ARGUS_MODE_SHORT_RANGE =
 		ARGUS_MODE_FLAG_SHORT_RANGE,
 
 	/*! Measurement Mode: Long Range Mode. */
-	ARGUS_MODE_LONG_RANGE =                                 // = 0x02 = 0b0010
+	ARGUS_MODE_LONG_RANGE =
 		ARGUS_MODE_FLAG_LONG_RANGE,
 
 	/*! Measurement Mode: High Speed Short Range Mode. */
-	ARGUS_MODE_HIGH_SPEED_SHORT_RANGE =                     // = 0x05 = 0b0101
+	ARGUS_MODE_HIGH_SPEED_SHORT_RANGE =
 		ARGUS_MODE_FLAG_SHORT_RANGE | ARGUS_MODE_FLAG_HIGH_SPEED,
 
 	/*! Measurement Mode: High Speed Long Range Mode. */
-	ARGUS_MODE_HIGH_SPEED_LONG_RANGE =                      // = 0x06 = 0b0110
+	ARGUS_MODE_HIGH_SPEED_LONG_RANGE =
 		ARGUS_MODE_FLAG_LONG_RANGE | ARGUS_MODE_FLAG_HIGH_SPEED,
+
+	/*! Measurement Mode: High Speed Short Range Mode. */
+	ARGUS_MODE_HIGH_PRECISION_SHORT_RANGE =
+		ARGUS_MODE_FLAG_SHORT_RANGE | ARGUS_MODE_FLAG_HIGH_PRECISION,
+
+	/*! Measurement Mode: Short Range Mode (Laser Class 2). */
+	ARGUS_MODE_SHORT_RANGE_LASER_CLASS_2 =
+		ARGUS_MODE_FLAG_SHORT_RANGE | ARGUS_MODE_FLAG_LASER_CLASS_2,
+
+	/*! Measurement Mode: Long Range Mode (Laser Class 2). */
+	ARGUS_MODE_LONG_RANGE_LASER_CLASS_2 =
+		ARGUS_MODE_FLAG_LONG_RANGE | ARGUS_MODE_FLAG_LASER_CLASS_2,
+
+	/*! Measurement Mode: High Speed Short Range Mode (Laser Class 2). */
+	ARGUS_MODE_HIGH_SPEED_SHORT_RANGE_LASER_CLASS_2 =
+		ARGUS_MODE_FLAG_SHORT_RANGE | ARGUS_MODE_FLAG_HIGH_SPEED | ARGUS_MODE_FLAG_LASER_CLASS_2,
+
+	/*! Measurement Mode: High Speed Long Range Mode (Laser Class 2). */
+	ARGUS_MODE_HIGH_SPEED_LONG_RANGE_LASER_CLASS_2 =
+		ARGUS_MODE_FLAG_LONG_RANGE | ARGUS_MODE_FLAG_HIGH_SPEED | ARGUS_MODE_FLAG_LASER_CLASS_2,
+
+	/*! Measurement Mode: High Speed Short Range Mode (Laser Class 2). */
+	ARGUS_MODE_HIGH_PRECISION_SHORT_RANGE_LASER_CLASS_2 =
+		ARGUS_MODE_FLAG_SHORT_RANGE | ARGUS_MODE_FLAG_HIGH_PRECISION | ARGUS_MODE_FLAG_LASER_CLASS_2,
 
 } argus_mode_t;
 

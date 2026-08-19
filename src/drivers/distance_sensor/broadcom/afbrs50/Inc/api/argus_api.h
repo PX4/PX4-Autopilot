@@ -59,6 +59,7 @@ extern "C" {
 #include "argus_res.h"
 #include "argus_pba.h"
 #include "argus_dfm.h"
+#include "argus_nd.h"
 #include "argus_snm.h"
 #include "argus_xtalk.h"
 #include "argus_offset.h"
@@ -504,6 +505,11 @@ status_t Argus_StartMeasurementTimer(argus_hnd_t *hnd,
  *          that have been started using the #Argus_StartMeasurementTimer
  *          function.
  *
+ *          Note that the function blocks until the current measurements are
+ *          finished before returning. This guarantees that the callback was
+ *          invoked and the #Argus_EvaluateData function may need to be called
+ *          in order to release the data buffer.
+ *
  * @param   hnd The API handle; contains all internal states and data.
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
@@ -567,6 +573,39 @@ status_t Argus_StopMeasurementTimer(argus_hnd_t *hnd);
  *****************************************************************************/
 status_t Argus_TriggerMeasurement(argus_hnd_t *hnd,
 				  argus_measurement_ready_callback_t cb);
+
+
+/*!****************************************************************************
+ * @brief   Starts the teach-in measurement mode.
+ *
+ * @details This function starts the teach-in measurement mode which maximizes
+ *          the laser output (within the limits of eye-safety) for better
+ *          visibility. This can be useful when aligning the sensor to a target
+ *          where the laser spot needs to be visible. This is mostly helpful
+ *          for the device variants with visible (red) lasers.
+ *
+ *          The teach-in measurement mode can (and should) be stopped using the
+ *          #Argus_StopTeachInMode function.
+ *
+ * @param   hnd The API handle; contains all internal states and data.
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_StartTeachInMode(argus_hnd_t *hnd);
+
+/*!****************************************************************************
+ * @brief   Stops the teach-in measurement mode.
+ *
+ * @details This function stops the teach-in measurement mode which maximizes
+ *          the laser output (within the limits of eye-safety) for better
+ *          visibility.
+ *
+ *          The teach-in measurement mode can be started using the
+ *          #Argus_StartTeachInMode function.
+ *
+ * @param   hnd The API handle; contains all internal states and data.
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_StopTeachInMode(argus_hnd_t *hnd);
 
 /*!***************************************************************************
  * @brief   Determines whether a data evaluation is pending.
@@ -1040,6 +1079,9 @@ status_t Argus_GetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
 /*!***************************************************************************
 * @brief    Sets the Crosstalk Monitor (XTM) mode to a specified device.
 *
+* @see      Argus_SetConfigurationCrosstalkMonitor for the full configuration
+*           of the crosstalk monitor.
+*
 * @param    hnd The API handle; contains all internal states and data.
 * @param    value The new XTM mode value (true: enabled; false: disabled).
 * @return   Returns the \link #status_t status\endlink (#STATUS_OK on success).
@@ -1049,6 +1091,9 @@ status_t Argus_SetConfigurationCrosstalkMonitorMode(argus_hnd_t *hnd,
 
 /*!***************************************************************************
 * @brief    Gets the Crosstalk Monitor (XTM) mode from a specified device.
+*
+* @see      Argus_GetConfigurationCrosstalkMonitor for the full configuration
+*           of the crosstalk monitor.
 *
 * @param    hnd The API handle; contains all internal states and data.
 * @param    value The current XTM mode value (true: enabled; false: disabled).
@@ -1076,6 +1121,27 @@ status_t Argus_SetConfigurationDynamicAdaption(argus_hnd_t *hnd,
  *****************************************************************************/
 status_t Argus_GetConfigurationDynamicAdaption(argus_hnd_t *hnd,
 		argus_cfg_dca_t *value);
+
+/*!***************************************************************************
+ * @brief   Sets the Noise Detectors feature configuration to a specified device.
+ *
+ * @param   hnd The API handle; contains all internal states and data.
+ * @param   value The new ND configuration set.
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_SetConfigurationNoiseDetectors(argus_hnd_t *hnd,
+		argus_cfg_nd_t const *value);
+
+/*!***************************************************************************
+ * @brief   Gets the Noise Detectors feature configuration from a specified device.
+ *
+ * @param   hnd The API handle; contains all internal states and data.
+ * @param   value The current ND configuration set value.
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_GetConfigurationNoiseDetectors(argus_hnd_t *hnd,
+		argus_cfg_nd_t *value);
+
 /*!***************************************************************************
  * @brief   Sets the pixel binning configuration parameters to a specified device.
  *
@@ -1095,6 +1161,32 @@ status_t Argus_SetConfigurationPixelBinning(argus_hnd_t *hnd,
  *****************************************************************************/
 status_t Argus_GetConfigurationPixelBinning(argus_hnd_t *hnd,
 		argus_cfg_pba_t *value);
+
+/*!***************************************************************************
+ * @brief   Sets the crosstalk monitor (XTM) configuration parameters to a specified device.
+ *
+ * @see     Argus_SetConfigurationCrosstalkMonitorMode for the simpler version
+ *          of the function to only change the crosstalk monitor mode.
+ *
+ * @param   hnd The API handle; contains all internal states and data.
+ * @param   value The new crosstalk monitor configuration parameters.
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_SetConfigurationCrosstalkMonitor(argus_hnd_t *hnd,
+		argus_cfg_xtm_t const *value);
+
+/*!***************************************************************************
+ * @brief   Gets the crosstalk monitor (XTM) configuration parameters from a specified device.
+ *
+ * @see     Argus_GetConfigurationCrosstalkMonitorMode for the simpler version
+ *          of the function to only change the crosstalk monitor mode.
+ *
+ * @param   hnd The API handle; contains all internal states and data.
+ * @param   value The current crosstalk monitor configuration parameters.
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_GetConfigurationCrosstalkMonitor(argus_hnd_t *hnd,
+		argus_cfg_xtm_t *value);
 
 /*!***************************************************************************
  * @brief   Gets the current unambiguous range in mm.
@@ -1267,6 +1359,10 @@ void Argus_GetPixelRangeOffsets_Callback(argus_cal_offset_table_t *offsets,
  *          range offset calibration sequence and generate the offset data.\n
  *          Units: msec.
  *
+ * @note    Since the range offset calibration is executed twice (once for
+ *          low and once for high laser power stages), the actual calibration
+ *          time will be twice as long as set by the sample time parameter.
+ *
  * @param   hnd The API handle; contains all internal states and data.
  * @param   value The new range offset calibration sequence sample time.
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
@@ -1279,6 +1375,10 @@ status_t Argus_SetCalibrationRangeOffsetSequenceSampleTime(argus_hnd_t *hnd, uin
  * @details Gets the measurement sample acquisition time for executing the
  *          range offset calibration sequence and generate the offset data.\n
  *          Units: msec.
+ *
+ * @note    Since the range offset calibration is executed twice (once for
+ *          low and once for high laser power stages), the actual calibration
+ *          time will be twice as long as set by the sample time parameter.
  *
  * @param   hnd The API handle; contains all internal states and data.
  * @param   value The current range offset calibration sequence sample time.
