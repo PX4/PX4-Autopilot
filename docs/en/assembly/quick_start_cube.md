@@ -193,7 +193,7 @@ If connecting peripherals to the port labeled `GPS2`, assign the PX4 [serial por
 
 ## Configuration
 
-Configuration is performed using [QGroundContro](https://qgroundcontrol.com/).
+Configuration is performed using [QGroundControl](https://qgroundcontrol.com/).
 
 After downloading, installing and running _QGroundControl_, connect the board to your computer as shown.
 
