@@ -158,7 +158,8 @@ void IIM20670::RunImpl()
 			_state = STATE::READ;
 			_read_start_timestamp = now;
 
-			if (DataReadyInterruptConfigure()) {
+			// the interrupt pin only toggles once the ODR clock is routed to it; otherwise poll
+			if (_odr_pin_configured && DataReadyInterruptConfigure()) {
 				_data_ready_interrupt_enabled = true;
 
 				// backup schedule as a watchdog timeout
@@ -298,10 +299,7 @@ bool IIM20670::Configure()
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
 
-	// route the 8 kHz internal ODR clock to pin 12 for data ready synchronization
-	if (_drdy_gpio != 0) {
-		ConfigureOdrPin();
-	}
+	_odr_pin_configured = (_drdy_gpio != 0) && ConfigureOdrPin();
 
 	// now check that all are configured
 	bool success = true;
@@ -377,15 +375,22 @@ void IIM20670::ManageAccelRange(bool clipping)
 	}
 }
 
-void IIM20670::ConfigureOdrPin()
+bool IIM20670::ConfigureOdrPin()
 {
-	// route a copy of the internal 8 kHz ODR clock to pin 12 (datasheet section 4.11)
+	// Datasheet section 4.11, in its order. Writes to 0x14 are staged and 0x14 reads back the
+	// routing in effect, so the second step on it carries bit 9 forward instead of trusting the
+	// read. 0x16 is the apply: it answers every read with an error status and its bit self-clears,
+	// so it is written without a read-modify-write.
 	RegisterSetBits(Register::BANK_3::ODR_CONFIG_3, Bit9);
 	RegisterSetBits(Register::BANK_3::ODR_CONFIG_6, Bit12);
-	RegisterSetAndClearBits(Register::BANK_3::ODR_CONFIG_1, 0x21 << 8, 0x3F << 8); // bits 13:8 = 0x21
-	RegisterSetAndClearBits(Register::BANK_3::ODR_CONFIG_2, 0x08 << 4, 0x0F << 4); // bits 7:4 = 0x08
-	RegisterSetBits(Register::BANK_3::ODR_CONFIG_3, Bit5);
-	RegisterSetBits(Register::BANK_3::ODR_CONFIG_5, Bit0);
+	RegisterSetAndClearBits(Register::BANK_3::ODR_CONFIG_1, 0x21 << 8, 0x3F << 8);
+	RegisterSetAndClearBits(Register::BANK_3::ODR_CONFIG_2, 0x08 << 4, 0x0F << 4);
+	RegisterSetBits(Register::BANK_3::ODR_CONFIG_3, Bit9 | Bit5);
+	RegisterWrite(Register::BANK_3::ODR_CONFIG_5, Bit0);
+
+	// 0x14 only shows both bits once the apply has taken
+	uint16_t odr_config_3 = 0;
+	return RegisterRead(Register::BANK_3::ODR_CONFIG_3, odr_config_3) && ((odr_config_3 & (Bit9 | Bit5)) == (Bit9 | Bit5));
 }
 
 bool IIM20670::ReadData(SensorData *data)

@@ -130,7 +130,7 @@ private:
 	bool Reset();
 
 	bool Configure();
-	void ConfigureOdrPin();
+	bool ConfigureOdrPin();
 
 	void ConfigureAccelRange(ACCEL_RANGE range);
 	void ManageAccelRange(bool clipping);
@@ -180,6 +180,7 @@ private:
 	uint16_t _last_register_bank{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	bool _odr_pin_configured{false};
 	bool _data_ready_interrupt_enabled{false};
 	uint8_t _drdy_count{0}; // only touched from the DRDY interrupt
 
