@@ -38,7 +38,7 @@ Different cable options are available too.
 
 ## Hardware Setup
 
-### Sensor setup
+### Sensor Setup
 
 For optimal performance, the antenna of the radar should be parallel to the surface of the earth during normal flight.
 The antenna is located directly behind the black plastic radome, so the black plastic surface should always be facing down.
