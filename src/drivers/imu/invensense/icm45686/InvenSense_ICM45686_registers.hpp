@@ -60,13 +60,16 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0xE9;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 128.f; // LSB/C (16 bit FIFO temperature)
+static constexpr float TEMPERATURE_SENSITIVITY = 128.f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
 
 namespace Register
 {
 
 enum class BANK_0 : uint8_t {
+	TEMP_DATA1_UI = 0x0c,
+	TEMP_DATA0_UI = 0x0d,
+
 	PWR_MGMT0 = 0x10,
 	FIFO_COUNT_0 = 0x12,
 	FIFO_COUNT_1 = 0x13,
@@ -247,28 +250,26 @@ namespace FIFO
 {
 static constexpr size_t SIZE = 8192;
 
+// 16-byte packet (accel + gyro, FIFO_HIRES_EN clear)
 struct DATA {
 	uint8_t FIFO_Header;
-	uint8_t ACCEL_DATA_XH; // Accel X [19:12]
-	uint8_t ACCEL_DATA_XL; // Accel X [11:4]
-	uint8_t ACCEL_DATA_YH; // Accel Y [19:12]
-	uint8_t ACCEL_DATA_YL; // Accel Y [11:4]
-	uint8_t ACCEL_DATA_ZH; // Accel Z [19:12]
-	uint8_t ACCEL_DATA_ZL; // Accel Z [11:4]
-	uint8_t GYRO_DATA_XH;  // Gyro X [19:12]
-	uint8_t GYRO_DATA_XL;  // Gyro X [11:4]
-	uint8_t GYRO_DATA_YH;  // Gyro Y [19:12]
-	uint8_t GYRO_DATA_YL;  // Gyro Y [11:4]
-	uint8_t GYRO_DATA_ZH;  // Gyro Z [19:12]
-	uint8_t GYRO_DATA_ZL;  // Gyro Z [11:4]
-	uint8_t TEMP_DATA_H;    // Temperature[15:8]
-	uint8_t TEMP_DATA_L;    // Temperature[7:0]
-	uint8_t Timestamp_H;   // Timestamp[15:8]
-	uint8_t Timestamp_L;   // Timestamp[7:0]
-	uint8_t HIGHRES_X_LSB; // Accel X LSB [3:0] Gyro X LSB [3:0]
-	uint8_t HIGHRES_Y_LSB; // Accel Y LSB [3:0] Gyro Y LSB [3:0]
-	uint8_t HIGHRES_Z_LSB; // Accel Z LSB [3:0] Gyro Z LSB [3:0]
+	uint8_t ACCEL_DATA_XH;
+	uint8_t ACCEL_DATA_XL;
+	uint8_t ACCEL_DATA_YH;
+	uint8_t ACCEL_DATA_YL;
+	uint8_t ACCEL_DATA_ZH;
+	uint8_t ACCEL_DATA_ZL;
+	uint8_t GYRO_DATA_XH;
+	uint8_t GYRO_DATA_XL;
+	uint8_t GYRO_DATA_YH;
+	uint8_t GYRO_DATA_YL;
+	uint8_t GYRO_DATA_ZH;
+	uint8_t GYRO_DATA_ZL;
+	uint8_t temperature;
+	uint8_t Timestamp_H;
+	uint8_t Timestamp_L;
 };
+static_assert(sizeof(DATA) == 16, "FIFO packet is 16 bytes without HIRES");
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
