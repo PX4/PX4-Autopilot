@@ -78,16 +78,13 @@ jobs:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v6
 
-      - name: Cache Python pip
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**./Tools/setup/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
+      # This job runs outside the build container, so it installs its own
+      # dependencies. It needs what the matrix generator actually reaches:
+      # yaml, kconfiglib via Tools/kconfig/loadconfig.py, and empy plus
+      # pyros-genmsg for the zenoh generator that loadconfig shells out to
+      # in ensure_env(). Everything else it runs is stdlib.
       - name: Install Python Dependencies
-        run: pip3 install -U packaging -r ./Tools/setup/requirements.txt
+        run: pip3 install pyyaml kconfiglib 'empy>=3.3,<4' pyros-genmsg
 
       # The generator runs as a standalone assignment so a non-zero exit
       # fails the step; embedded in `echo "x=$(...)"` it would be masked
