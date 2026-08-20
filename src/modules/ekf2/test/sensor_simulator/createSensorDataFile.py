@@ -4,9 +4,6 @@ import pandas as pd
 import csv
 import convertULogToSensorData as util
 
-path = "/home/kamil/Documents/QGroundControl/Logs/iris_vision.ulg"
-output_path = "/home/kamil/Documents/QGroundControl/Logs/sensor_data_iris_vision.csv"
-
 
 def get_arguments():
 	"""
@@ -31,72 +28,75 @@ def main() -> None:
 
 	try:
 		ulog = ULog(args.input_file)
-	except:
-		print("Could not find ulog file")
+	except Exception as e:
+		print("Could not read ulog file: {}: {}".format(type(e).__name__, e))
 		exit(-1)
 
 	try:
 		imu = util.getImuData(ulog)
 		print("IMU data detected")
 		table = pd.concat([table, imu], ignore_index=True, sort=False)
-	except:
-		print("IMU data not detected")
+	except Exception as e:
+		print("IMU data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		mag = util.getMagnetometerData(ulog)
 		print("Mag data detected")
 		table = pd.concat([table, mag], ignore_index=True, sort=False)
-	except:
-		print("Mag data not detected")
+	except Exception as e:
+		print("Mag data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		baro = util.getBarometerData(ulog)
 		print("Baro data detected")
 		table = pd.concat([table, baro], ignore_index=True, sort=False)
-	except:
-		print("Baro data not detected")
+	except Exception as e:
+		print("Baro data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		gps = util.getGpsData(ulog)
 		print("GPS data detected")
 		table = pd.concat([table, gps], ignore_index=True, sort=False)
-	except:
-		print("GPS data not detected")
+	except Exception as e:
+		print("GPS data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		airspeed = util.getAirspeedData(ulog)
 		print("Airspeed data detected")
 		table = pd.concat([table, airspeed], ignore_index=True, sort=False)
-	except:
-		print("Airspeed data not detected")
+	except Exception as e:
+		print("Airspeed data not detected: {}: {}".format(type(e).__name__, e))
 
+	# The optical flow has to be added before the range finder: the column order of the
+	# merged table defines the order of the values in the csv, which the C++ loader reads
+	# positionally.
 	try:
 		flow = util.getOpticalFlowData(ulog)
 		print("Flow data detected")
 		table = pd.concat([table, flow], ignore_index=True, sort=False)
-	except:
-		print("Flow data not detected")
+	except Exception as e:
+		print("Flow data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		range = util.getRangeFinderData(ulog)
 		print("Range data detected")
 		table = pd.concat([table, range], ignore_index=True, sort=False)
-	except:
-		print("Range data not detected")
+	except Exception as e:
+		print("Range data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		vio = util.getVioData(ulog)
 		print("VIO data detected")
 		table = pd.concat([table, vio], ignore_index=True, sort=False)
-	except:
-		print("VIO data not detected")
+	except Exception as e:
+		print("VIO data not detected: {}: {}".format(type(e).__name__, e))
 
 	try:
 		land = util.getVehicleLandingStatus(ulog)
 		print("Landing data detected")
 		table = pd.concat([table, land], ignore_index=True, sort=False)
-	except:
-		print("Landing data not detected")
+	except Exception as e:
+		print("Landing data not detected: {}: {}".format(type(e).__name__, e))
 
 	table = table.sort_values('timestamp', axis=0, ascending=True)
 	table['timestamp'] = table['timestamp'] - table['timestamp'].iloc[0]
@@ -116,8 +116,8 @@ def main() -> None:
 		with open(args.output_file, "w") as out_file:
 			csv_writer = csv.writer(out_file)
 			csv_writer.writerows(result)
-	except:
-		print("Could not write to specified output file")
+	except Exception as e:
+		print("Could not write to specified output file: {}: {}".format(type(e).__name__, e))
 
 
 if __name__ == '__main__':
