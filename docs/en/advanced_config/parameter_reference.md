@@ -34162,9 +34162,21 @@ select the transmission standard.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
-### OSD_CH_HEIGHT (`INT32`) {#OSD_CH_HEIGHT}
+### OSD_CH_POS_HOR (`INT32`) {#OSD_CH_POS_HOR}
 
-OSD Crosshairs Height.
+OSD Crosshairs Horizontal Position.
+
+Controls the horizontal position of the crosshair display.
+Resolution is limited by OSD to 15 discrete values. Negative
+values will display the crosshairs left of the center of the screen
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -8       | 8        |           | 0       |      | &nbsp;    |
+
+### OSD_CH_POS_VER (`INT32`) {#OSD_CH_POS_VER}
+
+OSD Crosshairs Vertical Position.
 
 Controls the vertical position of the crosshair display.
 Resolution is limited by OSD to 15 discrete values. Negative
@@ -34230,21 +34242,21 @@ Configure / toggle support display options.
 - `4`: GPS_SATS
 - `5`: GPS_SPEED
 - `6`: HOME_DIST
-- `7`: HOME_DIR
-- `8`: MAIN_BATT_VOLTAGE
+- `7`: (unused) HOME_DIR
+- `8`: (unused) MAIN_BATT_VOLTAGE
 - `9`: CURRENT_DRAW
 - `10`: MAH_DRAWN
 - `11`: RSSI_VALUE
 - `12`: ALTITUDE
-- `13`: NUMERICAL_VARIO
+- `13`: (unused) NUMERICAL_VARIO
 - `14`: (unused) FLYMODE
 - `15`: (unused) ESC_TMP
-- `16`: (unused) PITCH_ANGLE
-- `17`: (unused) ROLL_ANGLE
+- `16`: PITCH_ANGLE
+- `17`: ROLL_ANGLE
 - `18`: CROSSHAIRS
 - `19`: AVG_CELL_VOLTAGE
 - `20`: (unused) HORIZON_SIDEBARS
-- `21`: POWER
+- `21`: (unused) POWER
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
