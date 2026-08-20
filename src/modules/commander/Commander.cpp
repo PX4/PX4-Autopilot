@@ -725,6 +725,15 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 	}
 
+	// Capture a fresh home position on the ground before the motors spin (prop wash perturbs the
+	// baro), but only at a real mission start: skip a mid-mission re-arm (seq_current > 0) and any
+	// in-air re-arm.
+	if (_param_com_home_en.get() && !_config_overrides.disable_auto_set_home
+	    && _vehicle_land_detected.landed
+	    && (!_mission_in_progress || _mission_result_sub.get().seq_current == 0)) {
+		_home_position.setHomePosition();
+	}
+
 	_vehicle_status.armed_time = hrt_absolute_time();
 	_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
 	_vehicle_status.latest_arming_reason = (uint8_t)calling_reason;
@@ -732,10 +741,6 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
 			"Armed by {1}", calling_reason);
-
-	if (_param_com_home_en.get() && !_mission_in_progress && !_config_overrides.disable_auto_set_home) {
-		_home_position.setHomePosition();
-	}
 
 	_status_changed = true;
 
