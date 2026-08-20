@@ -58,6 +58,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
   Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
+- [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 
 ### Estimation
 
