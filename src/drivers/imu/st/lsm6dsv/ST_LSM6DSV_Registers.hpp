@@ -216,9 +216,9 @@ enum CTRL1_XL_HG_BIT : uint8_t {
 
 // The high-g accelerometer's full-scale. scale_mg_per_lsb is taken verbatim from the datasheet: it
 // is NOT range_g / 2^15, and the difference matters. The LSM6DSV80X ±80 g range is 3.904 mg/LSB, not
-// 2.44, so its counts saturate around 20492 and never reach the int16 rail. Clip detection therefore
-// has to come from range/scale, which is what PX4Accelerometer::UpdateClipLimit() does; code that
-// infers saturation from int16 will not see this channel clip.
+// 2.44, so its counts saturate around 20492 and never reach the int16 rail. PX4Accelerometer's FIFO
+// path flags clipping off the int16 rail (its range/scale _clip_limit only serves the non-FIFO
+// update()), so this channel's saturation is never reported as a clip.
 struct HighGFullScale {
 	uint8_t  fs_code;         // FS_XL_HG [2:0] register code
 	uint16_t range_g;         // ± full scale [g]
