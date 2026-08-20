@@ -159,6 +159,35 @@
 static uint8_t bl_type;
 static uint8_t last_input;
 
+#ifdef BOOTLOADER_USE_TOC
+
+/* Address where the TOC is being searched from and the maximum lenght. */
+static const uint8_t *_toc_buf;
+static size_t         _toc_buf_len;
+
+static inline void toc_buf_init_default(void)
+{
+	if (_toc_buf_len == 0) {
+		_toc_buf     = (const uint8_t *)APP_LOAD_ADDRESS;
+		_toc_buf_len = BOARD_FLASH_SIZE;
+	}
+}
+
+void bl_set_toc_buffer(const void *buf, size_t len)
+{
+	_toc_buf     = (const uint8_t *)buf;
+	_toc_buf_len = len;
+}
+
+/* Copy a TOC entry payload from `src` to `dst`. Default is plain memcpy.
+ * Override this in hw_config.h in case other functionality is needed. For example if
+ * the data needs to be loaded from a non-memory mapped media such as eMMC/SD card.
+ */
+#ifndef BL_TOC_ENTRY_COPY
+#  define BL_TOC_ENTRY_COPY(dst, src, len) (memcpy((dst), (src), (len)), 0)
+#endif
+#endif
+
 int get_version(int n, uint8_t *version_str)
 {
 	int len = strlen(BOOTLOADER_VERSION);
@@ -332,39 +361,68 @@ jump_to_app()
 	app_base = (const uint32_t *)0;
 	vec_base = (const uint32_t *)0;
 
+	toc_buf_init_default();
+
 	/* TOC not found or empty, stay in btl */
-	if (!find_toc(&toc_entries, &len)) {
+	if (!find_toc(_toc_buf, _toc_buf_len,
+		      &toc_entries, &len)) {
 		return;
 	}
 
 	/* Verify the first entry, containing the TOC itself */
-	if (!verify_app(0, toc_entries)) {
+	if (!verify_app(0, toc_entries, _toc_buf)) {
 		/* Image verification failed, stay in btl */
 		return;
 	}
 
-	/* TOC is verified, loop through all the apps and perform crypto ops */
+	/* TOC is verified, loop through all the apps and perform crypto ops.
+	 *
+	 * Two passes are required because a payload's signature is itself
+	 * a TOC entry (typically listed *after* the payload it signs) that
+	 * may need COPY-staging from external media before verify_app() can
+	 * hash it. A single forward pass would try to verify the payload
+	 * before its signature entry has been streamed in.
+	 *
+	 * Pass 1: COPY every TOC_FLAG1_COPY entry to its ->target. For
+	 *         classic XIP boards this is a memcpy (or a no-op if target
+	 *         == start); for boards that stream from external storage
+	 *         it materializes both payloads and signature blocks.
+	 *
+	 * Pass 2: CHECK_SIGNATURE -> DECRYPT -> BOOT/VTORS, in that order,
+	 *         so signatures are checked against the just-loaded bytes,
+	 *         we never operate on unauthenticated ciphertext, and a
+	 *         failed verify cannot hand off control.
+	 */
+
+	/* Pass 1: stage all COPY entries. */
 	for (i = 0; i < len; i++) {
-		/* Verify app, if needed. i == 0 is already verified */
+		if (toc_entries[i].flags1 & TOC_FLAG1_COPY) {
+			const size_t copy_len = (uintptr_t)toc_entries[i].end -
+						(uintptr_t)toc_entries[i].start;
+			(void)BL_TOC_ENTRY_COPY(toc_entries[i].target,
+						toc_entries[i].start, copy_len);
+		}
+	}
+
+	/* Pass 2: verify, decrypt, and pick boot/vtors targets. */
+	for (i = 0; i < len; i++) {
+		/* Verify app, if needed. i == 0 is already verified.
+		 * At this point any COPY entries (including signature
+		 * entries) have been staged to their target addresses, so
+		 * toc_entry_image_addr() returns those absolute pointers and
+		 * the base_addr argument is unused. */
 		if (i != 0 &&
 		    toc_entries[i].flags1 & TOC_FLAG1_CHECK_SIGNATURE &&
-		    !verify_app(i, toc_entries)) {
+		    !verify_app(i, toc_entries, NULL)) {
 			/* Signature check failed, don't process this app */
 			continue;
 		}
 
 		/* Check if this app needs decryption */
 		if (toc_entries[i].flags1 & TOC_FLAG1_DECRYPT &&
-		    !decrypt_app(i, toc_entries)) {
+		    !decrypt_app(i, toc_entries, NULL)) {
 			/* Decryption / authenticated decryption failed, skip this app */
 			continue;
-		}
-
-		/* Check if this app needs to be copied to RAM */
-		if (toc_entries[i].flags1 & TOC_FLAG1_COPY) {
-			/* TOC is verified, so we assume that the addresses are good */
-			memcpy(toc_entries[i].target, toc_entries[i].start,
-			       (uintptr_t)toc_entries[i].end - (uintptr_t)toc_entries[i].start);
 		}
 
 		/* Check if this app is bootable, if so set the app_base */
@@ -630,6 +688,10 @@ bootloader(unsigned timeout)
 
 	/* (re)start the timer system */
 	arch_systic_init();
+
+#ifdef BOOTLOADER_USE_TOC
+	toc_buf_init_default();
+#endif
 
 	/* if we are working with a timeout, start it running */
 	if (timeout) {
@@ -1051,6 +1113,7 @@ bootloader(unsigned timeout)
 		// one for this opcode, so the uploader's unconditional probe never
 		// disturbs the command stream before BOOT.
 		case PROTO_VERIFY_SIG:
+#	ifndef BOOTLOADER_SKIP_VERIFY_SIG
 			if (!wait_for_eoc(2)) {
 				goto cmd_bad;
 			}
@@ -1086,8 +1149,9 @@ bootloader(unsigned timeout)
 
 				crypto_init();
 
-				if (!find_toc(&toc_entries, &toc_len) ||
-				    !verify_app(0, toc_entries)) {
+				if (!find_toc(_toc_buf, _toc_buf_len,
+					      &toc_entries, &toc_len) ||
+				    !verify_app(0, toc_entries, _toc_buf)) {
 					crypto_deinit();
 					goto cmd_fail;
 				}
@@ -1095,6 +1159,7 @@ bootloader(unsigned timeout)
 				crypto_deinit();
 			}
 
+#	endif //BOOTLOADER_SKIP_VERIFY_SIG
 			break;
 #endif
 
