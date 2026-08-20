@@ -897,8 +897,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								}
 
 							} else {
-								PX4_ERR("External Mag: %d (%" PRIu32 ")), determining rotation failed", cur_mag,
-									worker_data.calibration[cur_mag].device_id());
+								calibration_log_critical(mavlink_log_pub, "Compass %d rotation unverified, check CAL_MAG%d_ROT", cur_mag, cur_mag);
 								print_all_mse = true;
 							}
 
