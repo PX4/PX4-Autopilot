@@ -3,6 +3,8 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+set LOGGER_BUF 128
+
 # Mavlink ethernet (CFG 1000)
 param set-default MAV_2_CONFIG 1000
 param set-default MAV_2_BROADCAST 1
