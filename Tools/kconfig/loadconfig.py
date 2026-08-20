@@ -46,10 +46,18 @@ def ensure_env():
     atexit.register(shutil.rmtree, out_dir, ignore_errors=True)
     msg_files = sorted(glob.glob(os.path.join(PX4_ROOT, 'msg', '*.msg')) +
                        glob.glob(os.path.join(PX4_ROOT, 'msg', 'versioned', '*.msg')))
-    # stdout must stay clean: several callers print machine-parsed output
-    subprocess.run([sys.executable, _ZENOH_GENERATOR, '--zenoh-config',
-                    '-f'] + msg_files + ['-o', out_dir, '-e', _ZENOH_TEMPLATES],
-                   check=True, stdout=subprocess.DEVNULL)
+    # stdout must stay clean: several callers print machine-parsed output.
+    # Capture rather than discard it, because the generator reports missing
+    # imports on stdout; discarding left a CalledProcessError whose argv dump
+    # (every .msg path, ~9kB on one line) buried the actual cause.
+    result = subprocess.run([sys.executable, _ZENOH_GENERATOR, '--zenoh-config',
+                             '-f'] + msg_files + ['-o', out_dir, '-e', _ZENOH_TEMPLATES],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        detail = ((result.stdout or '') + (result.stderr or '')).strip()
+        sys.exit('loadconfig: {} failed (exit {})\n{}'.format(
+            os.path.basename(_ZENOH_GENERATOR), result.returncode,
+            detail or '(no output)'))
     os.environ['ZENOH_KCONFIG_TOPICS'] = os.path.join(out_dir, 'Kconfig.topics')
 
 
