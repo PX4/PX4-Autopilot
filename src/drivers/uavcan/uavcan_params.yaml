@@ -65,8 +65,7 @@ parameters:
     UAVCAN_ECU_MAXF${i}:
       description:
         short: Fuel tank ${i} maximum capacity
-        long: Maximum fuel capacity of fuel tank ${i},
-          matched by fuel_tank_id.
+        long: Maximum fuel capacity of fuel tank ${i}.
       type: float
       num_instances: 3
       instance_start: 1

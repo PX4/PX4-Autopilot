@@ -90,9 +90,7 @@ void UavcanFuelTankStatusBridge::fuel_tank_status_sub_cb(const
 	// Optional temperature field, in Kelvin, set to NaN if not provided.
 	report.temperature = !PX4_ISFINITE(msg.fuel_temperature) ? NAN : msg.fuel_temperature;
 
-	// Use fuel_tank_id as the channel key so each tank gets its own uORB instance,
-	// independent of which CAN node sent the message.
-	publish(msg.fuel_tank_id, &report);
+	_fuel_tank_status_pub[msg.fuel_tank_id].publish(report);
 }
 
 int UavcanFuelTankStatusBridge::init_driver(uavcan_bridge::Channel *channel)

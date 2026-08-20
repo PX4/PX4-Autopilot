@@ -42,6 +42,7 @@
 #include "sensor_bridge.hpp"
 #include <uavcan/equipment/ice/FuelTankStatus.hpp>
 
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/fuel_tank_status.h>
 
 class UavcanFuelTankStatusBridge : public UavcanSensorBridgeBase
@@ -71,4 +72,8 @@ private:
 	static constexpr uint8_t MAX_INSTANCES = fuel_tank_status_s::MAX_INSTANCES;
 	float _max_fuel_capacity[MAX_INSTANCES] {};
 	int32_t _fuel_type{fuel_tank_status_s::MAV_FUEL_TYPE_UNKNOWN};
+
+	uORB::PublicationMulti<fuel_tank_status_s> _fuel_tank_status_pub[MAX_INSTANCES] {
+		ORB_ID(fuel_tank_status), ORB_ID(fuel_tank_status), ORB_ID(fuel_tank_status)
+	};
 };
