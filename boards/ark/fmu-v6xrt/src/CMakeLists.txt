@@ -60,7 +60,6 @@ else()
 	endif()
 
 	px4_add_library(drivers_board
-		automount.c
 		#can.c
 		i2c.cpp
 		init.c

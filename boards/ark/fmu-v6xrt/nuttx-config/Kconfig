@@ -3,18 +3,6 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
-choice
-	prompt "Boot Flash"
-	default ARKV6XRT_QSPI_FLASH
-
-config ARKV6XRT_HYPER_FLASH
-	bool "HYPER Flash"
-
-config ARKV6XRT_QSPI_FLASH
-	bool "QSPI Flash"
-
-endchoice # Boot Flash
-
 config BOARD_HAS_PROBES
 	bool "Board provides GPIO or other Hardware for signaling to timing analyze."
 	default y

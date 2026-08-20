@@ -103,16 +103,4 @@ __EXPORT void imxrt_ocram_initialize(void)
 	for (dest = &_sdtcm; dest < &_edtcm;) {
 		*dest++ = 0;
 	}
-
-#if defined(CONFIG_BOOT_RUNFROMISRAM)
-	const uint32_t *src;
-	uint32_t *dest;
-
-	for (src = (uint32_t *)(LOCATE_IN_SRC(g_boot_data.start) + g_boot_data.size),
-	     dest = (uint32_t *)(g_boot_data.start + g_boot_data.size);
-	     dest < (uint32_t *) &_etext;) {
-		*dest++ = *src++;
-	}
-
-#endif
 }

@@ -291,8 +291,8 @@
 #define HW_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE | IOMUX_SLEW_FAST)
 
 #define GPIO_HW_VER_REV_DRIVE /* GPIO_GPIO_EMC_B1_26 GPIO1_IO26   */  (GPIO_PORT1 | GPIO_PIN26 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | HW_IOMUX)
-#define GPIO_HW_REV_SENSE     /* GPIO_AD_22 GPIO9 Pin 21 */  ADC_GPIO(4, 21)
-#define GPIO_HW_VER_SENSE     /* GPIO_AD_23 GPIO9 Pin 22 */  ADC_GPIO(5, 22)
+#define GPIO_HW_REV_SENSE     /* GPIO_AD_23 GPIO3 Pin 22 */  ADC_GPIO(5, 22)
+#define GPIO_HW_VER_SENSE     /* GPIO_AD_22 GPIO3 Pin 21 */  ADC_GPIO(4, 21)
 #define HW_INFO_INIT_PREFIX   "ARKV6XRT"
 
 #define BOARD_I2C_LATEINIT 1 /* See Note about SE050 Enable */
@@ -431,12 +431,6 @@
 #define GPIO_FLEXSPI2_IO1     (GPIO_FLEXSPI2_A_DATA1_1|IOMUX_FLEXSPI_DEFAULT) /* SIN */
 #define GPIO_FLEXSPI2_SCK     (GPIO_FLEXSPI2_A_SCLK_1|IOMUX_FLEXSPI_CLK_DEFAULT)
 
-/* PWM input driver. Use FMU AUX5 pins attached to GPIO_EMC_B1_08 GPIO1_IO8 FLEXPWM2_PWM1_A */
-
-#define PWMIN_TIMER            /* FLEXPWM2_PWM1_A */  2
-#define PWMIN_TIMER_CHANNEL    /* FLEXPWM2_PWM1_A */  1
-#define GPIO_PWM_IN            /* GPIO_EMC_B1_08 GPIO1_IO8 */ (GPIO_FLEXPWM3_PWMA02_1 | GENERAL_INPUT_IOMUX)
-
 /* Safety Switch is HW version dependent on having an PX4IO
  * So we init to a benign state with the _INIT definition
  * and provide the the non _INIT one for the driver to make a run time
@@ -573,7 +567,6 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-#define PX4_I2C_BUS_MTD      1
 
 __BEGIN_DECLS
 
