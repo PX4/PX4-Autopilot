@@ -89,6 +89,8 @@ then
 
 	# Internal SPI3 LSM6DSV80X Accel/Gyro (mounted at 45deg, pin 1 bottom-left)
 	lsm6dsv -R 1 -b 3 -s -T 80 start
+else
+	echo "ERROR [init] unsupported FMU hwtype, internal IMUs not started"
 fi
 
 # Internal magnetometer IIS2MDC on I2C3
