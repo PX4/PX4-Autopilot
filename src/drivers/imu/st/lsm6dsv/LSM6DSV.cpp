@@ -337,8 +337,7 @@ void LSM6DSV::RunImpl()
 
 			} else {
 				// FIFO unread word count: 9-bit field (FIFO_STATUS2 bit0 is bit8)
-				// Each sample period produces _fifo_words_per_period words
-				// (gyro + low-g, plus high-g on the LSM6DSV80X / LSM6DSV320X)
+				// Each sample period produces _fifo_words_per_period words (gyro + one accel channel)
 				uint16_t fifo_words = fifo_status.STATUS1;
 
 				if (fifo_status.STATUS2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::DIFF_FIFO_8)) {
@@ -428,14 +427,14 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 	_high_g_enabled = (_hg_fs != nullptr);
 
 	if (_high_g_enabled) {
-		// 7.68 kHz (HAODR_SEL=00), with the high-g channel co-batched into the FIFO
+		// 7.68 kHz (HAODR_SEL=00), batching the high-g channel in place of the low-g one
 		_sensor_odr = GYRO_ODR_HIGHG;
-		_fifo_words_per_period = 3; // gyro + low-g + high-g
 
 	} else {
 		_sensor_odr = GYRO_ODR;
-		_fifo_words_per_period = 2; // gyro + low-g
 	}
+
+	_fifo_words_per_period = 2; // gyro + the published accel channel
 
 	_fifo_sample_dt = 1e6f / (float)_sensor_odr;
 
@@ -490,9 +489,17 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 			break;
 
 		case Register::FIFO_CTRL3: // FIFO batch data rate (accel + gyro)
-			r.set_bits = _high_g_enabled
-				     ? static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680 | FIFO_CTRL3_BIT::BDR_XL_7680)
-				     : static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
+
+			// The high-g channel batches at its own ODR under XL_HG_BATCH_EN, so the low-g channel
+			// is left unbatched (BDR_XL = 0) where the high-g one is published.
+			if (_high_g_enabled) {
+				r.set_bits = static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680);
+				r.clear_bits = static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_XL_MASK);
+
+			} else {
+				r.set_bits = static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
+			}
+
 			break;
 
 		case Register::COUNTER_BDR_REG1: // high-g FIFO batching
@@ -632,8 +639,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	accel.samples = 0;
 	accel.dt = _fifo_sample_dt;
 
-	// On the 80X / 320X the high-g channel is the accelerometer; the low-g words are still batched
-	// by the FIFO (the high-g channel is enabled alongside it) but nothing consumes them.
+	// On the 80X / 320X the high-g channel is the accelerometer and the only one batched
 	const uint8_t accel_tag = static_cast<uint8_t>(_high_g_enabled ? FifoTag::ACCEL_HG : FifoTag::ACCEL_NC);
 
 	// set if the tag stream carries more samples of a channel than the drain should have produced
@@ -773,7 +779,7 @@ bool LSM6DSV::DataReadyInterruptDisable()
 
 void LSM6DSV::ConfigureFIFOWatermark(uint8_t samples)
 {
-	// _fifo_words_per_period FIFO words per sample period (gyro + low-g, plus high-g on the 80X).
+	// _fifo_words_per_period FIFO words per sample period (gyro + one accel channel).
 	// WTM is the 8-bit FIFO_CTRL1 field; samples is capped at FIFO_MAX_SAMPLES (32) so this fits.
 	const uint8_t fifo_watermark = samples * _fifo_words_per_period;
 
