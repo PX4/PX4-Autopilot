@@ -897,8 +897,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								}
 
 							} else {
-								PX4_ERR("External Mag: %d (%" PRIu32 ")), determining rotation failed", cur_mag,
-									worker_data.calibration[cur_mag].device_id());
+								calibration_log_critical(mavlink_log_pub, "[cal] External Mag: %d (%" PRIu32 "), determining rotation failed",
+											 cur_mag, worker_data.calibration[cur_mag].device_id());
 								print_all_mse = true;
 							}
 
