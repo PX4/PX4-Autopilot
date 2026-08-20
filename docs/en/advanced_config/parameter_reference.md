@@ -25749,6 +25749,18 @@ disables trim throttle and minimum airspeed compensation based on weight.
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          | 0.5       | -1.0    | kg   | &nbsp;    |
 
+### WEIGHT_FUEL (`FLOAT`) {#WEIGHT_FUEL}
+
+Mass of a full fuel load.
+
+If set together with WEIGHT_BASE and WEIGHT_GROSS, the weight used for
+performance scaling is reduced by the burned fuel reported in the fuel tank status.
+Only a single fuel tank is supported. A zero or negative value disables fuel-based weight compensation.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          | 0.1       | -1.0    | kg   | &nbsp;    |
+
 ### WEIGHT_GROSS (`FLOAT`) {#WEIGHT_GROSS}
 
 Vehicle gross weight.
@@ -25756,6 +25768,7 @@ Vehicle gross weight.
 This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
 or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
 disables trim throttle and minimum airspeed compensation based on weight.
+If fuel-based weight compensation is enabled (WEIGHT_FUEL), set this to the takeoff weight with a full fuel load.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26298,6 +26311,27 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### SYS_FAIL_GPS_JAM (`INT32`) {#SYS_FAIL_GPS_JAM}
+
+GPS Wrong-failure jamming state.
+
+GNSS jamming state reported by the addressed receiver while a GPS 'wrong'
+failure injection is active. The reported position is left untouched, so
+'Detected' simulates a receiver that still delivers a valid fix while
+reporting interference. Leave at 'Unchanged' to keep the simulated
+receiver's own jamming state.
+
+**Values:**
+
+- `0`: Unchanged
+- `1`: OK
+- `2`: Mitigated
+- `3`: Detected
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0       |      | &nbsp;    |
 
 ### SYS_FAIL_GPS_WRG (`INT32`) {#SYS_FAIL_GPS_WRG}
 
