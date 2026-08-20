@@ -111,7 +111,7 @@ See [Using PX4's Navigation Filter (EKF2) > Optical flow](../advanced_config/tun
 
 ## Simulation
 
-Optical flow can be simulated with [SIH](../sim_sih/index.md), which computes the flow from the simulated vehicle motion instead of rendering a camera image.
+Optical flow can be simulated with [SIH](../sim_sih/index.md), which computes the flow from the simulated vehicle motion (instead of from a rendered camera image).
 As with real hardware, the simulated sensor reports the integrated flow only, so a downward facing [distance sensor](../sensor/rangefinders.md) has to be simulated alongside it — SIH provides one.
 
 Two ready-made airframes have flow enabled and the estimator configured for it:
