@@ -21,6 +21,9 @@ then
 	param set-default HEATER1_SENS_ID 1572890
 fi
 
+param set-default RC_CRSF_PRT_CFG 300
+param set-default RC_SBUS_PRT_CFG 0
+
 safety_button start
 
 if param greater -s UAVCAN_ENABLE 0
