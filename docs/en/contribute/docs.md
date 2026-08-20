@@ -56,7 +56,7 @@ The instructions below explain how to get git and use it on your local computer.
 
 1. Download git for your computer from [https://git-scm.com/downloads/](https://git-scm.com/downloads/)
 2. [Sign up](https://github.com/signup) for Github if you haven't already
-3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
+3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/how-tos/work-with-forks/fork-a-repo)).
 4. Clone (copy) your forked repository to your local computer:
 
    ```sh

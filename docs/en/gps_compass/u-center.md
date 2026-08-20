@@ -1,5 +1,7 @@
 # u-blox Diagnostics with u-center
 
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 [u-center](https://www.u-blox.com/en/product/u-center) is u-blox's desktop tool for monitoring a receiver's live satellite, signal, and position data, and for reading and writing its configuration.
 
 Setting [GPS_UBX_MODE](#GPS_UBX_MODE) to `7` configures a u-blox receiver's `UART2` as a UBX diagnostic port for [u-center](https://www.u-blox.com/en/product/u-center), while the receiver continues to serve the autopilot on `UART1` (as usual).
