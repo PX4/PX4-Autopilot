@@ -116,6 +116,7 @@ private:
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
 	systemlib::Hysteresis _minimum_thrust_8s_hysteresis{false};
+	systemlib::Hysteresis _imu_at_rest_hysteresis{false};
 
 	bool _dist_bottom_is_observable{false}; ///< there was a valid distance to bottom estimate before so we have a downwards facing distance sensor
 
@@ -132,7 +133,8 @@ private:
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
-		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect
+		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect,
+		(ParamFloat<px4::params::LNDMC_REST_ROT>)   _param_lndmc_rest_rot
 	);
 };
 

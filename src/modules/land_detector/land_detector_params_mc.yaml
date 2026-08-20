@@ -43,3 +43,18 @@ parameters:
       unit: m
       min: -1
       decimal: 2
+    LNDMC_REST_ROT:
+      description:
+        short: Multicopter at-rest rotational speed threshold
+        long: |-
+          If the norm of the angular velocity stays below this threshold for one second
+          while the throttle is low, the vehicle is considered at rest and the
+          velocity-based movement checks are overridden. This allows land detection when
+          the velocity estimate is corrupted by ground contact effects (e.g. barometric
+          disturbance from rotor wash at touchdown), which otherwise blocks disarming.
+          Set to 0 to disable.
+      type: float
+      default: 8.0
+      unit: deg/s
+      min: 0
+      decimal: 1

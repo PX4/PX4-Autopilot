@@ -81,6 +81,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 	_minimum_thrust_8s_hysteresis.set_hysteresis_time_from(false, 8_s);
+	_imu_at_rest_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_freefall_hysteresis.set_hysteresis_time_from(false, 300_ms);
 }
 
@@ -115,6 +116,10 @@ void MulticopterLandDetector::_update_topics()
 	if (_takeoff_status_sub.update(&takeoff_status)) {
 		_takeoff_state = takeoff_status.takeoff_state;
 	}
+
+	const bool gyro_quiet = (_param_lndmc_rest_rot.get() > 0.f)
+				&& (_angular_velocity.norm() < math::radians(_param_lndmc_rest_rot.get()));
+	_imu_at_rest_hysteresis.set_state_and_update(gyro_quiet, hrt_absolute_time());
 
 	// Update distance sensor observability
 	if (!_dist_bottom_is_observable) {
@@ -258,7 +263,14 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
 	_close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
 
-	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
+	// An IMU that has been quiet for over a second contradicts any sustained velocity estimate:
+	// barometric disturbance from rotor wash at touchdown can corrupt vz enough to block land
+	// detection (and thus disarming), especially without GNSS aiding.
+	if (_has_low_throttle && _imu_at_rest_hysteresis.get_state()) {
+		_vertical_movement = false;
+		_horizontal_movement = false;
+	}
+
 	return !_armed ||
 	       (_close_to_ground_or_skipped_check && ground_contact
 		&& !_horizontal_movement && !_vertical_movement);
