@@ -65,7 +65,6 @@
 *(.text._ZN7Mavlink15get_free_tx_bufEv)
 *(.text.nx_poll)
 *(.text._ZN15MavlinkReceiver3runEv)
-*(.text._ZN9ICM42688P18ProcessTemperatureEPKN20InvenSense_ICM42688P4FIFO4DATAEh)
 *(.text._ZN15OutputPredictor19correctOutputStatesEyRKN6matrix10QuaternionIfEERKNS0_7Vector3IfEERK9LatLonAltS8_S8_)
 *(.text._ZN3Ekf12predictStateERKN9estimator9imuSampleE)
 *(.text._ZN3px46logger6Logger3runEv)
