@@ -390,30 +390,26 @@ namespace FIFO
 static constexpr size_t SIZE = 2048;
 
 // FIFO_DATA layout when FIFO_CONFIG1 has FIFO_GYRO_EN and FIFO_ACCEL_EN set
-
-// Packet 4
+// Packet 3 (16-bit, no FIFO_HIRES_EN)
 struct DATA {
 	uint8_t FIFO_Header;
-	uint8_t ACCEL_DATA_X1; // Accel X [19:12]
-	uint8_t ACCEL_DATA_X0; // Accel X [11:4]
-	uint8_t ACCEL_DATA_Y1; // Accel Y [19:12]
-	uint8_t ACCEL_DATA_Y0; // Accel Y [11:4]
-	uint8_t ACCEL_DATA_Z1; // Accel Z [19:12]
-	uint8_t ACCEL_DATA_Z0; // Accel Z [11:4]
-	uint8_t GYRO_DATA_X1;  // Gyro X [19:12]
-	uint8_t GYRO_DATA_X0;  // Gyro X [11:4]
-	uint8_t GYRO_DATA_Y1;  // Gyro Y [19:12]
-	uint8_t GYRO_DATA_Y0;  // Gyro Y [11:4]
-	uint8_t GYRO_DATA_Z1;  // Gyro Z [19:12]
-	uint8_t GYRO_DATA_Z0;  // Gyro Z [11:4]
-	uint8_t TEMP_DATA1;    // Temperature[15:8]
-	uint8_t TEMP_DATA0;    // Temperature[7:0]
+	uint8_t ACCEL_DATA_X1; // Accel X [15:8]
+	uint8_t ACCEL_DATA_X0; // Accel X [7:0]
+	uint8_t ACCEL_DATA_Y1; // Accel Y [15:8]
+	uint8_t ACCEL_DATA_Y0; // Accel Y [7:0]
+	uint8_t ACCEL_DATA_Z1; // Accel Z [15:8]
+	uint8_t ACCEL_DATA_Z0; // Accel Z [7:0]
+	uint8_t GYRO_DATA_X1;  // Gyro X [15:8]
+	uint8_t GYRO_DATA_X0;  // Gyro X [7:0]
+	uint8_t GYRO_DATA_Y1;  // Gyro Y [15:8]
+	uint8_t GYRO_DATA_Y0;  // Gyro Y [7:0]
+	uint8_t GYRO_DATA_Z1;  // Gyro Z [15:8]
+	uint8_t GYRO_DATA_Z0;  // Gyro Z [7:0]
+	uint8_t temperature;   // Temperature[7:0]
 	uint8_t TimeStamp_h;   // TimeStamp[15:8]
 	uint8_t TimeStamp_l;   // TimeStamp[7:0]
-	uint8_t Ext_Accel_X_Gyro_X; // Accel X [3:0] Gyro X [3:0]
-	uint8_t Ext_Accel_Y_Gyro_Y; // Accel Y [3:0] Gyro Y [3:0]
-	uint8_t Ext_Accel_Z_Gyro_Z; // Accel Z [3:0] Gyro Z [3:0]
 };
+static_assert(sizeof(DATA) == 16, "FIFO packet 3 is 16 bytes");
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
