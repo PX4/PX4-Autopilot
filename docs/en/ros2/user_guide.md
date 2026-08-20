@@ -6,9 +6,11 @@ This topic provides an overview of the architecture and application pipeline, an
 
 ## Overview
 
-PX4 supports two middleware options for bridging uORB topics to ROS 2: [uXRCE-DDS](../middleware/uxrce_dds.md) (DDS) and [Zenoh](../middleware/zenoh.md).
+PX4 supports two middleware options for bridging uORB topics to ROS 2: [uXRCE-DDS](#dds) (DDS) and [Zenoh](#zenoh).
 You must select which middleware to use and build your firmware accordingly (see [Installation & Setup](#installation-setup)).
 DDS is currently recommended for most users, as it is more established and has been more thoroughly tested with PX4.
+
+If you want to command the vehicle and create custom flight behaviours using ROS 2 (rather than just reading telemetry), you can create external modes using the [PX4 ROS 2 Interface Library](./px4_ros2_interface_lib.md), a ROS 2 native C++ library that works on top of either middleware.
 
 ::: info
 The instructions below target simulation using Gazebo.
@@ -16,13 +18,11 @@ The same concepts translate directly to real hardware: the middleware client, wh
 See [Using Flight Controller Hardware](#using-flight-controller-hardware) for the hardware-specific differences.
 :::
 
-If you want to command the vehicle and create custom flight behaviours using ROS 2 (rather than just reading telemetry), you can create external modes using the [PX4 ROS 2 Interface Library](./px4_ros2_interface_lib.md), a ROS 2 native C++ library that works on top of either middleware.
-
 ### DDS
 
 <Badge type="tip" text="PX4 v1.14" />
 
-The application pipeline for ROS 2 is very straightforward, thanks to the use of the [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware.
+The [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware is a large part of what makes the application pipeline for ROS 2 very straightforward.
 
 ![Architecture uXRCE-DDS with ROS 2](../../assets/middleware/xrce_dds/architecture_xrce-dds_ros2.svg)
 
@@ -54,7 +54,7 @@ See [uXRCE-DDS > Version selection](../middleware/uxrce_dds.md#version-selection
 
 <Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
-PX4 also supports [Zenoh](../middleware/zenoh.md) as an alternative (experimental) middleware for bridging uORB topics to ROS 2, via the ROS 2 [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh) middleware.
+PX4 supports [Zenoh](../middleware/zenoh.md) as an alternative middleware for bridging uORB topics to ROS 2, via the ROS 2 [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh) middleware.
 It provides a fast and lightweight way to connect PX4 to ROS 2.
 
 ![Architecture PX4 Zenoh-Pico with ROS 2](../../assets/middleware/zenoh/architecture-px4-zenoh.svg)
@@ -162,7 +162,7 @@ To install ROS 2 and its dependencies:
 
    ::::
 
-1. Some Python dependencies must also be installed (using **`pip`** or **`apt`**):
+2. Some Python dependencies must also be installed (using **`pip`** or **`apt`**):
 
    ```sh
    pip install --user -U empy==3.3.4 pyros-genmsg setuptools
@@ -170,14 +170,15 @@ To install ROS 2 and its dependencies:
 
 ### Setup Middleware
 
-PX4 supports two middleware options for connecting to ROS 2: [DDS](#dds) and [Zenoh](#zenoh) (see [Overview](#overview) for more on each).
-Select the one you want to use, making sure your firmware has the corresponding module enabled: the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is included by default in most builds, while the [zenoh](../middleware/zenoh.md#px4-firmware) module must be explicitly enabled.
+This section explains how to set up either the [DDS](#dds_setup) or [Zenoh](#zenoh_setup) middleware.
 
 ::: tip
 DDS is recommended for most users, as it is more established and has been more thoroughly tested with PX4.
 :::
 
-#### DDS
+Make sure that your firmware has the corresponding module enabled: the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is included by default in most builds, while the [zenoh](../middleware/zenoh.md#px4-firmware) module must be explicitly enabled.
+
+#### DDS {#dds_setup}
 
 For ROS 2 to communicate with PX4, [uXRCE-DDS client](../modules/modules_system.md#uxrce-dds-client) must be running on PX4, connected to a micro XRCE-DDS agent running on the companion computer.
 
@@ -189,7 +190,7 @@ Below we show how to build the agent "standalone" from source and connect to a c
 To setup and start the agent:
 
 1. Open a terminal.
-1. Enter the following commands to fetch and build the agent from source:
+2. Enter the following commands to fetch and build the agent from source:
 
    ```sh
    git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
@@ -202,7 +203,7 @@ To setup and start the agent:
    sudo ldconfig /usr/local/lib/
    ```
 
-1. Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
+3. Start the agent with settings for connecting to the uXRCE-DDS client running on the simulator:
 
    ```sh
    MicroXRCEAgent udp4 -p 8888
@@ -253,7 +254,7 @@ The micro XRCE-DDS agent terminal should also start to show output, as equivalen
 ...
 ```
 
-#### Zenoh
+#### Zenoh {#zenoh_setup}
 
 <Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
@@ -286,7 +287,7 @@ To start the simulator (and client):
    make px4_sitl_zenoh gz_x500
    ```
 
-1. In the PX4 shell, enable Zenoh and reboot to apply the change:
+2. In the PX4 shell, enable Zenoh and reboot to apply the change:
 
    ```sh
    param set ZENOH_ENABLE 1
@@ -319,7 +320,7 @@ The example builds the [ROS 2 Listener](#ros-2-listener) example application, lo
 To create and build the workspace:
 
 1. Open a new terminal.
-1. Create and navigate into a new workspace directory using:
+2. Create and navigate into a new workspace directory using:
 
    ```sh
    mkdir -p ~/ws_sensor_combined/src/
@@ -330,14 +331,14 @@ To create and build the workspace:
    A naming convention for workspace folders can make it easier to manage workspaces.
    :::
 
-1. Clone the example repository and [px4_msgs](https://github.com/PX4/px4_msgs) to the `/src` directory (the `main` branch is cloned by default, which corresponds to the version of PX4 we are running):
+3. Clone the example repository and [px4_msgs](https://github.com/PX4/px4_msgs) to the `/src` directory (the `main` branch is cloned by default, which corresponds to the version of PX4 we are running):
 
    ```sh
    git clone https://github.com/PX4/px4_msgs.git
    git clone https://github.com/PX4/px4_ros_com.git
    ```
 
-1. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
+4. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
    :::: tabs
 
@@ -401,13 +402,13 @@ In a new terminal:
 
    ::::
 
-1. Source the `local_setup.bash`.
+2. Source the `local_setup.bash`.
 
    ```sh
    source install/local_setup.bash
    ```
 
-1. Now launch the example.
+3. Now launch the example.
    Note here that we use `ros2 launch`, which is described below.
 
    ```sh
@@ -445,7 +446,7 @@ If you were to use incompatible [message versions](../middleware/uorb.md#message
    /path/to/PX4-Autopilot/Tools/copy_to_ros_ws.sh .
    ```
 
-1. Build and run the translation node:
+2. Build and run the translation node:
 
    ```sh
    colcon build
