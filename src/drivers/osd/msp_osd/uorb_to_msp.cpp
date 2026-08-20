@@ -210,7 +210,7 @@ msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const inpu
 
 msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
 {
-	msp_rendor_rssi_t rssi;
+	msp_rendor_rssi_t rssi {};
 	rssi.screenYPosition = 0x02;
 	rssi.screenXPosition = 0x02;
 
@@ -248,12 +248,10 @@ msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_stat
 msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status)
 {
 	// initialize result
-	msp_rendor_battery_state_t battery_state;
+	msp_rendor_battery_state_t battery_state {};
 
-	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
 	battery_state.screenYPosition = 0x04;
 	battery_state.screenXPosition = 0x02;
-	battery_state.iconAttrs = 0x00;
 
 	float sigle_cell_v = battery_status.voltage_v / battery_status.cell_count;
 
@@ -278,7 +276,7 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 msp_rendor_current_draw_t construct_rendor_CURRENT_DRAW(const battery_status_s &battery_status)
 {
 	// initialize result
-	msp_rendor_current_draw_t current_draw;
+	msp_rendor_current_draw_t current_draw {};
 
 	current_draw.screenYPosition = 0x05;
 	current_draw.screenXPosition = 0x02;
@@ -291,7 +289,7 @@ msp_rendor_current_draw_t construct_rendor_CURRENT_DRAW(const battery_status_s &
 msp_rendor_mah_drawn_t construct_rendor_MAH_DRAWN(const battery_status_s &battery_status)
 {
 	// initialize result
-	msp_rendor_mah_drawn_t mah_drawn;
+	msp_rendor_mah_drawn_t mah_drawn {};
 
 	mah_drawn.screenYPosition = 0x06;
 	mah_drawn.screenXPosition = 0x02;
@@ -361,7 +359,7 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 
 msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_position)
 {
-	msp_rendor_latitude_t lat;
+	msp_rendor_latitude_t lat {};
 
 	lat.screenYPosition = 0x0A;
 	lat.screenXPosition = 0x29;
@@ -378,7 +376,7 @@ msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_p
 
 msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_position)
 {
-	msp_rendor_longitude_t lon;
+	msp_rendor_longitude_t lon {};
 
 	lon.screenYPosition = 0x09;
 	lon.screenXPosition = 0x29;
@@ -395,7 +393,7 @@ msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_
 
 msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position)
 {
-	msp_rendor_satellites_used_t num;
+	msp_rendor_satellites_used_t num {};
 
 	num.screenYPosition = 0x08;
 	num.screenXPosition = 0x29;
@@ -408,7 +406,7 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 
 msp_rendor_gps_speed_t construct_rendor_GPS_SPEED(const sensor_gps_s &vehicle_gps_position)
 {
-	msp_rendor_gps_speed_t speed;
+	msp_rendor_gps_speed_t speed {};
 
 	speed.screenYPosition = 0x08;
 	speed.screenXPosition = 0x02;
@@ -458,7 +456,7 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_s &home_position,
 		const vehicle_global_position_s &vehicle_global_position)
 {
-	msp_rendor_distanceToHome_t distance;
+	msp_rendor_distanceToHome_t distance {};
 
 	distance.screenYPosition = 0x0A;
 	distance.screenXPosition = 0x02;
@@ -510,7 +508,7 @@ msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude)
 msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_attitude)
 {
 	// initialize results
-	msp_rendor_pitch_t pit;
+	msp_rendor_pitch_t pit {};
 
 	pit.screenYPosition = 0x0D;
 	pit.screenXPosition = 0x29;
@@ -529,7 +527,7 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attitude)
 {
 	// initialize results
-	msp_rendor_roll_t roll;
+	msp_rendor_roll_t roll {};
 
 	roll.screenYPosition = 0x0E;
 	roll.screenXPosition = 0x29;
@@ -572,7 +570,7 @@ msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 		const vehicle_local_position_s &vehicle_local_position)
 {
-	msp_rendor_altitude_t altitude;
+	msp_rendor_altitude_t altitude {};
 
 	altitude.screenYPosition = 0x09;
 	altitude.screenXPosition = 0x02;
@@ -630,7 +628,7 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
 msp_rendor_crosshairs_t construct_rendor_CROSSHAIRS(const int pos_vertical_offset, const int pos_horizontal_offset)
 {
 	// initialize result
-	msp_rendor_crosshairs_t crosshairs;
+	msp_rendor_crosshairs_t crosshairs {};
 
 	crosshairs.screenYPosition = 0x0A - pos_vertical_offset;
 	crosshairs.screenXPosition = 0x1A + pos_horizontal_offset;
