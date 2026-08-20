@@ -50,7 +50,7 @@ using namespace time_literals;
 static constexpr unsigned DIFF_MEAS_RATE = 100;
 static constexpr int64_t DIFF_CONVERSION_INTERVAL = (1000000 / DIFF_MEAS_RATE); /* microseconds */
 /* reading too fast can yield all zero data -> incorrect sensor reading */
-static_assert(DIFF_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast");
+static_assert(DIFF_CONVERSION_INTERVAL >= 9500, "Conversion interval is too fast");
 
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x28;
 static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
@@ -71,14 +71,14 @@ public:
 private:
 	void publish_pressure(const float pressure_p, const float temperature_c,
 			      const hrt_abstime timestamp_sample);
-	constexpr int64_t get_conversion_interval() const { return DIFF_CONVERSION_INTERVAL; };
 	void gather_measurement();
 
 	float process_pressure_raw(const float pressure_dig) const;
 	float process_temperature_raw(const float temperature_raw) const;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_DPRES_REV>) _param_dpres_rev   /**< parameter */
+		(ParamInt<px4::params::SENS_DPRES_REV>) _param_dpres_rev,
+		(ParamInt<px4::params::SENS_EN_DLVR>) _param_sens_en_dlvr
 	)
 
 	// DLVR L10D-values as default
@@ -90,6 +90,5 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-private:
 	int probe() override;
 };

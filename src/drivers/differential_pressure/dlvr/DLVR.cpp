@@ -71,6 +71,7 @@ DLVR::~DLVR()
 void DLVR::RunImpl()
 {
 	gather_measurement();
+	ScheduleDelayed(DIFF_CONVERSION_INTERVAL);
 }
 
 void DLVR::print_status()
@@ -89,11 +90,7 @@ int DLVR::init()
 		return ret;
 	}
 
-	int32_t hw_model = 0;
-
-	param_get(param_find("SENS_EN_DLVR"), &hw_model);
-
-	switch (hw_model) {
+	switch (_param_sens_en_dlvr.get()) {
 	case 1: /* DLVR F50D (+- 0.5 inH20) */
 		_cal_range = 1.0f;
 		_offset_out = 8192.f;
@@ -177,7 +174,8 @@ int DLVR::init()
 
 
 	ScheduleClear();
-	ScheduleNow();
+	// schedule delayed to prevent error
+	ScheduleDelayed(DIFF_CONVERSION_INTERVAL);
 
 	return PX4_OK;
 }
@@ -224,8 +222,6 @@ void DLVR::gather_measurement()
 		perf_count(_comms_errors);
 	}
 
-	ScheduleDelayed(get_conversion_interval());
-
 	perf_end(_sample_perf);
 }
 
@@ -255,6 +251,7 @@ void DLVR::publish_pressure(const float pressure_p, const float temperature_c,
 	}
 
 	differential_pressure.temperature = temperature_c;
+	differential_pressure.pitot_temperature = NAN;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
 	_differential_pressure_pub.publish(differential_pressure);
 }

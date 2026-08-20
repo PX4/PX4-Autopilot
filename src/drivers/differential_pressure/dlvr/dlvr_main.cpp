@@ -45,8 +45,7 @@ void DLVR::print_usage()
 I2C driver for _Amphenol All Sensors_ Digital Low Voltage R-Series (DLVR) pressure sensors
 (continuous-sampling variants only).
 
-The driver is enabled for specific sensor-variants using the parameter
-[SENS_EN_DLVR](../advanced_config/parameter_reference.md#SENS_EN_DLVR).
+The driver is enabled for specific sensor-variants using the parameter "SENS_EN_DLVR".
 )DESCR_STR");
 	PRINT_MODULE_USAGE_NAME("dlvr", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
