@@ -571,6 +571,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	Vector3f diag[MAX_MAGS];
 	Vector3f offdiag[MAX_MAGS];
 	float sphere_radius[MAX_MAGS];
+	bool fit_valid[MAX_MAGS] {};
 
 	const float mag_sphere_radius = get_sphere_radius();
 
@@ -681,6 +682,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 						offdiag[cur_mag].zero();
 						result = calibrate_return_ok;
 					}
+
+				} else {
+					fit_valid[cur_mag] = true;
 				}
 			}
 		}
@@ -736,11 +740,12 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 		if ((worker_data.calibration_sides >= 3) && (param_sens_mag_autorot == 1)) {
 
-			// find first internal mag to use as reference
+			// find first internal mag with a valid fit to use as reference
 			int internal_index = -1;
 
 			for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-				if (!worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)) {
+				if (!worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)
+				    && fit_valid[cur_mag]) {
 					internal_index = cur_mag;
 					break;
 				}
@@ -786,7 +791,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				// external mags try all rotations and compute mean square error (MSE) compared with first internal mag
 				for (int cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-					if ((worker_data.calibration[cur_mag].device_id() != 0) && (cur_mag != internal_index)) {
+					if ((worker_data.calibration[cur_mag].device_id() != 0) && fit_valid[cur_mag] && (cur_mag != internal_index)) {
 
 						const int last_sample_index = math::min(worker_data.calibration_counter_total[internal_index],
 											worker_data.calibration_counter_total[cur_mag]);
