@@ -73,8 +73,8 @@ struct RouteDistanceSummary {
 struct CandidateSearchState {
 	bool prev_projection_on_end{true};
 	bool projection_on_end_for_segment{false};
-	float min_xtrack{FLT_MAX};
-	float xtrack_limit{FLT_MAX};
+	float min_xtrack_m{FLT_MAX};
+	float xtrack_limit_m{FLT_MAX};
 };
 
 struct ProjectionReference {
@@ -229,7 +229,7 @@ private:
 
 	/** @brief Trim the projection candidate buffer based on xtrack window. */
 	void pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffer,
-				       float xtrack_limit) const;
+				       float xtrack_limit_m) const;
 
 	/**
 	 * @brief Project one reference point onto one segment, apply local-minimum rules,

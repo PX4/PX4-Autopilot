@@ -54,11 +54,11 @@ using navigator_test::route_test_reference::kBaseLon;
 static mission_route::PlannerConfig defaultProjectionConfig()
 {
 	mission_route::PlannerConfig config{};
-	config.parameters.vehicle_projection_search_dist = 60.f;
-	config.parameters.safe_point_projection_search_dist = 60.f;
-	config.parameters.acceptance_radius = 10.f;
-	config.parameters.direct_acceptance_radius = 10.f;
-	config.parameters.altitude_acceptance_radius = 10.f;
+	config.parameters.vehicle_projection_search_dist_m = 60.f;
+	config.parameters.safe_point_projection_search_dist_m = 60.f;
+	config.parameters.acceptance_radius_m = 10.f;
+	config.parameters.direct_acceptance_radius_m = 10.f;
+	config.parameters.altitude_acceptance_radius_m = 10.f;
 	config.parameters.home_altitude_amsl = 500.f;
 	return config;
 }
@@ -149,7 +149,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersCurrentMissionSegmentOverC
 	mission_route::MissionRouteProjection projection(provider);
 	auto batch = singleReferenceBatch({});
 	const mission_route::Position vehicle = makePositionFromOffset(kBaseLat, kBaseLon, 10.f, 500.f, kAlt);
-	config.parameters.vehicle_projection_search_dist = 150.f;
+	config.parameters.vehicle_projection_search_dist_m = 150.f;
 
 	mission_route::ProjectionContext projection_context{};
 	const mission_route::FailureReason status =
@@ -160,7 +160,7 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersCurrentMissionSegmentOverC
 	EXPECT_NE(findCandidate(batch.items[0].candidate_buffer, 2, 3), nullptr);
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 3);
-	EXPECT_NEAR(projection_context.route_projection.dist.xtrack, 90.f, kDistanceTolerance);
+	EXPECT_NEAR(projection_context.route_projection.dist.xtrack_m, 90.f, kDistanceTolerance);
 }
 
 class MissionRouteProjectionInvalidIndexTest : public MissionRouteProjectionTestBase,
@@ -276,8 +276,8 @@ TEST_F(MissionRouteProjectionLocalSegmentTest, PrefersStoredLoopAnchor)
 	EXPECT_EQ(projection_context.route_projection.segment.start.idx, 2);
 	EXPECT_EQ(projection_context.route_projection.segment.end.idx, 0);
 	ASSERT_TRUE(projection_context.loop_context.valid());
-	EXPECT_NEAR(projection_context.loop_context.along.start, 200.f, kDistanceTolerance);
-	EXPECT_NEAR(projection_context.loop_context.along.end, 0.f, kDistanceTolerance);
+	EXPECT_NEAR(projection_context.loop_context.along.route_start_dist_m, 200.f, kDistanceTolerance);
+	EXPECT_NEAR(projection_context.loop_context.along.route_end_dist_m, 0.f, kDistanceTolerance);
 }
 
 struct ProjectionDatasetCase {
@@ -363,7 +363,7 @@ TEST_P(MissionRouteProjectionEndpointLocalMinimumTest, KeepsEndpointCandidate)
 
 	mission_route::RouteDistanceSummary distance_summary{};
 	const mission_route::FailureReason status =
-		projection.findProjectionCandidates(scanRequest(config.parameters.safe_point_projection_search_dist), batch,
+		projection.findProjectionCandidates(scanRequest(config.parameters.safe_point_projection_search_dist_m), batch,
 				distance_summary);
 
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
@@ -372,7 +372,7 @@ TEST_P(MissionRouteProjectionEndpointLocalMinimumTest, KeepsEndpointCandidate)
 	ASSERT_NE(candidate, nullptr);
 	EXPECT_NEAR(candidate->projection.lat, scenario.expected_projection_lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(candidate->projection.lon, scenario.expected_projection_lon, kLatLonToleranceDeg);
-	EXPECT_EQ(candidate->dist.segment_length <= FLT_EPSILON,
+	EXPECT_EQ(candidate->dist.segment_length_m <= FLT_EPSILON,
 		  scenario.expected_segment_length == SegmentLengthExpectation::kZero);
 }
 
@@ -453,7 +453,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, KeepsPositiveVCornerLocalMi
 	EXPECT_EQ(candidate.segment.end.idx, 2);
 	EXPECT_NEAR(candidate.projection.lat, mission[1].lat, kLatLonToleranceDeg);
 	EXPECT_NEAR(candidate.projection.lon, mission[1].lon, kLatLonToleranceDeg);
-	EXPECT_NEAR(candidate.dist.xtrack, 100.f, kDistanceTolerance);
+	EXPECT_NEAR(candidate.dist.xtrack_m, 100.f, kDistanceTolerance);
 }
 
 // Intermediate waypoints on a straight line are not real local minima.
@@ -509,7 +509,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, ZeroMarginKeepsFirstExactCl
 	EXPECT_EQ(candidate.segment.start.idx, 2);
 	EXPECT_EQ(candidate.segment.end.idx, 0);
 	EXPECT_FALSE(candidate.segment.has_remaining_repeats);
-	EXPECT_NEAR(candidate.dist.xtrack, 0.f, kDistanceTolerance);
+	EXPECT_NEAR(candidate.dist.xtrack_m, 0.f, kDistanceTolerance);
 }
 
 // References in one batch share the route walk instead of loading the mission once per reference.
@@ -626,7 +626,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, DuplicateCornerWaypointsDoN
 	ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
 	const mission_route::RouteProjectionCandidate *candidate = findCandidate(batch.items[0].candidate_buffer, 9, 10);
 	ASSERT_NE(candidate, nullptr);
-	EXPECT_NEAR(candidate->dist.xtrack, 50.f, kDistanceTolerance);
+	EXPECT_NEAR(candidate->dist.xtrack_m, 50.f, kDistanceTolerance);
 }
 
 struct InvalidVehiclePositionCase {

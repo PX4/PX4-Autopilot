@@ -47,6 +47,7 @@ target_link_libraries(navigator_mission_route PUBLIC geo)
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
 	px4_add_library(navigator_mission_route_planner
+		mission_route_internal_types.cpp
 		mission_route_projection.cpp
 		mission_route_planner.cpp
 	)

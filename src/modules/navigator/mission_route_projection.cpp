@@ -86,8 +86,8 @@ struct CursorItem {
 struct RawSegmentProjection {
 	bool valid{false};
 
-	float xtrack{NAN};
-	float segment_along{NAN};
+	float xtrack_m{NAN};
+	float along_segment_m{NAN};
 	// Normalized position of the projection along the segment, clamped to [0, 1] (0 = start, 1 = end).
 	float along_fraction{NAN};
 
@@ -100,20 +100,20 @@ struct RawSegmentProjection {
 RawSegmentProjection projectReferenceToSegment(const Position &reference_position,
 		const SegmentPositions &segment_positions,
 		const matrix::Vector2f &segment_vector,
-		float segment_length,
+		float segment_length_m,
 		bool segment_has_no_length)
 {
 	RawSegmentProjection projection{};
 
 	if (segment_has_no_length) {
 		// If the segment is a point, the projection is the point itself.
-		projection.xtrack = get_distance_to_next_waypoint(reference_position.lat, reference_position.lon,
-				    segment_positions.end.lat, segment_positions.end.lon);
-		projection.segment_along = 0.f;
+		projection.xtrack_m = get_distance_to_next_waypoint(reference_position.lat, reference_position.lon,
+				      segment_positions.end.lat, segment_positions.end.lon);
+		projection.along_segment_m = 0.f;
 		projection.along_fraction = 0.f;
 		projection.projection_on_start = true;
 		projection.projection_on_end = true;
-		projection.valid = PX4_ISFINITE(projection.xtrack) && projection.xtrack >= 0.f;
+		projection.valid = PX4_ISFINITE(projection.xtrack_m) && projection.xtrack_m >= 0.f;
 		return projection;
 	}
 
@@ -130,14 +130,14 @@ RawSegmentProjection projectReferenceToSegment(const Position &reference_positio
 
 	// t < 0 makes (t * len) negative, so projections before the start also count as on-start.
 	static constexpr float kCornerToleranceM = 0.05f;
-	projection.projection_on_start = (t * segment_length) < kCornerToleranceM;
-	projection.projection_on_end = ((1.f - t) * segment_length) < kCornerToleranceM;
+	projection.projection_on_start = (t * segment_length_m) < kCornerToleranceM;
+	projection.projection_on_end = ((1.f - t) * segment_length_m) < kCornerToleranceM;
 
 	projection.along_fraction = constrain(t, 0.f, 1.f);
 	projection.projection_vector = segment_vector * projection.along_fraction;
-	projection.segment_along = projection.along_fraction * segment_length;
-	projection.xtrack = static_cast<matrix::Vector2f>(reference_vector - projection.projection_vector).norm();
-	projection.valid = PX4_ISFINITE(projection.xtrack) && projection.xtrack >= 0.f;
+	projection.along_segment_m = projection.along_fraction * segment_length_m;
+	projection.xtrack_m = static_cast<matrix::Vector2f>(reference_vector - projection.projection_vector).norm();
+	projection.valid = PX4_ISFINITE(projection.xtrack_m) && projection.xtrack_m >= 0.f;
 
 	return projection;
 }
@@ -145,17 +145,17 @@ RawSegmentProjection projectReferenceToSegment(const Position &reference_positio
 bool buildProjectionCandidate(const Segment &segment,
 			      const SegmentPositions &segment_positions,
 			      const RawSegmentProjection &projection,
-			      float route_along,
-			      float segment_length,
+			      float route_along_m,
+			      float segment_length_m,
 			      bool segment_has_no_length,
 			      RouteProjectionCandidate &candidate)
 {
 	candidate.segment = segment;
 	candidate.segment_positions = segment_positions;
-	candidate.dist.xtrack = projection.xtrack;
-	candidate.dist.route_along = route_along + projection.segment_along;
-	candidate.dist.segment_length = segment_length;
-	candidate.dist.segment_along = min(projection.segment_along, segment_length);
+	candidate.dist.xtrack_m = projection.xtrack_m;
+	candidate.dist.route_along_m = route_along_m + projection.along_segment_m;
+	candidate.dist.segment_length_m = segment_length_m;
+	candidate.dist.along_segment_m = min(projection.along_segment_m, segment_length_m);
 
 	if (segment_has_no_length) {
 		candidate.projection = segment_positions.end;
@@ -325,8 +325,8 @@ public:
 		// On the first mission item (flying nominal) the vehicle has not entered the route yet.
 		if (_wanted && !_active_jump.valid()
 		    && request.mission_index == 0 && !request.is_flying_reverse) {
-			_bounds.start = 0.f;
-			_bounds.end = 0.f;
+			_bounds.route_start_dist_m = 0.f;
+			_bounds.route_end_dist_m = 0.f;
 			_located = true;
 			PX4_DEBUG("Route current_segment_along zero for first mission item");
 		}
@@ -348,13 +348,13 @@ private:
 
 		if (_active_jump.valid()) {
 			if (segment.isLoop() && segment.jump_item_index == _active_jump.jump_item_index) {
-				_bounds.start = segment_view.route_along_start_m;
+				_bounds.route_start_dist_m = segment_view.route_along_start_m;
 
 			} else if (!segment.isLoop() && segment.start.idx == _active_jump.target_index) {
-				_bounds.end = segment_view.route_along_start_m;
+				_bounds.route_end_dist_m = segment_view.route_along_start_m;
 
 			} else if (!segment.isLoop() && segment.end.idx == _active_jump.target_index) {
-				_bounds.end = segment_view.route_along_start_m + segment_view.length_m;
+				_bounds.route_end_dist_m = segment_view.route_along_start_m + segment_view.length_m;
 			}
 
 			return _bounds.valid();
@@ -362,10 +362,11 @@ private:
 
 		if (!segment.isLoop()
 		    && isIndexInProjectionSegment(segment, _request.mission_index, _request.is_flying_reverse)) {
-			_bounds.start = segment_view.route_along_start_m;
-			_bounds.end = segment_view.route_along_start_m + segment_view.length_m;
+			_bounds.route_start_dist_m = segment_view.route_along_start_m;
+			_bounds.route_end_dist_m = segment_view.route_along_start_m + segment_view.length_m;
 			PX4_DEBUG("Route current_segment_along: [%.3f, %.3f]",
-				  static_cast<double>(_bounds.start), static_cast<double>(_bounds.end));
+				  static_cast<double>(_bounds.route_start_dist_m),
+				  static_cast<double>(_bounds.route_end_dist_m));
 			return true;
 		}
 
@@ -587,7 +588,7 @@ void MissionRouteProjection::insertCandidateSorted(ProjectionCandidateBuffer &ca
 	const uint8_t buffer_size = min(candidate_buffer.count, kMaxSegmentCandidates);
 
 	while (insert_index < buffer_size
-	       && candidate_buffer.candidates[insert_index].dist.xtrack <= candidate.dist.xtrack) {
+	       && candidate_buffer.candidates[insert_index].dist.xtrack_m <= candidate.dist.xtrack_m) {
 		++insert_index;
 	}
 
@@ -606,13 +607,13 @@ void MissionRouteProjection::insertCandidateSorted(ProjectionCandidateBuffer &ca
 }
 
 void MissionRouteProjection::pruneProjectionCandidates(ProjectionCandidateBuffer &candidate_buffer,
-		float xtrack_limit) const
+		float xtrack_limit_m) const
 {
 	const int buffer_size = min(candidate_buffer.count, kMaxSegmentCandidates);
 
 	// The buffer is sorted by ascending xtrack, break after first outside of limit
 	for (int index = buffer_size - 1; index >= 0; --index) {
-		if (candidate_buffer.candidates[index].dist.xtrack <= xtrack_limit) {
+		if (candidate_buffer.candidates[index].dist.xtrack_m <= xtrack_limit_m) {
 			candidate_buffer.count = index + 1;
 			return;
 		}
@@ -657,7 +658,7 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 	stats.local_min_found++;
 
 	// Reject non-finite or out-of-window projections before the more expensive lat/lon reconstruction.
-	if (!projection.valid || projection.xtrack >= state.xtrack_limit) {
+	if (!projection.valid || projection.xtrack_m >= state.xtrack_limit_m) {
 		return;
 	}
 
@@ -674,11 +675,11 @@ void MissionRouteProjection::processCandidateForSegment(const Position &referenc
 
 	stats.valid_candidate_found++;
 
-	if (projection.xtrack < state.min_xtrack) {
+	if (projection.xtrack_m < state.min_xtrack_m) {
 		// A new closest projection tightens the search window, so prune stale candidates first.
-		state.min_xtrack = projection.xtrack;
-		state.xtrack_limit = state.min_xtrack + xtrack_margin_m;
-		pruneProjectionCandidates(candidate_buffer, state.xtrack_limit);
+		state.min_xtrack_m = projection.xtrack_m;
+		state.xtrack_limit_m = state.min_xtrack_m + xtrack_margin_m;
+		pruneProjectionCandidates(candidate_buffer, state.xtrack_limit_m);
 	}
 
 	insertCandidateSorted(candidate_buffer, candidate);
@@ -806,24 +807,24 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 {
 	selection = {};
 	int best_candidate_index = -1;
-	float min_path_distance = FLT_MAX;
-	SegmentDistanceAlong segment_along = current_segment_along;
+	float min_path_distance_m = FLT_MAX;
+	SegmentDistanceAlong segment_bounds = current_segment_along;
 
-	if (!segment_along.valid()) {
+	if (!segment_bounds.valid()) {
 		PX4_ERR("Route select UAV proj: invalid current segment (mission_idx=%d), setting to zero",
 			static_cast<int>(mission_index));
-		segment_along.start = 0.f;
-		segment_along.end = 0.f;
+		segment_bounds.route_start_dist_m = 0.f;
+		segment_bounds.route_end_dist_m = 0.f;
 	}
 
 	for (uint8_t i = 0; i < candidate_buffer.count; ++i) {
 		const RouteProjectionCandidate &candidate = candidate_buffer.candidates[i];
-		const float dist_to_start = fabsf(candidate.dist.route_along - segment_along.start);
-		const float dist_to_end = fabsf(candidate.dist.route_along - segment_along.end);
-		const float projection_to_segment_dist = fminf(dist_to_start, dist_to_end);
-		const float candidate_path_distance = candidate.dist.xtrack + projection_to_segment_dist;
+		const float dist_to_start_m = fabsf(candidate.dist.route_along_m - segment_bounds.route_start_dist_m);
+		const float dist_to_end_m = fabsf(candidate.dist.route_along_m - segment_bounds.route_end_dist_m);
+		const float projection_to_segment_dist_m = fminf(dist_to_start_m, dist_to_end_m);
+		const float candidate_path_distance_m = candidate.dist.xtrack_m + projection_to_segment_dist_m;
 
-		if (!PX4_ISFINITE(candidate_path_distance)) {
+		if (!PX4_ISFINITE(candidate_path_distance_m)) {
 			PX4_DEBUG("Route UAV proj cand %u skipped, non-finite path distance",
 				  static_cast<unsigned>(i));
 			continue;
@@ -833,10 +834,10 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 			  static_cast<unsigned>(i),
 			  static_cast<unsigned>(candidate.segment.start.idx),
 			  static_cast<unsigned>(candidate.segment.end.idx),
-			  static_cast<double>(candidate_path_distance),
-			  static_cast<double>(candidate.dist.route_along),
-			  static_cast<double>(candidate.dist.xtrack),
-			  static_cast<double>(candidate.dist.segment_along));
+			  static_cast<double>(candidate_path_distance_m),
+			  static_cast<double>(candidate.dist.route_along_m),
+			  static_cast<double>(candidate.dist.xtrack_m),
+			  static_cast<double>(candidate.dist.along_segment_m));
 
 		bool priority_match = false;
 
@@ -856,10 +857,10 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 			}
 		}
 
-		const bool is_shorter_path = candidate_path_distance < min_path_distance;
+		const bool is_shorter_path = candidate_path_distance_m < min_path_distance_m;
 
 		if (priority_match || is_shorter_path) {
-			min_path_distance = candidate_path_distance;
+			min_path_distance_m = candidate_path_distance_m;
 			best_candidate_index = i;
 
 			if (priority_match) {
@@ -875,7 +876,7 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 
 	selection.candidate = candidate_buffer.candidates[best_candidate_index];
 	selection.candidate_index = best_candidate_index;
-	selection.score_m = min_path_distance;
+	selection.score_m = min_path_distance_m;
 	return FailureReason::kNone;
 }
 
@@ -906,7 +907,7 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 
 	ProjectionScanRequest scan_request{};
 	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
-	scan_request.xtrack_margin_m = config.parameters.vehicle_projection_search_dist;
+	scan_request.xtrack_margin_m = config.parameters.vehicle_projection_search_dist_m;
 	scan_request.compute_current_segment_bounds = true;
 	scan_request.mission_index = mission_index;
 	scan_request.is_flying_reverse = config.state.is_flying_reverse;
@@ -923,8 +924,8 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 
 	PX4_DEBUG("Route vehicle projection: cands=%u current_segment[%.1f, %.1f] idx=%d",
 		  static_cast<unsigned>(candidate_buffer.count),
-		  static_cast<double>(distance_summary.current_segment_along.start),
-		  static_cast<double>(distance_summary.current_segment_along.end),
+		  static_cast<double>(distance_summary.current_segment_along.route_start_dist_m),
+		  static_cast<double>(distance_summary.current_segment_along.route_end_dist_m),
 		  static_cast<int>(mission_index));
 
 	BranchInSelection branch_in{};
@@ -1024,8 +1025,9 @@ FailureReason MissionRouteProjection::buildLoopContext(const RouteProjectionCand
 
 	loop_context.segment = vehicle_projection.segment;
 	loop_context.segment_positions = vehicle_projection.segment_positions;
-	loop_context.along.start = vehicle_projection.dist.route_along - vehicle_projection.dist.segment_along;
-	loop_context.along.end = loop_end_route_along_m;
+	loop_context.along.route_start_dist_m = vehicle_projection.dist.route_along_m
+						- vehicle_projection.dist.along_segment_m;
+	loop_context.along.route_end_dist_m = loop_end_route_along_m;
 
 	if (!loop_context.valid()) {
 		loop_context = {};
@@ -1035,8 +1037,8 @@ FailureReason MissionRouteProjection::buildLoopContext(const RouteProjectionCand
 	PX4_DEBUG("Route loop ctx: seg[%u-%u], along[%.1f, %.1f], repeat pending: %u",
 		  static_cast<unsigned>(loop_context.segment.start.idx),
 		  static_cast<unsigned>(loop_context.segment.end.idx),
-		  static_cast<double>(loop_context.along.start),
-		  static_cast<double>(loop_context.along.end),
+		  static_cast<double>(loop_context.along.route_start_dist_m),
+		  static_cast<double>(loop_context.along.route_end_dist_m),
 		  static_cast<unsigned>(loop_context.segment.has_remaining_repeats));
 
 	return FailureReason::kNone;

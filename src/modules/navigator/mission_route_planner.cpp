@@ -140,8 +140,8 @@ void setVehicleState(PlannerConfig &config, bool current_route_direction_reverse
 PlannerConfig makePlannerConfig(const MissionResumeRequest &request)
 {
 	PlannerConfig config{};
-	config.parameters.vehicle_projection_search_dist = request.projection_search_distance_m;
-	config.parameters.acceptance_radius = request.acceptance_radius_m;
+	config.parameters.vehicle_projection_search_dist_m = request.projection_search_distance_m;
+	config.parameters.acceptance_radius_m = request.acceptance_radius_m;
 	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
 	config.parameters.u_turn_penalty_m = request.u_turn_penalty_m;
 	config.active_jump_anchor = request.active_jump_anchor;
@@ -154,11 +154,11 @@ PlannerConfig makePlannerConfig(const MissionResumeRequest &request)
 PlannerConfig makePlannerConfig(const RouteToGoalRequest &request)
 {
 	PlannerConfig config{};
-	config.parameters.vehicle_projection_search_dist = request.projection_search_distance_m;
-	config.parameters.safe_point_projection_search_dist = request.safe_point_projection_search_distance_m;
-	config.parameters.acceptance_radius = request.acceptance_radius_m;
-	config.parameters.direct_acceptance_radius = request.direct_goal_acceptance_radius_m;
-	config.parameters.altitude_acceptance_radius = request.altitude_acceptance_radius_m;
+	config.parameters.vehicle_projection_search_dist_m = request.projection_search_distance_m;
+	config.parameters.safe_point_projection_search_dist_m = request.safe_point_projection_search_distance_m;
+	config.parameters.acceptance_radius_m = request.acceptance_radius_m;
+	config.parameters.direct_acceptance_radius_m = request.direct_goal_acceptance_radius_m;
+	config.parameters.altitude_acceptance_radius_m = request.altitude_acceptance_radius_m;
 	config.parameters.home_altitude_amsl = request.home_altitude_amsl;
 	config.parameters.u_turn_penalty_m = request.u_turn_penalty_m;
 	config.active_jump_anchor = request.active_jump_anchor;
@@ -181,31 +181,49 @@ ActiveJumpAnchor activeJumpAnchor(const ProjectionContext &projection_context)
 	return {};
 }
 
+bool canUseCurrentAltitudeForJoinTarget(const RoutePath &path)
+{
+	// Keep vehicle altitude at a landing item, or a takeoff item in reverse.
+	return path.valid()
+	       && path.in_first_item_acc_rad
+	       && (isLandingCmd(path.first_item_cmd)
+		   || (path.direction_reversed && isTakeoffCmd(path.first_item_cmd)));
+}
+
 MissionResumePlan makeMissionResumePlan(const ProjectionContext &projection_context, const RoutePath &path,
-					const JoinContext &join_context)
+					const Position &vehicle_position)
 {
 	MissionResumePlan plan{};
-	plan.join_position = join_context.projection;
+	plan.join_position = projection_context.route_projection.projection;
 	plan.first_mission_item_index = path.first_item_index;
 	plan.direction_reversed = path.direction_reversed;
-	plan.use_current_altitude = join_context.use_current_altitude;
+	plan.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path);
 	plan.active_jump_anchor = activeJumpAnchor(projection_context);
+
+	if (plan.use_current_altitude) {
+		plan.join_position.alt = vehicle_position.alt;
+	}
+
 	return plan;
 }
 
-RouteToGoalPlan makeRouteToGoalPlan(const ProjectionContext &projection_context, const JoinContext &join_context,
+RouteToGoalPlan makeRouteToGoalPlan(const ProjectionContext &projection_context, const Position &vehicle_position,
 				    const GoalSelection &selection)
 {
 	RouteToGoalPlan plan{};
-	plan.join_position = join_context.projection;
+	plan.join_position = projection_context.route_projection.projection;
 	plan.first_mission_item_index = selection.path.first_item_index;
 	plan.direction_reversed = selection.path.direction_reversed;
-	plan.use_current_altitude = join_context.use_current_altitude;
+	plan.use_current_altitude = canUseCurrentAltitudeForJoinTarget(selection.path);
 	plan.active_jump_anchor = activeJumpAnchor(projection_context);
 	plan.goal_type = selection.goal_type;
 	plan.goal_position = selection.goal_position;
 	plan.safe_point_index = selection.safe_point_index;
 	plan.fly_direct_to_goal = selection.fly_direct_to_goal;
+
+	if (plan.use_current_altitude) {
+		plan.join_position.alt = vehicle_position.alt;
+	}
 
 	if (selection.goal_type == GoalType::kSafePoint) {
 		plan.branch_off_position = selection.branch_off.projection;
@@ -254,7 +272,7 @@ void loadSafePointBatch(const Provider &provider,
 	}
 }
 
-bool mustFlyReverse(float goal_route_along, float projection_route_along,
+bool mustFlyReverse(float goal_route_along_m, float projection_route_along_m,
 		    PathDirectionMode direction_mode)
 {
 	// The forced modes exist for the mission endpoints, where goal and projection can sit
@@ -268,20 +286,20 @@ bool mustFlyReverse(float goal_route_along, float projection_route_along,
 
 	case PathDirectionMode::kAuto:
 	default:
-		return goal_route_along < projection_route_along;
+		return goal_route_along_m < projection_route_along_m;
 	}
 }
 
 matrix::Vector2f computeDesiredCourseVector(const ProjectionContext &projection_context,
-		float acceptance_radius,
+		float acceptance_radius_m,
 		bool will_fly_reverse)
 {
 	static constexpr float kSmallLengthM = 5.f;
-	const float far_from_route_m = math::max(acceptance_radius, kSmallLengthM);
+	const float far_from_route_m = math::max(acceptance_radius_m, kSmallLengthM);
 	matrix::Vector2f desired_course_vec{};
 
-	if (projection_context.route_projection.dist.segment_length < kSmallLengthM
-	    || projection_context.route_projection.dist.xtrack > far_from_route_m) {
+	if (projection_context.route_projection.dist.segment_length_m < kSmallLengthM
+	    || projection_context.route_projection.dist.xtrack_m > far_from_route_m) {
 		get_vector_to_next_waypoint(projection_context.vehicle_position.lat, projection_context.vehicle_position.lon,
 					    projection_context.route_projection.projection.lat,
 					    projection_context.route_projection.projection.lon,
@@ -316,7 +334,7 @@ bool uTurnRequired(const ProjectionContext &projection_context,
 	}
 
 	const matrix::Vector2f desired_course = computeDesiredCourseVector(projection_context,
-						config.parameters.acceptance_radius, will_fly_reverse);
+						config.parameters.acceptance_radius_m, will_fly_reverse);
 
 	if (!desired_course.isAllFinite()) {
 		return false; // Can't execute a proper u-turn without a desired course
@@ -330,17 +348,17 @@ bool uTurnRequired(const ProjectionContext &projection_context,
 	return vehicle_state.velocity_ne.dot(desired_course) < 0.f;
 }
 
-RoutePath solveShortestRoutePath(float goal_route_along,
+RoutePath solveShortestRoutePath(float goal_route_along_m,
 				 const ProjectionContext &projection_context, const PlannerConfig &config,
 				 PathDirectionMode direction_mode)
 {
 	RoutePath path{};
 
-	const bool will_fly_reverse = mustFlyReverse(goal_route_along,
-				      projection_context.route_projection.dist.route_along,
+	const bool will_fly_reverse = mustFlyReverse(goal_route_along_m,
+				      projection_context.route_projection.dist.route_along_m,
 				      direction_mode);
 	const float abs_distance_projection_to_goal =
-		fabsf(goal_route_along - projection_context.route_projection.dist.route_along);
+		fabsf(goal_route_along_m - projection_context.route_projection.dist.route_along_m);
 
 	path.direction_reversed = will_fly_reverse;
 	path.u_turn_required = uTurnRequired(projection_context, config, will_fly_reverse);
@@ -378,7 +396,7 @@ RoutePath solveShortestRoutePath(float goal_route_along,
 	return path;
 }
 
-RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
+RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along_m,
 		const ProjectionContext &projection_context, const PlannerConfig &config,
 		PathDirectionMode direction_mode)
 {
@@ -386,18 +404,18 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
 	// after leaving it.
 
 	// Path A: complete the remaining loop distance, then continue to the goal.
-	const float dist_jump_remaining = fabsf(projection_context.route_projection.dist.segment_length
-						- projection_context.route_projection.dist.segment_along);
+	const float dist_jump_remaining = fabsf(projection_context.route_projection.dist.segment_length_m
+						- projection_context.route_projection.dist.along_segment_m);
 	const bool path_a_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ false);
 	const float path_a_cost = dist_jump_remaining
-				  + fabsf(goal_route_along - projection_context.loop_context.along.end)
+				  + fabsf(goal_route_along_m - projection_context.loop_context.along.route_end_dist_m)
 				  + (path_a_u_turn ? config.parameters.u_turn_penalty_m : 0.f);
 
 	// Path B: backtrack the already-travelled loop distance, then continue to the goal.
-	const float dist_jump_travelled = projection_context.route_projection.dist.segment_along;
+	const float dist_jump_travelled = projection_context.route_projection.dist.along_segment_m;
 	const bool path_b_u_turn = uTurnRequired(projection_context, config, /* will_fly_reverse */ true);
 	const float path_b_cost = dist_jump_travelled
-				  + fabsf(goal_route_along - projection_context.loop_context.along.start)
+				  + fabsf(goal_route_along_m - projection_context.loop_context.along.route_start_dist_m)
 				  + (path_b_u_turn ? config.parameters.u_turn_penalty_m : 0.f);
 
 	// Mission finishes the current repeat before leaving the loop.
@@ -411,7 +429,8 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
 		path.first_item_index = projection_context.loop_context.segment.end.idx;
 		path.first_item_cmd = projection_context.loop_context.segment.end.nav_cmd;
 		path.first_item_position = projection_context.route_projection.segment_positions.end;
-		path.direction_reversed = mustFlyReverse(goal_route_along, projection_context.loop_context.along.end,
+		path.direction_reversed = mustFlyReverse(goal_route_along_m,
+					  projection_context.loop_context.along.route_end_dist_m,
 					  direction_mode);
 		path.u_turn_required = path_a_u_turn;
 		path.total_cost_m = path_a_cost;
@@ -420,15 +439,16 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
 		path.first_item_index = projection_context.loop_context.segment.start.idx;
 		path.first_item_cmd = projection_context.loop_context.segment.start.nav_cmd;
 		path.first_item_position = projection_context.route_projection.segment_positions.start;
-		path.direction_reversed = mustFlyReverse(goal_route_along, projection_context.loop_context.along.start,
+		path.direction_reversed = mustFlyReverse(goal_route_along_m,
+					  projection_context.loop_context.along.route_start_dist_m,
 					  direction_mode);
 		path.u_turn_required = path_b_u_turn;
 		path.total_cost_m = path_b_cost;
 	}
 
 	PX4_DEBUG("Route path on loop jump [A,B], loop_along[%.1f, %.1f], force repeat: %u",
-		  static_cast<double>(projection_context.loop_context.along.start),
-		  static_cast<double>(projection_context.loop_context.along.end),
+		  static_cast<double>(projection_context.loop_context.along.route_start_dist_m),
+		  static_cast<double>(projection_context.loop_context.along.route_end_dist_m),
 		  static_cast<unsigned>(config.respect_jump_repeats
 					&& projection_context.route_projection.segment.has_remaining_repeats));
 
@@ -436,7 +456,7 @@ RoutePath solveShortestRoutePathFromActiveLoop(float goal_route_along,
 }
 
 RoutePath findShortestPathAlongRoute(int mission_count,
-				     float goal_route_along,
+				     float goal_route_along_m,
 				     const ProjectionContext &projection_context, const PlannerConfig &config,
 				     PathDirectionMode direction_mode, RouteGoalSegmentType goal_seg_type)
 {
@@ -444,9 +464,9 @@ RoutePath findShortestPathAlongRoute(int mission_count,
 			&& goal_seg_type != RouteGoalSegmentType::kOnActiveLoopJump;
 
 	RoutePath path = on_jump_segment_and_goal_elsewhere
-			 ? solveShortestRoutePathFromActiveLoop(goal_route_along, projection_context, config,
+			 ? solveShortestRoutePathFromActiveLoop(goal_route_along_m, projection_context, config,
 					 direction_mode)
-			 : solveShortestRoutePath(goal_route_along, projection_context, config, direction_mode);
+			 : solveShortestRoutePath(goal_route_along_m, projection_context, config, direction_mode);
 
 	const bool valid_path = path.valid();
 
@@ -463,7 +483,7 @@ RoutePath findShortestPathAlongRoute(int mission_count,
 		dist_to_first_item = get_distance_to_next_waypoint(path.first_item_position.lat, path.first_item_position.lon,
 				     projection_context.vehicle_position.lat, projection_context.vehicle_position.lon);
 		path.in_first_item_acc_rad = PX4_ISFINITE(dist_to_first_item)
-					     && dist_to_first_item < config.parameters.acceptance_radius;
+					     && dist_to_first_item < config.parameters.acceptance_radius_m;
 	}
 
 	PX4_DEBUG("Route path: trgt=%d cmd=%u rev=%u uturn=%u dist=%.1f in_acc=%u",
@@ -475,8 +495,8 @@ RoutePath findShortestPathAlongRoute(int mission_count,
 		  static_cast<unsigned>(path.in_first_item_acc_rad));
 	PX4_DEBUG("Route path detail: first=%.1f vehicle=%.1f goal=%.1f",
 		  static_cast<double>(dist_to_first_item),
-		  static_cast<double>(projection_context.route_projection.dist.route_along),
-		  static_cast<double>(goal_route_along));
+		  static_cast<double>(projection_context.route_projection.dist.route_along_m),
+		  static_cast<double>(goal_route_along_m));
 
 	return path;
 }
@@ -487,17 +507,17 @@ bool closeToSafePointDirect(const Position &vehicle_position,
 	const float dist = get_distance_to_next_waypoint(vehicle_position.lat, vehicle_position.lon,
 			   safe_point_position.lat, safe_point_position.lon);
 
-	return PX4_ISFINITE(dist) && dist < config.parameters.direct_acceptance_radius;
+	return PX4_ISFINITE(dist) && dist < config.parameters.direct_acceptance_radius_m;
 }
 
 bool closeToBranchOffSegment(const Position &position,
 			     const GoalSelection &selection,
-			     float acceptance_radius,
-			     float altitude_acceptance_radius)
+			     float acceptance_radius_m,
+			     float altitude_acceptance_radius_m)
 {
 	if (!position.valid() || !selection.branch_off.projection.valid() || !selection.goal_position.valid()
-	    || !PX4_ISFINITE(acceptance_radius) || acceptance_radius <= 0.f
-	    || !PX4_ISFINITE(altitude_acceptance_radius) || altitude_acceptance_radius <= 0.f) {
+	    || !PX4_ISFINITE(acceptance_radius_m) || acceptance_radius_m <= 0.f
+	    || !PX4_ISFINITE(altitude_acceptance_radius_m) || altitude_acceptance_radius_m <= 0.f) {
 		PX4_ERR("Route invalid inputs to determine distance to branch-off segment");
 		return false;
 	}
@@ -519,9 +539,9 @@ bool closeToBranchOffSegment(const Position &position,
 	const float t = (branch_length_sq > FLT_EPSILON)
 			? math::constrain(position_vector.dot(branch_vector) / branch_length_sq, 0.f, 1.f)
 			: 0.f;
-	const float xtrack = static_cast<matrix::Vector2f>(position_vector - branch_vector * t).norm();
+	const float xtrack_m = static_cast<matrix::Vector2f>(position_vector - branch_vector * t).norm();
 
-	if (!PX4_ISFINITE(xtrack) || xtrack >= acceptance_radius) {
+	if (!PX4_ISFINITE(xtrack_m) || xtrack_m >= acceptance_radius_m) {
 		return false;
 	}
 
@@ -532,17 +552,7 @@ bool closeToBranchOffSegment(const Position &position,
 				   + t * (selection.goal_position.alt - branch_off_projection.alt);
 	const float alt_error = fabsf(position.alt - expected_alt);
 
-	return PX4_ISFINITE(alt_error) && alt_error < altitude_acceptance_radius;
-}
-
-bool canUseCurrentAltitudeForJoinTarget(const RoutePath &path)
-{
-	// The vehicle targets the landing at the mission land (or takeoff when reverse),
-	// do not force a climb back to the branch-in alt.
-	return path.valid()
-	       && path.in_first_item_acc_rad
-	       && (isLandingCmd(path.first_item_cmd)
-		   || (path.direction_reversed && isTakeoffCmd(path.first_item_cmd)));
+	return PX4_ISFINITE(alt_error) && alt_error < altitude_acceptance_radius_m;
 }
 
 bool canSkipRouteFollowToSelectedGoal(const Position &vehicle_position,
@@ -558,23 +568,8 @@ bool canSkipRouteFollowToSelectedGoal(const Position &vehicle_position,
 
 	// Safe-point goals only skip when the selected destination or branch-off leg is already close.
 	return closeToSafePointDirect(vehicle_position, selection.goal_position, config)
-	       || closeToBranchOffSegment(vehicle_position, selection, config.parameters.acceptance_radius,
-					  config.parameters.altitude_acceptance_radius);
-}
-
-JoinContext buildJoinContext(const Position &vehicle_position,
-			     const ProjectionContext &projection_context,
-			     const RoutePath &path)
-{
-	JoinContext join_context{};
-	join_context.projection = projection_context.route_projection.projection;
-	join_context.use_current_altitude = canUseCurrentAltitudeForJoinTarget(path);
-
-	if (join_context.use_current_altitude) {
-		join_context.projection.alt = vehicle_position.alt;
-	}
-
-	return join_context;
+	       || closeToBranchOffSegment(vehicle_position, selection, config.parameters.acceptance_radius_m,
+					  config.parameters.altitude_acceptance_radius_m);
 }
 
 RoutePath scoreBranchOffCandidate(int mission_count,
@@ -595,7 +590,7 @@ RoutePath scoreBranchOffCandidate(int mission_count,
 	const RouteGoalSegmentType goal_seg_type = same_active_loop ? RouteGoalSegmentType::kOnActiveLoopJump
 			: RouteGoalSegmentType::kOutsideActiveLoopJump;
 
-	RoutePath path = findShortestPathAlongRoute(mission_count, branch_off.dist.route_along,
+	RoutePath path = findShortestPathAlongRoute(mission_count, branch_off.dist.route_along_m,
 			 projection_context, config, PathDirectionMode::kAuto, goal_seg_type);
 
 	if (!path.valid()) {
@@ -604,7 +599,7 @@ RoutePath scoreBranchOffCandidate(int mission_count,
 
 	// Safe-point ranking must include both the route-following distance and the final
 	// straight branch-off leg from the route projection to the safe point.
-	const float total_path_cost = path.total_cost_m + branch_off.dist.xtrack;
+	const float total_path_cost = path.total_cost_m + branch_off.dist.xtrack_m;
 
 	if (!PX4_ISFINITE(total_path_cost)) {
 		return {};
@@ -710,7 +705,7 @@ FailureReason selectSafePoint(const Provider &provider,
 
 	ProjectionScanRequest scan_request{};
 	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
-	scan_request.xtrack_margin_m = config.parameters.safe_point_projection_search_dist;
+	scan_request.xtrack_margin_m = config.parameters.safe_point_projection_search_dist_m;
 	scan_request.compute_current_segment_bounds = false;
 
 	GoalSelection best{};
@@ -898,10 +893,9 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 	const RoutePath path = findShortestPathAlongRoute(mission_count, projection_context.route_length,
 			       projection_context, config, PathDirectionMode::kForceNominal,
 			       RouteGoalSegmentType::kOutsideActiveLoopJump);
-	const JoinContext join_context = buildJoinContext(request.vehicle_position, projection_context, path);
-	const MissionResumePlan candidate = makeMissionResumePlan(projection_context, path, join_context);
+	const MissionResumePlan candidate = makeMissionResumePlan(projection_context, path, request.vehicle_position);
 
-	if (!projection_context.valid() || !path.valid() || !join_context.valid() || !candidate.valid()) {
+	if (!projection_context.valid() || !path.valid() || !candidate.valid()) {
 		return FailureReason::kNoValidPath;
 	}
 
@@ -949,10 +943,9 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 
 	selection.fly_direct_to_goal = canSkipRouteFollowToSelectedGoal(request.vehicle_position, selection, config);
 
-	const JoinContext join_context = buildJoinContext(request.vehicle_position, projection_context, selection.path);
-	const RouteToGoalPlan candidate = makeRouteToGoalPlan(projection_context, join_context, selection);
+	const RouteToGoalPlan candidate = makeRouteToGoalPlan(projection_context, request.vehicle_position, selection);
 
-	if (!projection_context.valid() || !join_context.valid() || !selection.valid() || !candidate.valid()) {
+	if (!projection_context.valid() || !selection.valid() || !candidate.valid()) {
 		return FailureReason::kNoValidPath;
 	}
 

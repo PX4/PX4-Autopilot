@@ -52,7 +52,6 @@ namespace mission_route
 {
 
 static constexpr float kRoundingToleranceM{0.1f};
-static constexpr double kNullIslandThresholdDeg{1e-7};
 static constexpr double kCornerLatLonTolDeg{1e-5};
 static constexpr uint8_t kMaxSegmentCandidates{3};
 
@@ -70,10 +69,10 @@ static_assert(kMaxSafePointBatch <= DM_KEY_SAFE_POINTS_MAX,
 
 /** @brief Key distances for a point projected onto one segment. */
 struct ProjectionDistance {
-	float xtrack{NAN}; /**< Cross-track distance from the reference point to the projection. */
-	float route_along{NAN}; /**< Along-route distance from the route start to the projection. */
-	float segment_length{NAN};
-	float segment_along{NAN}; /**< Along-segment distance from the segment start to the projection. */
+	float xtrack_m{NAN}; /**< Cross-track distance from the reference point to the projection. */
+	float route_along_m{NAN}; /**< Along-route distance from the route start to the projection. */
+	float segment_length_m{NAN};
+	float along_segment_m{NAN}; /**< Along-segment distance from the segment start to the projection. */
 
 	bool valid() const;
 };
@@ -108,8 +107,8 @@ struct Segment {
 
 /** @brief The along-track interval of one segment within the full route. */
 struct SegmentDistanceAlong {
-	float start{NAN};
-	float end{NAN};
+	float route_start_dist_m{NAN};
+	float route_end_dist_m{NAN};
 
 	bool valid() const;
 };
@@ -162,14 +161,6 @@ struct ProjectionContext {
 	bool valid() const;
 };
 
-/** @brief Internal join geometry before it is flattened into a consumer plan. */
-struct JoinContext {
-	Position projection{};
-	bool use_current_altitude{false};
-
-	bool valid() const;
-};
-
 /** @brief One scored route path to a goal. */
 struct RoutePath {
 	bool direction_reversed{false};
@@ -207,11 +198,11 @@ struct GoalSelection {
 
 /** @brief Normalized parameters shared by projection and goal-selection helpers during one planning pass. */
 struct PlannerParameters {
-	float vehicle_projection_search_dist{0.f};
-	float safe_point_projection_search_dist{0.f};
-	float acceptance_radius{0.f};
-	float direct_acceptance_radius{0.f};
-	float altitude_acceptance_radius{0.f};
+	float vehicle_projection_search_dist_m{0.f};
+	float safe_point_projection_search_dist_m{0.f};
+	float acceptance_radius_m{0.f};
+	float direct_acceptance_radius_m{0.f};
+	float altitude_acceptance_radius_m{0.f};
 	float home_altitude_amsl{NAN};
 	float u_turn_penalty_m{4000.f};
 

@@ -34,14 +34,12 @@
 /**
  * @file mission_route_types.cpp
  *
- * Shared mission-route planner types:
- * data-struct validity checks and the parsing/string helpers declared in
- * mission_route_types.h.
+ * Public mission-route types and shared item helpers.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
-#include "mission_route_internal_types.h"
+#include "mission_route_types.h"
 
 #include "mission_item_utils.h"
 
@@ -49,6 +47,8 @@
 
 namespace mission_route
 {
+
+static constexpr double kNullIslandThresholdDeg{1e-7};
 
 bool Position::valid() const
 {
@@ -86,115 +86,6 @@ bool RouteToGoalPlan::valid() const
 
 	return (goal_type == GoalType::kMissionLand || goal_type == GoalType::kMissionTakeoff)
 	       && safe_point_index < 0 && !branch_off_position.valid() && branch_off_mission_item_index < 0;
-}
-
-bool ProjectionDistance::valid() const
-{
-	return PX4_ISFINITE(xtrack) && xtrack >= 0.f
-	       && PX4_ISFINITE(route_along) && route_along >= 0.f
-	       && PX4_ISFINITE(segment_length) && segment_length >= 0.f
-	       && PX4_ISFINITE(segment_along) && segment_along >= 0.f
-	       && segment_along < (segment_length + kRoundingToleranceM);
-}
-
-bool SegmentEndpoint::valid() const
-{
-	return idx >= 0 && nav_cmd != NAV_CMD_INVALID;
-}
-
-bool SegmentPositions::valid() const
-{
-	return start.valid() && end.valid();
-}
-
-bool Segment::valid() const
-{
-	const bool valid_jump = jump_item_index >= 0
-				&& jump_item_index != start.idx
-				&& jump_item_index != end.idx;
-	const bool valid_nominal = jump_item_index == -1 && !has_remaining_repeats && start.idx < end.idx;
-
-	return start.valid() && end.valid() && start.idx != end.idx && (valid_jump || valid_nominal);
-}
-
-bool Segment::validLoop() const
-{
-	return isLoop() && valid();
-}
-
-bool SegmentDistanceAlong::valid() const
-{
-	return PX4_ISFINITE(start) && start > -FLT_EPSILON
-	       && PX4_ISFINITE(end) && end > -FLT_EPSILON;
-}
-
-bool RouteProjectionCandidate::valid() const
-{
-	return segment.valid() && segment_positions.valid() && projection.valid() && dist.valid();
-}
-
-bool LoopContext::valid() const
-{
-	return segment.validLoop() && along.valid() && segment_positions.valid();
-}
-
-bool ProjectionContext::valid() const
-{
-	return vehicle_position.valid() && route_projection.valid();
-}
-
-bool JoinContext::valid() const
-{
-	return projection.valid();
-}
-
-bool RoutePath::valid() const
-{
-	return first_item_index >= 0 && first_item_cmd != NAV_CMD_INVALID
-	       && PX4_ISFINITE(total_cost_m) && total_cost_m >= 0.f;
-}
-
-bool BranchOff::valid() const
-{
-	return segment.valid() && projection.valid();
-}
-
-bool GoalSelection::valid() const
-{
-	if (goal_type == GoalType::kNone || !path.valid() || !goal_position.valid()) {
-		return false;
-	}
-
-	if (goal_type == GoalType::kSafePoint) {
-		return safe_point_index >= 0 && branch_off.valid();
-	}
-
-	return goal_type == GoalType::kMissionLand || goal_type == GoalType::kMissionTakeoff;
-}
-
-int32_t GoalSelection::branchOffIndex() const
-{
-	if (branch_off.segment.valid()) {
-		return path.direction_reversed ? branch_off.segment.start.idx : branch_off.segment.end.idx;
-	}
-
-	return path.first_item_index;
-}
-
-bool PlannerParameters::validForVehicleProjection() const
-{
-	// home_altitude_amsl is intentionally not checked: NAN is valid for absolute-altitude missions.
-	return PX4_ISFINITE(vehicle_projection_search_dist) && vehicle_projection_search_dist >= 0.f
-	       && PX4_ISFINITE(acceptance_radius) && acceptance_radius >= 0.f
-	       && PX4_ISFINITE(u_turn_penalty_m) && u_turn_penalty_m >= 0.f;
-}
-
-bool PlannerParameters::validForRouteToGoal() const
-{
-	return validForVehicleProjection()
-	       && PX4_ISFINITE(safe_point_projection_search_dist) && safe_point_projection_search_dist >= 0.f
-	       && PX4_ISFINITE(direct_acceptance_radius) && direct_acceptance_radius >= 0.f
-	       && PX4_ISFINITE(altitude_acceptance_radius) && altitude_acceptance_radius >= 0.f;
 }
 
 bool isLandingCmd(uint16_t nav_cmd)
