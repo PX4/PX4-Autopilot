@@ -53,8 +53,9 @@ Therefore, when ROS 2 nodes want to send `VehicleCommand` to PX4, they must ensu
 
 For example, if you want to send a command to your third vehicle, which has `px4_instance=2`, you need to set `target_system=3` in all your `VehicleCommand` messages.
 
-PX4 applies the same filtering to `target_component`: a command is handled when the value is `0` (broadcast) or matches the receiving component ID.
-A non-zero value for another component is ignored. For a normal PX4 flight controller, `target_component=1` addresses the autopilot component.
+PX4 applies the same filtering to `target_component`: a command is handled when the value is `0` (broadcast) or matches the component ID of the autopilot (as set with [MAV_COMP_ID](../advanced_config/parameter_reference.md#MAV_COMP_ID)).
+For a normal PX4 flight controller, `target_component=1` addresses the autopilot component.
+Any other non-zero value is ignored, as it is intended for another component 
 
 Commands published by ROS 2 or another process outside PX4 should set `from_external=true`, as shown in the ROS 2 examples.
 This prevents the MAVLink module from forwarding the command as if it originated inside PX4.
