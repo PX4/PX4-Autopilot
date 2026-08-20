@@ -247,6 +247,10 @@ void ICM45686::RunImpl()
 					Reset();
 					return;
 				}
+
+			} else if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
+				UpdateTemperature();
+				_temperature_update_timestamp = now;
 			}
 		}
 
@@ -334,13 +338,9 @@ bool ICM45686::Configure()
 		}
 	}
 
-	// 20-bits data format used the only FSR settings that are operational
-	// are ±4000dps for gyroscope and ±32 for accelerometer
+	// 16-bit FIFO (FIFO_HIRES_EN clear). Full-scale is ±4000 dps / ±32 g.
 	_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(4000.f));
-
-	// data is published from the 16-bit FIFO registers (data[19:4]), which always span the full
-	// range: 1024 LSB/g and 8.192 LSB/dps
 	_px4_accel.set_scale(32.f * CONSTANTS_ONE_G / 32768.f);
 	_px4_gyro.set_scale(math::radians(4000.f / 32768.f));
 
@@ -497,8 +497,8 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 			// gyro bit not set
 			valid = false;
 
-		} else if (!(FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_20)) {
-			// Packet does not contain a new and valid extended 20-bit data
+		} else if (FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_20) {
+			// 20-bit extension is not enabled
 			valid = false;
 
 		} else if ((FIFO_HEADER & FIFO::FIFO_HEADER_BIT::HEADER_TIMESTAMP_FSYNC) != Bit3) {
@@ -524,11 +524,9 @@ bool ICM45686::FIFORead(const hrt_abstime &timestamp_sample)
 	}
 
 	if (valid_samples > 0) {
-		if (ProcessTemperature(_fifo_buffer.f, valid_samples)) {
-			ProcessGyro(timestamp_sample, _fifo_buffer.f, valid_samples);
-			ProcessAccel(timestamp_sample, _fifo_buffer.f, valid_samples);
-			return true;
-		}
+		ProcessGyro(timestamp_sample, _fifo_buffer.f, valid_samples);
+		ProcessAccel(timestamp_sample, _fifo_buffer.f, valid_samples);
+		return true;
 	}
 
 	return false;
@@ -562,7 +560,6 @@ void ICM45686::FIFOReset()
 
 	// And enable again
 	RegisterSetBits(Register::BANK_0::FIFO_CONFIG3,
-			FIFO_CONFIG3_BIT::FIFO_HIRES_EN |
 			FIFO_CONFIG3_BIT::FIFO_GYRO_EN |
 			FIFO_CONFIG3_BIT::FIFO_ACCEL_EN |
 			FIFO_CONFIG3_BIT::FIFO_IF_EN);
@@ -582,15 +579,11 @@ void ICM45686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			accel.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
 		}
 
-		// The 16-bit FIFO registers hold data[19:4] of the 20-bit hires packet, covering the
-		// full +/-32 g range at 1024 LSB/g (scale set in Configure()). The 20-bit extension
-		// nibble is intentionally unused so the published scale stays constant instead of
-		// toggling with batch content.
 		const int16_t accel_x = combine(fifo[i].ACCEL_DATA_XL, fifo[i].ACCEL_DATA_XH);
 		const int16_t accel_y = combine(fifo[i].ACCEL_DATA_YL, fifo[i].ACCEL_DATA_YH);
 		const int16_t accel_z = combine(fifo[i].ACCEL_DATA_ZL, fifo[i].ACCEL_DATA_ZH);
 
-		// sample invalid if -32768 (16-bit truncation of the hires invalid marker -524288)
+		// sample invalid if -32768 (FIFO_HOLD_LAST_DATA_EN is clear)
 		if (accel_x != INT16_MIN && accel_y != INT16_MIN && accel_z != INT16_MIN) {
 			accel.x[accel.samples] = accel_x;
 			accel.y[accel.samples] = accel_y;
@@ -629,14 +622,17 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 			gyro.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
 		}
 
-		// The 16-bit FIFO registers hold data[19:4] of the 20-bit hires packet, covering the
-		// full +/-4000 dps range (scale set in Configure()). The 20-bit extension nibble is
-		// intentionally unused so the published scale stays constant instead of toggling with
-		// batch content.
-		gyro.x[gyro.samples] = combine(fifo[i].GYRO_DATA_XL, fifo[i].GYRO_DATA_XH);
-		gyro.y[gyro.samples] = combine(fifo[i].GYRO_DATA_YL, fifo[i].GYRO_DATA_YH);
-		gyro.z[gyro.samples] = combine(fifo[i].GYRO_DATA_ZL, fifo[i].GYRO_DATA_ZH);
-		gyro.samples++;
+		const int16_t gyro_x = combine(fifo[i].GYRO_DATA_XL, fifo[i].GYRO_DATA_XH);
+		const int16_t gyro_y = combine(fifo[i].GYRO_DATA_YL, fifo[i].GYRO_DATA_YH);
+		const int16_t gyro_z = combine(fifo[i].GYRO_DATA_ZL, fifo[i].GYRO_DATA_ZH);
+
+		// sample invalid if -32768 (FIFO_HOLD_LAST_DATA_EN is clear)
+		if (gyro_x != INT16_MIN && gyro_y != INT16_MIN && gyro_z != INT16_MIN) {
+			gyro.x[gyro.samples] = gyro_x;
+			gyro.y[gyro.samples] = gyro_y;
+			gyro.z[gyro.samples] = gyro_z;
+			gyro.samples++;
+		}
 	}
 
 	// correct frame for publication
@@ -655,48 +651,21 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	}
 }
 
-bool ICM45686::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples)
+void ICM45686::UpdateTemperature()
 {
-	int16_t temperature[FIFO_MAX_SAMPLES];
-	float temperature_sum{0};
+	uint8_t temperature_buf[3] {};
+	temperature_buf[0] = static_cast<uint8_t>(Register::BANK_0::TEMP_DATA1_UI) | DIR_READ;
 
-	int valid_samples = 0;
-
-	for (int i = 0; i < samples; i++) {
-		// Swapped as device is in little endian by default.
-		const int16_t t = combine(fifo[i].TEMP_DATA_L, fifo[i].TEMP_DATA_H);
-
-		// sample invalid if -32768
-		if (t != -32768) {
-			temperature_sum += t;
-			temperature[valid_samples] = t;
-			valid_samples++;
-		}
+	if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
+		perf_count(_bad_transfer_perf);
+		return;
 	}
 
-	if (valid_samples > 0) {
-		const float temperature_avg = temperature_sum / valid_samples;
+	const int16_t TEMP_DATA = combine(temperature_buf[2], temperature_buf[1]);
+	const float temp_c = (TEMP_DATA / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
-		for (int i = 0; i < valid_samples; i++) {
-			// temperature changing wildly is an indication of a transfer error
-			if (fabsf(temperature[i] - temperature_avg) > 1000) {
-				perf_count(_bad_transfer_perf);
-				return false;
-			}
-		}
-
-		// use average temperature reading
-		const float temp_c = (temperature_avg / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
-
-		if (PX4_ISFINITE(temp_c)) {
-			_px4_accel.set_temperature(temp_c);
-			_px4_gyro.set_temperature(temp_c);
-			return true;
-
-		} else {
-			perf_count(_bad_transfer_perf);
-		}
+	if (PX4_ISFINITE(temp_c)) {
+		_px4_accel.set_temperature(temp_c);
+		_px4_gyro.set_temperature(temp_c);
 	}
-
-	return false;
 }
