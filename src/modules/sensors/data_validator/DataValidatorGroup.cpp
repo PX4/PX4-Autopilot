@@ -103,6 +103,7 @@ DataValidator *DataValidatorGroup::add_new_validator()
 	}
 
 	_last->set_timeout(_timeout_interval_us);
+	_last->set_equal_value_threshold(_equal_value_threshold);
 	return _last;
 }
 
@@ -128,6 +129,8 @@ void DataValidatorGroup::set_equal_value_threshold(uint32_t threshold)
 		next->set_equal_value_threshold(threshold);
 		next = next->sibling();
 	}
+
+	_equal_value_threshold = threshold;
 }
 
 void DataValidatorGroup::put(unsigned index, uint64_t timestamp, const float val[3], uint32_t error_count,

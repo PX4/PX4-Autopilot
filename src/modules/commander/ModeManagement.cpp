@@ -82,6 +82,16 @@ void ModeExecutors::printStatus(int executor_in_charge) const
 	}
 }
 
+Modes::Modes()
+{
+	char hash_param_name[17];
+
+	for (int i = 0; i < MAX_NUM; i++) {
+		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
+		_mode_hash_handles[i] = param_find(hash_param_name);
+	}
+}
+
 bool Modes::hasFreeExternalModes() const
 {
 	for (int i = 0; i < MAX_NUM; ++i) {
@@ -108,9 +118,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 	int matching_idx = -1;
 
 	for (int i = 0; i < MAX_NUM; ++i) {
-		char hash_param_name[17];
-		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
-		const param_t handle = param_find(hash_param_name);
+		const param_t handle = _mode_hash_handles[i];
 		int32_t current_hash{};
 
 		if (handle != PARAM_INVALID && param_get(handle, &current_hash) == 0) {
@@ -165,9 +173,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 
 	if (new_mode_idx != -1 && !_modes[new_mode_idx].valid) {
 		if (need_to_update_param) {
-			char hash_param_name[17];
-			snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", new_mode_idx);
-			const param_t handle = param_find(hash_param_name);
+			const param_t handle = _mode_hash_handles[new_mode_idx];
 
 			if (handle != PARAM_INVALID) {
 				param_set_no_notification(handle, &mode_name_hash);

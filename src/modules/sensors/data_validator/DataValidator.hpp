@@ -154,6 +154,13 @@ public:
 	uint32_t get_timeout() const { return _timeout_interval; }
 
 	/**
+	 * Get the equal count threshold
+	 *
+	 * @return The number of equal values before considering the sensor stale
+	 */
+	uint32_t get_equal_value_threshold() const { return _value_equal_count_threshold; }
+
+	/**
 	 * Data validator error states
 	 */
 	static constexpr uint32_t ERROR_FLAG_NO_ERROR = (0x00000000U);
