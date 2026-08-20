@@ -98,3 +98,19 @@ parameters:
           3: "Fix: 3D"
           5: "Fix: RTK float"
           6: "Fix: RTK fixed"
+      SYS_FAIL_GPS_JAM:
+        description:
+          short: GPS Wrong-failure jamming state
+          long: |-
+            GNSS jamming state reported by the addressed receiver while a GPS 'wrong'
+            failure injection is active. The reported position is left untouched, so
+            'Detected' simulates a receiver that still delivers a valid fix while
+            reporting interference. Leave at 'Unchanged' to keep the simulated
+            receiver's own jamming state.
+        type: enum
+        default: 0
+        values:
+          0: Unchanged
+          1: OK
+          2: Mitigated
+          3: Detected

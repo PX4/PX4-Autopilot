@@ -200,7 +200,8 @@ void process_battery(const Config &config, uint8_t instance, battery_status_s &b
 /**
  * GNSS counterpart to process(): on FAILURE_UNIT_SENSOR_GPS for the receiver publishing on the
  * given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong reports
- * the fix type selected by SYS_FAIL_GPS_WRG while leaving the position untouched.
+ * the fix type selected by SYS_FAIL_GPS_WRG and the jamming state selected by SYS_FAIL_GPS_JAM
+ * while leaving the position untouched.
  *
  * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
  * @return false if the sensor_gps publication must be suppressed (Off), true otherwise.

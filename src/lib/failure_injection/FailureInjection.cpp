@@ -110,6 +110,15 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sen
 		int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
 		param_get(fix_type_handle, &fix_type);
 		sensor_gps.fix_type = (uint8_t)fix_type;
+
+		static const param_t jamming_state_handle = param_find("SYS_FAIL_GPS_JAM");
+
+		int32_t jamming_state = sensor_gps_s::JAMMING_STATE_UNKNOWN;
+		param_get(jamming_state_handle, &jamming_state);
+
+		if (jamming_state != sensor_gps_s::JAMMING_STATE_UNKNOWN) {
+			sensor_gps.jamming_state = (uint8_t)jamming_state;
+		}
 	}
 
 	return true;
