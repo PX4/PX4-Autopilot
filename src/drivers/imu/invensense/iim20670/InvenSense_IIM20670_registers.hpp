@@ -129,8 +129,8 @@ enum class BANK_1 : uint8_t {
 enum class BANK_3 : uint8_t {
 	ODR_CONFIG_1 = 0x11, // bits 13:8
 	ODR_CONFIG_2 = 0x13, // bits 7:4
-	ODR_CONFIG_3 = 0x14, // bits 5 and 9
-	ODR_CONFIG_5 = 0x16, // bit 0
+	ODR_CONFIG_3 = 0x14, // bits 5 and 9, reads back the routing in effect
+	ODR_CONFIG_5 = 0x16, // bit 0, applies the routing: write-only, self-clearing
 	ODR_CONFIG_6 = 0x17, // bit 12
 };
 
