@@ -87,7 +87,8 @@ config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 
 		When more eligible rally points are configured than fit in one batch, the planner
 		evaluates them in successive batches, re-scanning the full mission route once per batch,
-		and keeps the lowest-cost safe point across all batches (no rally point is skipped).
+		and keeps the lowest-cost valid safe point found. Unreadable or invalid rally points and
+		failed batch scans are skipped so a result from another batch remains usable.
 		A larger value trades RAM for fewer mission passes when many rally points are configured;
 		boards with spare RAM can raise it so all rally points fit in a single pass.
 
@@ -95,9 +96,7 @@ config NAVIGATOR_SAFE_POINT_BATCH_SIZE
 		sizeof(ProjectionReference) * CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE bytes
 		(about 380 bytes per slot, i.e. ~12 KB at the maximum batch size of 32).
 
-		The default is 1 so that boards which leave route planning disabled
-		(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0) do not pay the full batch RAM cost; boards
-		that enable route planning should raise it.
+		The default of 1 keeps RAM use low on boards that enable route planning.
 
 		The upper bound of 32 comes from DM_KEY_SAFE_POINTS_MAX, the maximum number of storable
 		safe points: batch slots beyond that count can never be filled.

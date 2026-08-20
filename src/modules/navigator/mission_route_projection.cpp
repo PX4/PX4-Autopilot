@@ -169,7 +169,7 @@ bool buildProjectionCandidate(const Segment &segment,
 				      projection.projection_vector(0), projection.projection_vector(1),
 				      &lat_res, &lon_res);
 	candidate.projection.lat = lat_res;
-	candidate.projection.lon = lon_res;
+	candidate.projection.lon = matrix::wrap(lon_res, -180.0, 180.0);
 	candidate.projection.alt = segment_positions.start.alt
 				   + projection.along_fraction * (segment_positions.end.alt - segment_positions.start.alt);
 

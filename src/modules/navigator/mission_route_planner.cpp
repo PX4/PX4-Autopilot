@@ -516,8 +516,8 @@ bool closeToBranchOffSegment(const Position &position,
 			     float altitude_acceptance_radius_m)
 {
 	if (!position.valid() || !selection.branch_off.projection.valid() || !selection.goal_position.valid()
-	    || !PX4_ISFINITE(acceptance_radius_m) || acceptance_radius_m <= 0.f
-	    || !PX4_ISFINITE(altitude_acceptance_radius_m) || altitude_acceptance_radius_m <= 0.f) {
+	    || !PX4_ISFINITE(acceptance_radius_m) || acceptance_radius_m < 0.f
+	    || !PX4_ISFINITE(altitude_acceptance_radius_m) || altitude_acceptance_radius_m < 0.f) {
 		PX4_ERR("Route invalid inputs to determine distance to branch-off segment");
 		return false;
 	}
@@ -931,7 +931,7 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 		return projection_status;
 	}
 
-	// Find closest safe point, falling back to mission end points if none found
+	// Find the lowest-cost safe point, falling back to mission endpoints if none is usable.
 	GoalSelection selection{};
 	const FailureReason selection_status = selectBestGoal(_provider, projection, mission_count,
 					       request.mission_land_index, projection_context, config,
