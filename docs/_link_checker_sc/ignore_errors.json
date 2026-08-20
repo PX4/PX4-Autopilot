@@ -1841,5 +1841,21 @@
       "text": "QAV-R 5\" Racer"
     },
     "hideReason": "Expected link to old version"
+  },
+  {
+    "link": {
+      "url": "https://ainstein.ai/wp-content/uploads/US-D1-Technical-User-Manual-D00.02.05.docx.pdf",
+      "text": ""
+    },
+    "hideReason": "SiteGround bot-challenge (sg-captcha) returns 202 to automated requests; link is valid for real browsers",
+    "expiry": "2027-08-20"
+  },
+  {
+    "link": {
+      "url": "https://baskaerospace.com.au/products/aerolink/",
+      "text": ""
+    },
+    "hideReason": "SiteGround bot-challenge (sg-captcha) returns 202 to automated requests; link is valid for real browsers",
+    "expiry": "2027-08-20"
   }
 ]

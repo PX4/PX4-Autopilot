@@ -1012,6 +1012,10 @@ GPS::run()
 			ubx_mode = GPSDriverUBX::UBXMode::GroundControlStation;
 			break;
 
+		case 7:
+			ubx_mode = GPSDriverUBX::UBXMode::UCenterUART2;
+			break;
+
 		default:
 			break;
 
@@ -1319,7 +1323,21 @@ GPS::run()
 				healthy_timeout += TIMEOUT_DUMP_ADD;
 			}
 
-			PX4_INFO("GPS device configured @ %u baud", _baudrate);
+			const char *uart1_protocols = nullptr;
+#if defined(CONFIG_GPS_UBX)
+
+			if (_mode == gps_driver_mode_t::UBX) {
+				uart1_protocols = GPSDriverUBX::uart1Protocols(ubx_mode, ppk_output > 0);
+			}
+
+#endif // CONFIG_GPS_UBX
+
+			if (uart1_protocols) {
+				PX4_INFO("UART1: %s @ %u baud (autopilot)", uart1_protocols, _baudrate);
+
+			} else {
+				PX4_INFO("UART1: configured @ %u baud", _baudrate);
+			}
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
 

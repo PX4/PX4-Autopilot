@@ -17,7 +17,7 @@ This contains changes to the PX4 `main` branch that are not included in the next
 
 ::: warning
 PX4 v1.18 is in beta testing.
-Update these notes with features that are going to be in `main` (PX4 v1.19 or later) but not the PX4 v1.18 release.
+Update these notes with features that are going to be in `main` (PX4 v2.0 or later) but not the PX4 v1.18 release.
 :::
 
 ## Read Before Upgrading
@@ -65,7 +65,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Sensors
 
-- TBD
+- Enable [u-blox Diagnostics with u-center](../gps_compass/u-center.md) while the vehicle's GPS runs as usual. ([PX4-Autopilot#28280](https://github.com/PX4/PX4-Autopilot/pull/28280)).
 
 ### Simulation
 

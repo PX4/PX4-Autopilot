@@ -754,6 +754,8 @@ private:
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag(const dragSample &drag_sample);
+
+	Vector3f getRelativeWindBody() const;
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);

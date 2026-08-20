@@ -26737,7 +26737,8 @@ Baudrate applied to the receiver UART1 after the link is auto-detected.
 
 u-blox UART2 baudrate.
 
-Baudrate for the receiver UART2 port.
+Baudrate for the receiver UART2 port. Only applied by GPS_UBX_MODE 1, 2, 5, 6 and 7;
+the other modes leave UART2 untouched.
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -26844,6 +26845,10 @@ F9P units are connected to each other.
 Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required.
 RTK is still possible with this setup.
 Mode 6 is intended for use with a ground control station (not necessarily an RTK correction base).
+Mode 7 turns UART2 into a diagnostic port: the receiver keeps serving the autopilot on UART1
+while UART2 outputs UBX at GPS_UBX_BAUD2 for u-center. Keep GPS_UBX_BAUD2 at 115200 or above,
+the diagnostic message set saturates a slower link. UBX input is left enabled on UART2, so
+anything attached there can also reconfigure the receiver.
 
 **Values:**
 
@@ -26854,10 +26859,11 @@ Mode 6 is intended for use with a ground control station (not necessarily an RTK
 - `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node)
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
 - `6`: Ground Control Station (UART2 outputs NMEA)
+- `7`: u-center on UART2 (UART2 outputs UBX diagnostics)
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 6        |           | 0       |      | &nbsp;    |
+| &check; | 0        | 7        |           | 0       |      | &nbsp;    |
 
 ### GPS_UBX_PPK (`INT32`) {#GPS_UBX_PPK}
 
