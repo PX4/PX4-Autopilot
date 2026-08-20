@@ -105,7 +105,7 @@ private:
 
 	// Sensor ODR and FIFO layout are variant-dependent (set in UpdateVariantRegisterConfig()):
 	//   default (16X/32X/DSK320X): 2000 Hz, 2 FIFO words/period (gyro + low-g)
-	//   LSM6DSV80X:                7680 Hz, 3 FIFO words/period (gyro + low-g + high-g)
+	//   LSM6DSV80X / 320X:         7680 Hz, 2 FIFO words/period (gyro + high-g)
 	uint32_t _sensor_odr{GYRO_ODR};
 	float    _fifo_sample_dt{1e6f / GYRO_ODR};
 	uint8_t  _fifo_words_per_period{2};

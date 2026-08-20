@@ -196,9 +196,9 @@ enum FIFO_CTRL3_BIT : uint8_t {
 	// Default variants: HAODR mode-1 code 0x0A (2000 Hz)
 	BDR_XL_HAODR = HAODR_MODE1_ODR_2000HZ,
 	BDR_GY_HAODR = HAODR_MODE1_ODR_2000HZ << 4,
-	// LSM6DSV80X: code 0x0C (7680 Hz)
-	BDR_XL_7680  = HAODR_SEL0_ODR_7680HZ,
+	// LSM6DSV80X / 320X: code 0x0C (7680 Hz); the low-g channel is not batched on these
 	BDR_GY_7680  = HAODR_SEL0_ODR_7680HZ << 4,
+	BDR_XL_MASK  = 0x0F,
 };
 
 // COUNTER_BDR_REG1 (0x0B)
@@ -259,8 +259,8 @@ namespace FIFO
 {
 // FIFO word: 1-byte tag + 6-byte data = 7 bytes
 static constexpr size_t WORD_SIZE = 7;
-// Words batched per sample period: gyro + low-g, plus high-g on the 80X / 320X
-static constexpr size_t MAX_WORDS_PER_PERIOD = 3;
+// Words batched per sample period: gyro + one accel channel (low-g, or high-g on the 80X / 320X)
+static constexpr size_t MAX_WORDS_PER_PERIOD = 2;
 // Max sample periods to drain per poll (avoid blocking scheduler)
 static constexpr size_t MAX_DRAIN_SAMPLES = 32;
 // Ceiling of the DIFF_FIFO word counter. The buffer itself is 1.5 KB, i.e. ~219 uncompressed words.
