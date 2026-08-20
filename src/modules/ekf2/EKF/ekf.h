@@ -406,6 +406,7 @@ public:
 
 	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
 	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
+	uint16_t gps_check_fail_status_enabled_mask() const { return _gnss_checks.getEnabledChecksFailStatusMask(); }
 
 	bool gps_checks_passed() const { return _gnss_checks.passed(); };
 
