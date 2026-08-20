@@ -53,12 +53,28 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index)
 	const float shunt_resistance = _param_ina226_shunt.get();
 
 	_current_lsb = max_current / 32768.f; // From datasheet: current_lsb = max_current / 2^15
-	_calibration = static_cast<uint16_t>(CAL_K / (_current_lsb * shunt_resistance));
+
+	// CAL is a 16-bit register. Legal INA226_CURRENT × INA226_SHUNT combos can
+	// overflow it; converting that float to uint16_t is undefined.
+	const float denom = _current_lsb * shunt_resistance;
+	const float cal = (denom > 0.f) ? (CAL_K / denom) : 0.f;
+
+	if ((cal < 1.f) || (cal > 65535.f)) {
+		PX4_ERR("INA226 calibration %.1f out of uint16 range (INA226_CURRENT=%.4f INA226_SHUNT=%.9f)",
+			(double)cal, (double)max_current, (double)shunt_resistance);
+		_current_lsb = 0.f;
+		_calibration = 0;
+
+	} else {
+		_calibration = static_cast<uint16_t>(cal);
+	}
 
 	_config_value = MODE_SHUNT_BUS_CONT | VSHCT_588US | VBUSCT_588US | AVERAGES_64;
 
-	// Publish an initial disconnected status so the first instance grabs uORB instance 0 immediately.
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	if (_calibration != 0) {
+		// Publish an initial disconnected status so the first instance grabs uORB instance 0 immediately.
+		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	}
 
 	// Let the lower I2C layer absorb transient bus errors before we see them.
 	I2C::_retries = 5;
@@ -75,6 +91,10 @@ INA226::~INA226()
 
 int INA226::init()
 {
+	if (_calibration == 0) {
+		return PX4_ERROR;
+	}
+
 	if (I2C::init() != PX4_OK) {
 		return PX4_ERROR;
 	}
@@ -310,6 +330,11 @@ I2CSPIDriverBase *INA226::instantiate(const I2CSPIDriverConfig &config, int /*ru
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (instance->_calibration == 0) {
+		delete instance;
 		return nullptr;
 	}
 
