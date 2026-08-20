@@ -50,15 +50,13 @@ static constexpr int32_t sum(const int16_t samples[], uint8_t len)
 	return sum;
 }
 
-static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
+static constexpr uint8_t clipping(const int16_t samples[], uint8_t len, int16_t clip_limit)
 {
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		// - consider data clipped/saturated if it's INT16_MIN/INT16_MAX or within 1
-		// - this accommodates rotated data (|INT16_MIN| = INT16_MAX + 1)
-		//   and sensors that may re-use the lowest bit for other purposes (sync indicator, etc)
-		if ((samples[n] <= INT16_MIN + 1) || (samples[n] >= INT16_MAX - 1)) {
+		// symmetric about zero: rotation negates samples and |INT16_MIN| = INT16_MAX + 1
+		if ((samples[n] <= -clip_limit) || (samples[n] >= clip_limit)) {
 			clip_count++;
 		}
 	}
@@ -181,9 +179,13 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	_last_sample[1] = sample.y[N - 1];
 	_last_sample[2] = sample.z[N - 1];
 
-	report.clip_counter[0] = clipping(sample.x, N);
-	report.clip_counter[1] = clipping(sample.y, N);
-	report.clip_counter[2] = clipping(sample.z, N);
+	// The declared range is not the int16 rail on every part (ST high-g and dps scales leave
+	// headroom in the word), so clip against range/scale like update() does. The 0.999 margin
+	// in _clip_limit also covers sensors that reuse the lowest bit for a sync flag.
+	const int16_t clip_limit = static_cast<int16_t>(math::min(_clip_limit, (float)(INT16_MAX - 1)));
+	report.clip_counter[0] = clipping(sample.x, N, clip_limit);
+	report.clip_counter[1] = clipping(sample.y, N, clip_limit);
+	report.clip_counter[2] = clipping(sample.z, N, clip_limit);
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
 
