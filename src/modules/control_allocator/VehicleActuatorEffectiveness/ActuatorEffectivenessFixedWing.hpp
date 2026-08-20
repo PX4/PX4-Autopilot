@@ -64,6 +64,4 @@ private:
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
-
-	ActuatorBitmask _forwards_motors_mask{};
 };

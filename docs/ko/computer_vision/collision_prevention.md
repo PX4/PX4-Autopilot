@@ -41,6 +41,15 @@ At time of writing PX4 allows you to use the [Lanbao PSK-CM8JL65-CC5](../sensor/
 
 PX4 v1.14 (and later) supports the [LightWare LiDAR SF45](../sensor/sf45_rotating_lidar.md) rotating lidar which provides 320 degree sensing.
 
+### Sony AS-DT1 LiDAR
+
+PX4 supports the [Sony AS-DT1](../sensor/sony_asdt1.md) multipoint LiDAR as a directly connected UART sensor for collision prevention.
+The driver publishes measurements to `obstacle_distance` with 5 degree bins, using the configured sensor yaw offset.
+
+The AS-DT1 covers a forward horizontal field of view of about 35 degrees.
+Only the covered sectors are populated; other directions remain no-data unless covered by another sensor.
+Configure the sensor as described in the [Sony AS-DT1](../sensor/sony_asdt1.md) guide, then enable collision prevention with [CP_DIST](#CP_DIST).
+
 ### Other Rangefinders
 
 다른 센서를 활성화 할 수 있지만, 이를 위해서는 센서 방향과 시야를 설정하기 위하여 드라이버 코드를 수정하여야 합니다.

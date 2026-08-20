@@ -164,6 +164,7 @@ parameters:
         0: Warning
         2: Land mode
         3: Return at critical level, land at emergency level
+        4: Return at critical level, terminate at emergency level
       default: 0
     COM_FAIL_ACT_T:
       description:
@@ -171,8 +172,8 @@ parameters:
         long: |-
           Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
           for the user to realize.
-          During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
-          Afterwards the configured failsafe action is triggered and the user may use stick override.
+          During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
+          Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
           A zero value disables the delay.
       type: float
@@ -268,34 +269,6 @@ parameters:
         1: Deny arming
         2: Warning only
       default: 2
-    COM_RC_OVERRIDE:
-      description:
-        short: Enable manual control stick override
-        long: |-
-          When enabled, moving the sticks more than COM_RC_STICK_OV
-          immediately gives control back to the pilot by switching to Position mode and
-          if position is unavailable Altitude mode.
-          Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
-      type: bitmask
-      bit:
-        0: Enable override during auto modes (except for in critical battery reaction)
-        1: Enable override during offboard mode
-      default: 1
-      min: 0
-      max: 3
-    COM_RC_STICK_OV:
-      description:
-        short: Stick override threshold
-        long: |-
-          If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
-          the pilot takes over control.
-      type: float
-      default: 30.0
-      unit: '%'
-      min: 5
-      max: 80
-      decimal: 0
-      increment: 0.05
     COM_ARM_MIS_REQ:
       description:
         short: Require valid mission to arm
@@ -340,7 +313,7 @@ parameters:
       values:
         0: Manual
         1: Altitude
-        2: Position
+        2: Position / Cruise
         3: Mission
         4: Hold
         6: Position Slow
@@ -396,6 +369,18 @@ parameters:
       min: -1
       max: 400
       decimal: 1
+    COM_POS_FS_ACT:
+      description:
+        short: Loss of position failsafe action
+        long: |-
+          Final fallback failsafe action for loss of horizontal position in autonomous modes:
+          - Descend (potential for horizontal drift on landing)
+          - Flight termination (allows parachute landing)
+      type: enum
+      values:
+        0: Descend mode
+        1: Terminate
+      default: 0
     COM_VEL_FS_EVH:
       description:
         short: Horizontal velocity error threshold
@@ -443,6 +428,12 @@ parameters:
         long: |-
           The manual control loss failsafe will only be entered after a timeout,
           set by COM_RC_LOSS_T in seconds.
+
+          "Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
+          is lost while actively flying a manual mode, the vehicle switches to Hold as a regular
+          mode change (no failsafe state, no alarming notification). If Hold cannot be entered
+          (e.g. without a valid position estimate), the normal failsafe takes over and escalates
+          from there (Return/Land/Descend/Terminate as applicable).
       type: enum
       values:
         1: Hold mode
@@ -450,6 +441,7 @@ parameters:
         3: Land mode
         5: Terminate
         6: Disarm
+        7: Hold mode (no failsafe)
       default: 2
     COM_RCL_EXCEPT:
       description:
@@ -503,12 +495,15 @@ parameters:
         short: Parachute requirement and failsafe
         long: |-
           Require a MAVLink parachute system for arming and the failsafe action when missing or unhealthy.
+
+          Warning only warns without preventing arming. Actions other than Warning also prevent arming.
       type: enum
       values:
         0: Disabled
         1: Warning
-        2: Return
-        3: Land
+        2: Error
+        3: Return
+        4: Land
       default: 0
     COM_ARM_CHK_ESCS:
       description:
@@ -593,19 +588,20 @@ parameters:
         4: Land
         5: Terminate
       default: 0
-    COM_ARM_TRAFF:
+    COM_TRAFF_AVOID:
       description:
-        short: Enable Traffic Avoidance system detection check
+        short: Traffic avoidance system requirement and failsafe
         long: |-
-          This check detects if a traffic avoidance system (ADSB/FLARM transponder)
-          is missing. Depending on the value of the parameter, the check can be
-          disabled, warn only, or deny arming.
+          Warn about, and optionally require, a traffic avoidance system (ADS-B/FLARM
+          transponder, detected via MAVLink heartbeats with a 3 second timeout), and
+          trigger a failsafe action when it is missing or lost in flight.
       type: enum
       values:
         0: Disabled
-        1: Warning only
-        2: Enforce for all modes
-        3: Enforce for mission modes only
+        1: Warning
+        2: Error
+        3: Return
+        4: Land
       default: 0
     COM_SPOOLUP_TIME:
       description:
@@ -627,8 +623,8 @@ parameters:
       description:
         short: Companion computer high-temperature warning threshold
         long: |-
-          
-          
+
+
           Arming is not prevented as the temperature typically drops in flight.
 
           Set to -1 to disable.

@@ -105,6 +105,10 @@ public:
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
 	bool isTerrainEstimateValid() const { return _terrain_valid; }
+	bool isHeightAboveGroundEstimateValid() const
+	{
+		return isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE);
+	}
 
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain + getEkfGlobalOriginAltitude(); };
@@ -750,6 +754,8 @@ private:
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag(const dragSample &drag_sample);
+
+	Vector3f getRelativeWindBody() const;
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);

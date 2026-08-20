@@ -1,0 +1,41 @@
+module_name: Sony AS-DT1 Rangefinder
+serial_config:
+    - command: sony_asdt1 start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_ASDT1_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_ASDT1_MODE:
+            description:
+                short: Distance measurement range
+                long: |
+                    Sony AS-DT1 distance measurement range mode. The driver uses
+                    this mode to configure the sensor and publish matching
+                    obstacle_distance metadata.
+            type: enum
+            values:
+                0: 30MSTD
+                1: 30M15F
+                2: 30M30F
+                3: 20M
+                4: 40M
+            min: 0
+            max: 4
+            default: 0
+            reboot_required: true
+        SENS_ASDT1_ROT:
+            description:
+                short: Sensor yaw offset
+                long: |
+                    Yaw angle offset of the Sony AS-DT1 sensor relative to the
+                    vehicle forward direction. Positive values are clockwise.
+            type: float
+            decimal: 1
+            default: 0
+            min: -360
+            max: 360
+            unit: deg
+            reboot_required: true

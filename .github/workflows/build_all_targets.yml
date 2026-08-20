@@ -66,13 +66,16 @@ jobs:
   group_targets:
     name: Scan for Board Targets
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       seeders: ${{ steps.set-seeders.outputs.seeders }}
+      cold_seeders: ${{ steps.filter-seeders.outputs.cold_seeders }}
+      has_cold: ${{ steps.filter-seeders.outputs.has_cold }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
       branchname: ${{ steps.set-branch.outputs.branchname }}
     steps:
+      - uses: runs-on/action@v2
       - uses: actions/checkout@v6
 
       - name: Cache Python pip
@@ -86,17 +89,43 @@ jobs:
       - name: Install Python Dependencies
         run: pip3 install -U packaging -r ./Tools/setup/requirements.txt
 
+      # The generator runs as a standalone assignment so a non-zero exit
+      # fails the step; embedded in `echo "x=$(...)"` it would be masked
+      # and the empty output silently skips the whole build matrix.
       - id: set-matrix
         name: Generate Build Matrix
-        run: echo "matrix=$(./Tools/ci/generate_board_targets_json.py --group)" >> $GITHUB_OUTPUT
+        run: |
+          matrix=$(./Tools/ci/generate_board_targets_json.py --group)
+          {
+            echo "matrix<<EOF"
+            echo "$matrix"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - id: set-seeders
         name: Generate Seeder Matrix
-        run: echo "seeders=$(./Tools/ci/generate_board_targets_json.py --group --seeders)" >> $GITHUB_OUTPUT
+        run: |
+          seeders=$(./Tools/ci/generate_board_targets_json.py --group --seeders)
+          {
+            echo "seeders<<EOF"
+            echo "$seeders"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Seed only chip families whose ccache namespace has no warm cache.
+      # Fail-open semantics live in the script: any probe problem emits
+      # the full matrix, reproducing unconditional seeding.
+      - id: filter-seeders
+        name: Probe Family Caches
+        env:
+          ALL_SEEDERS: ${{ steps.set-seeders.outputs.seeders }}
+        run: ./Tools/ci/filter_cold_seeders.py <<< "$ALL_SEEDERS"
 
       - id: set-timestamp
         name: Save Current Timestamp
-        run: echo "timestamp=$(date +"%Y%m%d%H%M%S")" >> $GITHUB_OUTPUT
+        run: |
+          timestamp=$(date +"%Y%m%d%H%M%S")
+          echo "timestamp=$timestamp" >> "$GITHUB_OUTPUT"
 
       - id: set-branch
         name: Save Current Branch Name
@@ -116,20 +145,25 @@ jobs:
           echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
 
   # ===========================================================================
-  # CACHE SEEDER JOBS
+  # CACHE SEEDER JOBS (conditional)
   # ===========================================================================
-  # Build one representative target per chip family to warm the ccache.
-  # Matrix jobs fall back to these caches via restore-keys when no
-  # group-specific cache exists yet. If any seeder fails, the build matrix
-  # does not start, catching common build errors early.
+  # Build one representative target per chip family to warm the ccache,
+  # but only for families whose cache namespace came up cold in the
+  # group_targets probe. Measured steady state is zero seeder restores
+  # (group jobs live on their own rolling caches), so on warm runs the
+  # whole stage skips and the build matrix starts immediately. When a
+  # family IS cold (matrix regrouping, cache expiry, new chip family),
+  # its seeder runs and still gates the matrix, which is the only case
+  # where the warmup is worth waiting for.
   # ===========================================================================
 
   seed:
     name: Seed [${{ matrix.chip_family }}]
     needs: group_targets
+    if: needs.group_targets.outputs.has_cold == 'true'
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     strategy:
-      matrix: ${{ fromJson(needs.group_targets.outputs.seeders) }}
+      matrix: ${{ fromJson(needs.group_targets.outputs.cold_seeders) }}
       fail-fast: false
     container:
       image: ${{ matrix.container }}
@@ -146,7 +180,7 @@ jobs:
       - uses: ./.github/actions/setup-ccache
         id: ccache
         with:
-          cache-key-prefix: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-seeder
+          cache-key-prefix: ${{ matrix.cache_prefix }}-${{ matrix.group }}
           max-size: 400M
       - name: Build seed target
         run: make ${{ matrix.target }}
@@ -182,12 +216,12 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
-          key: ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
+          key: ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.ref_name }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-${{ matrix.group }}-
-            ccache-${{ matrix.chip_family }}-${{ matrix.runner }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.ref_name }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-${{ github.base_ref || 'main' }}-
+            ${{ matrix.cache_prefix }}-${{ matrix.group }}-
+            ${{ matrix.cache_prefix }}-
 
       - name: Cache - Configure ccache
         run: |
@@ -200,14 +234,6 @@ jobs:
           echo "compiler_check = content" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
-
-      - name: Install pynacl for secure-boot signing
-        # TODO: drop once the build container ships with pynacl preinstalled
-        # (currently pinned to v1.17.0-rc2 in Tools/ci/build_all_config.yml).
-        # Modern containers enforce PEP 668 and need --break-system-packages;
-        # older ones (e.g. voxl2) ship a pip that doesn't know the flag and
-        # don't need it either, so fall back to plain pip install.
-        run: pip install pynacl --break-system-packages || pip install pynacl
 
       - name: Building Artifacts for [${{ matrix.targets }}]
         run: |
@@ -293,12 +319,15 @@ jobs:
 
       # Create a draft GitHub Release for all version tags
       # Pre-releases are automatically marked as such
+      # preserve_order uploads assets sequentially: the default parallel
+      # upload of hundreds of assets trips GitHub's secondary rate limit
       - name: Upload Artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
           prerelease: ${{ steps.upload-location.outputs.is_prerelease == 'true' }}
+          preserve_order: true
           files: |
             artifacts/*.px4
             artifacts/*.deb

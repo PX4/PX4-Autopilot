@@ -83,15 +83,19 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (!subscribeImu(true)) {
-		return PX4_ERROR;
-	}
-
-	if (!subscribeMag(true)) {
-		return PX4_ERROR;
-	}
-
 	// OPTIONAL:
+	if (_sim_gz_en_imu.get()) {
+		if (!subscribeImu(false)) {
+			return PX4_ERROR;
+		}
+	}
+
+	if (_sim_gz_en_mag.get()) {
+		if (!subscribeMag(false)) {
+			return PX4_ERROR;
+		}
+	}
+
 	if (_sim_gz_en_gps.get()) {
 		if (!subscribeNavsat(false)) {
 			return PX4_ERROR;
@@ -343,7 +347,10 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 
 	if (!_realtime_clock_set) {
 		// Set initial real time clock at startup
-		px4_clock_settime(CLOCK_REALTIME, &ts);
+		if (_param_sys_time_src.get() & SYS_TIME_SRC_SIMULATOR) {
+			px4_clock_settime(CLOCK_REALTIME, &ts);
+		}
+
 		_realtime_clock_set = true;
 
 	} else {
@@ -421,6 +428,7 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	report.differential_pressure_pa = msg.diff_pressure(); // hPa to Pa;
 	_temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
 	report.temperature = _temperature;
+	report.pitot_temperature = NAN;
 	_differential_pressure_pub.publish(report);
 }
 

@@ -51,6 +51,7 @@
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/geo/geo.h>
+#include <systemlib/system_time_source.h>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -204,6 +205,9 @@ private:
 		(ParamInt<px4::params::SIM_GZ_EN_ASPD>) _sim_gz_en_aspd,
 		(ParamInt<px4::params::SIM_GZ_EN_BARO>) _sim_gz_en_baro,
 		(ParamInt<px4::params::SIM_GZ_EN_ODOM>) _sim_gz_en_odom,
-		(ParamInt<px4::params::SIM_GZ_EN_GPS>) _sim_gz_en_gps
+		(ParamInt<px4::params::SIM_GZ_EN_GPS>) _sim_gz_en_gps,
+		(ParamInt<px4::params::SIM_GZ_EN_IMU>) _sim_gz_en_imu,
+		(ParamInt<px4::params::SIM_GZ_EN_MAG>) _sim_gz_en_mag,
+		(ParamInt<px4::params::SYS_TIME_SRC>) _param_sys_time_src
 	)
 };

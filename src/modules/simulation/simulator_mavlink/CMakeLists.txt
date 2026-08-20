@@ -47,6 +47,7 @@ px4_add_module(
 	DEPENDS
 		mavlink_c_generate
 		conversion
+		failure_injection
 		geo
 		drivers_accelerometer
 		drivers_barometer
@@ -58,7 +59,7 @@ include(sitl_targets_flightgear.cmake)
 include(sitl_targets_gazebo-classic.cmake)
 include(sitl_targets_jmavsim.cmake)
 include(sitl_targets_jsbsim.cmake)
-
+include(sitl_targets_xplane.cmake)
 
 # none_iris (legacy compatibility launch helper)
 add_custom_target(none_iris

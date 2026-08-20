@@ -76,7 +76,10 @@ void Subscription::unsubscribe()
 bool Subscription::update(void *dst)
 {
 	if (subscribe()) {
-		return Manager::orb_data_copy(_node, dst, _last_generation, true);
+		unsigned gen = _last_generation;
+		bool ret = Manager::orb_data_copy(_node, dst, gen, true);
+		_last_generation = gen;
+		return ret;
 	}
 
 	return false;
@@ -85,7 +88,10 @@ bool Subscription::update(void *dst)
 bool Subscription::copy(void *dst)
 {
 	if (subscribe()) {
-		return Manager::orb_data_copy(_node, dst, _last_generation, false);
+		unsigned gen = _last_generation;
+		bool ret = Manager::orb_data_copy(_node, dst, gen, false);
+		_last_generation = gen;
+		return ret;
 	}
 
 	return false;

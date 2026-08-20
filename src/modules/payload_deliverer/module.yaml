@@ -7,11 +7,13 @@ parameters:
         # Gripper configuration
         PD_GRIPPER_TYPE:
             description:
-                short: Type of Gripper (Servo, etc.)
+                short: Gripper control type
+                long: |
+                  Selects the types of control actions the gripper accepts.
             type: enum
             values:
                 -1: Undefined
-                0: Servo
+                0: Binary Grab/Release
             min: -1
             max: 0
             default: 0

@@ -55,6 +55,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/dronecan_node_status.h>
+#include <lib/failure_injection/FailureInjection.hpp>
 #include "../node_info.hpp"
 
 class UavcanEscController
@@ -124,6 +125,13 @@ private:
 	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
+
+	// bitmask of ESC indices seen since the last publish; a repeat marks a new round
+	uint16_t	_seen_status_mask{0};
+	static_assert(esc_status_s::CONNECTED_ESC_MAX <= 8 * sizeof(_seen_status_mask),
+		      "_seen_status_mask cannot hold CONNECTED_ESC_MAX bits");
+
+	failure_injection::Config _failure_config;
 
 	/*
 	 * libuavcan related things

@@ -41,6 +41,7 @@
 
 #include "mission_base.h"
 #include <uORB/topics/rtl_time_estimate.h>
+#include <matrix/math.hpp>
 
 class RtlBase : public MissionBase
 {
@@ -54,4 +55,8 @@ public:
 	virtual void setReturnAltMin(bool min) { (void)min;};
 
 	virtual void setRtlAlt(float alt) { (void)alt;};
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	virtual matrix::Vector2d getRtlPlannerDestination() { return {(double)NAN, (double)NAN}; }
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 };

@@ -1,0 +1,8 @@
+# osrf/simulation revision used by macos.sh --sim-tools.
+#
+# OSRF strips the gz bottle blocks within minutes of a breaking homebrew-core
+# dependency bump and rebuilds them days later. The tarballs stay on S3, so
+# pinning keeps the install binary instead of compiling Gazebo from source.
+# Move it to the newest commit where every gz formula macos.sh installs still
+# carries a bottle block.
+c90f81ac7ea8046e195c5e303cc4e1175642e587

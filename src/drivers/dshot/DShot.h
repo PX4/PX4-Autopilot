@@ -63,6 +63,12 @@ static constexpr int32_t TIM_CONFIG_BDSHOT150 = -8;
 static constexpr int32_t TIM_CONFIG_BDSHOT300 = -7;
 static constexpr int32_t TIM_CONFIG_BDSHOT600 = -6;
 
+// A 3D ESC reads the range as two halves meeting here: below is reverse, above is forward.
+static constexpr uint16_t DSHOT_3D_SPLIT = 1000;
+// Forward-only channels start at the bottom of the forward half. The DSHOT_MIN idle floor is
+// applied within that half by convert_output_to_3d_scaling(), so it must not be added here.
+static constexpr uint16_t DSHOT_3D_FORWARD_START = DSHOT_3D_SPLIT + 1;
+
 static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
 static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
 static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
@@ -124,10 +130,14 @@ private:
 	void consume_esc_data(const EscData &data);
 
 	uint16_t calculate_output_value(uint16_t raw, int index);
-	uint16_t convert_output_to_3d_scaling(uint16_t output);
+	uint16_t convert_output_to_3d_scaling(uint16_t output, bool reversible);
 
 	void Run() override;
 	void update_params();
+
+	// Per-channel minimums must match how calculate_output_value() encodes each channel.
+	void apply_min_values(uint32_t reversible);
+	void reversibleMaskChanged(uint32_t reversible_mask) override;
 
 	// Mavlink command handlers
 	void handle_vehicle_commands();

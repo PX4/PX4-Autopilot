@@ -38,6 +38,7 @@
 
 #include <containers/IntrusiveQueue.hpp>
 #include <containers/IntrusiveSortedList.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
@@ -130,6 +131,11 @@ protected:
 	hrt_abstime	_time_first_run{0};
 	const char 	*_item_name;
 	uint32_t	_run_count{0};
+
+	// True while a WorkQueue worker is inside Run() for this item.
+	// Set before Run(), cleared after. Used by Deinit to wait out any
+	// in-flight Run() before the owning object's memory can be reused.
+	px4::atomic_bool	_run_in_progress{false};
 
 private:
 

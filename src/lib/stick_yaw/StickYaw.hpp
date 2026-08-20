@@ -60,6 +60,7 @@ private:
 	float _yaw_error_ref{0.f};
 	float _yaw_correction{0.f};
 	bool _yaw_estimate_converging{false};
+	bool _unaided_yaw_was_invalid{false};
 	AlphaFilter<float> _yaw_error_lpf{_kYawErrorTimeConstant}; ///< used to create a high-pass filter
 	static constexpr float _kYawErrorTimeConstant{1.f}; ///< time constant of the high-pass filter used to detect yaw convergence
 	static constexpr float _kYawErrorChangeThreshold{radians(1.f)}; ///< we consider the yaw estimate as "converging" when above this threshold

@@ -74,6 +74,7 @@ if (gz-transport_FOUND)
 			drivers_magnetometer
 			drivers_rangefinder
 			drivers_barometer
+			failure_injection
 			mixer_module
 			px4_work_queue
 			${GZ_TRANSPORT_TARGET}

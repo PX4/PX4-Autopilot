@@ -46,7 +46,7 @@
 using namespace time_literals;
 
 static orb_advert_t *mavlink_log_pub;
-static int command_ack_sub = -1;
+static orb_sub_t command_ack_sub = ORB_SUB_INVALID;
 
 static hrt_abstime auth_timeout;
 static hrt_abstime auth_req_time;

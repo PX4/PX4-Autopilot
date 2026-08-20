@@ -108,6 +108,7 @@ void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t o
 void UavcanEscController::set_rotor_count(uint8_t count)
 {
 	_rotor_count = count;
+	_seen_status_mask = 0; // the set of reporting ESC indices may change with the mixer configuration
 }
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
@@ -123,13 +124,23 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		esc_report.esc_errorcount = msg.error_count;
 		esc_report.failures = get_failures(msg.esc_index, msg.getSrcNodeID().get());
 
-		_esc_status.esc_count = _rotor_count;
-		_esc_status.counter += 1;
-		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-		_esc_status.esc_online_flags = check_escs_status();
-		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
-		_esc_status.timestamp = esc_report.timestamp;
-		_esc_status_pub.publish(_esc_status);
+		// A repeated ESC index marks the start of a new round; publish once per round.
+		const uint16_t index_bit = 1u << msg.esc_index;
+
+		if (_seen_status_mask & index_bit) {
+			_seen_status_mask = 0;
+			_esc_status.esc_count = _rotor_count;
+			_esc_status.counter += 1;
+			_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+			_esc_status.esc_online_flags = check_escs_status();
+			_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
+			_esc_status.timestamp = esc_report.timestamp;
+
+			_failure_config.update();
+			_esc_status_pub.publish(failure_injection::process_esc(_failure_config, _esc_status));
+		}
+
+		_seen_status_mask |= index_bit;
 	}
 
 	// Register device capability for each ESC channel

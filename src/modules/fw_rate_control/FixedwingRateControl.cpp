@@ -379,7 +379,16 @@ void FixedwingRateControl::Run()
 				}
 
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f scaled_gain_ff = gain_ff / _airspeed_scaling;
+
+				// Positive feedforward compensates aerodynamic damping and is scaled linearly with airspeed.
+				// Negative feedforward instead weights down the setpoint acting on the P gain (turning the
+				// controller into a 2-DOF controller).
+				Vector3f scaled_gain_ff;
+
+				for (int i = 0; i < 3; i++) {
+					scaled_gain_ff(i) = (gain_ff(i) >= 0.f) ? gain_ff(i) / _airspeed_scaling : gain_ff(i);
+				}
+
 				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
@@ -404,22 +413,31 @@ void FixedwingRateControl::Run()
 					trim.copyTo(_vehicle_torque_setpoint.xyz);
 				}
 
-				/* throttle passed through if it is finite */
-				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
+				float thrust_setpoint = _rates_sp.thrust_body[0];
 
-				/* scale effort by battery status */
-				if (_param_fw_bat_scale_en.get() && _vehicle_thrust_setpoint.xyz[0] > 0.1f) {
+				// Stop motor if its setpoint is below 2%. This value was determined empirically (RC stick inaccuracy).
+				// Motor is stopped by setting the output to NAN (per definition).
+				if (PX4_ISFINITE(thrust_setpoint) && thrust_setpoint > 0.02f) {
+					/* scale effort by battery status */
+					if (_param_fw_bat_scale_en.get()) {
 
-					if (_battery_status_sub.updated()) {
-						battery_status_s battery_status{};
+						if (_battery_status_sub.updated()) {
+							battery_status_s battery_status{};
 
-						if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-							_battery_scale = battery_status.scale;
+							if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+								_battery_scale = battery_status.scale;
+							}
 						}
+
+						thrust_setpoint *= _battery_scale;
 					}
 
-					_vehicle_thrust_setpoint.xyz[0] *= _battery_scale;
+				} else {
+					thrust_setpoint = NAN;
 				}
+
+				_vehicle_thrust_setpoint.xyz[0] = thrust_setpoint;
+
 			}
 
 			// publish rate controller status

@@ -437,7 +437,7 @@ int VTX::print_status()
 	PX4_INFO("  pit mode: %s", _pit_mode ? "on" : "off");
 
 	if (!(_comms_ok && _protocol && _protocol->print_settings())) {
-		PX4_ERR("%s device not found", _param_vtx_device.get() == 1 ? "Tramp" : "SmartAudio");
+		PX4_ERR("%s device not found", (_param_vtx_device.get() & 0xff) == vtx_s::PROTOCOL_TRAMP ? "Tramp" : "SmartAudio");
 	}
 
 	perf_print_counter(_perf_cycle);

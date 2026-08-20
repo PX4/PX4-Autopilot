@@ -41,6 +41,11 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 
 	reporter.failsafeFlags().parachute_unhealthy = !context.status().parachute_system_present || !context.status().parachute_system_healthy;
 
+	// COM_PARACHUTE 1 (Warning) only warns, higher values also prevent arming
+	const bool is_error = _param_com_parachute.get() >= 2;
+	const NavModes affected_modes = is_error ? NavModes::All : NavModes::None;
+	const events::Log log_level = is_error ? events::Log::Error : events::Log::Warning;
+
 	if (!context.status().parachute_system_present) {
 		/* EVENT
 		 * @description
@@ -50,10 +55,10 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 		 * Configured by <param>COM_PARACHUTE</param>
 		 * </profile>
 		 */
-		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_missing"),
-				       events::Log::Error, "Parachute system missing");
+		reporter.healthFailure(affected_modes, health_component_t::parachute, events::ID("check_parachute_missing"),
+				       log_level, "Parachute system missing");
 
-		if (reporter.mavlink_log_pub()) {
+		if (reporter.mavlink_log_pub() && is_error) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system missing");
 		}
 
@@ -67,10 +72,10 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 		 * Configured by <param>COM_PARACHUTE</param>
 		 * </profile>
 		 */
-		reporter.healthFailure(NavModes::All, health_component_t::parachute, events::ID("check_parachute_unhealthy"),
-				       events::Log::Error, "Parachute system not ready");
+		reporter.healthFailure(affected_modes, health_component_t::parachute, events::ID("check_parachute_unhealthy"),
+				       log_level, "Parachute system not ready");
 
-		if (reporter.mavlink_log_pub()) {
+		if (reporter.mavlink_log_pub() && is_error) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Parachute system not ready");
 		}
 	}

@@ -51,12 +51,14 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include <debug.h>
 #include <errno.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
+#include <nuttx/irq.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
@@ -194,32 +196,215 @@ void imxrt_octl_flash_initialize(void)
 }
 #endif
 
+/****************************************************************************
+ * FlexSPI DLL / DQS read-strobe calibration
+ *
+ * Corrects the ROM-provided DLL delay by finding the valid DQS sampling range
+ * and selecting its midpoint for reliable flash reads.
+ ****************************************************************************/
+
+#define DLL_SPIN     200000u
+#define DLL_WORDS    128u                         /* 512 B reference pattern */
+#define DLL_CHUNK    16u                          /* 64 B per read command, < 128 B RX FIFO */
+#define DLL_LOCK     (FLEXSPI_STS2_ASLVLOCK_MASK | FLEXSPI_STS2_AREFLOCK_MASK)
+#define DLL_IDLE     (FLEXSPI_STS0_ARBIDLE_MASK | FLEXSPI_STS0_SEQIDLE_MASK)
+#define DLL_SETTLE   4000u                        /* post-lock settle; ERR011377 needs >=100 NOPs, this is well beyond */
+#define DLL_CODE_LO  1u                           /* skip SLVDLYTARGET=0 (sub-cell, degenerate) */
+#define DLL_PAT(i)   ((uint32_t)(((uint32_t)(i) * 2654435761u) ^ 0xa5a55a5aul))
+#define DLL_P8(i)    DLL_PAT(i), DLL_PAT((i) + 1), DLL_PAT((i) + 2), DLL_PAT((i) + 3), \
+	DLL_PAT((i) + 4), DLL_PAT((i) + 5), DLL_PAT((i) + 6), DLL_PAT((i) + 7)
+#define DLL_P64(i)   DLL_P8(i), DLL_P8((i) + 8), DLL_P8((i) + 16), DLL_P8((i) + 24), \
+	DLL_P8((i) + 32), DLL_P8((i) + 40), DLL_P8((i) + 48), DLL_P8((i) + 56)
+
+/* Known reference pattern, kept in flash so reading it back tests each delay */
+static const uint32_t g_dll_train[DLL_WORDS] __attribute__((aligned(32))) = {
+	DLL_P64(0), DLL_P64(64)
+};
+
+struct dll_cal_result_s {
+	uint32_t magic;         /* 'DLLC' when populated */
+	uint32_t sts2_entry;    /* STS2 as left by the ROM (pre-calibration snapshot) */
+	uint16_t passmask;      /* bit N set => delay code N read back correctly */
+	int8_t   chosen;        /* selected delay code, or -1 on ROM fallback */
+};
+
+struct dll_cal_result_s g_dll_cal;
+
+/* Write DLLCR[0] (port A) using the NXP DLL-update sequence and return true
+ * once it locks. Runs from RAM: it disables the flash we execute from, so no
+ * flash access may occur across the call.
+ */
+locate_code(".ramfunc")
+static bool imxrt_dll_write(struct flexspi_type_s *flexspi, uint32_t dllcr)
+{
+	uint32_t spin = DLL_SPIN;
+
+	while (spin-- && (flexspi->STS0 & DLL_IDLE) != DLL_IDLE) {
+	}
+
+	flexspi->MCR0 |= FLEXSPI_MCR0_MDIS_MASK;   /* stop mode before touching DLLCR */
+	arm_dsb();
+	arm_isb();
+	flexspi->DLLCR[0] = dllcr;
+	flexspi->MCR0 &= ~FLEXSPI_MCR0_MDIS_MASK;  /* exit stop -> DLL re-locks (no SWRESET) */
+
+	if (dllcr & FLEXSPI_DLLCR_DLLEN_MASK) {
+		for (spin = DLL_SPIN; spin-- && (flexspi->STS2 & DLL_LOCK) != DLL_LOCK;) {
+		}
+
+		if ((flexspi->STS2 & DLL_LOCK) != DLL_LOCK) {
+			return false;   /* never locked */
+		}
+	}
+
+	for (volatile uint32_t d = DLL_SETTLE; d--;) {  /* settle delay line (ERR011377) */
+	}
+
+	return true;
+}
+
+/* Read the reference pattern back with a direct command (not the execute-in-
+ * place fetch path) and return true only if every word matches.
+ */
+locate_code(".ramfunc")
+static bool imxrt_dll_read_matches(struct flexspi_type_s *flexspi, uint32_t sfar_base)
+{
+	for (uint32_t word = 0; word < DLL_WORDS; word += DLL_CHUNK) {
+		const uint32_t bytes = DLL_CHUNK * 4u;
+		uint32_t spin;
+
+		flexspi->INTR = FLEXSPI_INTR_IPCMDDONE_MASK | FLEXSPI_INTR_IPCMDERR_MASK |
+				FLEXSPI_INTR_IPCMDGE_MASK | FLEXSPI_INTR_AHBCMDERR_MASK;
+		flexspi->IPRXFCR |= FLEXSPI_IPRXFCR_CLRIPRXF_MASK;
+		flexspi->IPCR0 = sfar_base + word * 4u;
+		flexspi->IPCR1 = FLEXSPI_IPCR1_IDATSZ(bytes) | FLEXSPI_IPCR1_ISEQID(0) |
+				 FLEXSPI_IPCR1_ISEQNUM(0);            /* read seq at LUT index 0 */
+		flexspi->IPCMD |= FLEXSPI_IPCMD_TRG_MASK;
+
+		bool done = false;
+
+		for (spin = DLL_SPIN; spin--;) {
+			uint32_t intr = flexspi->INTR;
+
+			if (intr & FLEXSPI_INTR_IPCMDERR_MASK) {
+				return false;
+			}
+
+			if (intr & FLEXSPI_INTR_IPCMDDONE_MASK) {
+				done = true;
+				break;
+			}
+		}
+
+		if (!done) {
+			return false;
+		}
+
+		for (spin = DLL_SPIN; spin-- &&
+		     ((flexspi->IPRXFSTS & FLEXSPI_IPRXFSTS_FILL_MASK) >> FLEXSPI_IPRXFSTS_FILL_SHIFT) * 8u < bytes;) {
+		}
+
+		for (uint32_t j = 0; j < DLL_CHUNK; j++) {
+			if (flexspi->RFDR[j] != DLL_PAT(word + j)) {
+				return false;
+			}
+		}
+
+		flexspi->INTR = FLEXSPI_INTR_IPRXWA_MASK;   /* pop the FIFO */
+	}
+
+	return true;
+}
+
+/* Middle of the widest run of passing delay codes, or -1 if none. RAM-resident. */
+locate_code(".ramfunc")
+static int imxrt_dll_center(uint16_t mask)
+{
+	int best_start = -1, best_len = 0, run = 0;
+
+	for (int i = 0; mask >> i; i++) {
+		if (mask & (1u << i)) {
+			if (++run > best_len) {
+				best_len = run;
+				best_start = i - run + 1;
+			}
+
+		} else {
+			run = 0;
+		}
+	}
+
+	return (best_start < 0) ? -1 : best_start + best_len / 2;
+}
+
+/* Best-effort DLL calibration; on anything unexpected it keeps the ROM DLL. */
+locate_code(".ramfunc")
+static void imxrt_flexspi_dll_calibrate(struct flexspi_type_s *flexspi)
+{
+	irqstate_t flags = up_irq_save();
+
+	const uint32_t rom_dllcr = flexspi->DLLCR[0];
+	const uint32_t rxclksrc = (flexspi->MCR0 & FLEXSPI_MCR0_RXCLKSRC_MASK) >> FLEXSPI_MCR0_RXCLKSRC_SHIFT;
+
+	g_dll_cal.magic = 0x444c4c43ul;   /* 'DLLC' */
+	g_dll_cal.sts2_entry = flexspi->STS2;
+	g_dll_cal.passmask = 0;
+	g_dll_cal.chosen = -1;
+
+	/* Only calibrate when reads are sampled by the flash's DQS strobe */
+	if (rxclksrc == kFlexSPIReadSampleClk_ExternalInputFromDqsPad) {
+		const uint32_t sfar = (uint32_t)(uintptr_t)&g_dll_train[0] - IMXRT_FLEXSPI1_CIPHER_BASE;
+
+		for (uint32_t code = DLL_CODE_LO; code < 16u; code++) {
+			if (imxrt_dll_write(flexspi, FLEXSPI_DLLCR_DLLEN(1) | FLEXSPI_DLLCR_SLVDLYTARGET(code)) &&
+			    imxrt_dll_read_matches(flexspi, sfar)) {
+				g_dll_cal.passmask |= (uint16_t)(1u << code);
+			}
+		}
+
+		int chosen = imxrt_dll_center(g_dll_cal.passmask);
+
+		if (chosen >= 0 &&
+		    imxrt_dll_write(flexspi, FLEXSPI_DLLCR_DLLEN(1) | FLEXSPI_DLLCR_SLVDLYTARGET((uint32_t)chosen))) {
+			g_dll_cal.chosen = (int8_t)chosen;
+
+		} else {
+			imxrt_dll_write(flexspi, rom_dllcr);   /* no window: restore ROM */
+		}
+	}
+
+	up_irq_restore(flags);
+}
+
 locate_code(".ramfunc")
 void imxrt_flash_setup_prefetch_partition(void)
 {
+	struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+
+	imxrt_flexspi_dll_calibrate(flexspi);
+
 	putreg32((uint32_t)&_srodata, IMXRT_FLEXSPI1_AHBBUFREGIONSTART0);
 	putreg32((uint32_t)&_erodata, IMXRT_FLEXSPI1_AHBBUFREGIONEND0);
 	putreg32((uint32_t)&_stext, IMXRT_FLEXSPI1_AHBBUFREGIONSTART1);
 	putreg32((uint32_t)&_etext, IMXRT_FLEXSPI1_AHBBUFREGIONEND1);
 
-	struct flexspi_type_s *g_flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
 	/* RODATA */
-	g_flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(128) |
-				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
-				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
-				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+	flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(128) |
+				  FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
+				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				  FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
 
 
 	/* All Text */
-	g_flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(380) |
-				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
-				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
-				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+	flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(380) |
+				  FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
+				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				  FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
 	/* Reset CR7 from rom init */
-	g_flexspi->AHBRXBUFCR0[7] = FLEXSPI_AHBRXBUFCR0_BUFSZ(0) |
-				    FLEXSPI_AHBRXBUFCR0_MSTRID(0) |
-				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
-				    FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
+	flexspi->AHBRXBUFCR0[7] = FLEXSPI_AHBRXBUFCR0_BUFSZ(0) |
+				  FLEXSPI_AHBRXBUFCR0_MSTRID(0) |
+				  FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				  FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 
 	ARM_DSB();
 	ARM_ISB();
@@ -341,6 +526,25 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	} else {
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
+	}
+
+	/* Report the FlexSPI DLL calibration result captured during early board
+	 * init (see imxrt_flexspi_dll_calibrate()). Logged here, not there, so it
+	 * does not corrupt the early console before syslog is serialized.
+	 */
+	if (g_dll_cal.magic == 0x444c4c43ul) {
+		struct flexspi_type_s *flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+		uint32_t dllcr = flexspi->DLLCR[0];
+		uint32_t sts2 = flexspi->STS2;
+		uint32_t delay = (sts2 & FLEXSPI_STS2_ASLVSEL_MASK) >> FLEXSPI_STS2_ASLVSEL_SHIFT;
+		uint32_t rom_delay = (g_dll_cal.sts2_entry & FLEXSPI_STS2_ASLVSEL_MASK) >> FLEXSPI_STS2_ASLVSEL_SHIFT;
+		bool locked = (sts2 & DLL_LOCK) == DLL_LOCK;
+		syslog(LOG_INFO,
+		       "[boot] FlexSPI DLL: chosen code %d, passmask 0x%04x, sample delay %" PRIu32
+		       " cells (ROM %" PRIu32 "), %s [dllcr 0x%04" PRIx32 "]\n",
+		       g_dll_cal.chosen, g_dll_cal.passmask, delay, rom_delay,
+		       g_dll_cal.chosen < 0 ? "ROM fallback" : (locked ? "locked" : "NO LOCK"),
+		       dllcr);
 	}
 
 	/* Step 3 reset the SE550

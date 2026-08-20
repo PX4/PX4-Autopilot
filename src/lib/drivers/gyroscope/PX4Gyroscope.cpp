@@ -131,23 +131,37 @@ void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y,
 	report.samples = 1;
 	report.timestamp = hrt_absolute_time();
 
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					_sensor_pub.get_instance(), report, _stuck)) {
+		return;
+	}
+
 	_sensor_pub.publish(report);
 }
 
 void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 {
 	// rotate all raw samples and publish fifo
-	const uint8_t N = sample.samples;
-
-	for (int n = 0; n < N; n++) {
+	for (int n = 0; n < sample.samples; n++) {
 		rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
 	}
 
 	sample.device_id = _device_id;
 	sample.scale = _scale;
 	sample.timestamp = hrt_absolute_time();
+
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					_sensor_pub.get_instance(), sample, _stuck_fifo)) {
+		return;
+	}
+
 	_sensor_fifo_pub.publish(sample);
 
+	const uint8_t N = sample.samples;
 
 	// publish
 	sensor_gyro_s report;
@@ -171,6 +185,11 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	report.clip_counter[2] = clipping(sample.z, N);
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+					_sensor_pub.get_instance(), report, _stuck)) {
+		return;
+	}
 
 	_sensor_pub.publish(report);
 }

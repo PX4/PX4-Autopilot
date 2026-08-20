@@ -5,18 +5,11 @@ import argparse
 import os
 import sys
 import json
-import re
-from kconfiglib import Kconfig
 
-kconf = Kconfig()
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'kconfig'))
+import loadconfig
 
-# Supress warning output
-kconf.warn_assign_undef = False
-kconf.warn_assign_override = False
-kconf.warn_assign_redun = False
-
-source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-boards_dir = os.path.join(source_dir, '..', 'boards')
+kconf = loadconfig.load_kconfig(suppress_warnings=True)
 
 parser = argparse.ArgumentParser(description='Generate build targets')
 
@@ -69,65 +62,10 @@ excluded_labels = [
 special_labels = ci_config.get('special_labels', ['lto', 'protected'])
 
 def detect_chip_family(manufacturer_name, board_name, label):
-    """Detect the chip family for a board by reading its NuttX defconfig.
-
-    Returns a chip family string used for cache grouping:
-      stm32h7, stm32f7, stm32f4, stm32f1, imxrt, kinetis, s32k, rp2040, native, special
-    """
-    # Special labels get their own group regardless of chip
+    """Chip family for cache grouping; special labels get their own group."""
     if label in special_labels:
         return 'special'
-
-    board_path = os.path.join(boards_dir, manufacturer_name, board_name)
-    nsh_defconfig = os.path.join(board_path, 'nuttx-config', 'nsh', 'defconfig')
-
-    if not os.path.exists(nsh_defconfig):
-        # Try bootloader defconfig as fallback
-        bl_defconfig = os.path.join(board_path, 'nuttx-config', 'bootloader', 'defconfig')
-        if os.path.exists(bl_defconfig):
-            nsh_defconfig = bl_defconfig
-        else:
-            return 'native'
-
-    arch_chip = None
-    specific_chip = None
-
-    with open(nsh_defconfig) as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith('CONFIG_ARCH_CHIP='):
-                arch_chip = line.split('=')[1].strip('"')
-            elif line.startswith('CONFIG_ARCH_CHIP_STM32F') and line.endswith('=y'):
-                specific_chip = line.split('=')[0].replace('CONFIG_ARCH_CHIP_', '')
-
-    if arch_chip is None:
-        return 'native'
-
-    # Direct matches for chips that have unique CONFIG_ARCH_CHIP values
-    if arch_chip == 'stm32h7':
-        return 'stm32h7'
-    elif arch_chip == 'stm32f7':
-        return 'stm32f7'
-    elif arch_chip == 'imxrt':
-        return 'imxrt'
-    elif arch_chip == 'kinetis':
-        return 'kinetis'
-    elif arch_chip.startswith('s32k'):
-        return 's32k'
-    elif arch_chip == 'rp2040':
-        return 'rp2040'
-    elif arch_chip == 'stm32':
-        # Disambiguate STM32 sub-families using specific chip define
-        if specific_chip:
-            if specific_chip.startswith('STM32F1'):
-                return 'stm32f1'
-            elif specific_chip.startswith('STM32F4'):
-                return 'stm32f4'
-            else:
-                return 'stm32f4'  # Default STM32 to F4
-        return 'stm32f4'
-    else:
-        return 'native'
+    return loadconfig.chip_family(os.path.join(loadconfig.BOARDS_DIR, manufacturer_name, board_name))
 
 target_chip_families = {}  # target_name -> chip_family mapping
 github_action_config = { 'include': build_configs }
@@ -162,14 +100,7 @@ def process_target(px4board_file, target_name, manufacturer_name=None, board_dir
     toolchain = None
     group = None
 
-    if px4board_file.endswith("default.px4board") or \
-        px4board_file.endswith("performance-test.px4board") or \
-        px4board_file.endswith("bootloader.px4board"):
-        kconf.load_config(px4board_file, replace=True)
-    else: # Merge config with default.px4board
-        default_kconfig = re.sub(r'[a-zA-Z\d_-]+\.px4board', 'default.px4board', px4board_file)
-        kconf.load_config(default_kconfig, replace=True)
-        kconf.load_config(px4board_file, replace=False)
+    loadconfig.load_target_config(kconf, px4board_file)
 
     if "BOARD_TOOLCHAIN" in kconf.syms:
         toolchain = kconf.syms["BOARD_TOOLCHAIN"].str_value
@@ -244,112 +175,93 @@ grouped_targets['base']['manufacturers']['px4'] += metadata_targets
 for mt in metadata_targets:
     target_chip_families[mt] = 'native'
 
-for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
-    if not manufacturer.is_dir():
-        continue
-    if manufacturer.name in excluded_manufacturers:
-        if verbose: print(f'excluding manufacturer {manufacturer.name}')
+for board_target in loadconfig.enumerate_targets():
+    if board_target.manufacturer in excluded_manufacturers:
+        if verbose: print(f'excluding manufacturer {board_target.manufacturer}')
         continue
 
-    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
-        if not board.is_dir():
-            continue
+    board_name = board_target.manufacturer + '_' + board_target.board
+    label = board_target.label
+    target_name = board_target.name
 
-        for files in sorted(os.scandir(board.path), key=lambda e: e.name):
-            if files.is_file() and files.name.endswith('.px4board'):
+    if target_filter and not any(target_name.startswith(f) for f in target_filter):
+        if verbose: print(f'excluding board {board_name} ({target_name})')
+        continue
 
-                board_name = manufacturer.name + '_' + board.name
-                label = files.name[:-9]
-                target_name = manufacturer.name + '_' + board.name + '_' + label
+    if board_name in excluded_boards:
+        if verbose: print(f'excluding board {board_name} ({target_name})')
+        continue
 
-                if target_filter and not any(target_name.startswith(f) for f in target_filter):
-                    if verbose: print(f'excluding board {board_name} ({target_name})')
-                    continue
-
-                if board_name in excluded_boards:
-                    if verbose: print(f'excluding board {board_name} ({target_name})')
-                    continue
-
-                if label in excluded_labels:
-                    if verbose: print(f'excluding label {label} ({target_name})')
-                    continue
-                target = process_target(files.path, target_name,
-                                       manufacturer_name=manufacturer.name,
-                                       board_dir_name=board.name,
-                                       label=label)
-                if (args.group and target is not None):
-                    if (target['arch'] not in grouped_targets):
-                        grouped_targets[target['arch']] = {}
-                        grouped_targets[target['arch']]['container'] = target['container']
-                        grouped_targets[target['arch']]['manufacturers'] = {}
-                    if(manufacturer.name not in grouped_targets[target['arch']]['manufacturers']):
-                        grouped_targets[target['arch']]['manufacturers'][manufacturer.name] = []
-                    grouped_targets[target['arch']]['manufacturers'][manufacturer.name].append(target_name)
-                    target_chip_families[target_name] = target['chip_family']
-                if target is not None:
-                    build_configs.append(target)
+    if label in excluded_labels:
+        if verbose: print(f'excluding label {label} ({target_name})')
+        continue
+    target = process_target(board_target.path, target_name,
+                           manufacturer_name=board_target.manufacturer,
+                           board_dir_name=board_target.board,
+                           label=label)
+    if (args.group and target is not None):
+        if (target['arch'] not in grouped_targets):
+            grouped_targets[target['arch']] = {}
+            grouped_targets[target['arch']]['container'] = target['container']
+            grouped_targets[target['arch']]['manufacturers'] = {}
+        if(board_target.manufacturer not in grouped_targets[target['arch']]['manufacturers']):
+            grouped_targets[target['arch']]['manufacturers'][board_target.manufacturer] = []
+        grouped_targets[target['arch']]['manufacturers'][board_target.manufacturer].append(target_name)
+        target_chip_families[target_name] = target['chip_family']
+    if target is not None:
+        build_configs.append(target)
 
 # Remove companion targets from CI groups (parent target builds them via Make prerequisite)
-for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
-    if not manufacturer.is_dir():
-        continue
-    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
-        if not board.is_dir():
-            continue
-        companion_file = os.path.join(board.path, 'companion_targets')
-        if os.path.exists(companion_file):
-            with open(companion_file) as f:
-                companions = {l.strip() for l in f if l.strip() and not l.startswith('#')}
-            for arch in grouped_targets:
-                for man in grouped_targets[arch]['manufacturers']:
-                    grouped_targets[arch]['manufacturers'][man] = [
-                        t for t in grouped_targets[arch]['manufacturers'][man]
-                        if t not in companions
-                    ]
+for board in loadconfig.enumerate_boards():
+    companion_file = os.path.join(board.path, 'companion_targets')
+    if os.path.exists(companion_file):
+        with open(companion_file) as f:
+            companions = {l.strip() for l in f if l.strip() and not l.startswith('#')}
+        for arch in grouped_targets:
+            for man in grouped_targets[arch]['manufacturers']:
+                grouped_targets[arch]['manufacturers'][man] = [
+                    t for t in grouped_targets[arch]['manufacturers'][man]
+                    if t not in companions
+                ]
 
 # Append _deb targets for boards that have cmake/package.cmake
-for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
-    if not manufacturer.is_dir():
+for board in loadconfig.enumerate_boards():
+    if board.manufacturer in excluded_manufacturers:
         continue
-    if manufacturer.name in excluded_manufacturers:
+    board_name = board.manufacturer + '_' + board.board
+    if board_name in excluded_boards:
         continue
-    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
-        if not board.is_dir():
+    package_cmake = os.path.join(board.path, 'cmake', 'package.cmake')
+    if os.path.exists(package_cmake):
+        deb_target = board_name + '_deb'
+        if target_filter and not any(deb_target.startswith(f) for f in target_filter):
             continue
-        board_name = manufacturer.name + '_' + board.name
-        if board_name in excluded_boards:
-            continue
-        package_cmake = os.path.join(board.path, 'cmake', 'package.cmake')
-        if os.path.exists(package_cmake):
-            deb_target = board_name + '_deb'
-            if target_filter and not any(deb_target.startswith(f) for f in target_filter):
-                continue
-            # Determine the container and group for this board
-            container = default_container
-            if board_name in board_container_overrides:
-                container = board_container_overrides[board_name]
-            target_entry = {'target': deb_target, 'container': container}
-            if args.group:
-                # Find the group where this board's _default target already lives
-                default_target = board_name + '_default'
-                group = None
-                for g in grouped_targets:
-                    targets_in_group = grouped_targets[g].get('manufacturers', {}).get(manufacturer.name, [])
-                    if default_target in targets_in_group:
-                        group = g
-                        break
-                if group is None:
-                    group = 'base'
-                target_entry['arch'] = group
-                if group not in grouped_targets:
-                    grouped_targets[group] = {'container': container, 'manufacturers': {}}
-                if manufacturer.name not in grouped_targets[group]['manufacturers']:
-                    grouped_targets[group]['manufacturers'][manufacturer.name] = []
-                grouped_targets[group]['manufacturers'][manufacturer.name].append(deb_target)
-                # Inherit chip_family from the default target
-                default_chip = target_chip_families.get(default_target, 'native')
-                target_chip_families[deb_target] = default_chip
-            build_configs.append(target_entry)
+        # Determine the container and group for this board
+        container = default_container
+        if board_name in board_container_overrides:
+            container = board_container_overrides[board_name]
+        target_entry = {'target': deb_target, 'container': container}
+        if args.group:
+            # Find the group where this board's _default target already lives
+            default_target = board_name + '_default'
+            group = None
+            for g in grouped_targets:
+                targets_in_group = grouped_targets[g].get('manufacturers', {}).get(board.manufacturer, [])
+                if default_target in targets_in_group:
+                    group = g
+                    break
+            if group is None:
+                group = 'base'
+            target_entry['arch'] = group
+            if group not in grouped_targets:
+                grouped_targets[group] = {'container': container, 'manufacturers': {}}
+            if board.manufacturer not in grouped_targets[group]['manufacturers']:
+                grouped_targets[group]['manufacturers'][board.manufacturer] = []
+            grouped_targets[group]['manufacturers'][board.manufacturer].append(deb_target)
+            # Inherit chip_family from the default target
+            default_chip = target_chip_families.get(default_target, 'native')
+            target_chip_families[deb_target] = default_chip
+        build_configs.append(target_entry)
 
 if(verbose):
     import pprint
@@ -551,7 +463,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": comma_targets(all_targets),
                     "arch": arch,
-                    "chip_family": "native",
+                    "chip_family": "voxl2",
                     "runner": runner,
                     "group": "voxl2-0",
                     "len": len(all_targets),
@@ -581,9 +493,14 @@ if (args.group):
                     })
                     chunk_counter += 1
 
-    # Add cache_size to each group based on chip family
+    # Add cache_size and the shared ccache namespace root to each group.
+    # cache_prefix is the single source of the cache key convention: the
+    # workflow composes keys as {cache_prefix}-{group}-{ref}-{sha} with a
+    # final restore fallback of {cache_prefix}-, and the seeder probe
+    # (Tools/ci/filter_cold_seeders.py) greps the bucket for the same root.
     for g in final_groups:
         g['cache_size'] = CHIP_CACHE_SIZES.get(g['chip_family'], DEFAULT_CACHE_SIZE)
+        g['cache_prefix'] = f"ccache-{g['chip_family']}-{g['runner']}"
 
     if(verbose):
         import pprint
@@ -607,11 +524,7 @@ if (args.group):
         # Determine which chip families actually have groups
         active_families = set()
         for g in final_groups:
-            cf = g['chip_family']
-            active_families.add(cf)
-            # voxl2 gets its own seeder with a different container
-            if g['group'].startswith('voxl2'):
-                active_families.add('voxl2')
+            active_families.add(g['chip_family'])
 
         seeders = []
         for cf in sorted(active_families):
@@ -625,11 +538,10 @@ if (args.group):
                     'runner': 'x64',
                 })
             elif cf == 'native':
-                # One seeder per runner arch that has native groups (exclude voxl2
-                # which has its own seeder with a different container)
+                # One seeder per runner arch that has native groups
                 native_runners = set()
                 for g in final_groups:
-                    if g['chip_family'] == 'native' and not g['group'].startswith('voxl2'):
+                    if g['chip_family'] == 'native':
                         native_runners.add(g['runner'])
                 for r in sorted(native_runners):
                     seeders.append({
@@ -645,6 +557,13 @@ if (args.group):
                     'container': seeder_containers.get(cf, default_container),
                     'runner': 'x64',
                 })
+
+        # Seeders share the family namespace root with the build groups and
+        # occupy the reserved "seeder" group inside it, so seeder caches are
+        # always reachable from the build jobs' {cache_prefix}- fallback.
+        for s in seeders:
+            s['group'] = 'seeder'
+            s['cache_prefix'] = f"ccache-{s['chip_family']}-{s['runner']}"
 
         print(json.dumps({ "include": seeders }, **extra_args))
     else:

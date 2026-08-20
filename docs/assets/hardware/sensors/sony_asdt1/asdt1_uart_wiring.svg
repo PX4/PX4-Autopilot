@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" role="img" aria-labelledby="title desc">
+  <title id="title">Sony AS-DT1 UART wiring to flight controller and external power</title>
+  <desc id="desc">AS-DT1 pin 2 connects to external power positive, pin 1 connects to both external power ground and flight controller serial ground, pin 5 UART TX connects to flight controller RX, and pin 6 UART RX connects to flight controller TX.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e5e7eb"/>
+    </marker>
+    <style>
+      .box { fill: #111827; stroke: #e5e7eb; stroke-width: 2; rx: 8; }
+      .title { font: 700 22px sans-serif; fill: #ffffff; }
+      .label { font: 16px sans-serif; fill: #f9fafb; }
+      .small { font: 14px sans-serif; fill: #d1d5db; }
+      .pin { font: 15px monospace; fill: #ffffff; }
+      .wire-power { stroke: #dc2626; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .wire-ground { stroke: #d1d5db; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .wire-tx { stroke: #60a5fa; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .wire-rx { stroke: #34d399; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .node { fill: #d1d5db; }
+    </style>
+  </defs>
+
+  <rect x="45" y="75" width="250" height="275" class="box"/>
+  <text x="70" y="115" class="title">Sony AS-DT1</text>
+  <text x="70" y="150" class="small">8-pin JST-GH connector</text>
+  <text x="70" y="195" class="pin">Pin 1  GND</text>
+  <text x="70" y="235" class="pin">Pin 2  VCC 12-24V</text>
+  <text x="70" y="275" class="pin">Pin 5  UART TX</text>
+  <text x="70" y="315" class="pin">Pin 6  UART RX</text>
+
+  <rect x="675" y="70" width="250" height="140" class="box"/>
+  <text x="700" y="110" class="title">External Power</text>
+  <text x="700" y="150" class="pin">+ 12-24V</text>
+  <text x="700" y="185" class="pin">- GND</text>
+
+  <rect x="675" y="245" width="250" height="145" class="box"/>
+  <text x="700" y="290" class="title">Flight Controller</text>
+  <text x="700" y="325" class="pin">RX</text>
+  <text x="700" y="355" class="pin">TX</text>
+  <text x="700" y="385" class="pin">GND</text>
+
+  <path d="M 295 230 C 425 230, 535 140, 675 140" class="wire-power"/>
+  <text x="420" y="190" class="label">VCC</text>
+
+  <path d="M 295 190 H 455" class="wire-ground"/>
+  <circle cx="455" cy="190" r="6" class="node"/>
+  <path d="M 455 190 C 535 190, 585 180, 675 180" class="wire-ground"/>
+  <path d="M 455 190 C 550 255, 600 380, 675 380" class="wire-ground"/>
+  <text x="385" y="175" class="label">common ground</text>
+
+  <path d="M 295 270 C 430 270, 535 320, 675 320" class="wire-tx"/>
+  <text x="425" y="298" class="label">AS-DT1 TX to FC RX</text>
+
+  <path d="M 295 310 C 430 310, 535 350, 675 350" class="wire-rx"/>
+  <text x="430" y="355" class="label">AS-DT1 RX to FC TX</text>
+</svg>

@@ -17,10 +17,10 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "Wh", "dBm", "h", "minutes", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa", "%", "norm", "-"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "Wh", "dB", "dBm", "h", "minutes", "s", "ms", "us", "Hz", "MHz", "Ohm", "MB", "KiB/s", "Kb/s", "degC","Pa", "%", "norm", "-"])
 invalid_units = set()
 ALLOWED_FRAMES = set(["NED", "Body", "FRD", "ENU"])
-ALLOWED_INVALID_VALUES = set(["NaN", "0", "-1"])
+ALLOWED_INVALID_VALUES = set(["NaN", "0", "-1", "UINT8_MAX", "UINT16_MAX"])
 ALLOWED_CONSTANTS_NOT_IN_ENUM = set(["ORB_QUEUE_LENGTH","MESSAGE_VERSION"])
 
 class Error:
@@ -867,17 +867,17 @@ Topic | Type| Rate Limit
 --- | --- | ---
 """
 
-        for message in data["publications"]:
+        for message in sorted(data["publications"], key=lambda elem: elem['topic']):
             type = message['type']
             px4Type=type.split("::")[-1]
             dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md) | {message.get('rate_limit','')}\n"
 
         dds_markdown += "\n## Subscriptions\n\nTopic | Type\n--- | ---\n"
 
-        for message in data["subscriptions"]:
+        for message in sorted(data["subscriptions"], key=lambda elem: elem['topic']):
             type = message['type']
             px4Type=type.split("::")[-1]
-            dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md)\n"
+            dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md)\n"
 
         dds_markdown += "\n## Subscriptions Multi\n\n"
 
@@ -897,7 +897,7 @@ Topic | Type| Rate Limit
             # Print the topics that are not exported to DDS
             dds_markdown += "\n## Not Exported\n\nThese messages are not listed in the yaml file.\nThey are not build into the module, and hence are neither published or subscribed."
             dds_markdown += "\n\n::: details See messages\n"
-            for item in  messagesNotExported:
+            for item in sorted(messagesNotExported):
                 dds_markdown += f"\n- [{item}](../msg_docs/{item}.md)"
             dds_markdown += "\n:::\n" # End of details block
 

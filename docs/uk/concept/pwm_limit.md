@@ -24,4 +24,4 @@
 
 ## Діаграма зміну стану
 
-![PWM Limit state machine diagram](../../assets/diagrams/pwm_limit_state_diagram.svg)
+<img src="../../assets/diagrams/pwm_limit_state_diagram.svg" alt="PWM Limit state machine diagram" class="diagram-invert">

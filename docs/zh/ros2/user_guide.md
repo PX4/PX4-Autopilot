@@ -118,7 +118,7 @@ make px4_sitl
    source /opt/ros/humble/setup.bash && echo "source /opt/ros/humble/setup.bash" >> .bashrc
    ```
 
-   以上说明转载自官方安装指南：[Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html)。
+   The instructions above are reproduced from the official installation guide: [Install ROS 2 Humble](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html).
    您可以安装 _either_ the desktop (`ros-humble-desktop`) _or_ bare-bones versions (`ros-humble-ros-base`), _and_ the development tools (`ros-dev-tools`).
 
 :::
@@ -602,11 +602,11 @@ public:
 
 以下代码行创建了一个发布者，用于向 SensorCombined uORB 话题发布数据；该发布者可与一个或多个兼容的 ROS 2 订阅者匹配，这些订阅者监听的是 fmu/sensor_combined/out ROS 2 话题。
 
-````cpp
+```cpp
 private:
- rclcpp::Subscription<px4_msgs::msg::DebugVect>::SharedPtr subscription_;
+ rclcpp::Subscription<px4_msgs::msg::SensorCombined>::SharedPtr subscription_;
 };
-```s
+```
 
 The instantiation of the `SensorCombinedListener` class as a ROS node is done on the `main` function.
 
@@ -616,12 +616,12 @@ int main(int argc, char *argv[])
   std::cout << "Starting sensor_combined listener node..." << std::endl;
   setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<std::chrono::microseconds>());
+  rclcpp::spin(std::make_shared<SensorCombinedListener>());
 
   rclcpp::shutdown();
   return 0;
 }
-````
+```
 
 此特殊示例在[launch/sensor_combined_listener.launch.py](https://github.com/PX4/px4_ros_com/blob/main/launch/sensor_combined_listener.launch.py).有一个相关的启动文件。
 这使得它可以通过 [`ros2 launch`](#ros2-launch)  命令启动
@@ -877,12 +877,12 @@ void OffboardControl::response_callback(
 该命令还允许您通过启动文件（launch file）启动更复杂的 ROS 系统。
 下文显示了几种可能性。
 
-### ros2 topic list（ROS 2 话题列表命令）
+### ros2 topic list
 
 使用 ros2 topic list 命令列出 ROS 2 可识别的话题：
 
 ```sh
-ros2 topic list（ROS 2 话题列表命令）
+ros2 topic list
 ```
 
 若 PX4 已连接至代理，输出结果将是一份话题类型列表：

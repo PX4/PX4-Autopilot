@@ -34,7 +34,7 @@ Flight controllers commonly provide a single debug port that exposes both the [S
 The [Pixhawk Connector Standards](#pixhawk-standard-debug-ports) formalize the port that must be used in each FMU version.
 However there are still many boards that use different pinouts or connectors, so we recommend you check the [documentation for your autopilot](../flight_controller/index.md) to confirm port location and pinout.
 
-Місцезнаходження порту налагодження та роз'єми для підмножини автопілотів зв'язані нижче:
+The debug port location and pinouts for a subset of current autopilots are linked below:
 
 <a id="port-information"></a>
 
@@ -53,8 +53,6 @@ However there are still many boards that use different pinouts or connectors, so
 | [Holybro Kakute H7](../flight_controller/kakuteh7.md#debug-port)                                        | SWD pads and system console                                              |
 | [Holybro Kakute H7 mini](../flight_controller/kakuteh7mini.md#debug-port)                               | SWD pads and system console                                              |
 | [Holybro Kakute H7 V2](../flight_controller/kakuteh7v2.md#debug-port)                                   | SWD pads and system console                                              |
-| [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port)                                             | Custom port but comes with adaptor cable                                 |
-| [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port)                                          | Custom port but comes with adaptor cable                                 |
 | [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md#debug_port)                                 | [Pixhawk Debug Full](#pixhawk-debug-full)                                |
 | [CUAV X25-SUPER](../flight_controller/cuav_x25-super.md#debug_port)                                     | [Pixhawk Debug Mini] |
 | [CUAV X25-EVO](../flight_controller/cuav_x25-evo.md#debug_port)                                         | [Pixhawk Debug Mini] |
@@ -201,7 +199,7 @@ Some SWD [debug probes](#debug-probes) come with adapters/cables for connecting 
 
 Some manufacturers provide cables to make it easy to connect the SWD interface and [System Console](../debug/system_console.md).
 
-- [CUAV V5nano](../flight_controller/cuav_v5_nano.md#debug_port) and [CUAV V5+](../flight_controller/cuav_v5_plus.md#debug-port) include this debug cable:
+For example, some CUAV board include this debug cable:
 
 ![6-pin JST SH Cable](../../assets/debug/cuav_v5_debug_cable.jpg)
 

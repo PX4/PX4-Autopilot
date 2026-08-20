@@ -4,6 +4,8 @@ This section contains topics about the core actuators used for flight control (E
 
 - [Actuator Allocation](../config/actuators.md) — Configure flight controller outputs for specific functions and ESC/servo types.
 
+- [Motor Failure Recovery](../config/motor_failure_recovery.md) — How allocation is reconfigured if a motor fails.
+
 - [ESCs & Motors](../peripherals/esc_motors.md) — ESCs such as [DShot](../peripherals/dshot.md) (recommended) and DroneCAN.
 
 - [ESC Calibration](../advanced_config/esc_calibration.md) — Calibration for PWM ESC (not required for DShot/CAN ESC/servos).

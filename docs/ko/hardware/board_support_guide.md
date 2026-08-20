@@ -70,12 +70,20 @@ The pair must be unique to your product.
 Each board needs its own identity.
 :::
 
-You have two ways to get a valid pair:
+There are several ways to get a valid pair, listed in order of preference:
 
-- **Provide your own.** As the hardware manufacturer, the VID/PID identify _your_ company and product, and you are expected to obtain them yourself.
-- **Use the Dronecode VID.** [Dronecode Foundation members](https://dronecode.org/membership/) can request a PID allocated under the Dronecode USB VID.
-  This is one of the membership benefits, alongside access to the Pixhawk FMU reference schematics.
-  If you would like to use the Dronecode VID, [become a member](https://dronecode.org/membership/) first.
+1. **Buy your own VID from USB-IF (preferred).** As a serious hardware manufacturer, the cleanest option is to purchase your own Vendor ID directly from the [USB Implementers Forum](https://www.usb.org/getting-vendor-id).
+   The VID/PID then unambiguously identify _your_ company and product.
+2. **Obtain a free VID/PID.** If purchasing your own is not an option, you can get a free VID/PID pair from one of several community registries or chip-vendor programs, for example [pid.codes](https://pid.codes/) (VID `0x1209`) or the [Openmoko registry](https://github.com/openmoko/openmoko-usb-oui) (VID `0x1d50`) for open-source hardware, or a sub-PID from your MCU/USB-bridge vendor (e.g. Microchip, FTDI).
+   PX4 takes no position on how you source a free pair and assumes no responsibility for it.
+   The only requirement is that your VID/PID pair is unique and does not conflict with anything already in the PX4 codebase.
+3. **Use the Dronecode VID.** [Dronecode Foundation members](https://dronecode.org/membership/) can request a PID allocated under the Dronecode USB VID.
+   This is one of the membership benefits, alongside access to the Pixhawk FMU reference schematics.
+
+:::info
+Membership is **not** required to get your board supported in PX4.
+The Dronecode VID is a convenience for members; any unique, non-conflicting VID/PID pair from the options above is equally acceptable for a board support pull request.
+:::
 
 ### 4. Fly it and Capture Logs
 
@@ -189,7 +197,7 @@ For that reason:
 
 The board support process improves over time, and contributions to the process itself are welcome.
 
-- Ask the community on the PX4 [Discord](https://chat.dronecode.org) under the `Hardware` channels, or on the [discuss forum](https://discuss.px4.io/).
+- Ask the community on the PX4 [Discord](https://discord.com/invite/dronecode) under the `Hardware` channels, or on the [discuss forum](https://discuss.px4.io/).
 - Join the regular hardware call.
 - Consultancy options are listed at [px4.io/community/consultants](https://px4.io/community/consultants/).
 

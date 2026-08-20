@@ -43,6 +43,7 @@
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 #include "ControllerConfigurationHandler.hpp"
+#include "FirstOrderHoldAltitude.hpp"
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -385,6 +386,7 @@ private:
 	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
+	bool _go_direct_to_destination{false};
 
 	// CLosest point on path to track
 	matrix::Vector2f _closest_point_on_path;
@@ -400,7 +402,8 @@ private:
 	float _spoilers_setpoint{0.f};
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
-	float _min_current_sp_distance_xy{FLT_MAX};
+	FirstOrderHoldAltitudeState _foh_altitude_state{};
+	bool _foh_altitude_active{false}; ///< whether the altitude FOH ran on the current cycle (else its state is reset)
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 	/* Loitering */
@@ -543,7 +546,8 @@ private:
 	 * @param pos_sp_next next position setpoint
 	 */
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+				 const position_setpoint_s &pos_sp_curr,
+				 const position_setpoint_s &pos_sp_next);
 
 
 	/**
@@ -845,6 +849,8 @@ private:
 		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_time_const,
 		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
 		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
+
+		(ParamFloat<px4::params::FW_WP_RST_DIST>) _param_fw_wp_rst_dist,
 
 		(ParamFloat<px4::params::FW_LND_AIRSPD>) _param_fw_lnd_airspd,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,

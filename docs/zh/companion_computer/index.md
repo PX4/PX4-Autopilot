@@ -4,7 +4,7 @@ Companion computers ("mission computers"), are separate on-vehicle computers tha
 
 下图显示了一个可能的无人驾驶架构，其中包括飞控和机载计算机。
 
-![PX4 architecture - FC + Companion Computer](../../assets/diagrams/px4_companion_computer_simple.svg)
+<img src="../../assets/diagrams/px4_companion_computer_simple.svg" alt="PX4 architecture - FC + Companion Computer" class="diagram-invert">
 
 <!-- source for drawing: https://docs.google.com/drawings/d/1ZDSyj5djKCEbabgx8K4ESdTeEUizgEt8spUWrMGbHUE/edit?usp=sharing -->
 

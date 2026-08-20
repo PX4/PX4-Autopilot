@@ -18,7 +18,11 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15]
+    runs-on: ${{ matrix.os }}
     steps:
     - name: install Python 3.10
       uses: actions/setup-python@v6
@@ -45,7 +49,7 @@ jobs:
 
     - name: setup
       run: |
-        ./Tools/setup/macos.sh
+        ./Tools/setup/macos.sh --sim-tools --ci
         echo "${{ github.workspace }}/.venv/bin" >> $GITHUB_PATH
 
     - uses: ./.github/actions/setup-ccache
