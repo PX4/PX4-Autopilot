@@ -91,14 +91,27 @@ def enumerate_targets():
 
 
 def load_target_config(kconf, px4board_path):
-    """Load a target's config into kconf, replacing any previous state."""
+    """Load a target's config into kconf, replacing any previous state.
+
+    Exits if the file assigns a value Kconfig cannot use. kconfiglib
+    downgrades that to a warning and keeps the symbol's default, so the
+    resulting config silently differs from what the file asks for and
+    nothing downstream can tell.
+    """
     label = os.path.basename(px4board_path)[:-len('.px4board')]
+    first_warning = len(kconf.warnings)
     if label in STANDALONE_LABELS:
         kconf.load_config(px4board_path, replace=True)
     else:
         default_config = os.path.join(os.path.dirname(px4board_path), 'default.px4board')
         kconf.load_config(default_config, replace=True)
         kconf.load_config(px4board_path, replace=False)
+
+    ignored = [w for w in kconf.warnings[first_warning:] if 'assignment ignored' in w]
+    if ignored:
+        sys.exit('loadconfig: {}: kconfig discarded an assignment, so the config would '
+                 'not match the file\n{}'.format(
+                     px4board_path, '\n'.join(w.strip() for w in ignored)))
 
 
 def chip_family(board_path):
