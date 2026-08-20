@@ -329,7 +329,7 @@ bool uTurnRequired(const ProjectionContext &projection_context,
 
 	const VehicleStateContext &vehicle_state = projection_context.vehicle_state;
 
-	if (!vehicle_state.velocity_valid || !vehicle_state.velocity_ne.isAllFinite()) {
+	if (!vehicle_state.velocity_valid) {
 		return false; // If no velocity, no need for a u-turn
 	}
 
@@ -471,7 +471,7 @@ RoutePath findShortestPathAlongRoute(int mission_count,
 	const bool valid_path = path.valid();
 
 	if (valid_path && path.first_item_index >= mission_count) {
-		PX4_ERR("Route route path targets out-of-bounds index %d (mission count %d)",
+		PX4_ERR("Route path targets out-of-bounds index %d (mission count %d)",
 			static_cast<int>(path.first_item_index), static_cast<int>(mission_count));
 		return {};
 	}
@@ -703,10 +703,7 @@ FailureReason selectSafePoint(const Provider &provider,
 		return FailureReason::kNoValidSafePoints;
 	}
 
-	ProjectionScanRequest scan_request{};
-	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
-	scan_request.xtrack_margin_m = config.parameters.safe_point_projection_search_dist_m;
-	scan_request.compute_current_segment_bounds = false;
+	const ProjectionScanRequest scan_request = makeSafePointScanRequest(config);
 
 	GoalSelection best{};
 	FailureReason scan_failure_reason = FailureReason::kNone;
@@ -895,7 +892,7 @@ FailureReason MissionRoutePlanner::planMissionResumeJoin(const MissionResumeRequ
 			       RouteGoalSegmentType::kOutsideActiveLoopJump);
 	const MissionResumePlan candidate = makeMissionResumePlan(projection_context, path, request.vehicle_position);
 
-	if (!projection_context.valid() || !path.valid() || !candidate.valid()) {
+	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
 	}
 
@@ -945,7 +942,7 @@ FailureReason MissionRoutePlanner::planRouteToGoal(const RouteToGoalRequest &req
 
 	const RouteToGoalPlan candidate = makeRouteToGoalPlan(projection_context, request.vehicle_position, selection);
 
-	if (!projection_context.valid() || !selection.valid() || !candidate.valid()) {
+	if (!candidate.valid()) {
 		return FailureReason::kNoValidPath;
 	}
 

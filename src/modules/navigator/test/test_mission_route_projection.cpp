@@ -865,6 +865,36 @@ INSTANTIATE_TEST_SUITE_P(
 }
 );
 
+// A leading non-position item shifts the route start; pre-route mission indices still get start bounds.
+TEST_F(MissionRouteProjectionLocalSegmentTest, PreRouteMissionIndexResolvesRouteStartBounds)
+{
+	const std::vector<mission_item_s> mission = {
+		makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC), // 0: before the route
+		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f, 0.f, kAlt),     // 1
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),     // 2
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),     // 3
+	};
+	VectorProvider provider = makeRouteProvider(mission);
+	mission_route::MissionRouteProjection projection(provider);
+
+	for (const int32_t mission_index : {0, 1}) {
+		SCOPED_TRACE(::testing::Message() << "mission index " << mission_index);
+		auto batch = singleReferenceBatch(makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 10.f, kAlt));
+		mission_route::ProjectionScanRequest request = scanRequest(60.f);
+		request.compute_current_segment_bounds = true;
+		request.mission_index = mission_index;
+
+		mission_route::RouteDistanceSummary distance_summary{};
+		const mission_route::FailureReason status =
+			projection.findProjectionCandidates(request, batch, distance_summary);
+
+		ASSERT_EQ(status, mission_route::FailureReason::kNone) << mission_route::failureReasonString(status);
+		ASSERT_TRUE(distance_summary.current_segment_along.valid());
+		EXPECT_FLOAT_EQ(distance_summary.current_segment_along.route_start_dist_m, 0.f);
+		EXPECT_FLOAT_EQ(distance_summary.current_segment_along.route_end_dist_m, 0.f);
+	}
+}
+
 // A mission read failure is fatal to the scan and remains distinguishable from missing geometry.
 TEST_F(MissionRouteProjectionEdgeCaseTest, MissionLoadFailureIsFatal)
 {

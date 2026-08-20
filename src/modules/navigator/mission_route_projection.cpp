@@ -321,15 +321,6 @@ public:
 		_request(request), _active_jump(active_jump)
 	{
 		_wanted = request.compute_current_segment_bounds;
-
-		// On the first mission item (flying nominal) the vehicle has not entered the route yet.
-		if (_wanted && !_active_jump.valid()
-		    && request.mission_index == 0 && !request.is_flying_reverse) {
-			_bounds.route_start_dist_m = 0.f;
-			_bounds.route_end_dist_m = 0.f;
-			_located = true;
-			PX4_DEBUG("Route current_segment_along zero for first mission item");
-		}
 	}
 
 	void observe(const RouteSegmentView &segment_view)
@@ -360,6 +351,16 @@ private:
 			return _bounds.valid();
 		}
 
+		// At or before the first position item (flying nominal) the vehicle has not entered the route yet.
+		if (segment_view.first_segment && !_request.is_flying_reverse
+		    && _request.mission_index <= segment.start.idx) {
+			_bounds.route_start_dist_m = 0.f;
+			_bounds.route_end_dist_m = 0.f;
+			PX4_DEBUG("Route current_segment_along zero for pre-route mission index %d",
+				  static_cast<int>(_request.mission_index));
+			return true;
+		}
+
 		if (!segment.isLoop()
 		    && isIndexInProjectionSegment(segment, _request.mission_index, _request.is_flying_reverse)) {
 			_bounds.route_start_dist_m = segment_view.route_along_start_m;
@@ -381,6 +382,27 @@ private:
 };
 
 } // namespace
+
+ProjectionScanRequest makeVehicleScanRequest(const PlannerConfig &config, int32_t mission_index)
+{
+	ProjectionScanRequest request{};
+	request.home_altitude_amsl = config.parameters.home_altitude_amsl;
+	request.xtrack_margin_m = config.parameters.vehicle_projection_search_dist_m;
+	request.compute_current_segment_bounds = true;
+	request.mission_index = mission_index;
+	request.is_flying_reverse = config.state.is_flying_reverse;
+	request.active_jump_anchor = config.active_jump_anchor;
+	return request;
+}
+
+ProjectionScanRequest makeSafePointScanRequest(const PlannerConfig &config)
+{
+	ProjectionScanRequest request{};
+	request.home_altitude_amsl = config.parameters.home_altitude_amsl;
+	request.xtrack_margin_m = config.parameters.safe_point_projection_search_dist_m;
+	request.compute_current_segment_bounds = false;
+	return request;
+}
 
 bool RouteSegmentCursor::fail(FailureReason failure_reason)
 {
@@ -811,8 +833,8 @@ FailureReason MissionRouteProjection::selectBranchInCandidate(
 	SegmentDistanceAlong segment_bounds = current_segment_along;
 
 	if (!segment_bounds.valid()) {
-		PX4_ERR("Route select UAV proj: invalid current segment (mission_idx=%d), setting to zero",
-			static_cast<int>(mission_index));
+		PX4_WARN("Route select UAV proj: invalid current segment (mission_idx=%d), setting to zero",
+			 static_cast<int>(mission_index));
 		segment_bounds.route_start_dist_m = 0.f;
 		segment_bounds.route_end_dist_m = 0.f;
 	}
@@ -905,13 +927,7 @@ FailureReason MissionRouteProjection::collectVehicleProjection(const Position &v
 	batch.count = 1;
 	batch.items[0].position = input_vehicle_position;
 
-	ProjectionScanRequest scan_request{};
-	scan_request.home_altitude_amsl = config.parameters.home_altitude_amsl;
-	scan_request.xtrack_margin_m = config.parameters.vehicle_projection_search_dist_m;
-	scan_request.compute_current_segment_bounds = true;
-	scan_request.mission_index = mission_index;
-	scan_request.is_flying_reverse = config.state.is_flying_reverse;
-	scan_request.active_jump_anchor = config.active_jump_anchor;
+	const ProjectionScanRequest scan_request = makeVehicleScanRequest(config, mission_index);
 
 	RouteDistanceSummary distance_summary{};
 	const FailureReason scan_status = findProjectionCandidates(scan_request, batch, distance_summary);

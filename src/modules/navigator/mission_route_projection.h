@@ -63,6 +63,12 @@ struct ProjectionScanRequest {
 	ActiveJumpAnchor active_jump_anchor{};
 };
 
+/** @brief Vehicle scan request: vehicle search window, with current-segment bounds. */
+ProjectionScanRequest makeVehicleScanRequest(const PlannerConfig &config, int32_t mission_index);
+
+/** @brief Safe-point scan request: safe-point search window, no segment bounds. */
+ProjectionScanRequest makeSafePointScanRequest(const PlannerConfig &config);
+
 struct RouteDistanceSummary {
 	SegmentDistanceAlong current_segment_along{};
 	float route_length{0.f};
