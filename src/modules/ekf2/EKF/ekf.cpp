@@ -363,30 +363,51 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			// inhibiting the update.
 			_control_status.flags.heading_observable = true;
 
+			const LatLonAlt gpos_before_fusion = _gpos;
+
+			// Artificially setting the observation variance to a small value to
+			// increase the Kalman gain to basically 1 to force a reset of the position
+			// through fusion. This also enforces a strong correction of the correlated states
+			// (e.g.: velocity, heading, wind)
+			const float R_small = 0.1f;
+
+			const VectorState P_north = P.row(State::pos.idx);
+			VectorState P_east = P.row(State::pos.idx + 1);
+
+			{
+				const float innov_var_north = P_north(State::pos.idx) + R_small;
+				VectorState K = P_north / innov_var_north;
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innov(0));
+
+				P_east -= P_north * (P_north(State::pos.idx + 1) / innov_var_north);
+			}
+
+			// The 2nd axis needs to be fused using the state covariance that would have been
+			// obtained with this artificially low observation variance
+			{
+				// recalculate the innovation using the state updated by the North fusion
+				const float innovation = (_gpos - gpos_corrected)(1);
+				const float innov_var_east = P_east(State::pos.idx + 1) + R_small;
+				VectorState K = P_east / innov_var_east;
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innovation);
+			}
+
+			// The update of the covariance matrix is performed with the correct observation variance
+			// to not artificially reduce the state uncertainty and cross-correlations.
 			VectorState H;
-			VectorState K;
-			Vector2f innov_var_temp = Vector2f(getStateVariance<State::pos>()) + 0.1f;
 
 			for (unsigned index = 0; index < 2; index++) {
-				// Artificially setting the observation variance to a small value to
-				// increase the Kalman gain to basically 1 to force a reset of the position
-				// through fusion. This also enforces a strong correction of the correlated states
-				// (e.g.: velocity, heading, wind)
-				// The update of the covariance matrix is still performed with the correct observation variance
-				// to not artificially reduce the state uncertainty and cross-correlations.
-				K = VectorState(P.row(State::pos.idx + index)) / innov_var_temp(index);
 				H(State::pos.idx + index) = 1.f;
-
-				clearInhibitedStateKalmanGains(K);
-				fuse(K, innov(index));
-
-				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				const float state_var = P(State::pos.idx + index, State::pos.idx + index);
+				VectorState K = VectorState(P.row(State::pos.idx + index)) / (state_var + obs_var);
 				measurementUpdate(K, H, obs_var, 0.f);
 				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
 			}
 
 			// Use the reset counters to inform the controllers about a position jump
-			updateHorizontalPositionResetStatus(-innov);
+			updateHorizontalPositionResetStatus((_gpos - gpos_before_fusion).xy());
 
 			// Reset the positon of the output predictor to avoid a transient that would disturb the
 			// position controller
