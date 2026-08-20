@@ -4,17 +4,6 @@ The ROS 2-PX4 architecture provides a deep integration between ROS 2 and PX4, al
 
 This topic provides an overview of the architecture and application pipeline, and explains how to setup and use ROS 2 with PX4.
 
-::: info
-From PX4 v1.14, ROS 2 uses [uXRCE-DDS](../middleware/uxrce_dds.md) middleware, replacing the _FastRTPS_ middleware that was used in version 1.13 (v1.13 does not support uXRCE-DDS).
-
-The [migration guide](../middleware/uxrce_dds.md#fast-rtps-to-uxrce-dds-migration-guidelines) explains what you need to do in order to migrate ROS 2 apps from PX4 v1.13 to PX4 v1.14.
-
-If you're still working on PX4 v1.13, please follow the instructions in the [PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm).
-
-<!-- remove this when there are PX4 v1.14 docs for some months -->
-
-:::
-
 ## Overview
 
 PX4 supports two middleware options for bridging uORB topics to ROS 2: [uXRCE-DDS](../middleware/uxrce_dds.md) (DDS) and [Zenoh](../middleware/zenoh.md).
@@ -30,6 +19,8 @@ See [Using Flight Controller Hardware](#using-flight-controller-hardware) for th
 If you want to command the vehicle and create custom flight behaviours using ROS 2 (rather than just reading telemetry), you can create external modes using the [PX4 ROS 2 Interface Library](./px4_ros2_interface_lib.md), a ROS 2 native C++ library that works on top of either middleware.
 
 ### DDS
+
+<Badge type="tip" text="PX4 v1.14" />
 
 The application pipeline for ROS 2 is very straightforward, thanks to the use of the [uXRCE-DDS](../middleware/uxrce_dds.md) communications middleware.
 
@@ -58,11 +49,6 @@ You will normally need to start both the client and agent when using ROS 2.
 Note that the uXRCE-DDS client is built into firmware by default but not started automatically except for simulator builds.
 
 See [uXRCE-DDS > Version selection](../middleware/uxrce_dds.md#version-selection) to check which Micro XRCE-DDS version to use for your ROS 2 distribution.
-
-::: info
-In PX4v1.13 and earlier, ROS 2 was dependent on definitions in [px4_ros_com](https://github.com/PX4/px4_ros_com).
-This repo is no longer needed, but does contain useful examples.
-:::
 
 ### Zenoh
 
