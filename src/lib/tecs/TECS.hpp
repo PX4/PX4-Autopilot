@@ -157,7 +157,7 @@ public:
 	struct Param {
 		float target_climbrate;	///< The target climbrate in [m/s].
 		float target_sinkrate;	///< The target sinkrate in [m/s].
-		float jerk_max;		///< Magnitude of the maximum jerk allowed [m/s³].
+		float vert_jerk_limit;	///< Magnitude of the maximum jerk allowed [m/s³].
 		float vert_accel_limit;	///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float max_climb_rate;	///< Climb rate produced by max allowed throttle [m/s].
 		float max_sink_rate;	///< Maximum sink rate (with min throttle, max speed) [m/s].
@@ -221,6 +221,7 @@ public:
 		float max_sink_rate;			///< Maximum sink rate (with min throttle and max speed) [m/s].
 		float min_sink_rate;			///< Minimum sink rate (with min throttle and trim speed) [m/s].
 		float max_climb_rate;			///< Climb rate produced by max allowed throttle [m/s].
+		float vert_jerk_limit;			///< Magnitude of the maximum vertical jerk allowed [m/s²].
 		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
@@ -640,6 +641,7 @@ public:
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
 	void set_pitch_damping(float damping) { _control_param.pitch_damping_gain = damping; }
+	void set_vertical_jerk_limit(float limit) { _reference_param.vert_jerk_limit = limit; _control_param.vert_jerk_limit = limit; };
 	void set_vertical_accel_limit(float limit) { _reference_param.vert_accel_limit = limit; _control_param.vert_accel_limit = limit; };
 
 	void set_speed_weight(float weight) { _control_param.pitch_speed_weight = weight; };
@@ -718,7 +720,7 @@ private:
 
 	float _equivalent_airspeed_min{10.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _equivalent_airspeed_max{20.0f};				///< equivalent airspeed demand upper limit (m/sec)
-	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
+	float _fast_descend_alt_err{-1.f};	 			///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
 	hrt_abstime _enabled_fast_descend_timestamp{0U};		///< timestamp at activation of fast descend mode
 
@@ -737,7 +739,7 @@ private:
 	TECSAltitudeReferenceModel::Param _reference_param{
 		.target_climbrate = 2.0f,
 		.target_sinkrate = 2.0f,
-		.jerk_max = 1000.0f,
+		.vert_jerk_limit = 1000.0f,
 		.vert_accel_limit = 0.0f,
 		.max_climb_rate = 2.0f,
 		.max_sink_rate = 2.0f,
@@ -747,6 +749,7 @@ private:
 		.max_sink_rate = 5.0f,
 		.min_sink_rate = 2.0f,
 		.max_climb_rate = 5.0f,
+		.vert_jerk_limit = 10.0f,
 		.vert_accel_limit = 0.0f,
 		.equivalent_airspeed_trim = 15.0f,
 		.tas_min = 10.0f,
