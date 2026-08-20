@@ -50,11 +50,11 @@ static constexpr float ORIENTATION_TOLERANCE = 1e-5f;
 
 matrix::Eulerf uavcan_orientation_to_euler(const uavcan::CoarseOrientation &orientation)
 {
-	return {
-		orientation.fixed_axis_roll_pitch_yaw[0] *COARSE_ORIENTATION_LSB_RAD,
-		orientation.fixed_axis_roll_pitch_yaw[1] *COARSE_ORIENTATION_LSB_RAD,
-		orientation.fixed_axis_roll_pitch_yaw[2] *COARSE_ORIENTATION_LSB_RAD
-	};
+	const float roll = orientation.fixed_axis_roll_pitch_yaw[0] * COARSE_ORIENTATION_LSB_RAD;
+	const float pitch = orientation.fixed_axis_roll_pitch_yaw[1] * COARSE_ORIENTATION_LSB_RAD;
+	const float yaw = orientation.fixed_axis_roll_pitch_yaw[2] * COARSE_ORIENTATION_LSB_RAD;
+
+	return {roll, pitch, yaw};
 }
 
 uint8_t uavcan_orientation_to_distance_sensor_orientation(const uavcan::CoarseOrientation &orientation)
@@ -63,26 +63,30 @@ uint8_t uavcan_orientation_to_distance_sensor_orientation(const uavcan::CoarseOr
 		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	}
 
-	// PX4 distance_sensor supports exact up/down orientations, but horizontal directions are limited
-	// to 45-degree increments. Classify the beam direction, not the full sensor attitude,
-	// because roll is about the beam and does not change its direction.
-	const matrix::Eulerf euler = uavcan_orientation_to_euler(orientation);
-	const matrix::Vector3f dir = matrix::Dcmf{euler} * matrix::Vector3f{1.f, 0.f, 0.f};
+	// The beam runs along the sensor x-axis, so roll turns it about itself and cannot change where
+	// it points: pitch and yaw alone decide the direction. In body frame the beam is
+	// (cos(pitch)cos(yaw), cos(pitch)sin(yaw), -sin(pitch)).
+	const float pitch = orientation.fixed_axis_roll_pitch_yaw[1] * COARSE_ORIENTATION_LSB_RAD;
+	const float sin_pitch = sinf(pitch);
 
-	if (dir(2) < -1.f + ORIENTATION_TOLERANCE) {
+	if (sin_pitch > 1.f - ORIENTATION_TOLERANCE) {
 		return distance_sensor_s::ROTATION_UPWARD_FACING;
 	}
 
-	if (dir(2) > 1.f - ORIENTATION_TOLERANCE) {
+	if (sin_pitch < -1.f + ORIENTATION_TOLERANCE) {
 		return distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	}
 
-	if (fabsf(dir(2)) < ORIENTATION_TOLERANCE) {
-		const float sector = matrix::wrap(atan2f(dir(1), dir(0)), 0.f, 2.f * M_PI_F) / (M_PI_F / 4.f);
+	// Horizontal beams are representable only in 45-degree yaw steps. Beyond +-90 degrees of pitch
+	// the beam points to the far side of the vehicle, so fold that back into the azimuth.
+	if (fabsf(sin_pitch) < ORIENTATION_TOLERANCE) {
+		const float yaw = orientation.fixed_axis_roll_pitch_yaw[2] * COARSE_ORIENTATION_LSB_RAD;
+		const float azimuth = (cosf(pitch) < 0.f) ? yaw + M_PI_F : yaw;
+		const float sector = matrix::wrap(azimuth, 0.f, 2.f * M_PI_F) / (M_PI_F / 4.f);
 		const float nearest_sector = roundf(sector);
 
 		if (fabsf(sector - nearest_sector) < ORIENTATION_TOLERANCE) {
-			return static_cast<uint8_t>(static_cast<int>(lroundf(sector)) % 8);
+			return static_cast<uint8_t>(lroundf(nearest_sector) % 8);
 		}
 	}
 
@@ -175,8 +179,9 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	const hrt_abstime timestamp_sample = (msg.timestamp.usec > 0) ? msg.timestamp.usec : hrt_absolute_time();
 
 	if (orientation == distance_sensor_s::ROTATION_CUSTOM) {
+		const matrix::Quatf q_sensor{uavcan_orientation_to_euler(msg.beam_orientation_in_body_frame)};
 		float q[4];
-		matrix::Quatf{uavcan_orientation_to_euler(msg.beam_orientation_in_body_frame)} .copyTo(q);
+		q_sensor.copyTo(q);
 		rangefinder->update(timestamp_sample, msg.range, quality, q);
 
 	} else {
