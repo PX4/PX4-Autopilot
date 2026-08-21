@@ -1651,16 +1651,19 @@ GPS::publishSatelliteInfo()
 	}
 }
 
-// Chunk an RTCM byte stream into a uORB message and publish it. RTCM frames larger than the
-// message payload are split across consecutive publications (flags LSB = fragmented). Templated
-// on the publication so the same code serves both the corrections and moving-baseline topics.
-template <typename PubT>
-static void publish_rtcm_chunks(PubT &pub, const uint8_t *data, size_t len, hrt_abstime timestamp,
-				uint32_t device_id)
+// Chunk an RTCM byte stream into uORB messages. Frames larger than the message payload are split
+// across consecutive publications (flags LSB = fragmented).
+void
+GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 {
+	// If this GPS is a moving base, its RTCM output is moving-baseline data for a rover (not
+	// external corrections). Route it to a dedicated topic so downstream consumers can tell it
+	// apart from fixed-base RTCM.
+	const bool moving_base = _helper && _helper->isMovingBase();
+
 	rtcm_data_s msg{};
-	msg.timestamp = timestamp;
-	msg.device_id = device_id;
+	msg.timestamp = hrt_absolute_time();
+	msg.device_id = get_device_id();
 
 	const size_t capacity = sizeof(msg.data);
 	msg.flags = (len > capacity) ? 1 : 0; // LSB: 1=fragmented
@@ -1671,25 +1674,15 @@ static void publish_rtcm_chunks(PubT &pub, const uint8_t *data, size_t len, hrt_
 		const size_t chunk = math::min(len - written, capacity);
 		msg.len = chunk;
 		memcpy(msg.data, &data[written], chunk);
-		pub.publish(msg);
+
+		if (moving_base) {
+			_rtcm_moving_baseline_pub.publish(msg);
+
+		} else {
+			_rtcm_corrections_pub.publish(msg);
+		}
+
 		written += chunk;
-	}
-}
-
-void
-GPS::publishRTCMCorrections(uint8_t *data, size_t len)
-{
-	const hrt_abstime timestamp = hrt_absolute_time();
-	const uint32_t device_id = get_device_id();
-
-	// If this GPS is a moving base, its RTCM output is moving-baseline data for a rover (not
-	// external corrections). Route it to a dedicated topic so downstream consumers can tell it
-	// apart from fixed-base RTCM.
-	if (_helper && _helper->isMovingBase()) {
-		publish_rtcm_chunks(_rtcm_moving_baseline_pub, data, len, timestamp, device_id);
-
-	} else {
-		publish_rtcm_chunks(_rtcm_corrections_pub, data, len, timestamp, device_id);
 	}
 }
 
