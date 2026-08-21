@@ -209,33 +209,35 @@ BMP388::collect()
 bool
 BMP388::soft_reset()
 {
-	uint8_t status;
-	int ret = _interface->get_reg(BMP3_SENS_STATUS_REG_ADDR, &status);
+	uint8_t status = 0;
 
-	if (ret != OK) {
+	/* STATUS resets to 0, so cmd_rdy is 0 until the decoder is ready. */
+	const hrt_abstime start = hrt_absolute_time();
+
+	while (true) {
+		if ((_interface->get_reg(BMP3_SENS_STATUS_REG_ADDR, &status) == OK) &&
+		    (status & BMP3_CMD_RDY)) {
+			break;
+		}
+
+		if (hrt_elapsed_time(&start) > BMP3_CMD_RDY_WAIT_TIME) {
+			return false;
+		}
+
+		px4_usleep(500);
+	}
+
+	if (_interface->set_reg(BPM3_CMD_SOFT_RESET, BMP3_CMD_ADDR) != OK) {
 		return false;
 	}
 
-	bool result = false;
+	px4_usleep(BMP3_POST_RESET_WAIT_TIME);
 
-	if (status & BMP3_CMD_RDY) {
-		ret = _interface->set_reg(BPM3_CMD_SOFT_RESET, BMP3_CMD_ADDR);
-
-		if (ret == OK) {
-			usleep(BMP3_POST_RESET_WAIT_TIME);
-			ret = _interface->get_reg(BMP3_ERR_REG_ADDR, &status);
-
-			if (ret != OK) {
-				return false;
-			}
-
-			if ((status & BMP3_CMD_ERR) == 0) {
-				result = true;
-			}
-		}
+	if (_interface->get_reg(BMP3_ERR_REG_ADDR, &status) != OK) {
+		return false;
 	}
 
-	return result;
+	return (status & BMP3_CMD_ERR) == 0;
 }
 
 /*
