@@ -60,13 +60,16 @@ static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0xE9;
 
-static constexpr float TEMPERATURE_SENSITIVITY = 132.48f; // LSB/C
+static constexpr float TEMPERATURE_SENSITIVITY = 128.f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
 
 namespace Register
 {
 
 enum class BANK_0 : uint8_t {
+	TEMP_DATA1_UI = 0x0c,
+	TEMP_DATA0_UI = 0x0d,
+
 	PWR_MGMT0 = 0x10,
 	FIFO_COUNT_0 = 0x12,
 	FIFO_COUNT_1 = 0x13,
@@ -108,7 +111,16 @@ enum class BANK_0 : uint8_t {
 	INT2_STATUS0 = 0x59,
 
 	WHO_AM_I = 0x72,
+	IREG_ADDR_15_8 = 0x7C,
+	IREG_ADDR_7_0 = 0x7D,
+	IREG_DATA = 0x7E,
 	REG_MISC2 = 0x7F,
+};
+
+// Indirect registers, reached through IREG_ADDR_15_8/IREG_ADDR_7_0 + IREG_DATA as {bank base | offset}
+enum class IREG : uint16_t {
+	IPREG_SYS1_REG_166 = 0xA400 | 0xA6, // GYRO_SRC_CTRL
+	IPREG_SYS2_REG_123 = 0xA500 | 0x7B, // ACCEL_SRC_CTRL
 };
 
 };
@@ -130,6 +142,25 @@ enum INT1_STATUS0 : uint8_t {
 	INT1_STATUS_AP_DRDY = Bit2,
 	INT1_STATUS_FIFO_THS = Bit1,
 	INT1_STATUS_FIFO_FULL = Bit0,
+};
+
+// INT1_CONFIG0: routes the corresponding status (same bit positions as INT1_STATUS0) to INT1
+enum INT1_CONFIG0_BIT : uint8_t {
+	INT1_STATUS_EN_RESET_DONE = Bit7,
+	INT1_STATUS_EN_AUX1_AGC = Bit6,
+	INT1_STATUS_EN_AP_AGC_RDY = Bit5,
+	INT1_STATUS_EN_AP_FSYNC = Bit4,
+	INT1_STATUS_EN_AP_AUX1_DRDY = Bit3,
+	INT1_STATUS_EN_AP_DRDY = Bit2,
+	INT1_STATUS_EN_FIFO_THS = Bit1,
+	INT1_STATUS_EN_FIFO_FULL = Bit0,
+};
+
+// INT1_CONFIG2
+enum INT1_CONFIG2_BIT : uint8_t {
+	INT1_DRIVE    = Bit2, // 0: push-pull, 1: open drain
+	INT1_MODE     = Bit1, // 0: pulsed, 1: latched
+	INT1_POLARITY = Bit0, // 0: active low, 1: active high
 };
 
 enum ACCEL_CONFIG0_BIT : uint8_t {
@@ -181,8 +212,8 @@ enum FIFO_CONFIG0_BIT : uint8_t {
 
 enum FIFO_CONFIG2_BIT : uint8_t {
 	FIFO_FLUSH = Bit7,
-	FIFO_WR_WM_GT_TH_EQUAL = 0,
-	FIFO_WR_WM_GT_TH_GREATER_THAN = Bit3,
+	FIFO_WR_WM_EQ_TH = 0,        // watermark reached only when count == threshold
+	FIFO_WR_WM_EQ_OR_GT_TH = Bit3, // watermark reached when count >= threshold
 };
 
 enum FIFO_CONFIG3_BIT : uint8_t {
@@ -216,6 +247,22 @@ enum REG_MISC2_BIT : uint8_t {
 };
 
 
+//---------------- IREG bits
+
+// IPREG_SYS1_REG_166
+enum IPREG_SYS1_REG_166_BIT : uint8_t {
+	// GYRO_SRC_CTRL[6:5] 10: interpolator and FIR anti-alias filter on (reset 00: both off)
+	GYRO_SRC_CTRL_INTERP_AAF_SET   = Bit6,
+	GYRO_SRC_CTRL_INTERP_AAF_CLEAR = Bit5,
+};
+
+// IPREG_SYS2_REG_123
+enum IPREG_SYS2_REG_123_BIT : uint8_t {
+	// ACCEL_SRC_CTRL[1:0] 10: interpolator and FIR anti-alias filter on (reset 00: both off)
+	ACCEL_SRC_CTRL_INTERP_AAF_SET   = Bit1,
+	ACCEL_SRC_CTRL_INTERP_AAF_CLEAR = Bit0,
+};
+
 // IPREG_TOP1
 //static constexpr uint8_t BANK_IPREG_TOP1 = 0xA2;
 //static constexpr uint8_t SREG_CTRL = 0x67;
@@ -228,28 +275,26 @@ namespace FIFO
 {
 static constexpr size_t SIZE = 8192;
 
+// 16-byte packet (accel + gyro, FIFO_HIRES_EN clear)
 struct DATA {
 	uint8_t FIFO_Header;
-	uint8_t ACCEL_DATA_XH; // Accel X [19:12]
-	uint8_t ACCEL_DATA_XL; // Accel X [11:4]
-	uint8_t ACCEL_DATA_YH; // Accel Y [19:12]
-	uint8_t ACCEL_DATA_YL; // Accel Y [11:4]
-	uint8_t ACCEL_DATA_ZH; // Accel Z [19:12]
-	uint8_t ACCEL_DATA_ZL; // Accel Z [11:4]
-	uint8_t GYRO_DATA_XH;  // Gyro X [19:12]
-	uint8_t GYRO_DATA_XL;  // Gyro X [11:4]
-	uint8_t GYRO_DATA_YH;  // Gyro Y [19:12]
-	uint8_t GYRO_DATA_YL;  // Gyro Y [11:4]
-	uint8_t GYRO_DATA_ZH;  // Gyro Z [19:12]
-	uint8_t GYRO_DATA_ZL;  // Gyro Z [11:4]
-	uint8_t TEMP_DATA_H;    // Temperature[15:8]
-	uint8_t TEMP_DATA_L;    // Temperature[7:0]
-	uint8_t Timestamp_H;   // Timestamp[15:8]
-	uint8_t Timestamp_L;   // Timestamp[7:0]
-	uint8_t HIGHRES_X_LSB; // Accel X LSB [3:0] Gyro X LSB [3:0]
-	uint8_t HIGHRES_Y_LSB; // Accel Y LSB [3:0] Gyro Y LSB [3:0]
-	uint8_t HIGHRES_Z_LSB; // Accel Z LSB [3:0] Gyro Z LSB [3:0]
+	uint8_t ACCEL_DATA_XH;
+	uint8_t ACCEL_DATA_XL;
+	uint8_t ACCEL_DATA_YH;
+	uint8_t ACCEL_DATA_YL;
+	uint8_t ACCEL_DATA_ZH;
+	uint8_t ACCEL_DATA_ZL;
+	uint8_t GYRO_DATA_XH;
+	uint8_t GYRO_DATA_XL;
+	uint8_t GYRO_DATA_YH;
+	uint8_t GYRO_DATA_YL;
+	uint8_t GYRO_DATA_ZH;
+	uint8_t GYRO_DATA_ZL;
+	uint8_t temperature;
+	uint8_t Timestamp_H;
+	uint8_t Timestamp_L;
 };
+static_assert(sizeof(DATA) == 16, "FIFO packet is 16 bytes without HIRES");
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
