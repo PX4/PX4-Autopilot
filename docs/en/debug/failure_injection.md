@@ -46,7 +46,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 :::
 
 Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
-The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see footnotes 1–2), SIH does not simulate an injectable airspeed.
+The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see the GPS and airspeed notes in the info box above), SIH does not simulate an injectable airspeed.
 Components not listed (`optical_flow`, `servo`, `avoidance`, `rc_signal`, `mavlink_signal`) are rejected everywhere (`MAV_RESULT_UNSUPPORTED`); see the note below on NACK behaviour.
 
 ::: info
