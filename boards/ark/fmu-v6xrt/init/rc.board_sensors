@@ -17,7 +17,6 @@
 #------------------------------------------------------------------------------
 
 set HAVE_PM2 yes
-set INA_CONFIGURED no
 
 if mft query -q -k MFT -s MFT_PM2 -v 0
 then
@@ -41,8 +40,6 @@ then
 	then
 		ina226 -X -b 2 -t 2 -k start
 	fi
-
-	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA228 1
@@ -53,8 +50,6 @@ then
 	then
 		ina228 -X -b 2 -t 2 -k start
 	fi
-
-	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA238 1
@@ -64,18 +59,6 @@ then
 	if [ $HAVE_PM2 = yes ]
 	then
 		ina238 -X -b 2 -t 2 -k start
-	fi
-
-	set INA_CONFIGURED yes
-fi
-
-if [ $INA_CONFIGURED = no ]
-then
-	# INA226, INA228, INA238 auto-start
-	i2c_launcher start -b 1
-	if [ $HAVE_PM2 = yes ]
-	then
-		i2c_launcher start -b 2
 	fi
 fi
 
@@ -102,5 +85,4 @@ then
 	bmp388 -X -b 2 start
 fi
 
-unset INA_CONFIGURED
 unset HAVE_PM2
