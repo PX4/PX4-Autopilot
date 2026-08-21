@@ -94,9 +94,9 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	bool    _rc_active{false};
-	uint8_t _rc_active_unit{0};
-	uint8_t _rc_active_instance{0};
+	bool     _rc_active{false};
+	uint8_t  _rc_active_unit{0};
+	uint16_t _rc_active_mask{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
