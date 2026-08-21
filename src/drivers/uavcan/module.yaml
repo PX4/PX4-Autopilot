@@ -28,6 +28,15 @@ parameters:
       min: 1
       max: 255
       reboot_required: true
+    UAVCAN_ESC_RTMAX:
+      description:
+        short: Maximum UAVCAN ESC output rate
+      type: int32
+      default: 400
+      min: 1
+      max: 1000
+      unit: Hz
+      reboot_required: true
     UAVCAN_LGT_NUM:
       description:
         short: Number of UAVCAN lights to configure
@@ -73,6 +82,15 @@ parameters:
         5: Status/Red
         6: Status/Green
         7: Status/Off
+    UAVCAN_SV_RTMAX:
+      description:
+        short: Maximum UAVCAN servo output rate
+      type: int32
+      default: 50
+      min: 1
+      max: 400
+      unit: Hz
+      reboot_required: true
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:
