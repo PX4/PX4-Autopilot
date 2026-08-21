@@ -36,6 +36,7 @@
 #include "../Common.hpp"
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/vehicle_optical_flow.h>
 
 class OpticalFlowCheck : public HealthAndArmingCheckBase
@@ -47,7 +48,7 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	uORB::Subscription _vehicle_optical_flow_sub{ORB_ID::vehicle_optical_flow};
+	uORB::SubscriptionMultiArray<vehicle_optical_flow_s, 2> _vehicle_optical_flow_subs{ORB_ID::vehicle_optical_flow};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_HAS_NUM_OF>) _param_sys_has_num_of

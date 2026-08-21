@@ -245,7 +245,10 @@ private:
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
-	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};
+	VehicleOpticalFlow *_vehicle_optical_flow[VehicleOpticalFlow::MAX_FLOW_INSTANCES] {};
+	SensorSlotBinder _flow_slot_binder{};
+	VehicleOpticalFlow::Publications _vehicle_optical_flow_pubs{};
+	bool _vehicle_optical_flow_pubs_advertised{false};
 	uint8_t _n_optical_flow{0};
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 

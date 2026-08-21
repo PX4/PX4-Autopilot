@@ -19,3 +19,5 @@ float32 max_flow_rate          # (radians/s) Magnitude of maximum angular which 
 
 float32 min_ground_distance    # (meters) Minimum distance from ground at which the optical flow sensor operates reliably
 float32 max_ground_distance    # (meters) Maximum distance from ground at which the optical flow sensor operates reliably
+
+float32[3] position_offset     # (meters) Position of the sensor focal point in body FRD frame, relative to the vehicle centre of gravity

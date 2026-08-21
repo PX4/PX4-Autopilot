@@ -112,8 +112,7 @@
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-# include <uORB/topics/vehicle_optical_flow.h>
-# include <uORB/topics/vehicle_optical_flow_vel.h>
+# include "EKF/aid_sources/optical_flow/optical_flow.hpp"
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -225,10 +224,6 @@ private:
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_GNSS
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
-	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -353,12 +348,7 @@ private:
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
-	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
-
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
-	hrt_abstime _status_optical_flow_pub_last{0};
-	hrt_abstime _optical_flow_vel_pub_last{0};
+	OpticalFlow _optical_flow {};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -700,32 +690,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
 		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		// optical flow fusion
-		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl,
-		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
-		_param_ekf2_of_gyr_src,
-		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
-		_param_ekf2_of_delay, ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
-		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
-		_param_ekf2_of_n_min, ///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtFloat<px4::params::EKF2_OF_N_MAX>)
-		_param_ekf2_of_n_max, ///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtInt<px4::params::EKF2_OF_QMIN>)
-		_param_ekf2_of_qmin, ///< minimum acceptable quality integer from  the flow sensor when in air
-		(ParamExtInt<px4::params::EKF2_OF_QMIN_GND>)
-		_param_ekf2_of_qmin_gnd, ///< minimum acceptable quality integer from  the flow sensor when on ground
-		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
-		_param_ekf2_of_gate, ///< optical flow fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
-		_param_ekf2_of_pos_x, ///< X position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Y>)
-		_param_ekf2_of_pos_y, ///< Y position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
-		_param_ekf2_of_pos_z, ///< Z position of optical flow sensor focal point in body frame (m)
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 		(ParamExtInt<px4::params::EKF2_DRAG_CTRL>) _param_ekf2_drag_ctrl,		///< drag fusion selection
 		// Multi-rotor drag specific force fusion
