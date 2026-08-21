@@ -77,26 +77,8 @@ private:
 	// decimated rate, so the discarded edges carry no signal.
 	static constexpr uint8_t DRDY_DECIMATION{SENSOR_ODR_HZ / SAMPLE_RATE_HZ};
 
-	// sensor output is invalid while the signal path settles after reset/configuration:
-	// discard samples (no publish, no clip evaluation) until this has elapsed
+	// sensor output is invalid while the signal path settles after reset/configuration
 	static constexpr hrt_abstime SENSOR_SETTLE_TIME_US{100000}; // 100 ms
-
-	// ~32.1 g in both register sets (98% of the ±32.768 g HR word). LR is half the
-	// sensitivity, so the same acceleration is half the counts; a single raw threshold
-	// would clip at 64.2 g in LR and flap between the two under sustained 33–64 g.
-	static constexpr int16_t ACCEL_CLIP_THRESHOLD_HR{32100}; // 1000 LSB/g
-	static constexpr int16_t ACCEL_CLIP_THRESHOLD_LR{16050}; //  500 LSB/g
-
-	// accel range: ±32 g full-scale (accel_fs_sel = 011, never changed at runtime); escalate
-	// to the ±64 g low resolution output registers while clipping and recover after a quiet
-	// period. Both register sets are maintained continuously by the sensor, so switching
-	// between them is glitch-free.
-	enum class ACCEL_RANGE : uint8_t {
-		RANGE_32G = 0, // high resolution registers, 1000 LSB/g
-		RANGE_64G,     // low resolution registers,   500 LSB/g
-	};
-
-	static constexpr hrt_abstime ACCEL_RANGE_QUIET_TIMEOUT_US{2000000}; // de-escalate after 2 s without clipping
 
 	struct SensorData {
 		int16_t gyro_x;
@@ -134,9 +116,6 @@ private:
 
 	bool Configure();
 	bool ConfigureOdrPin();
-
-	void ConfigureAccelRange(ACCEL_RANGE range);
-	void ManageAccelRange(bool clipping);
 
 	void SelectRegisterBank(uint16_t bank, bool force = false);
 	void SelectRegisterBank(Register::BANK_0 reg) { SelectRegisterBank(0); }
@@ -193,9 +172,6 @@ private:
 		CONFIGURE,
 		READ,
 	} _state{STATE::RESET};
-
-	ACCEL_RANGE _accel_range{ACCEL_RANGE::RANGE_32G};
-	hrt_abstime _accel_last_clip_timestamp{0};
 
 	static constexpr uint8_t size_register_bank0_cfg{3};
 	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {

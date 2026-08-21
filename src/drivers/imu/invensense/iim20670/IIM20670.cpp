@@ -86,9 +86,7 @@ void IIM20670::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
-	const char *range_str = (_accel_range == ACCEL_RANGE::RANGE_64G) ? "64 g" : "32 g";
-
-	PX4_INFO("accel range: %s, gyro range: 1966 dps", range_str);
+	PX4_INFO("accel range: 65.536 g, gyro range: 1966 dps");
 
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_transfer_perf);
@@ -206,9 +204,7 @@ void IIM20670::RunImpl()
 			SensorData data{};
 
 			if (ReadData(&data)) {
-				// discard output while the sensor signal path settles after reset/configuration:
-				// the first samples can read full-scale, which would both publish garbage and
-				// falsely escalate the accel range (the ladder is one-way until reset)
+				// discard output while the sensor signal path settles after reset/configuration
 				if (now - _read_start_timestamp > SENSOR_SETTLE_TIME_US) {
 					const float temperature = TEMPERATURE_OFFSET + (float)data.temp / TEMPERATURE_SENSITIVITY;
 					_px4_accel.set_temperature(temperature);
@@ -227,22 +223,6 @@ void IIM20670::RunImpl()
 
 					_px4_accel.update(timestamp_sample, data.accel_x, accel_y, accel_z);
 					_px4_gyro.update(timestamp_sample, data.gyro_x, gyro_y, gyro_z);
-
-					// manage the accel range: escalate to ±64 g while clipping, recover after quiet
-					bool accel_clipping = false;
-					const int16_t values[3] {data.accel_x, data.accel_y, data.accel_z};
-					const int16_t clip_threshold = (_accel_range == ACCEL_RANGE::RANGE_64G)
-								       ? ACCEL_CLIP_THRESHOLD_LR
-								       : ACCEL_CLIP_THRESHOLD_HR;
-
-					for (auto v : values) {
-						if (v >= clip_threshold || v <= -clip_threshold) {
-							accel_clipping = true;
-							break;
-						}
-					}
-
-					ManageAccelRange(accel_clipping);
 				}
 
 				if (_failure_count > 0) {
@@ -328,54 +308,16 @@ bool IIM20670::Configure()
 	// leave the sensor in bank 0 for sensor data reads
 	SelectRegisterBank(0);
 
-	ConfigureAccelRange(ACCEL_RANGE::RANGE_32G);
+	// accel_fs_sel = 011. Always the ±65.536 g / 500 LSB/g registers: switching to the
+	// 1000 LSB/g word at runtime would change PX4Accelerometer's scale.
+	_px4_accel.set_range(65.536f * CONSTANTS_ONE_G);
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 500.f);
 
 	// gyro_fs_sel = 0011: ±1966 dps (16.67 LSB/dps)
 	_px4_gyro.set_range(math::radians(1966.08f));
 	_px4_gyro.set_scale(math::radians(1966.08f / 32768.f));
 
 	return success;
-}
-
-void IIM20670::ConfigureAccelRange(ACCEL_RANGE range)
-{
-	_accel_range = range;
-
-	switch (range) {
-	case ACCEL_RANGE::RANGE_32G:
-		// accel_fs_sel = 011 high resolution output: ±32.768 g (1000 LSB/g)
-		_px4_accel.set_range(32.768f * CONSTANTS_ONE_G);
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 1000.f);
-		break;
-
-	case ACCEL_RANGE::RANGE_64G:
-		// accel_fs_sel = 011 low resolution output: ±65.536 g (500 LSB/g)
-		_px4_accel.set_range(65.536f * CONSTANTS_ONE_G);
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 500.f);
-		break;
-	}
-}
-
-void IIM20670::ManageAccelRange(bool clipping)
-{
-	const hrt_abstime now = hrt_absolute_time();
-
-	if (clipping) {
-		_accel_last_clip_timestamp = now;
-
-		if (_accel_range == ACCEL_RANGE::RANGE_32G) {
-			// switch to the low resolution output registers (±65.536 g); the sensor
-			// full-scale configuration is unchanged so the transition is glitch-free
-			ConfigureAccelRange(ACCEL_RANGE::RANGE_64G);
-			PX4_INFO("accel clipping, range escalated to ±64 g");
-		}
-
-	} else if ((_accel_range == ACCEL_RANGE::RANGE_64G)
-		   && (now - _accel_last_clip_timestamp > ACCEL_RANGE_QUIET_TIMEOUT_US)) {
-		// recover the higher resolution registers after a sustained period without clipping
-		ConfigureAccelRange(ACCEL_RANGE::RANGE_32G);
-		PX4_INFO("accel quiet, range reduced to ±32 g");
-	}
 }
 
 bool IIM20670::ConfigureOdrPin()
@@ -399,18 +341,13 @@ bool IIM20670::ConfigureOdrPin()
 bool IIM20670::ReadData(SensorData *data)
 {
 	// register reads are out-of-frame: each response is clocked out during the following transfer
-	const bool low_res = (_accel_range == ACCEL_RANGE::RANGE_64G);
-	const uint8_t accel_x_reg = static_cast<uint8_t>(low_res ? Register::BANK_0::ACCEL_X_DATA_LR : Register::BANK_0::ACCEL_X_DATA);
-	const uint8_t accel_y_reg = static_cast<uint8_t>(low_res ? Register::BANK_0::ACCEL_Y_DATA_LR : Register::BANK_0::ACCEL_Y_DATA);
-	const uint8_t accel_z_reg = static_cast<uint8_t>(low_res ? Register::BANK_0::ACCEL_Z_DATA_LR : Register::BANK_0::ACCEL_Z_DATA);
-
 	TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::GYRO_X_DATA)));
 	const uint32_t gyro_x  = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::GYRO_Y_DATA)));
 	const uint32_t gyro_y  = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::GYRO_Z_DATA)));
 	const uint32_t gyro_z  = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::TEMP1_DATA)));
-	const uint32_t temp    = TransferSpiFrame(ReadCommand(accel_x_reg));
-	const uint32_t accel_x = TransferSpiFrame(ReadCommand(accel_y_reg));
-	const uint32_t accel_y = TransferSpiFrame(ReadCommand(accel_z_reg));
+	const uint32_t temp    = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::ACCEL_X_DATA_LR)));
+	const uint32_t accel_x = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::ACCEL_Y_DATA_LR)));
+	const uint32_t accel_y = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::ACCEL_Z_DATA_LR)));
 	const uint32_t accel_z = TransferSpiFrame(ReadCommand(static_cast<uint8_t>(Register::BANK_0::TEST)));
 
 	const uint32_t responses[] {gyro_x, gyro_y, gyro_z, temp, accel_x, accel_y, accel_z};
