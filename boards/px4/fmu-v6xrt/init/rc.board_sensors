@@ -72,10 +72,10 @@ fi
 if [ $INA_CONFIGURED = no ]
 then
 	# INA226, INA228, INA238 auto-start
-	i2c_launcher start -b 1
+	i2c_launcher start -b 1 -t 1
 	if [ $HAVE_PM2 = yes ]
 	then
-		i2c_launcher start -b 2
+		i2c_launcher start -b 2 -t 2
 	fi
 fi
 
