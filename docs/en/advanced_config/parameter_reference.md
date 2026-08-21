@@ -26377,14 +26377,33 @@ better solution than the receiver really has.
 
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
-Instance failed by the RC switch.
+Instances failed by the RC switch.
 
-Which instance of SYS_FAIL_RC_UNIT the SYS_FAIL_RC_SRC trigger affects.
-1-based, or 0 for all instances (motor number for motors).
+Bitmask of instances of SYS_FAIL_RC_UNIT that the SYS_FAIL_RC_SRC trigger
+affects (bit 0 = instance 1, motor number for motors). 0 = all instances.
+
+**Bitmask:**
+
+- `0`: Instance 1
+- `1`: Instance 2
+- `2`: Instance 3
+- `3`: Instance 4
+- `4`: Instance 5
+- `5`: Instance 6
+- `6`: Instance 7
+- `7`: Instance 8
+- `8`: Instance 9
+- `9`: Instance 10
+- `10`: Instance 11
+- `11`: Instance 12
+- `12`: Instance 13
+- `13`: Instance 14
+- `14`: Instance 15
+- `15`: Instance 16
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
-| &check; | 0        | 16       |           | 1       |      | &nbsp;    |
+| &check; | 0        | 65535    |           | 1       |      | &nbsp;    |
 
 ### SYS_FAIL_RC_MODE (`INT32`) {#SYS_FAIL_RC_MODE}
 
