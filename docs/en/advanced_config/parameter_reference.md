@@ -47298,6 +47298,14 @@ starve other nodes on the bus.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 1        | 255      |           | 255     |      | &nbsp;    |
 
+### UAVCAN_ESC_RTMAX (`INT32`) {#UAVCAN_ESC_RTMAX}
+
+Maximum UAVCAN ESC output rate.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 1        | 1000     |           | 400     | Hz   | &nbsp;    |
+
 ### UAVCAN_LGT_FN0 (`INT32`) {#UAVCAN_LGT_FN0}
 
 Light 0 function.
@@ -47731,6 +47739,14 @@ uavcan::equipment::range_sensor::Measurement
 | Reboot  | minValue | maxValue | increment | default      | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### UAVCAN_SV_RTMAX (`INT32`) {#UAVCAN_SV_RTMAX}
+
+Maximum UAVCAN servo output rate.
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; | 1        | 400      |           | 50      | Hz   | &nbsp;    |
 
 ### UAVCAN_TRACE_EN (`INT32`) {#UAVCAN_TRACE_EN}
 
