@@ -104,6 +104,9 @@
 #define BOARD_MTD_NUM_EEPROM        1 /* MTD: base_eeprom */
 #define PX4_I2C_OBDEV_SE050         0x48
 
+/* BMP390 INT: push-pull active-high, idle low. No pull. Driver polls, does not use EXTI. */
+#define GPIO_I2C2_DRDY1_BMP390      /* GPIO_EMC_B1_35 GPIO2_IO03 */ (GPIO_PORT2 | GPIO_PIN3 | GPIO_INPUT | IOMUX_PULL_NONE)
+
 
 /*
  * From the radion souce code
@@ -547,6 +550,7 @@
 		GPIO_VDD_3V3_SENSORS2_EN,         \
 		GPIO_VDD_3V3_SENSORS3_EN,         \
 		GPIO_VDD_3V3_SENSORS4_EN,         \
+		GPIO_I2C2_DRDY1_BMP390,           \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_SPIX_SYNC,                   \
