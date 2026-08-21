@@ -20,6 +20,7 @@ if(MAVSDK_FOUND)
         autopilot_tester_rtl.cpp
         autopilot_tester_figure_eight.cpp
         autopilot_tester_loiter.cpp
+        autopilot_tester_flow.cpp
         # follow-me needs a MAVSDK update:
         # https://github.com/mavlink/MAVSDK/pull/1770
         # autopilot_tester_follow_me.cpp
@@ -32,6 +33,8 @@ if(MAVSDK_FOUND)
         test_multicopter_rtl.cpp
         test_multicopter_offboard.cpp
         test_multicopter_manual.cpp
+        test_multicopter_optical_flow.cpp
+        test_vtol_optical_flow.cpp
         test_multicopter_rtl_with_geofence.cpp
         test_sih_xvert_transition.cpp
         test_vtol_mission.cpp
