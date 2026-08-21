@@ -26312,6 +26312,25 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SYS_FAIL_BAT_LVL (`INT32`) {#SYS_FAIL_BAT_LVL}
+
+Battery failure injection severity.
+
+Battery warning level reported while a battery 'wrong' failure
+injection is active. The injected remaining charge is set just below
+the matching threshold (BAT_LOW_THR, BAT_CRIT_THR or
+BAT_EMERGEN_THR).
+
+**Values:**
+
+- `1`: Warn
+- `2`: Critical
+- `3`: Emergency
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 3       |      | &nbsp;    |
+
 ### SYS_FAIL_GPS_JAM (`INT32`) {#SYS_FAIL_GPS_JAM}
 
 GPS Wrong-failure jamming state.
@@ -26429,6 +26448,7 @@ SYS_FAIL_RC_INST.
 - `8`: Airspeed
 - `100`: Battery
 - `101`: Motor
+- `107`: Traffic avoidance
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
