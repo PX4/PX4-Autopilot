@@ -50,7 +50,9 @@ TECSControl::Param makeParam()
 	param.max_climb_rate = 5.f;
 	param.vert_accel_limit = 10.f;
 	param.equivalent_airspeed_trim = 15.f;
+	param.tas_trim = 15.f;
 	param.tas_min = 10.f;
+	param.tas_stall = 7.f;
 	param.tas_max = 30.f;
 	param.pitch_max = radians(15.f);
 	param.pitch_min = radians(-15.f);
@@ -59,7 +61,6 @@ TECSControl::Param makeParam()
 	param.throttle_min = 0.f;
 	param.altitude_error_gain = 0.2f;
 	param.altitude_setpoint_gain_ff = 0.f;
-	param.tas_error_percentage = 0.15f;
 	param.airspeed_error_gain = 0.1f;
 	param.ste_rate_time_const = 0.1f;
 	param.seb_rate_ff = 1.f;
@@ -203,4 +204,146 @@ TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
 		EXPECT_TRUE(PX4_ISFINITE(control.getDebugOutput().pitch_integrator));
 		EXPECT_TRUE(PX4_ISFINITE(control.getPitchSetpoint()));
 	}
+}
+
+namespace
+{
+
+// Run one update at the given true airspeed and report the resulting underspeed ratio.
+float underspeedRatioAt(float tas, TECSControl::Param param, const TECSControl::Flag &flag = makeFlag())
+{
+	TECSControl control;
+	TECSControl::Input input = makeInput();
+	input.tas = tas;
+
+	control.initialize(makeSetpoint(), input, param, flag);
+	control.update(0.02f, makeSetpoint(), input, param, flag);
+
+	return control.getRatioUndersped();
+}
+
+} // namespace
+
+// Underspeed mitigation is referenced to the stall airspeed, not to a percentage of the trim airspeed: it stays
+// inactive at and above the minimum airspeed demand and saturates part way down the stall margin, so it is fully
+// ramped in with stall margin still in hand.
+TEST(TECSControlTest, UnderspeedRatioIsReferencedToStallAirspeed)
+{
+	TECSControl::Param param = makeParam(); // tas_min = 10, tas_stall = 7
+	// Full mitigation half way from the stall airspeed to the minimum airspeed demand.
+	const float tas_fully_undersped = 0.5f * (param.tas_stall + param.tas_min); // 8.5
+
+	// At and above the minimum airspeed demand there is no mitigation.
+	EXPECT_FLOAT_EQ(underspeedRatioAt(param.tas_min + 5.f, param), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(param.tas_min, param), 0.f);
+
+	// Saturated with stall margin still in hand, and stays saturated below that.
+	EXPECT_FLOAT_EQ(underspeedRatioAt(tas_fully_undersped, param), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(param.tas_stall, param), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(0.f, param), 1.f);
+
+	// Linear in between.
+	const float midpoint = 0.5f * (param.tas_min + tas_fully_undersped);
+	EXPECT_NEAR(underspeedRatioAt(midpoint, param), 0.5f, 1e-4f);
+}
+
+// The ramp bounds follow the minimum airspeed demand, which the caller compensates for load factor and flap
+// setting. A higher demand (e.g. in a bank) must move the onset up with it.
+TEST(TECSControlTest, UnderspeedRatioFollowsMinimumAirspeedDemand)
+{
+	TECSControl::Param param = makeParam();
+
+	TECSControl::Param banked = param;
+	banked.tas_min *= 1.2f; // load factor compensated minimum airspeed demand
+	banked.tas_stall *= 1.2f;
+
+	EXPECT_FLOAT_EQ(underspeedRatioAt(param.tas_min, param), 0.f);
+	EXPECT_GT(underspeedRatioAt(param.tas_min, banked), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(banked.tas_min, banked), 0.f);
+}
+
+// The ramp spans a fixed fraction of the configured stall margin, so a tighter margin gives a correspondingly
+// narrower ramp. What must hold regardless of the margin is that there is no mitigation at the minimum airspeed
+// demand: mitigation ramping in during normal cruise would latch throttle at maximum.
+TEST(TECSControlTest, UnderspeedRatioScalesWithStallMargin)
+{
+	TECSControl::Param tight = makeParam();
+	tight.tas_min = 10.f;
+	tight.tas_stall = 9.f; // 1 m/s of stall margin -> full mitigation at 9.5
+
+	EXPECT_FLOAT_EQ(underspeedRatioAt(tight.tas_min, tight), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(9.5f, tight), 1.f);
+	EXPECT_NEAR(underspeedRatioAt(9.75f, tight), 0.5f, 1e-3f);
+
+	// The wide margin of the nominal parameter set puts the same half-way point much further down.
+	const TECSControl::Param wide = makeParam(); // tas_min = 10, tas_stall = 7
+	EXPECT_LT(underspeedRatioAt(9.5f, wide), underspeedRatioAt(9.5f, tight));
+}
+
+// A stall airspeed left far too low (e.g. never configured while the minimum airspeed demand was raised) must not
+// be able to delay mitigation. The airspeed tracking error term does not depend on the stall airspeed, so it takes
+// over and saturates mitigation one tracking error below the minimum airspeed demand.
+TEST(TECSControlTest, UnderspeedRatioFallsBackToTrackingErrorForTooLowStallAirspeed)
+{
+	TECSControl::Param param = makeParam();
+	param.tas_min = 20.f;
+	param.tas_stall = 7.f;  // left at the default while the minimum airspeed demand was raised
+	param.tas_trim = 15.f;
+
+	// The stall term alone would only saturate at 13.5 m/s. The tracking error term saturates at
+	// 20 - 0.15 * 15 = 17.75 m/s, and being the higher of the two it wins.
+	EXPECT_FLOAT_EQ(underspeedRatioAt(param.tas_min, param), 0.f);
+	EXPECT_NEAR(underspeedRatioAt(18.875f, param), 0.5f, 1e-4f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(17.75f, param), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(13.5f, param), 1.f);
+}
+
+// Conversely, on an airframe with a properly configured stall airspeed the stall term is the higher of the two and
+// governs, so a large trim airspeed cannot pull the saturation point down.
+TEST(TECSControlTest, UnderspeedRatioUsesStallTermWhenItSaturatesEarlier)
+{
+	TECSControl::Param param = makeParam();
+	param.tas_min = 20.f;
+	param.tas_stall = 16.f; // 25% stall margin -> stall term saturates at 18 m/s
+	param.tas_trim = 30.f;  // tracking error term would only saturate at 20 - 4.5 = 15.5 m/s
+
+	EXPECT_FLOAT_EQ(underspeedRatioAt(param.tas_min, param), 0.f);
+	EXPECT_NEAR(underspeedRatioAt(19.f, param), 0.5f, 1e-4f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(18.f, param), 1.f);
+}
+
+// A degenerate configuration (no stall margin, or a stall airspeed above the minimum airspeed demand, which the
+// performance model sanity checks reject but TECS must still survive) collapses the ramp to a step at the minimum
+// airspeed demand. It must never place the ramp above the airspeed being flown, which would pin the ratio to 1.
+TEST(TECSControlTest, UnderspeedRatioHandlesDegenerateStallMargin)
+{
+	TECSControl::Param zero_margin = makeParam();
+	zero_margin.tas_min = 10.f;
+	zero_margin.tas_stall = 10.f;
+
+	EXPECT_FLOAT_EQ(underspeedRatioAt(zero_margin.tas_min + 1.f, zero_margin), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(zero_margin.tas_min, zero_margin), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(9.9f, zero_margin), 1.f); // ramp width floor is 0.1 m/s
+
+	TECSControl::Param inverted = makeParam();
+	inverted.tas_min = 10.f;
+	inverted.tas_stall = 12.f; // stall airspeed above the minimum airspeed demand
+
+	EXPECT_FLOAT_EQ(underspeedRatioAt(inverted.tas_min + 1.f, inverted), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(inverted.tas_min, inverted), 0.f);
+	EXPECT_FLOAT_EQ(underspeedRatioAt(9.9f, inverted), 1.f);
+}
+
+// Detection must be inert whenever it is disabled or no airspeed is available.
+TEST(TECSControlTest, UnderspeedRatioIsZeroWhenDisabled)
+{
+	const TECSControl::Param param = makeParam();
+
+	TECSControl::Flag disabled = makeFlag();
+	disabled.detect_underspeed_enabled = false;
+	EXPECT_FLOAT_EQ(underspeedRatioAt(0.f, param, disabled), 0.f);
+
+	TECSControl::Flag no_airspeed = makeFlag();
+	no_airspeed.airspeed_enabled = false;
+	EXPECT_FLOAT_EQ(underspeedRatioAt(0.f, param, no_airspeed), 0.f);
 }
