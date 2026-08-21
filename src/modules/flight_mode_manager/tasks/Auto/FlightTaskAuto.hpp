@@ -144,9 +144,6 @@ protected:
 	bool _is_emergency_braking_active{false};
 	bool _want_takeoff{false};
 
-	/** Speed below which emergency braking hands the stop back to ordinary guidance [m/s]. */
-	static constexpr float kEmergencyBrakingReleaseSpeed = 1.f;
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)

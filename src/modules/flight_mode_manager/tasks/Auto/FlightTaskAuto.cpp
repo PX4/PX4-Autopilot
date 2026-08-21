@@ -728,9 +728,8 @@ void FlightTaskAuto::_checkEmergencyBraking()
 	} else {
 		// Deactivate emergency braking once slow enough for ordinary guidance to finish the stop.
 		// Must clear velocity estimate noise, otherwise braking latches and guidance never resumes.
-		if (_position_smoothing.getCurrentVelocityZ() < kEmergencyBrakingReleaseSpeed
-		    && _position_smoothing.getCurrentVelocityZ() > -kEmergencyBrakingReleaseSpeed
-		    && !_position_smoothing.getCurrentVelocityXY().longerThan(kEmergencyBrakingReleaseSpeed)) {
+		if (math::isInRange(_position_smoothing.getCurrentVelocityZ(), -1.f, 1.f)
+		    && !_position_smoothing.getCurrentVelocityXY().longerThan(1.f)) {
 			_is_emergency_braking_active = false;
 		}
 	}
