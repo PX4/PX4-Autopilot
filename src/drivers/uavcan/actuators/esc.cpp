@@ -93,7 +93,6 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
-	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
 
 	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / _max_rate_hz)) {
