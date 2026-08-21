@@ -44,12 +44,13 @@ parameters:
       description:
         short: Parachute landing release altitude above ground
         long: |-
-          Altitude at which the parachute is released. Lower values reduces wind drift
-          from the touchdown point. Leave enough altitude for the parachute to
-          fully open and stabilize the descent.
+          Altitude the vehicle descends to and holds for the release. The release happens
+          higher if the predicted touchdown point reaches the landing point while still on
+          the approach slope, or lower for a vehicle that cannot hold the altitude, but
+          never below 3 seconds of descent at FW_LND_PARA_SINK, so that the canopy has
+          room to open.
 
-          The minimum release altitude is clamped to 3 seconds of descent at FW_LND_PARA_SINK, so that
-          the canopy has room to open.
+          Lower values reduce the wind drift of the touchdown point.
       type: float
       default: 20.0
       unit: m

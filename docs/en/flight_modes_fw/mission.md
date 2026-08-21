@@ -358,8 +358,12 @@ Notes:
 - The touchdown point drifts with the wind, and the horizontal touchdown speed matches the wind speed.
   Accuracy and touchdown quality degrade as the wind approaches the landing airspeed ([COM_WIND_MAX](../advanced_config/parameter_reference.md#COM_WIND_MAX) can enforce a wind limit).
 - Lowering the release altitude reduces the wind drift.
-  For safety reasons, the release altitude is clamped to 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
-- A vehicle that cannot hold the release altitude (for example a motor-less glider) releases below the configured altitude, short of the land waypoint.
+  For safety reasons, the release altitude is clamped to a minimum of 3 seconds of descent at [FW_LND_PARA_SINK](#FW_LND_PARA_SINK), so that the canopy has room to open before touchdown.
+- [FW_LND_PARA_ALT](#FW_LND_PARA_ALT) is the altitude the vehicle holds while waiting for the release point.
+  The release prediction always uses the actual altitude:
+  - A vehicle that holds the altitude releases at the configured altitude, or above it if the release point is reached while still on the approach slope.
+  - A vehicle that cannot hold the altitude (for example a motor-less glider) keeps sinking while the prediction adapts, and still releases such that it touches down on the land waypoint.
+    Only if it sinks to the minimum release altitude before reaching the release point does it release there, and touch down short of the waypoint.
 - Not supported on VTOL.
 
 #### Parachute Landing Parameters
