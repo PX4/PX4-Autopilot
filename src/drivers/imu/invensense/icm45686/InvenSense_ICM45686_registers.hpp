@@ -111,7 +111,16 @@ enum class BANK_0 : uint8_t {
 	INT2_STATUS0 = 0x59,
 
 	WHO_AM_I = 0x72,
+	IREG_ADDR_15_8 = 0x7C,
+	IREG_ADDR_7_0 = 0x7D,
+	IREG_DATA = 0x7E,
 	REG_MISC2 = 0x7F,
+};
+
+// Indirect registers, reached through IREG_ADDR_15_8/IREG_ADDR_7_0 + IREG_DATA as {bank base | offset}
+enum class IREG : uint16_t {
+	IPREG_SYS1_REG_166 = 0xA400 | 0xA6, // GYRO_SRC_CTRL
+	IPREG_SYS2_REG_123 = 0xA500 | 0x7B, // ACCEL_SRC_CTRL
 };
 
 };
@@ -237,6 +246,22 @@ enum REG_MISC2_BIT : uint8_t {
 	SOFT_RST = Bit1, // 1: Triggers soft reset operation
 };
 
+
+//---------------- IREG bits
+
+// IPREG_SYS1_REG_166
+enum IPREG_SYS1_REG_166_BIT : uint8_t {
+	// GYRO_SRC_CTRL[6:5] 10: interpolator and FIR anti-alias filter on (reset 00: both off)
+	GYRO_SRC_CTRL_INTERP_AAF_SET   = Bit6,
+	GYRO_SRC_CTRL_INTERP_AAF_CLEAR = Bit5,
+};
+
+// IPREG_SYS2_REG_123
+enum IPREG_SYS2_REG_123_BIT : uint8_t {
+	// ACCEL_SRC_CTRL[1:0] 10: interpolator and FIR anti-alias filter on (reset 00: both off)
+	ACCEL_SRC_CTRL_INTERP_AAF_SET   = Bit1,
+	ACCEL_SRC_CTRL_INTERP_AAF_CLEAR = Bit0,
+};
 
 // IPREG_TOP1
 //static constexpr uint8_t BANK_IPREG_TOP1 = 0xA2;
