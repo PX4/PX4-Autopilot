@@ -163,6 +163,7 @@
 // From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/self-test/bmp3_selftest.c
 #define BMP3_POST_SLEEP_WAIT_TIME         5000
 #define BMP3_POST_RESET_WAIT_TIME         2000
+#define BMP3_CMD_RDY_WAIT_TIME            10000 /* STATUS.cmd_rdy after POR; tstartup is 2 ms */
 #define BMP3_POST_INIT_WAIT_TIME          40000
 #define BMP3_TRIM_CRC_DATA_ADDR           0x30
 #define BPM3_CMD_SOFT_RESET               0xB6
