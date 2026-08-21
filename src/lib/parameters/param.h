@@ -232,6 +232,18 @@ __EXPORT size_t		param_size(param_t param);
 __EXPORT int		param_get(param_t param, void *val);
 
 /**
+ * Mark a parameter as used and copy its value.
+ *
+ * Combines param_set_used() and param_get() into a single out-of-line call,
+ * saving flash at the many Param<> constructor call sites.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @param val		Where to return the value, assumed to point to suitable storage for the parameter type.
+ * @return		Zero if the parameter's value could be returned, nonzero otherwise.
+ */
+__EXPORT int		param_get_mark_used(param_t param, void *val);
+
+/**
  * Copy the (airframe-specific) default value of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.

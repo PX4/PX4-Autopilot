@@ -625,7 +625,6 @@
 *(.text._ZN36do_not_explicitly_use_this_namespace5ParamIfLN3px46paramsE919EEC1Ev) /* itcm-check-ignore */
 *(.text._ZN22MavlinkStreamHeartbeat8get_sizeEv)
 *(.text._ZN6matrix6MatrixIfLj3ELj1EEdVEf)
-*(.text._ZN17FlightTaskDescendC1Ev)
 *(.text._ZN26MavlinkStreamCameraTrigger8get_sizeEv)
 *(.text.iob_navail)
 *(.text._ZN12FailsafeBase25removeNonActivatedActionsEv)
