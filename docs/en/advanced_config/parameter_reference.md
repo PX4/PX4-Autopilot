@@ -34162,9 +34162,21 @@ select the transmission standard.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; |          |          |           | 0       |      | &nbsp;    |
 
-### OSD_CH_HEIGHT (`INT32`) {#OSD_CH_HEIGHT}
+### OSD_CH_POS_HOR (`INT32`) {#OSD_CH_POS_HOR}
 
-OSD Crosshairs Height.
+OSD Crosshairs Horizontal Position.
+
+Controls the horizontal position of the crosshair display.
+Resolution is limited by OSD to 15 discrete values. Negative
+values will display the crosshairs left of the center of the screen
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -8       | 8        |           | 0       |      | &nbsp;    |
+
+### OSD_CH_POS_VER (`INT32`) {#OSD_CH_POS_VER}
+
+OSD Crosshairs Vertical Position.
 
 Controls the vertical position of the crosshair display.
 Resolution is limited by OSD to 15 discrete values. Negative
@@ -34230,21 +34242,21 @@ Configure / toggle support display options.
 - `4`: GPS_SATS
 - `5`: GPS_SPEED
 - `6`: HOME_DIST
-- `7`: HOME_DIR
-- `8`: MAIN_BATT_VOLTAGE
+- `7`: (unused) HOME_DIR
+- `8`: (unused) MAIN_BATT_VOLTAGE
 - `9`: CURRENT_DRAW
 - `10`: MAH_DRAWN
 - `11`: RSSI_VALUE
 - `12`: ALTITUDE
-- `13`: NUMERICAL_VARIO
+- `13`: (unused) NUMERICAL_VARIO
 - `14`: (unused) FLYMODE
 - `15`: (unused) ESC_TMP
-- `16`: (unused) PITCH_ANGLE
-- `17`: (unused) ROLL_ANGLE
+- `16`: PITCH_ANGLE
+- `17`: ROLL_ANGLE
 - `18`: CROSSHAIRS
 - `19`: AVG_CELL_VOLTAGE
 - `20`: (unused) HORIZON_SIDEBARS
-- `21`: POWER
+- `21`: (unused) POWER
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -49085,12 +49097,12 @@ VTX table channel 1-16
 
 VTX device.
 
-Specific VTX device useful for workarounds and optimizations
+Specific VTX model, only used to enable device-specific workarounds.
+Leave at Generic unless your VTX is listed.
 
 **Values:**
 
-- `0`: SmartAudio v1, v2, v2.1 Protocol
-- `100`: Tramp Protocol
+- `0`: Generic
 - `5120`: Peak THOR T67
 - `10240`: Rush MAX SOLO
 
@@ -49173,6 +49185,22 @@ VTX transmission power level 1-16
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VTX_PROTOCOL (`INT32`) {#VTX_PROTOCOL}
+
+VTX protocol.
+
+Wire protocol used to communicate with the VTX. Select the protocol
+listed in the manual of your VTX.
+
+**Values:**
+
+- `0`: SmartAudio v1, v2, v2.1
+- `100`: Tramp
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### VTX_SER_CFG (`INT32`) {#VTX_SER_CFG}
 
