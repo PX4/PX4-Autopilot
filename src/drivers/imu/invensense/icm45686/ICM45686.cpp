@@ -319,6 +319,10 @@ bool ICM45686::Configure()
 	//transfer(cmd, cmd, sizeof(cmd));
 
 	// first set and clear all configured register bits
+	for (const auto &reg_cfg : _register_ireg_cfg) {
+		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
+	}
+
 	for (const auto &reg_cfg : _register_bank0_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
@@ -331,6 +335,12 @@ bool ICM45686::Configure()
 
 	// now check that all are configured
 	bool success = true;
+
+	for (const auto &reg_cfg : _register_ireg_cfg) {
+		if (!RegisterCheck(reg_cfg)) {
+			success = false;
+		}
+	}
 
 	for (const auto &reg_cfg : _register_bank0_cfg) {
 		if (!RegisterCheck(reg_cfg)) {
@@ -381,6 +391,28 @@ void ICM45686::RegisterWrite(T reg, uint8_t value)
 {
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	transfer(cmd, cmd, sizeof(cmd));
+}
+
+// IREG access (datasheet §14): address and data go in one burst starting at IREG_ADDR_15_8, and the
+// part needs at least 4 us between consecutive IREG operations. A read is a pre-fetch triggered by
+// CS deasserting after the address write, collected from IREG_DATA after the same gap.
+uint8_t ICM45686::RegisterRead(Register::IREG reg)
+{
+	const uint16_t addr = static_cast<uint16_t>(reg);
+	uint8_t cmd[3] { static_cast<uint8_t>(Register::BANK_0::IREG_ADDR_15_8), static_cast<uint8_t>(addr >> 8), static_cast<uint8_t>(addr & 0xFF) };
+	transfer(cmd, cmd, sizeof(cmd));
+	px4_udelay(10);
+	const uint8_t value = RegisterRead(Register::BANK_0::IREG_DATA);
+	px4_udelay(10);
+	return value;
+}
+
+void ICM45686::RegisterWrite(Register::IREG reg, uint8_t value)
+{
+	const uint16_t addr = static_cast<uint16_t>(reg);
+	uint8_t cmd[4] { static_cast<uint8_t>(Register::BANK_0::IREG_ADDR_15_8), static_cast<uint8_t>(addr >> 8), static_cast<uint8_t>(addr & 0xFF), value };
+	transfer(cmd, cmd, sizeof(cmd));
+	px4_udelay(10);
 }
 
 template <typename T>
