@@ -331,11 +331,14 @@ private:
 	static constexpr uint8_t			osr_p{BMP3_OVERSAMPLING_16X};		// oversampling rate, pressure
 	static constexpr uint8_t			odr{BMP3_ODR_50_HZ};			// output data rate (not used)
 	static constexpr uint8_t			iir_coef{BMP3_IIR_FILTER_DISABLE};	// IIR coefficient
+	static constexpr uint32_t			kDrdyRetryIntervalUs{2000};
 
 	PX4Barometer _px4_baro;
 	IBMP388			*_interface{nullptr};
 
-	unsigned		_measure_interval{0};			// interval in microseconds needed to measure
+	uint32_t		_measure_interval{0};			// typical conversion time (us), used as the collect delay
+	uint32_t		_measure_time_max{0};			// max conversion time (us), DRDY retry deadline
+	hrt_abstime		_measure_start{0};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
@@ -351,7 +354,7 @@ private:
 	void 			start();
 	int 			measure();
 	int			collect(); //get results and publish
-	uint32_t		get_measurement_time();
+	bool			get_measurement_time(uint32_t &typical_us, uint32_t &max_us) const;
 
 	bool			soft_reset();
 	bool			get_calib_data();
@@ -359,7 +362,7 @@ private:
 	bool 			set_sensor_settings();
 	bool			set_op_mode(uint8_t op_mode);
 
-	bool 			get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data);
+	int			get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data);
 	bool			compensate_data(uint8_t sensor_comp, const struct bmp3_uncomp_data *uncomp_data, struct bmp3_data *comp_data);
 };
 

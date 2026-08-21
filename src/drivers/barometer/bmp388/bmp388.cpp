@@ -41,6 +41,8 @@
 
 #include "bmp388.h"
 
+#include <inttypes.h>
+
 BMP388::BMP388(const I2CSPIDriverConfig &config, IBMP388 *interface) :
 	I2CSPIDriver(config),
 	_px4_baro{interface->get_device_id()},
@@ -122,26 +124,40 @@ BMP388::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_measure_perf);
 	perf_print_counter(_comms_errors);
-	printf("measurement interval:  %u us \n", _measure_interval);
+	printf("measurement interval:  %" PRIu32 " us (max %" PRIu32 " us)\n", _measure_interval, _measure_time_max);
 }
 
 void
 BMP388::start()
 {
 	_collect_phase = false;
-
-	// wait a bit longer for the first measurement, as otherwise the first readout might fail
-	ScheduleOnInterval(_measure_interval, _measure_interval * 3);
+	ScheduleNow();
 }
 
 void
 BMP388::RunImpl()
 {
 	if (_collect_phase) {
-		collect();
+		const int ret = collect();
+
+		if (ret == -EAGAIN) {
+			// Conversion still running; do not start a new forced-mode write (that
+			// would sleep the chip and abort the sample). Retry until the DS max.
+			if (hrt_elapsed_time(&_measure_start) < (_measure_time_max + kDrdyRetryIntervalUs)) {
+				ScheduleDelayed(kDrdyRetryIntervalUs);
+				return;
+			}
+
+			perf_count(_comms_errors);
+		}
 	}
 
-	measure();
+	if (measure() != OK) {
+		ScheduleDelayed(_measure_interval);
+		return;
+	}
+
+	ScheduleDelayed(_measure_interval);
 }
 
 int
@@ -154,10 +170,14 @@ BMP388::measure()
 	/* start measurement */
 	if (!set_op_mode(BMP3_FORCED_MODE)) {
 		PX4_DEBUG("failed to set operating mode");
+		_collect_phase = false;
 		perf_count(_comms_errors);
 		perf_cancel(_measure_perf);
 		return -EIO;
 	}
+
+	// Conversion begins when FORCED is latched, not when this work item started.
+	_measure_start = hrt_absolute_time();
 
 	perf_end(_measure_perf);
 
@@ -167,26 +187,27 @@ BMP388::measure()
 int
 BMP388::collect()
 {
-	_collect_phase = false;
-
-	/* enable pressure and temperature */
-	uint8_t sensor_comp = BMP3_PRESS | BMP3_TEMP;
-	bmp3_data data{};
-
 	perf_begin(_sample_perf);
 
-	/* Correct for measurement integration delay: the pressure was
-	 * integrated over the preceding measurement_time window, so the
-	 * effective sample midpoint is half the measurement time before now. */
-	const hrt_abstime now = hrt_absolute_time();
-	const hrt_abstime half_meas = get_measurement_time() / 2;
-	const hrt_abstime timestamp_sample = (now > half_meas) ? (now - half_meas) : now;
+	bmp3_data data{};
+	const int ret = get_sensor_data(BMP3_PRESS | BMP3_TEMP, &data);
 
-	if (!get_sensor_data(sensor_comp, &data)) {
-		perf_count(_comms_errors);
+	if (ret != OK) {
 		perf_cancel(_sample_perf);
-		return -EIO;
+
+		if (ret == -EIO) {
+			perf_count(_comms_errors);
+			_collect_phase = false;
+		}
+
+		return ret;
 	}
+
+	_collect_phase = false;
+
+	// Pressure is an average over the conversion window. Timestamp the midpoint
+	// from the convert command, not from this (possibly retried) readout.
+	const hrt_abstime timestamp_sample = _measure_start + (_measure_interval / 2);
 
 	float temperature = (float)(data.temperature / 100.0f);
 	float pressure = (float)(data.pressure / 100.0f); // to Pascal
@@ -288,41 +309,39 @@ BMP388::validate_trimming_param()
 	return stored_crc == crc;
 }
 
-uint32_t
-BMP388::get_measurement_time()
+bool
+BMP388::get_measurement_time(uint32_t &typical_us, uint32_t &max_us) const
 {
 	/*
-	  From BST-BMP388-DS001.pdf, page 25, table 21
-
-	  Pressure      Temperature   Measurement     Max Time
-	  Oversample    Oversample    Time (Forced)
-	  x1            1x            4.9 ms          5.7 ms
-	  x2            1x            6.9 ms          8.7 ms
-	  x4            1x            10.9 ms         13.3 ms
-	  x8            1x            18.9 ms         22.5 ms
-	  x16           2x            36.9 ms         43.3 ms
-	  x32           2x            68.9 ms         (not documented)
-	*/
-
-	uint32_t meas_time_us = 0; // unsupported value by default
+	 * Forced-mode conversion time from the DS tables (typical / max):
+	 *   BMP388 BST-BMP388-DS001 table 21
+	 *   BMP390 BST-BMP390-DS002 table 23
+	 *
+	 * Collect is scheduled at typical; DRDY is retried until max.
+	 */
+	const bool bmp390 = (_chip_id == BMP390_CHIP_ID);
 
 	if (osr_t == BMP3_NO_OVERSAMPLING) {
 		switch (osr_p) {
 		case BMP3_NO_OVERSAMPLING:
-			meas_time_us = 5700;
-			break;
+			typical_us = bmp390 ? 4820 : 4900;
+			max_us = 5700;
+			return true;
 
 		case BMP3_OVERSAMPLING_2X:
-			meas_time_us = 8700;
-			break;
+			typical_us = bmp390 ? 6840 : 6900;
+			max_us = bmp390 ? 7960 : 8700;
+			return true;
 
 		case BMP3_OVERSAMPLING_4X:
-			meas_time_us = 13300;
-			break;
+			typical_us = bmp390 ? 10880 : 10900;
+			max_us = bmp390 ? 12480 : 13300;
+			return true;
 
 		case BMP3_OVERSAMPLING_8X:
-			meas_time_us = 22500;
-			break;
+			typical_us = bmp390 ? 18690 : 18900;
+			max_us = bmp390 ? 21530 : 22500;
+			return true;
 
 		default:
 			break;
@@ -331,19 +350,21 @@ BMP388::get_measurement_time()
 	} else if (osr_t == BMP3_OVERSAMPLING_2X) {
 		switch (osr_p) {
 		case BMP3_OVERSAMPLING_16X:
-			meas_time_us = 43300;
-			break;
+			typical_us = bmp390 ? 37140 : 36900;
+			max_us = bmp390 ? 41890 : 43300;
+			return true;
 
 		case BMP3_OVERSAMPLING_32X:
-			meas_time_us = 68900;
-			break;
+			typical_us = bmp390 ? 69460 : 68900;
+			max_us = bmp390 ? 78090 : 68900; // BMP388 max not documented
+			return true;
 
 		default:
 			break;
 		}
 	}
 
-	return meas_time_us;
+	return false;
 }
 
 /*!
@@ -356,9 +377,7 @@ BMP388::get_measurement_time()
 bool
 BMP388::set_sensor_settings()
 {
-	_measure_interval = get_measurement_time();
-
-	if (_measure_interval == 0) {
+	if (!get_measurement_time(_measure_interval, _measure_time_max)) {
 		PX4_WARN("unsupported oversampling selected");
 		return false;
 	}
@@ -582,27 +601,28 @@ BMP388::compensate_data(uint8_t sensor_comp,
  * sensor, compensates the data and store it in the bmp3_data structure
  * instance passed by the user.
  */
-bool
+int
 BMP388::get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data)
 {
 	uint8_t reg_data[BMP3_P_T_DATA_LEN] {};
 
-	int8_t rslt = _interface->get_reg_buf(BMP3_SENS_STATUS_REG_ADDR, reg_data, BMP3_P_T_DATA_LEN);
-
-	bool result = false;
-	struct bmp3_uncomp_data uncomp_data {};
-
-	if (rslt == OK) {
-		uint8_t status = reg_data[0];
-
-		// check if data ready (both temp and pressure)
-		if ((status & (3 << 5)) != (3 << 5)) {
-			return false;
-		}
-
-		parse_sensor_data(reg_data + 1, &uncomp_data);
-		result = compensate_data(sensor_comp, &uncomp_data, comp_data);
+	if (_interface->get_reg_buf(BMP3_SENS_STATUS_REG_ADDR, reg_data, BMP3_P_T_DATA_LEN) != OK) {
+		return -EIO;
 	}
 
-	return result;
+	const uint8_t status = reg_data[0];
+
+	if ((status & (BMP3_DRDY_PRESS | BMP3_DRDY_TEMP)) != (BMP3_DRDY_PRESS | BMP3_DRDY_TEMP)) {
+		return -EAGAIN;
+	}
+
+	struct bmp3_uncomp_data uncomp_data {};
+
+	parse_sensor_data(reg_data + 1, &uncomp_data);
+
+	if (!compensate_data(sensor_comp, &uncomp_data, comp_data)) {
+		return -EIO;
+	}
+
+	return OK;
 }
