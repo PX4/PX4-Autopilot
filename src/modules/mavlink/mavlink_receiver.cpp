@@ -3499,15 +3499,15 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		telemetry_status_s &tstatus = _mavlink.telemetry_status();
 
 		_failure_config.update();
-		const bool traffic_avoidance_failure = !failure_injection::process(_failure_config,
-						       failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0);
+		const bool traffic_avoidance_ok = failure_injection::process(_failure_config,
+						  failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0);
 
 		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
 		tstatus.heartbeat_type_gcs                     = (t <= TIMEOUT + _heartbeat_type_gcs);
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
-		tstatus.heartbeat_type_adsb                    = !traffic_avoidance_failure && (t <= TIMEOUT + _heartbeat_type_adsb);
-		tstatus.heartbeat_type_flarm                   = !traffic_avoidance_failure && (t <= TIMEOUT + _heartbeat_type_flarm);
+		tstatus.heartbeat_type_adsb                    = traffic_avoidance_ok && (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = traffic_avoidance_ok && (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);

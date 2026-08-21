@@ -14,19 +14,20 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware       |
-| ----------------- | ----------------------- | ----------------------- | -------------------------------------------- | -------------- |
-| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
-| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
-| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
-| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
-| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck` |
-| `gps`             | —                       | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck` |
-| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —              |
-| `vio`             | —                       | —                       | `off`                                        | —              |
-| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong` |
-| `traffic`         | `off`                   | `off`                   | `off`                                        | `off`          |
-| `motor`           | `off`                   | `off`                   | `off`                                        | `off`          |
+| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic/JMAVSim) | Hardware                |
+| ----------------- | ----------------------- | ----------------------- | -------------------------------------------- | ----------------------- |
+| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
+| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
+| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
+| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
+| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                               | `off`, `stuck`          |
+| `gps`             | —                       | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`                      | `off`, `stuck`, `wrong` |
+| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                               | —                       |
+| `vio`             | —                       | —                       | `off`                                        | —                       |
+| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
+| `traffic`         | `off`                   | `off`                   | `off`                                        | `off`                   |
+| `motor`           | `off`                   | `off`                   | `off`                                        | `off`                   |
+| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                               | `off`, `wrong`          |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
@@ -39,6 +40,8 @@ A `—` means the module still accepts the command, but no consumer applies it i
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
 - `motor off` also requires [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+- `esc off` reports the addressed ESC as offline and blanks its telemetry; `esc wrong` keeps it online but reports implausible telemetry (voltage and current at 10% of the real value, RPM 10x). ESCs are addressed by motor instance (the ESC's actuator function), so `-i 1` targets the ESC driving motor 1.
+- On hardware, ESC injection is applied only by the UAVCAN (DroneCAN) ESC driver; the other ESC drivers (DShot, Cyphal, VOXL, TAP ESC) publish their telemetry unmodified.
 
 :::
 
@@ -82,6 +85,7 @@ where:
   - Systems:
     - `battery`: Battery
     - `motor`: Motor
+    - `esc`: ESC telemetry
     - `servo`: Servo
     - `avoidance`: Obstacle/collision avoidance system
     - `traffic`: Traffic avoidance (ADS-B/transponder)
@@ -103,7 +107,7 @@ where:
 
 ::: info
 GPS implements only the `off`, `stuck`, and `wrong` failure modes; the other failure types have no effect on it.
-`gps wrong` makes the addressed receiver report the fix type selected by [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG) and leaves the reported position untouched.
+`gps wrong` makes the addressed receiver report the fix type selected by [SYS_FAIL_GPS_WRG](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_WRG) and the jamming state selected by [SYS_FAIL_GPS_JAM](../advanced_config/parameter_reference.md#SYS_FAIL_GPS_JAM) (`Unchanged` keeps the receiver's own state), and leaves the reported position untouched.
 :::
 
 ## RC Switch Trigger
@@ -160,7 +164,7 @@ To stop a motor mid-flight without the system anticipating it or excluding it fr
 To trigger the battery failsafe by reporting a depleted pack:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
-2. Optionally select the injected warning level with [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL): Warn, Critical (default) or Emergency. The reported remaining charge is set just below the matching threshold ([BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR), [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR) or [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)).
+2. Optionally select the injected warning level with [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL): Warn, Critical or Emergency. The reported remaining charge is set just below the matching threshold ([BAT_LOW_THR](../advanced_config/parameter_reference.md#BAT_LOW_THR), [BAT_CRIT_THR](../advanced_config/parameter_reference.md#BAT_CRIT_THR) or [BAT_EMERGEN_THR](../advanced_config/parameter_reference.md#BAT_EMERGEN_THR)).
 3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
