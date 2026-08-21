@@ -26,11 +26,14 @@ fi
 param set-default RC_CRSF_PRT_CFG 300
 param set-default RC_SBUS_PRT_CFG 0
 
+param set-default UAVCAN_ESC_IFACE 2
+
 safety_button start
 
 if param greater -s UAVCAN_ENABLE 0
 then
 	ifup can0
 	ifup can1
-	ifup can2
+	# PAB pinouts CAN3 (FlexCAN3/can2) but no ARK carrier breaks it out.
+	# A carrier that does: CONFIG_BOARD_UAVCAN_INTERFACES=3 and ifup can2.
 fi
