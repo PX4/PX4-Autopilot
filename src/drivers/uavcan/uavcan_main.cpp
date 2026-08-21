@@ -121,8 +121,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	}
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
-	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
+	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / _servo_controller.max_rate_hz());
 #endif
 }
 
@@ -541,6 +540,8 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		if (ret < 0) {
 			return ret;
 		}
+
+		_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / _esc_controller.max_rate_hz());
 	}
 
 #endif

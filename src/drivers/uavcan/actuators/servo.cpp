@@ -34,6 +34,7 @@
 #include "servo.hpp"
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <parameters/param.h>
 
 using namespace time_literals;
 
@@ -42,6 +43,12 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_uavcan_pub_array_cmd(node)
 {
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+
+	int32_t rate_max{50};
+
+	if (param_get(param_find("UAVCAN_SV_RTMAX"), &rate_max) == OK) {
+		_max_rate_hz = (unsigned)rate_max;
+	}
 }
 
 void UavcanServoController::update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs)
