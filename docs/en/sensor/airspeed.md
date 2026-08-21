@@ -38,11 +38,11 @@ Recommended digital airspeed sensors include:
 Airspeed sensor drivers are not started automatically.
 Enable each driver and/or variant using its [corresponding parameter](../advanced_config/parameters.md):
 
-- **[Sensirion SDP3X](../modules/modules/modules_driver_airspeed_sensor.md#sdp3x)** — [SENS_EN_SDP3X](../advanced_config/parameter_reference.md#SENS_EN_SDP3X)
-- **[TE MS4525](../modules/modules/modules_driver_airspeed_sensor.md#ms4525do)** — [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO)
-- **[TE MS5525](../modules/modules/modules_driver_airspeed_sensor.md#ms5525dso)** — [SENS_EN_MS5525DS](../advanced_config/parameter_reference.md#SENS_EN_MS5525DS)
+- **[Sensirion SDP3X](../modules/modules_driver_airspeed_sensor.md#sdp3x)** — [SENS_EN_SDP3X](../advanced_config/parameter_reference.md#SENS_EN_SDP3X)
+- **[TE MS4525](../modules/modules_driver_airspeed_sensor.md#ms4525do)** — [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO)
+- **[TE MS5525](../modules/modules_driver_airspeed_sensor.md#ms5525dso)** — [SENS_EN_MS5525DS](../advanced_config/parameter_reference.md#SENS_EN_MS5525DS)
 - **Eagle Tree airspeed sensor:** — [SENS_EN_ETSASPD](../advanced_config/parameter_reference.md#SENS_EN_ETSASPD)
-- **[Amphenol All Sensors DLVR](../modules/modules/modules_driver_airspeed_sensor.md#dlvr) (continuous-sampling sensors only)** — [SENS_EN_DLVR](../advanced_config/parameter_reference.md#SENS_EN_DLVR)
+- **[Amphenol All Sensors DLVR](../modules/modules_driver_airspeed_sensor.md#dlvr) (continuous-sampling sensors only)** — [SENS_EN_DLVR](../advanced_config/parameter_reference.md#SENS_EN_DLVR)
 
 You should also check [ASPD_PRIMARY](../advanced_config/parameter_reference.md#ASPD_PRIMARY) is `1` (see next section - this is the default).
 
