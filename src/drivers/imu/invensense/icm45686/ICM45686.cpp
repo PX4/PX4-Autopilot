@@ -135,13 +135,14 @@ int ICM45686::probe()
 	for (int i = 0; i < 3; i++) {
 		const uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
-		if (whoami != WHOAMI) {
-			DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
-			return PX4_ERROR;
+		if (whoami == WHOAMI) {
+			return PX4_OK;
 		}
+
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void ICM45686::RunImpl()
