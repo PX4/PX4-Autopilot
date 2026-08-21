@@ -45,12 +45,6 @@ float parachuteReleaseAltitude(const float release_alt_param, const float sink_r
 	return math::max(release_alt_param, parachuteReleaseFloor(sink_rate));
 }
 
-bool inParachuteReleaseBand(const float altitude_above_ground, const float release_alt, const float release_floor)
-{
-	return altitude_above_ground < release_alt + kParachuteReleaseAltitudeMargin
-	       && altitude_above_ground > release_floor;
-}
-
 matrix::Vector2f parachuteCrosswindAimShift(const matrix::Vector2f &wind_vel,
 		const matrix::Vector2f &approach_direction, const float altitude_above_ground, const float release_alt,
 		const float release_floor, const float sink_rate)

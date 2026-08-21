@@ -48,9 +48,6 @@ static constexpr float kParachuteDeploymentTime = 1.0f;
 // FW_LND_PARA_SINK times this, so that the canopy has room to open before touchdown
 static constexpr float kParachuteCanopyOpenTime = 3.0f;
 
-// [m] altitude margin above the parachute release altitude within which the release is allowed
-static constexpr float kParachuteReleaseAltitudeMargin = 5.0f;
-
 // [m/s] guard against division by a zero or negative sink rate
 static constexpr float kParachuteMinSinkRate = 0.1f;
 
@@ -70,15 +67,6 @@ float parachuteReleaseFloor(float sink_rate);
  * @return Release altitude above ground [m]
  */
 float parachuteReleaseAltitude(float release_alt_param, float sink_rate);
-
-/**
- * @brief Whether the vehicle is inside the altitude band in which the release is allowed.
- *
- * @param altitude_above_ground Current altitude above the landing point [m]
- * @param release_alt Release altitude above ground [m]
- * @param release_floor Minimum release altitude above ground [m]
- */
-bool inParachuteReleaseBand(float altitude_above_ground, float release_alt, float release_floor);
 
 /**
  * @brief Aim point shift compensating the crosswind drift under canopy.

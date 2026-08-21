@@ -56,24 +56,6 @@ TEST(ParachuteRelease, releaseAltitudeIsFlooredForCanopyOpening)
 	EXPECT_FLOAT_EQ(parachuteReleaseAltitude(5.f, kSink), floor);
 }
 
-TEST(ParachuteRelease, releaseBand)
-{
-	const float floor = parachuteReleaseFloor(kSink);
-
-	// the release altitude itself is inside the band
-	const float altitude_above_ground = kReleaseAlt;
-	EXPECT_TRUE(inParachuteReleaseBand(altitude_above_ground, kReleaseAlt, floor));
-	EXPECT_TRUE(inParachuteReleaseBand(floor + 0.1f, kReleaseAlt, floor));
-	EXPECT_TRUE(inParachuteReleaseBand(kReleaseAlt + kParachuteReleaseAltitudeMargin - 0.1f, kReleaseAlt, floor));
-
-	// at or below the floor the canopy has no room to open
-	EXPECT_FALSE(inParachuteReleaseBand(floor, kReleaseAlt, floor));
-	EXPECT_FALSE(inParachuteReleaseBand(0.f, kReleaseAlt, floor));
-
-	// above the band the release altitude would not be deterministic
-	EXPECT_FALSE(inParachuteReleaseBand(kReleaseAlt + kParachuteReleaseAltitudeMargin, kReleaseAlt, floor));
-}
-
 TEST(ParachuteRelease, noWindReleaseDistanceIsDeploymentCarry)
 {
 	const Vector2f ground_speed(20.f, 0.f);

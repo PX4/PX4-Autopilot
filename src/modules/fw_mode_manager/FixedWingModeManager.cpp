@@ -1521,21 +1521,18 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		const float altitude_above_ground = math::max(_current_altitude - terrain_alt, 0.f);
 
-		if (inParachuteReleaseBand(altitude_above_ground, parachute_release_alt, parachute_release_floor)) {
-			_parachute_release_band_entered = true;
+		const float release_distance = parachuteReleaseDistance(ground_speed, _wind_vel, _wind_valid,
+					       landing_approach_vector.unit_or_zero(), altitude_above_ground,
+					       _param_fw_lnd_para_sink.get());
 
-			const float release_distance = parachuteReleaseDistance(ground_speed, _wind_vel, _wind_valid,
-						       landing_approach_vector.unit_or_zero(), altitude_above_ground,
-						       _param_fw_lnd_para_sink.get());
+		if (along_track_dist_to_touchdown <= release_distance) {
+			terminateForParachuteLanding(now);
+			_parachute_release_commanded = true;
 
-			if (along_track_dist_to_touchdown <= release_distance) {
-				terminateForParachuteLanding(now);
-				_parachute_release_commanded = true;
-			}
-
-		} else if (_parachute_release_band_entered && altitude_above_ground <= parachute_release_floor) {
-			// a vehicle that cannot hold the release altitude (e.g. a motor-less glider) can sink
-			// through the band before reaching the release point. Release now
+		} else if (altitude_above_ground <= parachute_release_floor) {
+			// too low to wait for the release point: the canopy needs room to open. Release now,
+			// short of the landing point (e.g. a motor-less glider that cannot hold the release
+			// altitude, or an approach arriving below the minimum release altitude)
 			terminateForParachuteLanding(now);
 			_parachute_release_commanded = true;
 
@@ -2468,7 +2465,6 @@ FixedWingModeManager::reset_landing_state()
 	_lateral_touchdown_position_offset = 0.0f;
 
 	_parachute_release_commanded = false;
-	_parachute_release_band_entered = false;
 
 	_last_time_terrain_alt_was_valid = 0;
 
