@@ -132,7 +132,9 @@ Loiter::set_loiter_position(const position_setpoint_s &reference_setpoint)
 			setLoiterFromLastLink(&_mission_item);
 
 		} else if (on_loiter) {
+			// Keep the established loiter geometry, but use the current altitude for Hold
 			setLoiterItemFromCurrentPositionSetpoint(_mission_item, reference_setpoint);
+			_mission_item.altitude = applyMinimumLoiterAltitude(_navigator->get_global_position()->alt);
 
 		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			setLoiterItemFromCurrentPositionWithBraking(&_mission_item);
