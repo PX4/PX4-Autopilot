@@ -80,6 +80,8 @@ int UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
+	param_get(param_find("UAVCAN_QUIRKS"), &_param_uavcan_quirks);
+
 	_initialized = true;
 
 	return res;
@@ -113,8 +115,19 @@ void UavcanEscController::set_rotor_count(uint8_t count)
 
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
-	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		esc_report_s &esc_report = _esc_status.esc[msg.esc_index];
+	uint8_t esc_index = msg.esc_index;
+
+	if (_param_uavcan_quirks & static_cast<int32_t>(Quirk::HobbywingEscIdx1)) {
+		if (msg.esc_index == 0) {
+			// non-compliant ESC firmware: esc_index 0 is not expected, ignore
+			return;
+		}
+
+		esc_index -= 1;
+	}
+
+	if (esc_index < esc_status_s::CONNECTED_ESC_MAX) {
+		esc_report_s &esc_report = _esc_status.esc[esc_index];
 		esc_report.timestamp = hrt_absolute_time();
 		esc_report.esc_voltage = msg.voltage;
 		esc_report.esc_current = msg.current;
@@ -122,7 +135,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		// esc_report.motor_temperature is filled in the extended status callback
 		esc_report.esc_rpm = msg.rpm;
 		esc_report.esc_errorcount = msg.error_count;
-		esc_report.failures = get_failures(msg.esc_index, msg.getSrcNodeID().get());
+		esc_report.failures = get_failures(esc_index, msg.getSrcNodeID().get());
 
 		// A repeated ESC index marks the start of a new round; publish once per round.
 		const uint16_t index_bit = 1u << msg.esc_index;
@@ -146,7 +159,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 	// Register device capability for each ESC channel
 	if (_node_info_publisher != nullptr) {
 		uint8_t node_id = msg.getSrcNodeID().get();
-		uint32_t device_id = msg.esc_index;
+		uint32_t device_id = esc_index;
 		_node_info_publisher->registerDeviceCapability(node_id, device_id, NodeInfoPublisher::DeviceCapability::ESC);
 	}
 }
@@ -154,6 +167,15 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
 {
 	uint8_t index = msg.esc_index;
+
+	if (_param_uavcan_quirks & static_cast<int32_t>(Quirk::HobbywingEscIdx1)) {
+		if (msg.esc_index == 0) {
+			// non-compliant ESC firmware: esc_index 0 is not expected, ignore
+			return;
+		}
+
+		index -= 1;
+	}
 
 	if (index < esc_status_s::CONNECTED_ESC_MAX) {
 		esc_report_s &esc_report = _esc_status.esc[index];
