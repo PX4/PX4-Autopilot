@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2026 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,40 +31,64 @@
 *
 ****************************************************************************/
 
-
 #pragma once
 
 #include "output.h"
 
 #include <uORB/Publication.hpp>
-#include <uORB/topics/gimbal_controls.h>
-#include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/gimbal_manager_set_pitchyaw.h>
+#include <uORB/topics/external_gimbal_manager_status.h>
 
 namespace gimbal
 {
 
-class OutputRC : public OutputBase
+// Output that makes PX4 act as a gimbal manager *client*: instead of driving a
+// gimbal device directly, it forwards the setpoints to an external gimbal
+// manager (e.g. a smart camera-gimbal that runs its own manager). It discovers
+// the manager, requests control while there is an active setpoint, and streams
+// GIMBAL_MANAGER_SET_PITCHYAW to it.
+class OutputToGimbalManager : public OutputBase
 {
 public:
-	OutputRC() = delete;
-	explicit OutputRC(const Parameters &parameters);
-	virtual ~OutputRC() = default;
+	OutputToGimbalManager() = delete;
+	explicit OutputToGimbalManager(const Parameters &parameters);
+	virtual ~OutputToGimbalManager() = default;
 
 	void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id) override;
 	void print_status() const override;
 
-	// AUX gimbals cannot report their own orientation, so the driver publishes it.
-	bool publishes_mount_orientation() const override { return true; }
-
 private:
-	void _stream_device_attitude_status();
-	float anglesMappedToOutput(const uint8_t index);
-	void _check_gimbal_output_functions_assigned();
+	enum class ControlState {
+		Released,	// we don't hold control of the manager
+		Acquiring,	// we requested control and wait for confirmation
+		InControl	// the manager reports us as primary control
+	};
 
-	uORB::Publication <gimbal_controls_s>	_gimbal_controls_pub{ORB_ID(gimbal_controls)};
-	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+	void _update_manager_status();
+	bool _have_primary_control() const;
+	bool _someone_else_in_control() const;
+	void _send_configure(bool acquire);
+	void _publish_set_pitchyaw();
 
-	bool _gimbal_output_functions_assigned{false};
+	uORB::Subscription _status_sub{ORB_ID(external_gimbal_manager_status)};
+	uORB::Publication<gimbal_manager_set_pitchyaw_s> _set_pitchyaw_pub{ORB_ID(gimbal_manager_set_pitchyaw)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+
+	bool _manager_found{false};
+	uint8_t _manager_sysid{0};
+	uint8_t _manager_compid{0};
+	uint8_t _gimbal_device_id{0};
+
+	external_gimbal_manager_status_s _status{};
+	bool _status_valid{false};
+
+	ControlState _control_state{ControlState::Released};
+	bool _prev_want_control{false};
+	hrt_abstime _last_acquire_request{0};
+
+	static constexpr hrt_abstime kAcquireRetryInterval{3000000};	// 3 s
 };
 
 } /* namespace gimbal */
