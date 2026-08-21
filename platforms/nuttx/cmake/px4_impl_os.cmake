@@ -91,6 +91,7 @@ function(px4_os_add_flags)
 
 	if(NOT CONFIG_LIB_TFLM)
 		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library if building for anything else than TFLM
+		list(APPEND cxx_flags -include${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx/abs_overloads.hpp)
 	endif()
 
 	foreach(flag ${cxx_flags})
