@@ -1248,19 +1248,35 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			/* Launch has been detected, hence we have to control the plane. */
 
-			const DirectionalGuidanceOutput sp = navigateLine(launch_local_position, takeoff_bearing, local_2D_position,
-							     ground_speed,
-							     _wind_vel);
-
 			fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 			fw_lateral_ctrl_sp.timestamp = now;
-			fw_lateral_ctrl_sp.course = sp.course_setpoint;
-			fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
+
+			const bool in_launch_climbout = (_current_altitude - _takeoff_ground_alt) < _param_fw_laun_clr_alt.get();
+
+			if (in_launch_climbout) {
+				// hold the launch bearing (course, wind-compensated) during the initial climbout, without the extra
+				// line-following feedforward, until we're above FW_LAUN_CLR_ALT
+				fw_lateral_ctrl_sp.course = takeoff_bearing;
+				fw_lateral_ctrl_sp.lateral_acceleration = 0.f;
+
+			} else {
+				const DirectionalGuidanceOutput sp = navigateLine(launch_local_position, takeoff_bearing, local_2D_position,
+								     ground_speed,
+								     _wind_vel);
+				fw_lateral_ctrl_sp.course = sp.course_setpoint;
+				fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
+			}
 
 			_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-			const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
-			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
+			float roll_limit = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
+
+			const float launch_clr_alt = math::max(_param_fw_laun_clr_alt.get(), FLT_EPSILON);
+			const float launch_climbout_ratio = math::constrain((_current_altitude - _takeoff_ground_alt) / launch_clr_alt,
+							    0.f, 1.f);
+			roll_limit = math::min(roll_limit, launch_climbout_ratio * math::radians(_param_fw_r_lim.get()));
+
+			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_limit));
 
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : NAN;
