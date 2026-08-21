@@ -42,6 +42,13 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/sem.h>
 #include <nuttx/sched.h>
+#include <board_config.h>
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+# include <uORB/Subscription.hpp>
+# include <uORB/topics/dronecan_node_status.h>
+# include <uavcan/protocol/debug/LogMessage.hpp>
+#endif
 
 #define LOG_PATH_BASE       CONFIG_BOARD_ROOT_PATH "/task_watchdog"
 #define LOG_WDG_NAME_FMT    "wdg_%s.log"
@@ -54,6 +61,14 @@ namespace task_watchdog
 {
 
 static constexpr unsigned STACK_DUMP_WORDS = 16;
+
+#if CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS < 0
+static constexpr int MAX_DUMP_TASKS = CONFIG_FS_PROCFS_MAX_TASKS;
+#else
+static_assert(CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS <= CONFIG_FS_PROCFS_MAX_TASKS,
+	      "CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS must be less than or equal to CONFIG_FS_PROCFS_MAX_TASKS");
+static constexpr int MAX_DUMP_TASKS = CONFIG_TASK_WATCHDOG_MAX_DUMP_TASKS;
+#endif
 
 struct task_dump_s {
 	pid_t pid{0};
@@ -103,10 +118,11 @@ public:
 private:
 	void start();
 
-	/* Capture all tasks and write register+stack dump to a file. Called from task context at boosted priority. */
+	/* Capture all tasks and output register+stack dump. Writes to file on storage boards,
+	 * streams via PX4_ERR on RAM-dump boards. Called at boosted priority. */
 	void capture_and_write_dump();
 
-	/* Write cpuload snapshot to a file. Called from task context. */
+	/* Output cpuload snapshot. Writes to file on storage boards, streams via PX4_ERR on RAM-dump boards. */
 	void write_cpuload_file();
 
 	int format_file_path(log_type_t type, char *buf, size_t bufsz);
@@ -114,16 +130,37 @@ private:
 	/* HRT ISR callback which monitors whether this task is being starved. */
 	static void isr_callback(void *arg);
 
+	/* Emit one line of a dump: streamed via PX4_ERR on RAM-dump boards, written to _dump_fd otherwise. */
+	void emit_line(const char *s);
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	/* Block so streamed lines are not dropped in queue. */
+	void wait_for_transport_ready();
+
+	/* print_load_buffer() callback: streams one cpuload line via PX4_ERR. */
+	static void print_load_line_callback(void *user);
+
+	uORB::Subscription _dronecan_node_status_sub{ORB_ID(dronecan_node_status)};
+	uint32_t _dump_crc{0};
+#else
+	int _dump_fd {-1};
+#endif
+
 	hrt_call _hrt_call{};
 	watchdog_shared_s _shared{};
 	px4_sem_t _sem;
-	task_dump_s _dumps[CONFIG_FS_PROCFS_MAX_TASKS] {};
+	task_dump_s _dumps[MAX_DUMP_TASKS] {};
 	print_load_s _load{};
 
 	bool _cpuload_pending{false};
 
 	static constexpr hrt_abstime TRIGGER_THRESHOLD = 2_s; ///< time in ready to run to trigger watchdog
 	static constexpr hrt_abstime CPULOAD_ACCUMULATE_TIME = 300_ms;   ///< how long to accumulate cpuload data
+	// Task_watchdog has a boosted priority (higher than uavcannode) for 1500_ms.
+	// - CPU-load is 1 line per task, + header / footer
+	// - Task_Dump is 8 lines per task
+	// to not flood the canbus, we use 200Hz (5ms) which allows up to 30 tasks to be dumped in 1500ms.
+	static constexpr hrt_abstime UAVCAN_DUMP_INTERVAL = 5_ms; ///< how long to wait between UAVCAN messages
 };
 
 } // namespace task_watchdog
