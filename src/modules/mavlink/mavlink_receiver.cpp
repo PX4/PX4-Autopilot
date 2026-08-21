@@ -2025,6 +2025,12 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 		}
 	}
 
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, 1, battery_status)) {
+		return;
+	}
+
 	_battery_pub.publish(battery_status);
 }
 
@@ -2645,6 +2651,12 @@ MavlinkReceiver::publish_hil_battery()
 		hil_battery_status.voltage_cell_v[cell_count] = cells_v;
 	}
 
+	_failure_config.update();
+
+	if (!failure_injection::process_battery(_failure_config, 1, hil_battery_status)) {
+		return;
+	}
+
 	_battery_pub.publish(hil_battery_status);
 }
 
@@ -2885,6 +2897,12 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	static_assert(transponder_report_s::PX4_ADSB_FLAGS_SOURCE_UAT == ADSB_FLAGS_SOURCE_UAT);
 
 	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
+
+	_failure_config.update();
+
+	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0)) {
+		return;
+	}
 
 	_transponder_report_pub.publish(t);
 }
@@ -3480,12 +3498,16 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		_mavlink.lock_telemetry_status();
 		telemetry_status_s &tstatus = _mavlink.telemetry_status();
 
+		_failure_config.update();
+		const bool traffic_avoidance_ok = failure_injection::process(_failure_config,
+						  failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE, 0);
+
 		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
 		tstatus.heartbeat_type_gcs                     = (t <= TIMEOUT + _heartbeat_type_gcs);
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
-		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
-		tstatus.heartbeat_type_flarm                   = (t <= TIMEOUT + _heartbeat_type_flarm);
+		tstatus.heartbeat_type_adsb                    = traffic_avoidance_ok && (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = traffic_avoidance_ok && (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);

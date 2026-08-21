@@ -60,12 +60,13 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 		       || type == failure_injection_s::FAILURE_TYPE_WRONG;
 
 	case failure_injection_s::FAILURE_UNIT_SENSOR_VIO:
-	case failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY:
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR:
+	case failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE: // multi-target queue: no single value to freeze
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF;
 
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_ESC:
+	case failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY:
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF
 		       || type == failure_injection_s::FAILURE_TYPE_WRONG;
