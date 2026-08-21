@@ -93,6 +93,12 @@ private:
 		uint8_t clear_bits{0};
 	};
 
+	struct register_ireg_config_t {
+		Register::IREG reg;
+		uint8_t set_bits{0};
+		uint8_t clear_bits{0};
+	};
+
 	int probe() override;
 
 	bool Reset();
@@ -105,6 +111,9 @@ private:
 	template <typename T> bool RegisterCheck(const T &reg_cfg);
 	template <typename T> uint8_t RegisterRead(T reg);
 	template <typename T> void RegisterWrite(T reg, uint8_t value);
+	// indirect registers: the non-template overloads win over the templates above on exact match
+	uint8_t RegisterRead(Register::IREG reg);
+	void RegisterWrite(Register::IREG reg, uint8_t value);
 	template <typename T> void RegisterSetAndClearBits(T reg, uint8_t setbits, uint8_t clearbits);
 	template <typename T> void RegisterSetBits(T reg, uint8_t setbits) { RegisterSetAndClearBits(reg, setbits, 0); }
 	template <typename T> void RegisterClearBits(T reg, uint8_t clearbits) { RegisterSetAndClearBits(reg, 0, clearbits); }
@@ -179,5 +188,14 @@ private:
 
 		{ Register::BANK_0::RTC_CONFIG, 0, 0}, // RTC_MODE[5] set at runtime
 		{ Register::BANK_0::IOC_PAD_SCENARIO_OVRD, 0, 0}, // PADS_INT2_CFG_OVRD and PADS_INT2_CFG_OVRD_VAL set at runtime
+	};
+
+	// The part resets with the FIR anti-alias filter and the interpolator off, so the UI ODR would be a
+	// bare decimation of the ADC. Enable both, as the ICM42688P driver does with its AAF; the
+	// interpolator is also what re-times the ODR to CLKIN. The UI LPF stays bypassed.
+	static constexpr uint8_t size_register_ireg_cfg{2};
+	register_ireg_config_t _register_ireg_cfg[size_register_ireg_cfg] {
+		{ Register::IREG::IPREG_SYS1_REG_166, IPREG_SYS1_REG_166_BIT::GYRO_SRC_CTRL_INTERP_AAF_SET, IPREG_SYS1_REG_166_BIT::GYRO_SRC_CTRL_INTERP_AAF_CLEAR },
+		{ Register::IREG::IPREG_SYS2_REG_123, IPREG_SYS2_REG_123_BIT::ACCEL_SRC_CTRL_INTERP_AAF_SET, IPREG_SYS2_REG_123_BIT::ACCEL_SRC_CTRL_INTERP_AAF_CLEAR },
 	};
 };
