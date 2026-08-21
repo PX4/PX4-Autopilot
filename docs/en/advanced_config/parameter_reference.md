@@ -49097,12 +49097,12 @@ VTX table channel 1-16
 
 VTX device.
 
-Specific VTX device useful for workarounds and optimizations
+Specific VTX model, only used to enable device-specific workarounds.
+Leave at Generic unless your VTX is listed.
 
 **Values:**
 
-- `0`: SmartAudio v1, v2, v2.1 Protocol
-- `100`: Tramp Protocol
+- `0`: Generic
 - `5120`: Peak THOR T67
 - `10240`: Rush MAX SOLO
 
@@ -49185,6 +49185,22 @@ VTX transmission power level 1-16
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0       |      | &nbsp;    |
+
+### VTX_PROTOCOL (`INT32`) {#VTX_PROTOCOL}
+
+VTX protocol.
+
+Wire protocol used to communicate with the VTX. Select the protocol
+listed in the manual of your VTX.
+
+**Values:**
+
+- `0`: SmartAudio v1, v2, v2.1
+- `100`: Tramp
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
 
 ### VTX_SER_CFG (`INT32`) {#VTX_SER_CFG}
 
