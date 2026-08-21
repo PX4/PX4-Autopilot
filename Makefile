@@ -360,9 +360,19 @@ px4io_update:
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
+	ark_can-flow_canbootloader \
+	ark_can-flow-mr_canbootloader \
+	ark_can-gps_canbootloader \
+	ark_can-rtk-gps_canbootloader \
+	ark_cannode_canbootloader \
+	ark_dist_canbootloader \
+	ark_f9p-gps_canbootloader \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \
+	ark_mag_canbootloader \
 	ark_pi6x_bootloader \
+	ark_septentrio-gps_canbootloader \
+	ark_x20-gps_canbootloader \
 	auterion_fmu-v6s_bootloader \
 	auterion_fmu-v6x_bootloader \
 	cuav_nora_bootloader \

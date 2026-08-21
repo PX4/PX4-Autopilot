@@ -76,6 +76,9 @@
 
 #define FLASH_BASED_PARAMS
 
+/* CAN bootloader: sectors 0-1, params follow in sectors 2-3 */
+#define BOARD_BOOTLOADER_SIZE (32 * 1024)
+
 /* High-resolution timer */
 #define HRT_TIMER                    8  /* use timer 8 for the HRT */
 #define HRT_TIMER_CHANNEL            1  /* use capture/compare channel 1 */

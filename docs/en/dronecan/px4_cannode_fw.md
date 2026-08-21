@@ -72,6 +72,12 @@ make ark_can-flow_canbootloader
 
 The binary can then be flashed to the microcontroller using your favorite SWD/JTAG debugger, such as the [Black Magic Probe](https://black-magic.org/index.html), [ST-Link](https://www.st.com/en/development-tools/st-link-v2.html), or [Segger JLink](https://www.segger.com/products/debug-probes/j-link/).
 
+The `canbootloader` build also writes the binary to `boards/<vendor>/<board>/extras/<vendor>_<board>_bootloader.bin`.
+When that file exists, the `default` build additionally produces `<vendor>_<board>_default_with_bootloader.bin`: bootloader and application in one image, flashed at `0x08000000` (`st-flash write <file> 0x8000000`).
+
+Boards with `CONFIG_SYSTEMCMDS_BL_UPDATE=y` embed that bootloader in the application firmware and rewrite the bootloader on the next boot when [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) is set (see [Bootloader Update](../advanced_config/bootloader_update.md#qgc-bootloader-update-sys_bl_update)).
+Do not power off the node during the update.
+
 ### Firmware Internals
 
 For the most part, peripheral firmware works the same way as flight controller firmware builds.

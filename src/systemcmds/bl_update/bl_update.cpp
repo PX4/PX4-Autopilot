@@ -54,17 +54,38 @@
 
 #include <nuttx/progmem.h>
 
+#if defined(BL_UPDATE_WATCHDOG)
+#  include <drivers/drv_watchdog.h>
+#else
+#  define watchdog_pet()
+#endif
+
+/* Flash reserved for the bootloader, starting at PX4_FLASH_BASE. The default
+ * is the first erase block; a board whose bootloader spans more than that
+ * defines BOARD_BOOTLOADER_SIZE in board_config.h (whole erase blocks only).
+ */
 #if defined(CONFIG_ARCH_CHIP_STM32H7)
-#  define BL_FILE_SIZE_LIMIT	128*1024
+#  ifndef BOARD_BOOTLOADER_SIZE
+#    define BOARD_BOOTLOADER_SIZE (128 * 1024)
+#  endif
 #  define STM_RAM_BASE        STM32_AXISRAM_BASE
+#  define STM_RAM_SIZE        (512 * 1024)
 #  define PAGE_SIZE_MATTERS   1
 #elif defined(CONFIG_ARCH_CHIP_STM32F7)
-#  define BL_FILE_SIZE_LIMIT	32*1024
+#  ifndef BOARD_BOOTLOADER_SIZE
+#    define BOARD_BOOTLOADER_SIZE (32 * 1024)
+#  endif
 #  define STM_RAM_BASE        STM32_SRAM_BASE
+#  define STM_RAM_SIZE        (512 * 1024)
 #else
-#  define BL_FILE_SIZE_LIMIT  16384
+#  ifndef BOARD_BOOTLOADER_SIZE
+#    define BOARD_BOOTLOADER_SIZE (16 * 1024)
+#  endif
 #  define STM_RAM_BASE        STM32_SRAM_BASE
+#  define STM_RAM_SIZE        (320 * 1024)
 #endif
+
+#define BL_FILE_SIZE_LIMIT    BOARD_BOOTLOADER_SIZE
 
 #if defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7) || \
     defined (CONFIG_ARCH_CHIP_STM32H7)
@@ -165,7 +186,7 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	uint32_t *hdr = (uint32_t *)buf;
 
 	if ((hdr[0] < STM_RAM_BASE) ||			/* stack not below RAM */
-	    (hdr[0] > (STM_RAM_BASE + (128 * 1024))) ||	/* stack not above RAM */
+	    (hdr[0] > (STM_RAM_BASE + STM_RAM_SIZE)) ||	/* stack not above RAM */
 	    (hdr[1] < PX4_FLASH_BASE) ||			/* entrypoint not below flash */
 	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT))  		/* entrypoint not outside bootloader */
 	{
@@ -180,21 +201,31 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	/* prevent other tasks from running while we do this */
 	sched_lock();
 
-	const size_t page = 0;
 	uint8_t *base = (uint8_t *) PX4_FLASH_BASE;
+	ssize_t size = 0;
 
-	ssize_t size = up_progmem_eraseblock(page);
-
-	if (size != BL_FILE_SIZE_LIMIT)
+	/* The IWDG may already be running (CAN nodes start it in the bootloader)
+	 * and nothing else gets to pet it while the scheduler is locked. */
+	for (size_t erased = 0, block = 0; erased < (size_t)image_size; block++)
 	{
-		PX4_ERR("erase error at %p", &base[size]);
+		watchdog_pet();
+		size = up_progmem_eraseblock(block);
+
+		if (size < 0) {
+			PX4_ERR("erase error at %p", &base[erased]);
+			goto flash_end;
+		}
+
+		erased += size;
 	}
 
+	watchdog_pet();
 	PX4_INFO("flashing...");
 
 	/* now program the bootloader - speed is not critical so use x8 mode */
 
 	size = up_progmem_write((size_t) base, buf, image_size);
+	watchdog_pet();
 
 	if (size != image_size)
 	{

@@ -519,8 +519,9 @@ if(${CONFIG_NSH_LIBRARY} MATCHES "y")
 	endif()
 endif()
 
-if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+if(("${PX4_BOARD_LABEL}" STREQUAL "bootloader") OR ("${PX4_BOARD_LABEL}" STREQUAL "canbootloader"))
 	add_custom_command(OUTPUT ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BOARD_DIR}/extras
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
 		DEPENDS px4
 	)
@@ -547,6 +548,36 @@ if(NOT ("${PX4_BOARD_LABEL}" STREQUAL "bootloader") AND (EXISTS "${PX4_BOARD_DIR
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 	add_custom_target(bootloader_elf DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf)
+
+	# bootloader + application in one image, flashed at the start of flash
+	if(NOT ("${PX4_BOARD_LABEL}" MATCHES "bootloader"))
+		if(TARGET build_uavcan_bl)
+			# the CAN bootloader only boots the image with the descriptor CRCs filled in
+			set(app_image ${PX4_BINARY_DIR}/${uavcan_bl_image_name})
+			set(app_image_target build_uavcan_bl)
+		else()
+			set(app_image ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin)
+			set(app_image_target)
+		endif()
+
+		add_custom_command(
+			OUTPUT ${PX4_BINARY_DIR}/${PX4_CONFIG}_with_bootloader.bin
+			COMMAND
+				${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/prepend_bootloader.py
+					--bootloader ${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+					--app ${app_image}
+					--elf $<TARGET_FILE:px4>
+					--output ${PX4_BINARY_DIR}/${PX4_CONFIG}_with_bootloader.bin
+			DEPENDS
+				${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+				${PX4_SOURCE_DIR}/Tools/prepend_bootloader.py
+				${app_image}
+				${app_image_target}
+				px4
+			COMMENT "Creating ${PX4_CONFIG}_with_bootloader.bin"
+		)
+		add_custom_target(px4_with_bootloader ALL DEPENDS ${PX4_BINARY_DIR}/${PX4_CONFIG}_with_bootloader.bin)
+	endif()
 endif()
 
 
