@@ -64,14 +64,18 @@ fi
 
 if ver hwtypecmp ARKV6XRT000
 then
+	# Start order sets the sensor instance, and the voter keeps the lowest instance at equal
+	# priority. The IIM-20670 goes last: its gyro filter tops out at 60 Hz, so it should only
+	# ever be the fallback.
+
 	# Internal SPI1 ICM-45686 Accel/Gyro
 	icm45686 -R 6 -b 1 -s start
 
-	# Internal SPI2 IIM-20670 Accel/Gyro
-	iim20670 -R 2 -b 2 -s start
-
 	# Internal SPI3 LSM6DSV80X Accel/Gyro (mounted at 45deg, pin 1 bottom-left)
 	lsm6dsv -R 1 -b 3 -s -T 80 start
+
+	# Internal SPI2 IIM-20670 Accel/Gyro
+	iim20670 -R 2 -b 2 -s start
 else
 	echo "ERROR [init] unsupported FMU hwtype, internal IMUs not started"
 fi
