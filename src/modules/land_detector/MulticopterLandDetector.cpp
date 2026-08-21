@@ -229,7 +229,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// so stale data would cause false landed-state detection. This intentionally disables
 	// thrust-based landing detection for that mode — the companion should handle its own
 	// landing logic.
-	_has_low_throttle = _vehicle_thrust_setpoint_valid && (_vehicle_thrust_setpoint_throttle <= sys_low_throttle);
+	_has_low_throttle = _vehicle_thrust_setpoint_valid
+			    && (_vehicle_thrust_setpoint_throttle <= math::max(sys_low_throttle, _params.minManThrottle));
 	bool ground_contact = _has_low_throttle;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
