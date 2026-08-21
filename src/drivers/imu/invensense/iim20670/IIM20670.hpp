@@ -81,8 +81,11 @@ private:
 	// discard samples (no publish, no clip evaluation) until this has elapsed
 	static constexpr hrt_abstime SENSOR_SETTLE_TIME_US{100000}; // 100 ms
 
-	// raw accel count considered clipped (~98% of ±32768 full scale), used to escalate the range
-	static constexpr int16_t ACCEL_CLIP_THRESHOLD{32100};
+	// ~32.1 g in both register sets (98% of the ±32.768 g HR word). LR is half the
+	// sensitivity, so the same acceleration is half the counts; a single raw threshold
+	// would clip at 64.2 g in LR and flap between the two under sustained 33–64 g.
+	static constexpr int16_t ACCEL_CLIP_THRESHOLD_HR{32100}; // 1000 LSB/g
+	static constexpr int16_t ACCEL_CLIP_THRESHOLD_LR{16050}; //  500 LSB/g
 
 	// accel range: ±32 g full-scale (accel_fs_sel = 011, never changed at runtime); escalate
 	// to the ±64 g low resolution output registers while clipping and recover after a quiet
