@@ -1027,34 +1027,35 @@ UavcanNode::Run()
 
 void UavcanNode::apply_can_failure_injection()
 {
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER) && defined(UAVCAN_STM32H7_NUTTX)
 	// FAILURE_UNIT_BUS_CAN: instance i+1 selects CAN interface i. FAILURE_TYPE_OFF holds
 	// the FDCAN peripheral in Init mode so the node leaves the bus entirely (no TX/RX/ACK);
 	// FAILURE_TYPE_OK rejoins it. No-op unless the failure-injection manager is built.
 	_failure_config.update();
 
-#if defined(UAVCAN_STM32H7_NUTTX)
+	for (uint8_t i = 0; i < can->driver.getNumIfaces(); i++) {
+		UAVCAN_DRIVER::CanIface *iface = can->driver.getIface(i);
 
-	for (uint8_t i = 0; i < can->driver.getNumIfaces() && i < UAVCAN_NUM_IFACES; i++) {
+		if (iface == nullptr) {
+			continue;
+		}
+
 		const bool off = _failure_config.mode(failure_injection_s::FAILURE_UNIT_BUS_CAN, i + 1)
 				 == failure_injection::Mode::Off;
 
-		if (off != _can_blackout[i]) {
-			UAVCAN_DRIVER::CanIface *iface = can->driver.getIface(i);
+		if (off == iface->isInInitMode()) {
+			continue;
+		}
 
-			if (iface != nullptr) {
-				if (off) {
-					iface->setOffline();
+		if (off) {
+			iface->setOffline();
 
-				} else {
-					iface->setOnline();
-				}
-
-				_can_blackout[i] = off;
-			}
+		} else {
+			iface->setOnline();
 		}
 	}
 
-#endif // UAVCAN_STM32H7_NUTTX
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER && UAVCAN_STM32H7_NUTTX
 }
 
 void UavcanNode::publish_can_interface_statuses()

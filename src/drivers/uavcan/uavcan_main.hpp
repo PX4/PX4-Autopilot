@@ -305,7 +305,6 @@ private:
 	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
 	failure_injection::Config	_failure_config;			///< active failure-injection config
-	bool				_can_blackout[UAVCAN_NUM_IFACES] {};	///< per-iface blackout state (BUS_CAN failure)
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 
