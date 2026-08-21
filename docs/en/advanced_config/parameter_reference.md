@@ -41145,6 +41145,37 @@ SMBUS Smart battery driver BQ40Z50 and BQ40Z80.
 | ------- | -------- | -------- | --------- | ------------ | ---- | --------- |
 | &check; |          |          |           | Disabled (0) |      | &nbsp;    |
 
+### SENS_EN_DLVR (`INT32`) {#SENS_EN_DLVR}
+
+Amphenol DLVR Low Voltage Digital Pressure Sensor Series.
+
+Enables the DLVR series. If set to 0, the sensor is disabled.
+If the driver is started manually while this parameter is 0,
+it will be treated as an L10D model by default.
+
+**Values:**
+
+- `0`: Sensor disabled
+- `1`: DLVR F50D
+- `2`: DLVR L01D
+- `3`: DLVR L02D
+- `4`: DLVR L05D
+- `5`: DLVR L10D
+- `6`: DLVR L20D
+- `7`: DLVR L30D
+- `8`: DLVR L60D
+- `9`: DLVR L01G
+- `10`: DLVR L02G
+- `11`: DLVR L05G
+- `12`: DLVR L10G
+- `13`: DLVR L20G
+- `14`: DLVR L30G
+- `15`: DLVR L60G
+
+| Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ---- | --------- |
+| &check; |          |          |           | 0       |      | &nbsp;    |
+
 ### SENS_EN_ETSASPD (`INT32`) {#SENS_EN_ETSASPD}
 
 Eagle Tree airspeed sensor (external I2C).
@@ -47138,7 +47169,7 @@ UAVCAN CAN bus bitrate.
 
 UAVCAN fuel tank fuel type.
 
-This parameter defines the type of fuel used in the vehicle's fuel tank.
+This parameter defines the type of fuel used in the vehicle's fuel tanks.
 
 0: Unknown
 1: Liquid (e.g., gasoline, diesel)
@@ -47154,11 +47185,31 @@ This parameter defines the type of fuel used in the vehicle's fuel tank.
 | ------- | -------- | -------- | --------- | ------- | ---- | --------- |
 | &check; | 0        | 2        |           | 1       |      | &nbsp;    |
 
-### UAVCAN_ECU_MAXF (`FLOAT`) {#UAVCAN_ECU_MAXF}
+### UAVCAN_ECU_MAXF1 (`FLOAT`) {#UAVCAN_ECU_MAXF1}
 
-UAVCAN fuel tank maximum capacity.
+Fuel tank 1 maximum capacity.
 
-This parameter defines the maximum fuel capacity of the vehicle's fuel tank.
+Maximum fuel capacity of fuel tank 1.
+
+| Reboot  | minValue | maxValue | increment | default | unit   | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------ | --------- |
+| &check; | 0.0      | 100000.0 | 0.1       | 15.0    | liters | &nbsp;    |
+
+### UAVCAN_ECU_MAXF2 (`FLOAT`) {#UAVCAN_ECU_MAXF2}
+
+Fuel tank 2 maximum capacity.
+
+Maximum fuel capacity of fuel tank 2.
+
+| Reboot  | minValue | maxValue | increment | default | unit   | Read-Only |
+| ------- | -------- | -------- | --------- | ------- | ------ | --------- |
+| &check; | 0.0      | 100000.0 | 0.1       | 15.0    | liters | &nbsp;    |
+
+### UAVCAN_ECU_MAXF3 (`FLOAT`) {#UAVCAN_ECU_MAXF3}
+
+Fuel tank 3 maximum capacity.
+
+Maximum fuel capacity of fuel tank 3.
 
 | Reboot  | minValue | maxValue | increment | default | unit   | Read-Only |
 | ------- | -------- | -------- | --------- | ------- | ------ | --------- |
@@ -47278,7 +47329,7 @@ This determines which physical LED responds to commands for this light slot.
 
 UAVCAN Navigation light operating mode.
 
-This parameter defines the minimum condition under which the system will command
+Minimum condition under which the system will command
 Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
 
 For hybrid functions (StatusOrAntiCollision, etc.), the light
@@ -47375,7 +47426,7 @@ uavcan::equipment::gnss::RTCMStream
 
 UAVCAN rangefinder maximum range.
 
-This parameter defines the maximum valid range for a rangefinder connected via UAVCAN.
+Maximum valid range for a rangefinder connected via UAVCAN.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
@@ -47385,7 +47436,7 @@ This parameter defines the maximum valid range for a rangefinder connected via U
 
 UAVCAN rangefinder minimum range.
 
-This parameter defines the minimum valid range for a rangefinder connected via UAVCAN.
+Minimum valid range for a rangefinder connected via UAVCAN.
 
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
