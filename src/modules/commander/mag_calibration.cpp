@@ -742,12 +742,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 			// find first internal mag with a valid fit to use as reference
 			int internal_index = -1;
+			bool has_internal = false;
 
 			for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
-				if (!worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)
-				    && fit_valid[cur_mag]) {
-					internal_index = cur_mag;
-					break;
+				if (!worker_data.calibration[cur_mag].external() && (worker_data.calibration[cur_mag].device_id() != 0)) {
+					has_internal = true;
+
+					if (fit_valid[cur_mag]) {
+						internal_index = cur_mag;
+						break;
+					}
 				}
 			}
 
@@ -920,6 +924,20 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 									cur_mag, worker_data.calibration[cur_mag].device_id(), r, (double)MSE[r]);
 							}
 						}
+					}
+				}
+
+			} else if (has_internal) {
+				// reference fit failed; stay silent when no internal mag exists as rotations are then configured manually
+				for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+					const calibration::Magnetometer &cal = worker_data.calibration[cur_mag];
+
+					// skip disabled mags and mags with manually configured rotations
+					if (cal.external() && (cal.device_id() != 0) && cal.enabled()
+					    && (cal.rotation_enum() != ROTATION_CUSTOM)
+					    && (cal.rotation_enum() != ROTATION_ROLL_90_PITCH_68_YAW_293)) {
+						calibration_log_critical(mavlink_log_pub, "Compass %u rotation unverified, check CAL_MAG%u_ROT",
+									 cur_mag, cur_mag);
 					}
 				}
 			}
