@@ -114,7 +114,7 @@ parameters:
         short: Ranging beacon 1 latitude (deg * 1e7)
         long: |-
           Ranging beacon 1 latitude in degrees multiplied by 1e7.
-      type: int8
+      type: int32
       default: 255
       min: -1
       max: 255
@@ -125,7 +125,7 @@ parameters:
           Ranging beacon 1 latitude in degrees multiplied by 1e7.
       type: int32
       default: 0
-      unit: deg * 1e7
+      unit: deg*1e7
       min: -1800000000
       max: 1800000000
     RNG_1_LON:
@@ -135,7 +135,7 @@ parameters:
           Ranging beacon 1 longitude in degrees multiplied by 1e7.
       type: int32
       default: 0
-      unit: deg * 1e7
+      unit: deg*1e7
       min: -900000000
       max: 900000000
     RNG_1_AMSL:
@@ -145,14 +145,14 @@ parameters:
           Ranging beacon 1 altitude in meters above mean sea level.
       type: float
       default: 0.0
-      unit: m AMSL
+      unit: m
 
     RNG_2_ID:
       description:
         short: Ranging beacon 2 ID
         long: |-
           Ranging beacon 2 ID. Set to 255 to disable.
-      type: int8
+      type: int32
       default: 255
       min: -1
       max: 255
@@ -163,7 +163,7 @@ parameters:
           Ranging beacon 2 latitude in degrees multiplied by 1e7.
       type: int32
       default: 0
-      unit: deg * 1e7
+      unit: deg*1e7
       min: -1800000000
       max: 1800000000
     RNG_2_LON:
@@ -173,7 +173,7 @@ parameters:
           Ranging beacon 2 longitude in degrees multiplied by 1e7.
       type: int32
       default: 0
-      unit: deg * 1e7
+      unit: deg*1e7
       min: -900000000
       max: 900000000
     RNG_2_AMSL:
@@ -183,4 +183,4 @@ parameters:
           Ranging beacon 2 altitude in meters above mean sea level.
       type: float
       default: 0.0
-      unit: m AMSL
+      unit: m
