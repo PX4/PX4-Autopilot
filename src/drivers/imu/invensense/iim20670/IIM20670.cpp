@@ -231,9 +231,12 @@ void IIM20670::RunImpl()
 					// manage the accel range: escalate to ±64 g while clipping, recover after quiet
 					bool accel_clipping = false;
 					const int16_t values[3] {data.accel_x, data.accel_y, data.accel_z};
+					const int16_t clip_threshold = (_accel_range == ACCEL_RANGE::RANGE_64G)
+								       ? ACCEL_CLIP_THRESHOLD_LR
+								       : ACCEL_CLIP_THRESHOLD_HR;
 
 					for (auto v : values) {
-						if (v >= ACCEL_CLIP_THRESHOLD || v <= -ACCEL_CLIP_THRESHOLD) {
+						if (v >= clip_threshold || v <= -clip_threshold) {
 							accel_clipping = true;
 							break;
 						}
