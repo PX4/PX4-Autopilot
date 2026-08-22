@@ -11,6 +11,8 @@ The USA-built ARKV6X-RT flight controller is an NXP i.MX RT1176 variant of the [
 
 With triple synced IMUs, data averaging, voting, and filtering is possible.
 
+<!-- TODO: board photo. Add the image to docs/assets/flight_controller/arkv6xrt/ and reference it here. -->
+
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
@@ -24,6 +26,8 @@ Which ports and outputs are physically broken out depends on the carrier.
 ## Where to Buy {#store}
 
 Order from [ARK Electronics](https://arkelectron.com/) (US).
+
+<!-- TODO: point the link above at the ARKV6X-RT product page once the board is listed. -->
 
 ## Specifications {#specifications}
 
@@ -48,8 +52,12 @@ Order from [ARK Electronics](https://arkelectron.com/) (US).
   - **Parameter storage:** FRAM (FM25V02A) on FlexSPI2
   - **SD card:** MicroSD slot
 - **Electrical data**
+  - **Input voltage:** TODO: supply voltage range at the PAB connector (V)
+  - **Current draw:** TODO: typical current draw (mA), heater on and off
   - **Power monitoring:** 2 digital power bricks, INA226 by default
 - **Mechanical data**
+  - **Dimensions:** TODO: dimensions (mm)
+  - **Weight:** TODO: weight (g)
   - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 
 ## IMUs {#imus}
@@ -125,7 +133,8 @@ An external compass in a GPS/compass module is normally used for yaw.
 
 ## Power {#power}
 
-The module is powered from the carrier board over the PAB connector, so the input voltage range and connector type are properties of the carrier.
+The module is powered from the carrier board over the PAB connector, so the power connector type and its ratings are properties of the carrier.
+The voltage the module itself accepts is under [Specifications](#specifications).
 
 Two digital power bricks are supported.
 [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226) is enabled by default; the INA228 and INA238 drivers are also built in for carriers that fit those parts.
