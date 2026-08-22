@@ -44,6 +44,7 @@
 #include "board_config.h"
 
 #include <syslog.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 #include <nuttx/config.h>
@@ -68,6 +69,37 @@ extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
+
+/****************************************************************************
+ * Name: boot_log
+ *
+ * Description:
+ *   Emit a board bring-up message to both logging paths.
+ *
+ *   syslog() reaches the serial console but never PX4's console buffer.
+ *   printf() reaches that buffer - px4_platform_init() dup2's stdout onto it
+ *   - and so shows up in dmesg, but the buffer does not forward to the
+ *   console. Neither path alone is enough: a developer on USB sees only
+ *   dmesg, one on the UART console sees only syslog. Write to both, or
+ *   bring-up failures stay invisible to whoever is actually looking.
+ *
+ ****************************************************************************/
+static void boot_log(int priority, const char *fmt, ...)
+__attribute__((format(printf, 2, 3)));
+
+static void boot_log(int priority, const char *fmt, ...)
+{
+	char msg[128];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, ap);
+	va_end(ap);
+
+	syslog(priority, "%s", msg);
+	fputs(msg, stdout);
+	fflush(stdout);
+}
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -160,7 +192,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure the DMA allocator */
 	if (board_dma_alloc_init() < 0) {
-		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
+		boot_log(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
 	/* initial LED state */
@@ -182,7 +214,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
 	if (result != OK) {
-		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		boot_log(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_BLUE);
 		return -ENODEV;
 	}
@@ -194,7 +226,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
-		syslog(LOG_ERR, "[boot] SDMMC2 init failed: %d\n", ret);
+		boot_log(LOG_ERR, "[boot] SDMMC2 init failed: %d\n", ret);
 	}
 
 #endif

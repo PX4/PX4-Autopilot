@@ -44,6 +44,7 @@
 #include "board_config.h"
 
 #include <syslog.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -64,7 +65,7 @@
 #  include <parameters/flashparams/flashfs.h>
 #endif
 
-#ifdef CONFIG_MTD_W25
+#if defined(CONFIG_MTD_W25) || defined(CONFIG_MTD_M25P)
 #  include <nuttx/spi/spi.h>
 #  include <nuttx/mtd/mtd.h>
 #  include <sys/mount.h>
@@ -75,6 +76,37 @@ extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
+
+/****************************************************************************
+ * Name: boot_log
+ *
+ * Description:
+ *   Emit a board bring-up message to both logging paths.
+ *
+ *   syslog() reaches the serial console but never PX4's console buffer.
+ *   printf() reaches that buffer - px4_platform_init() dup2's stdout onto it
+ *   - and so shows up in dmesg, but the buffer does not forward to the
+ *   console. Neither path alone is enough: a developer on USB sees only
+ *   dmesg, one on the UART console sees only syslog. Write to both, or
+ *   bring-up failures stay invisible to whoever is actually looking.
+ *
+ ****************************************************************************/
+static void boot_log(int priority, const char *fmt, ...)
+__attribute__((format(printf, 2, 3)));
+
+static void boot_log(int priority, const char *fmt, ...)
+{
+	char msg[128];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(msg, sizeof(msg), fmt, ap);
+	va_end(ap);
+
+	syslog(priority, "%s", msg);
+	fputs(msg, stdout);
+	fflush(stdout);
+}
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -168,7 +200,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure the DMA allocator */
 	if (board_dma_alloc_init() < 0) {
-		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
+		boot_log(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
 	/* initial LED state */
@@ -190,43 +222,78 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
 	if (result != OK) {
-		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		boot_log(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_BLUE);
 		return -ENODEV;
 	}
 
 #endif
 
-#ifdef CONFIG_MTD_W25
+#if defined(CONFIG_MTD_W25) || defined(CONFIG_MTD_M25P)
 	/* Mount W25Q128 SPI NOR flash (SPI3, CS=PA15) at /fs/microsd */
 	struct spi_dev_s *spi3 = stm32_spibus_initialize(3);
 
 	if (!spi3) {
-		syslog(LOG_INFO, "[boot] W25: SPI3 init failed\n");
+		boot_log(LOG_INFO, "[boot] flash: SPI3 init failed\n");
 
 	} else {
+		/* Read the JEDEC ID (RDID) before probing, so a failure can report
+		 * what the part actually answered. "chip not recognised" on its own
+		 * gives nothing to act on, and these boards have shipped with more
+		 * than one flash part. All-zero or all-ff means the SPI transaction
+		 * itself failed rather than the chip being unknown.
+		 */
+		uint8_t jedec[3] = {0, 0, 0};
+
+		SPI_LOCK(spi3, true);
+		SPI_SETMODE(spi3, SPIDEV_MODE0);
+		SPI_SETBITS(spi3, 8);
+		SPI_SETFREQUENCY(spi3, 1000000);
+		SPI_SELECT(spi3, SPIDEV_FLASH(0), true);
+		SPI_SEND(spi3, 0x9f);
+		jedec[0] = SPI_SEND(spi3, 0xff);
+		jedec[1] = SPI_SEND(spi3, 0xff);
+		jedec[2] = SPI_SEND(spi3, 0xff);
+		SPI_SELECT(spi3, SPIDEV_FLASH(0), false);
+		SPI_LOCK(spi3, false);
+
+		/* These boards ship with more than one flash part. Both have been
+		 * seen on H743 Pro hardware:
+		 *
+		 *   ef 40 18  Winbond W25Q128        -> w25 driver
+		 *   20 ba 18  Micron MT25Q/N25Q128   -> m25p driver
+		 *
+		 * Neither driver accepts the other's manufacturer ID, so try each in
+		 * turn rather than committing the board to one batch.
+		 */
 		struct mtd_dev_s *mtd = w25_initialize(spi3);
 
 		if (!mtd) {
-			syslog(LOG_INFO, "[boot] W25: chip not recognised\n");
+			mtd = m25p_initialize(spi3);
+		}
+
+		if (!mtd) {
+			boot_log(LOG_ERR, "[boot] flash: chip not recognised (JEDEC %02x %02x %02x)\n",
+				 jedec[0], jedec[1], jedec[2]);
 
 		} else {
-			syslog(LOG_INFO, "[boot] W25: chip ok, registering MTD...\n");
+			boot_log(LOG_INFO, "[boot] flash: chip ok (JEDEC %02x %02x %02x), registering MTD...\n",
+				 jedec[0], jedec[1], jedec[2]);
 			int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
 
 			if (ret < 0 && ret != -EEXIST) {
-				syslog(LOG_INFO, "[boot] W25: MTD register failed %d\n", ret);
+				boot_log(LOG_INFO, "[boot] flash: MTD register failed %d\n", ret);
 
 			} else {
 				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, NULL);
 
 				if (ret < 0) {
-					syslog(LOG_INFO, "[boot] W25: first mount failed %d, formatting...\n", ret);
+					boot_log(LOG_INFO, "[boot] flash: first mount failed %d, formatting...\n", ret);
 					ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "forceformat");
 				}
 
 				if (ret == 0) {
-					syslog(LOG_INFO, "[boot] W25: mounted at /fs/microsd\n");
+					boot_log(LOG_INFO, "[boot] flash: mounted at /fs/microsd\n");
 
 					/* Seed extras.txt on first boot if not present */
 					mkdir("/fs/microsd/etc", 0755);
@@ -247,7 +314,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 					}
 
 				} else {
-					syslog(LOG_INFO, "[boot] W25: mount failed %d\n", ret);
+					boot_log(LOG_INFO, "[boot] flash: mount failed %d\n", ret);
 				}
 			}
 		}
