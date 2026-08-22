@@ -42,6 +42,7 @@
 #define IIS2MDC_ADDR_CFG_REG_C  0x62
 #define IIS2MDC_ADDR_STATUS_REG 0x67
 #define IIS2MDC_ADDR_OUTX_L_REG 0x68
+#define IIS2MDC_ADDR_TEMP_OUT_L_REG 0x6E
 #define IIS2MDC_ADDR_WHO_AM_I   0x4F
 
 // IIS2MDC Definitions
@@ -71,8 +72,6 @@ public:
 		uint8_t yout1;
 		uint8_t zout0;
 		uint8_t zout1;
-		uint8_t tout0;
-		uint8_t tout1;
 	};
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
