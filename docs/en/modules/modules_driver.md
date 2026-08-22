@@ -572,7 +572,7 @@ ina228 <command> [arguments...]
      [-a <val>]  I2C address
                  default: 69
      [-k]        if initialization (probing) fails, keep retrying periodically
-     [-t <val>]  battery index for calibration values (1 or 3)
+     [-t <val>]  battery index for calibration values (1-3)
                  default: 1
 
    stop

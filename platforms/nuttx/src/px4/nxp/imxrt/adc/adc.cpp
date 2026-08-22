@@ -85,74 +85,90 @@ typedef uint32_t 	adc_chan_t;
 
 int px4_arch_adc_init(uint32_t base_address)
 {
-	static bool once = false;
+	/* Perform ADC init once per ADC */
 
-	if (!once) {
+	static uint32_t once[SYSTEM_ADC_COUNT] {};
 
-		once = true;
+	uint32_t *free = nullptr;
 
-		/* Input is Buss Clock 144 Mhz We will use /4 for 36 Mhz */
-
-		irqstate_t flags = px4_enter_critical_section();
-
-		imxrt_clockall_adc1();
-
-		rCFG(base_address) = ADC_CFG_ADICLK_IPG | ADC_CFG_MODE_12BIT | \
-				     ADC_CFG_ADIV_DIV4 | ADC_CFG_ADLSMP | ADC_CFG_ADSTS_7_21 | \
-				     ADC_CFG_AVGS_4SMPL | ADC_CFG_OVWREN;
-		px4_leave_critical_section(flags);
-
-		/* Clear the CALF and begin the calibration */
-
-		rGS(base_address) = ADC_GS_CALF;
-		rGC(base_address) = ADC_GC_CAL;
-		uint32_t guard = 100;
-
-		while (guard != 0 && (rGS(base_address) & ADC_GC_CAL) == 0) {
-			guard--;
-			usleep(1);
+	for (uint32_t i = 0; i < SYSTEM_ADC_COUNT; i++) {
+		if (once[i] == base_address) {
+			return OK;
 		}
 
-		while ((rGS(base_address) & ADC_GC_CAL) == ADC_GC_CAL) {
-
-			usleep(100);
-
-			if (rGS(base_address) & ADC_GS_CALF) {
-				return -1;
-			}
+		if (free == nullptr && once[i] == 0) {
+			free = &once[i];
 		}
+	}
 
-		if ((rHS(base_address) & ADC_HS_COCO0) == 0) {
-			return -2;
-		}
+	if (free == nullptr) {
+		/* ADC misconfigured SYSTEM_ADC_COUNT too small */;
+		PANIC();
+	}
+
+	*free = base_address;
+
+	/* Input is Buss Clock 144 Mhz We will use /4 for 36 Mhz */
+
+	irqstate_t flags = px4_enter_critical_section();
+
+	imxrt_clockall_adc1();
+
+	rCFG(base_address) = ADC_CFG_ADICLK_IPG | ADC_CFG_MODE_12BIT | \
+			     ADC_CFG_ADIV_DIV4 | ADC_CFG_ADLSMP | ADC_CFG_ADSTS_7_21 | \
+			     ADC_CFG_AVGS_4SMPL | ADC_CFG_OVWREN;
+	px4_leave_critical_section(flags);
+
+	/* Clear the CALF and begin the calibration */
+
+	rGS(base_address) = ADC_GS_CALF;
+	rGC(base_address) = ADC_GC_CAL;
+	uint32_t guard = 100;
+
+	while (guard != 0 && (rGS(base_address) & ADC_GC_CAL) == 0) {
+		guard--;
+		usleep(1);
+	}
+
+	while ((rGS(base_address) & ADC_GC_CAL) == ADC_GC_CAL) {
+
+		usleep(100);
 
 		if (rGS(base_address) & ADC_GS_CALF) {
-			return -3;
+			return -1;
 		}
+	}
 
-		/* dummy read to clear COCO of calibration */
+	if ((rHS(base_address) & ADC_HS_COCO0) == 0) {
+		return -2;
+	}
 
-		int32_t r = rR0(base_address);
-		UNUSED(r);
+	if (rGS(base_address) & ADC_GS_CALF) {
+		return -3;
+	}
 
-		/* kick off a sample and wait for it to complete */
-		hrt_abstime now = hrt_absolute_time();
-		rGC(base_address) = ADC_GC_AVGE;
-		rHC0(base_address) =  0xd; // VREFSH = internal channel, for ADC self-test, hard connected to VRH internally
+	/* dummy read to clear COCO of calibration */
 
-		while (!(rHS(base_address) & ADC_HS_COCO0)) {
+	int32_t r = rR0(base_address);
+	UNUSED(r);
 
-			/* don't wait for more than 500us, since that means something broke -
-			 * should reset here if we see this
-			 */
+	/* kick off a sample and wait for it to complete */
+	hrt_abstime now = hrt_absolute_time();
+	rGC(base_address) = ADC_GC_AVGE;
+	rHC0(base_address) =  0xd; // VREFSH = internal channel, for ADC self-test, hard connected to VRH internally
 
-			if ((hrt_absolute_time() - now) > 500) {
-				return -4;
-			}
+	while (!(rHS(base_address) & ADC_HS_COCO0)) {
+
+		/* don't wait for more than 500us, since that means something broke -
+		 * should reset here if we see this
+		 */
+
+		if ((hrt_absolute_time() - now) > 500) {
+			return -4;
 		}
+	}
 
-		r = rR0(base_address);
-	} // once
+	r = rR0(base_address);
 
 	return 0;
 }

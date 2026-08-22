@@ -40,6 +40,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
+#include <uORB/topics/vtx.h>
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
@@ -304,6 +305,54 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 			strcpy(node->name, "COM_TRAFF_AVOID");
 			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-08-05: the protocol selection moved out of VTX_DEVICE into VTX_PROTOCOL. VTX_DEVICE keeps
+	// the old layout that holds the device in its high byte, so only the protocol has to be derived:
+	// the Peak THOR T67 speaks SmartAudio, the Rush MAX SOLO speaks Tramp. A value that is not listed
+	// stays untouched and acts as a generic device on SmartAudio, which is what both parameters
+	// default to, so the old value 0 needs nothing.
+	{
+		static constexpr int32_t PROTOCOL_SMART_AUDIO = 0; // VTX_PROTOCOL value, not in msg/Vtx.msg
+
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("VTX_DEVICE", node->name) == 0)) {
+			int32_t device = -1;
+			int32_t protocol = PROTOCOL_SMART_AUDIO;
+
+			switch (node->i32) {
+			case 100: // generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+
+			case 5120: // Peak THOR T67, SmartAudio only
+				device = vtx_s::DEVICE_PEAK_THOR_T67 << 8;
+				protocol = PROTOCOL_SMART_AUDIO;
+				break;
+
+			case 10240: // Rush MAX SOLO, Tramp only
+				device = vtx_s::DEVICE_RUSH_MAX_SOLO << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+			}
+
+			if (device >= 0) {
+				node->i32 = device;
+				param_set(param_find("VTX_PROTOCOL"), &protocol);
+				PX4_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
+					 device, protocol);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-08-18: UAVCAN_ECU_MAXF replaced by per-tank (idx 1 based)
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("UAVCAN_ECU_MAXF", node->name) == 0)) {
+			strcpy(node->name, "UAVCAN_ECU_MAXF1");
+			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}

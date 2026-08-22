@@ -560,7 +560,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	if (boards_manifest != px4_hw_mft_list_uninitialized)
 		for (unsigned int ndx = 0; ndx < boards_manifest->entries; ndx++) {
 			if (boards_manifest->mft[ndx].id == id) {
-				rv = &boards_manifest->mft[id];
+				rv = &boards_manifest->mft[ndx];
 				break;
 			}
 		}
