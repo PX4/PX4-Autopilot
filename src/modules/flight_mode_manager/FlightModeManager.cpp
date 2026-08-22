@@ -346,6 +346,12 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		constraints = _current_task.task->getConstraints();
 	}
 
+	// Single convergence point for both manual (Position) and auto (Mission) tasks.
+	// Fuse an externally-computed setpoint (streamed by a companion computer) into the
+	// trajectory setpoint here, before it is published. This is a temporary deviation:
+	// when the external stream goes stale the underlying setpoint resumes.
+	_external_setpoint.modifySetpoint(setpoint, _vehicle_status_sub.get().nav_state);
+
 	if (_takeoff_status_sub.updated()) {
 		takeoff_status_s takeoff_status;
 

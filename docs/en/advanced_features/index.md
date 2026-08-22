@@ -8,6 +8,7 @@ This section contains topics related to some of the more advanced features of th
   - [Collision Prevention](../computer_vision/collision_prevention.md)
   - [Motion Capture (MoCap)](../computer_vision/motion_capture.md)
   - [Visual Inertial Odometry (VIO)](../computer_vision/visual_inertial_odometry.md)
+- [External Setpoints](../advanced_features/external_setpoint.md)
 - [Iridium/RockBlock Satellite Communication System](../advanced_features/satcom_roadblock.md)
 - [Precision Landing](../advanced_features/precland.md)
 - [RTK GNSS (GPS)](../gps_compass/rtk_gps.md)
