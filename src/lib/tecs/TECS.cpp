@@ -52,6 +52,20 @@ using math::min;
 
 static inline constexpr bool TIMESTAMP_VALID(float dt) { return (PX4_ISFINITE(dt) && dt > FLT_EPSILON);}
 
+// Where underspeed mitigation is fully ramped in, as a fraction of the way from the stall airspeed to the
+// minimum airspeed demand. 0 puts full mitigation at the stall airspeed, 1 puts it at the minimum airspeed
+// demand. Sitting in between means mitigation is saturated with stall margin still in hand, while the ramp
+// still spans enough of the margin not to act as a step.
+static constexpr float kUnderspeedFullMitigationFraction{0.5f};
+// Smallest airspeed interval the ramp is spread over [m/s]. Only relevant for an airframe configured with
+// (almost) no stall margin at all, where it keeps the ramp a steep ramp just below the minimum airspeed demand
+// instead of a discontinuity exactly at it.
+static constexpr float kUnderspeedRampWidthMin{0.1f};
+// Expected (safe) airspeed tracking error, as a fraction of the trim airspeed. Gives a second, stall airspeed
+// independent place to put full mitigation, so that a stall airspeed left far too low cannot stretch the ramp and
+// delay mitigation indefinitely.
+static constexpr float kUnderspeedTasErrorFraction{0.15f};
+
 void TECSAirspeedFilter::initialize(const float equivalent_airspeed, const float equivalent_airspeed_trim,
 				    const bool airspeed_sensor_available)
 {
@@ -363,17 +377,27 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 		return;
 	}
 
-	// this is the expected (something like standard) deviation from the airspeed setpoint that we allow the airspeed
-	// to vary in before ramping in underspeed mitigation
-	const float tas_error_bound = param.tas_error_percentage * param.equivalent_airspeed_trim;
+	// Underspeed mitigation is ramped in across the stall margin the operator configured: it is inactive at and
+	// above the minimum airspeed demand, and fully ramped in part of the way down to the stall airspeed. Both
+	// bounds are true airspeeds carrying the same load factor and flap compensation as the airspeed demand, so the
+	// ramp tracks the actual stall speed of the wing rather than a fixed fraction of the trim airspeed.
+	// The stall airspeed is capped at the minimum airspeed demand so that a misconfigured airframe (stall airspeed
+	// at or above the minimum airspeed) cannot place the ramp above the airspeed being flown.
+	const float tas_stall = math::min(param.tas_stall, param.tas_min);
+	const float tas_starting_to_underspeed = param.tas_min;
 
-	// this is the soft boundary where underspeed mitigation is ramped in
-	// NOTE: it's currently the same as the error bound, but separated here to indicate these values do not in general
-	// need to be the same
-	const float tas_underspeed_soft_bound = param.tas_error_percentage * param.equivalent_airspeed_trim;
+	// Part of the way down the configured stall margin.
+	const float tas_fully_undersped_stall = tas_stall + kUnderspeedFullMitigationFraction *
+						(param.tas_min - tas_stall);
 
-	const float tas_fully_undersped = math::max(param.tas_min - tas_error_bound - tas_underspeed_soft_bound, 0.0f);
-	const float tas_starting_to_underspeed = math::max(param.tas_min - tas_error_bound, tas_fully_undersped);
+	// One expected airspeed tracking error below the minimum airspeed demand. This does not depend on the stall
+	// airspeed, so it still ramps mitigation in soon enough if that parameter was never configured.
+	const float tas_fully_undersped_error = param.tas_min - kUnderspeedTasErrorFraction * param.tas_trim;
+
+	// Whichever of the two saturates earlier wins, so either the stall airspeed or the tracking error catches an
+	// underspeed condition. The ramp must still not collapse onto the minimum airspeed demand itself.
+	const float tas_fully_undersped = math::max(math::min(math::max(tas_fully_undersped_stall,
+					  tas_fully_undersped_error), param.tas_min - kUnderspeedRampWidthMin), 0.0f);
 
 	_ratio_undersped = 1.0f - math::constrain((input.tas - tas_fully_undersped) /
 			   math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
@@ -674,7 +698,9 @@ void TECS::initControlParams(float target_climbrate, float target_sinkrate, floa
 	_reference_param.target_climbrate = target_climbrate;
 	_reference_param.target_sinkrate = target_sinkrate;
 	// Control
+	_control_param.tas_trim = eas_to_tas * _control_param.equivalent_airspeed_trim;
 	_control_param.tas_min = eas_to_tas * _equivalent_airspeed_min;
+	_control_param.tas_stall = eas_to_tas * _equivalent_airspeed_stall;
 	_control_param.tas_max = eas_to_tas * _equivalent_airspeed_max;
 	_control_param.pitch_max = pitch_limit_max;
 	_control_param.pitch_min = pitch_limit_min;
