@@ -37,6 +37,8 @@ else()
     find_package(gz-transport NAMES gz-transport13)
 endif()
 
+file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+
 if (gz-transport_FOUND)
 	# gcc-15 spurious -Wmaybe-uninitialized in gz-transport15 FullyQualifiedTopic, will probably be fixed by gazebo in the future
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15
@@ -46,7 +48,6 @@ if (gz-transport_FOUND)
 	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 
 	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
-	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
     if (gz-transport_VERSION VERSION_LESS "15")
         set(GZ_TRANSPORT_TARGET "gz-transport${gz-transport_VERSION_MAJOR}::core")
     else()
@@ -142,25 +143,12 @@ else()
 		set(model_name)
 		string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
 
-		foreach(world ${gz_worlds})
-			get_filename_component("world_name" ${world} NAME_WE)
-
-			if(world_name STREQUAL "default")
-				add_custom_target(gz_${model_name}
-					COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Gazebo simulation dependencies not found!"
-					COMMAND ${CMAKE_COMMAND} -E echo "  - For installation instructions, see: https://gazebosim.org/docs/harmonic/install_ubuntu/"
-					COMMAND ${CMAKE_COMMAND} -E false
-					VERBATIM
-				)
-			else()
-				add_custom_target(gz_${model_name}_${world_name}
-					COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Gazebo simulation dependencies not found!"
-					COMMAND ${CMAKE_COMMAND} -E echo "  - For installation instructions, see: https://gazebosim.org/docs/harmonic/install_ubuntu/"
-					COMMAND ${CMAKE_COMMAND} -E false
-					VERBATIM
-				)
-			endif()
-		endforeach()
+		add_custom_target(gz_${model_name}
+			COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Gazebo simulation dependencies not found!"
+			COMMAND ${CMAKE_COMMAND} -E echo "  - For installation instructions, see: https://gazebosim.org/docs/harmonic/install_ubuntu/"
+			COMMAND ${CMAKE_COMMAND} -E false
+			VERBATIM
+		)
 	endforeach()
 
 	message(STATUS "Gazebo simulation bridge module disabled: missing dependencies")
