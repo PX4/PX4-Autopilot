@@ -5,10 +5,14 @@
 
 board_adc start
 
-# Internal SPI bus ICM-42688P (SPI1), YAW_180 (4)
-icm42688p -s -b 1 -R 4 start
+# ArduPilot's DAKEFPVH743_SLIM hwdef lists YAW_180 / YAW_270 for these two
+# ICM-42688Ps, but PX4's icm42688p driver already flips Y/Z to a z-down frame,
+# so the PX4 rotations are those composed with ROLL_180.
 
-# Internal SPI bus ICM-42688P (SPI4), YAW_270 (14)
+# Internal SPI bus ICM-42688P (SPI1), PITCH_180 (12)
+icm42688p -s -b 1 -R 12 start
+
+# Internal SPI bus ICM-42688P (SPI4), ROLL_180_YAW_270 (14)
 icm42688p -s -b 4 -R 14 start
 
 # Internal baro SPL06 on I2C2
