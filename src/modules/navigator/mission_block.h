@@ -160,6 +160,8 @@ protected:
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
 	void setLoiterFromLastLink(struct mission_item_s *item);
 
+	float applyMinimumLoiterAltitude(float altitude_amsl);
+
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 
 	/**
