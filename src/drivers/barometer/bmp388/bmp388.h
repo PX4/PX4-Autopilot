@@ -63,6 +63,7 @@ enum class Register : uint8_t {
 	REV_ID = 0x01,
 	ERR_REG = 0x02,
 	STATUS = 0x03,
+	DATA_0 = 0x04, // pressure 0x04..0x06, temperature 0x07..0x09
 	PWR_CTRL = 0x1B,
 	OSR = 0x1C,
 	TRIM_CRC = 0x30, // CRC-8 over NVM_PAR_T1..NVM_PAR_P11 (bmp3_selftest.c)
@@ -119,9 +120,8 @@ struct calib_data {
 	int8_t par_p11;
 };
 
-// STATUS followed by DATA_0..DATA_5 (0x03..0x09)
-struct status_data {
-	uint8_t status;
+// DATA_0..DATA_5 (0x04..0x09). DS 3.10 asks for one burst from press_xlsb to temp_msb.
+struct sensor_data {
 	uint8_t press_7_0;
 	uint8_t press_15_8;
 	uint8_t press_23_16;
@@ -132,7 +132,7 @@ struct status_data {
 #pragma pack(pop)
 
 static_assert(sizeof(calib_data) == 21);
-static_assert(sizeof(status_data) == 7);
+static_assert(sizeof(sensor_data) == 6);
 
 } // namespace Bosch_BMP388
 
@@ -184,6 +184,8 @@ private:
 
 	hrt_abstime _measure_timestamp{0};
 	int _failure_count{0};
+	int _configure_failures{0};
+	int _cmd_rdy_polls{0};
 
 	uint8_t _chip_id{0};
 	uint8_t _rev_id{0};
