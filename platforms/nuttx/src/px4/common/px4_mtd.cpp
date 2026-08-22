@@ -63,6 +63,9 @@ extern "C" {
 #if defined(CONFIG_MTD_MX25L)
 	struct mtd_dev_s *mx25l_initialize_spi(FAR struct spi_dev_s *dev);
 #endif
+#if defined(CONFIG_MTD_W25)
+	struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
+#endif
 	struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 					off_t firstblock, off_t nblocks);
 	int register_mtddriver(FAR const char *path, FAR struct mtd_dev_s *mtd,
@@ -406,6 +409,13 @@ memoryout:
 
 			case px4_mft_device_t::SPI_DRIVER_MX25L:
 				rv = spi_nor_attach<mx25l_initialize_spi>(*instances[i], CONFIG_MX25L_SPIFREQUENCY);
+				break;
+#endif
+
+#if defined(CONFIG_MTD_W25)
+
+			case px4_mft_device_t::SPI_DRIVER_W25:
+				rv = spi_nor_attach<w25_initialize>(*instances[i], CONFIG_W25_SPIFREQUENCY);
 				break;
 #endif
 
