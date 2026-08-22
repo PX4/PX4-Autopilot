@@ -170,6 +170,7 @@
       - [AirMind MindRacer](/flight_controller/mindracer.md)
       - [Amovlab Flycore](/flight_controller/amovlab_flycore.md)
       - [ARK Electronics ARKV6X](/flight_controller/ark_v6x.md)
+      - [ARK Electronics ARKV6X-RT](/flight_controller/ark_v6xrt.md)
       - [ARK Electronics ARKV6S](/flight_controller/ark_v6s.md)
       - [ARK FPV Flight Controller](/flight_controller/ark_fpv.md)
       - [ARK Pi6X Flow Flight Controller](/flight_controller/ark_pi6x.md)
