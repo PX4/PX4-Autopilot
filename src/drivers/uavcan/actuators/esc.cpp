@@ -80,6 +80,12 @@ int UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
+	int32_t rate_max{400};
+
+	if (param_get(param_find("UAVCAN_ESC_RTMAX"), &rate_max) == OK) {
+		_max_rate_hz = (unsigned)rate_max;
+	}
+
 	_initialized = true;
 
 	return res;
@@ -87,10 +93,9 @@ int UavcanEscController::init()
 
 void UavcanEscController::update_outputs(float outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
-	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
 
-	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / _max_rate_hz)) {
 		return;
 	}
 

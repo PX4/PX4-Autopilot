@@ -192,6 +192,13 @@ bool FlightTaskAuto::update()
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
 
+	if (_is_emergency_braking_active) {
+		// Re-seed the trajectory to the measured state every cycle so controller saturation doesn't
+		// cause a velocity error inversion during emergency braking.
+		_position_smoothing.forceSetVelocity(_velocity);
+		_position_smoothing.forceSetPosition(_position);
+	}
+
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
 		_position,
@@ -719,10 +726,10 @@ void FlightTaskAuto::_checkEmergencyBraking()
 		}
 
 	} else {
-		// deactivate emergency braking when the vehicle has come to a full stop
-		if (_position_smoothing.getCurrentVelocityZ() < 0.01f
-		    && _position_smoothing.getCurrentVelocityZ() > -0.01f
-		    && !_position_smoothing.getCurrentVelocityXY().longerThan(0.01f)) {
+		// Deactivate emergency braking once slow enough for ordinary guidance to finish the stop.
+		// Must clear velocity estimate noise, otherwise braking latches and guidance never resumes.
+		if (math::isInRange(_position_smoothing.getCurrentVelocityZ(), -1.f, 1.f)
+		    && !_position_smoothing.getCurrentVelocityXY().longerThan(1.f)) {
 			_is_emergency_braking_active = false;
 		}
 	}
@@ -774,12 +781,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// acceleration in 1s on all axes for fast braking
 		_position_smoothing.setMaxAcceleration({CONSTANTS_ONE_G, CONSTANTS_ONE_G, CONSTANTS_ONE_G});
 		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
-
-		// If the current velocity is beyond the usual constraints, tell
-		// the controller to exceptionally increase its saturations to avoid
-		// cutting out the feedforward
-		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_down);
-		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();

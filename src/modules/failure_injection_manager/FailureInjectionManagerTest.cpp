@@ -49,6 +49,7 @@ constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
+constexpr uint8_t TRAFFIC = failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE;
 
 constexpr uint8_t OK      = failure_injection_s::FAILURE_TYPE_OK;
 constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
@@ -75,8 +76,50 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// Traffic avoidance supports OFF (blind)
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OK));
+	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));
+	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(TRAFFIC, WRONG));
 	// Unimplemented units.
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL, OFF));
+}
+
+TEST(FailureTable, TrafficStuckIsRejectedWithoutChange)
+{
+	FailureTable table;
+	// The traffic picture is a queue of reports from several aircraft, so there is no
+	// single value to freeze: STUCK must NACK and leave the table untouched.
+	EXPECT_EQ(table.inject(TRAFFIC, STUCK, 0), AckResult::Unsupported);
+	EXPECT_FALSE(table.changed());
+	EXPECT_EQ(table.count(), 0);
+}
+
+TEST(FailureTable, TrafficOffIsAcceptedForAllInstances)
+{
+	FailureTable table;
+	EXPECT_EQ(table.inject(TRAFFIC, OFF, 0), AckResult::Accepted);
+	EXPECT_TRUE(table.changed());
+
+	failure_injection_s msg{};
+	table.fill(msg);
+	ASSERT_EQ(msg.count, 1);
+	EXPECT_EQ(msg.unit[0], TRAFFIC);
+	EXPECT_EQ(msg.failure_type[0], OFF);
+	// Both traffic consumers look the unit up with instance 0, which the config
+	// resolves as failure instance 1, so the entry has to cover it.
+	EXPECT_EQ(msg.instance_mask[0], 0xFFFF);
+}
+
+TEST(FailureTable, TrafficOkClearsOffEntry)
+{
+	FailureTable table;
+	ASSERT_EQ(table.inject(TRAFFIC, OFF, 0), AckResult::Accepted);
+	table.clearChanged();
+
+	EXPECT_EQ(table.inject(TRAFFIC, OK, 0), AckResult::Accepted);
+	EXPECT_TRUE(table.changed());
+	EXPECT_EQ(table.count(), 0);
 }
 
 TEST(FailureTable, UnsupportedIsRejectedWithoutChange)

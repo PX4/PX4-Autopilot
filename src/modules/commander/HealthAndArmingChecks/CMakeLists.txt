@@ -83,7 +83,7 @@ px4_add_library(health_and_arming_checks ${health_and_arming_checks_srcs})
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/esc_check_params.yaml)
 add_dependencies(health_and_arming_checks mode_util)
-target_link_libraries(health_and_arming_checks PRIVATE geo hysteresis)
+target_link_libraries(health_and_arming_checks PRIVATE geo hysteresis px4_platform)
 
 px4_add_functional_gtest(SRC HealthAndArmingChecksTest.cpp
 	LINKLIBS health_and_arming_checks mode_util

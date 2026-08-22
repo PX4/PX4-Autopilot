@@ -42,10 +42,14 @@ const char *const UavcanBatteryBridge::NAME = "battery";
 void UavcanBatteryBridge::publishBattery(int node_id, uint8_t instance)
 {
 	_failure_config.update();
-	const uint8_t id = _battery_status[instance].id;
-	failure_injection::process_battery(_failure_config, id > 0 ? id : instance + 1, _battery_status[instance]);
 
-	publish(node_id, &_battery_status[instance]);
+	battery_status_s battery_status = _battery_status[instance];
+
+	if (!failure_injection::process_battery(_failure_config, instance + 1, battery_status)) {
+		return;
+	}
+
+	publish(node_id, &battery_status);
 }
 
 UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :

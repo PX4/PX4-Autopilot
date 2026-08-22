@@ -84,9 +84,16 @@ void IIS2MDC::RunImpl()
 			int16_t x = int16_t((data.xout1 << 8) | data.xout0);
 			int16_t y = int16_t((data.yout1 << 8) | data.yout0);
 			int16_t z = -int16_t((data.zout1 << 8) | data.zout0);
-			int16_t t = int16_t((data.tout1 << 8) | data.tout0);
-			// 16 bits twos complement with a sensitivity of 8 LSB/°C. Typically, the output zero level corresponds to 25 °C.
-			_px4_mag.set_temperature(float(t) / 8.f + 25.f);
+			uint8_t temp[2] {};
+
+			// A burst read wraps around inside OUTX..OUTZ, so a read that runs on into
+			// TEMP_OUT_L/H returns OUTX again; the temperature needs its own transfer.
+			if (_interface->read(IIS2MDC_ADDR_TEMP_OUT_L_REG, temp, sizeof(temp)) == PX4_OK) {
+				int16_t t = int16_t((temp[1] << 8) | temp[0]);
+				// 8 LSB/°C, zero level at 25 °C
+				_px4_mag.set_temperature(float(t) / 8.f + 25.f);
+			}
+
 			_px4_mag.update(hrt_absolute_time(), x, y, z);
 			_px4_mag.set_error_count(perf_event_count(_comms_errors));
 			perf_count(_sample_count);
