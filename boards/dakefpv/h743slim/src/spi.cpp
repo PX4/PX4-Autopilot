@@ -38,7 +38,7 @@
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI1, {
-		// ICM-42688P IMU1: CS=PC9, DRDY=PD4, YAW_180 (rotation 4)
+		// ICM-42688P IMU1: CS=PC9, DRDY=PD4, PITCH_180 (rotation 12, see rc.board_sensors)
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortC, GPIO::Pin9}, SPI::DRDY{GPIO::PortD, GPIO::Pin4}),
 	}),
 	initSPIBus(SPI::Bus::SPI2, {
@@ -51,7 +51,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin3}),
 	}),
 	initSPIBus(SPI::Bus::SPI4, {
-		// ICM-42688P IMU2: CS=PB1, DRDY=PB2, YAW_270 (rotation 14)
+		// ICM-42688P IMU2: CS=PB1, DRDY=PB2, ROLL_180_YAW_270 (rotation 14, see rc.board_sensors)
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortB, GPIO::Pin1}, SPI::DRDY{GPIO::PortB, GPIO::Pin2}),
 	}),
 };
