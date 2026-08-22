@@ -1,0 +1,134 @@
+# DAKEFPV H743 Pro
+
+<Badge type="tip" text="PX4 v1.18" />
+
+::: warning
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](https://www.dakefpv.com/) for hardware support or compliance issues.
+:::
+
+The DAKEFPV H743 Pro is an STM32H743-based flight controller for FPV racing and freestyle with CAN bus support.
+It shares the same sensor suite as the [DAKEFPV H743](dakefpv_h743.md) and adds a CAN port with independent DShot timer groups for M5–M8.
+
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
+
+![DAKEFPV H743 Pro top](../../assets/flight_controller/dakefpv_h743pro/dakefpv_h743pro_top.png)
+![DAKEFPV H743 Pro bottom](../../assets/flight_controller/dakefpv_h743pro/dakefpv_h743pro_bottom.png)
+
+## Key Features
+
+- **MCU:** STM32H743 @ 480 MHz
+- **IMUs:** 2x ICM-42688P (SPI1 and SPI4, independent power supply)
+- **Barometer:** SPL06 on I2C2 (requires battery power)
+- **OSD:** AT7456E
+- **Blackbox storage:** 16 MB SPI NOR flash (no SD card slot)
+- **CAN:** 1x CAN port (PD0/PD1)
+- **UARTs:** 8
+- **PWM outputs:** 8x motor (DShot) + 4x servo + 1x LED
+- **Battery input:** 4S–12S LiPo
+- **BEC 5V:** 3A
+- **BEC 12V:** 3A (GPIO-controlled for VTX)
+- **Mounting:** 30.5 × 30.5 mm, M4
+
+## Where to Buy
+
+[DAKEFPV store](https://www.dakefpv.com/)
+
+## Wiring Diagram
+
+![DAKEFPV H743 Pro wiring top](../../assets/flight_controller/dakefpv_h743pro/dakefpv_h743pro_wiring_top.png)
+![DAKEFPV H743 Pro wiring bottom](../../assets/flight_controller/dakefpv_h743pro/dakefpv_h743pro_wiring_bottom.png)
+
+## Serial Port Mapping
+
+| UART   | Board pads | Device     | PX4 default    |
+| ------ | ---------- | ---------- | -------------- |
+| USART1 | T1/R1      | /dev/ttyS0 | GPS1           |
+| USART2 | T2/R2      | /dev/ttyS1 | TELEM1         |
+| USART3 | T3/R3      | /dev/ttyS2 | TELEM2         |
+| UART4  | T4/R4      | /dev/ttyS3 | TELEM3         |
+| UART5  | T5/R5      | /dev/ttyS4 | RC input       |
+| USART6 | T6/R6      | /dev/ttyS5 | TELEM4         |
+| UART7  | T7/R7      | /dev/ttyS6 | System console |
+| UART8  | T8/R8      | /dev/ttyS7 | GPS2           |
+
+::: warning
+The pads are silkscreened by UART number, so `T4`/`R4` is UART4 — which PX4 exposes as **TELEM3**, not TELEM4.
+The wiring diagram connects the digital VTX (DJI/HDZero/OpenIPC) to `T4`, so its PX4 port is TELEM3 (`MSP_OSD_CONFIG 103`).
+:::
+
+::: info
+UART4 (TELEM3) is on PB8/PB9 — PD0/PD1 are used by CAN1 on the Pro (on the non-Pro, UART4/TELEM3 is on PD0/PD1).
+:::
+
+## PWM Output Groups
+
+| Group | Outputs | Timer | DShot |
+| ----- | ------- | ----- | ----- |
+| 1     | M1–M4   | TIM2  | ✓     |
+| 2     | M5–M6   | TIM1  | ✓     |
+| 3     | M7–M8   | TIM8  | ✓     |
+| 4     | S1–S4   | TIM4  | ✓     |
+| 5     | LED     | TIM3  | ✗     |
+
+::: info
+M5–M6 and M7–M8 are in separate timer groups on the Pro, allowing independent DShot rates.
+On the non-Pro they share one group (TIM4).
+:::
+
+## RC Input
+
+RC input is on UART5 (`/dev/ttyS4`). Supported: CRSF/ELRS, SBUS, DSM, SRXL2.
+
+## OSD
+
+The AT7456E analog OSD is on SPI2 and is enabled by default for PAL
+([OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) = `2`).
+Set it to `1` for NTSC, or `0` to disable the analog OSD; a reboot is required.
+Analog OSD and digital HD OSD can run at the same time.
+
+The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `T4`/`R4` pads, which is UART4 — PX4 TELEM3 (`/dev/ttyS3`).
+This is the default: `MSP_OSD_CONFIG` is set to `103` (TELEM3).
+
+## CAN
+
+CAN1 is on PD0 (RX) and PD1 (TX) with a silent pin on PD2. Enable DroneCAN peripherals via the `UAVCAN_ENABLE` parameter.
+
+## PX4 Bootloader Update {#bootloader}
+
+The board ships with Betaflight. Flash the PX4 bootloader before loading PX4 firmware.
+
+Put the board in DFU mode (hold BOOT button while connecting USB), then:
+
+```sh
+dfu-util -a 0 -s 0x08000000:mass-erase:force:leave \
+  -D boards/dakefpv/h743pro/extras/dakefpv_h743pro_bootloader.bin
+```
+
+## Building Firmware
+
+```sh
+make dakefpv_h743pro_default
+```
+
+## Installing PX4 Firmware
+
+```sh
+make dakefpv_h743pro_default upload
+```
+
+## PX4 Configuration
+
+| Parameter                                                            | Setting                                                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | Disabled by default (no internal mag). Enable if an external mag is connected. |
+
+## Debug Port
+
+SWD pads are available on the board:
+
+- `SWDIO`: PA13
+- `SWCLK`: PA14
+- `GND`: GND pad
