@@ -232,7 +232,7 @@
 #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1                 /* PA7 */
 
 /* SPI2 (AT7456E OSD): PB13/PB14/PB15 */
-#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_3)  /* PB13 */
+#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_4)  /* PB13 */
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1                 /* PB14 */
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1                 /* PB15 */
 
