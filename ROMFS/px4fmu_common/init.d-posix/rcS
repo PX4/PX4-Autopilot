@@ -301,8 +301,8 @@ navigator start
 uxrce_dds_ns=""
 if [ "$px4_instance" -ne "0" ]
 then
-	# for multi intances setup, add namespace prefix
-	uxrce_dds_ns="-n px4_$px4_instance"
+	# for multi instances setup, add namespace prefix
+	uxrce_dds_ns="-n uav_$px4_instance"
 fi
 if [ "${PX4_UXRCE_DDS_NS+x}" ]; then
 	# Override, as variable is set (empty or not)
