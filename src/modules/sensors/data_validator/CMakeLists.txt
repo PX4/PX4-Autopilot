@@ -37,3 +37,15 @@ px4_add_library(data_validator
 	DataValidatorGroup.cpp
 	DataValidatorGroup.hpp
 )
+
+px4_add_functional_gtest(SRC tests/test_data_validator.cpp
+	EXTRA_SRCS tests/tests_common.cpp
+	LINKLIBS data_validator
+	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+px4_add_functional_gtest(SRC tests/test_data_validator_group.cpp
+	EXTRA_SRCS tests/tests_common.cpp
+	LINKLIBS data_validator
+	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}
+)

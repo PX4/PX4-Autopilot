@@ -171,7 +171,7 @@ public:
 	static constexpr uint32_t ERROR_FLAG_HIGH_ERRDENSITY = (0x00000001U << 4);
 
 	static const constexpr unsigned VALUE_EQUAL_COUNT_DEFAULT =
-		100; /**< if the sensor value is the same (accumulated also between axes) this many times, flag it */
+		100; /**< if every axis is unchanged for this many consecutive put() calls, flag the sensor as stale */
 
 private:
 	uint32_t _error_mask{ERROR_FLAG_NO_ERROR}; /**< sensor error state */

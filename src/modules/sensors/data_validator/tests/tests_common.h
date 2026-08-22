@@ -34,7 +34,7 @@
 #ifndef ECL_TESTS_COMMON_H
 #define ECL_TESTS_COMMON_H
 
-#include <validation/data_validator.h>
+#include "DataValidator.hpp"
 
 /**
  * Insert a series of samples around a mean value

@@ -64,6 +64,8 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_
 	_error_count = error_count_in;
 	_priority = priority_in;
 
+	bool any_axis_changed = false;
+
 	for (unsigned i = 0; i < dimensions; i++) {
 		if (PX4_ISFINITE(val[i])) {
 			if (_time_last == 0) {
@@ -79,11 +81,8 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_
 				_M2[i] += delta_val * (lp_val - _mean[i]);
 				_rms[i] = sqrtf(_M2[i] / (_event_count - 1));
 
-				if (fabsf(_value[i] - val[i]) < 0.000001f) {
-					_value_equal_count++;
-
-				} else {
-					_value_equal_count = 0;
+				if (fabsf(_value[i] - val[i]) >= 0.000001f) {
+					any_axis_changed = true;
 				}
 			}
 
@@ -91,6 +90,15 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_
 			_lp[i] = _lp[i] * 0.99f + 0.01f * val[i];
 
 			_value[i] = val[i];
+		}
+	}
+
+	if (_time_last != 0) {
+		if (!any_axis_changed) {
+			_value_equal_count++;
+
+		} else {
+			_value_equal_count = 0;
 		}
 	}
 
