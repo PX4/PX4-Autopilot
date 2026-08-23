@@ -45,20 +45,6 @@ static constexpr bool IsSupportedWhoAmI(uint8_t whoami)
 	return (whoami == WHO_AM_I_ID) || (whoami == WHO_AM_I_DSK320X) || (whoami == WHO_AM_I_HIGHG);
 }
 
-// High-g full-scale, pinned at each variant's top range. On the parts that have a high-g channel it
-// is the accelerometer the driver publishes, always. A FIFO batch carries one scale factor for the
-// whole batch, so there is no way to hand over between channels without restating the scale of
-// samples that were already taken; and the low-g channel's finer resolution is not what a part
-// chosen for its high-g range is for. Sensitivities are taken verbatim from the datasheet.
-//
-// LSM6DSV80X (datasheet DS14764 Table 3): FS_XL_HG=010 -> ±80 g, 3.904 mg/LSB.
-static constexpr HighGFullScale HIGH_G_FS_DSV80X{0x02, 80, 3.904f};
-
-// LSM6DSV320X (datasheet DS14623 Table 150 full-scale + Table 3 sensitivity): FS_XL_HG=100 ->
-// ±320 g, 10.417 mg/LSB. The two parts share WHO_AM_I 0x73 and are selected explicitly at start
-// (see WHO_AM_I_HIGHG); codes above 010 are reserved on the 80X.
-static constexpr HighGFullScale HIGH_G_FS_DSV320X{0x04, 320, 10.417f};
-
 LSM6DSV::LSM6DSV(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
@@ -161,8 +147,8 @@ void LSM6DSV::print_status()
 	PX4_INFO("Sensor ODR: %u Hz (HAODR), FIFO sample dt: %.1f us, %u words/period",
 		 (unsigned)_sensor_odr, (double)_fifo_sample_dt, (unsigned)_fifo_words_per_period);
 
-	if (_high_g_enabled) {
-		PX4_INFO("Accel channel: high-g, full-scale +/-%u g", (unsigned)_hg_fs->range_g);
+	if (_dsv80x_family) {
+		PX4_INFO("Accel channel: low-g, full-scale +/-16 g (high-g channel unused)");
 	}
 
 	perf_print_counter(_bad_transfer_perf);
@@ -337,7 +323,7 @@ void LSM6DSV::RunImpl()
 
 			} else {
 				// FIFO unread word count: 9-bit field (FIFO_STATUS2 bit0 is bit8)
-				// Each sample period produces _fifo_words_per_period words (gyro + one accel channel)
+				// Each sample period produces _fifo_words_per_period words (gyro + accel)
 				uint16_t fifo_words = fifo_status.STATUS1;
 
 				if (fifo_status.STATUS2 & static_cast<uint8_t>(FIFO_STATUS2_BIT::DIFF_FIFO_8)) {
@@ -409,32 +395,13 @@ void LSM6DSV::ConfigureSampleRate(int sample_rate)
 
 void LSM6DSV::UpdateVariantRegisterConfig()
 {
-	// Select the high-g full-scale for this variant (nullptr = no high-g channel)
-	switch (_device_variant) {
-	case DeviceVariant::LSM6DSV80X:
-		_hg_fs = &HIGH_G_FS_DSV80X;
-		break;
+	_dsv80x_family = (_device_variant == DeviceVariant::LSM6DSV80X)
+			 || (_device_variant == DeviceVariant::LSM6DSV320X);
 
-	case DeviceVariant::LSM6DSV320X:
-		_hg_fs = &HIGH_G_FS_DSV320X;
-		break;
+	// the 80X / 320X run the 7.68 kHz HAODR set (HAODR_SEL=00)
+	_sensor_odr = _dsv80x_family ? ODR_DSV80X : GYRO_ODR;
 
-	default:
-		_hg_fs = nullptr;
-		break;
-	}
-
-	_high_g_enabled = (_hg_fs != nullptr);
-
-	if (_high_g_enabled) {
-		// 7.68 kHz (HAODR_SEL=00), batching the high-g channel in place of the low-g one
-		_sensor_odr = GYRO_ODR_HIGHG;
-
-	} else {
-		_sensor_odr = GYRO_ODR;
-	}
-
-	_fifo_words_per_period = 2; // gyro + the published accel channel
+	_fifo_words_per_period = 2; // gyro + low-g accel
 
 	_fifo_sample_dt = 1e6f / (float)_sensor_odr;
 
@@ -465,7 +432,7 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 			break;
 
 		case Register::HAODR_CFG: // HAODR ODR set selection
-			if (_high_g_enabled) {
+			if (_dsv80x_family) {
 				r.set_bits = 0;                              // HAODR_SEL=00 (1920/3840/7680 Hz set)
 				r.clear_bits = HAODR_CFG_BIT::HAODR_SEL_MASK;
 
@@ -477,46 +444,21 @@ void LSM6DSV::UpdateVariantRegisterConfig()
 			break;
 
 		case Register::CTRL1: // accelerometer ODR + high-accuracy ODR mode
-			r.set_bits = _high_g_enabled
+			r.set_bits = _dsv80x_family
 				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL1_BIT::CTRL1_MODE_HAODR)
 				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR);
 			break;
 
 		case Register::CTRL2: // gyroscope ODR + high-accuracy ODR mode
-			r.set_bits = _high_g_enabled
+			r.set_bits = _dsv80x_family
 				     ? static_cast<uint8_t>(HAODR_SEL0_ODR_7680HZ | CTRL2_BIT::CTRL2_MODE_HAODR)
 				     : static_cast<uint8_t>(HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR);
 			break;
 
-		case Register::FIFO_CTRL3: // FIFO batch data rate (accel + gyro)
-
-			// The high-g channel batches at its own ODR under XL_HG_BATCH_EN, so the low-g channel
-			// is left unbatched (BDR_XL = 0) where the high-g one is published.
-			if (_high_g_enabled) {
-				r.set_bits = static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680);
-				r.clear_bits = static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_XL_MASK);
-
-			} else {
-				r.set_bits = static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
-			}
-
-			break;
-
-		case Register::COUNTER_BDR_REG1: // high-g FIFO batching
-			r.set_bits = _high_g_enabled ? static_cast<uint8_t>(COUNTER_BDR_REG1_BIT::XL_HG_BATCH_EN) : 0;
-			break;
-
-		case Register::CTRL1_XL_HG: // high-g ODR + full-scale
-			if (_high_g_enabled) {
-				const uint8_t val = static_cast<uint8_t>(CTRL1_XL_HG_BIT::ODR_XL_HG_7680 | _hg_fs->fs_code);
-				r.set_bits = val;
-				r.clear_bits = static_cast<uint8_t>(~val); // the whole register is ours, so check every bit
-
-			} else {
-				r.set_bits = 0;
-				r.clear_bits = 0;
-			}
-
+		case Register::FIFO_CTRL3: // FIFO batch data rate (gyro + low-g accel)
+			r.set_bits = _dsv80x_family
+				     ? static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_7680 | FIFO_CTRL3_BIT::BDR_XL_7680)
+				     : static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_GY_HAODR | FIFO_CTRL3_BIT::BDR_XL_HAODR);
 			break;
 
 		default:
@@ -546,24 +488,20 @@ bool LSM6DSV::Configure()
 
 	// Scale and range are set once here and never touched again, so every published batch carries
 	// the same scale factor.
-	if (_high_g_enabled) {
+	if (_dsv80x_family) {
 		// Gyroscope: ±4000 dps, 140 mdps/LSB (ST datasheet) — LSM6DSV80X / LSM6DSV320X
 		_px4_gyro.set_scale(math::radians(140.f / 1000.f));
 		_px4_gyro.set_range(math::radians(4000.f));
-
-		// Accelerometer: the high-g channel
-		_px4_accel.set_scale(_hg_fs->scale_mg_per_lsb * (CONSTANTS_ONE_G / 1000.f));
-		_px4_accel.set_range(_hg_fs->range_g * CONSTANTS_ONE_G);
 
 	} else {
 		// Gyroscope: ±2000 dps, 70 mdps/LSB (ST datasheet)
 		_px4_gyro.set_scale(math::radians(70.f / 1000.f));
 		_px4_gyro.set_range(math::radians(2000.f));
-
-		// Accelerometer: ±16g, 0.488 mg/LSB (ST datasheet)
-		_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 	}
+
+	// Accelerometer (low-g on every variant): ±16 g, 0.488 mg/LSB (ST datasheet)
+	_px4_accel.set_scale(0.488f * (CONSTANTS_ONE_G / 1000.f));
+	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 
 	return success;
 }
@@ -639,9 +577,6 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 	accel.samples = 0;
 	accel.dt = _fifo_sample_dt;
 
-	// On the 80X / 320X the high-g channel is the accelerometer and the only one batched
-	const uint8_t accel_tag = static_cast<uint8_t>(_high_g_enabled ? FifoTag::ACCEL_HG : FifoTag::ACCEL_NC);
-
 	// set if the tag stream carries more samples of a channel than the drain should have produced
 	bool tag_mismatch = false;
 
@@ -670,7 +605,7 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t words)
 			gyro.z[gyro.samples] = data_z;
 			gyro.samples++;
 
-		} else if (tag_id == accel_tag) {
+		} else if (tag_id == static_cast<uint8_t>(FifoTag::ACCEL_NC)) {
 			if (accel.samples >= FIFO_MAX_SAMPLES) {
 				tag_mismatch = true;
 				break;
@@ -779,7 +714,7 @@ bool LSM6DSV::DataReadyInterruptDisable()
 
 void LSM6DSV::ConfigureFIFOWatermark(uint8_t samples)
 {
-	// _fifo_words_per_period FIFO words per sample period (gyro + one accel channel).
+	// _fifo_words_per_period FIFO words per sample period (gyro + accel).
 	// WTM is the 8-bit FIFO_CTRL1 field; samples is capped at FIFO_MAX_SAMPLES (32) so this fits.
 	const uint8_t fifo_watermark = samples * _fifo_words_per_period;
 

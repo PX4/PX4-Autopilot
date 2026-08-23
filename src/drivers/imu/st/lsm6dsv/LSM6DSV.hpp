@@ -103,9 +103,10 @@ private:
 	// this size, and reusing it avoids re-zeroing memory that transfer() overwrites anyway
 	FIFOTransferBuffer _fifo_buffer{};
 
-	// Sensor ODR and FIFO layout are variant-dependent (set in UpdateVariantRegisterConfig()):
-	//   default (16X/32X/DSK320X): 2000 Hz, 2 FIFO words/period (gyro + low-g)
-	//   LSM6DSV80X / 320X:         7680 Hz, 2 FIFO words/period (gyro + high-g)
+	// Sensor ODR is variant-dependent (set in UpdateVariantRegisterConfig()):
+	//   default (16X/32X/DSK320X): 2000 Hz
+	//   LSM6DSV80X / 320X:         7680 Hz
+	// Every variant batches 2 FIFO words per period: gyro + low-g accel.
 	uint32_t _sensor_odr{GYRO_ODR};
 	float    _fifo_sample_dt{1e6f / GYRO_ODR};
 	uint8_t  _fifo_words_per_period{2};
@@ -180,19 +181,18 @@ private:
 	// 320 -> LSM6DSV320X, anything else (incl. 80 / unset) -> LSM6DSV80X.
 	const int _highg_variant_arg;
 
-	// High-g accelerometer (LSM6DSV80X / LSM6DSV320X): the published accelerometer on those parts,
-	// pinned at the variant's top full-scale (see HIGH_G_FS_DSV80X / HIGH_G_FS_DSV320X).
-	bool _high_g_enabled{false};
-	const HighGFullScale *_hg_fs{nullptr};
+	// LSM6DSV80X / LSM6DSV320X: 7.68 kHz HAODR set and a ±4000 dps gyro. Their second, high-g
+	// accelerometer is left powered down: the ±16 g low-g channel is the published one on every
+	// variant. The high-g element is a sports-impact sensor (±1.5 g typ zero-g offset, ±2 mg/°C
+	// tempco against ±12 mg / ±0.07 mg/°C for low-g) and is no use as a flight accelerometer.
+	bool _dsv80x_family{false};
 
 	uint16_t _fifo_empty_interval_us{500}; // default 500 us / 2000 Hz
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_ODR))};
 
-	static constexpr uint8_t size_register_cfg{14};
-	// Variant-dependent fields (HAODR_CFG, CTRL1/2/6/8, FIFO_CTRL3, COUNTER_BDR_REG1,
-	// CTRL1_XL_HG) are overwritten in UpdateVariantRegisterConfig(); initializers below are
-	// the default-variant (2000 Hz, no high-g) values. The high-g entries are no-ops
-	// (set/clear = 0) unless enabled for the LSM6DSV80X.
+	static constexpr uint8_t size_register_cfg{12};
+	// Variant-dependent fields (HAODR_CFG, CTRL1/2/6/8, FIFO_CTRL3) are overwritten in
+	// UpdateVariantRegisterConfig(); initializers below are the default-variant (2000 Hz) values.
 	//
 	// Configure() writes these in array order, and the order is significant: FS_G (CTRL6) must be
 	// set while the gyro is in power-down, and the reset default FS_G=000 is reserved on the 80X /
@@ -214,8 +214,6 @@ private:
 			static_cast<uint8_t>(FIFO_CTRL3_BIT::BDR_XL_HAODR),      0
 		},
 		{ Register::FIFO_CTRL4,     FIFO_CTRL4_BIT::FIFO_MODE_CONTINUOUS,                    0 },
-		{ Register::COUNTER_BDR_REG1, 0, 0 }, // XL_HG_BATCH_EN set per-variant (80X high-g)
-		{ Register::CTRL1_XL_HG,    0, 0 }, // high-g ODR+FS set per-variant (80X high-g)
 		{ Register::CTRL1,          HAODR_MODE1_ODR_2000HZ | CTRL1_BIT::CTRL1_MODE_HAODR,    0 },
 		{ Register::CTRL2,          HAODR_MODE1_ODR_2000HZ | CTRL2_BIT::CTRL2_MODE_HAODR,    0 },
 	};
