@@ -35,6 +35,7 @@ pageClass: is-wide-page
 | <a id="fld_throttle_trim"></a>throttle_trim                                                                                              | `float32` |                                                                  |            | estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions |
 | <a id="fld_underspeed_ratio"></a>underspeed_ratio                                                                                        | `float32` |                                                                  |            | 0: no underspeed, 1: maximal underspeed. Controller takes measures to avoid stall proportional to ratio if >0.                                     |
 | <a id="fld_fast_descend_ratio"></a>fast_descend_ratio                                                               | `float32` |                                                                  |            | value indicating if fast descend mode is enabled with ramp up and ramp down [0-1]                                                                              |
+| <a id="fld_weight_ratio"></a>weight_ratio                                                                                                | `float32` |                                                                  |            | Ratio of estimated vehicle weight to WEIGHT_BASE. Accounts for burned fuel if fuel-based weight compensation is enabled.                                      |
 
 ## Source Message
 
@@ -75,6 +76,8 @@ float32 throttle_trim			# estimated throttle value [0,1] required to fly level a
 
 float32 underspeed_ratio		# 0: no underspeed, 1: maximal underspeed. Controller takes measures to avoid stall proportional to ratio if >0.
 float32 fast_descend_ratio 		#  value indicating if fast descend mode is enabled with ramp up and ramp down [0-1]
+
+float32 weight_ratio # [-] Ratio of estimated vehicle weight to WEIGHT_BASE. Accounts for burned fuel if fuel-based weight compensation is enabled.
 ```
 
 :::
