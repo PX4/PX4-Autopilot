@@ -34,8 +34,8 @@ lis3mdl -X -b 2 -R 2 start
 # Lights on SPI1 (SD card on SPI2)
 rgbled_apa102 start -S -b 1
 
-# Disable startup of internal baros if param is set to false
-if param compare SENS_INT_BARO_EN 1
+# Internal baro, not populated on MR-CANHUBK3-ADAP
+if ! ver hwtypecmp MR-CANHUBK3-ADAP
 then
 	bmp388 -X -a 0x77 start
 fi
