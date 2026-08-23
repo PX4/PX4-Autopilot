@@ -12,7 +12,7 @@
 # LPUART6       /dev/ttyS4      PX4IO
 # LPUART8       /dev/ttyS5      TELEM2
 # LPUART10      /dev/ttyS6      TELEM3
-# LPUART11      /dev/ttyS7      EXT2
+# LPUART11      /dev/ttyS7      TELEM4
 #
 #------------------------------------------------------------------------------
 
