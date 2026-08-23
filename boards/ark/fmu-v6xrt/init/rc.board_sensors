@@ -89,4 +89,10 @@ then
 	bmp388 -X -b 2 start
 fi
 
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start -X
+fi
+
 unset HAVE_PM2
