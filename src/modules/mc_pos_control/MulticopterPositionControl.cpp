@@ -536,10 +536,27 @@ void MulticopterPositionControl::Run()
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
 			}
 
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
+			float limit_speed_up = math::min(speed_up,
+							 _param_mpc_z_vel_max_up.get()); // takeoff ramp starts with negative velocity limit
+			float limit_speed_down = math::max(speed_down, 0.f);
+
+			if (_vehicle_constraints.emergency_braking) {
+				// Don't clamp the braking setpoint: the acceleration feedforward describes the unclamped
+				// ramp, so clamping the velocity inverts the error once the vehicle overtakes it.
+				// Only the direction of travel is raised.
+				const Vector2f velocity_setpoint_xy(_setpoint.velocity);
+
+				if (velocity_setpoint_xy.isAllFinite()) {
+					max_speed_xy = math::max(max_speed_xy, velocity_setpoint_xy.norm());
+				}
+
+				if (PX4_ISFINITE(_setpoint.velocity[2])) {
+					limit_speed_up = math::max(limit_speed_up, -_setpoint.velocity[2]);
+					limit_speed_down = math::max(limit_speed_down, _setpoint.velocity[2]);
+				}
+			}
+
+			_control.setVelocityLimits(max_speed_xy, limit_speed_up, limit_speed_down);
 
 			_control.setInputSetpoint(_setpoint);
 
@@ -585,7 +602,7 @@ void MulticopterPositionControl::Run()
 				// Still failing / not within timeout - Go to failsafe
 				if (!_control.update(dt)) {
 
-					_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
+					_vehicle_constraints = {0, NAN, NAN, false, false, {}}; // reset constraints
 
 					_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
 					_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
