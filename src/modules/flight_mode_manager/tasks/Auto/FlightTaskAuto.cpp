@@ -180,6 +180,7 @@ bool FlightTaskAuto::update()
 	}
 
 	_checkEmergencyBraking();
+	_constraints.emergency_braking = _is_emergency_braking_active;
 	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 
 	if (_type == WaypointType::position && _hasPassedCurrentWaypoint()) {
@@ -198,9 +199,8 @@ bool FlightTaskAuto::update()
 	_updateTrajConstraints();
 
 	if (_is_emergency_braking_active) {
-		// Re-seed the trajectory to the measured state every cycle so controller saturation doesn't
-		// cause a velocity error inversion during emergency braking.
-		_position_smoothing.forceSetVelocity(_velocity);
+		// Keep the trajectory position on the vehicle so the position error doesn't get corrected at
+		// the expense of the braking feedforward.
 		_position_smoothing.forceSetPosition(_position);
 	}
 
@@ -732,9 +732,9 @@ void FlightTaskAuto::_checkEmergencyBraking()
 
 	} else {
 		// Deactivate emergency braking once slow enough for ordinary guidance to finish the stop.
-		// Must clear velocity estimate noise, otherwise braking latches and guidance never resumes.
-		if (math::isInRange(_position_smoothing.getCurrentVelocityZ(), -1.f, 1.f)
-		    && !_position_smoothing.getCurrentVelocityXY().longerThan(1.f)) {
+		// Check the measured velocity since the trajectory reaches zero well before the vehicle does.
+		if (math::isInRange(_velocity(2), -1.f, 1.f)
+		    && !Vector2f(_velocity).longerThan(1.f)) {
 			_is_emergency_braking_active = false;
 		}
 	}
