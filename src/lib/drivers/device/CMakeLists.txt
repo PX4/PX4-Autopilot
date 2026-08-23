@@ -54,6 +54,7 @@ endif()
 
 px4_add_library(drivers__device
 	CDev.cpp
+	Device.cpp
 	${SRCS_PLATFORM}
 	)
 

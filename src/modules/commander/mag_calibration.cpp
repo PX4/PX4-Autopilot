@@ -513,7 +513,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		}
 
 		if ((mag_data.device_id != 0) && (mag_data.timestamp > 0)) {
-			worker_data.calibration[cur_mag].set_device_id(mag_data.device_id);
+			worker_data.calibration[cur_mag].set_device_id(mag_data.device_id, mag_data.is_external);
 		}
 
 		// reset calibration index to match uORB numbering
@@ -1081,7 +1081,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 			if (mag_sub.advertised() && (mag.timestamp != 0) && (mag.device_id != 0)) {
 
-				calibration::Magnetometer cal{mag.device_id};
+				calibration::Magnetometer cal{mag.device_id, mag.is_external};
 
 				// use any existing scale and store the offset to the expected earth field
 				const Vector3f offset = Vector3f{mag.x, mag.y, mag.z} - (cal.scale().I() * cal.rotation().transpose() * expected_field);

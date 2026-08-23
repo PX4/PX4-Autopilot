@@ -68,12 +68,28 @@ static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
 
 PX4Accelerometer::PX4Accelerometer(uint32_t device_id, enum Rotation rotation) :
 	_device_id{device_id},
-	_rotation{rotation}
+	_rotation{rotation},
+	_is_external{device::device_is_external(device_id)}
 {
 	// advertise immediately to keep instance numbering in sync
 	_sensor_pub.advertise();
 
 	param_get(param_find("IMU_GYRO_RATEMAX"), &_imu_gyro_rate_max);
+}
+
+void PX4Accelerometer::set_device_id(uint32_t device_id)
+{
+	_device_id = device_id;
+
+	if (!_external_forced) {
+		_is_external = device::device_is_external(device_id);
+	}
+}
+
+void PX4Accelerometer::set_external(bool external)
+{
+	_is_external = external;
+	_external_forced = true;
 }
 
 PX4Accelerometer::~PX4Accelerometer()
@@ -121,6 +137,7 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id;
+	report.is_external = _is_external;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
 	report.x = x * _scale;
@@ -168,6 +185,7 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	sensor_accel_s report;
 	report.timestamp_sample = sample.timestamp_sample;
 	report.device_id = _device_id;
+	report.is_external = _is_external;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
 

@@ -53,12 +53,6 @@ __EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS]; ///< b
 __EXPORT bool px4_i2c_bus_external(int bus);
 
 /**
- * runtime-check if a board has a specific device as external.
- * This can be overridden by a board to add run-time checks.
- */
-__EXPORT bool px4_i2c_device_external(const uint32_t device_id);
-
-/**
  * @class I2CBusIterator
  * Iterate over configured I2C buses by the board
  */

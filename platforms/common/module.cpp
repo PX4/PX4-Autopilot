@@ -143,6 +143,13 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG()
 #endif
 }
 
+void PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG()
+{
+#ifndef CONSTRAINED_FLASH_NO_HELP
+	PRINT_MODULE_USAGE_PARAM_FLAG('O', "sensor is onboard the FMU (internal even on an external bus)", true);
+#endif
+}
+
 void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
 				  const char *description, bool is_optional)
 {

@@ -42,6 +42,7 @@ void ADIS16448::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -51,6 +52,7 @@ extern "C" int adis16448_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = ADIS16448;
 	BusCLIArguments cli{false, true};
+	cli.support_onboard = true;
 	cli.default_spi_frequency = SPI_SPEED;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {

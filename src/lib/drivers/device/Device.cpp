@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,75 +31,45 @@
  *
  ****************************************************************************/
 
+#include "Device.hpp"
 
-#include "PX4Magnetometer.hpp"
+#include <px4_platform_common/i2c.h>
+#include <px4_platform_common/spi.h>
 
-#include <lib/drivers/device/Device.hpp>
-
-PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation) :
-	_device_id{device_id},
-	_rotation{rotation},
-	_is_external{device::device_is_external(device_id)}
+namespace device
 {
-}
 
-void PX4Magnetometer::set_device_id(uint32_t device_id)
+bool device_is_external(uint32_t device_id)
 {
-	_device_id = device_id;
+	Device::DeviceId id{};
+	id.devid = device_id;
 
-	if (!_external_forced) {
-		_is_external = device::device_is_external(device_id);
-	}
-}
+	switch (id.devid_s.bus_type) {
+	case Device::DeviceBusType_I2C:
+#if defined(CONFIG_I2C)
+		return px4_i2c_bus_external(id.devid_s.bus);
+#else
+		return true;
+#endif // CONFIG_I2C
 
-void PX4Magnetometer::set_external(bool external)
-{
-	_is_external = external;
-	_external_forced = true;
-}
+	case Device::DeviceBusType_SPI:
+#if defined(CONFIG_SPI)
+		return px4_spi_bus_external(id.devid_s.bus);
+#else
+		return true;
+#endif // CONFIG_SPI
 
-PX4Magnetometer::~PX4Magnetometer()
-{
-	_sensor_pub.unadvertise();
-}
+	case Device::DeviceBusType_SIMULATION:
+		return false;
 
-void PX4Magnetometer::set_device_type(uint8_t devtype)
-{
-	// current DeviceStructure
-	union device::Device::DeviceId device_id;
-	device_id.devid = _device_id;
-
-	// update to new device type
-	device_id.devid_s.devtype = devtype;
-
-	// copy back
-	_device_id = device_id.devid;
-}
-
-void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
-{
-	sensor_mag_s report;
-	report.timestamp_sample = timestamp_sample;
-	report.device_id = _device_id;
-	report.is_external = _is_external;
-	report.temperature = _temperature;
-	report.error_count = _error_count;
-
-	// Apply rotation (before scaling)
-	rotate_3f(_rotation, x, y, z);
-
-	report.x = x * _scale;
-	report.y = y * _scale;
-	report.z = z * _scale;
-
-	report.timestamp = hrt_absolute_time();
-
-	_failure_config.update();
-
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_MAG,
-					_sensor_pub.get_instance(), report, _stuck)) {
-		return;
+	case Device::DeviceBusType_UAVCAN:
+	case Device::DeviceBusType_SERIAL:
+	case Device::DeviceBusType_MAVLINK:
+	case Device::DeviceBusType_UNKNOWN:
+		return true;
 	}
 
-	_sensor_pub.publish(report);
+	return true;
 }
+
+} // namespace device

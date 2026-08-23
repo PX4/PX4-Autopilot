@@ -50,6 +50,9 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPI
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
+	_px4_baro.set_external(config.external);
+	_interface->set_external(config.external);
+
 	switch (config.devid_driver_index) {
 	case DRV_BARO_DEVTYPE_MS5611:
 		_device_type = MS5611_DEVICE;

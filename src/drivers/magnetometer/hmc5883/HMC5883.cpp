@@ -48,6 +48,8 @@ HMC5883::HMC5883(device::Device *interface, const I2CSPIDriverConfig &config) :
 	_temperature_counter(0),
 	_temperature_error_count(0)
 {
+	_px4_mag.set_external(config.external);
+	_interface->set_external(config.external);
 }
 
 HMC5883::~HMC5883()

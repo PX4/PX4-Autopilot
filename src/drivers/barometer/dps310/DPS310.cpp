@@ -53,6 +53,8 @@ DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
 {
+	_px4_baro.set_external(config.external);
+	_interface->set_external(config.external);
 }
 
 DPS310::~DPS310()

@@ -13,4 +13,4 @@ bmi088 -s -b 4 -A -R 2 start
 bmi088 -s -b 4 -G -R 2 start
 
 # internal baro
-spl06 -X -a 0x77 start
+spl06 -X -a 0x77 -O start

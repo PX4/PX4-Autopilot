@@ -43,6 +43,7 @@ void IST8310::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x0E);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -52,6 +53,7 @@ extern "C" int ist8310_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = IST8310;
 	BusCLIArguments cli{true, false};
+	cli.support_onboard = true;
 	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 	cli.default_i2c_frequency = I2C_SPEED;
 

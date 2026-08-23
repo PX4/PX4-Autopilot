@@ -52,8 +52,9 @@ public:
 
 	int32_t get_max_rate_hz() const { return math::constrain(_imu_gyro_rate_max, static_cast<int32_t>(100), static_cast<int32_t>(4000)); }
 
-	void set_device_id(uint32_t device_id) { _device_id = device_id; }
+	void set_device_id(uint32_t device_id);
 	void set_device_type(uint8_t devtype);
+	void set_external(bool external);
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
 	void set_range(float range) { _range = range; UpdateClipLimit(); }
 	void set_scale(float scale);
@@ -73,6 +74,9 @@ private:
 
 	uint32_t		_device_id{0};
 	const enum Rotation	_rotation;
+
+	bool			_is_external{false};
+	bool			_external_forced{false}; // classification set by the driver, do not re-derive from the device id
 
 	int32_t			_imu_gyro_rate_max{0}; // match gyro max rate
 

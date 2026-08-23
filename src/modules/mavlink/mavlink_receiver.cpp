@@ -2605,6 +2605,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_baro_s sensor_baro{};
 		sensor_baro.timestamp_sample = timestamp;
 		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		sensor_baro.is_external = false;
 		sensor_baro.pressure = hil_sensor.abs_pressure * 100.0f; // hPa to Pa
 		sensor_baro.temperature = hil_sensor.temperature;
 		sensor_baro.error_count = 0;

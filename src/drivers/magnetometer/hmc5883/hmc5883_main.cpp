@@ -94,6 +94,7 @@ void HMC5883::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('T', "Enable temperature compensation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -104,6 +105,7 @@ extern "C" int hmc5883_main(int argc, char *argv[])
 	using ThisDriver = HMC5883;
 	int ch;
 	BusCLIArguments cli{true, true};
+	cli.support_onboard = true;
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 11 * 1000 * 1000;
 

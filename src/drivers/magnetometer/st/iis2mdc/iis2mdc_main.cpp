@@ -71,6 +71,7 @@ void IIS2MDC::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x1E);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ONBOARD_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -79,6 +80,7 @@ extern "C" int iis2mdc_main(int argc, char *argv[])
 	using ThisDriver = IIS2MDC;
 	int ch;
 	BusCLIArguments cli{true, false};
+	cli.support_onboard = true;
 	cli.i2c_address = 0x1E;
 	cli.default_i2c_frequency = 400000;
 

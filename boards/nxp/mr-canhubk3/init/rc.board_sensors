@@ -37,5 +37,5 @@ rgbled_apa102 start -S -b 1
 # Internal baro, not populated on MR-CANHUBK3-ADAP
 if ! ver hwtypecmp MR-CANHUBK3-ADAP
 then
-	bmp388 -X -a 0x77 start
+	bmp388 -X -a 0x77 -O start
 fi

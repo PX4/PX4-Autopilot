@@ -45,7 +45,10 @@ IIS2MDC::IIS2MDC(device::Device *interface, const I2CSPIDriverConfig &config) :
 	_px4_mag(interface->get_device_id(), config.rotation),
 	_sample_count(perf_alloc(PC_COUNT, "iis2mdc_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "iis2mdc_comms_errors"))
-{}
+{
+	_px4_mag.set_external(config.external);
+	_interface->set_external(config.external);
+}
 
 IIS2MDC::~IIS2MDC()
 {

@@ -33,4 +33,4 @@
 
 px4_add_library(drivers_barometer PX4Barometer.cpp)
 
-target_link_libraries(drivers_barometer PRIVATE failure_injection)
+target_link_libraries(drivers_barometer PRIVATE drivers__device failure_injection)

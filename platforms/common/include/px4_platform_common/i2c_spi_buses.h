@@ -93,6 +93,8 @@ struct I2CSPIDriverConfig {
 
 	Rotation rotation;
 
+	bool external; ///< sensor classification: false if onboard the FMU, independent of the bus
+
 	bool quiet_start;
 	bool keep_running;
 
@@ -172,6 +174,7 @@ public:
 #endif // CONFIG_I2C
 	bool quiet_start {false}; ///< do not print a message when startup fails
 	bool keep_running{false}; ///< keep driver running even if no device is detected on startup
+	bool onboard{false}; ///< sensor is onboard the FMU: classify internal even on an external bus
 
 	Rotation rotation{ROTATION_NONE}; ///< sensor rotation (MAV_SENSOR_ROTATION_* or distance_sensor_s::ROTATION_*)
 
@@ -188,6 +191,7 @@ public:
 #endif // CONFIG_I2C
 
 	bool support_keep_running{false}; ///< true if keep_running (see above) is supported
+	bool support_onboard{false}; ///< true if the driver applies onboard (see above) to its sensor classification
 
 private:
 	bool validateConfiguration();

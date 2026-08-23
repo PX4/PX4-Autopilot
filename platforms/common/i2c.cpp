@@ -50,16 +50,6 @@ bool px4_i2c_bus_external(int bus)
 }
 #endif // BOARD_OVERRIDE_I2C_BUS_EXTERNAL
 
-#ifndef BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
-#include <drivers/device/Device.hpp>
-bool px4_i2c_device_external(const uint32_t device_id)
-{
-	device::Device::DeviceId dev_id{};
-	dev_id.devid = device_id;
-	return px4_i2c_bus_external(dev_id.devid_s.bus);
-}
-#endif // BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
-
 bool I2CBusIterator::next()
 {
 	while (++_index < I2C_BUS_MAX_BUS_ITEMS && px4_i2c_buses[_index].bus != -1) {

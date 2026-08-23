@@ -82,6 +82,7 @@ I2CSPIDriverConfig::I2CSPIDriverConfig(const BusCLIArguments &cli, const BusInst
 #endif // CONFIG_SPI
 	  bus_device_index(iterator.busDeviceIndex()),
 	  rotation(cli.rotation),
+	  external(cli.onboard ? false : iterator.external()),
 	  quiet_start(cli.quiet_start),
 	  keep_running(cli.keep_running),
 	  custom1(cli.custom1),
@@ -141,6 +142,10 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 		*(p++) = 'b'; *(p++) = ':'; // bus
 		*(p++) = 'f'; *(p++) = ':'; // frequency
 		*(p++) = 'q'; // quiet flag
+
+		if (support_onboard) {
+			*(p++) = 'O'; // onboard (internal sensor classification)
+		}
 
 		// copy all options
 		const char *option = options;
@@ -222,6 +227,10 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 		case 'q':
 			quiet_start = true;
+			break;
+
+		case 'O':
+			onboard = true;
 			break;
 
 		case 'k':
