@@ -5,6 +5,8 @@
 
 set LOGGER_BUF 128
 
+param set-default EKF2_MULTI_IMU 0
+
 # Mavlink ethernet (CFG 1000)
 param set-default MAV_2_CONFIG 1000
 param set-default MAV_2_BROADCAST 1
@@ -16,6 +18,7 @@ param set-default MAV_2_UDP_PRT 14550
 
 param set-default SENS_EN_INA226 1
 param set-default SENS_EN_THERMAL 1
+param set-default SENS_IMU_MODE 1
 
 if ver hwtypecmp ARKV6XRT000
 then
