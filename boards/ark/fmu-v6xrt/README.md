@@ -31,12 +31,12 @@ Three consequences worth internalising:
 
 ## IMUs
 
-Three, on separate SPI buses with their own data-ready lines. All run at their widest full-scale and as little on-chip filtering as the part allows; PX4 does its own filtering downstream.
+Three, on separate SPI buses with their own data-ready lines. All run at the widest full-scale of the channel they publish and as little on-chip filtering as the part allows; PX4 does its own filtering downstream.
 
 | | bus | started as | ODR | publishes | full-scale |
 |---|---|---|---|---|---|
 | ICM-45686 | SPI1 | `icm45686 -R 6 -b 1 -s` | 6.4 kHz, FIFO | 800 Hz | ±4000 dps / ±32 g |
-| LSM6DSV80X | SPI3 | `lsm6dsv -R 1 -b 3 -s -T 80` | 7.68 kHz, FIFO | 768 Hz | ±4000 dps / ±80 g |
+| LSM6DSV80X | SPI3 | `lsm6dsv -R 1 -b 3 -s -T 80` | 7.68 kHz, FIFO | 768 Hz | ±4000 dps / ±16 g (low-g channel) |
 | IIM-20670 | SPI2 | `iim20670 -R 2 -b 2 -s` | 8 kHz internal, read every 8th DRDY | 1000 Hz | ±1966 dps / ±65.5 g |
 
 Publish rate is `IMU_GYRO_RATEMAX` (800 on this board) rounded to whole FIFO sample periods: 6400/800 = 8 samples per batch, 7680/800 = 9.6 → 10, hence 768 Hz. The IIM-20670 has no FIFO and is read on every eighth edge of its 8 kHz sample clock.
@@ -44,8 +44,8 @@ Publish rate is `IMU_GYRO_RATEMAX` (800 on this board) rounded to whole FIFO sam
 **Instance order is start order**, and the sensor voter keeps the lowest instance at equal `CAL_*_PRIO`, so `init/rc.board_sensors` starts them ICM-45686 → LSM6DSV80X → IIM-20670 and the ICM-45686 is the primary by default. The IIM-20670 goes last on purpose:
 
 - **IIM-20670 — 60 Hz gyro filter.** It is an automotive part whose on-chip low-pass cannot be set wider than 60 Hz on the gyro (400 Hz on the accel). That is several milliseconds of group delay ahead of the rate loop, so it is a fallback and navigation IMU, not a control gyro. Its gyro traces will look smoother and later than the other two; that is the filter, not a fault.
-- **LSM6DSV80X — high-g accel channel, the most temperature-sensitive die on the board.** The driver publishes the part's ±80 g high-g accelerometer, not its ±16 g low-g one, so the range never changes mid-flight. That channel's zero-g offset is ±1.5 g typical (vs ±12 mg on the low-g channel), so an uncalibrated board reports `Accel 1 inconsistent`; a six-orientation accel calibration fixes that. That calibration is only good near the die temperature it was done at: the offset moves **~2 mg/°C, about 30× the other two IMUs**, so a 10 °C excursion from the calibration temperature is 0.2 m/s² of bias, over a quarter of the `COM_ARM_IMU_ACC` limit. That is why `HEATER1_SENS_ID` targets this die rather than the ICM-45686. Calibrate only once `heater status` reports the target met, fly at the same setpoint, and expect `Accel 1 inconsistent` on a cold board until the heater catches up. The 80X and 320X share `WHO_AM_I`, which is why the installed part is declared with `-T`.
-- **ICM-45686** — nothing to watch. FIR anti-alias filter and interpolator on (`GYRO/ACCEL_SRC_CTRL=2`), UI low-pass bypassed.
+- **LSM6DSV80X — the ±16 g low-g channel is the flight accel; the ±80 g high-g channel is unused.** The part carries two independent accelerometers. The driver publishes the low-g one: ±12 mg zero-g offset, 0.07 mg/°C, 60 µg/√Hz — tighter than the ICM-45686. The high-g element is a sports-impact sensor (±1.5 g typical offset, 2 mg/°C, 1000 µg/√Hz) and is left powered down; high-g coverage on this board is the IIM-20670's ±65.5 g. The 80X and 320X share `WHO_AM_I`, which is why the installed part is declared with `-T`.
+- **ICM-45686** — nothing to watch. FIR anti-alias filter and interpolator on (`GYRO/ACCEL_SRC_CTRL=2`), UI low-pass bypassed. `HEATER1_SENS_ID` targets this die (`3407882`): the heater pad warms the whole board, this only picks the primary IMU as the temperature feedback.
 
 Also on the board: IIS2MDC magnetometer on I2C3 (0x1E; its temperature reads ~25 °C regardless) and a BMP390 barometer on I2C2 (0x76, started with `-X` because I2C2 is an external bus).
 

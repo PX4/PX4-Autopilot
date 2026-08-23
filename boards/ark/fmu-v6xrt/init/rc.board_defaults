@@ -19,8 +19,8 @@ param set-default SENS_EN_THERMAL 1
 
 if ver hwtypecmp ARKV6XRT000
 then
-	# LSM6DSV80X on SPI3: its high-g channel drifts 2 mg/degC, 30x the other two IMUs
-	param set-default HEATER1_SENS_ID 1572890
+	# regulate on the primary IMU, the ICM-45686 on SPI1
+	param set-default HEATER1_SENS_ID 3407882
 fi
 
 param set-default RC_CRSF_PRT_CFG 300
