@@ -234,22 +234,25 @@ bool GZBridge::subscribeImu(bool required)
 
 		if (i == 0) {
 			imu_topic = base_topic + "imu_sensor/imu";
+
 		} else {
 			imu_topic = base_topic + "imu_sensor_" + std::to_string(i) + "/imu";
 		}
 
 		// Pass IMU index in the callback
-		std::function<void(const gz::msgs::IMU &)> callback = [this, i](const gz::msgs::IMU &msg) {
+		std::function<void(const gz::msgs::IMU &)> callback = [this, i](const gz::msgs::IMU & msg) {
 			imuCallback(msg, i);
 		};
 
 		if (!_node.Subscribe(imu_topic, callback)) {
 			// Only fail if instance 0 fails and it's marked as required
 			if (i == 0 && required) {
-					PX4_ERR("failed to subscribe to primary IMU topic: %s", imu_topic.c_str());
-					return false;
-				}
-			if (i<count) PX4_WARN("IMU instance %d topic not found: %s", i, imu_topic.c_str());
+				PX4_ERR("failed to subscribe to primary IMU topic: %s", imu_topic.c_str());
+				return false;
+			}
+
+			if (i < count) { PX4_WARN("IMU instance %d topic not found: %s", i, imu_topic.c_str()); }
+
 		} else {
 			PX4_INFO("Subscribed to IMU[%d]: %s", i, imu_topic.c_str());
 		}
@@ -269,12 +272,13 @@ bool GZBridge::subscribeMag(bool required)
 
 		if (i == 0) {
 			mag_topic = base_topic + "magnetometer_sensor/magnetometer";
+
 		} else {
 			mag_topic = base_topic + "magnetometer_sensor_" + std::to_string(i) + "/magnetometer";
 		}
 
 		// Pass Magnetometer index in the callback
-		std::function<void(const gz::msgs::Magnetometer &)> callback = [this, i](const gz::msgs::Magnetometer &msg) {
+		std::function<void(const gz::msgs::Magnetometer &)> callback = [this, i](const gz::msgs::Magnetometer & msg) {
 			magnetometerCallback(msg, i);
 		};
 
@@ -284,7 +288,9 @@ bool GZBridge::subscribeMag(bool required)
 				PX4_ERR("failed to subscribe to primary Magnetometer topic: %s", mag_topic.c_str());
 				return false;
 			}
-			if (i<count) PX4_WARN("Magnetometer instance %d topic not found: %s", i, mag_topic.c_str());
+
+			if (i < count) { PX4_WARN("Magnetometer instance %d topic not found: %s", i, mag_topic.c_str()); }
+
 		} else {
 			PX4_INFO("Subscribed to Magnetometer[%d]: %s", i, mag_topic.c_str());
 		}
@@ -369,12 +375,13 @@ bool GZBridge::subscribeNavsat(bool required)
 
 		if (i == 0) {
 			gps_topic = base_topic + "navsat_sensor/navsat";
+
 		} else {
 			gps_topic = base_topic + "navsat_sensor_" + std::to_string(i) + "/navsat";
 		}
 
 		// Pass GPS index in the callback
-		std::function<void(const gz::msgs::NavSat &)> callback = [this, i](const gz::msgs::NavSat &msg) {
+		std::function<void(const gz::msgs::NavSat &)> callback = [this, i](const gz::msgs::NavSat & msg) {
 			navSatCallback(msg, i);
 		};
 
@@ -385,7 +392,8 @@ bool GZBridge::subscribeNavsat(bool required)
 				return false;
 			}
 
-			if (i<count) PX4_WARN("GPS instance %d topic not found: %s", i, gps_topic.c_str());
+			if (i < count) { PX4_WARN("GPS instance %d topic not found: %s", i, gps_topic.c_str()); }
+
 		} else {
 			PX4_INFO("Subscribed to GPS[%d]: %s", i, gps_topic.c_str());
 		}
@@ -467,6 +475,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg, uint8_t i
 	if (instance_index >= count) {
 		return;
 	}
+
 	const uint64_t timestamp = hrt_absolute_time();
 
 	_px4_mag[instance_index].set_temperature(_temperature); // this will be static if no airspeed sensor is on the model.
@@ -508,7 +517,8 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg, uint8_t instance_index)
 {
 	// Bounds check and safety guard
 	uint8_t count = math::min(_MAX_IMU_SENSORS, static_cast<uint8_t>(_sim_gz_en_imu.get()));
-	if (instance_index >= count ) {
+
+	if (instance_index >= count) {
 		return;
 	}
 
@@ -518,14 +528,14 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg, uint8_t instance_index)
 	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
 	gz::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
-						msg.linear_acceleration().x(),
-						msg.linear_acceleration().y(),
-						msg.linear_acceleration().z()));
+					     msg.linear_acceleration().x(),
+					     msg.linear_acceleration().y(),
+					     msg.linear_acceleration().z()));
 
 	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
-						msg.angular_velocity().x(),
-						msg.angular_velocity().y(),
-						msg.angular_velocity().z()));
+					    msg.angular_velocity().x(),
+					    msg.angular_velocity().y(),
+					    msg.angular_velocity().z()));
 
 	// Update the specific IMU instance wrapper
 	_px4_accel[instance_index].update(timestamp, accel_b.X(), accel_b.Y(), accel_b.Z());
@@ -717,29 +727,29 @@ void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude
 			   float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
 {
 	_gps_pos_noise_n[instance_index] = _pos_markov_time * _gps_pos_noise_n[instance_index] +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-			   0.02f * _gps_pos_noise_n[instance_index];
+					   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					   0.02f * _gps_pos_noise_n[instance_index];
 
 	_gps_pos_noise_e[instance_index] = _pos_markov_time * _gps_pos_noise_e[instance_index] +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-			   0.02f * _gps_pos_noise_e[instance_index];
+					   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					   0.02f * _gps_pos_noise_e[instance_index];
 
 	_gps_pos_noise_d[instance_index] = _pos_markov_time * _gps_pos_noise_d[instance_index] +
-			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
-			   0.02f * _gps_pos_noise_d[instance_index];
+					   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+					   0.02f * _gps_pos_noise_d[instance_index];
 
 	latitude += math::degrees((double)_gps_pos_noise_n[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
 	longitude += math::degrees((double)_gps_pos_noise_e[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
 	altitude += (double)_gps_pos_noise_d[instance_index];
 
 	_gps_vel_noise_n[instance_index] = _vel_markov_time * _gps_vel_noise_n[instance_index] +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+					   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
 	_gps_vel_noise_e[instance_index] = _vel_markov_time * _gps_vel_noise_e[instance_index] +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+					   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
 	_gps_vel_noise_d[instance_index] = _vel_markov_time * _gps_vel_noise_d[instance_index] +
-			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+					   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
 	vel_north += _gps_vel_noise_n[instance_index];
 	vel_east += _gps_vel_noise_e[instance_index];
@@ -749,9 +759,10 @@ void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude
 void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_index)
 {
 	uint8_t count = math::min(_MAX_GPS_SENSORS, static_cast<uint8_t>(_sim_gz_en_gps.get()));
+
 	if (instance_index >= count) {
-                return;
-        }
+		return;
+	}
 
 	const uint64_t timestamp = hrt_absolute_time();
 
@@ -770,14 +781,14 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg, uint8_t instance_inde
 	float vel_down = -msg.velocity_up();
 
 	if (instance_index == 0) {
-                vehicle_global_position_s gps_truth{};
-                gps_truth.timestamp = timestamp;
-                gps_truth.timestamp_sample = timestamp;
-                gps_truth.lat = latitude;
-                gps_truth.lon = longitude;
-                gps_truth.alt = altitude;
-                _gpos_ground_truth_pub.publish(gps_truth);
-        }
+		vehicle_global_position_s gps_truth{};
+		gps_truth.timestamp = timestamp;
+		gps_truth.timestamp_sample = timestamp;
+		gps_truth.lat = latitude;
+		gps_truth.lon = longitude;
+		gps_truth.alt = altitude;
+		_gpos_ground_truth_pub.publish(gps_truth);
+	}
 
 	// Apply noise model (based on ublox F9P)
 	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down, instance_index);
